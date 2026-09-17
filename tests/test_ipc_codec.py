@@ -102,3 +102,34 @@ def test_hypothesis_p08_codec_round_trip(dotted_type, trace_id, ts_ns, src, payl
     assert decoded.ts_ns == env.ts_ns
     assert decoded.src == env.src
     assert decoded.payload == env.payload
+
+
+def test_ui_schemas_codec_round_trip():
+    from lucca.core.ipc_schemas import (
+        UICaptionPayload,
+        UIConfigUpdatePayload,
+        UIUserTextPayload,
+    )
+
+    # 1. UICaptionPayload
+    cap = UICaptionPayload(text="Hello world!", is_final=True, source="assistant")
+    env_cap = Envelope(type="ui.caption", trace_id="123", ts_ns=1000, src="core", payload=cap.model_dump())
+    dec_cap = decode_envelope(encode_envelope(env_cap))
+    assert dec_cap.payload["text"] == "Hello world!"
+    assert dec_cap.payload["is_final"] is True
+    assert dec_cap.payload["source"] == "assistant"
+
+    # 2. UIUserTextPayload
+    user_txt = UIUserTextPayload(text="What is your status?")
+    env_txt = Envelope(type="ui.user_text", trace_id="", ts_ns=2000, src="ui", payload=user_txt.model_dump())
+    dec_txt = decode_envelope(encode_envelope(env_txt))
+    assert dec_txt.payload["text"] == "What is your status?"
+
+    # 3. UIConfigUpdatePayload
+    cfg = UIConfigUpdatePayload(voice="af_bella", speed=1.05, ptt_key="alt-gr")
+    env_cfg = Envelope(type="ui.config_update", trace_id="", ts_ns=3000, src="ui", payload=cfg.model_dump())
+    dec_cfg = decode_envelope(encode_envelope(env_cfg))
+    assert dec_cfg.payload["voice"] == "af_bella"
+    assert dec_cfg.payload["speed"] == 1.05
+    assert dec_cfg.payload["ptt_key"] == "alt-gr"
+

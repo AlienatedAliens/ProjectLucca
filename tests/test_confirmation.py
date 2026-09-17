@@ -13,6 +13,7 @@ from lucca.core.ipc_schemas import PTTReleasedPayload
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import Done, LLMUsage, ToolCall, ToolCallEnd
 from lucca.sandbox.policy import parse_confirmation_response
+from tests.fakes.fake_asr import FakeASR
 from tests.fakes.fake_llm import FakeLLM
 from tests.fakes.fake_tts import FakeTTS
 
@@ -65,7 +66,7 @@ def test_parse_confirmation_response():
 def test_orch(tmp_path: Path):
     ws = tmp_path / "orch_ws"
     ws.mkdir()
-    orch = Orchestrator(tts=FakeTTS, execute_tools=True)
+    orch = Orchestrator(tts=FakeTTS, asr=FakeASR, execute_tools=True)
     orch.sandbox.workspace_mgr.workspace_root = ws
     orch.sandbox.file_tool.workspace_root = ws
     orch.sandbox.launcher.workspace_root = ws

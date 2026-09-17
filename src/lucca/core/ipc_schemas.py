@@ -164,6 +164,18 @@ class UIConfirmPayload(BaseModel):
 
 class UICaptionPayload(BaseModel):
     text: str
+    is_final: bool = False
+    source: Literal["assistant", "user", "status"] = "assistant"
+
+
+class UIUserTextPayload(BaseModel):
+    text: str
+
+
+class UIConfigUpdatePayload(BaseModel):
+    voice: str | None = None
+    speed: float | None = None
+    ptt_key: str | None = None
 
 
 class UIConfirmResultPayload(BaseModel):

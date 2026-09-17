@@ -97,8 +97,8 @@ class ASRWorker:
                 logprobs.append(float(seg.avg_logprob))
                 segments_out.append(
                     Segment(
-                        start=float(seg.start),
-                        end=float(seg.end),
+                        t0=float(seg.start),
+                        t1=float(seg.end),
                         text=seg_text,
                         avg_logprob=float(seg.avg_logprob),
                     )

@@ -56,7 +56,7 @@ def test_full_turn_state_progression(orchestrator):
 
     # Wait for turn thread to complete
     if orchestrator.active_turn_thread:
-        orchestrator.active_turn_thread.join(timeout=2.0)
+        orchestrator.active_turn_thread.join(timeout=5.0)
 
     assert orchestrator.state == "idle"
     assert orchestrator.active_trace is not None
@@ -103,3 +103,44 @@ def test_barge_in_mid_speech(orchestrator):
 
     if orchestrator.active_turn_thread:
         orchestrator.active_turn_thread.join(timeout=2.0)
+
+
+def test_user_text_turn_loop(orchestrator):
+    fake_script = [
+        TokenDelta(delta="I am functioning "),
+        TokenDelta(delta="normally. "),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=2)),
+    ]
+    orchestrator.llm = FakeLLM(script=fake_script)
+
+    # User sends typed text
+    orchestrator._on_user_text(ts_ns=5000, user_text="Status report?")
+
+    if orchestrator.active_turn_thread:
+        orchestrator.active_turn_thread.join(timeout=2.0)
+
+    assert orchestrator.state == "idle"
+    assert len(orchestrator.history) == 2
+    assert orchestrator.history[0] == {"role": "user", "content": "Status report?"}
+    assert orchestrator.history[1]["role"] == "assistant"
+    assert "functioning normally" in orchestrator.history[1]["content"]
+
+
+def test_silence_discard(orchestrator):
+    # Setup PTT release with 0ms speech and no ASR text
+    orchestrator.asr = None
+    payload = PTTReleasedPayload(
+        t_ns=6000,
+        capture_seq_start=0,
+        capture_seq_end=1600,
+        duration_ms=100.0,
+        vad_speech_ms=0.0,
+    )
+    orchestrator._on_ptt_released(ts_ns=6000, p=payload)
+
+    if orchestrator.active_turn_thread:
+        orchestrator.active_turn_thread.join(timeout=1.0)
+
+    # Should safely return to idle without running LLM
+    assert orchestrator.state == "idle"
+

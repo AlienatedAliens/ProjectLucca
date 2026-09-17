@@ -1,9 +1,19 @@
 import json
 import math
+from collections.abc import Callable
 from pathlib import Path
 
 from PyQt6.QtCore import QPoint, QRectF, Qt, QTimer
-from PyQt6.QtGui import QBrush, QColor, QMouseEvent, QPainter, QPainterPath, QPen, QPixmap
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QMouseEvent,
+    QMoveEvent,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+)
 from PyQt6.QtWidgets import QWidget
 
 from lucca.ui.states import THEMES, AvatarTheme
@@ -15,6 +25,11 @@ class CompanionSprite(QWidget):
         self.sprite_size = size
         self.state = "idle"
         self.theme: AvatarTheme = THEMES["idle"]
+
+        # Callbacks for desktop integration
+        self.on_geometry_changed: Callable[[], None] | None = None
+        self.on_toggle_chat: Callable[[], None] | None = None
+        self.on_context_menu: Callable[[QPoint], None] | None = None
 
         # Animation state
         self.phase = 0.0
@@ -206,7 +221,7 @@ class CompanionSprite(QWidget):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawPath(path)
 
-    # Mouse drag support
+    # Desktop interaction & mouse support
     def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if event and event.button() == Qt.MouseButton.LeftButton:
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
@@ -215,4 +230,44 @@ class CompanionSprite(QWidget):
     def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
         if event and event.buttons() == Qt.MouseButton.LeftButton and self.drag_position:
             self.move(event.globalPosition().toPoint() - self.drag_position)
+            if self.on_geometry_changed:
+                self.on_geometry_changed()
             event.accept()
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
+        if event and event.button() == Qt.MouseButton.LeftButton:
+            if self.on_toggle_chat:
+                self.on_toggle_chat()
+            event.accept()
+
+    def contextMenuEvent(self, event: object) -> None:
+        if self.on_context_menu:
+            global_pos = self.cursor().pos()
+            self.on_context_menu(global_pos)
+
+    def moveEvent(self, event: QMoveEvent | None) -> None:
+        super().moveEvent(event)
+        if self.on_geometry_changed:
+            self.on_geometry_changed()
+
+    def reset_position(self) -> None:
+        """Reset avatar position to bottom-right corner."""
+        screen = self.screen()
+        if screen:
+            geom = screen.availableGeometry()
+            self.move(geom.width() - self.width() - 50, geom.height() - self.height() - 70)
+        else:
+            self.move(100, 100)
+        if self.on_geometry_changed:
+            self.on_geometry_changed()
+
+    def toggle_always_on_top(self) -> bool:
+        """Toggle WindowStaysOnTopHint and return new state."""
+        flags = self.windowFlags()
+        is_on_top = bool(flags & Qt.WindowType.WindowStaysOnTopHint)
+        if is_on_top:
+            self.setWindowFlags(flags & ~Qt.WindowType.WindowStaysOnTopHint)
+        else:
+            self.setWindowFlags(flags | Qt.WindowType.WindowStaysOnTopHint)
+        self.show()
+        return not is_on_top

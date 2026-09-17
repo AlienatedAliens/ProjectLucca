@@ -67,6 +67,14 @@ class PTTListener:
         self._press_time_monotonic = 0.0
         self._press_time_ns = 0
 
+    def set_key(self, key_name: str) -> None:
+        """Dynamically rebind PTT target key."""
+        k = key_name.lower().strip()
+        if k in KEY_MAP:
+            self.target_vks = KEY_MAP[k]
+        elif k in ("all", "both", "default"):
+            self.target_vks = [VK_RCONTROL, VK_RMENU]
+
     def is_key_down(self) -> bool:
         """Queries whether any of the target keys is physically held down right now."""
         for vk in self.target_vks:

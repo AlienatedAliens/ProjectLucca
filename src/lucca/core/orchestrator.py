@@ -22,9 +22,12 @@ from lucca.core.ipc_schemas import (
     PlayAbortPayload,
     PlayBeginPayload,
     PTTReleasedPayload,
+    UICaptionPayload,
+    UIConfigUpdatePayload,
     UIConfirmPayload,
     UIConfirmResultPayload,
     UIStatePayload,
+    UIUserTextPayload,
     decode_envelope,
     encode_envelope,
 )
@@ -152,6 +155,22 @@ class Orchestrator:
         except zmq.ZMQError as exc:
             logger.debug("publish_bus_zmq_error", error=str(exc))
 
+    def _publish_caption(
+        self,
+        text: str,
+        source: Literal["assistant", "user", "status"] = "assistant",
+        is_final: bool = False,
+    ) -> None:
+        trace_id = self.active_trace.trace_id if self.active_trace else ""
+        env = Envelope(
+            type="ui.caption",
+            trace_id=trace_id,
+            ts_ns=time.monotonic_ns(),
+            src="core",
+            payload=UICaptionPayload(text=text, is_final=is_final, source=source).model_dump(),
+        )
+        self._publish_bus(env)
+
     def _ingest_loop(self) -> None:
         while self.running:
             try:
@@ -172,6 +191,16 @@ class Orchestrator:
             elif env.type == "ptt.released":
                 p = PTTReleasedPayload.model_validate(env.payload)
                 self._on_ptt_released(env.ts_ns, p)
+            elif env.type == "ui.user_text":
+                p_text = UIUserTextPayload.model_validate(env.payload)
+                self._on_user_text(env.ts_ns, p_text.text)
+            elif env.type == "ui.config_update":
+                p_cfg = UIConfigUpdatePayload.model_validate(env.payload)
+                if p_cfg.voice and hasattr(self.tts, "set_voice"):
+                    self.tts.set_voice(p_cfg.voice)
+                if p_cfg.speed is not None and hasattr(self.tts, "set_speed"):
+                    self.tts.set_speed(p_cfg.speed)
+                logger.info("tts_config_updated", voice=p_cfg.voice, speed=p_cfg.speed)
             elif env.type == "audio.first_sample_played":
                 if self.active_trace:
                     self.active_trace.t_first_sample = env.ts_ns
@@ -194,6 +223,8 @@ class Orchestrator:
             # Instant barge-in: abort LLM and playback
             self._abort_turn()
 
+        print("\n[PTT] 🎙️ Listening... (Hold Alt-Gr or Right-Ctrl to speak)", flush=True)
+        self._publish_caption("Listening... 🎙️", source="status", is_final=False)
         self._set_state("listening")
 
     def _abort_turn(self) -> None:
@@ -236,10 +267,33 @@ class Orchestrator:
             t_key_release=ts_ns,
         )
         self.active_trace = trace
+        print(f"[PTT] ⚙️ Processing speech ({p.duration_ms:.0f}ms captured)...", flush=True)
+        self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
         self._set_state("thinking")
 
         # Launch turn worker thread
         t = threading.Thread(target=self._run_turn, args=(trace, p), daemon=True)
+        self.active_turn_thread = t
+        t.start()
+
+    def _on_user_text(self, ts_ns: int, user_text: str) -> None:
+        if self.state in ("speaking", "thinking", "confirm_wait"):
+            self._abort_turn()
+
+        trace_id = str(ulid.ULID())
+        trace = TurnTrace(
+            trace_id=trace_id,
+            mode="transcript",
+            t_key_release=ts_ns,
+        )
+        self.active_trace = trace
+
+        print(f"\n[User] 💬 \"{user_text}\"", flush=True)
+        self._publish_caption(user_text, source="user", is_final=True)
+        self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
+        self._set_state("thinking")
+
+        t = threading.Thread(target=self._run_text_turn, args=(trace, user_text), daemon=True)
         self.active_turn_thread = t
         t.start()
 
@@ -249,6 +303,28 @@ class Orchestrator:
 
         # Read audio slice from capture ring
         pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
+
+        # Transcribe audio with ASR
+        transcribed_text = ""
+        if self.asr and len(pcm_samples) > 0:
+            asr_res = self.asr.transcribe(pcm_samples)
+            transcribed_text = asr_res.text.strip()
+
+        # Silence check: discard if low speech and no transcribed words
+        if p.vad_speech_ms < 100.0 and not transcribed_text:
+            print("[PTT] No speech detected.\n", flush=True)
+            self._publish_caption(
+                "I didn't hear anything. (Hold Alt-Gr or Right-Ctrl while speaking)",
+                source="status",
+                is_final=True,
+            )
+            self._set_state("idle")
+            return
+
+        if transcribed_text:
+            print(f"\n[User] 🎙️ \"{transcribed_text}\"", flush=True)
+            self._publish_caption(transcribed_text, source="user", is_final=True)
+            self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
 
         # Encode to WAV bytes
         wav_buf = io.BytesIO()
@@ -274,7 +350,16 @@ class Orchestrator:
         full_response_text: list[str] = []
 
         try:
-            for event in self.llm.stream_turn(current_audio_b64=wav_b64, history=self.history):
+            llm_audio = wav_b64 if self.config.llm.mode == "audio" else None
+            is_trans_mode = self.config.llm.mode == "transcript"
+            llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
+
+            print("[Lucca] ", end="", flush=True)
+            for event in self.llm.stream_turn(
+                current_audio_b64=llm_audio,
+                current_text=llm_text,
+                history=self.history,
+            ):
                 if trace.interrupted:
                     break
 
@@ -285,6 +370,10 @@ class Orchestrator:
 
                     trace.tokens_out += 1
                     full_response_text.append(event.delta)
+                    print(event.delta, end="", flush=True)
+
+                    accumulated = "".join(full_response_text)
+                    self._publish_caption(accumulated, source="assistant", is_final=False)
 
                     for chunk in self.chunker.feed(event.delta):
                         if trace.interrupted:
@@ -310,15 +399,96 @@ class Orchestrator:
                 self.play_ring.set_flag(FLAG_EOS)
 
             trace.t_llm_done = time.monotonic_ns()
+            print("\n", flush=True)
 
             # Record turn in history
             if full_response_text and not trace.interrupted:
                 reply_str = "".join(full_response_text)
+                user_msg = transcribed_text or "[Voice audio]"
+                self.history.append({"role": "user", "content": user_msg})
                 self.history.append({"role": "assistant", "content": reply_str})
+                self._publish_caption(reply_str, source="assistant", is_final=True)
 
         except Exception as exc:  # noqa: BLE001
             if not trace.interrupted:
                 logger.error("turn_execution_error", trace_id=trace.trace_id, error=str(exc))
+                print(f"\n[Error] {exc}", flush=True)
+            trace.interrupted = True
+        finally:
+            trace.t_postturn_done = time.monotonic_ns()
+            log_turn_trace(trace)
+            self._set_state("idle")
+
+    def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
+        trace.t_llm_sent = time.monotonic_ns()
+        self.sandbox.reset_turn()
+
+        # Arm audio playback
+        begin_env = Envelope(
+            type="play.begin",
+            trace_id=trace.trace_id,
+            ts_ns=time.monotonic_ns(),
+            src="core",
+            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        )
+        self._publish_bus(begin_env)
+
+        chunk_index = 0
+        first_token_seen = False
+        full_response_text: list[str] = []
+
+        try:
+            print("[Lucca] ", end="", flush=True)
+            for event in self.llm.stream_turn(current_text=user_text, history=self.history):
+                if trace.interrupted:
+                    break
+
+                if isinstance(event, TokenDelta) and event.delta:
+                    if not first_token_seen:
+                        first_token_seen = True
+                        trace.t_llm_first_token = time.monotonic_ns()
+
+                    trace.tokens_out += 1
+                    full_response_text.append(event.delta)
+                    print(event.delta, end="", flush=True)
+
+                    accumulated = "".join(full_response_text)
+                    self._publish_caption(accumulated, source="assistant", is_final=False)
+
+                    for chunk in self.chunker.feed(event.delta):
+                        if trace.interrupted:
+                            break
+                        if chunk_index == 0:
+                            trace.t_first_chunk = time.monotonic_ns()
+                            self._set_state("speaking")
+
+                        self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
+                        chunk_index += 1
+
+                elif isinstance(event, ToolCallEnd):
+                    self._handle_tool_call(trace, event.call.tool, dict(event.call.args))
+
+            # Flush remaining chunker text
+            if not trace.interrupted:
+                for chunk in self.chunker.flush():
+                    self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
+                    chunk_index += 1
+
+                self.play_ring.set_flag(FLAG_EOS)
+
+            trace.t_llm_done = time.monotonic_ns()
+            print("\n", flush=True)
+
+            if full_response_text and not trace.interrupted:
+                reply_str = "".join(full_response_text)
+                self.history.append({"role": "user", "content": user_text})
+                self.history.append({"role": "assistant", "content": reply_str})
+                self._publish_caption(reply_str, source="assistant", is_final=True)
+
+        except Exception as exc:  # noqa: BLE001
+            if not trace.interrupted:
+                logger.error("text_turn_execution_error", trace_id=trace.trace_id, error=str(exc))
+                print(f"\n[Error] {exc}", flush=True)
             trace.interrupted = True
         finally:
             trace.t_postturn_done = time.monotonic_ns()
@@ -345,6 +515,7 @@ class Orchestrator:
         )
         self._publish_bus(begin_env)
         self._set_state("speaking")
+        self._publish_caption(text, source="assistant", is_final=True)
         self.tts.synthesize(chunk_id=0, text=text, is_first=True)
         self.play_ring.set_flag(FLAG_EOS)
 

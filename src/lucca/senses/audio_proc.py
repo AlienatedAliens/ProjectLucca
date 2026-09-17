@@ -24,6 +24,7 @@ from lucca.core.ipc_schemas import (
     PTTPressedPayload,
     PTTReleasedPayload,
     SysPongPayload,
+    UIConfigUpdatePayload,
     decode_envelope,
     encode_envelope,
 )
@@ -89,6 +90,7 @@ class AudioProcess:
         if self.is_playing:
             self._handle_barge_in()
 
+        print("\n[AUDIO] PTT Pressed -> Capturing microphone...", flush=True)
         env = Envelope(
             type="ptt.pressed",
             trace_id="",
@@ -106,6 +108,7 @@ class AudioProcess:
         slice_samples = self.cap_ring.read_slice(capture_start, capture_end)
         vad_ms, _, _ = self.vad.process(slice_samples)
 
+        print(f"[AUDIO] PTT Released ({duration_ms:.0f}ms, speech: {vad_ms:.0f}ms)", flush=True)
         env = Envelope(
             type="ptt.released",
             trace_id="",
@@ -290,6 +293,14 @@ class AudioProcess:
                     env = decode_envelope(raw)
                     if env.type == "play.abort":
                         self._handle_barge_in()
+                    elif env.type == "ui.config_update":
+                        p_cfg = UIConfigUpdatePayload.model_validate(env.payload)
+                        if p_cfg.ptt_key:
+                            self.ptt.set_key(p_cfg.ptt_key)
+                            print(
+                                f"[AUDIO] PTT target key reconfigured to: {p_cfg.ptt_key}",
+                                flush=True,
+                            )
                 except (IPCError, zmq.ZMQError) as exc:
                     logger.debug("audio_bus_message_error", error=str(exc))
 
