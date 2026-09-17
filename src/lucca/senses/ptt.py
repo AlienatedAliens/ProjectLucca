@@ -11,15 +11,32 @@ from typing import Final
 
 VK_RCONTROL: Final[int] = 0xA3  # Windows virtual-key code for Right Control
 VK_LCONTROL: Final[int] = 0xA2
+VK_RMENU: Final[int] = 0xA5     # Windows virtual-key code for Right Alt / Alt-Gr
+VK_LMENU: Final[int] = 0xA4     # Windows virtual-key code for Left Alt
+VK_RSHIFT: Final[int] = 0xA1    # Windows virtual-key code for Right Shift
 DEFAULT_POLL_INTERVAL_S: Final[float] = 0.005  # 5 ms polling interval
 DEBOUNCE_MIN_SECONDS: Final[float] = 0.150  # Discard presses < 150 ms
 AUTO_RELEASE_SECONDS: Final[float] = 29.5  # Hard ceiling auto-release
+
+KEY_MAP: Final[dict[str, list[int]]] = {
+    "right ctrl": [VK_RCONTROL],
+    "right control": [VK_RCONTROL],
+    "rctrl": [VK_RCONTROL],
+    "alt gr": [VK_RMENU],
+    "altgr": [VK_RMENU],
+    "alt-gr": [VK_RMENU],
+    "right alt": [VK_RMENU],
+    "ralt": [VK_RMENU],
+    "right shift": [VK_RSHIFT],
+    "rshift": [VK_RSHIFT],
+}
 
 
 class PTTListener:
     """
     High-priority Windows PTT listener polling GetAsyncKeyState.
     Avoids low-level keyboard hook unhooks and hangs.
+    Accepts Right Control or Alt-Gr (Right Alt) by default.
     """
 
     def __init__(
@@ -28,13 +45,21 @@ class PTTListener:
         on_released: Callable[[int, float], None],
         poll_interval_s: float = DEFAULT_POLL_INTERVAL_S,
         max_duration_s: float = AUTO_RELEASE_SECONDS,
-        target_vk: int = VK_RCONTROL,
+        target_vk: int | None = None,
+        key_name: str | None = None,
     ) -> None:
         self.on_pressed = on_pressed
         self.on_released = on_released
         self.poll_interval_s = poll_interval_s
         self.max_duration_s = max_duration_s
-        self.target_vk = target_vk
+
+        if target_vk is not None:
+            self.target_vks: list[int] = [target_vk]
+        elif key_name and key_name.lower().strip() in KEY_MAP:
+            self.target_vks = KEY_MAP[key_name.lower().strip()]
+        else:
+            # Default to accepting either Right Control OR Alt-Gr (Right Alt)
+            self.target_vks = [VK_RCONTROL, VK_RMENU]
 
         self._running = False
         self._thread: threading.Thread | None = None
@@ -43,10 +68,12 @@ class PTTListener:
         self._press_time_ns = 0
 
     def is_key_down(self) -> bool:
-        """Queries whether the target key is physically held down right now."""
-        # Most significant bit is set if the key is down
-        state = int(ctypes.windll.user32.GetAsyncKeyState(self.target_vk))
-        return bool((state & 0x8000) != 0)
+        """Queries whether any of the target keys is physically held down right now."""
+        for vk in self.target_vks:
+            state = int(ctypes.windll.user32.GetAsyncKeyState(vk))
+            if (state & 0x8000) != 0:
+                return True
+        return False
 
     def start(self) -> None:
         if self._running:

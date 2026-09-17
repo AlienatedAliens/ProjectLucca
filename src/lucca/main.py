@@ -101,7 +101,7 @@ class Supervisor:
 
         print("=" * 65)
         print(f"  LUCCA ONLINE: All 4 processes active. (LLM Mode: {self.config.llm.mode.upper()})")
-        print("  Press Right-Ctrl to talk to Lucca.")
+        print("  Press Right-Ctrl or Alt-Gr to talk to Lucca.")
         print("=" * 65)
 
     def _ensure_llama_server(self) -> None:

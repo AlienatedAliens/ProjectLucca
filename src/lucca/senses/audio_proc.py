@@ -72,11 +72,12 @@ class AudioProcess:
         self.input_stream: sd.InputStream | None = None
         self.output_stream: sd.OutputStream | None = None
 
-        # PTT
+        # PTT (Right-Ctrl or Alt-Gr)
         self.ptt = PTTListener(
             on_pressed=self._on_ptt_pressed,
             on_released=self._on_ptt_released,
             max_duration_s=self.config.ptt.max_seconds,
+            key_name=self.config.ptt.key,
         )
 
     def _on_ptt_pressed(self, ts_ns: int) -> None:
