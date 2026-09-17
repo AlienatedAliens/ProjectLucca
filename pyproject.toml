@@ -78,9 +78,11 @@ module = [
     "openvino.*",
     "kokoro_onnx.*",
     "sqlite_vec.*",
-    "pyzmq.*",
     "zmq.*",
     "PyQt6.*",
+    "transformers.*",
+    "faster_whisper.*",
+    "ulid.*",
 ]
 ignore_missing_imports = true
 
@@ -88,6 +90,7 @@ ignore_missing_imports = true
 minversion = "8.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+pythonpath = [".", "src"]
 asyncio_mode = "auto"
 markers = [
     "hw: Hardware-dependent tests (NPU/dGPU/Audio)",

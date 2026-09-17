@@ -3,10 +3,12 @@ Project Lucca — Inter-Process Communication (IPC) Schemas
 Spec 01 §2, §4 (ZeroMQ Message Catalogue)
 """
 
+import struct
 from typing import Literal
 
 from pydantic import BaseModel, JsonValue
 
+from lucca.core.exceptions import IPCError
 from lucca.core.schemas import Segment
 
 # ============================================================================
@@ -181,3 +183,50 @@ class SysPingPayload(BaseModel):
 class SysPongPayload(BaseModel):
     rss_mb: float
     queue_depth: int
+
+
+# ============================================================================
+# Wire Framing Codec (Spec 01 §2)
+# ============================================================================
+
+MAX_FRAME_SIZE = 1024 * 1024  # 1 MiB
+
+
+def encode_envelope(envelope: Envelope) -> bytes:
+    """
+    Serializes Envelope to wire format: uint32 big-endian length + UTF-8 JSON.
+    Raises IPCError if serialized size exceeds MAX_FRAME_SIZE (1 MiB).
+    """
+    payload_bytes = envelope.model_dump_json().encode("utf-8")
+    length = len(payload_bytes)
+    if length > MAX_FRAME_SIZE:
+        raise IPCError(f"Envelope size ({length} bytes) exceeds 1 MiB limit")
+
+    return struct.pack(">I", length) + payload_bytes
+
+
+def decode_envelope(data: bytes) -> Envelope:
+    """
+    Deserializes wire format into Envelope.
+    Accepts either raw length-prefixed bytes (>I) or bare JSON bytes.
+    Raises IPCError if corrupted or exceeds MAX_FRAME_SIZE.
+    """
+    if len(data) < 4:
+        raise IPCError(f"Frame truncated (length {len(data)} < 4 bytes)")
+
+    # Check if first 4 bytes indicate length prefix
+    declared_len = struct.unpack(">I", data[:4])[0]
+    if declared_len + 4 == len(data):
+        if declared_len > MAX_FRAME_SIZE:
+            raise IPCError(f"Declared frame size ({declared_len} bytes) exceeds 1 MiB limit")
+        json_bytes = data[4:]
+    else:
+        # Fallback to bare data if no length prefix matches exactly
+        if len(data) > MAX_FRAME_SIZE:
+            raise IPCError(f"Frame size ({len(data)} bytes) exceeds 1 MiB limit")
+        json_bytes = data
+
+    try:
+        return Envelope.model_validate_json(json_bytes.decode("utf-8"))
+    except Exception as e:
+        raise IPCError(f"Envelope decoding failed: {e}") from e
