@@ -23,7 +23,7 @@ def get_system_ram_gb() -> tuple[float, float]:
     stat = MEMORYSTATUSEX()
     stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
     ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
-    return stat.ullTotalPhys / (1024 ** 3), stat.ullAvailPhys / (1024 ** 3)
+    return stat.ullTotalPhys / (1024**3), stat.ullAvailPhys / (1024**3)
 
 
 def check_gpu_mshybrid() -> tuple[bool, str]:
@@ -32,10 +32,14 @@ def check_gpu_mshybrid() -> tuple[bool, str]:
         return False, "nvidia-smi not found in PATH"
     try:
         res = subprocess.run(
-            ["nvidia-smi", "--query-gpu=memory.used,memory.total,display_active", "--format=csv,noheader,nounits"],
+            [
+                "nvidia-smi",
+                "--query-gpu=memory.used,memory.total,display_active",
+                "--format=csv,noheader,nounits",
+            ],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         lines = [l.strip() for l in res.stdout.strip().splitlines() if l.strip()]
         if not lines:
@@ -45,11 +49,20 @@ def check_gpu_mshybrid() -> tuple[bool, str]:
         total_mb = float(total)
         disp_active = disp.lower() in ("enable", "enabled", "on", "true", "1")
         if used_mb < 300 and not disp_active:
-            return True, f"dGPU RTX 5080 Laptop VRAM used: {used_mb:.0f} MB / {total_mb:.0f} MB (Display: Off, MSHybrid verified)"
+            return (
+                True,
+                f"dGPU RTX 5080 Laptop VRAM used: {used_mb:.0f} MB / {total_mb:.0f} MB (Display: Off, MSHybrid verified)",
+            )
         elif used_mb < 500:
-            return True, f"dGPU VRAM used: {used_mb:.0f} MB / {total_mb:.0f} MB (Display: {'On' if disp_active else 'Off'})"
+            return (
+                True,
+                f"dGPU VRAM used: {used_mb:.0f} MB / {total_mb:.0f} MB (Display: {'On' if disp_active else 'Off'})",
+            )
         else:
-            return False, f"dGPU VRAM used: {used_mb:.0f} MB (Warning: >500 MB used; possible discrete-GPU mode)"
+            return (
+                False,
+                f"dGPU VRAM used: {used_mb:.0f} MB (Warning: >500 MB used; possible discrete-GPU mode)",
+            )
     except Exception as e:
         return False, f"nvidia-smi error: {e}"
 
@@ -57,6 +70,7 @@ def check_gpu_mshybrid() -> tuple[bool, str]:
 def check_openvino() -> tuple[bool, list[str] | str]:
     try:
         import openvino as ov
+
         core = ov.Core()
         devices = list(core.available_devices)
         return True, devices
@@ -75,7 +89,9 @@ def check_wslconfig() -> tuple[bool, bool, list[str]]:
     clamped = "memory=4608MB" in content
     checks.append(f"memory=4608MB: {'[OK]' if clamped else '[FAIL]'}")
     checks.append(f"pageReporting=true: {'[OK]' if 'pageReporting=true' in content else '[FAIL]'}")
-    checks.append(f"autoMemoryReclaim=gradual: {'[OK]' if 'autoMemoryReclaim=gradual' in content else '[FAIL]'}")
+    checks.append(
+        f"autoMemoryReclaim=gradual: {'[OK]' if 'autoMemoryReclaim=gradual' in content else '[FAIL]'}"
+    )
     checks.append(f"networkingMode=nat: {'[OK]' if 'networkingMode=nat' in content else '[FAIL]'}")
     all_ok = clamped and "pageReporting=true" in content and "autoMemoryReclaim=gradual" in content
     return True, all_ok, checks
@@ -84,10 +100,19 @@ def check_wslconfig() -> tuple[bool, bool, list[str]]:
 def check_docker_ce() -> tuple[bool, str]:
     try:
         res = subprocess.run(
-            ["wsl", "-d", "Ubuntu", "-e", "docker", "info", "--format", "{{.ServerVersion}} (Memory: {{.MemTotal}} bytes)"],
+            [
+                "wsl",
+                "-d",
+                "Ubuntu",
+                "-e",
+                "docker",
+                "info",
+                "--format",
+                "{{.ServerVersion}} (Memory: {{.MemTotal}} bytes)",
+            ],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=10,
         )
         if res.returncode == 0:
             return True, f"Docker CE active: {res.stdout.strip()}"
@@ -101,6 +126,7 @@ def check_sqlite_vec() -> tuple[bool, str]:
         import sqlite3
 
         import sqlite_vec
+
         conn = sqlite3.connect(":memory:")
         conn.enable_load_extension(True)
         sqlite_vec.load(conn)
@@ -118,13 +144,25 @@ def check_sqlite_vec() -> tuple[bool, str]:
 
 def check_lucca_home() -> tuple[bool, list[str]]:
     home = Path(os.environ.get("LUCCA_HOME", r"C:\ProjectLucca"))
-    required_dirs = ["app", "config", "models", "data", "workspace", "inbox", "logs", "cache", "tmp"]
+    required_dirs = [
+        "app",
+        "config",
+        "models",
+        "data",
+        "workspace",
+        "inbox",
+        "logs",
+        "cache",
+        "tmp",
+    ]
     missing = []
     for d in required_dirs:
         if not (home / d).is_dir():
             missing.append(d)
     if not missing:
-        return True, [f"{home} layout complete ({len(required_dirs)}/{len(required_dirs)} dirs exist)"]
+        return True, [
+            f"{home} layout complete ({len(required_dirs)}/{len(required_dirs)} dirs exist)"
+        ]
     return False, [f"Missing subdirectories in {home}: {missing}"]
 
 
