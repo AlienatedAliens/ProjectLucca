@@ -1,12 +1,9 @@
-"""
-Project Lucca — Companion Avatar Sprite Widget
-Spec 01 §1, ADR-005
-"""
-
+import json
 import math
+from pathlib import Path
 
 from PyQt6.QtCore import QPoint, QRectF, Qt, QTimer
-from PyQt6.QtGui import QBrush, QColor, QMouseEvent, QPainter, QPainterPath, QPen
+from PyQt6.QtGui import QBrush, QColor, QMouseEvent, QPainter, QPainterPath, QPen, QPixmap
 from PyQt6.QtWidgets import QWidget
 
 from lucca.ui.states import THEMES, AvatarTheme
@@ -24,6 +21,12 @@ class CompanionSprite(QWidget):
         self.mouth_aperture = 0.0  # 0.0 (closed) to 1.0 (wide open)
         self.drag_position: QPoint | None = None
 
+        # Sprite sheets & frames
+        self.sprites_dir = Path("assets/sprites/lucca")
+        self.pixmaps: dict[str, list[QPixmap]] = {}
+        self.sprite_scale = 3
+        self._load_sprites()
+
         # Window properties: frameless, always-on-top, translucent
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -40,6 +43,29 @@ class CompanionSprite(QWidget):
         self.anim_timer = QTimer(self)
         self.anim_timer.timeout.connect(self._on_tick)
         self.anim_timer.start(33)
+
+    def _load_sprites(self) -> None:
+        manifest_path = self.sprites_dir / "manifest.json"
+        if not manifest_path.exists():
+            return
+        try:
+            with open(manifest_path, encoding="utf-8") as f:
+                manifest = json.load(f)
+            self.sprite_scale = int(manifest.get("scale", 3))
+            states = manifest.get("states", {})
+            for state_name, info in states.items():
+                frames = info.get("frames", [])
+                pms: list[QPixmap] = []
+                for frame_file in frames:
+                    fp = self.sprites_dir / frame_file
+                    if fp.exists():
+                        pm = QPixmap(str(fp))
+                        if not pm.isNull():
+                            pms.append(pm)
+                if pms:
+                    self.pixmaps[state_name] = pms
+        except Exception:  # noqa: BLE001
+            self.pixmaps = {}
 
     def set_state(self, state: str) -> None:
         if state in THEMES:
@@ -67,6 +93,55 @@ class CompanionSprite(QWidget):
 
         center_x = self.width() / 2.0
         center_y = self.height() / 2.0
+
+        # Check if we have pixel-art sprite frames loaded
+        if self.pixmaps:
+            # 1. Subtle ambient state aura behind character
+            glow_color = QColor(self.theme.glow_color)
+            glow_color.setAlpha(40 + int(math.sin(self.phase) * 20.0))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(QBrush(glow_color))
+            glow_r = (self.sprite_size / 2.0) - 10.0 + (math.sin(self.phase) * 3.0)
+            painter.drawEllipse(
+                QRectF(center_x - glow_r, center_y - glow_r, glow_r * 2, glow_r * 2)
+            )
+
+            # 2. Select sprite frame based on state & audio
+            pix: QPixmap | None = None
+            if self.state == "speaking" and "speaking" in self.pixmaps:
+                frames = self.pixmaps["speaking"]
+                # frame 0: mouth closed, frame 1: mouth open
+                if self.mouth_aperture > 0.08 and len(frames) > 1:
+                    pix = frames[1]
+                else:
+                    pix = frames[0]
+            elif self.state == "thinking" and "thinking" in self.pixmaps:
+                frames = self.pixmaps["thinking"]
+                idx = int(self.phase * 2.5) % len(frames)
+                pix = frames[idx]
+            elif self.state in self.pixmaps:
+                frames = self.pixmaps[self.state]
+                idx = int(self.phase * 1.5) % len(frames)
+                pix = frames[idx]
+            elif "idle" in self.pixmaps:
+                pix = self.pixmaps["idle"][0]
+
+            if pix:
+                scaled_w = pix.width() * self.sprite_scale
+                scaled_h = pix.height() * self.sprite_scale
+                scaled = pix.scaled(
+                    scaled_w,
+                    scaled_h,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.FastTransformation,
+                )
+                bob = int(math.sin(self.phase) * 2.0) if self.state == "idle" else 0
+                draw_x = int(center_x - (scaled.width() / 2.0))
+                draw_y = int(center_y - (scaled.height() / 2.0)) + bob
+                painter.drawPixmap(draw_x, draw_y, scaled)
+                return
+
+        # Fallback: Geometric vector companion orb
         base_radius = (self.sprite_size / 2.0) - 15.0
 
         # Breathing pulse

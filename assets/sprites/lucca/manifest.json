@@ -1,0 +1,52 @@
+{
+  "character": "Lucca Ashtear",
+  "source": "Chrono Trigger (SNES)",
+  "scale": 3,
+  "states": {
+    "idle": {
+      "frames": [
+        "idle_0.png"
+      ],
+      "fps": 2
+    },
+    "listening": {
+      "frames": [
+        "listening_0.png"
+      ],
+      "fps": 2
+    },
+    "thinking": {
+      "frames": [
+        "thinking_0.png",
+        "thinking_1.png",
+        "thinking_2.png"
+      ],
+      "fps": 4
+    },
+    "speaking": {
+      "frames": [
+        "speaking_0.png",
+        "speaking_1.png"
+      ],
+      "lipsync": true
+    },
+    "confirm": {
+      "frames": [
+        "confirm_0.png"
+      ],
+      "fps": 2
+    },
+    "offline": {
+      "frames": [
+        "offline_0.png"
+      ],
+      "fps": 1
+    },
+    "celebrate": {
+      "frames": [
+        "celebrate_0.png"
+      ],
+      "fps": 2
+    }
+  }
+}
