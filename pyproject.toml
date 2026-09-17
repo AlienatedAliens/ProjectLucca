@@ -83,6 +83,8 @@ module = [
     "transformers.*",
     "faster_whisper.*",
     "ulid.*",
+    "psutil.*",
+    "trafilatura.*",
 ]
 ignore_missing_imports = true
 

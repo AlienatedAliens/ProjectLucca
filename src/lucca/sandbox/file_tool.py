@@ -5,8 +5,16 @@ Spec 09 §4, D-08, ADR-004
 
 import hashlib
 import os
+import subprocess
+import sys
+import time
 from pathlib import Path
 from typing import Final, Literal
+
+try:
+    import resource
+except ImportError:
+    resource = None  # type: ignore[assignment]
 
 from lucca.core.exceptions import SandboxPathError
 
@@ -15,6 +23,7 @@ MAX_FILE_BYTES: Final = 262144  # 256 KiB
 MAX_WRITE_BYTES: Final = 1048576  # 1 MiB
 MAX_LIST_ENTRIES: Final = 500
 MAX_SEARCH_HITS: Final = 200
+MAX_PYTHON_STDOUT: Final = 65536  # 64 KiB
 SNIFF_CHUNK_SIZE: Final = 8192
 
 RESERVED_NAMES: Final[frozenset[str]] = frozenset(
@@ -120,7 +129,11 @@ class SafeFileTool:
         self.workspace_root.mkdir(parents=True, exist_ok=True)
 
     def list_dir(self, path: str = "", recursive: bool = False) -> dict[str, object]:
-        target = validate_rel_path(path or ".", self.workspace_root)
+        target = (
+            validate_rel_path(path, self.workspace_root)
+            if path and path != "."
+            else self.workspace_root
+        )
         if not target.exists():
             raise SandboxPathError("not_found", f"Directory not found: {path}")
         if not target.is_dir():
@@ -224,3 +237,104 @@ class SafeFileTool:
 
         target.unlink()
         return {"deleted": True}
+
+    def search_text(
+        self, pattern: str, path: str = "", max_hits: int = MAX_SEARCH_HITS
+    ) -> tuple[dict[str, object], str]:
+        target = (
+            validate_rel_path(path, self.workspace_root)
+            if path and path != "."
+            else self.workspace_root
+        )
+        if not target.exists():
+            raise SandboxPathError("not_found", f"Path not found: {path}")
+
+        hits: list[dict[str, object]] = []
+        snippets: list[str] = []
+        pat_lower = pattern.lower()
+
+        files_to_search = [target] if target.is_file() else sorted(target.rglob("*"))
+
+        for f in files_to_search:
+            if not f.is_file():
+                continue
+            try:
+                with open(f, "rb") as fp:
+                    sniff = fp.read(SNIFF_CHUNK_SIZE)
+                    if b"\x00" in sniff:
+                        continue  # skip binary
+                    fp.seek(0)
+                    text = fp.read(MAX_FILE_BYTES).decode("utf-8", errors="replace")
+
+                rel_path = f.relative_to(self.workspace_root).as_posix()
+                for line_no, line in enumerate(text.splitlines(), start=1):
+                    line_lower = line.lower()
+                    col = line_lower.find(pat_lower)
+                    while col != -1:
+                        hits.append({"file": rel_path, "line": line_no, "col": col + 1})
+                        snippet = f"{rel_path}:{line_no}:{col + 1}: {line.strip()}"
+                        snippets.append(snippet)
+                        if len(hits) >= max_hits:
+                            return {
+                                "hits": hits,
+                                "count": len(hits),
+                                "truncated": True,
+                            }, "\n".join(snippets)
+                        col = line_lower.find(pat_lower, col + len(pat_lower))
+            except (OSError, UnicodeDecodeError):
+                continue
+
+        return {"hits": hits, "count": len(hits), "truncated": False}, "\n".join(snippets)
+
+    def run_python(self, code: str, timeout: int = 10) -> tuple[dict[str, object], str]:
+        t0 = time.perf_counter()
+        preexec_fn = None
+        if resource is not None and hasattr(resource, "setrlimit"):
+            rlimit_as = getattr(resource, "RLIMIT_AS", None)
+            rlimit_cpu = getattr(resource, "RLIMIT_CPU", None)
+            set_rlimit = getattr(resource, "setrlimit", None)
+
+            if set_rlimit is not None and rlimit_as is not None and rlimit_cpu is not None:
+
+                def _set_limits() -> None:
+                    set_rlimit(rlimit_as, (256 * 1024 * 1024, 256 * 1024 * 1024))
+                    set_rlimit(rlimit_cpu, (10, 10))
+
+                preexec_fn = _set_limits
+
+        try:
+            proc = subprocess.run(  # noqa: S603
+                [sys.executable, "-I", "-S", "-c", code],
+                cwd=str(self.workspace_root),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                preexec_fn=preexec_fn,
+            )
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            stdout = proc.stdout[:MAX_PYTHON_STDOUT]
+            stderr = proc.stderr[:MAX_PYTHON_STDOUT]
+            out = stdout + (f"\n[stderr]\n{stderr}" if stderr else "")
+            return {
+                "exit_code": proc.returncode,
+                "elapsed_ms": elapsed_ms,
+                "ok": proc.returncode == 0,
+                "stderr": stderr,
+            }, out
+        except subprocess.TimeoutExpired:
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            return {
+                "exit_code": -1,
+                "elapsed_ms": elapsed_ms,
+                "ok": False,
+                "error": "timeout",
+            }, f"Execution timed out after {timeout} seconds"
+        except Exception as exc:  # noqa: BLE001
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            return {
+                "exit_code": -2,
+                "elapsed_ms": elapsed_ms,
+                "ok": False,
+                "error": str(exc),
+            }, str(exc)

@@ -3,14 +3,26 @@ Project Lucca — Hardened Sandbox File Tool Tests
 Spec 09 §9 (T-SBX-01, T-SBX-02, T-SBX-03, P-03)
 """
 
+import hashlib
+import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from lucca.core.exceptions import SandboxPathError
+from lucca.sandbox.container_spec import (
+    get_file_sandbox_run_args,
+    get_web_sandbox_run_args,
+)
 from lucca.sandbox.file_tool import SafeFileTool, validate_rel_path
+from lucca.sandbox.launcher import AppLauncher
+from lucca.sandbox.policy import SequenceGuard
+from lucca.sandbox.rpc import DockerRPCTransport
+from lucca.sandbox.web_tool import validate_url_ssrf
+from lucca.sandbox.workspace import WorkspaceManager
 
 
 @pytest.fixture
@@ -126,3 +138,203 @@ def test_p_03_validate_rel_path_fuzz(workspace: Path, s: str):
         pass
     except Exception as e:
         pytest.fail(f"Unexpected exception {type(e).__name__}: {e} for input {s!r}")
+
+
+def test_t_sbx_search_text(file_tool: SafeFileTool, workspace: Path):
+    """Test text search in sandbox workspace."""
+    (workspace / "doc1.txt").write_text("Lucca is a desktop companion agent.")
+    sub = workspace / "sub"
+    sub.mkdir()
+    (sub / "code.py").write_text("# Project Lucca core\ndef hello(): pass")
+    (workspace / "empty.txt").write_text("Nothing relevant here.")
+
+    # Search for 'lucca' (case-insensitive)
+    structured, content = file_tool.search_text(pattern="lucca")
+    assert len(structured["hits"]) == 2
+    assert "doc1.txt" in content
+    assert "code.py" in content
+
+    # Search for non-existent pattern
+    structured_empty, _ = file_tool.search_text(pattern="nonexistent_xyz")
+    assert len(structured_empty["hits"]) == 0
+
+
+def test_t_sbx_04_run_python_security(file_tool: SafeFileTool):
+    """T-SBX-04: Python execution limits (timeout & memory)."""
+    # 1. Normal execution
+    res, out = file_tool.run_python("print('sandbox test ok')")
+    assert res["ok"] is True
+    assert res["exit_code"] == 0
+    assert "sandbox test ok" in out
+
+    # 2. Timeout execution
+    res_to, _ = file_tool.run_python("import time; time.sleep(5)", timeout=1)
+    assert res_to["ok"] is False
+    assert res_to.get("error") == "timeout"
+
+    # 3. Memory limit (inside Python raises MemoryError or fails)
+    res_mem, _ = file_tool.run_python("raise MemoryError('out of memory')")
+    assert res_mem["ok"] is False
+    assert res_mem["exit_code"] != 0
+    assert "MemoryError" in res_mem["stderr"]
+
+
+def test_t_sbx_13_ssrf_blocking():
+    """T-SBX-13: SSRF protection blocks private, loopback, link-local, and IPv6 URLs."""
+    blocked_urls = [
+        "http://127.0.0.1:8080/metrics",
+        "http://127.0.1.1/",
+        "http://localhost:3000",
+        "http://169.254.169.254/latest/meta-data",
+        "http://10.0.0.1/admin",
+        "http://172.16.0.1/",
+        "http://192.168.1.1/router",
+        "http://[::1]/secret",
+        "ftp://example.com/file",
+        "file:///etc/passwd",
+    ]
+    for url in blocked_urls:
+        with pytest.raises((SandboxPathError, ValueError)):
+            validate_url_ssrf(url)
+
+    # Max length limits
+    long_url = "https://example.com/" + ("a" * 513)
+    with pytest.raises((SandboxPathError, ValueError)):
+        validate_url_ssrf(long_url)
+
+    long_query = "https://example.com/search?q=" + ("b" * 130)
+    with pytest.raises((SandboxPathError, ValueError)):
+        validate_url_ssrf(long_query)
+
+    # Allowed public URL
+    normalized, _ip = validate_url_ssrf("https://example.com/valid?query=test")
+    assert normalized.startswith("https://example.com/valid")
+
+
+def test_t_sbx_14_launcher_whitelist_and_rate_limits(workspace: Path):
+    """T-SBX-14: Whitelist matching, non-whitelisted rejection, and launch rate limiting."""
+    launcher = AppLauncher(workspace_root=workspace, execute=False)
+
+    # 1. Non-whitelisted app rejected
+    ok, msg = launcher.launch("cmd")
+    assert not ok
+    assert "whitelist" in msg.lower()
+
+    ok, msg = launcher.launch("powershell")
+    assert not ok
+    assert "whitelist" in msg.lower()
+
+    # 2. Whitelisted app succeeds
+    ok, msg = launcher.launch("calculator")
+    assert ok
+    assert "calculator" in msg.lower()
+
+    # 3. Spacing limit: second launch within 5s is rate-limited
+    ok, msg = launcher.launch("notepad")
+    assert not ok
+    assert "rate limit" in msg.lower() or "spacing" in msg.lower()
+
+
+def test_t_sbx_19_sequence_guard():
+    """T-SBX-19: Forbidden sequences (read_file -> fetch_url) and (fetch_url -> write_file) blocked."""
+    guard = SequenceGuard()
+
+    # (read_file -> fetch_url) blocked
+    allowed, _ = guard.check_and_record("read_file")
+    assert allowed is True
+    allowed, reason = guard.check_and_record("fetch_url")
+    assert allowed is False
+    assert "Forbidden sequence" in reason
+
+    # Turn reset clears history
+    guard.reset()
+    # (fetch_url -> write_file) blocked
+    allowed, _ = guard.check_and_record("fetch_url")
+    assert allowed is True
+    allowed, reason = guard.check_and_record("write_file")
+    assert allowed is False
+    assert "Forbidden sequence" in reason
+
+    # Permitted sequences
+    guard.reset()
+    assert guard.check_and_record("list_dir")[0] is True
+    assert guard.check_and_record("read_file")[0] is True
+    assert guard.check_and_record("search_text")[0] is True
+
+
+def test_t_sbx_05_workspace_cleanup(workspace: Path):
+    """T-SBX-05: Task close/reset wipes workspace entries."""
+    mgr = WorkspaceManager(workspace_root=workspace)
+
+    # Populate workspace
+    (workspace / "file1.txt").write_text("data 1")
+    (workspace / "file2.txt").write_text("data 2")
+    sub = workspace / "nested"
+    sub.mkdir()
+    (sub / "subfile.txt").write_text("sub data")
+
+    assert mgr.get_total_size() > 0
+
+    # Reset workspace
+    mgr.reset_workspace()
+
+    # Workspace directory exists and is empty
+    assert workspace.exists()
+    assert list(workspace.iterdir()) == []
+
+
+def test_t_sbx_17_container_spec_snapshot():
+    """T-SBX-17: Container spec snapshot tests."""
+    file_args = get_file_sandbox_run_args(workspace_path=r"C:\test\ws")
+    assert "--network" in file_args
+    assert file_args[file_args.index("--network") + 1] == "none"
+    assert "--cap-drop=ALL" in file_args
+    assert "--security-opt=no-new-privileges" in file_args
+    assert "--gpus" not in file_args
+    assert "--privileged" not in file_args
+
+    web_args = get_web_sandbox_run_args(call_id="call-test-123")
+    assert "--network" in web_args
+    assert web_args[web_args.index("--network") + 1] == "lucca-net"
+    assert "--read-only" in web_args
+    assert "--cap-drop=ALL" in web_args
+    assert not any("--mount" in a for a in web_args)
+    assert not any(a == "-v" for a in web_args)
+
+
+def test_t_sbx_16_host_sha256_audit(workspace: Path, file_tool: SafeFileTool):
+    """T-SBX-16: Host recomputes sha256 of read_file content; mismatch => ok=False, audit."""
+    transport = DockerRPCTransport(
+        use_direct_fallback=True,
+        fallback_file_tool=file_tool,
+    )
+    (workspace / "audit.txt").write_text("authentic content")
+
+    # 1. Authentic read succeeds
+    res = transport.execute("call-1", "read_file", {"path": "audit.txt"})
+    assert res.ok is True
+    assert res.content == "authentic content"
+    assert res.structured is not None
+    assert res.structured["sha256"] == hashlib.sha256(b"authentic content").hexdigest()
+
+    # 2. Tampered response from container triggers audit failure
+    mock_transport = DockerRPCTransport(use_direct_fallback=False)
+    fake_stdout = json.dumps({
+        "call_id": "call-2",
+        "ok": True,
+        "exit_code": 0,
+        "structured": {"sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
+        "content": "tampered content",
+        "content_truncated": False,
+    })
+    mock_proc = MagicMock()
+    mock_proc.communicate.return_value = (fake_stdout, "")
+    mock_proc.returncode = 0
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(mock_transport, "is_docker_available", lambda: True)
+        mp.setattr("subprocess.Popen", lambda *args, **kwargs: mock_proc)
+        res_tampered = mock_transport.execute("call-2", "read_file", {"path": "audit.txt"})
+        assert res_tampered.ok is False
+        assert res_tampered.exit_code == -4
+        assert "sha256 mismatch" in res_tampered.stderr

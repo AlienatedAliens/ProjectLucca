@@ -1,0 +1,32 @@
+# Project Lucca — Approved Desktop Applications Whitelist
+# Spec 09 §6
+
+[apps.calculator]
+exe = "calc.exe"
+aliases = ["calculator", "calc"]
+args = []
+single_instance = true
+
+[apps.notepad]
+exe = "notepad.exe"
+aliases = ["notepad", "text editor"]
+args = ["{file?}"]
+single_instance = false
+
+[apps.browser]
+exe = "msedge.exe"
+aliases = ["browser", "edge"]
+args = ["{url?}"]
+single_instance = false
+
+[apps.terminal]
+exe = "wt.exe"
+aliases = ["terminal", "windows terminal"]
+args = []
+single_instance = false
+
+[apps.task_manager]
+exe = "taskmgr.exe"
+aliases = ["task manager", "taskmgr"]
+args = []
+single_instance = true

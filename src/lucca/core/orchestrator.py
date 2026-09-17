@@ -5,7 +5,6 @@ Spec 01 §3, §4, §6, Spec 10, ADR-008
 
 import base64
 import io
-import subprocess
 import threading
 import time
 import wave
@@ -23,12 +22,17 @@ from lucca.core.ipc_schemas import (
     PlayAbortPayload,
     PlayBeginPayload,
     PTTReleasedPayload,
+    UIConfirmPayload,
+    UIConfirmResultPayload,
     UIStatePayload,
     decode_envelope,
     encode_envelope,
 )
-from lucca.core.schemas import TokenDelta, ToolCallEnd
+from lucca.core.schemas import TokenDelta, ToolCallEnd, ToolResult
 from lucca.core.trace import TurnTrace, log_turn_trace
+from lucca.sandbox.policy import parse_confirmation_response
+from lucca.sandbox.service import SandboxService
+from lucca.senses.asr import ASRWorker
 from lucca.senses.ring_buffer import (
     FLAG_ABORT,
     FLAG_EOS,
@@ -49,6 +53,8 @@ class Orchestrator:
         self,
         llm: LLMClient | None = None,
         tts: Any | None = None,
+        asr: Any | None = None,
+        sandbox: SandboxService | None = None,
         execute_tools: bool = True,
     ) -> None:
         self.config = get_config()
@@ -76,6 +82,23 @@ class Orchestrator:
         else:
             self.tts = TTSWorker(self.play_ring)
         self.chunker = StreamingChunker()
+
+        # ASR
+        if asr is not None:
+            if isinstance(asr, type):
+                self.asr = asr()
+            else:
+                self.asr = asr
+        else:
+            self.asr = ASRWorker()
+
+        # Sandbox Service
+        self.sandbox = sandbox or SandboxService(execute_apps=self.execute_tools)
+
+        # Confirmation State
+        self._confirm_event = threading.Event()
+        self._confirm_result: bool = False
+        self._pending_confirmation_active: bool = False
 
         # Turn context
         self.active_trace: TurnTrace | None = None
@@ -152,6 +175,19 @@ class Orchestrator:
             elif env.type == "audio.first_sample_played":
                 if self.active_trace:
                     self.active_trace.t_first_sample = env.ts_ns
+            elif env.type == "ui.confirm_result":
+                p_conf = UIConfirmResultPayload.model_validate(env.payload)
+                self.confirm_action(p_conf.accepted, via=p_conf.via)
+
+    def confirm_action(
+        self,
+        accepted: bool,
+        via: Literal["voice", "click", "timeout"] = "click",
+    ) -> None:
+        """Manually or programmatically confirm/reject the pending action."""
+        logger.info("confirmation_action_received", accepted=accepted, via=via)
+        self._confirm_result = accepted
+        self._confirm_event.set()
 
     def _on_ptt_pressed(self, ts_ns: int) -> None:
         if self.state in ("speaking", "thinking", "confirm_wait"):
@@ -180,6 +216,19 @@ class Orchestrator:
             self.active_trace.interrupted = True
 
     def _on_ptt_released(self, ts_ns: int, p: PTTReleasedPayload) -> None:
+        if self._pending_confirmation_active:
+            # PTT response to confirmation prompt
+            pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
+            transcript_text = ""
+            if self.asr and len(pcm_samples) > 0:
+                asr_res = self.asr.transcribe(pcm_samples)
+                transcript_text = asr_res.text
+
+            decision = parse_confirmation_response(transcript_text)
+            self._confirm_result = (decision == "confirm")
+            self._confirm_event.set()
+            return
+
         trace_id = str(ulid.ULID())
         trace = TurnTrace(
             trace_id=trace_id,
@@ -196,6 +245,7 @@ class Orchestrator:
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         trace.t_llm_sent = time.monotonic_ns()
+        self.sandbox.reset_turn()
 
         # Read audio slice from capture ring
         pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
@@ -221,7 +271,7 @@ class Orchestrator:
 
         chunk_index = 0
         first_token_seen = False
-        full_response_text = []
+        full_response_text: list[str] = []
 
         try:
             for event in self.llm.stream_turn(current_audio_b64=wav_b64, history=self.history):
@@ -247,7 +297,7 @@ class Orchestrator:
                         chunk_index += 1
 
                 elif isinstance(event, ToolCallEnd):
-                    # Execute tool call
+                    # Execute tool call via SandboxService with confirmation checks
                     self._handle_tool_call(trace, event.call.tool, dict(event.call.args))
 
             # Flush remaining chunker text
@@ -285,26 +335,128 @@ class Orchestrator:
             trace.t_tts_first_done = time.monotonic_ns()
         trace.chunks += 1
 
-    def _handle_tool_call(self, trace: TurnTrace, name: str, args: dict[str, object]) -> None:
+    def _speak_text(self, trace: TurnTrace, text: str) -> None:
+        begin_env = Envelope(
+            type="play.begin",
+            trace_id=trace.trace_id,
+            ts_ns=time.monotonic_ns(),
+            src="core",
+            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        )
+        self._publish_bus(begin_env)
+        self._set_state("speaking")
+        self.tts.synthesize(chunk_id=0, text=text, is_first=True)
+        self.play_ring.set_flag(FLAG_EOS)
+
+    def _describe_tool_action(self, name: str, args: dict[str, object]) -> str:
+        if name == "launch_app":
+            app = str(args.get("app_name", "the application"))
+            return f"launch {app}"
+        if name == "write_file":
+            path = str(args.get("path", "the file"))
+            return f"write to {path}"
+        if name == "delete_file":
+            path = str(args.get("path", "the file"))
+            return f"delete {path}"
+        if name == "run_python":
+            return "run the python script"
+        if name == "fetch_url":
+            url = str(args.get("url", "the web page"))
+            return f"fetch {url}"
+        return f"execute {name}"
+
+    def _request_confirmation(
+        self,
+        trace: TurnTrace,
+        name: str,
+        args: dict[str, object],
+        timeout_s: float = 15.0,
+    ) -> bool:
+        action_desc = self._describe_tool_action(name, args)
+        prompt_text = f"Do you want me to {action_desc}? Say yes or no."
+
+        self._confirm_result = False
+        self._confirm_event.clear()
+        self._pending_confirmation_active = True
+
+        self._set_state("confirm_wait", detail=action_desc)
+
+        confirm_env = Envelope(
+            type="ui.confirm",
+            trace_id=trace.trace_id,
+            ts_ns=time.monotonic_ns(),
+            src="core",
+            payload=UIConfirmPayload(
+                prompt_text=prompt_text,
+                action_summary=action_desc,
+                timeout_s=timeout_s,
+            ).model_dump(),
+        )
+        self._publish_bus(confirm_env)
+
+        # Speak prompt
+        self._speak_text(trace, prompt_text)
+        # Restore confirm_wait state in case TTS set it to speaking
+        if self._pending_confirmation_active:
+            self._set_state("confirm_wait", detail=action_desc)
+
+        # Wait for user confirmation
+        got_signal = self._confirm_event.wait(timeout=timeout_s)
+        self._pending_confirmation_active = False
+
+        if not got_signal:
+            logger.info("confirmation_timeout", tool=name)
+            return False
+
+        return self._confirm_result
+
+    def _handle_tool_call(
+        self,
+        trace: TurnTrace,
+        name: str,
+        args: dict[str, object],
+    ) -> ToolResult | None:
         self.executed_tools.append((name, args))
         if not self.execute_tools:
-            return
+            return None
 
-        if name == "launch_app":
-            app = str(args.get("app_name", ""))
-            cmd_map: dict[str, list[str]] = {
-                "calculator": ["calc.exe"],
-                "notepad": ["notepad.exe"],
-                "terminal": ["wt.exe"],
-                "browser": ["cmd.exe", "/c", "start", "msedge"],
-                "task_manager": ["taskmgr.exe"],
-            }
-            cmd = cmd_map.get(app)
-            if cmd:
-                try:
-                    subprocess.Popen(cmd)  # noqa: S603
-                except OSError as exc:
-                    logger.warning("launch_app_failed", app=app, error=str(exc))
+        # Check confirmation requirement (WRITE / LAUNCH)
+        if self.sandbox.check_confirmation_needed(name):
+            confirmed = self._request_confirmation(trace, name, args)
+            if not confirmed:
+                logger.info("tool_execution_cancelled_by_user", tool=name)
+                self._speak_text(trace, "Cancelled.")
+                return ToolResult(
+                    call_id=str(ulid.ULID()),
+                    ok=False,
+                    exit_code=-3,
+                    stderr="cancelled by user",
+                    elapsed_ms=0.0,
+                )
+
+        call_id = str(ulid.ULID())
+        res = self.sandbox.execute_tool(
+            call_id=call_id,
+            tool_name=name,
+            args=args,
+            confirmed=True,
+        )
+        logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
+        if res.ok:
+            if name == "launch_app":
+                app_name = str(args.get("app_name", "app"))
+                self._speak_text(trace, f"Launched {app_name}.")
+            elif name == "write_file":
+                path = str(args.get("path", "file"))
+                self._speak_text(trace, f"Saved {path}.")
+            elif name == "delete_file":
+                path = str(args.get("path", "file"))
+                self._speak_text(trace, f"Deleted {path}.")
+            elif name == "run_python":
+                self._speak_text(trace, "Python script executed.")
+        else:
+            self._speak_text(trace, f"Error: {res.stderr or 'action failed'}.")
+        return res
 
     def _heartbeat_loop(self) -> None:
         while self.running:
@@ -312,6 +464,7 @@ class Orchestrator:
 
     def stop(self) -> None:
         self.running = False
+        self._confirm_event.set()
         if self.active_turn_thread and self.active_turn_thread.is_alive():
             self._abort_turn()
             self.active_turn_thread.join(timeout=1.0)
