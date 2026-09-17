@@ -1,20 +1,24 @@
 # Project Lucca: WSL2 Memory Clamping Configuration Script
-# Sets WSL2 to strictly 4.5GB RAM to prevent Windows 11 host paging
+# Canonical: docs/07_contradiction_register.md Section C1-C3 (Register C2/C3)
 
-$wslConfigPath = [System.IO.Path]::Combine($env:USERPROFILE, ".wslconfig")
+$wslConfigPath = Join-Path $env:USERPROFILE ".wslconfig"
 
-$targetConfig = @"
-[wsl2]
-memory=4608MB
-processors=4
-swap=2048MB
-pageReporting=false
-localhostForwarding=true
-nestedVirtualization=false
-"@
+$lines = @(
+    "[wsl2]",
+    "memory=4608MB",
+    "processors=4",
+    "swap=0",
+    "pageReporting=true",
+    "autoMemoryReclaim=gradual",
+    "sparseVhd=true",
+    "networkingMode=nat",
+    "localhostForwarding=true",
+    "nestedVirtualization=false"
+)
+$targetConfig = $lines -join "`r`n"
 
 Write-Host "=================================================" -ForegroundColor Cyan
-Write-Host "  Project Lucca — WSL2 Memory Configuration" -ForegroundColor Cyan
+Write-Host "  Project Lucca - WSL2 Memory Configuration" -ForegroundColor Cyan
 Write-Host "=================================================" -ForegroundColor Cyan
 
 if (Test-Path $wslConfigPath) {
@@ -27,10 +31,10 @@ if (Test-Path $wslConfigPath) {
 }
 
 Set-Content -Path $wslConfigPath -Value $targetConfig -Encoding UTF8
-Write-Host "[SUCCESS] .wslconfig successfully updated with 4.5GB RAM clamp!" -ForegroundColor Green
+Write-Host "[SUCCESS] .wslconfig successfully updated with canonical settings!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Configuration written:" -ForegroundColor Gray
 Get-Content $wslConfigPath | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkGray }
 
 Write-Host ""
-Write-Host "To apply these changes, restart WSL in PowerShell: 'wsl --shutdown'" -ForegroundColor Yellow
+Write-Host "To apply these changes, restart WSL in PowerShell: wsl --shutdown" -ForegroundColor Yellow

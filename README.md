@@ -8,27 +8,46 @@
 ## 1. Overview for Reviewers & Collaborators
 
 This repository contains the complete architecture, research foundation, physical compute specifications, and initial structural scaffolding for **Project Lucca**—a local-first, sandboxed desktop companion agent featuring:
-- **Push-to-Talk Voice & 2D Avatar:** Sub-400ms end-to-end response time using Ultravox 8B (vLLM) and Kokoro TTS (OpenVINO INT8 on Intel NPU).
-- **Three-Tier Provenance Memory:** Strict anti-hallucination write gate forbidding LLM narration from polluting long-term memory; hybrid dense + sparse (RRF) retrieval; knowledge graph.
-- **Compiled Symbolic Reasoning:** Self-improving LISP/Scheme rule engine with a mandatory 5-strike qualification promotion gate and regression test suites.
-- **Calibrated Dual-Brain Router:** Frozen ModernBERT semantic encoder (NPU) + XGBoost decision router (CPU) + Conformal Prediction fallback.
-- **Isolated Sandbox:** Docker container in WSL2 with blocked local-subnet (RFC1918) egress, path-traversal protection, and host-mediated application launcher.
+- **Push-to-Talk Voice & 2D Avatar:** typically under half a second to first audio (≤ 600 ms median gate) using Ultravox 8B served by `llama-server` natively on Windows (Q6_K GGUF), Whisper on the Intel NPU, and Kokoro TTS (NPU preferred, iGPU/CPU ladder).
+- **Provenance-Gated Memory:** capability-signed write gate; LLM narration can never become memory; verbatim transcripts + quote-grounded derived facts; SQLite + FTS5 + `sqlite-vec` hybrid retrieval; bi-temporal knowledge graph.
+- **Compiled Symbolic Reasoning:** rules are pure `State → Plan` functions in a tiny Scheme DSL; promoted only after ≥ 5 distinct-cluster shadow successes, 0 failures, and a passing regression suite.
+- **Calibrated Router:** heuristic first, then LightGBM (CPU) + MiniLM encoder (NPU) with a real split-conformal guard, gated on a statistically adequate data floor.
+- **Split Sandboxes:** Docker CE in WSL2; a file sandbox with no network and a web sandbox with no files; ordered egress allow-list with default drop; host-mediated launcher with spoken confirmation.
+
+Runtime install root: `C:\ProjectLucca` (see decision D-08). Development repo: `C:\Projects\ProjectLucca`.
 
 ---
 
 ## 2. Master Documentation Index (`docs/`)
 
-All system design documents, recursive audit logs, research surveys, and specifications are located in [`docs/`](./docs/):
+**Read order for implementers:** `13` → `07` → `08_adr/*` → `09_developer_spec/*` → `10` → `11`. Where the newer documents (06–13) conflict with the originals (00–05), **the newer documents win**; the contradiction register lists every such case with line references.
 
-| File | Title & Description | Primary Purpose |
-|---|---|---|
-| **[`00_original_build_brief.md`](./docs/00_original_build_brief.md)** | **Original Build Brief** | The foundational design brief, hardware budgets, phase dependencies, and original acceptance criteria. |
-| **[`01_recursive_architecture_audit_and_flaw_analysis.md`](./docs/01_recursive_architecture_audit_and_flaw_analysis.md)** | **Recursive Flaw & Audit Log** | Line-by-line recursive interrogation of all assumptions, edge cases, failure modes (FM-01 through FM-06), and hardware contention traps. |
-| **[`02_systems_research_prior_art_and_alternatives.md`](./docs/02_systems_research_prior_art_and_alternatives.md)** | **Systems Research & Prior Art** | Comprehensive literature review: Ultravox vs Moshi; Kokoro vs StyleTTS2; OpenHands vs E2B; MemGPT vs HippoRAG; Voyager vs Reflexion; RouteLLM & Conformal Prediction. |
-| **[`03_enterprise_hardware_topology_and_ipc_spec.md`](./docs/03_enterprise_hardware_topology_and_ipc_spec.md)** | **Hardware Topology & IPC Spec** | Physical compute mapping (Domain A Windows Host, Domain B WSL2, Domain C Docker Sandbox), 4.5GB RAM clamping (`.wslconfig`), OpenVINO NPU caching, and Blackwell sm_120 CUDA 12.8 recipes. |
-| **[`04_deep_mechanical_testing_and_verification_matrix.md`](./docs/04_deep_mechanical_testing_and_verification_matrix.md)** | **Mechanical Verification Matrix** | Exact mathematical formulations ($\text{ECE} \le 0.045$, $\text{Brier} \le 0.12$, $\text{RRF} \ge +0.20$), security penetration fuzzers, provenance gates, and regression test suites. |
-| **[`05_lucca_system_architecture_master_spec.md`](./docs/05_lucca_system_architecture_master_spec.md)** | **Master System Architecture** | Typed Pydantic v2 data contracts, Micro-Scheme S-expression EBNF grammar, gas-metered execution semantics, and manuals for users, agents, and developers. |
-| **[`project_lucca_architecture_review.md`](./docs/project_lucca_architecture_review.md)** | **Architectural Review & Feasibility** | High-level feasibility synthesis, latency budgets, and hardware allocation reality checks. |
+### 2.1 Authoritative set (2026-09-17 final review)
+
+| File | Purpose |
+|---|---|
+| [`13_decisions_log.md`](./docs/13_decisions_log.md) | Every architectural decision, its status, evidence, and what it supersedes. **Start here.** |
+| [`07_contradiction_register.md`](./docs/07_contradiction_register.md) | Every inconsistency across docs 00–05/code with the canonical value and line refs. |
+| [`08_adr/`](./docs/08_adr/) | ADR-001 engine · 002 storage · 003 egress · 004 split sandboxes · 005 UI · 006 provenance · 007 rules-as-plans · 008 process topology. |
+| [`09_developer_spec/`](./docs/09_developer_spec/) | 01 topology+IPC · 02 ports · 03 provenance · 04 storage schema · 05 rule DSL+lifecycle · 06 router+labeling · 07 audio+barge-in · 08 chunker · 09 sandbox · 10 latency budgets · 11 config/observability · 12 threat model. |
+| [`10_testing_matrix_v2.md`](./docs/10_testing_matrix_v2.md) | Tiered tests, property tests, hardware/soak reports, phase sign-off bundles. Supersedes doc 04 where they differ. |
+| [`11_phase_plan_v2.md`](./docs/11_phase_plan_v2.md) | Phase 0 spikes, Phases 1–6 acceptance, human gates, deferred scope. |
+| [`12_prior_art_survey.md`](./docs/12_prior_art_survey.md) | Comparable projects and alternatives with verification status. |
+| [`06_critical_review_findings.md`](./docs/06_critical_review_findings.md) | Defect index for `src/`, build files, and docs 00–05, mapped to fixes. |
+| [`HANDOVER_2026-09-17_critical_review.md`](./docs/HANDOVER_2026-09-17_critical_review.md) | Full narrative of the final review's findings. |
+| [`RESEARCH_REPORT_2026-09-17_engine_decision.md`](./docs/RESEARCH_REPORT_2026-09-17_engine_decision.md) + [`_review_notes.md`](./docs/RESEARCH_REPORT_2026-09-17_review_notes.md) | External fact-check that settled the engine decision, with the reviewer's re-grading of each claim. |
+
+### 2.2 Original set (historical; superseded where the register says so)
+
+| File | Title |
+|---|---|
+| [`00_original_build_brief.md`](./docs/00_original_build_brief.md) | Original Build Brief |
+| [`01_recursive_architecture_audit_and_flaw_analysis.md`](./docs/01_recursive_architecture_audit_and_flaw_analysis.md) | Recursive Flaw & Audit Log |
+| [`02_systems_research_prior_art_and_alternatives.md`](./docs/02_systems_research_prior_art_and_alternatives.md) | Systems Research & Prior Art |
+| [`03_enterprise_hardware_topology_and_ipc_spec.md`](./docs/03_enterprise_hardware_topology_and_ipc_spec.md) | Hardware Topology & IPC Spec |
+| [`04_deep_mechanical_testing_and_verification_matrix.md`](./docs/04_deep_mechanical_testing_and_verification_matrix.md) | Mechanical Verification Matrix (v1) |
+| [`05_lucca_system_architecture_master_spec.md`](./docs/05_lucca_system_architecture_master_spec.md) | Master System Architecture (v1) |
+| [`project_lucca_architecture_review.md`](./docs/project_lucca_architecture_review.md) | Architectural Review & Feasibility |
 
 ---
 
@@ -50,24 +69,28 @@ This workspace is fully configured for **Antigravity IDE**:
 
 ---
 
-## 4. Key Questions & Vectors for Review (For Claude Fable 5.1)
+## 4. Review Questions — Resolved
 
-When reviewing these documents and planning adjustments, we suggest focusing on:
-1. **Host-Sandbox Bridge Interface:** Review the proposed JSON-RPC / socket bridge between the Windows Host Orchestrator and the Docker sandbox in WSL2 (`docs/03_enterprise_hardware_topology_and_ipc_spec.md`). Does this strike the right balance between low latency and strict isolation?
-2. **Context Rolling Window Strategy:** Scrutinize the multi-turn audio context compaction strategy in `docs/01_recursive_architecture_audit_and_flaw_analysis.md`. Is keeping raw audio embeddings for $k \le 2$ turns and text for older turns optimal for maintaining conversational coherence without bloating KV cache?
-3. **LISP Grammar & Primitives:** Review the S-expression grammar in `docs/05_lucca_system_architecture_master_spec.md` (Section 4). Are there additional HTN/STRIPS planner primitives needed for multi-step desktop tasks?
-4. **Conformal Quantile Tuning:** Review the conformal prediction non-conformity threshold formulation in `docs/04_deep_mechanical_testing_and_verification_matrix.md`.
+The four review vectors originally posed here were answered in the final review:
+1. **Host–sandbox bridge:** `docker exec` JSON-over-stdio, no published ports, no Docker socket exposure — spec 09 §1.
+2. **Context rolling window:** current turn as raw audio, all prior user turns as Whisper text (Ultravox emits no transcript; fixie-ai recommends text history) — spec 07 §8. The "k ≤ 2 raw audio turns" strategy previously attributed to doc 01 was never written there.
+3. **LISP grammar:** one canonical `(rule … :when … :plan …)` form with a closed primitive list; HTN/PDDL deferred to Phase 7+ — spec 05, ADR-007.
+4. **Conformal quantile:** computed from a calibration split with `⌈(n+1)(1−α)⌉/n`, never hard-coded; data floor of 600 decisions — spec 06 §5–7.
 
 ---
 
 ## 5. Quickstart & Verification
 
-To verify the local hardware configuration:
 ```powershell
-uv run python scripts/verify_environment.py
+uv sync --frozen
+uv run lucca-admin env-check          # GPU mode, NPU, Docker CE in WSL2, sqlite-vec, LUCCA_HOME layout
+powershell -ExecutionPolicy Bypass -File scripts/setup_wslconfig.ps1   # writes the canonical .wslconfig (register §C)
+uv run pytest -m "not hw and not soak" # Tier 0–2
+uv run python -m lucca.main           # start Lucca (spawns llama-server + 4 processes)
 ```
 
-To configure WSL2 memory clamping:
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/setup_wslconfig.ps1
-```
+Until `lucca-admin` exists, `uv run python scripts/verify_environment.py` remains the environment check.
+
+## 6. Privacy
+
+Nothing leaves the machine except sandboxed web fetches to public hosts on ports 80/443. No telemetry. Retention: audio 7 days, tool bodies 24 h, logs 30 days, transcripts until you say "forget". `lucca-admin memory export` dumps everything Lucca remembers in readable form. See spec 11 §8 and spec 12.

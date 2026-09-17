@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Lucca: Verify Environment & Hardware",
+      "label": "Lucca: Verify Environment (env-check)",
       "type": "shell",
-      "command": "uv run python scripts/verify_environment.py",
+      "command": "uv run lucca-admin env-check",
       "group": {
         "kind": "test",
         "isDefault": true
@@ -16,10 +16,32 @@
       "problemMatcher": []
     },
     {
-      "label": "Lucca: Run All Tests",
+      "label": "Lucca: Run Tier 1-2 Unit Tests",
+      "type": "shell",
+      "command": "uv run pytest -m \"not hw and not soak\" -v",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lucca: Run All Tests (incl. HW)",
       "type": "shell",
       "command": "uv run pytest tests/ -v",
       "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lucca: Static Quality Gates (Ruff & Mypy)",
+      "type": "shell",
+      "command": "uv run ruff check src/ tests/ && uv run mypy src/",
+      "group": "build",
       "presentation": {
         "reveal": "always",
         "panel": "shared"
@@ -37,10 +59,10 @@
       "problemMatcher": []
     },
     {
-      "label": "Lucca: Start vLLM in WSL2",
+      "label": "Lucca: Run Supervisor (Main)",
       "type": "shell",
-      "command": "wsl -d Ubuntu -e bash -c \"vllm serve fixie-ai/ultravox-v0_5-llama-3_1-8b --gpu-memory-utilization 0.62 --port 8000\"",
-      "isBackground": true,
+      "command": "uv run python -m lucca.main",
+      "isBackground": false,
       "presentation": {
         "reveal": "always",
         "panel": "new"

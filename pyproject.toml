@@ -1,42 +1,94 @@
 [project]
 name = "project-lucca"
-version = "0.1.0"
-description = "Local-first sandboxed desktop companion with real-time voice and compiled symbolic reasoning"
+version = "0.2.0"
+description = "Local-first sandboxed desktop companion with real-time voice, four-process topology, and compiled symbolic reasoning"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.7.0",
-    "numpy>=1.26.0",
-    "sounddevice>=0.4.6",
-    "scipy>=1.12.0",
-    "requests>=2.31.0",
-    "openvino>=2024.4.0",
+    "pydantic-settings>=2.3.0",
+    "httpx>=0.27.0",
+    "pyzmq>=26.0.0",
+    "numpy>=1.26.0,<2.3.0",
+    "sounddevice>=0.4.7",
     "onnxruntime>=1.18.0",
-    "xgboost>=2.0.3",
-    "networkx>=3.3",
-    "chromadb>=0.5.0",
-    "rank-bm25>=0.2.2",
+    "openvino>=2025.0.0",
+    "openvino-genai>=2025.0.0",
+    "openvino-tokenizers>=2025.0.0",
+    "kokoro-onnx>=0.3.0",
+    "sqlite-vec>=0.1.6",
+    "rapidfuzz>=3.9.0",
+    "structlog>=24.0.0",
+    "psutil>=6.0.0",
+    "PyQt6>=6.7.0",
+    "lightgbm>=4.3.0",
+    "scikit-learn>=1.5.0",
+    "python-ulid>=2.0.0",
     "rich>=13.7.0",
-    "pynput>=1.7.6",
+    "networkx>=3.3.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
-    "ruff>=0.4.0",
+    "pytest-timeout>=2.3.0",
+    "pytest-cov>=5.0.0",
+    "hypothesis>=6.100.0",
     "mypy>=1.10.0",
+    "ruff>=0.5.0",
+    "import-linter>=2.0.0",
+    "faster-whisper>=1.0.0",
+    "jiwer>=3.0.0",
 ]
+
+[project.scripts]
+lucca-admin = "lucca.admin:main"
+lucca = "lucca.main:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/lucca"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "BLE", "S", "UP", "ANN", "PL"]
+ignore = ["PLR0913", "PLR2004", "S105"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "ANN", "PLR"]
+"src/lucca/core/env_check.py" = ["BLE001", "PLC0415", "S603", "S607"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+    "sounddevice.*",
+    "openvino.*",
+    "kokoro_onnx.*",
+    "sqlite_vec.*",
+    "pyzmq.*",
+    "zmq.*",
+    "PyQt6.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+asyncio_mode = "auto"
+markers = [
+    "hw: Hardware-dependent tests (NPU/dGPU/Audio)",
+    "soak: Long-running stability and soak tests",
+]
