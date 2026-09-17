@@ -1,0 +1,20 @@
+{"id": "fact01", "fact": "The user lives in Seattle.", "paraphrases": ["Where is my home located?", "What city do I live in right now?", "Which place is my current residence?"]}
+{"id": "fact02", "fact": "The user works as a senior systems architect.", "paraphrases": ["What is my job title?", "What do I work as professionally?", "What career role do I hold?"]}
+{"id": "fact03", "fact": "The user prefers dark mode for all desktop applications.", "paraphrases": ["Do I like light or dark themes?", "What UI theme do I prefer for my apps?", "What is my preference regarding window color schemes?"]}
+{"id": "fact04", "fact": "The user is allergic to peanuts and tree nuts.", "paraphrases": ["What food allergies do I have?", "Am I allergic to any nuts?", "Are peanuts safe for me to eat?"]}
+{"id": "fact05", "fact": "The user's birthday is March 15th.", "paraphrases": ["When is my birthday?", "What date was I born on?", "Which day of March do I celebrate my birthday?"]}
+{"id": "fact06", "fact": "The user has a golden retriever dog named Buster.", "paraphrases": ["What pet do I have?", "What is the name and breed of my dog?", "Tell me about my pet Buster."]}
+{"id": "fact07", "fact": "The user's favorite programming language is Rust.", "paraphrases": ["What programming language do I enjoy the most?", "Which coding language is my favorite?", "Do I prefer Rust or Python for development?"]}
+{"id": "fact08", "fact": "The user works at Anthropic.", "paraphrases": ["Which company do I work for?", "Where am I currently employed?", "Who is my employer?"]}
+{"id": "fact09", "fact": "The user speaks fluent Japanese and English.", "paraphrases": ["What foreign languages can I speak?", "Can I speak Japanese?", "Which languages am I proficient in?"]}
+{"id": "fact10", "fact": "The user drinks black coffee without sugar.", "paraphrases": ["How do I take my coffee in the morning?", "Do I put milk or sugar in my coffee?", "What kind of coffee do I drink?"]}
+{"id": "fact11", "fact": "The user's sister is named Maya.", "paraphrases": ["What is the name of my sister?", "Do I have any sisters?", "Who is Maya in my family?"]}
+{"id": "fact12", "fact": "The user drives a blue Subaru Outback.", "paraphrases": ["What car do I drive?", "What model and color is my vehicle?", "Tell me about my Subaru."]}
+{"id": "fact13", "fact": "The user's primary timezone is America/Los_Angeles.", "paraphrases": ["What timezone am I located in?", "What is my local time zone?", "Which zone should be used for scheduling?"]}
+{"id": "fact14", "fact": "The user plays acoustic guitar on weekends.", "paraphrases": ["What musical instrument do I play?", "Do I play the guitar?", "What hobby do I do on weekends?"]}
+{"id": "fact15", "fact": "The user dislikes meetings before 10 AM.", "paraphrases": ["When should you avoid scheduling meetings for me?", "Do I like early morning meetings?", "What time is too early for a meeting?"]}
+{"id": "fact16", "fact": "The user's brother is named David.", "paraphrases": ["What is the name of my brother?", "Who is David in relation to me?", "Do I have a brother?"]}
+{"id": "fact17", "fact": "The user owns a mechanical keyboard with tactile switches.", "paraphrases": ["What keyboard do I use?", "Do I type on a mechanical keyboard?", "What kind of keyboard switches do I have?"]}
+{"id": "fact18", "fact": "The user's project repository is named Project Lucca.", "paraphrases": ["What is the name of my current coding project?", "Which software repository am I building?", "What is Project Lucca?"]}
+{"id": "fact19", "fact": "The user graduated from University of Washington.", "paraphrases": ["Where did I go to college?", "Which university did I attend?", "What is my alma mater?"]}
+{"id": "fact20", "fact": "The user prefers concise bulleted answers over long paragraphs.", "paraphrases": ["How do I like explanations formatted?", "Do I prefer short bullet points or long essays?", "What writing style should Lucca use for me?"]}

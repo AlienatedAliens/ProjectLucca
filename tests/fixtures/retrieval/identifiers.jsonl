@@ -1,0 +1,30 @@
+{"id": "err_01", "query": "ERR_403", "target": "System recorded error ERR_403_INVALID_TOKEN during authentication.", "distractor": "HTTP 403 Forbidden token response returned from server."}
+{"id": "err_02", "query": "0x80070005", "target": "Windows registry access denied with error code ERR_ACCESS_DENIED_0x80070005.", "distractor": "Windows registry access error code 0x80070002 encountered."}
+{"id": "err_03", "query": "502_GATEWAY", "target": "Egress proxy dropped connection with ERR_502_GATEWAY_TIMEOUT.", "distractor": "Proxy gateway timeout 502 error during external network request."}
+{"id": "err_04", "query": "TIMEOUT_50MS", "target": "Executive router violated ROUTE_DISPATCH_TIMEOUT_50MS deadline.", "distractor": "Executive classifier exceeded latency budget by fifty milliseconds."}
+{"id": "err_05", "query": "FAILED_104", "target": "NPU model compilation error E_NPU_COMPILATION_FAILED_104.", "distractor": "NPU model compilation error E_NPU_COMPILATION_FAILED_105."}
+{"id": "err_06", "query": "DROP_RULE_5", "target": "Packet dropped by rule DOCKER_USER_DROP_RULE_5 on custom bridge.", "distractor": "Network packet dropped on bridge by firewall rule number 5."}
+{"id": "err_07", "query": "CHAIN_RULE_9", "target": "WSL iptables table DOCKER_USER_CHAIN_RULE_9 blocked RFC1918 traffic.", "distractor": "WSL iptables table DOCKER_USER_CHAIN_RULE_8 blocked RFC1918 traffic."}
+{"id": "err_08", "query": "0xDEADBEEF", "target": "Kernel panic crash address 0xDEADBEEF in memory segment 4.", "distractor": "Fatal kernel panic memory crash dump analysis in segment 4."}
+{"id": "err_09", "query": "SOCKET_404", "target": "Named pipe connection error ERR_SOCKET_404_NOT_FOUND occurred.", "distractor": "Local IPC named pipe socket connection not found during lookup."}
+{"id": "err_10", "query": "OOM_VRAM", "target": "Model layer offload crashed with E_GPU_OOM_VRAM_EXCEEDED.", "distractor": "GPU video memory allocation limit exceeded during inference offload."}
+{"id": "file_01", "query": "jwt_validator", "target": "Authentication verified in src/auth/jwt_validator.py.", "distractor": "User authentication verified by JWT token validation routines."}
+{"id": "file_02", "query": "config.yaml", "target": "Application runtime settings loaded from config.yaml in workspace.", "distractor": "Application runtime configuration documentation and yaml guide."}
+{"id": "file_03", "query": "auth_middleware", "target": "User request interception defined in src/lucca/api/auth_middleware.py.", "distractor": "User request interception defined in authentication middleware."}
+{"id": "file_04", "query": "ring_buffer", "target": "Audio sample transport managed by src/lucca/audio/ring_buffer.py.", "distractor": "Circular ring buffer audio transport managed by audio driver."}
+{"id": "file_05", "query": "tool_whitelist", "target": "Allowed host launcher executables listed in config/tool_whitelist.toml.", "distractor": "Allowed host launcher executables and command whitelist specification."}
+{"id": "file_06", "query": "0001_init.sql", "target": "Database schema created by migration 0001_init.sql.", "distractor": "Database schema created by initial database migration script."}
+{"id": "file_07", "query": "hyperparams_v2", "target": "LLM options specified in config/runtime_hyperparams_v2.toml.", "distractor": "Language model hyperparameters and runtime options configuration."}
+{"id": "file_08", "query": "libsqlite3-dev_3.45.1", "target": "Installed system package version libsqlite3-dev_3.45.1 for custom build.", "distractor": "Installed system package SQLite development libraries for build."}
+{"id": "file_09", "query": "lucca-egress.sh", "target": "WSL iptables rules applied via scripts/wsl/lucca-egress.sh.", "distractor": "WSL iptables firewall rules applied by egress configuration script."}
+{"id": "file_10", "query": "audio_resampler.py", "target": "Sample rate conversion handled by src/lucca/audio/audio_resampler.py.", "distractor": "Sample rate conversion handled by audio resampling audio DSP module."}
+{"id": "ident_01", "query": "PORT_54321", "target": "Internal daemon control socket bound to PORT_TCP_54321 on loopback.", "distractor": "Internal daemon control port 54322 bound on loopback."}
+{"id": "ident_02", "query": "SN-8842-XJ9", "target": "Hardware inventory record motherboard serial is SN-8842-XJ9.", "distractor": "Hardware inventory record motherboard serial is SN-8842-XJ8."}
+{"id": "ident_03", "query": "UUID-7a2b-9c4d-1e0f", "target": "Assigned system hardware identifier UUID-7a2b-9c4d-1e0f to node 01.", "distractor": "Assigned system hardware identifier UUID-7a2b-9c4d-1e0e to node 01."}
+{"id": "ident_04", "query": "PID_TASK_77391", "target": "Inference server running under PID_TASK_77391.", "distractor": "Inference server process running under process ID 77391."}
+{"id": "ident_05", "query": "docker_bridge_lucca0", "target": "Internal container bridge docker_bridge_lucca0 allocated subnet 172.28.0.0/16.", "distractor": "Internal container bridge docker_bridge_lucca1 allocated subnet 172.28.0.0/16."}
+{"id": "ident_06", "query": "SHA256_e3b0c442", "target": "Empty input checksum verified as SHA256_e3b0c44298fc1c14.", "distractor": "Empty input cryptographic checksum hash verified in unit test suite."}
+{"id": "ident_07", "query": "MAC_02_42_AC", "target": "Container virtual NIC assigned MAC_02_42_AC_11_00_02.", "distractor": "Container virtual network interface card assigned MAC physical address."}
+{"id": "ident_08", "query": "LLAMA_ARG_FLASH_ATTN_ON", "target": "llama-server launched with LLAMA_ARG_FLASH_ATTN_ON enabled.", "distractor": "Inference engine server launched with flash attention optimization enabled."}
+{"id": "ident_09", "query": "CERT_THUMBPRINT_A1B2C3", "target": "Egress TLS proxy certificate verified with CERT_THUMBPRINT_A1B2C3.", "distractor": "Egress TLS proxy certificate verified against trusted root authorities."}
+{"id": "ident_10", "query": "BUILD_0C673DC", "target": "Phase 1 release built from commit BUILD_GIT_COMMIT_0C673DC.", "distractor": "Application release package compiled from commit hash 0C673DC in repository."}

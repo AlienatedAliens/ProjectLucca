@@ -1,0 +1,533 @@
+"""
+Project Lucca — SQLite-backed Memory Store & Graph Engine
+Spec 04 §1-§8, ADR-002, ADR-006
+"""
+
+import asyncio
+import datetime
+import json
+import time
+from collections.abc import Callable
+from pathlib import Path
+from typing import Final
+
+import sqlite_vec
+import structlog
+
+from lucca.core.exceptions import (
+    MemoryCommitFailed,
+    MemoryStoreReadOnly,
+    ProvenanceRejected,
+)
+from lucca.core.schemas import (
+    Admitted,
+    Edge,
+    MemoryHit,
+    MemoryId,
+    RetrievalQuery,
+    SignedPayload,
+)
+from lucca.memory.db import DatabaseManager
+from lucca.memory.entities import resolve_entity
+from lucca.memory.extraction import FUNCTIONAL_PREDICATES
+from lucca.memory.gate import ProvenanceGate
+from lucca.memory.retrieval import HybridRetriever
+from lucca.memory.tokens import subtokens
+from lucca.ports import EmbeddingPort
+
+logger = structlog.get_logger(__name__)
+
+DEFAULT_BACKUP_DIR: Final[Path] = Path(r"C:\ProjectLucca\data\backups")
+
+
+class MemoryStore:
+    """
+    Core persistent memory storage implementing MemoryStorePort.
+    Guarantees atomic single-transaction commits, bi-temporal supersession,
+    cryptographic provenance gates, and hybrid dense/sparse retrieval.
+    """
+
+    def __init__(
+        self,
+        db: DatabaseManager,
+        master_key: bytes,
+        embedding_port: EmbeddingPort | None = None,
+        backup_dir: Path | str = DEFAULT_BACKUP_DIR,
+    ) -> None:
+        self.db = db
+        self.master_key = master_key
+        self.embedding_port = embedding_port
+        self.backup_dir = Path(backup_dir) if isinstance(backup_dir, str) else backup_dir
+
+        self.gate = ProvenanceGate(master_key=master_key)
+        self.retriever = HybridRetriever(db=db, embedder=embedding_port)
+
+        self.read_only: bool = False
+        self.vec_backfill: list[int] = []
+        self._write_lock: asyncio.Lock = asyncio.Lock()
+        self._fault_hook_before_commit: Callable[[], None] | None = None
+
+    async def commit(
+        self,
+        payload: SignedPayload | Admitted,
+        now: float | None = None,
+    ) -> MemoryId:
+        """
+        Commit a signed payload into persistent storage in a single transaction (Spec 04 §4).
+        """
+        if self.read_only:
+            raise MemoryStoreReadOnly("MemoryStore is in read-only mode")
+
+        current_time = now if now is not None else time.time()
+
+        # Provenance verification gate
+        if isinstance(payload, Admitted):
+            signed_payload = payload.payload
+        elif isinstance(payload, SignedPayload):
+            admitted = self.gate.admit(payload, now=current_time)
+            signed_payload = admitted.payload
+        else:
+            msg = f"Expected Admitted or SignedPayload, got {type(payload).__name__}"
+            raise ProvenanceRejected(msg)
+
+        # Compute embedding before transaction (Spec 04 §4)
+        embedding: list[float] | None = None
+        if self.embedding_port is not None:
+            try:
+                vecs = await self.embedding_port.embed([signed_payload.content])
+                if vecs and len(vecs[0]) == 384:
+                    embedding = vecs[0]
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("embedding_failed_enqueuing_backfill", error=str(exc))
+
+        async with self._write_lock:
+            conn = self.db.get_writer()
+            cursor = conn.cursor()
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                # 1. Insert provenance envelope
+                asr_model = signed_payload.asr.model if signed_payload.asr else None
+                asr_avg_logprob = signed_payload.asr.avg_logprob if signed_payload.asr else None
+                audio_sha256 = signed_payload.asr.audio_sha256 if signed_payload.asr else None
+                tool_name = signed_payload.tool.tool if signed_payload.tool else None
+                tool_call_id = signed_payload.tool.call_id if signed_payload.tool else None
+                tool_exit_code = signed_payload.tool.exit_code if signed_payload.tool else None
+
+                cursor.execute(
+                    """
+                    INSERT INTO provenance_envelopes(
+                        entry_id, provenance, kind, signer_id, signature, content_sha256,
+                        nonce, created_at, trace_id, session_id, asr_model, asr_avg_logprob,
+                        audio_sha256, tool_name, tool_call_id, tool_exit_code, confidence,
+                        payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        signed_payload.entry_id,
+                        signed_payload.provenance.value,
+                        signed_payload.kind,
+                        signed_payload.signer_id,
+                        signed_payload.signature,
+                        signed_payload.content_sha256,
+                        signed_payload.nonce,
+                        signed_payload.created_at,
+                        signed_payload.trace_id,
+                        signed_payload.session_id,
+                        asr_model,
+                        asr_avg_logprob,
+                        audio_sha256,
+                        tool_name,
+                        tool_call_id,
+                        tool_exit_code,
+                        signed_payload.confidence,
+                        signed_payload.model_dump_json(),
+                    ),
+                )
+
+                # 2. Insert memories (valid_from = structured.valid_from or created_at)
+                valid_from = signed_payload.created_at
+                if (
+                    signed_payload.structured is not None
+                    and "valid_from" in signed_payload.structured
+                ):
+                    vf_val = signed_payload.structured["valid_from"]
+                    if isinstance(vf_val, (int, float)):
+                        valid_from = float(vf_val)
+
+                aux_tokens = subtokens(signed_payload.content)
+                cursor.execute(
+                    """
+                    INSERT INTO memories(
+                        entry_id, content, tokens_aux, kind, created_at, valid_from,
+                        valid_to, superseded_by, forgotten_at, importance, access_count
+                    ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0.5, 0)
+                    """,
+                    (
+                        signed_payload.entry_id,
+                        signed_payload.content,
+                        aux_tokens,
+                        signed_payload.kind,
+                        signed_payload.created_at,
+                        valid_from,
+                    ),
+                )
+                if cursor.lastrowid is None:
+                    raise MemoryCommitFailed("Failed to insert memory: lastrowid is None")
+                memory_id = int(cursor.lastrowid)
+
+                # 3. Insert memory_sources
+                for src_id in signed_payload.source_entry_ids:
+                    cursor.execute(
+                        """
+                        INSERT OR IGNORE INTO memory_sources(memory_id, source_entry_id)
+                        VALUES (?, ?)
+                        """,
+                        (memory_id, src_id),
+                    )
+
+                # 4. Insert vec_memories
+                if embedding is not None:
+                    serialized_vec = sqlite_vec.serialize_float32(embedding)
+                    cursor.execute(
+                        "INSERT INTO vec_memories(memory_id, embedding) VALUES (?, ?)",
+                        (memory_id, serialized_vec),
+                    )
+                else:
+                    self.vec_backfill.append(memory_id)
+
+                # 5. Knowledge Graph updates for kind='fact'
+                if signed_payload.kind == "fact" and signed_payload.structured is not None:
+                    s_surface = str(signed_payload.structured.get("s", "user"))
+                    p_pred = str(signed_payload.structured.get("p", "note"))
+                    o_surface = str(signed_payload.structured.get("o", ""))
+
+                    s_id, _ = resolve_entity(conn, s_surface, now=signed_payload.created_at)
+                    o_id, _ = resolve_entity(conn, o_surface, now=signed_payload.created_at)
+
+                    # Functional predicate supersession
+                    if p_pred in FUNCTIONAL_PREDICATES:
+                        cursor.execute(
+                            """
+                            SELECT edge_id, memory_id FROM kg_edges
+                            WHERE s = ? AND p = ? AND valid_to IS NULL AND o <> ?
+                            """,
+                            (s_id, p_pred, o_id),
+                        )
+                        old_edges = cursor.fetchall()
+                        for old_edge_id, old_mid in old_edges:
+                            cursor.execute(
+                                "UPDATE kg_edges SET valid_to = ? WHERE edge_id = ?",
+                                (signed_payload.created_at, old_edge_id),
+                            )
+                            cursor.execute(
+                                """
+                                UPDATE memories SET valid_to = ?, superseded_by = ?
+                                WHERE memory_id = ?
+                                """,
+                                (signed_payload.created_at, memory_id, old_mid),
+                            )
+                            cursor.execute(
+                                """
+                                INSERT INTO memory_audit(
+                                    ts, kind, reason, provenance, trace_id, entry_id
+                                )
+                                VALUES (?, 'supersede', ?, ?, ?, ?)
+                                """,
+                                (
+                                    current_time,
+                                    f"Functional predicate {p_pred} supersession",
+                                    signed_payload.provenance.value,
+                                    signed_payload.trace_id,
+                                    signed_payload.entry_id,
+                                ),
+                            )
+
+                    # Insert new edge
+                    cursor.execute(
+                        """
+                        INSERT INTO kg_edges(
+                            s, p, o, memory_id, valid_from, recorded_at, confidence
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            s_id,
+                            p_pred,
+                            o_id,
+                            memory_id,
+                            valid_from,
+                            current_time,
+                            signed_payload.confidence,
+                        ),
+                    )
+
+                # 6. Insert gate_nonces
+                cursor.execute(
+                    "INSERT INTO gate_nonces(nonce, content_sha256, seen_at) VALUES (?, ?, ?)",
+                    (signed_payload.nonce, signed_payload.content_sha256, current_time),
+                )
+
+                # 7. Insert memory_audit
+                cursor.execute(
+                    """
+                    INSERT INTO memory_audit(
+                        ts, kind, provenance, trace_id, entry_id, content_sha256
+                    )
+                    VALUES (?, 'commit', ?, ?, ?, ?)
+                    """,
+                    (
+                        current_time,
+                        signed_payload.provenance.value,
+                        signed_payload.trace_id,
+                        signed_payload.entry_id,
+                        signed_payload.content_sha256,
+                    ),
+                )
+
+                # Fault injection hook for crash testing (T-MEM-10)
+                if self._fault_hook_before_commit is not None:
+                    self._fault_hook_before_commit()
+
+                conn.execute("COMMIT")
+                return memory_id
+
+            except Exception as exc:
+                conn.execute("ROLLBACK")
+                if isinstance(exc, (ProvenanceRejected, MemoryStoreReadOnly)):
+                    raise
+                raise MemoryCommitFailed(f"Memory commit transaction failed: {exc}") from exc
+
+    async def search(self, q: RetrievalQuery) -> list[MemoryHit]:
+        """Hybrid retrieval query."""
+        return await self.retriever.search(q)
+
+    async def supersede(
+        self,
+        old: MemoryId,
+        new: MemoryId,
+        reason: str,
+        now: float | None = None,
+    ) -> None:
+        """Mark old memory as superseded by new memory."""
+        if self.read_only:
+            raise MemoryStoreReadOnly("MemoryStore is in read-only mode")
+
+        current_time = now if now is not None else time.time()
+        async with self._write_lock:
+            conn = self.db.get_writer()
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                conn.execute(
+                    "UPDATE memories SET valid_to = ?, superseded_by = ? WHERE memory_id = ?",
+                    (current_time, int(new), int(old)),
+                )
+                conn.execute(
+                    "UPDATE kg_edges SET valid_to = ? WHERE memory_id = ? AND valid_to IS NULL",
+                    (current_time, int(old)),
+                )
+                conn.execute(
+                    "INSERT INTO memory_audit(ts, kind, reason) VALUES (?, 'supersede', ?)",
+                    (current_time, reason),
+                )
+                conn.execute("COMMIT")
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+
+    async def forget(
+        self,
+        ids: list[MemoryId],
+        *,
+        user_confirmed: bool,
+        now: float | None = None,
+    ) -> None:
+        """
+        Soft-delete memories: sets forgotten_at, deletes vec/fts rows, and closes edges.
+        Requires explicit user_confirmed=True.
+        """
+        if not user_confirmed:
+            raise ValueError("Forgetting memories requires explicit user confirmation")
+
+        if self.read_only:
+            raise MemoryStoreReadOnly("MemoryStore is in read-only mode")
+
+        current_time = now if now is not None else time.time()
+        int_ids = [int(mid) for mid in ids]
+
+        async with self._write_lock:
+            conn = self.db.get_writer()
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                for mid in int_ids:
+                    # 1. Fetch content for FTS delete
+                    cur_old = conn.execute(
+                        "SELECT content, tokens_aux FROM memories WHERE memory_id = ?", (mid,)
+                    )
+                    old_row = cur_old.fetchone()
+                    if old_row:
+                        old_content, old_tokens = old_row[0], old_row[1]
+                        conn.execute(
+                            """
+                            INSERT INTO fts_memories(fts_memories, rowid, content, tokens_aux)
+                            VALUES ('delete', ?, ?, ?)
+                            """,
+                            (mid, old_content, old_tokens),
+                        )
+
+                    # 2. Soft-delete memory row
+                    conn.execute(
+                        "UPDATE memories SET forgotten_at = ? WHERE memory_id = ?",
+                        (current_time, mid),
+                    )
+                    # 3. Remove from vector index
+                    conn.execute("DELETE FROM vec_memories WHERE memory_id = ?", (mid,))
+                    # 4. Close KG edges
+                    conn.execute(
+                        "UPDATE kg_edges SET valid_to = ? WHERE memory_id = ? AND valid_to IS NULL",
+                        (current_time, mid),
+                    )
+                    # 5. Audit
+                    conn.execute(
+                        "INSERT INTO memory_audit(ts, kind, reason) VALUES (?, 'forget', ?)",
+                        (current_time, f"User confirmed forget for memory {mid}"),
+                    )
+                conn.execute("COMMIT")
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+
+    async def graph_neighbors(self, entity: str, hops: int = 1) -> list[Edge]:
+        """Find valid knowledge graph neighbors for entity (Spec 04 §6)."""
+        edges: list[Edge] = []
+        with self.db.read_cursor() as cur:
+            # Resolve entity canonical name or alias
+            s_can = entity.lower().strip()
+            cur.execute(
+                """
+                SELECT e1.canonical, ed.p, e2.canonical
+                FROM kg_edges ed
+                JOIN kg_entities e1 ON ed.s = e1.entity_id
+                JOIN kg_entities e2 ON ed.o = e2.entity_id
+                WHERE (e1.canonical = ? OR e2.canonical = ?) AND ed.valid_to IS NULL
+                """,
+                (s_can, s_can),
+            )
+            for s, p, o in cur.fetchall():
+                edges.append(Edge(source=str(s), relation=str(p), target=str(o)))
+        return edges
+
+    def backup(self, destination: Path | str | None = None) -> Path:
+        """
+        Execute VACUUM INTO backup snapshot and prune old backups per Spec 04 §8.
+        Keeps 14 daily backups and 8 weekly (Sunday) backups.
+        """
+        now = datetime.datetime.now()
+        self.backup_dir.mkdir(parents=True, exist_ok=True)
+
+        if destination is None:
+            filename = f"memory-{now.strftime('%Y%m%d-%H%M')}.sqlite"
+            dest_path = self.backup_dir / filename
+        else:
+            dest_path = Path(destination)
+
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        if dest_path.exists():
+            dest_path.unlink()
+
+        conn = self.db.get_writer()
+        # Escape path for SQLite string literal
+        escaped_path = str(dest_path.resolve()).replace("'", "''")
+        conn.execute(f"VACUUM INTO '{escaped_path}'")
+
+        # Prune retention (14 daily, 8 weekly)
+        self._prune_backups()
+        return dest_path
+
+    def _prune_backups(self) -> None:
+        """Prune old backup files: retain 14 daily and 8 weekly (Sunday)."""
+        backups = sorted(
+            self.backup_dir.glob("memory-*.sqlite"),
+            key=lambda p: p.name,
+            reverse=True,
+        )
+        daily_kept = 0
+        weekly_kept = 0
+
+        for b in backups:
+            try:
+                date_part = b.name.replace("memory-", "").split("-")[0]
+                dt = datetime.datetime.strptime(date_part, "%Y%m%d")
+            except ValueError:
+                continue
+
+            is_sunday = dt.weekday() == 6
+            keep = False
+            if daily_kept < 14:
+                daily_kept += 1
+                keep = True
+            elif is_sunday and weekly_kept < 8:
+                weekly_kept += 1
+                keep = True
+
+            if not keep:
+                try:
+                    b.unlink()
+                except OSError as e:
+                    logger.warning("backup_prune_failed", file=b.name, error=str(e))
+
+    def check_integrity(self) -> bool:
+        """
+        Run PRAGMA integrity_check (Spec 04 §8).
+        If corrupted, sets read_only=True and returns False.
+        """
+        with self.db.read_cursor() as cur:
+            cur.execute("PRAGMA integrity_check;")
+            rows = cur.fetchall()
+            if rows and rows[0][0] == "ok":
+                return True
+
+        self.read_only = True
+        logger.error("sqlite_integrity_check_failed", details=[r[0] for r in rows])
+        return False
+
+    def export_jsonl(self, output_path: Path | str) -> int:
+        """Dump memories + provenance envelopes as JSONL (Spec 04 §8)."""
+        out = Path(output_path)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        count = 0
+
+        with self.db.read_cursor() as cur, out.open("w", encoding="utf-8") as f:
+            cur.execute(
+                """
+                SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
+                       m.valid_to, m.forgotten_at, p.provenance, p.signer_id,
+                       p.signature, p.content_sha256, p.nonce, p.trace_id, p.session_id,
+                       p.confidence, p.payload_json
+                FROM memories m
+                JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                ORDER BY m.memory_id ASC
+                """
+            )
+            for row in cur.fetchall():
+                record = {
+                    "memory_id": row[0],
+                    "content": row[1],
+                    "kind": row[2],
+                    "created_at": row[3],
+                    "valid_from": row[4],
+                    "valid_to": row[5],
+                    "forgotten_at": row[6],
+                    "provenance": row[7],
+                    "signer_id": row[8],
+                    "signature": row[9],
+                    "content_sha256": row[10],
+                    "nonce": row[11],
+                    "trace_id": row[12],
+                    "session_id": row[13],
+                    "confidence": row[14],
+                    "payload": json.loads(row[15]),
+                }
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+                count += 1
+
+        return count

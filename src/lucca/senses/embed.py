@@ -5,10 +5,16 @@ Spec 04 §3, Spec 11 §4
 
 import time
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import openvino as ov
 import structlog
+
+try:
+    from tokenizers import Tokenizer
+except ImportError:
+    Tokenizer = None  # type: ignore[assignment, misc]
 
 try:
     from transformers import AutoTokenizer
@@ -23,8 +29,9 @@ MODEL_DIR = Path(r"C:\ProjectLucca\models\embed\all-MiniLM-L6-v2")
 class EmbedWorker:
     def __init__(self) -> None:
         self.device = "CPU"
-        self.compiled = None
-        self.tokenizer = None
+        self.compiled: Any = None
+        self.tokenizer: Any = None
+        self._is_fast_tokenizer = False
         self._init_model()
 
     def _init_model(self) -> None:
@@ -51,10 +58,22 @@ class EmbedWorker:
 
         self.compiled = core.compile_model(model, target_dev)
 
-        # Load tokenizer
-        if AutoTokenizer is not None and MODEL_DIR.exists():
+        # Load tokenizer: prefer tokenizers.Tokenizer from tokenizer.json
+        tok_json = MODEL_DIR / "tokenizer.json"
+        if Tokenizer is not None and tok_json.exists():
+            try:
+                tok = Tokenizer.from_file(str(tok_json))
+                tok.enable_truncation(max_length=128)
+                tok.enable_padding(length=128)
+                self.tokenizer = tok
+                self._is_fast_tokenizer = True
+            except (RuntimeError, ValueError, OSError) as exc:
+                logger.warning("embed_fast_tokenizer_init_failed", error=str(exc))
+                self.tokenizer = None
+        elif AutoTokenizer is not None and MODEL_DIR.exists():
             try:
                 self.tokenizer = AutoTokenizer.from_pretrained(str(MODEL_DIR))
+                self._is_fast_tokenizer = False
             except (OSError, RuntimeError) as exc:
                 logger.warning("embed_tokenizer_init_failed", error=str(exc))
                 self.tokenizer = None
@@ -70,7 +89,15 @@ class EmbedWorker:
         infer_req = self.compiled.create_infer_request()
 
         for t in texts:
-            if self.tokenizer:
+            if self.tokenizer and self._is_fast_tokenizer:
+                enc = self.tokenizer.encode(t)
+                inp = {
+                    "input_ids": np.array([enc.ids], dtype=np.int64),
+                    "attention_mask": np.array([enc.attention_mask], dtype=np.int64),
+                    "token_type_ids": np.array([enc.type_ids], dtype=np.int64),
+                }
+                mask = np.array(enc.attention_mask, dtype=np.float32)[:, None]
+            elif self.tokenizer:
                 enc = self.tokenizer(
                     t,
                     max_length=128,
@@ -85,20 +112,23 @@ class EmbedWorker:
                     "attention_mask": enc["attention_mask"].astype(np.int64),
                     "token_type_ids": token_type_ids,
                 }
+                mask = enc["attention_mask"][0].astype(np.float32)[:, None]
             else:
-                # Basic token length dummy for testing without transformers
+                # Basic token length dummy for testing without tokenizer
                 inp = {
                     "input_ids": np.ones((1, 128), dtype=np.int64),
                     "attention_mask": np.ones((1, 128), dtype=np.int64),
-                    "token_type_ids": np.zeros((1, 128), dtype=np.int64)
+                    "token_type_ids": np.zeros((1, 128), dtype=np.int64),
                 }
+                mask = np.ones((128, 1), dtype=np.float32)
 
             out = infer_req.infer(inp)
-            # Output is usually last_hidden_state [1, 128, 384]
             out_tensor = list(out.values())[0]
             if len(out_tensor.shape) == 3:
-                # Mean pooling
-                vec = np.mean(out_tensor[0], axis=0)
+                # Attention-mask weighted mean pooling
+                sum_emb = np.sum(out_tensor[0] * mask, axis=0)
+                sum_mask = max(float(np.sum(mask)), 1e-9)
+                vec = sum_emb / sum_mask
             else:
                 vec = out_tensor[0]
 
@@ -110,3 +140,18 @@ class EmbedWorker:
 
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return vectors, 384, elapsed_ms
+
+
+class LocalEmbeddingPort:
+    """Local in-process implementation of EmbeddingPort using EmbedWorker."""
+
+    def __init__(self, worker: EmbedWorker | None = None) -> None:
+        self.worker = worker or EmbedWorker()
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        vectors, _, _ = self.worker.embed_text(list(texts))
+        return vectors
+
+    def dim(self) -> int:
+        return 384
+

@@ -97,6 +97,12 @@ class MemoryIntegrity(MemoryError_):
     pass
 
 
+class MemoryStoreReadOnly(MemoryError_):
+    """MemoryStore is in read-only mode (e.g. after integrity failure)."""
+
+    pass
+
+
 class ProvenanceRejected(MemoryError_):
     """Memory write attempt lacks valid provenance signer or is LLM_NARRATION."""
 

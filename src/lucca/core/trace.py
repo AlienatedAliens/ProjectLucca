@@ -1,4 +1,4 @@
-﻿"""
+"""
 Project Lucca — Latency Trace Schema & Logging
 Spec 10 §1, §2
 """

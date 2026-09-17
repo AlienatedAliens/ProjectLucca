@@ -163,7 +163,7 @@ class TTSChunkDone(BaseModel):
 # Memory & Provenance Models (Spec 02, Spec 03, ADR-006)
 # ============================================================================
 
-MemoryId = str
+MemoryId = int | str
 
 
 class Provenance(StrEnum):
@@ -239,6 +239,9 @@ class RetrievalQuery(BaseModel):
     query_vector: list[float] | None = None
     k: int = 8
     exact_identifiers: list[str] = Field(default_factory=list)
+    include_superseded: bool = False
+    kinds: list[str] | None = None
+    since: float | None = None
 
 
 class MemoryHit(BaseModel):
@@ -247,6 +250,10 @@ class MemoryHit(BaseModel):
     provenance: MemoryProvenance
     score: float
     source_turn_id: str | None = None
+    kind: str = "fact"
+    created_at: float = 0.0
+    valid_from: float = 0.0
+    valid_to: float | None = None
 
 
 class Edge(BaseModel):

@@ -1,0 +1,40 @@
+{"id": "g01", "is_grounded": true, "transcript": "Hey Lucca, I just moved and I now live in Seattle.", "fact": {"s": "user", "p": "lives_in", "o": "Seattle", "quote": "I now live in Seattle"}}
+{"id": "g02", "is_grounded": true, "transcript": "My sister Maya called me yesterday evening.", "fact": {"s": "user", "p": "has_sibling", "o": "Maya", "quote": "My sister Maya"}}
+{"id": "g03", "is_grounded": true, "transcript": "I work at Anthropic as a systems engineer.", "fact": {"s": "user", "p": "works_at", "o": "Anthropic", "quote": "I work at Anthropic"}}
+{"id": "g04", "is_grounded": true, "transcript": "My birthday is March 15th so let us celebrate.", "fact": {"s": "user", "p": "birthday_is", "o": "March 15th", "quote": "My birthday is March 15th"}}
+{"id": "g05", "is_grounded": true, "transcript": "Please remember that I am allergic to peanuts.", "fact": {"s": "user", "p": "allergic_to", "o": "peanuts", "quote": "allergic to peanuts"}}
+{"id": "g06", "is_grounded": true, "transcript": "I have a golden retriever dog named Buster.", "fact": {"s": "user", "p": "has_pet", "o": "Buster", "quote": "dog named Buster"}}
+{"id": "g07", "is_grounded": true, "transcript": "I really love programming in Rust.", "fact": {"s": "user", "p": "likes", "o": "Rust", "quote": "programming in Rust"}}
+{"id": "g08", "is_grounded": true, "transcript": "I speak fluent Japanese when traveling abroad.", "fact": {"s": "user", "p": "speaks_language", "o": "Japanese", "quote": "speak fluent Japanese"}}
+{"id": "g09", "is_grounded": true, "transcript": "My primary project is Project Lucca.", "fact": {"s": "user", "p": "project_is", "o": "Project Lucca", "quote": "project is Project Lucca"}}
+{"id": "g10", "is_grounded": true, "transcript": "I hate early morning meetings before ten.", "fact": {"s": "user", "p": "dislikes", "o": "meetings before ten", "quote": "meetings before ten"}}
+{"id": "g11", "is_grounded": true, "transcript": "My brother David is coming over this Friday.", "fact": {"s": "user", "p": "has_sibling", "o": "David", "quote": "My brother David"}}
+{"id": "g12", "is_grounded": true, "transcript": "My timezone is America/Los_Angeles for all logs.", "fact": {"s": "user", "p": "timezone_is", "o": "America/Los_Angeles", "quote": "timezone is America/Los_Angeles"}}
+{"id": "g13", "is_grounded": true, "transcript": "I was born on July 4th in New York.", "fact": {"s": "user", "p": "born_on", "o": "July 4th", "quote": "born on July 4th"}}
+{"id": "g14", "is_grounded": true, "transcript": "I prefer dark mode on all user interfaces.", "fact": {"s": "user", "p": "prefers", "o": "dark mode", "quote": "prefer dark mode"}}
+{"id": "g15", "is_grounded": true, "transcript": "I use Chrome as my default internet browser.", "fact": {"s": "user", "p": "uses_app", "o": "Chrome", "quote": "use Chrome"}}
+{"id": "g16", "is_grounded": true, "transcript": "I own a blue Subaru Outback.", "fact": {"s": "user", "p": "owns", "o": "Subaru Outback", "quote": "own a blue Subaru Outback"}}
+{"id": "g17", "is_grounded": true, "transcript": "My mother Sarah lives in Chicago.", "fact": {"s": "user", "p": "has_parent", "o": "Sarah", "quote": "My mother Sarah"}}
+{"id": "g18", "is_grounded": true, "transcript": "I am studying quantum computing in my spare time.", "fact": {"s": "user", "p": "studies", "o": "quantum computing", "quote": "studying quantum computing"}}
+{"id": "g19", "is_grounded": true, "transcript": "My close friend Alex helped me debug the IPC pipe.", "fact": {"s": "user", "p": "has_friend", "o": "Alex", "quote": "close friend Alex"}}
+{"id": "g20", "is_grounded": true, "transcript": "I work as a systems architect on desktop agents.", "fact": {"s": "user", "p": "works_as", "o": "systems architect", "quote": "work as a systems architect"}}
+{"id": "h01", "is_grounded": false, "transcript": "What is the weather outside today?", "fact": {"s": "user", "p": "lives_in", "o": "Seattle", "quote": "Seattle"}}
+{"id": "h02", "is_grounded": false, "transcript": "Can you open calculator for me please?", "fact": {"s": "user", "p": "owns", "o": "Ferrari", "quote": "calculator"}}
+{"id": "h03", "is_grounded": false, "transcript": "I need to look up a recipe for pasta.", "fact": {"s": "user", "p": "allergic_to", "o": "shellfish", "quote": "pasta"}}
+{"id": "h04", "is_grounded": false, "transcript": "Let us check the calendar for tomorrow morning.", "fact": {"s": "user", "p": "works_at", "o": "Google", "quote": "tomorrow morning"}}
+{"id": "h05", "is_grounded": false, "transcript": "Can you summarize the text file on my desktop?", "fact": {"s": "user", "p": "has_child", "o": "Emma", "quote": "desktop"}}
+{"id": "h06", "is_grounded": false, "transcript": "I just woke up and had a glass of water.", "fact": {"s": "user", "p": "has_pet", "o": "Rex", "quote": "glass of water"}}
+{"id": "h07", "is_grounded": false, "transcript": "Hello Lucca, nice to meet you.", "fact": {"s": "user", "p": "birthday_is", "o": "January 1st", "quote": "nice to meet you"}}
+{"id": "h08", "is_grounded": false, "transcript": "The system clock seems to be off by two minutes.", "fact": {"s": "user", "p": "timezone_is", "o": "UTC", "quote": "two minutes"}}
+{"id": "h09", "is_grounded": false, "transcript": "Run the automated test suite in the terminal.", "fact": {"s": "user", "p": "likes", "o": "Javascript", "quote": "terminal"}}
+{"id": "h10", "is_grounded": false, "transcript": "I am drinking green tea right now.", "fact": {"s": "user", "p": "dislikes", "o": "coffee", "quote": "green tea"}}
+{"id": "h11", "is_grounded": false, "transcript": "Please find the download link for the model weights.", "fact": {"s": "user", "p": "studies", "o": "astronomy", "quote": "model weights"}}
+{"id": "h12", "is_grounded": false, "transcript": "Can you show me the CPU usage right now?", "fact": {"s": "user", "p": "speaks_language", "o": "French", "quote": "CPU usage"}}
+{"id": "h13", "is_grounded": false, "transcript": "Remember that my password is supersecret123.", "fact": {"s": "user", "p": "unauthorized_secret_predicate", "o": "supersecret123", "quote": "password is supersecret123"}}
+{"id": "h14", "is_grounded": false, "transcript": "Turn down the speaker volume a little bit.", "fact": {"s": "user", "p": "has_partner", "o": "Jessica", "quote": "speaker volume"}}
+{"id": "h15", "is_grounded": false, "transcript": "Let us check the git diff for uncommitted files.", "fact": {"s": "user", "p": "prefers", "o": "vim", "quote": "git diff"}}
+{"id": "h16", "is_grounded": false, "transcript": "I am going for a walk in the neighborhood.", "fact": {"s": "user", "p": "born_on", "o": "1990", "quote": "neighborhood"}}
+{"id": "h17", "is_grounded": false, "transcript": "Show me the logs from the previous docker container.", "fact": {"s": "user", "p": "works_as", "o": "doctor", "quote": "docker container"}}
+{"id": "h18", "is_grounded": false, "transcript": "Let us take a five minute break.", "fact": {"s": "user", "p": "uses_app", "o": "slack", "quote": "five minute break"}}
+{"id": "h19", "is_grounded": false, "transcript": "The quick brown fox jumps over the lazy dog.", "fact": {"s": "user", "p": "has_friend", "o": "Bob", "quote": "lazy dog"}}
+{"id": "h20", "is_grounded": false, "transcript": "Save the current scratchpad contents to note.txt.", "fact": {"s": "user", "p": "lives_in", "o": "Paris", "quote": "scratchpad contents"}}
