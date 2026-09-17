@@ -10,11 +10,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import httpx
+
 from lucca.core.config import get_config
 
 
 def check_mshybrid_vram() -> tuple[bool, str]:
-    """Checks dGPU VRAM baseline via nvidia-smi (< 300 MB expected at idle in MSHybrid)."""
+    """Checks dGPU VRAM baseline (< 1500 MB idle, <= 9500 MB if llama-server resident)."""
     nvidia_smi = shutil.which("nvidia-smi")
     if not nvidia_smi:
         return False, "nvidia-smi not found in PATH."
@@ -26,6 +28,27 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             check=True,
         )
         used_mb = float(res.stdout.strip().splitlines()[0])
+
+        cfg = get_config()
+        llama_active = False
+        try:
+            r = httpx.get(f"http://{cfg.llm.host}:{cfg.llm.port}/health", timeout=0.5)
+            if r.status_code == 200:
+                llama_active = True
+        except Exception:
+            llama_active = False
+
+        if llama_active:
+            if used_mb > 9500:
+                return (
+                    False,
+                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of 9500 MB).",
+                )
+            return (
+                True,
+                f"dGPU VRAM used: {used_mb:.1f} MB (llama-server resident, within 9500 MB budget)",
+            )
+
         if used_mb > 1500:
             msg = (
                 f"dGPU VRAM used is {used_mb:.1f} MB "
