@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Lucca: Run Main Agent",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "lucca.main",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
+      "name": "Lucca: Debug Current Test",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "${file}",
+        "-v",
+        "-s"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    }
+  ]
+}
