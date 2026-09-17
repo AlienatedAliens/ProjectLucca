@@ -1,0 +1,135 @@
+{"transcript": "open calculator", "expected_intent": "launch_app"}
+{"transcript": "launch notepad please", "expected_intent": "launch_app"}
+{"transcript": "start the browser", "expected_intent": "launch_app"}
+{"transcript": "run calc", "expected_intent": "launch_app"}
+{"transcript": "open terminal", "expected_intent": "launch_app"}
+{"transcript": "launch edge", "expected_intent": "launch_app"}
+{"transcript": "open chrome", "expected_intent": "launch_app"}
+{"transcript": "start code", "expected_intent": "launch_app"}
+{"transcript": "launch vscode", "expected_intent": "launch_app"}
+{"transcript": "open text editor", "expected_intent": "launch_app"}
+{"transcript": "run powershell", "expected_intent": "launch_app"}
+{"transcript": "start cmd", "expected_intent": "launch_app"}
+{"transcript": "please open the calculator", "expected_intent": "launch_app"}
+{"transcript": "launch the terminal", "expected_intent": "launch_app"}
+{"transcript": "open up calculator", "expected_intent": "launch_app"}
+{"transcript": "start with the second file", "expected_intent": "unknown"}
+{"transcript": "run over to the store", "expected_intent": "unknown"}
+{"transcript": "open up about your feelings", "expected_intent": "unknown"}
+{"transcript": "start off by reading chapter one", "expected_intent": "unknown"}
+{"transcript": "run for mayor", "expected_intent": "unknown"}
+{"transcript": "start from scratch", "expected_intent": "unknown"}
+{"transcript": "open by saying hello", "expected_intent": "unknown"}
+{"transcript": "run on the treadmill", "expected_intent": "unknown"}
+{"transcript": "open in two minutes", "expected_intent": "unknown"}
+{"transcript": "start at the top", "expected_intent": "unknown"}
+{"transcript": "read notes.txt", "expected_intent": "file_read"}
+{"transcript": "view summary.md", "expected_intent": "file_read"}
+{"transcript": "show data.csv", "expected_intent": "file_read"}
+{"transcript": "cat script.py", "expected_intent": "file_read"}
+{"transcript": "inspect config.json", "expected_intent": "file_read"}
+{"transcript": "examine report.pdf", "expected_intent": "file_read"}
+{"transcript": "read the file log.txt", "expected_intent": "file_read"}
+{"transcript": "view document.docx", "expected_intent": "file_read"}
+{"transcript": "show me readme.md", "expected_intent": "file_read"}
+{"transcript": "cat test.py", "expected_intent": "file_read"}
+{"transcript": "inspect results.csv", "expected_intent": "file_read"}
+{"transcript": "view schema.json", "expected_intent": "file_read"}
+{"transcript": "read the file paper.pdf", "expected_intent": "file_read"}
+{"transcript": "show notes.txt", "expected_intent": "file_read"}
+{"transcript": "cat main.py", "expected_intent": "file_read"}
+{"transcript": "view output.txt", "expected_intent": "file_read"}
+{"transcript": "read info.md", "expected_intent": "file_read"}
+{"transcript": "inspect data.json", "expected_intent": "file_read"}
+{"transcript": "examine draft.docx", "expected_intent": "file_read"}
+{"transcript": "read file test.py", "expected_intent": "file_read"}
+{"transcript": "write to output.txt", "expected_intent": "file_write"}
+{"transcript": "create notes.md", "expected_intent": "file_write"}
+{"transcript": "save to results.csv", "expected_intent": "file_write"}
+{"transcript": "append to log.txt", "expected_intent": "file_write"}
+{"transcript": "dump to backup.json", "expected_intent": "file_write"}
+{"transcript": "write file code.py", "expected_intent": "file_write"}
+{"transcript": "create report.docx", "expected_intent": "file_write"}
+{"transcript": "save draft.md", "expected_intent": "file_write"}
+{"transcript": "write text to diary.txt", "expected_intent": "file_write"}
+{"transcript": "create file data.csv", "expected_intent": "file_write"}
+{"transcript": "save to memory.json", "expected_intent": "file_write"}
+{"transcript": "append to list.txt", "expected_intent": "file_write"}
+{"transcript": "write into script.py", "expected_intent": "file_write"}
+{"transcript": "create summary.txt", "expected_intent": "file_write"}
+{"transcript": "save analysis.pdf", "expected_intent": "file_write"}
+{"transcript": "write out findings.md", "expected_intent": "file_write"}
+{"transcript": "dump table to stats.csv", "expected_intent": "file_write"}
+{"transcript": "create todo.txt", "expected_intent": "file_write"}
+{"transcript": "write greeting to hello.py", "expected_intent": "file_write"}
+{"transcript": "save to export.json", "expected_intent": "file_write"}
+{"transcript": "fetch https://example.com", "expected_intent": "web_fetch"}
+{"transcript": "browse the web for weather", "expected_intent": "web_fetch"}
+{"transcript": "download https://python.org", "expected_intent": "web_fetch"}
+{"transcript": "web search for rust tutorials", "expected_intent": "web_fetch"}
+{"transcript": "scrape the article", "expected_intent": "web_fetch"}
+{"transcript": "curl https://api.github.com", "expected_intent": "web_fetch"}
+{"transcript": "lookup python docs online", "expected_intent": "web_fetch"}
+{"transcript": "search web for latest news", "expected_intent": "web_fetch"}
+{"transcript": "fetch the webpage", "expected_intent": "web_fetch"}
+{"transcript": "browse github repositories", "expected_intent": "web_fetch"}
+{"transcript": "download the document from https://docs.rs", "expected_intent": "web_fetch"}
+{"transcript": "search web for sqlite", "expected_intent": "web_fetch"}
+{"transcript": "lookup python fast api", "expected_intent": "web_fetch"}
+{"transcript": "fetch https://news.ycombinator.com", "expected_intent": "web_fetch"}
+{"transcript": "web search for openvino", "expected_intent": "web_fetch"}
+{"transcript": "curl https://wikipedia.org", "expected_intent": "web_fetch"}
+{"transcript": "browse the python changelog", "expected_intent": "web_fetch"}
+{"transcript": "scrape table from https://stats.com", "expected_intent": "web_fetch"}
+{"transcript": "lookup weather forecast on web", "expected_intent": "web_fetch"}
+{"transcript": "fetch url https://google.com", "expected_intent": "web_fetch"}
+{"transcript": "remember when I went to Paris", "expected_intent": "memory_query"}
+{"transcript": "recall my favorite color", "expected_intent": "memory_query"}
+{"transcript": "what is my brother's name", "expected_intent": "memory_query"}
+{"transcript": "who is my doctor", "expected_intent": "memory_query"}
+{"transcript": "where do i live", "expected_intent": "memory_query"}
+{"transcript": "do you remember my birthday", "expected_intent": "memory_query"}
+{"transcript": "recall what we discussed yesterday", "expected_intent": "memory_query"}
+{"transcript": "what is my address", "expected_intent": "memory_query"}
+{"transcript": "where do i work", "expected_intent": "memory_query"}
+{"transcript": "who is my manager", "expected_intent": "memory_query"}
+{"transcript": "do you remember where I left my keys", "expected_intent": "memory_query"}
+{"transcript": "what is my phone number", "expected_intent": "memory_query"}
+{"transcript": "remember the password hint", "expected_intent": "memory_query"}
+{"transcript": "recall our last meeting", "expected_intent": "memory_query"}
+{"transcript": "where do i keep the spare key", "expected_intent": "memory_query"}
+{"transcript": "who is my dentist", "expected_intent": "memory_query"}
+{"transcript": "what is my car model", "expected_intent": "memory_query"}
+{"transcript": "recall what book I was reading", "expected_intent": "memory_query"}
+{"transcript": "do you remember my dog's name", "expected_intent": "memory_query"}
+{"transcript": "what is my sister's city", "expected_intent": "memory_query"}
+{"transcript": "hello Lucca", "expected_intent": "chit_chat"}
+{"transcript": "hi there", "expected_intent": "chit_chat"}
+{"transcript": "hey how are you", "expected_intent": "chit_chat"}
+{"transcript": "what's up today", "expected_intent": "chit_chat"}
+{"transcript": "thank you for your help", "expected_intent": "chit_chat"}
+{"transcript": "thanks a lot", "expected_intent": "chit_chat"}
+{"transcript": "good morning companion", "expected_intent": "chit_chat"}
+{"transcript": "good afternoon", "expected_intent": "chit_chat"}
+{"transcript": "good night Lucca", "expected_intent": "chit_chat"}
+{"transcript": "hello friend", "expected_intent": "chit_chat"}
+{"transcript": "hey what are you doing", "expected_intent": "chit_chat"}
+{"transcript": "thanks for that", "expected_intent": "chit_chat"}
+{"transcript": "hi how is your day", "expected_intent": "chit_chat"}
+{"transcript": "good morning how are things", "expected_intent": "chit_chat"}
+{"transcript": "thank you very much", "expected_intent": "chit_chat"}
+{"transcript": "hey friend", "expected_intent": "chit_chat"}
+{"transcript": "hello", "expected_intent": "chit_chat"}
+{"transcript": "hi", "expected_intent": "chit_chat"}
+{"transcript": "good night", "expected_intent": "chit_chat"}
+{"transcript": "thanks", "expected_intent": "chit_chat"}
+{"transcript": "what", "expected_intent": "clarify"}
+{"transcript": "huh", "expected_intent": "clarify"}
+{"transcript": "um", "expected_intent": "clarify"}
+{"transcript": "well", "expected_intent": "clarify"}
+{"transcript": "so", "expected_intent": "clarify"}
+{"transcript": "why", "expected_intent": "clarify"}
+{"transcript": "who", "expected_intent": "clarify"}
+{"transcript": "where", "expected_intent": "clarify"}
+{"transcript": "how", "expected_intent": "clarify"}
+{"transcript": "ok", "expected_intent": "clarify"}

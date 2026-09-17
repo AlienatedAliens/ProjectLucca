@@ -331,19 +331,69 @@ class RouteAction(StrEnum):
 
 
 class RouteFeatures(BaseModel):
-    text: str
-    embedding: list[float]
-    word_count: int
-    char_length: int
-    has_question_mark: bool
+    # RuleState snapshot fields (Spec 05 §5)
+    transcript: str = ""
+    transcript_lower: str = ""
+    intent: str = "unknown"
+    intent_conf: float = 0.0
+    entities: dict[str, list[str]] = Field(default_factory=dict)
+    hour_local: int = 0
+    weekday: int = 0
+    apps_running: list[str] = Field(default_factory=list)
+    last_tool: str | None = None
+    last_tool_ok: bool | None = None
+    session_turns: int = 0
+    mode: Literal["audio", "transcript"] = "transcript"
+    # Router specific additions (Spec 06 §1)
+    vad_speech_ms: int = 1000
+    asr_avg_logprob: float = 0.0
+    any_active_rule_fired: bool = False
+    any_quarantine_rule_fired: bool = False
 
 
 class RouteDecision(BaseModel):
     action: RouteAction
     probabilities: dict[str, float]
     prediction_set: list[RouteAction]
-    calibrated: bool
+    fallback_applied: bool = False
+    calibrated: bool = False
     elapsed_us: int
+
+
+class DecisionLabel(StrEnum):
+    POS = "POS"
+    NEG = "NEG"
+    INDETERMINATE = "INDETERMINATE"
+
+
+class DecisionLabelReason(StrEnum):
+    EARLY_BARGEIN = "early_bargein"
+    EXPLICIT_NEGATION = "explicit_negation"
+    TOOL_FAILED = "tool_failed"
+    USER_DECLINED = "user_declined"
+    RULE_WOULD_MATCH = "rule_would_match"
+    RULE_WRONG = "rule_wrong"
+    CLARIFY_USEFUL = "clarify_useful"
+    IMPLICIT_OK = "implicit_ok"
+
+
+class DecisionRecord(BaseModel):
+    decision_id: str
+    trace_id: str
+    session_id: str
+    ts: float
+    features: RouteFeatures
+    decision: RouteDecision
+    router_version: str = "heuristic-1.0"
+    executed_path: Literal["RULE", "LLM", "CLARIFY"]
+    tool_calls: list[ToolCall] = Field(default_factory=list)
+    tool_ok: bool | None = None
+    llm_first_token_ms: float | None = None
+    user_interrupted: bool = False
+    interrupted_after_ms: float | None = None
+    label: DecisionLabel | None = None
+    label_reason: DecisionLabelReason | str | None = None
+    counterfactual_rule_fired: bool = False
 
 
 # ============================================================================

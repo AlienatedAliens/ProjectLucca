@@ -6,13 +6,25 @@ Spec 06 §1, §2, §3
 import json
 import re
 import time
+import tomllib
 import uuid
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
-from lucca.core.schemas import RouteAction, RouteDecision
+import structlog
 
-KNOWN_APPS = frozenset(
+from lucca.core.schemas import (
+    DecisionRecord,
+    RouteAction,
+    RouteDecision,
+    RouteFeatures,
+    ToolCall,
+)
+from lucca.memory.db import DatabaseManager
+
+logger = structlog.get_logger(__name__)
+
+DEFAULT_KNOWN_APPS: Final[frozenset[str]] = frozenset(
     {
         "calculator",
         "calc",
@@ -29,27 +41,67 @@ KNOWN_APPS = frozenset(
     }
 )
 
-STOP_WORDS_AFTER_START = frozenset({"with", "at", "from", "on", "by", "for", "in", "to"})
+DEFAULT_STOP_WORDS_AFTER_START: Final[frozenset[str]] = frozenset(
+    {"with", "at", "from", "on", "by", "for", "in", "to"}
+)
 
-FILE_PATTERN = re.compile(r"\b([\w\-.]+\.(?:txt|md|py|json|csv|pdf|docx))\b", re.IGNORECASE)
-URL_PATTERN = re.compile(r"https?://\S+")
-QUOTED_PATTERN = re.compile(r'"([^"]+)"')
+FILE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b([\w\-.]+\.(?:txt|md|py|json|csv|pdf|docx))\b", re.IGNORECASE
+)
+URL_PATTERN: Final[re.Pattern[str]] = re.compile(r"https?://\S+")
+QUOTED_PATTERN: Final[re.Pattern[str]] = re.compile(r'"([^"]+)"')
 
 
 class HeuristicRouter:
     """
     Phase 4 deterministic decision router with word-boundary regex intent matching
-    and decision logging.
+    and decision telemetry logging to SQLite + JSONL.
     """
 
-    def __init__(self, log_path: Path | str | None = None) -> None:
+    def __init__(
+        self,
+        log_path: Path | str | None = None,
+        db: DatabaseManager | None = None,
+        config_path: Path | str | None = None,
+    ) -> None:
         self.log_path = Path(log_path) if log_path is not None else None
         if self.log_path:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db = db
+        self.known_apps = set(DEFAULT_KNOWN_APPS)
+        self.stop_words_after_start = set(DEFAULT_STOP_WORDS_AFTER_START)
+        self.last_decision_record: DecisionRecord | None = None
+        self._load_intents_config(config_path)
 
-    def classify_intent(self, transcript: str) -> tuple[str, float, dict[str, list[str]]]:
+    def _load_intents_config(self, config_path: Path | str | None) -> None:
+        path = (
+            Path(config_path)
+            if config_path is not None
+            else Path(r"C:\ProjectLucca\config\intents.toml")
+        )
+        if not path.exists():
+            return
+        try:
+            with open(path, "rb") as f:
+                data = tomllib.load(f)
+            intents = data.get("intents", {})
+            launch_cfg = intents.get("launch_app", {})
+            if "apps" in launch_cfg and isinstance(launch_cfg["apps"], list):
+                self.known_apps.update(str(a).lower() for a in launch_cfg["apps"])
+            if "stop_words_after_start" in launch_cfg and isinstance(
+                launch_cfg["stop_words_after_start"], list
+            ):
+                self.stop_words_after_start.update(
+                    str(w).lower() for w in launch_cfg["stop_words_after_start"]
+                )
+        except (OSError, tomllib.TOMLDecodeError, ValueError):
+            pass
+
+    def classify_intent(
+        self, transcript: str
+    ) -> tuple[str, float, dict[str, list[str]]]:
         """
-        Classifies intent and extracts entities using word-boundary regexes.
+        Classifies intent and extracts entities using word-boundary regexes per Spec 06 §2.
         Returns (intent, confidence, entities).
         """
         text = transcript.strip().lower()
@@ -77,9 +129,9 @@ class HeuristicRouter:
             candidate_app = launch_match.group("app").strip()
             first_word = candidate_app.split()[0] if candidate_app else ""
             # Guard against adversarial: "start with the second file"
-            if first_word not in STOP_WORDS_AFTER_START:
+            if first_word not in self.stop_words_after_start:
                 # Check if candidate or any alias is a known app
-                for app_name in KNOWN_APPS:
+                for app_name in self.known_apps:
                     if app_name in candidate_app:
                         entities["app"].append(app_name)
                         return "launch_app", 0.95, entities
@@ -89,25 +141,36 @@ class HeuristicRouter:
 
         # 2. File Read
         if (
-            re.search(r"\b(read|view|show|cat)\b\s+(?:the\s+)?(?:file\s+)?", text)
+            re.search(r"\b(read|view|show|cat|inspect|examine)\b\s+(?:the\s+)?(?:file\s+)?", text)
             and entities["file"]
         ):
             return "file_read", 0.90, entities
 
         # 3. File Write
-        if re.search(r"\b(write|create|save|append)\b\s+(?:to\s+)?", text) and entities["file"]:
+        if (
+            re.search(r"\b(write|create|save|append|dump)\b\s+(?:to\s+)?", text)
+            and entities["file"]
+        ):
             return "file_write", 0.90, entities
 
         # 4. Web Fetch
-        if re.search(r"\b(fetch|browse|download|web|scrape|curl)\b", text) or entities["url"]:
+        web_pattern = r"\b(fetch|browse|download|web|scrape|curl|lookup|search\s+web)\b"
+        if re.search(web_pattern, text) or entities["url"]:
             return "web_fetch", 0.90, entities
 
         # 5. Memory Query
-        if re.search(r"\b(remember|recall|what\s+is\s+my|who\s+is\s+my|where\s+do\s+i)\b", text):
+        mem_pattern = (
+            r"\b(remember|recall|what\s+is\s+my|who\s+is\s+my|where\s+do\s+i|do\s+you\s+remember)\b"
+        )
+        if re.search(mem_pattern, text):
             return "memory_query", 0.90, entities
 
         # 6. Chit Chat
-        if re.search(r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks)\b", text):
+        chit_pattern = (
+            r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
+            r"good\s+morning|good\s+afternoon|good\s+night)\b"
+        )
+        if re.search(chit_pattern, text):
             return "chit_chat", 0.95, entities
 
         # 7. Clarify: very short utterance
@@ -120,59 +183,190 @@ class HeuristicRouter:
         self,
         transcript: str,
         any_active_rule_fired: bool = False,
+        any_quarantine_rule_fired: bool = False,
         vad_speech_ms: int = 1000,
         intent_conf: float | None = None,
+        trace_id: str | None = None,
+        session_id: str | None = None,
+        hour_local: int = 0,
+        weekday: int = 0,
+        apps_running: list[str] | None = None,
+        last_tool: str | None = None,
+        last_tool_ok: bool | None = None,
+        session_turns: int = 0,
+        mode: Literal["audio", "transcript"] = "transcript",
     ) -> RouteDecision:
+        """
+        Executes routing decision logic per Spec 06 §1 & §2 and logs full DecisionRecord.
+        """
         t0 = time.perf_counter()
 
         intent, auto_conf, entities = self.classify_intent(transcript)
         conf = intent_conf if intent_conf is not None else auto_conf
+        text_lower = transcript.strip().lower()
 
         # Decision logic per Spec 06 §1 & §2
         if any_active_rule_fired:
-            action: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
+            action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
             probs = {"RULE": 0.90, "LLM": 0.05, "CLARIFY": 0.05}
         elif vad_speech_ms < 400 or (conf < 0.35 and not any_active_rule_fired):
-            action = "CLARIFY"
+            action_lit = "CLARIFY"
             probs = {"CLARIFY": 0.90, "LLM": 0.05, "RULE": 0.05}
         else:
-            action = "LLM"
+            action_lit = "LLM"
             probs = {"LLM": 0.90, "RULE": 0.05, "CLARIFY": 0.05}
 
         elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
 
-        route_action = RouteAction(action)
+        route_action = RouteAction(action_lit)
         decision = RouteDecision(
             action=route_action,
             probabilities=probs,
             prediction_set=[route_action],
+            fallback_applied=False,
             calibrated=False,
             elapsed_us=elapsed_us,
         )
 
+        features = RouteFeatures(
+            transcript=transcript,
+            transcript_lower=text_lower,
+            intent=intent,
+            intent_conf=conf,
+            entities=entities,
+            hour_local=hour_local,
+            weekday=weekday,
+            apps_running=apps_running or [],
+            last_tool=last_tool,
+            last_tool_ok=last_tool_ok,
+            session_turns=session_turns,
+            mode=mode,
+            vad_speech_ms=vad_speech_ms,
+            any_active_rule_fired=any_active_rule_fired,
+            any_quarantine_rule_fired=any_quarantine_rule_fired,
+        )
+
+        tid = trace_id or f"trace-{uuid.uuid4().hex[:8]}"
+        sid = session_id or f"session-{uuid.uuid4().hex[:8]}"
+        did = f"dec-{uuid.uuid4().hex[:12]}"
+
+        record = DecisionRecord(
+            decision_id=did,
+            trace_id=tid,
+            session_id=sid,
+            ts=time.time(),
+            features=features,
+            decision=decision,
+            router_version="heuristic-1.0",
+            executed_path=action_lit,
+            counterfactual_rule_fired=any_quarantine_rule_fired,
+        )
+        self.last_decision_record = record
+
         if self.log_path:
-            self._log_decision(transcript, decision, intent, conf)
+            self._log_decision_jsonl(record)
+        if self.db:
+            self._log_decision_sqlite(record)
 
         return decision
 
-    def _log_decision(
-        self,
-        transcript: str,
-        decision: RouteDecision,
-        intent: str,
-        intent_conf: float,
-    ) -> None:
+    def _log_decision_jsonl(self, record: DecisionRecord) -> None:
         if not self.log_path:
             return
-        record = {
-            "decision_id": f"dec-{uuid.uuid4().hex[:12]}",
-            "ts": time.time(),
-            "transcript": transcript,
-            "intent": intent,
-            "intent_conf": intent_conf,
-            "action": decision.action,
-            "probabilities": decision.probabilities,
-            "elapsed_us": decision.elapsed_us,
-        }
+        payload = record.model_dump()
+        payload["transcript"] = record.features.transcript
+        payload["intent"] = record.features.intent
+        payload["intent_conf"] = record.features.intent_conf
+        payload["action"] = record.decision.action.value
+        payload["probabilities"] = record.decision.probabilities
+        payload["elapsed_us"] = record.decision.elapsed_us
+
         with open(self.log_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+
+    def _log_decision_sqlite(self, record: DecisionRecord) -> None:
+        if not self.db:
+            return
+        try:
+            writer = self.db.get_writer()
+            writer.execute(
+                """
+                INSERT INTO decisions(
+                    decision_id, trace_id, session_id, ts, features_json, action,
+                    probabilities_json, prediction_set_json, fallback_applied, elapsed_us,
+                    router_version, executed_path, tool_calls_json, tool_ok, llm_first_token_ms,
+                    user_interrupted, interrupted_after_ms, counterfactual_rule_fired
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.decision_id,
+                    record.trace_id,
+                    record.session_id,
+                    record.ts,
+                    json.dumps(record.features.model_dump(), ensure_ascii=False),
+                    record.decision.action.value,
+                    json.dumps(record.decision.probabilities),
+                    json.dumps([a.value for a in record.decision.prediction_set]),
+                    1 if record.decision.fallback_applied else 0,
+                    record.decision.elapsed_us,
+                    record.router_version,
+                    record.executed_path,
+                    json.dumps([tc.model_dump() for tc in record.tool_calls])
+                    if record.tool_calls
+                    else None,
+                    None if record.tool_ok is None else (1 if record.tool_ok else 0),
+                    record.llm_first_token_ms,
+                    1 if record.user_interrupted else 0,
+                    record.interrupted_after_ms,
+                    1 if record.counterfactual_rule_fired else 0,
+                ),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("decision_sqlite_log_failed", error=str(exc))
+
+    def record_post_turn(
+        self,
+        decision_id: str,
+        tool_calls: list[ToolCall] | None = None,
+        tool_ok: bool | None = None,
+        llm_first_token_ms: float | None = None,
+        user_interrupted: bool = False,
+        interrupted_after_ms: float | None = None,
+    ) -> None:
+        """Updates decision record with post-turn outcomes (tools, latencies, barge-in)."""
+        if self.db:
+            try:
+                writer = self.db.get_writer()
+                writer.execute(
+                    """
+                    UPDATE decisions SET
+                        tool_calls_json = ?,
+                        tool_ok = ?,
+                        llm_first_token_ms = ?,
+                        user_interrupted = ?,
+                        interrupted_after_ms = ?
+                    WHERE decision_id = ?
+                    """,
+                    (
+                        json.dumps([tc.model_dump() for tc in tool_calls])
+                        if tool_calls
+                        else None,
+                        None if tool_ok is None else (1 if tool_ok else 0),
+                        llm_first_token_ms,
+                        1 if user_interrupted else 0,
+                        interrupted_after_ms,
+                        decision_id,
+                    ),
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("post_turn_sqlite_update_failed", error=str(exc))
+
+        if self.last_decision_record and self.last_decision_record.decision_id == decision_id:
+            if tool_calls is not None:
+                self.last_decision_record.tool_calls = tool_calls
+            if tool_ok is not None:
+                self.last_decision_record.tool_ok = tool_ok
+            if llm_first_token_ms is not None:
+                self.last_decision_record.llm_first_token_ms = llm_first_token_ms
+            self.last_decision_record.user_interrupted = user_interrupted
+            self.last_decision_record.interrupted_after_ms = interrupted_after_ms

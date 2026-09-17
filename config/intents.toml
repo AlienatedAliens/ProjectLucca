@@ -1,0 +1,22 @@
+# Project Lucca — Intent Lexicon Configuration
+# Spec 06 §2
+
+[intents.launch_app]
+verbs = ["open", "launch", "start", "run"]
+stop_words_after_start = ["with", "at", "from", "on", "by", "for", "in", "to"]
+apps = ["calculator", "calc", "notepad", "text editor", "browser", "edge", "chrome", "terminal", "cmd", "powershell", "code", "vscode"]
+
+[intents.file_read]
+verbs = ["read", "view", "show", "cat", "inspect", "examine"]
+
+[intents.file_write]
+verbs = ["write", "create", "save", "append", "dump"]
+
+[intents.web_fetch]
+verbs = ["fetch", "browse", "download", "web", "scrape", "curl", "lookup", "search web"]
+
+[intents.memory_query]
+verbs = ["remember", "recall", "what is my", "who is my", "where do i", "do you remember"]
+
+[intents.chit_chat]
+verbs = ["hello", "hi", "hey", "how are you", "what's up", "thank you", "thanks", "good morning", "good afternoon", "good night"]
