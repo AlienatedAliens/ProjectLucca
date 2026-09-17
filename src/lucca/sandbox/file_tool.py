@@ -1,0 +1,226 @@
+"""
+Project Lucca — Hardened File Tool & Path Validator
+Spec 09 §4, D-08, ADR-004
+"""
+
+import hashlib
+import os
+from pathlib import Path
+from typing import Final, Literal
+
+from lucca.core.exceptions import SandboxPathError
+
+MAX_PATH_LEN: Final = 1024
+MAX_FILE_BYTES: Final = 262144  # 256 KiB
+MAX_WRITE_BYTES: Final = 1048576  # 1 MiB
+MAX_LIST_ENTRIES: Final = 500
+MAX_SEARCH_HITS: Final = 200
+SNIFF_CHUNK_SIZE: Final = 8192
+
+RESERVED_NAMES: Final[frozenset[str]] = frozenset(
+    {
+        "con",
+        "prn",
+        "aux",
+        "nul",
+        "com1",
+        "com2",
+        "com3",
+        "com4",
+        "com5",
+        "com6",
+        "com7",
+        "com8",
+        "com9",
+        "lpt1",
+        "lpt2",
+        "lpt3",
+        "lpt4",
+        "lpt5",
+        "lpt6",
+        "lpt7",
+        "lpt8",
+        "lpt9",
+    }
+)
+
+
+def validate_rel_path(p: str, workspace_root: Path | str = "/workspace") -> Path:
+    """
+    Strict path validation before filesystem interaction per Spec 09 §4:
+    1. Type, length, UTF-8, forbidden control chars, % rejection, backslash rejection.
+    2. Relative only, no . or .., no ~ prefix, no Windows reserved names.
+    3. realpath boundary check (os.path.commonpath).
+    4. Symlink detection along all components.
+    """
+    if not isinstance(p, str) or len(p) == 0:
+        raise SandboxPathError("invalid_chars", "Path must be a non-empty string")
+
+    if len(p) > MAX_PATH_LEN:
+        raise SandboxPathError("too_long", f"Path length {len(p)} exceeds maximum {MAX_PATH_LEN}")
+
+    # Check forbidden characters
+    if "\x00" in p:
+        raise SandboxPathError("invalid_chars", "NUL byte in path is forbidden")
+
+    for ch in p:
+        code = ord(ch)
+        if (code < 32 or code == 127) and ch not in ("\t", "\n"):
+            raise SandboxPathError("invalid_chars", f"Control character 0x{code:02x} is forbidden")
+
+    if "%" in p:
+        raise SandboxPathError("invalid_chars", "Percent-encoding is strictly forbidden")
+
+    if "\\" in p:
+        raise SandboxPathError("invalid_chars", "Backslash is forbidden; use forward slash '/'")
+
+    if p.startswith("/"):
+        raise SandboxPathError("traversal", "Absolute paths are forbidden")
+
+    if "//" in p:
+        raise SandboxPathError("invalid_chars", "Consecutive slashes are forbidden")
+
+    raw_segments = p.split("/")
+    segments = [s for s in raw_segments if s != ""]
+
+    for seg in segments:
+        if seg in (".", ".."):
+            raise SandboxPathError("traversal", f"Path traversal segment '{seg}' is forbidden")
+        if seg.startswith("~"):
+            raise SandboxPathError("traversal", f"Home directory shortcut '{seg}' is forbidden")
+
+        # Windows reserved names check (case-insensitive)
+        base = seg.split(".")[0].lower()
+        if base in RESERVED_NAMES:
+            raise SandboxPathError("reserved", f"Reserved device name '{seg}' is forbidden")
+
+    root = Path(workspace_root).resolve()
+    target = (root / p).resolve()
+
+    try:
+        common = os.path.commonpath([str(target), str(root)])
+        if common != str(root):
+            raise SandboxPathError("traversal", f"Path '{p}' escapes workspace boundary")
+    except ValueError as e:
+        raise SandboxPathError("traversal", f"Path '{p}' escapes workspace boundary: {e}") from e
+
+    # Check for symlinks along path components if they exist
+    cur = root
+    for part in Path(p).parts:
+        cur = cur / part
+        if cur.is_symlink() or (cur.exists() and os.path.islink(cur)):
+            raise SandboxPathError("symlink", f"Symlink detected in path component '{part}'")
+
+    return target
+
+
+class SafeFileTool:
+    def __init__(self, workspace_root: Path | str = "/workspace") -> None:
+        self.workspace_root = Path(workspace_root).resolve()
+        self.workspace_root.mkdir(parents=True, exist_ok=True)
+
+    def list_dir(self, path: str = "", recursive: bool = False) -> dict[str, object]:
+        target = validate_rel_path(path or ".", self.workspace_root)
+        if not target.exists():
+            raise SandboxPathError("not_found", f"Directory not found: {path}")
+        if not target.is_dir():
+            raise SandboxPathError("is_dir", f"Path is not a directory: {path}")
+
+        entries: list[dict[str, object]] = []
+        truncated = False
+
+        if recursive:
+            iterator = target.rglob("*")
+        else:
+            iterator = target.iterdir()
+
+        for item in iterator:
+            if len(entries) >= MAX_LIST_ENTRIES:
+                truncated = True
+                break
+            try:
+                st = item.stat()
+                rel = item.relative_to(self.workspace_root).as_posix()
+                entries.append(
+                    {
+                        "name": rel,
+                        "size": st.st_size,
+                        "mtime": st.st_mtime,
+                        "is_dir": item.is_dir(),
+                    }
+                )
+            except (OSError, ValueError):
+                continue
+
+        return {"entries": entries, "truncated": truncated}
+
+    def read_file(
+        self, path: str, max_bytes: int = MAX_FILE_BYTES
+    ) -> tuple[dict[str, object], str]:
+        target = validate_rel_path(path, self.workspace_root)
+        if not target.exists():
+            raise SandboxPathError("not_found", f"File not found: {path}")
+        if target.is_dir():
+            raise SandboxPathError("is_dir", f"Path is a directory, not a file: {path}")
+
+        file_size = target.stat().st_size
+
+        with open(target, "rb") as f:
+            # Sniff first chunk for binary content
+            sniff = f.read(SNIFF_CHUNK_SIZE)
+            if b"\x00" in sniff:
+                raise SandboxPathError("is_binary", f"Binary file detected: {path}")
+
+            f.seek(0)
+            data = f.read(max_bytes + 1)
+
+        truncated = len(data) > max_bytes
+        if truncated:
+            data = data[:max_bytes]
+
+        content = data.decode("utf-8", errors="replace")
+        sha256 = hashlib.sha256(data).hexdigest()
+
+        structured = {
+            "size": file_size,
+            "sha256": sha256,
+            "truncated": truncated,
+        }
+        return structured, content
+
+    def write_file(
+        self,
+        path: str,
+        content: str,
+        mode: Literal["create", "overwrite", "append"] = "create",
+    ) -> dict[str, object]:
+        target = validate_rel_path(path, self.workspace_root)
+        encoded = content.encode("utf-8")
+
+        if len(encoded) > MAX_WRITE_BYTES:
+            raise SandboxPathError("too_large", f"Content size {len(encoded)} exceeds 1 MiB limit")
+
+        if not target.parent.exists():
+            raise SandboxPathError("not_found", f"Parent directory does not exist: {target.parent}")
+
+        if mode == "create" and target.exists():
+            raise SandboxPathError("traversal", f"File '{path}' already exists in create mode")
+
+        file_mode = "ab" if mode == "append" else "wb"
+        with open(target, file_mode) as f:
+            f.write(encoded)
+
+        return {
+            "size": target.stat().st_size,
+            "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
+        }
+
+    def delete_file(self, path: str) -> dict[str, object]:
+        target = validate_rel_path(path, self.workspace_root)
+        if not target.exists():
+            raise SandboxPathError("not_found", f"File not found: {path}")
+        if target.is_dir():
+            raise SandboxPathError("is_dir", f"Cannot delete directory '{path}' with delete_file")
+
+        target.unlink()
+        return {"deleted": True}

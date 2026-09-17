@@ -33,13 +33,21 @@ For each string-valued field in the derived structure (subject/object surface fo
 ### Capability signers
 
 ```python
-class ProvenanceSigner(Protocol):           # one concrete class per provenance
+class ProvenanceSigner(Protocol):  # one concrete class per provenance
     provenance: Final[Provenance]
+
     def sign(self, payload: UnsignedPayload) -> SignedPayload: ...
 
-class UserSpeechSigner(ProvenanceSigner): ...   # constructed ONLY in lucca.senses.asr
-class ToolResultSigner(ProvenanceSigner): ...   # constructed ONLY in lucca.sandbox.client (host side)
-class LispAssertionSigner(ProvenanceSigner): ...# constructed ONLY in lucca.reasoning.executor
+
+class UserSpeechSigner(ProvenanceSigner): ...  # constructed ONLY in lucca.senses.asr
+
+
+class ToolResultSigner(
+    ProvenanceSigner
+): ...  # constructed ONLY in lucca.sandbox.client (host side)
+
+
+class LispAssertionSigner(ProvenanceSigner): ...  # constructed ONLY in lucca.reasoning.executor
 ```
 
 - Keys: `HKDF-SHA256(master_key, info=b"lucca/provenance/" + provenance.name)`. Master key from `config\.env` `LUCCA_MASTER_KEY` (32 random bytes, base64). Startup **fails closed** if unset or equal to any known dev default unless `LUCCA_ENV=dev`.

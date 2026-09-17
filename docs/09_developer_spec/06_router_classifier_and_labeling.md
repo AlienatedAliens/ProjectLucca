@@ -9,9 +9,9 @@ Input `RouteFeatures` = every field of `RuleState` (spec 05 §5) **plus** `vad_s
 ```python
 class RouteDecision(BaseModel):
     action: Literal["RULE", "LLM", "CLARIFY"]
-    probs: dict[str, float]            # sums to 1 (heuristic emits one-hot-ish 0.9/0.05/0.05)
-    prediction_set: list[str]          # conformal set (Phase 6) or [action]
-    fallback_applied: bool             # set size ≠ 1 → forced LLM
+    probs: dict[str, float]  # sums to 1 (heuristic emits one-hot-ish 0.9/0.05/0.05)
+    prediction_set: list[str]  # conformal set (Phase 6) or [action]
+    fallback_applied: bool  # set size ≠ 1 → forced LLM
     elapsed_us: int
 ```
 
@@ -30,19 +30,22 @@ In `audio` mode the LLM request is dispatched speculatively at `ptt.released`; i
 
 ```python
 class DecisionRecord(BaseModel):
-    decision_id: str; trace_id: str; session_id: str; ts: float
-    features: RouteFeatures                 # full snapshot (JSON)
+    decision_id: str
+    trace_id: str
+    session_id: str
+    ts: float
+    features: RouteFeatures  # full snapshot (JSON)
     decision: RouteDecision
-    router_version: str                     # "heuristic-1.0" | "clf-<sha>"
-    executed_path: Literal["RULE","LLM","CLARIFY"]
-    tool_calls: list[ToolCall]              # what actually ran
+    router_version: str  # "heuristic-1.0" | "clf-<sha>"
+    executed_path: Literal["RULE", "LLM", "CLARIFY"]
+    tool_calls: list[ToolCall]  # what actually ran
     tool_ok: bool | None
     llm_first_token_ms: float | None
-    user_interrupted: bool                  # barge-in within this turn's playback
+    user_interrupted: bool  # barge-in within this turn's playback
     interrupted_after_ms: float | None
-    label: Literal["POS","NEG","INDETERMINATE"] | None   # filled later by labeling (§4)
+    label: Literal["POS", "NEG", "INDETERMINATE"] | None  # filled later by labeling (§4)
     label_reason: str | None
-    counterfactual_rule_fired: bool         # any quarantine rule fired (would RULE have been possible?)
+    counterfactual_rule_fired: bool  # any quarantine rule fired (would RULE have been possible?)
 ```
 `embedding` is **not** a field; `vec_decisions(decision_id, embedding float[384])` holds the intent-encoder vector for distinctness/clustering.
 
@@ -92,13 +95,28 @@ Split is **chronological** (oldest → train, newest → test), not random — m
 
 ```python
 class ConformalGuard:
-    def __init__(self, alpha: float = 0.10) -> None: ...          # α=0.10 default; 0.05 needs ≥ 100 cal points to be meaningful
-    def fit(self, cal_probs: NDArray[f32] (n,K), cal_labels: NDArray[i64] (n,)) -> None:
-        scores = 1.0 - cal_probs[np.arange(n), cal_labels]        # non-conformity of the TRUE class
+    def __init__(
+        self, alpha: float = 0.10
+    ) -> None: ...  # α=0.10 default; 0.05 needs ≥ 100 cal points to be meaningful
+    def fit(
+        self,
+        cal_probs: NDArray[f32](n, K),
+        cal_labels: NDArray[i64](
+            n,
+        ),
+    ) -> None:
+        scores = 1.0 - cal_probs[np.arange(n), cal_labels]  # non-conformity of the TRUE class
         q_level = math.ceil((n + 1) * (1 - self.alpha)) / n
-        if q_level > 1.0: raise InsufficientCalibration(n, alpha)  # n too small for this α
+        if q_level > 1.0:
+            raise InsufficientCalibration(n, alpha)  # n too small for this α
         self.q_hat = float(np.quantile(scores, q_level, method="higher"))
-    def predict_set(self, probs: NDArray[f32] (K,)) -> list[int]:
+
+    def predict_set(
+        self,
+        probs: NDArray[f32](
+            K,
+        ),
+    ) -> list[int]:
         return [k for k in range(K) if 1.0 - probs[k] <= self.q_hat]
 ```
 - Minimum calibration size for α: `n ≥ ceil(1/α) − 1` → α=0.10 needs n ≥ 9 (use ≥ 100); α=0.05 needs ≥ 19 (use ≥ 200). Enforced by `InsufficientCalibration`.

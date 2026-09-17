@@ -108,16 +108,20 @@ On the Windows Host, OpenVINO compiles the Kokoro TTS model directly for the Int
 import openvino as ov
 from pathlib import Path
 
+
 def get_optimized_npu_core(cache_dir: Path) -> ov.Core:
     cache_dir.mkdir(parents=True, exist_ok=True)
     core = ov.Core()
-    
+
     # Configure persistent compilation cache
-    core.set_property("NPU", {
-        "CACHE_DIR": str(cache_dir),
-        "PERFORMANCE_HINT": "LATENCY",
-        "NPU_COMPILATION_MODE_PARAMS": "compute-layers=ALL",
-    })
+    core.set_property(
+        "NPU",
+        {
+            "CACHE_DIR": str(cache_dir),
+            "PERFORMANCE_HINT": "LATENCY",
+            "NPU_COMPILATION_MODE_PARAMS": "compute-layers=ALL",
+        },
+    )
     return core
 ```
 * **First Run:** OpenVINO compiles the IR graph to an NPU binary blob (~12s).
@@ -134,6 +138,7 @@ To prevent audio crackle or buffer underruns when the CPU experiences bursty loa
 import ctypes
 from ctypes import wintypes
 
+
 def elevate_thread_priority_mmcss() -> int:
     """Elevates calling thread to Windows MMCSS Pro Audio priority."""
     avrt = ctypes.windll.Avrt
@@ -142,6 +147,7 @@ def elevate_thread_priority_mmcss() -> int:
     if not handle:
         raise OSError("Failed to set MMCSS Pro Audio thread characteristics.")
     return handle
+
 
 def revert_thread_priority_mmcss(handle: int) -> None:
     ctypes.windll.Avrt.AvRevertMmThreadCharacteristics(handle)

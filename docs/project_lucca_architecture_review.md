@@ -129,11 +129,12 @@ Standard `../` sanitization via string matching is notoriously flawed due to sym
 import os
 from pathlib import Path
 
+
 def resolve_safe_path(workspace_root: Path, user_path: str) -> Path:
     # Resolve canonical absolute path resolving all symlinks
     canonical_root = workspace_root.resolve(strict=True)
     target = (canonical_root / user_path).resolve()
-    
+
     # Verify target is strictly within the workspace directory
     if not target.is_relative_to(canonical_root):
         raise PermissionError(f"Access denied: path '{user_path}' escapes workspace sandbox.")
@@ -213,9 +214,9 @@ class DecisionRecord:
     record_id: str
     user_query: str
     active_context_summary: dict
-    heuristic_decision: str       # "DIRECT_TO_LLM" | "CHECK_LISP_FIRST" | "CALL_TOOL"
+    heuristic_decision: str  # "DIRECT_TO_LLM" | "CHECK_LISP_FIRST" | "CALL_TOOL"
     execution_time_ms: float
-    user_satisfaction: bool       # Implicit: no correction in next turn; Explicit: feedback
+    user_satisfaction: bool  # Implicit: no correction in next turn; Explicit: feedback
     tool_success: bool | None
     ground_truth_optimal_action: str | None
 ```

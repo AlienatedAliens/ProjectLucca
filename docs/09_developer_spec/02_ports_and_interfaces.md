@@ -7,21 +7,37 @@ Rules for all ports: `async` where I/O; zero `Any` (use `JsonValue` for genuinel
 ## Common types (`lucca/core/schemas.py`)
 
 ```python
-class AudioRef(BaseModel):            # never carries PCM over IPC
-    ring: Literal["cap"]; seq_start: int; seq_end: int; rate: Literal[16000]
+class AudioRef(BaseModel):  # never carries PCM over IPC
+    ring: Literal["cap"]
+    seq_start: int
+    seq_end: int
+    rate: Literal[16000]
+
 
 class Transcript(BaseModel):
-    text: str; segments: list[Segment]; avg_logprob: float
-    model: str; audio_sha256: str; elapsed_ms: float
+    text: str
+    segments: list[Segment]
+    avg_logprob: float
+    model: str
+    audio_sha256: str
+    elapsed_ms: float
+
 
 class ToolCall(BaseModel):
-    tool: str; args: dict[str, JsonValue]; call_id: str
+    tool: str
+    args: dict[str, JsonValue]
+    call_id: str
+
 
 class ToolResult(BaseModel):
-    call_id: str; ok: bool; exit_code: int | None
-    structured: dict[str, JsonValue] | None      # TOOL_VERIFIED facts
-    content: str | None                          # TOOL_CONTENT_UNTRUSTED body (capped)
-    content_truncated: bool; elapsed_ms: float; stderr: str
+    call_id: str
+    ok: bool
+    exit_code: int | None
+    structured: dict[str, JsonValue] | None  # TOOL_VERIFIED facts
+    content: str | None  # TOOL_CONTENT_UNTRUSTED body (capped)
+    content_truncated: bool
+    elapsed_ms: float
+    stderr: str
 ```
 
 ## Ports

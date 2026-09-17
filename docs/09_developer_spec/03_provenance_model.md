@@ -14,28 +14,31 @@ class Provenance(StrEnum):
     LISP_ASSERTION = "LISP_ASSERTION"
     LLM_NARRATION = "LLM_NARRATION"
 
+
 MEMORY_ELIGIBLE: Final = frozenset({USER_EXPLICIT, USER_DERIVED, TOOL_VERIFIED, LISP_ASSERTION})
+
 
 class UnsignedPayload(BaseModel, frozen=True):
     schema_version: Literal[2] = 2
     provenance: Provenance
     kind: Literal["transcript", "fact", "tool_fact", "rule_assertion"]
-    content: str                                  # verbatim text or canonical fact rendering
-    structured: dict[str, JsonValue] | None       # e.g. {"s":..., "p":..., "o":...} for kind=fact
-    source_entry_ids: list[str]                   # required non-empty for USER_DERIVED
+    content: str  # verbatim text or canonical fact rendering
+    structured: dict[str, JsonValue] | None  # e.g. {"s":..., "p":..., "o":...} for kind=fact
+    source_entry_ids: list[str]  # required non-empty for USER_DERIVED
     trace_id: str
     session_id: str
-    created_at: float                             # unix seconds (ClockPort)
-    nonce: str                                    # 16 random bytes, base64url (RandomPort)
-    asr: ASRMeta | None                           # {model, avg_logprob, audio_sha256} for USER_*
-    tool: ToolMeta | None                         # {tool, call_id, exit_code, content_sha256} for TOOL_*
+    created_at: float  # unix seconds (ClockPort)
+    nonce: str  # 16 random bytes, base64url (RandomPort)
+    asr: ASRMeta | None  # {model, avg_logprob, audio_sha256} for USER_*
+    tool: ToolMeta | None  # {tool, call_id, exit_code, content_sha256} for TOOL_*
     confidence: float = Field(ge=0, le=1)
 
+
 class SignedPayload(UnsignedPayload, frozen=True):
-    signer_id: str                                # e.g. "asr@lucca-core"
-    signature: str                                # base64 HMAC-SHA256
+    signer_id: str  # e.g. "asr@lucca-core"
+    signature: str  # base64 HMAC-SHA256
     content_sha256: str
-    entry_id: str                                 # = sha256(canonical(payload_without_sig))[:32]
+    entry_id: str  # = sha256(canonical(payload_without_sig))[:32]
 ```
 
 Canonicalisation: `json.dumps(model.model_dump(mode="json", exclude={"signature","signer_id","entry_id"}), sort_keys=True, separators=(",",":"), ensure_ascii=False).encode()`. Test: two payloads differing only in dict key order produce identical bytes.

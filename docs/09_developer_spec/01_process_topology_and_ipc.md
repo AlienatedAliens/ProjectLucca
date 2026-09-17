@@ -34,11 +34,11 @@ Wire: `uint32 big-endian length` + UTF-8 JSON. Max frame 1 MiB (reject larger; a
 ```python
 class Envelope(BaseModel):
     v: Literal[1] = 1
-    type: str                      # dotted, e.g. "turn.start"
-    trace_id: str                  # ULID; one per user turn
-    ts_ns: int                     # time.monotonic_ns() of sender
-    src: Literal["core","audio","npu","ui"]
-    payload: JsonValue             # validated by type-specific model after dispatch
+    type: str  # dotted, e.g. "turn.start"
+    trace_id: str  # ULID; one per user turn
+    ts_ns: int  # time.monotonic_ns() of sender
+    src: Literal["core", "audio", "npu", "ui"]
+    payload: JsonValue  # validated by type-specific model after dispatch
 ```
 
 Every `type` has exactly one Pydantic payload model in `lucca/core/ipc_schemas.py`. Unknown `type` → NACK + log; never crash.

@@ -65,16 +65,20 @@ comment   := ";" [^\n]*      (lexer-level)
 ```python
 class RuleState(BaseModel, frozen=True):
     schema_version: Literal[1]
-    transcript: str                       # Whisper text, normalised
+    transcript: str  # Whisper text, normalised
     transcript_lower: str
-    intent: str                           # from heuristic/classifier: launch_app|file_read|file_write|web_fetch|memory_query|chit_chat|clarify|unknown
+    intent: str  # from heuristic/classifier: launch_app|file_read|file_write|web_fetch|memory_query|chit_chat|clarify|unknown
     intent_conf: float
-    entities: dict[str, list[str]]        # {"app":["calculator"], "file":["notes.txt"], ...} from rule-based NER (spec 06)
-    hour_local: int; weekday: int          # 0=Mon
-    apps_running: frozenset[str]           # from launcher's process snapshot (whitelisted names only)
-    last_tool: str | None; last_tool_ok: bool | None
+    entities: dict[
+        str, list[str]
+    ]  # {"app":["calculator"], "file":["notes.txt"], ...} from rule-based NER (spec 06)
+    hour_local: int
+    weekday: int  # 0=Mon
+    apps_running: frozenset[str]  # from launcher's process snapshot (whitelisted names only)
+    last_tool: str | None
+    last_tool_ok: bool | None
     session_turns: int
-    mode: Literal["audio","transcript"]
+    mode: Literal["audio", "transcript"]
 ```
 
 Primitive → field mapping is fixed (`(intent= "x")` ≡ `state.intent == "x"`, `(entity-has? k v)` ≡ `v in state.entities.get(k, [])`, `(transcript-matches-glob? "open * please")` ≡ `fnmatch(state.transcript_lower, pattern)`, etc.). Adding a field = bump `schema_version`, migrate regression cases or mark them stale.

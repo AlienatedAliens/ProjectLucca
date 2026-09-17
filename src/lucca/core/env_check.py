@@ -21,7 +21,9 @@ def check_mshybrid_vram() -> tuple[bool, str]:
     try:
         res = subprocess.run(
             [nvidia_smi, "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, check=True
+            capture_output=True,
+            text=True,
+            check=True,
         )
         used_mb = float(res.stdout.strip().splitlines()[0])
         if used_mb > 1500:
@@ -34,10 +36,12 @@ def check_mshybrid_vram() -> tuple[bool, str]:
     except Exception as e:
         return False, f"Failed querying nvidia-smi: {e}"
 
+
 def check_openvino_npu() -> tuple[bool, str]:
     """Checks if OpenVINO detects the Intel NPU natively on Windows."""
     try:
         import openvino as ov
+
         core = ov.Core()
         devices = core.available_devices
         if "NPU" in devices:
@@ -48,10 +52,12 @@ def check_openvino_npu() -> tuple[bool, str]:
     except Exception as e:
         return False, f"OpenVINO runtime error: {e}"
 
+
 def check_sqlite_vec() -> tuple[bool, str]:
     """Verifies that sqlite3 can load extensions and that sqlite-vec loads successfully."""
     try:
         import sqlite_vec
+
         conn = sqlite3.connect(":memory:")
         conn.enable_load_extension(True)
         sqlite_vec.load(conn)
@@ -62,6 +68,7 @@ def check_sqlite_vec() -> tuple[bool, str]:
         return True, f"sqlite-vec loaded successfully (version: {version})"
     except Exception as e:
         return False, f"sqlite-vec failed to load: {e}"
+
 
 def check_wslconfig() -> tuple[bool, str]:
     """Verifies canonical .wslconfig configuration (Register §C)."""
@@ -84,6 +91,7 @@ def check_wslconfig() -> tuple[bool, str]:
         return False, f".wslconfig missing canonical settings: {', '.join(missing)}"
     return True, f".wslconfig canonical settings verified at {cfg_path}"
 
+
 def check_docker_wsl() -> tuple[bool, str]:
     """Verifies Docker CE is reachable inside Ubuntu WSL2 distro."""
     wsl_bin = shutil.which("wsl")
@@ -92,7 +100,10 @@ def check_docker_wsl() -> tuple[bool, str]:
     try:
         res = subprocess.run(
             ["wsl", "-d", "Ubuntu", "--", "docker", "info"],
-            capture_output=True, text=True, timeout=10, check=False
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
         )
         if res.returncode == 0:
             return True, "Docker CE is running inside Ubuntu WSL2."
@@ -101,6 +112,7 @@ def check_docker_wsl() -> tuple[bool, str]:
         return False, "WSL2 docker info command timed out."
     except Exception as e:
         return False, f"Failed checking WSL2 Docker: {e}"
+
 
 def check_lucca_home() -> tuple[bool, str]:
     """Ensures LUCCA_HOME layout exists with all required subdirectories."""
@@ -120,6 +132,7 @@ def check_lucca_home() -> tuple[bool, str]:
     if created:
         msg += f" (initialized directories: {', '.join(created)})"
     return True, msg
+
 
 def run_env_check() -> int:
     """Executes all Spike 0.1 environment checks and reports status."""
@@ -151,6 +164,7 @@ def run_env_check() -> int:
     else:
         print("[WARN] Some environment criteria failed. See details above.")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(run_env_check())

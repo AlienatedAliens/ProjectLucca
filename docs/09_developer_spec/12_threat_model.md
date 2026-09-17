@@ -40,11 +40,21 @@ Boundaries: Z1→Z0 through `ToolCallDemux` + Pydantic + risk policy; Z2→Z0 th
 ## 3. Risk policy (single source: `lucca/core/risk_policy.py`)
 
 ```python
-class Risk(StrEnum): READ="READ"; NETWORK="NETWORK"; WRITE="WRITE"; LAUNCH="LAUNCH"
+class Risk(StrEnum):
+    READ = "READ"
+    NETWORK = "NETWORK"
+    WRITE = "WRITE"
+    LAUNCH = "LAUNCH"
+
+
 AUTO_EXECUTE: Final = frozenset({Risk.READ, Risk.NETWORK})
 CONFIRM_REQUIRED: Final = frozenset({Risk.WRITE, Risk.LAUNCH})
 MAX_TOOL_CALLS_PER_TURN: Final = 4
-FORBIDDEN_SEQUENCES: Final = (("fetch_url", "write_file"), ("fetch_url", "run_python"), ("read_file", "fetch_url"))
+FORBIDDEN_SEQUENCES: Final = (
+    ("fetch_url", "write_file"),
+    ("fetch_url", "run_python"),
+    ("read_file", "fetch_url"),
+)
 ```
 - Applies identically to LLM tool calls and rule plans.
 - A turn exceeding `MAX_TOOL_CALLS_PER_TURN` stops and says so.

@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class EnvSettings(BaseModel):
     mode: Literal["prod", "dev"] = "prod"
 
+
 class PathsSettings(BaseModel):
     models: str = "models"
     data: str = "data"
@@ -23,6 +24,7 @@ class PathsSettings(BaseModel):
     logs: str = "logs"
     cache: str = "cache"
     tmp: str = "tmp"
+
 
 class LLMSettings(BaseModel):
     mode: Literal["audio", "transcript"] = "audio"
@@ -36,15 +38,19 @@ class LLMSettings(BaseModel):
     mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
     text_model: str = ""
 
+
 DeviceType = Literal["NPU", "GPU", "CPU"]
+
 
 def _default_device_ladder() -> list[DeviceType]:
     return ["NPU", "GPU", "CPU"]
+
 
 class ASRSettings(BaseModel):
     model: str = "asr/whisper-large-v3-turbo-ov"
     device_ladder: list[DeviceType] = Field(default_factory=_default_device_ladder)
     lowconf_logprob: float = -0.5
+
 
 class TTSSettings(BaseModel):
     model: str = "tts/kokoro-v1"
@@ -52,6 +58,7 @@ class TTSSettings(BaseModel):
     device_ladder: list[DeviceType] = Field(default_factory=_default_device_ladder)
     speak_code: bool = False
     speak_urls: bool = False
+
 
 class AudioSettings(BaseModel):
     capture_device: str = ""
@@ -61,11 +68,13 @@ class AudioSettings(BaseModel):
     exclusive: bool = False
     jitter_ms: int = 60
 
+
 class PTTSettings(BaseModel):
     key: str = "right ctrl"
     mode: Literal["hold", "toggle"] = "hold"
     max_seconds: float = 29.5
     swallow: bool = False
+
 
 class MemorySettings(BaseModel):
     k: int = 8
@@ -73,13 +82,16 @@ class MemorySettings(BaseModel):
     audio_retention_days: int = 7
     backup_daily: bool = True
 
+
 class RouterSettings(BaseModel):
     version: Literal["heuristic", "classifier"] = "heuristic"
+
 
 class RulesSettings(BaseModel):
     gas_limit: int = 1000
     timeout_ms: int = 20
     promote_min_clusters: int = 5
+
 
 class ReflectionSettings(BaseModel):
     enabled: bool = True
@@ -87,36 +99,40 @@ class ReflectionSettings(BaseModel):
     min_new_decisions: int = 10
     min_interval_minutes: int = 10
 
+
 class SandboxSettings(BaseModel):
     wsl_distro: str = "Ubuntu"
     file_mem_mb: int = 768
     web_mem_mb: int = 512
     allow_render: bool = False
 
+
 class IPCSettings(BaseModel):
     ctl_port: int = 47001
     bus_port: int = 47002
     ingest_port: int = 47003
+
 
 class UISettings(BaseModel):
     enabled: bool = True
     fps_active: int = 30
     fps_idle: int = 5
 
+
 class LogSettings(BaseModel):
     level: str = "INFO"
     json_format: bool = Field(default=True, alias="json")
     retention_days: int = 30
+
 
 class LuccaConfig(BaseSettings):
     """
     Unified Application Configuration
     Precedence: CLI flags -> Env vars (LUCCA_*) -> lucca.toml -> .env -> defaults
     """
+
     model_config = SettingsConfigDict(
-        env_prefix="LUCCA_",
-        env_nested_delimiter="__",
-        extra="ignore"
+        env_prefix="LUCCA_", env_nested_delimiter="__", extra="ignore"
     )
 
     env: EnvSettings = Field(default_factory=EnvSettings)
@@ -153,6 +169,7 @@ class LuccaConfig(BaseSettings):
         rel = getattr(self.paths, subpath_name, subpath_name)
         p = self.home_dir / rel
         return p
+
 
 @lru_cache
 def get_config() -> LuccaConfig:
