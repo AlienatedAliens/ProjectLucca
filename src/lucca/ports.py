@@ -7,8 +7,11 @@ All external boundaries are accessed strictly through these Protocols.
 from collections.abc import AsyncIterator, Sequence
 from typing import Literal, Protocol
 
+import numpy as np
+import numpy.typing as npt
+
+from lucca.core.ipc_schemas import ASRResultPayload, TTSDonePayload
 from lucca.core.schemas import (
-    AudioRef,
     CandidateRule,
     Edge,
     LLMEvent,
@@ -30,9 +33,6 @@ from lucca.core.schemas import (
     ToolResult,
     ToolSchema,
     TracePoint,
-    Transcript,
-    TTSChunk,
-    TTSChunkDone,
     TurnTrace,
 )
 
@@ -46,19 +46,28 @@ class SpeechLLMPort(Protocol):
 
 
 class STTPort(Protocol):
-    """Speech-to-text running on Intel NPU via OpenVINO GenAI."""
+    """Speech-to-text running on Intel NPU via OpenVINO GenAI or CPU."""
 
-    async def transcribe(self, audio: AudioRef, *, trace_id: str) -> Transcript: ...
-    def device(self) -> Literal["NPU", "GPU", "CPU"]: ...
+    def __init__(self, *args: object, **kwargs: object) -> None: ...
+
+    def transcribe(self, pcm_int16: npt.NDArray[np.int16]) -> ASRResultPayload: ...
 
 
 class TTSPort(Protocol):
     """Text-to-speech synthesis with device ladder."""
 
-    async def synthesize(self, chunk: TTSChunk) -> TTSChunkDone: ...
-    async def abort(self, trace_id: str) -> None: ...
-    def device(self) -> Literal["NPU", "GPU", "CPU"]: ...
-    def rtf_estimate(self) -> float: ...
+    def __init__(self, play_ring: object = ...) -> None: ...
+
+    def synthesize(
+        self,
+        chunk_id: int,
+        text: str,
+        voice: str | None = None,
+        speed: float | None = None,
+        is_first: bool = False,
+    ) -> TTSDonePayload: ...
+    def set_voice(self, voice: str) -> None: ...
+    def set_speed(self, speed: float) -> None: ...
 
 
 class EmbeddingPort(Protocol):

@@ -8,7 +8,7 @@ import io
 import threading
 import time
 import wave
-from typing import Any, Literal
+from typing import Literal
 
 import structlog
 import ulid
@@ -34,6 +34,7 @@ from lucca.core.ipc_schemas import (
 )
 from lucca.core.schemas import TokenDelta, ToolCallEnd, ToolResult
 from lucca.core.trace import TurnTrace, log_turn_trace
+from lucca.ports import STTPort, TTSPort
 from lucca.sandbox.policy import parse_confirmation_response
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
@@ -56,8 +57,8 @@ class Orchestrator:
     def __init__(
         self,
         llm: LLMClient | None = None,
-        tts: Any | None = None,
-        asr: Any | None = None,
+        tts: TTSPort | type[TTSPort] | None = None,
+        asr: STTPort | type[STTPort] | None = None,
         sandbox: SandboxService | None = None,
         execute_tools: bool = True,
     ) -> None:
@@ -197,9 +198,9 @@ class Orchestrator:
                 self._on_user_text(env.ts_ns, p_text.text)
             elif env.type == "ui.config_update":
                 p_cfg = UIConfigUpdatePayload.model_validate(env.payload)
-                if p_cfg.voice and hasattr(self.tts, "set_voice"):
+                if p_cfg.voice:
                     self.tts.set_voice(p_cfg.voice)
-                if p_cfg.speed is not None and hasattr(self.tts, "set_speed"):
+                if p_cfg.speed is not None:
                     self.tts.set_speed(p_cfg.speed)
                 if (
                     p_cfg.persona_archetype is not None

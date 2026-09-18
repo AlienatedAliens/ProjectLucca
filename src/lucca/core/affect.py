@@ -8,9 +8,14 @@ import time
 import tomllib
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, Field
+
+
+class AffectConfig(BaseModel):
+    enabled: bool = True
+    decay_tau_seconds: float = 600.0
+    max_speed_delta: float = 0.10
 
 
 class AffectSignal(StrEnum):
@@ -185,11 +190,13 @@ class AffectTracker:
             return
         try:
             with open(path, "rb") as f:
-                cfg: dict[str, Any] = tomllib.load(f)
-            affect_cfg = cfg.get("affect", {})
-            self.enabled = bool(affect_cfg.get("enabled", True))
-            self.decay_tau = float(affect_cfg.get("decay_tau_seconds", 600.0))
-            self.max_speed_delta = float(affect_cfg.get("max_speed_delta", 0.10))
+                cfg: dict[str, object] = tomllib.load(f)
+            raw_affect = cfg.get("affect", {})
+            affect_dict = raw_affect if isinstance(raw_affect, dict) else {}
+            affect_cfg = AffectConfig.model_validate(affect_dict)
+            self.enabled = affect_cfg.enabled
+            self.decay_tau = affect_cfg.decay_tau_seconds
+            self.max_speed_delta = affect_cfg.max_speed_delta
         except (OSError, tomllib.TOMLDecodeError, ValueError, KeyError):
             return
 

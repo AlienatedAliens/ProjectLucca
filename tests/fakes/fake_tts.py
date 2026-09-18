@@ -15,6 +15,14 @@ class FakeTTS:
     def __init__(self, play_ring: SharedAudioRing) -> None:
         self.play_ring = play_ring
         self.synthesized_chunks: list[dict[str, object]] = []
+        self.active_voice = "af_heart"
+        self.active_speed = 1.0
+
+    def set_voice(self, voice: str) -> None:
+        self.active_voice = voice
+
+    def set_speed(self, speed: float) -> None:
+        self.active_speed = speed
 
     def synthesize(
         self,
