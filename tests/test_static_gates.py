@@ -2,6 +2,7 @@
 
 import ast
 import json
+import os
 import re
 from pathlib import Path
 
@@ -102,3 +103,68 @@ def test_model_manifest_complete() -> None:
         assert isinstance(source_file, str) and source_file, (
             f"Entry {req} must define source_filename"
         )
+
+
+def test_capability_claims_real() -> None:
+    """
+    F-ARCH-005 / F-DRIFT-006: Static gate enforcing honest capability claims.
+    Ensures forbidden tokens do not appear across prompt, sandbox manifest,
+    commorose actions, or UI help text.
+    """
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PyQt6.QtWidgets import QApplication
+
+    from lucca.brain.prompt_builder import get_system_prompt
+    from lucca.sandbox.service import SandboxService
+    from lucca.ui.app import get_commorose_actions
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication(["test", "-platform", "offscreen"])
+
+    forbidden = [
+        "5557",
+        "5558",
+        "5559",
+        "vram-safety-guard",
+        "npu-whisper-pin",
+        "temporal-logic-gate",
+        "codebase-inspect-route",
+        "inventor-curiosity",
+        "vector-relevance-gate",
+        "Codebase Inspection",
+    ]
+
+    # 1. System prompt
+    prompt = get_system_prompt()
+    for token in forbidden:
+        assert token not in prompt, f"Forbidden token '{token}' found in system prompt"
+
+    # 2. Sandbox capabilities manifest
+    service = SandboxService(use_direct_fallback=True)
+    res = service.execute_tool("gate-test", "query_capabilities", {})
+    manifest_str = json.dumps(res.structured or {})
+    for token in forbidden:
+        assert token not in manifest_str, (
+            f"Forbidden token '{token}' found in capabilities manifest"
+        )
+
+    # 3. Commorose action descriptions
+    actions = get_commorose_actions()
+    commorose_text = " ".join(f"{a.label} {a.description}" for a in actions)
+    for token in forbidden:
+        assert token not in commorose_text, f"Forbidden token '{token}' found in commorose actions"
+
+    # 4. Settings dialog manual and about text
+    dlg = SettingsDialog()
+    manual_texts: list[str] = []
+    for i in range(dlg.list_manual_chapters.count()):
+        item = dlg.list_manual_chapters.item(i)
+        if item:
+            manual_texts.append(item.text())
+        dlg._on_manual_chapter_selected(i)
+        manual_texts.append(dlg.txt_manual_body.toPlainText())
+    all_manual = " ".join(manual_texts)
+    for token in forbidden:
+        assert token not in all_manual, f"Forbidden token '{token}' found in settings manual"
