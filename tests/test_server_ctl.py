@@ -3,12 +3,20 @@ Unit tests for lucca.brain.server_ctl
 Spec 02, Spec 08, ADR-001, WI-3, WI-6
 """
 
+import hashlib
+import json
+import subprocess
 from pathlib import Path
+
+import pytest
 
 from lucca.brain.server_ctl import (
     build_launch_command,
+    compute_sha256,
     is_healthy,
     scan_model_registry,
+    start_server,
+    verify_model_files,
 )
 from lucca.core.config import LLMSettings
 
@@ -145,3 +153,100 @@ def test_scan_model_registry(tmp_path: Path) -> None:
     # Paired mmproj was present in the dir
     assert ultravox_entry["badge_type"] == "audio"
     assert "🎙" in ultravox_entry["badge"]
+
+
+def test_start_server_rejects_hash_mismatch(tmp_path: Path) -> None:
+    """Verifies that start_server refuses to spawn when model weights fail SHA256 verification."""
+    llama_dir = tmp_path / "app" / "llama-server"
+    llama_dir.mkdir(parents=True)
+    (llama_dir / "llama-server.exe").touch()
+
+    model_dir = tmp_path / "models" / "llm"
+    model_dir.mkdir(parents=True)
+    model_path = model_dir / "test-model.gguf"
+    model_path.write_bytes(b"corrupted model data")
+
+    manifest_path = tmp_path / "models" / "MANIFEST.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "llm/test-model.gguf": {
+                        "sha256": "e" * 64,
+                        "size_bytes": 100,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = LLMSettings(
+        model="models/llm/test-model.gguf",
+        mode="transcript",
+    )
+
+    with pytest.raises(RuntimeError, match="Model hash mismatch for test-model.gguf"):
+        start_server(cfg, tmp_path)
+
+
+def test_start_server_accepts_verified_weights(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verifies that start_server succeeds when model weights match SHA256 pin."""
+    llama_dir = tmp_path / "app" / "llama-server"
+    llama_dir.mkdir(parents=True)
+    (llama_dir / "llama-server.exe").touch()
+
+    model_dir = tmp_path / "models" / "llm"
+    model_dir.mkdir(parents=True)
+    model_path = model_dir / "test-model.gguf"
+    model_bytes = b"valid model binary content"
+    model_path.write_bytes(model_bytes)
+
+    real_hash = hashlib.sha256(model_bytes).hexdigest()
+    manifest_path = tmp_path / "models" / "MANIFEST.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "llm/test-model.gguf": {
+                        "sha256": real_hash,
+                        "size_bytes": len(model_bytes),
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = LLMSettings(
+        model="models/llm/test-model.gguf",
+        mode="transcript",
+    )
+
+    called: list[list[str]] = []
+
+    def mock_popen(cmd: list[str], **kwargs: object) -> str:
+        called.append(cmd)
+        return "mock_proc"
+
+    monkeypatch.setattr(subprocess, "Popen", mock_popen)
+    proc = start_server(cfg, tmp_path)
+    assert proc == "mock_proc"
+    assert len(called) == 1
+
+
+def test_compute_sha256(tmp_path: Path) -> None:
+    """Verifies compute_sha256 matches hashlib output."""
+    sample = tmp_path / "sample.bin"
+    content = b"testing sha256 streaming implementation"
+    sample.write_bytes(content)
+    assert compute_sha256(sample) == hashlib.sha256(content).hexdigest()
+
+
+def test_verify_model_files_missing_manifest(tmp_path: Path) -> None:
+    """Verifies verify_model_files raises FileNotFoundError if manifest is missing."""
+    cfg = LLMSettings(model="models/llm/missing.gguf")
+    with pytest.raises(FileNotFoundError):
+        verify_model_files(cfg, tmp_path)

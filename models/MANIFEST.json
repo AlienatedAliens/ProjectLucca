@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "description": "Canonical SHA256 checksum pins and provenance for Project Lucca model weights",
+  "files": {
+    "llm/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf": {
+      "sha256": "33981adf6bae52c503fb5c24f72539010632f7ed290a56c1315a8cd50adca587",
+      "size_bytes": 6596011424,
+      "source_repo": "bartowski/Meta-Llama-3.1-8B-Instruct-GGUF",
+      "source_filename": "Meta-Llama-3.1-8B-Instruct-Q6_K.gguf"
+    },
+    "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf": {
+      "sha256": "e6395ed42124303eaa9fca934452aabce14c59d2a56fab2dda65b798442289ff",
+      "size_bytes": 1379512224,
+      "source_repo": "ggml-org/ultravox-v0_5-llama-3_1-8b-GGUF",
+      "source_filename": "mmproj-ultravox-v0_5-llama-3_1-8b-f16.gguf"
+    },
+    "tts/kokoro-v1.0.onnx": {
+      "sha256": "7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5",
+      "size_bytes": 325532387,
+      "source_repo": "hexgrad/Kokoro-82M",
+      "source_filename": "kokoro-v1.0.onnx"
+    },
+    "tts/voices-v1.0.bin": {
+      "sha256": "bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d",
+      "size_bytes": 28214398,
+      "source_repo": "hexgrad/Kokoro-82M",
+      "source_filename": "voices-v1.0.bin"
+    }
+  }
+}

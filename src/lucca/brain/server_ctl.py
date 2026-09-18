@@ -5,7 +5,9 @@ Provides strictly-typed server process orchestration (start/stop/restart/health)
 and GGUF binary header metadata inspection.
 """
 
+import hashlib
 import io
+import json
 import struct
 import subprocess
 import time
@@ -307,8 +309,92 @@ def is_healthy(host: str, port: int, timeout: float = 1.0) -> bool:
     return check_server_status(host, port, timeout=timeout) == "ready"
 
 
+def compute_sha256(path: Path) -> str:
+    """Computes SHA256 hex digest of a file in 1 MiB chunks."""
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_model_files(cfg: LLMSettings, home_dir: Path) -> None:
+    """
+    Cryptographically verifies that required model weights match the sha256 manifest.
+    Checks home_dir/models/MANIFEST.json (falling back to repository models/MANIFEST.json).
+    Raises FileNotFoundError if manifest or any model file is missing.
+    Raises RuntimeError if a sha256 checksum mismatch is detected.
+    """
+    manifest_path = home_dir / "models" / "MANIFEST.json"
+    if not manifest_path.exists():
+        repo_manifest = Path(__file__).resolve().parents[3] / "models" / "MANIFEST.json"
+        if repo_manifest.exists():
+            manifest_path = repo_manifest
+        else:
+            raise FileNotFoundError(f"Model manifest not found at: {manifest_path}")
+
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load manifest at {manifest_path}: {e}") from e
+
+    files_map = data.get("files", {})
+    if not isinstance(files_map, dict):
+        raise RuntimeError(
+            f"Invalid manifest format in {manifest_path}: 'files' key must be a dict"
+        )
+
+    models_to_check: list[Path] = [resolve_model_path(cfg.model, home_dir)]
+    if cfg.mode == "audio" and cfg.mmproj:
+        mmproj_path = resolve_model_path(cfg.mmproj, home_dir)
+        if mmproj_path.exists() or cfg.mode == "audio":
+            models_to_check.append(mmproj_path)
+
+    for mpath in models_to_check:
+        if not mpath.exists():
+            raise FileNotFoundError(f"Model file not found: {mpath}")
+
+        expected_sha: str | None = None
+        try:
+            rel = str(mpath.relative_to(home_dir / "models")).replace("\\", "/")
+        except ValueError:
+            rel = mpath.name
+
+        entry = files_map.get(rel)
+        if entry is None:
+            for k, v in files_map.items():
+                if k == rel or Path(k).name == mpath.name:
+                    entry = v
+                    break
+
+        if entry is None:
+            raise RuntimeError(
+                f"Model file '{mpath.name}' has no entry in manifest {manifest_path}"
+            )
+
+        if isinstance(entry, dict):
+            sha_val = entry.get("sha256")
+            if isinstance(sha_val, str):
+                expected_sha = sha_val
+        elif isinstance(entry, str):
+            expected_sha = entry
+
+        if not expected_sha:
+            raise RuntimeError(f"No sha256 hash specified for '{mpath.name}' in manifest")
+
+        actual_sha = compute_sha256(mpath)
+        if actual_sha.lower() != expected_sha.lower():
+            raise RuntimeError(
+                f"Model hash mismatch for {mpath.name}: expected {expected_sha}, got {actual_sha}"
+            )
+
+
 def start_server(cfg: LLMSettings, home_dir: Path) -> subprocess.Popen[bytes]:
-    """Starts llama-server.exe as a child process. Raises if executable or model is missing."""
+    """
+    Starts llama-server.exe as a child process.
+    Raises if executable, model, or verification fails.
+    """
     llama_exe = home_dir / "app" / "llama-server" / "llama-server.exe"
     if not llama_exe.exists():
         raise FileNotFoundError(f"llama-server executable not found at: {llama_exe}")
@@ -316,6 +402,8 @@ def start_server(cfg: LLMSettings, home_dir: Path) -> subprocess.Popen[bytes]:
     model_gguf = resolve_model_path(cfg.model, home_dir)
     if not model_gguf.exists():
         raise FileNotFoundError(f"Model GGUF file not found at: {model_gguf}")
+
+    verify_model_files(cfg, home_dir)
 
     cmd = build_launch_command(cfg, home_dir)
     log_file = home_dir / "logs" / "llama-server.log"
