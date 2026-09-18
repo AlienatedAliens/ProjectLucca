@@ -32,7 +32,7 @@ def run_npu_process() -> None:
     proc = NPUProcess()
     try:
         proc.start()
-    except KeyboardInterrupt:
+    finally:
         proc.stop()
 
 

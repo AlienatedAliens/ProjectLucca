@@ -28,6 +28,7 @@ from lucca.senses.asr import ASRWorker
 from lucca.senses.embed import EmbedWorker
 from lucca.senses.ring_buffer import (
     FLAG_ABORT,
+    SharedAudioRing,
     get_capture_ring,
     get_playback_ring,
 )
@@ -37,21 +38,29 @@ logger = structlog.get_logger(__name__)
 
 
 class NPUProcess:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        cap_ring: SharedAudioRing | None = None,
+        play_ring: SharedAudioRing | None = None,
+        asr: ASRWorker | None = None,
+        tts: TTSWorker | None = None,
+        embed: EmbedWorker | None = None,
+        ctx: zmq.Context[zmq.Socket[bytes]] | None = None,
+    ) -> None:
         self.config = get_config()
         self.running = False
 
         # Attach to rings
-        self.cap_ring = get_capture_ring(create=False)
-        self.play_ring = get_playback_ring(create=False)
+        self.cap_ring = cap_ring if cap_ring is not None else get_capture_ring(create=False)
+        self.play_ring = play_ring if play_ring is not None else get_playback_ring(create=False)
 
         # Workers
-        self.asr = ASRWorker()
-        self.tts = TTSWorker(self.play_ring)
-        self.embed = EmbedWorker()
+        self.asr = asr if asr is not None else ASRWorker()
+        self.tts = tts if tts is not None else TTSWorker(self.play_ring)
+        self.embed = embed if embed is not None else EmbedWorker()
 
         # ZeroMQ
-        self.ctx = zmq.Context()
+        self.ctx = ctx if ctx is not None else zmq.Context()
         self.ctl_sock = self.ctx.socket(zmq.DEALER)
         self.bus_sock = self.ctx.socket(zmq.SUB)
 
@@ -66,7 +75,12 @@ class NPUProcess:
         poller.register(self.bus_sock, zmq.POLLIN)
 
         while self.running:
-            socks = dict(poller.poll(timeout=100))
+            try:
+                socks = dict(poller.poll(timeout=100))
+            except zmq.ZMQError:
+                if not self.running:
+                    break
+                continue
 
             if self.ctl_sock in socks:
                 try:
@@ -82,6 +96,9 @@ class NPUProcess:
                     env = decode_envelope(raw)
                     if env.type in ("tts.abort", "play.abort"):
                         self.play_ring.set_flag(FLAG_ABORT)
+                    elif env.type == "sys.shutdown":
+                        self.running = False
+                        break
                 except (IPCError, zmq.ZMQError) as exc:
                     logger.debug("npu_bus_message_error", error=str(exc))
 
@@ -193,7 +210,7 @@ def main() -> None:
     proc = NPUProcess()
     try:
         proc.start()
-    except KeyboardInterrupt:
+    finally:
         proc.stop()
 
 
