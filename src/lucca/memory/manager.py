@@ -10,7 +10,7 @@ import sqlite3
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from lucca.core.config import get_config
 from lucca.core.schemas import Provenance, UnsignedPayload
@@ -43,7 +43,10 @@ class MemoryManager:
         return self.db.get_connection()
 
     def list_memories(
-        self, search: str = "", include_forgotten: bool = False
+        self,
+        search: str = "",
+        include_forgotten: bool = False,
+        include_superseded: bool = False,
     ) -> list[dict[str, Any]]:
         """List memories with optional text filter."""
         conn = self.get_connection()
@@ -56,6 +59,8 @@ class MemoryManager:
                     m.kind,
                     m.created_at,
                     m.valid_from,
+                    m.valid_to,
+                    m.superseded_by,
                     m.importance,
                     m.forgotten_at,
                     p.provenance,
@@ -63,8 +68,9 @@ class MemoryManager:
                 FROM memories m
                 LEFT JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                 WHERE (m.forgotten_at IS NULL OR ? = 1)
+                  AND (m.valid_to IS NULL OR ? = 1)
             """
-            params: list[Any] = [1 if include_forgotten else 0]
+            params: list[Any] = [1 if include_forgotten else 0, 1 if include_superseded else 0]
 
             if search.strip():
                 query += " AND (m.content LIKE ? OR m.kind LIKE ? OR p.provenance LIKE ?)"
@@ -86,6 +92,8 @@ class MemoryManager:
                         "kind": r["kind"],
                         "created_at": r["created_at"],
                         "valid_from": r["valid_from"],
+                        "valid_to": r["valid_to"],
+                        "superseded_by": r["superseded_by"],
                         "importance": float(r["importance"]),
                         "forgotten_at": r["forgotten_at"],
                         "provenance": r["provenance"] or "USER_EXPLICIT",
@@ -185,30 +193,125 @@ class MemoryManager:
     def update_memory(
         self, memory_id: int, new_content: str, importance: float | None = None
     ) -> bool:
-        """Updates an existing memory's content or importance."""
+        """Updates an existing memory via bi-temporal supersession (F-MEM-002)."""
+        if self.master_key is None or self.gate is None:
+            raise ValueError("master_key is required for MemoryManager to sign and admit memories")
+
+        # 1. Fetch old memory to preserve kind and original importance if not specified
+        with self.db.read_cursor() as cur:
+            cur.execute(
+                "SELECT memory_id, kind, importance FROM memories WHERE memory_id = ?",
+                (memory_id,),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise KeyError(f"Memory #{memory_id} not found")
+            kind_str = str(row["kind"])
+            valid_kind = (
+                kind_str
+                if kind_str in ("transcript", "fact", "tool_fact", "rule_assertion")
+                else "fact"
+            )
+            kind = cast(Literal["transcript", "fact", "tool_fact", "rule_assertion"], valid_kind)
+            orig_importance = float(row["importance"])
+
+        target_importance = importance if importance is not None else orig_importance
+
+        # 2. Construct and sign new payload via ProvenanceGate
+        now = time.time()
+        signer = UserSpeechSigner(master_key=self.master_key, signer_id="ui-admin")
+        unsigned = UnsignedPayload(
+            provenance=Provenance.USER_EXPLICIT,
+            kind=kind,
+            content=new_content,
+            trace_id=f"ui-admin-edit-{uuid.uuid4().hex[:8]}",
+            session_id="ui-admin-session",
+            created_at=now,
+            nonce=uuid.uuid4().hex,
+            confidence=1.0,
+        )
+        signed = signer.sign(unsigned)
+        admitted = self.gate.admit(signed, now=now)
+        admitted_payload = admitted.payload
+
         conn = self.db.get_writer()
         try:
             conn.execute("BEGIN IMMEDIATE")
-            if importance is not None:
-                conn.execute(
-                    "UPDATE memories SET content = ?, importance = ? WHERE memory_id = ?",
-                    (new_content, importance, memory_id),
-                )
-            else:
-                conn.execute(
-                    "UPDATE memories SET content = ? WHERE memory_id = ?",
-                    (new_content, memory_id),
-                )
 
-            # Update FTS
+            # 3. Insert new provenance envelope
+            conn.execute(
+                """
+                INSERT INTO provenance_envelopes (
+                    entry_id, provenance, kind, signer_id, signature,
+                    content_sha256, nonce, created_at, trace_id, session_id,
+                    confidence, payload_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    admitted_payload.entry_id,
+                    admitted_payload.provenance.value,
+                    admitted_payload.kind,
+                    admitted_payload.signer_id,
+                    admitted_payload.signature,
+                    admitted_payload.content_sha256,
+                    admitted_payload.nonce,
+                    admitted_payload.created_at,
+                    admitted_payload.trace_id,
+                    admitted_payload.session_id,
+                    admitted_payload.confidence,
+                    json.dumps(admitted_payload.model_dump()),
+                ),
+            )
+
+            # 4. Insert new memory row
+            cur = conn.execute(
+                """
+                INSERT INTO memories (
+                    entry_id, content, tokens_aux, kind, created_at,
+                    valid_from, importance, access_count
+                ) VALUES (?, ?, '', ?, ?, ?, ?, 0)
+                """,
+                (admitted_payload.entry_id, new_content, kind, now, now, target_importance),
+            )
+            new_memory_id = int(cur.lastrowid or 0)
+
+            # 5. Insert into fts_memories if exists
             try:
-                conn.execute("DELETE FROM fts_memories WHERE rowid = ?", (memory_id,))
                 conn.execute(
                     "INSERT INTO fts_memories(rowid, content) VALUES (?, ?)",
-                    (memory_id, new_content),
+                    (new_memory_id, new_content),
                 )
             except Exception:  # noqa: BLE001, S110
                 pass
+
+            # 6. Mark old memory as superseded
+            conn.execute(
+                "UPDATE memories SET valid_to = ?, superseded_by = ? WHERE memory_id = ?",
+                (now, new_memory_id, memory_id),
+            )
+
+            # 7. Close old KG edges
+            conn.execute(
+                "UPDATE kg_edges SET valid_to = ? WHERE memory_id = ? AND valid_to IS NULL",
+                (now, memory_id),
+            )
+
+            # 8. Insert audit row
+            conn.execute(
+                """
+                INSERT INTO memory_audit (
+                    ts, kind, reason, provenance, trace_id, entry_id, content_sha256
+                ) VALUES (?, 'supersede', ?, ?, ?, ?, ?)
+                """,
+                (
+                    now,
+                    f"ui-edit superseding memory {memory_id} with {new_memory_id}",
+                    admitted_payload.provenance.value,
+                    admitted_payload.trace_id,
+                    admitted_payload.entry_id,
+                    admitted_payload.content_sha256,
+                ),
+            )
 
             conn.execute("COMMIT")
             return True

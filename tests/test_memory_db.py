@@ -884,3 +884,85 @@ def test_admin_add_memory_requires_valid_signature(temp_db: DatabaseManager) -> 
         admitted = gate.admit(signed_payload)
         assert admitted.payload.entry_id == entry_id
         assert admitted.payload.content == "User likes green tea"
+
+
+def test_update_memory_supersedes_and_audits(temp_db: DatabaseManager) -> None:
+    """F-MEM-002: update_memory supersedes old memory and creates audit trail."""
+    mgr = MemoryManager(db=temp_db, master_key=TEST_KEY)
+    old_id = mgr.add_memory("Original memory content", kind="fact", importance=0.7)
+    assert old_id > 0
+
+    # Perform update
+    success = mgr.update_memory(old_id, "Updated memory content", importance=0.95)
+    assert success is True
+
+    with temp_db.read_cursor() as cur:
+        # Check old memory row
+        cur.execute(
+            "SELECT entry_id, content, valid_to, superseded_by, importance FROM memories WHERE memory_id = ?",
+            (old_id,),
+        )
+        old_row = cur.fetchone()
+        assert old_row is not None
+        old_entry_id, old_content, valid_to, superseded_by, old_imp = old_row
+        assert old_content == "Original memory content"
+        assert valid_to is not None
+        assert superseded_by is not None
+        new_id = superseded_by
+        assert new_id != old_id
+
+        # Check new memory row
+        cur.execute(
+            "SELECT entry_id, content, valid_to, superseded_by, importance FROM memories WHERE memory_id = ?",
+            (new_id,),
+        )
+        new_row = cur.fetchone()
+        assert new_row is not None
+        new_entry_id, new_content, new_valid_to, new_superseded_by, new_imp = new_row
+        assert new_content == "Updated memory content"
+        assert new_valid_to is None
+        assert new_superseded_by is None
+        assert abs(new_imp - 0.95) < 1e-4
+        assert new_entry_id != old_entry_id
+
+        # Verify old envelope remains intact
+        cur.execute(
+            "SELECT payload_json FROM provenance_envelopes WHERE entry_id = ?",
+            (old_entry_id,),
+        )
+        old_env_row = cur.fetchone()
+        assert old_env_row is not None
+        gate = ProvenanceGate(master_key=TEST_KEY)
+        old_signed = SignedPayload(**json.loads(old_env_row[0]))
+        assert gate.admit(old_signed).payload.content == "Original memory content"
+
+        # Verify new envelope verifies under ProvenanceGate
+        cur.execute(
+            "SELECT payload_json FROM provenance_envelopes WHERE entry_id = ?",
+            (new_entry_id,),
+        )
+        new_env_row = cur.fetchone()
+        assert new_env_row is not None
+        new_signed = SignedPayload(**json.loads(new_env_row[0]))
+        assert gate.admit(new_signed).payload.content == "Updated memory content"
+
+        # Verify memory_audit row
+        cur.execute(
+            "SELECT kind, reason, entry_id FROM memory_audit WHERE kind = 'supersede'",
+        )
+        audit_row = cur.fetchone()
+        assert audit_row is not None
+        audit_kind, audit_reason, audit_entry_id = audit_row
+        assert audit_kind == "supersede"
+        assert str(old_id) in audit_reason
+        assert str(new_id) in audit_reason
+        assert audit_entry_id == new_entry_id
+
+    # Verify list_memories filtering
+    active_mems = mgr.list_memories()
+    assert len(active_mems) == 1
+    assert active_mems[0]["memory_id"] == new_id
+    assert active_mems[0]["content"] == "Updated memory content"
+
+    all_mems = mgr.list_memories(include_superseded=True)
+    assert len(all_mems) == 2
