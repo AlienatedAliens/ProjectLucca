@@ -4,7 +4,8 @@ Spec 04 §2, Spec 10 (T-MEM-14)
 """
 
 import time
-from typing import Any
+
+from pydantic import JsonValue
 
 from lucca.memory.db import DatabaseManager
 
@@ -19,7 +20,7 @@ class WorkingMemory:
 
     def __init__(self, db: DatabaseManager) -> None:
         self.db = db
-        self._tasks: dict[str, dict[str, Any]] = {}
+        self._tasks: dict[str, dict[str, JsonValue]] = {}
 
     def open_task(self, task_id: str, now: float | None = None) -> None:
         current_time = now if now is not None else time.time()
@@ -30,17 +31,17 @@ class WorkingMemory:
             (task_id, current_time),
         )
 
-    def set(self, task_id: str, key: str, value: Any) -> None:
+    def set(self, task_id: str, key: str, value: JsonValue) -> None:
         if task_id not in self._tasks:
             raise KeyError(f"Task {task_id} is not open")
         self._tasks[task_id][key] = value
 
-    def get(self, task_id: str, key: str, default: Any = None) -> Any:
+    def get(self, task_id: str, key: str, default: JsonValue = None) -> JsonValue:
         if task_id not in self._tasks:
             return default
         return self._tasks[task_id].get(key, default)
 
-    def get_state(self, task_id: str) -> dict[str, Any]:
+    def get_state(self, task_id: str) -> dict[str, JsonValue]:
         return dict(self._tasks.get(task_id, {}))
 
     def close_task(

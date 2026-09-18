@@ -60,7 +60,7 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "BLE", "S", "UP", "ANN", "PL"]
-ignore = ["PLR0913", "PLR2004", "S105", "PLR0911", "PLR0912", "PLR0915", "PLR0917", "S311", "S324", "ANN401"]
+ignore = ["PLR0913", "PLR2004", "S105", "PLR0911", "PLR0912", "PLR0915", "PLR0917", "S311", "S324"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S106", "ANN", "PLR", "BLE001", "PLC0415", "E501"]
@@ -73,6 +73,7 @@ ignore = ["PLR0913", "PLR2004", "S105", "PLR0911", "PLR0912", "PLR0915", "PLR091
 
 [tool.mypy]
 python_version = "3.12"
+strict = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

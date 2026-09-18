@@ -9,9 +9,9 @@ import socket
 import subprocess
 import threading
 import time
-from typing import Any
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.sandbox.container_spec import win_to_wsl_path
 
@@ -54,7 +54,7 @@ class EgressVerifier:
         except Exception as exc:  # noqa: BLE001
             return False, str(exc)
 
-    def verify_all(self) -> dict[str, Any]:
+    def verify_all(self) -> dict[str, JsonValue]:
         """
         Executes the normative 6-step egress verification matrix:
         1. Host HTTP listener running on LAN IP.
@@ -65,16 +65,17 @@ class EgressVerifier:
         6. IPv6 blocked.
         """
         lan_ip = get_local_lan_ip()
-        results: dict[str, Any] = {
+        checks: dict[str, JsonValue] = {}
+        results: dict[str, JsonValue] = {
             "lan_ip": lan_ip,
             "port": self.test_port,
-            "checks": {},
+            "checks": checks,
             "all_passed": False,
         }
 
         # 1. Start test HTTP server on host
         class QuietHandler(http.server.SimpleHTTPRequestHandler):
-            def log_message(self, fmt: str, *args: Any) -> None:
+            def log_message(self, fmt: str, *args: object) -> None:
                 pass
 
         server = http.server.HTTPServer((lan_ip, self.test_port), QuietHandler)
@@ -104,7 +105,7 @@ class EgressVerifier:
                 cmd_host_curl, capture_output=True, text=True, timeout=5.0, check=False
             )
             host_status = res_host.stdout.strip()
-            results["checks"]["host_shell_positive_control"] = host_status == "200"
+            checks["host_shell_positive_control"] = host_status == "200"
 
             # 3. Blocked from container on lucca-net
             cmd_container_lan = [
@@ -127,7 +128,7 @@ class EgressVerifier:
                 cmd_container_lan, capture_output=True, text=True, timeout=6.0, check=False
             )
             # Must exit non-zero (connection refused, timed out, or route blocked)
-            results["checks"]["container_lan_blocked"] = res_sbx_lan.returncode != 0
+            checks["container_lan_blocked"] = res_sbx_lan.returncode != 0
 
             # 4. Public HTTPS allowed
             cmd_container_pub = [
@@ -153,9 +154,7 @@ class EgressVerifier:
             res_sbx_pub = subprocess.run(  # noqa: S603
                 cmd_container_pub, capture_output=True, text=True, timeout=8.0, check=False
             )
-            results["checks"]["container_public_https_allowed"] = (
-                res_sbx_pub.stdout.strip() == "200"
-            )
+            checks["container_public_https_allowed"] = res_sbx_pub.stdout.strip() == "200"
 
             # 5. Non-web port (SSH 22) blocked
             cmd_container_ssh = [
@@ -176,10 +175,9 @@ class EgressVerifier:
             res_sbx_ssh = subprocess.run(  # noqa: S603
                 cmd_container_ssh, capture_output=True, text=True, timeout=6.0, check=False
             )
-            results["checks"]["container_ssh_blocked"] = res_sbx_ssh.returncode != 0
+            checks["container_ssh_blocked"] = res_sbx_ssh.returncode != 0
 
-            checks = results["checks"]
-            results["all_passed"] = (
+            results["all_passed"] = bool(
                 checks.get("host_shell_positive_control", False)
                 and checks.get("container_lan_blocked", False)
                 and checks.get("container_public_https_allowed", False)
