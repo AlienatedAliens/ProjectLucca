@@ -10,9 +10,11 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from lucca.core.schemas import (
+    CandidateRule,
     Plan,
     PromotionResult,
     RegressionReport,
+    RuleOutcome,
     RuleState,
     Say,
     ToolCall,
@@ -110,11 +112,60 @@ class RuleLifecycleManager:
         self.rules[rule_def.rule_id] = managed
         return managed
 
+    def register_candidate(self, cand: CandidateRule) -> str:
+        """Implements RuleEnginePort.register_candidate."""
+        managed = self.register_rule(cand.s_expression)
+        return managed.rule_id
+
+    def evaluate(self, state: RuleState, *, mode: Literal["shadow", "active"]) -> list[RuleOutcome]:
+        """
+        Evaluates registered rules per Spec 02 & Spec 05 §6/§8.
+        - shadow mode: evaluates QUARANTINE rules and records clusters to success_clusters.
+        - active mode: evaluates ACTIVE rules ranked by priority descending.
+        """
+        outcomes: list[RuleOutcome] = []
+        if mode == "shadow":
+            quarantine_rules = [r for r in self.rules.values() if r.status == "QUARANTINE"]
+            for r in quarantine_rules:
+                outcome = evaluate_rule(r.definition, state)
+                outcomes.append(outcome)
+                cluster_id = compute_cluster_id(
+                    session_id=state.transcript or "turn",
+                    turn_ts=time.time(),
+                    semantic_cluster=0,
+                )
+                if outcome.fired and not outcome.errored:
+                    self.record_shadow(
+                        r.rule_id,
+                        matched=True,
+                        cluster_id=cluster_id,
+                        state_snapshot=state,
+                        plan_snapshot=outcome.plan,
+                    )
+                elif outcome.errored:
+                    self.record_shadow(
+                        r.rule_id,
+                        matched=False,
+                        cluster_id=cluster_id,
+                        errored=True,
+                    )
+        elif mode == "active":
+            active_rules = sorted(
+                [r for r in self.rules.values() if r.status == "ACTIVE"],
+                key=lambda r: r.definition.priority,
+                reverse=True,
+            )
+            for r in active_rules:
+                outcome = evaluate_rule(r.definition, state)
+                outcomes.append(outcome)
+
+        return outcomes
+
     def record_shadow(
         self,
         rule_id: str,
-        matched: bool,
-        cluster_id: str,
+        matched: bool = False,
+        cluster_id: str = "",
         indeterminate: bool = False,
         state_snapshot: RuleState | None = None,
         plan_snapshot: Plan | None = None,

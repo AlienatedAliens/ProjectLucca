@@ -6,6 +6,7 @@ Spec 05 §8, §9, §11 (T-RULE-03, T-RULE-04, T-RULE-05)
 import pytest
 
 from lucca.core.schemas import Plan, Risk, RuleState, ToolCall, ToolParameter, ToolSchema
+from lucca.ports import RuleEnginePort
 from lucca.reasoning.lifecycle import RuleLifecycleManager, compute_cluster_id
 
 SAMPLE_RULE = """
@@ -174,3 +175,29 @@ def test_record_shadow_errored_treated_as_failure(tools):
     manager.record_shadow("open-calc-v1", matched=True, cluster_id="c_err", errored=True)
     assert manager.rules["open-calc-v1"].failure_count == 1
     assert len(manager.rules["open-calc-v1"].success_clusters) == 0
+
+
+def test_evaluate_shadow_records_clusters(tools):
+    """F-REAS-003: evaluate() in shadow mode records success clusters for quarantined rules."""
+    manager = RuleLifecycleManager(registered_tools=tools)
+    manager.register_rule(SAMPLE_RULE)
+    assert manager.rules["open-calc-v1"].status == "QUARANTINE"
+
+    state = RuleState(
+        schema_version=1,
+        transcript="open calculator",
+        intent="launch_app",
+        entities={"app": ["calculator"]},
+    )
+
+    outcomes = manager.evaluate(state, mode="shadow")
+    assert len(outcomes) == 1
+    assert outcomes[0].fired is True
+    assert outcomes[0].errored is False
+    assert len(manager.rules["open-calc-v1"].success_clusters) == 1
+
+
+def test_rule_lifecycle_manager_satisfies_rule_engine_port(tools):
+    """F-REAS-003: RuleLifecycleManager implements RuleEnginePort."""
+    manager = RuleLifecycleManager(registered_tools=tools)
+    _: RuleEnginePort = manager
