@@ -84,6 +84,7 @@ class ServerRestartWorker(QThread):
     Background worker for restarting llama-server.exe honestly without
     blocking the PyQt GUI thread. Reports real transitions and health checks.
     """
+
     status_signal = pyqtSignal(str)
     finished_signal = pyqtSignal(bool, str)
 
@@ -105,10 +106,14 @@ class ServerRestartWorker(QThread):
             attempt = 0
             while time.time() - t0 < self.timeout_s:
                 attempt += 1
-                self.status_signal.emit(f"Waiting for health check (attempt {attempt}, {time.time() - t0:.1f}s elapsed)...")
+                self.status_signal.emit(
+                    f"Waiting for health check (attempt {attempt}, {time.time() - t0:.1f}s elapsed)..."
+                )
                 if is_healthy(self.cfg.host, self.cfg.port, timeout=1.0):
                     elapsed = time.time() - t0
-                    self.finished_signal.emit(True, f"✓ Healthy (Port {self.cfg.port}, {elapsed:.1f}s)")
+                    self.finished_signal.emit(
+                        True, f"✓ Healthy (Port {self.cfg.port}, {elapsed:.1f}s)"
+                    )
                     return
                 time.sleep(0.8)
 
@@ -140,7 +145,9 @@ class ModelDownloadWorker(QThread):
             t0 = time.time()
             downloaded = 0
 
-            with httpx.stream("GET", self.url, headers=headers, follow_redirects=True, timeout=60.0) as resp:
+            with httpx.stream(
+                "GET", self.url, headers=headers, follow_redirects=True, timeout=60.0
+            ) as resp:
                 if resp.status_code not in (200, 206):
                     self.finished_signal.emit(False, f"HTTP Error {resp.status_code}")
                     return
@@ -157,19 +164,29 @@ class ModelDownloadWorker(QThread):
                         elapsed = max(0.1, time.time() - t0)
                         speed = (downloaded / (1024 * 1024)) / elapsed
                         pct = int((downloaded / total) * 100) if total > 0 else 0
-                        self.progress_signal.emit(pct, round(downloaded / (1024 * 1024), 1), round(total / (1024 * 1024), 1), round(speed, 2))
+                        self.progress_signal.emit(
+                            pct,
+                            round(downloaded / (1024 * 1024), 1),
+                            round(total / (1024 * 1024), 1),
+                            round(speed, 2),
+                        )
 
             # Validate GGUF header magic bytes
             with open(temp_dest, "rb") as f:
                 magic = f.read(4)
                 if magic != b"GGUF":
                     temp_dest.unlink(missing_ok=True)
-                    self.finished_signal.emit(False, "Validation Error: File is not a valid GGUF binary. Download rejected.")
+                    self.finished_signal.emit(
+                        False,
+                        "Validation Error: File is not a valid GGUF binary. Download rejected.",
+                    )
                     return
 
             if temp_dest.exists():
                 temp_dest.replace(self.dest_path)
-            self.finished_signal.emit(True, f"Model successfully downloaded and verified: {self.dest_path.name}")
+            self.finished_signal.emit(
+                True, f"Model successfully downloaded and verified: {self.dest_path.name}"
+            )
         except Exception as exc:
             self.finished_signal.emit(False, f"Download failed: {exc}")
 
@@ -304,12 +321,27 @@ class SettingsDialog(QDialog):
 
         # Whitelisted Applications
         self.whitelisted_apps: list[dict[str, str]] = [
-            {"name": "VS Code", "path": "C:\\Users\\seatr\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe", "tier": "Trusted", "status": "Active"},
+            {
+                "name": "VS Code",
+                "path": "C:\\Users\\seatr\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+                "tier": "Trusted",
+                "status": "Active",
+            },
             {"name": "Windows Terminal", "path": "wt.exe", "tier": "Trusted", "status": "Active"},
             {"name": "PowerShell 7", "path": "pwsh.exe", "tier": "System", "status": "Active"},
             {"name": "Git for Windows", "path": "git.exe", "tier": "System", "status": "Active"},
-            {"name": "Windows Explorer", "path": "explorer.exe", "tier": "System", "status": "Active"},
-            {"name": "Task Manager", "path": "taskmgr.exe", "tier": "Read-Only", "status": "Active"},
+            {
+                "name": "Windows Explorer",
+                "path": "explorer.exe",
+                "tier": "System",
+                "status": "Active",
+            },
+            {
+                "name": "Task Manager",
+                "path": "taskmgr.exe",
+                "tier": "Read-Only",
+                "status": "Active",
+            },
             {"name": "Chrome Browser", "path": "chrome.exe", "tier": "Network", "status": "Active"},
         ]
 
@@ -454,18 +486,24 @@ class SettingsDialog(QDialog):
         self.chk_uses_name.toggled.connect(self._update_prompt_preview)
         f_bound.addRow("Identity & Name:", self.chk_uses_name)
 
-        self.chk_admits_uncertainty = QCheckBox("Admit uncertainty aloud ('I\\'m not sure' vs hallucinating)", grp_bound)
+        self.chk_admits_uncertainty = QCheckBox(
+            "Admit uncertainty aloud ('I\\'m not sure' vs hallucinating)", grp_bound
+        )
         self.chk_admits_uncertainty.setChecked(self.current_admits_uncertainty)
         self.chk_admits_uncertainty.toggled.connect(self._update_prompt_preview)
         f_bound.addRow("Truthfulness:", self.chk_admits_uncertainty)
 
-        self.chk_never_pretend = QCheckBox("Never simulate biological emotion (describe affect as system state)", grp_bound)
+        self.chk_never_pretend = QCheckBox(
+            "Never simulate biological emotion (describe affect as system state)", grp_bound
+        )
         self.chk_never_pretend.setChecked(self.current_never_pretend)
         self.chk_never_pretend.toggled.connect(self._update_prompt_preview)
         f_bound.addRow("Affect Substrate:", self.chk_never_pretend)
 
         self.line_refuse_topics = QLineEdit(grp_bound)
-        self.line_refuse_topics.setPlaceholderText("e.g. medical diagnosis, financial advice, unauthorized execution (comma-separated)")
+        self.line_refuse_topics.setPlaceholderText(
+            "e.g. medical diagnosis, financial advice, unauthorized execution (comma-separated)"
+        )
         self.line_refuse_topics.setText(", ".join(self.current_refuse_topics))
         self.line_refuse_topics.textChanged.connect(self._update_prompt_preview)
         f_bound.addRow("Declined Topics:", self.line_refuse_topics)
@@ -561,18 +599,24 @@ class SettingsDialog(QDialog):
         layout.addWidget(grp_traits)
 
         # Custom Prompt Directives & Live Preview
-        grp_prompt = QGroupBox("Custom Persona Directives (Additive) & Live System Prompt Preview", parent)
+        grp_prompt = QGroupBox(
+            "Custom Persona Directives (Additive) & Live System Prompt Preview", parent
+        )
         v_prompt = QVBoxLayout(grp_prompt)
 
         self.txt_custom_prompt = QPlainTextEdit(grp_prompt)
-        self.txt_custom_prompt.setPlaceholderText("Enter optional custom persona directives here (compiled additively)...")
+        self.txt_custom_prompt.setPlaceholderText(
+            "Enter optional custom persona directives here (compiled additively)..."
+        )
         self.txt_custom_prompt.setPlainText(self.current_custom_prompt)
         self.txt_custom_prompt.setMaximumHeight(80)
         self.txt_custom_prompt.textChanged.connect(self._update_prompt_preview)
         v_prompt.addWidget(self.txt_custom_prompt)
 
         h_pv_hdr = QHBoxLayout()
-        h_pv_hdr.addWidget(QLabel("Full Compiled System Prompt (with Architecture & Tools):", grp_prompt))
+        h_pv_hdr.addWidget(
+            QLabel("Full Compiled System Prompt (with Architecture & Tools):", grp_prompt)
+        )
         h_pv_hdr.addStretch()
         self.lbl_token_count = QLabel("Approx: -- tokens", grp_prompt)
         self.lbl_token_count.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-weight: bold;")
@@ -591,7 +635,9 @@ class SettingsDialog(QDialog):
     def _repopulate_archetypes_combo(self) -> None:
         self.combo_archetype.blockSignals(True)
         self.combo_archetype.clear()
-        self.combo_archetype.addItem("Inventor (Chrono Trigger Default - Technical, Enthusiastic)", "inventor")
+        self.combo_archetype.addItem(
+            "Inventor (Chrono Trigger Default - Technical, Enthusiastic)", "inventor"
+        )
         self.combo_archetype.addItem("Genki (Energetic, Cheerful Partner)", "genki")
         self.combo_archetype.addItem("Kuudere (Quiet, Hyper-Competent Analytical)", "kuudere")
 
@@ -617,7 +663,9 @@ class SettingsDialog(QDialog):
             return
         clean_name = name.strip().lower().replace(" ", "_")
         if clean_name in ARCHETYPES or clean_name in self.user_archetypes:
-            QMessageBox.warning(self, "Archetype Exists", f"Archetype '{clean_name}' already exists.")
+            QMessageBox.warning(
+                self, "Archetype Exists", f"Archetype '{clean_name}' already exists."
+            )
             return
 
         desc, ok_desc = QInputDialog.getMultiLineText(
@@ -637,7 +685,9 @@ class SettingsDialog(QDialog):
     def _delete_custom_archetype(self) -> None:
         arch = str(self.combo_archetype.currentData())
         if arch not in self.user_archetypes:
-            QMessageBox.information(self, "Built-in Archetype", "Built-in archetypes cannot be deleted.")
+            QMessageBox.information(
+                self, "Built-in Archetype", "Built-in archetypes cannot be deleted."
+            )
             return
         del self.user_archetypes[arch]
         self.current_archetype = "inventor"
@@ -657,7 +707,9 @@ class SettingsDialog(QDialog):
         if compiled:
             self.lbl_compiled_traits.setText(f'"{compiled}"')
         else:
-            self.lbl_compiled_traits.setText("(Neutral default 0.5 — no additional prompt directives emitted)")
+            self.lbl_compiled_traits.setText(
+                "(Neutral default 0.5 — no additional prompt directives emitted)"
+            )
 
         self._update_prompt_preview()
 
@@ -710,7 +762,10 @@ class SettingsDialog(QDialog):
         btn_anime_heroine.clicked.connect(self._apply_anime_heroine_preset)
         h_pres.addWidget(btn_anime_heroine)
 
-        lbl_pres_note = QLabel("Blends 70% af_bella + 30% af_sarah @ 1.20x speed with expressive punctuation.", grp_preset)
+        lbl_pres_note = QLabel(
+            "Blends 70% af_bella + 30% af_sarah @ 1.20x speed with expressive punctuation.",
+            grp_preset,
+        )
         lbl_pres_note.setStyleSheet("color: #a0aec0; font-size: 11px;")
         h_pres.addWidget(lbl_pres_note)
         h_pres.addStretch()
@@ -731,7 +786,9 @@ class SettingsDialog(QDialog):
         pure_voices = [v for v in all_installed if v not in VOICE_RECIPES]
 
         # Container 1: Single Native Voice
-        self.panel_single = QGroupBox("Single Voice Selector (All Installed Kokoro Vectors)", parent)
+        self.panel_single = QGroupBox(
+            "Single Voice Selector (All Installed Kokoro Vectors)", parent
+        )
         f_single = QFormLayout(self.panel_single)
         self.combo_single_voice = QComboBox(self.panel_single)
         for v in pure_voices:
@@ -835,7 +892,8 @@ class SettingsDialog(QDialog):
         grp_test = QGroupBox("Test Voice Playback & Audio Synthesis", parent)
         v_test = QVBoxLayout(grp_test)
         self.line_test_text = QLineEdit(
-            "Ah, Lucca Ashtear here! Chrono Trigger systems and voice blending are fully operational!", grp_test
+            "Ah, Lucca Ashtear here! Chrono Trigger systems and voice blending are fully operational!",
+            grp_test,
         )
         v_test.addWidget(self.line_test_text)
 
@@ -863,7 +921,9 @@ class SettingsDialog(QDialog):
         self.slider_blend.setValue(70)
         self.slider_speed.setValue(120)  # 1.20x speed
         self._update_blend_formula()
-        self.lbl_voice_status.setText("Applied English Anime Heroine Preset (70% af_bella + 30% af_sarah @ 1.20x).")
+        self.lbl_voice_status.setText(
+            "Applied English Anime Heroine Preset (70% af_bella + 30% af_sarah @ 1.20x)."
+        )
 
     def _sync_voice_mode_ui(self) -> None:
         self.panel_single.setVisible(self.rb_mode_single.isChecked())
@@ -926,7 +986,9 @@ class SettingsDialog(QDialog):
         layout.setSpacing(12)
 
         # 1. Dynamic Model Registry & GGUF Metadata Card
-        grp_reg = QGroupBox("Model Registry (Scanned from models/llm/*.gguf) & GGUF Metadata", parent)
+        grp_reg = QGroupBox(
+            "Model Registry (Scanned from models/llm/*.gguf) & GGUF Metadata", parent
+        )
         f_reg = QFormLayout(grp_reg)
 
         self.combo_llm_model = QComboBox(grp_reg)
@@ -1056,7 +1118,9 @@ class SettingsDialog(QDialog):
         v_dl = QVBoxLayout(grp_dl)
 
         self.table_curated = QTableWidget(3, 4, grp_dl)
-        self.table_curated.setHorizontalHeaderLabels(["Model Name", "Architecture", "Size", "Action"])
+        self.table_curated.setHorizontalHeaderLabels(
+            ["Model Name", "Architecture", "Size", "Action"]
+        )
         hdr_curated = self.table_curated.horizontalHeader()
         if hdr_curated is not None:
             hdr_curated.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -1064,9 +1128,24 @@ class SettingsDialog(QDialog):
         self.table_curated.setMaximumHeight(110)
 
         curated_models = [
-            ("Ultravox v0.5 Llama-3.1-8B Q6_K", "Audio-Native (Paired mmproj)", "~6.5 GB", "https://huggingface.co/fixie-ai/ultravox-v0_5-llama-3_1-8b-gguf/resolve/main/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf"),
-            ("Qwen2.5-7B-Instruct Q4_K_M", "Text / Whisper Transcript", "~4.7 GB", "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf"),
-            ("Llama-3.1-8B-Instruct Q4_K_M", "Text / Whisper Transcript", "~4.9 GB", "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"),
+            (
+                "Ultravox v0.5 Llama-3.1-8B Q6_K",
+                "Audio-Native (Paired mmproj)",
+                "~6.5 GB",
+                "https://huggingface.co/fixie-ai/ultravox-v0_5-llama-3_1-8b-gguf/resolve/main/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf",
+            ),
+            (
+                "Qwen2.5-7B-Instruct Q4_K_M",
+                "Text / Whisper Transcript",
+                "~4.7 GB",
+                "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf",
+            ),
+            (
+                "Llama-3.1-8B-Instruct Q4_K_M",
+                "Text / Whisper Transcript",
+                "~4.9 GB",
+                "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+            ),
         ]
 
         for row, (name, arch, sz, url) in enumerate(curated_models):
@@ -1170,7 +1249,9 @@ class SettingsDialog(QDialog):
             if idx >= 0:
                 self.combo_mode.setCurrentIndex(idx)
         elif badge_type == "missing_mmproj":
-            self.lbl_model_badge.setText(f"{badge_text} (Download companion mmproj to enable direct audio)")
+            self.lbl_model_badge.setText(
+                f"{badge_text} (Download companion mmproj to enable direct audio)"
+            )
             self.lbl_model_badge.setStyleSheet("color: #fbbf24; font-weight: bold;")
         else:
             self.lbl_model_badge.setText(f"{badge_text} (Text Model via Whisper ASR)")
@@ -1282,7 +1363,9 @@ class SettingsDialog(QDialog):
             return
 
         if not url.startswith("https://"):
-            self.lbl_download_status.setText("Error: Only secure HTTPS download URLs are permitted.")
+            self.lbl_download_status.setText(
+                "Error: Only secure HTTPS download URLs are permitted."
+            )
             return
 
         filename = url.split("/")[-1].split("?")[0] or "custom_model.gguf"
@@ -1301,7 +1384,9 @@ class SettingsDialog(QDialog):
         self.download_worker.finished_signal.connect(self._on_download_finished)
         self.download_worker.start()
 
-    def _on_download_progress(self, pct: int, dl_mb: float, tot_mb: float, speed_mbs: float) -> None:
+    def _on_download_progress(
+        self, pct: int, dl_mb: float, tot_mb: float, speed_mbs: float
+    ) -> None:
         self.progress_download.setValue(pct)
         self.lbl_download_status.setText(
             f"Downloading: {dl_mb:.1f} MB / {tot_mb:.1f} MB ({pct}%) at {speed_mbs:.2f} MB/s"
@@ -1602,7 +1687,10 @@ class SettingsDialog(QDialog):
         btn_anime_dsp.clicked.connect(self._apply_anime_dsp_preset)
         h_adsp.addWidget(btn_anime_dsp)
 
-        lbl_adsp_desc = QLabel("Applies +3 semitone pitch shift, 120Hz high-pass, presence (+3dB), air boost, and compressor.", grp_anime_dsp)
+        lbl_adsp_desc = QLabel(
+            "Applies +3 semitone pitch shift, 120Hz high-pass, presence (+3dB), air boost, and compressor.",
+            grp_anime_dsp,
+        )
         lbl_adsp_desc.setStyleSheet("color: #a0aec0; font-size: 11px;")
         h_adsp.addWidget(lbl_adsp_desc)
         h_adsp.addStretch()
@@ -1619,7 +1707,9 @@ class SettingsDialog(QDialog):
         self.lbl_pitch_val = QLabel("0 semitones (Natural)", grp_dsp)
         self.lbl_pitch_val.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-weight: bold;")
         self.slider_pitch.valueChanged.connect(
-            lambda val: self.lbl_pitch_val.setText(f"{val:+d} semitones" if val != 0 else "0 semitones (Natural)")
+            lambda val: self.lbl_pitch_val.setText(
+                f"{val:+d} semitones" if val != 0 else "0 semitones (Natural)"
+            )
         )
         h_pitch.addWidget(self.slider_pitch)
         h_pitch.addWidget(self.lbl_pitch_val)
@@ -1686,7 +1776,9 @@ class SettingsDialog(QDialog):
         self.chk_limiter.setChecked(True)
         f_dsp.addRow("Dynamic Protection:", self.chk_limiter)
 
-        self.chk_rumble = QCheckBox("120 Hz High-Pass Filter (Removes muddy chest resonance)", grp_dsp)
+        self.chk_rumble = QCheckBox(
+            "120 Hz High-Pass Filter (Removes muddy chest resonance)", grp_dsp
+        )
         self.chk_rumble.setChecked(True)
         f_dsp.addRow("Acoustic Cleanup:", self.chk_rumble)
 
@@ -1696,7 +1788,8 @@ class SettingsDialog(QDialog):
         grp_dsp_test = QGroupBox("Live DSP Post-Processing Test Player", parent)
         v_dtest = QVBoxLayout(grp_dsp_test)
         self.line_dsp_test = QLineEdit(
-            "Testing Chrono Trigger audio DSP filters: Warmth, clarity, and spatial resonance!", grp_dsp_test
+            "Testing Chrono Trigger audio DSP filters: Warmth, clarity, and spatial resonance!",
+            grp_dsp_test,
         )
         v_dtest.addWidget(self.line_dsp_test)
 
@@ -1720,7 +1813,9 @@ class SettingsDialog(QDialog):
         self.slider_reverb.setValue(8)
         self.chk_limiter.setChecked(True)
         self.chk_rumble.setChecked(True)
-        self.lbl_dsp_status.setText("Applied English Anime Voice DSP preset (+3 st, presence, air, 120Hz HPF).")
+        self.lbl_dsp_status.setText(
+            "Applied English Anime Voice DSP preset (+3 st, presence, air, 120Hz HPF)."
+        )
 
     def _test_dsp_audio(self) -> None:
         self.lbl_dsp_status.setText("Rendering speech with active DSP chain...")
@@ -1762,7 +1857,7 @@ class SettingsDialog(QDialog):
                     delay_samples = int(play_sr * 0.08)
                     padded = np.pad(processed, (0, delay_samples))
                     echo = np.pad(processed, (delay_samples, 0)) * (reverb_pct * 0.5)
-                    processed = ((padded + echo)[:len(processed)]).astype(np.float32)
+                    processed = ((padded + echo)[: len(processed)]).astype(np.float32)
 
                 sd.play(processed, play_sr)
                 sd.wait()
@@ -1920,7 +2015,9 @@ class SettingsDialog(QDialog):
                 content = str(m.get("content", ""))
                 imp = f"{float(m.get('importance', 0.8)):.2f}"
                 prov = str(m.get("provenance", "USER_EXPLICIT"))
-                ts = datetime.fromtimestamp(float(m.get("created_at", time.time()))).strftime("%Y-%m-%d %H:%M")
+                ts = datetime.fromtimestamp(float(m.get("created_at", time.time()))).strftime(
+                    "%Y-%m-%d %H:%M"
+                )
 
                 self.table_mem.setItem(row, 0, QTableWidgetItem(mid))
                 self.table_mem.setItem(row, 1, QTableWidgetItem(kind))
@@ -1943,7 +2040,9 @@ class SettingsDialog(QDialog):
             prov_item = self.table_mem.item(row, 4)
 
             self.lbl_inspect_id.setText(f"Memory ID: #{mid}")
-            self.lbl_inspect_prov.setText(f"Provenance: {prov_item.text() if prov_item else 'Unknown'}")
+            self.lbl_inspect_prov.setText(
+                f"Provenance: {prov_item.text() if prov_item else 'Unknown'}"
+            )
             if content_item:
                 self.txt_inspect_content.setPlainText(content_item.text())
             if imp_item:
@@ -1960,7 +2059,9 @@ class SettingsDialog(QDialog):
         try:
             self.memory_manager.update_memory(self._current_selected_mid, new_txt, imp)
             self._refresh_memories()
-            QMessageBox.information(self, "Memory Updated", f"Memory #{self._current_selected_mid} saved successfully.")
+            QMessageBox.information(
+                self, "Memory Updated", f"Memory #{self._current_selected_mid} saved successfully."
+            )
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"Failed to save memory: {exc}")
 
@@ -1994,7 +2095,9 @@ class SettingsDialog(QDialog):
                     provenance="USER_EXPLICIT",
                 )
                 self._refresh_memories()
-                QMessageBox.information(self, "Knowledge Stored", f"Stored fact as memory #{mid} with vector embedding.")
+                QMessageBox.information(
+                    self, "Knowledge Stored", f"Stored fact as memory #{mid} with vector embedding."
+                )
             except Exception as exc:
                 QMessageBox.critical(self, "Error", f"Failed to add fact: {exc}")
 
@@ -2006,7 +2109,9 @@ class SettingsDialog(QDialog):
             conn.execute("VACUUM")
             conn.close()
             self._refresh_memories()
-            QMessageBox.information(self, "Vacuum Complete", "SQLite database and vector indices optimized.")
+            QMessageBox.information(
+                self, "Vacuum Complete", "SQLite database and vector indices optimized."
+            )
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"Vacuum failed: {exc}")
 
@@ -2069,7 +2174,14 @@ class SettingsDialog(QDialog):
         # Tab A: Parsed Metrics Table
         self.table_logs = QTableWidget(0, 6, grp_logs)
         self.table_logs.setHorizontalHeaderLabels(
-            ["Timestamp", "Host RAM %", "Lucca RSS (MB)", "dGPU VRAM (Used / Total)", "CPU % (Host / Lucca)", "NPU Status"]
+            [
+                "Timestamp",
+                "Host RAM %",
+                "Lucca RSS (MB)",
+                "dGPU VRAM (Used / Total)",
+                "CPU % (Host / Lucca)",
+                "NPU Status",
+            ]
         )
         hdr_logs = self.table_logs.horizontalHeader()
         if hdr_logs is not None:
@@ -2106,9 +2218,15 @@ class SettingsDialog(QDialog):
             cpu = m["cpu"]
             npu = m["npu"]
 
-            self.lbl_snap_ram.setText(f"RAM: {ram['percent']}% (Lucca {ram.get('lucca_used_mb', 0):.0f} MB)")
-            self.lbl_snap_dgpu.setText(f"dGPU: {dgpu.get('used_gb', 0):.1f} / {dgpu.get('total_gb', 16.0):.1f} GB")
-            self.lbl_snap_cpu.setText(f"CPU: {cpu['system_percent']:.1f}% (Lucca {cpu['lucca_percent']:.1f}%)")
+            self.lbl_snap_ram.setText(
+                f"RAM: {ram['percent']}% (Lucca {ram.get('lucca_used_mb', 0):.0f} MB)"
+            )
+            self.lbl_snap_dgpu.setText(
+                f"dGPU: {dgpu.get('used_gb', 0):.1f} / {dgpu.get('total_gb', 16.0):.1f} GB"
+            )
+            self.lbl_snap_cpu.setText(
+                f"CPU: {cpu['system_percent']:.1f}% (Lucca {cpu['lucca_percent']:.1f}%)"
+            )
             self.lbl_snap_npu.setText(f"NPU: {npu['status'].split(' ')[0]}")
         except Exception:
             pass
@@ -2128,7 +2246,9 @@ class SettingsDialog(QDialog):
         # Check general traces as fallback
         traces_file = Path("C:/ProjectLucca/logs/traces.jsonl")
         if traces_file.exists():
-            self.combo_log_files.addItem(f"traces.jsonl ({round(traces_file.stat().st_size/1024, 1)} KB)", str(traces_file))
+            self.combo_log_files.addItem(
+                f"traces.jsonl ({round(traces_file.stat().st_size / 1024, 1)} KB)", str(traces_file)
+            )
 
         if current:
             idx = self.combo_log_files.findData(current)
@@ -2166,11 +2286,33 @@ class SettingsDialog(QDialog):
                     row = self.table_logs.rowCount()
                     self.table_logs.insertRow(row)
                     self.table_logs.setItem(row, 0, QTableWidgetItem(ts))
-                    self.table_logs.setItem(row, 1, QTableWidgetItem(f"{ram.get('percent', 0):.1f}%"))
-                    self.table_logs.setItem(row, 2, QTableWidgetItem(f"{ram.get('lucca_rss_mb', ram.get('lucca_used_mb', 0)):.0f} MB"))
-                    self.table_logs.setItem(row, 3, QTableWidgetItem(f"{dgpu.get('used_vram_gb', dgpu.get('used_gb', 0)):.1f} / {dgpu.get('total_vram_gb', dgpu.get('total_gb', 16.0)):.1f} GB"))
-                    self.table_logs.setItem(row, 4, QTableWidgetItem(f"{cpu.get('system_percent', 0):.1f}% / {cpu.get('lucca_percent', 0):.1f}%"))
-                    self.table_logs.setItem(row, 5, QTableWidgetItem(str(npu.get("status", "Active"))))
+                    self.table_logs.setItem(
+                        row, 1, QTableWidgetItem(f"{ram.get('percent', 0):.1f}%")
+                    )
+                    self.table_logs.setItem(
+                        row,
+                        2,
+                        QTableWidgetItem(
+                            f"{ram.get('lucca_rss_mb', ram.get('lucca_used_mb', 0)):.0f} MB"
+                        ),
+                    )
+                    self.table_logs.setItem(
+                        row,
+                        3,
+                        QTableWidgetItem(
+                            f"{dgpu.get('used_vram_gb', dgpu.get('used_gb', 0)):.1f} / {dgpu.get('total_vram_gb', dgpu.get('total_gb', 16.0)):.1f} GB"
+                        ),
+                    )
+                    self.table_logs.setItem(
+                        row,
+                        4,
+                        QTableWidgetItem(
+                            f"{cpu.get('system_percent', 0):.1f}% / {cpu.get('lucca_percent', 0):.1f}%"
+                        ),
+                    )
+                    self.table_logs.setItem(
+                        row, 5, QTableWidgetItem(str(npu.get("status", "Active")))
+                    )
                 except Exception:
                     pass
 
@@ -2242,7 +2384,6 @@ class SettingsDialog(QDialog):
                 <li><strong>Drag to Reposition:</strong> Click and drag Lucca anywhere across your screens. Dialogue bubbles and chat bars stay anchored to her.</li>
                 <li><strong>Right-Click Lucca:</strong> Brings up the desktop context menu (Always-on-top toggle, Reset position, Settings, Quit).</li>
             </ul>""",
-
             # 1. Avatar & Commorose
             """<h2 style='color:#ffd700;'>2. Companion Avatar & Commorose Radial Menu</h2>
             <p>The Commorose is an 8-sector concentric radial menu with an open center hole leaving Lucca 100% visible at all times.</p>
@@ -2257,7 +2398,6 @@ class SettingsDialog(QDialog):
                 <li><strong>🛠️ TOOLS (West):</strong> Application whitelist and execution security permissions.</li>
                 <li><strong>💻 CODEBASE (North-West):</strong> Safe read-only inspection of source repository at <code>C:\\projects\\ProjectLucca</code>.</li>
             </ul>""",
-
             # 2. Voice Blender & Mixing
             """<h2 style='color:#ffd700;'>3. Voice Synthesis & Dual-Vector Mixing</h2>
             <p>Kokoro-82M uses 512-dimensional style embedding vectors. You can select from all <strong>54 installed voices</strong> or mix them in arbitrary ratios.</p>
@@ -2268,7 +2408,6 @@ class SettingsDialog(QDialog):
                 <li>The engine calculates the weighted vector sum <code>wA * StyleA + wB * StyleB</code> in real time.</li>
                 <li>Pacing slider allows fine-tuning speech tempo from 0.60x to 1.80x without pitch distortion.</li>
             </ul>""",
-
             # 3. DSP Audio Post-Processing
             """<h2 style='color:#ffd700;'>4. DSP Audio Post-Processing Chain</h2>
             <p>Lucca features a modular audio post-processing chain for pristine studio sound:</p>
@@ -2281,7 +2420,6 @@ class SettingsDialog(QDialog):
                 <li><strong>Dynamic Soft-Knee Limiter:</strong> Prevents digital distortion and clipping during sudden loud exclamations.</li>
                 <li><strong>80 Hz High-Pass Filter:</strong> Cleans up microphone rumble and AC hum.</li>
             </ul>""",
-
             # 4. LLM Server Tuning
             """<h2 style='color:#ffd700;'>5. LLM Tuning & Granular Context Window</h2>
             <p>Control the active local GGUF model served on your dGPU via <code>llama-server.exe</code>:</p>
@@ -2291,7 +2429,6 @@ class SettingsDialog(QDialog):
                 <li><strong>Hot-Reload Server Restart:</strong> Re-launches the server with new arguments in under 2 seconds.</li>
                 <li><strong>Integrated Model Downloader:</strong> Directly download GGUF weights from HuggingFace with live progress.</li>
             </ul>""",
-
             # 5. MicroScheme LISP Studio
             """<h2 style='color:#ffd700;'>6. MicroScheme LISP Reasoning Studio</h2>
             <p>Combines probabilistic LLM generation with deterministic, compiled S-expression reasoning pathways.</p>
@@ -2301,7 +2438,6 @@ class SettingsDialog(QDialog):
                 <li>In-place Scheme code editor validates syntax against AST rules using <code>parse_rule</code>.</li>
                 <li>Test evaluation simulates rule execution with isolated gas budgets.</li>
             </ul>""",
-
             # 6. Episodic & Semantic Memory
             """<h2 style='color:#ffd700;'>7. Episodic & Semantic Memory Architecture</h2>
             <p>Lucca stores memories in an auditable, human-readable SQLite database with <code>sqlite-vec</code> vector embeddings:</p>
@@ -2311,7 +2447,6 @@ class SettingsDialog(QDialog):
                 <li><strong>Human-in-the-Loop Editor:</strong> Search, edit, or prune any memory record directly from the UI.</li>
                 <li><strong>Provenance Envelopes:</strong> Cryptographic SHA256 hashes and signer IDs guarantee memory integrity.</li>
             </ul>""",
-
             # 7. Hardware Substrates & Telemetry
             """<h2 style='color:#ffd700;'>8. Hardware Telemetry & Multi-Substrate Topology</h2>
             <p>Every resource meter in Project Lucca reflects actual physical host hardware:</p>
@@ -2322,7 +2457,6 @@ class SettingsDialog(QDialog):
                 <li><strong>RAM (16.0 GB Host Physical):</strong> Tracks Lucca 4-process RSS footprint vs total host utilization.</li>
                 <li><strong>Telemetry Logs:</strong> Rolling JSONL logs stored in <code>C:\\ProjectLucca\\logs\\resource_sessions\\</code>.</li>
             </ul>""",
-
             # 8. Whitelist & Codebase Inspection
             """<h2 style='color:#ffd700;'>9. Application Whitelist & Codebase Self-Inspection</h2>
             <p>Strict security controls govern all companion desktop tools:</p>
@@ -2331,7 +2465,6 @@ class SettingsDialog(QDialog):
                 <li><strong>Codebase Self-Inspection:</strong> Safe, read-only access to <code>C:\\projects\\ProjectLucca</code> allowing Lucca to discuss her own code, ADRs, and documentation.</li>
                 <li><strong>Sandbox Constraints:</strong> Prohibits unintended modification or file destruction.</li>
             </ul>""",
-
             # 9. Troubleshooting & FAQ
             """<h2 style='color:#ffd700;'>10. Troubleshooting, Logs & Diagnostic FAQ</h2>
             <ul>

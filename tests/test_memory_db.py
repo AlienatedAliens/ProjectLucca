@@ -63,7 +63,9 @@ def fact_signer() -> DerivedFactSigner:
 # T-MEM-01 & T-MEM-02: Benchmark on identifiers.jsonl
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_01_and_02_identifier_benchmarks(store: MemoryStore, temp_db: DatabaseManager) -> None:
+async def test_t_mem_01_and_02_identifier_benchmarks(
+    store: MemoryStore, temp_db: DatabaseManager
+) -> None:
     """
     T-MEM-01: Hit@1 hybrid >= 0.93 (28/30) on identifiers.jsonl.
     T-MEM-02: MRR hybrid - MRR dense-only >= +0.20 on identifiers.jsonl.
@@ -146,10 +148,14 @@ async def test_t_mem_01_and_02_identifier_benchmarks(store: MemoryStore, temp_db
     delta = mrr_h - mrr_d
 
     # T-MEM-01 Gate: Hit@1 >= 0.93 (28/30)
-    assert hit1_rate >= 0.93, f"T-MEM-01 Failed: Hit@1 {hit1_rate:.4f} < 0.93 ({hits1}/{len(items)})"
+    assert hit1_rate >= 0.93, (
+        f"T-MEM-01 Failed: Hit@1 {hit1_rate:.4f} < 0.93 ({hits1}/{len(items)})"
+    )
 
     # T-MEM-02 Gate: MRR hybrid - MRR dense >= +0.20
-    assert delta >= 0.20, f"T-MEM-02 Failed: MRR Delta {delta:+.4f} < +0.20 (H={mrr_h:.4f}, D={mrr_d:.4f})"
+    assert delta >= 0.20, (
+        f"T-MEM-02 Failed: MRR Delta {delta:+.4f} < +0.20 (H={mrr_h:.4f}, D={mrr_d:.4f})"
+    )
 
 
 # ============================================================================
@@ -211,10 +217,14 @@ async def test_t_mem_03_and_04_paraphrase_benchmarks(store: MemoryStore) -> None
     precision_at_1 = prec1_hits / total_queries
 
     # T-MEM-03 Gate: Recall@3 >= 0.90
-    assert recall_at_3 >= 0.90, f"T-MEM-03 Failed: Recall@3 {recall_at_3:.4f} < 0.90 ({recall3_hits}/{total_queries})"
+    assert recall_at_3 >= 0.90, (
+        f"T-MEM-03 Failed: Recall@3 {recall_at_3:.4f} < 0.90 ({recall3_hits}/{total_queries})"
+    )
 
     # T-MEM-04 Gate: Precision@1 >= 0.85
-    assert precision_at_1 >= 0.85, f"T-MEM-04 Failed: Precision@1 {precision_at_1:.4f} < 0.85 ({prec1_hits}/{total_queries})"
+    assert precision_at_1 >= 0.85, (
+        f"T-MEM-04 Failed: Precision@1 {precision_at_1:.4f} < 0.85 ({prec1_hits}/{total_queries})"
+    )
 
 
 # ============================================================================
@@ -228,7 +238,9 @@ def test_t_mem_05_50k_synthetic_search_latency() -> None:
     conn.enable_load_extension(True)
     sqlite_vec.load(conn)
     conn.enable_load_extension(False)
-    conn.execute("CREATE VIRTUAL TABLE vec_memories USING vec0(memory_id INTEGER PRIMARY KEY, embedding float[384] distance_metric=cosine, chunk_size=256);")
+    conn.execute(
+        "CREATE VIRTUAL TABLE vec_memories USING vec0(memory_id INTEGER PRIMARY KEY, embedding float[384] distance_metric=cosine, chunk_size=256);"
+    )
 
     dim = 384
     np.random.seed(42)
@@ -252,7 +264,10 @@ def test_t_mem_05_50k_synthetic_search_latency() -> None:
     cur = conn.cursor()
     # Warmup cache
     for b in q_blobs[:3]:
-        cur.execute("SELECT memory_id FROM vec_memories WHERE embedding MATCH ? ORDER BY distance LIMIT 30", (b,)).fetchall()
+        cur.execute(
+            "SELECT memory_id FROM vec_memories WHERE embedding MATCH ? ORDER BY distance LIMIT 30",
+            (b,),
+        ).fetchall()
 
     latencies: list[float] = []
     gc.collect()
@@ -282,7 +297,12 @@ def test_t_mem_05_50k_synthetic_search_latency() -> None:
 # T-MEM-06: Supersession
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_06_supersession(store: MemoryStore, fact_signer: DerivedFactSigner, user_signer: UserSpeechSigner, temp_db: DatabaseManager) -> None:
+async def test_t_mem_06_supersession(
+    store: MemoryStore,
+    fact_signer: DerivedFactSigner,
+    user_signer: UserSpeechSigner,
+    temp_db: DatabaseManager,
+) -> None:
     """
     T-MEM-06: Supersession:
     'I live in Seattle' then 'I moved to Berlin' ->
@@ -383,7 +403,9 @@ async def test_t_mem_06_supersession(store: MemoryStore, fact_signer: DerivedFac
     assert mid1 not in res_mids
 
     # Search with include_superseded=True: both returned
-    res_all = await store.search(RetrievalQuery(query_text="Where does the user live?", k=5, include_superseded=True))
+    res_all = await store.search(
+        RetrievalQuery(query_text="Where does the user live?", k=5, include_superseded=True)
+    )
     res_all_mids = [r.memory_id for r in res_all]
     assert mid2 in res_all_mids
     assert mid1 in res_all_mids
@@ -393,7 +415,12 @@ async def test_t_mem_06_supersession(store: MemoryStore, fact_signer: DerivedFac
 # T-MEM-07: Forgetting
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_07_forgetting(store: MemoryStore, fact_signer: DerivedFactSigner, user_signer: UserSpeechSigner, temp_db: DatabaseManager) -> None:
+async def test_t_mem_07_forgetting(
+    store: MemoryStore,
+    fact_signer: DerivedFactSigner,
+    user_signer: UserSpeechSigner,
+    temp_db: DatabaseManager,
+) -> None:
     """
     T-MEM-07: Forget 'I live in Berlin' (confirmed):
     memory forgotten_at set, edge valid_to set, FTS/vec rows removed, audit forget.
@@ -451,7 +478,9 @@ async def test_t_mem_07_forgetting(store: MemoryStore, fact_signer: DerivedFactS
         assert cur.fetchone()[0] == 0
 
         # kg_edges closed
-        cur.execute("SELECT COUNT(*) FROM kg_edges WHERE memory_id = ? AND valid_to IS NULL", (mid,))
+        cur.execute(
+            "SELECT COUNT(*) FROM kg_edges WHERE memory_id = ? AND valid_to IS NULL", (mid,)
+        )
         assert cur.fetchone()[0] == 0
 
         # audit record exists
@@ -557,7 +586,9 @@ def test_t_mem_09_concurrency(temp_db: DatabaseManager) -> None:
 # T-MEM-10: Crash mid-commit atomicity
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_10_crash_mid_commit_atomicity(store: MemoryStore, temp_db: DatabaseManager, user_signer: UserSpeechSigner) -> None:
+async def test_t_mem_10_crash_mid_commit_atomicity(
+    store: MemoryStore, temp_db: DatabaseManager, user_signer: UserSpeechSigner
+) -> None:
     """
     T-MEM-10: Crash mid-commit via fault injection hook:
     after failure: 0 partial rows; integrity_check ok.
@@ -626,7 +657,9 @@ def test_t_mem_11_migrations(tmp_path: Path) -> None:
 # T-MEM-12: Retrieval Filters
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_12_retrieval_filters(store: MemoryStore, user_signer: UserSpeechSigner, temp_db: DatabaseManager) -> None:
+async def test_t_mem_12_retrieval_filters(
+    store: MemoryStore, user_signer: UserSpeechSigner, temp_db: DatabaseManager
+) -> None:
     """
     T-MEM-12: Retrieval filters:
     never returns forgotten_at IS NOT NULL or superseded rows unless requested.
@@ -686,7 +719,9 @@ async def test_t_mem_12_retrieval_filters(store: MemoryStore, user_signer: UserS
     assert m_forgot not in def_mids
 
     # Search with include_superseded=True: active and superseded, never forgotten
-    res_all = await store.search(RetrievalQuery(query_text="prefers theme", k=10, include_superseded=True))
+    res_all = await store.search(
+        RetrievalQuery(query_text="prefers theme", k=10, include_superseded=True)
+    )
     all_mids = [r.memory_id for r in res_all]
     assert m_active in all_mids
     assert m_super in all_mids
@@ -697,7 +732,9 @@ async def test_t_mem_12_retrieval_filters(store: MemoryStore, user_signer: UserS
 # T-MEM-13: Backups & Integrity
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_13_backups_and_integrity(store: MemoryStore, temp_db: DatabaseManager, tmp_path: Path, user_signer: UserSpeechSigner) -> None:
+async def test_t_mem_13_backups_and_integrity(
+    store: MemoryStore, temp_db: DatabaseManager, tmp_path: Path, user_signer: UserSpeechSigner
+) -> None:
     """
     T-MEM-13: Backup via VACUUM INTO, retention pruning,
     integrity check failure sets store read-only.
@@ -745,7 +782,9 @@ async def test_t_mem_13_backups_and_integrity(store: MemoryStore, temp_db: Datab
 # T-MEM-14: Working memory 8-step discard & positive control
 # ============================================================================
 @pytest.mark.asyncio
-async def test_t_mem_14_working_memory_discard(store: MemoryStore, temp_db: DatabaseManager, user_signer: UserSpeechSigner) -> None:
+async def test_t_mem_14_working_memory_discard(
+    store: MemoryStore, temp_db: DatabaseManager, user_signer: UserSpeechSigner
+) -> None:
     """
     T-MEM-14: Working memory 8-step discard with positive-controlled USER_EXPLICIT persistence.
     """

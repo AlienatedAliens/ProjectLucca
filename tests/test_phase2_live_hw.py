@@ -70,11 +70,13 @@ def test_live_phase2_in_container_rpc():
     assert res["call_id"] == "test-hw-1"
 
     # 2. Test in-container python execution
-    py_req = json.dumps({
-        "call_id": "test-hw-2",
-        "tool": "run_python",
-        "args": {"code": "import math; print(math.sqrt(1764))"},
-    })
+    py_req = json.dumps(
+        {
+            "call_id": "test-hw-2",
+            "tool": "run_python",
+            "args": {"code": "import math; print(math.sqrt(1764))"},
+        }
+    )
     py_proc = subprocess.run(  # noqa: S603
         [
             wsl_bin,

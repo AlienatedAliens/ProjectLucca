@@ -126,7 +126,9 @@ def test_scan_model_registry(tmp_path: Path) -> None:
     (models_dir / "ultravox-v0.4-q4_k_m.gguf").touch()
     (models_dir / "mmproj-ultravox-f16.gguf").touch()
 
-    registry = scan_model_registry(models_dir, active_model_rel="llm/llama-3-8b-instruct-q4_k_m.gguf")
+    registry = scan_model_registry(
+        models_dir, active_model_rel="llm/llama-3-8b-instruct-q4_k_m.gguf"
+    )
 
     # mmproj should be filtered from main list
     names = [entry["filename"] for entry in registry]

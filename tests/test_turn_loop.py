@@ -143,4 +143,3 @@ def test_silence_discard(orchestrator):
 
     # Should safely return to idle without running LLM
     assert orchestrator.state == "idle"
-

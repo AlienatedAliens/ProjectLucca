@@ -233,11 +233,7 @@ class CompanionSprite(QWidget):
             event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
-        if (
-            event
-            and event.buttons() & Qt.MouseButton.LeftButton
-            and self.drag_position is not None
-        ):
+        if event and event.buttons() & Qt.MouseButton.LeftButton and self.drag_position is not None:
             self.move(event.globalPosition().toPoint() - self.drag_position)
             event.accept()
 

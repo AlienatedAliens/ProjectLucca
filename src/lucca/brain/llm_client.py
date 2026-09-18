@@ -50,14 +50,10 @@ class LLMClient:
         max_tokens: int | None = None,
     ) -> Generator[LLMEvent, None, None]:
         eff_temp = (
-            temperature
-            if temperature is not None
-            else getattr(self.config.llm, "temperature", 0.6)
+            temperature if temperature is not None else getattr(self.config.llm, "temperature", 0.6)
         )
         eff_tokens = (
-            max_tokens
-            if max_tokens is not None
-            else getattr(self.config.llm, "max_tokens", 512)
+            max_tokens if max_tokens is not None else getattr(self.config.llm, "max_tokens", 512)
         )
         messages = build_messages(
             memories=memories,

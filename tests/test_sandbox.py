@@ -319,14 +319,18 @@ def test_t_sbx_16_host_sha256_audit(workspace: Path, file_tool: SafeFileTool):
 
     # 2. Tampered response from container triggers audit failure
     mock_transport = DockerRPCTransport(use_direct_fallback=False)
-    fake_stdout = json.dumps({
-        "call_id": "call-2",
-        "ok": True,
-        "exit_code": 0,
-        "structured": {"sha256": "0000000000000000000000000000000000000000000000000000000000000000"},
-        "content": "tampered content",
-        "content_truncated": False,
-    })
+    fake_stdout = json.dumps(
+        {
+            "call_id": "call-2",
+            "ok": True,
+            "exit_code": 0,
+            "structured": {
+                "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+            },
+            "content": "tampered content",
+            "content_truncated": False,
+        }
+    )
     mock_proc = MagicMock()
     mock_proc.communicate.return_value = (fake_stdout, "")
     mock_proc.returncode = 0
@@ -363,7 +367,9 @@ def test_query_capabilities_manifest(workspace: Path) -> None:
     assert "hardware_substrates" in res.structured
 
     # 2. Query category
-    res_pathways = service.execute_tool("call-cap-2", "query_capabilities", {"category": "reasoning_pathways"})
+    res_pathways = service.execute_tool(
+        "call-cap-2", "query_capabilities", {"category": "reasoning_pathways"}
+    )
     assert res_pathways.ok is True
     assert res_pathways.structured is not None
     assert "reasoning_pathways" in res_pathways.structured

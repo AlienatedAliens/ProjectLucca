@@ -45,6 +45,7 @@ dev = [
 [project.scripts]
 lucca-admin = "lucca.admin:main"
 lucca = "lucca.main:main"
+lint = "lucca.tools.lint:main"
 
 [build-system]
 requires = ["hatchling"]

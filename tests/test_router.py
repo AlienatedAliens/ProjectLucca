@@ -69,7 +69,9 @@ def test_t_rtr_01_word_boundary_adversarial_lexicon() -> None:
         f1_scores.append(f1)
 
     macro_f1 = sum(f1_scores) / len(f1_scores)
-    assert false_launch_count == 0, f"T-RTR-01 Failed: {false_launch_count} false launch_app predictions"
+    assert false_launch_count == 0, (
+        f"T-RTR-01 Failed: {false_launch_count} false launch_app predictions"
+    )
     assert macro_f1 >= 0.85, f"T-RTR-01 Failed: Macro-F1 {macro_f1:.4f} < 0.85"
 
 
@@ -139,7 +141,9 @@ def test_t_rtr_03_decision_logging(tmp_path: Path) -> None:
 
     # Verify SQLite row
     with db.read_cursor() as cur:
-        cur.execute("SELECT decision_id, action, features_json FROM decisions WHERE trace_id = 'tr-101'")
+        cur.execute(
+            "SELECT decision_id, action, features_json FROM decisions WHERE trace_id = 'tr-101'"
+        )
         row = cur.fetchone()
         assert row is not None
         decision_id = str(row[0])
@@ -159,7 +163,10 @@ def test_t_rtr_03_decision_logging(tmp_path: Path) -> None:
     )
 
     with db.read_cursor() as cur:
-        cur.execute("SELECT tool_ok, llm_first_token_ms, tool_calls_json FROM decisions WHERE decision_id = ?", (decision_id,))
+        cur.execute(
+            "SELECT tool_ok, llm_first_token_ms, tool_calls_json FROM decisions WHERE decision_id = ?",
+            (decision_id,),
+        )
         p_row = cur.fetchone()
         assert p_row is not None
         assert p_row[0] == 1
@@ -240,7 +247,9 @@ def test_t_rtr_05_auto_labeling_30_pairs(tmp_path: Path) -> None:
             decision=dec,
             executed_path=action_str,
             user_interrupted=bool(p.get("user_interrupted", False)),
-            interrupted_after_ms=float(p["interrupted_after_ms"]) if "interrupted_after_ms" in p else None,
+            interrupted_after_ms=float(p["interrupted_after_ms"])
+            if "interrupted_after_ms" in p
+            else None,
             tool_ok=bool(p["tool_ok"]) if p.get("tool_ok") is not None else None,
         )
 
@@ -250,14 +259,22 @@ def test_t_rtr_05_auto_labeling_30_pairs(tmp_path: Path) -> None:
             next_intent=str(p["next_intent"]) if "next_intent" in p else None,
             next_intent_conf=float(p.get("next_intent_conf", 0.0)),
             user_interrupted=bool(p.get("user_interrupted", False)),
-            interrupted_after_ms=float(p["interrupted_after_ms"]) if "interrupted_after_ms" in p else None,
+            interrupted_after_ms=float(p["interrupted_after_ms"])
+            if "interrupted_after_ms" in p
+            else None,
             tool_ok=bool(p["tool_ok"]) if p.get("tool_ok") is not None else None,
             confirm_declined=bool(p.get("confirm_declined", False)),
-            matching_rule_planned_identically=bool(p.get("matching_rule_planned_identically", False)),
-            time_to_next_turn_s=float(p["time_to_next_turn_s"]) if "time_to_next_turn_s" in p else None,
+            matching_rule_planned_identically=bool(
+                p.get("matching_rule_planned_identically", False)
+            ),
+            time_to_next_turn_s=float(p["time_to_next_turn_s"])
+            if "time_to_next_turn_s" in p
+            else None,
         )
 
-        assert label.value == p["expected_label"], f"Pair {pair_id} expected label {p['expected_label']}, got {label.value}"
+        assert label.value == p["expected_label"], (
+            f"Pair {pair_id} expected label {p['expected_label']}, got {label.value}"
+        )
         # Persist decision to database first, then persist label
         router = HeuristicRouter(db=db)
         router._log_decision_sqlite(record)

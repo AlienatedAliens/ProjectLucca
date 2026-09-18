@@ -51,7 +51,9 @@ def test_affect_honest_query_response():
     assert "neutral" in neutral_resp.lower()
 
     # Tool failure -> subdued
-    state = apply_affect_signal(state, AffectSignal.TOOL_FAILURE, custom_cause="database write timeout", now=t0)
+    state = apply_affect_signal(
+        state, AffectSignal.TOOL_FAILURE, custom_cause="database write timeout", now=t0
+    )
     subdued_resp = handle_affect_query(state)
     assert "subdued" in subdued_resp.lower() or "flat" in subdued_resp.lower()
     assert "database write timeout" in subdued_resp

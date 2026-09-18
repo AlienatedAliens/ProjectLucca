@@ -46,6 +46,7 @@ from lucca.ui.theme import (
 
 class TelemetryWorker(QThread):
     """Off-thread hardware telemetry sampler preventing GUI hitching."""
+
     metrics_ready = pyqtSignal(dict)
 
     def run(self) -> None:

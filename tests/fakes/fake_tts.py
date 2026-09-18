@@ -1,4 +1,4 @@
-﻿"""
+"""
 Fake TTS Worker for Deterministic Unit and Integration Tests
 Spec 10 §1
 """

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Tests for SharedAudioRing (Spec 01 §5, Spec 07 §2, Property Test P-07)
 """
 

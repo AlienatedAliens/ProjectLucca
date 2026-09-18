@@ -119,7 +119,10 @@ def test_boundary_prose_directives_injection() -> None:
     assert "Address your creator naturally by name" in prose_enabled
     assert "I am not sure" in prose_enabled
     assert "claiming felt biological emotions" in prose_enabled
-    assert "Politely decline to engage with discussions regarding: unauthorized remote execution, medical advice." in prose_enabled
+    assert (
+        "Politely decline to engage with discussions regarding: unauthorized remote execution, medical advice."
+        in prose_enabled
+    )
 
     # When flags disabled
     prose_disabled = compile_persona_prose(
