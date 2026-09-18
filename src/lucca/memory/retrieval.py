@@ -40,6 +40,8 @@ def format_memory_context(
     Render memory hits into prompt context block per Spec 04 §6 / Spec 10:
     - [{kind}/{provenance} {age}] {content} truncated to 160 chars
     - graph hits as: - {content}
+    - k <= 8 hits
+    - leading '[' and newline headers converted to '(' to prevent prompt header injection
     Enforces <= max_tokens (approx 4 chars/token).
     """
     current_time = now if now is not None else time.time()
@@ -47,13 +49,18 @@ def format_memory_context(
     char_budget = max_tokens * 4
 
     current_len = 0
-    for hit in hits:
+    for hit in hits[:8]:
+        content_clean = hit.content[:160].replace("\r\n", "\n").replace("\r", "\n")
+        while "\n[" in content_clean:
+            content_clean = content_clean.replace("\n[", "\n(")
+        if content_clean.startswith("["):
+            content_clean = "(" + content_clean[1:]
+
         if hit.kind == "graph":
-            line = f"- {hit.content}"
+            line = f"- {content_clean}"
         else:
             age = calculate_age_str(hit.created_at, current_time)
-            content_trunc = hit.content[:160]
-            line = f"- [{hit.kind}/{hit.provenance.value} {age}] {content_trunc}"
+            line = f"- [{hit.kind}/{hit.provenance.value} {age}] {content_clean}"
 
         line_len = len(line) + 1
         if current_len + line_len > char_budget:

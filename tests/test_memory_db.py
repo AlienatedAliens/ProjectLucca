@@ -20,6 +20,7 @@ from hypothesis import strategies as st
 
 from lucca.core.exceptions import MemoryCommitFailed, MemoryStoreReadOnly
 from lucca.core.schemas import (
+    MemoryHit,
     Provenance,
     RetrievalQuery,
     SignedPayload,
@@ -28,6 +29,7 @@ from lucca.core.schemas import (
 from lucca.memory.db import DatabaseManager
 from lucca.memory.gate import ProvenanceGate
 from lucca.memory.manager import MemoryManager
+from lucca.memory.retrieval import format_memory_context
 from lucca.memory.signers import DerivedFactSigner, UserSpeechSigner
 from lucca.memory.store import MemoryStore
 from lucca.memory.tokens import build_fts_query
@@ -1015,3 +1017,33 @@ def test_delete_memory_preserves_envelope_and_audits(temp_db: DatabaseManager) -
     # Check list_memories filtering
     assert len(mgr.list_memories()) == 0
     assert len(mgr.list_memories(include_forgotten=True)) == 1
+
+
+def test_format_memory_context_budget() -> None:
+    # 20 hits of 400 chars each (Spec 04 §6, Spec 10 §4, F-MEM-017)
+    now = time.time()
+    hits = [
+        MemoryHit(
+            memory_id=i,
+            content=f"Memory content item {i}: " + ("x" * 400),
+            provenance=Provenance.USER_EXPLICIT,
+            score=1.0 / (i + 1),
+            source_turn_id="turn-1",
+            kind="fact",
+            created_at=now - (i * 60),
+            valid_from=now - (i * 60),
+        )
+        for i in range(20)
+    ]
+    rendered = format_memory_context(hits, max_tokens=600, now=now)
+    assert rendered
+    # Total characters must be <= 2400 chars (600 tokens * 4)
+    assert len(rendered) <= 2400
+    lines = rendered.splitlines()
+    # Must cap to at most 8 items
+    assert len(lines) <= 8
+    for line in lines:
+        assert line.startswith("- [fact/USER_EXPLICIT ")
+        # Content portion must be truncated to <= 160 characters
+        prefix, content = line.split("] ", 1)
+        assert len(content) <= 160
