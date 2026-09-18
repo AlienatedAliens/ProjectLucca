@@ -161,6 +161,10 @@ class Supervisor:
                 # Supervise child processes
                 for name, p in list(self.children.items()):
                     if not p.is_alive():
+                        if name == "ui" and p.exitcode == 0:
+                            sys.stderr.write("UI closed by user (exit 0). Initiating shutdown...\n")
+                            self.shutdown()
+                            return
                         sys.stderr.write(
                             f"WARNING: Child process '{name}' exited with code {p.exitcode}.\n"
                         )

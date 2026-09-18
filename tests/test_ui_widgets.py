@@ -23,6 +23,15 @@ def qapp():
     return app
 
 
+@pytest.fixture(autouse=True)
+def mock_server_health(monkeypatch):
+    import lucca.ui.settings_dialog
+
+    monkeypatch.setattr(
+        lucca.ui.settings_dialog, "is_healthy", lambda host, port, timeout=1.0: False
+    )
+
+
 def test_speech_bubble_states(qapp):
     confirmed = []
     bubble = SpeechBubble(on_confirm=confirmed.append)
@@ -144,3 +153,44 @@ def test_sample_rule_validates(qapp: QApplication) -> None:
 
     validated = validate_rule_static(sample)
     assert validated.rule_id == "open-calculator-v1"
+
+
+def test_quit_publishes_offline(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    """F-UI-002: Ensure UIApplication.quit() publishes ui.state=offline and sends ui.quit."""
+    import time
+
+    import zmq
+
+    from lucca.core.config import get_config
+    from lucca.core.ipc_schemas import decode_envelope
+    from lucca.ui.app import UIApplication
+
+    ctx = zmq.Context()
+    ingest_pull = ctx.socket(zmq.PULL)
+    ingest_port = ingest_pull.bind_to_random_port("tcp://127.0.0.1")
+
+    cfg = get_config()
+    monkeypatch.setattr(cfg.ipc, "ingest_port", ingest_port)
+
+    app_instance = UIApplication()
+    quit_called = []
+    monkeypatch.setattr(app_instance.app, "quit", lambda: quit_called.append(True))
+    time.sleep(0.05)
+    try:
+        app_instance.quit()
+        assert quit_called == [True]
+
+        assert ingest_pull.poll(1000) > 0
+        raw1 = ingest_pull.recv()
+        env1 = decode_envelope(raw1)
+        assert env1.type == "ui.state"
+        assert env1.payload["state"] == "offline"
+
+        assert ingest_pull.poll(1000) > 0
+        raw2 = ingest_pull.recv()
+        env2 = decode_envelope(raw2)
+        assert env2.type == "ui.quit"
+        assert env2.payload["reason"] == "user"
+    finally:
+        ingest_pull.close(linger=0)
+        ctx.destroy(linger=0)

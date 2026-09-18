@@ -27,6 +27,7 @@ from lucca.core.ipc_schemas import (
     UIConfigUpdatePayload,
     UIConfirmPayload,
     UIConfirmResultPayload,
+    UIQuitPayload,
     UIStatePayload,
     UIUserTextPayload,
     decode_envelope,
@@ -115,7 +116,11 @@ class UIApplication:
             pass
 
         self.config = get_config()
-        self.app = QApplication(sys.argv)
+        existing_app = QApplication.instance()
+        if isinstance(existing_app, QApplication):
+            self.app = existing_app
+        else:
+            self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
         self.app.setStyleSheet(CHRONO_TRIGGER_STYLE_SHEET)
 
@@ -138,6 +143,8 @@ class UIApplication:
         self.ctx = zmq.Context()
         self.ingest_sock = self.ctx.socket(zmq.PUSH)
         self.ingest_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.ingest_port}")
+        self.bus_pub_sock = self.ctx.socket(zmq.PUB)
+        self.bus_pub_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.bus_port}")
 
         # Core widgets
         self.bridge = UIBridge()
@@ -176,7 +183,9 @@ class UIApplication:
         self.sprite.on_context_menu = self._show_context_menu
 
         # Setup System Tray
-        self._setup_tray()
+        self.tray: QSystemTrayIcon | None = None
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self._setup_tray()
 
         # ZeroMQ Bus Listener thread
         self.running = True
@@ -502,11 +511,60 @@ class UIApplication:
 
     def quit(self) -> None:
         self.running = False
+        if hasattr(self, "zmq_thread") and self.zmq_thread.is_alive():
+            self.zmq_thread.join(timeout=1.0)
+
         try:
-            self.ingest_sock.close(linger=0)
-            self.ctx.destroy(linger=0)
+            if hasattr(self, "tray") and self.tray is not None:
+                self.tray.hide()
+            if hasattr(self, "telemetry_hud"):
+                self.telemetry_hud.close()
+            if hasattr(self, "commorose"):
+                self.commorose.close()
+            if hasattr(self, "settings_dialog") and self.settings_dialog is not None:
+                self.settings_dialog.close()
+            if hasattr(self, "chat_bar"):
+                self.chat_bar.close()
+            if hasattr(self, "bubble"):
+                self.bubble.close()
+            if hasattr(self, "sprite"):
+                self.sprite.close()
         except Exception:  # noqa: BLE001, S110
             pass
+
+        try:
+            env_offline = Envelope(
+                type="ui.state",
+                trace_id="",
+                ts_ns=time.monotonic_ns(),
+                src="ui",
+                payload=UIStatePayload(state="offline", detail="user_quit").model_dump(),
+            )
+            self._send_ingest(env_offline)
+            self.bus_pub_sock.send(encode_envelope(env_offline), zmq.NOBLOCK)
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+        try:
+            env_quit = Envelope(
+                type="ui.quit",
+                trace_id="",
+                ts_ns=time.monotonic_ns(),
+                src="ui",
+                payload=UIQuitPayload(reason="user").model_dump(),
+            )
+            self._send_ingest(env_quit)
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+        time.sleep(0.05)
+        try:
+            self.ingest_sock.close(linger=100)
+            self.bus_pub_sock.close(linger=100)
+            self.ctx.destroy(linger=100)
+        except Exception:  # noqa: BLE001, S110
+            pass
+
         self.app.quit()
 
 

@@ -187,6 +187,10 @@ class UIConfirmResultPayload(BaseModel):
     via: Literal["voice", "click", "timeout"]
 
 
+class UIQuitPayload(BaseModel):
+    reason: Literal["user", "error"] = "user"
+
+
 # ============================================================================
 # System Heartbeat (`ctl`)
 # ============================================================================
