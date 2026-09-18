@@ -301,6 +301,7 @@ class RuleState(BaseModel, frozen=True):
 class RuleOutcome(BaseModel):
     rule_id: RuleId
     fired: bool
+    errored: bool = False
     plan: Plan | None = None
     gas_used: int
     elapsed_us: int

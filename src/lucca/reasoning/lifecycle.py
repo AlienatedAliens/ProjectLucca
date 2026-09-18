@@ -118,6 +118,7 @@ class RuleLifecycleManager:
         indeterminate: bool = False,
         state_snapshot: RuleState | None = None,
         plan_snapshot: Plan | None = None,
+        errored: bool = False,
     ) -> None:
         """
         Records shadow execution outcome per Spec 05 §6 & §9.
@@ -125,6 +126,9 @@ class RuleLifecycleManager:
         """
         if indeterminate or rule_id not in self.rules:
             return
+
+        if errored:
+            matched = False
 
         rule = self.rules[rule_id]
 

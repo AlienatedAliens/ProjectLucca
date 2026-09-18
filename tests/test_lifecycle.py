@@ -164,3 +164,13 @@ def test_t_rule_05_regression_suite_catches_mutation(tools):
     report_mutated = manager.verify_regression_suite()
     assert report_mutated.passed is False
     assert len(report_mutated.failures) > 0
+
+
+def test_record_shadow_errored_treated_as_failure(tools):
+    """F-REAS-004: record_shadow with errored=True is treated as matched=False."""
+    manager = RuleLifecycleManager(registered_tools=tools)
+    manager.register_rule(SAMPLE_RULE)
+    # When errored=True, even if matched=True was passed, failure_count increments
+    manager.record_shadow("open-calc-v1", matched=True, cluster_id="c_err", errored=True)
+    assert manager.rules["open-calc-v1"].failure_count == 1
+    assert len(manager.rules["open-calc-v1"].success_clusters) == 0

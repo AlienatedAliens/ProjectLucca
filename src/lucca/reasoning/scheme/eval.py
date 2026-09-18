@@ -182,9 +182,21 @@ def evaluate_rule(
     try:
         when_result = evaluator.eval(rule.when_expr, env)
         fired = when_result is not False
+    except SchemeError as e:
+        elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
+        return RuleOutcome(
+            rule_id=rule.rule_id,
+            fired=False,
+            errored=True,
+            plan=None,
+            gas_used=evaluator.gas_used,
+            elapsed_us=elapsed_us,
+            error=str(e),
+        )
 
-        plan: Plan | None = None
-        if fired:
+    plan: Plan | None = None
+    if fired:
+        try:
             raw_plan = evaluator.eval(rule.plan_expr, env)
             if not isinstance(raw_plan, list):
                 raise SchemeRuntimeError(
@@ -205,24 +217,25 @@ def evaluate_rule(
                         cause_type="TypeError",
                     )
             plan = Plan(actions=actions)
+        except SchemeError as e:
+            elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
+            return RuleOutcome(
+                rule_id=rule.rule_id,
+                fired=True,
+                errored=True,
+                plan=None,
+                gas_used=evaluator.gas_used,
+                elapsed_us=elapsed_us,
+                error=str(e),
+            )
 
-        elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
-        return RuleOutcome(
-            rule_id=rule.rule_id,
-            fired=fired,
-            plan=plan,
-            gas_used=evaluator.gas_used,
-            elapsed_us=elapsed_us,
-            error=None,
-        )
-
-    except SchemeError as e:
-        elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
-        return RuleOutcome(
-            rule_id=rule.rule_id,
-            fired=False,
-            plan=None,
-            gas_used=evaluator.gas_used,
-            elapsed_us=elapsed_us,
-            error=str(e),
-        )
+    elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
+    return RuleOutcome(
+        rule_id=rule.rule_id,
+        fired=fired,
+        errored=False,
+        plan=plan,
+        gas_used=evaluator.gas_used,
+        elapsed_us=elapsed_us,
+        error=None,
+    )

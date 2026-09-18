@@ -255,3 +255,36 @@ def test_t_rule_08_static_validation_rejections():
     """
     with pytest.raises(SchemeSyntaxError, match=r"Unknown or disallowed operator 'matches\?'"):
         validate_rule_static(rule_regex, registered_tools)
+
+
+def test_plan_error_preserves_fired() -> None:
+    """F-REAS-004: Plan evaluation error preserves fired=True with errored=True and plan=None."""
+    rule = parse_rule("""
+    (rule "plan-div-zero-v1"
+      :when (intent= "launch_app")
+      :plan (list (tool "launch_app" :app (/ 10 0))))
+    """)
+    state = RuleState(
+        schema_version=1,
+        intent="launch_app",
+    )
+    outcome = evaluate_rule(rule, state)
+    assert outcome.fired is True
+    assert outcome.errored is True
+    assert outcome.plan is None
+    assert outcome.error is not None
+    assert "Division by zero" in outcome.error
+
+    # Gas limit exhaustion during plan evaluation
+    valid_rule = parse_rule("""
+    (rule "plan-gas-bomb-v1"
+      :when (intent= "launch_app")
+      :plan (list (tool "launch_app" :app (+ 1 (+ 2 (+ 3 4))))))
+    """)
+    # gas_limit=3: enough for :when (1 gas), but runs out during nested additions in :plan
+    outcome_gas = evaluate_rule(valid_rule, state, gas_limit=3)
+    assert outcome_gas.fired is True
+    assert outcome_gas.errored is True
+    assert outcome_gas.plan is None
+    assert outcome_gas.error is not None
+    assert "Gas limit" in outcome_gas.error and "exceeded" in outcome_gas.error
