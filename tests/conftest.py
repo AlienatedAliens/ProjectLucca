@@ -1,9 +1,21 @@
-"""
-Project Lucca — Pytest Configuration & Common Fixtures
-Spec 10 (Testing Matrix v2)
-"""
+from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
+
+from lucca.core.config import get_config
+
+
+@pytest.fixture(autouse=True)
+def _isolated_lucca_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    home = tmp_path / "lucca_home"
+    home.mkdir(parents=True, exist_ok=True)
+    for sub in ("models", "data", "workspace", "inbox", "logs", "cache", "tmp"):
+        (home / sub).mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("LUCCA_HOME", str(home))
+    get_config.cache_clear()
+    yield home
+    get_config.cache_clear()
 
 
 @pytest.fixture
