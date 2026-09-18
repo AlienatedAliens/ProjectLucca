@@ -22,9 +22,12 @@ from lucca.core.exceptions import MemoryCommitFailed, MemoryStoreReadOnly
 from lucca.core.schemas import (
     Provenance,
     RetrievalQuery,
+    SignedPayload,
     UnsignedPayload,
 )
 from lucca.memory.db import DatabaseManager
+from lucca.memory.gate import ProvenanceGate
+from lucca.memory.manager import MemoryManager
 from lucca.memory.signers import DerivedFactSigner, UserSpeechSigner
 from lucca.memory.store import MemoryStore
 from lucca.memory.tokens import build_fts_query
@@ -848,3 +851,36 @@ def test_p_06_hypothesis_fts_query_fuzz(text: str) -> None:
         cur.fetchall()
     finally:
         conn.close()
+
+
+def test_admin_add_memory_requires_valid_signature(temp_db: DatabaseManager) -> None:
+    """F-MEM-001: MemoryManager.add_memory requires master_key and writes gate-verifiable envelopes."""
+    # 1. Calling without master_key raises ValueError
+    mgr_no_key = MemoryManager(db=temp_db, master_key=None)
+    with pytest.raises(ValueError, match="master_key is required"):
+        mgr_no_key.add_memory("Should fail without master_key")
+
+    # 2. Calling with master_key < 32 bytes raises ValueError
+    with pytest.raises(ValueError, match="at least 32 bytes"):
+        MemoryManager(db=temp_db, master_key=b"too_short")
+
+    # 3. Calling with valid master_key writes a valid cryptographically signed envelope
+    mgr = MemoryManager(db=temp_db, master_key=TEST_KEY)
+    mem_id = mgr.add_memory("User likes green tea", kind="fact", importance=0.9)
+    assert mem_id > 0
+
+    with temp_db.read_cursor() as cur:
+        cur.execute("SELECT entry_id, signature, payload_json FROM provenance_envelopes")
+        row = cur.fetchone()
+        assert row is not None
+        entry_id, signature, payload_json = row
+        assert signature != "manual"
+        assert len(signature) > 20
+
+        # Verify envelope parses and verifies under ProvenanceGate.admit
+        payload_dict = json.loads(payload_json)
+        signed_payload = SignedPayload(**payload_dict)
+        gate = ProvenanceGate(master_key=TEST_KEY)
+        admitted = gate.admit(signed_payload)
+        assert admitted.payload.entry_id == entry_id
+        assert admitted.payload.content == "User likes green tea"

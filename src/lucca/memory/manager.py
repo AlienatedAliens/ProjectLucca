@@ -5,22 +5,39 @@ Provides administrative CRUD and search capabilities over SQLite-vec memory tabl
 
 from __future__ import annotations
 
-import hashlib
 import json
 import sqlite3
 import time
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
+from lucca.core.config import get_config
+from lucca.core.schemas import Provenance, UnsignedPayload
 from lucca.memory.db import DatabaseManager
+from lucca.memory.gate import ProvenanceGate
+from lucca.memory.signers import BaseProvenanceSigner, UserSpeechSigner
 
 
 class MemoryManager:
     """Manages viewing, searching, adding, editing, and pruning memories."""
 
-    def __init__(self, db: DatabaseManager | None = None) -> None:
+    def __init__(
+        self,
+        db: DatabaseManager | None = None,
+        master_key: bytes | None = None,
+    ) -> None:
         self.db = db or DatabaseManager()
+        if master_key is None:
+            cfg = get_config()
+            if cfg.master_key:
+                master_key = cfg.master_key.encode("utf-8")
+        if master_key is not None and len(master_key) < 32:
+            raise ValueError(f"Master key must be at least 32 bytes, got {len(master_key)}")
+        self.master_key = master_key
+        self.gate: ProvenanceGate | None = (
+            ProvenanceGate(master_key=master_key) if master_key else None
+        )
 
     def get_connection(self) -> sqlite3.Connection:
         return self.db.get_connection()
@@ -84,15 +101,31 @@ class MemoryManager:
     def add_memory(
         self,
         content: str,
-        kind: str = "fact",
+        kind: Literal["transcript", "fact", "tool_fact", "rule_assertion"] = "fact",
         importance: float = 0.8,
-        provenance: str = "USER_EXPLICIT",
+        provenance: Provenance | str = Provenance.USER_EXPLICIT,
+        signer: BaseProvenanceSigner | None = None,
     ) -> int:
-        """Adds a human-audited or manually inserted memory record."""
+        """Adds a human-audited or manually inserted memory record through the provenance gate."""
+        if self.master_key is None or self.gate is None:
+            raise ValueError("master_key is required for MemoryManager to sign and admit memories")
+
+        prov_enum = Provenance(provenance) if isinstance(provenance, str) else provenance
+        active_signer = signer or UserSpeechSigner(master_key=self.master_key, signer_id="ui-admin")
         now = time.time()
-        entry_id = f"aud-{uuid.uuid4().hex[:12]}"
-        nonce = uuid.uuid4().hex
-        content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        unsigned = UnsignedPayload(
+            provenance=prov_enum,
+            kind=kind,
+            content=content,
+            trace_id="ui-admin-trace",
+            session_id="ui-admin-session",
+            created_at=now,
+            nonce=uuid.uuid4().hex,
+            confidence=1.0,
+        )
+        signed = active_signer.sign(unsigned)
+        admitted = self.gate.admit(signed, now=now)
+        admitted_payload = admitted.payload
 
         conn = self.db.get_writer()
         try:
@@ -107,18 +140,18 @@ class MemoryManager:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    entry_id,
-                    provenance,
-                    kind,
-                    "ui-admin",
-                    "manual",
-                    content_hash,
-                    nonce,
-                    now,
-                    "ui-admin-trace",
-                    "ui-admin-session",
-                    1.0,
-                    json.dumps({"content": content, "source": "ui-manual"}),
+                    admitted_payload.entry_id,
+                    admitted_payload.provenance.value,
+                    admitted_payload.kind,
+                    admitted_payload.signer_id,
+                    admitted_payload.signature,
+                    admitted_payload.content_sha256,
+                    admitted_payload.nonce,
+                    admitted_payload.created_at,
+                    admitted_payload.trace_id,
+                    admitted_payload.session_id,
+                    admitted_payload.confidence,
+                    json.dumps(admitted_payload.model_dump()),
                 ),
             )
 
@@ -130,7 +163,7 @@ class MemoryManager:
                     valid_from, importance, access_count
                 ) VALUES (?, ?, '', ?, ?, ?, ?, 0)
                 """,
-                (entry_id, content, kind, now, now, importance),
+                (admitted_payload.entry_id, content, kind, now, now, importance),
             )
             mem_id = cur.lastrowid or 0
 

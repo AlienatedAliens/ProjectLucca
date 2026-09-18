@@ -266,7 +266,9 @@ class SettingsDialog(QDialog):
         self.user_archetypes: dict[str, str] = dict(self.persona_cfg.user_archetypes)
 
         try:
-            self.memory_manager: MemoryManager | None = MemoryManager()
+            cfg = get_config()
+            mk = cfg.master_key.encode("utf-8") if cfg.master_key else None
+            self.memory_manager: MemoryManager | None = MemoryManager(master_key=mk)
         except Exception:
             self.memory_manager = None
 
