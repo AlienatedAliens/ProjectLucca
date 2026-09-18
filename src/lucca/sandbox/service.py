@@ -189,7 +189,6 @@ class SandboxService:
                     ],
                 },
                 "workspace": str(self.workspace_mgr.workspace_root),
-                "codebase_access": "Read-only access to C:/projects/ProjectLucca",
                 "memory_subsystem": "SQLite-vec episodic & semantic memory (data/memory.sqlite)",
                 "hardware_substrates": {
                     "dGPU": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB) - LLM llama-server",

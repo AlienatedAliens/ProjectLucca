@@ -6,9 +6,11 @@ Renders normative docker run arguments for file-sandbox and web-sandbox.
 
 from pathlib import Path
 
+from lucca.core.config import get_config
+
 
 def win_to_wsl_path(p: Path | str) -> str:
-    """Translates a Windows path like C:\\path to /mnt/c/path."""
+    r"""Translates a Windows path like C:\path to /mnt/c/path."""
     p_str = str(p).replace("\\", "/")
     if len(p_str) >= 2 and p_str[1] == ":":
         drive = p_str[0].lower()
@@ -18,7 +20,7 @@ def win_to_wsl_path(p: Path | str) -> str:
 
 
 def get_file_sandbox_run_args(
-    workspace_path: Path | str = r"C:\ProjectLucca\workspace",
+    workspace_path: Path | str | None = None,
     container_name: str = "lucca-file-sandbox",
     image_tag: str = "lucca/file-sandbox:latest",
 ) -> list[str]:
@@ -30,7 +32,12 @@ def get_file_sandbox_run_args(
     - Unprivileged user 1000:1000, all capabilities dropped
     - 768 MB RAM, 1.5 CPUs, 256 pids limit, 50 MB file size limit
     """
-    wsl_mount = win_to_wsl_path(workspace_path)
+    target_path = (
+        Path(workspace_path)
+        if workspace_path is not None
+        else get_config().resolve_path("workspace")
+    )
+    wsl_mount = win_to_wsl_path(target_path)
     return [
         "run",
         "-d",

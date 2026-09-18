@@ -9,6 +9,7 @@ import socket
 import subprocess
 import threading
 import time
+from pathlib import Path
 
 import structlog
 from pydantic import JsonValue
@@ -43,7 +44,8 @@ class EgressVerifier:
 
     def apply_rules(self) -> tuple[bool, str]:
         """Applies scripts/wsl/lucca-egress.sh inside Ubuntu WSL2."""
-        script_wsl = win_to_wsl_path(r"C:\projects\ProjectLucca\scripts\wsl\lucca-egress.sh")
+        script_path = Path(__file__).resolve().parents[3] / "scripts" / "wsl" / "lucca-egress.sh"
+        script_wsl = win_to_wsl_path(str(script_path))
         cmd = ["wsl", "-u", "root", "-d", self.wsl_distro, "--", "bash", script_wsl]
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=10.0, check=False)  # noqa: S603

@@ -338,36 +338,3 @@ class SafeFileTool:
                 "ok": False,
                 "error": str(exc),
             }, str(exc)
-
-    def read_codebase_file(
-        self, rel_path: str, max_bytes: int = MAX_FILE_BYTES
-    ) -> tuple[dict[str, object], str]:
-        """Read-only self-inspection of Project Lucca's own codebase (C:/projects/ProjectLucca)."""
-        codebase_root = Path(r"C:\projects\ProjectLucca")
-        target = validate_rel_path(rel_path, codebase_root)
-        if not target.exists():
-            raise SandboxPathError("not_found", f"Codebase file not found: {rel_path}")
-        if target.is_dir():
-            raise SandboxPathError("is_dir", f"Path is a directory: {rel_path}")
-
-        file_size = target.stat().st_size
-        with open(target, "rb") as f:
-            sniff = f.read(SNIFF_CHUNK_SIZE)
-            if b"\x00" in sniff:
-                raise SandboxPathError("is_binary", f"Binary file detected: {rel_path}")
-            f.seek(0)
-            data = f.read(max_bytes + 1)
-
-        truncated = len(data) > max_bytes
-        if truncated:
-            data = data[:max_bytes]
-
-        content = data.decode("utf-8", errors="replace")
-        sha256 = hashlib.sha256(data).hexdigest()
-        structured = {
-            "size": file_size,
-            "sha256": sha256,
-            "truncated": truncated,
-            "root": str(codebase_root),
-        }
-        return structured, content

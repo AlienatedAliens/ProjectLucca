@@ -16,6 +16,8 @@ from typing import Any
 
 import psutil
 
+from lucca.core.config import get_config
+
 # Cache detected hardware to avoid repeated WMI / subprocess overhead
 _GPU_CACHE: dict[str, Any] = {}
 _LAST_GPU_QUERY = 0.0
@@ -221,10 +223,10 @@ def list_running_processes(filter_name: str | None = None, limit: int = 25) -> l
 
 
 class SessionTelemetryLogger:
-    """Logs rolling JSONL telemetry snapshots to C:/ProjectLucca/logs/resource_sessions/."""
+    """Logs rolling JSONL telemetry snapshots to LUCCA_HOME/logs/resource_sessions/."""
 
     def __init__(self, log_dir: Path | None = None) -> None:
-        self.log_dir = log_dir or Path("C:/ProjectLucca/logs/resource_sessions")
+        self.log_dir = log_dir or (get_config().home_dir / "logs" / "resource_sessions")
         self.log_dir.mkdir(parents=True, exist_ok=True)
         session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.session_file = self.log_dir / f"session_{session_id}.jsonl"

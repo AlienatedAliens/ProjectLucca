@@ -1,7 +1,7 @@
 """
 Project Lucca — Workspace Lifecycle Manager
 Spec 09 §3, D-08
-Manages isolated workspace lifecycle under C:\\ProjectLucca\\workspace.
+Manages isolated workspace lifecycle under LUCCA_HOME workspace.
 """
 
 import shutil

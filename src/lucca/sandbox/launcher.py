@@ -42,11 +42,15 @@ class AppLauncher:
     def __init__(
         self,
         config_path: Path | str | None = None,
-        workspace_root: Path | str = r"C:\ProjectLucca\workspace",
+        workspace_root: Path | str | None = None,
         execute: bool = True,
     ) -> None:
         self.config = get_config()
-        self.workspace_root = Path(workspace_root)
+        self.workspace_root = (
+            Path(workspace_root)
+            if workspace_root is not None
+            else self.config.resolve_path("workspace")
+        )
         self.execute = execute
         self.launch_history: list[float] = []
 

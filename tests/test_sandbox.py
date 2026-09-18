@@ -443,3 +443,21 @@ def test_orchestrator_speaks_sandbox_unavailable_notice() -> None:
         orch.cap_ring.unlink()
         orch.play_ring.close()
         orch.play_ring.unlink()
+
+
+def test_no_hardcoded_project_paths() -> None:
+    """F-SBX-012: Ensure no hardcoded project paths exist in src/lucca/sandbox."""
+    sandbox_dir = Path(__file__).resolve().parent.parent / "src" / "lucca" / "sandbox"
+    forbidden = [
+        "C:\\projects\\ProjectLucca",
+        "C:/projects/ProjectLucca",
+        "C:\\ProjectLucca",
+        "C:/ProjectLucca",
+    ]
+    violations: list[str] = []
+    for py_file in sandbox_dir.glob("*.py"):
+        content = py_file.read_text(encoding="utf-8")
+        for bad in forbidden:
+            if bad.lower() in content.lower():
+                violations.append(f"{py_file.name}: found {bad}")
+    assert not violations, f"Hardcoded project paths found in sandbox: {violations}"
