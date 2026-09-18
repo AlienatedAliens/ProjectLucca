@@ -52,7 +52,7 @@ def test_custom_prompt_is_additive() -> None:
     prompt = get_system_prompt()
     assert custom_directive in prompt
     assert "[Creator Persona Directives]" in prompt
-    assert "Lucca Ashtear" in prompt
+    assert "Lucca" in prompt
     assert ARCHITECTURAL_SELF_AWARENESS in prompt
     assert "4-Process Topology" in prompt
 
@@ -146,3 +146,26 @@ def test_no_ccv2_artifacts() -> None:
     prompt = get_system_prompt()
     for token in forbidden:
         assert token not in prompt
+
+
+def test_self_awareness_claims_are_real() -> None:
+    """F-BRAIN-004: Ensure compiled prompt does not contain fictional claims or wrong ports."""
+    prompt = get_system_prompt()
+    forbidden = [
+        "5557",
+        "5558",
+        "5559",
+        "vram-safety-guard",
+        "npu-whisper-pin",
+        "temporal-logic-gate",
+        "codebase-inspect-route",
+        "inventor-curiosity",
+        "vector-relevance-gate",
+        "Codebase Inspection",
+        "Chrono Trigger",
+        "Kingdom of Guardia",
+        "Truce",
+    ]
+    for token in forbidden:
+        assert token not in prompt, f"Found forbidden claim in prompt: {token}"
+    assert "47001-47003" in prompt

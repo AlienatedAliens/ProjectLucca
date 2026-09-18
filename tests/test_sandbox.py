@@ -362,8 +362,10 @@ def test_query_capabilities_manifest(workspace: Path) -> None:
     assert res.exit_code == 0
     assert res.structured is not None
     assert "tools" in res.structured
+    assert "fetch_url" in res.structured["tools"]
     assert "reasoning_pathways" in res.structured
     assert "whitelisted_apps" in res.structured
+    assert set(res.structured["whitelisted_apps"]) == set(service.launcher.apps.keys())
     assert "hardware_substrates" in res.structured
 
     # 2. Query category
@@ -374,8 +376,7 @@ def test_query_capabilities_manifest(workspace: Path) -> None:
     assert res_pathways.structured is not None
     assert "reasoning_pathways" in res_pathways.structured
     pathways = res_pathways.structured["reasoning_pathways"]
-    assert "Hardware & Safety" in pathways
-    assert "Cognitive & Temporal" in pathways
+    assert pathways == {}
 
 
 def test_fallback_disabled_refuses_host_execution(workspace: Path) -> None:

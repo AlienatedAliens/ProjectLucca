@@ -144,50 +144,15 @@ class SandboxService:
         if tool_name == "query_capabilities":
             category = str(args.get("category", "all"))
             capabilities: dict[str, JsonValue] = {
-                "tools": ["launch_app", "read_file", "write_file", "query_capabilities"],
-                "whitelisted_apps": [
-                    "calculator",
-                    "notepad",
-                    "terminal",
-                    "browser",
-                    "task_manager",
+                "tools": [
+                    "launch_app",
+                    "read_file",
+                    "write_file",
+                    "fetch_url",
+                    "query_capabilities",
                 ],
-                "reasoning_pathways": {
-                    "Hardware & Safety": [
-                        {
-                            "id": "vram-safety-guard-v1",
-                            "purpose": "Quantizes KV-cache if dGPU VRAM drops under 2.5 GB",
-                        },
-                        {
-                            "id": "npu-whisper-pin-v1",
-                            "purpose": "Pins Whisper ASR to Intel AI Boost NPU via OpenVINO",
-                        },
-                    ],
-                    "Cognitive & Temporal": [
-                        {
-                            "id": "temporal-logic-gate-v1",
-                            "purpose": "Detects counterfactual timeline queries",
-                        }
-                    ],
-                    "Tools & Execution": [
-                        {
-                            "id": "codebase-inspect-route-v1",
-                            "purpose": "Routes architectural queries to read-only repo",
-                        }
-                    ],
-                    "Persona & Inflection": [
-                        {
-                            "id": "inventor-curiosity-v1",
-                            "purpose": "Modulates speech for invention topics",
-                        }
-                    ],
-                    "Memory & Recall": [
-                        {
-                            "id": "vector-relevance-gate-v1",
-                            "purpose": "Thresholds semantic memory injection (>0.72 score)",
-                        }
-                    ],
-                },
+                "whitelisted_apps": list(self.launcher.apps.keys()),
+                "reasoning_pathways": {},
                 "workspace": str(self.workspace_mgr.workspace_root),
                 "memory_subsystem": "SQLite-vec episodic & semantic memory (data/memory.sqlite)",
                 "hardware_substrates": {
