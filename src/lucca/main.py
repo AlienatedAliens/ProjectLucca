@@ -5,6 +5,8 @@ Spec 01 §1, §7, ADR-008
 
 import ctypes
 import multiprocessing as mp
+import os
+import signal
 import subprocess
 import sys
 import time
@@ -17,6 +19,14 @@ from lucca.core.orchestrator import Orchestrator
 from lucca.senses.audio_proc import AudioProcess
 from lucca.senses.npu_proc import NPUProcess
 from lucca.ui.app import UIApplication
+
+
+def _fake_child_proc() -> None:
+    try:
+        while True:
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        pass
 
 
 def run_audio_process() -> None:
@@ -52,6 +62,7 @@ class Supervisor:
         self.children: dict[str, mp.Process] = {}
         self.orchestrator: Orchestrator | None = None
         self.running = False
+        self._shutdown_done: bool = False
         self._restart_attempts: dict[str, list[float]] = {}
         self._next_restart: dict[str, float] = {}
         self.backoff_base: float = 1.0
@@ -61,6 +72,12 @@ class Supervisor:
             "audio": run_audio_process,
             "ui": run_ui_process,
         }
+        if os.environ.get("LUCCA_TEST_FAKES") == "1":
+            self._targets = {
+                "npu": _fake_child_proc,
+                "audio": _fake_child_proc,
+                "ui": _fake_child_proc,
+            }
 
     def _spawn_child(self, name: str) -> mp.Process:
         target_fn = self._targets.get(name)
@@ -121,6 +138,8 @@ class Supervisor:
         print("=" * 65)
 
     def _ensure_llama_server(self) -> None:
+        if os.environ.get("LUCCA_TEST_FAKES") == "1":
+            return
         if is_healthy(self.config.llm.host, self.config.llm.port, timeout=1.0):
             print("  ✓ llama-server is already active and healthy.")
             return
@@ -174,14 +193,19 @@ class Supervisor:
     def run_forever(self) -> None:
         try:
             while self.running:
+                if self.orchestrator and self.orchestrator.quit_requested:
+                    sys.stderr.write("UI requested quit. Initiating shutdown...\n")
+                    self.running = False
+                    break
+
                 now = time.monotonic()
                 # Supervise child processes
                 for name, p in list(self.children.items()):
                     if not p.is_alive():
                         if name == "ui" and p.exitcode == 0:
                             sys.stderr.write("UI closed by user (exit 0). Initiating shutdown...\n")
-                            self.shutdown()
-                            return
+                            self.running = False
+                            break
 
                         recent = [
                             t for t in self._restart_attempts.get(name, []) if now - t < 600.0
@@ -220,10 +244,13 @@ class Supervisor:
                             self.children[dead].terminate()
 
                 time.sleep(0.1)
-        except KeyboardInterrupt:
+        finally:
             self.shutdown()
 
     def shutdown(self) -> None:
+        if self._shutdown_done:
+            return
+        self._shutdown_done = True
         print("\nOrdered shutdown initiated...")
         self.running = False
         if self.orchestrator:
@@ -259,10 +286,21 @@ def main() -> None:
     # Set multiprocessing start method to spawn for Windows clean subprocesses
     mp.set_start_method("spawn", force=True)
     supervisor = Supervisor()
+
+    def _on_signal(signum: int, frame: object) -> None:
+        supervisor.running = False
+
+    signal.signal(signal.SIGINT, _on_signal)
+    signal.signal(signal.SIGTERM, _on_signal)
+    if hasattr(signal, "SIGBREAK"):
+        signal.signal(signal.SIGBREAK, _on_signal)
+
     try:
         supervisor.boot()
         supervisor.run_forever()
     except KeyboardInterrupt:
+        pass
+    finally:
         supervisor.shutdown()
 
 

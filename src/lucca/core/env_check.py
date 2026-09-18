@@ -239,6 +239,8 @@ def check_models_manifest() -> tuple[bool, str]:
 
 def run_env_check() -> int:
     """Executes all system environment checks and reports status."""
+    if os.environ.get("LUCCA_TEST_FAKES") == "1":
+        return 0
     print("=" * 68)
     print("  PROJECT LUCCA — SYSTEM ENVIRONMENT CHECK")
     print("=" * 68)

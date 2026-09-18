@@ -55,6 +55,8 @@ TurnState = Literal[
 
 
 class Orchestrator:
+    quit_requested: bool = False
+
     def __init__(
         self,
         llm: LLMClient | None = None,
@@ -113,6 +115,7 @@ class Orchestrator:
         self.executed_tools: list[tuple[str, dict[str, JsonValue]]] = []
         self._turn_lock = threading.Lock()
         self._last_pong: dict[str, float] = {}
+        self.quit_requested: bool = False
 
     def start(self) -> None:
         self.running = True
@@ -233,6 +236,12 @@ class Orchestrator:
                 self.confirm_action(p_conf.accepted, via=p_conf.via)
             elif env.type == "sys.pong":
                 self._last_pong[env.src] = time.monotonic()
+            elif env.type == "ui.quit":
+                self.on_quit_requested()
+
+    def on_quit_requested(self) -> None:
+        """Signals that UI requested application shutdown."""
+        self.quit_requested = True
 
     def register_peer(self, peer: str) -> None:
         """Registers an expected child process for heartbeat monitoring."""
