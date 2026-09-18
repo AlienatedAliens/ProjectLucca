@@ -133,8 +133,8 @@ class HeuristicRouter:
             # Guard against adversarial: "start with the second file"
             if first_word not in self.stop_words_after_start:
                 # Check if candidate or any alias is a known app
-                for app_name in self.known_apps:
-                    if app_name in candidate_app:
+                for app_name in sorted(self.known_apps, key=lambda a: (-len(a), a)):
+                    if re.search(rf"\b{re.escape(app_name)}\b", candidate_app):
                         entities["app"].append(app_name)
                         return "launch_app", 0.95, entities
                 if not entities["file"] and len(candidate_app.split()) <= 2:

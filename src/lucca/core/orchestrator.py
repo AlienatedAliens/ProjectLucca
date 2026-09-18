@@ -33,10 +33,21 @@ from lucca.core.ipc_schemas import (
     decode_envelope,
     encode_envelope,
 )
-from lucca.core.schemas import DecisionRecord, TokenDelta, ToolCall, ToolCallEnd, ToolResult
+from lucca.core.schemas import (
+    DecisionRecord,
+    RouteAction,
+    RuleOutcome,
+    RuleState,
+    Say,
+    TokenDelta,
+    ToolCall,
+    ToolCallEnd,
+    ToolResult,
+)
 from lucca.core.trace import TurnTrace, log_turn_trace
 from lucca.memory.db import DatabaseManager
 from lucca.ports import STTPort, TTSPort
+from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
@@ -69,6 +80,7 @@ class Orchestrator:
         execute_tools: bool = True,
         router: HeuristicRouter | None = None,
         db: DatabaseManager | None = None,
+        rule_engine: RuleLifecycleManager | None = None,
     ) -> None:
         self.config = get_config()
         self.execute_tools = execute_tools
@@ -107,6 +119,9 @@ class Orchestrator:
 
         # Sandbox Service
         self.sandbox = sandbox or SandboxService(execute_apps=self.execute_tools)
+
+        # Rule Engine (Spec 05 §6 & §8)
+        self.rule_engine = rule_engine or RuleLifecycleManager()
 
         # Router & Decision Telemetry
         self.db = db
@@ -383,7 +398,7 @@ class Orchestrator:
         )
         self.active_trace = trace
 
-        print(f'\n[User] 💬 "{user_text}"', flush=True)
+        print(f'\n[User] "{user_text}"', flush=True)
         self._publish_caption(user_text, source="user", is_final=True)
         self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
         self._set_state("thinking")
@@ -391,6 +406,59 @@ class Orchestrator:
         t = threading.Thread(target=self._run_text_turn, args=(trace, user_text), daemon=True)
         self.active_turn_thread = t
         t.start()
+
+    def _build_rule_state(self, transcript: str, mode: Literal["audio", "transcript"]) -> RuleState:
+        local_now = time.localtime()
+        intent, auto_conf, entities = self.router.classify_intent(transcript)
+        return RuleState(
+            schema_version=1,
+            transcript=transcript,
+            transcript_lower=transcript.strip().lower(),
+            intent=intent,
+            intent_conf=auto_conf,
+            entities=entities,
+            hour_local=local_now.tm_hour,
+            weekday=local_now.tm_wday,
+            apps_running=frozenset(),
+            last_tool=self.executed_tools[-1][0] if self.executed_tools else None,
+            last_tool_ok=self.current_turn_tool_ok if self.executed_tools else None,
+            session_turns=len(self.history) // 2,
+            mode=mode,
+        )
+
+    def _finalize_turn(self, trace: TurnTrace, decision_id: str | None) -> None:
+        if decision_id:
+            try:
+                ttft_ms = (
+                    (trace.t_llm_first_token - trace.t_llm_sent) / 1_000_000.0
+                    if trace.t_llm_first_token and trace.t_llm_sent
+                    else None
+                )
+                turn_tool_ok = self.current_turn_tool_ok if self.current_turn_tool_calls else None
+                self.router.record_post_turn(
+                    decision_id=decision_id,
+                    tool_calls=self.current_turn_tool_calls,
+                    tool_ok=turn_tool_ok,
+                    llm_first_token_ms=ttft_ms,
+                    user_interrupted=trace.interrupted,
+                )
+                if self.db is not None and self.router.last_decision_record:
+                    cur_rec = self.router.last_decision_record
+                    init_label, init_reason = derive_label(
+                        cur_rec,
+                        user_interrupted=trace.interrupted,
+                        tool_ok=turn_tool_ok,
+                    )
+                    persist_decision_label(self.db, cur_rec.decision_id, init_label, init_reason)
+
+                self.prev_decision_record = self.router.last_decision_record
+                self.prev_turn_ts = time.time()
+            except Exception as e:  # noqa: BLE001
+                logger.debug("post_turn_telemetry_error", error=str(e))
+
+        trace.t_postturn_done = time.monotonic_ns()
+        log_turn_trace(trace)
+        self._set_state("idle")
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         trace.t_llm_sent = time.monotonic_ns()
@@ -455,15 +523,34 @@ class Orchestrator:
             except Exception as e:  # noqa: BLE001
                 logger.debug("prev_decision_label_error", error=str(e))
 
+        # Build RuleState and evaluate rules
+        mode: Literal["audio", "transcript"] = (
+            "transcript" if self.config.llm.mode == "transcript" else "audio"
+        )
+        rule_state = self._build_rule_state(transcribed_text, mode=mode)
+        shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
+        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
+
+        active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+        any_active_fired = any(o.fired for o in active_outcomes)
+        has_registered_rule = any(r.status == "ACTIVE" for r in self.rule_engine.rules.values())
+
         # Route decision
+        route_decision = None
         try:
             vad_ms = int(p.vad_speech_ms)
-            self.router.route(
+            route_decision = self.router.route(
                 transcript=transcribed_text,
+                any_active_rule_fired=any_active_fired,
+                any_quarantine_rule_fired=any_quarantine_fired,
+                vad_speech_ms=vad_ms,
                 trace_id=trace.trace_id,
                 session_id=trace.trace_id,
-                vad_speech_ms=vad_ms,
-                mode="transcript" if self.config.llm.mode == "transcript" else "audio",
+                hour_local=rule_state.hour_local,
+                weekday=rule_state.weekday,
+                session_turns=rule_state.session_turns,
+                mode=mode,
+                has_registered_rule=has_registered_rule,
             )
             decision_id = (
                 self.router.last_decision_record.decision_id
@@ -472,6 +559,34 @@ class Orchestrator:
             )
         except Exception as e:  # noqa: BLE001
             logger.error("router_execution_error", error=str(e))
+
+        if route_decision and route_decision.action == RouteAction.RULE:
+            winning_outcome: RuleOutcome | None = None
+            for outcome in active_outcomes:
+                if outcome.fired and not outcome.errored and outcome.plan is not None:
+                    winning_outcome = outcome
+                    break
+
+            if winning_outcome and winning_outcome.plan:
+                try:
+                    for action in winning_outcome.plan.actions:
+                        if isinstance(action, Say):
+                            self._speak_text(trace, action.text)
+                            self._publish_caption(action.text, source="assistant", is_final=True)
+                        elif isinstance(action, ToolCall):
+                            self._handle_tool_call(trace, action.tool, dict(action.args))
+
+                    user_msg = transcribed_text or "[Voice audio]"
+                    assistant_msg = (
+                        " ".join(a.text for a in winning_outcome.plan.actions if isinstance(a, Say))
+                        or f"[Rule executed: {winning_outcome.rule_id}]"
+                    )
+                    self.history.append({"role": "user", "content": user_msg})
+                    self.history.append({"role": "assistant", "content": assistant_msg})
+                    self.play_ring.set_flag(FLAG_EOS)
+                finally:
+                    self._finalize_turn(trace, decision_id)
+                return
 
         # Encode to WAV bytes
         wav_buf = io.BytesIO()
@@ -568,42 +683,7 @@ class Orchestrator:
                 )
             trace.interrupted = True
         finally:
-            if decision_id:
-                try:
-                    ttft_ms = (
-                        (trace.t_llm_first_token - trace.t_llm_sent) / 1_000_000.0
-                        if trace.t_llm_first_token and trace.t_llm_sent
-                        else None
-                    )
-                    turn_tool_ok = (
-                        self.current_turn_tool_ok if self.current_turn_tool_calls else None
-                    )
-                    self.router.record_post_turn(
-                        decision_id=decision_id,
-                        tool_calls=self.current_turn_tool_calls,
-                        tool_ok=turn_tool_ok,
-                        llm_first_token_ms=ttft_ms,
-                        user_interrupted=trace.interrupted,
-                    )
-                    if self.db is not None and self.router.last_decision_record:
-                        cur_rec = self.router.last_decision_record
-                        init_label, init_reason = derive_label(
-                            cur_rec,
-                            user_interrupted=trace.interrupted,
-                            tool_ok=turn_tool_ok,
-                        )
-                        persist_decision_label(
-                            self.db, cur_rec.decision_id, init_label, init_reason
-                        )
-
-                    self.prev_decision_record = self.router.last_decision_record
-                    self.prev_turn_ts = time.time()
-                except Exception as e:  # noqa: BLE001
-                    logger.debug("post_turn_telemetry_error", error=str(e))
-
-            trace.t_postturn_done = time.monotonic_ns()
-            log_turn_trace(trace)
-            self._set_state("idle")
+            self._finalize_turn(trace, decision_id)
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
         trace.t_llm_sent = time.monotonic_ns()
@@ -632,14 +712,30 @@ class Orchestrator:
             except Exception as e:  # noqa: BLE001
                 logger.debug("prev_decision_label_error", error=str(e))
 
+        # Build RuleState and evaluate rules
+        rule_state = self._build_rule_state(user_text, mode="transcript")
+        shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
+        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
+
+        active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+        any_active_fired = any(o.fired for o in active_outcomes)
+        has_registered_rule = any(r.status == "ACTIVE" for r in self.rule_engine.rules.values())
+
         # Route decision
+        route_decision = None
         try:
-            self.router.route(
+            route_decision = self.router.route(
                 transcript=user_text,
+                any_active_rule_fired=any_active_fired,
+                any_quarantine_rule_fired=any_quarantine_fired,
+                vad_speech_ms=1000,
                 trace_id=trace.trace_id,
                 session_id=trace.trace_id,
-                vad_speech_ms=1000,
+                hour_local=rule_state.hour_local,
+                weekday=rule_state.weekday,
+                session_turns=rule_state.session_turns,
                 mode="transcript",
+                has_registered_rule=has_registered_rule,
             )
             decision_id = (
                 self.router.last_decision_record.decision_id
@@ -648,6 +744,34 @@ class Orchestrator:
             )
         except Exception as e:  # noqa: BLE001
             logger.error("router_execution_error", error=str(e))
+
+        if route_decision and route_decision.action == RouteAction.RULE:
+            winning_outcome: RuleOutcome | None = None
+            for outcome in active_outcomes:
+                if outcome.fired and not outcome.errored and outcome.plan is not None:
+                    winning_outcome = outcome
+                    break
+
+            if winning_outcome and winning_outcome.plan:
+                try:
+                    for action in winning_outcome.plan.actions:
+                        if isinstance(action, Say):
+                            self._speak_text(trace, action.text)
+                            self._publish_caption(action.text, source="assistant", is_final=True)
+                        elif isinstance(action, ToolCall):
+                            self._handle_tool_call(trace, action.tool, dict(action.args))
+
+                    user_msg = user_text
+                    assistant_msg = (
+                        " ".join(a.text for a in winning_outcome.plan.actions if isinstance(a, Say))
+                        or f"[Rule executed: {winning_outcome.rule_id}]"
+                    )
+                    self.history.append({"role": "user", "content": user_msg})
+                    self.history.append({"role": "assistant", "content": assistant_msg})
+                    self.play_ring.set_flag(FLAG_EOS)
+                finally:
+                    self._finalize_turn(trace, decision_id)
+                return
 
         # Arm audio playback
         begin_env = Envelope(
@@ -717,42 +841,7 @@ class Orchestrator:
                 print(f"\n[Error] {exc}", flush=True)
             trace.interrupted = True
         finally:
-            if decision_id:
-                try:
-                    ttft_ms = (
-                        (trace.t_llm_first_token - trace.t_llm_sent) / 1_000_000.0
-                        if trace.t_llm_first_token and trace.t_llm_sent
-                        else None
-                    )
-                    turn_tool_ok = (
-                        self.current_turn_tool_ok if self.current_turn_tool_calls else None
-                    )
-                    self.router.record_post_turn(
-                        decision_id=decision_id,
-                        tool_calls=self.current_turn_tool_calls,
-                        tool_ok=turn_tool_ok,
-                        llm_first_token_ms=ttft_ms,
-                        user_interrupted=trace.interrupted,
-                    )
-                    if self.db is not None and self.router.last_decision_record:
-                        cur_rec = self.router.last_decision_record
-                        init_label, init_reason = derive_label(
-                            cur_rec,
-                            user_interrupted=trace.interrupted,
-                            tool_ok=turn_tool_ok,
-                        )
-                        persist_decision_label(
-                            self.db, cur_rec.decision_id, init_label, init_reason
-                        )
-
-                    self.prev_decision_record = self.router.last_decision_record
-                    self.prev_turn_ts = time.time()
-                except Exception as e:  # noqa: BLE001
-                    logger.debug("post_turn_telemetry_error", error=str(e))
-
-            trace.t_postturn_done = time.monotonic_ns()
-            log_turn_trace(trace)
-            self._set_state("idle")
+            self._finalize_turn(trace, decision_id)
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         if chunk_id == 0:
