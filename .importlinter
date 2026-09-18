@@ -1,0 +1,51 @@
+[importlinter]
+root_package = lucca
+
+[importlinter:contract:1]
+name = UI must not import Core Orchestrator
+type = forbidden
+source_modules =
+    lucca.ui
+forbidden_modules =
+    lucca.core.orchestrator
+
+[importlinter:contract:2]
+name = Memory must not import Brain
+type = forbidden
+source_modules =
+    lucca.memory
+forbidden_modules =
+    lucca.brain
+
+[importlinter:contract:3]
+name = Reasoning must not import Brain
+type = forbidden
+source_modules =
+    lucca.reasoning
+forbidden_modules =
+    lucca.brain
+
+[importlinter:contract:4]
+name = Sandbox must not import Brain or UI
+type = forbidden
+source_modules =
+    lucca.sandbox
+forbidden_modules =
+    lucca.brain
+    lucca.ui
+
+[importlinter:contract:5]
+name = Memory must not import UI
+type = forbidden
+source_modules =
+    lucca.memory
+forbidden_modules =
+    lucca.ui
+
+[importlinter:contract:6]
+name = Reasoning must not import UI
+type = forbidden
+source_modules =
+    lucca.reasoning
+forbidden_modules =
+    lucca.ui
