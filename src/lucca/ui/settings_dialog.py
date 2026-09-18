@@ -249,24 +249,21 @@ class SettingsDialog(QDialog):
 
         # Load persona configuration from persona.toml
         self.persona_cfg = get_persona_config()
-        traits_cfg = self.persona_cfg.get("traits", {})
-        self.current_tech_depth = float(traits_cfg.get("technical_depth", 0.5))
-        self.current_warmth = float(traits_cfg.get("warmth", 0.5))
-        self.current_directness = float(traits_cfg.get("directness", 0.5))
+        self.current_tech_depth = self.persona_cfg.traits.technical_depth
+        self.current_warmth = self.persona_cfg.traits.warmth
+        self.current_directness = self.persona_cfg.traits.directness
 
-        boundaries_cfg = self.persona_cfg.get("boundaries", {})
-        self.current_never_pretend = bool(boundaries_cfg.get("never_pretend_to_feel", True))
-        self.current_refuse_topics = list(boundaries_cfg.get("refuse_topics", []))
+        self.current_never_pretend = self.persona_cfg.boundaries.never_pretend_to_feel
+        self.current_refuse_topics = list(self.persona_cfg.boundaries.refuse_topics)
 
-        self.current_uses_name = bool(self.persona_cfg.get("uses_your_name", True))
-        self.current_admits_uncertainty = bool(self.persona_cfg.get("admits_uncertainty", True))
+        self.current_uses_name = self.persona_cfg.uses_your_name
+        self.current_admits_uncertainty = self.persona_cfg.admits_uncertainty
 
-        affect_cfg = self.persona_cfg.get("affect", {})
-        self.current_affect_enabled = bool(affect_cfg.get("enabled", True))
-        self.current_decay_tau = float(affect_cfg.get("decay_tau_seconds", 600.0))
-        self.current_max_speed_delta = float(affect_cfg.get("max_speed_delta", 0.10))
+        self.current_affect_enabled = self.persona_cfg.affect.enabled
+        self.current_decay_tau = self.persona_cfg.affect.decay_tau_seconds
+        self.current_max_speed_delta = self.persona_cfg.affect.max_speed_delta
 
-        self.user_archetypes: dict[str, str] = dict(self.persona_cfg.get("archetypes", {}))
+        self.user_archetypes: dict[str, str] = dict(self.persona_cfg.user_archetypes)
 
         try:
             self.memory_manager: MemoryManager | None = MemoryManager()

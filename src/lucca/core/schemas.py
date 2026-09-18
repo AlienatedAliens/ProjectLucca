@@ -4,6 +4,7 @@ Spec 02, Spec 03, Spec 06 (Zero-Any Rule Compliant)
 """
 
 from enum import StrEnum
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, JsonValue
@@ -421,3 +422,113 @@ class TurnTrace(BaseModel):
     points_ns: dict[str, int]
     e2e_latency_ms: float
     mode: Literal["audio", "transcript"]
+
+
+# ============================================================================
+# Brain & Persona Domain Models (F-BRAIN-001)
+# ============================================================================
+
+
+class ToolFunctionSchema(BaseModel):
+    name: str
+    description: str
+    parameters: dict[str, JsonValue]
+
+
+class ToolDefinition(BaseModel):
+    type: str = "function"
+    function: ToolFunctionSchema
+
+    def __getitem__(self, item: str) -> object:
+        if item == "type":
+            return self.type
+        if item == "function":
+            return self.function.model_dump()
+        return getattr(self, item)
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str | list[dict[str, JsonValue]]
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)
+
+
+class PersonaTraitsConfig(BaseModel):
+    technical_depth: float = 0.5
+    warmth: float = 0.5
+    directness: float = 0.5
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)
+
+
+class PersonaBoundariesConfig(BaseModel):
+    never_pretend_to_feel: bool = True
+    refuse_topics: list[str] = Field(default_factory=list)
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)
+
+
+class PersonaAffectConfig(BaseModel):
+    enabled: bool = True
+    decay_tau_seconds: float = 600.0
+    max_speed_delta: float = 0.10
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)
+
+
+class PersonaConfig(BaseModel):
+    name: str = "Lucca"
+    voice: str = "genki_heroine"
+    archetype: str = "inventor"
+    formality: str = "casual"
+    custom_prompt: str = ""
+    uses_your_name: bool = True
+    admits_uncertainty: bool = True
+    traits: PersonaTraitsConfig = Field(default_factory=PersonaTraitsConfig)
+    boundaries: PersonaBoundariesConfig = Field(default_factory=PersonaBoundariesConfig)
+    affect: PersonaAffectConfig = Field(default_factory=PersonaAffectConfig)
+    user_archetypes: dict[str, str] = Field(default_factory=dict)
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)
+
+
+class ModelRegistryEntry(BaseModel):
+    path: Path
+    filename: str
+    rel_path: str
+    name: str
+    architecture: str
+    quantization: str
+    size_gb: float
+    tensor_count: int
+    badge: str
+    badge_type: str
+    is_active: bool
+    paired_mmproj: Path | None = None
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)

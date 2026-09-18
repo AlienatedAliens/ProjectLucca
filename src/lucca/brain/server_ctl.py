@@ -12,12 +12,13 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import httpx
 import psutil
 
 from lucca.core.config import LLMSettings
+from lucca.core.schemas import ModelRegistryEntry
 
 
 @dataclass
@@ -167,12 +168,12 @@ def _derive_quant_from_filename(filename: str) -> str:
     return "Q4_K_M"
 
 
-def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[dict[str, Any]]:
+def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[ModelRegistryEntry]:
     """
     Scans models_dir for all *.gguf files, extracts GGUF metadata,
     and assigns binary audio compatibility badges.
     """
-    registry: list[dict[str, Any]] = []
+    registry: list[ModelRegistryEntry] = []
     if not models_dir.exists():
         return registry
 
@@ -215,20 +216,20 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[di
         )
 
         registry.append(
-            {
-                "path": path,
-                "filename": path.name,
-                "rel_path": rel_path,
-                "name": meta.name,
-                "architecture": meta.architecture,
-                "quantization": meta.quantization,
-                "size_gb": size_gb,
-                "tensor_count": meta.tensor_count,
-                "badge": badge,
-                "badge_type": badge_type,
-                "is_active": is_active,
-                "paired_mmproj": paired_mmproj,
-            }
+            ModelRegistryEntry(
+                path=path,
+                filename=path.name,
+                rel_path=rel_path,
+                name=meta.name,
+                architecture=meta.architecture,
+                quantization=meta.quantization,
+                size_gb=size_gb,
+                tensor_count=meta.tensor_count,
+                badge=badge,
+                badge_type=badge_type,
+                is_active=is_active,
+                paired_mmproj=paired_mmproj,
+            )
         )
 
     return registry

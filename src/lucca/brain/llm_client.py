@@ -6,10 +6,10 @@ Spec 02 (SpeechLLMPort), Spec 08, ADR-001
 import json
 import uuid
 from collections.abc import Generator
-from typing import Any
 
 import httpx
 import structlog
+from pydantic import JsonValue
 
 from lucca.brain.prompt_builder import TOOL_DEFINITIONS, build_messages
 from lucca.brain.toolcall_demux import ToolCallDemux
@@ -62,9 +62,9 @@ class LLMClient:
             current_text=current_text,
         )
 
-        payload: dict[str, Any] = {
-            "messages": messages,
-            "tools": TOOL_DEFINITIONS,
+        payload: dict[str, object] = {
+            "messages": [m.model_dump() for m in messages],
+            "tools": [t.model_dump() for t in TOOL_DEFINITIONS],
             "tool_choice": "auto",
             "chat_template_kwargs": {"tools_in_user_message": False},
             "max_tokens": eff_tokens,
@@ -76,7 +76,7 @@ class LLMClient:
         client = httpx.Client(timeout=30.0)
         self.aborted = False
         self.active_client = client
-        current_tool_calls: dict[int, dict[str, Any]] = {}
+        current_tool_calls: dict[int, dict[str, str]] = {}
 
         try:
             with client.stream(
@@ -124,10 +124,12 @@ class LLMClient:
                     if finish_reason == "tool_calls":
                         for idx in sorted(current_tool_calls.keys()):
                             tc_data = current_tool_calls[idx]
-                            args: dict[str, Any] = {}
+                            args: dict[str, JsonValue] = {}
                             if tc_data["arguments"]:
                                 try:
-                                    args = json.loads(tc_data["arguments"])
+                                    raw_parsed = json.loads(tc_data["arguments"])
+                                    if isinstance(raw_parsed, dict):
+                                        args = raw_parsed
                                 except json.JSONDecodeError:
                                     logger.warning(
                                         "invalid_tool_call_json", args=tc_data["arguments"]
@@ -151,15 +153,17 @@ class LLMClient:
             # Flush any remaining tool calls
             for idx in sorted(current_tool_calls.keys()):
                 tc_data = current_tool_calls[idx]
-                args = {}
+                flush_args: dict[str, JsonValue] = {}
                 if tc_data["arguments"]:
                     try:
-                        args = json.loads(tc_data["arguments"])
+                        raw_flush = json.loads(tc_data["arguments"])
+                        if isinstance(raw_flush, dict):
+                            flush_args = raw_flush
                     except json.JSONDecodeError:
                         logger.warning("invalid_tool_call_json", args=tc_data["arguments"])
                 if tc_data["name"]:
                     yield ToolCallEnd(
-                        call=ToolCall(tool=tc_data["name"], args=args, call_id=tc_data["id"])
+                        call=ToolCall(tool=tc_data["name"], args=flush_args, call_id=tc_data["id"])
                     )
 
             # Flush any pending buffer in demux

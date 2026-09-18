@@ -245,9 +245,9 @@ class UIApplication:
                 current_voice=self.active_voice,
                 current_speed=self.active_speed,
                 current_ptt_key=self.active_ptt_key,
-                current_archetype=persona.get("archetype", "inventor"),
-                current_formality=persona.get("formality", "casual"),
-                current_custom_prompt=persona.get("custom_prompt", ""),
+                current_archetype=persona.archetype,
+                current_formality=persona.formality,
+                current_custom_prompt=persona.custom_prompt,
                 on_save_config=self._send_config_update,
             )
         self.settings_dialog.show()

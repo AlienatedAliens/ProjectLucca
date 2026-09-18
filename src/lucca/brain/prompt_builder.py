@@ -7,9 +7,19 @@ import json
 import re
 import tomllib
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
-from lucca.core.schemas import MemoryHit
+from pydantic import JsonValue
+
+from lucca.core.schemas import (
+    ChatMessage,
+    MemoryHit,
+    PersonaBoundariesConfig,
+    PersonaConfig,
+    PersonaTraitsConfig,
+    ToolDefinition,
+    ToolFunctionSchema,
+)
 
 # Hybrid Prose Archetypes: 3-4 bulleted core facts + one short paragraph
 # written in target voice (<= 120 tokens)
@@ -275,24 +285,28 @@ def get_system_prompt() -> str:
     )
 
 
-def get_persona() -> dict[str, Any]:
+def get_persona() -> PersonaConfig:
     """Returns the current persona configuration."""
-    return {
-        "archetype": _active_archetype,
-        "formality": _active_formality,
-        "custom_prompt": _active_custom_prompt or "",
-        "technical_depth": _active_traits[0],
-        "warmth": _active_traits[1],
-        "directness": _active_traits[2],
-        "uses_your_name": _active_uses_name,
-        "admits_uncertainty": _active_uncertainty,
-        "never_pretend_to_feel": _active_never_pretend,
-        "refuse_topics": list(_active_refuse_topics),
-        "user_archetypes": dict(_active_user_archetypes),
-    }
+    return PersonaConfig(
+        archetype=_active_archetype,
+        formality=_active_formality,
+        custom_prompt=_active_custom_prompt or "",
+        traits=PersonaTraitsConfig(
+            technical_depth=_active_traits[0],
+            warmth=_active_traits[1],
+            directness=_active_traits[2],
+        ),
+        uses_your_name=_active_uses_name,
+        admits_uncertainty=_active_uncertainty,
+        boundaries=PersonaBoundariesConfig(
+            never_pretend_to_feel=_active_never_pretend,
+            refuse_topics=list(_active_refuse_topics),
+        ),
+        user_archetypes=dict(_active_user_archetypes),
+    )
 
 
-def _format_toml_value(val: Any) -> str:
+def _format_toml_value(val: object) -> str:
     if isinstance(val, bool):
         return "true" if val else "false"
     if isinstance(val, (int, float)):
@@ -308,14 +322,14 @@ def _format_toml_value(val: Any) -> str:
     return str(val)
 
 
-def update_toml_content(content: str, updates: dict[str, Any]) -> str:
+def update_toml_content(content: str, updates: dict[str, JsonValue]) -> str:
     """
     Losslessly updates specific keys in TOML content, preserving all existing
     comments, formatting, and unknown keys.
     """
     lines = content.splitlines(keepends=True)
-    top_updates: dict[str, Any] = {}
-    table_updates: dict[str, dict[str, Any]] = {}
+    top_updates: dict[str, JsonValue] = {}
+    table_updates: dict[str, dict[str, JsonValue]] = {}
 
     for k, v in updates.items():
         if isinstance(v, dict):
@@ -389,18 +403,19 @@ def update_toml_content(content: str, updates: dict[str, Any]) -> str:
     return "".join(new_lines)
 
 
-def get_persona_config(config_path: Path | None = None) -> dict[str, Any]:
+def get_persona_config(config_path: Path | None = None) -> PersonaConfig:
     """Reads and parses the complete persona.toml configuration."""
     path = config_path or Path(r"C:\ProjectLucca\config\persona.toml")
     if not path.exists():
         path = Path("config/persona.toml")
     if not path.exists():
-        return {}
+        return PersonaConfig()
     try:
         with open(path, "rb") as f:
-            return tomllib.load(f)
+            data = tomllib.load(f)
+        return PersonaConfig.model_validate(data)
     except Exception:  # noqa: BLE001
-        return {}
+        return PersonaConfig()
 
 
 def save_persona_to_config(
@@ -452,7 +467,7 @@ def save_persona_to_config(
             "max_speed_delta = 0.10          # ±10% TTS speed modulation\n"
         )
 
-    updates: dict[str, Any] = {
+    updates: dict[str, JsonValue] = {
         "archetype": archetype,
         "formality": formality,
         "custom_prompt": custom_prompt,
@@ -472,7 +487,7 @@ def save_persona_to_config(
     if voice is not None:
         updates["voice"] = voice
 
-    affect_updates: dict[str, Any] = {}
+    affect_updates: dict[str, JsonValue] = {}
     if affect_enabled is not None:
         affect_updates["enabled"] = affect_enabled
     if decay_tau_seconds is not None:
@@ -483,7 +498,7 @@ def save_persona_to_config(
         updates["affect"] = affect_updates
 
     if user_archetypes is not None:
-        updates["archetypes"] = user_archetypes
+        updates["archetypes"] = {k: v for k, v in user_archetypes.items()}
 
     new_content = update_toml_content(existing_content, updates)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -507,25 +522,19 @@ def save_persona_to_config(
 def load_persona_from_config(config_path: Path | None = None) -> None:
     """Loads persona preferences from persona.toml."""
     cfg = get_persona_config(config_path)
-    if not cfg:
-        return
-
-    traits_cfg = cfg.get("traits", {})
-    boundaries_cfg = cfg.get("boundaries", {})
-    archetypes_cfg = cfg.get("archetypes", {})
 
     set_persona(
-        archetype=cfg.get("archetype"),
-        formality=cfg.get("formality"),
-        custom_prompt=cfg.get("custom_prompt"),
-        technical_depth=traits_cfg.get("technical_depth", 0.5),
-        warmth=traits_cfg.get("warmth", 0.5),
-        directness=traits_cfg.get("directness", 0.5),
-        uses_your_name=cfg.get("uses_your_name", True),
-        admits_uncertainty=cfg.get("admits_uncertainty", True),
-        never_pretend_to_feel=boundaries_cfg.get("never_pretend_to_feel", True),
-        refuse_topics=boundaries_cfg.get("refuse_topics", []),
-        user_archetypes=archetypes_cfg,
+        archetype=cfg.archetype,
+        formality=cfg.formality,
+        custom_prompt=cfg.custom_prompt,
+        technical_depth=cfg.traits.technical_depth,
+        warmth=cfg.traits.warmth,
+        directness=cfg.traits.directness,
+        uses_your_name=cfg.uses_your_name,
+        admits_uncertainty=cfg.admits_uncertainty,
+        never_pretend_to_feel=cfg.boundaries.never_pretend_to_feel,
+        refuse_topics=cfg.boundaries.refuse_topics,
+        user_archetypes=cfg.user_archetypes,
     )
 
 
@@ -535,13 +544,13 @@ load_persona_from_config()
 # Legacy alias for backward compatibility
 SYSTEM_PROMPT: str = get_system_prompt()
 
-TOOL_DEFINITIONS: list[dict[str, Any]] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "launch_app",
-            "description": "Launch an approved application on the desktop",
-            "parameters": {
+TOOL_DEFINITIONS: list[ToolDefinition] = [
+    ToolDefinition(
+        type="function",
+        function=ToolFunctionSchema(
+            name="launch_app",
+            description="Launch an approved application on the desktop",
+            parameters={
                 "type": "object",
                 "properties": {
                     "app_name": {
@@ -551,28 +560,28 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 },
                 "required": ["app_name"],
             },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read_file",
-            "description": "Read a file from the user workspace",
-            "parameters": {
+        ),
+    ),
+    ToolDefinition(
+        type="function",
+        function=ToolFunctionSchema(
+            name="read_file",
+            description="Read a file from the user workspace",
+            parameters={
                 "type": "object",
                 "properties": {
                     "rel_path": {"type": "string", "description": "Relative path under workspace"}
                 },
                 "required": ["rel_path"],
             },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "write_file",
-            "description": "Write or overwrite a file in the workspace",
-            "parameters": {
+        ),
+    ),
+    ToolDefinition(
+        type="function",
+        function=ToolFunctionSchema(
+            name="write_file",
+            description="Write or overwrite a file in the workspace",
+            parameters={
                 "type": "object",
                 "properties": {
                     "rel_path": {"type": "string", "description": "Relative path under workspace"},
@@ -580,17 +589,17 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 },
                 "required": ["rel_path", "content"],
             },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "query_capabilities",
-            "description": (
+        ),
+    ),
+    ToolDefinition(
+        type="function",
+        function=ToolFunctionSchema(
+            name="query_capabilities",
+            description=(
                 "Query Lucca's available desktop tools, active MicroScheme LISP "
                 "reasoning pathways, whitelisted applications, and runtime capabilities"
             ),
-            "parameters": {
+            parameters={
                 "type": "object",
                 "properties": {
                     "category": {
@@ -603,8 +612,8 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
                 },
                 "required": [],
             },
-        },
-    },
+        ),
+    ),
 ]
 
 
@@ -613,7 +622,7 @@ def build_messages(
     history: list[dict[str, str]] | None = None,
     current_audio_b64: str | None = None,
     current_text: str | None = None,
-) -> list[dict[str, Any]]:
+) -> list[ChatMessage]:
     """
     Builds the messages array in strict Section Order (Spec 10 §4):
     1. System Prompt (static prefix cacheable)
@@ -621,7 +630,7 @@ def build_messages(
     3. Conversation History (last N turns)
     4. Current Turn (Audio or Text)
     """
-    messages: list[dict[str, Any]] = []
+    messages: list[ChatMessage] = []
 
     # 1. Dynamic System Prompt
     system_content = get_system_prompt()
@@ -633,16 +642,16 @@ def build_messages(
             mem_lines.append(f"- {m.content}")
         system_content += "\n".join(mem_lines)
 
-    messages.append({"role": "system", "content": system_content})
+    messages.append(ChatMessage(role="system", content=system_content))
 
     # 3. Conversation History (last 6 exchanges)
     if history:
         for turn in history[-6:]:
-            messages.append(turn)
+            messages.append(ChatMessage(role=turn["role"], content=turn["content"]))
 
     # 4. Current User Turn
     if current_audio_b64:
-        content: list[dict[str, Any]] = [
+        content: list[dict[str, JsonValue]] = [
             {
                 "type": "input_audio",
                 "input_audio": {"data": current_audio_b64, "format": "wav"},
@@ -650,8 +659,8 @@ def build_messages(
         ]
         if current_text:
             content.append({"type": "text", "text": current_text})
-        messages.append({"role": "user", "content": content})
+        messages.append(ChatMessage(role="user", content=content))
     elif current_text:
-        messages.append({"role": "user", "content": current_text})
+        messages.append(ChatMessage(role="user", content=current_text))
 
     return messages
