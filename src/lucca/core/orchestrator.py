@@ -33,9 +33,12 @@ from lucca.core.ipc_schemas import (
     decode_envelope,
     encode_envelope,
 )
-from lucca.core.schemas import TokenDelta, ToolCallEnd, ToolResult
+from lucca.core.schemas import DecisionRecord, TokenDelta, ToolCall, ToolCallEnd, ToolResult
 from lucca.core.trace import TurnTrace, log_turn_trace
+from lucca.memory.db import DatabaseManager
 from lucca.ports import STTPort, TTSPort
+from lucca.router.heuristic import HeuristicRouter
+from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
@@ -64,6 +67,8 @@ class Orchestrator:
         asr: STTPort | type[STTPort] | None = None,
         sandbox: SandboxService | None = None,
         execute_tools: bool = True,
+        router: HeuristicRouter | None = None,
+        db: DatabaseManager | None = None,
     ) -> None:
         self.config = get_config()
         self.execute_tools = execute_tools
@@ -102,6 +107,19 @@ class Orchestrator:
 
         # Sandbox Service
         self.sandbox = sandbox or SandboxService(execute_apps=self.execute_tools)
+
+        # Router & Decision Telemetry
+        self.db = db
+        if router is not None:
+            self.router = router
+        else:
+            log_path = self.config.home_dir / "logs" / "decisions.jsonl"
+            self.router = HeuristicRouter(db=self.db, log_path=log_path)
+
+        self.prev_decision_record: DecisionRecord | None = None
+        self.prev_turn_ts: float | None = None
+        self.current_turn_tool_calls: list[ToolCall] = []
+        self.current_turn_tool_ok: bool = True
 
         # Confirmation State
         self._confirm_event = threading.Event()
@@ -379,6 +397,9 @@ class Orchestrator:
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
+        self.current_turn_tool_calls = []
+        self.current_turn_tool_ok = True
+        decision_id: str | None = None
 
         # Read audio slice from capture ring
         pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
@@ -415,6 +436,42 @@ class Orchestrator:
             print(f'\n[User] 🎙️ "{transcribed_text}"', flush=True)
             self._publish_caption(transcribed_text, source="user", is_final=True)
             self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
+
+        # Update label for previous turn if present
+        if self.prev_decision_record and self.db is not None:
+            try:
+                next_intent, next_conf, _ = self.router.classify_intent(transcribed_text)
+                time_to_next = (time.time() - self.prev_turn_ts) if self.prev_turn_ts else None
+                label, reason = derive_label(
+                    self.prev_decision_record,
+                    next_transcript=transcribed_text,
+                    next_intent=next_intent,
+                    next_intent_conf=next_conf,
+                    time_to_next_turn_s=time_to_next,
+                )
+                persist_decision_label(
+                    self.db, self.prev_decision_record.decision_id, label, reason
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.debug("prev_decision_label_error", error=str(e))
+
+        # Route decision
+        try:
+            vad_ms = int(p.vad_speech_ms)
+            self.router.route(
+                transcript=transcribed_text,
+                trace_id=trace.trace_id,
+                session_id=trace.trace_id,
+                vad_speech_ms=vad_ms,
+                mode="transcript" if self.config.llm.mode == "transcript" else "audio",
+            )
+            decision_id = (
+                self.router.last_decision_record.decision_id
+                if self.router.last_decision_record
+                else None
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.error("router_execution_error", error=str(e))
 
         # Encode to WAV bytes
         wav_buf = io.BytesIO()
@@ -511,6 +568,39 @@ class Orchestrator:
                 )
             trace.interrupted = True
         finally:
+            if decision_id:
+                try:
+                    ttft_ms = (
+                        (trace.t_llm_first_token - trace.t_llm_sent) / 1_000_000.0
+                        if trace.t_llm_first_token and trace.t_llm_sent
+                        else None
+                    )
+                    turn_tool_ok = (
+                        self.current_turn_tool_ok if self.current_turn_tool_calls else None
+                    )
+                    self.router.record_post_turn(
+                        decision_id=decision_id,
+                        tool_calls=self.current_turn_tool_calls,
+                        tool_ok=turn_tool_ok,
+                        llm_first_token_ms=ttft_ms,
+                        user_interrupted=trace.interrupted,
+                    )
+                    if self.db is not None and self.router.last_decision_record:
+                        cur_rec = self.router.last_decision_record
+                        init_label, init_reason = derive_label(
+                            cur_rec,
+                            user_interrupted=trace.interrupted,
+                            tool_ok=turn_tool_ok,
+                        )
+                        persist_decision_label(
+                            self.db, cur_rec.decision_id, init_label, init_reason
+                        )
+
+                    self.prev_decision_record = self.router.last_decision_record
+                    self.prev_turn_ts = time.time()
+                except Exception as e:  # noqa: BLE001
+                    logger.debug("post_turn_telemetry_error", error=str(e))
+
             trace.t_postturn_done = time.monotonic_ns()
             log_turn_trace(trace)
             self._set_state("idle")
@@ -520,6 +610,44 @@ class Orchestrator:
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
+        self.current_turn_tool_calls = []
+        self.current_turn_tool_ok = True
+        decision_id: str | None = None
+
+        # Update label for previous turn if present
+        if self.prev_decision_record and self.db is not None:
+            try:
+                next_intent, next_conf, _ = self.router.classify_intent(user_text)
+                time_to_next = (time.time() - self.prev_turn_ts) if self.prev_turn_ts else None
+                label, reason = derive_label(
+                    self.prev_decision_record,
+                    next_transcript=user_text,
+                    next_intent=next_intent,
+                    next_intent_conf=next_conf,
+                    time_to_next_turn_s=time_to_next,
+                )
+                persist_decision_label(
+                    self.db, self.prev_decision_record.decision_id, label, reason
+                )
+            except Exception as e:  # noqa: BLE001
+                logger.debug("prev_decision_label_error", error=str(e))
+
+        # Route decision
+        try:
+            self.router.route(
+                transcript=user_text,
+                trace_id=trace.trace_id,
+                session_id=trace.trace_id,
+                vad_speech_ms=1000,
+                mode="transcript",
+            )
+            decision_id = (
+                self.router.last_decision_record.decision_id
+                if self.router.last_decision_record
+                else None
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.error("router_execution_error", error=str(e))
 
         # Arm audio playback
         begin_env = Envelope(
@@ -589,6 +717,39 @@ class Orchestrator:
                 print(f"\n[Error] {exc}", flush=True)
             trace.interrupted = True
         finally:
+            if decision_id:
+                try:
+                    ttft_ms = (
+                        (trace.t_llm_first_token - trace.t_llm_sent) / 1_000_000.0
+                        if trace.t_llm_first_token and trace.t_llm_sent
+                        else None
+                    )
+                    turn_tool_ok = (
+                        self.current_turn_tool_ok if self.current_turn_tool_calls else None
+                    )
+                    self.router.record_post_turn(
+                        decision_id=decision_id,
+                        tool_calls=self.current_turn_tool_calls,
+                        tool_ok=turn_tool_ok,
+                        llm_first_token_ms=ttft_ms,
+                        user_interrupted=trace.interrupted,
+                    )
+                    if self.db is not None and self.router.last_decision_record:
+                        cur_rec = self.router.last_decision_record
+                        init_label, init_reason = derive_label(
+                            cur_rec,
+                            user_interrupted=trace.interrupted,
+                            tool_ok=turn_tool_ok,
+                        )
+                        persist_decision_label(
+                            self.db, cur_rec.decision_id, init_label, init_reason
+                        )
+
+                    self.prev_decision_record = self.router.last_decision_record
+                    self.prev_turn_ts = time.time()
+                except Exception as e:  # noqa: BLE001
+                    logger.debug("post_turn_telemetry_error", error=str(e))
+
             trace.t_postturn_done = time.monotonic_ns()
             log_turn_trace(trace)
             self._set_state("idle")
@@ -688,6 +849,8 @@ class Orchestrator:
         args: dict[str, JsonValue],
     ) -> ToolResult | None:
         self.executed_tools.append((name, args))
+        call_id = str(ulid.ULID())
+        self.current_turn_tool_calls.append(ToolCall(tool=name, args=dict(args), call_id=call_id))
         if not self.execute_tools:
             return None
 
@@ -697,21 +860,23 @@ class Orchestrator:
             if not confirmed:
                 logger.info("tool_execution_cancelled_by_user", tool=name)
                 self._speak_text(trace, "Cancelled.")
+                self.current_turn_tool_ok = False
                 return ToolResult(
-                    call_id=str(ulid.ULID()),
+                    call_id=call_id,
                     ok=False,
                     exit_code=-3,
                     stderr="cancelled by user",
                     elapsed_ms=0.0,
                 )
 
-        call_id = str(ulid.ULID())
         res = self.sandbox.execute_tool(
             call_id=call_id,
             tool_name=name,
             args=args,
             confirmed=True,
         )
+        if not res.ok:
+            self.current_turn_tool_ok = False
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
         if res.ok:
             if name == "launch_app":

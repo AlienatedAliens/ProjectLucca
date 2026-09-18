@@ -12,12 +12,24 @@ import numpy as np
 import pytest
 
 from lucca.core.exceptions import InsufficientCalibration
-from lucca.core.schemas import DecisionRecord, RouteAction, RouteDecision, RouteFeatures, ToolCall
+from lucca.core.orchestrator import Orchestrator
+from lucca.core.schemas import (
+    DecisionRecord,
+    Done,
+    LLMUsage,
+    RouteAction,
+    RouteDecision,
+    RouteFeatures,
+    TokenDelta,
+    ToolCall,
+)
 from lucca.core.trace import TurnTrace, log_turn_trace
 from lucca.memory.db import DatabaseManager
 from lucca.router.conformal import ConformalGuard
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import check_data_volume_gate, derive_label, persist_decision_label
+from tests.fakes.fake_llm import FakeLLM
+from tests.fakes.fake_tts import FakeTTS
 
 
 # ============================================================================
@@ -481,3 +493,44 @@ def test_t_obs_01_trace_completeness(tmp_path: Path) -> None:
     assert trace.total_e2e_ms > 0.0
     assert trace.ttft_ms > 0.0
     assert trace.tts_first_ms > 0.0
+
+
+@pytest.mark.tier2
+def test_orchestrator_writes_decisions(tmp_path: Path) -> None:
+    """F-ROUT-001: Orchestrator writes decisions and decision_labels to SQLite."""
+    db_file = tmp_path / "orch_decisions.sqlite"
+    db = DatabaseManager(db_file)
+    db.migrate()
+
+    fake_script = [
+        TokenDelta(delta="Hello "),
+        TokenDelta(delta="world!"),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=2)),
+    ]
+    llm = FakeLLM(script=fake_script)
+    orch = Orchestrator(tts=FakeTTS, llm=llm, db=db)
+    try:
+        orch._on_user_text(ts_ns=1000, user_text="open calculator")
+        if orch.active_turn_thread:
+            orch.active_turn_thread.join(timeout=5.0)
+
+        with db.read_cursor() as cur:
+            cur.execute("SELECT decision_id, action, features_json FROM decisions")
+            dec_row = cur.fetchone()
+            assert dec_row is not None
+            decision_id = dec_row[0]
+
+            cur.execute(
+                "SELECT label, reason FROM decision_labels WHERE decision_id = ?",
+                (decision_id,),
+            )
+            label_row = cur.fetchone()
+            assert label_row is not None
+            assert label_row[0] in ("POS", "NEG", "INDETERMINATE")
+    finally:
+        orch.stop()
+        orch.cap_ring.close()
+        orch.cap_ring.unlink()
+        orch.play_ring.close()
+        orch.play_ring.unlink()
+        db.close()
