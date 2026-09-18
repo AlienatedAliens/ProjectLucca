@@ -9,7 +9,7 @@ import json
 import shutil
 import subprocess
 import time
-from typing import Any, cast
+from typing import cast
 
 import structlog
 from pydantic import JsonValue
@@ -58,14 +58,23 @@ class DockerRPCTransport:
         self,
         call_id: str,
         tool: str,
-        args: dict[str, Any],
+        args: dict[str, JsonValue],
         timeout_s: float = 15.0,
     ) -> ToolResult:
         """Executes a single tool call against the container or fallback tool."""
         t0 = time.perf_counter()
 
-        if self.use_direct_fallback or not self.is_docker_available():
+        if self.use_direct_fallback:
             return self._execute_direct(call_id, tool, args, t0)
+
+        if not self.is_docker_available():
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-2,
+                stderr="sandbox unavailable: Docker/WSL not reachable",
+                elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+            )
 
         cmd = [
             "wsl",
@@ -192,7 +201,7 @@ class DockerRPCTransport:
         self,
         call_id: str,
         tool: str,
-        args: dict[str, Any],
+        args: dict[str, JsonValue],
         t0: float,
     ) -> ToolResult:
         """Fallback in-process executor for unit tests."""
@@ -214,7 +223,7 @@ class DockerRPCTransport:
             if tool == "read_file":
                 structured, content = file_tool.read_file(
                     path=str(args.get("path", "")),
-                    max_bytes=int(args.get("max_bytes", 262144)),
+                    max_bytes=int(str(args.get("max_bytes", 262144))),
                 )
                 if not structured.get("truncated", False):
                     actual_sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -257,7 +266,7 @@ class DockerRPCTransport:
                 structured_s, content_s = file_tool.search_text(
                     pattern=str(args.get("pattern", "")),
                     path=str(args.get("path", "")),
-                    max_hits=int(args.get("max_hits", 200)),
+                    max_hits=int(str(args.get("max_hits", 200))),
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -271,7 +280,7 @@ class DockerRPCTransport:
             if tool == "run_python":
                 structured_p, content_p = file_tool.run_python(
                     code=str(args.get("code", "")),
-                    timeout=int(args.get("timeout", 10)),
+                    timeout=int(str(args.get("timeout", 10))),
                 )
                 exit_code_raw = structured_p.get("exit_code", -1)
                 exit_code_int = int(str(exit_code_raw))

@@ -13,6 +13,7 @@ from typing import Literal
 import structlog
 import ulid
 import zmq
+from pydantic import JsonValue
 
 from lucca.brain.chunker import StreamingChunker
 from lucca.brain.llm_client import LLMClient
@@ -109,7 +110,7 @@ class Orchestrator:
         self.active_trace: TurnTrace | None = None
         self.active_turn_thread: threading.Thread | None = None
         self.history: list[dict[str, str]] = []
-        self.executed_tools: list[tuple[str, dict[str, object]]] = []
+        self.executed_tools: list[tuple[str, dict[str, JsonValue]]] = []
         self._turn_lock = threading.Lock()
 
     def start(self) -> None:
@@ -575,7 +576,7 @@ class Orchestrator:
         self.tts.synthesize(chunk_id=0, text=text, is_first=True)
         self.play_ring.set_flag(FLAG_EOS)
 
-    def _describe_tool_action(self, name: str, args: dict[str, object]) -> str:
+    def _describe_tool_action(self, name: str, args: dict[str, JsonValue]) -> str:
         if name == "launch_app":
             app = str(args.get("app_name", "the application"))
             return f"launch {app}"
@@ -596,7 +597,7 @@ class Orchestrator:
         self,
         trace: TurnTrace,
         name: str,
-        args: dict[str, object],
+        args: dict[str, JsonValue],
         timeout_s: float = 15.0,
     ) -> bool:
         action_desc = self._describe_tool_action(name, args)
@@ -641,7 +642,7 @@ class Orchestrator:
         self,
         trace: TurnTrace,
         name: str,
-        args: dict[str, object],
+        args: dict[str, JsonValue],
     ) -> ToolResult | None:
         self.executed_tools.append((name, args))
         if not self.execute_tools:
@@ -681,6 +682,8 @@ class Orchestrator:
                 self._speak_text(trace, f"Deleted {path}.")
             elif name == "run_python":
                 self._speak_text(trace, "Python script executed.")
+        elif res.exit_code == -2 or "sandbox unavailable" in (res.stderr or ""):
+            self._speak_text(trace, "My file sandbox isn't available — Docker isn't reachable.")
         else:
             self._speak_text(trace, f"Error: {res.stderr or 'action failed'}.")
         return res

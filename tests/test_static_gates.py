@@ -63,4 +63,3 @@ def test_tier2_marker_registered() -> None:
     content = pyproject_path.read_text(encoding="utf-8")
     assert "tier2: Fake-backed integration tests (no hardware)" in content
     assert "not tier2" in content
-

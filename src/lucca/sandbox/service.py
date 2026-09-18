@@ -6,9 +6,9 @@ Orchestrates file-sandbox RPC, web-sandbox fetches, host launcher, and policy gu
 
 import json
 from pathlib import Path
-from typing import Any
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.core.schemas import Risk, ToolResult
 from lucca.sandbox.file_tool import SafeFileTool
@@ -34,7 +34,7 @@ class SandboxService:
     def __init__(
         self,
         workspace_root: Path | str | None = None,
-        use_direct_fallback: bool = True,
+        use_direct_fallback: bool = False,
         execute_apps: bool = True,
     ) -> None:
         self.workspace_mgr = WorkspaceManager(workspace_root=workspace_root)
@@ -66,7 +66,7 @@ class SandboxService:
         self,
         call_id: str,
         tool_name: str,
-        args: dict[str, Any],
+        args: dict[str, JsonValue],
         confirmed: bool = False,
     ) -> ToolResult:
         """
@@ -119,7 +119,7 @@ class SandboxService:
         if tool_name == "fetch_url":
             url = str(args.get("url", ""))
             render = bool(args.get("render", False))
-            max_chars = int(args.get("max_chars", 20000))
+            max_chars = int(str(args.get("max_chars", 20000)))
             try:
                 structured, content = fetch_url(url=url, render=render, max_chars=max_chars)
                 return ToolResult(
@@ -143,7 +143,7 @@ class SandboxService:
         # 5. Query Capabilities Tool
         if tool_name == "query_capabilities":
             category = str(args.get("category", "all"))
-            capabilities: dict[str, Any] = {
+            capabilities: dict[str, JsonValue] = {
                 "tools": ["launch_app", "read_file", "write_file", "query_capabilities"],
                 "whitelisted_apps": [
                     "calculator",

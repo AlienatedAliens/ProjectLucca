@@ -376,3 +376,70 @@ def test_query_capabilities_manifest(workspace: Path) -> None:
     pathways = res_pathways.structured["reasoning_pathways"]
     assert "Hardware & Safety" in pathways
     assert "Cognitive & Temporal" in pathways
+
+
+def test_fallback_disabled_refuses_host_execution(workspace: Path) -> None:
+    """F-SBX-001 / D-AUD-13: Docker unavailable + use_direct_fallback=False -> refusal result, no local execution."""
+    from unittest.mock import patch
+
+    from lucca.sandbox.service import SandboxService
+
+    with patch("lucca.sandbox.rpc.DockerRPCTransport.is_docker_available", return_value=False):
+        # Explicit use_direct_fallback=False refuses
+        service = SandboxService(workspace_root=workspace, use_direct_fallback=False)
+        res = service.execute_tool(
+            "call-refuse-1",
+            "write_file",
+            {"path": "test_refuse.txt", "content": "hello"},
+            confirmed=True,
+        )
+        assert res.ok is False
+        assert res.exit_code == -2
+        assert "sandbox unavailable" in res.stderr
+        assert not (workspace / "test_refuse.txt").exists()
+
+        # Default constructor (no args) defaults use_direct_fallback=False and refuses
+        default_service = SandboxService(workspace_root=workspace)
+        assert default_service.rpc.use_direct_fallback is False
+        res2 = default_service.execute_tool(
+            "call-refuse-2", "run_python", {"code": "print(1)"}, confirmed=True
+        )
+        assert res2.ok is False
+        assert res2.exit_code == -2
+        assert "sandbox unavailable" in res2.stderr
+
+
+def test_orchestrator_speaks_sandbox_unavailable_notice() -> None:
+    """F-SBX-001 / D-AUD-13: Orchestrator speaks honest notice when sandbox refuses."""
+    from unittest.mock import MagicMock, patch
+
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.schemas import ToolResult
+    from lucca.core.trace import TurnTrace
+    from tests.fakes.fake_tts import FakeTTS
+
+    orch = Orchestrator(tts=FakeTTS, execute_tools=True)
+    try:
+        orch._request_confirmation = MagicMock(return_value=True)  # type: ignore[method-assign]
+        trace = TurnTrace(trace_id="test-trace", start_ns=0)
+        with (
+            patch.object(orch.sandbox, "execute_tool") as mock_exec,
+            patch.object(orch, "_speak_text") as mock_speak,
+        ):
+            mock_exec.return_value = ToolResult(
+                call_id="call-1",
+                ok=False,
+                exit_code=-2,
+                stderr="sandbox unavailable: Docker/WSL not reachable",
+                elapsed_ms=1.0,
+            )
+            orch._handle_tool_call(trace, "write_file", {"path": "test.txt", "content": "hello"})
+            mock_speak.assert_called_once_with(
+                trace, "My file sandbox isn't available — Docker isn't reachable."
+            )
+    finally:
+        orch.stop()
+        orch.cap_ring.close()
+        orch.cap_ring.unlink()
+        orch.play_ring.close()
+        orch.play_ring.unlink()
