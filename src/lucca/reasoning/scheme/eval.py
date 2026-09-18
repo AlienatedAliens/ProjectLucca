@@ -5,7 +5,6 @@ Spec 05 §4, §5, §6
 
 import time
 from collections.abc import Callable
-from typing import Any
 
 from lucca.core.exceptions import (
     SchemeError,
@@ -18,6 +17,7 @@ from lucca.reasoning.scheme.parser import (
     Keyword,
     RuleDefinition,
     SchemeNode,
+    SchemeValue,
     Symbol,
     to_canonical,
 )
@@ -40,7 +40,9 @@ class SchemeEvaluator:
         self.rule_id = rule_id
         self.start_time = 0.0
 
-    def eval(self, node: SchemeNode, env: dict[str, Callable[[list[Any]], Any]]) -> Any:
+    def eval(
+        self, node: SchemeNode, env: dict[str, Callable[[list[SchemeValue]], SchemeValue]]
+    ) -> SchemeValue:
         self.gas_used += 1
         if self.gas_used > self.gas_limit:
             raise SchemeGasExhausted(f"Gas limit of {self.gas_limit} exceeded")
@@ -107,7 +109,7 @@ class SchemeEvaluator:
                 )
 
             fn = env[op]
-            args: list[Any] = []
+            args: list[SchemeValue] = []
             for arg in node[1:]:
                 # If argument is a Keyword, preserve it directly without evaluating as symbol
                 if isinstance(arg, Keyword):
@@ -135,8 +137,10 @@ class SchemeEvaluator:
         )
 
 
-def build_env(state: RuleState | None = None) -> dict[str, Callable[[list[Any]], Any]]:
-    env = dict(PURE_PRIMITIVES)
+def build_env(
+    state: RuleState | None = None,
+) -> dict[str, Callable[[list[SchemeValue]], SchemeValue]]:
+    env: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = dict(PURE_PRIMITIVES)
     if state is not None:
         state_env = make_state_primitives(state)
         # Verify no shadowing
@@ -155,7 +159,7 @@ def evaluate_expr(
     gas_limit: int = DEFAULT_GAS_LIMIT,
     timeout_ms: float = DEFAULT_TIMEOUT_MS,
     rule_id: str | None = None,
-) -> Any:
+) -> SchemeValue:
     """Evaluates an arbitrary Scheme expression with gas and timeout limits."""
     evaluator = SchemeEvaluator(gas_limit=gas_limit, timeout_ms=timeout_ms, rule_id=rule_id)
     evaluator.start_time = time.perf_counter()

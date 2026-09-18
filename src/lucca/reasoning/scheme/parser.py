@@ -8,6 +8,7 @@ import re
 from dataclasses import dataclass
 
 from lucca.core.exceptions import SchemeSyntaxError
+from lucca.core.schemas import Say, ToolCall
 from lucca.reasoning.scheme.lexer import Token, tokenize
 
 
@@ -27,6 +28,7 @@ class Keyword:
 
 SchemeAtom = int | float | bool | str | Symbol | Keyword
 SchemeNode = SchemeAtom | list["SchemeNode"]
+type SchemeValue = SchemeAtom | list["SchemeValue"] | Say | ToolCall
 
 ALLOWED_OPS = frozenset(
     {
