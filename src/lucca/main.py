@@ -8,6 +8,7 @@ import multiprocessing as mp
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 
 from lucca.brain.server_ctl import check_server_status, is_healthy, start_server
 from lucca.core.config import get_config
@@ -51,6 +52,23 @@ class Supervisor:
         self.children: dict[str, mp.Process] = {}
         self.orchestrator: Orchestrator | None = None
         self.running = False
+        self._restart_attempts: dict[str, list[float]] = {}
+        self._next_restart: dict[str, float] = {}
+        self.backoff_base: float = 1.0
+        self.max_restart_backoff: float = 16.0
+        self._targets: dict[str, Callable[[], None]] = {
+            "npu": run_npu_process,
+            "audio": run_audio_process,
+            "ui": run_ui_process,
+        }
+
+    def _spawn_child(self, name: str) -> mp.Process:
+        target_fn = self._targets.get(name)
+        if target_fn is None:
+            raise ValueError(f"Unknown child target: {name}")
+        p = mp.Process(target=target_fn, name=f"lucca-{name}", daemon=True)
+        p.start()
+        return p
 
     def boot(self) -> None:
         print("=" * 65)
@@ -76,28 +94,26 @@ class Supervisor:
 
         # 3. Spawn NPU & AI Worker Process
         print("[3/5] Spawning lucca-npu...")
-        npu_p = mp.Process(target=run_npu_process, name="lucca-npu", daemon=True)
-        npu_p.start()
-        self.children["npu"] = npu_p
+        self.children["npu"] = self._spawn_child("npu")
 
         # 4. Spawn Audio Subsystem (sounddevice + PTT)
         print("[4/5] Spawning lucca-audio...")
-        audio_p = mp.Process(target=run_audio_process, name="lucca-audio", daemon=True)
-        audio_p.start()
-        self.children["audio"] = audio_p
+        self.children["audio"] = self._spawn_child("audio")
 
         # 5. Spawn Desktop Avatar UI (PyQt6)
         if self.config.ui.enabled:
             print("[5/5] Spawning lucca-ui...")
-            ui_p = mp.Process(target=run_ui_process, name="lucca-ui", daemon=True)
-            ui_p.start()
-            self.children["ui"] = ui_p
+            self.children["ui"] = self._spawn_child("ui")
 
         # Start Core Orchestrator in supervisor process
         print("Starting core orchestrator...")
         self.orchestrator = Orchestrator()
         self.orchestrator.start()
         self.running = True
+
+        # Register peers for heartbeat monitoring
+        for child_name in self.children:
+            self.orchestrator.register_peer(child_name)
 
         print("=" * 65)
         print(f"  LUCCA ONLINE: All 4 processes active. (LLM Mode: {self.config.llm.mode.upper()})")
@@ -158,6 +174,7 @@ class Supervisor:
     def run_forever(self) -> None:
         try:
             while self.running:
+                now = time.monotonic()
                 # Supervise child processes
                 for name, p in list(self.children.items()):
                     if not p.is_alive():
@@ -165,10 +182,44 @@ class Supervisor:
                             sys.stderr.write("UI closed by user (exit 0). Initiating shutdown...\n")
                             self.shutdown()
                             return
-                        sys.stderr.write(
-                            f"WARNING: Child process '{name}' exited with code {p.exitcode}.\n"
-                        )
-                time.sleep(1.0)
+
+                        recent = [
+                            t for t in self._restart_attempts.get(name, []) if now - t < 600.0
+                        ]
+                        self._restart_attempts[name] = recent
+                        n = len(recent)
+
+                        if n >= 5:
+                            sys.stderr.write(f"DEGRADED: {name} failed 5x in 10 min\n")
+                            if self.orchestrator:
+                                self.orchestrator._set_state(
+                                    "degraded", detail=f"{name}_crashed_5x"
+                                )
+                            self.children.pop(name, None)
+                            self._next_restart.pop(name, None)
+                        elif name not in self._next_restart:
+                            delay = min(self.max_restart_backoff, (2.0**n) * self.backoff_base)
+                            sys.stderr.write(
+                                f"WARNING: Child process '{name}' exited with code {p.exitcode}. "
+                                f"Restarting in {delay:.1f}s (attempt {n + 1}/5)...\n"
+                            )
+                            self._next_restart[name] = now + delay
+                        elif now >= self._next_restart[name]:
+                            del self._next_restart[name]
+                            self._restart_attempts[name].append(now)
+                            if name in self._targets:
+                                self.children[name] = self._spawn_child(name)
+
+                # Consult orchestrator dead peers from heartbeat
+                if self.orchestrator:
+                    for dead in self.orchestrator.dead_peers():
+                        if dead in self.children and self.children[dead].is_alive():
+                            sys.stderr.write(
+                                f"WARNING: Peer '{dead}' missed 3 heartbeats. Terminating...\n"
+                            )
+                            self.children[dead].terminate()
+
+                time.sleep(0.1)
         except KeyboardInterrupt:
             self.shutdown()
 

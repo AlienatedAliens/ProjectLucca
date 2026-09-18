@@ -112,6 +112,7 @@ class Orchestrator:
         self.history: list[dict[str, str]] = []
         self.executed_tools: list[tuple[str, dict[str, JsonValue]]] = []
         self._turn_lock = threading.Lock()
+        self._last_pong: dict[str, float] = {}
 
     def start(self) -> None:
         self.running = True
@@ -230,6 +231,18 @@ class Orchestrator:
             elif env.type == "ui.confirm_result":
                 p_conf = UIConfirmResultPayload.model_validate(env.payload)
                 self.confirm_action(p_conf.accepted, via=p_conf.via)
+            elif env.type == "sys.pong":
+                self._last_pong[env.src] = time.monotonic()
+
+    def register_peer(self, peer: str) -> None:
+        """Registers an expected child process for heartbeat monitoring."""
+        self._last_pong[peer] = time.monotonic()
+
+    def dead_peers(self, misses: int = 3) -> set[str]:
+        """Returns set of peers that missed heartbeats (last pong > 2.0s * misses)."""
+        now = time.monotonic()
+        threshold = 2.0 * misses
+        return {peer for peer, last_t in self._last_pong.items() if now - last_t > threshold}
 
     def confirm_action(
         self,
@@ -690,6 +703,17 @@ class Orchestrator:
 
     def _heartbeat_loop(self) -> None:
         while self.running:
+            try:
+                env = Envelope(
+                    type="sys.ping",
+                    trace_id="",
+                    ts_ns=time.monotonic_ns(),
+                    src="core",
+                    payload={},
+                )
+                self._publish_bus(env)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("heartbeat_ping_error", error=str(exc))
             time.sleep(2.0)
 
     def stop(self) -> None:
