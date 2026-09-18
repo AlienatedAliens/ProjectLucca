@@ -127,3 +127,20 @@ def test_codebase_claims_honest(qapp: QApplication) -> None:
     html_ch9 = dlg.txt_manual_body.toHtml()
     assert "Codebase Self-Inspection" not in html_ch9
     assert "Safe, read-only access to" not in html_ch9
+
+
+def test_sample_rule_validates(qapp: QApplication) -> None:
+    """F-UI-005: Ensure shipped sample rule in SettingsDialog passes parse_rule and validate_rule_static."""
+    from lucca.reasoning.scheme import parse_rule
+    from lucca.reasoning.scheme.validator import validate_rule_static
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    dlg = SettingsDialog()
+    assert "open-calculator-v1" in dlg.lisp_rules
+    sample = dlg.lisp_rules["open-calculator-v1"]["code"]
+
+    parsed = parse_rule(sample)
+    assert parsed.rule_id == "open-calculator-v1"
+
+    validated = validate_rule_static(sample)
+    assert validated.rule_id == "open-calculator-v1"

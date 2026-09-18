@@ -221,7 +221,7 @@ class SettingsDialog(QDialog):
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Project Lucca — Chrono Trigger Configuration Suite")
+        self.setWindowTitle("Project Lucca — Configuration Suite")
         self.resize(960, 720)
         self.setMinimumSize(880, 640)
         self.setWindowFlags(
@@ -272,47 +272,20 @@ class SettingsDialog(QDialog):
 
         # Canonical MicroScheme rules
         self.lisp_rules: dict[str, dict[str, Any]] = {
-            "vram-safety-guard-v1": {
-                "category": "Hardware & Safety",
-                "purpose": "Monitors dGPU RTX 5080 VRAM before LLM batch inference. Automatically switches to quantized KV-cache (q8_0) if free memory drops under 2.5 GB.",
-                "priority": 90,
-                "state": "ACTIVE",
-                "code": '(rule "vram-safety-guard-v1"\n  :when (and (intent= "llm_query") (< (gpu-free-vram-gb) 2.5))\n  :plan (list (set-kv-cache-quant "q8_0") (say "Adjusting neural cache to preserve VRAM ceiling!"))\n  :priority 90)',
-            },
-            "npu-whisper-pin-v1": {
-                "category": "Hardware & Safety",
-                "purpose": "Enforces Whisper ASR audio processing to remain pinned to the Intel AI Boost NPU via OpenVINO, safeguarding dGPU VRAM for LLM.",
-                "priority": 95,
-                "state": "ACTIVE",
-                "code": '(rule "npu-whisper-pin-v1"\n  :when (and (intent= "voice_input") (not (npu-active?)))\n  :plan (list (tool "restart_npu_subsystem") (say "Re-aligning voice stream to the AI Boost NPU!"))\n  :priority 95)',
-            },
-            "temporal-logic-gate-v1": {
-                "category": "Cognitive & Temporal",
-                "purpose": "Detects counterfactual timeline queries or code regressions, activating multi-step temporal deduction before invoking LLM synthesis.",
-                "priority": 80,
-                "state": "ACTIVE",
-                "code": '(rule "temporal-logic-gate-v1"\n  :when (and (intent= "counterfactual") (transcript-has? "timeline"))\n  :plan (list (say "Analyzing temporal divergence points...") (tool "search_temporal_memories"))\n  :priority 80)',
-            },
-            "codebase-inspect-route-v1": {
+            "open-calculator-v1": {
                 "category": "Tools & Execution",
-                "purpose": "Routes inquiries regarding Lucca architecture, tools, or bugs directly to read-only tools in C:/projects/ProjectLucca.",
-                "priority": 85,
+                "purpose": "Deterministic rule to launch calculator when requested and not already running.",
+                "priority": 10,
                 "state": "ACTIVE",
-                "code": '(rule "codebase-inspect-route-v1"\n  :when (or (transcript-has? "source") (transcript-has? "architecture") (intent= "read_code"))\n  :plan (list (tool "inspect_codebase" (entity "target_path")) (say "Accessing my source repository at C:/projects/ProjectLucca!"))\n  :priority 85)',
-            },
-            "inventor-curiosity-v1": {
-                "category": "Persona & Inflection",
-                "purpose": "Increases speech rate (+10%) and triggers thinking animations when discussing mechanical engineering, hardware telemetry, or time machines.",
-                "priority": 65,
-                "state": "ACTIVE",
-                "code": '(rule "inventor-curiosity-v1"\n  :when (and (intent= "invention_discussion") (app-running? "code.exe"))\n  :plan (list (set-persona-trait "enthusiasm" 95) (say "Now you\'re speaking my language! Let\'s examine the blueprints!"))\n  :priority 65)',
-            },
-            "vector-relevance-gate-v1": {
-                "category": "Memory & Recall",
-                "purpose": "Filters semantic memory queries through cosine similarity threshold (>0.72) before injecting into system prompt to prevent context pollution.",
-                "priority": 75,
-                "state": "ACTIVE",
-                "code": '(rule "vector-relevance-gate-v1"\n  :when (and (intent= "recall_past") (> (memory-relevance-score) 0.72))\n  :plan (list (tool "inject_memory_context" (entity "memory_id")))\n  :priority 75)',
+                "code": (
+                    '(rule "open-calculator-v1"\n'
+                    '  :when (and (intent= "launch_app")\n'
+                    '             (entity-has? "app" "calculator")\n'
+                    '             (not (app-running? "calculator")))\n'
+                    '  :plan (list (tool "launch_app" :app "calculator")\n'
+                    '              (say "Opening the calculator."))\n'
+                    "  :priority 10)"
+                ),
             },
         }
 
@@ -420,7 +393,7 @@ class SettingsDialog(QDialog):
 
         # Bottom Action Bar
         btn_box = QHBoxLayout()
-        self.lbl_global_status = QLabel("Chrono Trigger Engine · Operational", self)
+        self.lbl_global_status = QLabel("System Engine · Operational", self)
         self.lbl_global_status.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-style: italic;")
         btn_box.addWidget(self.lbl_global_status)
         btn_box.addStretch()
@@ -632,9 +605,7 @@ class SettingsDialog(QDialog):
     def _repopulate_archetypes_combo(self) -> None:
         self.combo_archetype.blockSignals(True)
         self.combo_archetype.clear()
-        self.combo_archetype.addItem(
-            "Inventor (Chrono Trigger Default - Technical, Enthusiastic)", "inventor"
-        )
+        self.combo_archetype.addItem("Inventor (Technical, Enthusiastic Companion)", "inventor")
         self.combo_archetype.addItem("Genki (Energetic, Cheerful Partner)", "genki")
         self.combo_archetype.addItem("Kuudere (Quiet, Hyper-Competent Analytical)", "kuudere")
 
@@ -889,7 +860,7 @@ class SettingsDialog(QDialog):
         grp_test = QGroupBox("Test Voice Playback & Audio Synthesis", parent)
         v_test = QVBoxLayout(grp_test)
         self.line_test_text = QLineEdit(
-            "Ah, Lucca Ashtear here! Chrono Trigger systems and voice blending are fully operational!",
+            "Ah, Lucca here! Audio systems and voice blending are fully operational!",
             grp_test,
         )
         v_test.addWidget(self.line_test_text)
@@ -1785,7 +1756,7 @@ class SettingsDialog(QDialog):
         grp_dsp_test = QGroupBox("Live DSP Post-Processing Test Player", parent)
         v_dtest = QVBoxLayout(grp_dsp_test)
         self.line_dsp_test = QLineEdit(
-            "Testing Chrono Trigger audio DSP filters: Warmth, clarity, and spatial resonance!",
+            "Testing audio DSP filters: Warmth, clarity, and spatial resonance!",
             grp_dsp_test,
         )
         v_dtest.addWidget(self.line_dsp_test)
@@ -2323,10 +2294,10 @@ class SettingsDialog(QDialog):
             self._load_selected_log_file()
 
     def _open_logs_dir(self) -> None:
-        path = Path("C:/ProjectLucca/logs/resource_sessions")
+        path = self.app_config.home_dir / "logs" / "resource_sessions"
         path.mkdir(parents=True, exist_ok=True)
         if os.name == "nt":
-            subprocess.Popen(["explorer.exe", str(path).replace("/", "\\\\")])
+            subprocess.Popen(["explorer.exe", str(path)])  # noqa: S603, S607
 
     # =========================================================================
     # TAB 9: Interactive User Manual (Split Chapter Browser)
@@ -2373,7 +2344,7 @@ class SettingsDialog(QDialog):
         docs = [
             # 0. Getting Started
             """<h2 style='color:#ffd700;'>1. Getting Started & Core Controls</h2>
-            <p>Welcome to <strong>Project Lucca</strong>, a local-first autonomous desktop companion powered by Chrono Trigger aesthetics and high-performance neural computing.</p>
+            <p>Welcome to <strong>Project Lucca</strong>, a local-first autonomous desktop companion powered by high-performance neural computing and retro companion aesthetics.</p>
             <h3 style='color:#38bdf8;'>Core Interaction Rules:</h3>
             <ul>
                 <li><strong>Single-Click Lucca:</strong> Toggles the subtitle dialogue bubble and quick chat input bar with click-to-talk button (<code>🎙️</code>).</li>
@@ -2386,10 +2357,10 @@ class SettingsDialog(QDialog):
             <p>The Commorose is an 8-sector concentric radial menu with an open center hole leaving Lucca 100% visible at all times.</p>
             <h3 style='color:#38bdf8;'>Commorose Polar Sectors:</h3>
             <ul>
-                <li><strong>📊 TELEMETRY (North):</strong> Floating Chrono Trigger Hardware Telemetry HUD with live 5-substrate meters.</li>
+                <li><strong>📊 TELEMETRY (North):</strong> Floating Hardware Telemetry HUD with live 5-substrate meters.</li>
                 <li><strong>⚙️ SETTINGS (North-East):</strong> Comprehensive 11-tab configuration suite.</li>
                 <li><strong>💬 CHAT BAR (East):</strong> Toggles quick text input bar and subtitle speech bubble.</li>
-                <li><strong>📁 FOLDERS (South-East):</strong> Opens Windows Explorer to <code>C:\\ProjectLucca</code>.</li>
+                <li><strong>📁 FOLDERS (South-East):</strong> Opens Windows Explorer to Project Lucca home directory.</li>
                 <li><strong>🧠 PERSONA (South):</strong> Switches persona archetype and inflection.</li>
                 <li><strong>🎙️ VOICE (South-West):</strong> Kokoro-82M Voice Blender & Dual-vector tensor mixer.</li>
                 <li><strong>🛠️ TOOLS (West):</strong> Application whitelist and execution security permissions.</li>
@@ -2430,10 +2401,9 @@ class SettingsDialog(QDialog):
             """<h2 style='color:#ffd700;'>6. MicroScheme LISP Reasoning Studio</h2>
             <p>Combines probabilistic LLM generation with deterministic, compiled S-expression reasoning pathways.</p>
             <ul>
-                <li>Rules are evaluated before and after tool calls with zero latency.</li>
-                <li>Categories: Hardware & Safety, Cognitive & Temporal, Tools & Execution, Persona & Inflection, Memory & Recall.</li>
-                <li>In-place Scheme code editor validates syntax against AST rules using <code>parse_rule</code>.</li>
-                <li>Test evaluation simulates rule execution with isolated gas budgets.</li>
+                <li>Deterministic State -> Plan symbolic pathways that execute before neural inference.</li>
+                <li>In-place Scheme code editor provides syntax validation via the MicroScheme parser.</li>
+                <li>Custom rules can be authored, validated, and tested with isolated gas budgets.</li>
             </ul>""",
             # 6. Episodic & Semantic Memory
             """<h2 style='color:#ffd700;'>7. Episodic & Semantic Memory Architecture</h2>
@@ -2452,7 +2422,7 @@ class SettingsDialog(QDialog):
                 <li><strong>NPU (Intel AI Boost):</strong> Whisper speech recognition and vector embeddings via OpenVINO.</li>
                 <li><strong>CPU (Intel Core Ultra 9 275HX - 24 Cores):</strong> Orchestrator, ZeroMQ IPC bus, and Kokoro TTS.</li>
                 <li><strong>RAM (16.0 GB Host Physical):</strong> Tracks Lucca 4-process RSS footprint vs total host utilization.</li>
-                <li><strong>Telemetry Logs:</strong> Rolling JSONL logs stored in <code>C:\\ProjectLucca\\logs\\resource_sessions\\</code>.</li>
+                <li><strong>Telemetry Logs:</strong> Rolling JSONL logs stored in <code>logs/resource_sessions/</code>.</li>
             </ul>""",
             # 8. Whitelist & Workspace Security
             """<h2 style='color:#ffd700;'>9. Application Whitelist & Workspace Security</h2>
@@ -2482,7 +2452,7 @@ class SettingsDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(14)
 
-        about_box = QGroupBox("Project Lucca — Chrono Trigger Engine & Architecture", parent)
+        about_box = QGroupBox("Project Lucca — System Architecture & Details", parent)
         v_about = QVBoxLayout(about_box)
 
         txt_about = QTextEdit(about_box)
@@ -2490,13 +2460,13 @@ class SettingsDialog(QDialog):
         txt_about.setHtml("""
             <div style="text-align: center; margin-bottom: 12px;">
                 <h2 style="color: #ffd700; font-size: 20px; margin-bottom: 2px;">⏳ PROJECT LUCCA DESKTOP COMPANION</h2>
-                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 0.2.6 (Chrono Trigger Engine)</span>
+                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 0.2.6</span>
             </div>
 
-            <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px;">Character Lore & Origin</h4>
+            <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px;">Companion Origin & Purpose</h4>
             <p style="color: #ffffff; line-height: 1.5;">
-                <strong>Lucca Ashtear</strong> is the brilliant teenage inventor from the Kingdom of Guardia (1000 AD) in Squaresoft's timeless masterpiece <em>Chrono Trigger</em>.
-                Armed with relentless scientific curiosity, deep expertise in temporal mechanics, and her custom-built inventions, Lucca represents the pinnacle of retro-futuristic engineering.
+                <strong>Lucca</strong> is an original, brilliant systems and hardware engineer companion.
+                Armed with relentless scientific curiosity, deep expertise in systems architecture, and custom-built inventions, Lucca represents low-level software craftsmanship and retro-futuristic companion engineering.
             </p>
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px; margin-top: 14px;">4-Process Decoupled Architecture</h4>
@@ -2523,7 +2493,7 @@ class SettingsDialog(QDialog):
             </p>
 
             <p style="color: #889ec8; font-size: 11px; margin-top: 12px; text-align: center;">
-                Licensed under the MIT License. Chrono Trigger is a registered trademark of Square Enix Co., Ltd.
+                Licensed under the MIT License.
             </p>
         """)
         v_about.addWidget(txt_about)
