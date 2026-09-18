@@ -3,11 +3,14 @@ Project Lucca — Rule Lifecycle & Distinctness Mechanical Tests
 Spec 05 §8, §9, §11 (T-RULE-03, T-RULE-04, T-RULE-05)
 """
 
+from pathlib import Path
+
 import pytest
 
 from lucca.core.schemas import Plan, Risk, RuleState, ToolCall, ToolParameter, ToolSchema
+from lucca.memory.db import DatabaseManager
 from lucca.ports import RuleEnginePort
-from lucca.reasoning.lifecycle import RuleLifecycleManager, compute_cluster_id
+from lucca.reasoning.lifecycle import RuleLifecycleManager, compute_cluster_id, plans_match
 
 SAMPLE_RULE = """
 (rule "open-calc-v1"
@@ -201,3 +204,68 @@ def test_rule_lifecycle_manager_satisfies_rule_engine_port(tools):
     """F-REAS-003: RuleLifecycleManager implements RuleEnginePort."""
     manager = RuleLifecycleManager(registered_tools=tools)
     _: RuleEnginePort = manager
+
+
+@pytest.fixture
+def temp_db(tmp_path: Path) -> DatabaseManager:
+    db = DatabaseManager(db_path=tmp_path / "test_lifecycle.sqlite")
+    db.migrate()
+    return db
+
+
+def test_rules_survive_restart(tools, temp_db: DatabaseManager):
+    """F-REAS-002: Rule states and regression cases persist to SQLite across restarts."""
+    # 1. Start with initial manager
+    mgr1 = RuleLifecycleManager(registered_tools=tools, db=temp_db)
+    managed = mgr1.register_rule(SAMPLE_RULE)
+    assert managed.status == "QUARANTINE"
+
+    # 2. Record 5 distinct cluster executions
+    state = RuleState(
+        schema_version=1,
+        transcript="open calculator",
+        transcript_lower="open calculator",
+        intent="launch_app",
+        intent_conf=0.95,
+        entities={"app": ["calculator"]},
+        apps_running=frozenset(),
+    )
+    plan = Plan(actions=[ToolCall(call_id="call-1", tool="launch_app", args={"app": "calculator"})])
+
+    for i in range(5):
+        mgr1.record_shadow(
+            "open-calc-v1",
+            matched=True,
+            cluster_id=f"cluster-{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+
+    # 3. Promote rule
+    result = mgr1.promote_if_eligible("open-calc-v1")
+    assert result.promoted is True
+    assert mgr1.rules["open-calc-v1"].status == "ACTIVE"
+    assert len(mgr1.regression_cases) == 5
+
+    # 4. Simulate process restart by instantiating a fresh manager against the same database
+    mgr2 = RuleLifecycleManager(registered_tools=tools, db=temp_db)
+
+    # 5. Assert rule state and regression cases were restored
+    assert "open-calc-v1" in mgr2.rules
+    restored = mgr2.rules["open-calc-v1"]
+    assert restored.status == "ACTIVE"
+    assert len(restored.success_clusters) == 5
+    assert len(mgr2.regression_cases) == 5
+    assert mgr2.regression_cases[0].rule_id == "open-calc-v1"
+    assert plans_match(mgr2.regression_cases[0].expected_plan, plan)
+
+    # 6. Verify restored regression suite runs and passes cleanly
+    report = mgr2.verify_regression_suite()
+    assert report.passed is True
+    assert report.cases_evaluated == 5
+
+    # 7. Verify restored rule executes in active mode
+    outcomes = mgr2.evaluate(state, mode="active")
+    assert len(outcomes) == 1
+    assert outcomes[0].fired is True
+    assert plans_match(outcomes[0].plan, plan)

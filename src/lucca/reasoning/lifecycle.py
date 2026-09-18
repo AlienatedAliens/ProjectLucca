@@ -4,11 +4,13 @@ Spec 05 §8, §9, ADR-007
 """
 
 import hashlib
+import json
 import math
 import time
 from dataclasses import dataclass, field
 from typing import Literal
 
+from lucca.core.exceptions import SchemeSyntaxError
 from lucca.core.schemas import (
     CandidateRule,
     Plan,
@@ -20,8 +22,9 @@ from lucca.core.schemas import (
     ToolCall,
     ToolSchema,
 )
+from lucca.memory.db import DatabaseManager
 from lucca.reasoning.scheme.eval import evaluate_rule
-from lucca.reasoning.scheme.parser import RuleDefinition
+from lucca.reasoning.scheme.parser import RuleDefinition, parse_rule
 from lucca.reasoning.scheme.validator import validate_rule_static
 
 RuleStatus = Literal["PROPOSED", "QUARANTINE", "ACTIVE", "DEMOTED", "RETIRED"]
@@ -90,10 +93,17 @@ class RuleLifecycleManager:
     QUARANTINE requires >= 5 distinct clusters, 0 failures, and 100% regression suite pass.
     """
 
-    def __init__(self, registered_tools: dict[str, ToolSchema] | None = None) -> None:
+    def __init__(
+        self,
+        registered_tools: dict[str, ToolSchema] | None = None,
+        db: DatabaseManager | None = None,
+    ) -> None:
         self.registered_tools = registered_tools or {}
+        self.db = db
         self.rules: dict[str, ManagedRule] = {}
         self.regression_cases: list[RegressionCase] = []
+        if self.db is not None:
+            self.load()
 
     def register_rule(self, source: str) -> ManagedRule:
         """
@@ -110,6 +120,8 @@ class RuleLifecycleManager:
             definition=rule_def,
         )
         self.rules[rule_def.rule_id] = managed
+        if self.db is not None:
+            self.persist(rule_def.rule_id)
         return managed
 
     def register_candidate(self, cand: CandidateRule) -> str:
@@ -209,6 +221,9 @@ class RuleLifecycleManager:
                     rule.snapshots.clear()
                     rule.status = "QUARANTINE"
 
+        if self.db is not None:
+            self.persist(rule_id)
+
     def user_retire(self, rule_id: str) -> None:
         """User explicitly retired this rule (e.g. 'stop doing X')."""
         if rule_id in self.rules:
@@ -216,6 +231,8 @@ class RuleLifecycleManager:
             rule.status = "RETIRED"
             rule.user_retired = True
             rule.retired_at = time.time()
+            if self.db is not None:
+                self.persist(rule_id)
 
     def verify_regression_suite(self, candidate_rule_id: str | None = None) -> RegressionReport:
         """
@@ -313,6 +330,9 @@ class RuleLifecycleManager:
             )
             self.regression_cases.append(case)
 
+        if self.db is not None:
+            self.persist(rule_id)
+
         return PromotionResult(
             promoted=True,
             rule_id=rule_id,
@@ -321,3 +341,170 @@ class RuleLifecycleManager:
                 "0 failures, regression suite clean"
             ),
         )
+
+    def load(self, db: DatabaseManager | None = None) -> None:
+        """Loads rules and regression cases from SQLite (Spec 05 §9, F-REAS-002)."""
+        if db is not None:
+            self.db = db
+        if self.db is None:
+            return
+
+        with self.db.read_cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    rule_id, status, source_canonical, source_hash,
+                    success_clusters_json, snapshots_json, failure_count,
+                    demotion_count, created_at, promoted_at, demoted_at,
+                    retired_at, user_retired
+                FROM rule_states
+                """
+            )
+            for row in cur.fetchall():
+                rule_id = str(row[0])
+                status_raw = str(row[1])
+                status: RuleStatus = "QUARANTINE"
+                if status_raw == "ACTIVE":
+                    status = "ACTIVE"
+                elif status_raw == "PROPOSED":
+                    status = "PROPOSED"
+                elif status_raw == "DEMOTED":
+                    status = "DEMOTED"
+                elif status_raw == "RETIRED":
+                    status = "RETIRED"
+                source_canonical = str(row[2])
+                clusters_list: list[str] = json.loads(row[4])
+                success_clusters = set(clusters_list)
+                snapshots_raw = json.loads(row[5]) if row[5] else []
+                snapshots: list[tuple[RuleState, Plan]] = [
+                    (RuleState.model_validate(s), Plan.model_validate(p)) for s, p in snapshots_raw
+                ]
+                failure_count = int(row[6])
+                demotion_count = int(row[7])
+                created_at = float(row[8])
+                promoted_at = float(row[9]) if row[9] is not None else None
+                demoted_at = float(row[10]) if row[10] is not None else None
+                retired_at = float(row[11]) if row[11] is not None else None
+                user_retired = bool(row[12])
+
+                try:
+                    rule_def = parse_rule(source_canonical)
+                except (SchemeSyntaxError, ValueError):  # noqa: S112
+                    continue
+
+                managed = ManagedRule(
+                    rule_id=rule_id,
+                    status=status,
+                    definition=rule_def,
+                    success_clusters=success_clusters,
+                    snapshots=snapshots,
+                    failure_count=failure_count,
+                    demotion_count=demotion_count,
+                    created_at=created_at,
+                    promoted_at=promoted_at,
+                    demoted_at=demoted_at,
+                    retired_at=retired_at,
+                    user_retired=user_retired,
+                )
+                self.rules[rule_id] = managed
+
+            cur.execute(
+                """
+                SELECT case_id, rule_id, state_json, expected_plan_json, captured_at, stale
+                FROM regression_cases
+                """
+            )
+            self.regression_cases.clear()
+            for row in cur.fetchall():
+                case_id = str(row[0])
+                case_rule_id = str(row[1])
+                state = RuleState.model_validate(json.loads(row[2]))
+                expected_plan = Plan.model_validate(json.loads(row[3]))
+                captured_at = float(row[4])
+                stale = bool(row[5])
+                case = RegressionCase(
+                    case_id=case_id,
+                    rule_id=case_rule_id,
+                    state=state,
+                    expected_plan=expected_plan,
+                    captured_at=captured_at,
+                    stale=stale,
+                )
+                self.regression_cases.append(case)
+
+    def persist(self, rule_id: str) -> None:
+        """Persists a rule and its regression cases to SQLite (Spec 05 §9, F-REAS-002)."""
+        if self.db is None or rule_id not in self.rules:
+            return
+
+        rule = self.rules[rule_id]
+        writer = self.db.get_writer()
+        snapshots_json = json.dumps(
+            [[s.model_dump(mode="json"), p.model_dump(mode="json")] for s, p in rule.snapshots]
+        )
+        clusters_json = json.dumps(sorted(list(rule.success_clusters)))
+
+        try:
+            writer.execute("BEGIN IMMEDIATE")
+            writer.execute(
+                """
+                INSERT INTO rule_states (
+                    rule_id, status, source_canonical, source_hash,
+                    success_clusters_json, snapshots_json, failure_count,
+                    demotion_count, created_at, promoted_at, demoted_at,
+                    retired_at, user_retired
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(rule_id) DO UPDATE SET
+                    status=excluded.status,
+                    success_clusters_json=excluded.success_clusters_json,
+                    snapshots_json=excluded.snapshots_json,
+                    failure_count=excluded.failure_count,
+                    demotion_count=excluded.demotion_count,
+                    promoted_at=excluded.promoted_at,
+                    demoted_at=excluded.demoted_at,
+                    retired_at=excluded.retired_at,
+                    user_retired=excluded.user_retired
+                """,
+                (
+                    rule.rule_id,
+                    rule.status,
+                    rule.definition.source_canonical,
+                    rule.definition.source_hash,
+                    clusters_json,
+                    snapshots_json,
+                    rule.failure_count,
+                    rule.demotion_count,
+                    rule.created_at,
+                    rule.promoted_at,
+                    rule.demoted_at,
+                    rule.retired_at,
+                    1 if rule.user_retired else 0,
+                ),
+            )
+
+            cases_for_rule = [c for c in self.regression_cases if c.rule_id == rule_id]
+            for c in cases_for_rule:
+                writer.execute(
+                    """
+                    INSERT INTO regression_cases (
+                        case_id, rule_id, state_json, expected_plan_json, captured_at, stale
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(case_id) DO UPDATE SET
+                        state_json=excluded.state_json,
+                        expected_plan_json=excluded.expected_plan_json,
+                        stale=excluded.stale
+                    """,
+                    (
+                        c.case_id,
+                        c.rule_id,
+                        json.dumps(c.state.model_dump(mode="json")),
+                        json.dumps(c.expected_plan.model_dump(mode="json")),
+                        c.captured_at,
+                        1 if c.stale else 0,
+                    ),
+                )
+
+            writer.execute("COMMIT")
+        except Exception:
+            writer.execute("ROLLBACK")
+            raise
