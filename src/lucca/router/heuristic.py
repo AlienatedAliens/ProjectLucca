@@ -51,6 +51,10 @@ FILE_PATTERN: Final[re.Pattern[str]] = re.compile(
 URL_PATTERN: Final[re.Pattern[str]] = re.compile(r"https?://\S+")
 QUOTED_PATTERN: Final[re.Pattern[str]] = re.compile(r'"([^"]+)"')
 
+INTENT_TO_RULE: Final[frozenset[str]] = frozenset(
+    {"launch_app", "file_read", "file_write", "web_fetch"}
+)
+
 
 class HeuristicRouter:
     """
@@ -193,6 +197,7 @@ class HeuristicRouter:
         last_tool_ok: bool | None = None,
         session_turns: int = 0,
         mode: Literal["audio", "transcript"] = "transcript",
+        has_registered_rule: bool = False,
     ) -> RouteDecision:
         """
         Executes routing decision logic per Spec 06 §1 & §2 and logs full DecisionRecord.
@@ -204,7 +209,11 @@ class HeuristicRouter:
         text_lower = transcript.strip().lower()
 
         # Decision logic per Spec 06 §1 & §2
-        if any_active_rule_fired:
+        if any_active_rule_fired or (
+            intent in INTENT_TO_RULE
+            and conf >= 0.80
+            and (has_registered_rule or any_active_rule_fired)
+        ):
             action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
         elif vad_speech_ms < 400 or (conf < 0.35 and not any_active_rule_fired):
             action_lit = "CLARIFY"
@@ -239,6 +248,7 @@ class HeuristicRouter:
             vad_speech_ms=vad_speech_ms,
             any_active_rule_fired=any_active_rule_fired,
             any_quarantine_rule_fired=any_quarantine_rule_fired,
+            has_registered_rule=has_registered_rule,
         )
 
         tid = trace_id or f"trace-{uuid.uuid4().hex[:8]}"

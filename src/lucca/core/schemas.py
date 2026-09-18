@@ -350,6 +350,7 @@ class RouteFeatures(BaseModel):
     asr_avg_logprob: float = 0.0
     any_active_rule_fired: bool = False
     any_quarantine_rule_fired: bool = False
+    has_registered_rule: bool = False
 
 
 class RouteDecision(BaseModel):

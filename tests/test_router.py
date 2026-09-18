@@ -187,6 +187,23 @@ def test_t_rtr_03_no_fabricated_probabilities() -> None:
     assert router.last_decision_record.router_version == "heuristic-1.0-deterministic"
 
 
+def test_launch_intent_routes_to_rule() -> None:
+    """F-ROUT-002: Deterministic launch_app intent with conf >= 0.80 routes to RULE."""
+    router = HeuristicRouter()
+    decision = router.route("open the calculator", intent_conf=0.95, has_registered_rule=True)
+    assert decision.action == RouteAction.RULE
+
+    # Without registered rule, defaults to LLM
+    decision_no_rule = router.route(
+        "open the calculator", intent_conf=0.95, has_registered_rule=False
+    )
+    assert decision_no_rule.action == RouteAction.LLM
+
+    # Low confidence does not route to RULE
+    decision_low = router.route("open the calculator", intent_conf=0.50, has_registered_rule=True)
+    assert decision_low.action != RouteAction.RULE
+
+
 # ============================================================================
 # T-RTR-04: Counterfactual rule firing
 # ============================================================================
