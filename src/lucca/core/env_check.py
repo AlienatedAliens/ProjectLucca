@@ -3,6 +3,8 @@ Project Lucca — Environment Diagnostic Engine
 Spec 11 §7, Phase Plan v2 §Phase 0 Spike 0.1 (`lucca-admin env-check`)
 """
 
+import hashlib
+import json
 import os
 import shutil
 import sqlite3
@@ -157,10 +159,88 @@ def check_lucca_home() -> tuple[bool, str]:
     return True, msg
 
 
+check_lucca_home_layout = check_lucca_home
+
+
+def _compute_sha256_stream(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def check_models_manifest() -> tuple[bool, str]:
+    """
+    Validates models/MANIFEST.json and verifies cryptographic hashes
+    of primary configured model weights.
+    """
+    cfg = get_config()
+    home = cfg.home_dir
+    manifest_path = home / "models" / "MANIFEST.json"
+    if not manifest_path.exists():
+        repo_manifest = Path(__file__).resolve().parents[3] / "models" / "MANIFEST.json"
+        if repo_manifest.exists():
+            manifest_path = repo_manifest
+        else:
+            return False, f"Model manifest missing at '{manifest_path}'"
+
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        return False, f"Failed to parse manifest at '{manifest_path}': {e}"
+
+    files_map = data.get("files", {})
+    if not isinstance(files_map, dict):
+        return False, "Invalid manifest format: 'files' must be a dict"
+
+    required_keys = [
+        cfg.llm.model,
+        cfg.llm.mmproj,
+        "tts/kokoro-v1.0.onnx",
+        "tts/voices-v1.0.bin",
+    ]
+
+    models_dir = home / "models"
+    verified_count = 0
+    for req in required_keys:
+        if not req:
+            continue
+        rel = req.replace("\\", "/")
+        p = models_dir / rel
+        if not p.exists():
+            return False, f"Required model file missing: '{rel}' (expected at '{p}')"
+
+        entry = files_map.get(rel)
+        if entry is None:
+            for k, v in files_map.items():
+                if k == rel or Path(k).name == Path(rel).name:
+                    entry = v
+                    break
+
+        if entry is None:
+            return False, f"Model '{rel}' has no entry in manifest"
+
+        expected_sha = entry.get("sha256") if isinstance(entry, dict) else entry
+        if not isinstance(expected_sha, str):
+            return False, f"No sha256 hash specified for '{rel}' in manifest"
+
+        actual_sha = _compute_sha256_stream(p)
+        if actual_sha.lower() != expected_sha.lower():
+            return False, (
+                f"Hash mismatch for '{rel}': expected {expected_sha[:16]}..., "
+                f"got {actual_sha[:16]}..."
+            )
+        verified_count += 1
+
+    return True, f"Models manifest verified ({verified_count} required weights matched SHA256)"
+
+
 def run_env_check() -> int:
-    """Executes all Spike 0.1 environment checks and reports status."""
+    """Executes all system environment checks and reports status."""
     print("=" * 68)
-    print("  PROJECT LUCCA — SYSTEM ENVIRONMENT CHECK (SPIKE 0.1)")
+    print("  PROJECT LUCCA — SYSTEM ENVIRONMENT CHECK")
     print("=" * 68)
 
     checks = [
@@ -170,19 +250,20 @@ def run_env_check() -> int:
         ("WSL2 .wslconfig Clamp", check_wslconfig),
         ("Docker CE in WSL2", check_docker_wsl),
         ("LUCCA_HOME Layout", check_lucca_home),
+        ("Models Manifest & Weights", check_models_manifest),
     ]
 
     all_passed = True
     for label, fn in checks:
         ok, detail = fn()
         status_tag = "[PASS]" if ok else "[FAIL]"
-        print(f"{status_tag} {label:<24}: {detail}")
+        print(f"{status_tag} {label:<25}: {detail}")
         if not ok:
             all_passed = False
 
     print("=" * 68)
     if all_passed:
-        print("[SUCCESS] All Spike 0.1 environment criteria passed!")
+        print("[SUCCESS] All system environment criteria passed!")
         return 0
     else:
         print("[WARN] Some environment criteria failed. See details above.")
