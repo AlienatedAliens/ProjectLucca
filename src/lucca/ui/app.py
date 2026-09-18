@@ -8,6 +8,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,62 @@ class UIBridge(QObject):
     rms_received = pyqtSignal(float)
     caption_received = pyqtSignal(str, str, bool)  # text, source, is_final
     confirm_requested = pyqtSignal(str, str, float)  # prompt, summary, timeout_s
+
+
+def get_commorose_actions(
+    open_dir_fn: Callable[[str], None] | None = None,
+    toggle_hud_fn: Callable[[], None] | None = None,
+    open_settings_fn: Callable[[], None] | None = None,
+    toggle_chat_fn: Callable[[], None] | None = None,
+    open_tab_fn: Callable[[int], None] | None = None,
+) -> list[CommoroseAction]:
+    def _default_open_dir(path: str) -> None:
+        subprocess.Popen(["explorer.exe", path])  # noqa: S603, S607
+
+    _open_dir: Callable[[str], None] = open_dir_fn or _default_open_dir
+    _toggle_hud: Callable[[], None] = toggle_hud_fn or (lambda: None)
+    _open_settings: Callable[[], None] = open_settings_fn or (lambda: None)
+    _toggle_chat: Callable[[], None] = toggle_chat_fn or (lambda: None)
+    _open_tab: Callable[[int], None] = open_tab_fn or (lambda _idx: None)
+
+    project_root = str(Path(__file__).resolve().parents[3])
+    home_dir = str(get_config().home_dir)
+
+    def _open_home() -> None:
+        _open_dir(home_dir)
+
+    def _open_project() -> None:
+        _open_dir(project_root)
+
+    def _tab_0() -> None:
+        _open_tab(0)
+
+    def _tab_1() -> None:
+        _open_tab(1)
+
+    def _tab_3() -> None:
+        _open_tab(3)
+
+    return [
+        CommoroseAction("TELEMETRY", "📊", _toggle_hud, "Toggle live hardware telemetry HUD"),
+        CommoroseAction("SETTINGS", "⚙️", _open_settings, "Open 10-tab configuration suite"),
+        CommoroseAction("CHAT BAR", "💬", _toggle_chat, "Toggle dialogue and chat input"),
+        CommoroseAction(
+            "FOLDERS",
+            "📁",
+            _open_home,
+            "Open Project Lucca home directory",
+        ),
+        CommoroseAction("PERSONA", "🧠", _tab_0, "Switch persona profile"),
+        CommoroseAction("VOICE", "🎙️", _tab_1, "Voice synthesis blender"),
+        CommoroseAction("TOOLS", "🛠️", _tab_3, "Application whitelist studio"),
+        CommoroseAction(
+            "PROJECT",
+            "💻",
+            _open_project,
+            "Open project directory in Explorer",
+        ),
+    ]
 
 
 class UIApplication:
@@ -94,41 +151,16 @@ class UIApplication:
         self.settings_dialog: SettingsDialog | None = None
         self.telemetry_hud = TelemetryHUD()
 
-        def _open_dir(path: str) -> None:
-            subprocess.Popen(["explorer.exe", path])
+        def _open_dir_cmd(path: str) -> None:
+            subprocess.Popen(["explorer.exe", path])  # noqa: S603, S607
 
-        commorose_actions = [
-            CommoroseAction(
-                "TELEMETRY", "📊", self._toggle_telemetry_hud, "Toggle live hardware telemetry HUD"
-            ),
-            CommoroseAction(
-                "SETTINGS", "⚙️", self._open_settings, "Open 10-tab configuration suite"
-            ),
-            CommoroseAction(
-                "CHAT BAR", "💬", self._toggle_dialogue_and_chat, "Toggle dialogue and chat input"
-            ),
-            CommoroseAction(
-                "FOLDERS",
-                "📁",
-                lambda: _open_dir(r"C:\ProjectLucca"),
-                "Open ProjectLucca directory",
-            ),
-            CommoroseAction(
-                "PERSONA", "🧠", lambda: self._open_settings_tab(0), "Switch persona profile"
-            ),
-            CommoroseAction(
-                "VOICE", "🎙️", lambda: self._open_settings_tab(1), "Voice synthesis blender"
-            ),
-            CommoroseAction(
-                "TOOLS", "🛠️", lambda: self._open_settings_tab(3), "Application whitelist studio"
-            ),
-            CommoroseAction(
-                "CODEBASE",
-                "💻",
-                lambda: _open_dir(r"C:\projects\ProjectLucca"),
-                "Read-only codebase inspection",
-            ),
-        ]
+        commorose_actions = get_commorose_actions(
+            open_dir_fn=_open_dir_cmd,
+            toggle_hud_fn=self._toggle_telemetry_hud,
+            open_settings_fn=self._open_settings,
+            toggle_chat_fn=self._toggle_dialogue_and_chat,
+            open_tab_fn=self._open_settings_tab,
+        )
         self.commorose = CommoroseRadialMenu(commorose_actions)
 
         # Wire bridge signals

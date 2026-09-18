@@ -95,3 +95,35 @@ def test_telemetry_hud_lifecycle(qapp):
     assert not hud.poll_timer.isActive()
     assert not hud.isVisible()
     hud.close()
+
+
+def test_codebase_claims_honest(qapp: QApplication) -> None:
+    """F-UI-004: Ensure commorose and settings manual do not claim self-inspection."""
+    from lucca.ui.app import get_commorose_actions
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    # 1. Commorose actions check
+    actions = get_commorose_actions()
+    labels = [a.label for a in actions]
+    assert "CODEBASE" not in labels
+    assert "PROJECT" in labels
+    project_action = next(a for a in actions if a.label == "PROJECT")
+    assert "inspection" not in project_action.description.lower()
+    assert "explorer" in project_action.description.lower()
+
+    # 2. Settings dialog manual chapters
+    dlg = SettingsDialog()
+    for i in range(dlg.list_manual_chapters.count()):
+        item = dlg.list_manual_chapters.item(i)
+        assert item is not None
+        assert "Codebase Self-Inspection" not in item.text()
+
+    dlg._on_manual_chapter_selected(1)  # Avatar & Commorose chapter
+    html_commorose = dlg.txt_manual_body.toHtml()
+    assert "Safe read-only inspection of source repository" not in html_commorose
+    assert "PROJECT" in html_commorose
+
+    dlg._on_manual_chapter_selected(8)  # Chapter 9 (index 8)
+    html_ch9 = dlg.txt_manual_body.toHtml()
+    assert "Codebase Self-Inspection" not in html_ch9
+    assert "Safe, read-only access to" not in html_ch9

@@ -2352,7 +2352,7 @@ class SettingsDialog(QDialog):
             "6. MicroScheme LISP Studio",
             "7. Episodic & Semantic Memory",
             "8. Hardware Telemetry & Matrix",
-            "9. Whitelist & Codebase Self-Inspection",
+            "9. Application Whitelist & Workspace Security",
             "10. Troubleshooting & FAQ",
         ]
         for ch in chapters:
@@ -2393,7 +2393,7 @@ class SettingsDialog(QDialog):
                 <li><strong>🧠 PERSONA (South):</strong> Switches persona archetype and inflection.</li>
                 <li><strong>🎙️ VOICE (South-West):</strong> Kokoro-82M Voice Blender & Dual-vector tensor mixer.</li>
                 <li><strong>🛠️ TOOLS (West):</strong> Application whitelist and execution security permissions.</li>
-                <li><strong>💻 CODEBASE (North-West):</strong> Safe read-only inspection of source repository at <code>C:\\projects\\ProjectLucca</code>.</li>
+                <li><strong>💻 PROJECT (North-West):</strong> Opens the project directory in Explorer.</li>
             </ul>""",
             # 2. Voice Blender & Mixing
             """<h2 style='color:#ffd700;'>3. Voice Synthesis & Dual-Vector Mixing</h2>
@@ -2454,13 +2454,13 @@ class SettingsDialog(QDialog):
                 <li><strong>RAM (16.0 GB Host Physical):</strong> Tracks Lucca 4-process RSS footprint vs total host utilization.</li>
                 <li><strong>Telemetry Logs:</strong> Rolling JSONL logs stored in <code>C:\\ProjectLucca\\logs\\resource_sessions\\</code>.</li>
             </ul>""",
-            # 8. Whitelist & Codebase Inspection
-            """<h2 style='color:#ffd700;'>9. Application Whitelist & Codebase Self-Inspection</h2>
+            # 8. Whitelist & Workspace Security
+            """<h2 style='color:#ffd700;'>9. Application Whitelist & Workspace Security</h2>
             <p>Strict security controls govern all companion desktop tools:</p>
             <ul>
-                <li><strong>Approved Application Whitelist:</strong> Only applications explicitly authorized in Tab 4 can be launched or inspected.</li>
-                <li><strong>Codebase Self-Inspection:</strong> Safe, read-only access to <code>C:\\projects\\ProjectLucca</code> allowing Lucca to discuss her own code, ADRs, and documentation.</li>
-                <li><strong>Sandbox Constraints:</strong> Prohibits unintended modification or file destruction.</li>
+                <li><strong>Approved Application Whitelist:</strong> Only applications explicitly authorized in Tab 4 can be launched.</li>
+                <li><strong>Workspace Isolation:</strong> File tools operate strictly within the sandboxed workspace directory.</li>
+                <li><strong>Sandbox Constraints:</strong> Prohibits unauthorized file access, egress, or system modifications.</li>
             </ul>""",
             # 9. Troubleshooting & FAQ
             """<h2 style='color:#ffd700;'>10. Troubleshooting, Logs & Diagnostic FAQ</h2>
