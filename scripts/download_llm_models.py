@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 import sys
 import time
@@ -5,8 +7,57 @@ from pathlib import Path
 
 from huggingface_hub import hf_hub_download
 
+try:
+    import certifi
+
+    if "SSL_CERT_FILE" not in os.environ:
+        os.environ["SSL_CERT_FILE"] = certifi.where()
+except ImportError:
+    pass
+
 dest_dir = Path(r"C:\ProjectLucca\models\llm")
 dest_dir.mkdir(parents=True, exist_ok=True)
+
+manifest_path = Path(r"C:\ProjectLucca\models\MANIFEST.json")
+if not manifest_path.exists():
+    manifest_path = Path(__file__).resolve().parent.parent / "models" / "MANIFEST.json"
+
+manifest: dict[str, object] = {}
+if manifest_path.exists():
+    with open(manifest_path, encoding="utf-8") as f:
+        raw = json.load(f)
+        manifest = raw.get("files", {})
+
+
+def compute_sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(1024 * 1024):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def verify_hash_or_exit(target: Path, manifest_key: str) -> None:
+    entry = manifest.get(manifest_key)
+    if not entry:
+        print(f"[WARN] No manifest entry found for {manifest_key}, skipping sha256 check.")
+        return
+    expected_sha = entry.get("sha256") if isinstance(entry, dict) else entry
+    if not isinstance(expected_sha, str):
+        print(f"[WARN] No sha256 string found for {manifest_key}.")
+        return
+    print(f"Verifying sha256 for {target.name}...")
+    actual_sha = compute_sha256(target)
+    if actual_sha.lower() != expected_sha.lower():
+        print(f"[ERROR] SHA256 mismatch for {target.name}!")
+        print(f"  Expected: {expected_sha}")
+        print(f"  Actual:   {actual_sha}")
+        if target.exists():
+            target.unlink()
+            print(f"[CLEANUP] Deleted corrupted file: {target}")
+        sys.exit(1)
+    print(f"[OK] SHA256 verified for {target.name}: {actual_sha[:16]}...")
+
 
 # 1. Projector
 mmproj_target = dest_dir / "mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
@@ -27,6 +78,8 @@ if not mmproj_target.exists():
 else:
     print(f"mmproj already exists: {mmproj_target.stat().st_size / (1024 * 1024):.1f} MB")
 
+verify_hash_or_exit(mmproj_target, "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf")
+
 # 2. Q6_K Backbone
 backbone_target = dest_dir / "ultravox-v0_5-llama-3_1-8b-Q6_K.gguf"
 if not backbone_target.exists():
@@ -46,4 +99,6 @@ if not backbone_target.exists():
 else:
     print(f"Backbone already exists: {backbone_target.stat().st_size / (1024 * 1024):.1f} MB")
 
-print("All LLM models ready!")
+verify_hash_or_exit(backbone_target, "llm/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf")
+
+print("All LLM models verified and ready!")
