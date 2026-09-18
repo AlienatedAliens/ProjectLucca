@@ -57,3 +57,10 @@ def test_no_any_in_reasoning_public_api() -> None:
 
     assert not violations, f"Forbidden 'Any' found in reasoning public API: {violations}"
 
+
+def test_tier2_marker_registered() -> None:
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    content = pyproject_path.read_text(encoding="utf-8")
+    assert "tier2: Fake-backed integration tests (no hardware)" in content
+    assert "not tier2" in content
+
