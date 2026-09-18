@@ -163,9 +163,9 @@ def parse_gguf_file(path: Path) -> GGUFMetadata:
 def _derive_quant_from_filename(filename: str) -> str:
     parts = filename.replace(".gguf", "").split("-")
     for part in reversed(parts):
-        if part.upper().startswith("Q") or part.upper() in ("FP16", "FP32", "BF16"):
+        if part.upper().startswith("Q") or part.upper() in ("FP16", "FP32", "BF16", "F16", "F32"):
             return part.upper()
-    return "Q4_K_M"
+    return "UNKNOWN"
 
 
 def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[ModelRegistryEntry]:

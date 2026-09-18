@@ -106,3 +106,22 @@ def test_parse_nonexistent_file(tmp_path: Path) -> None:
     assert meta.is_valid_gguf is False
     assert meta.magic == ""
     assert meta.file_size_bytes == 0
+
+
+def test_parse_gguf_filename_quant_fallback_unknown(tmp_path: Path) -> None:
+    """Verifies that quantization falls back to 'UNKNOWN' if not in metadata and not in filename."""
+    gguf_path = tmp_path / "custom-model-unlabelled.gguf"
+    _create_synthetic_gguf(
+        gguf_path,
+        version=3,
+        tensor_count=100,
+        metadata={
+            "general.architecture": "mistral",
+            "general.name": "custom-model",
+        },
+    )
+
+    meta = parse_gguf_file(gguf_path)
+    assert meta.is_valid_gguf is True
+    assert meta.architecture == "mistral"
+    assert meta.quantization == "UNKNOWN"
