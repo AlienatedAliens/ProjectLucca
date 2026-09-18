@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import zmq
-from PyQt6.QtCore import QObject, QPoint, QRect, pyqtSignal
+from PyQt6.QtCore import QMetaObject, QObject, QPoint, QRect, Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
@@ -494,6 +494,13 @@ class UIApplication:
                     elif env.type == "audio.rms":
                         p_rms = AudioRMSPayload.model_validate(env.payload)
                         self.bridge.rms_received.emit(p_rms.dbfs)
+                    elif env.type == "sys.shutdown":
+                        self.running = False
+                        self.bridge.state_changed.emit("offline")
+                        QMetaObject.invokeMethod(
+                            self.app, "quit", Qt.ConnectionType.QueuedConnection
+                        )
+                        break
                 except (IPCError, zmq.ZMQError, ValueError):
                     pass
 

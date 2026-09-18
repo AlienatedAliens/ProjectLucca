@@ -246,6 +246,10 @@ class SharedAudioRing:
 
     def unlink(self) -> None:
         try:
+            self.shm.close()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
             self.shm.unlink()
         except FileNotFoundError:
             pass

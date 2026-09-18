@@ -50,7 +50,7 @@ from lucca.senses.tts import TTSWorker
 logger = structlog.get_logger(__name__)
 
 TurnState = Literal[
-    "idle", "listening", "thinking", "speaking", "confirm_wait", "postturn", "degraded"
+    "idle", "listening", "thinking", "speaking", "confirm_wait", "postturn", "degraded", "offline"
 ]
 
 
@@ -161,6 +161,27 @@ class Orchestrator:
             self.bus_sock.send(encode_envelope(env), zmq.NOBLOCK)
         except zmq.ZMQError as exc:
             logger.debug("publish_bus_zmq_error", error=str(exc))
+
+    def publish_offline(self) -> None:
+        """Broadcasts ui.state offline, play.abort, and sys.shutdown on the bus."""
+        self._set_state("offline")
+        trace_id = self.active_trace.trace_id if self.active_trace else ""
+        abort_env = Envelope(
+            type="play.abort",
+            trace_id=trace_id,
+            ts_ns=time.monotonic_ns(),
+            src="core",
+            payload=PlayAbortPayload(trace_id=trace_id).model_dump(),
+        )
+        self._publish_bus(abort_env)
+        shutdown_env = Envelope(
+            type="sys.shutdown",
+            trace_id="",
+            ts_ns=time.monotonic_ns(),
+            src="core",
+            payload={},
+        )
+        self._publish_bus(shutdown_env)
 
     def _publish_caption(
         self,
@@ -738,3 +759,11 @@ class Orchestrator:
         except (zmq.ZMQError, OSError) as exc:
             logger.debug("orchestrator_stop_socket_close_error", error=str(exc))
         self.ctx.destroy(linger=0)
+        try:
+            self.cap_ring.unlink()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("orchestrator_unlink_cap_ring_error", error=str(exc))
+        try:
+            self.play_ring.unlink()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("orchestrator_unlink_play_ring_error", error=str(exc))

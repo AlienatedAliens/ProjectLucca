@@ -178,3 +178,62 @@ def test_sigterm_triggers_ordered_shutdown() -> None:
         f"Supervisor exited with non-zero code {proc.returncode}.\nStderr: {stderr}"
     )
     assert "Shutdown complete." in stdout
+
+
+@pytest.mark.tier2
+def test_shutdown_publishes_offline_and_unlinks_rings() -> None:
+    """F-CORE-029: Supervisor.shutdown() publishes ui.state offline, sys.shutdown, and unlinks rings."""
+    from multiprocessing import shared_memory
+
+    import zmq
+
+    from lucca.core.ipc_schemas import decode_envelope
+
+    supervisor = Supervisor()
+    mock_p = MagicMock()
+    mock_p.is_alive.return_value = False
+    supervisor.children = {"audio": mock_p, "npu": mock_p, "ui": mock_p}
+
+    # Setup real orchestrator with real sockets and rings
+    orch = Orchestrator(execute_tools=False)
+    orch.start()
+    supervisor.orchestrator = orch
+    supervisor.running = True
+
+    # Connect bus subscriber socket
+    ctx = zmq.Context()
+    sub = ctx.socket(zmq.SUB)
+    sub.connect(f"tcp://127.0.0.1:{supervisor.config.ipc.bus_port}")
+    sub.setsockopt_string(zmq.SUBSCRIBE, "")
+    time.sleep(0.1)
+
+    # Verify cap_ring exists before shutdown
+    cap_shm = shared_memory.SharedMemory("lucca_cap_ring")
+    cap_shm.close()
+
+    # Trigger shutdown
+    supervisor.shutdown()
+
+    # Collect bus messages
+    received_types: list[str] = []
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 1.0:
+        try:
+            raw = sub.recv(flags=zmq.NOBLOCK)
+            env = decode_envelope(raw)
+            received_types.append(env.type)
+        except zmq.ZMQError:
+            time.sleep(0.05)
+
+    sub.close(linger=0)
+    ctx.destroy(linger=0)
+
+    # Verify offline and shutdown broadcast
+    assert "ui.state" in received_types
+    assert "sys.shutdown" in received_types
+
+    # Verify rings unlinked (attaching raises FileNotFoundError)
+    with pytest.raises(FileNotFoundError):
+        shared_memory.SharedMemory("lucca_cap_ring")
+    with pytest.raises(FileNotFoundError):
+        shared_memory.SharedMemory("lucca_play_ring")

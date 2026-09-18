@@ -253,16 +253,38 @@ class Supervisor:
         self._shutdown_done = True
         print("\nOrdered shutdown initiated...")
         self.running = False
-        if self.orchestrator:
-            self.orchestrator.stop()
 
+        # (a) Publish ui.state offline, play.abort, and sys.shutdown
+        if self.orchestrator:
+            self.orchestrator.publish_offline()
+
+        # (b) Allow children time to process shutdown and release audio/NPU resources
+        time.sleep(0.5)
+
+        # (c) Gracefully join children, then terminate/kill if stubborn
         for _name, p in self.children.items():
             if p.is_alive():
-                p.terminate()
-                p.join(timeout=2.0)
+                p.join(timeout=3.0)
                 if p.is_alive():
-                    p.kill()
+                    p.terminate()
+                    p.join(timeout=1.0)
+                    if p.is_alive():
+                        p.kill()
 
+        # (d) Stop orchestrator
+        if self.orchestrator:
+            self.orchestrator.stop()
+            # (e) Unlink shared memory rings
+            try:
+                self.orchestrator.cap_ring.unlink()
+            except Exception:  # noqa: BLE001, S110
+                pass
+            try:
+                self.orchestrator.play_ring.unlink()
+            except Exception:  # noqa: BLE001, S110
+                pass
+
+        # (f) Terminate llama-server
         if self.llama_proc and self.llama_proc.poll() is None:
             self.llama_proc.terminate()
             try:

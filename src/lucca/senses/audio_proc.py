@@ -314,6 +314,9 @@ class AudioProcess:
                         self.play_ring.clear_flag(FLAG_EOS)
                     elif env.type == "play.abort":
                         self._handle_barge_in()
+                    elif env.type == "sys.shutdown":
+                        self.running = False
+                        break
                 except (IPCError, zmq.ZMQError) as exc:
                     logger.debug("audio_ctl_message_error", error=str(exc))
 
@@ -323,6 +326,9 @@ class AudioProcess:
                     env = decode_envelope(raw)
                     if env.type == "play.abort":
                         self._handle_barge_in()
+                    elif env.type == "sys.shutdown":
+                        self.running = False
+                        break
                     elif env.type == "play.begin":
                         self.active_trace_id = env.trace_id
                         self.first_sample_emitted = False
