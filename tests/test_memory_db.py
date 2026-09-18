@@ -966,3 +966,52 @@ def test_update_memory_supersedes_and_audits(temp_db: DatabaseManager) -> None:
 
     all_mems = mgr.list_memories(include_superseded=True)
     assert len(all_mems) == 2
+
+
+def test_delete_memory_preserves_envelope_and_audits(temp_db: DatabaseManager) -> None:
+    """F-MEM-003: delete_memory preserves provenance_envelopes and logs audit row."""
+    mgr = MemoryManager(db=temp_db, master_key=TEST_KEY)
+    mem_id = mgr.add_memory("Crucial fact to be audited", kind="fact", importance=0.85)
+    assert mem_id > 0
+
+    with temp_db.read_cursor() as cur:
+        cur.execute("SELECT entry_id FROM memories WHERE memory_id = ?", (mem_id,))
+        row = cur.fetchone()
+        assert row is not None
+        entry_id = row[0]
+
+    # Delete memory with hard=True
+    deleted = mgr.delete_memory(mem_id, hard=True)
+    assert deleted is True
+
+    with temp_db.read_cursor() as cur:
+        # Check memories row is soft-deleted
+        cur.execute("SELECT forgotten_at FROM memories WHERE memory_id = ?", (mem_id,))
+        mem_row = cur.fetchone()
+        assert mem_row is not None
+        assert mem_row[0] is not None
+
+        # Check provenance envelope is PRESERVED (Spec 04 §8 / TM-11)
+        cur.execute(
+            "SELECT payload_json FROM provenance_envelopes WHERE entry_id = ?",
+            (entry_id,),
+        )
+        env_row = cur.fetchone()
+        assert env_row is not None, "Provenance envelope was destroyed on deletion!"
+        gate = ProvenanceGate(master_key=TEST_KEY)
+        signed = SignedPayload(**json.loads(env_row[0]))
+        assert gate.admit(signed).payload.content == "Crucial fact to be audited"
+
+        # Check memory_audit has forget row
+        cur.execute(
+            "SELECT kind, reason, entry_id FROM memory_audit WHERE kind = 'forget' AND entry_id = ?",
+            (entry_id,),
+        )
+        audit_row = cur.fetchone()
+        assert audit_row is not None
+        assert audit_row[0] == "forget"
+        assert str(mem_id) in audit_row[1]
+
+    # Check list_memories filtering
+    assert len(mgr.list_memories()) == 0
+    assert len(mgr.list_memories(include_forgotten=True)) == 1

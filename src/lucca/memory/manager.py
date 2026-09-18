@@ -319,35 +319,37 @@ class MemoryManager:
             conn.execute("ROLLBACK")
             raise
 
-    def delete_memory(self, memory_id: int, hard: bool = True) -> bool:
-        """Deletes or marks a memory as forgotten."""
+    def delete_memory(self, memory_id: int, hard: bool = False) -> bool:
+        """Marks memory forgotten and audits while preserving immutable envelope (F-MEM-003)."""
+        now = time.time()
         conn = self.db.get_writer()
         try:
             conn.execute("BEGIN IMMEDIATE")
-            if hard:
-                cur = conn.execute(
-                    "SELECT entry_id FROM memories WHERE memory_id = ?", (memory_id,)
-                )
-                row = cur.fetchone()
-                entry_id = row[0] if row else None
+            cur = conn.execute("SELECT entry_id FROM memories WHERE memory_id = ?", (memory_id,))
+            row = cur.fetchone()
+            entry_id = row[0] if row else None
 
-                conn.execute("DELETE FROM memory_sources WHERE memory_id = ?", (memory_id,))
-                try:
-                    conn.execute("DELETE FROM vec_memories WHERE memory_id = ?", (memory_id,))
-                except Exception:  # noqa: BLE001, S110
-                    pass
-                try:
-                    conn.execute("DELETE FROM fts_memories WHERE rowid = ?", (memory_id,))
-                except Exception:  # noqa: BLE001, S110
-                    pass
-                conn.execute("DELETE FROM memories WHERE memory_id = ?", (memory_id,))
-                if entry_id:
-                    conn.execute("DELETE FROM provenance_envelopes WHERE entry_id = ?", (entry_id,))
-            else:
-                conn.execute(
-                    "UPDATE memories SET forgotten_at = ? WHERE memory_id = ?",
-                    (time.time(), memory_id),
-                )
+            # Always soft-delete: set forgotten_at (Spec 04 §8 / TM-11)
+            conn.execute(
+                "UPDATE memories SET forgotten_at = ? WHERE memory_id = ?",
+                (now, memory_id),
+            )
+
+            # Clean up vector search index and close active KG edges
+            try:
+                conn.execute("DELETE FROM vec_memories WHERE memory_id = ?", (memory_id,))
+            except Exception:  # noqa: BLE001, S110
+                pass
+            conn.execute(
+                "UPDATE kg_edges SET valid_to = ? WHERE memory_id = ? AND valid_to IS NULL",
+                (now, memory_id),
+            )
+
+            # Record audit row with immutable provenance envelope preserved
+            conn.execute(
+                "INSERT INTO memory_audit (ts, kind, reason, entry_id) VALUES (?, 'forget', ?, ?)",
+                (now, f"User confirmed forget for memory {memory_id}", entry_id),
+            )
 
             conn.execute("COMMIT")
             return True
