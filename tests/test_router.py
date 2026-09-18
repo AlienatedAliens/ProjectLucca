@@ -164,7 +164,7 @@ def test_t_rtr_03_decision_logging(tmp_path: Path) -> None:
 
     with db.read_cursor() as cur:
         cur.execute(
-            "SELECT tool_ok, llm_first_token_ms, tool_calls_json FROM decisions WHERE decision_id = ?",
+            "SELECT tool_ok, llm_first_token_ms, tool_calls_json, probabilities_json, router_version FROM decisions WHERE decision_id = ?",
             (decision_id,),
         )
         p_row = cur.fetchone()
@@ -172,8 +172,19 @@ def test_t_rtr_03_decision_logging(tmp_path: Path) -> None:
         assert p_row[0] == 1
         assert p_row[1] == 115.0
         assert "launch_app" in p_row[2]
+        assert json.loads(p_row[3]) is None
+        assert p_row[4] == "heuristic-1.0-deterministic"
 
     db.close()
+
+
+def test_t_rtr_03_no_fabricated_probabilities() -> None:
+    """F-ROUT-005: Heuristic router records probabilities as None and uses deterministic version."""
+    router = HeuristicRouter()
+    decision = router.route("open calculator")
+    assert decision.probabilities is None
+    assert router.last_decision_record is not None
+    assert router.last_decision_record.router_version == "heuristic-1.0-deterministic"
 
 
 # ============================================================================

@@ -206,20 +206,17 @@ class HeuristicRouter:
         # Decision logic per Spec 06 §1 & §2
         if any_active_rule_fired:
             action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
-            probs = {"RULE": 0.90, "LLM": 0.05, "CLARIFY": 0.05}
         elif vad_speech_ms < 400 or (conf < 0.35 and not any_active_rule_fired):
             action_lit = "CLARIFY"
-            probs = {"CLARIFY": 0.90, "LLM": 0.05, "RULE": 0.05}
         else:
             action_lit = "LLM"
-            probs = {"LLM": 0.90, "RULE": 0.05, "CLARIFY": 0.05}
 
         elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
 
         route_action = RouteAction(action_lit)
         decision = RouteDecision(
             action=route_action,
-            probabilities=probs,
+            probabilities=None,
             prediction_set=[route_action],
             fallback_applied=False,
             calibrated=False,
@@ -255,7 +252,7 @@ class HeuristicRouter:
             ts=time.time(),
             features=features,
             decision=decision,
-            router_version="heuristic-1.0",
+            router_version="heuristic-1.0-deterministic",
             executed_path=action_lit,
             counterfactual_rule_fired=any_quarantine_rule_fired,
         )

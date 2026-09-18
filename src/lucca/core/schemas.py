@@ -354,7 +354,7 @@ class RouteFeatures(BaseModel):
 
 class RouteDecision(BaseModel):
     action: RouteAction
-    probabilities: dict[str, float]
+    probabilities: dict[str, float] | None = None
     prediction_set: list[RouteAction]
     fallback_applied: bool = False
     calibrated: bool = False
