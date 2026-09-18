@@ -3,23 +3,25 @@ Project Lucca — UI Process (`lucca-ui`)
 Spec 01 §1, ADR-005
 """
 
+import ctypes
+import subprocess
 import sys
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 import zmq
 from PyQt6.QtCore import QObject, QPoint, QRect, pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
+from lucca.brain.prompt_builder import get_persona
 from lucca.core.config import get_config
 from lucca.core.exceptions import IPCError
 from lucca.core.ipc_schemas import (
     AudioRMSPayload,
     Envelope,
-    PTTPressedPayload,
-    PTTReleasedPayload,
     UICaptionPayload,
     UIConfigUpdatePayload,
     UIConfirmPayload,
@@ -29,10 +31,13 @@ from lucca.core.ipc_schemas import (
     decode_envelope,
     encode_envelope,
 )
+from lucca.ui.commorose import CommoroseAction, CommoroseRadialMenu
 from lucca.ui.input_bar import QuickChatBar
 from lucca.ui.settings_dialog import SettingsDialog
 from lucca.ui.speech_bubble import SpeechBubble
 from lucca.ui.sprite import CompanionSprite
+from lucca.ui.telemetry_hud import TelemetryHUD
+from lucca.ui.theme import CHRONO_TRIGGER_STYLE_SHEET
 
 
 class UIBridge(QObject):
@@ -44,9 +49,27 @@ class UIBridge(QObject):
 
 class UIApplication:
     def __init__(self) -> None:
+        # Set Windows AppUserModelID so taskbar and antivirus see distinct application
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "ProjectLucca.DesktopCompanion.0.2"
+            )
+        except Exception:  # noqa: BLE001, S110
+            pass
+
         self.config = get_config()
         self.app = QApplication(sys.argv)
         self.app.setQuitOnLastWindowClosed(False)
+        self.app.setStyleSheet(CHRONO_TRIGGER_STYLE_SHEET)
+
+        # Set application icon
+        self.app_icon: QIcon | None = None
+        icon_p = Path("assets/icon.png")
+        if not icon_p.exists():
+            icon_p = self.config.home_dir / "assets" / "icon.png"
+        if icon_p.exists():
+            self.app_icon = QIcon(str(icon_p))
+            self.app.setWindowIcon(self.app_icon)
 
         # Active settings state
         self.active_voice = self.config.tts.voice
@@ -69,6 +92,44 @@ class UIApplication:
             on_ptt_release=self._send_mouse_ptt_release,
         )
         self.settings_dialog: SettingsDialog | None = None
+        self.telemetry_hud = TelemetryHUD()
+
+        def _open_dir(path: str) -> None:
+            subprocess.Popen(["explorer.exe", path])
+
+        commorose_actions = [
+            CommoroseAction(
+                "TELEMETRY", "📊", self._toggle_telemetry_hud, "Toggle live hardware telemetry HUD"
+            ),
+            CommoroseAction(
+                "SETTINGS", "⚙️", self._open_settings, "Open 10-tab configuration suite"
+            ),
+            CommoroseAction(
+                "CHAT BAR", "💬", self._toggle_dialogue_and_chat, "Toggle dialogue and chat input"
+            ),
+            CommoroseAction(
+                "FOLDERS",
+                "📁",
+                lambda: _open_dir(r"C:\ProjectLucca"),
+                "Open ProjectLucca directory",
+            ),
+            CommoroseAction(
+                "PERSONA", "🧠", lambda: self._open_settings_tab(0), "Switch persona profile"
+            ),
+            CommoroseAction(
+                "VOICE", "🎙️", lambda: self._open_settings_tab(1), "Voice synthesis blender"
+            ),
+            CommoroseAction(
+                "TOOLS", "🛠️", lambda: self._open_settings_tab(3), "Application whitelist studio"
+            ),
+            CommoroseAction(
+                "CODEBASE",
+                "💻",
+                lambda: _open_dir(r"C:\projects\ProjectLucca"),
+                "Read-only codebase inspection",
+            ),
+        ]
+        self.commorose = CommoroseRadialMenu(commorose_actions)
 
         # Wire bridge signals
         self.bridge.state_changed.connect(self.sprite.set_state)
@@ -76,9 +137,10 @@ class UIApplication:
         self.bridge.caption_received.connect(self._on_caption_received)
         self.bridge.confirm_requested.connect(self._on_confirm_requested)
 
-        # Wire sprite interactions
+        # Wire sprite interactions: Single click -> chat/subtitles, Double click -> Commorose
         self.sprite.on_geometry_changed = self._on_sprite_moved
-        self.sprite.on_toggle_chat = self._toggle_chat_bar
+        self.sprite.on_toggle_chat = self._toggle_dialogue_and_chat
+        self.sprite.on_toggle_commorose = self._toggle_commorose
         self.sprite.on_context_menu = self._show_context_menu
 
         # Setup System Tray
@@ -119,6 +181,8 @@ class UIApplication:
 
         self.tray.setContextMenu(menu)
         self.tray.setToolTip("Project Lucca — Desktop Companion")
+        if self.app_icon is not None:
+            self.tray.setIcon(self.app_icon)
         self.tray.show()
 
     def _show_context_menu(self, pos: QPoint) -> None:
@@ -176,10 +240,14 @@ class UIApplication:
 
     def _open_settings(self) -> None:
         if self.settings_dialog is None:
+            persona = get_persona()
             self.settings_dialog = SettingsDialog(
                 current_voice=self.active_voice,
                 current_speed=self.active_speed,
                 current_ptt_key=self.active_ptt_key,
+                current_archetype=persona.get("archetype", "inventor"),
+                current_formality=persona.get("formality", "casual"),
+                current_custom_prompt=persona.get("custom_prompt", ""),
                 on_save_config=self._send_config_update,
             )
         self.settings_dialog.show()
@@ -204,6 +272,57 @@ class UIApplication:
     def _toggle_chat_bar(self) -> None:
         self.chat_bar.toggle()
         self.chat_bar.anchor_to(self.sprite.geometry())
+
+    def _toggle_commorose(self, center: QPoint | None = None) -> None:
+        """Toggles the battlefield-style concentric Commorose radial menu."""
+        if center is None:
+            center = self.sprite.geometry().center()
+        self.commorose.toggle(center)
+
+    def _toggle_telemetry_hud(self) -> None:
+        """Toggles the Chrono Trigger live hardware telemetry HUD."""
+        self.telemetry_hud.toggle()
+        if self.telemetry_hud.isVisible():
+            sprite_geom = self.sprite.geometry()
+            screen = self.sprite.screen()
+            screen_geom = screen.geometry() if screen else QRect(0, 0, 1920, 1080)
+            target_x = max(
+                20,
+                min(sprite_geom.x() - 150, screen_geom.width() - self.telemetry_hud.width() - 20),
+            )
+            target_y = max(40, sprite_geom.y() - self.telemetry_hud.height() - 30)
+            self.telemetry_hud.move(target_x, target_y)
+            self.telemetry_hud.raise_()
+            self.telemetry_hud.activateWindow()
+
+    def _toggle_dialogue_and_chat(self) -> None:
+        """Single-click toggle: brings up subtitle dialogue box and quick chat input bar."""
+        geom = self.sprite.geometry()
+        screen_geom = self._get_screen_geometry()
+        if self.chat_bar.isVisible():
+            self.chat_bar.hide()
+            self.bubble.hide()
+        else:
+            if not self.bubble.current_text:
+                self.bubble.show_caption(
+                    "I'm listening! You can type here or hold 🎙️ to speak.",
+                    source="assistant",
+                    is_final=True,
+                )
+            else:
+                self.bubble.show()
+            self.bubble.anchor_to(geom, screen_geom)
+            self.chat_bar.show()
+            self.chat_bar.anchor_to(geom)
+            self.chat_bar.input_field.setFocus()
+            self.chat_bar.raise_()
+            self.chat_bar.activateWindow()
+
+    def _open_settings_tab(self, index: int) -> None:
+        """Opens settings dialog directly to a specific tab index."""
+        self._open_settings()
+        if self.settings_dialog is not None and hasattr(self.settings_dialog, "tabs"):
+            self.settings_dialog.tabs.setCurrentIndex(index)
 
     def _on_sprite_moved(self) -> None:
         geom = self.sprite.geometry()
@@ -262,33 +381,34 @@ class UIApplication:
                 voice=self.active_voice,
                 speed=self.active_speed,
                 ptt_key=self.active_ptt_key,
+                persona_archetype=new_config.get("persona_archetype"),
+                formality=new_config.get("formality"),
+                custom_system_prompt=new_config.get("custom_system_prompt"),
+                llm_model=new_config.get("llm_model"),
             ).model_dump(),
         )
         self._send_ingest(env)
 
     def _send_mouse_ptt_press(self) -> None:
+        self._talk_press_time = time.monotonic()
         env = Envelope(
-            type="ptt.pressed",
+            type="ui.talk_press",
             trace_id="",
             ts_ns=time.monotonic_ns(),
             src="ui",
-            payload=PTTPressedPayload(t_ns=time.monotonic_ns()).model_dump(),
+            payload={},
         )
         self._send_ingest(env)
 
     def _send_mouse_ptt_release(self) -> None:
+        t0 = getattr(self, "_talk_press_time", time.monotonic() - 1.0)
+        dur_ms = max(100.0, (time.monotonic() - t0) * 1000.0)
         env = Envelope(
-            type="ptt.released",
+            type="ui.talk_release",
             trace_id="",
             ts_ns=time.monotonic_ns(),
             src="ui",
-            payload=PTTReleasedPayload(
-                t_ns=time.monotonic_ns(),
-                capture_seq_start=0,
-                capture_seq_end=0,
-                duration_ms=500.0,
-                vad_speech_ms=500.0,
-            ).model_dump(),
+            payload={"duration_ms": dur_ms},
         )
         self._send_ingest(env)
 

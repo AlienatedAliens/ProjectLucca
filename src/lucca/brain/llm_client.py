@@ -46,9 +46,19 @@ class LLMClient:
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
         history: list[dict[str, str]] | None = None,
-        temperature: float = 0.2,
-        max_tokens: int = 512,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> Generator[LLMEvent, None, None]:
+        eff_temp = (
+            temperature
+            if temperature is not None
+            else getattr(self.config.llm, "temperature", 0.6)
+        )
+        eff_tokens = (
+            max_tokens
+            if max_tokens is not None
+            else getattr(self.config.llm, "max_tokens", 512)
+        )
         messages = build_messages(
             memories=memories,
             history=history,
@@ -61,8 +71,8 @@ class LLMClient:
             "tools": TOOL_DEFINITIONS,
             "tool_choice": "auto",
             "chat_template_kwargs": {"tools_in_user_message": False},
-            "max_tokens": max_tokens,
-            "temperature": temperature,
+            "max_tokens": eff_tokens,
+            "temperature": eff_temp,
             "stream": True,
         }
 

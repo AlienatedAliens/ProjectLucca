@@ -1,0 +1,53 @@
+﻿=== ARTEFACT: S1_31_reports_harvest.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:59:51Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: echo --- repo logs\test_reports: & dir /s /b logs & echo --- C:\ProjectLucca\logs: & dir /s C:\ProjectLucca\logs & echo --- expected sign-off names search under both roots and repo: & dir /s /b C:\ProjectLucca\logs\*.json C:\ProjectLucca\logs\*.md C:\ProjectLucca\logs\*.jsonl & dir /s /b phase0_llm.json phase0_npu.json latency_report_*.md sandbox_verify_*.md retrieval_bench_*.md report-*.md decisions.jsonl traces.jsonl & echo --- copying to docs\audit\evidence\S1_31_reports & mkdir docs\audit\evidence\S1_31_reports & xcopy /s /e /i /y C:\ProjectLucca\logs docs\audit\evidence\S1_31_reports\ProjectLucca_logs & xcopy /s /e /i /y logs docs\audit\evidence\S1_31_reports\repo_logs & dir /s /b docs\audit\evidence\S1_31_reports
+=== OUTPUT (stdout+stderr merged) ===
+--- repo logs\test_reports: 
+C:\Projects\ProjectLucca\.git\logs
+--- C:\ProjectLucca\logs: 
+ Volume in drive C is Windows
+ Volume Serial Number is 2ABB-A3CA
+
+ Directory of C:\ProjectLucca\logs
+
+09/18/2026  05:56 AM    <DIR>          .
+09/17/2026  10:38 PM    <DIR>          ..
+09/17/2026  11:21 PM            13,286 phase0_llm.json
+09/18/2026  05:56 AM    <DIR>          resource_sessions
+09/18/2026  08:58 AM           186,522 traces.jsonl
+               2 File(s)        199,808 bytes
+
+ Directory of C:\ProjectLucca\logs\resource_sessions
+
+09/18/2026  05:56 AM    <DIR>          .
+09/18/2026  05:56 AM    <DIR>          ..
+09/18/2026  05:56 AM               672 session_20260918_055627.jsonl
+               1 File(s)            672 bytes
+
+     Total Files Listed:
+               3 File(s)        200,480 bytes
+               5 Dir(s)  778,932,674,560 bytes free
+--- expected sign-off names search under both roots and repo: 
+C:\ProjectLucca\logs\phase0_llm.json
+C:\ProjectLucca\logs\traces.jsonl
+C:\ProjectLucca\logs\resource_sessions\session_20260918_055627.jsonl
+File Not Found
+--- copying to docs\audit\evidence\S1_31_reports 
+C:\ProjectLucca\logs\phase0_llm.json
+C:\ProjectLucca\logs\traces.jsonl
+C:\ProjectLucca\logs\resource_sessions\session_20260918_055627.jsonl
+3 File(s) copied
+File not found - logs
+0 File(s) copied
+C:\Projects\ProjectLucca\docs\audit\evidence\S1_31_reports\ProjectLucca_logs
+C:\Projects\ProjectLucca\docs\audit\evidence\S1_31_reports\ProjectLucca_logs\phase0_llm.json
+C:\Projects\ProjectLucca\docs\audit\evidence\S1_31_reports\ProjectLucca_logs\resource_sessions
+C:\Projects\ProjectLucca\docs\audit\evidence\S1_31_reports\ProjectLucca_logs\traces.jsonl
+C:\Projects\ProjectLucca\docs\audit\evidence\S1_31_reports\ProjectLucca_logs\resource_sessions\session_20260918_055627.jsonl
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.97
+=== UTC_END: 2026-09-18T00:59:52Z

@@ -1,0 +1,13 @@
+﻿=== ARTEFACT: S1_11_T0_lint.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:19:19Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lint
+=== OUTPUT (stdout+stderr merged) ===
+error: Failed to spawn: `lint`
+  Caused by: program not found
+
+=== EXIT_CODE: 2
+=== TIMED_OUT: False
+=== DURATION_S: 0.13
+=== UTC_END: 2026-09-18T00:19:19Z

@@ -1,0 +1,10 @@
+﻿=== ARTEFACT: S1_07b_models_manifest.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:11:38Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: if exist C:\ProjectLucca\models\MANIFEST.json echo MANIFEST_PRESENT & if not exist C:\ProjectLucca\models\MANIFEST.json echo MANIFEST_ABSENT: C:\ProjectLucca\models\MANIFEST.json does not exist -- sha256 verification against manifest impossible & echo --- any MANIFEST* under models: & dir /s /b C:\ProjectLucca\models\*MANIFEST* & echo --- dir models: & dir /b C:\ProjectLucca\models & echo --- sha256 of present model binaries, no expected values to compare & certutil -hashfile C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf SHA256 & certutil -hashfile C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf SHA256 & certutil -hashfile C:\ProjectLucca\models\tts\kokoro-v1.0.onnx SHA256 & certutil -hashfile C:\ProjectLucca\models\tts\voices-v1.0.bin SHA256 & dir C:\ProjectLucca\models\llm & dir C:\ProjectLucca\models\tts
+=== OUTPUT (stdout+stderr merged) ===
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.03
+=== UTC_END: 2026-09-18T00:11:38Z

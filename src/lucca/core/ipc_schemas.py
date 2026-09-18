@@ -176,6 +176,10 @@ class UIConfigUpdatePayload(BaseModel):
     voice: str | None = None
     speed: float | None = None
     ptt_key: str | None = None
+    persona_archetype: str | None = None
+    formality: str | None = None
+    custom_system_prompt: str | None = None
+    llm_model: str | None = None
 
 
 class UIConfirmResultPayload(BaseModel):

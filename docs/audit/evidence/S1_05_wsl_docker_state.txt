@@ -1,0 +1,12 @@
+﻿=== ARTEFACT: S1_05_wsl_docker_state.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:09:42Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: echo --- free -m & wsl -d Ubuntu -- free -m & echo --- docker info & wsl -d Ubuntu -- docker info & echo --- docker images & wsl -d Ubuntu -- docker images & echo --- docker ps -a & wsl -d Ubuntu -- docker ps -a
+=== OUTPUT (stdout+stderr merged) ===
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+
+=== EXIT_CODE: 
+=== TIMED_OUT: False
+=== DURATION_S: 6.07
+=== UTC_END: 2026-09-18T00:09:48Z

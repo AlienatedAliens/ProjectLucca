@@ -1,0 +1,92 @@
+﻿=== ARTEFACT: S1_37_shutdown.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:07:22.538Z
+--- BEFORE shutdown: python/llama/uv processes @ 2026-09-18T01:07:22.547Z
+  llama-server   PID=21764  PPID=39580  WS_MB=   339.7
+  python         PID=9120   PPID=33552  WS_MB=    16.0
+  python         PID=33552  PPID=9104   WS_MB=     3.0
+  python         PID=39664  PPID=9120   WS_MB=    19.3
+  python         PID=40824  PPID=9120   WS_MB=    19.1
+  uv             PID=9104   PPID=38068  WS_MB=     8.3
+SUPERVISOR_PID=9120  LAUNCHER_PID=33552  UV_PID=9104
+CHILD_PIDS_OF_SUPERVISOR=40824,39664
+--- STEP 1: graceful 'taskkill /PID <supervisor>' (no /F) - emulates Ctrl+C/close for a console process @ 2026-09-18T01:07:23.730Z
+SUCCESS: Sent termination signal to the process with PID 9120.
+WAITED_S=10
+--- AFTER 10 s (graceful attempt) @ 2026-09-18T01:07:33.909Z
+  llama-server   PID=21764  PPID=39580  WS_MB=   339.7
+  python         PID=9120   PPID=33552  WS_MB=    16.0
+  python         PID=33552  PPID=9104   WS_MB=     3.0
+  python         PID=39664  PPID=9120   WS_MB=    19.3
+  python         PID=40824  PPID=9120   WS_MB=    19.1
+  uv             PID=9104   PPID=38068  WS_MB=     8.3
+STILL_ALIVE_AFTER_GRACEFUL_10S=9120,40824,39664  (count=3)
+--- STEP 2: taskkill /F /T on supervisor tree @ 2026-09-18T01:07:34.544Z
+SUCCESS: The process with PID 40824 (child process of PID 9120) has been terminated.
+SUCCESS: The process with PID 39664 (child process of PID 9120) has been terminated.
+SUCCESS: The process with PID 9120 (child process of PID 33552) has been terminated.
+ERROR: The process "9120" not found.
+--- AFTER force kill @ 2026-09-18T01:07:37.771Z
+  llama-server   PID=21764  PPID=39580  WS_MB=   339.7
+--- VRAM with app down, llama-server still up @ 2026-09-18T01:07:37.867Z
+memory.used [MiB], memory.total [MiB]
+8234 MiB, 16303 MiB
+--- STEP 3: stop llama-server (graceful taskkill, 5 s, then /F if needed) @ 2026-09-18T01:07:37.919Z
+llama-server PID=21764
+SUCCESS: Sent termination signal to the process with PID 21764.
+llama-server exited within 5 s of graceful taskkill
+--- FINAL @ 2026-09-18T01:07:43.049Z
+  (no python/llama/uv processes)
+=== UTC_END: 2026-09-18T01:07:43.056Z
+--- S1_24 app stdout tail after shutdown:
+[5/5] Spawning lucca-ui...
+Starting core orchestrator...
+=================================================================
+  LUCCA ONLINE: All 4 processes active. (LLM Mode: AUDIO)
+  Press Right-Ctrl or Alt-Gr to talk to Lucca.
+=================================================================
+2026-09-18 08:53:40 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (2094ms, speech: 1040ms)
+2026-09-18 08:53:42 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+2026-09-18 08:53:44 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (1375ms, speech: 1100ms)
+2026-09-18 08:53:45 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+2026-09-18 08:53:48 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (3187ms, speech: 1740ms)
+2026-09-18 08:53:51 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+2026-09-18 08:53:56 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode character '\\U0001f4ac' in position 9: character maps to <undefined>"
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+2026-09-18 08:58:41 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (328ms, speech: 0ms)
+2026-09-18 08:58:41 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+--- S1_24 app stderr tail after shutdown:
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.
+WARNING: Child process 'ui' exited with code 0.

@@ -1,0 +1,635 @@
+﻿=== ARTEFACT: S1_11b_ruff_format.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:19:20Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run ruff format --check .
+=== OUTPUT (stdout+stderr merged) ===
+unformatted: File would be reformatted
+   --> packaging\build_exe.py:40:29
+    |
+39  |         painter.setRenderHint(QPainter.RenderHint.Antialiasing, False)
+    -         scaled = src.scaled(180, 216, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.FastTransformation)
+40  +         scaled = src.scaled(
+41  +             180, 216, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.FastTransformation
+42  +         )
+43  |         painter.drawImage((256 - scaled.width()) // 2, (256 - scaled.height()) // 2, scaled)
+--------------------------------------------------------------------------------
+60  |         "--windowed",
+    -         "--name", "Lucca",
+    -         "--icon", str(icon_ico),
+    -         "--add-data", f"{project_root / 'assets'};assets",
+    -         "--add-data", f"{project_root / 'config'};config",
+    -         "--add-data", f"{project_root / 'src' / 'lucca' / 'memory' / 'migrations'};lucca/memory/migrations",
+    -         "--hidden-import", "sqlite_vec",
+    -         "--hidden-import", "kokoro_onnx",
+    -         "--hidden-import", "sounddevice",
+    -         "--hidden-import", "openvino",
+    -         "--hidden-import", "openvino_genai",
+    -         "--hidden-import", "PyQt6",
+    -         "--hidden-import", "PyQt6.QtCore",
+    -         "--hidden-import", "PyQt6.QtGui",
+    -         "--hidden-import", "PyQt6.QtWidgets",
+    -         "--hidden-import", "psutil",
+    -         "--hidden-import", "httpx",
+    -         "--hidden-import", "structlog",
+    -         "--hidden-import", "zmq",
+    -         "--hidden-import", "lucca.memory.manager",
+    -         "--paths", str(project_root / "src"),
+61  +         "--name",
+62  +         "Lucca",
+63  +         "--icon",
+64  +         str(icon_ico),
+65  +         "--add-data",
+66  +         f"{project_root / 'assets'};assets",
+67  +         "--add-data",
+68  +         f"{project_root / 'config'};config",
+69  +         "--add-data",
+70  +         f"{project_root / 'src' / 'lucca' / 'memory' / 'migrations'};lucca/memory/migrations",
+71  +         "--hidden-import",
+72  +         "sqlite_vec",
+73  +         "--hidden-import",
+74  +         "kokoro_onnx",
+75  +         "--hidden-import",
+76  +         "sounddevice",
+77  +         "--hidden-import",
+78  +         "openvino",
+79  +         "--hidden-import",
+80  +         "openvino_genai",
+81  +         "--hidden-import",
+82  +         "PyQt6",
+83  +         "--hidden-import",
+84  +         "PyQt6.QtCore",
+85  +         "--hidden-import",
+86  +         "PyQt6.QtGui",
+87  +         "--hidden-import",
+88  +         "PyQt6.QtWidgets",
+89  +         "--hidden-import",
+90  +         "psutil",
+91  +         "--hidden-import",
+92  +         "httpx",
+93  +         "--hidden-import",
+94  +         "structlog",
+95  +         "--hidden-import",
+96  +         "zmq",
+97  +         "--hidden-import",
+98  +         "lucca.memory.manager",
+99  +         "--paths",
+100 +         str(project_root / "src"),
+101 |         str(project_root / "src" / "lucca" / "main.py"),
+    |
+
+unformatted: File would be reformatted
+  --> src\lucca\brain\llm_client.py:53:24
+   |
+52 |         eff_temp = (
+   -             temperature
+   -             if temperature is not None
+   -             else getattr(self.config.llm, "temperature", 0.6)
+53 +             temperature if temperature is not None else getattr(self.config.llm, "temperature", 0.6)
+54 |         )
+55 |         eff_tokens = (
+   -             max_tokens
+   -             if max_tokens is not None
+   -             else getattr(self.config.llm, "max_tokens", 512)
+56 +             max_tokens if max_tokens is not None else getattr(self.config.llm, "max_tokens", 512)
+57 |         )
+   |
+
+unformatted: File would be reformatted
+   --> src\lucca\senses\tts.py:72:20
+    |
+71  |     all_kokoro = [
+    -         "af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore",
+    -         "af_nicole", "af_nova", "af_river", "af_sarah", "af_sky",
+    -         "am_adam", "am_echo", "am_eric", "am_fenrir", "am_liam", "am_michael",
+    -         "am_onyx", "am_puck", "am_santa",
+    -         "bf_alice", "bf_emma", "bf_isabella", "bf_lily",
+    -         "bm_daniel", "bm_fable", "bm_george", "bm_lewis",
+    -         "ef_dora", "em_alex", "em_santa",
+    -         "ff_siwis", "hf_alpha", "hf_beta", "hm_omega", "hm_psi",
+    -         "if_sara", "im_nicola",
+    -         "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo",
+    -         "pf_dora", "pm_alex", "pm_santa",
+    -         "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi",
+    -         "zm_yunjian", "zm_yunxi", "zm_yunxia", "zm_yunyang",
+72  +         "af_alloy",
+73  +         "af_aoede",
+74  +         "af_bella",
+75  +         "af_heart",
+76  +         "af_jessica",
+77  +         "af_kore",
+78  +         "af_nicole",
+79  +         "af_nova",
+80  +         "af_river",
+81  +         "af_sarah",
+82  +         "af_sky",
+83  +         "am_adam",
+84  +         "am_echo",
+85  +         "am_eric",
+86  +         "am_fenrir",
+87  +         "am_liam",
+88  +         "am_michael",
+89  +         "am_onyx",
+90  +         "am_puck",
+91  +         "am_santa",
+92  +         "bf_alice",
+93  +         "bf_emma",
+94  +         "bf_isabella",
+95  +         "bf_lily",
+96  +         "bm_daniel",
+97  +         "bm_fable",
+98  +         "bm_george",
+99  +         "bm_lewis",
+100 +         "ef_dora",
+101 +         "em_alex",
+102 +         "em_santa",
+103 +         "ff_siwis",
+104 +         "hf_alpha",
+105 +         "hf_beta",
+106 +         "hm_omega",
+107 +         "hm_psi",
+108 +         "if_sara",
+109 +         "im_nicola",
+110 +         "jf_alpha",
+111 +         "jf_gongitsune",
+112 +         "jf_nezumi",
+113 +         "jf_tebukuro",
+114 +         "jm_kumo",
+115 +         "pf_dora",
+116 +         "pm_alex",
+117 +         "pm_santa",
+118 +         "zf_xiaobei",
+119 +         "zf_xiaoni",
+120 +         "zf_xiaoxiao",
+121 +         "zf_xiaoyi",
+122 +         "zm_yunjian",
+123 +         "zm_yunxi",
+124 +         "zm_yunxia",
+125 +         "zm_yunyang",
+126 |     ]
+    |
+
+unformatted: File would be reformatted
+    --> src\lucca\ui\settings_dialog.py:87:1
+     |
+86   |     """
+87   +
+88   |     status_signal = pyqtSignal(str)
+--------------------------------------------------------------------------------
+108  |                 attempt += 1
+     -                 self.status_signal.emit(f"Waiting for health check (attempt {attempt}, {time.time() - t0:.1f}s elapsed)...")
+109  +                 self.status_signal.emit(
+110  +                     f"Waiting for health check (attempt {attempt}, {time.time() - t0:.1f}s elapsed)..."
+111  +                 )
+112  |                 if is_healthy(self.cfg.host, self.cfg.port, timeout=1.0):
+113  |                     elapsed = time.time() - t0
+     -                     self.finished_signal.emit(True, f"âœ“ Healthy (Port {self.cfg.port}, {elapsed:.1f}s)")
+114  +                     self.finished_signal.emit(
+115  +                         True, f"âœ“ Healthy (Port {self.cfg.port}, {elapsed:.1f}s)"
+116  +                     )
+117  |                     return
+--------------------------------------------------------------------------------
+147  |
+     -             with httpx.stream("GET", self.url, headers=headers, follow_redirects=True, timeout=60.0) as resp:
+148  +             with httpx.stream(
+149  +                 "GET", self.url, headers=headers, follow_redirects=True, timeout=60.0
+150  +             ) as resp:
+151  |                 if resp.status_code not in (200, 206):
+--------------------------------------------------------------------------------
+166  |                         pct = int((downloaded / total) * 100) if total > 0 else 0
+     -                         self.progress_signal.emit(pct, round(downloaded / (1024 * 1024), 1), round(total / (1024 * 1024), 1), round(speed, 2))
+167  +                         self.progress_signal.emit(
+168  +                             pct,
+169  +                             round(downloaded / (1024 * 1024), 1),
+170  +                             round(total / (1024 * 1024), 1),
+171  +                             round(speed, 2),
+172  +                         )
+173  |
+--------------------------------------------------------------------------------
+178  |                     temp_dest.unlink(missing_ok=True)
+     -                     self.finished_signal.emit(False, "Validation Error: File is not a valid GGUF binary. Download rejected.")
+179  +                     self.finished_signal.emit(
+180  +                         False,
+181  +                         "Validation Error: File is not a valid GGUF binary. Download rejected.",
+182  +                     )
+183  |                     return
+184  |
+185  |             if temp_dest.exists():
+186  |                 temp_dest.replace(self.dest_path)
+     -             self.finished_signal.emit(True, f"Model successfully downloaded and verified: {self.dest_path.name}")
+187  +             self.finished_signal.emit(
+188  +                 True, f"Model successfully downloaded and verified: {self.dest_path.name}"
+189  +             )
+190  |         except Exception as exc:
+--------------------------------------------------------------------------------
+323  |         self.whitelisted_apps: list[dict[str, str]] = [
+     -             {"name": "VS Code", "path": "C:\\Users\\seatr\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe", "tier": "Trusted", "status": "Active"},
+324  +             {
+325  +                 "name": "VS Code",
+326  +                 "path": "C:\\Users\\seatr\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+327  +                 "tier": "Trusted",
+328  +                 "status": "Active",
+329  +             },
+330  |             {"name": "Windows Terminal", "path": "wt.exe", "tier": "Trusted", "status": "Active"},
+331  |             {"name": "PowerShell 7", "path": "pwsh.exe", "tier": "System", "status": "Active"},
+332  |             {"name": "Git for Windows", "path": "git.exe", "tier": "System", "status": "Active"},
+     -             {"name": "Windows Explorer", "path": "explorer.exe", "tier": "System", "status": "Active"},
+     -             {"name": "Task Manager", "path": "taskmgr.exe", "tier": "Read-Only", "status": "Active"},
+333  +             {
+334  +                 "name": "Windows Explorer",
+335  +                 "path": "explorer.exe",
+336  +                 "tier": "System",
+337  +                 "status": "Active",
+338  +             },
+339  +             {
+340  +                 "name": "Task Manager",
+341  +                 "path": "taskmgr.exe",
+342  +                 "tier": "Read-Only",
+343  +                 "status": "Active",
+344  +             },
+345  |             {"name": "Chrome Browser", "path": "chrome.exe", "tier": "Network", "status": "Active"},
+--------------------------------------------------------------------------------
+488  |
+     -         self.chk_admits_uncertainty = QCheckBox("Admit uncertainty aloud ('I\\'m not sure' vs hallucinating)", grp_bound)
+489  +         self.chk_admits_uncertainty = QCheckBox(
+490  +             "Admit uncertainty aloud ('I\\'m not sure' vs hallucinating)", grp_bound
+491  +         )
+492  |         self.chk_admits_uncertainty.setChecked(self.current_admits_uncertainty)
+493  |         self.chk_admits_uncertainty.toggled.connect(self._update_prompt_preview)
+494  |         f_bound.addRow("Truthfulness:", self.chk_admits_uncertainty)
+495  |
+     -         self.chk_never_pretend = QCheckBox("Never simulate biological emotion (describe affect as system state)", grp_bound)
+496  +         self.chk_never_pretend = QCheckBox(
+497  +             "Never simulate biological emotion (describe affect as system state)", grp_bound
+498  +         )
+499  |         self.chk_never_pretend.setChecked(self.current_never_pretend)
+--------------------------------------------------------------------------------
+503  |         self.line_refuse_topics = QLineEdit(grp_bound)
+     -         self.line_refuse_topics.setPlaceholderText("e.g. medical diagnosis, financial advice, unauthorized execution (comma-separated)")
+504  +         self.line_refuse_topics.setPlaceholderText(
+505  +             "e.g. medical diagnosis, financial advice, unauthorized execution (comma-separated)"
+506  +         )
+507  |         self.line_refuse_topics.setText(", ".join(self.current_refuse_topics))
+--------------------------------------------------------------------------------
+601  |         # Custom Prompt Directives & Live Preview
+     -         grp_prompt = QGroupBox("Custom Persona Directives (Additive) & Live System Prompt Preview", parent)
+602  +         grp_prompt = QGroupBox(
+603  +             "Custom Persona Directives (Additive) & Live System Prompt Preview", parent
+604  +         )
+605  |         v_prompt = QVBoxLayout(grp_prompt)
+606  |
+607  |         self.txt_custom_prompt = QPlainTextEdit(grp_prompt)
+     -         self.txt_custom_prompt.setPlaceholderText("Enter optional custom persona directives here (compiled additively)...")
+608  +         self.txt_custom_prompt.setPlaceholderText(
+609  +             "Enter optional custom persona directives here (compiled additively)..."
+610  +         )
+611  |         self.txt_custom_prompt.setPlainText(self.current_custom_prompt)
+--------------------------------------------------------------------------------
+616  |         h_pv_hdr = QHBoxLayout()
+     -         h_pv_hdr.addWidget(QLabel("Full Compiled System Prompt (with Architecture & Tools):", grp_prompt))
+617  +         h_pv_hdr.addWidget(
+618  +             QLabel("Full Compiled System Prompt (with Architecture & Tools):", grp_prompt)
+619  +         )
+620  |         h_pv_hdr.addStretch()
+--------------------------------------------------------------------------------
+637  |         self.combo_archetype.clear()
+     -         self.combo_archetype.addItem("Inventor (Chrono Trigger Default - Technical, Enthusiastic)", "inventor")
+638  +         self.combo_archetype.addItem(
+639  +             "Inventor (Chrono Trigger Default - Technical, Enthusiastic)", "inventor"
+640  +         )
+641  |         self.combo_archetype.addItem("Genki (Energetic, Cheerful Partner)", "genki")
+--------------------------------------------------------------------------------
+665  |         if clean_name in ARCHETYPES or clean_name in self.user_archetypes:
+     -             QMessageBox.warning(self, "Archetype Exists", f"Archetype '{clean_name}' already exists.")
+666  +             QMessageBox.warning(
+667  +                 self, "Archetype Exists", f"Archetype '{clean_name}' already exists."
+668  +             )
+669  |             return
+--------------------------------------------------------------------------------
+687  |         if arch not in self.user_archetypes:
+     -             QMessageBox.information(self, "Built-in Archetype", "Built-in archetypes cannot be deleted.")
+688  +             QMessageBox.information(
+689  +                 self, "Built-in Archetype", "Built-in archetypes cannot be deleted."
+690  +             )
+691  |             return
+--------------------------------------------------------------------------------
+709  |         else:
+     -             self.lbl_compiled_traits.setText("(Neutral default 0.5 â€” no additional prompt directives emitted)")
+710  +             self.lbl_compiled_traits.setText(
+711  +                 "(Neutral default 0.5 â€” no additional prompt directives emitted)"
+712  +             )
+713  |
+--------------------------------------------------------------------------------
+764  |
+     -         lbl_pres_note = QLabel("Blends 70% af_bella + 30% af_sarah @ 1.20x speed with expressive punctuation.", grp_preset)
+765  +         lbl_pres_note = QLabel(
+766  +             "Blends 70% af_bella + 30% af_sarah @ 1.20x speed with expressive punctuation.",
+767  +             grp_preset,
+768  +         )
+769  |         lbl_pres_note.setStyleSheet("color: #a0aec0; font-size: 11px;")
+--------------------------------------------------------------------------------
+788  |         # Container 1: Single Native Voice
+     -         self.panel_single = QGroupBox("Single Voice Selector (All Installed Kokoro Vectors)", parent)
+789  +         self.panel_single = QGroupBox(
+790  +             "Single Voice Selector (All Installed Kokoro Vectors)", parent
+791  +         )
+792  |         f_single = QFormLayout(self.panel_single)
+--------------------------------------------------------------------------------
+894  |         self.line_test_text = QLineEdit(
+     -             "Ah, Lucca Ashtear here! Chrono Trigger systems and voice blending are fully operational!", grp_test
+895  +             "Ah, Lucca Ashtear here! Chrono Trigger systems and voice blending are fully operational!",
+896  +             grp_test,
+897  |         )
+--------------------------------------------------------------------------------
+923  |         self._update_blend_formula()
+     -         self.lbl_voice_status.setText("Applied English Anime Heroine Preset (70% af_bella + 30% af_sarah @ 1.20x).")
+924  +         self.lbl_voice_status.setText(
+925  +             "Applied English Anime Heroine Preset (70% af_bella + 30% af_sarah @ 1.20x)."
+926  +         )
+927  |
+--------------------------------------------------------------------------------
+988  |         # 1. Dynamic Model Registry & GGUF Metadata Card
+     -         grp_reg = QGroupBox("Model Registry (Scanned from models/llm/*.gguf) & GGUF Metadata", parent)
+989  +         grp_reg = QGroupBox(
+990  +             "Model Registry (Scanned from models/llm/*.gguf) & GGUF Metadata", parent
+991  +         )
+992  |         f_reg = QFormLayout(grp_reg)
+--------------------------------------------------------------------------------
+1120 |         self.table_curated = QTableWidget(3, 4, grp_dl)
+     -         self.table_curated.setHorizontalHeaderLabels(["Model Name", "Architecture", "Size", "Action"])
+1121 +         self.table_curated.setHorizontalHeaderLabels(
+1122 +             ["Model Name", "Architecture", "Size", "Action"]
+1123 +         )
+1124 |         hdr_curated = self.table_curated.horizontalHeader()
+--------------------------------------------------------------------------------
+1130 |         curated_models = [
+     -             ("Ultravox v0.5 Llama-3.1-8B Q6_K", "Audio-Native (Paired mmproj)", "~6.5 GB", "https://huggingface.co/fixie-ai/ultravox-v0_5-llama-3_1-8b-gguf/resolve/main/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf"),
+     -             ("Qwen2.5-7B-Instruct Q4_K_M", "Text / Whisper Transcript", "~4.7 GB", "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf"),
+     -             ("Llama-3.1-8B-Instruct Q4_K_M", "Text / Whisper Transcript", "~4.9 GB", "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf"),
+1131 +             (
+1132 +                 "Ultravox v0.5 Llama-3.1-8B Q6_K",
+1133 +                 "Audio-Native (Paired mmproj)",
+1134 +                 "~6.5 GB",
+1135 +                 "https://huggingface.co/fixie-ai/ultravox-v0_5-llama-3_1-8b-gguf/resolve/main/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf",
+1136 +             ),
+1137 +             (
+1138 +                 "Qwen2.5-7B-Instruct Q4_K_M",
+1139 +                 "Text / Whisper Transcript",
+1140 +                 "~4.7 GB",
+1141 +                 "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf",
+1142 +             ),
+1143 +             (
+1144 +                 "Llama-3.1-8B-Instruct Q4_K_M",
+1145 +                 "Text / Whisper Transcript",
+1146 +                 "~4.9 GB",
+1147 +                 "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q4_K_M.gguf",
+1148 +             ),
+1149 |         ]
+--------------------------------------------------------------------------------
+1251 |         elif badge_type == "missing_mmproj":
+     -             self.lbl_model_badge.setText(f"{badge_text} (Download companion mmproj to enable direct audio)")
+1252 +             self.lbl_model_badge.setText(
+1253 +                 f"{badge_text} (Download companion mmproj to enable direct audio)"
+1254 +             )
+1255 |             self.lbl_model_badge.setStyleSheet("color: #fbbf24; font-weight: bold;")
+--------------------------------------------------------------------------------
+1365 |         if not url.startswith("https://"):
+     -             self.lbl_download_status.setText("Error: Only secure HTTPS download URLs are permitted.")
+1366 +             self.lbl_download_status.setText(
+1367 +                 "Error: Only secure HTTPS download URLs are permitted."
+1368 +             )
+1369 |             return
+--------------------------------------------------------------------------------
+1386 |
+     -     def _on_download_progress(self, pct: int, dl_mb: float, tot_mb: float, speed_mbs: float) -> None:
+1387 +     def _on_download_progress(
+1388 +         self, pct: int, dl_mb: float, tot_mb: float, speed_mbs: float
+1389 +     ) -> None:
+1390 |         self.progress_download.setValue(pct)
+--------------------------------------------------------------------------------
+1689 |
+     -         lbl_adsp_desc = QLabel("Applies +3 semitone pitch shift, 120Hz high-pass, presence (+3dB), air boost, and compressor.", grp_anime_dsp)
+1690 +         lbl_adsp_desc = QLabel(
+1691 +             "Applies +3 semitone pitch shift, 120Hz high-pass, presence (+3dB), air boost, and compressor.",
+1692 +             grp_anime_dsp,
+1693 +         )
+1694 |         lbl_adsp_desc.setStyleSheet("color: #a0aec0; font-size: 11px;")
+--------------------------------------------------------------------------------
+1709 |         self.slider_pitch.valueChanged.connect(
+     -             lambda val: self.lbl_pitch_val.setText(f"{val:+d} semitones" if val != 0 else "0 semitones (Natural)")
+1710 +             lambda val: self.lbl_pitch_val.setText(
+1711 +                 f"{val:+d} semitones" if val != 0 else "0 semitones (Natural)"
+1712 +             )
+1713 |         )
+--------------------------------------------------------------------------------
+1778 |
+     -         self.chk_rumble = QCheckBox("120 Hz High-Pass Filter (Removes muddy chest resonance)", grp_dsp)
+1779 +         self.chk_rumble = QCheckBox(
+1780 +             "120 Hz High-Pass Filter (Removes muddy chest resonance)", grp_dsp
+1781 +         )
+1782 |         self.chk_rumble.setChecked(True)
+--------------------------------------------------------------------------------
+1790 |         self.line_dsp_test = QLineEdit(
+     -             "Testing Chrono Trigger audio DSP filters: Warmth, clarity, and spatial resonance!", grp_dsp_test
+1791 +             "Testing Chrono Trigger audio DSP filters: Warmth, clarity, and spatial resonance!",
+1792 +             grp_dsp_test,
+1793 |         )
+--------------------------------------------------------------------------------
+1815 |         self.chk_rumble.setChecked(True)
+     -         self.lbl_dsp_status.setText("Applied English Anime Voice DSP preset (+3 st, presence, air, 120Hz HPF).")
+1816 +         self.lbl_dsp_status.setText(
+1817 +             "Applied English Anime Voice DSP preset (+3 st, presence, air, 120Hz HPF)."
+1818 +         )
+1819 |
+--------------------------------------------------------------------------------
+1859 |                     echo = np.pad(processed, (delay_samples, 0)) * (reverb_pct * 0.5)
+     -                     processed = ((padded + echo)[:len(processed)]).astype(np.float32)
+1860 +                     processed = ((padded + echo)[: len(processed)]).astype(np.float32)
+1861 |
+--------------------------------------------------------------------------------
+2017 |                 prov = str(m.get("provenance", "USER_EXPLICIT"))
+     -                 ts = datetime.fromtimestamp(float(m.get("created_at", time.time()))).strftime("%Y-%m-%d %H:%M")
+2018 +                 ts = datetime.fromtimestamp(float(m.get("created_at", time.time()))).strftime(
+2019 +                     "%Y-%m-%d %H:%M"
+2020 +                 )
+2021 |
+--------------------------------------------------------------------------------
+2042 |             self.lbl_inspect_id.setText(f"Memory ID: #{mid}")
+     -             self.lbl_inspect_prov.setText(f"Provenance: {prov_item.text() if prov_item else 'Unknown'}")
+2043 +             self.lbl_inspect_prov.setText(
+2044 +                 f"Provenance: {prov_item.text() if prov_item else 'Unknown'}"
+2045 +             )
+2046 |             if content_item:
+--------------------------------------------------------------------------------
+2061 |             self._refresh_memories()
+     -             QMessageBox.information(self, "Memory Updated", f"Memory #{self._current_selected_mid} saved successfully.")
+2062 +             QMessageBox.information(
+2063 +                 self, "Memory Updated", f"Memory #{self._current_selected_mid} saved successfully."
+2064 +             )
+2065 |         except Exception as exc:
+--------------------------------------------------------------------------------
+2097 |                 self._refresh_memories()
+     -                 QMessageBox.information(self, "Knowledge Stored", f"Stored fact as memory #{mid} with vector embedding.")
+2098 +                 QMessageBox.information(
+2099 +                     self, "Knowledge Stored", f"Stored fact as memory #{mid} with vector embedding."
+2100 +                 )
+2101 |             except Exception as exc:
+--------------------------------------------------------------------------------
+2111 |             self._refresh_memories()
+     -             QMessageBox.information(self, "Vacuum Complete", "SQLite database and vector indices optimized.")
+2112 +             QMessageBox.information(
+2113 +                 self, "Vacuum Complete", "SQLite database and vector indices optimized."
+2114 +             )
+2115 |         except Exception as exc:
+--------------------------------------------------------------------------------
+2176 |         self.table_logs.setHorizontalHeaderLabels(
+     -             ["Timestamp", "Host RAM %", "Lucca RSS (MB)", "dGPU VRAM (Used / Total)", "CPU % (Host / Lucca)", "NPU Status"]
+2177 +             [
+2178 +                 "Timestamp",
+2179 +                 "Host RAM %",
+2180 +                 "Lucca RSS (MB)",
+2181 +                 "dGPU VRAM (Used / Total)",
+2182 +                 "CPU % (Host / Lucca)",
+2183 +                 "NPU Status",
+2184 +             ]
+2185 |         )
+--------------------------------------------------------------------------------
+2220 |
+     -             self.lbl_snap_ram.setText(f"RAM: {ram['percent']}% (Lucca {ram.get('lucca_used_mb', 0):.0f} MB)")
+     -             self.lbl_snap_dgpu.setText(f"dGPU: {dgpu.get('used_gb', 0):.1f} / {dgpu.get('total_gb', 16.0):.1f} GB")
+     -             self.lbl_snap_cpu.setText(f"CPU: {cpu['system_percent']:.1f}% (Lucca {cpu['lucca_percent']:.1f}%)")
+2221 +             self.lbl_snap_ram.setText(
+2222 +                 f"RAM: {ram['percent']}% (Lucca {ram.get('lucca_used_mb', 0):.0f} MB)"
+2223 +             )
+2224 +             self.lbl_snap_dgpu.setText(
+2225 +                 f"dGPU: {dgpu.get('used_gb', 0):.1f} / {dgpu.get('total_gb', 16.0):.1f} GB"
+2226 +             )
+2227 +             self.lbl_snap_cpu.setText(
+2228 +                 f"CPU: {cpu['system_percent']:.1f}% (Lucca {cpu['lucca_percent']:.1f}%)"
+2229 +             )
+2230 |             self.lbl_snap_npu.setText(f"NPU: {npu['status'].split(' ')[0]}")
+--------------------------------------------------------------------------------
+2248 |         if traces_file.exists():
+     -             self.combo_log_files.addItem(f"traces.jsonl ({round(traces_file.stat().st_size/1024, 1)} KB)", str(traces_file))
+2249 +             self.combo_log_files.addItem(
+2250 +                 f"traces.jsonl ({round(traces_file.stat().st_size / 1024, 1)} KB)", str(traces_file)
+2251 +             )
+2252 |
+--------------------------------------------------------------------------------
+2288 |                     self.table_logs.setItem(row, 0, QTableWidgetItem(ts))
+     -                     self.table_logs.setItem(row, 1, QTableWidgetItem(f"{ram.get('percent', 0):.1f}%"))
+     -                     self.table_logs.setItem(row, 2, QTableWidgetItem(f"{ram.get('lucca_rss_mb', ram.get('lucca_used_mb', 0)):.0f} MB"))
+     -                     self.table_logs.setItem(row, 3, QTableWidgetItem(f"{dgpu.get('used_vram_gb', dgpu.get('used_gb', 0)):.1f} / {dgpu.get('total_vram_gb', dgpu.get('total_gb', 16.0)):.1f} GB"))
+     -                     self.table_logs.setItem(row, 4, QTableWidgetItem(f"{cpu.get('system_percent', 0):.1f}% / {cpu.get('lucca_percent', 0):.1f}%"))
+     -                     self.table_logs.setItem(row, 5, QTableWidgetItem(str(npu.get("status", "Active"))))
+2289 +                     self.table_logs.setItem(
+2290 +                         row, 1, QTableWidgetItem(f"{ram.get('percent', 0):.1f}%")
+2291 +                     )
+2292 +                     self.table_logs.setItem(
+2293 +                         row,
+2294 +                         2,
+2295 +                         QTableWidgetItem(
+2296 +                             f"{ram.get('lucca_rss_mb', ram.get('lucca_used_mb', 0)):.0f} MB"
+2297 +                         ),
+2298 +                     )
+2299 +                     self.table_logs.setItem(
+2300 +                         row,
+2301 +                         3,
+2302 +                         QTableWidgetItem(
+2303 +                             f"{dgpu.get('used_vram_gb', dgpu.get('used_gb', 0)):.1f} / {dgpu.get('total_vram_gb', dgpu.get('total_gb', 16.0)):.1f} GB"
+2304 +                         ),
+2305 +                     )
+2306 +                     self.table_logs.setItem(
+2307 +                         row,
+2308 +                         4,
+2309 +                         QTableWidgetItem(
+2310 +                             f"{cpu.get('system_percent', 0):.1f}% / {cpu.get('lucca_percent', 0):.1f}%"
+2311 +                         ),
+2312 +                     )
+2313 +                     self.table_logs.setItem(
+2314 +                         row, 5, QTableWidgetItem(str(npu.get("status", "Active")))
+2315 +                     )
+2316 |                 except Exception:
+--------------------------------------------------------------------------------
+2386 |             </ul>""",
+     -
+2387 |             # 1. Avatar & Commorose
+--------------------------------------------------------------------------------
+2400 |             </ul>""",
+     -
+2401 |             # 2. Voice Blender & Mixing
+--------------------------------------------------------------------------------
+2410 |             </ul>""",
+     -
+2411 |             # 3. DSP Audio Post-Processing
+--------------------------------------------------------------------------------
+2422 |             </ul>""",
+     -
+2423 |             # 4. LLM Server Tuning
+--------------------------------------------------------------------------------
+2431 |             </ul>""",
+     -
+2432 |             # 5. MicroScheme LISP Studio
+--------------------------------------------------------------------------------
+2440 |             </ul>""",
+     -
+2441 |             # 6. Episodic & Semantic Memory
+--------------------------------------------------------------------------------
+2449 |             </ul>""",
+     -
+2450 |             # 7. Hardware Substrates & Telemetry
+--------------------------------------------------------------------------------
+2459 |             </ul>""",
+     -
+2460 |             # 8. Whitelist & Codebase Inspection
+--------------------------------------------------------------------------------
+2467 |             </ul>""",
+     -
+2468 |             # 9. Troubleshooting & FAQ
+     |
+
+unformatted: File would be reformatted
+   --> src\lucca\ui\sprite.py:236:12
+    |
+235 |     def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
+    -         if (
+    -             event
+    -             and event.buttons() & Qt.MouseButton.LeftButton
+    -             and self.drag_position is not None
+    -         ):
+236 +         if event and event.buttons() & Qt.MouseButton.LeftButton and self.drag_position is not None:
+237 |             self.move(event.globalPosition().toPoint() - self.drag_position)
+    |
+
+unformatted: File would be reformatted
+  --> src\lucca\ui\telemetry_hud.py:49:1
+   |
+48 |     """Off-thread hardware telemetry sampler preventing GUI hitching."""
+49 +
+50 |     metrics_ready = pyqtSignal(dict)
+   |
+
+unformatted: File would be reformatted
+  --> tests\fakes\fake_llm.py:41:28
+   |
+40 |     def abort(self) -> None:
+   -         self.aborted = True
+41 +         self.aborted = True
+   |
+
+
+error: Ruff crashed. If you could open an issue at:
+
+    https://github.com/astral-sh/ruff/issues/new?title=%5BPanic%5D
+
+...quoting the executed command, along with the relevant file contents and `pyproject.toml` settings, we'd be very appreciative!
+
+
+thread 'main' (13396) panicked at crates\ruff_annotate_snippets\src\renderer\source_map.rs:185:13:
+Annotation range `0..1337` is beyond the end of buffer `1335`
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+=== EXIT_CODE: 101
+=== TIMED_OUT: False
+=== DURATION_S: 0.14
+=== UTC_END: 2026-09-18T00:19:20Z

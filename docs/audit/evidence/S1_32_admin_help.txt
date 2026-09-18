@@ -1,0 +1,13 @@
+﻿=== ARTEFACT: S1_32_admin_help.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:00:24Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin --help & echo EXIT=0 & echo --- lucca-admin help & uv run lucca-admin help & echo --- lucca-admin (no args) & uv run lucca-admin
+=== OUTPUT (stdout+stderr merged) ===
+error: Failed to spawn: `lucca-admin)`
+  Caused by: program not found
+
+=== EXIT_CODE: 2
+=== TIMED_OUT: False
+=== DURATION_S: 1.17
+=== UTC_END: 2026-09-18T01:00:25Z

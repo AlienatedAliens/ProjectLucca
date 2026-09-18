@@ -1,0 +1,17 @@
+﻿=== ARTEFACT: S1_21_iptables.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:50:26Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: echo --- iptables -S & wsl -d Ubuntu -- sudo -n iptables -S & echo --- iptables -t nat -S & wsl -d Ubuntu -- sudo -n iptables -t nat -S & echo --- ip6tables -S & wsl -d Ubuntu -- sudo -n ip6tables -S
+=== OUTPUT (stdout+stderr merged) ===
+--- iptables -S 
+sudo: interactive authentication is required
+--- iptables -t nat -S 
+sudo: interactive authentication is required
+--- ip6tables -S 
+sudo: interactive authentication is required
+
+=== EXIT_CODE: 1
+=== TIMED_OUT: False
+=== DURATION_S: 0.28
+=== UTC_END: 2026-09-18T00:50:26Z

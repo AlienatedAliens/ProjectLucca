@@ -11,24 +11,32 @@ from typing import Final
 
 VK_RCONTROL: Final[int] = 0xA3  # Windows virtual-key code for Right Control
 VK_LCONTROL: Final[int] = 0xA2
-VK_RMENU: Final[int] = 0xA5     # Windows virtual-key code for Right Alt / Alt-Gr
-VK_LMENU: Final[int] = 0xA4     # Windows virtual-key code for Left Alt
-VK_RSHIFT: Final[int] = 0xA1    # Windows virtual-key code for Right Shift
+VK_CONTROL: Final[int] = 0x11  # Generic Control
+VK_RMENU: Final[int] = 0xA5  # Windows virtual-key code for Right Alt / Alt-Gr
+VK_LMENU: Final[int] = 0xA4  # Windows virtual-key code for Left Alt
+VK_MENU: Final[int] = 0x12  # Generic Alt
+VK_RSHIFT: Final[int] = 0xA1  # Windows virtual-key code for Right Shift
+VK_LSHIFT: Final[int] = 0xA0
+VK_SHIFT: Final[int] = 0x10  # Generic Shift
+VK_SPACE: Final[int] = 0x20  # Spacebar
 DEFAULT_POLL_INTERVAL_S: Final[float] = 0.005  # 5 ms polling interval
 DEBOUNCE_MIN_SECONDS: Final[float] = 0.150  # Discard presses < 150 ms
 AUTO_RELEASE_SECONDS: Final[float] = 29.5  # Hard ceiling auto-release
 
 KEY_MAP: Final[dict[str, list[int]]] = {
-    "right ctrl": [VK_RCONTROL],
-    "right control": [VK_RCONTROL],
-    "rctrl": [VK_RCONTROL],
-    "alt gr": [VK_RMENU],
-    "altgr": [VK_RMENU],
-    "alt-gr": [VK_RMENU],
-    "right alt": [VK_RMENU],
-    "ralt": [VK_RMENU],
-    "right shift": [VK_RSHIFT],
-    "rshift": [VK_RSHIFT],
+    "alt-gr": [VK_RMENU, VK_MENU],
+    "alt gr": [VK_RMENU, VK_MENU],
+    "altgr": [VK_RMENU, VK_MENU],
+    "right alt": [VK_RMENU, VK_MENU],
+    "ralt": [VK_RMENU, VK_MENU],
+    "right shift": [VK_RSHIFT, VK_SHIFT],
+    "rshift": [VK_RSHIFT, VK_SHIFT],
+    "right ctrl": [VK_RCONTROL, VK_CONTROL],
+    "right control": [VK_RCONTROL, VK_CONTROL],
+    "rctrl": [VK_RCONTROL, VK_CONTROL],
+    "space": [VK_SPACE],
+    "all": [VK_RMENU, VK_MENU, VK_RCONTROL, VK_CONTROL, VK_RSHIFT, VK_SHIFT],
+    "any": [VK_RMENU, VK_MENU, VK_RCONTROL, VK_CONTROL, VK_RSHIFT, VK_SHIFT],
 }
 
 
@@ -36,7 +44,7 @@ class PTTListener:
     """
     High-priority Windows PTT listener polling GetAsyncKeyState.
     Avoids low-level keyboard hook unhooks and hangs.
-    Accepts Right Control or Alt-Gr (Right Alt) by default.
+    Accepts Right Alt/Alt-Gr, Right Control, or Right Shift by default.
     """
 
     def __init__(
@@ -58,8 +66,8 @@ class PTTListener:
         elif key_name and key_name.lower().strip() in KEY_MAP:
             self.target_vks = KEY_MAP[key_name.lower().strip()]
         else:
-            # Default to accepting either Right Control OR Alt-Gr (Right Alt)
-            self.target_vks = [VK_RCONTROL, VK_RMENU]
+            # Universal default: accepts Alt-Gr, Right-Ctrl, OR Right-Shift
+            self.target_vks = [VK_RMENU, VK_RCONTROL, VK_RSHIFT]
 
         self._running = False
         self._thread: threading.Thread | None = None

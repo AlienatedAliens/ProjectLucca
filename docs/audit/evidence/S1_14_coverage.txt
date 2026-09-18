@@ -1,0 +1,90 @@
+﻿=== ARTEFACT: S1_14_coverage.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:22:38Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run pytest -m "not hw and not soak" --cov=lucca --cov-report=term-missing -q
+=== OUTPUT (stdout+stderr merged) ===
+........................................................................ [ 54%]
+...........................................................              [100%]
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.12.14-final-0 _______________
+
+Name                                      Stmts   Miss  Cover   Missing
+-----------------------------------------------------------------------
+src\lucca\__init__.py                         1      0   100%
+src\lucca\admin.py                           14     14     0%   6-29
+src\lucca\brain\chunker.py                  129     10    92%   110, 145, 207-210, 222, 225, 232-233
+src\lucca\brain\llm_client.py               106     86    19%   52-181, 185-198
+src\lucca\brain\prompt_builder.py           234     39    83%   165, 280, 302-303, 308, 340-341, 345-346, 371-374, 378-379, 384, 398, 436, 473, 486, 624-657
+src\lucca\brain\server_ctl.py               209     80    62%   92-93, 95-96, 104-105, 107-108, 110-111, 118-129, 148-149, 177, 204-205, 241, 295, 302-311, 324-348, 361-386
+src\lucca\brain\toolcall_demux.py            93     39    58%   41, 44, 79, 90-91, 95-100, 108-121, 124, 131-149
+src\lucca\core\__init__.py                    0      0   100%
+src\lucca\core\affect.py                    120     22    82%   102, 128, 133, 138-141, 155, 160-163, 185, 189-192, 200, 207, 213-216, 220
+src\lucca\core\config.py                    119      2    98%   162, 165
+src\lucca\core\env_check.py                 121    121     0%   6-193
+src\lucca\core\events.py                     49     49     0%   6-77
+src\lucca\core\exceptions.py                 85      0   100%
+src\lucca\core\ipc_schemas.py               129      4    97%   237, 241-243
+src\lucca\core\orchestrator.py              413    108    74%   85-87, 95, 115-130, 140, 156-157, 176-186, 189-230, 286-293, 313, 343-350, 425, 440-441, 457-467, 497, 513, 522, 527-528, 541-545, 584-592, 634-635, 647, 675-684, 688-689, 695-696, 701-702
+src\lucca\core\schemas.py                   275      0   100%
+src\lucca\core\trace.py                      56      0   100%
+src\lucca\main.py                           129    129     0%   6-183
+src\lucca\memory\db.py                       82      5    94%   87, 93, 109-111
+src\lucca\memory\entities.py                 48      7    85%   50-51, 68, 86-94, 102
+src\lucca\memory\extraction.py               85     27    68%   68-73, 76, 82, 86, 119-127, 133-134, 146-148, 160-182
+src\lucca\memory\gate.py                     58      5    91%   62, 75, 85, 129, 133
+src\lucca\memory\manager.py                 106     63    41%   53-55, 92-150, 156-184, 188-220
+src\lucca\memory\retrieval.py               145     36    75%   26-33, 45-64, 89-90, 105-106, 124-125, 163, 173, 179, 182, 257-258
+src\lucca\memory\signers.py                  70      2    97%   28, 76
+src\lucca\memory\store.py                   212     69    67%   85, 90-91, 100-101, 153-155, 175, 196, 297, 312-335, 349, 352, 395-397, 428-429, 435, 457-476, 483-491, 495-533
+src\lucca\memory\tokens.py                   36      1    97%   171
+src\lucca\memory\working.py                  29      4    86%   35, 39-41
+src\lucca\ports.py                           14      0   100%
+src\lucca\reasoning\lifecycle.py            136     25    82%   68, 70, 76, 78-81, 127, 137-140, 159-163, 181, 197-199, 213, 217, 231, 240
+src\lucca\reasoning\scheme\__init__.py        4      0   100%
+src\lucca\reasoning\scheme\eval.py          106     26    75%   46, 50, 56, 64, 68, 86-90, 93-98, 102, 122-130, 145, 186, 197, 215-217
+src\lucca\reasoning\scheme\lexer.py          81     15    81%   50-63, 99-100
+src\lucca\reasoning\scheme\parser.py        215     29    87%   120-123, 130, 146, 179, 204, 218, 241, 252, 275, 280, 284, 286, 300, 304, 310, 319, 322, 327, 329, 341, 345, 351, 356, 360, 364-368
+src\lucca\reasoning\scheme\prims.py         231    131    43%   28, 32, 40, 44, 54-62, 66-80, 85, 93, 98, 100-103, 109-112, 116-122, 127, 131-132, 136-142, 146-152, 156-162, 167, 178-190, 196-202, 206-211, 215-218, 222-225, 236, 242, 248-252, 255-260, 263-268, 272, 277-283, 286-289, 292-294, 297-300, 303-308, 330, 338, 347, 357-360, 365
+src\lucca\reasoning\scheme\validator.py      56      7    88%   80, 92-93, 102, 105, 109, 131
+src\lucca\router\conformal.py                30      4    87%   22, 36, 45, 61
+src\lucca\router\heuristic.py               141     22    84%   84-98, 119, 137-138, 211-212, 273, 287, 322-323, 357-358
+src\lucca\router\labeler.py                  48      0   100%
+src\lucca\sandbox\container_spec.py          14      1    93%   17
+src\lucca\sandbox\egress.py                  62     48    23%   23-32, 41-42, 46-55, 67-193
+src\lucca\sandbox\file_tool.py              208     67    68%   112-114, 121, 132-168, 175, 177, 214, 217, 234, 236, 250, 265, 278, 284-285, 293-303, 333-335, 346-373
+src\lucca\sandbox\launcher.py               134     56    58%   21, 93-100, 112, 122, 155-158, 163-165, 168, 175-192, 200-215, 224-226, 231-238
+src\lucca\sandbox\policy.py                  30      0   100%
+src\lucca\sandbox\rpc.py                     97     43    56%   44-55, 96, 134-183, 202-206, 223-227, 243-304
+src\lucca\sandbox\service.py                 58     14    76%   59, 78-79, 89-90, 120-135, 218
+src\lucca\sandbox\system_tools.py           130    106    18%   29-77, 82-122, 141-193, 198-220, 227-232, 235-239, 242, 246-252, 255-257
+src\lucca\sandbox\web_tool.py               106     59    44%   31-36, 49, 61, 71, 76-77, 86-87, 115-137, 149-203
+src\lucca\sandbox\workspace.py               64     22    66%   60-67, 70, 77, 85-105, 114-115, 120-121
+src\lucca\senses\__init__.py                  0      0   100%
+src\lucca\senses\asr.py                      51      9    82%   15-16, 38-39, 50-52, 57, 73
+src\lucca\senses\audio_proc.py              205    205     0%   6-372
+src\lucca\senses\dsp_chain.py               118      8    93%   42, 59, 87, 123, 159, 175, 243-244
+src\lucca\senses\embed.py                    95     26    73%   16-17, 40, 55, 68-79, 84, 98-121, 131, 154
+src\lucca\senses\npu_proc.py                 97     97     0%   6-201
+src\lucca\senses\ptt.py                      79     79     0%   6-136
+src\lucca\senses\ring_buffer.py             151     22    85%   66-68, 71, 75-79, 98, 136, 145, 149-150, 153, 159, 197, 224, 238-240, 250-251
+src\lucca\senses\tts.py                     105     71    32%   40, 43, 68-86, 97-126, 131-146, 149, 152, 156-166, 176-211
+src\lucca\senses\vad.py                      30     30     0%   6-65
+src\lucca\ui\__init__.py                      0      0   100%
+src\lucca\ui\app.py                         276    276     0%   6-487
+src\lucca\ui\commorose.py                   182    182     0%   6-300
+src\lucca\ui\input_bar.py                   108     52    52%   138-175, 178-179, 184, 190-191, 194-195, 198-200, 203-207, 211-225, 228-250
+src\lucca\ui\settings_dialog.py            1558    491    68%   91-94, 97-120, 128-131, 134, 137-174, 256-257, 599, 605, 609-612, 615-635, 638-645, 658, 763, 769, 803-804, 811-814, 856-866, 874-880, 883-888, 891-919, 1106-1114, 1122-1125, 1137-1139, 1161, 1172-1180, 1202-1205, 1220-1225, 1235-1267, 1270-1276, 1279-1302, 1305-1306, 1311-1314, 1360-1370, 1373-1375, 1378-1382, 1465, 1476-1483, 1486-1497, 1500-1507, 1510-1518, 1521-1534, 1537-1546, 1716-1723, 1726-1775, 1893, 1901-1902, 1911, 1931-1932, 1935-1953, 1956-1965, 1968-1980, 1983-1999, 2002-2011, 2097-2099, 2102-2114, 2117-2139, 2142-2179, 2182-2184, 2187-2190, 2408-2465
+src\lucca\ui\speech_bubble.py               213     60    72%   183-197, 200-201, 250-252, 290, 304-305, 314, 318-319, 322-374
+src\lucca\ui\sprite.py                      200    123    38%   73, 90-91, 107-111, 114-226, 230-233, 236-242, 245-252, 256-257, 260-266, 269-271, 274-276, 280-287, 291-298
+src\lucca\ui\states.py                        8      0   100%
+src\lucca\ui\telemetry_hud.py               199     83    58%   52-56, 100-105, 289-293, 296-335, 338-341, 344-346, 351, 356-362, 365-368, 371-373, 376-378, 381-406
+src\lucca\ui\theme.py                        10      0   100%
+-----------------------------------------------------------------------
+TOTAL                                      8803   3411    61%
+131 passed, 5 deselected in 26.39s
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 30.13
+=== UTC_END: 2026-09-18T00:23:08Z

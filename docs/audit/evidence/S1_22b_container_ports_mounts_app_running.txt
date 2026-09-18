@@ -1,0 +1,7 @@
+﻿=== ARTEFACT: S1_22b_container_ports_mounts_app_running.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:54:05Z
+=== COMMAND: wsl -d Ubuntu -- docker ps -a --format "{{.Names}} STATUS={{.Status}} PORTS=[{{.Ports}}] MOUNTS=[{{.Mounts}}]"
+=== OUTPUT ===
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+NO CONTAINERS EXIST 60 s after app start.

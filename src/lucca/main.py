@@ -3,13 +3,13 @@ Project Lucca — Supervisor & Four-Process Lifecycle Entry Point
 Spec 01 §1, §7, ADR-008
 """
 
+import ctypes
 import multiprocessing as mp
 import subprocess
 import sys
 import time
 
-import httpx
-
+from lucca.brain.server_ctl import check_server_status, is_healthy, start_server
 from lucca.core.config import get_config
 from lucca.core.env_check import run_env_check
 from lucca.core.orchestrator import Orchestrator
@@ -105,55 +105,54 @@ class Supervisor:
         print("=" * 65)
 
     def _ensure_llama_server(self) -> None:
-        url = f"http://{self.config.llm.host}:{self.config.llm.port}/health"
+        if is_healthy(self.config.llm.host, self.config.llm.port, timeout=1.0):
+            print("  ✓ llama-server is already active and healthy.")
+            return
+
         try:
-            r = httpx.get(url, timeout=1.0)
-            if r.status_code == 200:
-                print("  llama-server is already active and healthy.")
-                return
-        except (httpx.HTTPError, OSError):
-            pass
+            h, p = self.config.llm.host, self.config.llm.port
+            print(f"  Starting llama-server.exe on {h}:{p}...")
+            self.llama_proc = start_server(self.config.llm, self.config.home_dir)
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write(f"WARNING: Could not launch llama-server: {exc}\n")
+            return
 
-        # Launch llama-server.exe
-        llama_exe = self.config.home_dir / "app" / "llama-server" / "llama-server.exe"
-        model_gguf = self.config.home_dir / self.config.llm.model
-        mmproj_gguf = self.config.home_dir / self.config.llm.mmproj
-
-        cmd = [
-            str(llama_exe),
-            "--model", str(model_gguf),
-            "--n-gpu-layers", "99",
-            "--ctx-size", str(self.config.llm.ctx),
-            "--cache-type-k", self.config.llm.kv_type,
-            "--cache-type-v", self.config.llm.kv_type,
-            "--parallel", "1",
-            "--flash-attn", "on",
-            "--host", self.config.llm.host,
-            "--port", str(self.config.llm.port),
-            "--no-webui",
-            "--jinja",
-            "--log-format", "json",
-        ]
-        if self.config.llm.mode == "audio" and mmproj_gguf.exists():
-            cmd.extend(["--mmproj", str(mmproj_gguf)])
-
-        self.llama_proc = subprocess.Popen(  # noqa: S603
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-
-        # Poll /health up to 60s
+        # Poll /health up to 60s with live progress indicator
         t0 = time.time()
         while time.time() - t0 < 60.0:
-            try:
-                r = httpx.get(url, timeout=1.0)
-                if r.status_code == 200:
-                    print(f"  llama-server ready in {time.time()-t0:.1f}s.")
-                    return
-            except (httpx.HTTPError, OSError):
-                pass
+            if self.llama_proc is not None and self.llama_proc.poll() is not None:
+                rc = self.llama_proc.returncode
+                log_p = self.config.home_dir / "logs" / "llama-server.log"
+                err_tail = ""
+                if log_p.exists():
+                    err_tail = log_p.read_text(encoding="utf-8", errors="replace")[-800:]
+                sys.stderr.write(
+                    f"\nFATAL: llama-server exited with code {rc}.\n"
+                    f"Recent server log:\n{err_tail}\n"
+                )
+                sys.exit(5)
+
+            status = check_server_status(self.config.llm.host, self.config.llm.port, timeout=1.0)
+            elapsed = time.time() - t0
+            if status == "ready":
+                print(f"\n  ✓ llama-server ready on dGPU in {elapsed:.1f}s.")
+                return
+            if status == "loading":
+                print(
+                    f"\r  Loading 8GB model tensors into RTX 5080 VRAM... ({elapsed:.0f}s)",
+                    end="",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"\r  Initializing CUDA Flash-Attention engine... ({elapsed:.0f}s)",
+                    end="",
+                    flush=True,
+                )
+
             time.sleep(0.5)
 
-        sys.stderr.write("FATAL: llama-server failed to respond on /health within 60s.\n")
+        sys.stderr.write("\nFATAL: llama-server failed to respond on /health within 60s.\n")
         sys.exit(5)
 
     def run_forever(self) -> None:
@@ -193,11 +192,23 @@ class Supervisor:
 
 
 def main() -> None:
+    # Multiprocessing freeze support for PyInstaller Windows packaging
+    mp.freeze_support()
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "ProjectLucca.DesktopCompanion.0.2"
+        )
+    except Exception:  # noqa: BLE001, S110
+        pass
+
     # Set multiprocessing start method to spawn for Windows clean subprocesses
     mp.set_start_method("spawn", force=True)
     supervisor = Supervisor()
-    supervisor.boot()
-    supervisor.run_forever()
+    try:
+        supervisor.boot()
+        supervisor.run_forever()
+    except KeyboardInterrupt:
+        supervisor.shutdown()
 
 
 if __name__ == "__main__":

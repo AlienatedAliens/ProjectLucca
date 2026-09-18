@@ -1,0 +1,58 @@
+﻿=== ARTEFACT: S1_30_T3_hw.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:58:40Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run pytest -m hw -q -rA --durations=0 --tb=short
+=== OUTPUT (stdout+stderr merged) ===
+FF...                                                                    [100%]
+================================== FAILURES ===================================
+____________________ test_live_phase1_conversational_turn _____________________
+tests\test_phase1_live_hw.py:81: in test_live_phase1_conversational_turn
+    assert trace.tokens_out > 0
+E   AssertionError: assert 0 > 0
+E    +  where 0 = TurnTrace(trace_id='01M2S0BRKHBW517D43Q5K503AY', mode='audio', route='llm', tts_device='CPU', asr_device='cpu', t_key_...ast_done=0, t_playback_done=0, t_postturn_done=180044109000000, tokens_out=0, chunks=0, underruns=0, interrupted=False).tokens_out
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1707ms captured)...\n\n[User] \U0001f399\ufe0f "Thank you."\n[Lucca] \n
+_______________________ test_live_phase1_tool_call_turn _______________________
+tests\test_phase1_live_hw.py:161: in test_live_phase1_tool_call_turn
+    assert tool_name == "launch_app"
+E   AssertionError: assert 'query_capabilities' == 'launch_app'
+E     
+E     - launch_app
+E     + query_capabilities
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1323ms captured)...\n[Lucca] \n\n\n[LIVE TOOL CALL RESULTS]\n  Executed tools:    [('query_capabilities', {'category': 'all'})]
+=================================== PASSES ====================================
+__________________________ test_live_barge_in_abort ___________________________
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1707ms captured)...\n\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n\n[LIVE BARGE-IN RESULT]\n  Barge-in abort duration: 30.07 ms (spec budget <= 50 ms)\n[Lucca] 
+-------------------------- Captured stdout teardown ---------------------------
+
+
+_______________________ test_live_phase2_egress_matrix ________________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:58:59 [info     ] egress_rules_applied
+============================== slowest durations ==============================
+8.54s call     tests/test_phase2_live_hw.py::test_live_phase2_egress_matrix
+3.06s call     tests/test_phase1_live_hw.py::test_live_phase1_conversational_turn
+2.43s call     tests/test_phase1_live_hw.py::test_live_phase1_tool_call_turn
+2.12s call     tests/test_phase1_live_hw.py::test_live_barge_in_abort
+2.01s setup    tests/test_phase1_live_hw.py::test_live_phase1_conversational_turn
+1.74s setup    tests/test_phase1_live_hw.py::test_live_phase1_tool_call_turn
+1.71s setup    tests/test_phase1_live_hw.py::test_live_barge_in_abort
+0.93s call     tests/test_phase2_live_hw.py::test_live_phase2_in_container_rpc
+0.03s teardown tests/test_phase1_live_hw.py::test_live_barge_in_abort
+
+(6 durations < 0.005s hidden.  Use -vv to show these durations.)
+=========================== short test summary info ===========================
+PASSED tests/test_phase1_live_hw.py::test_live_barge_in_abort
+PASSED tests/test_phase2_live_hw.py::test_live_phase2_egress_matrix
+PASSED tests/test_phase2_live_hw.py::test_live_phase2_in_container_rpc
+FAILED tests/test_phase1_live_hw.py::test_live_phase1_conversational_turn - A...
+FAILED tests/test_phase1_live_hw.py::test_live_phase1_tool_call_turn - Assert...
+2 failed, 3 passed, 131 deselected in 24.58s
+
+=== EXIT_CODE: 1
+=== TIMED_OUT: False
+=== DURATION_S: 25.74
+=== UTC_END: 2026-09-18T00:59:06Z

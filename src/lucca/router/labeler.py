@@ -52,9 +52,7 @@ def derive_label(
     """
     effective_interrupted = user_interrupted or current.user_interrupted
     effective_interrupted_ms = (
-        interrupted_after_ms
-        if interrupted_after_ms is not None
-        else current.interrupted_after_ms
+        interrupted_after_ms if interrupted_after_ms is not None else current.interrupted_after_ms
     )
     effective_tool_ok = tool_ok if tool_ok is not None else current.tool_ok
 
@@ -79,10 +77,7 @@ def derive_label(
         return DecisionLabel.NEG, DecisionLabelReason.TOOL_FAILED
 
     # Priority 5: Route was LLM but an active/quarantine rule would have planned identically
-    if (
-        current.decision.action == RouteAction.LLM
-        and matching_rule_planned_identically
-    ):
+    if current.decision.action == RouteAction.LLM and matching_rule_planned_identically:
         return DecisionLabel.NEG, DecisionLabelReason.RULE_WOULD_MATCH
 
     # Priority 6: Route was RULE and user re-asked same intent within 30 s
@@ -201,4 +196,3 @@ def check_data_volume_gate(
 
     status = "eligible" if is_eligible else "blocked"
     return is_eligible, status, stats
-

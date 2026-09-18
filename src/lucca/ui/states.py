@@ -1,4 +1,4 @@
-﻿"""
+"""
 Project Lucca — Avatar Visual States & Themes
 Spec 01 §1, ADR-005
 """

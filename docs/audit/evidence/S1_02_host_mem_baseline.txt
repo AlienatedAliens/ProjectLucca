@@ -1,0 +1,42 @@
+﻿=== ARTEFACT: S1_02_host_mem_baseline.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:09:41Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: powershell -NoProfile -ExecutionPolicy Bypass -File docs\audit\evidence\S1_ps_helpers.ps1 -Action hostmem
+=== OUTPUT (stdout+stderr merged) ===
+UTC_NOW: 2026-09-18T00:09:42Z
+
+
+TotalVisibleMemorySize : 16170128
+FreePhysicalMemory     : 1325880
+
+
+
+
+--- Top 15 processes by working set (WS bytes) ---
+
+Name                 Id        WS
+----                 --        --
+Antigravity IDE   10104 932470784
+msedge            33140 558100480
+Antigravity IDE   19880 467869696
+msedge            28840 460435456
+MSI.CentralServer  8420 406208512
+Discord           25440 404893696
+msedge            23612 364634112
+msedge            23384 358051840
+Antigravity IDE   35500 299913216
+Antigravity IDE    9156 286650368
+avp               37744 241557504
+explorer           5856 229998592
+language_server   33432 213180416
+Antigravity IDE   22368 209702912
+Antigravity       41212 206360576
+
+
+
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.59
+=== UTC_END: 2026-09-18T00:09:42Z

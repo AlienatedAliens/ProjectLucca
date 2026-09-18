@@ -1,0 +1,14 @@
+﻿=== ARTEFACT: S1_33_startup_script.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:01:57Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run python scripts/test_s1_startup.py
+=== OUTPUT (stdout+stderr merged) ===
+Launching llama-server...
+Server ready: True in 0.07s
+Health check status: {'status': 'ok'}
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 1.09
+=== UTC_END: 2026-09-18T01:01:58Z

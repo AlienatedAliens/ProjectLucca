@@ -161,7 +161,14 @@ class AudioProcess:
                 return
 
         samples = self.play_ring.read(frames)
-        outdata[:, 0] = samples
+        n = len(samples)
+        if n == frames:
+            outdata[:, 0] = samples
+        elif n > 0:
+            outdata[:n, 0] = samples
+            outdata[n:, 0] = 0
+        else:
+            outdata.fill(0)
 
         # Calculate RMS & check first non-silent sample
         if len(samples) > 0:
@@ -195,8 +202,14 @@ class AudioProcess:
                 )
                 self._send_ingest(rms_env)
 
+        # Check for completion: ring drained and EOS reached
+        if avail == 0 and is_eos and self.is_playing:
+            self.is_playing = False
+            self.first_sample_emitted = False
+            self.play_ring.clear_flag(FLAG_EOS)
+
         # Check for underrun if ring ran dry while turn still active
-        if avail == 0 and not is_eos and self.is_playing:
+        elif avail == 0 and not is_eos and self.is_playing:
             self.underrun_count += 1
             if self.underrun_count % 3 == 0:
                 self.jitter_ms = min(120, self.jitter_ms + 20)
@@ -225,8 +238,24 @@ class AudioProcess:
         self.bus_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.bus_port}")
         self.bus_sock.setsockopt_string(zmq.SUBSCRIBE, "")
 
+        # Resolve audio devices
+        dev_in: int | str | None = None
+        if self.config.audio.capture_device:
+            try:
+                dev_in = int(self.config.audio.capture_device)
+            except ValueError:
+                dev_in = self.config.audio.capture_device
+
+        dev_out: int | str | None = None
+        if self.config.audio.playback_device:
+            try:
+                dev_out = int(self.config.audio.playback_device)
+            except ValueError:
+                dev_out = self.config.audio.playback_device
+
         # Open audio devices
         self.input_stream = sd.InputStream(
+            device=dev_in,
             samplerate=self.config.audio.capture_rate,
             channels=1,
             dtype="int16",
@@ -234,6 +263,7 @@ class AudioProcess:
             blocksize=320,  # 20 ms
         )
         self.output_stream = sd.OutputStream(
+            device=dev_out,
             samplerate=self.config.audio.playback_rate,
             channels=1,
             dtype="int16",
@@ -293,6 +323,11 @@ class AudioProcess:
                     env = decode_envelope(raw)
                     if env.type == "play.abort":
                         self._handle_barge_in()
+                    elif env.type == "play.begin":
+                        self.active_trace_id = env.trace_id
+                        self.first_sample_emitted = False
+                        self.play_ring.clear_flag(FLAG_ABORT)
+                        self.play_ring.clear_flag(FLAG_EOS)
                     elif env.type == "ui.config_update":
                         p_cfg = UIConfigUpdatePayload.model_validate(env.payload)
                         if p_cfg.ptt_key:
@@ -301,6 +336,13 @@ class AudioProcess:
                                 f"[AUDIO] PTT target key reconfigured to: {p_cfg.ptt_key}",
                                 flush=True,
                             )
+                    elif env.type == "ui.talk_press":
+                        self._on_ptt_pressed(env.ts_ns)
+                    elif env.type == "ui.talk_release":
+                        dur_ms = 1000.0
+                        if isinstance(env.payload, dict) and "duration_ms" in env.payload:
+                            dur_ms = float(str(env.payload["duration_ms"]))
+                        self._on_ptt_released(env.ts_ns, dur_ms)
                 except (IPCError, zmq.ZMQError) as exc:
                     logger.debug("audio_bus_message_error", error=str(exc))
 

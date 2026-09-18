@@ -1,0 +1,18 @@
+﻿=== ARTEFACT: S1_11d_lint_imports.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:19:27Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lint-imports & echo --- importlinter config presence: & findstr /n /c:"importlinter" pyproject.toml & dir /b .importlinter setup.cfg
+=== OUTPUT (stdout+stderr merged) ===
+=============
+Import Linter
+=============
+
+Could not read any configuration.
+--- importlinter config presence: 
+File Not Found
+
+=== EXIT_CODE: 1
+=== TIMED_OUT: False
+=== DURATION_S: 0.82
+=== UTC_END: 2026-09-18T00:19:28Z

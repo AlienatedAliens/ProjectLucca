@@ -1,0 +1,107 @@
+﻿=== ARTEFACT: S1_28_listening_sockets.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:54:03Z
+=== COMMAND: netstat -ano | findstr LISTEN ; S1_ps_helpers.ps1 -Action sockets
+=== OUTPUT ===
+  TCP    0.0.0.0:135            0.0.0.0:0              LISTENING       2064
+  TCP    0.0.0.0:445            0.0.0.0:0              LISTENING       4
+  TCP    0.0.0.0:1462           0.0.0.0:0              LISTENING       4
+  TCP    0.0.0.0:5040           0.0.0.0:0              LISTENING       2856
+  TCP    0.0.0.0:7680           0.0.0.0:0              LISTENING       7968
+  TCP    0.0.0.0:49664          0.0.0.0:0              LISTENING       1872
+  TCP    0.0.0.0:49665          0.0.0.0:0              LISTENING       1792
+  TCP    0.0.0.0:49666          0.0.0.0:0              LISTENING       3464
+  TCP    0.0.0.0:49667          0.0.0.0:0              LISTENING       3672
+  TCP    0.0.0.0:49668          0.0.0.0:0              LISTENING       4772
+  TCP    0.0.0.0:49669          0.0.0.0:0              LISTENING       1844
+  TCP    127.0.0.1:6463         0.0.0.0:0              LISTENING       25440
+  TCP    127.0.0.1:8080         0.0.0.0:0              LISTENING       21764
+  TCP    127.0.0.1:9080         0.0.0.0:0              LISTENING       5264
+  TCP    127.0.0.1:11434        0.0.0.0:0              LISTENING       28984
+  TCP    127.0.0.1:14630        0.0.0.0:0              LISTENING       5228
+  TCP    127.0.0.1:26822        0.0.0.0:0              LISTENING       13848
+  TCP    127.0.0.1:32683        0.0.0.0:0              LISTENING       8420
+  TCP    127.0.0.1:33683        0.0.0.0:0              LISTENING       8420
+  TCP    127.0.0.1:47001        0.0.0.0:0              LISTENING       9120
+  TCP    127.0.0.1:47002        0.0.0.0:0              LISTENING       9120
+  TCP    127.0.0.1:47003        0.0.0.0:0              LISTENING       9120
+  TCP    127.0.0.1:51842        0.0.0.0:0              LISTENING       10104
+  TCP    127.0.0.1:51843        0.0.0.0:0              LISTENING       29896
+  TCP    127.0.0.1:51844        0.0.0.0:0              LISTENING       29896
+  TCP    127.0.0.1:55512        0.0.0.0:0              LISTENING       22368
+  TCP    127.0.0.1:55513        0.0.0.0:0              LISTENING       22368
+  TCP    127.0.0.1:55517        0.0.0.0:0              LISTENING       40256
+  TCP    127.0.0.1:55518        0.0.0.0:0              LISTENING       40256
+  TCP    127.0.0.1:55699        0.0.0.0:0              LISTENING       19244
+  TCP    127.0.0.1:58667        0.0.0.0:0              LISTENING       37744
+  TCP    127.0.0.1:59840        0.0.0.0:0              LISTENING       29896
+  TCP    127.0.0.1:62656        0.0.0.0:0              LISTENING       43688
+  TCP    127.0.0.1:62658        0.0.0.0:0              LISTENING       43688
+  TCP    127.0.0.1:62659        0.0.0.0:0              LISTENING       33432
+  TCP    127.0.0.1:62660        0.0.0.0:0              LISTENING       33432
+  TCP    172.20.96.1:139        0.0.0.0:0              LISTENING       4
+  TCP    192.168.1.5:139        0.0.0.0:0              LISTENING       4
+  TCP    [::]:135               [::]:0                 LISTENING       2064
+  TCP    [::]:445               [::]:0                 LISTENING       4
+  TCP    [::]:1462              [::]:0                 LISTENING       4
+  TCP    [::]:7680              [::]:0                 LISTENING       7968
+  TCP    [::]:49664             [::]:0                 LISTENING       1872
+  TCP    [::]:49665             [::]:0                 LISTENING       1792
+  TCP    [::]:49666             [::]:0                 LISTENING       3464
+  TCP    [::]:49667             [::]:0                 LISTENING       3672
+  TCP    [::]:49668             [::]:0                 LISTENING       4772
+  TCP    [::]:49669             [::]:0                 LISTENING       1844
+  TCP    [::1]:42050            [::]:0                 LISTENING       31092
+UTC_NOW: 2026-09-18T00:54:03Z
+--- Get-NetTCPConnection -State Listen (all) with owning process name ---
+::                                       :135    PID=2064    svchost
+::                                       :1462   PID=4       System
+::                                       :445    PID=4       System
+::                                       :49664  PID=1872    lsass
+::                                       :49665  PID=1792    wininit
+::                                       :49666  PID=3464    svchost
+::                                       :49667  PID=3672    svchost
+::                                       :49668  PID=4772    spoolsv
+::                                       :49669  PID=1844    services
+::                                       :7680   PID=7968    svchost
+::1                                      :42050  PID=31092   OneDrive.Sync.Service
+0.0.0.0                                  :135    PID=2064    svchost
+0.0.0.0                                  :49664  PID=1872    lsass
+0.0.0.0                                  :49665  PID=1792    wininit
+0.0.0.0                                  :49666  PID=3464    svchost
+0.0.0.0                                  :49667  PID=3672    svchost
+0.0.0.0                                  :49668  PID=4772    spoolsv
+0.0.0.0                                  :49669  PID=1844    services
+0.0.0.0                                  :5040   PID=2856    svchost
+127.0.0.1                                :11434  PID=28984   ollama
+127.0.0.1                                :14630  PID=5228    MSI_Companion_Service
+127.0.0.1                                :26822  PID=13848   MSI.TerminalServer
+127.0.0.1                                :32683  PID=8420    MSI.CentralServer
+127.0.0.1                                :33683  PID=8420    MSI.CentralServer
+127.0.0.1                                :47001  PID=9120    python
+127.0.0.1                                :47002  PID=9120    python
+127.0.0.1                                :47003  PID=9120    python
+127.0.0.1                                :51842  PID=10104   Antigravity IDE
+127.0.0.1                                :51843  PID=29896   language_server_windows_x64
+127.0.0.1                                :51844  PID=29896   language_server_windows_x64
+127.0.0.1                                :55512  PID=22368   Antigravity IDE
+127.0.0.1                                :55513  PID=22368   Antigravity IDE
+127.0.0.1                                :55517  PID=40256   language_server_windows_x64
+127.0.0.1                                :55518  PID=40256   language_server_windows_x64
+127.0.0.1                                :55699  PID=19244   MSI_LAN_Manager_Tool
+127.0.0.1                                :58667  PID=37744   avp
+127.0.0.1                                :59840  PID=29896   language_server_windows_x64
+127.0.0.1                                :62656  PID=43688   Antigravity
+127.0.0.1                                :62658  PID=43688   Antigravity
+127.0.0.1                                :62659  PID=33432   language_server
+127.0.0.1                                :62660  PID=33432   language_server
+127.0.0.1                                :6463   PID=25440   Discord
+127.0.0.1                                :8080   PID=21764   llama-server
+127.0.0.1                                :9080   PID=5264    NahimicService
+172.20.96.1                              :139    PID=4       System
+192.168.1.5                              :139    PID=4       System
+--- Filtered to python/llama/lucca/uv owners ---
+127.0.0.1                                :47003  PID=9120    python
+127.0.0.1                                :47002  PID=9120    python
+127.0.0.1                                :47001  PID=9120    python
+127.0.0.1                                :8080   PID=21764   llama-server

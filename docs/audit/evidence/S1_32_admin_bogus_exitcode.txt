@@ -1,0 +1,13 @@
+﻿=== ARTEFACT: S1_32_admin_bogus_exitcode.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:00:31Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin definitely-not-a-command & echo CMD_EXIT_CODE=0
+=== OUTPUT (stdout+stderr merged) ===
+Unknown command 'definitely-not-a-command'. Use 'lucca-admin help'
+CMD_EXIT_CODE=0
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.55
+=== UTC_END: 2026-09-18T01:00:31Z

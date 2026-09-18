@@ -26,8 +26,6 @@ cmd = [
     "8080",
     "--no-webui",
     "--jinja",
-    "--log-format",
-    "json",
 ]
 
 print("Launching llama-server...")

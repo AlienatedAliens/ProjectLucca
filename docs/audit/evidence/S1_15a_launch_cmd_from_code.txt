@@ -1,0 +1,25 @@
+﻿=== ARTEFACT: S1_15a_launch_cmd_from_code.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:28:52Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run python -c "from lucca.core.config import get_config; from lucca.brain.server_ctl import build_launch_command; c=get_config(); print('home_dir=',c.home_dir); print('env.mode=',c.env.mode); print('llm=',c.llm.model_dump()); print('CMD_LIST=',build_launch_command(c.llm,c.home_dir)); print('CMD_STR=',' '.join(build_launch_command(c.llm,c.home_dir)))" & echo --- launch_lucca.bat: & type launch_lucca.bat & echo --- llama-server version: & C:\ProjectLucca\app\llama-server\llama-server.exe --version
+=== OUTPUT (stdout+stderr merged) ===
+home_dir= C:\ProjectLucca
+env.mode= prod
+llm= {'mode': 'audio', 'host': '127.0.0.1', 'port': 8080, 'ctx': 8192, 'kv_type': 'q8_0', 'max_tokens': 512, 'temperature': 0.6, 'model': 'llm/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf', 'mmproj': 'llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf', 'text_model': ''}
+CMD_LIST= ['C:\\ProjectLucca\\app\\llama-server\\llama-server.exe', '--model', 'C:\\ProjectLucca\\models\\llm\\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf', '--n-gpu-layers', '99', '--ctx-size', '8192', '--cache-type-k', 'q8_0', '--cache-type-v', 'q8_0', '--parallel', '1', '--flash-attn', 'on', '--host', '127.0.0.1', '--port', '8080', '--no-webui', '--jinja', '--log-format', 'json', '--mmproj', 'C:\\ProjectLucca\\models\\llm\\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf']
+CMD_STR= C:\ProjectLucca\app\llama-server\llama-server.exe --model C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn on --host 127.0.0.1 --port 8080 --no-webui --jinja --log-format json --mmproj C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf
+--- launch_lucca.bat: 
+@echo off
+title Project Lucca -- Desktop Companion
+cd /d C:\projects\ProjectLucca
+uv run lucca
+pause
+--- llama-server version: 
+version: 0.4.1-dev (build 11026, commit b49650adb)
+built with Clang 20.1.8 for Windows x86_64
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 3.58
+=== UTC_END: 2026-09-18T00:28:56Z

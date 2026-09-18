@@ -116,9 +116,7 @@ class NPUProcess:
         elif env.type == "asr.transcribe":
             p_asr = ASRTranscribePayload.model_validate(env.payload)
             # Read captured audio slice from shared memory
-            slice_samples = self.cap_ring.read_slice(
-                p_asr.capture_seq_start, p_asr.capture_seq_end
-            )
+            slice_samples = self.cap_ring.read_slice(p_asr.capture_seq_start, p_asr.capture_seq_end)
             res = self.asr.transcribe(slice_samples)
             reply = Envelope(
                 type="asr.result",

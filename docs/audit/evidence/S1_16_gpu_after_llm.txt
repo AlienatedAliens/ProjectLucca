@@ -1,0 +1,11 @@
+﻿=== ARTEFACT: S1_16_gpu_after_llm.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:30:03.364Z
+=== COMMAND: nvidia-smi --query-gpu=memory.used,memory.total --format=csv ; nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+ERROR: Option memory.total is not recognized. Please run 'nvidia-smi -h' for help.
+
+ERROR: Option process_name is not recognized. Please run 'nvidia-smi -h' for help.
+
+--- 5 s later:
+ERROR: Option memory.total is not recognized. Please run 'nvidia-smi -h' for help.
+

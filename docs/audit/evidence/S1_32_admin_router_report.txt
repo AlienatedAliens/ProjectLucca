@@ -1,0 +1,12 @@
+﻿=== ARTEFACT: S1_32_admin_router_report.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:00:29Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin router report
+=== OUTPUT (stdout+stderr merged) ===
+Unknown command 'router'. Use 'lucca-admin help'
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.54
+=== UTC_END: 2026-09-18T01:00:30Z

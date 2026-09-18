@@ -30,11 +30,19 @@ class CompanionSprite(QWidget):
         self.on_geometry_changed: Callable[[], None] | None = None
         self.on_toggle_chat: Callable[[], None] | None = None
         self.on_context_menu: Callable[[QPoint], None] | None = None
+        self.on_toggle_commorose: Callable[[QPoint], None] | None = None
 
         # Animation state
         self.phase = 0.0
         self.mouth_aperture = 0.0  # 0.0 (closed) to 1.0 (wide open)
         self.drag_position: QPoint | None = None
+        self.press_start_pos: QPoint | None = None
+
+        # Single vs Double click dispatcher
+        self.single_click_timer = QTimer(self)
+        self.single_click_timer.setSingleShot(True)
+        self.single_click_timer.setInterval(220)
+        self.single_click_timer.timeout.connect(self._trigger_single_click)
 
         # Sprite sheets & frames
         self.sprites_dir = Path("assets/sprites/lucca")
@@ -169,9 +177,7 @@ class CompanionSprite(QWidget):
         painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(glow_color))
         glow_r = radius + 6
-        painter.drawEllipse(
-            QRectF(center_x - glow_r, center_y - glow_r, glow_r * 2, glow_r * 2)
-        )
+        painter.drawEllipse(QRectF(center_x - glow_r, center_y - glow_r, glow_r * 2, glow_r * 2))
 
         # 2. Main Body Orb
         body_color = QColor(self.theme.primary_color)
@@ -209,9 +215,7 @@ class CompanionSprite(QWidget):
             # Open mouth ellipse
             mouth_h = max(3.0, self.mouth_aperture * 18.0)
             painter.setBrush(QBrush(mouth_color))
-            mouth_rect = QRectF(
-                center_x - (mouth_w / 2), mouth_y - (mouth_h / 2), mouth_w, mouth_h
-            )
+            mouth_rect = QRectF(center_x - (mouth_w / 2), mouth_y - (mouth_h / 2), mouth_w, mouth_h)
             painter.drawEllipse(mouth_rect)
         else:
             # Closed happy arc smile
@@ -224,20 +228,41 @@ class CompanionSprite(QWidget):
     # Desktop interaction & mouse support
     def mousePressEvent(self, event: QMouseEvent | None) -> None:
         if event and event.button() == Qt.MouseButton.LeftButton:
+            self.press_start_pos = event.globalPosition().toPoint()
             self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             event.accept()
 
     def mouseMoveEvent(self, event: QMouseEvent | None) -> None:
-        if event and event.buttons() == Qt.MouseButton.LeftButton and self.drag_position:
+        if (
+            event
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self.drag_position is not None
+        ):
             self.move(event.globalPosition().toPoint() - self.drag_position)
-            if self.on_geometry_changed:
-                self.on_geometry_changed()
             event.accept()
+
+    def mouseReleaseEvent(self, event: QMouseEvent | None) -> None:
+        if event and event.button() == Qt.MouseButton.LeftButton and self.press_start_pos:
+            dist = (event.globalPosition().toPoint() - self.press_start_pos).manhattanLength()
+            if dist < 6:
+                # Potential single click: wait 220ms for possible double click
+                self.single_click_timer.start()
+            self.press_start_pos = None
+            self.drag_position = None
+            event.accept()
+
+    def _trigger_single_click(self) -> None:
+        # Single Click on Lucca: brings up subtitle / type message / click to talk button
+        if self.on_toggle_chat:
+            self.on_toggle_chat()
 
     def mouseDoubleClickEvent(self, event: QMouseEvent | None) -> None:
         if event and event.button() == Qt.MouseButton.LeftButton:
-            if self.on_toggle_chat:
-                self.on_toggle_chat()
+            # Double Click on Lucca: opens Commorose, clicking twice closes it
+            self.single_click_timer.stop()
+            if self.on_toggle_commorose:
+                center = self.geometry().center()
+                self.on_toggle_commorose(center)
             event.accept()
 
     def contextMenuEvent(self, event: object) -> None:

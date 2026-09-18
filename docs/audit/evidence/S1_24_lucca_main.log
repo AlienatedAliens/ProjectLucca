@@ -1,0 +1,46 @@
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+=================================================================
+  PROJECT LUCCA — SYSTEM BOOT (SUPERVISOR)
+=================================================================
+[1/5] Verifying environment & hardware...
+====================================================================
+  PROJECT LUCCA — SYSTEM ENVIRONMENT CHECK (SPIKE 0.1)
+====================================================================
+[PASS] MSHybrid dGPU VRAM      : dGPU VRAM used: 8100.0 MB (llama-server resident, within 9500 MB budget)
+[PASS] Intel NPU (OpenVINO)    : Intel NPU detected by OpenVINO (devices: ['CPU', 'GPU.0', 'GPU.1', 'NPU'])
+[PASS] SQLite + sqlite-vec     : sqlite-vec loaded successfully (version: v0.1.9)
+[PASS] WSL2 .wslconfig Clamp   : .wslconfig canonical settings verified at C:\Users\seatr\.wslconfig
+[PASS] Docker CE in WSL2       : Docker CE is running inside Ubuntu WSL2.
+[PASS] LUCCA_HOME Layout       : LUCCA_HOME verified at 'C:\ProjectLucca'
+====================================================================
+[SUCCESS] All Spike 0.1 environment criteria passed!
+[2/5] Initializing llama-server on dGPU...
+  llama-server is already active and healthy.
+[3/5] Spawning lucca-npu...
+[4/5] Spawning lucca-audio...
+[5/5] Spawning lucca-ui...
+Starting core orchestrator...
+=================================================================
+  LUCCA ONLINE: All 4 processes active. (LLM Mode: AUDIO)
+  Press Right-Ctrl or Alt-Gr to talk to Lucca.
+=================================================================
+2026-09-18 08:53:40 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (2094ms, speech: 1040ms)
+2026-09-18 08:53:42 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+2026-09-18 08:53:44 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (1375ms, speech: 1100ms)
+2026-09-18 08:53:45 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+2026-09-18 08:53:48 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (3187ms, speech: 1740ms)
+2026-09-18 08:53:51 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"
+2026-09-18 08:53:56 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode character '\\U0001f4ac' in position 9: character maps to <undefined>"
+
+[AUDIO] PTT Pressed -> Capturing microphone...
+2026-09-18 08:58:41 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
+[AUDIO] PTT Released (328ms, speech: 0ms)
+2026-09-18 08:58:41 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 6-7: character maps to <undefined>"

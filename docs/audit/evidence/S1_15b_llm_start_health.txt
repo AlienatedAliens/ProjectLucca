@@ -1,0 +1,14 @@
+﻿=== ARTEFACT: S1_15b_llm_start_health.txt / S1_15_llama_server.log
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:29:58.123Z
+=== COMMAND: C:\ProjectLucca\app\llama-server\llama-server.exe --model C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn on --host 127.0.0.1 --port 8080 --no-webui --jinja --log-format json --mmproj C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf
+=== NOTE: stdout -> S1_15_llama_server.log ; stderr -> S1_15_llama_server.stderr.log (Start-Process cannot merge)
+VRAM_BEFORE_START: ERROR: Option noheader is not recognized. Please run 'nvidia-smi -h' for help. 
+LLAMA_PID: 20308
+SPAWN_UTC: 2026-09-18T00:30:00.755Z
+SERVER_EXITED_EARLY exit_code=1 at 2.63s
+HEALTHY: False
+TIME_TO_HEALTHY_S: 2.63
+LAST_HEALTH_STATUS: The operation has timed out.
+LAST_HEALTH_BODY: 
+HEALTHY_UTC: 2026-09-18T00:30:03.364Z

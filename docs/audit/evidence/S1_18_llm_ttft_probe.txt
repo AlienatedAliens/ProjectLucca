@@ -1,0 +1,8 @@
+﻿=== ARTEFACT: S1_18_llm_ttft_probe.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:30:12.934Z
+=== METHOD: HttpWebRequest POST http://127.0.0.1:8080/v1/chat/completions stream=true max_tokens=64; TTFT = time from request send to first SSE 'data:' line containing non-empty delta content; TOTAL = time to '[DONE]'
+=== PROMPT (~20 tokens): Please list five colours of the rainbow and one short fact about each colour in one line each.
+=== BODY: {"max_tokens":64,"temperature":0.6,"messages":[{"content":"Please list five colours of the rainbow and one short fact about each colour in one line each.","role":"user"}],"model":"ultravox","stream":true}
+SKIPPED: server not healthy
+=== UTC_END: 2026-09-18T00:30:12.962Z

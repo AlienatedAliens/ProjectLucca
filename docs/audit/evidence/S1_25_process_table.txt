@@ -1,0 +1,33 @@
+﻿=== ARTEFACT: S1_25_process_table.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:53:58Z
+=== COMMAND: tasklist /fi "imagename eq python.exe" /v ; S1_ps_helpers.ps1 -Action proctable
+=== OUTPUT ===
+
+Image Name                     PID Session Name        Session#    Mem Usage Status          User Name                                              CPU Time Window Title                                                            
+========================= ======== ================ =========== ============ =============== ================================================== ============ ========================================================================
+python.exe                   33552 Console                    1      5,676 K Unknown         MSI\seatr                                               0:00:00 N/A                                                                     
+python.exe                    9120 Console                    1    890,948 K Not Responding  MSI\seatr                                               0:00:15 OleMainThreadWndName                                                    
+python.exe                   40824 Console                    1    886,192 K Not Responding  MSI\seatr                                               0:00:15 OleMainThreadWndName                                                    
+python.exe                   39664 Console                    1    201,764 K Not Responding  MSI\seatr                                               0:00:01 OleMainThreadWndName                                                    
+python.exe                   35780 Console                    1    231,248 K Running         MSI\seatr                                               0:00:02 python                                                                  
+
+Image Name                     PID Session Name        Session#    Mem Usage Status          User Name                                              CPU Time Window Title                                                            
+========================= ======== ================ =========== ============ =============== ================================================== ============ ========================================================================
+llama-server.exe             21764 Console                    1     11,856 K Running         MSI\seatr                                               0:00:12 C:\ProjectLucca\app\llama-server\llama-server.exe                       
+UTC_NOW: 2026-09-18T00:53:59Z
+--- Get-Process python*,llama*,lucca*,uv* : Name Id WS PM CPU StartTime CommandLine ---
+llama-server         PID=21764   PPID=39580   WS_MB=     11.6 PM_MB=  8,826.4 CPU_s=    13.0 START=9/18/2026 8:36:20 AM
+    CMD: "C:\ProjectLucca\app\llama-server\llama-server.exe" --model C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn on --host 127.0.0.1 --port 8080 --no-webui --jinja --mmproj C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf 
+python               PID=9120    PPID=33552   WS_MB=    870.1 PM_MB=  3,473.1 CPU_s=    15.3 START=9/18/2026 8:52:58 AM
+    CMD: "C:\Users\seatr\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe"  -m lucca.main
+python               PID=33552   PPID=9104    WS_MB=      5.5 PM_MB=      0.8 CPU_s=     0.0 START=9/18/2026 8:52:58 AM
+    CMD: "C:\Projects\ProjectLucca\.venv\Scripts\python.exe" -m lucca.main
+python               PID=35780   PPID=9120    WS_MB=    225.7 PM_MB=  1,676.4 CPU_s=     2.6 START=9/18/2026 8:53:04 AM
+    CMD: "C:\Users\seatr\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe" "-c" "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=9120, pipe_handle=3052)" "--multiprocessing-fork"
+python               PID=39664   PPID=9120    WS_MB=    197.1 PM_MB=  1,637.2 CPU_s=     1.8 START=9/18/2026 8:53:04 AM
+    CMD: "C:\Users\seatr\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe" "-c" "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=9120, pipe_handle=4084)" "--multiprocessing-fork"
+python               PID=40824   PPID=9120    WS_MB=    865.4 PM_MB=  3,577.8 CPU_s=    15.1 START=9/18/2026 8:53:04 AM
+    CMD: "C:\Users\seatr\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\python.exe" "-c" "from multiprocessing.spawn import spawn_main; spawn_main(parent_pid=9120, pipe_handle=4160)" "--multiprocessing-fork"
+uv                   PID=9104    PPID=38068   WS_MB=     23.0 PM_MB=     43.0 CPU_s=     0.0 START=9/18/2026 8:52:58 AM
+    CMD: "C:\Users\seatr\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe\uv.exe" run python -m lucca.main 

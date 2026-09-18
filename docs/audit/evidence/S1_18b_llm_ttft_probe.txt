@@ -1,0 +1,22 @@
+﻿=== ARTEFACT: S1_18b_llm_ttft_probe.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:36:40.539Z
+=== METHOD: HttpWebRequest POST http://127.0.0.1:8080/v1/chat/completions stream=true max_tokens=64; TTFT = time from request send to first SSE 'data:' line containing non-empty delta content; TOTAL = time to '[DONE]'
+=== PROMPT (~20 tokens): Please list five colours of the rainbow and one short fact about each colour in one line each.
+=== BODY: {"max_tokens":64,"temperature":0.6,"messages":[{"content":"Please list five colours of the rainbow and one short fact about each colour in one line each.","role":"user"}],"model":"ultravox","stream":true}
+RUN 1  UTC=2026-09-18T00:36:41.765Z  TTFT_ms=372.8  TOTAL_ms=1176.5  content_chunks=64  finish=length  err=
+   first_chunk={"choices":[{"finish_reason":null,"index":0,"delta":{"content":"Here"}}],"created":1789691800,"id":"chatcmpl-a2iOMccR6wTZJRgU6se08mrpOKLRFpuR","model":"C:\\ProjectLucca\\models\\llm\\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf","system_fingerprint":"b11026-b49650adb","object":"chat.completion.chunk"}
+   server_timings={"cache_n":0,"prompt_n":54,"prompt_ms":310.043,"prompt_per_token_ms":5.7415370370370375,"prompt_per_second":174.16938940727576,"predicted_n":64,"predicted_ms":833.835,"predicted_per_token_ms":13.235476190476192,"predicted_per_second":75.55451618125888}
+RUN 2  UTC=2026-09-18T00:36:43.609Z  TTFT_ms=20.8  TOTAL_ms=838.5  content_chunks=64  finish=length  err=
+   first_chunk={"choices":[{"finish_reason":null,"index":0,"delta":{"content":"Here"}}],"created":1789691802,"id":"chatcmpl-Y2fvzmCW4PLKhjLyVD05Gt2kptq7GUIp","model":"C:\\ProjectLucca\\models\\llm\\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf","system_fingerprint":"b11026-b49650adb","object":"chat.completion.chunk"}
+   server_timings={"cache_n":53,"prompt_n":1,"prompt_ms":10.155,"prompt_per_token_ms":10.155,"prompt_per_second":98.47365829640572,"predicted_n":64,"predicted_ms":818.471,"predicted_per_token_ms":12.991603174603174,"predicted_per_second":76.97279439344828}
+RUN 3  UTC=2026-09-18T00:36:45.496Z  TTFT_ms=22  TOTAL_ms=883.8  content_chunks=64  finish=length  err=
+   first_chunk={"choices":[{"finish_reason":null,"index":0,"delta":{"content":"Here"}}],"created":1789691804,"id":"chatcmpl-GM7816ukc8YyNRSbgWqK16ZX9fdGpiAC","model":"C:\\ProjectLucca\\models\\llm\\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf","system_fingerprint":"b11026-b49650adb","object":"chat.completion.chunk"}
+   server_timings={"cache_n":53,"prompt_n":1,"prompt_ms":10.47,"prompt_per_token_ms":10.47,"prompt_per_second":95.51098376313276,"predicted_n":64,"predicted_ms":861.955,"predicted_per_token_ms":13.681825396825397,"predicted_per_second":73.08966245337633}
+RUN 4  UTC=2026-09-18T00:36:47.354Z  TTFT_ms=44.3  TOTAL_ms=844  content_chunks=64  finish=length  err=
+   first_chunk={"choices":[{"finish_reason":null,"index":0,"delta":{"content":"Here"}}],"created":1789691806,"id":"chatcmpl-r58t99Z1sf9yl1YzSFSqvamLn5LBwxvV","model":"C:\\ProjectLucca\\models\\llm\\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf","system_fingerprint":"b11026-b49650adb","object":"chat.completion.chunk"}
+   server_timings={"cache_n":53,"prompt_n":1,"prompt_ms":13.607,"prompt_per_token_ms":13.607,"prompt_per_second":73.49158521349305,"predicted_n":64,"predicted_ms":799.047,"predicted_per_token_ms":12.683285714285715,"predicted_per_second":78.84392282306297}
+RUN 5  UTC=2026-09-18T00:36:49.159Z  TTFT_ms=19  TOTAL_ms=802.8  content_chunks=64  finish=length  err=
+   first_chunk={"choices":[{"finish_reason":null,"index":0,"delta":{"content":"Here"}}],"created":1789691808,"id":"chatcmpl-nc7pnTh1ZDRnXZcgw3uQlfuc7N5y5Ukn","model":"C:\\ProjectLucca\\models\\llm\\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf","system_fingerprint":"b11026-b49650adb","object":"chat.completion.chunk"}
+   server_timings={"cache_n":53,"prompt_n":1,"prompt_ms":10.254,"prompt_per_token_ms":10.254,"prompt_per_second":97.52291788570315,"predicted_n":64,"predicted_ms":783.763,"predicted_per_token_ms":12.44068253968254,"predicted_per_second":80.38144183892324}
+=== UTC_END: 2026-09-18T00:36:50.173Z

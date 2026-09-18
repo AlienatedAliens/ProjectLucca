@@ -1,0 +1,25 @@
+﻿=== ARTEFACT: S1_32b_admin_help_and_exitcodes.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:01:02Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: powershell -NoProfile -Command "uv run lucca-admin --help; 'EXIT_CODE_--help=' + $LASTEXITCODE; '--- help'; uv run lucca-admin help; 'EXIT_CODE_help=' + $LASTEXITCODE; '--- no args'; uv run lucca-admin; 'EXIT_CODE_noargs=' + $LASTEXITCODE; '--- bogus'; uv run lucca-admin definitely-not-a-command; 'EXIT_CODE_bogus=' + $LASTEXITCODE; '--- sandbox verify'; uv run lucca-admin sandbox verify; 'EXIT_CODE_sandbox_verify=' + $LASTEXITCODE"
+=== OUTPUT (stdout+stderr merged) ===
+Unknown command '--help'. Use 'lucca-admin help'
+EXIT_CODE_--help=0
+--- help
+lucca-admin commands: env-check, latency, metrics, memory, rules, router, sandbox, models, replay, logs
+EXIT_CODE_help=0
+--- no args
+lucca-admin commands: env-check, latency, metrics, memory, rules, router, sandbox, models, replay, logs
+EXIT_CODE_noargs=0
+--- bogus
+Unknown command 'definitely-not-a-command'. Use 'lucca-admin help'
+EXIT_CODE_bogus=0
+--- sandbox verify
+Unknown command 'sandbox'. Use 'lucca-admin help'
+EXIT_CODE_sandbox_verify=0
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 2.82
+=== UTC_END: 2026-09-18T01:01:05Z

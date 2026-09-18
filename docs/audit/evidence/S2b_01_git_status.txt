@@ -1,0 +1,100 @@
+ M config/persona.toml
+ D docs/00_START_HERE_implementer.md
+ D docs/00_original_build_brief.md
+ D docs/01_recursive_architecture_audit_and_flaw_analysis.md
+ D docs/02_systems_research_prior_art_and_alternatives.md
+ D docs/03_enterprise_hardware_topology_and_ipc_spec.md
+ D docs/04_deep_mechanical_testing_and_verification_matrix.md
+ D docs/05_lucca_system_architecture_master_spec.md
+ D docs/06_critical_review_findings.md
+ D docs/07_contradiction_register.md
+ D docs/08_adr/ADR-001_inference_engine.md
+ D docs/08_adr/ADR-002_memory_storage.md
+ D docs/08_adr/ADR-003_sandbox_egress_policy.md
+ D docs/08_adr/ADR-004_split_sandbox_containers.md
+ D docs/08_adr/ADR-005_ui_framework.md
+ D docs/08_adr/ADR-006_provenance_tiers_and_signers.md
+ D docs/08_adr/ADR-007_rules_as_pure_plans.md
+ D docs/08_adr/ADR-008_process_topology.md
+ D docs/08_adr/ADR-010_larger_models_after_64GB_upgrade.md
+ D docs/09_developer_spec/01_process_topology_and_ipc.md
+ D docs/09_developer_spec/02_ports_and_interfaces.md
+ D docs/09_developer_spec/03_provenance_model.md
+ D docs/09_developer_spec/04_memory_storage_schema.md
+ D docs/09_developer_spec/05_rule_dsl_grammar_and_lifecycle.md
+ D docs/09_developer_spec/06_router_classifier_and_labeling.md
+ D docs/09_developer_spec/07_audio_pipeline_and_barge_in.md
+ D docs/09_developer_spec/08_streaming_chunker_spec.md
+ D docs/09_developer_spec/09_sandbox_hardening.md
+ D docs/09_developer_spec/10_latency_trace_and_budgets.md
+ D docs/09_developer_spec/11_observability_config_and_lifecycle.md
+ D docs/09_developer_spec/12_threat_model.md
+ D docs/10_testing_matrix_v2.md
+ D docs/11_phase_plan_v2.md
+ D docs/12_prior_art_survey.md
+ D docs/13_decisions_log.md
+ D docs/14_blockers.md
+ D docs/14_phase0_results.md
+ D docs/14_second_pass_review.md
+ D docs/16_user_guide_onboarding.md
+ D docs/17_project_summary_and_positioning.md
+ D docs/18_roadmap_plain_and_technical.md
+ D docs/HANDOVER_2026-09-17_critical_review.md
+ D docs/RESEARCH_PROMPT_2026-09-17_engine_decision.md
+ D docs/RESEARCH_REPORT_2026-09-17_engine_decision.md
+ D docs/RESEARCH_REPORT_2026-09-17_review_notes.md
+ D docs/project_lucca_architecture_review.md
+ M pyproject.toml
+ M scripts/test_s1_startup.py
+ M src/lucca/brain/llm_client.py
+ M src/lucca/brain/prompt_builder.py
+ M src/lucca/core/config.py
+ M src/lucca/core/ipc_schemas.py
+ M src/lucca/core/orchestrator.py
+ M src/lucca/main.py
+ M src/lucca/memory/tokens.py
+ M src/lucca/router/heuristic.py
+ M src/lucca/router/labeler.py
+ M src/lucca/sandbox/file_tool.py
+ M src/lucca/sandbox/policy.py
+ M src/lucca/sandbox/service.py
+ M src/lucca/sandbox/web_tool.py
+ M src/lucca/senses/__init__.py
+ M src/lucca/senses/asr.py
+ M src/lucca/senses/audio_proc.py
+ M src/lucca/senses/embed.py
+ M src/lucca/senses/npu_proc.py
+ M src/lucca/senses/ptt.py
+ M src/lucca/senses/ring_buffer.py
+ M src/lucca/senses/tts.py
+ M src/lucca/senses/vad.py
+ M src/lucca/ui/__init__.py
+ M src/lucca/ui/app.py
+ M src/lucca/ui/input_bar.py
+ M src/lucca/ui/settings_dialog.py
+ M src/lucca/ui/speech_bubble.py
+ M src/lucca/ui/sprite.py
+ M src/lucca/ui/states.py
+ M tests/test_sandbox.py
+ M tests/test_ui_widgets.py
+ M uv.lock
+?? Lucca.spec
+?? assets/icon.ico
+?? assets/icon.png
+?? docs/archive/
+?? docs/audit/
+?? launch_lucca.bat
+?? packaging/
+?? scripts/create_desktop_shortcut.ps1
+?? src/lucca/brain/server_ctl.py
+?? src/lucca/memory/manager.py
+?? src/lucca/sandbox/system_tools.py
+?? src/lucca/senses/dsp_chain.py
+?? src/lucca/ui/commorose.py
+?? src/lucca/ui/telemetry_hud.py
+?? src/lucca/ui/theme.py
+?? tests/test_dsp_chain.py
+?? tests/test_gguf_parser.py
+?? tests/test_persona_toml.py
+?? tests/test_prompt_builder.py
+?? tests/test_server_ctl.py

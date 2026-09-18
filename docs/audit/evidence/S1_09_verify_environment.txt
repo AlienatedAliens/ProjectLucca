@@ -1,0 +1,49 @@
+﻿=== ARTEFACT: S1_09_verify_environment.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:11:38Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run python scripts/verify_environment.py
+=== OUTPUT (stdout+stderr merged) ===
+=================================================================
+  PROJECT LUCCA — SYSTEM & ENVIRONMENT DIAGNOSTICS
+=================================================================
+
+[1] HOST PHYSICAL RAM:
+    - Total Physical RAM: 15.42 GB
+    - Available RAM:      2.00 GB
+    [+] OK: 16GB physical RAM verified.
+
+[2] GPU & MSHYBRID MODE:
+    [+] dGPU RTX 5080 Laptop VRAM used: 0 MB / 16303 MB (Display: Off, MSHybrid verified)
+
+[3] WSL2 CONFIGURATION (.wslconfig):
+    - memory=4608MB: [OK]
+    - pageReporting=true: [OK]
+    - autoMemoryReclaim=gradual: [OK]
+    - networkingMode=nat: [OK]
+    [+] Canonical Lucca .wslconfig clamping verified.
+
+[4] DOCKER CE (inside Ubuntu WSL2):
+    [+] Docker CE active: 29.8.1 (Memory: 4629053440 bytes)
+
+[5] PYTHON RUNTIME & EXTENSIONS:
+    - Python Version: 3.12.14
+    - Executable:     C:\Projects\ProjectLucca\.venv\Scripts\python.exe
+    [+] sqlite-vec v0.1.9 + FTS5 successfully loaded
+
+[6] OPENVINO & ACCELERATORS:
+    - Available Devices: ['CPU', 'GPU.0', 'GPU.1', 'NPU']
+    [+] Intel NPU DETECTED and accessible via OpenVINO on Windows!
+
+[7] RUNTIME FILESYSTEM LAYOUT:
+    - C:\ProjectLucca layout complete (9/9 dirs exist)
+    [+] LUCCA_HOME directory structure ready.
+
+=================================================================
+  ALL DIAGNOSTICS GREEN: Ready for Phase 0 Spikes.
+=================================================================
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 8.3
+=== UTC_END: 2026-09-18T00:11:47Z

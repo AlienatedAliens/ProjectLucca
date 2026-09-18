@@ -93,9 +93,7 @@ class SharedAudioRing:
         )
 
     def _read_header(self) -> tuple[int, int, int, int, int, int, int]:
-        magic, ver, rate, w_idx, r_idx, seq, flags = struct.unpack_from(
-            HEADER_FORMAT, self.buf, 0
-        )
+        magic, ver, rate, w_idx, r_idx, seq, flags = struct.unpack_from(HEADER_FORMAT, self.buf, 0)
         if magic != MAGIC:
             raise ValueError(f"Invalid shared memory magic: {hex(magic)}")
         return magic, ver, rate, w_idx, r_idx, seq, flags

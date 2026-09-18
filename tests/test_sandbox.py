@@ -338,3 +338,35 @@ def test_t_sbx_16_host_sha256_audit(workspace: Path, file_tool: SafeFileTool):
         assert res_tampered.ok is False
         assert res_tampered.exit_code == -4
         assert "sha256 mismatch" in res_tampered.stderr
+
+
+def test_query_capabilities_manifest(workspace: Path) -> None:
+    """Verifies that query_capabilities returns full manifest and respects categories."""
+    from lucca.core.schemas import Risk
+    from lucca.sandbox.policy import classify_risk, requires_confirmation
+    from lucca.sandbox.service import SandboxService
+
+    # Check risk classification
+    assert classify_risk("query_capabilities") == Risk.READ
+    assert requires_confirmation("query_capabilities") is False
+
+    service = SandboxService(workspace_root=workspace, use_direct_fallback=True)
+
+    # 1. Query all
+    res = service.execute_tool("call-cap-1", "query_capabilities", {})
+    assert res.ok is True
+    assert res.exit_code == 0
+    assert res.structured is not None
+    assert "tools" in res.structured
+    assert "reasoning_pathways" in res.structured
+    assert "whitelisted_apps" in res.structured
+    assert "hardware_substrates" in res.structured
+
+    # 2. Query category
+    res_pathways = service.execute_tool("call-cap-2", "query_capabilities", {"category": "reasoning_pathways"})
+    assert res_pathways.ok is True
+    assert res_pathways.structured is not None
+    assert "reasoning_pathways" in res_pathways.structured
+    pathways = res_pathways.structured["reasoning_pathways"]
+    assert "Hardware & Safety" in pathways
+    assert "Cognitive & Temporal" in pathways

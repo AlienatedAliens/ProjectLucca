@@ -4,6 +4,7 @@ Spec 09, Spec 12, ADR-003, ADR-004
 Orchestrates file-sandbox RPC, web-sandbox fetches, host launcher, and policy guards.
 """
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -139,5 +140,79 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
 
-        # 5. File Tools via RPC
+        # 5. Query Capabilities Tool
+        if tool_name == "query_capabilities":
+            category = str(args.get("category", "all"))
+            capabilities: dict[str, Any] = {
+                "tools": ["launch_app", "read_file", "write_file", "query_capabilities"],
+                "whitelisted_apps": [
+                    "calculator",
+                    "notepad",
+                    "terminal",
+                    "browser",
+                    "task_manager",
+                ],
+                "reasoning_pathways": {
+                    "Hardware & Safety": [
+                        {
+                            "id": "vram-safety-guard-v1",
+                            "purpose": "Quantizes KV-cache if dGPU VRAM drops under 2.5 GB",
+                        },
+                        {
+                            "id": "npu-whisper-pin-v1",
+                            "purpose": "Pins Whisper ASR to Intel AI Boost NPU via OpenVINO",
+                        },
+                    ],
+                    "Cognitive & Temporal": [
+                        {
+                            "id": "temporal-logic-gate-v1",
+                            "purpose": "Detects counterfactual timeline queries",
+                        }
+                    ],
+                    "Tools & Execution": [
+                        {
+                            "id": "codebase-inspect-route-v1",
+                            "purpose": "Routes architectural queries to read-only repo",
+                        }
+                    ],
+                    "Persona & Inflection": [
+                        {
+                            "id": "inventor-curiosity-v1",
+                            "purpose": "Modulates speech for invention topics",
+                        }
+                    ],
+                    "Memory & Recall": [
+                        {
+                            "id": "vector-relevance-gate-v1",
+                            "purpose": "Thresholds semantic memory injection (>0.72 score)",
+                        }
+                    ],
+                },
+                "workspace": str(self.workspace_mgr.workspace_root),
+                "codebase_access": "Read-only access to C:/projects/ProjectLucca",
+                "memory_subsystem": "SQLite-vec episodic & semantic memory (data/memory.sqlite)",
+                "hardware_substrates": {
+                    "dGPU": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB) - LLM llama-server",
+                    "NPU": "Intel AI Boost NPU (OpenVINO) - Whisper ASR & 384-D vector embeddings",
+                    "CPU": "Intel Core Ultra 9 275HX - Orchestrator, ZeroMQ IPC, Kokoro TTS",
+                    "RAM": "16 GB Physical Host Memory",
+                },
+            }
+            if category != "all" and category in capabilities:
+                content_str = json.dumps({category: capabilities[category]}, indent=2)
+                structured_data = {category: capabilities[category]}
+            else:
+                content_str = json.dumps(capabilities, indent=2)
+                structured_data = capabilities
+
+            return ToolResult(
+                call_id=call_id,
+                ok=True,
+                exit_code=0,
+                structured=structured_data,
+                content=content_str,
+                elapsed_ms=0.0,
+            )
+
+        # 6. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)

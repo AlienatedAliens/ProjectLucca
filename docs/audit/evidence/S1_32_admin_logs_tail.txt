@@ -1,0 +1,12 @@
+﻿=== ARTEFACT: S1_32_admin_logs_tail.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:00:30Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin logs tail core
+=== OUTPUT (stdout+stderr merged) ===
+Unknown command 'logs'. Use 'lucca-admin help'
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.54
+=== UTC_END: 2026-09-18T01:00:30Z

@@ -1,0 +1,27 @@
+﻿=== ARTEFACT: S1_26_gpu_full_app.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:54:01Z
+=== COMMAND: nvidia-smi ; nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+=== OUTPUT ===
+Fri Sep 18 08:54:01 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 610.78                 KMD Version: 610.78        CUDA UMD Version: 13.3     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 5080 ...  WDDM  |   00000000:01:00.0 Off |                  N/A |
+| N/A   38C    P8              5W /  130W |    8100MiB /  16303MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A           21764      C   ...llama-server\llama-server.exe      N/A      |
++-----------------------------------------------------------------------------------------+
+pid, process_name, used_gpu_memory [MiB]
+21764, C:\ProjectLucca\app\llama-server\llama-server.exe, [N/A]

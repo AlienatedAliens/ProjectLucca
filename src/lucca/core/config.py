@@ -54,8 +54,8 @@ class ASRSettings(BaseModel):
 
 class TTSSettings(BaseModel):
     model: str = "tts/kokoro-v1"
-    voice: str = "af_bella"
-    speed: float = 1.05
+    voice: str = "genki_heroine"
+    speed: float = 1.10
     device_ladder: list[DeviceType] = Field(default_factory=_default_device_ladder)
     speak_code: bool = False
     speak_urls: bool = False
@@ -71,7 +71,7 @@ class AudioSettings(BaseModel):
 
 
 class PTTSettings(BaseModel):
-    key: str = "right ctrl"
+    key: str = "alt-gr"
     mode: Literal["hold", "toggle"] = "hold"
     max_seconds: float = 29.5
     swallow: bool = False

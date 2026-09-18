@@ -1,0 +1,29 @@
+﻿=== ARTEFACT: S1_38_gpu_after_shutdown.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T01:07:43.056Z
+=== COMMAND: nvidia-smi ; nvidia-smi --query-gpu=memory.used,memory.total --format=csv (immediately, +10 s)
+Fri Sep 18 09:07:43 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 610.78                 KMD Version: 610.78        CUDA UMD Version: 13.3     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 5080 ...  WDDM  |   00000000:01:00.0 Off |                  N/A |
+| N/A   40C    P0             20W /  130W |       0MiB /  16303MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+memory.used [MiB], memory.total [MiB]
+0 MiB, 16303 MiB
+--- +10 s:
+memory.used [MiB], memory.total [MiB]
+0 MiB, 16303 MiB

@@ -22,6 +22,7 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "read_file": Risk.READ,
     "search_text": Risk.READ,
     "fetch_url": Risk.NETWORK,
+    "query_capabilities": Risk.READ,
     "write_file": Risk.WRITE,
     "delete_file": Risk.WRITE,
     "run_python": Risk.WRITE,

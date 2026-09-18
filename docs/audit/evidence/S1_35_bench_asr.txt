@@ -1,0 +1,51 @@
+﻿=== ARTEFACT: S1_35_bench_asr.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:02:44Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run python scripts/bench_asr_ladder.py
+=== OUTPUT (stdout+stderr merged) ===
+Loaded reference speech clip: 'C:\projects\ProjectLucca\tests\fixtures\audio_tool_calls\calc_01.wav' (1.32s, 16000Hz)
+
+==========================================
+  Testing Whisper on NPU
+==========================================
+  Loaded/compiled on NPU in 16.65s
+  Warming up...
+  Transcription: ' Open!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+    Run 1: 5452.3 ms
+    Run 2: 5450.3 ms
+    Run 3: 1298.5 ms
+    Run 4: 5443.5 ms
+    Run 5: 5468.0 ms
+  Summary on NPU: p50=5450.3 ms, p95=5464.8 ms, RTF=4.121
+
+==========================================
+  Testing Whisper on GPU.0
+==========================================
+  Loaded/compiled on GPU.0 in 7.00s
+  Warming up...
+  Transcription: ' Open the calculator.'
+    Run 1: 1443.3 ms
+    Run 2: 1427.2 ms
+    Run 3: 1437.3 ms
+    Run 4: 1444.2 ms
+    Run 5: 1623.0 ms
+  Summary on GPU.0: p50=1443.3 ms, p95=1587.2 ms, RTF=1.091
+
+==========================================
+  Testing Whisper on CPU
+==========================================
+  Loaded/compiled on CPU in 1.24s
+  Warming up...
+  Transcription: ' Open the calculator.'
+    Run 1: 1623.9 ms
+    Run 2: 1512.7 ms
+    Run 3: 1522.4 ms
+    Run 4: 1521.3 ms
+    Run 5: 1697.8 ms
+  Summary on CPU: p50=1522.4 ms, p95=1683.0 ms, RTF=1.151
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 76.15
+=== UTC_END: 2026-09-18T01:04:00Z

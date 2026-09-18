@@ -1,0 +1,21 @@
+﻿=== ARTEFACT: S1_03_wslconfig.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:08:26Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: type C:\Users\seatr\.wslconfig
+=== OUTPUT (stdout+stderr merged) ===
+[wsl2]
+memory=4608MB
+processors=4
+swap=0
+pageReporting=true
+autoMemoryReclaim=gradual
+sparseVhd=true
+networkingMode=nat
+localhostForwarding=true
+nestedVirtualization=false
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.03
+=== UTC_END: 2026-09-18T00:08:26Z

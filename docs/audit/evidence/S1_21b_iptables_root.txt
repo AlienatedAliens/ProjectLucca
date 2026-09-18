@@ -1,0 +1,175 @@
+﻿=== ARTEFACT: S1_21b_iptables_root.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:51:09Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: echo --- iptables -S & wsl -u root -d Ubuntu -- iptables -S & echo --- iptables -t nat -S & wsl -u root -d Ubuntu -- iptables -t nat -S & echo --- iptables -L -n -v & wsl -u root -d Ubuntu -- iptables -L -n -v & echo --- docker network ls & wsl -d Ubuntu -- docker network ls & echo --- docker network inspect lucca-net & wsl -d Ubuntu -- docker network inspect lucca-net
+=== OUTPUT (stdout+stderr merged) ===
+--- iptables -S 
+-P INPUT ACCEPT
+-P FORWARD DROP
+-P OUTPUT ACCEPT
+-N DOCKER
+-N DOCKER-BRIDGE
+-N DOCKER-CT
+-N DOCKER-FORWARD
+-N DOCKER-INTERNAL
+-N DOCKER-USER
+-N LUCCA-EGRESS
+-A FORWARD -j DOCKER-USER
+-A FORWARD -j DOCKER-FORWARD
+-A DOCKER ! -i br-d88ef233ebc7 -o br-d88ef233ebc7 -j DROP
+-A DOCKER ! -i docker0 -o docker0 -j DROP
+-A DOCKER-BRIDGE -o br-d88ef233ebc7 -j DOCKER
+-A DOCKER-BRIDGE -o docker0 -j DOCKER
+-A DOCKER-CT -o br-d88ef233ebc7 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A DOCKER-CT -o docker0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A DOCKER-FORWARD -j DOCKER-CT
+-A DOCKER-FORWARD -j DOCKER-INTERNAL
+-A DOCKER-FORWARD -j DOCKER-BRIDGE
+-A DOCKER-FORWARD -i br-d88ef233ebc7 -j ACCEPT
+-A DOCKER-FORWARD -i docker0 -j ACCEPT
+-A DOCKER-USER -s 172.28.0.0/24 -j LUCCA-EGRESS
+-A LUCCA-EGRESS -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A LUCCA-EGRESS -d 10.0.0.0/8 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 172.16.0.0/12 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 192.168.0.0/16 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 169.254.0.0/16 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 100.64.0.0/10 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 127.0.0.0/8 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 224.0.0.0/4 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 240.0.0.0/4 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -d 0.0.0.0/8 -j REJECT --reject-with icmp-admin-prohibited
+-A LUCCA-EGRESS -p tcp -m multiport --dports 80,443 -j ACCEPT
+-A LUCCA-EGRESS -d 1.1.1.1/32 -p udp -m udp --dport 53 -j ACCEPT
+-A LUCCA-EGRESS -d 1.0.0.1/32 -p udp -m udp --dport 53 -j ACCEPT
+-A LUCCA-EGRESS -d 1.1.1.1/32 -p tcp -m tcp --dport 53 -j ACCEPT
+-A LUCCA-EGRESS -d 1.0.0.1/32 -p tcp -m tcp --dport 53 -j ACCEPT
+-A LUCCA-EGRESS -m limit --limit 5/min -j LOG --log-prefix "LUCCA-EGRESS-DROP "
+-A LUCCA-EGRESS -j DROP
+--- iptables -t nat -S 
+-P PREROUTING ACCEPT
+-P INPUT ACCEPT
+-P OUTPUT ACCEPT
+-P POSTROUTING ACCEPT
+-N DOCKER
+-A PREROUTING -m addrtype --dst-type LOCAL -j DOCKER
+-A OUTPUT ! -d 127.0.0.0/8 -m addrtype --dst-type LOCAL -j DOCKER
+-A POSTROUTING -s 172.17.0.0/16 ! -o docker0 -j MASQUERADE
+-A POSTROUTING -s 172.28.0.0/24 ! -o br-d88ef233ebc7 -j MASQUERADE
+--- iptables -L -n -v 
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DOCKER-USER  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER-FORWARD  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOCKER (2 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DROP       all  --  !br-d88ef233ebc7 br-d88ef233ebc7  0.0.0.0/0            0.0.0.0/0           
+    0     0 DROP       all  --  !docker0 docker0  0.0.0.0/0            0.0.0.0/0           
+
+Chain DOCKER-BRIDGE (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DOCKER     all  --  *      br-d88ef233ebc7  0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER     all  --  *      docker0  0.0.0.0/0            0.0.0.0/0           
+
+Chain DOCKER-CT (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     all  --  *      br-d88ef233ebc7  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 ACCEPT     all  --  *      docker0  0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+
+Chain DOCKER-FORWARD (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 DOCKER-CT  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER-INTERNAL  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+    0     0 DOCKER-BRIDGE  all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     all  --  br-d88ef233ebc7 *       0.0.0.0/0            0.0.0.0/0           
+    0     0 ACCEPT     all  --  docker0 *       0.0.0.0/0            0.0.0.0/0           
+
+Chain DOCKER-INTERNAL (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain DOCKER-USER (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 LUCCA-EGRESS  all  --  *      *       172.28.0.0/24        0.0.0.0/0           
+
+Chain LUCCA-EGRESS (1 references)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0            ctstate RELATED,ESTABLISHED
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            10.0.0.0/8           reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            172.16.0.0/12        reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            192.168.0.0/16       reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            169.254.0.0/16       reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            100.64.0.0/10        reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            127.0.0.0/8          reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            224.0.0.0/4          reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            240.0.0.0/4          reject-with icmp-admin-prohibited
+    0     0 REJECT     all  --  *      *       0.0.0.0/0            0.0.0.0/8            reject-with icmp-admin-prohibited
+    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            multiport dports 80,443
+    0     0 ACCEPT     udp  --  *      *       0.0.0.0/0            1.1.1.1              udp dpt:53
+    0     0 ACCEPT     udp  --  *      *       0.0.0.0/0            1.0.0.1              udp dpt:53
+    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            1.1.1.1              tcp dpt:53
+    0     0 ACCEPT     tcp  --  *      *       0.0.0.0/0            1.0.0.1              tcp dpt:53
+    0     0 LOG        all  --  *      *       0.0.0.0/0            0.0.0.0/0            limit: avg 5/min burst 5 LOG flags 0 level 4 prefix "LUCCA-EGRESS-DROP "
+    0     0 DROP       all  --  *      *       0.0.0.0/0            0.0.0.0/0           
+--- docker network ls 
+NETWORK ID     NAME        DRIVER    SCOPE
+c57e5539f28a   bridge      bridge    local
+a61c92215c1d   host        host      local
+d88ef233ebc7   lucca-net   bridge    local
+ac08b4c34c98   none        null      local
+--- docker network inspect lucca-net 
+[
+    {
+        "Name": "lucca-net",
+        "Id": "d88ef233ebc79541fe1b71026aa11aef253d37294e7755abc9da51a25bf0a91c",
+        "Created": "2026-09-18T00:27:10.671988154+08:00",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv4": true,
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.28.0.0/24",
+                    "Gateway": "172.28.0.1"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Options": {
+            "com.docker.network.bridge.enable_ip_masquerade": "true",
+            "enable_ipv6": "false"
+        },
+        "Labels": {},
+        "Containers": {},
+        "Status": {
+            "IPAM": {
+                "Subnets": {
+                    "172.28.0.0/24": {
+                        "IPsInUse": 3,
+                        "DynamicIPsAvailable": 253
+                    }
+                }
+            }
+        }
+    }
+]
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.48
+=== UTC_END: 2026-09-18T00:51:10Z

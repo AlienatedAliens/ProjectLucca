@@ -1,0 +1,2 @@
+﻿// ARTEFACT: S1_23_container_inspect.json  PRODUCER: S1  UTC: 2026-09-18T00:54:05Z
+// NO CONTAINERS EXIST (docker ps -a empty) 60 s after lucca.main start -> nothing to inspect.

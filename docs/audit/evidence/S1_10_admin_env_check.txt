@@ -1,0 +1,22 @@
+﻿=== ARTEFACT: S1_10_admin_env_check.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:11:47Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin env-check
+=== OUTPUT (stdout+stderr merged) ===
+====================================================================
+  PROJECT LUCCA — SYSTEM ENVIRONMENT CHECK (SPIKE 0.1)
+====================================================================
+[PASS] MSHybrid dGPU VRAM      : dGPU VRAM used: 0.0 MB
+[PASS] Intel NPU (OpenVINO)    : Intel NPU detected by OpenVINO (devices: ['CPU', 'GPU.0', 'GPU.1', 'NPU'])
+[PASS] SQLite + sqlite-vec     : sqlite-vec loaded successfully (version: v0.1.9)
+[PASS] WSL2 .wslconfig Clamp   : .wslconfig canonical settings verified at C:\Users\seatr\.wslconfig
+[PASS] Docker CE in WSL2       : Docker CE is running inside Ubuntu WSL2.
+[PASS] LUCCA_HOME Layout       : LUCCA_HOME verified at 'C:\ProjectLucca'
+====================================================================
+[SUCCESS] All Spike 0.1 environment criteria passed!
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 4.79
+=== UTC_END: 2026-09-18T00:11:52Z

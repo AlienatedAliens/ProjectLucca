@@ -1,0 +1,108 @@
+﻿=== ARTEFACT: S1_08_toolchain.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:10:53Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv --version & uv run python --version & uv run python -c "import sqlite3;c=sqlite3.connect(':memory:');print('enable_load_extension:',hasattr(c,'enable_load_extension'));print('sqlite_version:',sqlite3.sqlite_version)" & echo --- uv pip list & uv pip list
+=== OUTPUT (stdout+stderr merged) ===
+uv 0.12.10 (3c979abda 2026-09-04 x86_64-pc-windows-msvc)
+Python 3.12.14
+enable_load_extension: True
+sqlite_version: 3.53.1
+--- uv pip list 
+Package                   Version    Editable project location
+------------------------- ---------- -------------------------
+altgraph                  0.17.5
+annotated-types           0.8.0
+anyio                     4.15.1
+ast-serialize             0.11.2
+attrs                     26.1.0
+av                        18.1.0
+certifi                   2026.7.22
+cffi                      2.1.1
+click                     8.5.0
+cloudpickle               3.1.2
+colorama                  0.4.6
+coverage                  7.16.1
+ctranslate2               4.8.2
+dlinfo                    2.0.0
+espeakng-loader           0.2.4
+faster-whisper            1.2.1
+filelock                  4.0.0
+flatbuffers               25.12.19
+fsspec                    2026.7.0
+grimp                     3.17
+h11                       0.16.0
+hf-xet                    1.6.0
+httpcore                  1.0.9
+httpx                     0.28.1
+huggingface-hub           1.32.0
+hypothesis                6.168.0
+idna                      3.20
+import-linter             2.15
+iniconfig                 2.3.0
+jiwer                     4.0.0
+joblib                    1.6.0
+kokoro-onnx               0.6.1
+librt                     0.15.0
+lightgbm                  4.7.0
+markdown-it-py            4.2.0
+mdurl                     0.1.2
+mypy                      2.3.1
+mypy-extensions           1.1.0
+narwhals                  2.26.0
+networkx                  3.6.1
+numpy                     2.2.6
+onnxruntime               1.30.0
+openvino                  2026.4.0
+openvino-genai            2026.4.0.0
+openvino-telemetry        2025.2.0
+openvino-tokenizers       2026.4.0.0
+packaging                 26.3
+pathspec                  1.1.1
+pefile                    2024.8.26
+phonemizer                3.4.0
+pip                       26.2.1
+pip-system-certs          5.3
+pluggy                    1.6.0
+project-lucca             0.2.0      C:\projects\ProjectLucca
+protobuf                  7.36.1
+psutil                    7.2.2
+pycparser                 3.0
+pydantic                  2.13.5
+pydantic-core             2.46.5
+pydantic-settings         2.15.0
+pygments                  2.21.0
+pyinstaller               6.22.3
+pyinstaller-hooks-contrib 2026.7
+pyqt6                     6.11.0
+pyqt6-qt6                 6.11.2
+pyqt6-sip                 13.12.0
+pytest                    9.1.1
+pytest-asyncio            1.4.0
+pytest-cov                7.1.0
+pytest-timeout            2.4.0
+python-dotenv             1.2.3
+python-ulid               4.0.1
+pywin32-ctypes            0.2.3
+pyyaml                    6.0.3
+pyzmq                     27.2.0
+rapidfuzz                 3.14.6
+rich                      15.0.0
+ruff                      0.16.8
+scikit-learn              1.9.1
+scipy                     1.18.1
+setuptools                84.0.0
+sortedcontainers          2.4.0
+sounddevice               0.5.6
+sqlite-vec                0.1.9
+structlog                 26.1.0
+threadpoolctl             3.7.0
+tokenizers                0.23.2
+tqdm                      4.70.1
+typing-extensions         4.16.0
+typing-inspection         0.4.4
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.68
+=== UTC_END: 2026-09-18T00:10:54Z

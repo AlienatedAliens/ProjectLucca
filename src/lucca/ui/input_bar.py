@@ -40,8 +40,9 @@ class QuickChatBar(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
-        self.setFixedWidth(360)
-        self.setFixedHeight(48)
+        self.setFixedWidth(400)
+        self.setFixedHeight(50)
+        self._is_recording = False
 
         self._build_ui()
         self.hide()
@@ -51,72 +52,68 @@ class QuickChatBar(QWidget):
         layout.setContentsMargins(10, 6, 10, 6)
         layout.setSpacing(8)
 
-        # Input line edit
+        # Input line edit with Chrono Trigger deep blue styling
         self.input_field = QLineEdit(self)
-        self.input_field.setPlaceholderText("Type a command or message to Lucca...")
+        self.input_field.setPlaceholderText("Message Lucca or press 🎙️ to talk...")
         self.input_field.setFont(QFont("Segoe UI", 10))
         self.input_field.setStyleSheet("""
             QLineEdit {
-                background-color: #11111b;
-                color: #cdd6f4;
-                border: 1px solid #45475a;
-                border-radius: 6px;
-                padding: 4px 10px;
-                selection-background-color: #89b4fa;
-                selection-color: #11111b;
+                background-color: #0c1432;
+                color: #ffffff;
+                border: 1px solid #314278;
+                border-radius: 5px;
+                padding: 5px 10px;
+                selection-background-color: #ffd700;
+                selection-color: #000000;
             }
             QLineEdit:focus {
-                border: 1px solid #89b4fa;
+                border: 1px solid #ffd700;
             }
         """)
         self.input_field.returnPressed.connect(self._handle_submit)
         layout.addWidget(self.input_field)
 
-        # Send button
+        # Send button with SNES gold styling
         self.btn_send = QPushButton("Send", self)
-        self.btn_send.setFont(QFont("Segoe UI", 9, QFont.Weight.DemiBold))
+        self.btn_send.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.btn_send.setStyleSheet("""
             QPushButton {
-                background-color: #89b4fa;
-                color: #11111b;
-                border: none;
-                border-radius: 6px;
+                background-color: #ffd700;
+                color: #081036;
+                border: 1px solid #ffffff;
+                border-radius: 5px;
                 padding: 5px 12px;
-                font-weight: bold;
+                font-weight: 900;
             }
             QPushButton:hover {
-                background-color: #b4befe;
+                background-color: #ffe44d;
             }
             QPushButton:pressed {
-                background-color: #74c7ec;
+                background-color: #e6c200;
             }
         """)
         self.btn_send.clicked.connect(self._handle_submit)
         layout.addWidget(self.btn_send)
 
-        # Mouse PTT button ("Hold to Talk")
+        # Mouse PTT button with toggle recording state
         self.btn_talk = QPushButton("🎙️", self)
-        self.btn_talk.setToolTip("Click and hold to talk")
+        self.btn_talk.setToolTip("Click to talk (Toggle recording)")
         self.btn_talk.setStyleSheet("""
             QPushButton {
-                background-color: #313244;
-                color: #a6e3a1;
-                border: 1px solid #45475a;
-                border-radius: 6px;
-                padding: 5px 8px;
+                background-color: #1a2860;
+                color: #58d68d;
+                border: 1px solid #4a62a8;
+                border-radius: 5px;
+                padding: 5px 9px;
                 font-size: 13px;
+                font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #45475a;
-                border-color: #a6e3a1;
-            }
-            QPushButton:pressed {
-                background-color: #a6e3a1;
-                color: #11111b;
+                background-color: #243884;
+                border-color: #ffd700;
             }
         """)
-        self.btn_talk.pressed.connect(self._on_talk_pressed)
-        self.btn_talk.released.connect(self._on_talk_released)
+        self.btn_talk.clicked.connect(self._toggle_talk)
         layout.addWidget(self.btn_talk)
 
         # Close button
@@ -125,7 +122,7 @@ class QuickChatBar(QWidget):
         self.btn_close.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
-                color: #6c7086;
+                color: #8892b0;
                 border: none;
                 font-size: 11px;
                 padding: 2px 4px;
@@ -136,6 +133,50 @@ class QuickChatBar(QWidget):
         """)
         self.btn_close.clicked.connect(self.hide)
         layout.addWidget(self.btn_close)
+
+    def _toggle_talk(self) -> None:
+        if not self._is_recording:
+            self._is_recording = True
+            self.btn_talk.setText("⏹️")
+            self.btn_talk.setToolTip("Recording audio... Click to send!")
+            self.btn_talk.setStyleSheet("""
+                QPushButton {
+                    background-color: #e63946;
+                    color: #ffffff;
+                    border: 1px solid #ffffff;
+                    border-radius: 5px;
+                    padding: 5px 9px;
+                    font-size: 13px;
+                    font-weight: bold;
+                }
+            """)
+            if self.on_ptt_press:
+                self.on_ptt_press()
+        else:
+            self._is_recording = False
+            self.btn_talk.setText("🎙️")
+            self.btn_talk.setToolTip("Click to talk (Toggle recording)")
+            self.btn_talk.setStyleSheet("""
+                QPushButton {
+                    background-color: #1a2860;
+                    color: #58d68d;
+                    border: 1px solid #4a62a8;
+                    border-radius: 5px;
+                    padding: 5px 9px;
+                    font-size: 13px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #243884;
+                    border-color: #ffd700;
+                }
+            """)
+            if self.on_ptt_release:
+                self.on_ptt_release()
+
+    def set_recording_state(self, is_rec: bool) -> None:
+        if self._is_recording != is_rec:
+            self._toggle_talk()
 
     def _handle_submit(self) -> None:
         text = self.input_field.text().strip()

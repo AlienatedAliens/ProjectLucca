@@ -47,11 +47,9 @@ class EmbedWorker:
         model = core.read_model(xml_path)
 
         if target_dev == "NPU":
-            model.reshape({
-                "input_ids": [1, 128],
-                "attention_mask": [1, 128],
-                "token_type_ids": [1, 128]
-            })
+            model.reshape(
+                {"input_ids": [1, 128], "attention_mask": [1, 128], "token_type_ids": [1, 128]}
+            )
             self.device = "NPU"
         else:
             self.device = "CPU"
@@ -154,4 +152,3 @@ class LocalEmbeddingPort:
 
     def dim(self) -> int:
         return 384
-

@@ -1,0 +1,12 @@
+﻿=== ARTEFACT: S1_32_admin_latency.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:00:26Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin latency --last 100
+=== OUTPUT (stdout+stderr merged) ===
+Unknown command 'latency'. Use 'lucca-admin help'
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.55
+=== UTC_END: 2026-09-18T01:00:26Z

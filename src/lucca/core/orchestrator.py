@@ -16,6 +16,7 @@ import zmq
 
 from lucca.brain.chunker import StreamingChunker
 from lucca.brain.llm_client import LLMClient
+from lucca.brain.prompt_builder import set_persona
 from lucca.core.config import get_config
 from lucca.core.ipc_schemas import (
     Envelope,
@@ -200,10 +201,30 @@ class Orchestrator:
                     self.tts.set_voice(p_cfg.voice)
                 if p_cfg.speed is not None and hasattr(self.tts, "set_speed"):
                     self.tts.set_speed(p_cfg.speed)
-                logger.info("tts_config_updated", voice=p_cfg.voice, speed=p_cfg.speed)
+                if (
+                    p_cfg.persona_archetype is not None
+                    or p_cfg.formality is not None
+                    or p_cfg.custom_system_prompt is not None
+                ):
+                    set_persona(
+                        archetype=p_cfg.persona_archetype,
+                        formality=p_cfg.formality,
+                        custom_prompt=p_cfg.custom_system_prompt,
+                    )
+                # Re-publish onto bus_sock so AudioProcess receives ptt_key and audio settings
+                self._publish_bus(env)
+                logger.info(
+                    "ui_config_updated",
+                    voice=p_cfg.voice,
+                    speed=p_cfg.speed,
+                    archetype=p_cfg.persona_archetype,
+                    formality=p_cfg.formality,
+                )
             elif env.type == "audio.first_sample_played":
                 if self.active_trace:
                     self.active_trace.t_first_sample = env.ts_ns
+            elif env.type in ("ui.talk_press", "ui.talk_release"):
+                self._publish_bus(env)
             elif env.type == "ui.confirm_result":
                 p_conf = UIConfirmResultPayload.model_validate(env.payload)
                 self.confirm_action(p_conf.accepted, via=p_conf.via)
@@ -256,8 +277,19 @@ class Orchestrator:
                 transcript_text = asr_res.text
 
             decision = parse_confirmation_response(transcript_text)
-            self._confirm_result = (decision == "confirm")
+            self._confirm_result = decision == "confirm"
             self._confirm_event.set()
+            return
+
+        # Empty capture guard
+        if p.capture_seq_end <= p.capture_seq_start:
+            print("[PTT] Empty audio sequence captured; resetting to idle.\n", flush=True)
+            self._publish_caption(
+                "I didn't hear anything. (Hold Alt-Gr or Right-Ctrl while speaking)",
+                source="status",
+                is_final=True,
+            )
+            self._set_state("idle")
             return
 
         trace_id = str(ulid.ULID())
@@ -288,7 +320,7 @@ class Orchestrator:
         )
         self.active_trace = trace
 
-        print(f"\n[User] 💬 \"{user_text}\"", flush=True)
+        print(f'\n[User] 💬 "{user_text}"', flush=True)
         self._publish_caption(user_text, source="user", is_final=True)
         self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
         self._set_state("thinking")
@@ -300,9 +332,22 @@ class Orchestrator:
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         trace.t_llm_sent = time.monotonic_ns()
         self.sandbox.reset_turn()
+        self.play_ring.clear_flag(FLAG_ABORT)
+        self.play_ring.clear_flag(FLAG_EOS)
 
         # Read audio slice from capture ring
         pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
+
+        # Empty PCM guard
+        if len(pcm_samples) == 0:
+            print("[PTT] 0 audio samples in capture ring; resetting to idle.\n", flush=True)
+            self._publish_caption(
+                "I didn't hear anything. (Hold Alt-Gr or Right-Ctrl while speaking)",
+                source="status",
+                is_final=True,
+            )
+            self._set_state("idle")
+            return
 
         # Transcribe audio with ASR
         transcribed_text = ""
@@ -311,7 +356,7 @@ class Orchestrator:
             transcribed_text = asr_res.text.strip()
 
         # Silence check: discard if low speech and no transcribed words
-        if p.vad_speech_ms < 100.0 and not transcribed_text:
+        if (p.vad_speech_ms < 100.0 or len(pcm_samples) < 1600) and not transcribed_text:
             print("[PTT] No speech detected.\n", flush=True)
             self._publish_caption(
                 "I didn't hear anything. (Hold Alt-Gr or Right-Ctrl while speaking)",
@@ -322,7 +367,7 @@ class Orchestrator:
             return
 
         if transcribed_text:
-            print(f"\n[User] 🎙️ \"{transcribed_text}\"", flush=True)
+            print(f'\n[User] 🎙️ "{transcribed_text}"', flush=True)
             self._publish_caption(transcribed_text, source="user", is_final=True)
             self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
 
@@ -413,6 +458,12 @@ class Orchestrator:
             if not trace.interrupted:
                 logger.error("turn_execution_error", trace_id=trace.trace_id, error=str(exc))
                 print(f"\n[Error] {exc}", flush=True)
+                self._publish_caption(
+                    "Sorry, I had trouble processing that audio. "
+                    "Try speaking again or typing your message!",
+                    source="status",
+                    is_final=True,
+                )
             trace.interrupted = True
         finally:
             trace.t_postturn_done = time.monotonic_ns()
@@ -422,6 +473,8 @@ class Orchestrator:
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
         trace.t_llm_sent = time.monotonic_ns()
         self.sandbox.reset_turn()
+        self.play_ring.clear_flag(FLAG_ABORT)
+        self.play_ring.clear_flag(FLAG_EOS)
 
         # Arm audio playback
         begin_env = Envelope(
@@ -506,6 +559,8 @@ class Orchestrator:
         trace.chunks += 1
 
     def _speak_text(self, trace: TurnTrace, text: str) -> None:
+        self.play_ring.clear_flag(FLAG_ABORT)
+        self.play_ring.clear_flag(FLAG_EOS)
         begin_env = Envelope(
             type="play.begin",
             trace_id=trace.trace_id,

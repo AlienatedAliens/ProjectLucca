@@ -1,0 +1,13 @@
+﻿=== ARTEFACT: S1_01_gpu_baseline.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:08:23Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: nvidia-smi --query-gpu=name,driver_version,memory.used,memory.total,utilization.gpu --format=csv
+=== OUTPUT (stdout+stderr merged) ===
+name, driver_version, memory.used [MiB], memory.total [MiB], utilization.gpu [%]
+NVIDIA GeForce RTX 5080 Laptop GPU, 610.78, 0 MiB, 16303 MiB, 0 %
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 2.65
+=== UTC_END: 2026-09-18T00:08:26Z

@@ -97,9 +97,7 @@ class HeuristicRouter:
         except (OSError, tomllib.TOMLDecodeError, ValueError):
             pass
 
-    def classify_intent(
-        self, transcript: str
-    ) -> tuple[str, float, dict[str, list[str]]]:
+    def classify_intent(self, transcript: str) -> tuple[str, float, dict[str, list[str]]]:
         """
         Classifies intent and extracts entities using word-boundary regexes per Spec 06 §2.
         Returns (intent, confidence, entities).
@@ -348,9 +346,7 @@ class HeuristicRouter:
                     WHERE decision_id = ?
                     """,
                     (
-                        json.dumps([tc.model_dump() for tc in tool_calls])
-                        if tool_calls
-                        else None,
+                        json.dumps([tc.model_dump() for tc in tool_calls]) if tool_calls else None,
                         None if tool_ok is None else (1 if tool_ok else 0),
                         llm_first_token_ms,
                         1 if user_interrupted else 0,

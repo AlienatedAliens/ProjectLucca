@@ -70,3 +70,28 @@ def test_companion_sprite_interactions(qapp):
     bubble = SpeechBubble()
     bubble.anchor_to(geom)
     assert bubble.x() > geom.x()
+
+
+def test_settings_dialog_resizable(qapp):
+    from PyQt6.QtCore import Qt
+
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    dlg = SettingsDialog()
+    flags = dlg.windowFlags()
+    assert bool(flags & Qt.WindowType.Window)
+    assert bool(flags & Qt.WindowType.WindowMinMaxButtonsHint)
+    assert bool(flags & Qt.WindowType.WindowCloseButtonHint)
+    assert dlg.isSizeGripEnabled()
+    assert dlg.minimumWidth() == 880
+    assert dlg.minimumHeight() == 640
+
+
+def test_telemetry_hud_lifecycle(qapp):
+    from lucca.ui.telemetry_hud import TelemetryHUD
+
+    hud = TelemetryHUD()
+    # Timer should NOT be active while hidden
+    assert not hud.poll_timer.isActive()
+    assert not hud.isVisible()
+    hud.close()

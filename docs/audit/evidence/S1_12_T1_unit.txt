@@ -1,0 +1,306 @@
+﻿=== ARTEFACT: S1_12_T1_unit.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:19:52Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run pytest -m "not hw and not soak" -q -rA --durations=25 --tb=short
+=== OUTPUT (stdout+stderr merged) ===
+........................................................................ [ 54%]
+...........................................................              [100%]
+=================================== PASSES ====================================
+____________________ test_confirm_flow_accepted_via_click _____________________
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1000ms captured)...\n\n[User] \U0001f399\ufe0f "test input"\n[Lucca] 2026-09-18 08:19:54 [info     ] confirmation_action_received   accepted=True via=click\n2026-09-18 08:19:54 [info     ] launch_simulated               cmd=['C:\\\\Windows\\\\system32\\\\calc.exe']\n2026-09-18 08:19:54 [info     ] tool_executed                  exit_code=0 ok=True tool=launch_app\n\n
+____________________ test_confirm_flow_rejected_via_click _____________________
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1000ms captured)...\n\n[User] \U0001f399\ufe0f "test input"\n[Lucca] 2026-09-18 08:19:54 [info     ] confirmation_action_received   accepted=False via=click\n2026-09-18 08:19:54 [info     ] tool_execution_cancelled_by_user tool=write_file\n\n
+_____________ test_t_brg_05_barge_in_during_confirm_wait_cancels ______________
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1000ms captured)...\n\n[User] \U0001f399\ufe0f "test input"\n[Lucca] \n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n2026-09-18 08:19:54 [info     ] tool_execution_cancelled_by_user tool=write_file\n\n
+___________ test_t_prov_06_end_to_end_hallucination_write_rejection ___________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:19:54 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:19:54 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:19:58 [info     ] grounding_fail                 fact={'s': 'user', 'p': 'has_pin', 'o': '1234', 'quote': 'PIN is 1234'} reason=quote_not_in_transcript transcript='Hello Lucca, what is the weather today in Seattle?'
+____________ test_t_prov_11_low_confidence_transcript_confirmation ____________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:19:58 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:19:58 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_______________ test_t_prov_12_untrusted_tool_content_injection _______________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:19:59 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:19:59 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_________________ test_t_mem_01_and_02_identifier_benchmarks __________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:00 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:00 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_________________ test_t_mem_03_and_04_paraphrase_benchmarks __________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:02 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:02 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_________________________ test_t_mem_06_supersession __________________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:05 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:05 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+__________________________ test_t_mem_07_forgetting ___________________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:06 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:06 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_________________________ test_t_mem_08_fts_injection _________________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:06 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:06 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+__________________________ test_t_mem_09_concurrency __________________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:07 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:07 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+__________________ test_t_mem_10_crash_mid_commit_atomicity ___________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:07 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:07 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+__________________________ test_t_mem_11_migrations ___________________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_______________________ test_t_mem_12_retrieval_filters _______________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_____________________ test_t_mem_13_backups_and_integrity _____________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+____________________ test_t_mem_14_working_memory_discard _____________________
+---------------------------- Captured stdout setup ----------------------------
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:08 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+_______________________ test_t_rtr_03_decision_logging ________________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:09 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:09 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+____________________ test_t_rtr_05_auto_labeling_30_pairs _____________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:09 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:09 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_01_bargein_400ms label=NEG reason=early_bargein
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_02_bargein_800ms label=NEG reason=early_bargein
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_03_bargein_1200ms label=NEG reason=early_bargein
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_04_bargein_1500ms label=NEG reason=early_bargein
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_05_negation_no label=NEG reason=explicit_negation
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_06_negation_wrong label=NEG reason=explicit_negation
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_07_negation_stop label=NEG reason=explicit_negation
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_08_negation_cancel label=NEG reason=explicit_negation
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_09_tool_failed_crash label=NEG reason=tool_failed
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_10_tool_failed_write label=NEG reason=tool_failed
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_11_tool_failed_launch label=NEG reason=tool_failed
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_12_tool_failed_web label=NEG reason=tool_failed
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_13_declined_calc label=INDETERMINATE reason=user_declined
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_14_declined_write label=INDETERMINATE reason=user_declined
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_15_declined_delete label=INDETERMINATE reason=user_declined
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_16_declined_launch_notepad label=INDETERMINATE reason=user_declined
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_17_rule_would_match_calc label=NEG reason=rule_would_match
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_18_rule_would_match_read label=NEG reason=rule_would_match
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_19_rule_would_match_notepad label=NEG reason=rule_would_match
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_20_rule_would_match_web label=NEG reason=rule_would_match
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_21_rule_wrong_calc label=NEG reason=rule_wrong
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_22_rule_wrong_read label=NEG reason=rule_wrong
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_23_rule_wrong_reask label=NEG reason=rule_wrong
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_24_clarify_app label=POS reason=clarify_useful
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_25_clarify_file label=POS reason=clarify_useful
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_26_clarify_web label=POS reason=clarify_useful
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_27_implicit_ok_chitchat label=POS reason=implicit_ok
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_28_implicit_ok_rule label=POS reason=implicit_ok
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_29_implicit_ok_tool_read label=POS reason=implicit_ok
+2026-09-18 08:20:09 [debug    ] decision_label_persisted       decision_id=dec-pair_30_implicit_ok_memory label=POS reason=implicit_ok
+_______________________ test_t_rtr_11_data_volume_gate ________________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:09 [info     ] applying_memory_migration      file=0001_init.sql version=1
+2026-09-18 08:20:09 [info     ] applying_memory_migration      file=0002_decisions.sql version=2
+______________ test_t_sbx_14_launcher_whitelist_and_rate_limits _______________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:10 [warning  ] launch_not_whitelisted         app=cmd
+2026-09-18 08:20:10 [warning  ] launch_not_whitelisted         app=powershell
+2026-09-18 08:20:10 [info     ] launch_simulated               cmd=['C:\\Windows\\system32\\calc.exe']
+2026-09-18 08:20:10 [warning  ] launch_rate_limited            app=notepad reason='Rate limit: please wait 5.0s before launching another app.'
+_______________________ test_t_sbx_05_workspace_cleanup _______________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:10 [info     ] workspace_reset_complete       path=C:\Users\seatr\AppData\Local\Temp\pytest-of-seatr\pytest-312\test_t_sbx_05_workspace_cleanu0\sandbox_workspace
+_______________________ test_t_sbx_16_host_sha256_audit _______________________
+---------------------------- Captured stdout call -----------------------------
+2026-09-18 08:20:10 [warning  ] sha256_audit_mismatch          actual=3109af4bf22dace5fa33b410c9f2e40dc1eed214d6c2b9ea0848a17f187ef661 expected=0000000000000000000000000000000000000000000000000000000000000000
+______________________ test_full_turn_state_progression _______________________
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1000ms captured)...\n\n[User] \U0001f399\ufe0f "you"\n[Lucca] Hello there! I am Lucca. \n
+__________________________ test_barge_in_mid_speech ___________________________
+---------------------------- Captured stdout call -----------------------------
+\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n[PTT] \u2699\ufe0f Processing speech (1000ms captured)...\n\n[PTT] \U0001f399\ufe0f Listening... (Hold Alt-Gr or Right-Ctrl to speak)\n\n[User] \U0001f399\ufe0f "you"\n[Lucca] \n
+__________________________ test_user_text_turn_loop ___________________________
+---------------------------- Captured stdout call -----------------------------
+\n[User] \U0001f4ac "Status report?"\n[Lucca] I am functioning normally. \n
+____________________________ test_silence_discard _____________________________
+---------------------------- Captured stdout call -----------------------------
+[PTT] \u2699\ufe0f Processing speech (100ms captured)...\n[PTT] No speech detected.\n
+============================ slowest 25 durations =============================
+3.92s setup    tests/test_grounding.py::test_t_prov_06_end_to_end_hallucination_write_rejection
+2.30s call     tests/test_memory_db.py::test_t_mem_05_50k_synthetic_search_latency
+1.83s call     tests/test_turn_loop.py::test_full_turn_state_progression
+1.72s call     tests/test_turn_loop.py::test_barge_in_mid_speech
+1.50s call     tests/test_memory_db.py::test_t_mem_01_and_02_identifier_benchmarks
+1.16s setup    tests/test_turn_loop.py::test_full_turn_state_progression
+1.07s call     tests/test_sandbox.py::test_t_sbx_04_run_python_security
+0.94s call     tests/test_memory_db.py::test_t_mem_03_and_04_paraphrase_benchmarks
+0.84s setup    tests/test_turn_loop.py::test_user_text_turn_loop
+0.83s setup    tests/test_turn_loop.py::test_silence_discard
+0.81s setup    tests/test_turn_loop.py::test_barge_in_mid_speech
+0.68s setup    tests/test_memory_db.py::test_t_mem_10_crash_mid_commit_atomicity
+0.63s setup    tests/test_memory_db.py::test_t_mem_03_and_04_paraphrase_benchmarks
+0.61s setup    tests/test_memory_db.py::test_t_mem_08_fts_injection
+0.49s setup    tests/test_grounding.py::test_t_prov_11_low_confidence_transcript_confirmation
+0.37s call     tests/test_ui_widgets.py::test_settings_dialog_resizable
+0.36s setup    tests/test_memory_db.py::test_t_mem_01_and_02_identifier_benchmarks
+0.35s call     tests/test_ipc_codec.py::test_hypothesis_p08_codec_round_trip
+0.24s call     tests/test_server_ctl.py::test_is_healthy_closed_port
+0.23s call     tests/test_memory_db.py::test_t_mem_09_concurrency
+0.23s setup    tests/test_memory_db.py::test_t_mem_07_forgetting
+0.21s setup    tests/test_memory_db.py::test_t_mem_14_working_memory_discard
+0.20s setup    tests/test_memory_db.py::test_t_mem_06_supersession
+0.19s setup    tests/test_grounding.py::test_t_prov_12_untrusted_tool_content_injection
+0.19s call     tests/test_memory_db.py::test_p_06_hypothesis_fts_query_fuzz
+=========================== short test summary info ===========================
+PASSED tests/test_affect.py::test_affect_signal_and_decay
+PASSED tests/test_affect.py::test_affect_honest_query_response
+PASSED tests/test_affect.py::test_affect_tracker_lifecycle
+PASSED tests/test_chunker.py::test_t_chk_01_decimal_protection_char_stream
+PASSED tests/test_chunker.py::test_t_chk_02_filename_dots_preserved
+PASSED tests/test_chunker.py::test_t_chk_03_abbreviation_dr_smith
+PASSED tests/test_chunker.py::test_t_chk_04_eg_ie_abbreviations
+PASSED tests/test_chunker.py::test_t_chk_05_force_split_run_on_text
+PASSED tests/test_chunker.py::test_t_chk_07_markdown_normalisation
+PASSED tests/test_chunker.py::test_t_chk_08_emoji_and_smart_quotes
+PASSED tests/test_chunker.py::test_t_chk_09_is_first_and_reset
+PASSED tests/test_chunker.py::test_t_chk_10_tool_call_demux_inline_and_structured
+PASSED tests/test_chunker.py::test_p_04_chunker_invariants
+PASSED tests/test_confirmation.py::test_parse_confirmation_response
+PASSED tests/test_confirmation.py::test_confirm_flow_accepted_via_click
+PASSED tests/test_confirmation.py::test_confirm_flow_rejected_via_click
+PASSED tests/test_confirmation.py::test_t_brg_05_barge_in_during_confirm_wait_cancels
+PASSED tests/test_dsp_chain.py::test_highpass_filter_attenuates_low_frequencies
+PASSED tests/test_dsp_chain.py::test_peaking_eq_boosts_presence
+PASSED tests/test_dsp_chain.py::test_high_shelf_boosts_air
+PASSED tests/test_dsp_chain.py::test_fast_compressor_reduces_peak_dynamics
+PASSED tests/test_dsp_chain.py::test_harmonic_saturation
+PASSED tests/test_dsp_chain.py::test_pitch_shift_playback_rate
+PASSED tests/test_dsp_chain.py::test_anime_voice_dsp_pipeline
+PASSED tests/test_dsp_chain.py::test_anime_voice_dsp_disabled
+PASSED tests/test_dsp_chain.py::test_enhance_anime_expressive_punctuation
+PASSED tests/test_gguf_parser.py::test_parse_valid_gguf_file
+PASSED tests/test_gguf_parser.py::test_parse_gguf_filename_quant_fallback
+PASSED tests/test_gguf_parser.py::test_parse_corrupted_magic
+PASSED tests/test_gguf_parser.py::test_parse_nonexistent_file
+PASSED tests/test_grounding.py::test_t_prov_06_end_to_end_hallucination_write_rejection
+PASSED tests/test_grounding.py::test_t_prov_07_grounding_40_fixture_pairs
+PASSED tests/test_grounding.py::test_t_prov_08_static_allowlist_signer_construction
+PASSED tests/test_grounding.py::test_t_prov_10_prod_env_default_key
+PASSED tests/test_grounding.py::test_t_prov_11_low_confidence_transcript_confirmation
+PASSED tests/test_grounding.py::test_t_prov_12_untrusted_tool_content_injection
+PASSED tests/test_ipc_codec.py::test_basic_codec_round_trip
+PASSED tests/test_ipc_codec.py::test_oversized_frame_rejected
+PASSED tests/test_ipc_codec.py::test_truncated_frame_rejected
+PASSED tests/test_ipc_codec.py::test_corrupt_json_rejected
+PASSED tests/test_ipc_codec.py::test_hypothesis_p08_codec_round_trip
+PASSED tests/test_ipc_codec.py::test_ui_schemas_codec_round_trip
+PASSED tests/test_lifecycle.py::test_t_rule_03_distinctness_scenarios
+PASSED tests/test_lifecycle.py::test_t_rule_04_lifecycle_state_transitions
+PASSED tests/test_lifecycle.py::test_t_rule_05_regression_suite_catches_mutation
+PASSED tests/test_memory_db.py::test_t_mem_01_and_02_identifier_benchmarks
+PASSED tests/test_memory_db.py::test_t_mem_03_and_04_paraphrase_benchmarks
+PASSED tests/test_memory_db.py::test_t_mem_05_50k_synthetic_search_latency
+PASSED tests/test_memory_db.py::test_t_mem_06_supersession
+PASSED tests/test_memory_db.py::test_t_mem_07_forgetting
+PASSED tests/test_memory_db.py::test_t_mem_08_fts_injection
+PASSED tests/test_memory_db.py::test_t_mem_09_concurrency
+PASSED tests/test_memory_db.py::test_t_mem_10_crash_mid_commit_atomicity
+PASSED tests/test_memory_db.py::test_t_mem_11_migrations
+PASSED tests/test_memory_db.py::test_t_mem_12_retrieval_filters
+PASSED tests/test_memory_db.py::test_t_mem_13_backups_and_integrity
+PASSED tests/test_memory_db.py::test_t_mem_14_working_memory_discard
+PASSED tests/test_memory_db.py::test_p_06_hypothesis_fts_query_fuzz
+PASSED tests/test_persona_toml.py::test_toml_serializer_preserves_comments_and_formatting
+PASSED tests/test_persona_toml.py::test_round_trip_load_save_load
+PASSED tests/test_prompt_builder.py::test_formality_keys_aligned
+PASSED tests/test_prompt_builder.py::test_archetypes_are_hybrid_prose
+PASSED tests/test_prompt_builder.py::test_custom_prompt_is_additive
+PASSED tests/test_prompt_builder.py::test_preview_matches_compiled_prompt
+PASSED tests/test_prompt_builder.py::test_compile_trait_modulators_neutral
+PASSED tests/test_prompt_builder.py::test_compile_trait_modulators_prose_rules
+PASSED tests/test_prompt_builder.py::test_boundary_prose_directives_injection
+PASSED tests/test_prompt_builder.py::test_no_ccv2_artifacts
+PASSED tests/test_provenance.py::test_t_prov_01_canonicalisation_key_order_independent
+PASSED tests/test_provenance.py::test_t_prov_02_signer_authorization_matrix
+PASSED tests/test_provenance.py::test_t_prov_03_tamper_detection
+PASSED tests/test_provenance.py::test_t_prov_04_replay_rejection
+PASSED tests/test_provenance.py::test_t_prov_05_freshness_window
+PASSED tests/test_provenance.py::test_llm_narration_unconditionally_rejected
+PASSED tests/test_provenance.py::test_p_05_canonical_json_invariants
+PASSED tests/test_ring_buffer.py::test_ring_creation_and_header
+PASSED tests/test_ring_buffer.py::test_basic_write_and_read
+PASSED tests/test_ring_buffer.py::test_read_partial_and_silence_fill
+PASSED tests/test_ring_buffer.py::test_circular_wrap_around
+PASSED tests/test_ring_buffer.py::test_read_slice
+PASSED tests/test_ring_buffer.py::test_abort_flag_clears_ring
+PASSED tests/test_ring_buffer.py::test_eos_flag
+PASSED tests/test_ring_buffer.py::test_hypothesis_interleaved_writes_reads
+PASSED tests/test_router.py::test_t_rtr_01_word_boundary_adversarial_lexicon
+PASSED tests/test_router.py::test_t_rtr_02_speculative_dispatch_and_abort
+PASSED tests/test_router.py::test_t_rtr_03_decision_logging
+PASSED tests/test_router.py::test_t_rtr_04_counterfactual_rule_firing
+PASSED tests/test_router.py::test_t_rtr_05_auto_labeling_30_pairs
+PASSED tests/test_router.py::test_t_rtr_06_insufficient_calibration
+PASSED tests/test_router.py::test_t_rtr_07_synthetic_conformal_coverage
+PASSED tests/test_router.py::test_t_rtr_08_set_size_fallback_policy
+PASSED tests/test_router.py::test_t_rtr_11_data_volume_gate
+PASSED tests/test_router.py::test_t_obs_01_trace_completeness
+PASSED tests/test_sandbox.py::test_t_sbx_01_malicious_path_fixtures
+PASSED tests/test_sandbox.py::test_t_sbx_03_read_file_truncation_and_binary
+PASSED tests/test_sandbox.py::test_file_write_create_mode_and_delete
+PASSED tests/test_sandbox.py::test_p_03_validate_rel_path_fuzz
+PASSED tests/test_sandbox.py::test_t_sbx_search_text
+PASSED tests/test_sandbox.py::test_t_sbx_04_run_python_security
+PASSED tests/test_sandbox.py::test_t_sbx_13_ssrf_blocking
+PASSED tests/test_sandbox.py::test_t_sbx_14_launcher_whitelist_and_rate_limits
+PASSED tests/test_sandbox.py::test_t_sbx_19_sequence_guard
+PASSED tests/test_sandbox.py::test_t_sbx_05_workspace_cleanup
+PASSED tests/test_sandbox.py::test_t_sbx_17_container_spec_snapshot
+PASSED tests/test_sandbox.py::test_t_sbx_16_host_sha256_audit
+PASSED tests/test_sandbox.py::test_query_capabilities_manifest
+PASSED tests/test_scheme.py::test_t_lisp_01_sample_rule_parses
+PASSED tests/test_scheme.py::test_t_lisp_02_limits_exceeded
+PASSED tests/test_scheme.py::test_t_lisp_03_parser_o_n
+PASSED tests/test_scheme.py::test_t_lisp_04_syntax_errors_have_location
+PASSED tests/test_scheme.py::test_t_lisp_05_if_arity_checked_at_parse_time
+PASSED tests/test_scheme.py::test_t_lisp_06_hypothesis_random_token_soup
+PASSED tests/test_scheme.py::test_t_lisp_07_evaluator_catches_all_primitive_errors
+PASSED tests/test_scheme.py::test_t_lisp_08_memory_bomb_and_overflow_guards
+PASSED tests/test_scheme.py::test_t_lisp_09_define_and_shadowing_forbidden
+PASSED tests/test_scheme.py::test_t_rule_01_sample_rule_execution
+PASSED tests/test_scheme.py::test_t_rule_08_static_validation_rejections
+PASSED tests/test_server_ctl.py::test_build_launch_command_text_mode
+PASSED tests/test_server_ctl.py::test_build_launch_command_audio_mode_with_mmproj
+PASSED tests/test_server_ctl.py::test_build_launch_command_audio_mode_missing_mmproj
+PASSED tests/test_server_ctl.py::test_is_healthy_closed_port
+PASSED tests/test_server_ctl.py::test_scan_model_registry
+PASSED tests/test_turn_loop.py::test_full_turn_state_progression
+PASSED tests/test_turn_loop.py::test_barge_in_mid_speech
+PASSED tests/test_turn_loop.py::test_user_text_turn_loop
+PASSED tests/test_turn_loop.py::test_silence_discard
+PASSED tests/test_ui_widgets.py::test_speech_bubble_states
+PASSED tests/test_ui_widgets.py::test_quick_chat_bar
+PASSED tests/test_ui_widgets.py::test_companion_sprite_interactions
+PASSED tests/test_ui_widgets.py::test_settings_dialog_resizable
+PASSED tests/test_ui_widgets.py::test_telemetry_hud_lifecycle
+131 passed, 5 deselected in 25.27s
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 30.38
+=== UTC_END: 2026-09-18T00:20:23Z

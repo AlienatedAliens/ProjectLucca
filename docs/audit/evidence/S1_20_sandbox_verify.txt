@@ -1,0 +1,12 @@
+﻿=== ARTEFACT: S1_20_sandbox_verify.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:50:25Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run lucca-admin sandbox verify
+=== OUTPUT (stdout+stderr merged) ===
+Unknown command 'sandbox'. Use 'lucca-admin help'
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 0.74
+=== UTC_END: 2026-09-18T00:50:26Z

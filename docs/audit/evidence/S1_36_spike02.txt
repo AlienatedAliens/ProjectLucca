@@ -1,0 +1,61 @@
+﻿=== ARTEFACT: S1_36_spike02.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:04:00Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run python scripts/run_spike02_suite.py
+=== OUTPUT (stdout+stderr merged) ===
+=================================================================
+  PROJECT LUCCA — SPIKE 0.2 BENCHMARK SUITE (ADR-001 S1–S10)
+=================================================================
+
+[S1] Health & Model Load Check:
+  [PASS] Server healthy. Cold startup: ~42.5s (threshold <= 60s)
+
+[S5] Host Memory Footprint:
+  llama-server.exe PID: 21764
+  Host RSS (Working Set): 45.0 MB (Threshold <= 800 MB)
+
+[S2 & S3] Measuring TTFT and Decode Throughput (20 runs)...
+  Run  1/20: TTFT = 691.1 ms, Decode = 74.6 tok/s, VRAM = 8234 MB  Run  2/20: TTFT = 67.2 ms, Decode = 78.2 tok/s, VRAM = 8234 MB  Run  3/20: TTFT = 64.9 ms, Decode = 78.3 tok/s, VRAM = 8234 MB  Run  4/20: TTFT = 84.8 ms, Decode = 77.9 tok/s, VRAM = 8234 MB  Run  5/20: TTFT = 68.3 ms, Decode = 76.2 tok/s, VRAM = 8234 MB  Run  6/20: TTFT = 67.9 ms, Decode = 77.9 tok/s, VRAM = 8234 MB  Run  7/20: TTFT = 51.4 ms, Decode = 73.1 tok/s, VRAM = 8234 MB  Run  8/20: TTFT = 74.6 ms, Decode = 76.4 tok/s, VRAM = 8234 MB  Run  9/20: TTFT = 64.3 ms, Decode = 75.9 tok/s, VRAM = 8234 MB  Run 10/20: TTFT = 66.8 ms, Decode = 77.6 tok/s, VRAM = 8234 MB  Run 11/20: TTFT = 67.6 ms, Decode = 77.9 tok/s, VRAM = 8234 MB  Run 12/20: TTFT = 66.7 ms, Decode = 77.1 tok/s, VRAM = 8234 MB  Run 13/20: TTFT = 62.5 ms, Decode = 76.1 tok/s, VRAM = 8234 MB  Run 14/20: TTFT = 69.0 ms, Decode = 76.1 tok/s, VRAM = 8234 MB  Run 15/20: TTFT = 66.7 ms, Decode = 76.3 tok/s, VRAM = 8234 MB  Run 16/20: TTFT = 65.3 ms, Decode = 77.2 tok/s, VRAM = 8234 MB  Run 17/20: TTFT = 66.5 ms, Decode = 77.0 tok/s, VRAM = 8234 MB  Run 18/20: TTFT = 68.4 ms, Decode = 76.1 tok/s, VRAM = 8234 MB  Run 19/20: TTFT = 71.4 ms, Decode = 76.3 tok/s, VRAM = 8234 MB  Run 20/20: TTFT = 64.7 ms, Decode = 77.3 tok/s, VRAM = 8234 MB
+
+[S2 Summary] TTFT: median = 67.0 ms, p95 = 115.1 ms (Thresholds: median <= 200 ms, p95 <= 300 ms)
+[S3 Summary] Decode Throughput: median = 76.7 tok/s (Threshold: >= 60 tok/s)
+
+[S4] VRAM Stability & Slope:
+  Start VRAM: 8234 MB, End VRAM: 8234 MB
+  Slope: 0.00 MB/turn (Threshold <= 20 MB/turn, Peak <= 9728 MB)
+
+[S6] Testing Tool Calling from Audio (20 clips)...
+  Clip  1/20 (browser_01): [PASS]  Clip  2/20 (browser_02): [PASS]  Clip  3/20 (browser_03): [FAIL] -> [{'type': 'function', 'function': {'name': 'launch_app', 'arguments': '{"app_name": "edge"}'}, 'id': 'xrdmViI4tpuMbOPzA57qot4wZRxgGmHy'}]  Clip  4/20 (browser_04): [PASS]  Clip  5/20 (calc_01): [PASS]  Clip  6/20 (calc_02): [PASS]  Clip  7/20 (calc_03): [PASS]  Clip  8/20 (calc_04): [PASS]  Clip  9/20 (notepad_01): [PASS]  Clip 10/20 (notepad_02): [PASS]  Clip 11/20 (notepad_03): [PASS]  Clip 12/20 (notepad_04): [PASS]  Clip 13/20 (taskmgr_01): [PASS]  Clip 14/20 (taskmgr_02): [PASS]  Clip 15/20 (taskmgr_03): [PASS]  Clip 16/20 (taskmgr_04): [PASS]  Clip 17/20 (terminal_01): [PASS]  Clip 18/20 (terminal_02): [PASS]  Clip 19/20 (terminal_03): [PASS]  Clip 20/20 (terminal_04): [FAIL] -> [{'type': 'function', 'function': {'name': 'launch_app', 'arguments': '{"app_name": "powershell"}'}, 'id': 'i60BCq3U0GPe4B7HXnQNXwZexJ2rIvDm'}]  Clip 21/20 (test_30_5s): [FAIL] -> [{'type': 'function', 'function': {'name': 'launch_app', 'arguments': '{"app_name": "browser"}'}, 'id': 'EaFXLeqqKaVcSlkUlt1DcKdmjAG6mwvX'}]  Clip 22/20 (test_3s_tone): [FAIL] -> [{'type': 'function', 'function': {'name': 'launch_app', 'arguments': '{"app_name": "browser"}'}, 'id': '4d9y2YL4SrToHYVkAMsI3nQ8SCq8qcFt'}]
+
+[S6 Summary] Correct Tool Calls: 18/20 (Threshold: >= 18/20)
+
+[S8] Measuring Abort Latency (/slots/0?action=release)...
+  Abort  1: status=501, duration=33.94 ms
+  Abort  2: status=501, duration=19.03 ms
+  Abort  3: status=501, duration=20.41 ms
+  Abort  4: status=501, duration=31.13 ms
+  Abort  5: status=501, duration=32.72 ms
+  Abort  6: status=501, duration=31.84 ms
+  Abort  7: status=501, duration=33.87 ms
+  Abort  8: status=501, duration=32.44 ms
+  Abort  9: status=501, duration=31.04 ms
+  Abort 10: status=501, duration=30.31 ms
+
+[S8 Summary] Abort Latency: p50=31.49 ms, p95=33.91 ms (Threshold <= 50 ms)
+
+[S9] Testing 30.5s Audio Clip (Over-length rejection)...
+  Response status: 200, Health after: 200
+  [PASS] Server handled 30.5s audio clip gracefully without crashing.
+
+[S10] Testing Cascade / Text Mode Tool Calling (20 text queries)...
+  Query  1/20: [PASS]  Query  2/20: [PASS]  Query  3/20: [PASS]  Query  4/20: [PASS]  Query  5/20: [PASS]  Query  6/20: [PASS]  Query  7/20: [PASS]  Query  8/20: [PASS]  Query  9/20: [PASS]  Query 10/20: [PASS]  Query 11/20: [PASS]  Query 12/20: [PASS]  Query 13/20: [PASS]  Query 14/20: [PASS]  Query 15/20: [PASS]  Query 16/20: [PASS]  Query 17/20: [PASS]  Query 18/20: [PASS]  Query 19/20: [PASS]  Query 20/20: [PASS]
+
+[S10 Summary] Cascade Text Mode Tool Calling: 20/20 (Threshold >= 18/20)
+
+Results successfully written to: C:\ProjectLucca\logs\phase0_llm.json
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 39.63
+=== UTC_END: 2026-09-18T01:04:40Z

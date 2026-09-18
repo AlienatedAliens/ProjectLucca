@@ -1,0 +1,549 @@
+{
+  "S1": {
+    "status": "PASS",
+    "health_status_code": 200,
+    "health_body": {
+      "status": "ok"
+    },
+    "measured_cold_startup_s": 42.5,
+    "threshold_s": 60.0
+  },
+  "S5": {
+    "status": "PASS",
+    "rss_mb": 44.97,
+    "threshold_mb": 800.0
+  },
+  "S2": {
+    "status": "PASS",
+    "ttft_p50_ms": 67.0284000079846,
+    "ttft_p95_ms": 115.0999749923362,
+    "runs": [
+      691.1396000068635,
+      67.23690000944771,
+      64.87190001644194,
+      84.78209999157116,
+      68.3366000012029,
+      67.90249998448417,
+      51.36919999495149,
+      74.55180000397377,
+      64.2846999980975,
+      66.8199000065215,
+      67.61180001194589,
+      66.71120002283715,
+      62.4596000125166,
+      68.95139999687672,
+      66.71350001124665,
+      65.27739999000914,
+      66.47970000631176,
+      68.37999998242594,
+      71.42100000055507,
+      64.73610000102781
+    ]
+  },
+  "S3": {
+    "status": "PASS",
+    "decode_tok_s_p50": 76.66388594464368,
+    "runs": [
+      74.62316191681381,
+      78.24132917508356,
+      78.29779513427688,
+      77.86605132631547,
+      76.22281164810107,
+      77.8656607097664,
+      73.06090081276461,
+      76.35630707075741,
+      75.90053736233298,
+      77.63250866454419,
+      77.88394513548921,
+      77.14459956792584,
+      76.14352218720975,
+      76.10387023604385,
+      76.27147407632789,
+      77.17792507247333,
+      76.97146481852994,
+      76.13593884615645,
+      76.28644372724514,
+      77.34948028743712
+    ]
+  },
+  "S4": {
+    "status": "PASS",
+    "vram_start_mb": 8234.0,
+    "vram_end_mb": 8234.0,
+    "slope_mb_per_turn": 0.0,
+    "vram_samples": [
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0,
+      8234.0
+    ]
+  },
+  "S6": {
+    "status": "PASS",
+    "correct": 18,
+    "total": 20,
+    "details": [
+      {
+        "clip": "browser_01",
+        "expected": "browser",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"browser\"}"
+              },
+              "id": "IXUTXEJyOHejCvVoww7igAd9vAfACkvC"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "browser_02",
+        "expected": "browser",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"browser\"}"
+              },
+              "id": "BTaF0dQaLMDUluPFBUSCF445CRLH2Zm7"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "browser_03",
+        "expected": "browser",
+        "matched": false,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"edge\"}"
+              },
+              "id": "xrdmViI4tpuMbOPzA57qot4wZRxgGmHy"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "browser_04",
+        "expected": "browser",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"browser\"}"
+              },
+              "id": "INhjP3nMqMo7qZnykygX7aIMm0XHZmfT"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "calc_01",
+        "expected": "calculator",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"calculator\"}"
+              },
+              "id": "lktshWbHHzVagYLVjGVu9pB7gVnZkj1c"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "calc_02",
+        "expected": "calculator",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"calculator\"}"
+              },
+              "id": "G0I554jNK7IQHxvo56huZv5wAjQdc7PX"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "calc_03",
+        "expected": "calculator",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"calculator\"}"
+              },
+              "id": "ocVVm6OSWFWsiXUycp5B1KStPQJb7I7e"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "calc_04",
+        "expected": "calculator",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"calculator\"}"
+              },
+              "id": "mg9hDczsVEgJY6kbHTAoRQ3kPBpdDmEf"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "notepad_01",
+        "expected": "notepad",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"notepad\"}"
+              },
+              "id": "80o589psX9qhxApupWrKp6tMC5PajztP"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "notepad_02",
+        "expected": "notepad",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"notepad\"}"
+              },
+              "id": "mZ8eWlaSbsSf3tMGr09Ht6UCxRNx13Wm"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "notepad_03",
+        "expected": "notepad",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"notepad\"}"
+              },
+              "id": "HGLk9idCC2gzAbqdzcCIOklt8MnH5kuL"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "notepad_04",
+        "expected": "notepad",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"notepad\"}"
+              },
+              "id": "1cnnP4rXxNPR1J4mgXyi5SZCkb5HOiEM"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "taskmgr_01",
+        "expected": "task_manager",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"task_manager\"}"
+              },
+              "id": "6brMvp2JjwyDeg78Gz0bFLejMBzHhHfF"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "taskmgr_02",
+        "expected": "task_manager",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"task_manager\"}"
+              },
+              "id": "3l6RgNRhAOxzG2Q7ux1JbIqGhdF51IpO"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "taskmgr_03",
+        "expected": "task_manager",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"task_manager\"}"
+              },
+              "id": "bF955jPlNpgcQ7jjwnz1eUBSn1dxNCL0"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "taskmgr_04",
+        "expected": "task_manager",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"task_manager\"}"
+              },
+              "id": "OTu7FPKaHgZTFpcWVEkRq4vZHUQyagYz"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "terminal_01",
+        "expected": "terminal",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"terminal\"}"
+              },
+              "id": "RCAcaXnn2UB2ytOiXKDNHFF7Grwi5dCB"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "terminal_02",
+        "expected": "terminal",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"terminal\"}"
+              },
+              "id": "sQrd24YHqloqAIbSJDzaoS7JGaUGBG1a"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "terminal_03",
+        "expected": "terminal",
+        "matched": true,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"terminal\"}"
+              },
+              "id": "dYn4SbA0a0aN3eOL2zL3BFqzpKKmnc4w"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "terminal_04",
+        "expected": "terminal",
+        "matched": false,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"powershell\"}"
+              },
+              "id": "i60BCq3U0GPe4B7HXnQNXwZexJ2rIvDm"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "test_30_5s",
+        "expected": "",
+        "matched": false,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"browser\"}"
+              },
+              "id": "EaFXLeqqKaVcSlkUlt1DcKdmjAG6mwvX"
+            }
+          ]
+        }
+      },
+      {
+        "clip": "test_3s_tone",
+        "expected": "",
+        "matched": false,
+        "msg": {
+          "role": "assistant",
+          "content": "",
+          "tool_calls": [
+            {
+              "type": "function",
+              "function": {
+                "name": "launch_app",
+                "arguments": "{\"app_name\": \"browser\"}"
+              },
+              "id": "4d9y2YL4SrToHYVkAMsI3nQ8SCq8qcFt"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "S8": {
+    "status": "PASS",
+    "p50_ms": 31.4856999902986,
+    "p95_ms": 33.90773499413626,
+    "runs": [
+      33.942699985345826,
+      19.02539998991415,
+      20.411400008015335,
+      31.132000003708526,
+      32.71560001303442,
+      31.83939997688867,
+      33.86500000488013,
+      32.441899995319545,
+      31.035699998028576,
+      30.305699998280033
+    ]
+  },
+  "S9": {
+    "status": "PASS",
+    "server_alive_after": true
+  },
+  "S10": {
+    "status": "PASS",
+    "correct": 20,
+    "total": 20
+  }
+}

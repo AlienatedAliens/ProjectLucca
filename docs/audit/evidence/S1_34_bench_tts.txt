@@ -1,0 +1,25 @@
+﻿=== ARTEFACT: S1_34_bench_tts.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T01:01:58Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run python scripts/bench_tts.py
+=== OUTPUT (stdout+stderr merged) ===
+--- Kokoro on CPU (ONNX Runtime) ---
+Model loaded in 0.76s
+Clause: 'Hello, how can I help you today?' -> audio duration: 1.88s
+  Run  1: synth=390.3 ms, RTF=0.208
+  Run  2: synth=327.6 ms, RTF=0.174
+  Run  3: synth=319.3 ms, RTF=0.170
+  Run  4: synth=321.7 ms, RTF=0.171
+  Run  5: synth=329.9 ms, RTF=0.176
+  Run  6: synth=310.3 ms, RTF=0.165
+  Run  7: synth=338.7 ms, RTF=0.180
+  Run  8: synth=395.8 ms, RTF=0.211
+  Run  9: synth=386.6 ms, RTF=0.206
+  Run 10: synth=316.3 ms, RTF=0.168
+CPU Summary: p50=328.7ms, p95=393.3ms, mean RTF=0.183
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 6.21
+=== UTC_END: 2026-09-18T01:02:04Z

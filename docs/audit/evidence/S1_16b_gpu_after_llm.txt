@@ -1,0 +1,11 @@
+﻿=== ARTEFACT: S1_16b_gpu_after_llm.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:36:34.707Z
+=== COMMAND: nvidia-smi --query-gpu=memory.used,memory.total --format=csv ; nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
+memory.used [MiB], memory.total [MiB]
+8098 MiB, 16303 MiB
+pid, process_name, used_gpu_memory [MiB]
+21764, C:\ProjectLucca\app\llama-server\llama-server.exe, [N/A]
+--- 5 s later:
+memory.used [MiB], memory.total [MiB]
+8098 MiB, 16303 MiB

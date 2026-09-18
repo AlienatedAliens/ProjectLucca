@@ -1,0 +1,61 @@
+﻿=== ARTEFACT: S1_07c_models_manifest.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:12:47Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: echo --- existence check: dir C:\ProjectLucca\models\MANIFEST.json & dir C:\ProjectLucca\models\MANIFEST.json & echo --- any MANIFEST* under models: & dir /s /b C:\ProjectLucca\models\*MANIFEST* & echo --- dir models: & dir /b C:\ProjectLucca\models & echo --- sha256 of present model binaries, no expected values to compare & certutil -hashfile C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf SHA256 & certutil -hashfile C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf SHA256 & certutil -hashfile C:\ProjectLucca\models\tts\kokoro-v1.0.onnx SHA256 & certutil -hashfile C:\ProjectLucca\models\tts\voices-v1.0.bin SHA256 & dir C:\ProjectLucca\models\llm & dir C:\ProjectLucca\models\tts
+=== OUTPUT (stdout+stderr merged) ===
+--- existence check: dir C:\ProjectLucca\models\MANIFEST.json 
+ Volume in drive C is Windows
+ Volume Serial Number is 2ABB-A3CA
+
+ Directory of C:\ProjectLucca\models
+
+File Not Found
+--- any MANIFEST* under models: 
+File Not Found
+--- dir models: 
+asr
+embed
+llm
+tts
+--- sha256 of present model binaries, no expected values to compare 
+SHA256 hash of C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf:
+33981adf6bae52c503fb5c24f72539010632f7ed290a56c1315a8cd50adca587
+CertUtil: -hashfile command completed successfully.
+SHA256 hash of C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf:
+e6395ed42124303eaa9fca934452aabce14c59d2a56fab2dda65b798442289ff
+CertUtil: -hashfile command completed successfully.
+SHA256 hash of C:\ProjectLucca\models\tts\kokoro-v1.0.onnx:
+7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5
+CertUtil: -hashfile command completed successfully.
+SHA256 hash of C:\ProjectLucca\models\tts\voices-v1.0.bin:
+bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d
+CertUtil: -hashfile command completed successfully.
+ Volume in drive C is Windows
+ Volume Serial Number is 2ABB-A3CA
+
+ Directory of C:\ProjectLucca\models\llm
+
+09/17/2026  11:15 PM    <DIR>          .
+09/17/2026  11:13 PM    <DIR>          ..
+09/17/2026  11:13 PM    <DIR>          .cache
+09/17/2026  11:13 PM     1,379,512,224 mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf
+09/17/2026  11:15 PM     6,596,011,424 ultravox-v0_5-llama-3_1-8b-Q6_K.gguf
+               2 File(s)  7,975,523,648 bytes
+               3 Dir(s)  779,168,821,248 bytes free
+ Volume in drive C is Windows
+ Volume Serial Number is 2ABB-A3CA
+
+ Directory of C:\ProjectLucca\models\tts
+
+09/17/2026  11:12 PM    <DIR>          .
+09/17/2026  11:13 PM    <DIR>          ..
+09/17/2026  11:12 PM       325,532,387 kokoro-v1.0.onnx
+09/17/2026  11:12 PM        28,214,398 voices-v1.0.bin
+               2 File(s)    353,746,785 bytes
+               2 Dir(s)  779,168,821,248 bytes free
+
+=== EXIT_CODE: 0
+=== TIMED_OUT: False
+=== DURATION_S: 10.59
+=== UTC_END: 2026-09-18T00:12:58Z

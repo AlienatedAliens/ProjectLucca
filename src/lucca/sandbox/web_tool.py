@@ -84,9 +84,7 @@ def validate_url_ssrf(url: str) -> tuple[str, str]:
         try:
             ip = ipaddress.ip_address(ip_str)
         except ValueError as err:
-            raise SandboxPathError(
-                "invalid_ip", f"Resolved invalid IP '{ip_str}': {err}"
-            ) from err
+            raise SandboxPathError("invalid_ip", f"Resolved invalid IP '{ip_str}': {err}") from err
 
         # Reject IPv6 per Spec 09 & ADR-003
         if ip.version == 6:

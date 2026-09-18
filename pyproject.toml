@@ -64,7 +64,11 @@ ignore = ["PLR0913", "PLR2004", "S105", "PLR0911", "PLR0912", "PLR0915", "PLR091
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101", "S106", "ANN", "PLR", "BLE001", "PLC0415", "E501"]
 "scripts/*" = ["S", "F", "PL", "ANN", "PLC0415", "BLE001", "E501", "E741"]
-"src/lucca/core/env_check.py" = ["BLE001", "PLC0415", "S603", "S607"]
+"packaging/*" = ["S", "F", "PL", "ANN", "PLC0415", "BLE001", "E501"]
+"**/env_check.py" = ["BLE001", "PLC0415", "S603", "S607"]
+"**/ui/*" = ["E501", "S603", "S607", "BLE001", "ANN", "S110"]
+"**/sandbox/*" = ["PLW0603", "S603", "S110", "BLE001"]
+"**/senses/*" = ["PLC0415", "S110", "BLE001"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -84,7 +88,7 @@ module = [
     "faster_whisper.*",
     "ulid.*",
     "psutil.*",
-    "trafilatura.*",
+    "torch.*",
 ]
 ignore_missing_imports = true
 
@@ -97,4 +101,9 @@ asyncio_mode = "auto"
 markers = [
     "hw: Hardware-dependent tests (NPU/dGPU/Audio)",
     "soak: Long-running stability and soak tests",
+]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.3",
 ]

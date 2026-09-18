@@ -1,0 +1,398 @@
+"""
+Project Lucca — LLM Server Control & GGUF Model Registry
+Spec 02, Spec 08, ADR-001
+Provides strictly-typed server process orchestration (start/stop/restart/health)
+and GGUF binary header metadata inspection.
+"""
+
+import io
+import struct
+import subprocess
+import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Literal
+
+import httpx
+import psutil
+
+from lucca.core.config import LLMSettings
+
+
+@dataclass
+class GGUFMetadata:
+    magic: str
+    version: int
+    tensor_count: int
+    kv_count: int
+    architecture: str
+    name: str
+    quantization: str
+    file_size_bytes: int
+    is_valid_gguf: bool
+
+
+def parse_gguf_file(path: Path) -> GGUFMetadata:
+    """Parses binary GGUF header key-value pairs from a file on disk."""
+    if not path.exists() or not path.is_file():
+        return GGUFMetadata(
+            magic="",
+            version=0,
+            tensor_count=0,
+            kv_count=0,
+            architecture="unknown",
+            name=path.name,
+            quantization=_derive_quant_from_filename(path.name),
+            file_size_bytes=0,
+            is_valid_gguf=False,
+        )
+
+    file_size = path.stat().st_size
+    try:
+        with open(path, "rb") as f:
+            magic_bytes = f.read(4)
+            if magic_bytes != b"GGUF":
+                return GGUFMetadata(
+                    magic=magic_bytes.decode("latin1", errors="replace"),
+                    version=0,
+                    tensor_count=0,
+                    kv_count=0,
+                    architecture="unknown",
+                    name=path.name,
+                    quantization=_derive_quant_from_filename(path.name),
+                    file_size_bytes=file_size,
+                    is_valid_gguf=False,
+                )
+
+            version = struct.unpack("<I", f.read(4))[0]
+            tensor_count = struct.unpack("<Q", f.read(8))[0]
+            kv_count = struct.unpack("<Q", f.read(8))[0]
+
+            metadata: dict[str, str] = {}
+
+            def read_str() -> str:
+                s_len = struct.unpack("<Q", f.read(8))[0]
+                if s_len > 10000:
+                    return ""
+                raw = f.read(s_len)
+                return raw.decode("utf-8", errors="replace")
+
+            # Read key-values up to kv_count or max 128 keys
+            max_keys = min(kv_count, 128)
+            for _ in range(max_keys):
+                try:
+                    key = read_str()
+                    if not key:
+                        break
+                    val_type = struct.unpack("<I", f.read(4))[0]
+                    if val_type == 8:  # string
+                        metadata[key] = read_str()
+                    elif val_type in (0, 1):  # uint8, int8, bool
+                        v = struct.unpack("<b", f.read(1))[0]
+                        metadata[key] = str(v)
+                    elif val_type in (2, 3):  # uint16, int16
+                        v = struct.unpack("<h", f.read(2))[0]
+                        metadata[key] = str(v)
+                    elif val_type in (4, 5):  # uint32, int32
+                        v = struct.unpack("<i", f.read(4))[0]
+                        metadata[key] = str(v)
+                    elif val_type == 6:  # float32
+                        v = struct.unpack("<f", f.read(4))[0]
+                        metadata[key] = str(v)
+                    elif val_type == 7:  # bool
+                        v = struct.unpack("<?", f.read(1))[0]
+                        metadata[key] = str(v)
+                    elif val_type in (10, 11):  # uint64, int64
+                        v = struct.unpack("<q", f.read(8))[0]
+                        metadata[key] = str(v)
+                    elif val_type == 12:  # float64
+                        v = struct.unpack("<d", f.read(8))[0]
+                        metadata[key] = str(v)
+                    elif val_type == 9:  # ARRAY
+                        arr_type = struct.unpack("<I", f.read(4))[0]
+                        arr_len = struct.unpack("<Q", f.read(8))[0]
+                        if arr_type == 8:
+                            for _ in range(min(arr_len, 256)):
+                                read_str()
+                        elif arr_type in (0, 1, 7):
+                            f.seek(arr_len * 1, io.SEEK_CUR)
+                        elif arr_type in (2, 3):
+                            f.seek(arr_len * 2, io.SEEK_CUR)
+                        elif arr_type in (4, 5, 6):
+                            f.seek(arr_len * 4, io.SEEK_CUR)
+                        elif arr_type in (10, 11, 12):
+                            f.seek(arr_len * 8, io.SEEK_CUR)
+                    else:
+                        break
+                except Exception:  # noqa: BLE001
+                    break
+
+            arch = metadata.get("general.architecture", "llama")
+            name = metadata.get("general.name", path.stem)
+            quant = metadata.get("general.quantization_version", "")
+            if not quant or quant == "0":
+                quant = _derive_quant_from_filename(path.name)
+
+            return GGUFMetadata(
+                magic="GGUF",
+                version=version,
+                tensor_count=tensor_count,
+                kv_count=kv_count,
+                architecture=arch,
+                name=name,
+                quantization=quant,
+                file_size_bytes=file_size,
+                is_valid_gguf=True,
+            )
+    except Exception:  # noqa: BLE001
+        return GGUFMetadata(
+            magic="GGUF",
+            version=0,
+            tensor_count=0,
+            kv_count=0,
+            architecture="unknown",
+            name=path.name,
+            quantization=_derive_quant_from_filename(path.name),
+            file_size_bytes=file_size,
+            is_valid_gguf=True,
+        )
+
+
+def _derive_quant_from_filename(filename: str) -> str:
+    parts = filename.replace(".gguf", "").split("-")
+    for part in reversed(parts):
+        if part.upper().startswith("Q") or part.upper() in ("FP16", "FP32", "BF16"):
+            return part.upper()
+    return "Q4_K_M"
+
+
+def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[dict[str, Any]]:
+    """
+    Scans models_dir for all *.gguf files, extracts GGUF metadata,
+    and assigns binary audio compatibility badges.
+    """
+    registry: list[dict[str, Any]] = []
+    if not models_dir.exists():
+        return registry
+
+    gguf_files = sorted(models_dir.glob("*.gguf"))
+    all_names = {f.name for f in gguf_files}
+
+    for path in gguf_files:
+        # Skip projectors from the primary model listing (they are paired)
+        if path.name.lower().startswith("mmproj"):
+            continue
+
+        meta = parse_gguf_file(path)
+        size_gb = meta.file_size_bytes / (1024**3)
+
+        # Check audio compatibility badge
+        # Check if an mmproj file exists that matches this model
+        paired_mmproj: Path | None = None
+        for cand_name in all_names:
+            if cand_name.lower().startswith("mmproj"):
+                paired_mmproj = models_dir / cand_name
+                break
+
+        is_audio_model = "ultravox" in path.name.lower() or "audio" in path.name.lower()
+
+        if is_audio_model and paired_mmproj is not None and paired_mmproj.exists():
+            badge = "🎙 Audio-Native"
+            badge_type = "audio"
+        elif is_audio_model:
+            badge = "⚠ mmproj required"
+            badge_type = "missing_mmproj"
+        else:
+            badge = "📄 Text via Whisper"
+            badge_type = "transcript"
+
+        rel_path = f"llm/{path.name}"
+        is_active = (
+            rel_path == active_model_rel
+            or path.name in active_model_rel
+            or (not active_model_rel and "ultravox" in path.name.lower())
+        )
+
+        registry.append(
+            {
+                "path": path,
+                "filename": path.name,
+                "rel_path": rel_path,
+                "name": meta.name,
+                "architecture": meta.architecture,
+                "quantization": meta.quantization,
+                "size_gb": size_gb,
+                "tensor_count": meta.tensor_count,
+                "badge": badge,
+                "badge_type": badge_type,
+                "is_active": is_active,
+                "paired_mmproj": paired_mmproj,
+            }
+        )
+
+    return registry
+
+
+def resolve_model_path(rel_or_abs: str | Path, home_dir: Path) -> Path:
+    """Resolves a model path robustly against home_dir, models/ subfolder, or absolute path."""
+    p = Path(rel_or_abs)
+    if p.is_absolute() and p.exists():
+        return p
+    for cand in [
+        home_dir / "models" / p,
+        home_dir / p,
+        home_dir / "models" / "llm" / p.name,
+    ]:
+        if cand.exists():
+            return cand
+    return home_dir / "models" / p
+
+
+def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
+    """Constructs the native llama-server.exe CLI invocation command."""
+    llama_exe = home_dir / "app" / "llama-server" / "llama-server.exe"
+    model_gguf = resolve_model_path(cfg.model, home_dir)
+    mmproj_gguf = resolve_model_path(cfg.mmproj, home_dir)
+
+    cmd = [
+        str(llama_exe),
+        "--model",
+        str(model_gguf),
+        "--n-gpu-layers",
+        "99",
+        "--ctx-size",
+        str(cfg.ctx),
+        "--cache-type-k",
+        cfg.kv_type,
+        "--cache-type-v",
+        cfg.kv_type,
+        "--parallel",
+        "1",
+        "--flash-attn",
+        "on",
+        "--host",
+        cfg.host,
+        "--port",
+        str(cfg.port),
+        "--no-webui",
+        "--jinja",
+    ]
+
+    if cfg.mode == "audio" and mmproj_gguf.exists():
+        cmd.extend(["--mmproj", str(mmproj_gguf)])
+
+    return cmd
+
+
+def check_server_status(
+    host: str, port: int, timeout: float = 1.0
+) -> Literal["ready", "loading", "offline"]:
+    """Queries GET /health to check if llama-server is ready, loading, or offline."""
+    url = f"http://{host}:{port}/health"
+    try:
+        r = httpx.get(url, timeout=timeout)
+        if r.status_code == 200:
+            return "ready"
+        if r.status_code == 503:
+            return "loading"
+        return "loading"
+    except (httpx.HTTPError, OSError):
+        return "offline"
+
+
+def is_healthy(host: str, port: int, timeout: float = 1.0) -> bool:
+    """Queries GET /health on the active llama-server."""
+    return check_server_status(host, port, timeout=timeout) == "ready"
+
+
+def start_server(cfg: LLMSettings, home_dir: Path) -> subprocess.Popen[bytes]:
+    """Starts llama-server.exe as a child process. Raises if executable or model is missing."""
+    llama_exe = home_dir / "app" / "llama-server" / "llama-server.exe"
+    if not llama_exe.exists():
+        raise FileNotFoundError(f"llama-server executable not found at: {llama_exe}")
+
+    model_gguf = resolve_model_path(cfg.model, home_dir)
+    if not model_gguf.exists():
+        raise FileNotFoundError(f"Model GGUF file not found at: {model_gguf}")
+
+    cmd = build_launch_command(cfg, home_dir)
+    log_file = home_dir / "logs" / "llama-server.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    fp = open(log_file, "wb")
+    return subprocess.Popen(  # noqa: S603
+        cmd,
+        stdout=fp,
+        stderr=subprocess.STDOUT,
+    )
+
+
+def stop_server(
+    host: str,
+    port: int,
+    proc: subprocess.Popen[bytes] | None = None,
+) -> None:
+    """Gracefully terminates active llama-server process and kills if unresponsive."""
+    if proc is not None and proc.poll() is None:
+        try:
+            proc.terminate()
+            proc.wait(timeout=3.0)
+        except Exception:  # noqa: BLE001
+            try:
+                proc.kill()
+            except Exception:  # noqa: BLE001, S110
+                pass
+
+    # Terminate any lingering llama-server process on Windows
+    try:
+        for p in psutil.process_iter(["pid", "name"]):
+            try:
+                name = p.info.get("name") or ""
+                if "llama-server" in name.lower():
+                    p.terminate()
+                    try:
+                        p.wait(timeout=2.0)
+                    except psutil.TimeoutExpired:
+                        p.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+    except Exception:  # noqa: BLE001, S110
+        pass
+
+
+def restart_server(
+    cfg: LLMSettings,
+    home_dir: Path,
+    timeout_s: float = 60.0,
+    status_callback: Callable[[str], None] | None = None,
+) -> subprocess.Popen[bytes]:
+    """
+    Stops active server, launches new process, and polls /health until 200 or timeout.
+    Reports honest status transitions via status_callback.
+    """
+    if status_callback:
+        status_callback("Stopping active llama-server.exe...")
+    stop_server(cfg.host, cfg.port)
+
+    time.sleep(0.5)
+
+    if status_callback:
+        status_callback("Launching llama-server.exe...")
+    proc = start_server(cfg, home_dir)
+
+    if status_callback:
+        status_callback("Waiting for /health (HTTP 200)...")
+
+    t0 = time.time()
+    while time.time() - t0 < timeout_s:
+        if proc.poll() is not None:
+            code = proc.poll()
+            raise RuntimeError(f"llama-server exited unexpectedly with code {code}")
+        if is_healthy(cfg.host, cfg.port, timeout=1.0):
+            elapsed = time.time() - t0
+            if status_callback:
+                status_callback(f"✓ Healthy (port {cfg.port}, {elapsed:.1f}s)")
+            return proc
+        time.sleep(0.5)
+
+    raise TimeoutError(f"llama-server failed to become healthy within {timeout_s}s")

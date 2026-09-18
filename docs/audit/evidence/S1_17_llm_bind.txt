@@ -1,0 +1,8 @@
+﻿=== ARTEFACT: S1_17_llm_bind.txt
+=== PRODUCER: S1
+=== UTC: 2026-09-18T00:30:10.331Z
+=== COMMAND: netstat -ano | findstr 8080 ; Get-NetTCPConnection -LocalPort 8080
+--- Get-NetTCPConnection -LocalPort 8080:
+
+--- server /props (model metadata):
+props error: Unable to connect to the remote server

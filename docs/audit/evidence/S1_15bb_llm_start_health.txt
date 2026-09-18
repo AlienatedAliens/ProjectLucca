@@ -1,0 +1,14 @@
+﻿=== ARTEFACT: S1_15bb_llm_start_health.txt / S1_15b_llama_server.log
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:36:18.127Z
+=== COMMAND: C:\ProjectLucca\app\llama-server\llama-server.exe --model C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn on --host 127.0.0.1 --port 8080 --no-webui --jinja --mmproj C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf
+=== DEVIATION: identical to build_launch_command() output EXCEPT '--log-format json' removed, because the installed llama-server build rejects it (S1_15_llama_server.stderr.log: 'error: invalid argument: --log-format'). Measurement variant only; code untouched.
+=== NOTE: stdout -> S1_15b_llama_server.log ; stderr -> S1_15b_llama_server.stderr.log (Start-Process cannot merge)
+VRAM_BEFORE_START: memory.used [MiB] 0 MiB
+LLAMA_PID: 21764
+SPAWN_UTC: 2026-09-18T00:36:20.790Z
+HEALTHY: True
+TIME_TO_HEALTHY_S: 13.93
+LAST_HEALTH_STATUS: 200
+LAST_HEALTH_BODY: {"status":"ok"}
+HEALTHY_UTC: 2026-09-18T00:36:34.706Z

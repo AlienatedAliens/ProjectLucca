@@ -1,0 +1,13 @@
+﻿=== ARTEFACT: S1_13_T2_tier2.txt
+=== PRODUCER: S1
+=== UTC_START: 2026-09-18T00:22:36Z
+=== CWD: C:\Projects\ProjectLucca
+=== COMMAND: uv run pytest -m tier2 -q -rA
+=== OUTPUT (stdout+stderr merged) ===
+
+136 deselected in 1.29s
+
+=== EXIT_CODE: 5
+=== TIMED_OUT: False
+=== DURATION_S: 2.05
+=== UTC_END: 2026-09-18T00:22:38Z
