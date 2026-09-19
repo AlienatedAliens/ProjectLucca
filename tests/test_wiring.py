@@ -154,7 +154,8 @@ def test_phase4_router_and_rules_wiring(tmp_path: Path) -> None:
                 cluster_id=f"cluster_turn1_{i}_{base_ts + i * 1200}",
             )
 
-        promo_result = rule_engine.promote_if_eligible("open-calc-v1")
+        rule_engine.promote_if_eligible("open-calc-v1")
+        promo_result = rule_engine.approve_rule("open-calc-v1")
         assert promo_result.promoted is True
         assert managed_rule.status == "ACTIVE"
 
@@ -298,7 +299,8 @@ def test_phase6_memory_and_rules_promotion_wiring(tmp_path: Path) -> None:
                 cluster_id=f"cluster_phase6_{i}_{base_ts + i * 1200}",
             )
 
-        promo = rule_engine.promote_if_eligible("open-calc-v1")
+        rule_engine.promote_if_eligible("open-calc-v1")
+        promo = rule_engine.approve_rule("open-calc-v1")
         assert promo.promoted is True
         assert managed_rule.status == "ACTIVE"
 

@@ -90,7 +90,7 @@ def test_t_rule_04_lifecycle_state_transitions(tools):
     assert res4.promoted is False
     assert managed.status == "QUARANTINE"
 
-    # 5th distinct success -> promote succeeds
+    # 5th distinct success -> promote transitions to PENDING_APPROVAL awaiting human operator
     manager.record_shadow(
         "open-calc-v1",
         matched=True,
@@ -99,7 +99,12 @@ def test_t_rule_04_lifecycle_state_transitions(tools):
         plan_snapshot=plan,
     )
     res5 = manager.promote_if_eligible("open-calc-v1")
-    assert res5.promoted is True
+    assert res5.promoted is False
+    assert manager.rules["open-calc-v1"].status == "PENDING_APPROVAL"
+
+    # Human operator signs off
+    appr_res = manager.approve_rule("open-calc-v1", approver="sec-lead")
+    assert appr_res.promoted is True
     assert manager.rules["open-calc-v1"].status == "ACTIVE"
 
     # 1 active failure -> DEMOTED -> QUARANTINE with reset counters
@@ -118,7 +123,10 @@ def test_t_rule_04_lifecycle_state_transitions(tools):
             plan_snapshot=plan,
         )
     res_repromote = manager.promote_if_eligible("open-calc-v1")
-    assert res_repromote.promoted is True
+    assert res_repromote.promoted is False
+    assert manager.rules["open-calc-v1"].status == "PENDING_APPROVAL"
+    reappr = manager.approve_rule("open-calc-v1")
+    assert reappr.promoted is True
     assert manager.rules["open-calc-v1"].status == "ACTIVE"
 
     # 2nd active failure -> RETIRED
@@ -145,6 +153,7 @@ def test_t_rule_05_regression_suite_catches_mutation(tools):
         )
 
     manager.promote_if_eligible("open-calc-v1")
+    manager.approve_rule("open-calc-v1")
     assert len(manager.regression_cases) == 5
 
     # Clean regression report
@@ -241,8 +250,12 @@ def test_rules_survive_restart(tools, temp_db: DatabaseManager):
             plan_snapshot=plan,
         )
 
-    # 3. Promote rule
-    result = mgr1.promote_if_eligible("open-calc-v1")
+    # 3. Promote rule via human approval
+    res_elig = mgr1.promote_if_eligible("open-calc-v1")
+    assert res_elig.promoted is False
+    assert mgr1.rules["open-calc-v1"].status == "PENDING_APPROVAL"
+
+    result = mgr1.approve_rule("open-calc-v1")
     assert result.promoted is True
     assert mgr1.rules["open-calc-v1"].status == "ACTIVE"
     assert len(mgr1.regression_cases) == 5
@@ -269,3 +282,77 @@ def test_rules_survive_restart(tools, temp_db: DatabaseManager):
     assert len(outcomes) == 1
     assert outcomes[0].fired is True
     assert plans_match(outcomes[0].plan, plan)
+
+
+def test_pending_approval_human_gate(tools):
+    """
+    Test human-in-the-loop gate:
+    1. Quarantine rule achieving 5 distinct clusters transitions to PENDING_APPROVAL.
+    2. Rule in PENDING_APPROVAL does NOT fire during active evaluation.
+    3. Operator calls approve_rule, promoting it to ACTIVE.
+    4. Active evaluation now executes the rule.
+    """
+    manager = RuleLifecycleManager(registered_tools=tools, require_human_approval=True)
+    manager.register_rule(SAMPLE_RULE)
+
+    state = RuleState(
+        schema_version=1,
+        transcript="open calculator",
+        intent="launch_app",
+        entities={"app": ["calculator"]},
+    )
+    plan = Plan(actions=[ToolCall(tool="launch_app", args={"app": "calculator"}, call_id="c1")])
+
+    for i in range(5):
+        manager.record_shadow(
+            "open-calc-v1",
+            matched=True,
+            cluster_id=f"cluster_gate_{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+
+    # Promote check stops at PENDING_APPROVAL
+    elig = manager.promote_if_eligible("open-calc-v1")
+    assert elig.promoted is False
+    assert manager.rules["open-calc-v1"].status == "PENDING_APPROVAL"
+
+    # Must NOT fire in active mode
+    active_outcomes = manager.evaluate(state, mode="active")
+    assert len(active_outcomes) == 0
+
+    # Unauthorized or invalid approve fails
+    err_res = manager.approve_rule("non-existent-rule")
+    assert err_res.promoted is False
+
+    # Operator approves
+    appr = manager.approve_rule("open-calc-v1", approver="admin")
+    assert appr.promoted is True
+    assert manager.rules["open-calc-v1"].status == "ACTIVE"
+
+    # Now fires in active mode
+    active_outcomes_after = manager.evaluate(state, mode="active")
+    assert len(active_outcomes_after) == 1
+    assert active_outcomes_after[0].fired is True
+
+
+def test_autonomous_mode_flag(tools):
+    """When require_human_approval=False, promote_if_eligible promotes directly to ACTIVE."""
+    manager = RuleLifecycleManager(registered_tools=tools, require_human_approval=False)
+    manager.register_rule(SAMPLE_RULE)
+
+    state = RuleState(schema_version=1, intent="launch_app", entities={"app": ["calculator"]})
+    plan = Plan(actions=[ToolCall(tool="launch_app", args={"app": "calculator"}, call_id="c1")])
+
+    for i in range(5):
+        manager.record_shadow(
+            "open-calc-v1",
+            matched=True,
+            cluster_id=f"cluster_auto_{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+
+    res = manager.promote_if_eligible("open-calc-v1")
+    assert res.promoted is True
+    assert manager.rules["open-calc-v1"].status == "ACTIVE"

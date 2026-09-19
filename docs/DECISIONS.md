@@ -58,11 +58,11 @@
 
 ### D-AUD-15 — ASR Device Ladder & Architecture
 - **Decision:** Wire the configured `whisper-large-v3-turbo-ov` model with OpenVINO device ladder (NPU $\rightarrow$ GPU $\rightarrow$ CPU), replacing the temporary `distil-small.en` CPU shortcut.
-- **Status:** Ratified & Enforced.
+- **Status:** Ratified — Implementation Queued (Active runtime remains `distil-small.en` on CPU int8 via `faster-whisper` in `src/lucca/senses/asr.py`).
 
 ### D-AUD-16 — Anime DSP Audio Processing
 - **Decision:** Apply formant-shifting and high-frequency excitation DSP post-Kokoro synthesis to give the output an authentic anime heroine aesthetic.
-- **Status:** Ratified & Enforced.
+- **Status:** Ratified — Standalone Module Implemented (`src/lucca/senses/dsp_chain.py`), TTS Output Pipeline Integration Queued.
 
 ---
 

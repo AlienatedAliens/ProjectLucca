@@ -10,6 +10,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Literal
 
+import structlog
+
 from lucca.core.exceptions import SchemeSyntaxError
 from lucca.core.schemas import (
     CandidateRule,
@@ -27,7 +29,9 @@ from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import RuleDefinition, parse_rule
 from lucca.reasoning.scheme.validator import validate_rule_static
 
-RuleStatus = Literal["PROPOSED", "QUARANTINE", "ACTIVE", "DEMOTED", "RETIRED"]
+logger = structlog.get_logger(__name__)
+
+RuleStatus = Literal["PROPOSED", "QUARANTINE", "PENDING_APPROVAL", "ACTIVE", "DEMOTED", "RETIRED"]
 
 
 @dataclass
@@ -97,9 +101,11 @@ class RuleLifecycleManager:
         self,
         registered_tools: dict[str, ToolSchema] | None = None,
         db: DatabaseManager | None = None,
+        require_human_approval: bool = True,
     ) -> None:
         self.registered_tools = registered_tools or {}
         self.db = db
+        self.require_human_approval = require_human_approval
         self.rules: dict[str, ManagedRule] = {}
         self.regression_cases: list[RegressionCase] = []
         if self.db is not None:
@@ -315,20 +321,37 @@ class RuleLifecycleManager:
                 reason=f"Regression suite failed: {report.failures}",
             )
 
-        # Promotion criteria satisfied: promote to ACTIVE
+        # Promotion criteria satisfied
+        if self.require_human_approval:
+            rule.status = "PENDING_APPROVAL"
+            if self.db is not None:
+                self.persist(rule_id)
+            return PromotionResult(
+                promoted=False,
+                rule_id=rule_id,
+                reason=(
+                    "Met quarantine criteria (>=5 distinct clusters, 0 failures, "
+                    "regression clean); transitioned to PENDING_APPROVAL awaiting human approval"
+                ),
+            )
+
+        # Autonomous promotion criteria satisfied: promote to ACTIVE
         rule.status = "ACTIVE"
         rule.promoted_at = time.time()
 
         # Capture regression cases from snapshots
+        existing_case_ids = {c.case_id for c in self.regression_cases}
         for idx, (state, plan) in enumerate(rule.snapshots):
-            case = RegressionCase(
-                case_id=f"{rule_id}-case-{idx + 1}",
-                rule_id=rule_id,
-                state=state,
-                expected_plan=plan,
-                captured_at=time.time(),
-            )
-            self.regression_cases.append(case)
+            cid = f"{rule_id}-case-{idx + 1}"
+            if cid not in existing_case_ids:
+                case = RegressionCase(
+                    case_id=cid,
+                    rule_id=rule_id,
+                    state=state,
+                    expected_plan=plan,
+                    captured_at=time.time(),
+                )
+                self.regression_cases.append(case)
 
         if self.db is not None:
             self.persist(rule_id)
@@ -340,6 +363,74 @@ class RuleLifecycleManager:
                 "Met all promotion criteria: >=5 distinct clusters, "
                 "0 failures, regression suite clean"
             ),
+        )
+
+    def approve_rule(self, rule_id: str, approver: str = "human") -> PromotionResult:
+        """
+        Explicit human-in-the-loop promotion gate.
+        Validates criteria and transitions a PENDING_APPROVAL or QUARANTINE rule to ACTIVE.
+        """
+        if rule_id not in self.rules:
+            return PromotionResult(promoted=False, rule_id=rule_id, reason="Rule not registered")
+
+        rule = self.rules[rule_id]
+        if rule.status not in ("PENDING_APPROVAL", "QUARANTINE"):
+            return PromotionResult(
+                promoted=False,
+                rule_id=rule_id,
+                reason=f"Rule is in state {rule.status}, must be PENDING_APPROVAL or QUARANTINE",
+            )
+
+        if len(rule.success_clusters) < 5:
+            return PromotionResult(
+                promoted=False,
+                rule_id=rule_id,
+                reason=f"Insufficient distinct success clusters: {len(rule.success_clusters)} < 5",
+            )
+
+        if rule.failure_count > 0:
+            return PromotionResult(
+                promoted=False,
+                rule_id=rule_id,
+                reason=f"Quarantine failures must be 0, got {rule.failure_count}",
+            )
+
+        report = self.verify_regression_suite(candidate_rule_id=rule_id)
+        if not report.passed:
+            return PromotionResult(
+                promoted=False,
+                rule_id=rule_id,
+                reason=f"Regression suite failed: {report.failures}",
+            )
+
+        rule.status = "ACTIVE"
+        rule.promoted_at = time.time()
+        logger.info(
+            "Rule promoted to ACTIVE via human approval",
+            rule_id=rule_id,
+            approver=approver,
+        )
+
+        existing_case_ids = {c.case_id for c in self.regression_cases}
+        for idx, (state, plan) in enumerate(rule.snapshots):
+            cid = f"{rule_id}-case-{idx + 1}"
+            if cid not in existing_case_ids:
+                case = RegressionCase(
+                    case_id=cid,
+                    rule_id=rule_id,
+                    state=state,
+                    expected_plan=plan,
+                    captured_at=time.time(),
+                )
+                self.regression_cases.append(case)
+
+        if self.db is not None:
+            self.persist(rule_id)
+
+        return PromotionResult(
+            promoted=True,
+            rule_id=rule_id,
+            reason=f"Approved by {approver} and promoted to ACTIVE",
         )
 
     def load(self, db: DatabaseManager | None = None) -> None:
@@ -366,6 +457,8 @@ class RuleLifecycleManager:
                 status: RuleStatus = "QUARANTINE"
                 if status_raw == "ACTIVE":
                     status = "ACTIVE"
+                elif status_raw == "PENDING_APPROVAL":
+                    status = "PENDING_APPROVAL"
                 elif status_raw == "PROPOSED":
                     status = "PROPOSED"
                 elif status_raw == "DEMOTED":
