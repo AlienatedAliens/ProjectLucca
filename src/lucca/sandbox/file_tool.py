@@ -290,12 +290,65 @@ class SafeFileTool:
         return {"hits": hits, "count": len(hits), "truncated": False}, "\n".join(snippets)
 
     def run_python(self, code: str, timeout: int = 10) -> tuple[dict[str, object], str]:
-        err_msg = "policy_violation: run_python is disabled on host pending Milestone 2 container isolation"
-        return {
-            "exit_code": -1,
-            "elapsed_ms": 0.0,
-            "ok": False,
-            "stderr": err_msg,
-            "stdout": "",
-        }, err_msg
+        if sys.platform == "win32":
+            err_msg = "policy_violation: run_python is disabled on host pending Milestone 2 container isolation"
+            return {
+                "exit_code": -1,
+                "elapsed_ms": 0.0,
+                "ok": False,
+                "stderr": err_msg,
+                "stdout": "",
+            }, err_msg
+
+        t0 = time.perf_counter()
+        preexec_fn = None
+        if resource is not None and hasattr(resource, "setrlimit"):
+            rlimit_as = getattr(resource, "RLIMIT_AS", None)
+            rlimit_cpu = getattr(resource, "RLIMIT_CPU", None)
+            set_rlimit = getattr(resource, "setrlimit", None)
+
+            if set_rlimit is not None and rlimit_as is not None and rlimit_cpu is not None:
+
+                def _set_limits() -> None:
+                    set_rlimit(rlimit_as, (256 * 1024 * 1024, 256 * 1024 * 1024))
+                    set_rlimit(rlimit_cpu, (10, 10))
+
+                preexec_fn = _set_limits
+
+        try:
+            proc = subprocess.run(  # noqa: S603
+                [sys.executable, "-I", "-S", "-c", code],
+                cwd=str(self.workspace_root),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+                preexec_fn=preexec_fn,
+            )
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            stdout = proc.stdout[:MAX_PYTHON_STDOUT]
+            stderr = proc.stderr[:MAX_PYTHON_STDOUT]
+            out = stdout + (f"\n[stderr]\n{stderr}" if stderr else "")
+            return {
+                "exit_code": proc.returncode,
+                "elapsed_ms": elapsed_ms,
+                "ok": proc.returncode == 0,
+                "stderr": stderr,
+            }, out
+        except subprocess.TimeoutExpired:
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            return {
+                "exit_code": -1,
+                "elapsed_ms": elapsed_ms,
+                "ok": False,
+                "error": "timeout",
+            }, f"Execution timed out after {timeout} seconds"
+        except Exception as exc:  # noqa: BLE001
+            elapsed_ms = (time.perf_counter() - t0) * 1000.0
+            return {
+                "exit_code": -2,
+                "elapsed_ms": elapsed_ms,
+                "ok": False,
+                "error": str(exc),
+            }, str(exc)
 

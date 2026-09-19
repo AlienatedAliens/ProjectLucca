@@ -304,3 +304,8 @@ class SandboxService:
 
         # 8. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
+
+    def close(self) -> None:
+        """Closes the underlying RPC transport."""
+        if hasattr(self, "rpc") and hasattr(self.rpc, "close"):
+            self.rpc.close()

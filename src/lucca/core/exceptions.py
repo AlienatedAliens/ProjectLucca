@@ -209,6 +209,12 @@ class SandboxProtocolError(SandboxError):
     pass
 
 
+class SandboxRPCDesyncError(SandboxProtocolError):
+    """Call-ID desynchronization or corrupted response sequence in persistent RPC bridge."""
+
+    pass
+
+
 class SandboxEgressError(SandboxError):
     """Sandbox network egress rule violation detected."""
 

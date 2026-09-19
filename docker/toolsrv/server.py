@@ -1,7 +1,10 @@
 """
 Project Lucca — In-Container Tool Server (lucca-toolsrv)
 Spec 09 §1, §4, §5
-Handles single-shot JSON RPC over stdin/stdout inside Docker sandboxes.
+Handles JSON RPC over stdin/stdout inside Docker sandboxes.
+Supports:
+1. Single-shot execution (default, legacy docker exec per call)
+2. Persistent streaming execution (--loop, 1 JSON request line -> 1 JSON response line)
 """
 
 import json
@@ -14,53 +17,21 @@ from lucca.core.exceptions import SandboxPathError
 from lucca.sandbox.file_tool import SafeFileTool
 
 
-def run_server() -> None:
+def dispatch_request(req_dict: dict[str, Any], file_tool: SafeFileTool) -> dict[str, Any]:
+    """Dispatches an in-container tool call, guaranteeing a valid dict response."""
     t0 = time.perf_counter()
-    raw_input = sys.stdin.read()
-    if not raw_input.strip():
-        response: dict[str, Any] = {
-            "call_id": "",
-            "ok": False,
-            "exit_code": -2,
-            "structured": None,
-            "content": None,
-            "content_truncated": False,
-            "stderr": "Empty request on stdin",
-            "elapsed_ms": 0.0,
-        }
-        sys.stdout.write(json.dumps(response) + "\n")
-        return
-
-    try:
-        req = json.loads(raw_input)
-    except json.JSONDecodeError as err:
-        response = {
-            "call_id": "",
-            "ok": False,
-            "exit_code": -2,
-            "structured": None,
-            "content": None,
-            "content_truncated": False,
-            "stderr": f"JSON decode error: {err}",
-            "elapsed_ms": (time.perf_counter() - t0) * 1000.0,
-        }
-        sys.stdout.write(json.dumps(response) + "\n")
-        return
-
-    call_id = str(req.get("call_id", ""))
-    tool = str(req.get("tool", ""))
-    args = req.get("args", {})
+    call_id = str(req_dict.get("call_id", ""))
+    tool = str(req_dict.get("tool", ""))
+    args = req_dict.get("args", {})
     if not isinstance(args, dict):
         args = {}
-
-    file_tool = SafeFileTool(workspace_root=Path("/workspace"))
 
     try:
         if tool == "list_dir":
             path = str(args.get("path", ""))
             recursive = bool(args.get("recursive", False))
             res = file_tool.list_dir(path=path, recursive=recursive)
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": True,
                 "exit_code": 0,
@@ -75,7 +46,7 @@ def run_server() -> None:
             path = str(args.get("path", ""))
             max_bytes = int(args.get("max_bytes", 262144))
             structured, content = file_tool.read_file(path=path, max_bytes=max_bytes)
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": True,
                 "exit_code": 0,
@@ -93,7 +64,7 @@ def run_server() -> None:
             if mode not in ("create", "overwrite", "append"):
                 mode = "create"
             structured = file_tool.write_file(path=path, content=content, mode=mode)  # type: ignore[arg-type]
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": True,
                 "exit_code": 0,
@@ -111,7 +82,7 @@ def run_server() -> None:
             structured, content = file_tool.search_text(
                 pattern=pattern, path=path, max_hits=max_hits
             )
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": True,
                 "exit_code": 0,
@@ -128,7 +99,7 @@ def run_server() -> None:
             structured, content = file_tool.run_python(code=code, timeout=timeout)
             ok = bool(structured.get("ok", False))
             exit_code = int(structured.get("exit_code", -1))
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": ok,
                 "exit_code": exit_code,
@@ -142,7 +113,7 @@ def run_server() -> None:
         elif tool == "delete_file":
             path = str(args.get("path", ""))
             structured = file_tool.delete_file(path=path)
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": True,
                 "exit_code": 0,
@@ -154,7 +125,7 @@ def run_server() -> None:
             }
 
         else:
-            response = {
+            return {
                 "call_id": call_id,
                 "ok": False,
                 "exit_code": -2,
@@ -166,7 +137,7 @@ def run_server() -> None:
             }
 
     except SandboxPathError as err:
-        response = {
+        return {
             "call_id": call_id,
             "ok": False,
             "exit_code": 1,
@@ -177,7 +148,7 @@ def run_server() -> None:
             "elapsed_ms": (time.perf_counter() - t0) * 1000.0,
         }
     except Exception as exc:  # noqa: BLE001
-        response = {
+        return {
             "call_id": call_id,
             "ok": False,
             "exit_code": -1,
@@ -188,8 +159,116 @@ def run_server() -> None:
             "elapsed_ms": (time.perf_counter() - t0) * 1000.0,
         }
 
+
+def run_loop() -> None:
+    """
+    Persistent stdio loop.
+    Invariant: Exactly one single-line JSON out per line in, always.
+    Never lets an unhandled exception escape or corrupt stdout framing.
+    """
+    file_tool = SafeFileTool(workspace_root=Path("/workspace"))
+
+    for line in sys.stdin:
+        raw_line = line.strip()
+        if not raw_line:
+            continue
+
+        call_id = ""
+        try:
+            req = json.loads(raw_line)
+            if not isinstance(req, dict):
+                raise ValueError("JSON request must be an object")
+            call_id = str(req.get("call_id", ""))
+            response = dispatch_request(req, file_tool)
+        except json.JSONDecodeError as err:
+            response = {
+                "call_id": call_id,
+                "ok": False,
+                "exit_code": -2,
+                "structured": None,
+                "content": None,
+                "content_truncated": False,
+                "stderr": f"JSON decode error: {err}",
+                "elapsed_ms": 0.0,
+            }
+        except Exception as exc:  # noqa: BLE001
+            response = {
+                "call_id": call_id,
+                "ok": False,
+                "exit_code": -1,
+                "structured": None,
+                "content": None,
+                "content_truncated": False,
+                "stderr": f"Unhandled dispatch exception: {exc}",
+                "elapsed_ms": 0.0,
+            }
+        except BaseException as fatal:
+            # Even on fatal process termination, attempt outputting framing line
+            response = {
+                "call_id": call_id,
+                "ok": False,
+                "exit_code": -99,
+                "structured": None,
+                "content": None,
+                "content_truncated": False,
+                "stderr": f"Fatal worker error: {fatal}",
+                "elapsed_ms": 0.0,
+            }
+            try:
+                sys.stdout.write(json.dumps(response) + "\n")
+                sys.stdout.flush()
+            except Exception:
+                pass
+            raise
+
+        sys.stdout.write(json.dumps(response) + "\n")
+        sys.stdout.flush()
+
+
+def run_server() -> None:
+    """Single-shot execution reading entire stdin and exiting (legacy mode)."""
+    t0 = time.perf_counter()
+    raw_input = sys.stdin.read()
+    if not raw_input.strip():
+        response: dict[str, Any] = {
+            "call_id": "",
+            "ok": False,
+            "exit_code": -2,
+            "structured": None,
+            "content": None,
+            "content_truncated": False,
+            "stderr": "Empty request on stdin",
+            "elapsed_ms": 0.0,
+        }
+        sys.stdout.write(json.dumps(response) + "\n")
+        sys.stdout.flush()
+        return
+
+    try:
+        req = json.loads(raw_input)
+    except json.JSONDecodeError as err:
+        response = {
+            "call_id": "",
+            "ok": False,
+            "exit_code": -2,
+            "structured": None,
+            "content": None,
+            "content_truncated": False,
+            "stderr": f"JSON decode error: {err}",
+            "elapsed_ms": (time.perf_counter() - t0) * 1000.0,
+        }
+        sys.stdout.write(json.dumps(response) + "\n")
+        sys.stdout.flush()
+        return
+
+    file_tool = SafeFileTool(workspace_root=Path("/workspace"))
+    response = dispatch_request(req, file_tool)
     sys.stdout.write(json.dumps(response) + "\n")
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":
-    run_server()
+    if "--loop" in sys.argv or "--persistent" in sys.argv:
+        run_loop()
+    else:
+        run_server()

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-09-19T22:36:13Z",
+  "n_trials": 50,
+  "baseline_single_shot_p50_ms": 433.88,
+  "persistent_bridge_min_ms": 2.88,
+  "persistent_bridge_p50_ms": 5.21,
+  "persistent_bridge_mean_ms": 32.43,
+  "persistent_bridge_p90_ms": 115.97,
+  "persistent_bridge_p95_ms": 137.36,
+  "persistent_bridge_p99_ms": 147.98,
+  "persistent_bridge_max_ms": 147.98,
+  "persistent_bridge_stdev_ms": 50.01,
+  "speedup_ratio": 83.2,
+  "total_wall_s": 1.622
+}
