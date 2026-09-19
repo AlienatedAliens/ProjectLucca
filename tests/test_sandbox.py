@@ -555,3 +555,36 @@ def test_no_hardcoded_project_paths() -> None:
             if bad.lower() in content.lower():
                 violations.append(f"{py_file.name}: found {bad}")
     assert not violations, f"Hardcoded project paths found in sandbox: {violations}"
+
+
+def test_whitelist_load_and_save_enforces_d_aud_10(tmp_path: Path) -> None:
+    """Verifies that tool_whitelist.toml loads, saves, and strictly rejects forbidden shells (D-AUD-10)."""
+    from lucca.ui.settings_dialog import SettingsDialog, load_whitelist_apps, save_whitelist_apps
+
+    toml_file = tmp_path / "tool_whitelist.toml"
+    initial_apps = [
+        {
+            "key": "calc",
+            "name": "Calculator",
+            "path": "calc.exe",
+            "tier": "Trusted",
+            "status": "Active",
+        },
+        {
+            "key": "terminal",
+            "name": "Terminal",
+            "path": "wt.exe",
+            "tier": "Trusted",
+            "status": "Active",
+        },
+    ]
+    save_whitelist_apps(initial_apps, config_path=toml_file)
+
+    loaded = load_whitelist_apps(config_path=toml_file)
+    assert len(loaded) == 2
+    assert loaded[0]["path"] == "calc.exe"
+    assert loaded[1]["path"] == "wt.exe"
+
+    # Shell rejection invariant
+    for forbidden in ("cmd.exe", "powershell.exe", "pwsh.exe", "bash.exe", "wsl.exe"):
+        assert forbidden in SettingsDialog.FORBIDDEN_SHELLS

@@ -136,10 +136,13 @@ class UIApplication:
             self.app_icon = QIcon(str(icon_p))
             self.app.setWindowIcon(self.app_icon)
 
-        # Active settings state
-        self.active_voice = self.config.tts.voice
-        self.active_speed = getattr(self.config.tts, "speed", 1.05)
-        self.active_ptt_key = self.config.ptt.key
+        # Active settings state (canonical persona.toml per D-AUD-03 with fallback to config)
+        persona_init = get_persona()
+        self.active_voice = persona_init.voice or self.config.tts.voice
+        self.active_speed = getattr(persona_init, "speed", getattr(self.config.tts, "speed", 1.05))
+        self.active_ptt_key = getattr(persona_init, "ptt_key", self.config.ptt.key)
+        self.active_dsp_pitch = getattr(persona_init, "dsp_pitch_semitones", 0.0)
+        self.active_dsp_enabled = getattr(persona_init, "dsp_enabled", False)
         self.is_always_on_top = True
 
         # IPC context & sockets
@@ -415,6 +418,10 @@ class UIApplication:
         self.active_voice = str(new_config.get("voice", self.active_voice))
         self.active_speed = float(new_config.get("speed", self.active_speed))
         self.active_ptt_key = str(new_config.get("ptt_key", self.active_ptt_key))
+        if "pitch_semitones" in new_config:
+            self.active_dsp_pitch = float(new_config["pitch_semitones"])
+        if "dsp_enabled" in new_config:
+            self.active_dsp_enabled = bool(new_config["dsp_enabled"])
 
         env = Envelope(
             type="ui.config_update",
@@ -429,6 +436,8 @@ class UIApplication:
                 formality=new_config.get("formality"),
                 custom_system_prompt=new_config.get("custom_system_prompt"),
                 llm_model=new_config.get("llm_model"),
+                dsp_pitch_semitones=getattr(self, "active_dsp_pitch", None),
+                dsp_enabled=getattr(self, "active_dsp_enabled", None),
             ).model_dump(),
         )
         self._send_ingest(env)

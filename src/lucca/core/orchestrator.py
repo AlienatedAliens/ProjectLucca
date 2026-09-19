@@ -330,15 +330,29 @@ class Orchestrator:
                     self.tts.set_voice(p_cfg.voice)
                 if p_cfg.speed is not None:
                     self.tts.set_speed(p_cfg.speed)
+                if p_cfg.dsp_pitch_semitones is not None or p_cfg.dsp_enabled is not None:
+                    pitch = (
+                        p_cfg.dsp_pitch_semitones if p_cfg.dsp_pitch_semitones is not None else 0.0
+                    )
+                    en = p_cfg.dsp_enabled if p_cfg.dsp_enabled is not None else True
+                    self.tts.set_dsp_config(pitch_semitones=pitch, enabled=en)
                 if (
                     p_cfg.persona_archetype is not None
                     or p_cfg.formality is not None
                     or p_cfg.custom_system_prompt is not None
+                    or p_cfg.voice is not None
+                    or p_cfg.speed is not None
+                    or p_cfg.ptt_key is not None
                 ):
                     set_persona(
                         archetype=p_cfg.persona_archetype,
                         formality=p_cfg.formality,
                         custom_prompt=p_cfg.custom_system_prompt,
+                        voice=p_cfg.voice,
+                        speed=p_cfg.speed,
+                        ptt_key=p_cfg.ptt_key,
+                        dsp_pitch_semitones=p_cfg.dsp_pitch_semitones,
+                        dsp_enabled=p_cfg.dsp_enabled,
                     )
                 # Re-publish onto bus_sock so AudioProcess receives ptt_key and audio settings
                 self._publish_bus(env)
@@ -346,8 +360,10 @@ class Orchestrator:
                     "ui_config_updated",
                     voice=p_cfg.voice,
                     speed=p_cfg.speed,
+                    ptt_key=p_cfg.ptt_key,
                     archetype=p_cfg.persona_archetype,
                     formality=p_cfg.formality,
+                    dsp_pitch=p_cfg.dsp_pitch_semitones,
                 )
             elif env.type == "audio.first_sample_played":
                 if self.active_trace:

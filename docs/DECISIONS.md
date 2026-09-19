@@ -62,7 +62,7 @@
 
 ### D-AUD-16 — Anime DSP Audio Processing
 - **Decision:** Apply formant-shifting and high-frequency excitation DSP post-Kokoro synthesis to give the output an authentic anime heroine aesthetic.
-- **Status:** Ratified — Standalone Module Implemented (`src/lucca/senses/dsp_chain.py`), TTS Output Pipeline Integration Queued.
+- **Status:** Ratified & Enforced (`AnimeVoiceDSP` chain in `src/lucca/senses/dsp_chain.py` wired into `TTSWorker.synthesize()` post-`engine.create` and pre-int16 in `src/lucca/senses/tts.py`, dynamically controlled via UI Tab 6 and IPC).
 
 ---
 

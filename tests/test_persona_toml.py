@@ -124,3 +124,27 @@ def test_round_trip_load_save_load(tmp_path: Path) -> None:
 
     cfg2 = get_persona_config(config_path=toml_file)
     assert cfg1 == cfg2
+
+
+def test_voice_speed_ptt_dsp_persistence(tmp_path: Path) -> None:
+    """Verifies that voice, speed, ptt_key, and dsp settings persist and load cleanly."""
+    toml_file = tmp_path / "persona.toml"
+
+    save_persona_to_config(
+        archetype="inventor",
+        formality="casual",
+        custom_prompt="Invent something great!",
+        voice="blend:0.70*af_sky+0.30*jf_alpha",
+        speed=1.20,
+        ptt_key="ctrl_r",
+        dsp_pitch_semitones=3.5,
+        dsp_enabled=True,
+        config_path=toml_file,
+    )
+
+    loaded = get_persona_config(config_path=toml_file)
+    assert loaded.voice == "blend:0.70*af_sky+0.30*jf_alpha"
+    assert loaded.speed == 1.20
+    assert loaded.ptt_key == "ctrl_r"
+    assert loaded.dsp_pitch_semitones == 3.5
+    assert loaded.dsp_enabled is True

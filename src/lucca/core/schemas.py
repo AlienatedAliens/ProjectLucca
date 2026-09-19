@@ -498,11 +498,15 @@ class PersonaAffectConfig(BaseModel):
 class PersonaConfig(BaseModel):
     name: str = "Lucca"
     voice: str = "genki_heroine"
+    speed: float = 1.05
+    ptt_key: str = "alt_gr"
     archetype: str = "inventor"
     formality: str = "casual"
     custom_prompt: str = ""
     uses_your_name: bool = True
     admits_uncertainty: bool = True
+    dsp_pitch_semitones: float = 0.0
+    dsp_enabled: bool = False
     traits: PersonaTraitsConfig = Field(default_factory=PersonaTraitsConfig)
     boundaries: PersonaBoundariesConfig = Field(default_factory=PersonaBoundariesConfig)
     affect: PersonaAffectConfig = Field(default_factory=PersonaAffectConfig)

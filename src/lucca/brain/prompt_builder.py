@@ -98,6 +98,11 @@ ARCHITECTURAL_SELF_AWARENESS: Final[str] = (
 _active_archetype: str = "inventor"
 _active_formality: str = "casual"
 _active_custom_prompt: str | None = None
+_active_voice: str = "genki_heroine"
+_active_speed: float = 1.05
+_active_ptt_key: str = "alt_gr"
+_active_dsp_pitch: float = 0.0
+_active_dsp_enabled: bool = False
 _active_traits: tuple[float, float, float] = (0.5, 0.5, 0.5)
 _active_uses_name: bool = True
 _active_uncertainty: bool = True
@@ -224,6 +229,9 @@ def set_persona(
     archetype: str | None = None,
     formality: str | None = None,
     custom_prompt: str | None = None,
+    voice: str | None = None,
+    speed: float | None = None,
+    ptt_key: str | None = None,
     technical_depth: float | None = None,
     warmth: float | None = None,
     directness: float | None = None,
@@ -232,9 +240,13 @@ def set_persona(
     never_pretend_to_feel: bool | None = None,
     refuse_topics: list[str] | None = None,
     user_archetypes: dict[str, str] | None = None,
+    dsp_pitch_semitones: float | None = None,
+    dsp_enabled: bool | None = None,
 ) -> None:
     """Dynamically reconfigures the companion's active personality traits."""
     global _active_archetype, _active_formality, _active_custom_prompt  # noqa: PLW0603
+    global _active_voice, _active_speed, _active_ptt_key  # noqa: PLW0603
+    global _active_dsp_pitch, _active_dsp_enabled  # noqa: PLW0603
     global _active_traits, _active_uses_name, _active_uncertainty  # noqa: PLW0603
     global _active_never_pretend, _active_refuse_topics, _active_user_archetypes  # noqa: PLW0603
 
@@ -244,6 +256,16 @@ def set_persona(
         _active_formality = formality.strip().lower()
     if custom_prompt is not None:
         _active_custom_prompt = custom_prompt.strip() if custom_prompt.strip() else None
+    if voice is not None and voice.strip():
+        _active_voice = voice.strip()
+    if speed is not None:
+        _active_speed = speed
+    if ptt_key is not None and ptt_key.strip():
+        _active_ptt_key = ptt_key.strip()
+    if dsp_pitch_semitones is not None:
+        _active_dsp_pitch = dsp_pitch_semitones
+    if dsp_enabled is not None:
+        _active_dsp_enabled = dsp_enabled
 
     t_depth = technical_depth if technical_depth is not None else _active_traits[0]
     t_warmth = warmth if warmth is not None else _active_traits[1]
@@ -282,9 +304,14 @@ def get_system_prompt() -> str:
 def get_persona() -> PersonaConfig:
     """Returns the current persona configuration."""
     return PersonaConfig(
+        voice=_active_voice,
+        speed=_active_speed,
+        ptt_key=_active_ptt_key,
         archetype=_active_archetype,
         formality=_active_formality,
         custom_prompt=_active_custom_prompt or "",
+        dsp_pitch_semitones=_active_dsp_pitch,
+        dsp_enabled=_active_dsp_enabled,
         traits=PersonaTraitsConfig(
             technical_depth=_active_traits[0],
             warmth=_active_traits[1],
@@ -417,6 +444,8 @@ def save_persona_to_config(
     formality: str,
     custom_prompt: str = "",
     voice: str | None = None,
+    speed: float | None = None,
+    ptt_key: str | None = None,
     technical_depth: float = 0.5,
     warmth: float = 0.5,
     directness: float = 0.5,
@@ -428,6 +457,8 @@ def save_persona_to_config(
     decay_tau_seconds: float | None = None,
     max_speed_delta: float | None = None,
     user_archetypes: dict[str, str] | None = None,
+    dsp_pitch_semitones: float | None = None,
+    dsp_enabled: bool | None = None,
     config_path: Path | None = None,
 ) -> None:
     """
@@ -447,6 +478,8 @@ def save_persona_to_config(
             "# Spec 16 §3\n\n"
             'name = "Lucca"\n'
             'voice = "genki_heroine"\n'
+            "speed = 1.05\n"
+            'ptt_key = "alt_gr"\n'
             'archetype = "inventor"\n'
             'formality = "casual"\n'
             'custom_prompt = """"""\n'
@@ -480,6 +513,14 @@ def save_persona_to_config(
 
     if voice is not None:
         updates["voice"] = voice
+    if speed is not None:
+        updates["speed"] = round(speed, 2)
+    if ptt_key is not None:
+        updates["ptt_key"] = ptt_key
+    if dsp_pitch_semitones is not None:
+        updates["dsp_pitch_semitones"] = round(dsp_pitch_semitones, 1)
+    if dsp_enabled is not None:
+        updates["dsp_enabled"] = dsp_enabled
 
     affect_updates: dict[str, JsonValue] = {}
     if affect_enabled is not None:
@@ -502,6 +543,9 @@ def save_persona_to_config(
         archetype=archetype,
         formality=formality,
         custom_prompt=custom_prompt,
+        voice=voice,
+        speed=speed,
+        ptt_key=ptt_key,
         technical_depth=technical_depth,
         warmth=warmth,
         directness=directness,
@@ -510,6 +554,8 @@ def save_persona_to_config(
         never_pretend_to_feel=never_pretend_to_feel,
         refuse_topics=refuse_topics,
         user_archetypes=user_archetypes,
+        dsp_pitch_semitones=dsp_pitch_semitones,
+        dsp_enabled=dsp_enabled,
     )
 
 
@@ -521,6 +567,9 @@ def load_persona_from_config(config_path: Path | None = None) -> None:
         archetype=cfg.archetype,
         formality=cfg.formality,
         custom_prompt=cfg.custom_prompt,
+        voice=cfg.voice,
+        speed=cfg.speed,
+        ptt_key=cfg.ptt_key,
         technical_depth=cfg.traits.technical_depth,
         warmth=cfg.traits.warmth,
         directness=cfg.traits.directness,
@@ -529,6 +578,8 @@ def load_persona_from_config(config_path: Path | None = None) -> None:
         never_pretend_to_feel=cfg.boundaries.never_pretend_to_feel,
         refuse_topics=cfg.boundaries.refuse_topics,
         user_archetypes=cfg.user_archetypes,
+        dsp_pitch_semitones=cfg.dsp_pitch_semitones,
+        dsp_enabled=cfg.dsp_enabled,
     )
 
 

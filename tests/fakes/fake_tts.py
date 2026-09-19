@@ -24,6 +24,9 @@ class FakeTTS:
     def set_speed(self, speed: float) -> None:
         self.active_speed = speed
 
+    def set_dsp_config(self, pitch_semitones: float = 0.0, enabled: bool = True) -> None:
+        pass
+
     def synthesize(
         self,
         chunk_id: int,

@@ -253,3 +253,15 @@ class AnimeVoiceDSP:
         )
 
         return final_samples, final_sr
+
+    def apply_anime_dsp_chain(
+        self,
+        samples: npt.NDArray[np.float32],
+        sr: int = 24000,
+    ) -> tuple[npt.NDArray[np.float32], int]:
+        """Canonical entrypoint for TTS worker pipeline integration (D-AUD-16)."""
+        return self.process(samples, sr)
+
+
+# Canonical alias
+AnimeDSPChain = AnimeVoiceDSP

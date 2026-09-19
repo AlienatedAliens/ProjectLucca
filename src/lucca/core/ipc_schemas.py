@@ -186,6 +186,8 @@ class UIConfigUpdatePayload(BaseModel):
     formality: str | None = None
     custom_system_prompt: str | None = None
     llm_model: str | None = None
+    dsp_pitch_semitones: float | None = None
+    dsp_enabled: bool | None = None
 
 
 class UIConfirmResultPayload(BaseModel):

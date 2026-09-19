@@ -11,6 +11,7 @@ import os
 import subprocess
 import threading
 import time
+import tomllib
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -65,7 +66,9 @@ from lucca.brain.server_ctl import (
     stop_server,
 )
 from lucca.core.config import LLMSettings, get_config
+from lucca.core.schemas import RuleState
 from lucca.memory.manager import MemoryManager
+from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import parse_rule
 from lucca.sandbox.system_tools import get_system_metrics
 from lucca.senses.dsp_chain import AnimeDSPConfig, AnimeVoiceDSP
@@ -191,6 +194,114 @@ class ModelDownloadWorker(QThread):
             self.finished_signal.emit(False, f"Download failed: {exc}")
 
 
+def load_whitelist_apps(config_path: Path | None = None) -> list[dict[str, str]]:
+    """Loads approved application whitelist dynamically from tool_whitelist.toml (Spec 09 §6)."""
+    cfg = get_config()
+    cfg_file = config_path or cfg.resolve_path("config") / "tool_whitelist.toml"
+    if not cfg_file.exists() and Path("config/tool_whitelist.toml").exists():
+        cfg_file = Path("config/tool_whitelist.toml")
+
+    apps: list[dict[str, str]] = []
+    if cfg_file.exists():
+        try:
+            with open(cfg_file, "rb") as f:
+                data = tomllib.load(f)
+            apps_table = data.get("apps", {})
+            for key, entry in apps_table.items():
+                if isinstance(entry, dict):
+                    name = str(
+                        entry.get("aliases", [key])[0] if entry.get("aliases") else key
+                    ).title()
+                    path_str = str(entry.get("exe", ""))
+                    tier = (
+                        "Read-Only"
+                        if "task" in key
+                        else ("Network" if "browser" in key else "Trusted")
+                    )
+                    status = "Disabled" if entry.get("disabled", False) else "Active"
+                    apps.append(
+                        {
+                            "key": key,
+                            "name": name,
+                            "path": path_str,
+                            "tier": tier,
+                            "status": status,
+                        }
+                    )
+        except Exception:  # noqa: BLE001
+            pass
+
+    if not apps:
+        apps = [
+            {
+                "key": "calculator",
+                "name": "Calculator",
+                "path": "calc.exe",
+                "tier": "Trusted",
+                "status": "Active",
+            },
+            {
+                "key": "notepad",
+                "name": "Notepad",
+                "path": "notepad.exe",
+                "tier": "Trusted",
+                "status": "Active",
+            },
+            {
+                "key": "browser",
+                "name": "Browser",
+                "path": "msedge.exe",
+                "tier": "Network",
+                "status": "Active",
+            },
+            {
+                "key": "terminal",
+                "name": "Terminal",
+                "path": "wt.exe",
+                "tier": "Trusted",
+                "status": "Active",
+            },
+            {
+                "key": "task_manager",
+                "name": "Task Manager",
+                "path": "taskmgr.exe",
+                "tier": "Read-Only",
+                "status": "Active",
+            },
+        ]
+    return apps
+
+
+def save_whitelist_apps(apps: list[dict[str, str]], config_path: Path | None = None) -> None:
+    """Saves approved application whitelist to tool_whitelist.toml, enforcing D-AUD-10."""
+    cfg = get_config()
+    cfg_file = config_path or cfg.resolve_path("config") / "tool_whitelist.toml"
+    if not cfg_file.exists() and Path("config/tool_whitelist.toml").exists():
+        cfg_file = Path("config/tool_whitelist.toml")
+
+    lines = [
+        "# Project Lucca — Approved Desktop Applications Whitelist",
+        "# Spec 09 §6, D-AUD-10",
+        "",
+    ]
+    for app in apps:
+        key = app.get("key") or Path(app["path"]).stem.lower().replace(" ", "_")
+        lines.append(f"[apps.{key}]")
+        lines.append(f'exe = "{app["path"]}"')
+        aliases = [app["name"].lower(), key]
+        lines.append(f"aliases = {json.dumps(aliases)}")
+        args = ["{file?}"] if "notepad" in key else (["{url?}"] if "browser" in key else [])
+        lines.append(f"args = {json.dumps(args)}")
+        single = "true" if ("calc" in key or "task" in key) else "false"
+        lines.append(f"single_instance = {single}")
+        if app.get("status") == "Disabled":
+            lines.append("disabled = true")
+        lines.append("")
+
+    cfg_file.parent.mkdir(parents=True, exist_ok=True)
+    cfg_file.write_text("\n".join(lines), encoding="utf-8")
+
+
 class SettingsDialog(QDialog):
     """
     Project Lucca — Chrono Trigger Configuration Suite (11 Tabs)
@@ -291,31 +402,8 @@ class SettingsDialog(QDialog):
             },
         }
 
-        # Whitelisted Applications
-        self.whitelisted_apps: list[dict[str, str]] = [
-            {
-                "name": "VS Code",
-                "path": "C:\\Users\\seatr\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
-                "tier": "Trusted",
-                "status": "Active",
-            },
-            {"name": "Windows Terminal", "path": "wt.exe", "tier": "Trusted", "status": "Active"},
-            {"name": "PowerShell 7", "path": "pwsh.exe", "tier": "System", "status": "Active"},
-            {"name": "Git for Windows", "path": "git.exe", "tier": "System", "status": "Active"},
-            {
-                "name": "Windows Explorer",
-                "path": "explorer.exe",
-                "tier": "System",
-                "status": "Active",
-            },
-            {
-                "name": "Task Manager",
-                "path": "taskmgr.exe",
-                "tier": "Read-Only",
-                "status": "Active",
-            },
-            {"name": "Chrome Browser", "path": "chrome.exe", "tier": "Network", "status": "Active"},
-        ]
+        # Whitelisted Applications loaded dynamically from tool_whitelist.toml (Spec 09 §6)
+        self.whitelisted_apps: list[dict[str, str]] = load_whitelist_apps()
 
         self._build_ui()
 
@@ -1411,12 +1499,34 @@ class SettingsDialog(QDialog):
         layout.addWidget(grp_tools)
         layout.addStretch()
 
+    FORBIDDEN_SHELLS = {"cmd.exe", "powershell.exe", "pwsh.exe", "bash.exe", "wsl.exe"}
+
     def _add_app_dialog(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
             self, "Select Approved Executable", "C:\\\\", "Executables (*.exe);;All Files (*.*)"
         )
         if path:
+            exe_name = Path(path).name.lower()
+            if exe_name in self.FORBIDDEN_SHELLS:
+                QMessageBox.warning(
+                    self,
+                    "Security Restriction (D-AUD-10)",
+                    f"Shell execution via '{exe_name}' is strictly forbidden by Project Lucca security policy D-AUD-10.",
+                )
+                return
+
             name = Path(path).stem.replace("_", " ").title()
+            key = Path(path).stem.lower().replace(" ", "_")
+            new_entry = {
+                "key": key,
+                "name": name,
+                "path": path,
+                "tier": "User-Added",
+                "status": "Active",
+            }
+            self.whitelisted_apps.append(new_entry)
+            save_whitelist_apps(self.whitelisted_apps)
+
             row = self.table_apps.rowCount()
             self.table_apps.insertRow(row)
             self.table_apps.setItem(row, 0, QTableWidgetItem(name))
@@ -1427,6 +1537,9 @@ class SettingsDialog(QDialog):
     def _remove_app(self) -> None:
         row = self.table_apps.currentRow()
         if row >= 0:
+            if row < len(self.whitelisted_apps):
+                self.whitelisted_apps.pop(row)
+                save_whitelist_apps(self.whitelisted_apps)
             self.table_apps.removeRow(row)
 
     def _toggle_app_status(self) -> None:
@@ -1434,7 +1547,11 @@ class SettingsDialog(QDialog):
         if row >= 0:
             item = self.table_apps.item(row, 3)
             if item:
-                item.setText("Disabled" if item.text() == "Active" else "Active")
+                new_status = "Disabled" if item.text() == "Active" else "Active"
+                item.setText(new_status)
+                if row < len(self.whitelisted_apps):
+                    self.whitelisted_apps[row]["status"] = new_status
+                    save_whitelist_apps(self.whitelisted_apps)
 
     # =========================================================================
     # TAB 4: MicroScheme LISP Reasoning Studio
@@ -1555,9 +1672,25 @@ class SettingsDialog(QDialog):
         code = self.txt_rule_code.toPlainText().strip()
         try:
             rule_obj = parse_rule(code)
-            self.lbl_rule_status.setText(
-                f"✓ Evaluated rule '{rule_obj.rule_id}': Conditions met. Gas consumed: 124 units."
+            sample_state = RuleState(
+                intent="launch_app",
+                entities={"app": ["calculator"]},
+                apps_running=frozenset(),
+                hour_local=14,
+                weekday=1,
+                session_turns=1,
+                mode="transcript",
             )
+            outcome = evaluate_rule(rule_obj, sample_state)
+            if outcome.fired and outcome.plan:
+                actions_summary = ", ".join(type(a).__name__ for a in outcome.plan.actions)
+                self.lbl_rule_status.setText(
+                    f"✓ Evaluated rule '{rule_obj.rule_id}': Conditions matched sample state. Actions: [{actions_summary}]."
+                )
+            else:
+                self.lbl_rule_status.setText(
+                    f"✓ Evaluated rule '{rule_obj.rule_id}': Evaluation executed cleanly (preconditions did not match sample state)."
+                )
         except Exception as exc:
             self.lbl_rule_status.setText(f"Evaluation error: {exc}")
 
@@ -2523,11 +2656,19 @@ class SettingsDialog(QDialog):
         affect_en = self.chk_affect_enabled.isChecked()
         decay_tau = float(self.slider_affect_decay.value())
         max_speed = self.slider_affect_delta.value() / 100.0
+        selected_voice = self.get_selected_voice_spec()
+        selected_speed = self.slider_speed.value() / 100.0
+        selected_ptt = str(self.combo_ptt_key.currentData())
+        selected_pitch = float(self.slider_pitch.value())
+        dsp_en = self.chk_limiter.isChecked() or abs(selected_pitch) > 0.1
 
         save_persona_to_config(
             archetype=arch,
             formality=form,
             custom_prompt=custom,
+            voice=selected_voice,
+            speed=selected_speed,
+            ptt_key=selected_ptt,
             technical_depth=td,
             warmth=wm,
             directness=dr,
@@ -2539,6 +2680,8 @@ class SettingsDialog(QDialog):
             decay_tau_seconds=decay_tau,
             max_speed_delta=max_speed,
             user_archetypes=self.user_archetypes,
+            dsp_pitch_semitones=selected_pitch,
+            dsp_enabled=dsp_en,
         )
 
         # 2. Prepare full config payload
@@ -2546,15 +2689,16 @@ class SettingsDialog(QDialog):
         model_name = data["rel_path"] if data else self.llm_cfg.model
 
         cfg: dict[str, Any] = {
-            "voice": self.get_selected_voice_spec(),
-            "speed": self.slider_speed.value() / 100.0,
-            "ptt_key": str(self.combo_ptt_key.currentData()),
+            "voice": selected_voice,
+            "speed": selected_speed,
+            "ptt_key": selected_ptt,
             "persona_archetype": arch,
             "formality": form,
             "custom_system_prompt": custom,
             "llm_model": model_name,
             "context_length": self.spin_context.value(),
-            "pitch_semitones": self.slider_pitch.value(),
+            "pitch_semitones": selected_pitch,
+            "dsp_enabled": dsp_en,
             "gain_db": self.slider_gain.value() * 0.5,
             "reverb_pct": self.slider_reverb.value(),
             "limiter_enabled": self.chk_limiter.isChecked(),

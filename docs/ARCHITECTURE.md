@@ -429,7 +429,7 @@ To maintain documentation integrity, the current implementation status of the au
 |---|---|---|:---:|
 | **ASR Speech-to-Text** | OpenVINO ladder on Intel NPU (`whisper-large-v3-turbo-ov`) | `faster-whisper` (`distil-small.en`) on CPU int8 in `src/lucca/senses/asr.py` | **Implementation Queued** |
 | **TTS Speech Synthesis** | Kokoro-v1.0 ONNX (24 kHz, `genki_heroine` voice) | Kokoro-v1.0 ONNX in `src/lucca/senses/tts.py` | **Enforced & Running** |
-| **Voice DSP Shaping** | Anime formant-shifter & high-freq exciter (`dsp_chain.py`) | Standalone module built in `src/lucca/senses/dsp_chain.py` | **Pipeline Integration Queued** |
+| **Voice DSP Shaping** | Anime formant-shifter & high-freq exciter (`dsp_chain.py`) | Wired post-`engine.create` and pre-int16 in `src/lucca/senses/tts.py` | **Enforced & Running** |
 
 ---
 
@@ -492,7 +492,7 @@ Operators manage and inspect the system using the `lucca-admin` CLI (`src/lucca/
 | **D-AUD-13** | Container Sandboxing | `use_direct_fallback = False` hardcoded; host execution refused without container. | **Enforced** |
 | **D-AUD-14/19**| Fictional Capability Strip | Non-existent port 5557-5559 capability claims removed; verified by static gates. | **Enforced** |
 | **D-AUD-15** | ASR Device Ladder | OpenVINO ladder on NPU queued; active runtime is `distil-small.en` on CPU. | **Queued** |
-| **D-AUD-16** | Anime Voice DSP Chain | Standalone DSP module written in `dsp_chain.py`; TTS pipeline integration queued. | **Queued** |
+| **D-AUD-16** | Anime Voice DSP Chain | `AnimeVoiceDSP` wired in `tts.py`, controlled dynamically via UI Tab 6 and IPC. | **Enforced** |
 | **D-AUD-17** | Latency Badge Honesty | Hardcoded "382 ms" badge removed; telemetry displays only measured trace time. | **Enforced** |
 | **D-AUD-18** | UI Structure | Modular 10-tab settings window in `src/lucca/ui/settings_dialog.py`. | **Enforced** |
 

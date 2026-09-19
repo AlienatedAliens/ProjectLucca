@@ -14,6 +14,7 @@ import numpy.typing as npt
 
 from lucca.core.config import get_config
 from lucca.core.ipc_schemas import TTSDonePayload
+from lucca.senses.dsp_chain import AnimeDSPChain, AnimeDSPConfig
 from lucca.senses.ring_buffer import FLAG_ABORT, SharedAudioRing
 
 # Canonical Anime English Voice Blend Recipes
@@ -179,6 +180,7 @@ class TTSWorker:
         self.active_voice = self.config.tts.voice
         self.active_speed = getattr(self.config.tts, "speed", 1.05)
         self._blend_cache: dict[str, npt.NDArray[np.float32]] = {}
+        self.dsp_chain = AnimeDSPChain(config=AnimeDSPConfig(enabled=True))
 
         if not model_path.exists() or not voices_path.exists():
             # Fallback to dev/mock if models missing
@@ -191,6 +193,11 @@ class TTSWorker:
 
     def set_speed(self, speed: float) -> None:
         self.active_speed = speed
+
+    def set_dsp_config(self, pitch_semitones: float = 0.0, enabled: bool = True) -> None:
+        """Dynamically configures the post-processing anime vocal DSP chain (D-AUD-16)."""
+        self.dsp_chain.config.pitch_semitones = pitch_semitones
+        self.dsp_chain.config.enabled = enabled
 
     def resolve_voice_style(self, voice_spec: str) -> str | npt.NDArray[np.float32]:
         """Resolves a voice string to either a native voice ID or cached blended array."""
@@ -235,6 +242,14 @@ class TTSWorker:
             # Fallback to default voice if custom/blended voice encounters issues
             fallback_voice = self.resolve_voice_style("af_sarah")
             samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
+
+        # Apply Anime Voice DSP Chain (D-AUD-16) post-engine.create, pre-int16
+        if self.dsp_chain and self.dsp_chain.config.enabled:
+            try:
+                samples_f32, sr = self.dsp_chain.apply_anime_dsp_chain(samples_f32, sr)
+            except Exception:  # noqa: BLE001
+                pass
+
         dur_ms = (time.perf_counter() - t0) * 1000.0
 
         # Check abort again

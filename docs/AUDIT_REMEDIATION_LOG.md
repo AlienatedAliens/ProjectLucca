@@ -55,6 +55,7 @@
 - `F-SENS-002`: Named mutex (`NamedRingMutex`) synchronization for shared ring headers (`a83176a`).
 - `F-SENS-003`: Stale-slice detection in `read_slice` with zero-speech reporting on overruns (`76925ac`).
 - `F-SENS-012`: Handled `sys.shutdown` on event bus ensuring clean `NPUProcess` termination (`a2760a3`).
+- `D-AUD-16`: Anime voice DSP chain (`AnimeVoiceDSP`) wired into `TTSWorker.synthesize()` pipeline with dynamic IPC and UI controls.
 
 ### Memory & Provenance (`mem.md`)
 - `F-MEM-001`: Gated admin memory mutations through `ProvenanceGate` with cryptographic signing (`e557e81`).
@@ -81,6 +82,7 @@
 - `F-UI-002`: Published `offline` state and `ui.quit` on window exit (`1605f44`).
 - `F-UI-004`: Relabeled codebase commorose action to honest project folder launcher (`eef5bc7`).
 - `F-UI-005`: Replaced fictional sample rules with valid MicroScheme and honest manual (`e513c37`).
+- `D-AUD-10 / Settings Persistence`: Implemented lossless saving & loading of voice, speed, PTT key, and DSP settings to `persona.toml`; dynamically load & save whitelisted apps to `tool_whitelist.toml` strictly enforcing shell bans.
 
 ### Cross-Cutting Drift (`drift.md`)
 - `F-DRIFT-001`: Full-system integration gate connecting memory, router, rules, and turn loop (`765fddc`).
