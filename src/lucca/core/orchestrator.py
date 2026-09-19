@@ -359,6 +359,12 @@ class Orchestrator:
         self._set_state("listening")
 
     def _abort_turn(self) -> None:
+        if self._pending_confirmation_active:
+            self._pending_confirmation_active = False
+            self._confirm_result = False
+            self._confirm_event.set()
+            logger.info("confirmation_cancelled_by_barge_in")
+
         target_trace_id = self.active_trace.trace_id if self.active_trace else None
         self.llm.abort(trace_id=target_trace_id)
         self.chunker.reset()
@@ -377,6 +383,13 @@ class Orchestrator:
 
         if self.active_trace:
             self.active_trace.interrupted = True
+
+        # Bounded join on running turn thread
+        if self.active_turn_thread and self.active_turn_thread is not threading.current_thread():
+            self.active_turn_thread.join(timeout=0.5)
+            if self.active_turn_thread.is_alive():
+                logger.warning("turn_thread_join_timeout", thread=self.active_turn_thread.name)
+            self.active_turn_thread = None
 
     def _on_ptt_released(self, ts_ns: int, p: PTTReleasedPayload) -> None:
         if self._pending_confirmation_active:
@@ -403,6 +416,9 @@ class Orchestrator:
             self._set_state("idle")
             return
 
+        if self.active_turn_thread and self.active_turn_thread.is_alive():
+            self._abort_turn()
+
         trace_id = str(ulid.ULID())
         trace = TurnTrace(
             trace_id=trace_id,
@@ -420,7 +436,9 @@ class Orchestrator:
         t.start()
 
     def _on_user_text(self, ts_ns: int, user_text: str) -> None:
-        if self.state in ("speaking", "thinking", "confirm_wait"):
+        if self.active_turn_thread and self.active_turn_thread.is_alive():
+            self._abort_turn()
+        elif self.state in ("speaking", "thinking", "confirm_wait"):
             self._abort_turn()
 
         trace_id = str(ulid.ULID())
@@ -707,6 +725,7 @@ class Orchestrator:
         self._publish_bus(begin_env)
 
         chunk_index = 0
+        chunker = StreamingChunker()
         first_token_seen = False
         full_response_text: list[str] = []
 
@@ -739,7 +758,7 @@ class Orchestrator:
                     accumulated = "".join(full_response_text)
                     self._publish_caption(accumulated, source="assistant", is_final=False)
 
-                    for chunk in self.chunker.feed(event.delta):
+                    for chunk in chunker.feed(event.delta):
                         if trace.interrupted:
                             break
                         if chunk_index == 0:
@@ -755,7 +774,7 @@ class Orchestrator:
 
             # Flush remaining chunker text
             if not trace.interrupted:
-                for chunk in self.chunker.flush():
+                for chunk in chunker.flush():
                     self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
                     chunk_index += 1
 
@@ -887,6 +906,7 @@ class Orchestrator:
         self._publish_bus(begin_env)
 
         chunk_index = 0
+        chunker = StreamingChunker()
         first_token_seen = False
         full_response_text: list[str] = []
 
@@ -914,7 +934,7 @@ class Orchestrator:
                     accumulated = "".join(full_response_text)
                     self._publish_caption(accumulated, source="assistant", is_final=False)
 
-                    for chunk in self.chunker.feed(event.delta):
+                    for chunk in chunker.feed(event.delta):
                         if trace.interrupted:
                             break
                         if chunk_index == 0:
@@ -929,7 +949,7 @@ class Orchestrator:
 
             # Flush remaining chunker text
             if not trace.interrupted:
-                for chunk in self.chunker.flush():
+                for chunk in chunker.flush():
                     self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
                     chunk_index += 1
 

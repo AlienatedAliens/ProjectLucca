@@ -154,6 +154,70 @@ def test_stale_worker_does_not_reset_state(orchestrator):
     assert orchestrator.state == "listening"
 
 
+def test_barge_in_then_second_turn_is_clean(orchestrator):
+    """
+    F-CORE-011: Barge-in stops/joins previous worker and starts second turn cleanly.
+    First turn with delay is barged into; second turn runs immediately.
+    Asserts history contains only the second exchange, and no chunk after barge-in
+    contains text from the first turn.
+    """
+    script1 = [
+        TokenDelta(delta="AAA first turn message part 1 "),
+        TokenDelta(delta="AAA first turn message part 2 "),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=2)),
+    ]
+    orchestrator.llm = FakeLLM(script=script1, token_delay_s=0.05)
+
+    # 1. Start first turn
+    orchestrator._on_ptt_pressed(ts_ns=1000)
+    dummy_pcm = np.ones(16000, dtype=np.int16) * 1000
+    orchestrator.cap_ring.write(dummy_pcm)
+
+    payload1 = PTTReleasedPayload(
+        t_ns=2000,
+        capture_seq_start=0,
+        capture_seq_end=16000,
+        duration_ms=1000.0,
+        vad_speech_ms=900.0,
+    )
+    orchestrator._on_ptt_released(ts_ns=2000, p=payload1)
+    time.sleep(0.02)
+
+    # 2. User barges in with second turn
+    orchestrator._on_ptt_pressed(ts_ns=3000)
+    assert orchestrator.state == "listening"
+
+    script2 = [
+        TokenDelta(delta="BBB second turn clean message "),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=1)),
+    ]
+    orchestrator.llm = FakeLLM(script=script2, token_delay_s=0.0)
+
+    payload2 = PTTReleasedPayload(
+        t_ns=4000,
+        capture_seq_start=16000,
+        capture_seq_end=32000,
+        duration_ms=1000.0,
+        vad_speech_ms=900.0,
+    )
+    orchestrator._on_ptt_released(ts_ns=4000, p=payload2)
+
+    # Wait for second turn to finish
+    if orchestrator.active_turn_thread:
+        orchestrator.active_turn_thread.join(timeout=3.0)
+
+    assert orchestrator.state == "idle"
+    # History must contain only second turn (user + assistant = 2 messages)
+    assert len(orchestrator.history) == 2
+    assert "BBB" in orchestrator.history[1]["content"]
+    assert "AAA" not in orchestrator.history[1]["content"]
+
+    # Synthesized chunks must contain only BBB
+    chunk_texts = [c["text"] for c in orchestrator.tts.synthesized_chunks]
+    assert all("AAA" not in t for t in chunk_texts)
+    assert any("BBB" in t for t in chunk_texts)
+
+
 def test_user_text_turn_loop(orchestrator):
     fake_script = [
         TokenDelta(delta="I am functioning "),
