@@ -119,6 +119,13 @@ class UserSpeechSigner(BaseProvenanceSigner):
         super().__init__(master_key, signer_id)
 
 
+def create_user_speech_signer(
+    master_key: bytes, signer_id: str = "asr@lucca-core"
+) -> UserSpeechSigner:
+    """Authorized factory for constructing UserSpeechSigner in the memory domain."""
+    return UserSpeechSigner(master_key=master_key, signer_id=signer_id)
+
+
 class DerivedFactSigner(BaseProvenanceSigner):
     """Constructed ONLY in lucca.memory.extraction."""
 

@@ -19,6 +19,7 @@ class FakeLLM:
         ]
         self.token_delay_s = token_delay_s
         self.aborted = False
+        self.last_memories: list[MemoryHit] | None = None
 
     def stream_turn(
         self,
@@ -30,6 +31,7 @@ class FakeLLM:
         max_tokens: int = 512,
     ) -> Generator[LLMEvent, None, None]:
         self.aborted = False
+        self.last_memories = memories
         for event in self.script:
             if self.aborted:
                 break

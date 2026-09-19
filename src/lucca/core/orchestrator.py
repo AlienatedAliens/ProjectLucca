@@ -3,11 +3,14 @@ Project Lucca — Central Orchestrator & State Machine
 Spec 01 §3, §4, §6, Spec 10, ADR-008
 """
 
+import asyncio
 import base64
 import io
+import os
 import threading
 import time
 import wave
+from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
 import structlog
@@ -35,6 +38,9 @@ from lucca.core.ipc_schemas import (
 )
 from lucca.core.schemas import (
     DecisionRecord,
+    MemoryHit,
+    Provenance,
+    RetrievalQuery,
     RouteAction,
     RuleOutcome,
     RuleState,
@@ -43,10 +49,12 @@ from lucca.core.schemas import (
     ToolCall,
     ToolCallEnd,
     ToolResult,
+    UnsignedPayload,
 )
 from lucca.core.trace import TurnTrace, log_turn_trace
 from lucca.memory.db import DatabaseManager
-from lucca.ports import STTPort, TTSPort
+from lucca.memory.signers import UserSpeechSigner, create_user_speech_signer
+from lucca.ports import MemoryStorePort, STTPort, TTSPort
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
@@ -81,6 +89,9 @@ class Orchestrator:
         router: HeuristicRouter | None = None,
         db: DatabaseManager | None = None,
         rule_engine: RuleLifecycleManager | None = None,
+        memory_store: MemoryStorePort | None = None,
+        master_key: bytes | None = None,
+        user_signer: UserSpeechSigner | None = None,
     ) -> None:
         self.config = get_config()
         self.execute_tools = execute_tools
@@ -149,6 +160,27 @@ class Orchestrator:
         self._turn_lock = threading.Lock()
         self._last_pong: dict[str, float] = {}
         self.quit_requested: bool = False
+
+        # Memory Store & Provenance Signer
+        self.memory_store = memory_store
+        key = master_key
+        if key is None and memory_store is not None:
+            store_key = getattr(memory_store, "master_key", None)
+            if isinstance(store_key, (bytes, bytearray)) and len(store_key) >= 32:
+                key = bytes(store_key)
+
+        if user_signer is not None:
+            self.user_signer: UserSpeechSigner | None = user_signer
+        elif key is not None and len(key) >= 32:
+            self.user_signer = create_user_speech_signer(master_key=key)
+        else:
+            self.user_signer = None
+
+        self.current_turn_transcript: str | None = None
+
+    @property
+    def last_decision(self) -> DecisionRecord | None:
+        return self.router.last_decision_record
 
     def start(self) -> None:
         self.running = True
@@ -426,7 +458,69 @@ class Orchestrator:
             mode=mode,
         )
 
+    def _search_memories(self, text: str) -> list[MemoryHit]:
+        if not self.memory_store or not text.strip():
+            return []
+        try:
+            q = RetrievalQuery(query_text=text.strip(), k=8)
+            res = self.memory_store.search(q)
+            if asyncio.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        return pool.submit(asyncio.run, res).result()
+                return asyncio.run(res)
+            if isinstance(res, list):
+                return res
+            return []
+        except Exception as e:  # noqa: BLE001
+            logger.warning("memory_search_failed", error=str(e))
+            return []
+
+    def _commit_transcript(self, text: str, trace: TurnTrace) -> None:
+        if not self.memory_store or not text.strip():
+            return
+        try:
+            if self.user_signer is None:
+                key = getattr(self.memory_store, "master_key", None)
+                if isinstance(key, (bytes, bytearray)) and len(key) >= 32:
+                    self.user_signer = create_user_speech_signer(master_key=bytes(key))
+                else:
+                    dev_key = b"01234567890123456789012345678901"
+                    self.user_signer = create_user_speech_signer(master_key=dev_key)
+
+            unsigned = UnsignedPayload(
+                content=text.strip(),
+                provenance=Provenance.USER_EXPLICIT,
+                kind="fact",
+                nonce=os.urandom(16).hex(),
+                created_at=time.time(),
+                trace_id=trace.trace_id,
+            )
+            signed = self.user_signer.sign(unsigned)
+            res = self.memory_store.commit(signed)
+            if asyncio.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        pool.submit(asyncio.run, res).result()
+                else:
+                    asyncio.run(res)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("transcript_commit_failed", error=str(exc))
+
     def _finalize_turn(self, trace: TurnTrace, decision_id: str | None) -> None:
+        self._set_state("postturn")
+        if self.current_turn_transcript:
+            self._commit_transcript(self.current_turn_transcript, trace)
+            self.current_turn_transcript = None
+
         if decision_id:
             try:
                 ttft_ms = (
@@ -488,9 +582,11 @@ class Orchestrator:
         if self.asr and len(pcm_samples) > 0:
             asr_res = self.asr.transcribe(pcm_samples)
             transcribed_text = asr_res.text.strip()
+            self.current_turn_transcript = transcribed_text
 
         # Silence check: discard if low speech and no transcribed words
         if (p.vad_speech_ms < 100.0 or len(pcm_samples) < 1600) and not transcribed_text:
+            self.current_turn_transcript = None
             print("[PTT] No speech detected.\n", flush=True)
             self._publish_caption(
                 "I didn't hear anything. (Hold Alt-Gr or Right-Ctrl while speaking)",
@@ -616,11 +712,13 @@ class Orchestrator:
             is_trans_mode = self.config.llm.mode == "transcript"
             llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
 
+            mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
             print("[Lucca] ", end="", flush=True)
             for event in self.llm.stream_turn(
                 current_audio_b64=llm_audio,
                 current_text=llm_text,
                 history=self.history,
+                memories=mem_hits if mem_hits else None,
             ):
                 if trace.interrupted:
                     break
@@ -692,6 +790,7 @@ class Orchestrator:
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
         self.current_turn_tool_ok = True
+        self.current_turn_transcript = user_text
         decision_id: str | None = None
 
         # Update label for previous turn if present
@@ -788,8 +887,13 @@ class Orchestrator:
         full_response_text: list[str] = []
 
         try:
+            mem_hits = self._search_memories(user_text) if user_text else []
             print("[Lucca] ", end="", flush=True)
-            for event in self.llm.stream_turn(current_text=user_text, history=self.history):
+            for event in self.llm.stream_turn(
+                current_text=user_text,
+                history=self.history,
+                memories=mem_hits if mem_hits else None,
+            ):
                 if trace.interrupted:
                     break
 
