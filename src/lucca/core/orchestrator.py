@@ -39,6 +39,7 @@ from lucca.brain.prompt_builder import (
     get_all_tool_definitions,
     set_persona,
 )
+from lucca.core.cascade import BelnapValue, EpistemicSearchCascade, EpistemicSubstrate
 from lucca.core.config import get_config
 from lucca.core.ipc_schemas import (
     Envelope,
@@ -114,6 +115,7 @@ class Orchestrator:
         memory_store: MemoryStorePort | None = None,
         master_key: bytes | None = None,
         user_signer: UserSpeechSigner | None = None,
+        cascade: EpistemicSearchCascade | None = None,
     ) -> None:
         self.config = get_config()
         self.execute_tools = execute_tools
@@ -226,6 +228,12 @@ class Orchestrator:
 
         self.session_id: str = str(ulid.ULID())
         self.current_turn_transcript: str | None = None
+
+        # Epistemic Search Cascade (Milestone 3)
+        self.cascade = cascade or EpistemicSearchCascade(
+            sandbox=self.sandbox,
+            memory_store=self.memory_store,
+        )
 
     @property
     def last_decision(self) -> DecisionRecord | None:
@@ -702,6 +710,7 @@ class Orchestrator:
         memories: list[MemoryHit] | None = None,
         tools: list[object] | None = None,
         max_rounds: int = 3,
+        epistemic_context: str | None = None,
     ) -> None:
         """
         Executes streaming LLM response generation with multi-step tool re-prompting
@@ -768,6 +777,7 @@ class Orchestrator:
                     messages=messages,
                     tool_messages=tool_messages if tool_messages else None,
                     trace_id=trace.trace_id,
+                    epistemic_context=epistemic_context,
                 ):
                     if trace.interrupted:
                         break
@@ -1189,6 +1199,16 @@ class Orchestrator:
         is_trans_mode = self.config.llm.mode == "transcript"
         llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
         mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
+        epistemic_ctx: str | None = None
+        if transcribed_text:
+            is_epistemic, target_subs, topic = self.cascade.classify_intent(transcribed_text)
+            if is_epistemic:
+                if any(s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)):
+                    cue = self.cascade.select_floor_cue(transcribed_text, target_subs[0])
+                    self._speak_text(trace, cue)
+                    self._publish_caption(cue, source="assistant", is_final=False)
+                cascade_res = self.cascade.query(transcribed_text, substrates=target_subs, emit_floor_cue=False)
+                epistemic_ctx = cascade_res.synthesized_context or None
 
         self._stream_llm_speech(
             trace=trace,
@@ -1197,6 +1217,7 @@ class Orchestrator:
             current_audio_b64=llm_audio,
             current_text=llm_text,
             memories=mem_hits,
+            epistemic_context=epistemic_ctx,
         )
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
@@ -1367,12 +1388,20 @@ class Orchestrator:
                 return
 
         mem_hits = self._search_memories(user_text) if user_text else []
+        epistemic_ctx: str | None = None
+        if user_text:
+            is_epistemic, target_subs, topic = self.cascade.classify_intent(user_text)
+            if is_epistemic:
+                cascade_res = self.cascade.query(user_text, substrates=target_subs, emit_floor_cue=False)
+                epistemic_ctx = cascade_res.synthesized_context or None
+
         self._stream_llm_speech(
             trace=trace,
             user_msg=user_text,
             decision_id=decision_id,
             current_text=user_text,
             memories=mem_hits,
+            epistemic_context=epistemic_ctx,
         )
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:

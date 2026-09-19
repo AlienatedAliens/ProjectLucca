@@ -818,14 +818,16 @@ def build_messages(
     current_audio_b64: str | None = None,
     current_text: str | None = None,
     tool_messages: list[ChatMessage] | None = None,
+    epistemic_context: str | None = None,
 ) -> list[ChatMessage]:
     """
     Builds the messages array in strict Section Order (Spec 10 §4):
     1. System Prompt (static prefix cacheable)
     2. Persistent Memory Context
-    3. Conversation History (last N turns)
-    4. Current Turn (Audio or Text)
-    5. Tool Messages (if multi-round re-prompting)
+    3. Epistemic Search Cascade Ground Truth (if present)
+    4. Conversation History (last N turns)
+    5. Current Turn (Audio or Text)
+    6. Tool Messages (if multi-round re-prompting)
     """
     messages: list[ChatMessage] = []
 
@@ -842,6 +844,15 @@ def build_messages(
                 f"{rendered}\n"
                 f"</memory>"
             )
+
+    # 3. Epistemic Search Cascade Ground Truth Block
+    if epistemic_context:
+        system_content += (
+            f"\n\n[Epistemic Search Cascade — Ground Truth Verification]\n"
+            f"<ground_truth>\n"
+            f"{epistemic_context}\n"
+            f"</ground_truth>"
+        )
 
     messages.append(ChatMessage(role="system", content=system_content))
 
