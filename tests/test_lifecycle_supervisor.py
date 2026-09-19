@@ -100,6 +100,26 @@ def test_heartbeat_tracks_pong_and_dead_peers(monkeypatch: pytest.MonkeyPatch) -
     # npu is now alive, audio remains dead
     assert orch.dead_peers(misses=3) == {"audio"}
 
+    # Register and pong ui and audio
+    orch.register_peer("ui")
+    env_pong_ui = Envelope(
+        type="sys.pong",
+        trace_id="",
+        ts_ns=int(fake_now * 1e9),
+        src="ui",
+        payload={"rss_mb": 120.0, "queue_depth": 0},
+    )
+    env_pong_audio = Envelope(
+        type="sys.pong",
+        trace_id="",
+        ts_ns=int(fake_now * 1e9),
+        src="audio",
+        payload={"rss_mb": 80.0, "queue_depth": 0},
+    )
+    orch._handle_ingest_message(env_pong_ui)
+    orch._handle_ingest_message(env_pong_audio)
+    assert orch.dead_peers(misses=3) == set()
+
 
 def test_ui_quit_triggers_clean_shutdown() -> None:
     """F-CORE-006: Orchestrator sets quit_requested on ui.quit and supervisor shuts down."""

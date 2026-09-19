@@ -63,12 +63,14 @@ class NPUProcess:
         self.ctx = ctx if ctx is not None else zmq.Context()
         self.ctl_sock = self.ctx.socket(zmq.DEALER)
         self.bus_sock = self.ctx.socket(zmq.SUB)
+        self.ingest_sock = self.ctx.socket(zmq.PUSH)
 
     def start(self) -> None:
         self.running = True
         self.ctl_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.ctl_port}")
         self.bus_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.bus_port}")
         self.bus_sock.setsockopt_string(zmq.SUBSCRIBE, "")
+        self.ingest_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.ingest_port}")
 
         poller = zmq.Poller()
         poller.register(self.ctl_sock, zmq.POLLIN)
@@ -94,7 +96,20 @@ class NPUProcess:
                 try:
                     raw = self.bus_sock.recv()
                     env = decode_envelope(raw)
-                    if env.type in ("tts.abort", "play.abort"):
+                    if env.type == "sys.ping":
+                        rss_mb = psutil.Process().memory_info().rss / (1024.0 * 1024.0)
+                        reply = Envelope(
+                            type="sys.pong",
+                            trace_id=env.trace_id,
+                            ts_ns=now_ns(),
+                            src="npu",
+                            payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
+                        )
+                        try:
+                            self.ingest_sock.send(encode_envelope(reply), zmq.NOBLOCK)
+                        except zmq.ZMQError as exc:
+                            logger.debug("npu_send_pong_zmq_error", error=str(exc))
+                    elif env.type in ("tts.abort", "play.abort"):
                         self.play_ring.set_flag(FLAG_ABORT)
                     elif env.type == "sys.shutdown":
                         self.running = False
@@ -115,6 +130,10 @@ class NPUProcess:
                 payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
             )
             self.ctl_sock.send(encode_envelope(reply))
+            try:
+                self.ingest_sock.send(encode_envelope(reply), zmq.NOBLOCK)
+            except zmq.ZMQError as exc:
+                logger.debug("npu_send_pong_zmq_error", error=str(exc))
 
         elif env.type == "sys.selftest":
             reply = Envelope(
@@ -202,6 +221,7 @@ class NPUProcess:
         try:
             self.ctl_sock.close(linger=0)
             self.bus_sock.close(linger=0)
+            self.ingest_sock.close(linger=0)
         except (zmq.ZMQError, OSError) as exc:
             logger.debug("npu_stop_socket_close_error", error=str(exc))
         self.ctx.destroy(linger=0)

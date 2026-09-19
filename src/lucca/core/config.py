@@ -27,16 +27,16 @@ class PathsSettings(BaseModel):
 
 
 class LLMSettings(BaseModel):
-    mode: Literal["audio", "transcript"] = "audio"
+    mode: Literal["audio", "transcript"] = "transcript"
     host: str = "127.0.0.1"
     port: int = 8080
     ctx: int = 8192
     kv_type: str = "q8_0"
     max_tokens: int = 512
     temperature: float = 0.6
-    model: str = "llm/ultravox-v0_5-llama-3_1-8b-Q6_K.gguf"
+    model: str = "llm/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf"
     mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
-    text_model: str = ""
+    text_model: str = "llm/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf"
 
 
 DeviceType = Literal["NPU", "GPU", "CPU"]

@@ -12,6 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import psutil
 import zmq
 from PyQt6.QtCore import QMetaObject, QObject, QPoint, QRect, Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon
@@ -23,6 +24,7 @@ from lucca.core.exceptions import IPCError
 from lucca.core.ipc_schemas import (
     AudioRMSPayload,
     Envelope,
+    SysPongPayload,
     UICaptionPayload,
     UIConfigUpdatePayload,
     UIConfirmPayload,
@@ -481,7 +483,20 @@ class UIApplication:
                 try:
                     raw = bus_sock.recv()
                     env = decode_envelope(raw)
-                    if env.type == "ui.state":
+                    if env.type == "sys.ping":
+                        rss_mb = psutil.Process().memory_info().rss / (1024.0 * 1024.0)
+                        pong = Envelope(
+                            type="sys.pong",
+                            trace_id=env.trace_id,
+                            ts_ns=now_ns(),
+                            src="ui",
+                            payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
+                        )
+                        try:
+                            self.ingest_sock.send(encode_envelope(pong), zmq.NOBLOCK)
+                        except (IPCError, zmq.ZMQError):
+                            pass
+                    elif env.type == "ui.state":
                         p_ui = UIStatePayload.model_validate(env.payload)
                         self.bridge.state_changed.emit(p_ui.state)
                     elif env.type == "ui.caption":

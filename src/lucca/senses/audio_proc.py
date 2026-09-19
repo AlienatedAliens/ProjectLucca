@@ -328,6 +328,7 @@ class AudioProcess:
                             payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
                         )
                         self.ctl_sock.send(encode_envelope(pong))
+                        self._send_ingest(pong)
                     elif env.type == "play.begin":
                         self.active_trace_id = env.trace_id
                         self.first_sample_emitted = False
@@ -345,7 +346,17 @@ class AudioProcess:
                 try:
                     raw = self.bus_sock.recv()
                     env = decode_envelope(raw)
-                    if env.type == "play.abort":
+                    if env.type == "sys.ping":
+                        rss_mb = psutil.Process().memory_info().rss / (1024.0 * 1024.0)
+                        pong = Envelope(
+                            type="sys.pong",
+                            trace_id=env.trace_id,
+                            ts_ns=now_ns(),
+                            src="audio",
+                            payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
+                        )
+                        self._send_ingest(pong)
+                    elif env.type == "play.abort":
                         self._handle_barge_in()
                     elif env.type == "sys.shutdown":
                         self.running = False

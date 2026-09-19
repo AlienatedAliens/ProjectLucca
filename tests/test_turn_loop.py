@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from lucca.core.ipc_schemas import (
-    ASRResultPayload,
     Envelope,
     PlaybackDonePayload,
     PTTReleasedPayload,
@@ -25,13 +24,14 @@ from lucca.core.schemas import (
     TokenDelta,
 )
 from lucca.senses.ring_buffer import FLAG_ABORT
+from tests.fakes.fake_asr import FakeASR
 from tests.fakes.fake_llm import FakeLLM
 from tests.fakes.fake_tts import FakeTTS
 
 
 @pytest.fixture
 def orchestrator():
-    orch = Orchestrator(tts=FakeTTS)
+    orch = Orchestrator(tts=FakeTTS, asr=FakeASR)
     yield orch
     orch.stop()
     orch.cap_ring.close()
@@ -277,21 +277,6 @@ class FakeMemoryStore:
     async def commit(self, payload: SignedPayload) -> int:
         self.commits.append(payload)
         return len(self.commits)
-
-
-class FakeASR:
-    def __init__(self, transcript: str = "open calculator") -> None:
-        self.transcript = transcript
-
-    def transcribe(self, pcm_int16: object) -> ASRResultPayload:
-        return ASRResultPayload(
-            text=self.transcript,
-            segments=[],
-            avg_logprob=0.0,
-            model="fake-asr",
-            audio_sha256="abc",
-            elapsed_ms=10.0,
-        )
 
 
 def test_turn_reaches_postturn_and_commits_transcript() -> None:

@@ -12,6 +12,17 @@ import sys
 import time
 from collections.abc import Callable
 
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001, S110
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001, S110
+        pass
+
 from lucca.brain.server_ctl import check_server_status, is_healthy, start_server
 from lucca.core.config import get_config
 from lucca.core.env_check import run_env_check

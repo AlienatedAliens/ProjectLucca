@@ -8,11 +8,23 @@ import base64
 import io
 import os
 import queue
+import sys
 import threading
 import time
 import wave
 from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001, S110
+        pass
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001, S110
+        pass
 
 import structlog
 import ulid
