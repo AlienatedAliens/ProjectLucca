@@ -265,6 +265,64 @@ def select_floor_cue(
     return "Checking that for you..."
 
 
+def extract_clean_topic(query_text: str) -> str:
+    """
+    Extracts a clean, normalized noun-phrase topic from an epistemic question.
+    Strips question prefixes, internal question marks, compound sentence tails,
+    and performs pronoun alignment for assistant voice ("I have no record of [topic]").
+    """
+    clean = query_text.strip()
+    if not clean:
+        return "that"
+
+    # 1. Take primary inquiry clause if compound (split on punctuation)
+    clauses = [c.strip() for c in re.split(r"[?!;]+", clean) if c.strip()]
+    first_clause = clauses[0] if clauses else clean
+
+    # 2. Strip leading question starters and conversational framing
+    lower_clause = first_clause.lower()
+    prefixes = (
+        "can you tell me about", "can you tell me", "tell me about", "tell me",
+        "do you know who is", "do you know what is", "do you know",
+        "do you remember", "can you check", "check", "search for", "find",
+        "who is", "who was", "who are", "who were",
+        "what did i have for", "what did i", "what did we", "what did", "what do",
+        "what is", "what was", "what are", "what were",
+        "where is", "where was", "where are",
+        "why is", "how is",
+    )
+    stripped = first_clause
+    for p in sorted(prefixes, key=len, reverse=True):
+        if lower_clause.startswith(p):
+            stripped = first_clause[len(p):].strip()
+            break
+
+    stripped = stripped.strip("?.!, \t\n\r")
+    if not stripped:
+        return "that"
+
+    # 3. Pronoun alignment for assistant voice
+    tokens = stripped.split()
+    shifted: list[str] = []
+    for t in tokens:
+        tl = t.lower()
+        if tl == "your":
+            shifted.append("my")
+        elif tl == "you":
+            shifted.append("me")
+        elif tl == "my":
+            shifted.append("your")
+        elif tl == "me":
+            shifted.append("you")
+        elif tl == "i":
+            shifted.append("you")
+        else:
+            shifted.append(t)
+
+    res = " ".join(shifted).strip()
+    return res if res else "that"
+
+
 def classify_epistemic_intent(
     query_text: str,
 ) -> tuple[bool, list[EpistemicSubstrate], str | None]:
@@ -335,15 +393,8 @@ def classify_epistemic_intent(
 
     is_epistemic = len(substrates) > 0
 
-    # Extract clean topic string
-    topic = clean
-    for prefix in (
-        "who is", "who was", "what is", "what was", "what are", "where is",
-        "do you know", "tell me about", "can you tell me"
-    ):
-        if lower.startswith(prefix):
-            topic = clean[len(prefix):].strip().rstrip("?.")
-            break
+    # Extract clean normalized topic string
+    topic = extract_clean_topic(clean)
 
     return is_epistemic, substrates, topic
 

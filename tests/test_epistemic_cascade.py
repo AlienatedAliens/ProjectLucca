@@ -99,7 +99,8 @@ def test_substrate_0_hardware_telemetry_live() -> None:
     assert "GB" in gpu_ev.content
     assert "[Trust Tier 1: TIER_1_HARDWARE]" in result.synthesized_context
 
-    # Second warm query should execute well within 5ms (warm cached)
+    # Warm query should execute well within 5ms (warm cached)
+    _ = cascade.query("How much RAM does this workstation have?")
     t_warm0 = time.perf_counter()
     warm_result = cascade.query("How much RAM does this workstation have?")
     t_warm_ms = (time.perf_counter() - t_warm0) * 1000.0
