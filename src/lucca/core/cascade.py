@@ -9,15 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import enum
+import json
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Sequence
 
 import structlog
+import ulid
 from pydantic import BaseModel, Field, JsonValue
 
-from lucca.core.schemas import MemoryHit, RetrievalQuery
+from lucca.core.schemas import MemoryHit, RetrievalQuery, ToolResult
 from lucca.core.trace import now_ns
 from lucca.ports import MemoryStorePort
 
@@ -373,6 +375,22 @@ class EpistemicSearchCascade:
     def select_floor_cue(self, query_text: str, target_substrate: EpistemicSubstrate | None = None) -> str:
         return select_floor_cue(query_text, target_substrate)
 
+    def _execute_sandbox(
+        self,
+        tool_name: str,
+        args: dict[str, JsonValue],
+        confirmed: bool = True,
+    ) -> ToolResult | None:
+        """Invokes a sandbox tool polymorphically supporting SandboxService or PersistentDockerWorker."""
+        if not self.sandbox:
+            return None
+        if hasattr(self.sandbox, "execute"):
+            return self.sandbox.execute(tool_name=tool_name, args=args, confirmed=confirmed)
+        if hasattr(self.sandbox, "execute_tool"):
+            cid = f"call-casc-{ulid.ULID()}"
+            return self.sandbox.execute_tool(call_id=cid, tool_name=tool_name, args=args, confirmed=confirmed)
+        return None
+
     # ------------------------------------------------------------------------
     # Substrate 0: System & Hardware Telemetry (< 1ms target)
     # ------------------------------------------------------------------------
@@ -471,12 +489,12 @@ class EpistemicSearchCascade:
             file_match = re.search(r"([\w\-./\\]+\.(?:toml|py|json|md|txt|ya?ml))", query_text)
             if file_match:
                 rel_path = file_match.group(1).replace("\\", "/")
-                res = self.sandbox.execute(
+                res = self._execute_sandbox(
                     tool_name="read_file",
                     args={"path": rel_path},
                     confirmed=True,
                 )
-                if res.ok and res.content:
+                if res and res.ok and res.content:
                     snippet = res.content[:500]
                     items.append(
                         EvidenceItem(
@@ -490,18 +508,19 @@ class EpistemicSearchCascade:
                         )
                     )
             elif any(w in query_text.lower() for w in ("list files", "directory", "workspace files", "folder")):
-                res = self.sandbox.execute(
+                res = self._execute_sandbox(
                     tool_name="list_dir",
                     args={"path": "."},
                     confirmed=True,
                 )
-                if res.ok and res.content:
+                if res and res.ok and (res.content or res.structured):
+                    content_str = res.content if res.content else json.dumps(res.structured)
                     items.append(
                         EvidenceItem(
                             substrate=EpistemicSubstrate.WORKSPACE,
                             trust_tier=TrustTier.TIER_2_WORKSPACE,
                             source="workspace:list_dir",
-                            content=res.content[:500],
+                            content=content_str[:500],
                             polarity=BelnapValue.TRUE,
                             confidence=1.0,
                             metadata={"path": "."},
@@ -581,12 +600,12 @@ class EpistemicSearchCascade:
                 from lucca.sandbox.policy import TaintFlags
                 self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
 
-            res = self.sandbox.execute(
+            res = self._execute_sandbox(
                 tool_name="fetch_url",
                 args={"url": target_url},
                 confirmed=True,
             )
-            if res.ok and res.content:
+            if res and res.ok and res.content:
                 items.append(
                     EvidenceItem(
                         substrate=EpistemicSubstrate.WEB,
@@ -627,7 +646,16 @@ class EpistemicSearchCascade:
         # Case 1: Substrate 4 Honest Abstention (Epistemic Gap BOT)
         if not evidence:
             refusal = build_calibrated_refusal(queried_substrates or [], topic)
-            return BelnapValue.UNKNOWN, "", refusal
+            queried_names = [s.name for s in (queried_substrates or [])]
+            synth_ctx = (
+                f"[Belnap Epistemic State: BOT (Epistemic Gap / Unknown)]\n"
+                f"Queried Substrates: {queried_names}\n"
+                f"Empirical Status: No verified records or facts found for topic '{topic or 'unspecified'}'.\n"
+                f"Mandatory Grounding Directive: You do not possess verified knowledge on this topic. "
+                f"You MUST explicitly admit uncertainty and decline to confabulate or guess. "
+                f"Calibrated Statement: \"{refusal}\""
+            )
+            return BelnapValue.UNKNOWN, synth_ctx, refusal
 
         # Group evidence by Trust Tier
         tier_map: dict[TrustTier, list[EvidenceItem]] = {}
@@ -711,11 +739,15 @@ class EpistemicSearchCascade:
         t0 = time.perf_counter()
 
         is_epistemic, detected_subs, topic = self.classify_intent(query_text)
-        active_substrates = substrates or detected_subs or [
-            EpistemicSubstrate.TELEMETRY,
-            EpistemicSubstrate.WORKSPACE,
-            EpistemicSubstrate.MEMORY,
-        ]
+
+        if substrates is not None:
+            active_substrates = list(substrates)
+        else:
+            active_substrates = detected_subs or [
+                EpistemicSubstrate.TELEMETRY,
+                EpistemicSubstrate.WORKSPACE,
+                EpistemicSubstrate.MEMORY,
+            ]
 
         cue = self.select_floor_cue(query_text, active_substrates[0] if active_substrates else None)
         floor_cue = cue if (self.enable_floor_cues and emit_floor_cue) else None

@@ -23,6 +23,8 @@ def test_fast_path_sync_records_tool_executions_in_history() -> None:
     orch.sandbox = MagicMock()
     orch.sandbox.check_confirmation_needed.return_value = False
     orch.sandbox.execute_tool.return_value = MagicMock(ok=True, exit_code=0)
+    orch.output_supervisor = MagicMock()
+    orch.cascade = MagicMock()
     orch.router = MagicMock()
     orch.router.last_decision_record = None
     orch.rule_engine = MagicMock()
