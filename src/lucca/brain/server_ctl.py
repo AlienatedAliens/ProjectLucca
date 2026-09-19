@@ -282,6 +282,17 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         "--jinja",
     ]
 
+    if "nemo" in model_gguf.name.lower() or "mistral" in model_gguf.name.lower():
+        template_file = home_dir / "templates" / "mistral_nemo.jinja"
+        if not template_file.exists():
+            repo_template = Path(__file__).resolve().parents[3] / "templates" / "mistral_nemo.jinja"
+            if repo_template.exists():
+                template_file = repo_template
+        if template_file.exists():
+            cmd.extend(["--chat-template-file", str(template_file)])
+        else:
+            cmd.extend(["--chat-template", "mistral-v3-tekken"])
+
     if cfg.mode == "audio" and mmproj_gguf.exists():
         cmd.extend(["--mmproj", str(mmproj_gguf)])
 

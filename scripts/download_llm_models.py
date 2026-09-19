@@ -125,4 +125,25 @@ if target_choice in ("mistral-nemo", "nemo", "all"):
 
     verify_hash_or_exit(nemo_target, "llm/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf")
 
+# 3. Mistral NeMo 12B Instruct Abliterated (Uncensored / De-aligned Q6_K)
+if target_choice in ("abliterated-nemo", "nemo-abliterated", "abliterated"):
+    nemo_abl_target = dest_dir / "Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
+    if not nemo_abl_target.exists():
+        print("Downloading Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf...")
+        t0 = time.time()
+        hf_hub_download(
+            repo_id="QuantFactory/Mistral-Nemo-Instruct-2407-abliterated-GGUF",
+            filename="Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf",
+            local_dir=str(dest_dir),
+        )
+        print(
+            f"Downloaded Mistral-Nemo-12B Abliterated in {time.time() - t0:.1f}s: {nemo_abl_target.stat().st_size / (1024 * 1024):.1f} MB"
+        )
+    else:
+        print(
+            f"Mistral-Nemo-12B Abliterated already exists: {nemo_abl_target.stat().st_size / (1024 * 1024):.1f} MB"
+        )
+
+    verify_hash_or_exit(nemo_abl_target, "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf")
+
 print("All requested LLM models verified and ready!")

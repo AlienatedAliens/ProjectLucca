@@ -12,10 +12,18 @@ import time
 from typing import cast
 
 import structlog
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from lucca.core.schemas import ToolResult
 from lucca.sandbox.file_tool import SafeFileTool
+from lucca.sandbox.schemas import (
+    DeleteFileArgs,
+    ListDirArgs,
+    ReadFileArgs,
+    RunPythonArgs,
+    SearchTextArgs,
+    WriteFileArgs,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -208,9 +216,10 @@ class DockerRPCTransport:
         file_tool = self.fallback_file_tool or SafeFileTool()
         try:
             if tool == "list_dir":
+                parsed_ld = ListDirArgs.model_validate(args)
                 res = file_tool.list_dir(
-                    path=str(args.get("path", "")),
-                    recursive=bool(args.get("recursive", False)),
+                    path=parsed_ld.path,
+                    recursive=parsed_ld.recursive,
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -221,9 +230,10 @@ class DockerRPCTransport:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             if tool == "read_file":
+                parsed_rf = ReadFileArgs.model_validate(args)
                 structured, content = file_tool.read_file(
-                    path=str(args.get("path", "")),
-                    max_bytes=int(str(args.get("max_bytes", 262144))),
+                    path=parsed_rf.path,
+                    max_bytes=parsed_rf.max_bytes,
                 )
                 if not structured.get("truncated", False):
                     actual_sha = hashlib.sha256(content.encode("utf-8")).hexdigest()
@@ -250,10 +260,11 @@ class DockerRPCTransport:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             if tool == "write_file":
+                parsed_wf = WriteFileArgs.model_validate(args)
                 structured_w = file_tool.write_file(
-                    path=str(args.get("path", "")),
-                    content=str(args.get("content", "")),
-                    mode=str(args.get("mode", "create")),  # type: ignore[arg-type]
+                    path=parsed_wf.path,
+                    content=parsed_wf.content,
+                    mode=parsed_wf.mode,
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -263,10 +274,11 @@ class DockerRPCTransport:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             if tool == "search_text":
+                parsed_st = SearchTextArgs.model_validate(args)
                 structured_s, content_s = file_tool.search_text(
-                    pattern=str(args.get("pattern", "")),
-                    path=str(args.get("path", "")),
-                    max_hits=int(str(args.get("max_hits", 200))),
+                    pattern=parsed_st.pattern,
+                    path=parsed_st.path,
+                    max_hits=parsed_st.max_hits,
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -278,22 +290,19 @@ class DockerRPCTransport:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             if tool == "run_python":
-                structured_p, content_p = file_tool.run_python(
-                    code=str(args.get("code", "")),
-                    timeout=int(str(args.get("timeout", 10))),
-                )
-                exit_code_raw = structured_p.get("exit_code", -1)
-                exit_code_int = int(str(exit_code_raw))
+                err_msg = "policy_violation: run_python is disabled until Milestone 2 container isolation lands"
                 return ToolResult(
                     call_id=call_id,
-                    ok=bool(structured_p.get("ok", False)),
-                    exit_code=exit_code_int,
-                    structured=cast(dict[str, JsonValue], structured_p),
-                    content=content_p,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=err_msg,
+                    content=err_msg,
+                    structured={"ok": False, "exit_code": -1, "stderr": err_msg},
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             if tool == "delete_file":
-                structured_d = file_tool.delete_file(path=str(args.get("path", "")))
+                parsed_df = DeleteFileArgs.model_validate(args)
+                structured_d = file_tool.delete_file(path=parsed_df.path)
                 return ToolResult(
                     call_id=call_id,
                     ok=True,
@@ -307,6 +316,14 @@ class DockerRPCTransport:
                 ok=False,
                 exit_code=-2,
                 stderr=f"Unknown tool: {tool}",
+                elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+        except ValidationError as val_err:
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-1,
+                stderr=f"invalid_arguments: {val_err}",
                 elapsed_ms=(time.perf_counter() - t0) * 1000.0,
             )
         except Exception as exc:  # noqa: BLE001

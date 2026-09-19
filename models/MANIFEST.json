@@ -37,6 +37,12 @@
       "size_bytes": 7477208192,
       "source_repo": "bartowski/Mistral-Nemo-Instruct-2407-GGUF",
       "source_filename": "Mistral-Nemo-Instruct-2407-Q4_K_M.gguf"
+    },
+    "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf": {
+      "sha256": "8cef81a35319d70df3be0ffc1a391780faacff3a41a533feb0d1ed2ff9514154",
+      "size_bytes": 10056212928,
+      "source_repo": "QuantFactory/Mistral-Nemo-Instruct-2407-abliterated-GGUF",
+      "source_filename": "Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
     }
   }
 }

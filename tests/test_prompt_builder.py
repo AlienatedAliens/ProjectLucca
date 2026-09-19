@@ -217,3 +217,55 @@ def test_memory_block_capped_and_marked() -> None:
 
     # Assert injected header does NOT survive inside memory block
     assert "[Creator Persona Directives]" not in mem_block
+
+
+def test_active_skills_rendered_as_tools() -> None:
+    """Proposal A / D-REAS-04: Active MicroScheme skills are rendered as callable OpenAI function tools."""
+    from unittest.mock import MagicMock
+
+    from lucca.brain.prompt_builder import format_skill_tools, get_all_tool_definitions
+
+    mock_rule_1 = MagicMock()
+    mock_rule_1.rule_id = "calc-shortcut-v1"
+    mock_rule_2 = MagicMock()
+    mock_rule_2.rule_id = "weather-lookup-v2"
+
+    skill_tools = format_skill_tools([mock_rule_1, mock_rule_2])
+    assert len(skill_tools) == 2
+    assert skill_tools[0].function.name == "skill_calc_shortcut_v1"
+    assert "calc-shortcut-v1" in skill_tools[0].function.description
+    assert skill_tools[1].function.name == "skill_weather_lookup_v2"
+
+    all_tools = get_all_tool_definitions([mock_rule_1])
+    tool_names = [t.function.name for t in all_tools]
+    assert "launch_app" in tool_names
+    assert "read_file" in tool_names
+    assert "skill_calc_shortcut_v1" in tool_names
+
+
+def test_build_narration_messages_grounding() -> None:
+    """Proposal B & J / D-ARCH-05 / D-BRAIN-04: Act-Then-Narrate messages enforce grounding in tool trace."""
+    from lucca.brain.prompt_builder import build_narration_messages
+    from lucca.core.schemas import ToolResult
+
+    res = ToolResult(
+        call_id="call-123",
+        ok=True,
+        content="Meeting scheduled for 3 PM with team.",
+        elapsed_ms=12.5,
+    )
+    msgs = build_narration_messages(
+        tool_name="read_file",
+        tool_args={"rel_path": "calendar.txt"},
+        tool_result=res,
+        user_text="What is on my calendar?",
+    )
+
+    assert len(msgs) >= 3
+    assert msgs[0].role == "system"
+    assert "strictly in the verified facts" in str(msgs[0].content)
+    assert msgs[1].role == "user"
+    assert msgs[1].content == "What is on my calendar?"
+    assert msgs[2].role == "assistant"
+    assert "Meeting scheduled for 3 PM" in str(msgs[2].content)
+    assert "Grounding your response strictly" in str(msgs[2].content)

@@ -1,51 +1,63 @@
 # Project Lucca — Antigravity Workspace Guidelines & Operational Rules
 
 ## 1. Project Overview & Role
-You are operating inside the **Project Lucca** repository (`C:\projects\ProjectLucca`).
-Lucca is a local-first, sandboxed desktop companion with real-time push-to-talk voice, symbolic reasoning compilation (LISP), and three-tier provenance-gated memory.
+You are operating inside the **Project Lucca** repository (`C:\projects\ProjectLucca`, runtime root: `C:\ProjectLucca`).
+Lucca is an autonomous, local-first, sandboxed desktop companion with real-time push-to-talk voice, symbolic procedural reasoning (MicroScheme), three-tier execution architecture, and provenance-gated long-term memory.
 
 ## 2. Hard Invariants & Non-Negotiables
+
 1. **Never Promote Freeform LLM Narration into Memory:**
-   - Any memory commit must originate from `USER_EXPLICIT` (speech transcription), `TOOL_VERIFIED` (sandbox output), or `LISP_ASSERTION`.
-   - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`.
+   - Any memory commit must carry an authentic cryptographic envelope signed by `UserSpeechSigner` (`USER_EXPLICIT`), `ExtractorSigner` (`USER_DERIVED`), `SandboxSigner` (`TOOL_VERIFIED`), or `RuleEngineSigner` (`LISP_ASSERTION`).
+   - `TOOL_CONTENT_UNTRUSTED` (unverified file/web bodies) is never memory-eligible without explicit user action.
+   - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
+
 2. **Strict Hardware Budget Discipline:**
-   - Host is an MSI Vector 16 HX AI with 16GB System RAM, Arrow Lake Core Ultra 9 275HX, and RTX 5080 16GB VRAM (Blackwell `sm_120`).
-   - WSL2 is memory-clamped to 4.5GB via `.wslconfig`. Do not spawn heavy background processes in WSL2.
-   - **Intel NPU is Accessible ONLY from Native Windows 11.** Never attempt to run OpenVINO NPU workloads inside WSL2 or Docker.
-   - Tree models (XGBoost/LightGBM) run on CPU, **never on NPU** (OpenVINO lacks `TreeEnsembleClassifier` support).
-3. **Phased Build Discipline:**
-   - Implement strictly phase-by-phase (Phase 0 spikes, then Phase 1 through Phase 6) per `docs/11_phase_plan_v2.md`.
-   - Do NOT proceed to the next phase until the current phase's sign-off bundle in `docs/10_testing_matrix_v2.md` §4 is green and its report files exist. Phases 4–6 contain human gates; synthetic data never satisfies them.
-   - Never edit a threshold to make a test pass; record the measured value in `docs/14_blockers.md` and stop.
-4. **Symbolic Rule Promotion Gate:**
-   - Never compile a LISP rule from a single interaction.
-   - Must achieve $N \ge 5$ distinct cluster successes with 0 failures before promotion from quarantine.
-   - Must pass 100% of historical regression test cases.
-5. **Code Standards:**
-   - Python 3.12+ using `uv`.
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`). Native Windows `llama-server.exe` running `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` with 16K context, Q8_0 KV cache, and Flash Attention. **Resident VRAM clamp: $\le 12.5\text{ GB}$ (12,800 MB)**, leaving $\ge 3.5\text{ GB}$ for host display and applications.
+   - **Intel NPU**: Exclusively accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`). **Never attempt to run NPU workloads inside WSL2 or Docker.**
+   - **System RAM**: 16 GB shared pool. WSL2 memory clamped to 4.5 GB (`4608MB`) via `.wslconfig`.
+   - **CPU**: Arrow Lake Core Ultra 9 275HX. Hosts Orchestrator, MicroScheme LISP engine, SQLite WAL + `sqlite-vec` + FTS5, and tree models (LightGBM/XGBoost on CPU, never on NPU).
+
+3. **Three-Tier Execution Architecture (`D-ARCH-05`):**
+   - **`REFLEX`**: Strictly restricted to critical emergency/safety commands (`shutdown`, `pause`, `mute`, `stop`, `halt`) via `EMERGENCY_REFLEX_PATTERN`. Bypasses neural inference and speaks canned confirmation in $<150\text{ms}$.
+   - **`ACT_THEN_NARRATE`**: Standard procedural rules execute deterministically in the sandbox, then prompt NeMo 12B to narrate results in Lucca's companion voice without robotic canned responses.
+   - **`FULL_LOOP`**: Open-ended conversation and multi-step tool calls (up to $M=3$ rounds) with intermediate spoken verbal thinking cues (`D-BRAIN-03`) and strict grounded narration contracts (`D-BRAIN-04`).
+
+4. **Symbolic Rule Engine & Safe Induction:**
+   - **Pure Plans**: MicroScheme rules are pure `State → Plan` functions with gas metering (1,000 gas limit) and zero global mutation.
+   - **Typed Accessors (`D-SEC-04`)**: Rules use typed accessors (`entity-str`, `entity-int`, `entity-num`) enforcing schema validation before tool dispatch.
+   - **Bounded Macro System (`D-REAS-05`)**: Compile-time macro expansion enforces `MAX_MACRO_DEPTH = 8` and `MAX_MACRO_STEPS = 64`. Macros cannot shadow primitive operators.
+   - **Quarantine Invariant (`D-REAS-06`)**: Induced rules from SQLite history ($N \ge 3$) are registered **strictly into `QUARANTINE` mode**. Automatic promotion to `ACTIVE` is prohibited. Promotion requires 5 distinct shadow clusters with 0 errors and explicit operator approval via `lucca-admin`.
+
+5. **Sandboxed Action Execution & Async Protocol:**
+   - Direct host execution fallback is disabled by default (`use_direct_fallback = False` per `D-AUD-13`); tool operations run inside Docker CE in WSL2.
+   - Strict Pydantic argument schemas (`LaunchAppArgs`, `FetchUrlArgs`, etc.) validate all tool dispatches (`D-SEC-04`).
+   - Long background tasks run asynchronously under `AsyncTaskManager` with unique ULID task IDs (`D-SAND-03`).
+   - Absolute shell ban: `cmd.exe` and `powershell.exe` are strictly blacklisted from application launching (`D-AUD-10`).
+
+6. **Code Quality & Typing Gates:**
+   - Python 3.12+ managed with `uv`. Formatted and checked with `ruff`.
+   - **Zero `Any` Invariant (`D-AUD-01`)**: Strictly typed interfaces; verified by `tests/test_static_gates.py`.
    - Pydantic v2 schemas for all cross-boundary IPC and data contracts (`src/lucca/core/schemas.py`).
-   - Strict typing with zero `Any` in public interfaces.
 
-## 3. Documentation Reference Directory
+---
 
-**Precedence:** `docs/13_decisions_log.md` and `docs/07_contradiction_register.md` override docs 00–05 wherever they conflict. Read order for implementers: 13 → 07 → `08_adr/` → `09_developer_spec/` → 10 → 11.
+## 3. Master Documentation Directory
 
-Authoritative (2026-09-17 final review):
-- Decisions Log: `docs/13_decisions_log.md`
-- Contradiction Register & canonical values: `docs/07_contradiction_register.md`
-- ADRs: `docs/08_adr/ADR-001..008`
-- Developer Specs: `docs/09_developer_spec/01..12`
-- Testing Matrix v2: `docs/10_testing_matrix_v2.md`
-- Phase Plan v2: `docs/11_phase_plan_v2.md`
-- Prior Art Survey: `docs/12_prior_art_survey.md`
-- Defect index: `docs/06_critical_review_findings.md`
+**Canonical Active Documentation:**
+- **Decisions Register**: [`docs/DECISIONS.md`](./docs/DECISIONS.md) — All 25 ratified ADRs (`D-AUD-01` through `D-EVAL-01`).
+- **Master System Architecture**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (v0.4.0) — Process topology, IPC, cognitive tiers, memory, rules, and security.
+- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v0.3.0) — Cascade pipeline, Mistral NeMo 12B deployment, and prompt architecture.
+- **Audit & Remediation Log**: [`docs/AUDIT_REMEDIATION_LOG.md`](./docs/AUDIT_REMEDIATION_LOG.md) — Remediation index and procedural upgrade proposals.
+- **Audio Concurrency Contract**: [`docs/adr/0009_audio_concurrency_contract.md`](./docs/adr/0009_audio_concurrency_contract.md).
 
-Historical (superseded where the register says so):
-- Original Brief: `docs/00_original_build_brief.md`
-- Recursive Audit & Flaw Proofs: `docs/01_recursive_architecture_audit_and_flaw_analysis.md`
-- Systems Research & Prior Art: `docs/02_systems_research_prior_art_and_alternatives.md`
-- Hardware Topology & IPC: `docs/03_enterprise_hardware_topology_and_ipc_spec.md`
-- Mechanical Testing Matrix v1: `docs/04_deep_mechanical_testing_and_verification_matrix.md`
-- Master System Specification v1: `docs/05_lucca_system_architecture_master_spec.md`
+**Historical Pre-Phase-4 Documentation:**
+- Archived into [`docs/archive/2026-09-17_pre_phase4_audit/`](./docs/archive/2026-09-17_pre_phase4_audit/) (docs 00–14, original brief, and pre-audit research).
 
-Key settled facts every agent must know: LLM = `llama-server` natively on Windows with Ultravox Q6_K GGUF (vLLM retired); Whisper runs on every turn (Ultravox emits no transcript); storage = SQLite+FTS5+sqlite-vec (Chroma retired); Docker CE inside Ubuntu WSL2 (Desktop unsupported); runtime root `C:\ProjectLucca`; four host processes + ZMQ (ADR-008).
+---
+
+## 4. Key Settled Facts Every Agent Must Know
+- **LLM**: Native Windows `llama-server.exe` running `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` with `--chat-template mistral-v3`, 16,384 context size, Q8_0 KV cache, flash attention, and 12.5 GB (12,800 MB) resident VRAM clamp (`D-BRAIN-05`). (Ultravox 8B and vLLM retired).
+- **ASR**: Faster-Whisper on CPU/NPU runs on every turn to produce ground-truth text transcripts.
+- **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with 2,048-token quota and multi-factor prioritization (`D-MEM-03`). Fast-path context sync preserves multi-turn memory (`D-ARCH-06`). (Chroma retired).
+- **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`).
+- **Process Topology**: Four native host processes + ZeroMQ IPC (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server` per ADR-008).

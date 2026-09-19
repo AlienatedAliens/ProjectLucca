@@ -36,7 +36,10 @@ def _get_trafilatura_extract() -> Callable[..., Any] | None:
         return None
 
 
-def validate_url_ssrf(url: str) -> tuple[str, str]:
+def validate_url_ssrf(
+    url: str,
+    dns_resolver: Callable[[str], list[tuple[Any, ...]]] | None = None,
+) -> tuple[str, str]:
     """
     Validates URL format, lengths, and enforces SSRF IP resolution checks:
     - Scheme must be http or https
@@ -71,8 +74,9 @@ def validate_url_ssrf(url: str) -> tuple[str, str]:
         raise SandboxPathError("invalid_host", "Hostname missing in URL")
 
     # Resolve IP addresses
+    resolver = dns_resolver if dns_resolver is not None else (lambda h: socket.getaddrinfo(h, None))
     try:
-        addr_info = socket.getaddrinfo(hostname, None)
+        addr_info = resolver(hostname)
     except socket.gaierror as err:
         raise SandboxPathError("dns_failed", f"Failed to resolve host '{hostname}': {err}") from err
 
@@ -142,10 +146,12 @@ def fetch_url(
     render: bool = False,
     max_chars: int = DEFAULT_MAX_CHARS,
 ) -> tuple[dict[str, Any], str]:
-    """
-    Executes a hardened, SSRF-guarded HTTP GET request.
-    Validates every redirect hop against the SSRF resolver.
-    """
+    if render:
+        raise SandboxPathError(
+            "render_disabled",
+            "Headless browser rendering (render=True) is disabled on host pending Milestone 2 container isolation",
+        )
+
     valid_url, _ = validate_url_ssrf(url)
 
     headers = {

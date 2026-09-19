@@ -254,6 +254,47 @@ def make_state_primitives(
         ents = state.entities.get(cat, [])
         return ents[0] if ents else ""
 
+    def prim_entity_int(args: list[SchemeValue]) -> int:
+        if len(args) != 1:
+            raise SchemeRuntimeError("'entity-int' requires 1 argument", cause_type="ValueError")
+        cat = _check_str(args[0], "entity-int")
+        ents = state.entities.get(cat, [])
+        if not ents:
+            raise SchemeRuntimeError(
+                f"'entity-int' entity '{cat}' not found", cause_type="KeyError"
+            )
+        try:
+            return int(ents[0])
+        except ValueError as err:
+            raise SchemeRuntimeError(
+                f"'entity-int' entity '{cat}' value '{ents[0]}' is not an integer",
+                cause_type="ValueError",
+            ) from err
+
+    def prim_entity_num(args: list[SchemeValue]) -> float:
+        if len(args) != 1:
+            raise SchemeRuntimeError("'entity-num' requires 1 argument", cause_type="ValueError")
+        cat = _check_str(args[0], "entity-num")
+        ents = state.entities.get(cat, [])
+        if not ents:
+            raise SchemeRuntimeError(
+                f"'entity-num' entity '{cat}' not found", cause_type="KeyError"
+            )
+        try:
+            return float(ents[0])
+        except ValueError as err:
+            raise SchemeRuntimeError(
+                f"'entity-num' entity '{cat}' value '{ents[0]}' is not a number",
+                cause_type="ValueError",
+            ) from err
+
+    def prim_entity_str(args: list[SchemeValue]) -> str:
+        if len(args) != 1:
+            raise SchemeRuntimeError("'entity-str' requires 1 argument", cause_type="ValueError")
+        cat = _check_str(args[0], "entity-str")
+        ents = state.entities.get(cat, [])
+        return str(ents[0]) if ents else ""
+
     def prim_transcript_has(args: list[SchemeValue]) -> bool:
         if len(args) != 1:
             raise SchemeRuntimeError(
@@ -314,6 +355,9 @@ def make_state_primitives(
         "intent=": prim_intent_eq,
         "entity-has?": prim_entity_has,
         "entity": prim_entity,
+        "entity-int": prim_entity_int,
+        "entity-num": prim_entity_num,
+        "entity-str": prim_entity_str,
         "transcript-has?": prim_transcript_has,
         "transcript-matches-glob?": prim_transcript_matches_glob,
         "app-running?": prim_app_running,

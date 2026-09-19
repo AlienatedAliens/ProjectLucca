@@ -15,6 +15,7 @@ import structlog
 
 from lucca.core.schemas import (
     DecisionRecord,
+    ExecutionTier,
     RouteAction,
     RouteDecision,
     RouteFeatures,
@@ -23,6 +24,13 @@ from lucca.core.schemas import (
 from lucca.memory.db import DatabaseManager
 
 logger = structlog.get_logger(__name__)
+
+EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^(?:(?:please|lucca|hey\s+lucca)\s+)?"
+    r"(shut\s*down|turn\s*off|exit(?!\s+(?:code|status|number|value))|quit|pause|mute|stop(?:\s+(?:everything|all|listening|doing|it|right\s+now|right\s+here))?|halt)"
+    r"(?:\s+(?:everything|all|now|please|immediately|lucca|right\s+now|right\s+here|doing\s+that|listening|audio|yourself|execution|the\s+system|it))?[.!]?$",
+    re.IGNORECASE,
+)
 
 DEFAULT_KNOWN_APPS: Final[frozenset[str]] = frozenset(
     {
@@ -208,23 +216,39 @@ class HeuristicRouter:
         conf = intent_conf if intent_conf is not None else auto_conf
         text_lower = transcript.strip().lower()
 
-        # Decision logic per Spec 06 §1 & §2
-        if any_active_rule_fired or (
+        # Decision logic per Spec 06 §1 & §2 and D-ARCH-05
+        if EMERGENCY_REFLEX_PATTERN.search(text_lower):
+            action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
+        elif any_active_rule_fired or (
             intent in INTENT_TO_RULE
             and conf >= 0.80
             and (has_registered_rule or any_active_rule_fired)
         ):
-            action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
-        elif vad_speech_ms < 400 or (conf < 0.35 and not any_active_rule_fired):
+            action_lit = "RULE"
+        elif (
+            vad_speech_ms < 400
+            or intent == "clarify"
+            or (intent in INTENT_TO_RULE and conf < 0.35 and not any_active_rule_fired)
+        ):
             action_lit = "CLARIFY"
         else:
             action_lit = "LLM"
 
         elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
 
+        # Determine ExecutionTier per D-ARCH-05 (Spec 06, Owner Section 6 Mandate)
+        if action_lit == "RULE":
+            if EMERGENCY_REFLEX_PATTERN.search(text_lower):
+                tier = ExecutionTier.REFLEX
+            else:
+                tier = ExecutionTier.ACT_THEN_NARRATE
+        else:
+            tier = ExecutionTier.FULL_LOOP
+
         route_action = RouteAction(action_lit)
         decision = RouteDecision(
             action=route_action,
+            tier=tier,
             probabilities=None,
             prediction_set=[route_action],
             fallback_applied=False,
@@ -249,6 +273,7 @@ class HeuristicRouter:
             any_active_rule_fired=any_active_rule_fired,
             any_quarantine_rule_fired=any_quarantine_rule_fired,
             has_registered_rule=has_registered_rule,
+            tier=tier,
         )
 
         tid = trace_id or f"trace-{uuid.uuid4().hex[:8]}"
@@ -283,6 +308,7 @@ class HeuristicRouter:
         payload["intent"] = record.features.intent
         payload["intent_conf"] = record.features.intent_conf
         payload["action"] = record.decision.action.value
+        payload["tier"] = record.decision.tier.value
         payload["probabilities"] = record.decision.probabilities
         payload["elapsed_us"] = record.decision.elapsed_us
 

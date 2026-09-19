@@ -6,6 +6,7 @@ Spec 01 §3, §4, §6, Spec 10, ADR-008
 import asyncio
 import base64
 import io
+import json
 import os
 import queue
 import sys
@@ -33,7 +34,11 @@ from pydantic import JsonValue
 
 from lucca.brain.chunker import StreamingChunker
 from lucca.brain.llm_client import LLMClient
-from lucca.brain.prompt_builder import set_persona
+from lucca.brain.prompt_builder import (
+    build_narration_messages,
+    get_all_tool_definitions,
+    set_persona,
+)
 from lucca.core.config import get_config
 from lucca.core.ipc_schemas import (
     Envelope,
@@ -50,7 +55,9 @@ from lucca.core.ipc_schemas import (
     encode_envelope,
 )
 from lucca.core.schemas import (
+    ChatMessage,
     DecisionRecord,
+    ExecutionTier,
     MemoryHit,
     Provenance,
     RetrievalQuery,
@@ -69,6 +76,7 @@ from lucca.memory.db import DatabaseManager
 from lucca.memory.signers import UserSpeechSigner, create_user_speech_signer
 from lucca.ports import MemoryStorePort, STTPort, TTSPort
 from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
@@ -194,6 +202,7 @@ class Orchestrator:
         self._turn_lock = threading.Lock()
         self._last_pong: dict[str, float] = {}
         self._last_ptt_press_ns: int = 0
+        self._last_unspoken_tool_msg: str | None = None
         self.quit_requested: bool = False
 
         # Memory Store & Provenance Signer
@@ -659,6 +668,216 @@ class Orchestrator:
         if self.active_trace is trace and not trace.interrupted:
             self._set_state("idle")
 
+    def _select_verbal_cue(self, tool_name: str) -> str:
+        """Selects a natural verbal thinking cue per Proposal I / Owner Section 6 requirement."""
+        t = tool_name.lower()
+        if "read" in t or "cat" in t or "inspect" in t:
+            return "Checking that file for you..."
+        elif "write" in t or "save" in t:
+            return "Writing that down now..."
+        elif "launch" in t or "open" in t:
+            return "Opening that up..."
+        elif "calc" in t:
+            return "Running that calculation..."
+        elif "query" in t:
+            return "Checking my systems..."
+        elif "fetch" in t or "web" in t:
+            return "Looking that up online..."
+        elif "skill" in t:
+            return "Executing that procedure..."
+        return "On it, working on that now..."
+
+    def _stream_llm_speech(
+        self,
+        trace: TurnTrace,
+        user_msg: str,
+        decision_id: str | None,
+        messages: list[ChatMessage] | None = None,
+        current_audio_b64: str | None = None,
+        current_text: str | None = None,
+        memories: list[MemoryHit] | None = None,
+        tools: list[object] | None = None,
+        max_rounds: int = 3,
+    ) -> None:
+        """
+        Executes streaming LLM response generation with multi-step tool re-prompting
+        and verbal thinking cues (Proposals I, J & D-BRAIN-03).
+        """
+        begin_env = Envelope(
+            type="play.begin",
+            trace_id=trace.trace_id,
+            ts_ns=now_ns(),
+            src="core",
+            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        )
+        self._publish_bus(begin_env)
+
+        chunk_index = 0
+        chunker = StreamingChunker()
+        first_token_seen = False
+        full_response_text: list[str] = []
+        tool_messages: list[ChatMessage] = []
+
+        if tools is None:
+            active_rules = [r for r in self.rule_engine.rules.values() if r.status == "ACTIVE"]
+            tools = get_all_tool_definitions(active_rules)
+
+        try:
+            for round_num in range(1, max_rounds + 1):
+                if trace.interrupted:
+                    break
+
+                round_tool_called = False
+                print(f"[Lucca R{round_num}] " if round_num > 1 else "[Lucca] ", end="", flush=True)
+                if round_num == 1:
+                    trace.t_llm_sent = now_ns()
+
+                for event in self.llm.stream_turn(
+                    current_audio_b64=current_audio_b64 if round_num == 1 else None,
+                    current_text=current_text if round_num == 1 else None,
+                    history=self.history,
+                    memories=memories,
+                    tools=tools,
+                    messages=messages,
+                    tool_messages=tool_messages if tool_messages else None,
+                    trace_id=trace.trace_id,
+                ):
+                    if trace.interrupted:
+                        break
+
+                    if isinstance(event, TokenDelta) and event.delta:
+                        if not first_token_seen:
+                            first_token_seen = True
+                            trace.t_llm_first_token = now_ns()
+
+                        trace.tokens_out += 1
+                        full_response_text.append(event.delta)
+                        print(event.delta, end="", flush=True)
+
+                        accumulated = "".join(full_response_text)
+                        self._publish_caption(accumulated, source="assistant", is_final=False)
+
+                        for chunk in chunker.feed(event.delta):
+                            if trace.interrupted:
+                                break
+                            if chunk_index == 0:
+                                trace.t_first_chunk = now_ns()
+                                self._set_state("speaking")
+
+                            try:
+                                self._tts_queue.put(
+                                    (trace, chunk.chunk_id, chunk.text, None), timeout=2.0
+                                )
+                            except queue.Full:
+                                logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
+                            chunk_index += 1
+
+                    elif isinstance(event, ToolCallEnd):
+                        round_tool_called = True
+                        call_id = event.call.call_id
+                        tool_name = event.call.tool
+                        tool_args = dict(event.call.args)
+
+                        # Emit verbal thinking cue before tool execution (Proposal I)
+                        cue = self._select_verbal_cue(tool_name)
+                        print(f'\n[Lucca Cue] 💬 "{cue}"', flush=True)
+                        self._speak_text(trace, cue)
+
+                        # Execute tool
+                        tool_res = self._handle_tool_call(trace, tool_name, tool_args, speak=False)
+
+                        if tool_res is not None:
+                            if tool_res.content:
+                                content_str = str(tool_res.content)
+                            elif tool_res.structured:
+                                content_str = json.dumps(tool_res.structured)
+                            elif tool_res.stderr and not tool_res.ok:
+                                content_str = f"Error: {tool_res.stderr}"
+                            else:
+                                content_str = "Success"
+                        else:
+                            content_str = "Action completed."
+
+                        tool_messages.append(
+                            ChatMessage(
+                                role="assistant",
+                                content=f"Call tool {tool_name}",
+                                tool_call_id=call_id,
+                            )
+                        )
+                        tool_messages.append(
+                            ChatMessage(
+                                role="tool",
+                                content=content_str,
+                                tool_call_id=call_id,
+                                name=tool_name,
+                            )
+                        )
+
+                if not round_tool_called:
+                    break
+
+            # Flush remaining chunker text
+            if not trace.interrupted:
+                for chunk in chunker.flush():
+                    try:
+                        self._tts_queue.put((trace, chunk.chunk_id, chunk.text, None), timeout=2.0)
+                    except queue.Full:
+                        logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
+                    chunk_index += 1
+
+                if chunk_index > 0 and not trace.interrupted:
+                    done_event = threading.Event()
+                    try:
+                        self._tts_queue.put((trace, -1, "", done_event), timeout=1.0)
+                        done_event.wait(timeout=3.0)
+                    except queue.Full:
+                        logger.warning("tts_queue_full_sentinel_failed")
+
+                if not trace.interrupted:
+                    self.play_ring.set_flag(FLAG_EOS)
+
+            trace.t_llm_done = now_ns()
+            print("\n", flush=True)
+
+            # If no streaming response was generated but a tool was executed without narration,
+            # speak the tool result as fallback so the turn produces audio feedback and history
+            if not full_response_text and self._last_unspoken_tool_msg and not trace.interrupted:
+                self._speak_text(trace, self._last_unspoken_tool_msg)
+                self.current_turn_tool_spoken.append(self._last_unspoken_tool_msg)
+                self._publish_caption(
+                    self._last_unspoken_tool_msg, source="assistant", is_final=True
+                )
+                self.play_ring.set_flag(FLAG_EOS)
+
+            # Record turn in history
+            if not trace.interrupted:
+                reply_parts: list[str] = []
+                if full_response_text:
+                    reply_parts.append("".join(full_response_text))
+                if self.current_turn_tool_spoken:
+                    reply_parts.extend(self.current_turn_tool_spoken)
+                if reply_parts:
+                    reply_str = " ".join(reply_parts)
+                    self.history.append({"role": "user", "content": user_msg})
+                    self.history.append({"role": "assistant", "content": reply_str})
+                    if full_response_text:
+                        self._publish_caption(reply_str, source="assistant", is_final=True)
+
+        except Exception as exc:  # noqa: BLE001
+            trace.error = str(exc)
+            if not trace.interrupted:
+                logger.error("turn_execution_error", trace_id=trace.trace_id, error=str(exc))
+                print(f"\n[Error] {exc}", flush=True)
+                self._publish_caption(
+                    "Sorry, I had trouble processing that request.",
+                    source="status",
+                    is_final=True,
+                )
+            trace.interrupted = True
+        finally:
+            self._finalize_turn(trace, decision_id)
+
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
@@ -666,6 +885,7 @@ class Orchestrator:
         self.current_turn_tool_calls = []
         self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
+        self._last_unspoken_tool_msg = None
         decision_id: str | None = None
 
         # Read audio slice from capture ring
@@ -682,6 +902,9 @@ class Orchestrator:
             self._set_state("idle")
             return
 
+        if trace.interrupted:
+            return
+
         # Transcribe audio with ASR
         transcribed_text = ""
         if self.asr and len(pcm_samples) > 0:
@@ -690,6 +913,9 @@ class Orchestrator:
             trace.t_asr_done = now_ns()
             transcribed_text = asr_res.text.strip()
             self.current_turn_transcript = transcribed_text
+
+        if trace.interrupted:
+            return
 
         # Silence check: discard if low speech and no transcribed words
         if (p.vad_speech_ms < 100.0 or len(pcm_samples) < 1600) and not transcribed_text:
@@ -771,24 +997,100 @@ class Orchestrator:
                     winning_outcome = outcome
                     break
 
-            if winning_outcome and winning_outcome.plan:
+            tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
+            if tier == ExecutionTier.REFLEX:
                 try:
-                    for action in winning_outcome.plan.actions:
-                        if isinstance(action, Say):
-                            self._speak_text(trace, action.text)
-                            self._publish_caption(action.text, source="assistant", is_final=True)
-                        elif isinstance(action, ToolCall):
-                            self._handle_tool_call(trace, action.tool, dict(action.args))
+                    if winning_outcome and winning_outcome.plan:
+                        tool_executions: list[str] = []
+                        for action in winning_outcome.plan.actions:
+                            if isinstance(action, Say):
+                                self._speak_text(trace, action.text)
+                                self._publish_caption(
+                                    action.text, source="assistant", is_final=True
+                                )
+                            elif isinstance(action, ToolCall):
+                                tool_res = self._handle_tool_call(
+                                    trace, action.tool, dict(action.args), speak=True
+                                )
+                                status = (
+                                    "ok"
+                                    if (tool_res is None or getattr(tool_res, "ok", True))
+                                    else "failed"
+                                )
+                                args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
+                                tool_executions.append(
+                                    f"[Executed {action.tool}({args_str}) -> {status}]"
+                                )
 
-                    user_msg = transcribed_text or "[Voice audio]"
-                    assistant_msg = (
-                        " ".join(a.text for a in winning_outcome.plan.actions if isinstance(a, Say))
-                        or f"[Rule executed: {winning_outcome.rule_id}]"
-                    )
-                    self.history.append({"role": "user", "content": user_msg})
-                    self.history.append({"role": "assistant", "content": assistant_msg})
-                    self.play_ring.set_flag(FLAG_EOS)
+                        user_msg = transcribed_text or "[Voice audio]"
+                        spoken_msg = " ".join(
+                            a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
+                        )
+                        exec_details = " ".join(tool_executions)
+                        assistant_msg = (
+                            f"{spoken_msg} {exec_details}".strip()
+                            if spoken_msg
+                            else (exec_details or f"[Rule executed: {winning_outcome.rule_id}]")
+                        )
+                        self.history.append({"role": "user", "content": user_msg})
+                        self.history.append({"role": "assistant", "content": assistant_msg})
+                        self.play_ring.set_flag(FLAG_EOS)
+                    else:
+                        # Built-in Emergency Reflex Fallback (<150ms halt)
+                        self._abort_turn()
+                        lower_t = (transcribed_text or "").lower()
+                        if any(w in lower_t for w in ("shut down", "turn off", "exit", "quit")):
+                            ack_msg = "Shutting down."
+                            self.on_quit_requested()
+                        elif "pause" in lower_t:
+                            ack_msg = "Paused."
+                        elif "mute" in lower_t:
+                            ack_msg = "Muted."
+                        else:
+                            ack_msg = "Stopped."
+
+                        self._speak_text(trace, ack_msg)
+                        self._publish_caption(ack_msg, source="assistant", is_final=True)
+                        user_msg = transcribed_text or "[Voice audio]"
+                        self.history.append({"role": "user", "content": user_msg})
+                        self.history.append(
+                            {"role": "assistant", "content": f"[Emergency Reflex: {ack_msg}]"}
+                        )
+                        self.play_ring.set_flag(FLAG_EOS)
                 finally:
+                    self._finalize_turn(trace, decision_id)
+                return
+            elif winning_outcome and winning_outcome.plan:
+                # ACT_THEN_NARRATE (Proposal B / D-ARCH-05)
+                try:
+                    last_tool_res: ToolResult | None = None
+                    last_tool_name: str = ""
+                    last_tool_args: dict[str, JsonValue] = {}
+                    for action in winning_outcome.plan.actions:
+                        if isinstance(action, ToolCall):
+                            tool_res = self._handle_tool_call(
+                                trace, action.tool, dict(action.args), speak=False
+                            )
+                            last_tool_res = tool_res
+                            last_tool_name = action.tool
+                            last_tool_args = dict(action.args)
+
+                    mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
+                    narration_msgs = build_narration_messages(
+                        tool_name=last_tool_name or winning_outcome.rule_id,
+                        tool_args=last_tool_args,
+                        tool_result=last_tool_res,
+                        user_text=transcribed_text,
+                        memories=mem_hits,
+                    )
+                    self._stream_llm_speech(
+                        trace=trace,
+                        user_msg=transcribed_text or "[Voice audio]",
+                        decision_id=decision_id,
+                        messages=narration_msgs,
+                    )
+                except Exception as e:  # noqa: BLE001
+                    logger.error("act_then_narrate_error", error=str(e))
                     self._finalize_turn(trace, decision_id)
                 return
 
@@ -801,123 +1103,19 @@ class Orchestrator:
             wf.writeframes(pcm_samples.tobytes())
         wav_b64 = base64.b64encode(wav_buf.getvalue()).decode("utf-8")
 
-        # Arm audio playback
-        begin_env = Envelope(
-            type="play.begin",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        llm_audio = wav_b64 if self.config.llm.mode == "audio" else None
+        is_trans_mode = self.config.llm.mode == "transcript"
+        llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
+        mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
+
+        self._stream_llm_speech(
+            trace=trace,
+            user_msg=transcribed_text or "[Voice audio]",
+            decision_id=decision_id,
+            current_audio_b64=llm_audio,
+            current_text=llm_text,
+            memories=mem_hits,
         )
-        self._publish_bus(begin_env)
-
-        chunk_index = 0
-        chunker = StreamingChunker()
-        first_token_seen = False
-        full_response_text: list[str] = []
-
-        try:
-            llm_audio = wav_b64 if self.config.llm.mode == "audio" else None
-            is_trans_mode = self.config.llm.mode == "transcript"
-            llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
-
-            mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
-            print("[Lucca] ", end="", flush=True)
-            trace.t_llm_sent = now_ns()
-            for event in self.llm.stream_turn(
-                current_audio_b64=llm_audio,
-                current_text=llm_text,
-                history=self.history,
-                memories=mem_hits if mem_hits else None,
-                trace_id=trace.trace_id,
-            ):
-                if trace.interrupted:
-                    break
-
-                if isinstance(event, TokenDelta) and event.delta:
-                    if not first_token_seen:
-                        first_token_seen = True
-                        trace.t_llm_first_token = now_ns()
-
-                    trace.tokens_out += 1
-                    full_response_text.append(event.delta)
-                    print(event.delta, end="", flush=True)
-
-                    accumulated = "".join(full_response_text)
-                    self._publish_caption(accumulated, source="assistant", is_final=False)
-
-                    for chunk in chunker.feed(event.delta):
-                        if trace.interrupted:
-                            break
-                        if chunk_index == 0:
-                            trace.t_first_chunk = now_ns()
-                            self._set_state("speaking")
-
-                        try:
-                            self._tts_queue.put(
-                                (trace, chunk.chunk_id, chunk.text, None), timeout=2.0
-                            )
-                        except queue.Full:
-                            logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
-                        chunk_index += 1
-
-                elif isinstance(event, ToolCallEnd):
-                    # Execute tool call via SandboxService with confirmation checks
-                    self._handle_tool_call(trace, event.call.tool, dict(event.call.args))
-
-            # Flush remaining chunker text
-            if not trace.interrupted:
-                for chunk in chunker.flush():
-                    try:
-                        self._tts_queue.put((trace, chunk.chunk_id, chunk.text, None), timeout=2.0)
-                    except queue.Full:
-                        logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
-                    chunk_index += 1
-
-                if chunk_index > 0:
-                    done_event = threading.Event()
-                    try:
-                        self._tts_queue.put((trace, -1, "", done_event), timeout=2.0)
-                        done_event.wait(timeout=10.0)
-                    except queue.Full:
-                        logger.warning("tts_queue_full_sentinel_failed")
-
-                if not trace.interrupted:
-                    # Signal End of Speech on playback ring
-                    self.play_ring.set_flag(FLAG_EOS)
-
-            trace.t_llm_done = now_ns()
-            print("\n", flush=True)
-
-            # Record turn in history
-            if not trace.interrupted:
-                reply_parts: list[str] = []
-                if full_response_text:
-                    reply_parts.append("".join(full_response_text))
-                if self.current_turn_tool_spoken:
-                    reply_parts.extend(self.current_turn_tool_spoken)
-                if reply_parts:
-                    reply_str = " ".join(reply_parts)
-                    user_msg = transcribed_text or "[Voice audio]"
-                    self.history.append({"role": "user", "content": user_msg})
-                    self.history.append({"role": "assistant", "content": reply_str})
-                    if full_response_text:
-                        self._publish_caption(reply_str, source="assistant", is_final=True)
-
-        except Exception as exc:  # noqa: BLE001
-            trace.error = str(exc)
-            if not trace.interrupted:
-                logger.error("turn_execution_error", trace_id=trace.trace_id, error=str(exc))
-                print(f"\n[Error] {exc}", flush=True)
-                self._publish_caption(
-                    "Sorry, I had trouble processing that audio. "
-                    "Try speaking again or typing your message!",
-                    source="status",
-                    is_final=True,
-                )
-            trace.interrupted = True
-        finally:
-            self._finalize_turn(trace, decision_id)
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
         self.sandbox.reset_turn()
@@ -926,6 +1124,7 @@ class Orchestrator:
         self.current_turn_tool_calls = []
         self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
+        self._last_unspoken_tool_msg = None
         self.current_turn_transcript = user_text
         decision_id: str | None = None
 
@@ -988,129 +1187,110 @@ class Orchestrator:
                     winning_outcome = outcome
                     break
 
-            if winning_outcome and winning_outcome.plan:
+            tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
+            if tier == ExecutionTier.REFLEX:
                 try:
-                    for action in winning_outcome.plan.actions:
-                        if isinstance(action, Say):
-                            self._speak_text(trace, action.text)
-                            self._publish_caption(action.text, source="assistant", is_final=True)
-                        elif isinstance(action, ToolCall):
-                            self._handle_tool_call(trace, action.tool, dict(action.args))
+                    if winning_outcome and winning_outcome.plan:
+                        tool_executions: list[str] = []
+                        for action in winning_outcome.plan.actions:
+                            if isinstance(action, Say):
+                                self._speak_text(trace, action.text)
+                                self._publish_caption(
+                                    action.text, source="assistant", is_final=True
+                                )
+                            elif isinstance(action, ToolCall):
+                                tool_res = self._handle_tool_call(
+                                    trace, action.tool, dict(action.args), speak=True
+                                )
+                                status = (
+                                    "ok"
+                                    if (tool_res is None or getattr(tool_res, "ok", True))
+                                    else "failed"
+                                )
+                                args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
+                                tool_executions.append(
+                                    f"[Executed {action.tool}({args_str}) -> {status}]"
+                                )
 
-                    user_msg = user_text
-                    assistant_msg = (
-                        " ".join(a.text for a in winning_outcome.plan.actions if isinstance(a, Say))
-                        or f"[Rule executed: {winning_outcome.rule_id}]"
-                    )
-                    self.history.append({"role": "user", "content": user_msg})
-                    self.history.append({"role": "assistant", "content": assistant_msg})
-                    self.play_ring.set_flag(FLAG_EOS)
+                        user_msg = user_text
+                        spoken_msg = " ".join(
+                            a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
+                        )
+                        exec_details = " ".join(tool_executions)
+                        assistant_msg = (
+                            f"{spoken_msg} {exec_details}".strip()
+                            if spoken_msg
+                            else (exec_details or f"[Rule executed: {winning_outcome.rule_id}]")
+                        )
+                        self.history.append({"role": "user", "content": user_msg})
+                        self.history.append({"role": "assistant", "content": assistant_msg})
+                        self.play_ring.set_flag(FLAG_EOS)
+                    else:
+                        # Built-in Emergency Reflex Fallback (<150ms halt)
+                        self._abort_turn()
+                        lower_t = user_text.lower()
+                        if any(w in lower_t for w in ("shut down", "turn off", "exit", "quit")):
+                            ack_msg = "Shutting down."
+                            self.on_quit_requested()
+                        elif "pause" in lower_t:
+                            ack_msg = "Paused."
+                        elif "mute" in lower_t:
+                            ack_msg = "Muted."
+                        else:
+                            ack_msg = "Stopped."
+
+                        self._speak_text(trace, ack_msg)
+                        self._publish_caption(ack_msg, source="assistant", is_final=True)
+                        self.history.append({"role": "user", "content": user_text})
+                        self.history.append(
+                            {"role": "assistant", "content": f"[Emergency Reflex: {ack_msg}]"}
+                        )
+                        self.play_ring.set_flag(FLAG_EOS)
                 finally:
                     self._finalize_turn(trace, decision_id)
                 return
-
-        # Arm audio playback
-        begin_env = Envelope(
-            type="play.begin",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
-        )
-        self._publish_bus(begin_env)
-
-        chunk_index = 0
-        chunker = StreamingChunker()
-        first_token_seen = False
-        full_response_text: list[str] = []
-
-        try:
-            mem_hits = self._search_memories(user_text) if user_text else []
-            print("[Lucca] ", end="", flush=True)
-            trace.t_llm_sent = now_ns()
-            for event in self.llm.stream_turn(
-                current_text=user_text,
-                history=self.history,
-                memories=mem_hits if mem_hits else None,
-                trace_id=trace.trace_id,
-            ):
-                if trace.interrupted:
-                    break
-
-                if isinstance(event, TokenDelta) and event.delta:
-                    if not first_token_seen:
-                        first_token_seen = True
-                        trace.t_llm_first_token = now_ns()
-
-                    trace.tokens_out += 1
-                    full_response_text.append(event.delta)
-                    print(event.delta, end="", flush=True)
-
-                    accumulated = "".join(full_response_text)
-                    self._publish_caption(accumulated, source="assistant", is_final=False)
-
-                    for chunk in chunker.feed(event.delta):
-                        if trace.interrupted:
-                            break
-                        if chunk_index == 0:
-                            trace.t_first_chunk = now_ns()
-                            self._set_state("speaking")
-
-                        try:
-                            self._tts_queue.put(
-                                (trace, chunk.chunk_id, chunk.text, None), timeout=2.0
+            elif winning_outcome and winning_outcome.plan:
+                # ACT_THEN_NARRATE (Proposal B / D-ARCH-05)
+                try:
+                    last_tool_res: ToolResult | None = None
+                    last_tool_name: str = ""
+                    last_tool_args: dict[str, JsonValue] = {}
+                    for action in winning_outcome.plan.actions:
+                        if isinstance(action, ToolCall):
+                            tool_res = self._handle_tool_call(
+                                trace, action.tool, dict(action.args), speak=False
                             )
-                        except queue.Full:
-                            logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
-                        chunk_index += 1
+                            last_tool_res = tool_res
+                            last_tool_name = action.tool
+                            last_tool_args = dict(action.args)
 
-                elif isinstance(event, ToolCallEnd):
-                    self._handle_tool_call(trace, event.call.tool, dict(event.call.args))
+                    mem_hits = self._search_memories(user_text) if user_text else []
+                    narration_msgs = build_narration_messages(
+                        tool_name=last_tool_name or winning_outcome.rule_id,
+                        tool_args=last_tool_args,
+                        tool_result=last_tool_res,
+                        user_text=user_text,
+                        memories=mem_hits,
+                    )
+                    self._stream_llm_speech(
+                        trace=trace,
+                        user_msg=user_text,
+                        decision_id=decision_id,
+                        messages=narration_msgs,
+                    )
+                except Exception as e:  # noqa: BLE001
+                    logger.error("act_then_narrate_error", error=str(e))
+                    self._finalize_turn(trace, decision_id)
+                return
 
-            # Flush remaining chunker text
-            if not trace.interrupted:
-                for chunk in chunker.flush():
-                    try:
-                        self._tts_queue.put((trace, chunk.chunk_id, chunk.text, None), timeout=2.0)
-                    except queue.Full:
-                        logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
-                    chunk_index += 1
-
-                if chunk_index > 0:
-                    done_event = threading.Event()
-                    try:
-                        self._tts_queue.put((trace, -1, "", done_event), timeout=2.0)
-                        done_event.wait(timeout=10.0)
-                    except queue.Full:
-                        logger.warning("tts_queue_full_sentinel_failed")
-
-                if not trace.interrupted:
-                    self.play_ring.set_flag(FLAG_EOS)
-
-            trace.t_llm_done = now_ns()
-            print("\n", flush=True)
-
-            if not trace.interrupted:
-                reply_parts: list[str] = []
-                if full_response_text:
-                    reply_parts.append("".join(full_response_text))
-                if self.current_turn_tool_spoken:
-                    reply_parts.extend(self.current_turn_tool_spoken)
-                if reply_parts:
-                    reply_str = " ".join(reply_parts)
-                    self.history.append({"role": "user", "content": user_text})
-                    self.history.append({"role": "assistant", "content": reply_str})
-                    if full_response_text:
-                        self._publish_caption(reply_str, source="assistant", is_final=True)
-
-        except Exception as exc:  # noqa: BLE001
-            trace.error = str(exc)
-            if not trace.interrupted:
-                logger.error("text_turn_execution_error", trace_id=trace.trace_id, error=str(exc))
-                print(f"\n[Error] {exc}", flush=True)
-            trace.interrupted = True
-        finally:
-            self._finalize_turn(trace, decision_id)
+        mem_hits = self._search_memories(user_text) if user_text else []
+        self._stream_llm_speech(
+            trace=trace,
+            user_msg=user_text,
+            decision_id=decision_id,
+            current_text=user_text,
+            memories=mem_hits,
+        )
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         if chunk_id == 0:
@@ -1275,12 +1455,61 @@ class Orchestrator:
         trace: TurnTrace,
         name: str,
         args: dict[str, JsonValue],
+        speak: bool = True,
     ) -> ToolResult | None:
         self.executed_tools.append((name, args))
         call_id = str(ulid.ULID())
         self.current_turn_tool_calls.append(ToolCall(tool=name, args=dict(args), call_id=call_id))
         if not self.execute_tools:
             return None
+
+        # Check if this is a MicroScheme skill invocation (Proposal A / D-REAS-04)
+        target_rule_id = None
+        if name.startswith("skill_"):
+            target_rule_id = name[6:].replace("_", "-")
+        elif name in self.rule_engine.rules:
+            target_rule_id = name
+
+        if target_rule_id and target_rule_id in self.rule_engine.rules:
+            rule_entry = self.rule_engine.rules[target_rule_id]
+            rule_state = self._build_rule_state(
+                str(args.get("query") or self.current_turn_transcript or "")
+            )
+            outcome = evaluate_rule(rule_entry.definition, rule_state)
+            if outcome.plan:
+                sub_results: list[str] = []
+                for sub_action in outcome.plan.actions:
+                    if isinstance(sub_action, ToolCall):
+                        sub_res = self._handle_tool_call(
+                            trace, sub_action.tool, dict(sub_action.args), speak=False
+                        )
+                        sub_status = (
+                            "ok" if (sub_res is None or getattr(sub_res, "ok", True)) else "failed"
+                        )
+                        sub_results.append(f"{sub_action.tool}->{sub_status}")
+                    elif isinstance(sub_action, Say) and speak:
+                        self._speak_text(trace, sub_action.text)
+                res = ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    content=(
+                        f"Skill '{target_rule_id}' fired. "
+                        f"Rationale: {outcome.plan.rationale or 'completed'}. "
+                        f"Actions: {', '.join(sub_results) or 'none'}"
+                    ),
+                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
+                )
+            else:
+                err_msg = outcome.error or "conditions not met"
+                res = ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    stderr=f"Skill '{target_rule_id}' evaluated but did not fire: {err_msg}",
+                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
+                )
+            if not res.ok:
+                self.current_turn_tool_ok = False
+            return res
 
         # Check confirmation requirement (WRITE / LAUNCH)
         if self.sandbox.check_confirmation_needed(name):
@@ -1289,8 +1518,9 @@ class Orchestrator:
                 logger.info("tool_execution_cancelled_by_user", tool=name)
                 cancel_msg = "Cancelled."
                 print(f"[Lucca] {cancel_msg}", flush=True)
-                self._speak_text(trace, cancel_msg)
-                self.current_turn_tool_spoken.append(cancel_msg)
+                if speak:
+                    self._speak_text(trace, cancel_msg)
+                    self.current_turn_tool_spoken.append(cancel_msg)
                 self.current_turn_tool_ok = False
                 return ToolResult(
                     call_id=call_id,
@@ -1361,10 +1591,12 @@ class Orchestrator:
         else:
             spoken_msg = f"Error: {res.stderr or 'action failed'}."
 
-        if spoken_msg:
+        if speak and spoken_msg:
             print(f"[Lucca] {spoken_msg}", flush=True)
             self._speak_text(trace, spoken_msg)
             self.current_turn_tool_spoken.append(spoken_msg)
+        elif spoken_msg:
+            self._last_unspoken_tool_msg = spoken_msg
         return res
 
     def _heartbeat_loop(self) -> None:

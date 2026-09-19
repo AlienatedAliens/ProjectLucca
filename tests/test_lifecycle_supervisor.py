@@ -73,52 +73,54 @@ def test_heartbeat_tracks_pong_and_dead_peers(monkeypatch: pytest.MonkeyPatch) -
     """F-CORE-005: Orchestrator tracks peer pongs and detects dead peers after 3 misses."""
     mock_llm = MagicMock()
     orch = Orchestrator(llm=mock_llm, execute_tools=False)
+    try:
+        fake_now = 1000.0
+        monkeypatch.setattr(time, "monotonic", lambda: fake_now)
 
-    fake_now = 1000.0
-    monkeypatch.setattr(time, "monotonic", lambda: fake_now)
+        orch.register_peer("audio")
+        orch.register_peer("npu")
 
-    orch.register_peer("audio")
-    orch.register_peer("npu")
+        # Both peers alive
+        assert orch.dead_peers(misses=3) == set()
 
-    # Both peers alive
-    assert orch.dead_peers(misses=3) == set()
+        # Advance time past 3 misses (2.0s * 3 = 6.0s)
+        fake_now += 6.1
+        assert orch.dead_peers(misses=3) == {"audio", "npu"}
 
-    # Advance time past 3 misses (2.0s * 3 = 6.0s)
-    fake_now += 6.1
-    assert orch.dead_peers(misses=3) == {"audio", "npu"}
+        # Simulate sys.pong from npu
+        env_pong = Envelope(
+            type="sys.pong",
+            trace_id="",
+            ts_ns=int(fake_now * 1e9),
+            src="npu",
+            payload={"rss_mb": 150.0, "queue_depth": 0},
+        )
+        orch._handle_ingest_message(env_pong)
 
-    # Simulate sys.pong from npu
-    env_pong = Envelope(
-        type="sys.pong",
-        trace_id="",
-        ts_ns=int(fake_now * 1e9),
-        src="npu",
-        payload={"rss_mb": 150.0, "queue_depth": 0},
-    )
-    orch._handle_ingest_message(env_pong)
+        # npu is now alive, audio remains dead
+        assert orch.dead_peers(misses=3) == {"audio"}
 
-    # npu is now alive, audio remains dead
-    assert orch.dead_peers(misses=3) == {"audio"}
-
-    # Register and pong ui and audio
-    orch.register_peer("ui")
-    env_pong_ui = Envelope(
-        type="sys.pong",
-        trace_id="",
-        ts_ns=int(fake_now * 1e9),
-        src="ui",
-        payload={"rss_mb": 120.0, "queue_depth": 0},
-    )
-    env_pong_audio = Envelope(
-        type="sys.pong",
-        trace_id="",
-        ts_ns=int(fake_now * 1e9),
-        src="audio",
-        payload={"rss_mb": 80.0, "queue_depth": 0},
-    )
-    orch._handle_ingest_message(env_pong_ui)
-    orch._handle_ingest_message(env_pong_audio)
-    assert orch.dead_peers(misses=3) == set()
+        # Register and pong ui and audio
+        orch.register_peer("ui")
+        env_pong_ui = Envelope(
+            type="sys.pong",
+            trace_id="",
+            ts_ns=int(fake_now * 1e9),
+            src="ui",
+            payload={"rss_mb": 120.0, "queue_depth": 0},
+        )
+        env_pong_audio = Envelope(
+            type="sys.pong",
+            trace_id="",
+            ts_ns=int(fake_now * 1e9),
+            src="audio",
+            payload={"rss_mb": 80.0, "queue_depth": 0},
+        )
+        orch._handle_ingest_message(env_pong_ui)
+        orch._handle_ingest_message(env_pong_audio)
+        assert orch.dead_peers(misses=3) == set()
+    finally:
+        orch.stop()
 
 
 def test_ui_quit_triggers_clean_shutdown() -> None:

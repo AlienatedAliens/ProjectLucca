@@ -4,6 +4,7 @@ Spec 07 §4, ADR-001, D-02
 """
 
 import hashlib
+import threading
 import time
 
 import numpy as np
@@ -31,6 +32,7 @@ class ASRWorker:
     def __init__(self) -> None:
         self.config = get_config()
         self.model = None
+        self._lock = threading.Lock()
         self._init_model()
 
     def _init_model(self) -> None:
@@ -83,25 +85,37 @@ class ASRWorker:
         full_text_parts: list[str] = []
         logprobs: list[float] = []
 
-        segments_iter, _ = self.model.transcribe(
-            audio_f32,
-            language="en",
-            task="transcribe",
-            beam_size=1,
-        )
+        with self._lock:
+            try:
+                segments_iter, _ = self.model.transcribe(
+                    audio_f32,
+                    language="en",
+                    task="transcribe",
+                    beam_size=1,
+                )
 
-        for seg in segments_iter:
-            seg_text = seg.text.strip()
-            if seg_text:
-                full_text_parts.append(seg_text)
-                logprobs.append(float(seg.avg_logprob))
-                segments_out.append(
-                    Segment(
-                        t0=float(seg.start),
-                        t1=float(seg.end),
-                        text=seg_text,
-                        avg_logprob=float(seg.avg_logprob),
-                    )
+                for seg in segments_iter:
+                    seg_text = seg.text.strip()
+                    if seg_text:
+                        full_text_parts.append(seg_text)
+                        logprobs.append(float(seg.avg_logprob))
+                        segments_out.append(
+                            Segment(
+                                t0=float(seg.start),
+                                t1=float(seg.end),
+                                text=seg_text,
+                                avg_logprob=float(seg.avg_logprob),
+                            )
+                        )
+            except RuntimeError as exc:
+                logger.warning("asr_transcribe_runtime_error", error=str(exc))
+                return ASRResultPayload(
+                    text="",
+                    segments=[],
+                    avg_logprob=0.0,
+                    model=self.backend,
+                    audio_sha256=audio_sha256,
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
         full_text = " ".join(full_text_parts)

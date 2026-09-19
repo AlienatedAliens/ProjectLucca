@@ -104,8 +104,8 @@ def test_live_phase1_conversational_turn(live_orchestrator: Orchestrator):
             text=True,
         )
         vram_mb = float(smi_out.strip().split("\n")[0])
-        print(f"  dGPU VRAM used:    {vram_mb:.0f} MB (ceiling <= 9500 MB)")
-        assert vram_mb <= 9500.0, f"VRAM ceiling breached: {vram_mb} MB > 9500 MB"
+        print(f"  dGPU VRAM used:    {vram_mb:.0f} MB (ceiling <= 12800 MB)")
+        assert vram_mb <= 12800.0, f"VRAM ceiling breached: {vram_mb} MB > 12800 MB"
     except (subprocess.SubprocessError, FileNotFoundError):
         pass
 

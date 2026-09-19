@@ -18,6 +18,8 @@ from lucca.memory.db import DatabaseManager
 from lucca.memory.gate import ProvenanceGate
 from lucca.memory.signers import BaseProvenanceSigner, UserSpeechSigner
 
+_DEFAULT_KEY = b"__DEFAULT_UNSET_KEY__"
+
 
 class MemoryManager:
     """Manages viewing, searching, adding, editing, and pruning memories."""
@@ -25,13 +27,12 @@ class MemoryManager:
     def __init__(
         self,
         db: DatabaseManager | None = None,
-        master_key: bytes | None = None,
+        master_key: bytes | None = _DEFAULT_KEY,
     ) -> None:
         self.db = db or DatabaseManager()
-        if master_key is None:
+        if master_key is _DEFAULT_KEY:
             cfg = get_config()
-            if cfg.master_key:
-                master_key = cfg.master_key.encode("utf-8")
+            master_key = cfg.master_key.encode("utf-8") if cfg.master_key else None
         if master_key is not None and len(master_key) < 32:
             raise ValueError(f"Master key must be at least 32 bytes, got {len(master_key)}")
         self.master_key = master_key

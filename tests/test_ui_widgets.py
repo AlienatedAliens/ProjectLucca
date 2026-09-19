@@ -74,6 +74,24 @@ def test_speech_bubble_latency_badge(qapp):
     assert bubble.latency_label.text() == ""
 
 
+def test_speech_bubble_unbroken_string_geometry_clamp(qapp):
+    bubble = SpeechBubble()
+    bubble.show()
+
+    # 500-char unbroken repetition token loop (e.g. ::*_*_*_*)
+    degenerate_string = "::" + ("*_*" * 160)
+    bubble.show_caption(degenerate_string, source="assistant", is_final=True)
+
+    # Verify bubble remains clamped at 460px width
+    assert bubble.width() == 460
+    bubble.adjustSize()
+    assert bubble.width() == 460
+
+    # Verify no single unbroken token in the processed text exceeds 35 chars
+    tokens = bubble.current_text.split(" ")
+    assert all(len(t) <= 35 for t in tokens)
+
+
 def test_quick_chat_bar(qapp):
     sent_messages = []
     bar = QuickChatBar(on_send_text=sent_messages.append)

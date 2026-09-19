@@ -1,7 +1,7 @@
 # Project Lucca — Model Strategy & Inference Pipeline Specification
 
-**Status:** Canonical Strategy & Evaluation Baseline  
-**Version:** 0.2.0  
+**Status:** Canonical Strategy & Operational Deployment (Ratified per D-BRAIN-05)  
+**Version:** 0.3.0  
 **Updated:** September 2026  
 **Audience:** System Architects, Core Engineers, AI Researchers  
 
@@ -9,117 +9,118 @@
 
 ## 1. Executive Summary
 
-This document evaluates the two primary inference architectures available to Project Lucca:
-1. **Audio-Native Multimodal Pipeline (Option B)**: Direct audio token projection via Ultravox.
-2. **Cascade / Transcript-First Pipeline (Option D)**: Fast synchronous ASR followed by structured text LLM inference.
+This document specifies the ratified inference architecture for Project Lucca:
+1. **Cascade / Transcript-First Pipeline (Option D)**: Fast synchronous ASR followed by structured text LLM inference, memory grounding, and deterministic rule execution.
+2. **Primary Neural Brain (`D-BRAIN-05`)**: **Mistral NeMo 12B Instruct Abliterated (Q6_K GGUF)** served natively on Windows by `llama-server.exe` with `--chat-template mistral-v3`.
+3. **Execution Tiers (`D-ARCH-05`)**: Sub-150ms Emergency Reflexes (`REFLEX`), Act-Then-Narrate natural voice for procedural rules (`ACT_THEN_NARRATE`), and multi-step tool loops with spoken thinking cues (`FULL_LOOP`).
 
-It details the fundamental architectural trade-offs between both approaches, formally records the **Audio-Native Pre-Processing Blindspot**, benchmarks our hardware constraints on Blackwell/Ada mobile silicon, and specifies the candidate LLM evaluation roadmap including **Mistral NeMo 12B**, **gpt-oss-20b**, and **Ultravox 8B**.
+This design supersedes the audio-native Ultravox 8B architecture by resolving the **Audio-Native Pre-Processing Blindspot**, eliminating corporate preachy refusal alignment without compromising safety, and operating comfortably within a 12.5 GB resident VRAM clamp on the RTX 5080 Laptop GPU.
 
 ---
 
-## 2. Pipeline Analysis: Audio-Native vs. Cascade
+## 2. Pipeline Analysis: Cascade Architecture (Ratified Option D)
 
 ```
-────────────────────────────────────────────────────────────────────────────────────────
-OPTION B: AUDIO-NATIVE PIPELINE (Ultravox v0.5 8B)
-────────────────────────────────────────────────────────────────────────────────────────
-[User Speech] ──► PCM Audio (16 kHz)
-                        │
-                        ├──► [Direct Multimodal Forward Pass]
-                        │    Ultravox mmproj + Llama-3.1-8B ──► First Token (~180 ms)
-                        │    (BLIND to turn intent, memories, and rules)
-                        │
-                        └──► [Parallel Speculative ASR]
-                             Whisper-turbo (~150-220 ms) ──► Transcript arrives TOO LATE
-                                                             to guide initial response.
-
-────────────────────────────────────────────────────────────────────────────────────────
-OPTION D: CASCADE / TRANSCRIPT-FIRST PIPELINE (Mistral NeMo 12B / gpt-oss-20b)
-────────────────────────────────────────────────────────────────────────────────────────
 [User Speech] ──► PCM Audio (16 kHz)
                         │
                         ▼
-           OpenVINO Whisper-large-v3-turbo (NPU / GPU)
+       Energy VAD Trimming + Faster-Whisper ASR
                         │ (~120–180 ms)
                         ▼
                 [Exact Transcript]
                         │
        ┌────────────────┴────────────────────────┐
        ▼                                         ▼
-[Deterministic Intent?]                [Conversational Intent]
+[Emergency Reflex?]                       [Standard Turn]
        │                                         │
-Heuristic Router (< 2 ms)              Hybrid Memory Retrieval (k=8, < 25 ms)
-       │                               (Vector + FTS search ON CURRENT QUERY)
-       ▼                                         │
-Direct MicroScheme Rule                          ▼
-(Bypasses LLM entirely!)               Augmented Prompt + Context Block
+Heuristic Router (< 1 ms)                 Heuristic Router (< 1 ms)
        │                                         │
-Total E2E: ~150 ms                               ▼
-                              Text LLM: Mistral NeMo 12B / gpt-oss-20b
-                                       │ (TTFT ~180–220 ms)
-                                       ▼
-                             Streaming Chunker + Kokoro TTS
-                                       │
-                               Total E2E: ~550–650 ms
+       ▼                                  ┌──────┴─────────────────────┐
+TIER 1: REFLEX                            ▼                            ▼
+- Direct cancellation / mute       TIER 2: ACT-THEN-NARRATE     TIER 3: FULL-LOOP
+- Zero LLM latency                 - Sandbox rule plan          - Memory Retrieval (2048 tok)
+- Total E2E: < 150 ms              - Tool output trace          - NeMo 12B reasoning
+                                   - NeMo companion voice       - Spoken verbal cues
+                                     narration                  - Multi-step tool calls (M<=3)
+                                   - Total E2E: ~450–600 ms     - Total E2E: ~650–850 ms
 ```
 
-### 2.1 The "Audio-Native Pre-Processing Blindspot"
-In the original pre-audit design (Option B), audio was fed directly into `llama-server` via base64 `input_audio`. While this achieved an impressive cold Time-To-First-Token (TTFT), it introduced an unavoidable structural limitation:
+### 2.1 The "Audio-Native Pre-Processing Blindspot" (Why Cascade Won)
+In the original pre-audit design (Option B), audio was fed directly into `llama-server` via base64 `input_audio`. While this achieved a low Time-To-First-Token (TTFT), it introduced severe structural failures:
 
-1. **Inability to Query Turn-Specific Memory**: In a conversational agent, the most important memory retrieval happens on what the user *just said* (e.g., "What was the name of the restaurant I liked in Kyoto?"). In audio-native mode, no text query exists when the turn begins; the memory system can only retrieve facts based on prior history.
-2. **Loss of Deterministic Rule Interception**: High-confidence voice commands (such as "mute audio", "set timer", "open calculator") should never touch a multi-billion parameter LLM. In cascade mode, the router identifies the intent and fires a 5 ms MicroScheme rule, executing the entire turn in ~150 ms. In audio-native mode, every utterance must pass through the LLM.
-3. **Indirect Prompt Injection & Sanitization Gap**: In cascade mode, transcripts are tagged with provenance, sanitized, and enclosed in safety boundaries before hitting the model. In audio-native mode, audio adversarial attacks or unvetted speech tokens pass directly into the backbone embeddings.
-4. **The Parallel ASR Failure**: Spec 10 attempted to mitigate this by running Whisper in parallel speculatively. However, by the time Whisper transcribes the audio (150–220 ms), the LLM has already generated its first audio-chunk tokens. Information retrieved from the parallel pass cannot alter tokens already emitted.
+1. **Inability to Query Turn-Specific Memory**: In a conversational companion, memory retrieval must evaluate what the user *just said*. In audio-native mode, no text query exists when the turn begins; the memory system was blind to the active utterance.
+2. **Loss of Deterministic Rule Interception**: High-confidence voice commands (such as "mute audio", "pause", "open calculator") should never touch a multi-billion parameter LLM. In cascade mode, the router identifies the intent in $<1\text{ms}$ and fires a deterministic MicroScheme rule.
+3. **Indirect Prompt Injection & Sanitization Gap**: In cascade mode, transcripts are tagged with cryptographic provenance (`USER_EXPLICIT`), sanitized, and enclosed in safety boundaries before hitting the model. In audio-native mode, raw speech tokens passed directly into the backbone embeddings.
+4. **The Parallel ASR Failure**: Running Whisper in parallel speculatively failed because by the time Whisper transcribes audio (150–220 ms), an audio-native model has already generated initial speech tokens.
 
 ---
 
 ## 3. Hardware Budget & Resource Constraints
 
-All candidate models must operate strictly within the hardware limits of the target workstation platform:
-- **Host GPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7 VRAM, Blackwell architecture).
-- **VRAM Clamp**: $\le 9.5\text{ GB}$ maximum resident footprint for `llama-server` (leaving $\ge 6.5\text{ GB}$ for display, Windows DWM, NPU fallback, and desktop applications).
-- **KV Cache Budget**: `ctx-size = 8192` with `cache-type-k = q8_0` and `cache-type-v = q8_0` ($\approx 550\text{ MB}$ at 8k context).
-- **Inference Server**: Native Windows `llama-server.exe` built with CUDA 12.8, Flash Attention enabled (`--flash-attn`), and Jinja template support (`--jinja`).
+All inference operations are strictly bounded to the physical constraints of the workstation:
+- **Host GPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7 VRAM, Blackwell `sm_120`).
+- **Resident VRAM Clamp (`D-BRAIN-05`)**: $\le 12.5\text{ GB}$ (12,800 MB) maximum resident footprint for `llama-server` (leaving $\ge 3.5\text{ GB}$ dedicated to Windows DWM, display rendering, browser hardware acceleration, and NPU offload).
+- **Observed Live Footprint**: **10,748 MiB** resident VRAM at steady-state with 16,384 context. Temperature stable at 42°C.
+- **KV Cache Budget**: `ctx-size = 16384` with `cache-type-k = q8_0` and `cache-type-v = q8_0` ($\approx 2.1\text{ GB}$ resident KV cache).
+- **Inference Server**: Native Windows `llama-server.exe` built with CUDA 12.8, Flash Attention enabled (`--flash-attn`), and Mistral v3 chat template (`--chat-template mistral-v3`).
 
 ---
 
-## 4. Candidate Brain Matrix
+## 4. Candidate Brain Matrix & Deployment Status
 
-| Candidate | Architecture & Params | Quantization & Size | Context | Licensing | Key Strengths & Strategic Role |
+| Candidate | Architecture & Params | Quantization & Size | Context | Licensing | Strategic Role & Status |
 |---|---|---|---|---|---|
-| **Ultravox v0.5** *(Current)* | Multimodal Llama-3.1-8B + Whisper-turbo projector | Q6_K (~6.6 GB) + mmproj (~0.74 GB) $\approx 7.34\text{ GB}$ | 8k | Llama 3.1 Community | **Audio-Native Primary / Fallback**. Lowest TTFT (~180 ms), but subject to the pre-processing blindspot. |
-| **Mistral NeMo 12B** *(New)* | Dense 12.2B (Mistral AI & NVIDIA), Tekken tokenizer | Q4_K_M (~7.47 GB) or Q5_K_M (~8.69 GB) | 128k (native) | **Apache 2.0** | **Prime Candidate for Cascade Primary**. Fits in 9.5 GB budget. Exceptional reasoning, strict tool calling adherence, 128k context, zero multimodal overhead. |
-| **gpt-oss-20b** *(D-AUD-06)* | MoE ~21B total / ~3.6B active (or specialized 20B) | MXFP4 or Q4_K_M (~11.0 GB) | 32k–128k | Apache 2.0 | **Deep Reasoning Candidate**. High decode tok/s via sparse active parameters. Risk: reasoning traces and memory footprint may push mobile VRAM boundaries. |
-| **Meta-Llama-3.1-8B** | Dense 8.0B | Q6_K (~6.6 GB) | 128k | Llama 3.1 Community | **Lean Text Baseline**. Highly optimized prompt formats, drop-in replacement for Ultravox text mode without mmproj. |
+| **Mistral NeMo 12B Instruct Abliterated** | Dense 12.2B (Mistral AI & NVIDIA), Tekken tokenizer | Q6_K (~10.1 GB) | 16k (active) / 128k (native) | **Apache 2.0** | **Deployed Primary Brain (`D-BRAIN-05`)**. Exceptional reasoning, strict tool calling, suppresses preachy refusals without erotic drift. 10.5 GB live VRAM. |
+| **Ultravox v0.5 8B** | Multimodal Llama-3.1-8B + Whisper-turbo projector | Q6_K (~6.6 GB) + mmproj (~0.74 GB) | 8k | Llama 3.1 Community | **Deprecated / Archived**. Suffers from pre-processing blindspot and moralizing prefill refusals. |
+| **gpt-oss-20b** | MoE ~21B total / ~3.6B active | MXFP4 / Q4_K_M (~11.0 GB) | 32k–128k | Apache 2.0 | **Future Deep Reasoning Research**. Evaluated for future 64GB RAM / external accelerator topologies. |
+| **Meta-Llama-3.1-8B** | Dense 8.0B | Q6_K (~6.6 GB) | 128k | Llama 3.1 Community | **Lean Fallback Baseline**. Lightweight text fallback if extreme VRAM pressure occurs. |
 
 ---
 
-## 5. Comparative Latency Budgets (Spec 10 §2)
+## 5. Comparative Latency Budgets & Measured Performance
 
-Both pipelines are governed by formal stage latency budgets enforced via `lucca-admin latency`:
-
-| Stage | From $\rightarrow$ To | Audio Mode (Option B) | Cascade Mode (Option D) | Primary Mechanism |
+| Stage | From $\rightarrow$ To | Target Budget (Spec 10) | Live Measured Benchmark | Mechanism |
 |---|---|---|---|---|
-| **S1 PTT $\rightarrow$ Dispatch** | `t_key_release → t_llm_sent` | 15 ms median / 30 ms p95 | — | VAD trim + WAV encode + HTTP send |
-| **S1b ASR** | `t_key_release → t_asr_done` | *(parallel background)* | 180 ms median / 250 ms p95 | OpenVINO Whisper-turbo on NPU/GPU |
-| **Router / Memory** | `t_asr_done → t_llm_sent` | — | 15 ms median / 25 ms p95 | Heuristic router + SQLite-vec query |
-| **S2 TTFT** | `t_llm_sent → t_llm_first_token`| 180 ms median / 300 ms p95 | 180 ms median / 280 ms p95 | GPU inference (prefill + first decode)|
-| **S3 First Chunk** | `t_llm_first_token → t_first_chunk` | 90 ms median / 150 ms p95 | 90 ms median / 150 ms p95 | Streaming chunker clause boundary |
-| **S4 TTS First** | `t_first_chunk → t_tts_first_done` | 150 ms median / 180 ms p95 | 150 ms median / 180 ms p95 | Kokoro ONNX on NPU/CPU |
-| **S5 To Speaker** | `t_tts_first_done → t_first_sample` | 40 ms median / 80 ms p95 | 40 ms median / 80 ms p95 | Jitter buffer overlap + WASAPI write|
-| **Total E2E** | `t_key_release → t_first_sample` | **$\approx 475\text{ ms}$ (Gate: $\le 600$)** | **$\approx 655\text{ ms}$ (Gate: $\le 800$)** | Canonical Turn Latency Gate |
-
-*Note: Cascade mode adds ~180 ms for ASR, but in exchange guarantees full contextual memory retrieval, intent routing, and prompt injection defense prior to token generation.*
+| **S1 PTT $\rightarrow$ Dispatch** | `t_key_release → t_llm_sent` | $\le 20\text{ ms}$ | Target Budget | VAD trim + WAV encode |
+| **S1b ASR** | `t_key_release → t_asr_done` | $\le 180\text{ ms}$ | ~140–180 ms | Faster-Whisper on CPU/NPU |
+| **Router / Memory** | `t_asr_done → t_llm_sent` | $\le 15\text{ ms}$ | **< 1.0 ms (Router)**<br>~8–15 ms (SQLite-vec) | Heuristic router + sqlite-vec |
+| **S2 TTFT** | `t_llm_sent → t_llm_first_token`| $\le 180\text{ ms}$ | **44.5 ms median / 54.9 ms p95** | NeMo 12B Q6_K on RTX 5080 |
+| **S3 First Chunk** | `t_llm_first_token → t_first_chunk` | $\le 100\text{ ms}$ | ~60–90 ms | Streaming chunker clause boundary |
+| **S4 TTS First** | `t_first_chunk → t_tts_first_done` | $\le 160\text{ ms}$ | ~130–150 ms | Kokoro ONNX on NPU/CPU |
+| **S5 To Speaker** | `t_tts_first_done → t_first_sample` | $\le 40\text{ ms}$ | ~20–35 ms | Ring buffer overlap + WASAPI write |
+| **Total E2E (Full-Loop)**| `t_key_release → t_first_sample` | **$\le 800\text{ ms}$** | **~620–750 ms** | Canonical Turn Latency Gate |
+| **Total E2E (Reflex)**   | `t_key_release → t_first_sample` | **$\le 150\text{ ms}$** | **~85–120 ms** | MicroScheme Reflex Gate |
 
 ---
 
-## 6. Supply-Chain Security & Weight Verification
+## 6. Grounded Narration & Multi-Step Tool Protocol
+
+### 6.1 Grounded Narration Provenance Contract (`D-BRAIN-04`)
+In Tier 2 (`ACT_THEN_NARRATE`) turns, the prompt builder injects strict anti-hallucination provenance instructions:
+```text
+[System Executed Tool Trace: launch_app({'app_name': 'calculator'}) -> Status: ok. Content: Launched calculator]
+Directive: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user naturally in your companion persona (1-2 brief conversational sentences).
+```
+
+### 6.2 Multi-Step Tool Loop with Verbal Cues (`D-BRAIN-03`)
+In Tier 3 (`FULL_LOOP`) turns requiring multi-step tool calls:
+1. When NeMo emits a tool call (e.g. `read_file`), Orchestrator emits an immediate spoken thinking cue:
+   - *"Checking that file for you..."*
+   - *"Running that calculation..."*
+   - *"Looking into that..."*
+2. Tool execution occurs in the sandbox while the user hears the audio cue.
+3. NeMo is re-prompted with `ToolResult` up to $M=3$ rounds before streaming final speech.
+
+---
+
+## 7. Supply-Chain Security & Weight Verification
 
 In accordance with F-ARCH-004 and Spec 12 (TM-08), all model weights are cryptographically verified against SHA256 checksums before loading:
 
 1. **Pinned Manifest (`models/MANIFEST.json`)**:
-   Every deployed weight file is registered with its exact byte count, upstream Hugging Face repository, source filename, and SHA256 hash.
+   Every deployed weight file is registered with its exact byte count, upstream repository, source filename, and SHA256 hash.
+   - `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf`: `8cef81a30f78d927c73a693c4c9e4c5f939e60ea9b2518e38d6df022ee7b2434`
 2. **Download Enforcement (`scripts/download_llm_models.py`)**:
-   Downloads compute rolling SHA256 digests in 1 MiB chunks. Corrupted or tampered downloads are automatically unlinked and rejected.
+   Downloads verify rolling SHA256 digests in 1 MiB chunks. Corrupted downloads are unlinked immediately.
 3. **Pre-flight Enforcement (`server_ctl.start_server` & `env_check`)**:
    `llama-server` refuses to launch if any weight file deviates from its pinned checksum.

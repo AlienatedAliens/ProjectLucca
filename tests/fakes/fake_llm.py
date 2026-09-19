@@ -10,17 +10,25 @@ from lucca.core.schemas import Done, LLMEvent, LLMUsage, MemoryHit, TokenDelta
 
 
 class FakeLLM:
-    def __init__(self, script: list[LLMEvent] | None = None, token_delay_s: float = 0.0) -> None:
+    def __init__(
+        self,
+        script: list[LLMEvent] | None = None,
+        token_delay_s: float = 0.0,
+        rounds: list[list[LLMEvent]] | None = None,
+    ) -> None:
         self.script = script or [
             TokenDelta(delta="Hello "),
             TokenDelta(delta="there! "),
             TokenDelta(delta="I am Lucca. "),
             Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=3)),
         ]
+        self.rounds = rounds
+        self.call_count = 0
         self.token_delay_s = token_delay_s
         self.aborted = False
         self.aborted_traces: set[str] = set()
         self.last_memories: list[MemoryHit] | None = None
+        self.last_kwargs: dict[str, object] = {}
 
     def stream_turn(
         self,
@@ -31,10 +39,27 @@ class FakeLLM:
         temperature: float = 0.2,
         max_tokens: int = 512,
         trace_id: str | None = None,
+        **kwargs: object,
     ) -> Generator[LLMEvent, None, None]:
         self.aborted = False
         self.last_memories = memories
-        for event in self.script:
+        self.last_kwargs = kwargs
+
+        if self.rounds is not None:
+            events = (
+                self.rounds[self.call_count]
+                if self.call_count < len(self.rounds)
+                else [Done(usage=LLMUsage(prompt_tokens=0, completion_tokens=0))]
+            )
+        else:
+            events = (
+                self.script
+                if self.call_count == 0
+                else [Done(usage=LLMUsage(prompt_tokens=0, completion_tokens=0))]
+            )
+
+        self.call_count += 1
+        for event in events:
             if self.aborted or (trace_id and trace_id in self.aborted_traces):
                 break
             if self.token_delay_s > 0:

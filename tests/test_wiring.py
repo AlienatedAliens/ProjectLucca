@@ -6,7 +6,6 @@ Spec 05 §4, §6, §8, §9, Spec 06 §1, §2, §4 (F-ARCH-001)
 import asyncio
 import os
 import time
-from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -14,11 +13,11 @@ import pytest
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import (
     Done,
-    LLMEvent,
+    ExecutionTier,
     LLMUsage,
-    MemoryHit,
     Provenance,
     Risk,
+    RouteAction,
     TokenDelta,
     ToolParameter,
     ToolSchema,
@@ -42,31 +41,6 @@ SAMPLE_RULE = """
 
 class SpyLLM(FakeLLM):
     """Spy FakeLLM tracking whether stream_turn was called."""
-
-    def __init__(self, script: list[LLMEvent] | None = None) -> None:
-        super().__init__(script=script)
-        self.call_count = 0
-
-    def stream_turn(
-        self,
-        current_audio_b64: str | None = None,
-        current_text: str | None = None,
-        memories: list[MemoryHit] | None = None,
-        history: list[dict[str, str]] | None = None,
-        temperature: float = 0.2,
-        max_tokens: int = 512,
-        trace_id: str | None = None,
-    ) -> Generator[LLMEvent, None, None]:
-        self.call_count += 1
-        yield from super().stream_turn(
-            current_audio_b64=current_audio_b64,
-            current_text=current_text,
-            memories=memories,
-            history=history,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            trace_id=trace_id,
-        )
 
 
 @pytest.mark.tier2
@@ -167,8 +141,12 @@ def test_phase4_router_and_rules_wiring(tmp_path: Path) -> None:
         if orch.active_turn_thread:
             orch.active_turn_thread.join(timeout=5.0)
 
-        # 5. Verify RouteAction.RULE was selected and LLM was bypassed (call_count == 0)
-        assert llm2.call_count == 0
+        # 5. Verify RouteAction.RULE was selected with ACT_THEN_NARRATE tier
+        assert orch.last_decision is not None
+        assert orch.last_decision.decision.action == RouteAction.RULE
+        assert orch.last_decision.decision.tier == ExecutionTier.ACT_THEN_NARRATE
+        # LLM is invoked for grounded narration under D-ARCH-05 / Proposal B
+        assert llm2.call_count == 1
 
         # Verify tool was executed in orchestrator
         assert len(orch.executed_tools) >= 1
@@ -317,10 +295,12 @@ def test_phase6_memory_and_rules_promotion_wiring(tmp_path: Path) -> None:
         if orch.active_turn_thread:
             orch.active_turn_thread.join(timeout=5.0)
 
-        # Verify LLM was bypassed on Turn 2
-        assert llm2.call_count == 0
+        # Verify RouteAction.RULE with ACT_THEN_NARRATE tier on Turn 2
         assert orch.last_decision is not None
         assert orch.last_decision.executed_path == "RULE"
+        assert orch.last_decision.decision.tier == ExecutionTier.ACT_THEN_NARRATE
+        # LLM is invoked for grounded narration under D-ARCH-05 / Proposal B
+        assert llm2.call_count == 1
         assert len(orch.executed_tools) >= 1
         assert orch.executed_tools[-1][0] == "launch_app"
         assert orch.executed_tools[-1][1] == {"app": "calculator"}

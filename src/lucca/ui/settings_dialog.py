@@ -378,7 +378,11 @@ class SettingsDialog(QDialog):
 
         try:
             cfg = get_config()
-            mk = cfg.master_key.encode("utf-8") if cfg.master_key else None
+            mk: bytes | None = None
+            if cfg.master_key:
+                mk = cfg.master_key.encode("utf-8")
+            elif cfg.env.mode == "dev":
+                mk = b"01234567890123456789012345678901"
             self.memory_manager: MemoryManager | None = MemoryManager(master_key=mk)
         except Exception:
             self.memory_manager = None

@@ -6,7 +6,7 @@ Evaluates a local text-mode brain running in llama-server against normative crit
 1. TTFT (Time-To-First-Token) across 20 iterations (Budget: median <= 180ms, p95 <= 300ms)
 2. Decode throughput (tok/s) across 20 iterations (Target: >= 50 tok/s)
 3. Structured tool calling validity rate (Target: >= 18/20, 90%)
-4. Resident dGPU VRAM footprint (Target: <= 9500 MB)
+4. Resident dGPU VRAM footprint (Target: <= 12800 MB per D-BRAIN-05)
 """
 
 import argparse
@@ -101,7 +101,7 @@ def run_spike_benchmark(
     # 2. Measure VRAM baseline
     vram_start = get_vram_usage_mb()
     if vram_start is not None:
-        print(f"Initial dGPU VRAM usage: {vram_start:.1f} MB (Budget: <= 9500 MB)")
+        print(f"Initial dGPU VRAM usage: {vram_start:.1f} MB (Budget: <= 12800 MB)")
 
     # 3. TTFT & Throughput benchmark
     ttft_samples_ms: list[float] = []
@@ -159,7 +159,7 @@ def run_spike_benchmark(
     valid_tool_calls = 0
     total_tool_prompts = len(TOOL_FIXTURES) * 4  # 20 total fixture tests
 
-    for fi, fixture in enumerate(TOOL_FIXTURES * 4):
+    for _fi, fixture in enumerate(TOOL_FIXTURES * 4):
         p_text = str(fixture["prompt"])
         expected_tool = fixture["expected_tool"]
         expected_arg = fixture["expected_arg"]
@@ -221,7 +221,7 @@ def run_spike_benchmark(
             "ttft_gate_pass": med_ttft <= 200.0 and p95_ttft <= 300.0,
             "speed_gate_pass": med_speed >= 45.0,
             "tool_gate_pass": valid_tool_calls >= 18,
-            "vram_gate_pass": vram_end is None or vram_end <= 9500.0,
+            "vram_gate_pass": vram_end is None or vram_end <= 12800.0,
         },
     }
 
@@ -236,7 +236,7 @@ def run_spike_benchmark(
         f"Tool-call Validity   : {valid_tool_calls}/{total_tool_prompts} ({tool_accuracy:.1f}%) (Gate: >= 18/20, 90%)"
     )
     if vram_end:
-        print(f"Resident VRAM        : {vram_end:.1f} MB (Budget: <= 9500 MB)")
+        print(f"Resident VRAM        : {vram_end:.1f} MB (Budget: <= 12800 MB)")
     print("=" * 60)
 
     if output_path:

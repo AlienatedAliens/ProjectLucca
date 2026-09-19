@@ -54,16 +54,34 @@ class NPUProcess:
         self.cap_ring = cap_ring if cap_ring is not None else get_capture_ring(create=False)
         self.play_ring = play_ring if play_ring is not None else get_playback_ring(create=False)
 
-        # Workers
-        self.asr = asr if asr is not None else ASRWorker()
-        self.tts = tts if tts is not None else TTSWorker(self.play_ring)
-        self.embed = embed if embed is not None else EmbedWorker()
+        # Workers (lazy initialization to avoid duplicate multi-gigabyte models in RAM)
+        self._asr = asr
+        self._tts = tts
+        self._embed = embed
 
         # ZeroMQ
         self.ctx = ctx if ctx is not None else zmq.Context()
         self.ctl_sock = self.ctx.socket(zmq.DEALER)
         self.bus_sock = self.ctx.socket(zmq.SUB)
         self.ingest_sock = self.ctx.socket(zmq.PUSH)
+
+    @property
+    def asr(self) -> ASRWorker:
+        if self._asr is None:
+            self._asr = ASRWorker()
+        return self._asr
+
+    @property
+    def tts(self) -> TTSWorker:
+        if self._tts is None:
+            self._tts = TTSWorker(self.play_ring)
+        return self._tts
+
+    @property
+    def embed(self) -> EmbedWorker:
+        if self._embed is None:
+            self._embed = EmbedWorker()
+        return self._embed
 
     def start(self) -> None:
         self.running = True

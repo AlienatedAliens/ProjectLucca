@@ -18,7 +18,10 @@ from lucca.core.config import get_config
 
 
 def check_mshybrid_vram() -> tuple[bool, str]:
-    """Checks dGPU VRAM baseline (< 1500 MB idle, <= 9500 MB if llama-server resident)."""
+    """Checks dGPU VRAM baseline.
+
+    Limit is < 1500 MB idle, <= 12800 MB if llama-server is resident (D-BRAIN-05).
+    """
     nvidia_smi = shutil.which("nvidia-smi")
     if not nvidia_smi:
         return False, "nvidia-smi not found in PATH."
@@ -41,14 +44,14 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             llama_active = False
 
         if llama_active:
-            if used_mb > 9500:
+            if used_mb > 12800:
                 return (
                     False,
-                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of 9500 MB).",
+                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of 12800 MB).",
                 )
             return (
                 True,
-                f"dGPU VRAM used: {used_mb:.1f} MB (llama-server resident, within 9500 MB budget)",
+                f"dGPU VRAM used: {used_mb:.1f} MB (llama-server resident, within 12800 MB budget)",
             )
 
         if used_mb > 1500:

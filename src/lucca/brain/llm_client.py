@@ -18,6 +18,7 @@ from lucca.brain.toolcall_demux import ToolCallDemux
 from lucca.core.config import get_config
 from lucca.core.exceptions import LLMUnavailable
 from lucca.core.schemas import (
+    ChatMessage,
     Done,
     LLMEvent,
     LLMUsage,
@@ -25,6 +26,7 @@ from lucca.core.schemas import (
     TokenDelta,
     ToolCall,
     ToolCallEnd,
+    ToolDefinition,
 )
 from lucca.core.trace import now_ns
 
@@ -76,6 +78,9 @@ class LLMClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         trace_id: str | None = None,
+        tools: list[ToolDefinition] | None = None,
+        messages: list[ChatMessage] | None = None,
+        tool_messages: list[ChatMessage] | None = None,
     ) -> Generator[LLMEvent, None, None]:
         eff_trace_id = trace_id or f"anon-{now_ns()}"
         eff_temp = (
@@ -84,20 +89,30 @@ class LLMClient:
         eff_tokens = (
             max_tokens if max_tokens is not None else getattr(self.config.llm, "max_tokens", 512)
         )
-        messages = build_messages(
-            memories=memories,
-            history=history,
-            current_audio_b64=current_audio_b64,
-            current_text=current_text,
-        )
+        if messages is not None:
+            eff_messages = list(messages)
+            if tool_messages:
+                eff_messages.extend(tool_messages)
+        else:
+            eff_messages = build_messages(
+                memories=memories,
+                history=history,
+                current_audio_b64=current_audio_b64,
+                current_text=current_text,
+                tool_messages=tool_messages,
+            )
 
+        eff_tools = tools if tools is not None else TOOL_DEFINITIONS
         payload: dict[str, object] = {
-            "messages": [m.model_dump() for m in messages],
-            "tools": [t.model_dump() for t in TOOL_DEFINITIONS],
+            "messages": [m.model_dump(exclude_none=True) for m in eff_messages],
+            "tools": [t.model_dump() for t in eff_tools],
             "tool_choice": "auto",
             "chat_template_kwargs": {"tools_in_user_message": False},
             "max_tokens": eff_tokens,
             "temperature": eff_temp,
+            "repeat_penalty": 1.1,
+            "repeat_last_n": 64,
+            "stop": ["</s>", "[INST]", "[/INST]", "<|im_end|>", "\nUser:"],
             "stream": True,
         }
 

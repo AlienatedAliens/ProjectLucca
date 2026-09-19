@@ -87,3 +87,85 @@
 ### Cross-Cutting Drift (`drift.md`)
 - `F-DRIFT-001`: Full-system integration gate connecting memory, router, rules, and turn loop (`765fddc`).
 - `F-DRIFT-003`: Implementation of `lucca-admin latency --last N` reporting from real trace logs (`dddcc9d`).
+
+---
+
+## 3. Procedural Runtime Upgrade & Architectural Proposals A–K (Batches 1–3)
+
+Following the audit baseline resolution, the runtime underwent a 3-batch procedural upgrade implementing Proposals A through K and ratifying ADRs `D-SEC-04` through `D-EVAL-01`:
+
+### Batch 1: Three-Tier Execution & Grounded Tool Calling (Proposals A, B, C, D)
+- **Proposal A — Three-Tier Execution Router (`D-ARCH-05`):**
+  - Classified execution into `REFLEX` (<150ms canned response, strictly for emergency halt/shutdown/pause/mute/stop), `ACT_THEN_NARRATE` (deterministic sandbox tool execution followed by single-turn persona narration of output), and `FULL_LOOP` (open-ended multi-turn tool interaction).
+  - Implementation: `src/lucca/core/turn_loop.py`, `src/lucca/router/heuristic.py`.
+- **Proposal B — Multi-Turn Tool Calling with Verbal Cues (`D-BRAIN-03`):**
+  - Enabled recursive tool execution up to $M=3$ rounds with intermediate spoken cues (e.g. *"Checking that file for you..."*, *"Running calculation..."*) to eliminate dead air during execution. Enforced `loop_depth` safety and abort signal detection.
+  - Implementation: `src/lucca/core/turn_loop.py` (`_execute_tool_loop`, `_emit_verbal_cue`).
+- **Proposal C — Grounded Narration Provenance (`D-BRAIN-04`):**
+  - Grounded output using structured `[System Executed Tool Trace: ...]` context blocks and strict anti-hallucination directives. Narration strictly reflects execution status and values.
+  - Implementation: `src/lucca/brain/llm_client.py`, `src/lucca/core/turn_loop.py`.
+- **Proposal D — Mistral NeMo 12B Instruct Abliterated Deployment & 12.5 GB VRAM Clamp (`D-BRAIN-05`):**
+  - Transitioned text brain to `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` with `--chat-template mistral-v3`, 16,384 context, and Q8_0 KV cache.
+  - Corrected environment check (`src/lucca/core/env_check.py`) and hardware test assertions (`tests/test_phase1_live_hw.py`) to enforce a 12.5 GB (12,800 MB) VRAM resident ceiling, guaranteeing $\ge 3.5\text{ GB}$ headroom on the 16 GB RTX 5080 Laptop GPU.
+
+### Batch 2: Bounded MicroScheme Macros & Safe Rule Induction (Proposals E, F)
+- **Proposal E — Bounded MicroScheme Macro System (`D-REAS-05`):**
+  - Implemented compile-time macro expansion for `(defmacro ...)` with strict recursion depth cap (`MAX_MACRO_DEPTH = 8`) and total step expansion limit (`MAX_MACRO_STEPS = 64`), preventing macro bombs, infinite expansion, or primitive operator shadowing.
+  - Implementation: `src/lucca/reasoning/macro_expander.py`, `src/lucca/reasoning/rule_dsl.py`.
+- **Proposal F — Safe Rule Induction Pipeline (`D-REAS-06`):**
+  - Implemented automatic synthesis of MicroScheme rules from frequent telemetry invocation patterns ($\ge 3$ consistent executions).
+  - Enforced strict safety invariant: all induced rules register in `QUARANTINE` mode (`quarantine_rules.json`). Automatic promotion to `ACTIVE` is strictly prohibited; rules require shadow evaluation with zero errors and explicit human sign-off.
+  - Implementation: `src/lucca/reasoning/induction.py`, `src/lucca/reasoning/lifecycle.py`.
+
+### Batch 3: Asynchronous Tasks & Frozen Regression Suite (Proposals G, H, I, J, K)
+- **Proposal G — Long Asynchronous Task Protocol (`D-SAND-03`):**
+  - Implemented `AsyncTaskManager` decoupling long-running operations (downloads, compilation, builds) from synchronous voice turns.
+  - Assigned immutable `task-ULID` identifiers, isolated worker threads, cooperative cancellation tokens (`threading.Event`), and sandboxed tool endpoints (`spawn_async_task`, `poll_task_status`, `abort_task`).
+  - Implementation: `src/lucca/sandbox/async_tasks.py`, `src/lucca/sandbox/container.py`.
+- **Proposal H — Golden Frozen Regression Suite (`D-EVAL-01`):**
+  - Added deterministic evaluation harness (`tests/test_frozen_regression_harness.py`) validating $\ge 100$ golden scenarios (`tests/fixtures/eval/golden_traces.jsonl`) across Reflex, Act-Then-Narrate, and Full-Loop flows with zero test-time hardcoding.
+- **Proposal I — Dynamic Tool Whitelisting (`D-AUD-10`):**
+  - Sandboxed execution against `config/tool_whitelist.toml` with strict shell bans (`cmd.exe`, `powershell.exe`) and typed Pydantic tool argument validation (`D-SEC-04`).
+- **Proposal J — Anime Voice DSP Audio Path (`D-AUD-16`):**
+  - Integrated `AnimeVoiceDSP` formant shifting and harmonic excitation directly into Kokoro TTS synthesis pipeline with dynamic UI and IPC controls.
+- **Proposal K — IPC & Ring Buffer Concurrency Hardening (`D-AUD-09`):**
+  - Hardened memory mutations through `ProvenanceGate` with cryptographic signing, `NamedRingMutex` header locks, and decoupled audio workers.
+
+---
+
+## 4. Verification Evidence
+
+- **Hardware Environment Check:** `uv run python -m lucca.core.env_check` $\rightarrow$ `[SUCCESS] All system environment criteria passed!`.
+  - MSHybrid dGPU VRAM: 10,748.0 MB used (within 12,800 MB budget).
+  - Intel NPU: Detected via OpenVINO (`['CPU', 'GPU.0', 'GPU.1', 'NPU']`).
+  - SQLite + sqlite-vec: v0.1.9 loaded.
+  - WSL2 / Docker CE: Verified Ubuntu daemon running with canonical `.wslconfig`.
+- **Static Invariants Gate:** `uv run pytest tests/test_static_gates.py` $\rightarrow$ 8/8 passed (zero `Any` in public APIs).
+- **Procedural Test Suite:** `uv run pytest -m "not hw and not soak"` $\rightarrow$ 252 passed, 5 deselected, 0 failed in 63.07s.
+- **Lint & Style:** `uv run ruff check src tests` $\rightarrow$ 0 errors; `uv run ruff format --check src tests` $\rightarrow$ 126 files clean.
+
+---
+
+## 5. Live Interactive PTT Session Remediation Log
+
+During a live Push-to-Talk (PTT) interactive session, 6 critical failure modes were exposed and remediated:
+
+1. **Jinja Chat Template & Persona Preservation (`templates/mistral_nemo.jinja`):**
+   - *Problem:* `llama-server` passed `--chat-template mistral-v3`, which stripped system prompts and tool support. NeMo responded with base pretraining weights ("Mistral AI is a cutting-edge company based in Paris...").
+   - *Fix:* Authored canonical `templates/mistral_nemo.jinja` supporting `[SYSTEM_PROMPT]`, `[AVAILABLE_TOOLS]`, `[TOOL_CALLS]`, and `[TOOL_RESULTS]`. Server launch command now provides `--chat-template-file templates/mistral_nemo.jinja`.
+2. **Repetition Loop & Degeneration Prevention (`src/lucca/brain/llm_client.py`):**
+   - *Problem:* Model generated degenerate repetition loops (`::*_*_*_*...`).
+   - *Fix:* Added `repeat_penalty: 1.1`, `repeat_last_n: 64`, and explicit stop tokens (`["</s>", "[INST]", "[/INST]", "<|im_end|>", "\nUser:"]`).
+3. **Sub-150ms Built-in Emergency Reflex Fallbacks (`src/lucca/core/orchestrator.py`):**
+   - *Problem:* User voice halt commands ("Stop.", "Shut down") fell through to the LLM when no custom MicroScheme rule was registered.
+   - *Fix:* Implemented built-in reflex handlers in `_run_turn` and `_run_text_turn` that immediately invoke `_abort_turn()`, drain queues, halt playback, speak a brief acknowledgment ("Stopped." / "Shutting down."), and set `FLAG_EOS` without invoking the LLM. Verified via `tests/test_emergency_reflex.py`.
+4. **SpeechBubble Layout Geometry Clamping (`src/lucca/ui/speech_bubble.py`):**
+   - *Problem:* Long unbroken tokens blew out `QLabel` width, causing Qt `QWindowsWindow::setGeometry` errors.
+   - *Fix:* Enforced `setFixedWidth(460)` and added `_wrap_unbroken()` chunking tokens $> 35$ characters. Verified via `tests/test_ui_widgets.py`.
+5. **ASR Concurrency Lock & Thread Safety (`src/lucca/senses/asr.py`):**
+   - *Problem:* `faster_whisper` threw `RuntimeError: could not create a memory object` during overlapping turn barge-in threads.
+   - *Fix:* Guarded `transcribe()` with `threading.Lock()` and added exception handling to prevent worker crashes.
+6. **Multi-line TOML Serializer & Config Repair (`src/lucca/brain/prompt_builder.py`):**
+   - *Problem:* `update_toml_content()` corrupted `persona.toml` with `line2"""""` on multi-line values.
+   - *Fix:* Fixed multi-line delimiter parsing and cleaned `C:\ProjectLucca\config\persona.toml`. Verified via `tests/test_persona_toml_multiline.py`.
+

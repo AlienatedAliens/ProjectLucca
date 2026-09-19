@@ -30,13 +30,13 @@ class LLMSettings(BaseModel):
     mode: Literal["audio", "transcript"] = "transcript"
     host: str = "127.0.0.1"
     port: int = 8080
-    ctx: int = 8192
+    ctx: int = 16384
     kv_type: str = "q8_0"
     max_tokens: int = 512
     temperature: float = 0.6
-    model: str = "llm/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf"
+    model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
     mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
-    text_model: str = "llm/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf"
+    text_model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
 
 
 DeviceType = Literal["NPU", "GPU", "CPU"]
@@ -133,7 +133,11 @@ class LuccaConfig(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_prefix="LUCCA_", env_nested_delimiter="__", extra="ignore"
+        env_prefix="LUCCA_",
+        env_nested_delimiter="__",
+        extra="ignore",
+        env_file=".env",
+        env_file_encoding="utf-8",
     )
 
     env: EnvSettings = Field(default_factory=EnvSettings)
@@ -160,6 +164,8 @@ class LuccaConfig(BaseSettings):
         custom_home = os.getenv("LUCCA_HOME")
         if custom_home:
             return Path(custom_home).resolve()
+        if Path("C:/ProjectLucca/app/llama-server/llama-server.exe").exists():
+            return Path("C:/ProjectLucca").resolve()
         if self.env.mode == "dev":
             # Repo-local directory for testing
             return (Path(__file__).parent.parent.parent.parent / ".lucca_home").resolve()

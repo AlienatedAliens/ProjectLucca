@@ -16,7 +16,7 @@ from lucca.core.schemas import (
     ToolCallStart,
 )
 
-INLINE_TOOL_PREFIX_REGEX = re.compile(r"^\s*(?:<\|python_tag\|>|\{)")
+INLINE_TOOL_PREFIX_REGEX = re.compile(r"^\s*(?:<\|python_tag\|>|\[TOOL_CALLS\]|\[|\{)")
 
 
 class ToolCallDemux:
@@ -46,14 +46,18 @@ class ToolCallDemux:
         delta = event.delta
         out_events: list[LLMEvent] = []
 
-        # Check for suspected inline tool call at stream start (within first 12 chars of the reply)
+        # Check for suspected inline tool call at stream start (within first 24 chars of the reply)
         if (
-            self._total_chars_seen <= 12
+            self._total_chars_seen <= 24
             and not self._suspected_tool_call
             and not self._resolved_tool_call
         ):
             sample = ("".join(self._buffer) + delta).lstrip()
-            if sample and (sample[0] == "{" or sample.startswith("<|python_tag|>")):
+            if sample and (
+                sample[0] in ("{", "[")
+                or sample.startswith("<|python_tag|>")
+                or sample.startswith("[TOOL_CALLS]")
+            ):
                 self._suspected_tool_call = True
 
         self._total_chars_seen += len(delta)
@@ -63,8 +67,13 @@ class ToolCallDemux:
             self._buffered_len += len(delta)
             buffered_text = "".join(self._buffer)
 
-            # Try parsing JSON if we see matching braces or length threshold
-            cleaned = buffered_text.replace("<|python_tag|>", "").strip()
+            # Try parsing JSON if we see matching braces/brackets or length threshold
+            cleaned = (
+                buffered_text.replace("<|python_tag|>", "")
+                .replace("[TOOL_CALLS]", "")
+                .replace("[/TOOL_CALLS]", "")
+                .strip()
+            )
             if cleaned.startswith("{") and cleaned.endswith("}"):
                 try:
                     obj = json.loads(cleaned)
@@ -87,6 +96,32 @@ class ToolCallDemux:
                         self._buffer.clear()
                         self._buffered_len = 0
                         return [ToolCallEnd(call=call)]
+                except json.JSONDecodeError:
+                    pass
+            elif cleaned.startswith("[") and cleaned.endswith("]"):
+                try:
+                    obj_list = json.loads(cleaned)
+                    if (
+                        isinstance(obj_list, list)
+                        and len(obj_list) > 0
+                        and isinstance(obj_list[0], dict)
+                    ):
+                        first_call = obj_list[0]
+                        if "name" in first_call:
+                            tool_name = str(first_call["name"])
+                            args = first_call.get("parameters") or first_call.get("arguments") or {}
+                            if not isinstance(args, dict):
+                                args = {}
+                            call = ToolCall(
+                                tool=tool_name,
+                                args=args,
+                                call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                            )
+                            self._suspected_tool_call = False
+                            self._resolved_tool_call = True
+                            self._buffer.clear()
+                            self._buffered_len = 0
+                            return [ToolCallEnd(call=call)]
                 except json.JSONDecodeError:
                     pass
 
@@ -129,7 +164,12 @@ class ToolCallDemux:
         out: list[LLMEvent] = []
         if self._buffer:
             buffered_text = "".join(self._buffer)
-            cleaned = buffered_text.replace("<|python_tag|>", "").strip()
+            cleaned = (
+                buffered_text.replace("<|python_tag|>", "")
+                .replace("[TOOL_CALLS]", "")
+                .replace("[/TOOL_CALLS]", "")
+                .strip()
+            )
             if cleaned.startswith("{") and cleaned.endswith("}"):
                 try:
                     obj = json.loads(cleaned)
@@ -141,6 +181,28 @@ class ToolCallDemux:
                         )
                         self._buffer.clear()
                         return [ToolCallEnd(call=call)]
+                except json.JSONDecodeError:
+                    pass
+            elif cleaned.startswith("[") and cleaned.endswith("]"):
+                try:
+                    obj_list = json.loads(cleaned)
+                    if (
+                        isinstance(obj_list, list)
+                        and len(obj_list) > 0
+                        and isinstance(obj_list[0], dict)
+                    ):
+                        first_call = obj_list[0]
+                        if "name" in first_call:
+                            call_args = (
+                                first_call.get("parameters") or first_call.get("arguments") or {}
+                            )
+                            call = ToolCall(
+                                tool=str(first_call["name"]),
+                                args=call_args,
+                                call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                            )
+                            self._buffer.clear()
+                            return [ToolCallEnd(call=call)]
                 except json.JSONDecodeError:
                     pass
 

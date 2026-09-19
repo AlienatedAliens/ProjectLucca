@@ -95,3 +95,60 @@
 ### D-AUD-13 — Container-Mandatory Sandboxing
 - **Decision:** Host execution fallback is disabled by default (`use_direct_fallback = False`). Tool execution requires containerized WSL2/Docker sandboxing, refusing execution with a spoken notice if unavailable.
 - **Status:** Ratified & Enforced.
+
+---
+
+## 5. System 1 / System 2 Architecture & Procedural Capabilities
+
+### D-SEC-04 — Typed Tool Contracts & Safe MicroScheme Accessors
+- **Decision:** All sandbox tool executions must be validated against strict Pydantic argument schemas (`LaunchAppArgs`, `ReadFileArgs`, `WriteFileArgs`, `DeleteFileArgs`, `ListDirArgs`, `SearchTextArgs`, `RunPythonArgs`, `FetchUrlArgs`). MicroScheme rules must never construct executable source via string concatenation; typed accessors (`entity-int`, `entity-num`, `entity-str`) enforce parameter validation before tool invocation.
+- **Status:** Ratified & Enforced.
+
+### D-ARCH-06 — Fast-Path Context Synchronization into LLM History
+- **Decision:** Fast-path rule executions (`RouteTarget.RULE`) must append both the user utterance, the executed action/status metadata (e.g. `[Executed launch_app(app_name='calc') -> ok]`), and the assistant speech into `self.history`. This preserves multi-turn context so subsequent turns can reference past fast-path actions without conversational amnesia.
+- **Status:** Ratified & Enforced.
+
+### D-MEM-03 — 16K Scaled Working Memory Quota & Prioritized Truncation
+- **Decision:** Working memory quota scales with the 16K context configuration to 2,048 tokens (~8,192 chars), while retaining $k \le 8$ items. Candidate memories are truncated using a multi-factor hierarchy: (1) Provenance priority tier (explicit user statements and verified tool observations first), (2) Fused RRF score descending, (3) Temporal recency.
+- **Status:** Ratified & Enforced.
+
+### D-BRAIN-05 — Mistral NeMo 12B Abliterated Q6_K & 12.5 GB VRAM Clamp
+- **Decision:** Target text brain for System 2 reasoning is Mistral NeMo 12B Instruct Abliterated (Q6_K quantization) with a 16K context window (`--ctx-size 16384`) and a 12.5 GB (12,800 MB) VRAM clamp. This suppresses corporate preachy refusal alignment without erotic fine-tuning, fitting comfortably on the RTX 5080 Laptop GPU with >3.5 GB headroom for desktop display and browser hardware acceleration.
+- **Status:** Ratified & Enforced.
+
+### D-ARCH-05 — Three-Tier Execution Architecture (REFLEX, ACT_THEN_NARRATE, FULL_LOOP)
+- **Decision:** The runtime operates across three distinct execution tiers:
+  1. `REFLEX`: Strictly restricted to critical emergency/system safety commands (shutdown, pause, mute, stop, halt). Executes deterministic actions and speaks canned response immediately (<150ms) to ensure safety without model latency.
+  2. `ACT_THEN_NARRATE`: Standard action rules execute their plan deterministically in the sandbox, then prompt NeMo 12B to narrate the result in Lucca's natural companion voice, eliminating robotic canned phrases for desktop interactions.
+  3. `FULL_LOOP`: Open-ended or complex turns route to full multi-turn tool-calling loop (up to $M=3$ rounds) with intermediate verbal thinking cues.
+- **Status:** Ratified & Enforced.
+
+### D-REAS-04 — Skill-as-Tool Exposure Protocol
+- **Decision:** Promoted ACTIVE MicroScheme rules in `RuleLifecycleManager` are dynamically transformed into OpenAI-compatible tool schemas (`skill_<rule_id>`) and surfaced to the System 2 LLM in `tools`. When invoked by the model, `_handle_tool_call` evaluates the compiled MicroScheme rule and executes its underlying sub-actions via the sandboxed environment, allowing System 2 to invoke compiled System 1 skills.
+- **Status:** Ratified & Enforced.
+
+### D-BRAIN-03 — Multi-Turn Tool Loop with Spoken Verbal Thinking Cues
+- **Decision:** When executing multi-turn tool calls in the `FULL_LOOP` tier (up to 3 rounds), Orchestrator emits an immediate spoken verbal thinking cue (e.g. *"Checking that file for you..."*, *"Running that calculation..."*, *"Looking into that..."*) before dispatching the tool execution. This prevents dead conversational air, maintains natural companionship cadence, and provides audio feedback while the sandbox processes requests.
+- **Status:** Ratified & Enforced.
+
+### D-BRAIN-04 — Grounded Narration Provenance Contract
+- **Decision:** In Act-Then-Narrate and tool feedback turns, narration prompts inject strict anti-hallucination grounding directives alongside structured `[System Executed Tool Trace: ...]` blocks. Spoken assertions, status claims, numbers, and file contents must derive strictly from the tool trace block. Persona styling dictates conversational cadence, but factual assertions must maintain absolute provenance integrity.
+- **Status:** Ratified & Enforced.
+
+### D-REAS-05 — Bounded MicroScheme Macro System
+- **Decision:** MicroScheme macros defined with `(defmacro ...)` are expanded strictly at compile/parse time before rule AST validation. To prevent recursive expansion loops, denial-of-service memory exhaustion, or macro expansion bombs, the expander enforces a hard recursion depth limit of $8$ (`MAX_MACRO_DEPTH = 8`) and a total expansion step limit of $64$ (`MAX_MACRO_STEPS = 64`). Macro definitions cannot shadow primitive allowed operators.
+- **Status:** Ratified & Enforced.
+
+### D-REAS-06 — Safe Rule Induction Invariant
+- **Decision:** Autonomous rule induction from SQLite execution telemetry requires $\ge 3$ consistent, successful tool invocations within an intent-argument cluster. Induced rules must be validated against static schema constraints and registered exclusively in `QUARANTINE` mode. Automatic promotion to `ACTIVE` is strictly prohibited; candidate rules must pass shadow-mode evaluation with zero runtime errors before being eligible for explicit developer promotion.
+- **Status:** Ratified & Enforced.
+
+### D-SAND-03 — Long Asynchronous Task Protocol & IPC Tracking
+- **Decision:** Long-running background jobs (e.g. downloads, compilation, builds) are decoupled from synchronous voice turns via `AsyncTaskManager`. Tasks are assigned immutable `task-ULID` identifiers, execute on isolated worker threads with cooperative cancellation flags (`threading.Event`), and report status transitions (`PENDING` -> `RUNNING` -> `COMPLETED`/`FAILED`/`CANCELLED`). Spoken acknowledgments provide immediate feedback, while completion events are published onto the IPC bus and queryable via sandboxed tool commands (`get_task_status`, `list_tasks`, `cancel_task`).
+- **Status:** Ratified & Enforced.
+
+### D-EVAL-01 — Frozen Evaluation Regression Suite
+- **Decision:** Runtime performance, intent classification, and execution tier routing are guarded by a frozen regression harness (`tests/test_frozen_regression_harness.py`) executing against $\ge 100$ golden test scenarios (`tests/fixtures/eval/golden_traces.jsonl`). Scenarios span System 1 emergency reflexes (<150ms budget), Act-Then-Narrate procedural workflows, and System 2 multi-turn tool loops. CI/CD runs must achieve 100% pass rate with zero latency regressions.
+- **Status:** Ratified & Enforced.
+
+

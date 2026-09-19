@@ -5,39 +5,44 @@ description: Operational skill for developing, running diagnostics, and testing 
 
 # Project Lucca Operational Skill
 
-Authoritative references: [`docs/13_decisions_log.md`](../../../docs/13_decisions_log.md), [`docs/10_testing_matrix_v2.md`](../../../docs/10_testing_matrix_v2.md), [`docs/11_phase_plan_v2.md`](../../../docs/11_phase_plan_v2.md). If a command here disagrees with those documents, the documents win.
+Authoritative references: [`docs/DECISIONS.md`](../../../docs/DECISIONS.md), [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md), [`docs/MODEL_STRATEGY.md`](../../../docs/MODEL_STRATEGY.md). If a command here disagrees with those documents, the documents win.
 
 ## 1. Environment verification
 
 ```powershell
 uv sync --frozen
-uv run lucca-admin env-check        # preferred once implemented
-uv run python scripts/verify_environment.py   # interim
+uv run lucca-admin env-check
+uv run python -m lucca.core.env_check
 ```
-Checks (all must be green before Phase 0): MSHybrid GPU mode (dGPU baseline VRAM < 300 MB via `nvidia-smi`), CUDA 12.8 runtime, Intel NPU visible to OpenVINO **on Windows** (never inside WSL2), `sqlite3.enable_load_extension` + `sqlite-vec` load, `.wslconfig` equals the canonical block (`memory=4608MB`, `processors=4`, `swap=0`, `pageReporting=true`, `autoMemoryReclaim=gradual`, `networkingMode=nat`), **Docker CE inside the Ubuntu distro** (`wsl -d Ubuntu -- docker info`; Docker Desktop is unsupported), `LUCCA_HOME` layout (`C:\ProjectLucca\{app,config,models,data,workspace,inbox,logs,cache,tmp}`), model files present with sha256 matching `models\MANIFEST.json`, `LUCCA_MASTER_KEY` set and not a dev default when `LUCCA_ENV=prod`.
+Checks (all must be green before boot): MSHybrid GPU mode (dGPU baseline VRAM within 12,800 MB budget via `nvidia-smi`), CUDA 12.8 runtime, Intel NPU visible to OpenVINO **on Windows** (never inside WSL2), `sqlite3.enable_load_extension` + `sqlite-vec` load, `.wslconfig` equals the canonical block (`memory=4608MB`, `processors=4`, `swap=0`, `pageReporting=true`, `autoMemoryReclaim=gradual`, `networkingMode=nat`), **Docker CE inside the Ubuntu distro** (`wsl -d Ubuntu -- docker info`; Docker Desktop is unsupported), `LUCCA_HOME` layout (`C:\ProjectLucca\{app,config,models,data,workspace,inbox,logs,cache,tmp}`), model files present with sha256 matching `models\MANIFEST.json`, `LUCCA_MASTER_KEY` set and not a dev default when `LUCCA_ENV=prod`.
 
 ## 2. Test tiers
 
 ```powershell
-uv run lint                                   # T0: ruff, mypy --strict, import-linter, AST tests
-uv run pytest -m "not tier2 and not hw and not soak"   # T1 unit + property tests
-uv run pytest -m tier2                        # T2 fake-backed integration (orchestrator loop with Fake* adapters)
-uv run pytest -m hw                           # T3 real hardware; writes logs\test_reports\*.json
-uv run pytest -m soak                         # T4 endurance (~1 h)
+uv run lint                                             # T0: ruff, mypy --strict, import-linter, AST tests
+uv run pytest -m "not tier2 and not hw and not soak"    # T1 unit + property tests
+uv run pytest -m tier2                                  # T2 fake-backed integration (orchestrator loop with Fake* adapters)
+uv run pytest -m hw                                     # T3 real hardware; writes logs\test_reports\*.json
+uv run pytest -m soak                                   # T4 endurance (~1 h)
+uv run pytest tests/test_frozen_regression_harness.py   # Golden frozen regression suite (100 scenarios)
 ```
-Never edit a threshold to make a test pass. Record the measured value in `docs/14_blockers.md` and stop.
+Never edit a threshold to make a test pass. Record any regressions and stop.
 
 ## 3. Phase sign-off
 
-Run the bundle in `docs/10_testing_matrix_v2.md` §4 for the phase; attach the report files it names (`phase0_llm.json`, `latency_report_*.md` for **both** audio and transcript modes, `sandbox_verify_*.md`, `retrieval_bench_*.md`, `report-<sha>.md`). Phases 4–6 additionally have **human gates** (`11_phase_plan_v2.md`): ≥ 100 labelled decisions, ≥ 1 rule promoted from real/replayed usage, ≥ 600-decision data floor. Synthetic data never satisfies a human gate.
+Run the validation suite; verify all gates pass. Synthetic data never satisfies a human gate.
 
 ## 4. Background services
 
-- **LLM (native Windows, ADR-001):**
+- **LLM (native Windows, D-BRAIN-05 — Mistral NeMo 12B Instruct Abliterated Q6_K):**
   ```powershell
-  & "$env:LUCCA_HOME\app\bin\llama-server.exe" --model "$env:LUCCA_HOME\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf" --mmproj "$env:LUCCA_HOME\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf" --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn --host 127.0.0.1 --port 8080 --no-webui --jinja
+  & "C:\ProjectLucca\app\llama-server\llama-server.exe" --model "C:\ProjectLucca\models\llm\Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf" --chat-template mistral-v3 --n-gpu-layers 99 --ctx-size 16384 --cache-type-k q8_0 --cache-type-v q8_0 --flash-attn --host 127.0.0.1 --port 8080 --no-webui
   ```
-  Health: `curl http://127.0.0.1:8080/health`. Normally started by the supervisor; start manually only for Phase 0 spikes.
+  Health: `curl http://127.0.0.1:8080/health`. Normally started by the supervisor (`uv run python -m lucca.main`); start manually only for development/benchmarks.
+- **Alternative LLM (Ultravox Q6_K multimodal, D-AUD-05):**
+  ```powershell
+  & "C:\ProjectLucca\app\bin\llama-server.exe" --model "C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf" --mmproj "C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf" --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn --host 127.0.0.1 --port 8080 --no-webui --jinja
+  ```
 - **Lucca (supervisor spawns audio/npu/ui processes):**
   ```powershell
   uv run python -m lucca.main

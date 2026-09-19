@@ -160,23 +160,12 @@ def test_t_sbx_search_text(file_tool: SafeFileTool, workspace: Path):
 
 
 def test_t_sbx_04_run_python_security(file_tool: SafeFileTool):
-    """T-SBX-04: Python execution limits (timeout & memory)."""
-    # 1. Normal execution
+    """T-SBX-04: Python execution disabled on host pending Milestone 2 container isolation."""
     res, out = file_tool.run_python("print('sandbox test ok')")
-    assert res["ok"] is True
-    assert res["exit_code"] == 0
-    assert "sandbox test ok" in out
-
-    # 2. Timeout execution
-    res_to, _ = file_tool.run_python("import time; time.sleep(5)", timeout=1)
-    assert res_to["ok"] is False
-    assert res_to.get("error") == "timeout"
-
-    # 3. Memory limit (inside Python raises MemoryError or fails)
-    res_mem, _ = file_tool.run_python("raise MemoryError('out of memory')")
-    assert res_mem["ok"] is False
-    assert res_mem["exit_code"] != 0
-    assert "MemoryError" in res_mem["stderr"]
+    assert res["ok"] is False
+    assert res["exit_code"] == -1
+    assert "policy_violation" in res["stderr"]
+    assert "disabled on host" in out
 
 
 def test_t_sbx_13_ssrf_blocking():
@@ -403,7 +392,7 @@ def test_fallback_disabled_refuses_host_execution(workspace: Path) -> None:
         default_service = SandboxService(workspace_root=workspace)
         assert default_service.rpc.use_direct_fallback is False
         res2 = default_service.execute_tool(
-            "call-refuse-2", "run_python", {"code": "print(1)"}, confirmed=True
+            "call-refuse-2", "read_file", {"path": "test.txt"}, confirmed=True
         )
         assert res2.ok is False
         assert res2.exit_code == -2

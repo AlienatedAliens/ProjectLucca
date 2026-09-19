@@ -5,16 +5,20 @@ Orchestrates file-sandbox RPC, web-sandbox fetches, host launcher, and policy gu
 """
 
 import json
+import threading
+from collections.abc import Callable
 from pathlib import Path
 
 import structlog
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from lucca.core.schemas import Risk, ToolResult
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.rpc import DockerRPCTransport
+from lucca.sandbox.schemas import FetchUrlArgs, LaunchAppArgs
+from lucca.sandbox.tasks import AsyncTaskInfo, AsyncTaskManager, TaskStatus
 from lucca.sandbox.web_tool import fetch_url
 from lucca.sandbox.workspace import WorkspaceManager
 
@@ -36,6 +40,7 @@ class SandboxService:
         workspace_root: Path | str | None = None,
         use_direct_fallback: bool = False,
         execute_apps: bool = True,
+        tasks: AsyncTaskManager | None = None,
     ) -> None:
         self.workspace_mgr = WorkspaceManager(workspace_root=workspace_root)
         self.file_tool = SafeFileTool(workspace_root=self.workspace_mgr.workspace_root)
@@ -49,6 +54,16 @@ class SandboxService:
             execute=execute_apps,
         )
         self.guard = SequenceGuard()
+        self.tasks = tasks if tasks is not None else AsyncTaskManager()
+
+    def launch_async(
+        self,
+        name: str,
+        target_fn: Callable[[threading.Event], tuple[int, str, str]],
+        metadata: dict[str, str] | None = None,
+    ) -> AsyncTaskInfo:
+        """Launches a background asynchronous task."""
+        return self.tasks.launch_task(name=name, target_fn=target_fn, metadata=metadata)
 
     def reset_turn(self) -> None:
         """Resets turn sequence guard at the start of a turn."""
@@ -97,31 +112,49 @@ class SandboxService:
 
         # 3. Host Application Launcher
         if tool_name == "launch_app":
-            app_name = str(args.get("app_name", ""))
-            file_arg = str(args["file"]) if "file" in args and args["file"] else None
-            url_arg = str(args["url"]) if "url" in args and args["url"] else None
+            try:
+                parsed_app = LaunchAppArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
 
             ok, msg = self.launcher.launch(
-                app_name=app_name,
-                file_arg=file_arg,
-                url_arg=url_arg,
+                app_name=parsed_app.app_name,
+                file_arg=parsed_app.file,
+                url_arg=parsed_app.url,
             )
             return ToolResult(
                 call_id=call_id,
                 ok=ok,
                 exit_code=0 if ok else -1,
-                structured={"status": msg, "app_name": app_name},
+                structured={"status": msg, "app_name": parsed_app.app_name},
                 content=msg,
                 elapsed_ms=0.0,
             )
 
         # 4. Web Fetch Tool
         if tool_name == "fetch_url":
-            url = str(args.get("url", ""))
-            render = bool(args.get("render", False))
-            max_chars = int(str(args.get("max_chars", 20000)))
             try:
-                structured, content = fetch_url(url=url, render=render, max_chars=max_chars)
+                parsed_url = FetchUrlArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = fetch_url(
+                    url=parsed_url.url,
+                    render=parsed_url.render,
+                    max_chars=parsed_url.max_chars,
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=True,
@@ -150,6 +183,9 @@ class SandboxService:
                     "write_file",
                     "fetch_url",
                     "query_capabilities",
+                    "get_task_status",
+                    "list_tasks",
+                    "cancel_task",
                 ],
                 "whitelisted_apps": list(self.launcher.apps.keys()),
                 "reasoning_pathways": {},
@@ -178,5 +214,91 @@ class SandboxService:
                 elapsed_ms=0.0,
             )
 
-        # 6. File Tools via RPC
+        # 6. Async Task Management Tools
+        if tool_name == "get_task_status":
+            task_id = str(args.get("task_id", ""))
+            task = self.tasks.get_task(task_id)
+            if not task:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"Task not found: {task_id}",
+                    elapsed_ms=0.0,
+                )
+            return ToolResult(
+                call_id=call_id,
+                ok=True,
+                exit_code=0,
+                structured={
+                    "task_id": task.task_id,
+                    "name": task.name,
+                    "status": task.status,
+                    "elapsed_s": round(task.elapsed_s, 2),
+                    "exit_code": task.exit_code,
+                    "output": task.output,
+                    "error": task.error,
+                },
+                content=(
+                    f"Task '{task.name}' [{task.task_id}] status: {task.status} "
+                    f"(elapsed: {task.elapsed_s:.1f}s)"
+                ),
+                elapsed_ms=0.0,
+            )
+
+        if tool_name == "cancel_task":
+            task_id = str(args.get("task_id", ""))
+            success = self.tasks.cancel_task(task_id)
+            return ToolResult(
+                call_id=call_id,
+                ok=success,
+                exit_code=0 if success else 1,
+                structured={"task_id": task_id, "cancelled": success},
+                content=(
+                    f"Task {task_id} cancellation: "
+                    f"{'success' if success else 'failed or not running'}"
+                ),
+                elapsed_ms=0.0,
+            )
+
+        if tool_name == "list_tasks":
+            raw_filter = args.get("status")
+            status_filter: TaskStatus | None = None
+            if isinstance(raw_filter, str):
+                upper_filter = raw_filter.upper()
+                if upper_filter in ("PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"):
+                    status_filter = upper_filter  # type: ignore[assignment]
+            task_list = self.tasks.list_tasks(status=status_filter)
+            tasks_data = [
+                {
+                    "task_id": t.task_id,
+                    "name": t.name,
+                    "status": t.status,
+                    "elapsed_s": round(t.elapsed_s, 2),
+                }
+                for t in task_list
+            ]
+            return ToolResult(
+                call_id=call_id,
+                ok=True,
+                exit_code=0,
+                structured={"tasks": tasks_data, "count": len(tasks_data)},
+                content=f"{len(tasks_data)} task(s) found",
+                elapsed_ms=0.0,
+            )
+
+        # 7. Interim Security Mitigation: Hard-block run_python
+        if tool_name == "run_python":
+            err_msg = "policy_violation: run_python is disabled until Milestone 2 container isolation lands"
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-1,
+                stderr=err_msg,
+                content=err_msg,
+                structured={"ok": False, "exit_code": -1, "stderr": err_msg},
+                elapsed_ms=0.0,
+            )
+
+        # 8. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)

@@ -73,24 +73,6 @@ class AppLauncher:
                 "args": ["{file?}"],
                 "single_instance": False,
             },
-            "browser": {
-                "exe": "msedge.exe",
-                "aliases": ["browser", "edge"],
-                "args": ["{url?}"],
-                "single_instance": False,
-            },
-            "terminal": {
-                "exe": "wt.exe",
-                "aliases": ["terminal", "windows terminal"],
-                "args": [],
-                "single_instance": False,
-            },
-            "task_manager": {
-                "exe": "taskmgr.exe",
-                "aliases": ["task manager", "taskmgr"],
-                "args": [],
-                "single_instance": True,
-            },
         }
 
         if cfg_file.exists():
@@ -178,6 +160,12 @@ class AppLauncher:
         for template in raw_arg_templates:
             if "{file?}" in template or "{file}" in template:
                 if file_arg:
+                    if file_arg.startswith(("\\\\", "//")):
+                        return False, "Invalid file path argument: UNC network paths are strictly forbidden"
+                    if "\\" in file_arg:
+                        return False, "Invalid file path argument: Backslash is forbidden; use forward slash '/'"
+                    if ":" in file_arg or Path(file_arg).is_absolute():
+                        return False, "Invalid file path argument: Absolute paths and drive letters are forbidden"
                     try:
                         valid_file = validate_rel_path(file_arg, self.workspace_root)
                         if not valid_file.exists():

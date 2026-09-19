@@ -43,8 +43,7 @@ class SpeechBubble(QWidget):
 
         self.bubble_width = 460
         self.bubble_min_height = 84
-        self.setMinimumWidth(360)
-        self.setMaximumWidth(520)
+        self.setFixedWidth(self.bubble_width)
 
         # Bubble content
         self.current_text = ""
@@ -213,6 +212,19 @@ class SpeechBubble(QWidget):
         self.cursor_timer.stop()
         self.cursor_label.hide()
         self.confirm_widget.hide()
+
+        # Ensure unbroken tokens (e.g. repetition loops or raw code) wrap within bubble width
+        def _wrap_unbroken(s: str, max_chunk: int = 35) -> str:
+            parts: list[str] = []
+            for token in s.split(" "):
+                if len(token) > max_chunk:
+                    chunks = [token[i : i + max_chunk] for i in range(0, len(token), max_chunk)]
+                    parts.append(" ".join(chunks))
+                else:
+                    parts.append(token)
+            return " ".join(parts)
+
+        text = _wrap_unbroken(text)
         self.source = source
         self.current_text = text
         self._full_text = text

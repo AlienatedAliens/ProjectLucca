@@ -52,6 +52,9 @@ ALLOWED_OPS = frozenset(
         "intent=",
         "entity-has?",
         "entity",
+        "entity-int",
+        "entity-num",
+        "entity-str",
         "transcript-has?",
         "transcript-matches-glob?",
         "app-running?",
@@ -65,6 +68,7 @@ ALLOWED_OPS = frozenset(
         "len",
         "min",
         "max",
+        "defmacro",
     }
 )
 
@@ -73,6 +77,9 @@ STATE_PREDICATES = frozenset(
         "intent=",
         "entity-has?",
         "entity",
+        "entity-int",
+        "entity-num",
+        "entity-str",
         "transcript-has?",
         "transcript-matches-glob?",
         "app-running?",
@@ -99,10 +106,12 @@ class RuleDefinition:
 
 
 class Parser:
-    def __init__(self, tokens: list[Token]) -> None:
+    def __init__(self, tokens: list[Token], macro_registry: object | None = None) -> None:
         self.tokens = tokens
         self.pos = 0
         self.depth = 0
+        self.macro_registry = macro_registry
+        self._in_macro_body = False
 
     def parse_all(self) -> SchemeNode:
         if not self.tokens:
@@ -116,6 +125,96 @@ class Parser:
                 extra.col,
             )
         return result
+
+    def parse_all_forms(self) -> list[SchemeNode]:
+        if not self.tokens:
+            raise SchemeSyntaxError("Empty source: no tokens to parse")
+        forms: list[SchemeNode] = []
+        while self.pos < len(self.tokens):
+            forms.append(self._parse_expr())
+        return forms
+
+    def _parse_defmacro_form(self, lparen: Token) -> list[SchemeNode]:
+        defmacro_tok = self.tokens[self.pos]
+        self.pos += 1  # consume 'defmacro'
+
+        if self.pos >= len(self.tokens) or self.tokens[self.pos].type != "SYMBOL":
+            line = self.tokens[self.pos].line if self.pos < len(self.tokens) else defmacro_tok.line
+            col = self.tokens[self.pos].col if self.pos < len(self.tokens) else defmacro_tok.col
+            raise SchemeSyntaxError("Macro name must be a symbol", line, col)
+
+        name_tok = self.tokens[self.pos]
+        macro_name = str(name_tok.value)
+        if macro_name in ALLOWED_OPS:
+            raise SchemeSyntaxError(
+                f"Cannot define macro shadowing primitive '{macro_name}'",
+                name_tok.line,
+                name_tok.col,
+            )
+        self.pos += 1
+        name_sym = Symbol(macro_name, name_tok.line, name_tok.col)
+
+        # Parse parameter list '(' params... ')'
+        if self.pos >= len(self.tokens) or self.tokens[self.pos].type != "LPAREN":
+            line = self.tokens[self.pos].line if self.pos < len(self.tokens) else name_tok.line
+            col = self.tokens[self.pos].col if self.pos < len(self.tokens) else name_tok.col
+            raise SchemeSyntaxError("Expected '(' for macro parameter list", line, col)
+
+        param_lparen = self.tokens[self.pos]
+        self.pos += 1  # consume '('
+        params: list[SchemeNode] = []
+        seen_params: set[str] = set()
+        while True:
+            if self.pos >= len(self.tokens):
+                raise SchemeSyntaxError(
+                    "Unclosed parenthesis in macro parameters", param_lparen.line, param_lparen.col
+                )
+            cur = self.tokens[self.pos]
+            if cur.type == "RPAREN":
+                self.pos += 1  # consume ')'
+                break
+            if cur.type != "SYMBOL":
+                raise SchemeSyntaxError(
+                    f"Macro parameter must be a symbol, got {cur.value}", cur.line, cur.col
+                )
+            p_name = str(cur.value)
+            if p_name in seen_params:
+                raise SchemeSyntaxError(
+                    f"Duplicate macro parameter '{p_name}' in definition of '{macro_name}'",
+                    cur.line,
+                    cur.col,
+                )
+            seen_params.add(p_name)
+            params.append(Symbol(p_name, cur.line, cur.col))
+            self.pos += 1
+
+        # Parse macro body with _in_macro_body = True so template symbols/operators are preserved
+        prev_in_macro = self._in_macro_body
+        self._in_macro_body = True
+        try:
+            body = self._parse_expr()
+        finally:
+            self._in_macro_body = prev_in_macro
+
+        if self.pos >= len(self.tokens) or self.tokens[self.pos].type != "RPAREN":
+            line = self.tokens[self.pos].line if self.pos < len(self.tokens) else lparen.line
+            col = self.tokens[self.pos].col if self.pos < len(self.tokens) else lparen.col
+            raise SchemeSyntaxError("Expected ')' closing defmacro form", line, col)
+        self.pos += 1  # consume ')'
+        self.depth -= 1
+
+        macro_node: list[SchemeNode] = [
+            Symbol("defmacro", defmacro_tok.line, defmacro_tok.col),
+            name_sym,
+            params,
+            body,
+        ]
+        if self.macro_registry is not None and hasattr(self.macro_registry, "register"):
+            from lucca.reasoning.scheme.macros import parse_defmacro  # noqa: PLC0415
+
+            macro_def = parse_defmacro(macro_node)
+            self.macro_registry.register(macro_def)
+        return macro_node
 
     def _parse_expr(self) -> SchemeNode:
         if self.pos >= len(self.tokens):
@@ -159,6 +258,14 @@ class Parser:
                 lparen.col,
             )
 
+        # Check if this list starts with 'defmacro'
+        if (
+            self.pos < len(self.tokens)
+            and self.tokens[self.pos].type == "SYMBOL"
+            and self.tokens[self.pos].value == "defmacro"
+        ):
+            return self._parse_defmacro_form(lparen)
+
         items: list[SchemeNode] = []
         while True:
             if self.pos >= len(self.tokens):
@@ -181,10 +288,14 @@ class Parser:
                 raise SchemeSyntaxError(
                     "Primitive shadowing or 'define' is forbidden", items[0].line, items[0].col
                 )
-            if op not in ALLOWED_OPS:
-                raise SchemeSyntaxError(
-                    f"Unknown or disallowed operator '{op}'", items[0].line, items[0].col
-                )
+            if not self._in_macro_body and op not in ALLOWED_OPS:
+                has_macro = False
+                if self.macro_registry is not None and hasattr(self.macro_registry, "has"):
+                    has_macro = self.macro_registry.has(op)
+                if not has_macro:
+                    raise SchemeSyntaxError(
+                        f"Unknown or disallowed operator '{op}'", items[0].line, items[0].col
+                    )
 
             # Check 'if' arity at parse time (Spec 05 §3)
             if op == "if":
@@ -268,11 +379,74 @@ def has_state_predicate(node: SchemeNode) -> bool:
     return False
 
 
-def parse_rule(source: str) -> RuleDefinition:
+def _validate_operators(node: SchemeNode) -> None:
+    """Verifies that all operator symbols in the node are strictly in ALLOWED_OPS."""
+    if isinstance(node, list) and node:
+        head = node[0]
+        if isinstance(head, Symbol):
+            op = head.name
+            if op not in ALLOWED_OPS:
+                raise SchemeSyntaxError(
+                    f"Disallowed operator '{op}' after macro expansion", head.line, head.col
+                )
+        for child in node:
+            _validate_operators(child)
+
+
+def parse_rule(source: str, macro_registry: object | None = None) -> RuleDefinition:
     """
     Parses and strictly validates a canonical MicroScheme rule according to Spec 05 §2 & §7.
+    Supports top-level (defmacro ...) definitions and macro expansion prior to compilation.
     """
-    ast = parse(source)
+    from lucca.reasoning.scheme.macros import (  # noqa: PLC0415
+        MacroExpander,
+        MacroRegistry,
+        parse_defmacro,
+    )
+
+    reg: MacroRegistry
+    if macro_registry is None:
+        reg = MacroRegistry()
+    elif isinstance(macro_registry, MacroRegistry):
+        reg = macro_registry
+    else:
+        reg = MacroRegistry()
+
+    tokens = tokenize(source)
+    parser = Parser(tokens, macro_registry=reg)
+    forms = parser.parse_all_forms()
+
+    rule_ast: SchemeNode | None = None
+    for form in forms:
+        if isinstance(form, list) and form and isinstance(form[0], Symbol):
+            if form[0].name == "defmacro":
+                macro_def = parse_defmacro(form)
+                reg.register(macro_def)
+            elif form[0].name == "rule":
+                if rule_ast is not None:
+                    raise SchemeSyntaxError(
+                        "Multiple 'rule' forms found in source; only one allowed per rule file"
+                    )
+                rule_ast = form
+            else:
+                raise SchemeSyntaxError(
+                    f"Top-level form must be 'defmacro' or 'rule', got '{form[0].name}'"
+                )
+        else:
+            raise SchemeSyntaxError(
+                f"Top-level form must be a list starting with 'defmacro' or 'rule', got {form}"
+            )
+
+    if rule_ast is None:
+        raise SchemeSyntaxError("No 'rule' form found in source")
+
+    # Expand macros in rule AST
+    expander = MacroExpander(reg)
+    ast = expander.expand(rule_ast)
+
+    # Validate that all operations are in ALLOWED_OPS after expansion
+    _validate_operators(ast)
+
     if not isinstance(ast, list) or len(ast) < 6:
         raise SchemeSyntaxError(
             'Rule must be a list of form (rule "id" :when ... :plan ... [:priority N])'

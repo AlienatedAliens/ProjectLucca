@@ -326,6 +326,12 @@ class RegressionReport(BaseModel):
     failures: list[str] = Field(default_factory=list)
 
 
+class ExecutionTier(StrEnum):
+    REFLEX = "REFLEX"
+    ACT_THEN_NARRATE = "ACT_THEN_NARRATE"
+    FULL_LOOP = "FULL_LOOP"
+
+
 class RouteAction(StrEnum):
     RULE = "RULE"
     LLM = "LLM"
@@ -352,10 +358,12 @@ class RouteFeatures(BaseModel):
     any_active_rule_fired: bool = False
     any_quarantine_rule_fired: bool = False
     has_registered_rule: bool = False
+    tier: ExecutionTier = ExecutionTier.FULL_LOOP
 
 
 class RouteDecision(BaseModel):
     action: RouteAction
+    tier: ExecutionTier = ExecutionTier.REFLEX
     probabilities: dict[str, float] | None = None
     prediction_set: list[RouteAction]
     fallback_applied: bool = False
@@ -452,6 +460,8 @@ class ToolDefinition(BaseModel):
 class ChatMessage(BaseModel):
     role: str
     content: str | list[dict[str, JsonValue]]
+    tool_call_id: str | None = None
+    name: str | None = None
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)
