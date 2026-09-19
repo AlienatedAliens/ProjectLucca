@@ -36,22 +36,36 @@ class ASRWorker:
         self._init_model()
 
     def _init_model(self) -> None:
-        if faster_whisper is None:
-            self.backend = "faster-whisper-not-installed"
-            return
+        # Ensure cublas DLL path is available for CUDA faster-whisper on Windows
+        import os
+        cublas_path = r"C:\ProjectLucca\app\llama-server"
+        if os.path.exists(cublas_path) and cublas_path not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = f"{cublas_path};" + os.environ.get("PATH", "")
 
         try:
-            # Use distil-small.en int8 for fast CPU transcription
+            # Primary acceleration: CUDA float16 on discrete GPU (~68-85 ms latency)
             self.model = faster_whisper.WhisperModel(
                 "distil-small.en",
-                device="cpu",
-                compute_type="int8",
-                cpu_threads=6,
+                device="cuda",
+                compute_type="float16",
             )
-            self.backend = "faster-whisper-cpu-int8"
-        except (OSError, RuntimeError) as e:
-            logger.warning("faster_whisper_init_failed", error=str(e))
-            self.backend = f"failed: {e}"
+            self.backend = "faster-whisper-cuda-float16"
+            logger.info("asr_initialized_cuda", backend=self.backend)
+        except Exception as cuda_err:
+            logger.info("asr_cuda_fallback_to_cpu", reason=str(cuda_err))
+            try:
+                # Fallback: CPU int8 with 6 worker threads
+                self.model = faster_whisper.WhisperModel(
+                    "distil-small.en",
+                    device="cpu",
+                    compute_type="int8",
+                    cpu_threads=6,
+                )
+                self.backend = "faster-whisper-cpu-int8"
+                logger.info("asr_initialized_cpu_fallback", backend=self.backend)
+            except (OSError, RuntimeError) as e:
+                logger.warning("faster_whisper_init_failed", error=str(e))
+                self.backend = f"failed: {e}"
 
     def transcribe(self, pcm_int16: npt.NDArray[np.int16]) -> ASRResultPayload:
         t0 = time.perf_counter()
@@ -92,6 +106,7 @@ class ASRWorker:
                     language="en",
                     task="transcribe",
                     beam_size=1,
+                    temperature=0.0,
                 )
 
                 for seg in segments_iter:

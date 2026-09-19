@@ -326,6 +326,7 @@ def test_t_sbx_16_host_sha256_audit(workspace: Path, file_tool: SafeFileTool):
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(mock_transport, "is_docker_available", lambda: True)
+        mp.setattr(mock_transport, "is_container_running", lambda: True)
         mp.setattr("subprocess.Popen", lambda *args, **kwargs: mock_proc)
         res_tampered = mock_transport.execute("call-2", "read_file", {"path": "audit.txt"})
         assert res_tampered.ok is False

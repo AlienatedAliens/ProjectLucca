@@ -54,7 +54,6 @@ def get_file_sandbox_run_args(
         "1000:1000",
         "--cap-drop=ALL",
         "--security-opt=no-new-privileges",
-        "--security-opt=seccomp=default",
         "--memory=768m",
         "--memory-swap=768m",
         "--cpus=1.5",

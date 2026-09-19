@@ -9,6 +9,7 @@ import json
 import shutil
 import subprocess
 import time
+from pathlib import Path
 from typing import cast
 
 import structlog
@@ -62,6 +63,59 @@ class DockerRPCTransport:
         except (subprocess.SubprocessError, OSError):
             return False
 
+    def is_container_running(self) -> bool:
+        """Checks if the sandbox container is actively running."""
+        try:
+            res = subprocess.run(  # noqa: S603
+                [  # noqa: S607
+                    "wsl",
+                    "-d",
+                    self.wsl_distro,
+                    "--",
+                    "docker",
+                    "inspect",
+                    "-f",
+                    "{{.State.Running}}",
+                    self.container_name,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5.0,
+                check=False,
+            )
+            return res.returncode == 0 and res.stdout.strip().lower() == "true"
+        except (subprocess.SubprocessError, OSError):
+            return False
+
+    def ensure_container_running(self, workspace_path: Path | str | None = None) -> bool:
+        """Ensures the file sandbox container is running, launching it if necessary."""
+        if not self.is_docker_available():
+            return False
+        if self.is_container_running():
+            return True
+
+        from lucca.sandbox.container_spec import get_file_sandbox_run_args
+
+        # Remove any stopped/stale container with the same name
+        subprocess.run(  # noqa: S603
+            ["wsl", "-d", self.wsl_distro, "--", "docker", "rm", "-f", self.container_name],  # noqa: S607
+            capture_output=True,
+            timeout=5.0,
+            check=False,
+        )
+        run_args = get_file_sandbox_run_args(
+            workspace_path=workspace_path,
+            container_name=self.container_name,
+        )
+        cmd = ["wsl", "-d", self.wsl_distro, "--", "docker"] + run_args
+        res = subprocess.run(  # noqa: S603
+            cmd,
+            capture_output=True,
+            timeout=10.0,
+            check=False,
+        )
+        return res.returncode == 0 and self.is_container_running()
+
     def execute(
         self,
         call_id: str,
@@ -81,6 +135,15 @@ class DockerRPCTransport:
                 ok=False,
                 exit_code=-2,
                 stderr="sandbox unavailable: Docker/WSL not reachable",
+                elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+            )
+
+        if not self.is_container_running() and not self.ensure_container_running():
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-2,
+                stderr="sandbox unavailable: container could not be started",
                 elapsed_ms=(time.perf_counter() - t0) * 1000.0,
             )
 

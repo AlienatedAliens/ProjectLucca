@@ -287,18 +287,20 @@ class SandboxService:
                 elapsed_ms=0.0,
             )
 
-        # 7. Interim Security Mitigation: Hard-block run_python
+        # 7. run_python execution under container isolation
         if tool_name == "run_python":
-            err_msg = "policy_violation: run_python is disabled until Milestone 2 container isolation lands"
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=-1,
-                stderr=err_msg,
-                content=err_msg,
-                structured={"ok": False, "exit_code": -1, "stderr": err_msg},
-                elapsed_ms=0.0,
-            )
+            if self.rpc.use_direct_fallback or not self.rpc.is_docker_available():
+                err_msg = "policy_violation: run_python is disabled until Milestone 2 container isolation lands (requires active container sandbox)"
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=err_msg,
+                    content=err_msg,
+                    structured={"ok": False, "exit_code": -1, "stderr": err_msg},
+                    elapsed_ms=0.0,
+                )
+            return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
 
         # 8. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
