@@ -1,15 +1,44 @@
 {
-  "timestamp": "2026-09-19T22:36:13Z",
+  "timestamp": "2026-09-19T22:48:25Z",
   "n_trials": 50,
-  "baseline_single_shot_p50_ms": 433.88,
-  "persistent_bridge_min_ms": 2.88,
-  "persistent_bridge_p50_ms": 5.21,
-  "persistent_bridge_mean_ms": 32.43,
-  "persistent_bridge_p90_ms": 115.97,
-  "persistent_bridge_p95_ms": 137.36,
-  "persistent_bridge_p99_ms": 147.98,
-  "persistent_bridge_max_ms": 147.98,
-  "persistent_bridge_stdev_ms": 50.01,
-  "speedup_ratio": 83.2,
-  "total_wall_s": 1.622
+  "workload_ratio": {
+    "filesystem_n": 38,
+    "python_n": 12
+  },
+  "baseline_single_shot_p50_ms": 569.04,
+  "filesystem_io": {
+    "n": 38.0,
+    "min": 3.88,
+    "p50": 5.96,
+    "mean": 5.94,
+    "p90": 7.33,
+    "p95": 7.93,
+    "p99": 8.07,
+    "max": 8.07,
+    "stdev": 1.07
+  },
+  "isolated_python": {
+    "n": 12.0,
+    "min": 108.83,
+    "p50": 122.1,
+    "mean": 121.87,
+    "p90": 132.59,
+    "p95": 146.6,
+    "p99": 146.6,
+    "max": 146.6,
+    "stdev": 10.68
+  },
+  "mixed_aggregate": {
+    "n": 50.0,
+    "min": 3.88,
+    "p50": 6.4,
+    "mean": 33.77,
+    "p90": 122.89,
+    "p95": 128.46,
+    "p99": 146.6,
+    "max": 146.6,
+    "stdev": 50.28
+  },
+  "speedup_filesystem_ratio": 95.5,
+  "total_wall_s": 1.688
 }

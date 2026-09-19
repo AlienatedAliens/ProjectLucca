@@ -124,37 +124,58 @@ def run_benchmark(n_trials: int = 50) -> None:
     orch.sandbox.close()
 
     # 4. Statistical Analysis
-    sorted_lats = sorted(latencies)
-    lat_min = sorted_lats[0]
-    lat_max = sorted_lats[-1]
-    lat_mean = statistics.mean(sorted_lats)
-    lat_p50 = statistics.median(sorted_lats)
-    lat_p90 = sorted_lats[int(n_trials * 0.90)]
-    lat_p95 = sorted_lats[int(n_trials * 0.95)]
-    lat_p99 = sorted_lats[int(n_trials * 0.99)]
-    lat_stdev = statistics.stdev(sorted_lats) if len(sorted_lats) > 1 else 0.0
+    fs_lats = [latencies[i] for i in range(n_trials) if tools_workload[i % len(tools_workload)][0] != "run_python"]
+    py_lats = [latencies[i] for i in range(n_trials) if tools_workload[i % len(tools_workload)][0] == "run_python"]
 
-    speedup_ratio = base_p50 / lat_p50 if lat_p50 > 0 else 0.0
+    def calc_stats(data: list[float]) -> dict[str, float]:
+        s = sorted(data)
+        n = len(s)
+        return {
+            "n": float(n),
+            "min": s[0],
+            "p50": statistics.median(s),
+            "mean": statistics.mean(s),
+            "p90": s[int(n * 0.90)],
+            "p95": s[int(n * 0.95)],
+            "p99": s[min(n - 1, int(n * 0.99))],
+            "max": s[-1],
+            "stdev": statistics.stdev(s) if n > 1 else 0.0,
+        }
+
+    agg_stats = calc_stats(latencies)
+    fs_stats = calc_stats(fs_lats)
+    py_stats = calc_stats(py_lats)
+
+    speedup_fs = base_p50 / fs_stats["p50"] if fs_stats["p50"] > 0 else 0.0
 
     print("\n" + "=" * 70)
-    print("BENCHMARK RESULTS (N=50 Trials on Silicon)")
+    print("BENCHMARK RESULTS (N=50 Workstation Silicon Trials)")
     print("=" * 70)
-    print(f"  Trials Executed   : {n_trials} / {n_trials} PASSED (100% success)")
-    print(f"  Total Wall Clock  : {total_wall_s * 1000.0:.2f} ms ({total_wall_s:.3f} s)")
-    print(f"  Throughput        : {n_trials / total_wall_s:.1f} calls/sec")
+    print(f"  Total Trials Executed : {n_trials} / {n_trials} PASSED (100% success)")
+    print(f"  Workload Breakdown    : {int(fs_stats['n'])} Filesystem I/O ({int(fs_stats['n'])*100//n_trials}%) + {int(py_stats['n'])} Ephemeral Python ({int(py_stats['n'])*100//n_trials}%)")
+    print(f"  Total Wall Clock      : {total_wall_s * 1000.0:.2f} ms ({total_wall_s:.3f} s)")
+    print(f"  Baseline Single-Shot  : P50 = {base_p50:.2f} ms (Min: {min(single_shot_latencies):.2f} ms)")
     print("-" * 70)
-    print(f"  Baseline Single-Shot P50 : {base_p50:.2f} ms")
-    print(f"  Persistent Bridge P50    : {lat_p50:.2f} ms")
-    print(f"  Latency Collapse (P50)   : -{100.0 * (1.0 - (lat_p50 / base_p50)):.1f}% ({speedup_ratio:.1f}x speedup)")
+    print("  PRIMARY: Filesystem Operations (list_dir, write_file, read_file)")
+    print(f"    Sample Size (N)     : N = {int(fs_stats['n'])}")
+    print(f"    Turnaround (P50)    : {fs_stats['p50']:6.2f} ms (-{100.0 * (1.0 - (fs_stats['p50'] / base_p50)):.1f}%, {speedup_fs:.1f}x speedup)")
+    print(f"    Min                 : {fs_stats['min']:6.2f} ms")
+    print(f"    Mean                : {fs_stats['mean']:6.2f} ms (stdev: {fs_stats['stdev']:.2f} ms)")
+    print(f"    P90                 : {fs_stats['p90']:6.2f} ms")
+    print(f"    P95                 : {fs_stats['p95']:6.2f} ms")
+    print(f"    P99 / Max           : {fs_stats['max']:6.2f} ms")
     print("-" * 70)
-    print("  Detailed Latency Distribution (Orchestrator End-to-End):")
-    print(f"    Min      : {lat_min:6.2f} ms")
-    print(f"    P50 (Med): {lat_p50:6.2f} ms")
-    print(f"    Mean     : {lat_mean:6.2f} ms (stdev: {lat_stdev:.2f} ms)")
-    print(f"    P90      : {lat_p90:6.2f} ms")
-    print(f"    P95      : {lat_p95:6.2f} ms")
-    print(f"    P99      : {lat_p99:6.2f} ms")
-    print(f"    Max      : {lat_max:6.2f} ms")
+    print("  PRIMARY: Sub-Isolated Compute (run_python child process with rlimits)")
+    print(f"    Sample Size (N)     : N = {int(py_stats['n'])}")
+    print(f"    Turnaround (P50)    : {py_stats['p50']:6.2f} ms")
+    print(f"    Min                 : {py_stats['min']:6.2f} ms")
+    print(f"    Mean                : {py_stats['mean']:6.2f} ms (stdev: {py_stats['stdev']:.2f} ms)")
+    print(f"    P90                 : {py_stats['p90']:6.2f} ms")
+    print(f"    P95                 : {py_stats['p95']:6.2f} ms")
+    print(f"    P99 / Max           : {py_stats['max']:6.2f} ms")
+    print("-" * 70)
+    print("  FOOTNOTE: Mixed Bimodal Aggregate (76% Filesystem + 24% Python)")
+    print(f"    P50: {agg_stats['p50']:5.2f} ms | Mean: {agg_stats['mean']:5.2f} ms | P90: {agg_stats['p90']:5.2f} ms | P95: {agg_stats['p95']:5.2f} ms | P99: {agg_stats['p99']:5.2f} ms")
     print("=" * 70)
 
     # Save benchmark JSON report
@@ -163,16 +184,12 @@ def run_benchmark(n_trials: int = 50) -> None:
     report_data = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "n_trials": n_trials,
+        "workload_ratio": {"filesystem_n": int(fs_stats["n"]), "python_n": int(py_stats["n"])},
         "baseline_single_shot_p50_ms": round(base_p50, 2),
-        "persistent_bridge_min_ms": round(lat_min, 2),
-        "persistent_bridge_p50_ms": round(lat_p50, 2),
-        "persistent_bridge_mean_ms": round(lat_mean, 2),
-        "persistent_bridge_p90_ms": round(lat_p90, 2),
-        "persistent_bridge_p95_ms": round(lat_p95, 2),
-        "persistent_bridge_p99_ms": round(lat_p99, 2),
-        "persistent_bridge_max_ms": round(lat_max, 2),
-        "persistent_bridge_stdev_ms": round(lat_stdev, 2),
-        "speedup_ratio": round(speedup_ratio, 1),
+        "filesystem_io": {k: round(v, 2) for k, v in fs_stats.items()},
+        "isolated_python": {k: round(v, 2) for k, v in py_stats.items()},
+        "mixed_aggregate": {k: round(v, 2) for k, v in agg_stats.items()},
+        "speedup_filesystem_ratio": round(speedup_fs, 1),
         "total_wall_s": round(total_wall_s, 3),
     }
     report_path.write_text(json.dumps(report_data, indent=2), encoding="utf-8")

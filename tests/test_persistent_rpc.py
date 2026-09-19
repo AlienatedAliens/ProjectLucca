@@ -251,3 +251,63 @@ def test_transport_sha256_audit_and_fallback(ensure_sandbox: DockerRPCTransport)
         assert res_fallback.call_id == "c-fallback-1"
     finally:
         transport.close()
+
+
+def test_sandbox_service_confirmation_gate_upstream_of_persistent_worker(ensure_sandbox: DockerRPCTransport):
+    """
+    Verifies that SandboxService confirmation checks (Stage 2) execute host-side
+    strictly UPSTREAM of DockerRPCTransport / PersistentDockerWorker.
+    Unconfirmed write_file, delete_file, and run_python calls must be rejected with
+    exit_code=-3, stderr="confirmation_required", and must NEVER reach the persistent worker.
+    """
+    from unittest.mock import patch
+    from lucca.sandbox.service import SandboxService
+
+    service = SandboxService()
+    try:
+        # Patch rpc.execute to assert if unconfirmed calls reach transport
+        with patch.object(service.rpc, "execute", side_effect=AssertionError("Confirmation gate bypassed!")):
+            # 1. Unconfirmed write_file
+            res_w = service.execute_tool(
+                call_id="c-unconf-w",
+                tool_name="write_file",
+                args={"path": "evil.txt", "content": "blocked", "mode": "create"},
+                confirmed=False,
+            )
+            assert res_w.ok is False
+            assert res_w.exit_code == -3
+            assert res_w.stderr == "confirmation_required"
+
+            # 2. Unconfirmed delete_file
+            res_d = service.execute_tool(
+                call_id="c-unconf-d",
+                tool_name="delete_file",
+                args={"path": "evil.txt"},
+                confirmed=False,
+            )
+            assert res_d.ok is False
+            assert res_d.exit_code == -3
+            assert res_d.stderr == "confirmation_required"
+
+            # 3. Unconfirmed run_python
+            res_p = service.execute_tool(
+                call_id="c-unconf-p",
+                tool_name="run_python",
+                args={"code": "print('blocked')"},
+                confirmed=False,
+            )
+            assert res_p.ok is False
+            assert res_p.exit_code == -3
+            assert res_p.stderr == "confirmation_required"
+
+        # 4. Confirmed call passes the gate and reaches persistent worker
+        res_conf = service.execute_tool(
+            call_id="c-conf-w",
+            tool_name="write_file",
+            args={"path": "confirmed_gate_test.txt", "content": "allowed", "mode": "overwrite"},
+            confirmed=True,
+        )
+        assert res_conf.ok is True
+        assert res_conf.call_id == "c-conf-w"
+    finally:
+        service.close()
