@@ -40,6 +40,7 @@ class PTTReleasedPayload(BaseModel):
     capture_seq_end: int
     duration_ms: float
     vad_speech_ms: float
+    vad_done_ns: int = 0
 
 
 class AudioUnderrunPayload(BaseModel):
@@ -47,6 +48,11 @@ class AudioUnderrunPayload(BaseModel):
 
 
 class AudioFirstSamplePlayedPayload(BaseModel):
+    trace_id: str
+    t_ns: int
+
+
+class PlaybackDonePayload(BaseModel):
     trace_id: str
     t_ns: int
 

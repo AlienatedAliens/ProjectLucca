@@ -9,6 +9,8 @@ import pytest
 
 from lucca.core.ipc_schemas import (
     ASRResultPayload,
+    Envelope,
+    PlaybackDonePayload,
     PTTReleasedPayload,
     TTSDonePayload,
 )
@@ -419,6 +421,97 @@ def test_tts_does_not_block_token_consumption() -> None:
 
         assert orch.state == "idle"
         assert len(orch.tts.synthesized_chunks) == 6
+    finally:
+        orch.stop()
+        orch.cap_ring.close()
+        orch.cap_ring.unlink()
+        orch.play_ring.close()
+        orch.play_ring.unlink()
+
+
+def test_trace_points_populated():
+    """
+    F-CORE-009: Verify all spec'd trace points are populated and monotonic in order.
+    Asserts:
+    t_asr_sent < t_asr_done <= t_llm_sent < t_llm_first_token <= t_first_chunk
+    <= t_tts_first_sent < t_tts_first_done <= t_llm_done <= t_postturn_done
+    and all are > 0.
+    """
+    from tests.fakes.fake_asr import FakeASR
+
+    fake_script = [
+        TokenDelta(delta="Hello "),
+        TokenDelta(delta="world, this is a long enough chunk to emit audio.\n"),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=10)),
+    ]
+    orch = Orchestrator(
+        tts=FakeTTS, asr=FakeASR(transcript="hello lucca"), llm=FakeLLM(script=fake_script)
+    )
+    try:
+        # 1. PTT Pressed
+        press_ts = 1_000_000_000
+        orch._on_ptt_pressed(ts_ns=press_ts)
+
+        # Write dummy audio (16,000 samples)
+        dummy_pcm = np.ones(16000, dtype=np.int16) * 1000
+        orch.cap_ring.write(dummy_pcm)
+
+        # 2. PTT Released
+        release_ts = 2_000_000_000
+        payload = PTTReleasedPayload(
+            t_ns=release_ts,
+            capture_seq_start=0,
+            capture_seq_end=16000,
+            duration_ms=1000.0,
+            vad_speech_ms=900.0,
+            vad_done_ns=release_ts + 1_000_000,
+        )
+        orch._on_ptt_released(ts_ns=release_ts, p=payload)
+
+        # Wait for turn thread to complete
+        if orch.active_turn_thread:
+            orch.active_turn_thread.join(timeout=5.0)
+
+        assert orch.state == "idle"
+        trace = orch.active_trace
+        assert trace is not None
+
+        # Verify all core trace points are > 0
+        assert trace.t_key_press > 0
+        assert trace.t_key_release > 0
+        assert trace.t_vad_done > 0
+        assert trace.t_asr_sent > 0
+        assert trace.t_asr_done > 0
+        assert trace.t_route_done > 0
+        assert trace.t_llm_sent > 0
+        assert trace.t_llm_first_token > 0
+        assert trace.t_first_chunk > 0
+        assert trace.t_tts_first_sent > 0
+        assert trace.t_tts_first_done > 0
+        assert trace.t_tts_last_done > 0
+        assert trace.t_llm_done > 0
+        assert trace.t_postturn_done > 0
+
+        # Verify ordering per F-CORE-009
+        assert trace.t_asr_sent < trace.t_asr_done
+        assert trace.t_asr_done <= trace.t_llm_sent
+        assert trace.t_llm_sent <= trace.t_llm_first_token
+        assert trace.t_llm_first_token <= trace.t_first_chunk
+        assert trace.t_first_chunk <= trace.t_tts_first_sent
+        assert trace.t_tts_first_sent <= trace.t_tts_first_done
+        assert trace.t_tts_first_done <= trace.t_postturn_done
+        assert trace.t_llm_done <= trace.t_postturn_done
+
+        # Ingest playback_done and verify t_playback_done
+        playback_done_env = Envelope(
+            type="audio.playback_done",
+            trace_id=trace.trace_id,
+            ts_ns=3_000_000_000,
+            src="audio",
+            payload=PlaybackDonePayload(trace_id=trace.trace_id, t_ns=3_000_000_000).model_dump(),
+        )
+        orch._handle_ingest_message(playback_done_env)
+        assert trace.t_playback_done == 3_000_000_000
     finally:
         orch.stop()
         orch.cap_ring.close()

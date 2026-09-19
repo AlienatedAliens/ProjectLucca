@@ -22,6 +22,7 @@ from lucca.core.ipc_schemas import (
     AudioRMSPayload,
     AudioUnderrunPayload,
     Envelope,
+    PlaybackDonePayload,
     PTTPressedPayload,
     PTTReleasedPayload,
     SysPongPayload,
@@ -112,6 +113,7 @@ class AudioProcess:
             vad_ms = 0.0
         else:
             vad_ms, _, _ = self.vad.process(slice_samples)
+        vad_done_ns = now_ns()
 
         print(f"[AUDIO] PTT Released ({duration_ms:.0f}ms, speech: {vad_ms:.0f}ms)", flush=True)
         env = Envelope(
@@ -125,6 +127,7 @@ class AudioProcess:
                 capture_seq_end=capture_end,
                 duration_ms=duration_ms,
                 vad_speech_ms=vad_ms,
+                vad_done_ns=vad_done_ns,
             ).model_dump(),
         )
         self._send_ingest(env)
@@ -212,6 +215,18 @@ class AudioProcess:
             self.is_playing = False
             self.first_sample_emitted = False
             self.play_ring.clear_flag(FLAG_EOS)
+            if self.active_trace_id:
+                done_ts_ns = now_ns()
+                env = Envelope(
+                    type="audio.playback_done",
+                    trace_id=self.active_trace_id,
+                    ts_ns=done_ts_ns,
+                    src="audio",
+                    payload=PlaybackDonePayload(
+                        trace_id=self.active_trace_id, t_ns=done_ts_ns
+                    ).model_dump(),
+                )
+                self._send_ingest(env)
 
         # Check for underrun if ring ran dry while turn still active
         elif avail == 0 and not is_eos and self.is_playing:

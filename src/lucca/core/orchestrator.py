@@ -178,6 +178,7 @@ class Orchestrator:
         self.executed_tools: list[tuple[str, dict[str, JsonValue]]] = []
         self._turn_lock = threading.Lock()
         self._last_pong: dict[str, float] = {}
+        self._last_ptt_press_ns: int = 0
         self.quit_requested: bool = False
 
         # Memory Store & Provenance Signer
@@ -299,6 +300,7 @@ class Orchestrator:
     def _handle_ingest_message(self, env: Envelope) -> None:
         with self._turn_lock:
             if env.type == "ptt.pressed":
+                self._last_ptt_press_ns = env.ts_ns
                 self._on_ptt_pressed(env.ts_ns)
             elif env.type == "ptt.released":
                 p = PTTReleasedPayload.model_validate(env.payload)
@@ -334,6 +336,9 @@ class Orchestrator:
             elif env.type == "audio.first_sample_played":
                 if self.active_trace:
                     self.active_trace.t_first_sample = env.ts_ns
+            elif env.type == "audio.playback_done":
+                if self.active_trace and self.active_trace.trace_id == env.trace_id:
+                    self.active_trace.t_playback_done = env.ts_ns
             elif env.type in ("ui.talk_press", "ui.talk_release"):
                 self._publish_bus(env)
             elif env.type == "ui.confirm_result":
@@ -452,10 +457,18 @@ class Orchestrator:
             self._abort_turn()
 
         trace_id = str(ulid.ULID())
+        press_ns = (
+            self._last_ptt_press_ns
+            if self._last_ptt_press_ns > 0
+            else max(1, ts_ns - int(p.duration_ms * 1_000_000))
+        )
+        vad_done_ns = getattr(p, "vad_done_ns", 0) or ts_ns
         trace = TurnTrace(
             trace_id=trace_id,
             mode=self.config.llm.mode,
+            t_key_press=press_ns,
             t_key_release=ts_ns,
+            t_vad_done=vad_done_ns,
         )
         self.active_trace = trace
         print(f"[PTT] ⚙️ Processing speech ({p.duration_ms:.0f}ms captured)...", flush=True)
@@ -477,7 +490,9 @@ class Orchestrator:
         trace = TurnTrace(
             trace_id=trace_id,
             mode="transcript",
+            t_key_press=ts_ns,
             t_key_release=ts_ns,
+            t_vad_done=ts_ns,
         )
         self.active_trace = trace
 
@@ -608,7 +623,6 @@ class Orchestrator:
             self._set_state("idle")
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
-        trace.t_llm_sent = now_ns()
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
@@ -633,7 +647,9 @@ class Orchestrator:
         # Transcribe audio with ASR
         transcribed_text = ""
         if self.asr and len(pcm_samples) > 0:
+            trace.t_asr_sent = now_ns()
             asr_res = self.asr.transcribe(pcm_samples)
+            trace.t_asr_done = now_ns()
             transcribed_text = asr_res.text.strip()
             self.current_turn_transcript = transcribed_text
 
@@ -708,6 +724,7 @@ class Orchestrator:
             )
         except Exception as e:  # noqa: BLE001
             logger.error("router_execution_error", error=str(e))
+        trace.t_route_done = now_ns()
 
         if route_decision and route_decision.action == RouteAction.RULE:
             winning_outcome: RuleOutcome | None = None
@@ -768,6 +785,7 @@ class Orchestrator:
 
             mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
             print("[Lucca] ", end="", flush=True)
+            trace.t_llm_sent = now_ns()
             for event in self.llm.stream_turn(
                 current_audio_b64=llm_audio,
                 current_text=llm_text,
@@ -856,7 +874,6 @@ class Orchestrator:
             self._finalize_turn(trace, decision_id)
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
-        trace.t_llm_sent = now_ns()
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
@@ -915,6 +932,7 @@ class Orchestrator:
             )
         except Exception as e:  # noqa: BLE001
             logger.error("router_execution_error", error=str(e))
+        trace.t_route_done = now_ns()
 
         if route_decision and route_decision.action == RouteAction.RULE:
             winning_outcome: RuleOutcome | None = None
@@ -962,6 +980,7 @@ class Orchestrator:
         try:
             mem_hits = self._search_memories(user_text) if user_text else []
             print("[Lucca] ", end="", flush=True)
+            trace.t_llm_sent = now_ns()
             for event in self.llm.stream_turn(
                 current_text=user_text,
                 history=self.history,
@@ -1046,6 +1065,7 @@ class Orchestrator:
 
         if chunk_id == 0:
             trace.t_tts_first_done = now_ns()
+        trace.t_tts_last_done = now_ns()
         trace.chunks += 1
 
     def _tts_worker(self) -> None:
@@ -1094,7 +1114,11 @@ class Orchestrator:
         self._publish_bus(begin_env)
         self._set_state("speaking")
         self._publish_caption(text, source="assistant", is_final=True)
+        trace.t_tts_first_sent = now_ns()
         self.tts.synthesize(chunk_id=0, text=text, is_first=True)
+        trace.t_tts_first_done = now_ns()
+        trace.t_tts_last_done = trace.t_tts_first_done
+        trace.chunks += 1
         self.play_ring.set_flag(FLAG_EOS)
 
     def _describe_tool_action(self, name: str, args: dict[str, JsonValue]) -> str:
