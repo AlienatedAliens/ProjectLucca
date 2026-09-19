@@ -31,8 +31,8 @@ def test_admin_help_exits_0(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_admin_stubs_exit_3(capsys: pytest.CaptureFixture[str]) -> None:
-    """F-CORE-027: Stubs (metrics, memory, rules, router, replay) exit 3 with message."""
-    for stub in ["metrics", "memory", "rules", "router", "replay"]:
+    """F-CORE-027: Stubs (metrics, memory, router, replay) exit 3 with message."""
+    for stub in ["metrics", "memory", "router", "replay"]:
         with pytest.raises(SystemExit) as exc_info:
             main([stub])
         assert exc_info.value.code == 3
@@ -148,3 +148,84 @@ def test_admin_models_verify(capsys: pytest.CaptureFixture[str]) -> None:
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
         assert "[PASS] Weights verified" in captured.out
+
+
+def test_admin_rules_cli_lifecycle(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Tests lucca-admin rules list, approve, and retire commands."""
+    from lucca.core.schemas import Plan, Risk, RuleState, ToolCall, ToolParameter, ToolSchema
+    from lucca.memory.db import DatabaseManager
+    from lucca.reasoning.lifecycle import RuleLifecycleManager
+
+    db_path = tmp_path / "admin_test.sqlite"
+    monkeypatch.setattr("lucca.memory.db.DEFAULT_DB_PATH", db_path)
+
+    # 1. rules list with empty DB
+    with pytest.raises(SystemExit) as exc_info:
+        main(["rules", "--db", str(db_path), "list"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "No rules currently registered" in captured.out
+
+    # 2. Register a rule and simulate 5 clusters so it reaches PENDING_APPROVAL
+    db = DatabaseManager(db_path)
+    db.migrate()
+    tools = {
+        "launch_app": ToolSchema(
+            name="launch_app",
+            description="Launch application",
+            parameters={"app": ToolParameter(type="string", description="App name")},
+            risk=Risk.LAUNCH,
+        )
+    }
+    mgr = RuleLifecycleManager(registered_tools=tools, db=db)
+    rule_src = """
+    (rule "open-calc-v1"
+      :when (and (intent= "launch_app") (entity-has? "app" "calculator"))
+      :plan (list (tool "launch_app" :app "calculator"))
+      :priority 5)
+    """
+    mgr.register_rule(rule_src)
+    state = RuleState(schema_version=1, intent="launch_app", entities={"app": ["calculator"]})
+    plan = Plan(actions=[ToolCall(tool="launch_app", args={"app": "calculator"}, call_id="c1")])
+    for i in range(5):
+        mgr.record_shadow(
+            "open-calc-v1",
+            matched=True,
+            cluster_id=f"c_{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+    mgr.promote_if_eligible("open-calc-v1")
+    assert mgr.rules["open-calc-v1"].status == "PENDING_APPROVAL"
+
+    # 3. rules list displays the rule in PENDING_APPROVAL
+    with pytest.raises(SystemExit) as exc_info:
+        main(["rules", "--db", str(db_path), "list"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "open-calc-v1" in captured.out
+    assert "PENDING_APPROVAL" in captured.out
+
+    # 4. Human operator approves the rule via CLI
+    with pytest.raises(SystemExit) as exc_info:
+        main(["rules", "--db", str(db_path), "approve", "open-calc-v1", "--approver", "sec-lead"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "SUCCESS:" in captured.out
+    assert "promoted to ACTIVE" in captured.out
+
+    # 5. rules list displays the rule as ACTIVE
+    with pytest.raises(SystemExit) as exc_info:
+        main(["rules", "--db", str(db_path), "list"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "ACTIVE" in captured.out
+
+    # 6. Human operator retires the rule via CLI
+    with pytest.raises(SystemExit) as exc_info:
+        main(["rules", "--db", str(db_path), "retire", "open-calc-v1"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "RETIRED:" in captured.out
