@@ -5,7 +5,6 @@ Spec 02 (SpeechLLMPort), Spec 08, ADR-001
 
 import json
 import threading
-import time
 import uuid
 from collections.abc import Generator
 from dataclasses import dataclass
@@ -27,6 +26,7 @@ from lucca.core.schemas import (
     ToolCall,
     ToolCallEnd,
 )
+from lucca.core.trace import now_ns
 
 logger = structlog.get_logger(__name__)
 
@@ -77,7 +77,7 @@ class LLMClient:
         max_tokens: int | None = None,
         trace_id: str | None = None,
     ) -> Generator[LLMEvent, None, None]:
-        eff_trace_id = trace_id or f"anon-{time.monotonic_ns()}"
+        eff_trace_id = trace_id or f"anon-{now_ns()}"
         eff_temp = (
             temperature if temperature is not None else getattr(self.config.llm, "temperature", 0.6)
         )

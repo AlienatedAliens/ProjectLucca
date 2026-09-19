@@ -4,11 +4,21 @@ Spec 10 §1, §2
 """
 
 import json
+import time
 from typing import Literal
 
 from pydantic import BaseModel
 
 from lucca.core.config import get_config
+
+
+def now_ns() -> int:
+    """High-resolution monotonic timestamp in nanoseconds.
+
+    Backed by QueryPerformanceCounter on Windows; process-independent since Windows 8.
+    Resolves F-CORE-008 clock quantization (~15.6 ms on CPython <= 3.12 GetTickCount64).
+    """
+    return time.perf_counter_ns()
 
 
 class TurnTrace(BaseModel):
@@ -70,6 +80,34 @@ def log_turn_trace(trace: TurnTrace) -> None:
     data["total_e2e_ms"] = trace.total_e2e_ms
     data["ttft_ms"] = trace.ttft_ms
     data["tts_first_ms"] = trace.tts_first_ms
+
+    t_fields = [
+        "t_key_press",
+        "t_key_release",
+        "t_vad_done",
+        "t_asr_sent",
+        "t_asr_done",
+        "t_route_done",
+        "t_llm_sent",
+        "t_llm_first_token",
+        "t_first_chunk",
+        "t_tts_first_sent",
+        "t_tts_first_done",
+        "t_first_sample",
+        "t_llm_done",
+        "t_tts_last_done",
+        "t_playback_done",
+        "t_postturn_done",
+    ]
+    origin = trace.t_key_release
+    if origin > 0:
+        data["stages_ms"] = {
+            name: round((getattr(trace, name) - origin) / 1_000_000.0, 3)
+            for name in t_fields
+            if getattr(trace, name) > 0
+        }
+    else:
+        data["stages_ms"] = {}
 
     with open(trace_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(data) + "\n")

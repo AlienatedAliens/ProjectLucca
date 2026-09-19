@@ -52,7 +52,7 @@ from lucca.core.schemas import (
     ToolResult,
     UnsignedPayload,
 )
-from lucca.core.trace import TurnTrace, log_turn_trace
+from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.memory.db import DatabaseManager
 from lucca.memory.signers import UserSpeechSigner, create_user_speech_signer
 from lucca.ports import MemoryStorePort, STTPort, TTSPort
@@ -234,7 +234,7 @@ class Orchestrator:
         env = Envelope(
             type="ui.state",
             trace_id=self.active_trace.trace_id if self.active_trace else "",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=UIStatePayload(state=ui_state, detail=detail).model_dump(),
         )
@@ -253,7 +253,7 @@ class Orchestrator:
         abort_env = Envelope(
             type="play.abort",
             trace_id=trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=PlayAbortPayload(trace_id=trace_id).model_dump(),
         )
@@ -261,7 +261,7 @@ class Orchestrator:
         shutdown_env = Envelope(
             type="sys.shutdown",
             trace_id="",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload={},
         )
@@ -277,7 +277,7 @@ class Orchestrator:
         env = Envelope(
             type="ui.caption",
             trace_id=trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=UICaptionPayload(text=text, is_final=is_final, source=source).model_dump(),
         )
@@ -410,7 +410,7 @@ class Orchestrator:
         abort_env = Envelope(
             type="play.abort",
             trace_id=trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=PlayAbortPayload(trace_id=trace_id).model_dump(),
         )
@@ -602,13 +602,13 @@ class Orchestrator:
             except Exception as e:  # noqa: BLE001
                 logger.debug("post_turn_telemetry_error", error=str(e))
 
-        trace.t_postturn_done = time.monotonic_ns()
+        trace.t_postturn_done = now_ns()
         log_turn_trace(trace)
         if self.active_trace is trace and not trace.interrupted:
             self._set_state("idle")
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
-        trace.t_llm_sent = time.monotonic_ns()
+        trace.t_llm_sent = now_ns()
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
@@ -750,7 +750,7 @@ class Orchestrator:
         begin_env = Envelope(
             type="play.begin",
             trace_id=trace.trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
         )
@@ -781,7 +781,7 @@ class Orchestrator:
                 if isinstance(event, TokenDelta) and event.delta:
                     if not first_token_seen:
                         first_token_seen = True
-                        trace.t_llm_first_token = time.monotonic_ns()
+                        trace.t_llm_first_token = now_ns()
 
                     trace.tokens_out += 1
                     full_response_text.append(event.delta)
@@ -794,7 +794,7 @@ class Orchestrator:
                         if trace.interrupted:
                             break
                         if chunk_index == 0:
-                            trace.t_first_chunk = time.monotonic_ns()
+                            trace.t_first_chunk = now_ns()
                             self._set_state("speaking")
 
                         try:
@@ -830,7 +830,7 @@ class Orchestrator:
                     # Signal End of Speech on playback ring
                     self.play_ring.set_flag(FLAG_EOS)
 
-            trace.t_llm_done = time.monotonic_ns()
+            trace.t_llm_done = now_ns()
             print("\n", flush=True)
 
             # Record turn in history
@@ -856,7 +856,7 @@ class Orchestrator:
             self._finalize_turn(trace, decision_id)
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
-        trace.t_llm_sent = time.monotonic_ns()
+        trace.t_llm_sent = now_ns()
         self.sandbox.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
@@ -948,7 +948,7 @@ class Orchestrator:
         begin_env = Envelope(
             type="play.begin",
             trace_id=trace.trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
         )
@@ -974,7 +974,7 @@ class Orchestrator:
                 if isinstance(event, TokenDelta) and event.delta:
                     if not first_token_seen:
                         first_token_seen = True
-                        trace.t_llm_first_token = time.monotonic_ns()
+                        trace.t_llm_first_token = now_ns()
 
                     trace.tokens_out += 1
                     full_response_text.append(event.delta)
@@ -987,7 +987,7 @@ class Orchestrator:
                         if trace.interrupted:
                             break
                         if chunk_index == 0:
-                            trace.t_first_chunk = time.monotonic_ns()
+                            trace.t_first_chunk = now_ns()
                             self._set_state("speaking")
 
                         try:
@@ -1021,7 +1021,7 @@ class Orchestrator:
                 if not trace.interrupted:
                     self.play_ring.set_flag(FLAG_EOS)
 
-            trace.t_llm_done = time.monotonic_ns()
+            trace.t_llm_done = now_ns()
             print("\n", flush=True)
 
             if full_response_text and not trace.interrupted:
@@ -1040,12 +1040,12 @@ class Orchestrator:
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         if chunk_id == 0:
-            trace.t_tts_first_sent = time.monotonic_ns()
+            trace.t_tts_first_sent = now_ns()
 
         _done = self.tts.synthesize(chunk_id=chunk_id, text=text, is_first=(chunk_id == 0))
 
         if chunk_id == 0:
-            trace.t_tts_first_done = time.monotonic_ns()
+            trace.t_tts_first_done = now_ns()
         trace.chunks += 1
 
     def _tts_worker(self) -> None:
@@ -1087,7 +1087,7 @@ class Orchestrator:
         begin_env = Envelope(
             type="play.begin",
             trace_id=trace.trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
         )
@@ -1136,7 +1136,7 @@ class Orchestrator:
         confirm_env = Envelope(
             type="ui.confirm",
             trace_id=trace.trace_id,
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="core",
             payload=UIConfirmPayload(
                 prompt_text=prompt_text,
@@ -1251,7 +1251,7 @@ class Orchestrator:
                 env = Envelope(
                     type="sys.ping",
                     trace_id="",
-                    ts_ns=time.monotonic_ns(),
+                    ts_ns=now_ns(),
                     src="core",
                     payload={},
                 )

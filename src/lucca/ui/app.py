@@ -33,6 +33,7 @@ from lucca.core.ipc_schemas import (
     decode_envelope,
     encode_envelope,
 )
+from lucca.core.trace import now_ns
 from lucca.ui.commorose import CommoroseAction, CommoroseRadialMenu
 from lucca.ui.input_bar import QuickChatBar
 from lucca.ui.settings_dialog import SettingsDialog
@@ -392,7 +393,7 @@ class UIApplication:
         env = Envelope(
             type="ui.user_text",
             trace_id="",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="ui",
             payload=UIUserTextPayload(text=text).model_dump(),
         )
@@ -402,7 +403,7 @@ class UIApplication:
         env = Envelope(
             type="ui.confirm_result",
             trace_id="",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="ui",
             payload=UIConfirmResultPayload(accepted=accepted, via="click").model_dump(),
         )
@@ -416,7 +417,7 @@ class UIApplication:
         env = Envelope(
             type="ui.config_update",
             trace_id="",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="ui",
             payload=UIConfigUpdatePayload(
                 voice=self.active_voice,
@@ -435,7 +436,7 @@ class UIApplication:
         env = Envelope(
             type="ui.talk_press",
             trace_id="",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="ui",
             payload={},
         )
@@ -447,7 +448,7 @@ class UIApplication:
         env = Envelope(
             type="ui.talk_release",
             trace_id="",
-            ts_ns=time.monotonic_ns(),
+            ts_ns=now_ns(),
             src="ui",
             payload={"duration_ms": dur_ms},
         )
@@ -543,7 +544,7 @@ class UIApplication:
             env_offline = Envelope(
                 type="ui.state",
                 trace_id="",
-                ts_ns=time.monotonic_ns(),
+                ts_ns=now_ns(),
                 src="ui",
                 payload=UIStatePayload(state="offline", detail="user_quit").model_dump(),
             )
@@ -556,7 +557,7 @@ class UIApplication:
             env_quit = Envelope(
                 type="ui.quit",
                 trace_id="",
-                ts_ns=time.monotonic_ns(),
+                ts_ns=now_ns(),
                 src="ui",
                 payload=UIQuitPayload(reason="user").model_dump(),
             )

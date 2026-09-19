@@ -3,8 +3,6 @@ Project Lucca — NPU & AI Worker Process (`lucca-npu`)
 Spec 01 §1, §4, Spec 07, ADR-008
 """
 
-import time
-
 import psutil
 import structlog
 import zmq
@@ -25,6 +23,7 @@ from lucca.core.ipc_schemas import (
     decode_envelope,
     encode_envelope,
 )
+from lucca.core.trace import now_ns
 from lucca.senses.asr import ASRWorker
 from lucca.senses.embed import EmbedWorker
 from lucca.senses.ring_buffer import (
@@ -104,14 +103,14 @@ class NPUProcess:
                     logger.debug("npu_bus_message_error", error=str(exc))
 
     def _handle_ctl_request(self, env: Envelope) -> None:
-        now_ns = time.monotonic_ns()
+        ctl_ts_ns = now_ns()
 
         if env.type == "sys.ping":
             rss_mb = psutil.Process().memory_info().rss / (1024.0 * 1024.0)
             reply = Envelope(
                 type="sys.pong",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=ctl_ts_ns,
                 src="npu",
                 payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
             )
@@ -121,7 +120,7 @@ class NPUProcess:
             reply = Envelope(
                 type="sys.selftest_result",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=ctl_ts_ns,
                 src="npu",
                 payload=SysSelfTestResultPayload(
                     asr_device=self.asr.backend,
@@ -140,7 +139,7 @@ class NPUProcess:
             reply = Envelope(
                 type="asr.result",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=now_ns(),
                 src="npu",
                 payload=res.model_dump(),
             )
@@ -157,7 +156,7 @@ class NPUProcess:
             reply = Envelope(
                 type="tts.done",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=now_ns(),
                 src="npu",
                 payload=done.model_dump(),
             )
@@ -168,7 +167,7 @@ class NPUProcess:
             reply = Envelope(
                 type="tts.aborted",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=now_ns(),
                 src="npu",
                 payload=TTSAbortedPayload(trace_id=env.trace_id).model_dump(),
             )
@@ -180,7 +179,7 @@ class NPUProcess:
             reply = Envelope(
                 type="embed.result",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=now_ns(),
                 src="npu",
                 payload=EmbedResultPayload(vectors=vecs, dim=dim, elapsed_ms=el).model_dump(),
             )
@@ -192,7 +191,7 @@ class NPUProcess:
             reply = Envelope(
                 type="intent.result",
                 trace_id=env.trace_id,
-                ts_ns=now_ns,
+                ts_ns=now_ns(),
                 src="npu",
                 payload=IntentResultPayload(vector=vecs[0], elapsed_ms=el).model_dump(),
             )

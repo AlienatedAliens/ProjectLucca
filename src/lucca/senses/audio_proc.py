@@ -29,6 +29,7 @@ from lucca.core.ipc_schemas import (
     decode_envelope,
     encode_envelope,
 )
+from lucca.core.trace import now_ns
 from lucca.senses.ptt import PTTListener
 from lucca.senses.ring_buffer import (
     FLAG_ABORT,
@@ -183,14 +184,14 @@ class AudioProcess:
             if not self.first_sample_emitted and dbfs > NON_SILENT_THRESHOLD_DBFS:
                 self.first_sample_emitted = True
                 if self.active_trace_id:
-                    now_ns = time.monotonic_ns()
+                    sample_ts_ns = now_ns()
                     env = Envelope(
                         type="audio.first_sample_played",
                         trace_id=self.active_trace_id,
-                        ts_ns=now_ns,
+                        ts_ns=sample_ts_ns,
                         src="audio",
                         payload=AudioFirstSamplePlayedPayload(
-                            trace_id=self.active_trace_id, t_ns=now_ns
+                            trace_id=self.active_trace_id, t_ns=sample_ts_ns
                         ).model_dump(),
                     )
                     self._send_ingest(env)
@@ -200,9 +201,9 @@ class AudioProcess:
                 rms_env = Envelope(
                     type="audio.rms",
                     trace_id=self.active_trace_id or "",
-                    ts_ns=time.monotonic_ns(),
+                    ts_ns=now_ns(),
                     src="audio",
-                    payload=AudioRMSPayload(t_ns=time.monotonic_ns(), dbfs=dbfs).model_dump(),
+                    payload=AudioRMSPayload(t_ns=now_ns(), dbfs=dbfs).model_dump(),
                 )
                 self._send_ingest(rms_env)
 
@@ -221,7 +222,7 @@ class AudioProcess:
             env = Envelope(
                 type="audio.underrun",
                 trace_id=self.active_trace_id or "",
-                ts_ns=time.monotonic_ns(),
+                ts_ns=now_ns(),
                 src="audio",
                 payload=AudioUnderrunPayload(count=self.underrun_count).model_dump(),
             )
@@ -307,7 +308,7 @@ class AudioProcess:
                         pong = Envelope(
                             type="sys.pong",
                             trace_id=env.trace_id,
-                            ts_ns=time.monotonic_ns(),
+                            ts_ns=now_ns(),
                             src="audio",
                             payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
                         )

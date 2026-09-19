@@ -9,6 +9,8 @@ import time
 from collections.abc import Callable
 from typing import Final
 
+from lucca.core.trace import now_ns
+
 VK_RCONTROL: Final[int] = 0xA3  # Windows virtual-key code for Right Control
 VK_LCONTROL: Final[int] = 0xA2
 VK_CONTROL: Final[int] = 0x11  # Generic Control
@@ -108,14 +110,14 @@ class PTTListener:
         while self._running:
             down = self.is_key_down()
             now_mono = time.monotonic()
-            now_ns = time.monotonic_ns()
+            current_ns = now_ns()
 
             if down and not self._is_down:
                 # Key transition: UP -> DOWN
                 self._is_down = True
                 self._press_time_monotonic = now_mono
-                self._press_time_ns = now_ns
-                self.on_pressed(now_ns)
+                self._press_time_ns = current_ns
+                self.on_pressed(current_ns)
 
             elif down and self._is_down:
                 # Key held down: check auto-release cap
@@ -123,14 +125,14 @@ class PTTListener:
                 if duration >= self.max_duration_s:
                     # Trigger auto-release
                     self._is_down = False
-                    self.on_released(now_ns, duration * 1000.0)
+                    self.on_released(current_ns, duration * 1000.0)
 
             elif not down and self._is_down:
                 # Key transition: DOWN -> UP
                 self._is_down = False
                 duration = now_mono - self._press_time_monotonic
                 if duration >= DEBOUNCE_MIN_SECONDS:
-                    self.on_released(now_ns, duration * 1000.0)
+                    self.on_released(current_ns, duration * 1000.0)
                 # Discard presses below debounce threshold without firing release
 
             time.sleep(self.poll_interval_s)
