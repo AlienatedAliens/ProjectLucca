@@ -244,29 +244,106 @@ def test_substrate_4_calibrated_honest_abstention() -> None:
 
 
 # ============================================================================
-# 7. Belnap Contradiction & Cross-Tier Tension Detection (\top)
+# 7. Belnap Contradiction (\top) vs Hierarchical Trust Tier Staleness Supersession
 # ============================================================================
 
 
-def test_belnap_cross_tier_contradiction_detection() -> None:
+def test_evidence_item_belnap_two_bit_representation() -> None:
+    """Verifies Belnap's (1977) two independent epistemic bits (told_true, told_false)."""
+    e_true = EvidenceItem(
+        substrate=EpistemicSubstrate.TELEMETRY,
+        trust_tier=TrustTier.TIER_1_HARDWARE,
+        source="s1",
+        content="p is true",
+        told_true=True,
+        told_false=False,
+    )
+    assert e_true.polarity == BelnapValue.TRUE
+
+    e_false = EvidenceItem(
+        substrate=EpistemicSubstrate.MEMORY,
+        trust_tier=TrustTier.TIER_3_MEMORY,
+        source="s2",
+        content="p is false",
+        told_true=False,
+        told_false=True,
+    )
+    assert e_false.polarity == BelnapValue.FALSE
+
+    e_conflict = EvidenceItem(
+        substrate=EpistemicSubstrate.MEMORY,
+        trust_tier=TrustTier.TIER_3_MEMORY,
+        source="s3",
+        content="p is contradictory",
+        told_true=True,
+        told_false=True,
+    )
+    assert e_conflict.polarity == BelnapValue.CONFLICT
+
+    e_gap = EvidenceItem(
+        substrate=EpistemicSubstrate.ABSTENTION,
+        trust_tier=TrustTier.TIER_4_WEB,
+        source="s4",
+        content="no info",
+        told_true=False,
+        told_false=False,
+    )
+    assert e_gap.polarity == BelnapValue.UNKNOWN
+
+
+def test_belnap_same_tier_contradiction_detection() -> None:
     """
-    Verifies that conflicting statements between Substrates (e.g. Tier 1 Hardware
-    vs Tier 3 Memory) resolve to BelnapValue.CONFLICT (\top) and articulate the tension.
+    Verifies that conflicting statements within the SAME trust tier
+    resolve to BelnapValue.CONFLICT (\top).
     """
-    # Create evidence items manually or via mocked synthesis
+    ev_m1 = EvidenceItem(
+        substrate=EpistemicSubstrate.MEMORY,
+        trust_tier=TrustTier.TIER_3_MEMORY,
+        source="memory:entry_1",
+        content="User preferred theme: dark mode",
+        told_true=True,
+        told_false=False,
+    )
+    ev_m2 = EvidenceItem(
+        substrate=EpistemicSubstrate.MEMORY,
+        trust_tier=TrustTier.TIER_3_MEMORY,
+        source="memory:entry_2",
+        content="User preferred theme: light mode (contradictory assertion)",
+        told_true=False,
+        told_false=True,
+    )
+
+    cascade = EpistemicSearchCascade()
+    status, ctx, refusal = cascade.synthesize(
+        query_text="What theme do I prefer?",
+        evidence=[ev_m1, ev_m2],
+    )
+
+    assert status == BelnapValue.CONFLICT
+    assert refusal is None
+    assert "CONFLICT (TOP)" in ctx
+
+
+def test_belnap_cross_tier_staleness_supersession() -> None:
+    """
+    Verifies that cross-tier disagreement does NOT trigger a false CONFLICT hedge;
+    Tier 1 (Hardware Truth) strictly supersedes Tier 3 (Stale Memory), yielding TRUE.
+    """
     ev_t1 = EvidenceItem(
         substrate=EpistemicSubstrate.TELEMETRY,
         trust_tier=TrustTier.TIER_1_HARDWARE,
         source="system_tools:nvidia-smi",
         content="GPU: NVIDIA RTX 5080 Laptop GPU | Total VRAM: 16.0 GB",
-        polarity=BelnapValue.TRUE,
+        told_true=True,
+        told_false=False,
     )
     ev_t3 = EvidenceItem(
         substrate=EpistemicSubstrate.MEMORY,
         trust_tier=TrustTier.TIER_3_MEMORY,
         source="memory:entry_88",
-        content="User note from 2023: System has RTX 3080 with 8.0 GB VRAM",
-        polarity=BelnapValue.TRUE,
+        content="Stale user note from 2023: System has RTX 3080 with 8.0 GB VRAM",
+        told_true=False,
+        told_false=True,  # Disagrees with current 16 GB spec
     )
 
     cascade = EpistemicSearchCascade()
@@ -275,12 +352,35 @@ def test_belnap_cross_tier_contradiction_detection() -> None:
         evidence=[ev_t1, ev_t3],
     )
 
-    assert status == BelnapValue.CONFLICT
+    # Higher tier (Tier 1) wins; no confusing hedge or CONFLICT stalemate
+    assert status == BelnapValue.TRUE
     assert refusal is None
-    assert "CONFLICT" in ctx
+    assert "CONSISTENT (T)" in ctx
+    assert "strictly supersedes" in ctx
     assert "Tier 1" in ctx
-    assert "16.0 GB" in ctx
-    assert "8.0 GB" in ctx
+
+
+def test_dynamic_calibrated_abstention_truth_in_receipt() -> None:
+    """
+    Verifies that calibrated honest refusal dynamically lists ONLY the substrates
+    actually queried for that turn, avoiding false action assertions.
+    """
+    cascade = EpistemicSearchCascade()
+
+    # Query targeting ONLY Substrate 0 (Telemetry)
+    res_sub0 = cascade.query("What is the clock speed of the optical quantum bus?", substrates=[EpistemicSubstrate.TELEMETRY])
+    assert res_sub0.belnap_status == BelnapValue.UNKNOWN
+    assert res_sub0.calibrated_refusal is not None
+    assert "system telemetry" in res_sub0.calibrated_refusal
+    assert "workspace files" not in res_sub0.calibrated_refusal
+    assert "memory records" not in res_sub0.calibrated_refusal
+
+    # Query targeting Substrates 0 & 2 (Telemetry + Memory)
+    res_sub02 = cascade.query("Did we record the server room temperature?", substrates=[EpistemicSubstrate.TELEMETRY, EpistemicSubstrate.MEMORY])
+    assert res_sub02.belnap_status == BelnapValue.UNKNOWN
+    assert res_sub02.calibrated_refusal is not None
+    assert "system telemetry and memory records" in res_sub02.calibrated_refusal
+    assert "workspace files" not in res_sub02.calibrated_refusal
 
 
 # ============================================================================

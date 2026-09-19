@@ -149,21 +149,73 @@ def pool_evidence(values: Sequence[BelnapValue]) -> BelnapValue:
 
 
 # ============================================================================
-# 3. Evidence Models & Search Cascade Results
+# 3. Evidence Models & Dynamic Calibrated Abstention
 # ============================================================================
 
 
 class EvidenceItem(BaseModel):
-    """Atomic unit of evidence retrieved from an epistemic substrate."""
+    """
+    Atomic unit of evidence retrieved from an epistemic substrate.
+    Strictly implements Belnap's (1977) four-valued data model via independent
+    'told_true' and 'told_false' epistemic bits:
+    - (told_true=True, told_false=False) -> T (Asserts p)
+    - (told_true=False, told_false=True) -> F (Refutes p)
+    - (told_true=True, told_false=True)   -> TOP (Contradiction / Conflict)
+    - (told_true=False, told_false=False) -> BOT (Epistemic Gap / Unknown)
+    """
 
     substrate: EpistemicSubstrate
     trust_tier: TrustTier
     source: str
     content: str
-    polarity: BelnapValue = BelnapValue.TRUE
+    proposition: str = ""
+    told_true: bool = True
+    told_false: bool = False
     confidence: float = 1.0
     timestamp_ns: int = Field(default_factory=now_ns)
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
+
+    @property
+    def polarity(self) -> BelnapValue:
+        """Derives the atomic Belnap value from the two independent epistemic bits."""
+        if self.told_true and self.told_false:
+            return BelnapValue.CONFLICT
+        if self.told_true:
+            return BelnapValue.TRUE
+        if self.told_false:
+            return BelnapValue.FALSE
+        return BelnapValue.UNKNOWN
+
+
+def build_calibrated_refusal(
+    queried_substrates: Sequence[EpistemicSubstrate],
+    topic: str | None = None,
+) -> str:
+    """
+    Dynamically constructs a calibrated honest refusal listing ONLY the substrates
+    actually queried for this turn, preventing false action assertions.
+    """
+    names_map: dict[EpistemicSubstrate, str] = {
+        EpistemicSubstrate.TELEMETRY: "system telemetry",
+        EpistemicSubstrate.WORKSPACE: "workspace files",
+        EpistemicSubstrate.MEMORY: "memory records",
+        EpistemicSubstrate.WEB: "external web sources",
+    }
+    checked = [names_map[s] for s in queried_substrates if s in names_map]
+    if not checked:
+        checked_str = "available verified sources"
+    elif len(checked) == 1:
+        checked_str = checked[0]
+    elif len(checked) == 2:
+        checked_str = f"{checked[0]} and {checked[1]}"
+    else:
+        checked_str = f"{', '.join(checked[:-1])}, and {checked[-1]}"
+
+    display_topic = topic.strip() if topic and len(topic.strip()) < 80 else "that"
+    return (
+        f"I checked my {checked_str}, but have no verified record of {display_topic}. "
+        f"I don't know the answer and won't guess."
+    )
 
 
 class SearchCascadeResult(BaseModel):
@@ -176,6 +228,7 @@ class SearchCascadeResult(BaseModel):
     floor_cue_spoken: str | None = None
     calibrated_refusal: str | None = None
     synthesized_context: str = ""
+    queried_substrates: list[EpistemicSubstrate] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -336,10 +389,10 @@ class EpistemicSearchCascade:
             cpu = metrics.get("cpu", {})
             ram = metrics.get("ram", {})
 
-            wants_gpu = any(w in lower for w in ("gpu", "vram", "nvidia", "graphics", "video memory"))
-            wants_cpu = any(w in lower for w in ("cpu", "processor", "core", "intel", "ultra 9"))
-            wants_ram = any(w in lower for w in ("ram", "physical memory", "system memory"))
-            general_hw = any(w in lower for w in ("hardware", "specs", "telemetry", "substrate configuration", "system"))
+            wants_gpu = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("gpu", "vram", "nvidia", "graphics", "video memory"))
+            wants_cpu = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("cpu", "processor", "core", "intel", "ultra 9"))
+            wants_ram = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("ram", "physical memory", "system memory"))
+            general_hw = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("hardware", "specs", "telemetry", "substrate configuration", "system"))
 
             if wants_gpu or general_hw:
                 content = (
@@ -523,6 +576,11 @@ class EpistemicSearchCascade:
 
         target_url = url_match.group(1)
         try:
+            # Propagate untrusted web taint to active session guard (Spec 09 / D-SEC-04)
+            if self.sandbox and hasattr(self.sandbox, "guard") and hasattr(self.sandbox.guard, "mark_taint"):
+                from lucca.sandbox.policy import TaintFlags
+                self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
+
             res = self.sandbox.execute(
                 tool_name="fetch_url",
                 args={"url": target_url},
@@ -535,7 +593,9 @@ class EpistemicSearchCascade:
                         trust_tier=TrustTier.TIER_4_WEB,
                         source=f"web:{target_url}",
                         content=res.content[:600],
-                        polarity=BelnapValue.TRUE,
+                        proposition=f"web_content({target_url})",
+                        told_true=True,
+                        told_false=False,
                         confidence=0.85,
                         metadata={"url": target_url},
                     )
@@ -553,47 +613,68 @@ class EpistemicSearchCascade:
         query_text: str,
         evidence: list[EvidenceItem],
         topic: str | None = None,
+        queried_substrates: Sequence[EpistemicSubstrate] | None = None,
     ) -> tuple[BelnapValue, str, str | None]:
         """
         Computes the Belnap evidential valuation and renders formatted context.
+        Applies hierarchical trust tier tie-breaking:
+        - Same-tier contradiction (told_true AND told_false) -> genuine conflict (TOP).
+        - Cross-tier contradiction -> higher trust tier strictly supersedes lower tier.
+          Stale historical lower-tier records do not block or force an unnecessary hedge.
+        - Zero evidence -> BelnapValue.UNKNOWN (BOT) with dynamic honest refusal.
         Returns: (BelnapValue, synthesized_context, calibrated_refusal)
         """
-        # Case 1: Substrate 4 Honest Abstention (Epistemic Gap \bot)
+        # Case 1: Substrate 4 Honest Abstention (Epistemic Gap BOT)
         if not evidence:
-            display_topic = topic if topic and len(topic) < 80 else "that"
-            refusal = (
-                f"I checked my system telemetry, workspace files, and memory records, "
-                f"but I have no verified record of {display_topic}. I don't know the answer and won't guess."
-            )
+            refusal = build_calibrated_refusal(queried_substrates or [], topic)
             return BelnapValue.UNKNOWN, "", refusal
 
-        # Case 2: Pool evidence polarities
-        polarities = [item.polarity for item in evidence]
-        pooled_status = pool_evidence(polarities)
+        # Group evidence by Trust Tier
+        tier_map: dict[TrustTier, list[EvidenceItem]] = {}
+        for ev in evidence:
+            tier_map.setdefault(ev.trust_tier, []).append(ev)
 
-        # Cross-tier contradiction check: e.g. Tier 1 hardware vs Tier 3 memory
-        has_semantic_conflict = False
-        t1_items = [e for e in evidence if e.trust_tier == TrustTier.TIER_1_HARDWARE]
-        t3_items = [e for e in evidence if e.trust_tier == TrustTier.TIER_3_MEMORY]
+        highest_tier = min(tier_map.keys())
+        highest_tier_evidence = tier_map[highest_tier]
 
-        for t1 in t1_items:
-            for t3 in t3_items:
-                # Check for direct numeric/specification clashes (e.g. 16 GB vs 8 GB)
-                t1_vram_match = re.search(r"(\d+(?:\.\d+)?)\s*GB", t1.content)
-                t3_vram_match = re.search(r"(\d+(?:\.\d+)?)\s*GB", t3.content)
-                if t1_vram_match and t3_vram_match:
-                    if float(t1_vram_match.group(1)) != float(t3_vram_match.group(1)):
-                        has_semantic_conflict = True
-                        pooled_status = BelnapValue.CONFLICT
+        # Check Belnap value within the highest active trust tier
+        highest_told_true = any(e.told_true for e in highest_tier_evidence)
+        highest_told_false = any(e.told_false for e in highest_tier_evidence)
+
+        if highest_told_true and highest_told_false:
+            # Genuine same-tier contradiction
+            belnap_status = BelnapValue.CONFLICT
+        elif highest_told_true:
+            belnap_status = BelnapValue.TRUE
+        elif highest_told_false:
+            belnap_status = BelnapValue.FALSE
+        else:
+            belnap_status = BelnapValue.UNKNOWN
+
+        # Cross-tier staleness / supersession check
+        superseded_annotations: list[str] = []
+        for tier, items in tier_map.items():
+            if tier > highest_tier:
+                tier_told_true = any(e.told_true for e in items)
+                tier_told_false = any(e.told_false for e in items)
+                # If lower tier contradicts the higher tier:
+                if (highest_told_true and tier_told_false) or (highest_told_false and tier_told_true):
+                    superseded_annotations.append(
+                        f"Trust Tier {highest_tier.value} ({highest_tier.name}) strictly supersedes historical/lower-trust Tier {tier.value} ({tier.name}) record."
+                    )
 
         # Build formatted grounded context
         lines: list[str] = ["[Epistemic Search Cascade — Verified Ground Truth]"]
-        if pooled_status == BelnapValue.CONFLICT or has_semantic_conflict:
+        if belnap_status == BelnapValue.CONFLICT:
             lines.append(
-                "[Status: CONFLICT (\top) — Higher trust tier takes physical precedence; tension noted]"
+                "[Status: CONFLICT (TOP) — Genuine internal contradiction detected within authoritative tier; tension noted]"
             )
         else:
-            lines.append(f"[Status: CONSISTENT ({pooled_status.value}) — Evidence Verified]")
+            lines.append(f"[Status: CONSISTENT ({belnap_status.value}) — Grounded Evidence Verified]")
+
+        if superseded_annotations:
+            for note in superseded_annotations:
+                lines.append(f"[Resolution: {note}]")
 
         # Sort evidence by Trust Tier (Tier 1 first) then confidence
         sorted_evidence = sorted(evidence, key=lambda e: (e.trust_tier.value, -e.confidence))
@@ -603,10 +684,16 @@ class EpistemicSearchCascade:
             if item.trust_tier != current_tier:
                 current_tier = item.trust_tier
                 lines.append(f"\n[Trust Tier {current_tier.value}: {current_tier.name}]")
-            lines.append(f"- ({item.source}) {item.content}")
+            polarity_tag = (
+                "[asserts]" if (item.told_true and not item.told_false)
+                else "[refutes]" if (item.told_false and not item.told_true)
+                else "[both]" if (item.told_true and item.told_false)
+                else "[neither]"
+            )
+            lines.append(f"- ({item.source}) {polarity_tag} {item.content}")
 
         context_str = "\n".join(lines)
-        return pooled_status, context_str, None
+        return belnap_status, context_str, None
 
     # ------------------------------------------------------------------------
     # Master Cascade Query Loop
@@ -666,6 +753,7 @@ class EpistemicSearchCascade:
             query_text=query_text,
             evidence=collected_evidence,
             topic=topic,
+            queried_substrates=active_substrates,
         )
 
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -678,4 +766,5 @@ class EpistemicSearchCascade:
             floor_cue_spoken=floor_cue,
             calibrated_refusal=calibrated_refusal,
             synthesized_context=synthesized_ctx,
+            queried_substrates=active_substrates,
         )
