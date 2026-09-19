@@ -168,3 +168,23 @@ def test_capability_claims_real() -> None:
     all_manual = " ".join(manual_texts)
     for token in forbidden:
         assert token not in all_manual, f"Forbidden token '{token}' found in settings manual"
+
+
+def test_audio_concurrency_contract_exists() -> None:
+    """
+    F-ARCH-006: Static gate enforcing ADR-0009 audio concurrency contract.
+    Ensures the audio path concurrency architecture record is present and defines
+    per-resource ownership, permitted blocking, and barge-in invariants.
+    """
+    repo_root = Path(__file__).parent.parent
+    adr_path = repo_root / "docs" / "adr" / "0009_audio_concurrency_contract.md"
+    assert adr_path.exists(), f"ADR-0009 missing at {adr_path}"
+
+    content = adr_path.read_text(encoding="utf-8")
+    assert "ADR-0009" in content
+    assert "Resource Ownership & Concurrency Matrix" in content
+    assert "Invariant 1: Ingest Thread Non-Blocking Guarantee" in content
+    assert "Invariant 2: Shared Audio Ring Mutex Protection" in content
+    assert "Invariant 3: Per-Stream LLM Abort State" in content
+    assert "Invariant 4: Barge-In Thread Join & State Discipline" in content
+    assert "Invariant 5: Decoupled TTS Synthesis Queue" in content
