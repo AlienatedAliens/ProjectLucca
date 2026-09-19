@@ -359,7 +359,8 @@ class Orchestrator:
         self._set_state("listening")
 
     def _abort_turn(self) -> None:
-        self.llm.abort()
+        target_trace_id = self.active_trace.trace_id if self.active_trace else None
+        self.llm.abort(trace_id=target_trace_id)
         self.chunker.reset()
         self.play_ring.set_flag(FLAG_ABORT)
 
@@ -719,6 +720,7 @@ class Orchestrator:
                 current_text=llm_text,
                 history=self.history,
                 memories=mem_hits if mem_hits else None,
+                trace_id=trace.trace_id,
             ):
                 if trace.interrupted:
                     break
@@ -893,6 +895,7 @@ class Orchestrator:
                 current_text=user_text,
                 history=self.history,
                 memories=mem_hits if mem_hits else None,
+                trace_id=trace.trace_id,
             ):
                 if trace.interrupted:
                     break

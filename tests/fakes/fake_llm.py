@@ -19,6 +19,7 @@ class FakeLLM:
         ]
         self.token_delay_s = token_delay_s
         self.aborted = False
+        self.aborted_traces: set[str] = set()
         self.last_memories: list[MemoryHit] | None = None
 
     def stream_turn(
@@ -29,15 +30,18 @@ class FakeLLM:
         history: list[dict[str, str]] | None = None,
         temperature: float = 0.2,
         max_tokens: int = 512,
+        trace_id: str | None = None,
     ) -> Generator[LLMEvent, None, None]:
         self.aborted = False
         self.last_memories = memories
         for event in self.script:
-            if self.aborted:
+            if self.aborted or (trace_id and trace_id in self.aborted_traces):
                 break
             if self.token_delay_s > 0:
                 time.sleep(self.token_delay_s)
             yield event
 
-    def abort(self) -> None:
+    def abort(self, trace_id: str | None = None) -> None:
         self.aborted = True
+        if trace_id:
+            self.aborted_traces.add(trace_id)

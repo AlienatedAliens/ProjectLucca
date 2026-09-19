@@ -4,8 +4,11 @@ Spec 02 (SpeechLLMPort), Spec 08, ADR-001
 """
 
 import json
+import threading
+import time
 import uuid
 from collections.abc import Generator
+from dataclasses import dataclass
 
 import httpx
 import structlog
@@ -28,6 +31,13 @@ from lucca.core.schemas import (
 logger = structlog.get_logger(__name__)
 
 
+@dataclass
+class _StreamState:
+    client: httpx.Client
+    aborted: bool
+    trace_id: str
+
+
 class LLMClient:
     """
     Streaming LLM client connecting to native llama-server on Windows.
@@ -37,8 +47,25 @@ class LLMClient:
     def __init__(self, base_url: str | None = None) -> None:
         self.config = get_config()
         self.base_url = base_url or f"http://{self.config.llm.host}:{self.config.llm.port}"
-        self.active_client: httpx.Client | None = None
-        self.aborted: bool = False
+        self._streams_lock = threading.Lock()
+        self._streams: dict[str, _StreamState] = {}
+        self._stream_order: list[str] = []
+
+    @property
+    def aborted(self) -> bool:
+        with self._streams_lock:
+            if self._stream_order:
+                latest = self._streams.get(self._stream_order[-1])
+                return latest.aborted if latest else False
+            return False
+
+    @property
+    def active_client(self) -> httpx.Client | None:
+        with self._streams_lock:
+            if self._stream_order:
+                latest = self._streams.get(self._stream_order[-1])
+                return latest.client if latest else None
+            return None
 
     def stream_turn(
         self,
@@ -48,7 +75,9 @@ class LLMClient:
         history: list[dict[str, str]] | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        trace_id: str | None = None,
     ) -> Generator[LLMEvent, None, None]:
+        eff_trace_id = trace_id or f"anon-{time.monotonic_ns()}"
         eff_temp = (
             temperature if temperature is not None else getattr(self.config.llm, "temperature", 0.6)
         )
@@ -74,8 +103,11 @@ class LLMClient:
 
         demux = ToolCallDemux()
         client = httpx.Client(timeout=30.0)
-        self.aborted = False
-        self.active_client = client
+        stream_state = _StreamState(client=client, aborted=False, trace_id=eff_trace_id)
+        with self._streams_lock:
+            self._streams[eff_trace_id] = stream_state
+            self._stream_order.append(eff_trace_id)
+
         current_tool_calls: dict[int, dict[str, str]] = {}
 
         try:
@@ -87,6 +119,9 @@ class LLMClient:
                     raise LLMUnavailable(f"llama-server error {resp.status_code}: {err_body}")
 
                 for line in resp.iter_lines():
+                    with self._streams_lock:
+                        if stream_state.aborted:
+                            return
                     if not line.startswith("data: "):
                         continue
                     data_str = line[6:].strip()
@@ -173,22 +208,36 @@ class LLMClient:
             yield Done(usage=LLMUsage(prompt_tokens=0, completion_tokens=0))
 
         except (httpx.HTTPError, OSError) as exc:
-            if self.aborted or self.active_client is None:
+            with self._streams_lock:
+                was_aborted = stream_state.aborted
+            if was_aborted:
                 return
             raise LLMUnavailable(f"llama-server connection error: {exc}") from exc
         finally:
+            with self._streams_lock:
+                self._streams.pop(eff_trace_id, None)
+                if eff_trace_id in self._stream_order:
+                    self._stream_order.remove(eff_trace_id)
             client.close()
-            self.active_client = None
 
-    def abort(self) -> None:
-        """Immediately aborts in-flight generation (Spec 10 barge-in gate <= 50ms)."""
-        self.aborted = True
-        if self.active_client:
+    def abort(self, trace_id: str | None = None) -> None:
+        """Immediately aborts targeted in-flight generation (Spec 10 barge-in gate <= 50ms)."""
+        target_state: _StreamState | None = None
+        with self._streams_lock:
+            if trace_id is not None:
+                target_state = self._streams.get(trace_id)
+            elif self._stream_order:
+                latest_id = self._stream_order[-1]
+                target_state = self._streams.get(latest_id)
+
+            if target_state is not None:
+                target_state.aborted = True
+
+        if target_state is not None:
             try:
-                self.active_client.close()
+                target_state.client.close()
             except (httpx.HTTPError, OSError) as exc:
                 logger.debug("llm_abort_client_close_error", error=str(exc))
-            self.active_client = None
 
         # Release active slot in llama-server
         try:
