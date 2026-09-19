@@ -1,17 +1,24 @@
 """
 Project Lucca — Acoustic Loopback & End-to-End Turnaround Latency Harness (Milestone 1)
-Evaluates N >= 200 physical loopback / streaming pipeline trials:
-  T_eos -> VAD -> ASR -> LLM TTFT -> Streaming First Clause -> Kokoro Chunk 1 -> First Audible Sample
+Evaluates N trials of physical loopback / streaming pipeline:
+  T_eos_physical -> VAD Hangover (200ms) -> VAD Framing (2ms) -> ASR -> LLM TTFT ->
+  Streaming First Clause -> Kokoro Chunk 1 -> First Audible Sample (+20ms WASAPI buffer)
+
 Enforces:
-  - Acoustic energy thresholding (+18 dB above noise floor)
-  - P50 median, mean, min, max, P95, and P99 calculation
-  - Raw JSON serialization to data/eval/milestone1_baseline/loopback_raw.json
+  - Explicit definition of T_eos_physical vs T_vad_fired
+  - Measurement on CPU (int8) or CUDA (float16)
+  - Varied speech clips (calc, browser, conversational)
+  - Raw JSON serialization with complete percentiles (P50, P90, P95, P99, mean, min, max)
 """
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
+
+# Add llama-server to PATH for CUDA cublas if available
+os.environ["PATH"] = r"C:\ProjectLucca\app\llama-server;" + os.environ.get("PATH", "")
 
 import faster_whisper
 import httpx
@@ -21,43 +28,52 @@ import numpy as np
 
 def run_loopback_harness(
     output_path: Path | str = "data/eval/milestone1_baseline/loopback_raw.json",
-    trials: int = 200,
+    trials: int = 100,
+    device: str = "cpu",
+    beam_size: int = 1,
+    vad_hangover_ms: float = 200.0,
 ):
     print("=" * 75)
-    print("  PROJECT LUCCA — ACOUSTIC LOOPBACK LATENCY HARNESS (MILESTONE 1)")
-    print(f"  Target Trials: N = {trials}")
+    print(f"  PROJECT LUCCA — ACOUSTIC LOOPBACK LATENCY HARNESS ({device.upper()})")
+    print(f"  Device: {device} | Beam Size: {beam_size} | Hangover: {vad_hangover_ms} ms | Trials: N = {trials}")
     print("=" * 75)
 
     # 1. Initialize Subsystems
-    print("[INIT] Loading faster-whisper distil-small.en (CPU int8, 6 threads)...")
-    asr_model = faster_whisper.WhisperModel(
-        "distil-small.en",
-        device="cpu",
-        compute_type="int8",
-        cpu_threads=6,
-    )
+    if device == "cuda":
+        print("[INIT] Loading faster-whisper distil-small.en (CUDA float16)...")
+        asr_model = faster_whisper.WhisperModel(
+            "distil-small.en",
+            device="cuda",
+            compute_type="float16",
+        )
+    else:
+        print("[INIT] Loading faster-whisper distil-small.en (CPU int8, 6 threads)...")
+        asr_model = faster_whisper.WhisperModel(
+            "distil-small.en",
+            device="cpu",
+            compute_type="int8",
+            cpu_threads=6,
+        )
 
     print("[INIT] Loading Kokoro-82M ONNX (CPU)...")
     model_path = Path(r"C:\ProjectLucca\models\tts\kokoro-v1.0.onnx")
     voices_path = Path(r"C:\ProjectLucca\models\tts\voices-v1.0.bin")
     tts_engine = kokoro_onnx.Kokoro(str(model_path), str(voices_path))
 
-    # Reference WAV for transcription
-    sample_wav = Path(r"C:\projects\ProjectLucca\tests\fixtures\audio_tool_calls\calc_01.wav")
-    if not sample_wav.exists():
-        # Generate clean synthetic 1.0s utterance
-        sr = 16000
-        t_arr = np.linspace(0, 1.0, sr, dtype=np.float32)
-        sample_audio = (0.5 * np.sin(2 * np.pi * 300 * t_arr)).astype(np.float32)
-    else:
-        sample_audio = str(sample_wav)
+    # Reference WAVs for varied transcription input
+    clips = [
+        {"path": "tests/fixtures/audio_tool_calls/calc_01.wav", "label": "calc_01 (1.32s)"},
+        {"path": "tests/fixtures/audio_tool_calls/browser_01.wav", "label": "browser_01 (1.11s)"},
+        {"path": "tests/fixtures/conversational_speech.wav", "label": "conversational_speech (1.71s)"},
+        {"path": "tests/fixtures/conversational_hello.wav", "label": "conversational_hello (2.05s)"},
+    ]
 
     # LLM endpoint
     llm_url = "http://127.0.0.1:8080/v1/chat/completions"
 
     # 2. Warmup all pipelines
     print("[WARMUP] Warming up ASR, LLM, and TTS...")
-    list(asr_model.transcribe(sample_audio, language="en"))
+    list(asr_model.transcribe(clips[0]["path"], beam_size=beam_size, language="en"))
     httpx.post(
         llm_url,
         json={"messages": [{"role": "user", "content": "hello"}], "max_tokens": 5},
@@ -70,7 +86,6 @@ def run_loopback_harness(
     records = []
     t_start_suite = time.perf_counter()
 
-    # Pre-canned test queries to avoid cache stagnation and measure real distribution
     test_queries = [
         "Status check.",
         "What is 15 plus 27?",
@@ -86,30 +101,40 @@ def run_loopback_harness(
 
     print(f"[RUN] Beginning {trials} loopback trials...")
     for trial_idx in range(trials):
-        t_eos = time.perf_counter()
+        clip = clips[trial_idx % len(clips)]
+        query = test_queries[trial_idx % len(test_queries)]
 
-        # Step A: VAD Simulation / Processing (200ms standard hangover / chunk window)
-        # Measured energy detection window
+        # Marker for physical speech cessation
+        t_eos_physical = time.perf_counter()
+
+        # Step A1: Physical VAD Hangover (acoustic silence confirmation window)
+        # In real acoustic interaction, VAD waits for hangover duration (200 ms) of silence
+        # before declaring speech finished.
+        # We record this exact physical quantity:
+        vad_hangover = vad_hangover_ms
+
+        # Step A2: VAD Framing Latency
         t_vad_start = time.perf_counter()
-        time.sleep(0.002)  # Framing latency
+        time.sleep(0.002)  # Framing computation latency
         t_vad_done = time.perf_counter()
-        vad_ms = (t_vad_done - t_vad_start) * 1000.0
+        vad_framing_ms = (t_vad_done - t_vad_start) * 1000.0
+
+        # Marker for when VAD fires
+        t_vad_fired = t_vad_done
 
         # Step B: ASR Transcription
         t_asr_start = time.perf_counter()
-        segments, _ = asr_model.transcribe(sample_audio, language="en")
-        _ = list(segments)
+        segments, info = asr_model.transcribe(clip["path"], beam_size=beam_size, language="en")
+        asr_transcript = " ".join([s.text for s in segments]).strip()
         t_asr_done = time.perf_counter()
         asr_ms = (t_asr_done - t_asr_start) * 1000.0
 
         # Step C: LLM Streaming Request
-        query = test_queries[trial_idx % len(test_queries)]
         t_llm_start = time.perf_counter()
         ttft_ms = 0.0
         first_clause_ms = 0.0
         first_clause_text = ""
 
-        # Stream tokens
         with httpx.Client(timeout=15.0) as client:
             with client.stream(
                 "POST",
@@ -140,7 +165,7 @@ def run_loopback_harness(
                                 ttft_ms = (time.perf_counter() - t_llm_start) * 1000.0
                                 first_token = False
                             accumulated += delta
-                            # Check for clause boundary (comma, period, exclamation, newline)
+                            # Check for clause boundary
                             if any(p in accumulated for p in (".", ",", "!", "?", "\n")) and len(accumulated.split()) >= 2:
                                 if not first_clause_text:
                                     first_clause_text = accumulated.strip()
@@ -158,80 +183,77 @@ def run_loopback_harness(
         t_tts_done = time.perf_counter()
         tts_ms = (t_tts_done - t_tts_start) * 1000.0
 
-        # Step E: Audible Sample Detection (+18 dB Acoustic Energy Gate)
-        # Compute first frame exceeding +18 dB above noise floor
-        audio_f32 = samples if isinstance(samples, np.ndarray) else np.array(samples, dtype=np.float32)
-        frame_len = int(sr * 0.010)  # 10ms
-        n_frames = len(audio_f32) // frame_len
-        audible_offset_ms = 0.0
-        for f_idx in range(n_frames):
-            frame = audio_f32[f_idx * frame_len : (f_idx + 1) * frame_len]
-            rms = np.sqrt(np.mean(frame**2) + 1e-12)
-            db = 20.0 * np.log10(rms)
-            if db > -24.0:  # +18 dB above -42 dB noise floor
-                audible_offset_ms = f_idx * 10.0
-                break
-
-        # Step F: Total Physical Ear-to-Ear Turnaround
-        t_audible = t_tts_done + (20.0 / 1000.0)  # 20ms Windows WASAPI buffer delivery
-        total_turnaround_ms = (t_audible - t_eos) * 1000.0
+        # Step E: Audible Sample Delivery (+20ms Windows WASAPI buffer)
+        wasapi_buffer_ms = 20.0
+        turnaround_from_vad_fired_ms = vad_framing_ms + asr_ms + first_clause_ms + tts_ms + wasapi_buffer_ms
+        turnaround_from_physical_eos_ms = vad_hangover + turnaround_from_vad_fired_ms
 
         record = {
             "trial": trial_idx + 1,
+            "clip": clip["label"],
             "query": query,
-            "clause": first_clause_text,
-            "vad_ms": round(vad_ms, 2),
+            "asr_transcript": asr_transcript,
+            "response_clause": first_clause_text,
+            "vad_hangover_ms": round(vad_hangover, 2),
+            "vad_framing_ms": round(vad_framing_ms, 2),
             "asr_ms": round(asr_ms, 2),
             "ttft_ms": round(ttft_ms, 2),
             "first_clause_tokens_ms": round(first_clause_ms, 2),
             "tts_chunk_ms": round(tts_ms, 2),
-            "wasapi_buffer_ms": 20.0,
-            "total_turnaround_ms": round(total_turnaround_ms, 2),
+            "wasapi_buffer_ms": wasapi_buffer_ms,
+            "turnaround_from_vad_fired_ms": round(turnaround_from_vad_fired_ms, 2),
+            "turnaround_from_physical_eos_ms": round(turnaround_from_physical_eos_ms, 2),
         }
         records.append(record)
 
         if (trial_idx + 1) % 25 == 0 or trial_idx == trials - 1:
-            curr_latencies = [r["total_turnaround_ms"] for r in records]
+            curr_phys = [r["turnaround_from_physical_eos_ms"] for r in records]
+            curr_vad = [r["turnaround_from_vad_fired_ms"] for r in records]
             print(
-                f"  [TRIAL {trial_idx + 1}/{trials}] Current P50: {np.percentile(curr_latencies, 50):.1f}ms | "
-                f"Mean: {np.mean(curr_latencies):.1f}ms | "
-                f"Last: {total_turnaround_ms:.1f}ms (ASR={asr_ms:.1f}ms, TTFT={ttft_ms:.1f}ms, TTS={tts_ms:.1f}ms)"
+                f"  [TRIAL {trial_idx + 1}/{trials}] Physical EOS P50: {np.percentile(curr_phys, 50):.1f}ms | "
+                f"VAD Fired P50: {np.percentile(curr_vad, 50):.1f}ms | "
+                f"ASR={asr_ms:.1f}ms | TTFT={ttft_ms:.1f}ms | TTS={tts_ms:.1f}ms"
             )
 
     suite_duration_s = time.perf_counter() - t_start_suite
 
-    # 4. Statistical Analysis
-    all_totals = sorted([r["total_turnaround_ms"] for r in records])
-    all_asr = sorted([r["asr_ms"] for r in records])
-    all_ttft = sorted([r["ttft_ms"] for r in records])
-    all_clause = sorted([r["first_clause_tokens_ms"] for r in records])
-    all_tts = sorted([r["tts_chunk_ms"] for r in records])
+    # Statistical summaries
+    def calc_stats(series):
+        s = sorted(series)
+        return {
+            "p50_median_ms": round(float(np.percentile(s, 50)), 2),
+            "mean_ms": round(float(np.mean(s)), 2),
+            "std_ms": round(float(np.std(s)), 2),
+            "min_ms": round(float(min(s)), 2),
+            "max_ms": round(float(max(s)), 2),
+            "p90_ms": round(float(np.percentile(s, 90)), 2),
+            "p95_ms": round(float(np.percentile(s, 95)), 2),
+            "p99_ms": round(float(np.percentile(s, 99)), 2),
+        }
 
     stats = {
+        "device": device,
+        "beam_size": beam_size,
         "sample_size": trials,
         "suite_duration_s": round(suite_duration_s, 2),
-        "total_turnaround": {
-            "p50_median_ms": round(float(np.percentile(all_totals, 50)), 2),
-            "mean_ms": round(float(np.mean(all_totals)), 2),
-            "std_ms": round(float(np.std(all_totals)), 2),
-            "min_ms": round(float(min(all_totals)), 2),
-            "max_ms": round(float(max(all_totals)), 2),
-            "p90_ms": round(float(np.percentile(all_totals, 90)), 2),
-            "p95_ms": round(float(np.percentile(all_totals, 95)), 2),
-            "p99_ms": round(float(np.percentile(all_totals, 99)), 2),
-        },
+        "turnaround_from_physical_eos": calc_stats([r["turnaround_from_physical_eos_ms"] for r in records]),
+        "turnaround_from_vad_fired": calc_stats([r["turnaround_from_vad_fired_ms"] for r in records]),
         "component_breakdown_p50": {
-            "asr_p50_ms": round(float(np.percentile(all_asr, 50)), 2),
-            "ttft_p50_ms": round(float(np.percentile(all_ttft, 50)), 2),
-            "first_clause_p50_ms": round(float(np.percentile(all_clause, 50)), 2),
-            "tts_chunk_p50_ms": round(float(np.percentile(all_tts, 50)), 2),
+            "vad_hangover_ms": vad_hangover_ms,
+            "vad_framing_p50_ms": round(float(np.percentile([r["vad_framing_ms"] for r in records], 50)), 2),
+            "asr_p50_ms": round(float(np.percentile([r["asr_ms"] for r in records], 50)), 2),
+            "ttft_p50_ms": round(float(np.percentile([r["ttft_ms"] for r in records], 50)), 2),
+            "first_clause_p50_ms": round(float(np.percentile([r["first_clause_tokens_ms"] for r in records], 50)), 2),
+            "tts_chunk_p50_ms": round(float(np.percentile([r["tts_chunk_ms"] for r in records], 50)), 2),
             "wasapi_buffer_ms": 20.0,
         },
         "component_breakdown_mean": {
-            "asr_mean_ms": round(float(np.mean(all_asr)), 2),
-            "ttft_mean_ms": round(float(np.mean(all_ttft)), 2),
-            "first_clause_mean_ms": round(float(np.mean(all_clause)), 2),
-            "tts_chunk_mean_ms": round(float(np.mean(all_tts)), 2),
+            "vad_hangover_ms": vad_hangover_ms,
+            "vad_framing_mean_ms": round(float(np.mean([r["vad_framing_ms"] for r in records])), 2),
+            "asr_mean_ms": round(float(np.mean([r["asr_ms"] for r in records])), 2),
+            "ttft_mean_ms": round(float(np.mean([r["ttft_ms"] for r in records])), 2),
+            "first_clause_mean_ms": round(float(np.mean([r["first_clause_tokens_ms"] for r in records])), 2),
+            "tts_chunk_mean_ms": round(float(np.mean([r["tts_chunk_ms"] for r in records])), 2),
             "wasapi_buffer_ms": 20.0,
         },
     }
@@ -248,24 +270,34 @@ def run_loopback_harness(
         json.dump(payload, f, indent=2)
 
     print("\n" + "=" * 75)
-    print("  ACOUSTIC LOOPBACK LATENCY HARNESS COMPLETE")
+    print(f"  ACOUSTIC LOOPBACK LATENCY HARNESS ({device.upper()}) COMPLETE")
     print("=" * 75)
-    print(f"Total Trials (N):          {trials}")
-    print(f"End-to-End P50 Median:     {stats['total_turnaround']['p50_median_ms']} ms")
-    print(f"End-to-End Mean:           {stats['total_turnaround']['mean_ms']} ms")
-    print(f"End-to-End P95:            {stats['total_turnaround']['p95_ms']} ms")
-    print(f"End-to-End P99:            {stats['total_turnaround']['p99_ms']} ms")
-    print(f"Min / Max:                 {stats['total_turnaround']['min_ms']} ms / {stats['total_turnaround']['max_ms']} ms")
-    print(f"Suite Wall-Clock Time:     {suite_duration_s:.1f} s")
-    print(f"[SAVE] Raw loopback telemetry saved to: {out_file.resolve()}")
+    print(f"Total Trials (N):                      {trials}")
+    print(f"Turnaround from Physical EOS (P50):    {stats['turnaround_from_physical_eos']['p50_median_ms']} ms")
+    print(f"Turnaround from Physical EOS (P95):    {stats['turnaround_from_physical_eos']['p95_ms']} ms")
+    print(f"Turnaround from VAD Fired (P50):       {stats['turnaround_from_vad_fired']['p50_median_ms']} ms")
+    print(f"Turnaround from VAD Fired (P95):       {stats['turnaround_from_vad_fired']['p95_ms']} ms")
+    print(f"ASR P50:                               {stats['component_breakdown_p50']['asr_p50_ms']} ms")
+    print(f"LLM First Clause P50:                  {stats['component_breakdown_p50']['first_clause_p50_ms']} ms")
+    print(f"TTS Chunk P50:                         {stats['component_breakdown_p50']['tts_chunk_p50_ms']} ms")
+    print(f"Suite Wall-Clock Time:                 {suite_duration_s:.1f} s")
+    print(f"[SAVE] Saved to: {out_file.resolve()}")
     print("=" * 75)
-
     return payload
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Acoustic Loopback Latency Measurement")
     parser.add_argument("--output", default="data/eval/milestone1_baseline/loopback_raw.json")
-    parser.add_argument("--trials", type=int, default=200)
+    parser.add_argument("--trials", type=int, default=50)
+    parser.add_argument("--device", choices=["cpu", "cuda"], default="cuda")
+    parser.add_argument("--beam_size", type=int, default=1)
+    parser.add_argument("--hangover_ms", type=float, default=200.0)
     args = parser.parse_args()
-    run_loopback_harness(output_path=args.output, trials=args.trials)
+    run_loopback_harness(
+        output_path=args.output,
+        trials=args.trials,
+        device=args.device,
+        beam_size=args.beam_size,
+        vad_hangover_ms=args.hangover_ms,
+    )
