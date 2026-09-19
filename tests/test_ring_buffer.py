@@ -2,6 +2,8 @@
 Tests for SharedAudioRing (Spec 01 §5, Spec 07 §2, Property Test P-07)
 """
 
+import threading
+
 import numpy as np
 import pytest
 from hypothesis import given, settings
@@ -143,6 +145,49 @@ def test_hypothesis_interleaved_writes_reads(chunks):
 
         reconstructed = np.concatenate(read_collector)
         np.testing.assert_array_equal(reconstructed, all_data)
+    finally:
+        ring.close()
+        ring.unlink()
+
+
+def test_concurrent_flag_and_write_no_loss() -> None:
+    """
+    F-SENS-002: Concurrent writers and flag-setters must not lose updates.
+    Hammer write + set_flag(FLAG_ABORT) across threads.
+    Asserts final write_idx equals total written and ABORT flag is set.
+    """
+    test_name = "lucca_test_shm_race_sens002"
+    ring = SharedAudioRing(name=test_name, rate=16000, capacity_seconds=10, create=True)
+    try:
+        iterations = 2000
+        samples_per_write = 10
+        total_samples = iterations * samples_per_write
+        chunk = np.ones(samples_per_write, dtype=np.int16)
+
+        def writer_thread() -> None:
+            for _ in range(iterations):
+                ring.write(chunk)
+
+        def flag_thread() -> None:
+            for _ in range(iterations // 2):
+                ring.set_flag(FLAG_ABORT)
+
+        t1 = threading.Thread(target=writer_thread)
+        t2 = threading.Thread(target=flag_thread)
+
+        t1.start()
+        t2.start()
+
+        t1.join(timeout=10.0)
+        t2.join(timeout=10.0)
+
+        assert not t1.is_alive(), "Writer thread hung"
+        assert not t2.is_alive(), "Flag thread hung"
+
+        assert ring.write_idx == total_samples, (
+            f"write_idx mismatch: got {ring.write_idx}, expected {total_samples}"
+        )
+        assert ring.has_flag(FLAG_ABORT), "FLAG_ABORT was swallowed by concurrent writes"
     finally:
         ring.close()
         ring.unlink()
