@@ -7,6 +7,7 @@ import asyncio
 import base64
 import io
 import os
+import queue
 import threading
 import time
 import wave
@@ -119,6 +120,18 @@ class Orchestrator:
         else:
             self.tts = TTSWorker(self.play_ring)
         self.chunker = StreamingChunker()
+
+        # TTS synthesis queue & worker thread (F-CORE-017)
+        self._tts_queue: queue.Queue[
+            tuple[TurnTrace, int, str] | tuple[TurnTrace, int, str, threading.Event | None] | None
+        ] = queue.Queue(maxsize=8)
+        self._tts_running = True
+        self._tts_thread = threading.Thread(
+            target=self._tts_worker,
+            name="core-tts",
+            daemon=True,
+        )
+        self._tts_thread.start()
 
         # ASR
         if asr is not None:
@@ -380,6 +393,16 @@ class Orchestrator:
         target_trace_id = self.active_trace.trace_id if self.active_trace else None
         self.llm.abort(trace_id=target_trace_id)
         self.chunker.reset()
+
+        # F-CORE-017: drain TTS synthesis queue before setting FLAG_ABORT
+        while not self._tts_queue.empty():
+            try:
+                item = self._tts_queue.get_nowait()
+                if item is not None and len(item) == 4 and item[3] is not None:
+                    item[3].set()
+            except queue.Empty:
+                break
+
         self.play_ring.set_flag(FLAG_ABORT)
 
         # Notify audio to abort output immediately
@@ -774,7 +797,12 @@ class Orchestrator:
                             trace.t_first_chunk = time.monotonic_ns()
                             self._set_state("speaking")
 
-                        self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
+                        try:
+                            self._tts_queue.put(
+                                (trace, chunk.chunk_id, chunk.text, None), timeout=2.0
+                            )
+                        except queue.Full:
+                            logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
                         chunk_index += 1
 
                 elif isinstance(event, ToolCallEnd):
@@ -784,11 +812,23 @@ class Orchestrator:
             # Flush remaining chunker text
             if not trace.interrupted:
                 for chunk in chunker.flush():
-                    self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
+                    try:
+                        self._tts_queue.put((trace, chunk.chunk_id, chunk.text, None), timeout=2.0)
+                    except queue.Full:
+                        logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
                     chunk_index += 1
 
-                # Signal End of Speech on playback ring
-                self.play_ring.set_flag(FLAG_EOS)
+                if chunk_index > 0:
+                    done_event = threading.Event()
+                    try:
+                        self._tts_queue.put((trace, -1, "", done_event), timeout=2.0)
+                        done_event.wait(timeout=10.0)
+                    except queue.Full:
+                        logger.warning("tts_queue_full_sentinel_failed")
+
+                if not trace.interrupted:
+                    # Signal End of Speech on playback ring
+                    self.play_ring.set_flag(FLAG_EOS)
 
             trace.t_llm_done = time.monotonic_ns()
             print("\n", flush=True)
@@ -950,7 +990,12 @@ class Orchestrator:
                             trace.t_first_chunk = time.monotonic_ns()
                             self._set_state("speaking")
 
-                        self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
+                        try:
+                            self._tts_queue.put(
+                                (trace, chunk.chunk_id, chunk.text, None), timeout=2.0
+                            )
+                        except queue.Full:
+                            logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
                         chunk_index += 1
 
                 elif isinstance(event, ToolCallEnd):
@@ -959,10 +1004,22 @@ class Orchestrator:
             # Flush remaining chunker text
             if not trace.interrupted:
                 for chunk in chunker.flush():
-                    self._synthesize_chunk(trace, chunk.chunk_id, chunk.text)
+                    try:
+                        self._tts_queue.put((trace, chunk.chunk_id, chunk.text, None), timeout=2.0)
+                    except queue.Full:
+                        logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
                     chunk_index += 1
 
-                self.play_ring.set_flag(FLAG_EOS)
+                if chunk_index > 0:
+                    done_event = threading.Event()
+                    try:
+                        self._tts_queue.put((trace, -1, "", done_event), timeout=2.0)
+                        done_event.wait(timeout=10.0)
+                    except queue.Full:
+                        logger.warning("tts_queue_full_sentinel_failed")
+
+                if not trace.interrupted:
+                    self.play_ring.set_flag(FLAG_EOS)
 
             trace.t_llm_done = time.monotonic_ns()
             print("\n", flush=True)
@@ -990,6 +1047,39 @@ class Orchestrator:
         if chunk_id == 0:
             trace.t_tts_first_done = time.monotonic_ns()
         trace.chunks += 1
+
+    def _tts_worker(self) -> None:
+        """Background worker thread (core-tts) consuming chunks from _tts_queue."""
+        while self._tts_running:
+            try:
+                item = self._tts_queue.get(timeout=0.2)
+            except queue.Empty:
+                continue
+
+            if item is None:
+                break
+
+            try:
+                if len(item) == 3:
+                    trace, chunk_id, text = item
+                    done_event = None
+                else:
+                    trace, chunk_id, text, done_event = item
+
+                if trace.interrupted:
+                    if done_event is not None:
+                        done_event.set()
+                    continue
+
+                if chunk_id is not None and chunk_id >= 0 and text:
+                    self._synthesize_chunk(trace, chunk_id, text)
+
+                if done_event is not None:
+                    done_event.set()
+            except Exception as exc:  # noqa: BLE001
+                logger.error("tts_worker_chunk_error", error=str(exc))
+                if len(item) >= 4 and item[3] is not None:
+                    item[3].set()
 
     def _speak_text(self, trace: TurnTrace, text: str) -> None:
         self.play_ring.clear_flag(FLAG_ABORT)
@@ -1172,7 +1262,19 @@ class Orchestrator:
 
     def stop(self) -> None:
         self.running = False
+        self._tts_running = False
         self._confirm_event.set()
+        while not self._tts_queue.empty():
+            try:
+                self._tts_queue.get_nowait()
+            except queue.Empty:
+                break
+        try:
+            self._tts_queue.put_nowait(None)
+        except queue.Full:
+            logger.debug("orchestrator_tts_queue_full_on_stop")
+        if hasattr(self, "_tts_thread") and self._tts_thread.is_alive():
+            self._tts_thread.join(timeout=1.0)
         if self.active_turn_thread and self.active_turn_thread.is_alive():
             t = self.active_turn_thread
             self._abort_turn()

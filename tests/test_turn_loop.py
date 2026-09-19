@@ -7,7 +7,11 @@ import time
 import numpy as np
 import pytest
 
-from lucca.core.ipc_schemas import ASRResultPayload, PTTReleasedPayload
+from lucca.core.ipc_schemas import (
+    ASRResultPayload,
+    PTTReleasedPayload,
+    TTSDonePayload,
+)
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import (
     Done,
@@ -347,6 +351,74 @@ def test_orchestrator_retrieves_and_injects_memories() -> None:
         assert len(fake_memory.queries) >= 1
         assert fake_memory.queries[0].query_text == "What is my favorite editor?"
         assert fake_llm.last_memories == [memory_hit]
+    finally:
+        orch.stop()
+        orch.cap_ring.close()
+        orch.cap_ring.unlink()
+        orch.play_ring.close()
+        orch.play_ring.unlink()
+
+
+def test_tts_does_not_block_token_consumption() -> None:
+    """
+    F-CORE-017: TTS synthesis does not block the LLM streaming thread.
+    With a slow TTS backend (200ms per chunk), a stream of 6 chunk-forming
+    tokens must exhaust the LLM token loop in < 300 ms while synthesized
+    chunks are processed asynchronously by the background TTS worker.
+    """
+
+    class SlowTTS(FakeTTS):
+        def synthesize(
+            self,
+            chunk_id: int,
+            text: str,
+            voice: str = "af_heart",
+            is_first: bool = False,
+        ) -> TTSDonePayload:
+            time.sleep(0.2)
+            return super().synthesize(chunk_id, text, voice, is_first)
+
+    sentences = [
+        "This is the first sentence that is long enough to form a complete chunk.\n",
+        "This is the second sentence that is long enough to form a complete chunk.\n",
+        "This is the third sentence that is long enough to form a complete chunk.\n",
+        "This is the fourth sentence that is long enough to form a complete chunk.\n",
+        "This is the fifth sentence that is long enough to form a complete chunk.\n",
+        "This is the sixth sentence that is long enough to form a complete chunk.\n",
+    ]
+    script = [TokenDelta(delta=s) for s in sentences]
+    script.append(Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=30)))
+
+    stream_exhausted_time: list[float] = []
+    t_stream_start: list[float] = []
+
+    class TimedFakeLLM(FakeLLM):
+        def stream_turn(self, *args: object, **kwargs: object):  # type: ignore[no-untyped-def]
+            t_stream_start.append(time.perf_counter())
+            yield from super().stream_turn(*args, **kwargs)
+            stream_exhausted_time.append(time.perf_counter())
+
+    fake_llm = TimedFakeLLM(script=script)
+    orch = Orchestrator(tts=SlowTTS, llm=fake_llm)
+    try:
+        orch._on_user_text(ts_ns=1000, user_text="Give me a long paragraph")
+        for _ in range(50):
+            if stream_exhausted_time:
+                break
+            time.sleep(0.01)
+
+        assert stream_exhausted_time, "LLM stream was never exhausted"
+        consumption_elapsed = stream_exhausted_time[0] - t_stream_start[0]
+        # 6 chunks * 200 ms = 1200 ms if synchronous; must be < 300 ms with queue
+        assert consumption_elapsed < 0.300, (
+            f"Token consumption took {consumption_elapsed * 1000:.1f} ms (expected < 300 ms)"
+        )
+
+        if orch.active_turn_thread:
+            orch.active_turn_thread.join(timeout=5.0)
+
+        assert orch.state == "idle"
+        assert len(orch.tts.synthesized_chunks) == 6
     finally:
         orch.stop()
         orch.cap_ring.close()
