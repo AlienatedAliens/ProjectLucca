@@ -196,6 +196,7 @@ class Orchestrator:
         else:
             self.user_signer = None
 
+        self.session_id: str = str(ulid.ULID())
         self.current_turn_transcript: str | None = None
 
     @property
@@ -465,6 +466,8 @@ class Orchestrator:
         vad_done_ns = getattr(p, "vad_done_ns", 0) or ts_ns
         trace = TurnTrace(
             trace_id=trace_id,
+            session_id=self.session_id,
+            origin="ptt",
             mode=self.config.llm.mode,
             t_key_press=press_ns,
             t_key_release=ts_ns,
@@ -489,11 +492,14 @@ class Orchestrator:
         trace_id = str(ulid.ULID())
         trace = TurnTrace(
             trace_id=trace_id,
+            session_id=self.session_id,
+            origin="text",
             mode="transcript",
             t_key_press=ts_ns,
             t_key_release=ts_ns,
             t_vad_done=ts_ns,
         )
+
         self.active_trace = trace
 
         print(f'\n[User] "{user_text}"', flush=True)

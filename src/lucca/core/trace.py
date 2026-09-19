@@ -9,7 +9,8 @@ import time
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+import numpy as np
+from pydantic import BaseModel, JsonValue
 
 from lucca import __version__
 from lucca.core.config import get_config
@@ -30,6 +31,7 @@ class TurnTrace(BaseModel):
     version: str = __version__
     error: str = ""
     mode: Literal["audio", "transcript"] = "audio"
+    origin: Literal["ptt", "text"] = "ptt"
     route: str = "llm"
     tts_device: str = "CPU"
     asr_device: str = "cpu"
@@ -155,3 +157,255 @@ try:
         cleanup_old_traces(_init_logs, get_config().log.retention_days)
 except Exception:  # noqa: BLE001, S110
     pass
+
+
+class StageStat(BaseModel):
+    stage: str
+    from_to: str
+    budget_med: float
+    gate_p95: float
+    measured_med: float | None = None
+    measured_p95: float | None = None
+    count: int = 0
+    status: str = "NO_DATA"
+    notes: str = ""
+
+
+AUDIO_STAGE_DEFS: list[tuple[str, str, float, float, str]] = [
+    (
+        "S1 PTT->dispatch",
+        "t_key_release -> t_llm_sent",
+        15.0,
+        30.0,
+        "VAD trim + wav encode + HTTP send",
+    ),
+    (
+        "S2 TTFT",
+        "t_llm_sent -> t_llm_first_token",
+        180.0,
+        300.0,
+        "Phase 0 measured; estimate 140-180",
+    ),
+    (
+        "S3 first chunk",
+        "t_llm_first_token -> t_first_chunk",
+        90.0,
+        150.0,
+        ">= 24 chars at ~60-90 tok/s",
+    ),
+    ("S4 TTS first", "t_first_chunk -> t_tts_first_done", 150.0, 180.0, "device ladder gate"),
+    (
+        "S5 to speaker",
+        "t_tts_first_done -> t_first_sample",
+        40.0,
+        80.0,
+        "60 ms jitter buffer overlap",
+    ),
+    (
+        "Total E2E",
+        "t_key_release -> t_first_sample",
+        475.0,
+        800.0,
+        "canonical gate (median <= 600, p95 <= 800)",
+    ),
+]
+
+TRANSCRIPT_STAGE_DEFS: list[tuple[str, str, float, float, str]] = [
+    (
+        "S1b ASR",
+        "t_key_release -> t_asr_done",
+        250.0,
+        400.0,
+        "synchronous ASR before LLM dispatch",
+    ),
+    ("S2 TTFT", "t_llm_sent -> t_llm_first_token", 180.0, 300.0, "Phase 0 measured"),
+    (
+        "S3 first chunk",
+        "t_llm_first_token -> t_first_chunk",
+        90.0,
+        150.0,
+        ">= 24 chars at ~60-90 tok/s",
+    ),
+    ("S4 TTS first", "t_first_chunk -> t_tts_first_done", 150.0, 180.0, "device ladder gate"),
+    (
+        "S5 to speaker",
+        "t_tts_first_done -> t_first_sample",
+        40.0,
+        80.0,
+        "60 ms jitter buffer overlap",
+    ),
+    (
+        "Total E2E",
+        "t_key_release -> t_first_sample",
+        700.0,
+        1000.0,
+        "cascade gate (median <= 800, p95 <= 1000)",
+    ),
+]
+
+
+def _extract_stage_delta(rec: dict[str, JsonValue], stage_name: str) -> float | None:
+    stages_ms_val = rec.get("stages_ms")
+    stages_ms: dict[str, JsonValue] = stages_ms_val if isinstance(stages_ms_val, dict) else {}
+
+    def get_ms(point: str) -> float | None:
+        if point in stages_ms:
+            v = stages_ms[point]
+            if isinstance(v, (int, float)):
+                return float(v)
+        raw_ns = rec.get(point)
+        origin_ns = rec.get("t_key_release", 0)
+        if (
+            isinstance(raw_ns, (int, float))
+            and raw_ns > 0
+            and isinstance(origin_ns, (int, float))
+            and origin_ns > 0
+        ):
+            return (raw_ns - origin_ns) / 1_000_000.0
+        return None
+
+    if stage_name == "S1 PTT->dispatch":
+        llm_sent = get_ms("t_llm_sent")
+        return llm_sent if llm_sent is not None and llm_sent >= 0 else None
+
+    if stage_name == "S1b ASR":
+        asr_done = get_ms("t_asr_done")
+        return asr_done if asr_done is not None and asr_done >= 0 else None
+
+    if stage_name == "S2 TTFT":
+        ttft = rec.get("ttft_ms")
+        if isinstance(ttft, (int, float)) and ttft > 0:
+            return float(ttft)
+        t_first = get_ms("t_llm_first_token")
+        t_sent = get_ms("t_llm_sent")
+        if t_first is not None and t_sent is not None and t_first >= t_sent:
+            return t_first - t_sent
+        return None
+
+    if stage_name == "S3 first chunk":
+        t_chunk = get_ms("t_first_chunk")
+        t_first = get_ms("t_llm_first_token")
+        if t_chunk is not None and t_first is not None and t_chunk >= t_first:
+            return t_chunk - t_first
+        return None
+
+    if stage_name == "S4 TTS first":
+        t_done = get_ms("t_tts_first_done")
+        t_chunk = get_ms("t_first_chunk")
+        t_sent = get_ms("t_tts_first_sent")
+        if t_done is not None:
+            if t_chunk is not None and t_done >= t_chunk:
+                return t_done - t_chunk
+            if t_sent is not None and t_done >= t_sent:
+                return t_done - t_sent
+        tts_first = rec.get("tts_first_ms")
+        if isinstance(tts_first, (int, float)) and tts_first > 0:
+            return float(tts_first)
+        return None
+
+    if stage_name == "S5 to speaker":
+        t_sample = get_ms("t_first_sample")
+        t_done = get_ms("t_tts_first_done")
+        if t_sample is not None and t_done is not None and t_sample >= t_done:
+            return t_sample - t_done
+        return None
+
+    if stage_name == "Total E2E":
+        total_e2e = rec.get("total_e2e_ms")
+        if isinstance(total_e2e, (int, float)) and total_e2e > 0:
+            return float(total_e2e)
+        t_sample = get_ms("t_first_sample")
+        return t_sample if t_sample is not None and t_sample >= 0 else None
+
+    return None
+
+
+def compute_latency_statistics(
+    traces: list[dict[str, JsonValue]],
+    mode: Literal["audio", "transcript"] = "audio",
+) -> list[StageStat]:
+    """Computes median and p95 latency per Spec 10 stage."""
+    stage_defs = AUDIO_STAGE_DEFS if mode == "audio" else TRANSCRIPT_STAGE_DEFS
+    results: list[StageStat] = []
+
+    for name, from_to, b_med, g_p95, notes in stage_defs:
+        vals: list[float] = []
+        for r in traces:
+            d = _extract_stage_delta(r, name)
+            if d is not None and d >= 0:
+                vals.append(d)
+
+        if not vals:
+            results.append(
+                StageStat(
+                    stage=name,
+                    from_to=from_to,
+                    budget_med=b_med,
+                    gate_p95=g_p95,
+                    notes=notes,
+                    status="NO_DATA",
+                )
+            )
+            continue
+
+        med = round(float(np.median(vals)), 2)
+        p95 = round(float(np.percentile(vals, 95)), 2)
+
+        if name == "Total E2E":
+            gate_med = 600.0 if mode == "audio" else 800.0
+            gate_max_p95 = 800.0 if mode == "audio" else 1000.0
+            if med <= gate_med and p95 <= gate_max_p95:
+                status = "PASS"
+            elif med > gate_med * 1.25:
+                status = "REGRESSION"
+            else:
+                status = "FAIL"
+        elif med <= b_med and p95 <= g_p95:
+            status = "PASS"
+        elif med > b_med * 1.25:
+            status = "REGRESSION"
+        else:
+            status = "FAIL"
+
+        results.append(
+            StageStat(
+                stage=name,
+                from_to=from_to,
+                budget_med=b_med,
+                gate_p95=g_p95,
+                measured_med=med,
+                measured_p95=p95,
+                count=len(vals),
+                status=status,
+                notes=notes,
+            )
+        )
+    return results
+
+
+def format_latency_markdown(
+    stats: list[StageStat],
+    mode: str = "audio",
+    sample_count: int = 0,
+) -> str:
+    """Renders Spec 10 §2 latency report as Markdown."""
+    header = (
+        "| Stage | From -> To | Budget (med / p95) | Measured Median | "
+        "Measured p95 | Count | Status | Notes |"
+    )
+    lines = [
+        f"# Lucca Latency Report — {mode.capitalize()} Mode",
+        f"**Sample Count:** {sample_count} turns",
+        "",
+        header,
+        "|---|---|---|---|---|---|---|---|",
+    ]
+
+    for s in stats:
+        med_str = f"{s.measured_med:.1f} ms" if s.measured_med is not None else "-"
+        p95_str = f"{s.measured_p95:.1f} ms" if s.measured_p95 is not None else "-"
+        lines.append(
+            f"| {s.stage} | {s.from_to} | {s.budget_med:.0f} / {s.gate_p95:.0f} ms | "
+            f"{med_str} | {p95_str} | {s.count} | {s.status} | {s.notes} |"
+        )
+    return "\n".join(lines)
