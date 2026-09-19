@@ -517,7 +517,8 @@ class Orchestrator:
             logger.warning("transcript_commit_failed", error=str(exc))
 
     def _finalize_turn(self, trace: TurnTrace, decision_id: str | None) -> None:
-        self._set_state("postturn")
+        if self.active_trace is trace and not trace.interrupted:
+            self._set_state("postturn")
         if self.current_turn_transcript:
             self._commit_transcript(self.current_turn_transcript, trace)
             self.current_turn_transcript = None
@@ -553,7 +554,8 @@ class Orchestrator:
 
         trace.t_postturn_done = time.monotonic_ns()
         log_turn_trace(trace)
-        self._set_state("idle")
+        if self.active_trace is trace and not trace.interrupted:
+            self._set_state("idle")
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         trace.t_llm_sent = time.monotonic_ns()

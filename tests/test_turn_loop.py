@@ -112,6 +112,47 @@ def test_barge_in_mid_speech(orchestrator):
     if orchestrator.active_turn_thread:
         orchestrator.active_turn_thread.join(timeout=2.0)
 
+    # F-CORE-014: Stale worker's finally block must NOT reset state to idle
+    assert orchestrator.state == "listening"
+
+
+def test_stale_worker_does_not_reset_state(orchestrator):
+    """
+    F-CORE-014: Stale worker's finally block must not force state to idle
+    when a barge-in has moved orchestrator to listening/thinking.
+    """
+    fake_script = [
+        TokenDelta(delta="A slow response that will be interrupted "),
+        TokenDelta(delta="by barge in."),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=2)),
+    ]
+    orchestrator.llm = FakeLLM(script=fake_script, token_delay_s=0.05)
+
+    orchestrator._on_ptt_pressed(ts_ns=1000)
+    dummy_pcm = np.ones(16000, dtype=np.int16) * 1000
+    orchestrator.cap_ring.write(dummy_pcm)
+
+    payload = PTTReleasedPayload(
+        t_ns=2000,
+        capture_seq_start=0,
+        capture_seq_end=16000,
+        duration_ms=1000.0,
+        vad_speech_ms=900.0,
+    )
+    orchestrator._on_ptt_released(ts_ns=2000, p=payload)
+    time.sleep(0.02)
+
+    # Barge-in mid-speech: moves state to listening
+    orchestrator._on_ptt_pressed(ts_ns=3000)
+    assert orchestrator.state == "listening"
+
+    # Wait for old worker thread to terminate its finally block
+    if orchestrator.active_turn_thread:
+        orchestrator.active_turn_thread.join(timeout=2.0)
+
+    # State must STILL be listening, NOT clobbered to idle or postturn
+    assert orchestrator.state == "listening"
+
 
 def test_user_text_turn_loop(orchestrator):
     fake_script = [
