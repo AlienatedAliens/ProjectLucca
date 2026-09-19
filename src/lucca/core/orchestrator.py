@@ -103,6 +103,7 @@ class Orchestrator:
         self.ctl_sock = self.ctx.socket(zmq.ROUTER)
         self.bus_sock = self.ctx.socket(zmq.PUB)
         self.ingest_sock = self.ctx.socket(zmq.PULL)
+        self.ingest_sock.setsockopt(zmq.RCVHWM, 1000)
 
         # Audio rings
         self.cap_ring = get_capture_ring(create=True)
@@ -147,10 +148,15 @@ class Orchestrator:
         self.current_turn_tool_calls: list[ToolCall] = []
         self.current_turn_tool_ok: bool = True
 
-        # Confirmation State
+        # Confirmation State (F-CORE-015: voice answers are handed off as a
+        # PTTReleasedPayload and transcribed by the waiting turn worker, never
+        # on the ingest thread)
         self._confirm_event = threading.Event()
         self._confirm_result: bool = False
         self._pending_confirmation_active: bool = False
+        self._confirm_audio: PTTReleasedPayload | None = None
+        self._confirm_via: str | None = None
+        self._confirm_lock = threading.Lock()
 
         # Turn context
         self.active_trace: TurnTrace | None = None
@@ -346,6 +352,9 @@ class Orchestrator:
     ) -> None:
         """Manually or programmatically confirm/reject the pending action."""
         logger.info("confirmation_action_received", accepted=accepted, via=via)
+        with self._confirm_lock:
+            self._confirm_audio = None
+            self._confirm_via = via
         self._confirm_result = accepted
         self._confirm_event.set()
 
@@ -362,6 +371,9 @@ class Orchestrator:
         if self._pending_confirmation_active:
             self._pending_confirmation_active = False
             self._confirm_result = False
+            with self._confirm_lock:
+                self._confirm_audio = None
+                self._confirm_via = "abort"
             self._confirm_event.set()
             logger.info("confirmation_cancelled_by_barge_in")
 
@@ -393,15 +405,12 @@ class Orchestrator:
 
     def _on_ptt_released(self, ts_ns: int, p: PTTReleasedPayload) -> None:
         if self._pending_confirmation_active:
-            # PTT response to confirmation prompt
-            pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
-            transcript_text = ""
-            if self.asr and len(pcm_samples) > 0:
-                asr_res = self.asr.transcribe(pcm_samples)
-                transcript_text = asr_res.text
-
-            decision = parse_confirmation_response(transcript_text)
-            self._confirm_result = decision == "confirm"
+            # F-CORE-015: never run ASR on the ingest thread. Stash the release
+            # payload and wake the waiting turn worker, which transcribes the
+            # captured slice outside the ingest path (see _request_confirmation).
+            with self._confirm_lock:
+                self._confirm_audio = p
+                self._confirm_via = "voice"
             self._confirm_event.set()
             return
 
@@ -1028,6 +1037,9 @@ class Orchestrator:
         self._confirm_result = False
         self._confirm_event.clear()
         self._pending_confirmation_active = True
+        with self._confirm_lock:
+            self._confirm_audio = None
+            self._confirm_via = None
 
         self._set_state("confirm_wait", detail=action_desc)
 
@@ -1057,6 +1069,35 @@ class Orchestrator:
         if not got_signal:
             logger.info("confirmation_timeout", tool=name)
             return False
+
+        with self._confirm_lock:
+            confirm_audio = self._confirm_audio
+            self._confirm_audio = None
+            confirm_via = self._confirm_via
+
+        if confirm_via == "voice" and confirm_audio is not None:
+            # F-CORE-015: transcribe on this turn worker thread, outside the
+            # ingest path. The slice is read late, so stale-window detection
+            # (F-SENS-003) applies: an overwritten window yields an empty
+            # transcript, which parses as "unknown" and cancels the action.
+            pcm_samples = self.cap_ring.read_slice(
+                confirm_audio.capture_seq_start, confirm_audio.capture_seq_end
+            )
+            transcript_text = ""
+            if self.asr and len(pcm_samples) > 0:
+                asr_res = self.asr.transcribe(pcm_samples)
+                transcript_text = asr_res.text
+            decision = parse_confirmation_response(transcript_text)
+            # A click or barge-in may have superseded the voice answer while
+            # ASR was running; the explicit user act always wins.
+            with self._confirm_lock:
+                superseded = self._confirm_via in ("click", "abort")
+                final_result = self._confirm_result if superseded else decision == "confirm"
+            if superseded:
+                logger.info("voice_confirmation_superseded", via=self._confirm_via)
+            else:
+                logger.info("voice_confirmation_parsed", decision=decision)
+            return final_result
 
         return self._confirm_result
 
@@ -1133,8 +1174,10 @@ class Orchestrator:
         self.running = False
         self._confirm_event.set()
         if self.active_turn_thread and self.active_turn_thread.is_alive():
+            t = self.active_turn_thread
             self._abort_turn()
-            self.active_turn_thread.join(timeout=1.0)
+            if t.is_alive():
+                t.join(timeout=1.0)
         try:
             self.ctl_sock.close(linger=0)
             self.bus_sock.close(linger=0)

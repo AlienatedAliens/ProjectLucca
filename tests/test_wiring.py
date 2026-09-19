@@ -55,6 +55,7 @@ class SpyLLM(FakeLLM):
         history: list[dict[str, str]] | None = None,
         temperature: float = 0.2,
         max_tokens: int = 512,
+        trace_id: str | None = None,
     ) -> Generator[LLMEvent, None, None]:
         self.call_count += 1
         yield from super().stream_turn(
@@ -64,6 +65,7 @@ class SpyLLM(FakeLLM):
             history=history,
             temperature=temperature,
             max_tokens=max_tokens,
+            trace_id=trace_id,
         )
 
 

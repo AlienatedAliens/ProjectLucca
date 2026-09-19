@@ -9,7 +9,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from lucca.core.ipc_schemas import PTTReleasedPayload
+from lucca.core.ipc_schemas import (
+    Envelope,
+    PTTReleasedPayload,
+    UIConfirmResultPayload,
+)
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import Done, LLMUsage, ToolCall, ToolCallEnd
 from lucca.sandbox.policy import parse_confirmation_response
@@ -208,8 +212,11 @@ def test_t_brg_05_barge_in_during_confirm_wait_cancels(test_orch: Orchestrator, 
     test_orch._on_ptt_pressed(ts_ns=3000)
     assert test_orch.state == "listening"
 
-    # User releases PTT with empty / unrecognized audio (not "yes")
-    # Release PTT
+    # F-CORE-016: User speaks on the second turn ("yes do it"). Since barge-in
+    # cancelled the pending confirmation, this utterance must be treated as a
+    # new turn rather than confirming the aborted tool call.
+    test_orch.asr = FakeASR(transcript="yes do it")
+    test_orch.llm = FakeLLM(script=[Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=1))])
     p_barge = PTTReleasedPayload(
         t_ns=4000,
         capture_seq_start=0,
@@ -223,4 +230,101 @@ def test_t_brg_05_barge_in_during_confirm_wait_cancels(test_orch: Orchestrator, 
         test_orch.active_turn_thread.join(timeout=2.0)
 
     # File must NOT have been written
+    assert not target_file.exists()
+    assert test_orch.state == "idle"
+
+
+def test_voice_confirmation_does_not_block_ingest(test_orch: Orchestrator, tmp_path: Path):
+    """F-CORE-015: Voice confirmation must never run ASR on the ingest thread.
+
+    With a 500 ms ASR backend, a voice release followed immediately by a UI
+    click must both be handled by the ingest path in < 50 ms each; the click
+    (an explicit user act) supersedes the in-flight voice answer and the tool
+    must NOT execute.
+    """
+    target_file = tmp_path / "orch_ws" / "voice_confirm.txt"
+    call = ToolCall(
+        tool="write_file",
+        args={"path": "voice_confirm.txt", "content": "data"},
+        call_id="call-v1",
+    )
+    script = [
+        ToolCallEnd(call=call),
+        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=1)),
+    ]
+    test_orch.llm = FakeLLM(script=script)
+
+    class SlowASR(FakeASR):
+        def __init__(self) -> None:
+            super().__init__(transcript="yes do it")
+
+        def transcribe(self, pcm_int16):  # noqa: ANN001
+            time.sleep(0.5)
+            return super().transcribe(pcm_int16)
+
+    test_orch.asr = SlowASR()
+
+    # Start a turn that requires confirmation
+    test_orch._on_ptt_pressed(ts_ns=1000)
+    dummy_pcm = np.ones(16000, dtype=np.int16) * 1000
+    test_orch.cap_ring.write(dummy_pcm)
+
+    payload = PTTReleasedPayload(
+        t_ns=2000,
+        capture_seq_start=0,
+        capture_seq_end=16000,
+        duration_ms=1000.0,
+        vad_speech_ms=900.0,
+    )
+    test_orch._on_ptt_released(ts_ns=2000, p=payload)
+
+    for _ in range(50):
+        if test_orch.state == "confirm_wait":
+            break
+        time.sleep(0.02)
+
+    assert test_orch.state == "confirm_wait"
+    assert test_orch._pending_confirmation_active is True
+
+    # Voice answer arrives on the ingest thread: must return immediately
+    # (payload hand-off only, no inline ASR).
+    env_release = Envelope(
+        type="ptt.released",
+        trace_id="",
+        ts_ns=3000,
+        src="audio",
+        payload=PTTReleasedPayload(
+            t_ns=3000,
+            capture_seq_start=0,
+            capture_seq_end=16000,
+            duration_ms=1000.0,
+            vad_speech_ms=900.0,
+        ).model_dump(),
+    )
+    t0 = time.perf_counter()
+    test_orch._handle_ingest_message(env_release)
+    ingest_latency_s = time.perf_counter() - t0
+    assert ingest_latency_s < 0.05, (
+        f"ingest thread blocked {ingest_latency_s * 1000:.0f} ms on voice ASR"
+    )
+
+    # UI click lands right after the voice release; it must not queue behind
+    # the 500 ms ASR running on the turn worker.
+    env_click = Envelope(
+        type="ui.confirm_result",
+        trace_id="",
+        ts_ns=3100,
+        src="ui",
+        payload=UIConfirmResultPayload(accepted=False, via="click").model_dump(),
+    )
+    t1 = time.perf_counter()
+    test_orch._handle_ingest_message(env_click)
+    click_latency_s = time.perf_counter() - t1
+    assert click_latency_s < 0.05, f"click delayed {click_latency_s * 1000:.0f} ms behind voice ASR"
+
+    if test_orch.active_turn_thread:
+        test_orch.active_turn_thread.join(timeout=3.0)
+
+    # The explicit click (cancel) wins over the in-flight voice answer.
+    assert test_orch.state == "idle"
     assert not target_file.exists()
