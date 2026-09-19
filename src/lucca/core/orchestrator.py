@@ -121,6 +121,8 @@ class Orchestrator:
         # Audio rings
         self.cap_ring = get_capture_ring(create=True)
         self.play_ring = get_playback_ring(create=True)
+        self.play_ring.clear_flag(FLAG_ABORT)
+        self.play_ring.clear_flag(FLAG_EOS)
 
         # Brain & Voice
         self.llm = llm or LLMClient()
@@ -171,6 +173,7 @@ class Orchestrator:
         self.prev_decision_record: DecisionRecord | None = None
         self.prev_turn_ts: float | None = None
         self.current_turn_tool_calls: list[ToolCall] = []
+        self.current_turn_tool_spoken: list[str] = []
         self.current_turn_tool_ok: bool = True
 
         # Confirmation State (F-CORE-015: voice answers are handed off as a
@@ -645,6 +648,7 @@ class Orchestrator:
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
+        self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
         decision_id: str | None = None
 
@@ -870,12 +874,19 @@ class Orchestrator:
             print("\n", flush=True)
 
             # Record turn in history
-            if full_response_text and not trace.interrupted:
-                reply_str = "".join(full_response_text)
-                user_msg = transcribed_text or "[Voice audio]"
-                self.history.append({"role": "user", "content": user_msg})
-                self.history.append({"role": "assistant", "content": reply_str})
-                self._publish_caption(reply_str, source="assistant", is_final=True)
+            if not trace.interrupted:
+                reply_parts: list[str] = []
+                if full_response_text:
+                    reply_parts.append("".join(full_response_text))
+                if self.current_turn_tool_spoken:
+                    reply_parts.extend(self.current_turn_tool_spoken)
+                if reply_parts:
+                    reply_str = " ".join(reply_parts)
+                    user_msg = transcribed_text or "[Voice audio]"
+                    self.history.append({"role": "user", "content": user_msg})
+                    self.history.append({"role": "assistant", "content": reply_str})
+                    if full_response_text:
+                        self._publish_caption(reply_str, source="assistant", is_final=True)
 
         except Exception as exc:  # noqa: BLE001
             trace.error = str(exc)
@@ -897,6 +908,7 @@ class Orchestrator:
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
+        self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
         self.current_turn_transcript = user_text
         decision_id: str | None = None
@@ -1062,11 +1074,18 @@ class Orchestrator:
             trace.t_llm_done = now_ns()
             print("\n", flush=True)
 
-            if full_response_text and not trace.interrupted:
-                reply_str = "".join(full_response_text)
-                self.history.append({"role": "user", "content": user_text})
-                self.history.append({"role": "assistant", "content": reply_str})
-                self._publish_caption(reply_str, source="assistant", is_final=True)
+            if not trace.interrupted:
+                reply_parts: list[str] = []
+                if full_response_text:
+                    reply_parts.append("".join(full_response_text))
+                if self.current_turn_tool_spoken:
+                    reply_parts.extend(self.current_turn_tool_spoken)
+                if reply_parts:
+                    reply_str = " ".join(reply_parts)
+                    self.history.append({"role": "user", "content": user_text})
+                    self.history.append({"role": "assistant", "content": reply_str})
+                    if full_response_text:
+                        self._publish_caption(reply_str, source="assistant", is_final=True)
 
         except Exception as exc:  # noqa: BLE001
             trace.error = str(exc)
@@ -1252,7 +1271,10 @@ class Orchestrator:
             confirmed = self._request_confirmation(trace, name, args)
             if not confirmed:
                 logger.info("tool_execution_cancelled_by_user", tool=name)
-                self._speak_text(trace, "Cancelled.")
+                cancel_msg = "Cancelled."
+                print(f"[Lucca] {cancel_msg}", flush=True)
+                self._speak_text(trace, cancel_msg)
+                self.current_turn_tool_spoken.append(cancel_msg)
                 self.current_turn_tool_ok = False
                 return ToolResult(
                     call_id=call_id,
@@ -1271,22 +1293,62 @@ class Orchestrator:
         if not res.ok:
             self.current_turn_tool_ok = False
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
+        spoken_msg: str | None = None
         if res.ok:
             if name == "launch_app":
                 app_name = str(args.get("app_name", "app"))
-                self._speak_text(trace, f"Launched {app_name}.")
+                spoken_msg = f"Launched {app_name}."
             elif name == "write_file":
                 path = str(args.get("path", "file"))
-                self._speak_text(trace, f"Saved {path}.")
+                spoken_msg = f"Saved {path}."
             elif name == "delete_file":
                 path = str(args.get("path", "file"))
-                self._speak_text(trace, f"Deleted {path}.")
+                spoken_msg = f"Deleted {path}."
             elif name == "run_python":
-                self._speak_text(trace, "Python script executed.")
+                spoken_msg = "Python script executed."
+            elif name == "query_capabilities":
+                cat = str(args.get("category", "all")).lower()
+                if cat in ("applications", "apps", "whitelisted_apps"):
+                    spoken_msg = (
+                        "I can launch desktop applications including Calculator, Notepad, and Edge."
+                    )
+                elif cat in ("hardware", "hardware_substrates"):
+                    spoken_msg = (
+                        "I run locally across an RTX 5080 dGPU, Intel AI Boost NPU, "
+                        "and Core Ultra 9 CPU."
+                    )
+                elif cat in ("memory", "memory_subsystem"):
+                    spoken_msg = (
+                        "I have persistent episodic and semantic memory backed by "
+                        "SQLite and vector embeddings."
+                    )
+                else:
+                    spoken_msg = (
+                        "I can launch desktop applications like Calculator, Notepad, and Edge, "
+                        "read and write files in your workspace, and remember our conversations "
+                        "with persistent memory."
+                    )
+            elif name == "read_file":
+                path = str(args.get("path", "file"))
+                content = str(res.content or "").strip()
+                if 0 < len(content) <= 150:
+                    spoken_msg = f"Here is what's in {path}: {content}"
+                else:
+                    spoken_msg = f"I read {path}."
+            elif name == "fetch_url":
+                url = str(args.get("url", "the page"))
+                spoken_msg = f"I fetched {url}."
+            else:
+                spoken_msg = f"Executed {name}."
         elif res.exit_code == -2 or "sandbox unavailable" in (res.stderr or ""):
-            self._speak_text(trace, "My file sandbox isn't available — Docker isn't reachable.")
+            spoken_msg = "My file sandbox isn't available — Docker isn't reachable."
         else:
-            self._speak_text(trace, f"Error: {res.stderr or 'action failed'}.")
+            spoken_msg = f"Error: {res.stderr or 'action failed'}."
+
+        if spoken_msg:
+            print(f"[Lucca] {spoken_msg}", flush=True)
+            self._speak_text(trace, spoken_msg)
+            self.current_turn_tool_spoken.append(spoken_msg)
         return res
 
     def _heartbeat_loop(self) -> None:

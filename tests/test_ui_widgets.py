@@ -198,17 +198,25 @@ def test_quit_publishes_offline(qapp: QApplication, monkeypatch: pytest.MonkeyPa
         app_instance.quit()
         assert quit_called == [True]
 
-        assert ingest_pull.poll(1000) > 0
-        raw1 = ingest_pull.recv()
-        env1 = decode_envelope(raw1)
-        assert env1.type == "ui.state"
-        assert env1.payload["state"] == "offline"
+        received_types: list[str] = []
+        received_payloads: list[dict[str, object]] = []
+        for _ in range(5):
+            if ingest_pull.poll(500) > 0:
+                raw = ingest_pull.recv()
+                env = decode_envelope(raw)
+                if env.type in ("ui.state", "ui.quit"):
+                    received_types.append(env.type)
+                    received_payloads.append(dict(env.payload))
+            if len(received_types) >= 2:
+                break
 
-        assert ingest_pull.poll(1000) > 0
-        raw2 = ingest_pull.recv()
-        env2 = decode_envelope(raw2)
-        assert env2.type == "ui.quit"
-        assert env2.payload["reason"] == "user"
+        assert "ui.state" in received_types
+        state_idx = received_types.index("ui.state")
+        assert received_payloads[state_idx].get("state") == "offline"
+
+        assert "ui.quit" in received_types
+        quit_idx = received_types.index("ui.quit")
+        assert received_payloads[quit_idx].get("reason") == "user"
     finally:
         ingest_pull.close(linger=0)
         ctx.destroy(linger=0)

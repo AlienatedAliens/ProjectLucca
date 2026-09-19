@@ -446,6 +446,99 @@ def test_orchestrator_speaks_sandbox_unavailable_notice() -> None:
         orch.play_ring.unlink()
 
 
+def test_orchestrator_speaks_query_capabilities_and_read_tools() -> None:
+    """Ensure Orchestrator speaks query_capabilities, read_file, and fetch_url results."""
+    from unittest.mock import MagicMock, patch
+
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.schemas import ToolResult
+    from lucca.core.trace import TurnTrace
+    from tests.fakes.fake_tts import FakeTTS
+
+    orch = Orchestrator(tts=FakeTTS, execute_tools=True)
+    try:
+        orch._request_confirmation = MagicMock(return_value=True)  # type: ignore[method-assign]
+        trace = TurnTrace(trace_id="test-trace", start_ns=0)
+
+        with (
+            patch.object(orch.sandbox, "execute_tool") as mock_exec,
+            patch.object(orch, "_speak_text") as mock_speak,
+        ):
+            # 1. query_capabilities (all / general tour)
+            mock_exec.return_value = ToolResult(call_id="c1", ok=True, exit_code=0, elapsed_ms=0.0)
+            orch._handle_tool_call(trace, "query_capabilities", {})
+            mock_speak.assert_called_with(
+                trace,
+                "I can launch desktop applications like Calculator, Notepad, and Edge, "
+                "read and write files in your workspace, and remember our conversations "
+                "with persistent memory.",
+            )
+            assert len(orch.current_turn_tool_spoken) == 1
+
+            # 2. query_capabilities (applications)
+            orch._handle_tool_call(trace, "query_capabilities", {"category": "applications"})
+            mock_speak.assert_called_with(
+                trace,
+                "I can launch desktop applications including Calculator, Notepad, and Edge.",
+            )
+
+            # 3. read_file
+            mock_exec.return_value = ToolResult(
+                call_id="c2", ok=True, exit_code=0, content="Sample file content", elapsed_ms=0.0
+            )
+            orch._handle_tool_call(trace, "read_file", {"path": "sample.txt"})
+            mock_speak.assert_called_with(
+                trace, "Here is what's in sample.txt: Sample file content"
+            )
+
+            # 4. fetch_url
+            mock_exec.return_value = ToolResult(
+                call_id="c3", ok=True, exit_code=0, content="Web content", elapsed_ms=0.0
+            )
+            orch._handle_tool_call(trace, "fetch_url", {"url": "https://example.com"})
+            mock_speak.assert_called_with(trace, "I fetched https://example.com.")
+    finally:
+        orch.stop()
+        orch.cap_ring.close()
+        orch.cap_ring.unlink()
+        orch.play_ring.close()
+        orch.play_ring.unlink()
+
+
+def test_tool_only_turn_records_history() -> None:
+    """F-CORE-015: Ensure turns with pure tool calls record spoken response into history."""
+    from unittest.mock import MagicMock
+
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.schemas import Done, LLMUsage, ToolCall, ToolCallEnd
+    from tests.fakes.fake_llm import FakeLLM
+    from tests.fakes.fake_tts import FakeTTS
+
+    script = [
+        ToolCallEnd(call=ToolCall(tool="query_capabilities", args={}, call_id="c-1")),
+        Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=10)),
+    ]
+    fake_llm = FakeLLM(script=script)
+    orch = Orchestrator(tts=FakeTTS, llm=fake_llm, execute_tools=True)
+    try:
+        orch._request_confirmation = MagicMock(return_value=True)  # type: ignore[method-assign]
+        orch._on_user_text(ts_ns=1000, user_text="Give me the tour")
+        if orch.active_turn_thread:
+            orch.active_turn_thread.join(timeout=5.0)
+
+        assert len(orch.history) == 2
+        assert orch.history[0]["role"] == "user"
+        assert orch.history[0]["content"] == "Give me the tour"
+        assert orch.history[1]["role"] == "assistant"
+        assert "I can launch desktop applications" in orch.history[1]["content"]
+    finally:
+        orch.stop()
+        orch.cap_ring.close()
+        orch.cap_ring.unlink()
+        orch.play_ring.close()
+        orch.play_ring.unlink()
+
+
 def test_no_hardcoded_project_paths() -> None:
     """F-SBX-012: Ensure no hardcoded project paths exist in src/lucca/sandbox."""
     sandbox_dir = Path(__file__).resolve().parent.parent / "src" / "lucca" / "sandbox"
