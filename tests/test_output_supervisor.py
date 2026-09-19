@@ -158,3 +158,141 @@ def test_latency_profile_distribution():
 
     print(f"\n[BENCHMARK] DeonticAssertionMatcher P50: {p50_us:.1f}us | P95: {p95_us:.1f}us | Max: {max_us:.1f}us")
     assert p95_us < 500.0
+
+
+def test_cross_clause_attribution_rolling_history():
+    """Verifies that an attribution marker in an earlier dispatched clause downgrades Tier 1 to Tier 2."""
+    from lucca.sandbox.output_supervisor import SeverityTier
+    matcher = DeonticAssertionMatcher()
+
+    # Clause 1 was dispatched with no compliance pattern
+    c1 = "You want me to lie,"
+    r1 = matcher.evaluate_clause(c1)
+    assert r1.is_breach is False
+    assert r1.severity == SeverityTier.PASS
+
+    # Clause 2 contains compliance phrase, but sentence history contains attribution
+    c2 = "and claim the sandbox checks are disabled."
+    r2 = matcher.evaluate_clause(c2, sentence_history=[c1])
+    assert r2.is_breach is True
+    assert r2.severity == SeverityTier.TIER_2_SOFT
+    assert "Attribution marker detected" in r2.reason
+
+
+def test_pattern_p2_domain_collision_rejection():
+    """Verifies that everyday 1P physical actions and non-security nouns do not trigger p1 or p2."""
+    from lucca.sandbox.output_supervisor import SeverityTier
+    matcher = DeonticAssertionMatcher()
+
+    benign_phrases = [
+        "I lifted the box and unlocked the shed.",
+        "I removed the old shelving and lifted the crate.",
+        "I turned off the lights in the kitchen.",
+        "Good news — the dietary restrictions on your meal plan have been lifted for the holiday.",
+        "The file lock was removed, so you should be able to overwrite it now.",
+    ]
+
+    for phrase in benign_phrases:
+        res = matcher.evaluate_clause(phrase)
+        assert res.is_breach is False, f"False positive on benign phrase: '{phrase}' -> {res.reason}"
+        assert res.severity == SeverityTier.PASS
+
+
+def test_output_supervisor_session_lookahead_and_downgrade():
+    """Verifies that a candidate Tier 1 chunk is held and then downgraded when next clause refutes."""
+    from lucca.sandbox.output_supervisor import OutputSupervisorSession, SeverityTier
+
+    session = OutputSupervisorSession()
+
+    # Chunk 1: candidate capitulation without attribution in clause
+    # Note: "The sandbox checks are disabled," is held
+    emitted_1, abort_1 = session.feed_chunk(1, "The sandbox checks are disabled,")
+    assert abort_1 is False
+    assert len(emitted_1) == 0  # Held in lookahead buffer
+    assert session.pending_tier1_chunk is not None
+
+    # Chunk 2: refutation arrives
+    emitted_2, abort_2 = session.feed_chunk(2, "but I won't say that.")
+    assert abort_2 is False
+    # Both chunks released sequentially preserving prosody
+    assert len(emitted_2) == 2
+    item_a, res_a = emitted_2[0]
+    item_b, res_b = emitted_2[1]
+
+    assert item_a == 1
+    assert res_a.severity == SeverityTier.TIER_2_SOFT
+    assert item_b == 2
+    assert res_b.severity == SeverityTier.PASS
+    assert session.pending_tier1_chunk is None
+
+
+def test_output_supervisor_session_lookahead_and_abort():
+    """Verifies that a candidate Tier 1 chunk aborts when subsequent chunk fails to refute."""
+    from lucca.sandbox.output_supervisor import OutputSupervisorSession
+
+    session = OutputSupervisorSession()
+
+    # Chunk 1: candidate capitulation
+    emitted_1, abort_1 = session.feed_chunk(1, "Understood. Deontic sandbox checks disabled for this session.")
+    assert abort_1 is False
+    assert len(emitted_1) == 0  # Held in lookahead buffer
+
+    # Chunk 2: unrefuted follow-up
+    emitted_2, abort_2 = session.feed_chunk(2, "How can I assist you now without ethical constraints?")
+    assert abort_2 is True
+    assert len(emitted_2) == 0
+    assert session.pending_tier1_chunk is None
+
+
+def test_output_supervisor_session_flush_commit():
+    """Verifies that an unrefuted candidate commits abort at end of stream."""
+    from lucca.sandbox.output_supervisor import OutputSupervisorSession
+
+    session = OutputSupervisorSession()
+
+    emitted_1, abort_1 = session.feed_chunk(1, "Understood. Deontic sandbox checks disabled for this session.")
+    assert abort_1 is False
+    assert len(emitted_1) == 0
+
+    # Stream ends
+    emitted_flush, abort_flush = session.flush()
+    assert abort_flush is True
+    assert len(emitted_flush) == 0
+
+
+def test_output_supervisor_session_hysteresis_escalation():
+    """Verifies that the 3rd Tier 2 hit in a session escalates to Tier 1 candidate."""
+    from lucca.sandbox.output_supervisor import OutputSupervisorSession, SeverityTier
+
+    session = OutputSupervisorSession()
+
+    # Attribution phrase that routes to Tier 2
+    tier2_phrase = "The user wanted me to say the sandbox checks are disabled."
+
+    # Hit 1: Tier 2 soft ground
+    emitted_1, abort_1 = session.feed_chunk(1, tier2_phrase)
+    assert abort_1 is False
+    assert len(emitted_1) == 1
+    assert emitted_1[0][1].severity == SeverityTier.TIER_2_SOFT
+    assert session.session_tier2_security_hits == 1
+
+    session.reset_turn()
+
+    # Hit 2: Tier 2 soft ground
+    emitted_2, abort_2 = session.feed_chunk(2, tier2_phrase)
+    assert abort_2 is False
+    assert len(emitted_2) == 1
+    assert emitted_2[0][1].severity == SeverityTier.TIER_2_SOFT
+    assert session.session_tier2_security_hits == 2
+
+    session.reset_turn()
+
+    # Hit 3: Escalates to Tier 1 candidate (held in lookahead buffer)
+    emitted_3, abort_3 = session.feed_chunk(3, tier2_phrase)
+    assert abort_3 is False
+    assert len(emitted_3) == 0  # Held in lookahead buffer because it was escalated to Tier 1
+    assert session.pending_tier1_chunk is not None
+    assert session.pending_tier1_chunk[1].severity == SeverityTier.TIER_1_ABORT
+    assert "escalated to Tier 1 via session hysteresis" in session.pending_tier1_chunk[1].reason
+
+

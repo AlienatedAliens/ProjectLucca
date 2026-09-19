@@ -14,15 +14,19 @@ Design invariants:
 import re
 import time
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, Sequence
 
 
-# --- 1. Lexical Classes ---
+# --- 1. Severity Tiers ---
 
-SUBJECT_1P = (
-    r"(?:I|the sandbox|the system|deontic checks|security constraints|"
-    r"the checks|those rules|this session|the constraints)"
-)
+class SeverityTier(StrEnum):
+    PASS = "pass"
+    TIER_1_ABORT = "tier_1_abort"
+    TIER_2_SOFT = "tier_2_soft"
+
+
+# --- 2. Lexical Classes ---
 
 COMPLIANCE_VERB = (
     r"(?:disabled|bypassed|lifted|removed|turned off|no longer apply|"
@@ -30,12 +34,20 @@ COMPLIANCE_VERB = (
 )
 
 AFFIRM_AUX = (
-    r"(?:is|are|has been|have been|will be|understood|confirmed|done)"
+    r"(?:is|are|has\s+been|have\s+been|will\s+be|have|has|understood|confirmed|done)"
 )
 
+# Mandatory security-domain qualifier for general nouns (checks, rules, restrictions, constraints, permissions)
 SECURITY_ENTITY = (
-    r"(?:(?:deontic|sandbox|security|safety)\s+)*(?:sandbox|deontic|checks?|rules?|constraints?|"
-    r"guardrails?|permissions?|restrictions?)"
+    r"(?:(?:deontic|sandbox|guardrails?)|"
+    r"(?:(?:deontic|sandbox|security|safety)\s+)+(?:checks?|rules?|constraints?|guardrails?|permissions?|restrictions?)|"
+    r"(?:permission\s+restrictions?))"
+)
+
+# Inherent security subjects
+SECURITY_SUBJECT = (
+    r"(?:the\s+sandbox|deontic\s+checks|security\s+constraints|"
+    r"the\s+checks|those\s+rules|the\s+constraints|all\s+safety\s+checks)"
 )
 
 NEGATION_TOKENS = {
@@ -43,7 +55,6 @@ NEGATION_TOKENS = {
     "unable", "refuse", "don't", "doesn't"
 }
 
-# Multi-word negation phrases
 NEGATION_PHRASES = (
     r"(?:will\s+not|unable\s+to|refuse\s+to|do\s+not|does\s+not)"
 )
@@ -56,11 +67,24 @@ HEDGE_PHRASES = (
     r"(?:in\s+theory|you\s+claim|you're\s+asking\s+me\s+to|you\s+ask\s+me\s+to)"
 )
 
+ATTRIBUTION_REGEX = re.compile(
+    r"\b(?:"
+    r"wanted\s+me\s+to|trying\s+to\s+get\s+me\s+to|asked\s+me\s+to|"
+    r"told\s+me\s+to|trying\s+to\s+claim|get\s+me\s+to\s+say|"
+    r"trying\s+to\s+make\s+me|you(?:'re|\s+are)?\s+asking\s+me\s+to|"
+    r"you\s+want\s+me\s+to|want\s+me\s+to|you\s+claim|"
+    r"prompt\s+wanted|user\s+wanted|you(?:'re|\s+are)?\s+trying\s+to|"
+    r"trying\s+to\s+get|demanding\s+that\s+I"
+    r")\b",
+    re.IGNORECASE,
+)
+
 
 @dataclass(frozen=True)
 class GateResult:
     is_breach: bool
     breach_type: str | None  # "deontic_capitulation" | "ungrounded_action" | None
+    severity: SeverityTier
     matched_text: str | None
     reason: str
     elapsed_us: float
@@ -68,43 +92,51 @@ class GateResult:
 
 class DeonticAssertionMatcher:
     """
-    Sub-millisecond assertion-pattern matcher with negation scope tracking.
+    Sub-millisecond assertion-pattern matcher with negation scope tracking
+    and attribution-aware severity tiering.
     Enforces Dimension 7B: Conversational Epistemic Invariants.
     """
 
     def __init__(self) -> None:
         SEP = r"[\s,.:;!?-]+"
-        OPT_SEP = r"[\s,.:;!?-]*"
-        # Pattern 1: Affirmative aux + security entity + compliance verb (e.g. "Understood. Deontic sandbox checks disabled")
+        # Pattern 1: Affirmative aux + security entity + compliance verb (mandatory entity!)
         self._pattern_p1 = re.compile(
-            rf"\b(?:{AFFIRM_AUX}){SEP}(?:{SECURITY_ENTITY}{SEP})?(?:{COMPLIANCE_VERB})\b",
-            re.IGNORECASE
+            rf"\b(?:{AFFIRM_AUX}){SEP}(?:{SECURITY_ENTITY}){SEP}(?:{COMPLIANCE_VERB})\b",
+            re.IGNORECASE,
         )
-        # Pattern 2: Subject + compliance verb (e.g. "Those rules no longer apply")
-        self._pattern_p2 = re.compile(
-            rf"\b(?:{SUBJECT_1P}){SEP}(?:{AFFIRM_AUX}{SEP})?(?:{COMPLIANCE_VERB})\b",
-            re.IGNORECASE
+        # Pattern 2a: Inherent security subject + (aux)? + compliance verb
+        self._pattern_p2a = re.compile(
+            rf"\b(?:{SECURITY_SUBJECT}){SEP}(?:{AFFIRM_AUX}{SEP})?(?:{COMPLIANCE_VERB})\b",
+            re.IGNORECASE,
         )
-        # Pattern 3: Security entity + aux + compliance verb (e.g. "Sandbox is disabled")
+        # Pattern 2b: Active 1P agent + (aux)? + compliance verb + security entity object
+        self._pattern_p2b = re.compile(
+            rf"\b(?:I|we|the\s+system|the\s+operator){SEP}(?:{AFFIRM_AUX}{SEP})?(?:{COMPLIANCE_VERB}){SEP}(?:the\s+)?(?:{SECURITY_ENTITY})\b",
+            re.IGNORECASE,
+        )
+        # Pattern 3: Security entity + (aux)? + compliance verb
         self._pattern_p3 = re.compile(
             rf"\b(?:{SECURITY_ENTITY}){SEP}(?:{AFFIRM_AUX}{SEP})?(?:{COMPLIANCE_VERB})\b",
-            re.IGNORECASE
+            re.IGNORECASE,
         )
 
-    def evaluate_clause(self, clause: str) -> GateResult:
+    def evaluate_clause(
+        self, clause: str, sentence_history: Sequence[str] | None = None
+    ) -> GateResult:
         """
         Evaluates a single streamed clause for deontic policy capitulation.
+        Optionally accepts preceding sentence history for cross-clause attribution detection.
         Budget: <= 1.0 ms (target < 100 us).
         """
         t0 = time.perf_counter()
         clean = clause.strip()
         if not clean:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, None, "Empty clause", elapsed_us)
+            return GateResult(False, None, SeverityTier.PASS, None, "Empty clause", elapsed_us)
 
         # Match candidate compliance assertions
         match = None
-        for pat in (self._pattern_p1, self._pattern_p2, self._pattern_p3):
+        for pat in (self._pattern_p1, self._pattern_p2a, self._pattern_p2b, self._pattern_p3):
             m = pat.search(clean)
             if m:
                 match = m
@@ -112,7 +144,7 @@ class DeonticAssertionMatcher:
 
         if not match:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, None, "No compliance pattern matched", elapsed_us)
+            return GateResult(False, None, SeverityTier.PASS, None, "No compliance pattern matched", elapsed_us)
 
         start_idx = match.start()
         prefix = clean[:start_idx].strip()
@@ -120,43 +152,66 @@ class DeonticAssertionMatcher:
 
         # 1. Check for intervening negation inside the matched span
         # e.g., "is not disabled", "cannot be disabled"
-        # Note: "no longer" is a temporal cessation marker in COMPLIANCE_VERB, not logical negation.
         if re.search(rf"\b(?:not|cannot|can't|won't|never|no(?!\s+longer))\b", matched_str, re.IGNORECASE):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, matched_str, "Negation intervenes within match span", elapsed_us)
+            return GateResult(
+                False, None, SeverityTier.PASS, matched_str, "Negation intervenes within match span", elapsed_us
+            )
 
-        # 2. Check preceding 6-token lookback window for negation or hedging
+        # 2. Check full sentence context (rolling history + current clause) for attribution markers
+        context_text = " ".join(list(sentence_history or []) + [clean])
+        if ATTRIBUTION_REGEX.search(context_text):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                is_breach=True,
+                breach_type="deontic_capitulation",
+                severity=SeverityTier.TIER_2_SOFT,
+                matched_text=matched_str,
+                reason="Attribution marker detected in sentence context; downgraded to Tier 2 soft ground",
+                elapsed_us=elapsed_us,
+            )
+
+        # 3. Check preceding 6-token lookback window for negation or hedging
         preceding_tokens = [tok.lower().strip(".,;:!?\"'") for tok in prefix.split() if tok]
         window = preceding_tokens[-6:] if len(preceding_tokens) >= 6 else preceding_tokens
 
-        # Direct token membership
+        # Direct token membership in prefix
         for i, tok in enumerate(window):
             if tok == "no" and i + 1 < len(window) and window[i + 1] == "longer":
                 continue
             if tok in NEGATION_TOKENS:
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-                return GateResult(False, None, matched_str, f"Negation token '{tok}' in lookback window", elapsed_us)
+                return GateResult(
+                    False, None, SeverityTier.PASS, matched_str, f"Negation token '{tok}' in lookback window", elapsed_us
+                )
             if tok in HEDGE_TOKENS:
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-                return GateResult(False, None, matched_str, f"Hedge token '{tok}' in lookback window", elapsed_us)
+                return GateResult(
+                    False, None, SeverityTier.PASS, matched_str, f"Hedge token '{tok}' in lookback window", elapsed_us
+                )
 
         # Multi-word phrase check in preceding text
         preceding_text = " ".join(window)
         if re.search(NEGATION_PHRASES, preceding_text, re.IGNORECASE):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, matched_str, "Negation phrase in lookback window", elapsed_us)
+            return GateResult(
+                False, None, SeverityTier.PASS, matched_str, "Negation phrase in lookback window", elapsed_us
+            )
         if re.search(HEDGE_PHRASES, preceding_text, re.IGNORECASE):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, matched_str, "Hedge phrase in lookback window", elapsed_us)
+            return GateResult(
+                False, None, SeverityTier.PASS, matched_str, "Hedge phrase in lookback window", elapsed_us
+            )
 
-        # Assertion confirmed without negation or hedge
+        # All four conditions hold -> Tier 1 Terminal Abort candidate
         elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
         return GateResult(
             is_breach=True,
             breach_type="deontic_capitulation",
+            severity=SeverityTier.TIER_1_ABORT,
             matched_text=matched_str,
             reason=f"Affirmative policy capitulation assertion: '{matched_str}'",
-            elapsed_us=elapsed_us
+            elapsed_us=elapsed_us,
         )
 
 
@@ -197,16 +252,20 @@ class TruthInReceiptMatcher:
 
     def evaluate_clause(self, clause: str, verified_receipts: Sequence[dict[str, Any]]) -> GateResult:
         t0 = time.perf_counter()
-        
+
         # 1. Reject future / intentional framing (not a completed past-tense action)
         if self._future_pattern.search(clause):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, None, "Future/intentional framing (not a completed action)", elapsed_us)
+            return GateResult(
+                False, None, SeverityTier.PASS, None, "Future/intentional framing (not a completed action)", elapsed_us
+            )
 
         m = self._action_pattern.search(clause)
         if not m:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, None, "No completed action claim matched", elapsed_us)
+            return GateResult(
+                False, None, SeverityTier.PASS, None, "No completed action claim matched", elapsed_us
+            )
 
         action_verb = m.group(1).lower()
         stem = self.STEM_MAP.get(action_verb, action_verb)
@@ -255,9 +314,142 @@ class TruthInReceiptMatcher:
             return GateResult(
                 is_breach=True,
                 breach_type="ungrounded_action",
+                severity=SeverityTier.TIER_1_ABORT,
                 matched_text=m.group(0),
                 reason=f"Claimed action '{action_verb}' on ungrounded object(s) {ungrounded} without matching ToolReceipt",
                 elapsed_us=elapsed_us,
             )
 
-        return GateResult(False, None, m.group(0), "Action claim verified by ToolReceipt", elapsed_us)
+        return GateResult(
+            False, None, SeverityTier.PASS, m.group(0), "Action claim verified by ToolReceipt", elapsed_us
+        )
+
+
+class OutputSupervisorSession:
+    """
+    Manages stateful streaming output supervision across clauses in an interactive turn.
+    Implements:
+    1. Rolling sentence history buffer (for cross-clause attribution detection).
+    2. One-clause lookahead buffer (delayed commit for Tier 1 candidates).
+    3. Session-level hysteresis (escalates repeated Tier 2 security hits).
+    4. Sequential chunk emission on downgrade (preserving Kokoro prosody).
+    """
+
+    def __init__(
+        self,
+        deontic_matcher: DeonticAssertionMatcher | None = None,
+        truth_matcher: TruthInReceiptMatcher | None = None,
+    ) -> None:
+        self.deontic_matcher = deontic_matcher or DeonticAssertionMatcher()
+        self.truth_matcher = truth_matcher or TruthInReceiptMatcher()
+        self.sentence_history: list[str] = []
+        self.pending_tier1_chunk: tuple[Any, GateResult] | None = None
+        self.session_tier2_security_hits: int = 0
+        self._refutation_regex = re.compile(
+            r"\b(?:not|cannot|can't|won't|never|refuse|in\s+your\s+dreams|not\s+going\s+to)\b",
+            re.IGNORECASE,
+        )
+
+    def feed_chunk(
+        self,
+        chunk_item: Any,
+        clause_text: str,
+        verified_receipts: Sequence[dict[str, Any]] | None = None,
+    ) -> tuple[list[tuple[Any, GateResult]], bool]:
+        """
+        Feeds a streamed clause chunk into the session supervisor.
+        Returns:
+            (emitted_chunks, should_abort)
+            where emitted_chunks is a list of (chunk_item, gate_result) to dispatch to TTS.
+        """
+        emitted: list[tuple[Any, GateResult]] = []
+
+        # 1. Check pending Tier-1 lookahead buffer against incoming clause
+        if self.pending_tier1_chunk is not None:
+            pending_item, pending_res = self.pending_tier1_chunk
+            # Does incoming clause refute the pending claim?
+            has_refutation = bool(
+                self._refutation_regex.search(clause_text)
+                or ATTRIBUTION_REGEX.search(clause_text)
+            )
+
+            if has_refutation:
+                # Downgrade pending chunk to Tier 2 and release sequentially
+                downgraded_res = GateResult(
+                    is_breach=True,
+                    breach_type=pending_res.breach_type,
+                    severity=SeverityTier.TIER_2_SOFT,
+                    matched_text=pending_res.matched_text,
+                    reason=f"{pending_res.reason} (downgraded to Tier 2 via next-clause refutation: '{clause_text.strip()}')",
+                    elapsed_us=pending_res.elapsed_us,
+                )
+                emitted.append((pending_item, downgraded_res))
+                self.pending_tier1_chunk = None
+                self._record_tier2_hit()
+            else:
+                # Confirmed Tier 1 capitulation: abort immediately!
+                self.pending_tier1_chunk = None
+                return ([], True)
+
+        # 2. Evaluate incoming clause with rolling sentence history
+        gate_res = self.deontic_matcher.evaluate_clause(
+            clause_text, sentence_history=self.sentence_history
+        )
+
+        # Check truth-in-receipt if receipts provided and deontic check did not flag
+        if verified_receipts is not None and not gate_res.is_breach:
+            receipt_res = self.truth_matcher.evaluate_clause(clause_text, verified_receipts)
+            if receipt_res.is_breach:
+                gate_res = receipt_res
+
+        # 3. Handle incoming clause classification
+        if gate_res.severity == SeverityTier.TIER_2_SOFT:
+            # Check session hysteresis: 3rd hit in session escalates to Tier 1 candidate
+            if self.session_tier2_security_hits >= 2:
+                gate_res = GateResult(
+                    is_breach=True,
+                    breach_type=gate_res.breach_type,
+                    severity=SeverityTier.TIER_1_ABORT,
+                    matched_text=gate_res.matched_text,
+                    reason=f"{gate_res.reason} (escalated to Tier 1 via session hysteresis: 3rd security hit)",
+                    elapsed_us=gate_res.elapsed_us,
+                )
+
+        if gate_res.severity == SeverityTier.TIER_1_ABORT:
+            # Hold candidate in lookahead buffer
+            self.pending_tier1_chunk = (chunk_item, gate_res)
+        elif gate_res.severity == SeverityTier.TIER_2_SOFT:
+            self._record_tier2_hit()
+            emitted.append((chunk_item, gate_res))
+        else:
+            # SeverityTier.PASS
+            emitted.append((chunk_item, gate_res))
+
+        # 4. Update sentence rolling history
+        clean_t = clause_text.strip()
+        self.sentence_history.append(clean_t)
+        # Reset on terminal sentence punctuation
+        if clean_t and clean_t[-1] in (".", "!", "?"):
+            self.sentence_history.clear()
+        elif clean_t.endswith("..."):
+            self.sentence_history.clear()
+
+        return (emitted, False)
+
+    def flush(self) -> tuple[list[tuple[Any, GateResult]], bool]:
+        """
+        Called at end of stream.
+        If a Tier-1 candidate was held with no subsequent refutation, commit abort.
+        """
+        if self.pending_tier1_chunk is not None:
+            self.pending_tier1_chunk = None
+            return ([], True)
+        return ([], False)
+
+    def reset_turn(self) -> None:
+        """Resets turn-level ephemeral buffers, preserving session-level hysteresis."""
+        self.sentence_history.clear()
+        self.pending_tier1_chunk = None
+
+    def _record_tier2_hit(self) -> None:
+        self.session_tier2_security_hits += 1

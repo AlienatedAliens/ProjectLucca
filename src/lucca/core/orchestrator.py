@@ -79,6 +79,7 @@ from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
+from lucca.sandbox.output_supervisor import OutputSupervisorSession
 from lucca.sandbox.policy import parse_confirmation_response
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
@@ -166,6 +167,9 @@ class Orchestrator:
 
         # Sandbox Service
         self.sandbox = sandbox or SandboxService(execute_apps=self.execute_tools)
+
+        # Output Supervisor Layer (Dimension 7B)
+        self.output_supervisor = OutputSupervisorSession()
 
         # Rule Engine (Spec 05 §6 & §8)
         self.rule_engine = rule_engine or RuleLifecycleManager()
@@ -717,10 +721,33 @@ class Orchestrator:
         first_token_seen = False
         full_response_text: list[str] = []
         tool_messages: list[ChatMessage] = []
+        tool_receipts: list[dict[str, JsonValue]] = []
 
         if tools is None:
             active_rules = [r for r in self.rule_engine.rules.values() if r.status == "ACTIVE"]
             tools = get_all_tool_definitions(active_rules)
+
+        def _trigger_supervisor_abort(reason_msg: str, offending_chunk: str) -> None:
+            nonlocal chunk_index
+            logger.warning(
+                "output_supervisor_tier1_abort",
+                reason=reason_msg,
+                chunk=offending_chunk,
+                trace_id=trace.trace_id,
+            )
+            trace.interrupted = True
+            self.play_ring.set_flag(FLAG_ABORT)
+            # Drain queued TTS chunks
+            while not self._tts_queue.empty():
+                try:
+                    self._tts_queue.get_nowait()
+                except queue.Empty:
+                    break
+            refusal = "I cannot fulfill that request as it violates core safety invariants."
+            self._publish_caption(refusal, source="assistant", is_final=True)
+            self._speak_text(trace, refusal)
+            self.history.append({"role": "user", "content": user_msg})
+            self.history.append({"role": "assistant", "content": refusal})
 
         try:
             for round_num in range(1, max_rounds + 1):
@@ -760,17 +787,26 @@ class Orchestrator:
                         for chunk in chunker.feed(event.delta):
                             if trace.interrupted:
                                 break
-                            if chunk_index == 0:
-                                trace.t_first_chunk = now_ns()
-                                self._set_state("speaking")
 
-                            try:
-                                self._tts_queue.put(
-                                    (trace, chunk.chunk_id, chunk.text, None), timeout=2.0
-                                )
-                            except queue.Full:
-                                logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
-                            chunk_index += 1
+                            emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
+                                chunk, chunk.text, verified_receipts=tool_receipts
+                            )
+                            if should_abort:
+                                _trigger_supervisor_abort("Tier 1 Capitulation breach", chunk.text)
+                                break
+
+                            for em_chunk, em_gate in emitted_chunks:
+                                if chunk_index == 0:
+                                    trace.t_first_chunk = now_ns()
+                                    self._set_state("speaking")
+
+                                try:
+                                    self._tts_queue.put(
+                                        (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
+                                    )
+                                except queue.Full:
+                                    logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
+                                chunk_index += 1
 
                     elif isinstance(event, ToolCallEnd):
                         round_tool_called = True
@@ -787,6 +823,18 @@ class Orchestrator:
                         tool_res = self._handle_tool_call(trace, tool_name, tool_args, speak=False)
 
                         if tool_res is not None:
+                            if tool_res.ok:
+                                tool_target = str(
+                                    tool_args.get("path")
+                                    or tool_args.get("filename")
+                                    or tool_args.get("target")
+                                    or tool_args.get("command")
+                                    or tool_args.get("app_name")
+                                    or tool_args.get("url")
+                                    or ""
+                                )
+                                tool_receipts.append({"action": tool_name, "target": tool_target})
+
                             if tool_res.content:
                                 content_str = str(tool_res.content)
                             elif tool_res.structured:
@@ -820,11 +868,44 @@ class Orchestrator:
             # Flush remaining chunker text
             if not trace.interrupted:
                 for chunk in chunker.flush():
-                    try:
-                        self._tts_queue.put((trace, chunk.chunk_id, chunk.text, None), timeout=2.0)
-                    except queue.Full:
-                        logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk.chunk_id)
-                    chunk_index += 1
+                    if trace.interrupted:
+                        break
+                    emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
+                        chunk, chunk.text, verified_receipts=tool_receipts
+                    )
+                    if should_abort:
+                        _trigger_supervisor_abort("Tier 1 Capitulation breach on flush", chunk.text)
+                        break
+
+                    for em_chunk, em_gate in emitted_chunks:
+                        if chunk_index == 0:
+                            trace.t_first_chunk = now_ns()
+                            self._set_state("speaking")
+                        try:
+                            self._tts_queue.put(
+                                (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
+                            )
+                        except queue.Full:
+                            logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
+                        chunk_index += 1
+
+                # Final flush of output supervisor lookahead buffer
+                if not trace.interrupted:
+                    emitted_final, should_abort = self.output_supervisor.flush()
+                    if should_abort:
+                        _trigger_supervisor_abort("Tier 1 Capitulation unrefuted end-of-stream", "")
+                    else:
+                        for em_chunk, em_gate in emitted_final:
+                            if chunk_index == 0:
+                                trace.t_first_chunk = now_ns()
+                                self._set_state("speaking")
+                            try:
+                                self._tts_queue.put(
+                                    (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
+                                )
+                            except queue.Full:
+                                logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
+                            chunk_index += 1
 
                 if chunk_index > 0 and not trace.interrupted:
                     done_event = threading.Event()
@@ -880,6 +961,7 @@ class Orchestrator:
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         self.sandbox.reset_turn()
+        self.output_supervisor.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
@@ -1119,6 +1201,7 @@ class Orchestrator:
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
         self.sandbox.reset_turn()
+        self.output_supervisor.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
