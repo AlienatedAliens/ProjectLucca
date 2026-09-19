@@ -191,3 +191,37 @@ def test_concurrent_flag_and_write_no_loss() -> None:
     finally:
         ring.close()
         ring.unlink()
+
+
+def test_read_slice_stale_window_detected() -> None:
+    """
+    F-SENS-003: read_slice must detect stale windows that have fallen behind capacity.
+    Write capacity + 1000 samples, then attempt reading an overwritten slice.
+    Asserts empty result is returned and is_slice_stale returns True.
+    """
+    test_name = "lucca_test_shm_stale_sens003"
+    ring = SharedAudioRing(name=test_name, rate=16000, capacity_seconds=1, create=True)
+    try:
+        cap = ring.capacity_samples
+        data = np.ones(cap + 1000, dtype=np.int16)
+        ring.write(data)
+
+        w = ring.write_idx
+        stale_start = w - cap - 500
+        stale_end = w - cap - 100
+
+        assert ring.is_slice_stale(stale_start)
+        stale_slice = ring.read_slice(stale_start, stale_end)
+        assert len(stale_slice) == 0, (
+            f"Expected empty slice for stale window, got {len(stale_slice)}"
+        )
+
+        valid_start = w - cap + 100
+        valid_end = w - cap + 400
+        assert not ring.is_slice_stale(valid_start)
+        valid_slice = ring.read_slice(valid_start, valid_end)
+        assert len(valid_slice) == 300
+        np.testing.assert_array_equal(valid_slice, data[valid_start:valid_end])
+    finally:
+        ring.close()
+        ring.unlink()

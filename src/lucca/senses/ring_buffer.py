@@ -277,12 +277,25 @@ class SharedAudioRing:
             self._write_header(w_idx, r_idx + to_read, seq, flags)
             return result
 
+    def is_slice_stale(self, start_seq: int) -> bool:
+        """Returns True if start_seq is older than current buffer capacity."""
+        w_idx = self.write_idx
+        oldest = max(0, w_idx - self.capacity_samples)
+        return start_seq < oldest
+
     def read_slice(self, start_seq: int, end_seq: int) -> npt.NDArray[np.int16]:
         """
         Reads an absolute sample slice [start_seq, end_seq) from the ring.
         Used by ASR to transcribe specific PTT windows without advancing read_idx.
+        Returns empty array if window is invalid or stale (overwritten).
         """
         if end_seq <= start_seq:
+            return np.zeros(0, dtype=np.int16)
+
+        w_idx = self.write_idx
+        oldest = max(0, w_idx - self.capacity_samples)
+        if start_seq < oldest:
+            # Stale window: audio was already overwritten
             return np.zeros(0, dtype=np.int16)
 
         n_samples = end_seq - start_seq

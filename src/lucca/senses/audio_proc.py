@@ -106,7 +106,10 @@ class AudioProcess:
 
         # Run VAD over captured slice
         slice_samples = self.cap_ring.read_slice(capture_start, capture_end)
-        vad_ms, _, _ = self.vad.process(slice_samples)
+        if len(slice_samples) == 0:
+            vad_ms = 0.0
+        else:
+            vad_ms, _, _ = self.vad.process(slice_samples)
 
         print(f"[AUDIO] PTT Released ({duration_ms:.0f}ms, speech: {vad_ms:.0f}ms)", flush=True)
         env = Envelope(
