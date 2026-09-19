@@ -25,6 +25,19 @@
       "size_bytes": 28214398,
       "source_repo": "hexgrad/Kokoro-82M",
       "source_filename": "voices-v1.0.bin"
+    },
+    "llm/Mistral-Nemo-Instruct-2407-Q5_K_M.gguf": {
+      "sha256": "f2118506b57d31403cba021b476ceb95600cc278fbc2feeaaf884b6e64fa6ee5",
+      "size_bytes": 8727635072,
+      "source_repo": "bartowski/Mistral-Nemo-Instruct-2407-GGUF",
+      "source_filename": "Mistral-Nemo-Instruct-2407-Q5_K_M.gguf"
+    },
+    "llm/Mistral-Nemo-Instruct-2407-Q4_K_M.gguf": {
+      "sha256": "7c1a10d202d8788dbe5628dc962254d10654c853cae6aaeca0618f05490d4a46",
+      "size_bytes": 7477208192,
+      "source_repo": "bartowski/Mistral-Nemo-Instruct-2407-GGUF",
+      "source_filename": "Mistral-Nemo-Instruct-2407-Q4_K_M.gguf"
     }
   }
 }
+
