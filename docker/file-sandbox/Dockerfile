@@ -7,6 +7,9 @@ WORKDIR /workspace
 COPY docker/toolsrv /opt/toolsrv
 COPY src/lucca /opt/lucca
 ENV PYTHONPATH="/opt:/opt/toolsrv"
+ENV LUCCA_SANDBOX_CONTAINER="1"
+
+RUN touch /opt/lucca/.sandbox_container && chown lucca:lucca /opt/lucca/.sandbox_container
 
 RUN echo '#!/bin/sh\nexec python3 -m server "$@"' > /usr/local/bin/lucca-toolsrv && \
     chmod +x /usr/local/bin/lucca-toolsrv

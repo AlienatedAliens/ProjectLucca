@@ -50,6 +50,8 @@ def get_file_sandbox_run_args(
         "/tmp:rw,noexec,nosuid,size=32m",  # noqa: S108
         "--mount",
         f"type=bind,src={wsl_mount},dst=/workspace",
+        "-e",
+        "LUCCA_SANDBOX_CONTAINER=1",
         "--user",
         "1000:1000",
         "--cap-drop=ALL",

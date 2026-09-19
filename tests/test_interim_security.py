@@ -82,6 +82,24 @@ def test_file_tool_level_run_python_hard_blocked(file_tool: SafeFileTool):
     assert "disabled on host pending Milestone 2 container isolation" in out
 
 
+def test_file_tool_run_python_rejects_on_non_container_linux_environment(
+    file_tool: SafeFileTool, monkeypatch: pytest.MonkeyPatch
+):
+    """
+    Verifies that SafeFileTool.run_python asserts actual container boundary presence,
+    not mere OS identity. Even on Linux / WSL2 / CI host environments, if LUCCA_SANDBOX_CONTAINER
+    is not set and the container sentinel is absent, execution must be strictly blocked.
+    """
+    monkeypatch.delenv("LUCCA_SANDBOX_CONTAINER", raising=False)
+    monkeypatch.setattr("sys.platform", "linux")
+
+    res, out = file_tool.run_python("print('unauthorized host execution on linux')")
+    assert res["ok"] is False
+    assert res["exit_code"] == -1
+    assert "policy_violation" in str(res["stderr"])
+    assert "disabled on host pending Milestone 2 container isolation" in out
+
+
 # ---------------------------------------------------------------------------
 # 2. Host Launcher Whitelist Purge Tests
 # ---------------------------------------------------------------------------

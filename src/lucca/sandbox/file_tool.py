@@ -290,7 +290,13 @@ class SafeFileTool:
         return {"hits": hits, "count": len(hits), "truncated": False}, "\n".join(snippets)
 
     def run_python(self, code: str, timeout: int = 10) -> tuple[dict[str, object], str]:
-        if sys.platform == "win32":
+        # Enforce that run_python executes strictly inside the verified container boundary,
+        # never on the host (regardless of whether the host OS is Windows, Linux, or macOS).
+        is_container = (
+            os.environ.get("LUCCA_SANDBOX_CONTAINER") == "1"
+            or Path("/opt/lucca/.sandbox_container").exists()
+        )
+        if not is_container:
             err_msg = "policy_violation: run_python is disabled on host pending Milestone 2 container isolation"
             return {
                 "exit_code": -1,

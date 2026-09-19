@@ -85,6 +85,8 @@ class PersistentDockerWorker:
             "docker",
             "exec",
             "-i",
+            "-e",
+            "LUCCA_SANDBOX_CONTAINER=1",
             self.container_name,
             "lucca-toolsrv",
             "--loop",
@@ -419,6 +421,8 @@ class DockerRPCTransport:
             "docker",
             "exec",
             "-i",
+            "-e",
+            "LUCCA_SANDBOX_CONTAINER=1",
             self.container_name,
             "lucca-toolsrv",
         ]
