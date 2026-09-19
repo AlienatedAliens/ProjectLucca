@@ -456,11 +456,11 @@ class Orchestrator:
         if self.active_trace:
             self.active_trace.interrupted = True
 
-        # Bounded join on running turn thread
+        # Bounded join on running turn thread (bounded to 5ms to preserve <=50ms barge-in budget)
         if self.active_turn_thread and self.active_turn_thread is not threading.current_thread():
-            self.active_turn_thread.join(timeout=0.5)
+            self.active_turn_thread.join(timeout=0.005)
             if self.active_turn_thread.is_alive():
-                logger.warning("turn_thread_join_timeout", thread=self.active_turn_thread.name)
+                logger.debug("turn_thread_join_timeout", thread=self.active_turn_thread.name)
             self.active_turn_thread = None
 
     def _on_ptt_released(self, ts_ns: int, p: PTTReleasedPayload) -> None:
