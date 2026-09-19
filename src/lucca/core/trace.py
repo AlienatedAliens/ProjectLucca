@@ -3,12 +3,15 @@ Project Lucca — Latency Trace Schema & Logging
 Spec 10 §1, §2
 """
 
+import datetime
 import json
 import time
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
 
+from lucca import __version__
 from lucca.core.config import get_config
 
 
@@ -23,6 +26,9 @@ def now_ns() -> int:
 
 class TurnTrace(BaseModel):
     trace_id: str
+    session_id: str = ""
+    version: str = __version__
+    error: str = ""
     mode: Literal["audio", "transcript"] = "audio"
     route: str = "llm"
     tts_device: str = "CPU"
@@ -70,11 +76,38 @@ class TurnTrace(BaseModel):
         return 0.0
 
 
+def cleanup_old_traces(logs_dir: Path, retention_days: int) -> None:
+    """Purges dated traces older than retention_days (Spec 11 §8, F-CORE-056)."""
+    cutoff_seconds = retention_days * 86400.0
+    now_utc = datetime.datetime.now(datetime.UTC)
+    for p in logs_dir.glob("traces-*.jsonl"):
+        try:
+            stem = p.stem
+            parts = stem.split("-")
+            if len(parts) == 2 and len(parts[1]) == 8 and parts[1].isdigit():
+                file_date = datetime.datetime.strptime(parts[1], "%Y%m%d").replace(
+                    tzinfo=datetime.UTC
+                )
+                age_s = (now_utc - file_date).total_seconds()
+                if age_s > cutoff_seconds:
+                    p.unlink(missing_ok=True)
+                    continue
+            if (time.time() - p.stat().st_mtime) > cutoff_seconds:
+                p.unlink(missing_ok=True)
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+
 def log_turn_trace(trace: TurnTrace) -> None:
     config = get_config()
     logs_dir = config.resolve_path("logs")
     logs_dir.mkdir(parents=True, exist_ok=True)
-    trace_file = logs_dir / "traces.jsonl"
+
+    cleanup_old_traces(logs_dir, config.log.retention_days)
+
+    today_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d")
+    dated_trace_file = logs_dir / f"traces-{today_str}.jsonl"
+    canonical_trace_file = logs_dir / "traces.jsonl"
 
     data = trace.model_dump()
     data["total_e2e_ms"] = trace.total_e2e_ms
@@ -109,5 +142,16 @@ def log_turn_trace(trace: TurnTrace) -> None:
     else:
         data["stages_ms"] = {}
 
-    with open(trace_file, "a", encoding="utf-8") as f:
-        f.write(json.dumps(data) + "\n")
+    line = json.dumps(data) + "\n"
+    with open(dated_trace_file, "a", encoding="utf-8") as f:
+        f.write(line)
+    with open(canonical_trace_file, "a", encoding="utf-8") as f:
+        f.write(line)
+
+
+try:
+    _init_logs = get_config().resolve_path("logs")
+    if _init_logs.exists():
+        cleanup_old_traces(_init_logs, get_config().log.retention_days)
+except Exception:  # noqa: BLE001, S110
+    pass

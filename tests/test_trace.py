@@ -1,5 +1,4 @@
-"""Unit tests for latency trace clock and logging (Spec 10, F-CORE-008)."""
-
+import datetime
 import json
 from pathlib import Path
 
@@ -58,3 +57,34 @@ def test_log_turn_trace_emits_relative_stages_ms(
     assert stages["t_llm_first_token"] == 160.0
     assert stages["t_first_chunk"] == 220.0
     assert stages["t_first_sample"] == 380.0
+
+
+def test_trace_rotation_and_fields(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    F-CORE-056: Verify TurnTrace schema metadata fields, daily rotation, and retention cleanup.
+    """
+    monkeypatch.setenv("LUCCA_HOME", str(tmp_path))
+    logs_dir = tmp_path / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    old_file = logs_dir / "traces-20200101.jsonl"
+    old_file.write_text('{"trace_id": "old"}\n', encoding="utf-8")
+
+    trace = TurnTrace(trace_id="new-trace-01", session_id="sess-123", error="sample error")
+    log_turn_trace(trace)
+
+    # Old dated log should be pruned
+    assert not old_file.exists()
+
+    # Daily dated trace should be created
+    today_str = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d")
+    new_dated_file = logs_dir / f"traces-{today_str}.jsonl"
+    assert new_dated_file.exists()
+
+    # Canonical traces.jsonl should also be written
+    canonical_file = logs_dir / "traces.jsonl"
+    assert canonical_file.exists()
+
+    data = json.loads(new_dated_file.read_text(encoding="utf-8").strip().splitlines()[0])
+    assert data["session_id"] == "sess-123"
+    assert data["error"] == "sample error"
+    assert data["version"] == "0.2.0"

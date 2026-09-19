@@ -860,6 +860,7 @@ class Orchestrator:
                 self._publish_caption(reply_str, source="assistant", is_final=True)
 
         except Exception as exc:  # noqa: BLE001
+            trace.error = str(exc)
             if not trace.interrupted:
                 logger.error("turn_execution_error", trace_id=trace.trace_id, error=str(exc))
                 print(f"\n[Error] {exc}", flush=True)
@@ -1050,6 +1051,7 @@ class Orchestrator:
                 self._publish_caption(reply_str, source="assistant", is_final=True)
 
         except Exception as exc:  # noqa: BLE001
+            trace.error = str(exc)
             if not trace.interrupted:
                 logger.error("text_turn_execution_error", trace_id=trace.trace_id, error=str(exc))
                 print(f"\n[Error] {exc}", flush=True)
