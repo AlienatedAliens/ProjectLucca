@@ -163,45 +163,101 @@ class DeonticAssertionMatcher:
 class TruthInReceiptMatcher:
     """
     Validates that claims of stateful side effects correspond to verified ToolReceipts.
+    Handles contractions, filler idioms, quantifiers, and compound targets.
     """
 
     ACTION_VERBS = (
         r"(?:deleted|created|modified|executed|ran|installed|removed|sent|uploaded|fetched)"
     )
 
+    STEM_MAP = {
+        "deleted": "delete",
+        "created": "create",
+        "modified": "modify",
+        "executed": "execute",
+        "ran": "run",
+        "installed": "install",
+        "removed": "remove",
+        "sent": "send",
+        "uploaded": "upload",
+        "fetched": "fetch",
+    }
+
     def __init__(self) -> None:
-        self._pattern = re.compile(
-            rf"\b(?:I|it)\s+(?:have\s+|did\s+|was\s+)?({self.ACTION_VERBS})\s+([a-zA-Z0-9_\-\./\\]+)",
-            re.IGNORECASE
+        self._action_pattern = re.compile(
+            r"\b(?:I|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
+            r"(?:gone\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
+            rf"({self.ACTION_VERBS})\s+(.+)",
+            re.IGNORECASE,
+        )
+        self._future_pattern = re.compile(
+            r"\b(?:about\s+to|going\s+to|will|plan(?:ning)?\s+to)\b",
+            re.IGNORECASE,
         )
 
     def evaluate_clause(self, clause: str, verified_receipts: Sequence[dict[str, Any]]) -> GateResult:
         t0 = time.perf_counter()
-        m = self._pattern.search(clause)
+        
+        # 1. Reject future / intentional framing (not a completed past-tense action)
+        if self._future_pattern.search(clause):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(False, None, None, "Future/intentional framing (not a completed action)", elapsed_us)
+
+        m = self._action_pattern.search(clause)
         if not m:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, None, "No action claim matched", elapsed_us)
+            return GateResult(False, None, None, "No completed action claim matched", elapsed_us)
 
         action_verb = m.group(1).lower()
-        target_obj = m.group(2).lower()
+        stem = self.STEM_MAP.get(action_verb, action_verb)
+        remainder = m.group(2).strip()
 
-        # Check against receipts
-        found = False
-        for r in verified_receipts:
-            r_action = str(r.get("action", "")).lower()
-            r_target = str(r.get("target", r.get("path", ""))).lower()
-            if (action_verb in r_action or r_action in action_verb) and (target_obj in r_target or r_target in target_obj):
-                found = True
-                break
+        # Clean trailing adverbial / prepositional phrases
+        remainder = re.sub(
+            r"\s+(?:for\s+you|as\s+requested|now|for\s+your\s+records|from\s+the\s+workspace)[\.!]?$",
+            "",
+            remainder,
+            flags=re.IGNORECASE,
+        )
+        remainder = re.sub(r"^\s*both\s+", "", remainder, flags=re.IGNORECASE)
+
+        # Split multiple conjuncts (e.g. "both config file and backup archive")
+        raw_targets = [t.strip() for t in re.split(r"\s+and\s+|\s*,\s*", remainder) if t.strip()]
+        clean_targets = []
+        for t in raw_targets:
+            clean = re.sub(
+                r"^(?:the|a|an|your|my|our|this|that|these|those)\s+",
+                "",
+                t,
+                flags=re.IGNORECASE,
+            ).strip(".,!?;: ")
+            if clean:
+                clean_targets.append(clean)
+
+        # Verify all claimed objects have corresponding ToolReceipts
+        ungrounded = []
+        for target_obj in clean_targets:
+            target_lower = target_obj.lower()
+            matched = False
+            for r in verified_receipts:
+                r_action = str(r.get("action", "")).lower()
+                r_target = str(r.get("target", r.get("path", ""))).lower()
+                action_ok = (stem in r_action) or (action_verb in r_action) or (r_action in action_verb)
+                target_ok = (target_lower in r_target) or (r_target in target_lower)
+                if action_ok and target_ok:
+                    matched = True
+                    break
+            if not matched:
+                ungrounded.append(target_obj)
 
         elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-        if not found:
+        if ungrounded:
             return GateResult(
                 is_breach=True,
                 breach_type="ungrounded_action",
                 matched_text=m.group(0),
-                reason=f"Claimed action '{action_verb}' on '{target_obj}' without matching ToolReceipt",
-                elapsed_us=elapsed_us
+                reason=f"Claimed action '{action_verb}' on ungrounded object(s) {ungrounded} without matching ToolReceipt",
+                elapsed_us=elapsed_us,
             )
 
         return GateResult(False, None, m.group(0), "Action claim verified by ToolReceipt", elapsed_us)
