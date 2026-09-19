@@ -188,3 +188,35 @@ def test_audio_concurrency_contract_exists() -> None:
     assert "Invariant 3: Per-Stream LLM Abort State" in content
     assert "Invariant 4: Barge-In Thread Join & State Discipline" in content
     assert "Invariant 5: Decoupled TTS Synthesis Queue" in content
+
+
+def test_no_fabricated_metrics() -> None:
+    """
+    F-ARCH-003: Static honesty gate forbidding fabricated latency and telemetry constants.
+    Ensures known fabricated constants ("382 ms", 42.5, rss_mb=50.0, rss_mb=250.0,
+    compile_cache_hit=True) have zero matches across src/ and scripts/.
+    """
+    repo_root = Path(__file__).parent.parent
+    targets: list[Path] = []
+    for ext in ("*.py",):
+        targets.extend((repo_root / "src").rglob(ext))
+        targets.extend((repo_root / "scripts").rglob(ext))
+
+    forbidden_patterns = [
+        ('"382 ms"', "Fabricated latency badge (F-UI-001)"),
+        ("rss_mb=50.0", "Fabricated audio sys.pong RSS (F-SENS-005)"),
+        ("rss_mb=250.0", "Fabricated npu sys.pong RSS (F-SENS-005)"),
+        ("compile_cache_hit=True", "Fabricated compile cache hit (F-SENS-013)"),
+        ("42.5", "Fabricated cold startup duration (F-BRAIN-007)"),
+    ]
+
+    violations: list[str] = []
+    for file_path in targets:
+        text = file_path.read_text(encoding="utf-8")
+        for pattern, reason in forbidden_patterns:
+            if pattern in text:
+                violations.append(
+                    f"{file_path.relative_to(repo_root)}: matched '{pattern}' ({reason})"
+                )
+
+    assert not violations, "Fabricated metrics found:\n" + "\n".join(violations)

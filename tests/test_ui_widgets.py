@@ -56,6 +56,24 @@ def test_speech_bubble_states(qapp):
     assert confirmed == [True]
 
 
+def test_speech_bubble_latency_badge(qapp):
+    bubble = SpeechBubble()
+    bubble.show()
+    # Initially hidden and empty (no fabricated 382 ms)
+    assert not bubble.latency_label.isVisible()
+    assert bubble.latency_label.text() == ""
+
+    # Setting a real latency displays it
+    bubble.set_latency_ms(452.3)
+    assert bubble.latency_label.isVisible()
+    assert bubble.latency_label.text() == "452 ms"
+
+    # Setting None or 0 hides it
+    bubble.set_latency_ms(None)
+    assert not bubble.latency_label.isVisible()
+    assert bubble.latency_label.text() == ""
+
+
 def test_quick_chat_bar(qapp):
     sent_messages = []
     bar = QuickChatBar(on_send_text=sent_messages.append)

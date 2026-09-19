@@ -112,16 +112,18 @@ results = {}
 
 # S1: Health check & Model verification
 print("\n[S1] Health & Model Load Check:")
+t_s1_start = time.perf_counter()
 r = httpx.get(f"{BASE_URL}/health", timeout=5.0)
+s1_latency_s = time.perf_counter() - t_s1_start
 assert r.status_code == 200, f"Health check failed: {r.status_code}"
 results["S1"] = {
     "status": "PASS",
     "health_status_code": r.status_code,
     "health_body": r.json(),
-    "measured_cold_startup_s": 42.5,
-    "threshold_s": 60.0,
+    "measured_health_latency_s": s1_latency_s,
+    "threshold_s": 5.0,
 }
-print(f"  [PASS] Server healthy. Cold startup: ~42.5s (threshold <= 60s)")
+print(f"  [PASS] Server healthy. Health check latency: {s1_latency_s:.3f}s (threshold <= 5.0s)")
 
 # S5: Host RSS & VRAM Baseline
 pid = get_server_pid()

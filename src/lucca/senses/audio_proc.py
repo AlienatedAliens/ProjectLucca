@@ -10,6 +10,7 @@ from typing import Final
 
 import numpy as np
 import numpy.typing as npt
+import psutil
 import sounddevice as sd
 import structlog
 import zmq
@@ -302,12 +303,13 @@ class AudioProcess:
                     raw = self.ctl_sock.recv()
                     env = decode_envelope(raw)
                     if env.type == "sys.ping":
+                        rss_mb = psutil.Process().memory_info().rss / (1024.0 * 1024.0)
                         pong = Envelope(
                             type="sys.pong",
                             trace_id=env.trace_id,
                             ts_ns=time.monotonic_ns(),
                             src="audio",
-                            payload=SysPongPayload(rss_mb=50.0, queue_depth=0).model_dump(),
+                            payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
                         )
                         self.ctl_sock.send(encode_envelope(pong))
                     elif env.type == "play.begin":

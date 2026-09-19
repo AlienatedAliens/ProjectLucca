@@ -5,6 +5,7 @@ Spec 01 §1, §4, Spec 07, ADR-008
 
 import time
 
+import psutil
 import structlog
 import zmq
 
@@ -106,12 +107,13 @@ class NPUProcess:
         now_ns = time.monotonic_ns()
 
         if env.type == "sys.ping":
+            rss_mb = psutil.Process().memory_info().rss / (1024.0 * 1024.0)
             reply = Envelope(
                 type="sys.pong",
                 trace_id=env.trace_id,
                 ts_ns=now_ns,
                 src="npu",
-                payload=SysPongPayload(rss_mb=250.0, queue_depth=0).model_dump(),
+                payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
             )
             self.ctl_sock.send(encode_envelope(reply))
 
@@ -125,7 +127,7 @@ class NPUProcess:
                     asr_device=self.asr.backend,
                     tts_device=self.tts.device,
                     embed_device=self.embed.device,
-                    compile_cache_hit=True,
+                    compile_cache_hit=False,
                 ).model_dump(),
             )
             self.ctl_sock.send(encode_envelope(reply))

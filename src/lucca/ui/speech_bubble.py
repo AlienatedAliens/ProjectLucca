@@ -96,7 +96,7 @@ class SpeechBubble(QWidget):
         self.clock_label.setStyleSheet("color: #93c5fd; background: transparent;")
         header_layout.addWidget(self.clock_label)
 
-        self.latency_label = QLabel("382 ms", self)
+        self.latency_label = QLabel("", self)
         self.latency_label.setFont(QFont("Consolas", 8, QFont.Weight.Bold))
         self.latency_label.setStyleSheet("""
             QLabel {
@@ -107,6 +107,7 @@ class SpeechBubble(QWidget):
                 padding: 1px 4px;
             }
         """)
+        self.latency_label.hide()
         header_layout.addWidget(self.latency_label)
 
         main_layout.addLayout(header_layout)
@@ -279,6 +280,15 @@ class SpeechBubble(QWidget):
         self.dismiss_timer.start(2500)
         if self.on_confirm:
             self.on_confirm(accepted)
+
+    def set_latency_ms(self, ms: float | None) -> None:
+        """Set the latency badge in milliseconds, or hide it if None or non-positive."""
+        if ms is not None and ms > 0:
+            self.latency_label.setText(f"{ms:.0f} ms")
+            self.latency_label.show()
+        else:
+            self.latency_label.setText("")
+            self.latency_label.hide()
 
     def anchor_to(
         self,
