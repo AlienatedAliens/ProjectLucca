@@ -100,6 +100,28 @@ def test_file_tool_run_python_rejects_on_non_container_linux_environment(
     assert "disabled on host pending Milestone 2 container isolation" in out
 
 
+def test_file_tool_run_python_rejects_when_env_var_spoofed_without_sentinel(
+    file_tool: SafeFileTool, monkeypatch: pytest.MonkeyPatch
+):
+    """
+    Verifies that LUCCA_SANDBOX_CONTAINER=1 alone CANNOT bypass the gate.
+    If an attacker or non-container host script sets LUCCA_SANDBOX_CONTAINER=1,
+    the gate MUST still reject execution because the unforgeable image-baked
+    sentinel file (/opt/lucca/.sandbox_container) is missing.
+    """
+    monkeypatch.setenv("LUCCA_SANDBOX_CONTAINER", "1")
+    monkeypatch.setattr("sys.platform", "linux")
+
+    # On host, sentinel file /opt/lucca/.sandbox_container does not exist
+    assert not Path("/opt/lucca/.sandbox_container").is_file()
+
+    res, out = file_tool.run_python("print('spoofed env var execution attempt')")
+    assert res["ok"] is False
+    assert res["exit_code"] == -1
+    assert "policy_violation" in str(res["stderr"])
+    assert "disabled on host pending Milestone 2 container isolation" in out
+
+
 # ---------------------------------------------------------------------------
 # 2. Host Launcher Whitelist Purge Tests
 # ---------------------------------------------------------------------------

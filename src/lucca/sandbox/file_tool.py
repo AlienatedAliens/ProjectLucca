@@ -292,9 +292,11 @@ class SafeFileTool:
     def run_python(self, code: str, timeout: int = 10) -> tuple[dict[str, object], str]:
         # Enforce that run_python executes strictly inside the verified container boundary,
         # never on the host (regardless of whether the host OS is Windows, Linux, or macOS).
+        # Requires BOTH the unforgeable image-baked sentinel file AND the container environment flag.
+        sentinel_path = Path("/opt/lucca/.sandbox_container")
         is_container = (
-            os.environ.get("LUCCA_SANDBOX_CONTAINER") == "1"
-            or Path("/opt/lucca/.sandbox_container").exists()
+            sentinel_path.is_file()
+            and os.environ.get("LUCCA_SANDBOX_CONTAINER") == "1"
         )
         if not is_container:
             err_msg = "policy_violation: run_python is disabled on host pending Milestone 2 container isolation"
