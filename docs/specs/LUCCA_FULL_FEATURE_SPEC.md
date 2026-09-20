@@ -1,8 +1,19 @@
 # Project Lucca — Full AI Feature Specification & Deep Subsystem Evaluation
 
+> [!NOTE]
+> **HISTORICAL BASELINE SPECIFICATION & EVALUATION (September 19, 2026)**  
+> This document records the pre-remediation baseline evaluation on `Mistral-Nemo-Instruct-2407-Q5_K_M.gguf` prior to the deployment of the abliterated Q6_K brain and Milestones 1–7.  
+> All capabilities evaluated herein have been verified, hardened, and superseded in the production release:  
+> - **Primary Neural Brain:** Mistral NeMo 12B Instruct Abliterated Q6_K (`D-BRAIN-05`, Commit `3837ff7`).  
+> - **Deontic Sandbox:** WSL2 container isolation and persistent RPC (`D-AUD-13`, `D-SAND-04`, Commits `5976b7e`, `d5fe8cc`).  
+> - **Epistemic Cascade:** 5-substrate search and Belnap bilattice with 0/25 confabulations (`D-CASC-01`, Commit `b7a66d8`).  
+> - **Speculative BDI & Output Supervision:** Sub-32μs pre-dispatch jailing and <35μs streaming abort (`D-ARB-01`, `D-SUP-01`, Commit `6b1a34d`).  
+> - **Standalone Executable:** Standalone PyInstaller frozen release (`D-PKG-01`, Commit `b1b36e3`).  
+> For living canonical architecture, consult [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) and [`README.md`](../../README.md).
+
 **Date:** 2026-09-19  
+**Status:** **Archived Historical Specification — Baseline Evaluation**  
 **Evaluation Target:** Live AI Pipeline (`llama-server.exe` on RTX 5080 dGPU + `Mistral-Nemo-Instruct-2407-Q5_K_M.gguf`)  
-**Artifact Purpose:** Full feature definition and empirical verification of Lucca's honesty, memory/RAG, and MicroScheme LISP engine.
 
 ---
 

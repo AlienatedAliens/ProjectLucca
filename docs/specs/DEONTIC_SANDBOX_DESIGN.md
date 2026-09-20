@@ -1,10 +1,17 @@
 # Milestone 2: Deontic Sandbox & Kernel Isolation Specification
 
-**Document Version:** 1.1.0  
+> [!NOTE]
+> **HISTORICAL SPECIFICATION & FULLY IMPLEMENTED (September 20, 2026)**  
+> This design specification for the Deontic Sandbox and Kernel Isolation has been **100% implemented, ratified, and verified on native workstation silicon**:  
+> - **Non-destructive Win32 handle inspection** (`OPEN_EXISTING` before `TRUNCATE`), hard link rejection (`nNumberOfLinks > 1`), and `TaintFlags` persistent tracking: Completed and verified in commit `5976b7e` (Milestone 2).  
+> - **WSL2 container isolation** (`lucca/file-sandbox`, `--network none`, strict mount jailing): Completed and verified in commit `5976b7e`.  
+> - **Persistent Docker RPC worker** (`lucca-toolsrv --loop`, $6.87\,\text{ms}$ P50) and in-container zombie process reaping: Completed and verified in commit `d5fe8cc` (Option A).  
+> For living canonical architecture, consult [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) (Section 6) and [`docs/DECISIONS.md`](../DECISIONS.md) (`D-AUD-13`, `D-SAND-04`).
+
+**Document Version:** 1.2.0  
 **Date:** September 20, 2026  
-**Status:** Revised Design Document for User & Reviewer Review  
-**Target Milestone:** Milestone 2 (Execution blocked pending sign-off; interim host mitigations active in code)  
-**Git Baseline:** `2fbf436` (Interim mitigations tested; Diff SHA256: `2e9bd974cfb335aad5ed96a7356269680281cc014864865f8aa407b8ad919295`)
+**Status:** **Archived Working Specification — Fully Implemented & Ratified**  
+**Closing Commits:** `5976b7e` (Milestone 2), `d5fe8cc` (Option A Persistent RPC)  
 
 ---
 

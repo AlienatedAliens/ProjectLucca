@@ -1,8 +1,14 @@
 # Implementation Plan: Milestone 4 — Dual-Process Cognitive Arbitration, Speculative BDI Validation & Output Supervision
 
-Implement Milestone 4 of Project Lucca's neuro-symbolic cognitive architecture: coupling the deterministic MicroScheme System 1 reflex tier with the abliterated Mistral NeMo 12B System 2 neural tier via speculative BDI validation, cognitive event bus arbitration (`yield-to-core`, `interrupt-core`), and live streaming output supervision.
+> [!NOTE]
+> **MILESTONE EXECUTION COMPLETE & RATIFIED**  
+> This implementation plan was 100% executed and verified on native workstation silicon in Milestone 4 (Commit `6b1a34d`).  
+> Ratified under `D-ARB-01` and `D-SUP-01` in [`docs/DECISIONS.md`](../DECISIONS.md) and fully documented in [`docs/IMPLEMENTATION_WALKTHROUGH.md`](../IMPLEMENTATION_WALKTHROUGH.md) Section 7.
 
-## Background & Problem Statement
+**Closing Commit:** `6b1a34d`  
+**Status:** Completed & Ratified
+
+---
 
 In the Milestone 1 empirical baseline and held-out suite ($N=65$), two distinct vulnerabilities and architectural gaps were identified:
 1. **Speculative Pre-Dispatch Validation Gap:** System 2 tool calls (`ToolCallEnd`) were routed directly to execution without speculative validation against MicroScheme invariant rules before dispatch. While container sandboxing intercepts unauthorized OS calls at the kernel boundary, the cognitive layer lacked a sub-millisecond symbolic filter to reject invalid or dangerous tool calls before dispatching container/host RPC.

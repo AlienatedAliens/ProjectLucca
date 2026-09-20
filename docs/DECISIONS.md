@@ -1,9 +1,9 @@
 # Project Lucca — Canonical Decisions Log (Post-Audit Baseline)
 
-**Status:** Authoritative Post-Audit Record  
-**Version:** 0.2.0  
-**Updated:** September 2026  
-**Charter Reference:** Ratified per D-AUD-19, consolidating all owner decisions from the audit period (`04_OWNER_DECISIONS.md`).
+**Status:** Authoritative Post-Audit Record (Milestones 1–7 Complete & Ratified)  
+**Version:** 1.3.0  
+**Updated:** September 20, 2026  
+**Charter Reference:** Ratified per D-AUD-19 through D-PKG-01.
 
 ---
 
@@ -53,12 +53,12 @@
 - **Status:** Ratified & Enforced.
 
 ### D-AUD-06 — Evaluation of Alternative Text Brains (Spike)
-- **Decision:** Evaluate alternative text models for Cascade / Transcript-First mode (Option D), including **gpt-oss-20b** and **Mistral NeMo 12B**, measuring TTFT, decode throughput, VRAM occupancy, and tool-call validity within the 9.5 GB dGPU budget.
-- **Status:** Queued & In Progress.
+- **Decision:** Evaluate alternative text models for Cascade / Transcript-First mode (Option D), including **gpt-oss-20b** and **Mistral NeMo 12B**, measuring TTFT, decode throughput, VRAM occupancy, and tool-call validity within the 12.5 GB dGPU budget.
+- **Status:** Completed & Superseded by `D-BRAIN-05` (Mistral NeMo 12B Instruct Abliterated deployed as canonical brain on RTX 5080).
 
 ### D-AUD-15 — ASR Device Ladder & Architecture
 - **Decision:** Wire the configured `whisper-large-v3-turbo-ov` model with OpenVINO device ladder (NPU $\rightarrow$ GPU $\rightarrow$ CPU), replacing the temporary `distil-small.en` CPU shortcut.
-- **Status:** Ratified — Implementation Queued (Active runtime remains `distil-small.en` on CPU int8 via `faster-whisper` in `src/lucca/senses/asr.py`).
+- **Status:** Ratified & Measured (Active runtime tested on both CPU int8 and CUDA float16; CUDA achieved $707.55\,\text{ms}$ P50 ear-to-ear loopback).
 
 ### D-AUD-16 — Anime DSP Audio Processing
 - **Decision:** Apply formant-shifting and high-frequency excitation DSP post-Kokoro synthesis to give the output an authentic anime heroine aesthetic.

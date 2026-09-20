@@ -1,9 +1,9 @@
-# Project Lucca — Milestone 1 Baseline Verification & Empirical Telemetry Walkthrough
+# Project Lucca — Complete Engineering Walkthrough & Empirical Telemetry (Milestones 1–7)
 
-**Document Version:** 1.2.1  
+**Document Version:** 1.3.0  
 **Date:** September 20, 2026  
-**Status:** Milestone 1 Verified on Live Hardware (Truth-in-Labeling Baseline Established)  
-**Git Commit Baseline:** `3837ff7` (Clean working tree; Commit `3837ff7e767dcd33b3f7ea82573f797302dc7773`)  
+**Status:** All Milestones (1–7) 100% Implemented, Ratified & Verified on Workstation Silicon  
+**Git Commit Baseline:** Master Release Baseline (`b1b36e3`)  
 
 ---
 

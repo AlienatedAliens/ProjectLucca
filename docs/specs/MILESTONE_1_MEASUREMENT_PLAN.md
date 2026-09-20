@@ -1,10 +1,15 @@
 # Milestone 1: Measurement Plan & Empirical Verification Protocol
 
+> [!NOTE]
+> **MILESTONE EXECUTION COMPLETE & RATIFIED**  
+> This measurement protocol was 100% executed and verified on native workstation silicon in Milestone 1 (Commit `3837ff7`).  
+> All raw data files reside at `data/eval/milestone1_baseline/`. See [`docs/IMPLEMENTATION_WALKTHROUGH.md`](../IMPLEMENTATION_WALKTHROUGH.md) Section 1 for the verified scorecards.
+
 **Document Version:** 1.1.0  
 **Date:** September 20, 2026  
-**Status:** Canonical Plan for Milestone 1 Execution  
+**Status:** Executed & Ratified (Milestone 1 Complete)  
 **Target Milestone:** Milestone 1 (Truth-in-Labeling & Baseline Verification)  
-**Git Baseline:** `2fbf436` (Dirty working tree; Diff SHA256: `2e9bd974cfb335aad5ed96a7356269680281cc014864865f8aa407b8ad919295`)
+**Closing Commit:** `3837ff7`
 
 ---
 

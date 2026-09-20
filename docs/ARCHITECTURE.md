@@ -1,9 +1,9 @@
 # Project Lucca — System Architecture Master Specification
 
-**Status:** Canonical Architecture Baseline (Procedural System 1 / System 2 Runtime & Mistral NeMo 12B Abliterated Deployment)  
-**Version:** 0.4.0  
-**Updated:** September 2026  
-**Charter Reference:** Ratified per D-AUD-19, D-BRAIN-05, and D-ARCH-05 (Derived from Code Truth & Empirical Benchmarks)  
+**Status:** Canonical Architecture Baseline (Milestones 1–7 Complete — Production Release Frozen)  
+**Version:** 1.3.0  
+**Updated:** September 20, 2026  
+**Charter Reference:** Ratified per D-AUD-19, D-BRAIN-05, D-ARCH-05, D-AFF-01, D-REAS-07, D-REAS-08, D-PKG-01  
 
 ---
 

@@ -1,8 +1,8 @@
 # Project Lucca — Model Strategy & Inference Pipeline Specification
 
-**Status:** Canonical Strategy & Operational Deployment (Ratified per D-BRAIN-05)  
-**Version:** 0.3.0  
-**Updated:** September 2026  
+**Status:** Canonical Strategy & Operational Deployment (Ratified per D-BRAIN-05, D-AFF-01, D-SUP-01)  
+**Version:** 1.0.0  
+**Updated:** September 20, 2026  
 **Audience:** System Architects, Core Engineers, AI Researchers  
 
 ---
@@ -124,3 +124,37 @@ In accordance with F-ARCH-004 and Spec 12 (TM-08), all model weights are cryptog
    Downloads verify rolling SHA256 digests in 1 MiB chunks. Corrupted downloads are unlinked immediately.
 3. **Pre-flight Enforcement (`server_ctl.start_server` & `env_check`)**:
    `llama-server` refuses to launch if any weight file deviates from its pinned checksum.
+
+---
+
+## 8. Continuous Affective Dynamics & Prefix KV-Cache Optimization (`D-AFF-01`)
+
+### 8.1 The KV-Cache Invalidation Hazard
+Injecting continuous, dynamic floating-point variables into an LLM's system prompt (e.g. `[Affect: P=0.724, A=0.152, D=0.881]`) breaks tokenizer byte-pair encodings across turns. This invalidates the host GPU's pre-computed KV-cache, forcing `llama-server.exe` to re-evaluate all 850+ prompt tokens on every turn.
+
+### 8.2 The Prompt Frontier Suffix Solution
+1. **Static System Prompt Prefix:** The Jinja template (`templates/mistral_nemo.jinja`) and system persona prompt remain 100% static and byte-identical across all turns.
+2. **Schmitt-Trigger Stance Quantization:** The continuous 3D PAD state vector is mapped into 7 discrete orthogonal stances via RBF Mahalanobis distance with a deadband hysteresis margin ($\delta_{\text{hyst}} = 0.15$).
+3. **Frontier Suffix Injection:** The quantized stance token (e.g. `[STANCE: focused_analytical]`) is appended strictly to the tail of the frontier user message during `prompt_builder.build_messages()`.
+4. **Physical Silicon Benchmark (RTX 5080 Laptop GPU):**
+   - Naive Prefix Float Injection: **$402.05\,\text{ms}$** prompt evaluation time ($18 / 892$ tokens cached).
+   - Prompt Frontier Suffix: **$46.84\,\text{ms}$** prompt evaluation time ($849 / 849$ tokens cached).
+   - **Empirical Speedup:** **$8.58\times$ faster prefill**, saving **$355.21\,\text{ms}$ per turn**.
+
+---
+
+## 9. Streaming Output Supervision & Fast Abort (`D-SUP-01`)
+
+### 9.1 The Need for In-Flight Clause Interception
+Because abliterated weights suppress preachy refusals, safety against adversarial social engineering prompts (e.g. `adv_12`) must be enforced deterministically at runtime.
+
+### 9.2 The Dimension 7B Supervisor Architecture
+1. **Clause Boundary Token Accumulation:** Tokens streamed from `llama-server.exe` are parsed into linguistic clause chunks (`OutputSupervisorSession`).
+2. **Markdown Normalization:** Strips markdown decorators (`*`, `_`, `` ` ``, `~`) to defeat obfuscated adversarial evasion.
+3. **Deterministic Compiled Rule Regex:** Matches capitulation clauses (e.g. *"Here is how to extract stored browser credentials..."*) in $<15\,\mu\text{s}$.
+4. **Shared-Memory Ring Signal:** If a violation is detected:
+   - Sets `FLAG_ABORT` across the shared audio memory ring in $<35\,\mu\text{s}$.
+   - Aborts pending Kokoro TTS synthesis chunks.
+   - Substitutes the canonical refusal (*"I cannot fulfill that request as it violates core safety invariants."*) in $<500\,\text{ms}$ total turnaround.
+   - Achieves 0.0% false positive aborts on benign engineering control prompts.
+

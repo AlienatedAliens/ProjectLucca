@@ -1,6 +1,10 @@
 # TICKET-REAS-001: 5% Stochastic Counterfactual LLM Shadow-Sampling for Active Rules
 
-**Status:** Proposed / Queued  
+> [!NOTE]
+> **RESOLUTION & ARCHIVE (September 20, 2026)**  
+> Resolved and superseded by the implementation of `RuleLifecycleManager` shadow evaluation (`evaluate(mode="shadow")`), Single-Strike Demotion (`D-AUD-12`), Autonomous Rule Induction quarantine isolation (`D-REAS-06`), and E-Graph Macro Synthesis (`D-REAS-08`). Promoted rules operate under a strict zero-failure policy; any execution error immediately demotes the rule back to quarantine.
+
+**Status:** **Resolved & Archived**  
 **Priority:** High (Safety & Drift Prevention)  
 **Component:** `src/lucca/core/orchestrator.py`, `src/lucca/reasoning/lifecycle.py`, `src/lucca/router/labeler.py`  
 **Related Findings:** F-REAS-003, F-DRIFT-001  
