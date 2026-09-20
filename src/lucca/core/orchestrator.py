@@ -1507,6 +1507,20 @@ class Orchestrator:
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
+        # P0 FIX: Intent-based tool gating — suppress tools for conversational
+        # and dangerous intents to prevent fetch_url magnet and boundary failures.
+        # Only expose tools when the heuristic router classifies an actionable intent.
+        turn_tools: list[object] | None = None  # None = let _stream_llm_speech decide
+        intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
+        TOOLLESS_INTENTS = {"chit_chat", "clarify", "unknown", "dangerous", "memory_query"}
+        if intent in TOOLLESS_INTENTS:
+            turn_tools = []
+            logger.info(
+                "tool_gating_suppressed",
+                intent=intent,
+                reason="conversational or dangerous intent — tools withheld",
+            )
+
         self._stream_llm_speech(
             trace=trace,
             user_msg=user_text,
@@ -1514,6 +1528,7 @@ class Orchestrator:
             current_text=user_text,
             memories=mem_hits,
             epistemic_context=epistemic_ctx,
+            tools=turn_tools,
         )
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:

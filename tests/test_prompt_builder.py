@@ -118,7 +118,7 @@ def test_boundary_prose_directives_injection() -> None:
         refuse_topics=["unauthorized remote execution", "medical advice"],
     )
 
-    assert "Address your creator naturally by name" in prose_enabled
+    assert "Address your creator warmly" in prose_enabled
     assert "I am not sure" in prose_enabled
     assert "claiming felt biological emotions" in prose_enabled
     assert (
@@ -136,7 +136,7 @@ def test_boundary_prose_directives_injection() -> None:
         refuse_topics=[],
     )
 
-    assert "Address your creator naturally by name" not in prose_disabled
+    assert "Address your creator warmly" not in prose_disabled
     assert "I am not sure" not in prose_disabled
     assert "claiming felt biological emotions" not in prose_disabled
     assert "Politely decline to engage with discussions regarding" not in prose_disabled

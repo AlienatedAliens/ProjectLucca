@@ -54,9 +54,13 @@ HEADING_REGEX = re.compile(r"^\s*#+\s+", re.MULTILINE)
 
 def normalise_text(text: str, speak_urls: bool = False) -> str:
     """Normalises text for TTS prosody and removes markdown/emojis per Spec 08 §3."""
+    # 0. Strip template markers and character prefixes that leak from LLM output
+    s = re.sub(r"\[(?:SYSTEM[_ ]?PROMPT|INST|AVAILABLE[_ ]?TOOLS|CRITICAL VOICE)\]", "", text)
+    s = re.sub(r"^\s*\[Lucca\]\s*", "", s, flags=re.IGNORECASE)
+
     # 1. Smart quotes, dashes, ellipses
-    s = text.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'")
-    s = s.replace("…", "...").replace("—", ", ").replace("–", ", ")
+    s = s.replace("\u201c", '"').replace("\u201d", '"').replace("\u2018", "'").replace("\u2019", "'")
+    s = s.replace("\u2026", "...").replace("\u2014", ", ").replace("\u2013", ", ")
 
     # 2. Markdown links [text](url) -> text
     s = MARKDOWN_LINK_REGEX.sub(r"\1", s)
@@ -76,6 +80,9 @@ def normalise_text(text: str, speak_urls: bool = False) -> str:
     # 6. Headings and list bullets at line starts
     s = HEADING_REGEX.sub("", s)
     s = BULLET_REGEX.sub("", s)
+
+    # 6b. Code fences (``` or ```language)
+    s = re.sub(r"```\w*", "", s)
 
     # 7. Strip stray markdown symbols, backslashes, and tildes
     s = re.sub(r"[*`~\\#]", "", s)
