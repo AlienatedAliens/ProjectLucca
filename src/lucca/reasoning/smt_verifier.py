@@ -202,8 +202,8 @@ class SMTVerifier:
         except Exception as exc:  # noqa: BLE001
             return SMTVerificationResult(
                 verified=False,
-                status="ERROR",
-                reasons=[f"Translation of :when expression to Z3 failed: {exc}"],
+                status="UNMODELED_PREDICATE",
+                reasons=[f"Translation of :when expression to Z3 failed (unmodeled predicate): {exc}"],
             )
 
         # 2. Check Precondition Satisfiability (SAT)
@@ -570,4 +570,6 @@ class SMTVerifier:
                 return ctx.get_entity_str(key)
             return z3.StringVal("")
 
-        return z3.BoolVal(True)
+        raise ValueError(
+            f"Unmodeled MicroScheme predicate or operator '{op}' cannot be safely verified by SMT"
+        )
