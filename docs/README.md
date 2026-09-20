@@ -120,15 +120,17 @@ To maintain strict truth-in-documentation and prevent codebase drift, all Projec
 │             │ • Dimension 7B output supervision (markdown norm)│              │
 │             │ • Live empirical adv_12 mitigation on RTX 5080  │              │
 ├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 5 │ Continuous Affective ODE & Prefix KV Cache      │ UP NEXT      │
-│             │ • 3D PAD (Pleasure-Arousal-Dominance) ODE model │ (~1 session) │
-│             │ • Suffix KV cache optimization in prompt builder│              │
+│ Milestone 5 │ Continuous Affective ODE & Prefix KV Cache      │ 100% DONE    │
+│             │ • 3D PAD (Pleasure-Arousal-Dominance) ODE model │ (Commit      │
+│             │ • Prompt Frontier Suffix (8.58x prefill speedup)│  1d0a48d)    │
+│             │ • Empirical verification on RTX 5080 (46.84ms)  │              │
 ├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 6 │ Autonomous Rule Induction & SMT Verification    │ QUEUED       │
-│             │ • Babble/Stitch e-graph macro synthesis         │ (~1-2 sess.) │
+│ Milestone 6 │ Autonomous Rule Induction, E-Graph & SMT Prover │ 100% DONE    │
+│             │ • Babble/Stitch e-graph anti-unification macros │ (Milestone 6)│
 │             │ • Z3 SMT automated formal proof of invariants   │              │
+│             │ • 16/16 induction tests, 387/387 non-hw green   │              │
 ├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 7 │ Standalone Packaging & Final Desktop Release    │ QUEUED       │
+│ Milestone 7 │ Standalone Packaging & Final Desktop Release    │ UP NEXT      │
 │             │ • Frozen PyInstaller bundle (Lucca.spec)        │ (~1 session) │
 │             │ • Final desktop system tray & acceptance battery│              │
 └─────────────┴─────────────────────────────────────────────────┴──────────────┘

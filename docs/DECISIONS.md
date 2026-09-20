@@ -169,4 +169,23 @@
 - **Decision:** Implements continuous affective dynamics in Mehrabian's 3D Pleasure-Arousal-Dominance (PAD) space with exact analytical closed-form discrete updates:
   $$\mathbf{x}[k+1] = \mathbf{x}_0 + e^{-\mathbf{\Gamma}\Delta t}(\mathbf{x}[k] - \mathbf{x}_0) + \mathbf{\Gamma}^{-1}(\mathbf{I} - e^{-\mathbf{\Gamma}\Delta t})\mathbf{B}\mathbf{u}[k]$$
   Damping rates follow psychological half-lives ($t_{1/2, A} = 45\,\text{s}$, $t_{1/2, P} = 300\,\text{s}$, $t_{1/2, D} = 900\,\text{s}$). Cognitive feedback gain is mathematically clamped below $\min(\gamma_i)$ ($\text{gain} \le 0.0005$), guaranteeing global Lyapunov asymptotic stability against runaway emotional spirals. To prevent `llama-server.exe` prefix KV-cache invalidation, continuous floating-point variables are strictly barred from the system prompt prefix; instead, affective state is quantized via Schmitt-trigger hysteresis ($\delta_{\text{hyst}} = 0.15$) into orthogonal semantic stance tokens (`[STANCE: focused_analytical]`, `[STANCE: energetic_supportive]`, etc.) appended exclusively at the **Prompt Frontier Suffix** (user turn tail). Empirical silicon testing on RTX 5080 achieved an $8.58\times$ prompt evaluation speedup ($46.84\,\text{ms}$ vs. $402.05\,\text{ms}$), saving $355.21\,\text{ms}$ per turn with 849/849 cached prefix tokens. Kokoro TTS speech rate is modulated in real time via arousal ($1.0 \pm 0.10$) with zero session reinitialization. Enforces the Epistemic Quarantine Invariant: affective state has strictly $0.0$ evidential weight over truth evaluations, sandbox permissions, or deontic constraints.
-- **Status:** Ratified & Enforced (Commit `Milestone 5`).
+- **Status:** Ratified & Enforced (Commit `1d0a48d`).
+
+### D-REAS-07 — Z3 SMT Formal Rule Verification & Deontic Invariant Entailment
+- **Decision:** Before any induced or proposed MicroScheme procedural rule can enter `QUARANTINE` in `RuleLifecycleManager`, it must undergo automated formal verification using the Z3 SMT solver (`SMTVerifier`).
+  1. **Precondition Satisfiability ($\text{SAT}$):** Proves that the rule's `:when` condition is satisfiable under valid operational state bounds ($0 \le \text{hour} \le 23$, $0 \le \text{weekday} \le 6$, $\text{turns} \ge 0$, $\text{conf} \in [0, 1]$). Contradictory rules (dead code) are rejected as `UNSATISFIABLE`.
+  2. **Contingency / Non-Tautology:** Proves that the precondition is not universally valid ($\neg \phi_{\text{when}}$ must be satisfiable), preventing unconditional rules from hijacking the companion's execution loop (`TAUTOLOGY`).
+  3. **Deontic Path & Tool Invariants:** Formally proves that target arguments in filesystem actions cannot intersect with directory traversal sequences (`..`), system directories (`C:\Windows`, `System32`, `Program Files`, `/etc`, `/bin`), or sensitive credentials (`.git`, `.ssh`, `.env`), and mutation tools cannot write dangerous executable extensions (`.exe`, `.dll`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.sh`, `.sys`).
+  4. **Bounded Verification:** Solvers enforce a strict $\le 500\,\text{ms}$ timeout to guarantee non-blocking compilation. Any verification failure rejects the candidate before quarantine registration.
+- **Status:** Ratified & Enforced (Commit `Milestone 6`).
+
+### D-REAS-08 — Babble/Stitch E-Graph Anti-Unification Macro Synthesis
+- **Decision:** When recurring execution patterns or MicroScheme candidate rules share identical structural topology with differing literal parameters (e.g. launching different applications or reading workspace files), the induction tier employs first-order syntactic anti-unification (Least General Generalization, Plotkin 1970; Stitch/Babble, Bowers & Ellis POPL 2023) within an E-Graph congruence closure representation (`EGraph`).
+  1. Identifies common subterm expressions and abstracts variable positions into parameter holes (`arg_0`, `arg_1`).
+  2. Evaluates the Stitch compression metric:
+     $$\Delta \text{size} = \text{original\_size} - (\text{macro\_def\_size} + N \times \text{call\_overhead})$$
+     Requiring $\Delta \text{size} \ge 1$ for abstraction.
+  3. Synthesizes canonical `(defmacro <name> (<params>...) <body>)` definitions registered into `MacroRegistry` with compile-time expansion bounds (`MAX_MACRO_DEPTH = 8`, `MAX_MACRO_STEPS = 64`).
+  4. Preserves Single-Strike Demotion and the Human Promotion Gate (`D-REAS-06`): all rules utilizing synthesized macros are staged exclusively in `QUARANTINE` for shadow execution and cannot be automatically promoted to `ACTIVE`.
+- **Status:** Ratified & Enforced (Commit `Milestone 6`).
+

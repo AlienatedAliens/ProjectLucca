@@ -1,9 +1,13 @@
 """
 Project Lucca — Safe Rule Induction & Procedural Compilation
-Spec 05 Proposal E (D-REAS-06)
-Analyzes recurring successful tool executions in SQLite history, synthesizes
-strictly-validated candidate MicroScheme rules, and registers them into QUARANTINE.
+Spec 05 Proposal D/E (D-REAS-05, D-REAS-06)
+Analyzes recurring successful tool executions in SQLite history,
+synthesizes strictly-validated candidate MicroScheme rules and macros via
+E-Graph anti-unification, formally verifies them with Z3 SMT, and
+registers candidates exclusively into QUARANTINE.
 """
+
+from __future__ import annotations
 
 import json
 from collections import defaultdict
@@ -15,8 +19,12 @@ import structlog
 from lucca.core.exceptions import RuleValidationError, SchemeSyntaxError
 from lucca.core.schemas import CandidateRule
 from lucca.memory.db import DatabaseManager
+from lucca.reasoning.egraph import synthesize_macro_from_patterns
 from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.scheme.macros import MacroDefinition
+from lucca.reasoning.scheme.parser import SchemeNode, parse_rule
 from lucca.reasoning.scheme.validator import validate_rule_static
+from lucca.reasoning.smt_verifier import SMTVerifier
 
 logger = structlog.get_logger(__name__)
 
@@ -32,11 +40,26 @@ class InductionCluster:
     occurrences: int
 
 
+@dataclass(frozen=True)
+class InducedMacro:
+    name: str
+    definition: MacroDefinition
+    s_expression: str
+    supporting_clusters: list[InductionCluster]
+
+
 class RuleInducer:
     """
-    Safely induces candidate MicroScheme procedural rules from SQLite execution telemetry.
-    Invariant (D-REAS-06): Induced rules are strictly registered into QUARANTINE;
-    automatic promotion to ACTIVE is prohibited.
+    Safely induces candidate MicroScheme procedural rules and macro abstractions
+    from SQLite execution telemetry.
+
+    Invariants:
+    1. D-REAS-06: Induced rules are strictly registered into QUARANTINE;
+       automatic promotion to ACTIVE is strictly prohibited.
+    2. Formal SMT Verification: Candidate rules must pass Z3 satisfiability,
+       non-tautology, and deontic path checks before entering QUARANTINE.
+    3. Structural Generalization: Recurring patterns sharing topology are
+       abstracted into bounded compile-time macros.
     """
 
     def __init__(
@@ -44,10 +67,12 @@ class RuleInducer:
         db: DatabaseManager,
         rule_engine: RuleLifecycleManager,
         min_frequency: int = MIN_FREQUENCY_THRESHOLD,
+        smt_verifier: SMTVerifier | None = None,
     ) -> None:
         self.db = db
         self.rule_engine = rule_engine
         self.min_frequency = min_frequency
+        self.smt_verifier = smt_verifier or SMTVerifier(timeout_ms=500)
 
     def mine_patterns(self) -> list[InductionCluster]:
         """
@@ -118,6 +143,7 @@ class RuleInducer:
     def synthesize_rule(self, cluster: InductionCluster, version: int = 1) -> CandidateRule | None:
         """
         Synthesizes a safe, canonical MicroScheme rule for an induced pattern cluster.
+        Formally verifies the rule using Z3 SMT solver prior to candidate return.
         """
         clean_val = cluster.arg_val.replace(" ", "-").replace(".", "-").replace("_", "-")
         clean_tool = cluster.tool.replace("_", "-")
@@ -145,8 +171,8 @@ class RuleInducer:
 
         sexpr = f'(rule "{rule_id}"\n  :when {when_part}\n  :plan {plan_part}\n  :priority 5)'
 
+        # 1. Static AST and schema validation
         try:
-            # Validate statically before constructing candidate
             validate_rule_static(
                 sexpr,
                 registered_tools=self.rule_engine.registered_tools,
@@ -156,16 +182,92 @@ class RuleInducer:
             logger.warning("rule_induction_validation_failed", rule_id=rule_id, error=str(exc))
             return None
 
+        # 2. Formal Z3 SMT Verification (SAT, Non-Tautology, Deontic Safety)
+        smt_res = self.smt_verifier.verify_source(
+            sexpr,
+            registered_tools=self.rule_engine.registered_tools,
+        )
+        if not smt_res.verified:
+            logger.warning(
+                "rule_induction_smt_rejected",
+                rule_id=rule_id,
+                status=smt_res.status,
+                reasons=smt_res.reasons,
+            )
+            return None
+
         return CandidateRule(
             rule_id=rule_id,
             s_expression=sexpr,
             intended_intent=cluster.intent,
         )
 
+    def induce_macros(
+        self,
+        clusters: list[InductionCluster] | None = None,
+        min_cluster_instances: int = 2,
+    ) -> list[InducedMacro]:
+        """
+        Synthesizes Babble/Stitch macro definitions from recurring patterns
+        that share identical structural topology with differing constants.
+        """
+        active_clusters = clusters if clusters is not None else self.mine_patterns()
+        grouped: dict[tuple[str, str, str], list[InductionCluster]] = defaultdict(list)
+        for c in active_clusters:
+            grouped[(c.intent, c.tool, c.arg_key)].append(c)
+
+        induced_macros: list[InducedMacro] = []
+
+        for (intent, _tool, arg_key), cluster_list in grouped.items():
+            if len(cluster_list) < min_cluster_instances:
+                continue
+
+            # Build AST nodes for anti-unification
+            sample_rules: list[SchemeNode] = []
+            for c in cluster_list:
+                cand = self.synthesize_rule(c)
+                if cand is not None:
+                    try:
+                        r_def = parse_rule(cand.s_expression)
+                        sample_rules.append(r_def.when_expr)
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("macro_candidate_parse_ignored", error=str(exc))
+
+            if len(sample_rules) < min_cluster_instances:
+                continue
+
+            clean_intent = intent.replace("_", "-")
+            macro_name = f"when-{clean_intent}-{arg_key}"
+            macro_result = synthesize_macro_from_patterns(
+                macro_name=macro_name,
+                patterns=sample_rules,
+                min_instances=min_cluster_instances,
+            )
+
+            if macro_result is not None:
+                macro_def, macro_sexpr = macro_result
+                induced_macros.append(
+                    InducedMacro(
+                        name=macro_name,
+                        definition=macro_def,
+                        s_expression=macro_sexpr,
+                        supporting_clusters=cluster_list,
+                    )
+                )
+                logger.info(
+                    "macro_synthesized",
+                    name=macro_name,
+                    params=macro_def.params,
+                    instances=len(cluster_list),
+                )
+
+        return induced_macros
+
     def induce_and_quarantine(self) -> list[CandidateRule]:
         """
         Discovers recurring clusters, synthesizes valid MicroScheme rules,
-        and registers them into the rule engine under QUARANTINE mode.
+        formally verifies them via Z3 SMT, and registers them into the rule engine
+        under QUARANTINE mode.
         """
         clusters = self.mine_patterns()
         candidates: list[CandidateRule] = []

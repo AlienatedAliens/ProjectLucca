@@ -33,6 +33,8 @@ class FakeTTS:
         text: str,
         voice: str = "af_heart",
         is_first: bool = False,
+        speed: float = 1.0,
+        **kwargs: object,
     ) -> TTSDonePayload:
         t0 = time.perf_counter()
         if self.play_ring.has_flag(FLAG_ABORT):

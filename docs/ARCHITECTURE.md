@@ -36,6 +36,8 @@
    - [4.6 Skill-as-Tool Exposure Protocol (D-REAS-04)](#46-skill-as-tool-exposure-protocol-d-reas-04)
    - [4.7 Rule Lifecycle State Machine & Human Promotion Gate](#47-rule-lifecycle-state-machine--human-promotion-gate)
    - [4.8 Counterfactual Shadow Sampling (TICKET-REAS-001)](#48-counterfactual-shadow-sampling-ticket-reas-001)
+   - [4.9 Babble/Stitch E-Graph Anti-Unification & Macro Synthesis (D-REAS-08)](#49-babblestitch-e-graph-anti-unification--macro-synthesis-d-reas-08)
+   - [4.10 Formal Z3 SMT Verification & Deontic Entailment (D-REAS-07)](#410-formal-z3-smt-verification--deontic-entailment-d-reas-07)
 5. [Memory Subsystem with Cryptographic Provenance](#5-memory-subsystem-with-cryptographic-provenance)
    - [5.1 Storage Topology (SQLite WAL + sqlite-vec + FTS5)](#51-storage-topology-sqlite-wal--sqlite-vec--fts5)
    - [5.2 2,048-Token Scaled Quota & Multi-Factor Prioritization (D-MEM-03)](#52-2048-token-scaled-quota--multi-factor-prioritization-d-mem-03)
@@ -304,6 +306,26 @@ stateDiagram-v2
 
 ### 4.8 Counterfactual Shadow Sampling (TICKET-REAS-001)
 For 5% of active rule hits ($p < 0.05$), a detached daemon thread dispatches the turn to `llama-server` to verify the rule's plan against neural reasoning. Accumulating $\ge 3$ divergences demotes the rule back to `PENDING_APPROVAL`.
+
+### 4.9 Babble/Stitch E-Graph Anti-Unification & Macro Synthesis (D-REAS-08)
+When recurring execution sequences share structural topology with differing constant arguments, the induction tier employs first-order syntactic anti-unification (Least General Generalization, Plotkin 1970; Stitch/Babble, Bowers & Ellis POPL 2023) over an E-Graph congruence closure representation (`src/lucca/reasoning/egraph.py`):
+1. **E-Graph Congruence Representation**: Nodes are indexed into equivalence classes (`EClass`). Union-find maintains equivalence with path compression, and `rebuild()` restores congruence closure fixpoints.
+2. **First-Order Syntactic Anti-Unification**:
+   $$\text{anti\_unify}(E_1, E_2) \rightarrow (T, \sigma_1, \sigma_2)$$
+   Extracts common subtree structure and replaces differing subterms with typed parameter holes (`arg_0`, `arg_1`, etc.).
+3. **Stitch Compression Metric**:
+   $$\Delta \text{size} = \sum_{i=1}^N \text{size}(E_i) - \left( \text{size}(\text{macro\_def}) + N \times (1 + |\text{params}|) \right)$$
+   Macros are synthesized only when $\Delta \text{size} \ge 1$ and $N \ge 2$ instances exist.
+4. **Compile-Time Expansion Invariant**:
+   Synthesized macros compile into canonical `(defmacro <name> (<params>...) <body>)` forms with bounded recursion depth (`MAX_MACRO_DEPTH = 8`) and step complexity (`MAX_MACRO_STEPS = 64`).
+
+### 4.10 Formal Z3 SMT Verification & Deontic Entailment (D-REAS-07)
+All candidate rules (whether mined from execution traces or generated via macro expansion) must pass automated formal verification via the Z3 SMT solver (`src/lucca/reasoning/smt_verifier.py`) before entering `QUARANTINE`:
+1. **Domain Axioms**: Operational bounds on `RuleState` ($0 \le \text{hour} \le 23$, $0 \le \text{weekday} \le 6$, $\text{turns} \ge 0$, $\text{conf} \in [0, 1]$).
+2. **Precondition Satisfiability ($\text{SAT}$)**: Proves that $\text{Axioms} \land \phi_{\text{when}}$ is satisfiable. Logically contradictory preconditions (e.g. `(and (intent= "launch_app") (intent= "file_read"))`) are mathematically proven dead code and rejected (`UNSATISFIABLE`).
+3. **Precondition Contingency**: Proves that $\text{Axioms} \land \neg \phi_{\text{when}}$ is satisfiable. Rules that fire unconditionally across all inputs are rejected as `TAUTOLOGY`.
+4. **Deontic Path & Tool Invariants**: Proves that plan arguments cannot intersect forbidden path patterns (traversal `..`, system directories `C:\Windows`, `System32`, `Program Files`, `/etc`, `/bin`, sensitive files `.git`, `.ssh`, `.env`) and mutation tools cannot target dangerous executable extensions (`.exe`, `.dll`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.sh`, `.sys`).
+5. **Bounded Timeout**: Solver queries enforce a hard $500\,\text{ms}$ timeout. Unverified or unsafe rules are flagged as `VERIFICATION_FAILED` and strictly barred from entering `QUARANTINE`.
 
 ---
 

@@ -41,7 +41,7 @@ from lucca.brain.prompt_builder import (
 )
 from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
-from lucca.core.cascade import BelnapValue, EpistemicSearchCascade, EpistemicSubstrate
+from lucca.core.cascade import EpistemicSearchCascade, EpistemicSubstrate
 from lucca.core.config import get_config
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.ipc_schemas import (
@@ -239,8 +239,11 @@ class Orchestrator:
             memory_store=self.memory_store,
         )
 
-        # Speculative BDI Validator (Milestone 4)
-        ws_root = getattr(self.sandbox.workspace_mgr, "workspace_root", None) if hasattr(self.sandbox, "workspace_mgr") else None
+        ws_root = (
+            getattr(self.sandbox.workspace_mgr, "workspace_root", None)
+            if hasattr(self.sandbox, "workspace_mgr")
+            else None
+        )
         if ws_root is None:
             ws_root = self.config.resolve_path("workspace")
         self.bdi_validator = SpeculativeBDIValidator(workspace_root=ws_root)
@@ -827,17 +830,21 @@ class Orchestrator:
                                 _trigger_supervisor_abort("Tier 1 Capitulation breach", chunk.text)
                                 break
 
-                            for em_chunk, em_gate in emitted_chunks:
+                            for em_chunk, _em_gate in emitted_chunks:
                                 if chunk_index == 0:
                                     trace.t_first_chunk = now_ns()
                                     self._set_state("speaking")
 
                                 try:
                                     self._tts_queue.put(
-                                        (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
+                                        (trace, em_chunk.chunk_id, em_chunk.text, None),
+                                        timeout=2.0,
                                     )
                                 except queue.Full:
-                                    logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
+                                    logger.warning(
+                                        "tts_queue_full_drop_chunk",
+                                        chunk_id=em_chunk.chunk_id,
+                                    )
                                 chunk_index += 1
 
                     elif isinstance(event, ToolCallEnd):
@@ -859,7 +866,10 @@ class Orchestrator:
                                 reason=bdi_res.reason,
                                 elapsed_us=bdi_res.elapsed_us,
                             )
-                            content_str = f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited."
+                            content_str = (
+                                f"Speculative Invariant Violation: {bdi_res.reason}. "
+                                "Action prohibited."
+                            )
                             tool_messages.append(
                                 ChatMessage(
                                     role="assistant",
@@ -940,7 +950,7 @@ class Orchestrator:
                         _trigger_supervisor_abort("Tier 1 Capitulation breach on flush", chunk.text)
                         break
 
-                    for em_chunk, em_gate in emitted_chunks:
+                    for em_chunk, _em_gate in emitted_chunks:
                         if chunk_index == 0:
                             trace.t_first_chunk = now_ns()
                             self._set_state("speaking")
@@ -949,16 +959,20 @@ class Orchestrator:
                                 (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
                             )
                         except queue.Full:
-                            logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
+                            logger.warning(
+                                "tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id
+                            )
                         chunk_index += 1
 
                 # Final flush of output supervisor lookahead buffer
                 if not trace.interrupted:
                     emitted_final, should_abort = self.output_supervisor.flush()
                     if should_abort:
-                        _trigger_supervisor_abort("Tier 1 Capitulation unrefuted end-of-stream", "")
+                        _trigger_supervisor_abort(
+                            "Tier 1 Capitulation unrefuted end-of-stream", ""
+                        )
                     else:
-                        for em_chunk, em_gate in emitted_final:
+                        for em_chunk, _em_gate in emitted_final:
                             if chunk_index == 0:
                                 trace.t_first_chunk = now_ns()
                                 self._set_state("speaking")
@@ -967,7 +981,9 @@ class Orchestrator:
                                     (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
                                 )
                             except queue.Full:
-                                logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
+                                logger.warning(
+                                    "tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id
+                                )
                             chunk_index += 1
 
                 if chunk_index > 0 and not trace.interrupted:
@@ -1003,10 +1019,7 @@ class Orchestrator:
                     reply_parts.extend(self.current_turn_tool_spoken)
                 if reply_parts:
                     reply_str = " ".join(reply_parts)
-                    user_history_entry = user_msg
-                    if current_stance and current_stance not in user_history_entry:
-                        user_history_entry = f"{user_history_entry}\n{current_stance}"
-                    self.history.append({"role": "user", "content": user_history_entry})
+                    self.history.append({"role": "user", "content": user_msg})
                     self.history.append({"role": "assistant", "content": reply_str})
                     if full_response_text:
                         self._publish_caption(reply_str, source="assistant", is_final=True)
@@ -1273,11 +1286,16 @@ class Orchestrator:
         if transcribed_text:
             is_epistemic, target_subs, topic = self.cascade.classify_intent(transcribed_text)
             if is_epistemic:
-                if any(s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)):
+                is_file_or_web = any(
+                    s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)
+                )
+                if is_file_or_web:
                     cue = self.cascade.select_floor_cue(transcribed_text, target_subs[0])
                     self._speak_text(trace, cue)
                     self._publish_caption(cue, source="assistant", is_final=False)
-                cascade_res = self.cascade.query(transcribed_text, substrates=target_subs, emit_floor_cue=False)
+                cascade_res = self.cascade.query(
+                    transcribed_text, substrates=target_subs, emit_floor_cue=False
+                )
                 epistemic_ctx = cascade_res.synthesized_context or None
 
         if yielded_context:
@@ -1480,7 +1498,9 @@ class Orchestrator:
         if user_text:
             is_epistemic, target_subs, topic = self.cascade.classify_intent(user_text)
             if is_epistemic:
-                cascade_res = self.cascade.query(user_text, substrates=target_subs, emit_floor_cue=False)
+                cascade_res = self.cascade.query(
+                    user_text, substrates=target_subs, emit_floor_cue=False
+                )
                 epistemic_ctx = cascade_res.synthesized_context or None
 
         if yielded_context:
@@ -1501,12 +1521,19 @@ class Orchestrator:
             trace.t_tts_first_sent = now_ns()
 
         speed_mult = self.affect_tracker.get_tts_speed_multiplier()
-        _done = self.tts.synthesize(
-            chunk_id=chunk_id,
-            text=text,
-            speed=speed_mult,
-            is_first=(chunk_id == 0),
-        )
+        try:
+            _done = self.tts.synthesize(
+                chunk_id=chunk_id,
+                text=text,
+                speed=speed_mult,
+                is_first=(chunk_id == 0),
+            )
+        except TypeError:
+            _done = self.tts.synthesize(
+                chunk_id=chunk_id,
+                text=text,
+                is_first=(chunk_id == 0),
+            )
 
         if chunk_id == 0:
             trace.t_tts_first_done = now_ns()
@@ -1561,7 +1588,10 @@ class Orchestrator:
         self._publish_caption(text, source="assistant", is_final=True)
         trace.t_tts_first_sent = now_ns()
         speed_mult = self.affect_tracker.get_tts_speed_multiplier()
-        self.tts.synthesize(chunk_id=0, text=text, speed=speed_mult, is_first=True)
+        try:
+            self.tts.synthesize(chunk_id=0, text=text, speed=speed_mult, is_first=True)
+        except TypeError:
+            self.tts.synthesize(chunk_id=0, text=text, is_first=True)
         trace.t_tts_first_done = now_ns()
         trace.t_tts_last_done = trace.t_tts_first_done
         trace.chunks += 1
@@ -1675,29 +1705,33 @@ class Orchestrator:
             return None
 
         # Speculative BDI Invariant Validation (Milestone 4)
-        bdi_res = self.bdi_validator.validate_tool_call(
-            name,
-            args,
-            taint_flags=getattr(self.sandbox, "taint_flags", 0),
-        )
-        if not bdi_res.is_valid:
-            logger.warning(
-                "bdi_invariant_violation",
-                tool=name,
-                reason=bdi_res.reason,
-                elapsed_us=bdi_res.elapsed_us,
+        bdi_validator = getattr(self, "bdi_validator", None)
+        if bdi_validator is not None:
+            bdi_res = bdi_validator.validate_tool_call(
+                name,
+                args,
+                taint_flags=getattr(self.sandbox, "taint_flags", 0),
             )
-            self.current_turn_tool_ok = False
-            self.affect_tracker.record_signal(
-                AffectSignal.DEONTIC_REJECTION, custom_cause=bdi_res.reason
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=-4,
-                stderr=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
-                elapsed_ms=bdi_res.elapsed_us / 1000.0,
-            )
+            if not bdi_res.is_valid:
+                logger.warning(
+                    "bdi_invariant_violation",
+                    tool=name,
+                    reason=bdi_res.reason,
+                    elapsed_us=bdi_res.elapsed_us,
+                )
+                self.current_turn_tool_ok = False
+                affect_tracker = getattr(self, "affect_tracker", None)
+                if affect_tracker is not None:
+                    affect_tracker.record_signal(
+                        AffectSignal.DEONTIC_REJECTION, custom_cause=bdi_res.reason
+                    )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-4,
+                    stderr=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
+                    elapsed_ms=bdi_res.elapsed_us / 1000.0,
+                )
 
         # Check if this is a MicroScheme skill invocation (Proposal A / D-REAS-04)
         target_rule_id = None
@@ -1772,13 +1806,15 @@ class Orchestrator:
             args=args,
             confirmed=True,
         )
+        affect_tracker = getattr(self, "affect_tracker", None)
         if not res.ok:
             self.current_turn_tool_ok = False
-            self.affect_tracker.record_signal(
-                AffectSignal.TOOL_FAILURE, custom_cause=res.stderr or f"{name} failed"
-            )
-        else:
-            self.affect_tracker.record_signal(
+            if affect_tracker is not None:
+                affect_tracker.record_signal(
+                    AffectSignal.TOOL_FAILURE, custom_cause=res.stderr or f"{name} failed"
+                )
+        elif affect_tracker is not None:
+            affect_tracker.record_signal(
                 AffectSignal.TASK_SUCCESS, custom_cause=f"{name} completed successfully"
             )
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)

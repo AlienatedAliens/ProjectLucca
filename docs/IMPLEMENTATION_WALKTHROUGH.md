@@ -709,3 +709,107 @@ Executed via [`scripts/verify_live_prompt_cache_hit.py`](file:///C:/Projects/Pro
 - `tests/test_affect_quarantine.py`: Epistemic truth invariance, deontic monotonicity, prefix cache invariance (3/3 PASSED).
 - `tests/test_static_gates.py`: Zero-`Any` and static honesty gates (8/8 PASSED).
 - Total Milestone Suite: **52/52 PASSED (100% GREEN in 6.68s)**.
+
+---
+
+## 9. Milestone 6 Implementation: Autonomous Rule Induction, Babble/Stitch E-Graph Macro Synthesis & Z3 SMT Prover
+
+**Date:** September 20, 2026  
+**Status:** Completed, Formally Verified & Integrated  
+**Charter Reference:** Milestone 6 of 7-Milestone Neuro-Symbolic Remediation Plan, Spec 05 Proposal D/E, D-REAS-05, D-REAS-06, D-REAS-07, D-REAS-08
+
+### 9.1 Architectural Overview & Components
+Milestone 6 operationalizes safe autonomous rule induction and procedural compilation on workstation silicon, elevating repetitive successful neural executions into verified System 1 procedural rules and macro templates:
+
+```mermaid
+flowchart TD
+    A[SQLite Telemetry: decisions Table] -->|Mine Patterns N >= 3| B[RuleInducer: Pattern Clusters]
+    B -->|Structural Topology Sharing| C[E-Graph Congruence & Anti-Unifier]
+    C -->|Stitch Compression Metric| D[Synthesized Macro: defmacro]
+    B -->|Single-Cluster Synthesis| E[Candidate MicroScheme Rule]
+    D --> E
+    E -->|Precondition & Action AST| F[Z3 SMT Formal Verifier]
+    F -->|SAT? Non-Tautology? Deontic Safe?| G{SMT Result}
+    G -->|UNSAT / TAUTOLOGY / UNSAFE| H[REJECTED: Verification Failed]
+    G -->|VERIFIED| I[RuleLifecycleManager: QUARANTINE]
+    I -->|Shadow-Mode Execution| J{5 Distinct Clusters + 0 Errors}
+    J -->|Pass Regression Suite| K[PENDING_APPROVAL: Human Operator Gate]
+```
+
+### 9.2 Babble/Stitch E-Graph Anti-Unification & Macro Template Synthesis (`src/lucca/reasoning/egraph.py`)
+1. **E-Graph Congruence Closure (`EClass`, `EGraph`):**
+   - Implements hash-consing and union-find with path compression to represent equivalence classes over MicroScheme ASTs.
+   - Restores congruence closure fixpoints via `rebuild()`, enabling subterm sharing across execution trees.
+2. **First-Order Syntactic Anti-Unification (Plotkin / Reynolds):**
+   - Given two expressions $E_1, E_2$, computes the Least General Generalizer (LGG):
+     $$\text{anti\_unify}(E_1, E_2) \rightarrow (T, \sigma_1, \sigma_2)$$
+   - Matches structural AST lists and symbols, abstracting differing arguments into consistent parameter holes (`arg_0`, `arg_1`).
+   - Multi-way anti-unification (`anti_unify_many`) generalizes across $M \ge 2$ execution clusters.
+3. **Stitch Compression Metric:**
+   - Evaluates size reduction before synthesizing macros:
+     $$\Delta \text{size} = \sum_{i=1}^N \text{size}(E_i) - \left( \text{size}(\text{macro\_def}) + N \times (1 + |\text{params}|) \right)$$
+   - Only patterns with positive savings ($\Delta \text{size} \ge 1$) and $N \ge 2$ instances are compiled into `(defmacro <name> (<params>...) <body>)`.
+4. **Compile-Time Macro Safety (D-REAS-05):**
+   - Hard bounds on macro expansion: `MAX_MACRO_DEPTH = 8`, `MAX_MACRO_STEPS = 64`.
+   - Macros cannot shadow primitive operators; post-expansion ASTs undergo static operator validation.
+
+### 9.3 Formal Z3 SMT Verification & Deontic Invariant Entailment (`src/lucca/reasoning/smt_verifier.py`)
+1. **Domain Axiomatization:**
+   - Translates operational `RuleState` into Z3 first-order logic formulas:
+     $$0 \le \text{hour\_local} \le 23, \quad 0 \le \text{weekday} \le 6, \quad \text{session\_turns} \ge 0, \quad 0.0 \le \text{intent\_conf} \le 1.0$$
+   - Maps state predicates (`intent=`, `hour-between?`, `weekday?`, `session-turns>=`, `entity-has?`, `app-running?`, `last-tool=`) into typed Z3 assertions.
+2. **Precondition Satisfiability ($\text{SAT}$):**
+   - Proves $\text{Axioms} \land \phi_{\text{when}}$ is satisfiable.
+   - Contradictory rules (e.g. `(and (intent= "launch_app") (intent= "file_read"))`) are mathematically proven dead code and rejected (`UNSATISFIABLE`).
+3. **Precondition Contingency (Non-Tautology):**
+   - Proves $\text{Axioms} \land \neg \phi_{\text{when}}$ is satisfiable.
+   - Unconditional rules that fire everywhere (e.g. `(or (intent= "a") (not (intent= "a")))`) are rejected as `TAUTOLOGY`.
+4. **Deontic Path & Tool Invariants:**
+   - Intercepts plan tool calls and extracts target parameters (`path`, `rel_path`, `target`, `file`).
+   - SMT verifies that arguments cannot intersect prohibited directory sequences:
+     - Path traversal (`..`, `../`, `..\`)
+     - System directories (`C:\Windows`, `System32`, `SysWOW64`, `C:\Program Files`, `/etc`, `/usr`, `/bin`, `/var`, `/proc`)
+     - Sensitive credentials and keys (`.git`, `.ssh`, `id_rsa`, `id_ed25519`, `.env`)
+   - Prohibits mutation tools (`write_file`, `edit_file`) from targeting dangerous executable extensions (`.exe`, `.dll`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.sh`, `.sys`, `.msi`, `.scr`).
+   - Rejects unregistered or rogue tools (`UNKNOWN_TOOL`).
+5. **Bounded Compute:** Solvers enforce a hard $500\,\text{ms}$ timeout, preventing solver hangs.
+
+### 9.4 Autonomous Induction Pipeline & Quarantine Invariant (`src/lucca/reasoning/induction.py`)
+1. **Telemetry Mining:** Scans SQLite `decisions` table for successful turns (`tool_ok = 1`) and clusters recurring (intent, tool, argument) tuples reaching $N \ge 3$.
+2. **SMT Verification Gate:** Every candidate rule passes through `SMTVerifier`. If verification fails, the candidate is rejected with detailed diagnostic reasons and discarded before registration.
+3. **Quarantine Invariant (D-REAS-06):**
+   - Verified candidate rules are registered **strictly into `QUARANTINE` mode**.
+   - Automatic promotion to `ACTIVE` is strictly prohibited.
+   - Quarantined rules undergo shadow-mode evaluation against live turns; promotion to `PENDING_APPROVAL` requires $\ge 5$ distinct success clusters, $0$ failures, and $100\%$ pass on the frozen regression suite.
+
+### 9.5 Verification & Test Results
+- **Induction & SMT Test Suite ([`tests/test_rule_induction.py`](file:///C:/Projects/ProjectLucca/tests/test_rule_induction.py)):**
+  - `test_mine_patterns_from_sqlite`: Mines recurring calculator invocations ($N=4$) while ignoring sub-threshold notepad instances ($N=2$) — **PASSED**.
+  - `test_synthesize_canonical_microscheme_rule`: Canonical MicroScheme AST generation — **PASSED**.
+  - `test_induce_and_quarantine_invariant`: Strict `QUARANTINE` placement without auto-promotion — **PASSED**.
+  - `test_no_duplicate_induction`: Idempotent mining passes — **PASSED**.
+  - `test_egraph_congruence_closure`: Equivalence class merging and congruence fixpoint restoration — **PASSED**.
+  - `test_first_order_anti_unification`: Least General Generalizer AST abstraction with parameter extraction — **PASSED**.
+  - `test_anti_unify_many_and_macro_synthesis`: Babble/Stitch `defmacro` compilation with positive compression savings — **PASSED**.
+  - `test_smt_verifier_valid_rule`: Z3 formal verification of valid, contingent, safe rule — **PASSED**.
+  - `test_smt_verifier_rejects_unsat_precondition`: Rejection of contradictory dead code — **PASSED**.
+  - `test_smt_verifier_rejects_tautology_precondition`: Rejection of unconditional tautologies — **PASSED**.
+  - `test_smt_verifier_rejects_path_traversal`: Blocking `../../../secret.txt` — **PASSED**.
+  - `test_smt_verifier_rejects_system_directory`: Blocking `C:/Windows/System32/config/SAM` — **PASSED**.
+  - `test_smt_verifier_rejects_prohibited_executable_extension`: Blocking `payload.exe` — **PASSED**.
+  - `test_smt_verifier_rejects_unknown_tool`: Blocking unregistered tools — **PASSED**.
+  - `test_inducer_rejects_unsafe_candidate_at_smt_gate`: Blocking unsafe patterns from entering quarantine — **PASSED**.
+  - `test_inducer_macro_synthesis_across_clusters`: Macro synthesis across multi-app launch traces — **PASSED**.
+  - **Scorecard:** **16/16 PASSED (100% GREEN in 0.49s)**.
+- **Reasoning Tier Test Suite:**
+  - `test_scheme.py` (12/12 PASSED)
+  - `test_scheme_macros.py` (7/7 PASSED)
+  - `test_scheme_typed_accessors.py` (4/4 PASSED)
+  - `test_lifecycle.py` (9/9 PASSED)
+  - `test_rule_induction.py` (16/16 PASSED)
+  - **Scorecard:** **48/48 PASSED (100% GREEN in 0.88s)**.
+- **Static Honesty & Zero-`Any` Gates ([`tests/test_static_gates.py`](file:///C:/Projects/ProjectLucca/tests/test_static_gates.py)):**
+  - Zero `Any` types across `src/lucca/core/`, `src/lucca/brain/`, and `src/lucca/reasoning/` (all 12 reasoning files) — **PASSED (8/8)**.
+- **Full Non-Hardware Test Suite:**
+  - **387/387 PASSED (100% GREEN across all modules in 61.41s)**.
+

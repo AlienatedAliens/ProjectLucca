@@ -443,7 +443,9 @@ def prim_yield_to_core(args: list[SchemeValue]) -> SchemeValue:
     Raises SchemeYieldSignal to transfer S1 control to System 2 with optional context.
     """
     if not args:
-        raise SchemeRuntimeError("'yield-to-core' requires at least a reason string", cause_type="ValueError")
+        raise SchemeRuntimeError(
+            "'yield-to-core' requires at least a reason string", cause_type="ValueError"
+        )
     reason = _check_str(args[0], "yield-to-core")
     context: dict[str, object] = {}
     if len(args) > 1:

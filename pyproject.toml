@@ -26,6 +26,7 @@ dependencies = [
     "python-ulid>=2.0.0",
     "rich>=13.7.0",
     "networkx>=3.3.0",
+    "z3-solver>=4.13.0",
 ]
 
 [project.optional-dependencies]
@@ -91,6 +92,7 @@ module = [
     "ulid.*",
     "psutil.*",
     "torch.*",
+    "z3.*",
 ]
 ignore_missing_imports = true
 
