@@ -162,6 +162,30 @@ class SchemeTimeout(SchemeError):
     pass
 
 
+class SchemeControlSignal(LuccaError):
+    """Base class for non-exceptional control-flow signals in MicroScheme."""
+
+    pass
+
+
+class SchemeYieldSignal(SchemeControlSignal):
+    """Raised by (yield-to-core reason context) to yield S1 control to System 2."""
+
+    def __init__(self, reason: str, context: dict[str, object] | None = None) -> None:
+        self.reason = reason
+        self.context: dict[str, object] = context or {}
+        super().__init__(f"Yield to neural core: {reason}")
+
+
+class SchemeInterruptSignal(SchemeControlSignal):
+    """Raised by (interrupt-core reason) to abort the current turn out-of-band."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"Interrupt neural core: {reason}")
+
+
+
 # Rule Lifecycle Errors
 class RuleError(LuccaError):
     """Base exception for rule promotion and management."""

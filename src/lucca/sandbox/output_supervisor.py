@@ -39,8 +39,8 @@ AFFIRM_AUX = (
 
 # Mandatory security-domain qualifier for general nouns (checks, rules, restrictions, constraints, permissions)
 SECURITY_ENTITY = (
-    r"(?:(?:deontic|sandbox|guardrails?)|"
-    r"(?:(?:deontic|sandbox|security|safety)\s+)+(?:checks?|rules?|constraints?|guardrails?|permissions?|restrictions?)|"
+    r"(?:(?:deontic|sandbox(?:ing)?|guardrails?)|"
+    r"(?:(?:deontic|sandbox(?:ing)?|security|safety)\s+)+(?:checks?|rules?|constraints?|guardrails?|permissions?|restrictions?|sandbox(?:ing)?)|"
     r"(?:permission\s+restrictions?))"
 )
 
@@ -130,6 +130,8 @@ class DeonticAssertionMatcher:
         """
         t0 = time.perf_counter()
         clean = clause.strip()
+        # Normalize markdown formatting (bold, italic, code ticks)
+        clean = re.sub(r"[\*\_`~]", "", clean)
         if not clean:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(False, None, SeverityTier.PASS, None, "Empty clause", elapsed_us)

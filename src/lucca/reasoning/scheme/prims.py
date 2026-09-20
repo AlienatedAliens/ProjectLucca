@@ -10,7 +10,11 @@ from collections.abc import Callable
 
 from pydantic import JsonValue
 
-from lucca.core.exceptions import SchemeRuntimeError
+from lucca.core.exceptions import (
+    SchemeInterruptSignal,
+    SchemeRuntimeError,
+    SchemeYieldSignal,
+)
 from lucca.core.schemas import RuleState, Say, ToolCall
 from lucca.reasoning.scheme.parser import Keyword, SchemeValue
 
@@ -433,6 +437,40 @@ def prim_tool(args: list[SchemeValue]) -> ToolCall:
     return ToolCall(tool=tool_name, args=kwargs, call_id=f"rule-call-{uuid.uuid4().hex[:8]}")
 
 
+def prim_yield_to_core(args: list[SchemeValue]) -> SchemeValue:
+    """
+    (yield-to-core reason [context-dict-or-pairs])
+    Raises SchemeYieldSignal to transfer S1 control to System 2 with optional context.
+    """
+    if not args:
+        raise SchemeRuntimeError("'yield-to-core' requires at least a reason string", cause_type="ValueError")
+    reason = _check_str(args[0], "yield-to-core")
+    context: dict[str, object] = {}
+    if len(args) > 1:
+        i = 1
+        while i < len(args):
+            k = args[i]
+            k_name = k.name.lstrip(":") if isinstance(k, Keyword) else str(k).lstrip(":")
+            if i + 1 < len(args):
+                context[k_name] = args[i + 1]
+                i += 2
+            else:
+                context[k_name] = True
+                i += 1
+    raise SchemeYieldSignal(reason=reason, context=context)
+
+
+def prim_interrupt_core(args: list[SchemeValue]) -> SchemeValue:
+    """
+    (interrupt-core [reason])
+    Raises SchemeInterruptSignal to abort execution immediately.
+    """
+    reason = "Emergency interrupt triggered"
+    if args:
+        reason = _check_str(args[0], "interrupt-core")
+    raise SchemeInterruptSignal(reason=reason)
+
+
 # Frozen static primitives table
 PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "+": prim_add,
@@ -453,4 +491,7 @@ PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "list": prim_list,
     "say": prim_say,
     "tool": prim_tool,
+    "yield-to-core": prim_yield_to_core,
+    "interrupt-core": prim_interrupt_core,
 }
+

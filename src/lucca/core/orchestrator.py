@@ -39,8 +39,10 @@ from lucca.brain.prompt_builder import (
     get_all_tool_definitions,
     set_persona,
 )
+from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.cascade import BelnapValue, EpistemicSearchCascade, EpistemicSubstrate
 from lucca.core.config import get_config
+from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.ipc_schemas import (
     Envelope,
     PlayAbortPayload,
@@ -234,6 +236,12 @@ class Orchestrator:
             sandbox=self.sandbox,
             memory_store=self.memory_store,
         )
+
+        # Speculative BDI Validator (Milestone 4)
+        ws_root = getattr(self.sandbox.workspace_mgr, "workspace_root", None) if hasattr(self.sandbox, "workspace_mgr") else None
+        if ws_root is None:
+            ws_root = self.config.resolve_path("workspace")
+        self.bdi_validator = SpeculativeBDIValidator(workspace_root=ws_root)
 
     @property
     def last_decision(self) -> DecisionRecord | None:
@@ -733,8 +741,11 @@ class Orchestrator:
         tool_receipts: list[dict[str, JsonValue]] = []
 
         if tools is None:
-            active_rules = [r for r in self.rule_engine.rules.values() if r.status == "ACTIVE"]
-            tools = get_all_tool_definitions(active_rules)
+            if self.execute_tools:
+                active_rules = [r for r in self.rule_engine.rules.values() if r.status == "ACTIVE"]
+                tools = get_all_tool_definitions(active_rules)
+            else:
+                tools = []
 
         def _trigger_supervisor_abort(reason_msg: str, offending_chunk: str) -> None:
             nonlocal chunk_index
@@ -823,6 +834,37 @@ class Orchestrator:
                         call_id = event.call.call_id
                         tool_name = event.call.tool
                         tool_args = dict(event.call.args)
+
+                        # Speculative BDI Validation (Milestone 4)
+                        bdi_res = self.bdi_validator.validate_tool_call(
+                            tool_name,
+                            tool_args,
+                            taint_flags=getattr(self.sandbox, "taint_flags", 0),
+                        )
+                        if not bdi_res.is_valid:
+                            logger.warning(
+                                "speculative_bdi_call_rejected",
+                                tool=tool_name,
+                                reason=bdi_res.reason,
+                                elapsed_us=bdi_res.elapsed_us,
+                            )
+                            content_str = f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited."
+                            tool_messages.append(
+                                ChatMessage(
+                                    role="assistant",
+                                    content=f"Call tool {tool_name}",
+                                    tool_call_id=call_id,
+                                )
+                            )
+                            tool_messages.append(
+                                ChatMessage(
+                                    role="tool",
+                                    content=content_str,
+                                    tool_call_id=call_id,
+                                    name=tool_name,
+                                )
+                            )
+                            continue
 
                         # Emit verbal thinking cue before tool execution (Proposal I)
                         cue = self._select_verbal_cue(tool_name)
@@ -1049,10 +1091,23 @@ class Orchestrator:
             "transcript" if self.config.llm.mode == "transcript" else "audio"
         )
         rule_state = self._build_rule_state(transcribed_text, mode=mode)
-        shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
-        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
+        yielded_context: dict[str, object] | None = None
+        shadow_outcomes: list[RuleOutcome] = []
+        active_outcomes: list[RuleOutcome] = []
+        try:
+            shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
+            active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+        except SchemeYieldSignal as e:
+            logger.info("scheme_rule_yielded_to_core", reason=e.reason, context=e.context)
+            yielded_context = {"reason": e.reason, "context": e.context}
+        except SchemeInterruptSignal as e:
+            logger.warning("scheme_rule_interrupted_core", reason=e.reason)
+            self._abort_turn()
+            self._speak_text(trace, f"Interrupted: {e.reason}")
+            self._finalize_turn(trace, None)
+            return
 
-        active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
         any_active_fired = any(o.fired for o in active_outcomes)
         has_registered_rule = any(r.status == "ACTIVE" for r in self.rule_engine.rules.values())
 
@@ -1210,6 +1265,10 @@ class Orchestrator:
                 cascade_res = self.cascade.query(transcribed_text, substrates=target_subs, emit_floor_cue=False)
                 epistemic_ctx = cascade_res.synthesized_context or None
 
+        if yielded_context:
+            yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
+            epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
+
         self._stream_llm_speech(
             trace=trace,
             user_msg=transcribed_text or "[Voice audio]",
@@ -1252,10 +1311,23 @@ class Orchestrator:
 
         # Build RuleState and evaluate rules
         rule_state = self._build_rule_state(user_text, mode="transcript")
-        shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
-        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
+        yielded_context: dict[str, object] | None = None
+        shadow_outcomes: list[RuleOutcome] = []
+        active_outcomes: list[RuleOutcome] = []
+        try:
+            shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
+            active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+        except SchemeYieldSignal as e:
+            logger.info("scheme_rule_yielded_to_core", reason=e.reason, context=e.context)
+            yielded_context = {"reason": e.reason, "context": e.context}
+        except SchemeInterruptSignal as e:
+            logger.warning("scheme_rule_interrupted_core", reason=e.reason)
+            self._abort_turn()
+            self._speak_text(trace, f"Interrupted: {e.reason}")
+            self._finalize_turn(trace, None)
+            return
 
-        active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
         any_active_fired = any(o.fired for o in active_outcomes)
         has_registered_rule = any(r.status == "ACTIVE" for r in self.rule_engine.rules.values())
 
@@ -1394,6 +1466,10 @@ class Orchestrator:
             if is_epistemic:
                 cascade_res = self.cascade.query(user_text, substrates=target_subs, emit_floor_cue=False)
                 epistemic_ctx = cascade_res.synthesized_context or None
+
+        if yielded_context:
+            yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
+            epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
         self._stream_llm_speech(
             trace=trace,
@@ -1574,6 +1650,28 @@ class Orchestrator:
         self.current_turn_tool_calls.append(ToolCall(tool=name, args=dict(args), call_id=call_id))
         if not self.execute_tools:
             return None
+
+        # Speculative BDI Invariant Validation (Milestone 4)
+        bdi_res = self.bdi_validator.validate_tool_call(
+            name,
+            args,
+            taint_flags=getattr(self.sandbox, "taint_flags", 0),
+        )
+        if not bdi_res.is_valid:
+            logger.warning(
+                "bdi_invariant_violation",
+                tool=name,
+                reason=bdi_res.reason,
+                elapsed_us=bdi_res.elapsed_us,
+            )
+            self.current_turn_tool_ok = False
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-4,
+                stderr=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
+                elapsed_ms=bdi_res.elapsed_us / 1000.0,
+            )
 
         # Check if this is a MicroScheme skill invocation (Proposal A / D-REAS-04)
         target_rule_id = None
