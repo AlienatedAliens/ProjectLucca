@@ -4,6 +4,7 @@ Spec 01 §1, ADR-005
 """
 
 import ctypes
+import os
 import subprocess
 import sys
 import threading
@@ -11,6 +12,8 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
 import psutil
 import zmq

@@ -3,8 +3,11 @@ Project Lucca — Desktop Companion Speech Bubble
 Spec 01 §1, Spec 16 §3, ADR-005
 """
 
+import os
 from collections.abc import Callable
 from datetime import datetime
+
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
 from PyQt6.QtCore import QRect, QRectF, Qt, QTimer
 from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen

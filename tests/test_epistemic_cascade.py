@@ -415,7 +415,21 @@ def test_acoustic_floor_holding_cue_timing() -> None:
 
 def test_intent_classifier_distinguishes_epistemic_vs_conversational() -> None:
     """Verifies that non-epistemic conversational cues are excluded from cascade search."""
-    conversational = ["hello", "hi there!", "good morning", "thanks", "thank you", "stop", "pause", "shut down"]
+    conversational = [
+        "hello",
+        "hi there!",
+        "good morning",
+        "thanks",
+        "thank you",
+        "stop",
+        "pause",
+        "shut down",
+        "What can you tell me about yourself?",
+        "What is the definition of yourself within the sentence?",
+        "Who are you?",
+        "Tell me about yourself.",
+        "What can you do?",
+    ]
     for utt in conversational:
         is_epistemic, subs, topic = classify_epistemic_intent(utt)
         assert not is_epistemic, f"Utterance '{utt}' was falsely classified as epistemic"

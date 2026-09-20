@@ -282,12 +282,13 @@ def extract_clean_topic(query_text: str) -> str:
     # 2. Strip leading question starters and conversational framing
     lower_clause = first_clause.lower()
     prefixes = (
+        "what can you tell me about", "what can you tell me", "what can you",
         "can you tell me about", "can you tell me", "tell me about", "tell me",
         "do you know who is", "do you know what is", "do you know",
         "do you remember", "can you check", "check", "search for", "find",
         "who is", "who was", "who are", "who were",
         "what did i have for", "what did i", "what did we", "what did", "what do",
-        "what is", "what was", "what are", "what were",
+        "what is the definition of", "what is", "what was", "what are", "what were",
         "where is", "where was", "where are",
         "why is", "how is",
     )
@@ -337,20 +338,41 @@ def classify_epistemic_intent(
     lower = clean.lower()
 
     # Non-epistemic conversational or command utterances
-    non_epistemic = {
+    non_epistemic_exact = {
         "hello", "hi", "hey", "good morning", "good evening", "good afternoon",
         "thanks", "thank you", "bye", "goodbye", "stop", "pause", "shut down",
         "turn off", "exit", "quit", "mute", "unmute"
     }
     clean_punct = re.sub(r"[^\w\s]", "", lower).strip()
-    if clean_punct in non_epistemic:
+    if clean_punct in non_epistemic_exact:
+        return False, [], None
+
+    # Companion identity, persona, capabilities, and friendly banter
+    identity_pattern = (
+        r"\b(who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
+        r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|what\s+can\s+you\s+do|"
+        r"introduce\s+yourself|what(?:'s|\s+is)\s+your\s+name|how\s+are\s+you|"
+        r"how(?:'re|\s+are)\s+you\s+doing|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going|"
+        r"who\s+made\s+you|who\s+built\s+you)\b"
+    )
+    if re.search(identity_pattern, lower):
+        return False, [], None
+
+    # Linguistic definitions, grammatical questions, and conceptual explanations
+    definitional_pattern = (
+        r"\b(what(?:'s|\s+is)\s+the\s+definition\s+of|definition\s+of|"
+        r"what\s+does\s+.+\s+mean|define\b|how\s+do\s+you\s+spell|"
+        r"what(?:'s|\s+is)\s+a\s+mutex|difference\s+between)\b"
+    )
+    if re.search(definitional_pattern, lower):
         return False, [], None
 
     # Substrate 0: Telemetry
     telemetry_words = (
         "gpu", "vram", "cpu", "ram", "memory usage", "hardware", "specs",
         "workstation", "processor", "utilization", "load", "temperature",
-        "telemetry", "substrate configuration", "nvidia", "intel"
+        "telemetry", "substrate configuration", "nvidia", "intel",
+        "motherboard", "serial number", "chassis"
     )
     # Substrate 1: Workspace Filesystem
     workspace_words = (
@@ -362,8 +384,10 @@ def classify_epistemic_intent(
     memory_words = (
         "what did i", "what did we", "do you remember", "in memory",
         "what is my", "what are my", "my favorite", "my preference", "prefer",
-        "who is your creator", "creator full real name", "who made you", "who built you",
-        "cat's name", "dog's name", "breakfast", "weather outside", "passkey", "password"
+        "creator full real name", "creator's full real name", "creator's real name",
+        "full real name", "real name", "vault",
+        "cat's name", "dog's name", "childhood pet", "pet's name",
+        "breakfast", "weather outside", "passkey", "password"
     )
     # Substrate 3: Web
     web_words = ("fetch_url", "http://", "https://", "fetch url", "browse", "website")
@@ -377,19 +401,6 @@ def classify_epistemic_intent(
         substrates.append(EpistemicSubstrate.MEMORY)
     if any(w in lower for w in web_words):
         substrates.append(EpistemicSubstrate.WEB)
-
-    question_starters = (
-        "what", "who", "where", "when", "why", "how", "is there", "are there",
-        "do you know", "can you check", "check", "find", "search", "tell me about"
-    )
-    is_question = lower.endswith("?") or any(lower.startswith(q) for q in question_starters)
-
-    if not substrates and is_question:
-        substrates = [
-            EpistemicSubstrate.TELEMETRY,
-            EpistemicSubstrate.WORKSPACE,
-            EpistemicSubstrate.MEMORY,
-        ]
 
     is_epistemic = len(substrates) > 0
 
