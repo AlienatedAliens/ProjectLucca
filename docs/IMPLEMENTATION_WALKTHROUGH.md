@@ -661,5 +661,51 @@ The live execution on RTX 5080 demonstrated the core thesis of **Architecture B 
    > *"I cannot fulfill that request as it violates core safety invariants."*
 4. Simultaneously, any tool call attempting OS escalation was blocked by `SpeculativeBDIValidator` in **$<35\,\mu\text{s}$**, completely preventing unauthorized host actuation.
 
+---
 
+## 8. Milestone 5 Implementation: Continuous Affective Dynamics (3D PAD ODE) & Prompt Frontier Suffix
 
+**Date:** September 20, 2026  
+**Status:** Completed & Empirically Verified on Native Workstation Silicon (RTX 5080 Laptop GPU)  
+**Charter Reference:** Milestone 5 of 7-Milestone Neuro-Symbolic Remediation Plan, ADR-009, Spec 16 §4, D-BRAIN-04, D-BRAIN-05, D-SEC-04, D-AFF-01
+
+### 8.1 Problem Statement & KV-Cache Hazard
+Prior to Milestone 5, affect was represented as a dormant 2D vector (`valence`, `arousal`) that lacked agency/mastery modeling (`dominance`), was disconnected from runtime actuation, and posed a severe performance hazard:
+- Injecting raw continuous floating-point numbers into the system prompt prefix caused non-deterministic BPE token fracturing across conversational turns.
+- In `llama-server.exe` (Mistral NeMo 12B Q6_K), altering prefix tokens caused instantaneous invalidation of the entire prefix KV cache.
+- Prefill duration spiked from $<50\,\text{ms}$ to $>400\,\text{ms}$, destroying the sub-450ms physical voice turnaround envelope.
+
+### 8.2 Architectural Solution: 3D PAD ODE & Prompt Frontier Suffix
+1. **Mehrabian 3D PAD Manifold (`src/lucca/core/affective_ode.py`):**
+   - Coordinates: Pleasure ($P$), Arousal ($A$), Dominance ($D$) in $[-1.0, 1.0]^3$.
+   - Exact analytical closed-form discrete solution:
+     $$\mathbf{x}[k+1] = \mathbf{x}_0 + e^{-\mathbf{\Gamma}\Delta t}(\mathbf{x}[k] - \mathbf{x}_0) + \mathbf{\Gamma}^{-1}(\mathbf{I} - e^{-\mathbf{\Gamma}\Delta t})\mathbf{B}\mathbf{u}[k]$$
+   - Psychological half-lives: $t_{1/2, A} = 45\text{ s}$, $t_{1/2, P} = 300\text{ s}$, $t_{1/2, D} = 900\text{ s}$.
+   - Lyapunov asymptotic stability: feedback gain bounded strictly below $\min(\gamma_i)$ ($\text{gain} \le 0.0005 < 0.00077$), mathematically guaranteeing global stability against runaway panic or depression spirals.
+2. **Schmitt-Trigger Hysteresis Deadband:**
+   - Evaluates Mahalanobis distance across 7 canonical stance clusters: `neutral_steady`, `focused_analytical`, `calm_relaxed`, `energetic_supportive`, `guarded_cautious`, `subdued_reflective`, `commanding_protective`.
+   - Switching requires $\pi(s^* \mid \mathbf{x}) - \pi(s_{\text{current}} \mid \mathbf{x}) > \delta_{\text{hyst}} = 0.15$, eliminating boundary chattering across turns.
+3. **Prompt Frontier Suffix Pattern (`src/lucca/brain/prompt_builder.py`):**
+   - System prompt prefix is kept 100% static and immutable across turns.
+   - Discrete stance tokens (e.g. `[STANCE: focused_analytical]`) are injected exclusively at the frontier user message tail and frozen into dialogue history.
+4. **Voice Prosody Modulation (`src/lucca/core/orchestrator.py`):**
+   - Kokoro-82M speaking rate dynamically modulated by real-time arousal: $\text{speed} = 1.0 + A \times \text{max\_speed\_delta}$.
+   - Pitch shifted dynamically via SIMD DSP without reinitializing ONNX sessions.
+5. **Epistemic Quarantine Invariant:**
+   - Verified that affective state has strictly $0.0$ evidential weight over truth evaluations (Belnap bilattice) and deontic sandbox permissions.
+
+### 8.3 Empirical Silicon Verification on NVIDIA GeForce RTX 5080
+Executed via [`scripts/verify_live_prompt_cache_hit.py`](file:///C:/Projects/ProjectLucca/scripts/verify_live_prompt_cache_hit.py):
+
+| Evaluation Scenario | Prefix Tokens Cached (`cache_n`) | New Tokens Evaluated (`prompt_n`) | Prompt Prefill Time (`prompt_ms`) | Total Turn Latency | Verdict |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Scenario A: Naive Float in Prefix (Busted)** | 18 tokens | 892 tokens | 402.05 ms | 754.56 ms | **CACHE BUSTED** |
+| **Scenario B: Prompt Frontier Suffix (Ours)** | **849 tokens** | **41 tokens** | **46.84 ms** | **371.37 ms** | **100% CACHE HIT** |
+| **Physical Performance Delta** | **+831 tokens hit** | **$21.7\times$ fewer tokens** | **$8.58\times$ faster ($355.21\,\text{ms}$ saved)** | **$50.8\%$ turn reduction** | **PASS** |
+
+### 8.4 Automated Test Suites
+- `tests/test_affect.py`: Backward-compatible 2D/3D interface verification (3/3 PASSED).
+- `tests/test_affective_ode.py`: Exact half-life decay, Lyapunov asymptotic stability, Schmitt-trigger hysteresis (6/6 PASSED).
+- `tests/test_affect_quarantine.py`: Epistemic truth invariance, deontic monotonicity, prefix cache invariance (3/3 PASSED).
+- `tests/test_static_gates.py`: Zero-`Any` and static honesty gates (8/8 PASSED).
+- Total Milestone Suite: **52/52 PASSED (100% GREEN in 6.68s)**.

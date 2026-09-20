@@ -460,4 +460,5 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-CASC-01** | Epistemic Cascade | 5-substrate prioritized search with Belnap $\mathcal{FOUR}$ bilattice & floor cues. | **Enforced** |
 | **D-ARB-01**  | Speculative BDI Gate | Sub-200us pre-dispatch deontic validator & MicroScheme cognitive bus arbitration. | **Enforced** |
 | **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization & 30us abort. | **Enforced** |
+| **D-AFF-01**  | Affective Dynamics & Prompt Suffix | 3D PAD ODE, Schmitt-trigger hysteresis, prompt frontier suffix KV cache optimization ($8.58\times$ speedup). | **Enforced** |
 | **D-EVAL-01** | Frozen Evaluation Suite | 110 golden traces regression harness with 100% pass gate. | **Enforced** |

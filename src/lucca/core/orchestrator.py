@@ -39,6 +39,7 @@ from lucca.brain.prompt_builder import (
     get_all_tool_definitions,
     set_persona,
 )
+from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.cascade import BelnapValue, EpistemicSearchCascade, EpistemicSubstrate
 from lucca.core.config import get_config
@@ -118,6 +119,7 @@ class Orchestrator:
         master_key: bytes | None = None,
         user_signer: UserSpeechSigner | None = None,
         cascade: EpistemicSearchCascade | None = None,
+        affect_tracker: AffectTracker | None = None,
     ) -> None:
         self.config = get_config()
         self.execute_tools = execute_tools
@@ -242,6 +244,9 @@ class Orchestrator:
         if ws_root is None:
             ws_root = self.config.resolve_path("workspace")
         self.bdi_validator = SpeculativeBDIValidator(workspace_root=ws_root)
+
+        # Affect State Machine & 3D PAD ODE (Milestone 5)
+        self.affect_tracker = affect_tracker or AffectTracker()
 
     @property
     def last_decision(self) -> DecisionRecord | None:
@@ -447,6 +452,9 @@ class Orchestrator:
         self._set_state("listening")
 
     def _abort_turn(self) -> None:
+        self.affect_tracker.record_signal(
+            AffectSignal.DOUBLE_INTERRUPT, custom_cause="user barge-in interruption"
+        )
         if self._pending_confirmation_active:
             self._pending_confirmation_active = False
             self._confirm_result = False
@@ -769,6 +777,8 @@ class Orchestrator:
             self.history.append({"role": "user", "content": user_msg})
             self.history.append({"role": "assistant", "content": refusal})
 
+        current_stance = self.affect_tracker.get_prompt_suffix_tag()
+
         try:
             for round_num in range(1, max_rounds + 1):
                 if trace.interrupted:
@@ -789,6 +799,7 @@ class Orchestrator:
                     tool_messages=tool_messages if tool_messages else None,
                     trace_id=trace.trace_id,
                     epistemic_context=epistemic_context,
+                    stance_tag=current_stance,
                 ):
                     if trace.interrupted:
                         break
@@ -992,7 +1003,10 @@ class Orchestrator:
                     reply_parts.extend(self.current_turn_tool_spoken)
                 if reply_parts:
                     reply_str = " ".join(reply_parts)
-                    self.history.append({"role": "user", "content": user_msg})
+                    user_history_entry = user_msg
+                    if current_stance and current_stance not in user_history_entry:
+                        user_history_entry = f"{user_history_entry}\n{current_stance}"
+                    self.history.append({"role": "user", "content": user_history_entry})
                     self.history.append({"role": "assistant", "content": reply_str})
                     if full_response_text:
                         self._publish_caption(reply_str, source="assistant", is_final=True)
@@ -1229,6 +1243,7 @@ class Orchestrator:
                         tool_result=last_tool_res,
                         user_text=transcribed_text,
                         memories=mem_hits,
+                        stance_tag=self.affect_tracker.get_prompt_suffix_tag(),
                     )
                     self._stream_llm_speech(
                         trace=trace,
@@ -1447,6 +1462,7 @@ class Orchestrator:
                         tool_result=last_tool_res,
                         user_text=user_text,
                         memories=mem_hits,
+                        stance_tag=self.affect_tracker.get_prompt_suffix_tag(),
                     )
                     self._stream_llm_speech(
                         trace=trace,
@@ -1484,7 +1500,13 @@ class Orchestrator:
         if chunk_id == 0:
             trace.t_tts_first_sent = now_ns()
 
-        _done = self.tts.synthesize(chunk_id=chunk_id, text=text, is_first=(chunk_id == 0))
+        speed_mult = self.affect_tracker.get_tts_speed_multiplier()
+        _done = self.tts.synthesize(
+            chunk_id=chunk_id,
+            text=text,
+            speed=speed_mult,
+            is_first=(chunk_id == 0),
+        )
 
         if chunk_id == 0:
             trace.t_tts_first_done = now_ns()
@@ -1538,7 +1560,8 @@ class Orchestrator:
         self._set_state("speaking")
         self._publish_caption(text, source="assistant", is_final=True)
         trace.t_tts_first_sent = now_ns()
-        self.tts.synthesize(chunk_id=0, text=text, is_first=True)
+        speed_mult = self.affect_tracker.get_tts_speed_multiplier()
+        self.tts.synthesize(chunk_id=0, text=text, speed=speed_mult, is_first=True)
         trace.t_tts_first_done = now_ns()
         trace.t_tts_last_done = trace.t_tts_first_done
         trace.chunks += 1
@@ -1665,6 +1688,9 @@ class Orchestrator:
                 elapsed_us=bdi_res.elapsed_us,
             )
             self.current_turn_tool_ok = False
+            self.affect_tracker.record_signal(
+                AffectSignal.DEONTIC_REJECTION, custom_cause=bdi_res.reason
+            )
             return ToolResult(
                 call_id=call_id,
                 ok=False,
@@ -1748,6 +1774,13 @@ class Orchestrator:
         )
         if not res.ok:
             self.current_turn_tool_ok = False
+            self.affect_tracker.record_signal(
+                AffectSignal.TOOL_FAILURE, custom_cause=res.stderr or f"{name} failed"
+            )
+        else:
+            self.affect_tracker.record_signal(
+                AffectSignal.TASK_SUCCESS, custom_cause=f"{name} completed successfully"
+            )
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
         spoken_msg: str | None = None
         if res.ok:

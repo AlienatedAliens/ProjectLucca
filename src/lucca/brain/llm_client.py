@@ -82,6 +82,7 @@ class LLMClient:
         messages: list[ChatMessage] | None = None,
         tool_messages: list[ChatMessage] | None = None,
         epistemic_context: str | None = None,
+        stance_tag: str | None = None,
     ) -> Generator[LLMEvent, None, None]:
         eff_trace_id = trace_id or f"anon-{now_ns()}"
         eff_temp = (
@@ -102,6 +103,7 @@ class LLMClient:
                 current_text=current_text,
                 tool_messages=tool_messages,
                 epistemic_context=epistemic_context,
+                stance_tag=stance_tag,
             )
 
         eff_tools = tools if tools is not None else TOOL_DEFINITIONS

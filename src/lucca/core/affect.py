@@ -1,7 +1,9 @@
 """
 Project Lucca — Honest State-Based Affect Machine
-ADR-009, Spec 16 §4
+ADR-009, Spec 16 §4, D-BRAIN-04, D-BRAIN-05
 """
+
+from __future__ import annotations
 
 import math
 import time
@@ -10,6 +12,13 @@ from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, Field
+
+from lucca.core.affective_ode import (
+    AffectiveODEMachine,
+    AffectSignal3D,
+    AffectState3D,
+    DiscreteStance,
+)
 
 
 class AffectConfig(BaseModel):
@@ -26,6 +35,7 @@ class AffectSignal(StrEnum):
     LONG_GAP = "long_gap"
     TASK_SUCCESS = "task_success"
     USER_CORRECTION = "user_correction"
+    DEONTIC_REJECTION = "deontic_rejection"
 
 
 SIGNAL_DELTAS: dict[AffectSignal, tuple[float, float, str]] = {
@@ -37,14 +47,33 @@ SIGNAL_DELTAS: dict[AffectSignal, tuple[float, float, str]] = {
     AffectSignal.LONG_GAP: (0.1, -0.2, "welcoming return after absence"),
     AffectSignal.TASK_SUCCESS: (0.2, 0.05, "task completed successfully"),
     AffectSignal.USER_CORRECTION: (-0.2, 0.1, "user correction"),
+    AffectSignal.DEONTIC_REJECTION: (-0.15, 0.3, "deontic safety alert"),
+}
+
+SIGNAL_DELTAS_3D_EXT: dict[AffectSignal, tuple[float, float, float, str]] = {
+    AffectSignal.DOUBLE_INTERRUPT: (-0.20, 0.35, -0.25, "interrupted twice in a row"),
+    AffectSignal.TOOL_FAILURE: (-0.30, 0.10, -0.30, "tool execution failed"),
+    AffectSignal.USER_PRAISE: (0.30, 0.10, 0.15, "positive user feedback"),
+    AffectSignal.LATE_NIGHT: (0.00, -0.40, 0.00, "late night quiet hours"),
+    AffectSignal.LONG_GAP: (0.10, -0.20, 0.05, "welcoming return after absence"),
+    AffectSignal.TASK_SUCCESS: (0.20, 0.05, 0.20, "task completed successfully"),
+    AffectSignal.USER_CORRECTION: (-0.20, 0.10, -0.15, "user correction"),
+    AffectSignal.DEONTIC_REJECTION: (-0.15, 0.30, 0.40, "deontic safety alert"),
 }
 
 
 class AffectState(BaseModel):
-    valence: float = 0.0  # [-1.0, 1.0] from negative to positive
-    arousal: float = 0.0  # [-1.0, 1.0] from calm/quiet to energized/flustered
+    valence: float = 0.0  # [-1.0, 1.0] from negative to positive (Pleasure)
+    arousal: float = 0.0  # [-1.0, 1.0] from calm/quiet to energized/flustered (Arousal)
+    dominance: float = 0.0  # [-1.0, 1.0] agency / control / mastery (Dominance)
     updated_at: float = Field(default_factory=time.time)
     causes: list[str] = Field(default_factory=list)
+    active_stance: str = DiscreteStance.NEUTRAL_STEADY.value
+
+    @property
+    def pleasure(self) -> float:
+        """Alias for valence."""
+        return self.valence
 
 
 def clamp(val: float, low: float = -1.0, high: float = 1.0) -> float:
@@ -55,6 +84,7 @@ def decay_affect(state: AffectState, now: float, tau: float = 600.0) -> AffectSt
     """
     Decays valence and arousal toward neutral (0.0) exponentially
     over time constant tau (default 600s / 10m).
+    Dominance decays over tau * 1.5.
     """
     delta_t = max(0.0, now - state.updated_at)
     if delta_t <= 0.0:
@@ -63,12 +93,15 @@ def decay_affect(state: AffectState, now: float, tau: float = 600.0) -> AffectSt
     decay_factor = math.exp(-delta_t / tau)
     new_v = state.valence * decay_factor
     new_a = state.arousal * decay_factor
+    new_d = state.dominance * math.exp(-delta_t / (tau * 1.5))
 
     # Snap tiny values to 0
     if abs(new_v) < 0.02:
         new_v = 0.0
     if abs(new_a) < 0.02:
         new_a = 0.0
+    if abs(new_d) < 0.02:
+        new_d = 0.0
 
     # Prune old causes if decayed past 2x tau
     causes = state.causes if delta_t < (2.0 * tau) else []
@@ -76,8 +109,10 @@ def decay_affect(state: AffectState, now: float, tau: float = 600.0) -> AffectSt
     return AffectState(
         valence=new_v,
         arousal=new_a,
+        dominance=new_d,
         updated_at=now,
         causes=causes,
+        active_stance=state.active_stance,
     )
 
 
@@ -94,11 +129,12 @@ def apply_affect_signal(
     current_time = now if now is not None else time.time()
     decayed = decay_affect(state, current_time, tau=tau)
 
-    dv, da, default_cause = SIGNAL_DELTAS[signal]
+    dv, da, dd, default_cause = SIGNAL_DELTAS_3D_EXT[signal]
     cause_desc = custom_cause if custom_cause is not None else default_cause
 
     new_v = clamp(decayed.valence + dv)
     new_a = clamp(decayed.arousal + da)
+    new_d = clamp(decayed.dominance + dd)
 
     new_causes = [c for c in decayed.causes if c != cause_desc]
     new_causes.append(cause_desc)
@@ -109,8 +145,10 @@ def apply_affect_signal(
     return AffectState(
         valence=new_v,
         arousal=new_a,
+        dominance=new_d,
         updated_at=current_time,
         causes=new_causes,
+        active_stance=decayed.active_stance,
     )
 
 
@@ -171,6 +209,7 @@ def handle_affect_query(state: AffectState) -> str:
 class AffectTracker:
     """
     Thread-safe or in-memory tracker for lucca-core runtime affect.
+    Backed by both AffectState and the continuous AffectiveODEMachine.
     """
 
     def __init__(self, config_path: Path | str | None = None) -> None:
@@ -178,6 +217,7 @@ class AffectTracker:
         self.enabled = True
         self.decay_tau = 600.0
         self.max_speed_delta = 0.10
+        self.ode_machine = AffectiveODEMachine(max_speed_delta=self.max_speed_delta)
         self._load_config(config_path)
 
     def _load_config(self, config_path: Path | str | None) -> None:
@@ -197,30 +237,62 @@ class AffectTracker:
             self.enabled = affect_cfg.enabled
             self.decay_tau = affect_cfg.decay_tau_seconds
             self.max_speed_delta = affect_cfg.max_speed_delta
+            self.ode_machine.max_speed_delta = self.max_speed_delta
         except (OSError, tomllib.TOMLDecodeError, ValueError, KeyError):
             return
 
     def record_signal(
-        self, signal: AffectSignal, custom_cause: str | None = None, now: float | None = None
+        self,
+        signal: AffectSignal | AffectSignal3D | str,
+        custom_cause: str | None = None,
+        now: float | None = None,
     ) -> None:
         if not self.enabled:
             return
+        # Normalize signal enum
+        sig_str = signal.value if hasattr(signal, "value") else str(signal)
+        aff_sig = AffectSignal(sig_str)
+        aff_sig_3d = AffectSignal3D(sig_str)
+
         self.state = apply_affect_signal(
-            self.state, signal, custom_cause=custom_cause, now=now, tau=self.decay_tau
+            self.state, aff_sig, custom_cause=custom_cause, now=now, tau=self.decay_tau
         )
+        self.ode_machine.apply_signal(aff_sig_3d, custom_cause=custom_cause, now=now)
+        self.state.active_stance = self.ode_machine.get_current_stance(now).value
+        self.state.dominance = self.ode_machine.state.dominance
 
     def get_current_state(self, now: float | None = None) -> AffectState:
         if not self.enabled:
             return AffectState()
         current_time = now if now is not None else time.time()
         self.state = decay_affect(self.state, current_time, tau=self.decay_tau)
+        ode_st = self.ode_machine.get_current_state(current_time)
+        self.state.active_stance = ode_st.active_stance.value
+        self.state.dominance = ode_st.dominance
         return self.state
+
+    def get_current_stance(self, now: float | None = None) -> DiscreteStance:
+        """Returns active discrete stance for prompt frontier suffix injection."""
+        if not self.enabled:
+            return DiscreteStance.NEUTRAL_STEADY
+        return self.ode_machine.get_current_stance(now)
+
+    def get_prompt_suffix_tag(self, now: float | None = None) -> str:
+        """Returns e.g. '[STANCE: focused_analytical]'."""
+        if not self.enabled:
+            return f"[STANCE: {DiscreteStance.NEUTRAL_STEADY.value}]"
+        return self.ode_machine.get_prompt_suffix_tag(now)
 
     def get_tts_speed_multiplier(self, now: float | None = None) -> float:
         if not self.enabled:
             return 1.0
         current_state = self.get_current_state(now)
         return get_tts_speed_multiplier(current_state, self.max_speed_delta)
+
+    def get_tts_pitch_shift_semitones(self, now: float | None = None) -> float:
+        if not self.enabled:
+            return 0.0
+        return self.ode_machine.get_tts_pitch_shift_semitones(now)
 
     def get_prompt_hint(self, now: float | None = None) -> str | None:
         if not self.enabled:

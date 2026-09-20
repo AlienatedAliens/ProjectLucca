@@ -207,7 +207,7 @@ class SpeculativeBDIValidator:
 
     def _extract_path_argument(self, tool_args: dict[str, JsonValue]) -> str | None:
         """Extracts the primary path or target argument from tool parameters."""
-        for key in ("path", "target", "file", "filename"):
+        for key in ("path", "rel_path", "target", "file", "filename"):
             if key in tool_args and isinstance(tool_args[key], str):
                 return str(tool_args[key]).strip()
         return None

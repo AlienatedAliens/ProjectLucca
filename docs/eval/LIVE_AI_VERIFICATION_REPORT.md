@@ -104,5 +104,31 @@ The automated live harness ([`scripts/test_live_conversation.py`](file:///C:/pro
 | **Tool Calling Demux** | Live LLM Stream | **PASS** | `query_capabilities` & `launch_app` correctly caught and dispatched |
 | **Tool Vocalization** | Core Orchestrator | **PASS** | Spoken voice summary generated for all read/query tools |
 | **History Symmetry** | Turn Management | **PASS** | Assistant tool actions recorded in `self.history` |
-| **Safety Confirmation** | Sandbox Policy | **PASS** | `launch_app` risk classified and gated by confirmation |
 | **Regression Suite** | Pytest T0/T1/Tier 2 | **PASS** | 195/195 T1 passed; 6/6 Tier 2 passed |
+| **Prefix KV-Cache Optimization** | Live RTX 5080 | **PASS** | Prompt Frontier Suffix: $8.58\times$ prompt eval speedup, $355.21\,\text{ms}$ saved per turn |
+
+---
+
+## 5. Milestone 5: Silicon Prefix KV-Cache & Affective ODE Verification
+
+**Executed:** September 20, 2026  
+**Harness:** `scripts/verify_live_prompt_cache_hit.py`  
+**Silicon Target:** Native `llama-server.exe` on NVIDIA GeForce RTX 5080 Laptop GPU (Port 8080)  
+**Model:** Mistral NeMo 12B Instruct Abliterated Q6_K (16,384 Context)
+
+### Empirical Verification Data
+
+| Metric | Scenario A: Naive Float in Prefix (Busted Cache) | Scenario B: Prompt Frontier Suffix (Our Architecture) | Physical Impact |
+|:---|:---:|:---:|:---:|
+| **Prefix Cache Tokens Hit (`cache_n`)** | **18 tokens** (Busted) | **849 tokens** (100% Hit) | **+831 tokens hit** |
+| **New Tokens Evaluated (`prompt_n`)** | **892 tokens** | **41 tokens** | **$21.7\times$ fewer tokens evaluated** |
+| **Prompt Evaluation Duration (`prompt_ms`)** | **402.05 ms** | **46.84 ms** | **$8.58\times$ faster prefill** |
+| **Latency Saved per Turn** | Baseline | **$-355.21\text{ ms}$** | **$355.21\text{ ms}$ voice turn budget saved** |
+| **Total Turn Duration** | $754.56\text{ ms}$ | $371.37\text{ ms}$ | **$50.8\%$ total turn reduction** |
+
+### Mathematical & Architectural Guarantees Verified
+1. **Lyapunov Asymptotic Stability:** Feedback gain bounded below $\min(\gamma_i)$ ($\le 0.0005$), mathematically preventing runaway rage/panic/depression spirals.
+2. **Schmitt-Trigger Hysteresis:** Deadband $\delta_{\text{hyst}} = 0.15$ prevents stance chattering on conversational turn micro-fluctuations.
+3. **Epistemic Quarantine Invariant:** Affective state verified to exert strictly $0.0$ evidential weight over truth propositions (Belnap bilattice) and deontic sandbox permissions.
+4. **Zero-Latency Prosody Steering:** Kokoro TTS speech rate dynamically modulated via arousal without ONNX session re-initialization.
+

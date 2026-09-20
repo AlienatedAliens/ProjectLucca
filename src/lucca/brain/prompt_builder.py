@@ -759,12 +759,28 @@ def get_all_tool_definitions(active_rules: list[object] | None = None) -> list[T
     return base
 
 
+def format_stance_suffix(stance_tag: str | None) -> str:
+    """
+    Formats discrete stance tag for Prompt Frontier Suffix injection (ADR-009 / Spec 16 §4).
+    Appended exclusively at the tail of the frontier user message, preserving 100% prefix KV cache.
+    """
+    if not stance_tag:
+        return ""
+    cleaned = stance_tag.strip()
+    if not cleaned:
+        return ""
+    if cleaned.startswith("[STANCE:") and cleaned.endswith("]"):
+        return f"\n{cleaned}"
+    return f"\n[STANCE: {cleaned}]"
+
+
 def build_narration_messages(
     tool_name: str,
     tool_args: dict[str, JsonValue],
     tool_result: ToolResult | None,
     user_text: str | None = None,
     memories: list[MemoryHit] | None = None,
+    stance_tag: str | None = None,
 ) -> list[ChatMessage]:
     """
     Constructs messages for Tier 2 Act-Then-Narrate execution per Proposal B / D-ARCH-05.
@@ -783,10 +799,11 @@ def build_narration_messages(
             )
 
     messages.append(ChatMessage(role="system", content=system_content))
+    suffix = format_stance_suffix(stance_tag)
     if user_text:
-        messages.append(ChatMessage(role="user", content=user_text))
+        messages.append(ChatMessage(role="user", content=f"{user_text}{suffix}"))
     else:
-        messages.append(ChatMessage(role="user", content=f"Execute {tool_name}"))
+        messages.append(ChatMessage(role="user", content=f"Execute {tool_name}{suffix}"))
 
     status_str = "ok" if (tool_result is None or getattr(tool_result, "ok", True)) else "failed"
     content_str = ""
@@ -819,6 +836,7 @@ def build_messages(
     current_text: str | None = None,
     tool_messages: list[ChatMessage] | None = None,
     epistemic_context: str | None = None,
+    stance_tag: str | None = None,
 ) -> list[ChatMessage]:
     """
     Builds the messages array in strict Section Order (Spec 10 §4):
@@ -826,12 +844,12 @@ def build_messages(
     2. Persistent Memory Context
     3. Epistemic Search Cascade Ground Truth (if present)
     4. Conversation History (last N turns)
-    5. Current Turn (Audio or Text)
+    5. Current Turn (Audio or Text) + Prompt Frontier Suffix (ADR-009)
     6. Tool Messages (if multi-round re-prompting)
     """
     messages: list[ChatMessage] = []
 
-    # 1. Dynamic System Prompt
+    # 1. Dynamic System Prompt (Static Prefix)
     system_content = get_system_prompt()
 
     # 2. Memories Block (appended to system content to keep prefix unified)
@@ -856,12 +874,13 @@ def build_messages(
 
     messages.append(ChatMessage(role="system", content=system_content))
 
-    # 3. Conversation History (last 6 exchanges)
+    # 4. Conversation History (last 6 exchanges)
     if history:
         for turn in history[-6:]:
             messages.append(ChatMessage(role=turn["role"], content=turn["content"]))
 
-    # 4. Current User Turn
+    # 5. Current User Turn with Prompt Frontier Suffix
+    suffix = format_stance_suffix(stance_tag)
     if current_audio_b64:
         content: list[dict[str, JsonValue]] = [
             {
@@ -870,12 +889,16 @@ def build_messages(
             }
         ]
         if current_text:
-            content.append({"type": "text", "text": current_text})
+            content.append({"type": "text", "text": f"{current_text}{suffix}"})
+        elif suffix.strip():
+            content.append({"type": "text", "text": suffix.strip()})
         messages.append(ChatMessage(role="user", content=content))
     elif current_text:
-        messages.append(ChatMessage(role="user", content=current_text))
+        messages.append(ChatMessage(role="user", content=f"{current_text}{suffix}"))
+    elif suffix.strip():
+        messages.append(ChatMessage(role="user", content=suffix.strip()))
 
-    # 5. Tool Messages (for multi-step rounds)
+    # 6. Tool Messages (for multi-step rounds)
     if tool_messages:
         messages.extend(tool_messages)
 
@@ -883,3 +906,4 @@ def build_messages(
 
 
 build_prompt = build_messages
+
