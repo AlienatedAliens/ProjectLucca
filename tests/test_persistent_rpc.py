@@ -13,6 +13,7 @@ Verifies:
 """
 
 import concurrent.futures
+import json
 from unittest.mock import patch
 
 import pytest
@@ -311,3 +312,59 @@ def test_sandbox_service_confirmation_gate_upstream_of_persistent_worker(ensure_
         assert res_conf.call_id == "c-conf-w"
     finally:
         service.close()
+
+
+def test_differentiated_hierarchical_timeouts(ensure_sandbox: DockerRPCTransport):
+    """Verifies that filesystem operations default to 5.0s and python operations default to 15.0s."""
+    worker = PersistentDockerWorker(container_name="lucca-file-sandbox", max_calls=100)
+    try:
+        captured_timeouts: list[float] = []
+
+        def mock_result(self, timeout=None):
+            captured_timeouts.append(timeout)
+            return json.dumps({"call_id": "test", "ok": True})
+
+        with patch.object(concurrent.futures.Future, "result", mock_result):
+            # Filesystem tool with default timeout -> should be 5.0s
+            worker.execute(call_id="test", tool="list_dir", args={"path": "."})
+            assert captured_timeouts[-1] == 5.0
+
+            # Python tool with default timeout -> should be 15.0s
+            worker.execute(call_id="test", tool="run_python", args={"code": "print(1)"})
+            assert captured_timeouts[-1] == 15.0
+
+            # Explicit custom timeout -> should respect custom value
+            worker.execute(call_id="test", tool="list_dir", args={"path": "."}, timeout_s=3.5)
+            assert captured_timeouts[-1] == 3.5
+    finally:
+        worker.close()
+
+
+def test_prespawn_reaping_and_worker_recovery(ensure_sandbox: DockerRPCTransport):
+    """Verifies that pre-spawn reap executes cleanly and the spawned worker operates normally."""
+    worker = PersistentDockerWorker(container_name="lucca-file-sandbox", max_calls=100)
+    try:
+        # Ensure worker spawns with pre-spawn reap
+        res = worker.execute(
+            call_id="c-reap-1",
+            tool="list_dir",
+            args={"path": "."},
+        )
+        assert res["ok"] is True
+        assert worker.is_alive() is True
+
+        # Forcibly kill without clean close (simulate host crash / orphaned worker)
+        worker._kill_proc()
+        assert worker.is_alive() is False
+
+        # Next call triggers _spawn_proc which runs pre-spawn pkill and spawns fresh worker
+        res2 = worker.execute(
+            call_id="c-reap-2",
+            tool="list_dir",
+            args={"path": "."},
+        )
+        assert res2["ok"] is True
+        assert worker.is_alive() is True
+    finally:
+        worker.close()
+

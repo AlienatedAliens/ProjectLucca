@@ -77,6 +77,37 @@ class PersistentDockerWorker:
         """Spawns persistent `lucca-toolsrv --loop` in the Docker container via WSL."""
         if self.is_alive():
             return
+
+        # Pre-spawn sweep: Terminate any orphaned loop processes in the container
+        # from prior host crashes or taskkills to prevent process accumulation
+        reap_script = (
+            "import os, signal; "
+            "[os.kill(int(p), signal.SIGKILL) for p in os.listdir('/proc') "
+            "if p.isdigit() and p not in ('1', str(os.getpid())) and "
+            "'lucca-toolsrv' in open(f'/proc/{p}/cmdline', 'rb').read().decode('utf-8', errors='ignore') and "
+            "'--loop' in open(f'/proc/{p}/cmdline', 'rb').read().decode('utf-8', errors='ignore')]"
+        )
+        try:
+            subprocess.run(  # noqa: S603
+                [  # noqa: S607
+                    "wsl",
+                    "-d",
+                    self.wsl_distro,
+                    "--",
+                    "docker",
+                    "exec",
+                    self.container_name,
+                    "python3",
+                    "-c",
+                    reap_script,
+                ],
+                capture_output=True,
+                timeout=3.0,
+                check=False,
+            )
+        except Exception as reap_err:  # noqa: BLE001
+            logger.debug("pre_spawn_reap_ignored", error=str(reap_err))
+
         cmd = [
             "wsl",
             "-d",
@@ -153,15 +184,22 @@ class PersistentDockerWorker:
         call_id: str,
         tool: str,
         args: dict[str, JsonValue],
-        timeout_s: float = 15.0,
+        timeout_s: float | None = None,
     ) -> dict[str, Any]:
         """
         Executes a single tool call through the persistent stdio bridge.
         Guarantees thread-safe serialized execution, timeout enforcement,
         framing validation, and call_id anti-desync protection.
+
+        Differentiated hierarchical timeouts:
+        - run_python: 15.0s (10.0s internal execution limit + 5.0s fork/pipe overhead)
+        - filesystem/search tools: 5.0s (tight threshold since persistent I/O runs in 4-8ms)
         """
         if self._closed:
             raise SandboxProtocolError("PersistentDockerWorker is closed")
+
+        if timeout_s is None:
+            timeout_s = 15.0 if tool == "run_python" else 5.0
 
         with self._lock:
             # Proactive recycling after max_calls to prevent long-lived memory drift
@@ -501,10 +539,15 @@ class DockerRPCTransport:
         call_id: str,
         tool: str,
         args: dict[str, JsonValue],
-        timeout_s: float = 15.0,
+        timeout_s: float | None = None,
     ) -> ToolResult:
         """Executes a single tool call against the container or fallback tool."""
         t0 = time.perf_counter()
+
+        # Differentiated timeout resolution: 15.0s for child python, 5.0s for filesystem
+        effective_timeout_s = (
+            timeout_s if timeout_s is not None else (15.0 if tool == "run_python" else 5.0)
+        )
 
         if self.use_direct_fallback:
             return self._execute_direct(call_id, tool, args, t0)
@@ -533,7 +576,7 @@ class DockerRPCTransport:
 
             try:
                 res_dict = worker.execute(
-                    call_id=call_id, tool=tool, args=args, timeout_s=timeout_s
+                    call_id=call_id, tool=tool, args=args, timeout_s=effective_timeout_s
                 )
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return self._process_response_dict(call_id, tool, res_dict, elapsed_ms)
@@ -548,10 +591,10 @@ class DockerRPCTransport:
                 )
             except SandboxRPCDesyncError as desync_err:
                 logger.error("persistent_rpc_desync_falling_back", err=str(desync_err))
-                return self._execute_single_shot(call_id, tool, args, timeout_s, t0)
+                return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
             except (SandboxProtocolError, Exception) as worker_err:
                 logger.warning("persistent_rpc_failure_falling_back", err=str(worker_err))
-                return self._execute_single_shot(call_id, tool, args, timeout_s, t0)
+                return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
 
         # Single-shot path (legacy / fallback)
         if not self.is_docker_available():
@@ -572,7 +615,7 @@ class DockerRPCTransport:
                 elapsed_ms=(time.perf_counter() - t0) * 1000.0,
             )
 
-        return self._execute_single_shot(call_id, tool, args, timeout_s, t0)
+        return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
 
     def _execute_direct(
         self,
