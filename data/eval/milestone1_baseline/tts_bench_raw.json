@@ -1,0 +1,79 @@
+{
+  "timestamp": 1789852507.4535005,
+  "model": "Kokoro-82M",
+  "device": "CPU",
+  "voice": "af_bella",
+  "speed": 1.05,
+  "load_time_s": 0.85,
+  "results": {
+    "short_ack": {
+      "text": "Understood.",
+      "trials": 10,
+      "audio_duration_s": 0.77,
+      "p50_ms": 248.73,
+      "p95_ms": 310.36,
+      "mean_ms": 256.64,
+      "min_ms": 222.81,
+      "max_ms": 341.68,
+      "real_time_factor": 0.3342,
+      "raw_latencies_ms": [
+        222.81,
+        227.47,
+        244.01,
+        244.85,
+        245.87,
+        251.59,
+        257.89,
+        258.13,
+        272.09,
+        341.68
+      ]
+    },
+    "medium_clause": {
+      "text": "Checking the system status now.",
+      "trials": 10,
+      "audio_duration_s": 1.56,
+      "p50_ms": 360.1,
+      "p95_ms": 392.17,
+      "mean_ms": 362.77,
+      "min_ms": 337.41,
+      "max_ms": 398.7,
+      "real_time_factor": 0.2329,
+      "raw_latencies_ms": [
+        337.41,
+        345.71,
+        354.19,
+        354.75,
+        359.59,
+        360.62,
+        365.82,
+        366.76,
+        384.17,
+        398.7
+      ]
+    },
+    "full_clause": {
+      "text": "The deterministic micro-scheme engine verified all static invariants in under twenty microseconds.",
+      "trials": 10,
+      "audio_duration_s": 6.29,
+      "p50_ms": 1117.88,
+      "p95_ms": 1236.42,
+      "mean_ms": 1144.38,
+      "min_ms": 1087.8,
+      "max_ms": 1237.81,
+      "real_time_factor": 0.1818,
+      "raw_latencies_ms": [
+        1087.8,
+        1105.04,
+        1108.42,
+        1109.03,
+        1115.5,
+        1120.26,
+        1131.03,
+        1194.16,
+        1234.72,
+        1237.81
+      ]
+    }
+  }
+}

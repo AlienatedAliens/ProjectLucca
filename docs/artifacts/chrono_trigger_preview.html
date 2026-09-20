@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project Lucca — Chrono Trigger Engine & Universal Control Suite Preview</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    .ct-font {
+      font-family: 'VT323', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .mono-font {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Iconic Chrono Trigger SNES Blue Window Frame */
+    .ct-box {
+      background: linear-gradient(180deg, #1c2e88 0%, #101c54 45%, #081036 100%);
+      border: 3px double #f0f4ff;
+      border-radius: 6px;
+      box-shadow: 
+        inset 0 0 10px rgba(0, 0, 0, 0.85),
+        0 6px 24px rgba(0, 0, 0, 0.9),
+        0 0 0 1px #000;
+      position: relative;
+    }
+
+    /* Chrono Trigger Secondary Sub-Panel */
+    .ct-subbox {
+      background: linear-gradient(180deg, #142268 0%, #0a133d 100%);
+      border: 1.5px solid #637bb5;
+      border-radius: 4px;
+      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Chrono Trigger Gold Header Typography */
+    .gold-header {
+      color: #ffd700;
+      font-weight: 900;
+      text-shadow: 2px 2px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+      letter-spacing: 1.2px;
+    }
+
+    .text-glow {
+      color: #ffffff;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(137, 180, 250, 0.3);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Chrono Trigger Retro Action Buttons */
+    .ct-button {
+      background: linear-gradient(180deg, #243896 0%, #121e5c 100%);
+      border: 2px solid #e0e8ff;
+      border-radius: 4px;
+      color: #ffd700;
+      font-weight: bold;
+      text-shadow: 1px 1px 0 #000;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: all 0.15s ease-in-out;
+    }
+    .ct-button:hover {
+      background: linear-gradient(180deg, #3550c4 0%, #1c2e88 100%);
+      border-color: #ffd700;
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+    .ct-button:active {
+      background: #ffd700;
+      color: #081036;
+      border-color: #ffffff;
+      transform: translateY(1px);
+    }
+
+    /* Chrono Trigger Tab Styling */
+    .ct-tab {
+      background: linear-gradient(180deg, #162464 0%, #0c1438 100%);
+      border: 2px solid #50649c;
+      border-bottom: none;
+      color: #a8b8e0;
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      letter-spacing: 1px;
+      transition: all 0.15s;
+    }
+    .ct-tab:hover {
+      color: #ffd700;
+      border-color: #889ec8;
+    }
+    .ct-tab-active {
+      background: linear-gradient(180deg, #283d9e 0%, #16256c 100%);
+      border-color: #ffd700;
+      color: #ffd700;
+      font-weight: 900;
+      box-shadow: inset 0 2px 0 #ffe666, 0 -2px 10px rgba(255, 215, 0, 0.25);
+    }
+
+    /* Chrono Trigger Retro HP/MP Gauge Bars */
+    .ct-gauge-track {
+      background: #060b24;
+      border: 1.5px solid #4a5f96;
+      border-radius: 3px;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.9);
+      overflow: hidden;
+      height: 10px;
+    }
+    .ct-gauge-fill {
+      height: 100%;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 6px currentColor;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Chrono Trigger Custom Slider */
+    input[type=range].ct-slider {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range].ct-slider::-webkit-slider-runnable-track {
+      height: 8px;
+      background: #081036;
+      border: 1.5px solid #637bb5;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+    }
+    input[type=range].ct-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 14px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, #ffe066 0%, #d4a017 100%);
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 0 6px rgba(255, 215, 0, 0.8), 0 2px 4px rgba(0,0,0,0.5);
+      cursor: pointer;
+      margin-top: -6px;
+    }
+
+    /* Cursor Pulse */
+    @keyframes snes-pulse {
+      0%, 100% { opacity: 1; transform: translateY(0); }
+      50% { opacity: 0.2; transform: translateY(3px); }
+    }
+    .snes-cursor {
+      animation: snes-pulse 0.7s infinite steps(2, start);
+      color: #ffd700;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    /* Concentric Commorose Bloom Animation */
+    @keyframes commoroseConcentricBloom {
+      0% {
+        opacity: 0;
+        transform: scale(0.7) rotate(-10deg);
+      }
+      80% {
+        transform: scale(1.03) rotate(1deg);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+      }
+    }
+    .commorose-bloom {
+      animation: commoroseConcentricBloom 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transform-origin: 200px 200px;
+    }
+
+    /* Commorose Sector Hover Interactions */
+    .commorose-sector {
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.18s ease-out;
+      transform-origin: 200px 200px;
+    }
+    .commorose-sector:hover {
+      filter: drop-shadow(0 0 10px #ffd700) drop-shadow(0 0 18px #38bdf8);
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased p-4 select-none font-sans min-h-screen">
+  <div class="max-w-5xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md">
+    
+    <!-- Top Header / Title Bar -->
+    <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+      <div class="flex items-center space-x-3">
+        <span class="text-3xl">⏳</span>
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            Project Lucca — Chrono Trigger Engine & Universal Control Suite
+            <span class="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 font-mono">v0.2.6</span>
+          </h2>
+          <p class="text-xs text-slate-400">Battlefield-Style Radial Commorose, Real Host Hardware Matrix & MicroScheme LISP Studio</p>
+        </div>
+      </div>
+      
+      <!-- Top Mode Switcher -->
+      <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+        <button id="viewBtnDialogue" onclick="switchView('dialogue')" class="px-3.5 py-1.5 text-xs rounded-lg font-semibold transition bg-blue-600/30 text-amber-300 border border-amber-400/50">
+          💬 Companion & Commorose
+        </button>
+        <button id="viewBtnSettings" onclick="switchView('settings')" class="px-3.5 py-1.5 text-xs rounded-lg font-medium text-slate-400 hover:text-white transition">
+          ⚙️ Chrono Trigger Settings Menu
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Folder Launcher Strip (Chrono Trigger Style) -->
+    <div class="mb-4 ct-subbox p-2.5 flex items-center justify-between gap-2 overflow-x-auto text-xs">
+      <div class="flex items-center gap-2 text-amber-300 font-bold pl-1 font-mono">
+        <span>📂 FAST DIRECTORY ACCESS:</span>
+      </div>
+      <div class="flex items-center gap-1.5 font-mono text-[11px]">
+        <button onclick="simulateOpenFolder('C:\\ProjectLucca\\workspace')" class="ct-button px-2.5 py-1 flex items-center gap-1.5">
+          <span>📁 Workspace</span>
+        </button>
+        <button onclick="simulateOpenFolder('C:\\ProjectLucca\\inbox')" class="ct-button px-2.5 py-1 flex items-center gap-1.5 !border-amber-400 text-amber-300">
+          <span>📥 Inbox (Drop Files)</span>
+        </button>
+        <button onclick="simulateOpenFolder('C:\\projects\\ProjectLucca')" class="ct-button px-2.5 py-1 flex items-center gap-1.5 !border-cyan-400 text-cyan-300">
+          <span>💻 Codebase (Read-Only)</span>
+        </button>
+        <button onclick="simulateOpenFolder('C:\\ProjectLucca\\data')" class="ct-button px-2.5 py-1 flex items-center gap-1.5">
+          <span>🧠 Memory DB</span>
+        </button>
+        <button onclick="simulateOpenFolder('C:\\ProjectLucca\\models')" class="ct-button px-2.5 py-1 flex items-center gap-1.5">
+          <span>🤖 Models</span>
+        </button>
+        <button onclick="simulateOpenFolder('C:\\ProjectLucca\\logs\\resource_sessions')" class="ct-button px-2.5 py-1 flex items-center gap-1.5 !border-emerald-400 text-emerald-300">
+          <span>📊 Telemetry Logs</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Folder Feedback Toast -->
+    <div id="folderToast" class="hidden mb-4 p-2.5 ct-box text-amber-300 text-xs flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-base">🚀</span>
+        <span id="folderToastText" class="font-mono font-bold"></span>
+      </div>
+      <button onclick="document.getElementById('folderToast').classList.add('hidden')" class="text-amber-400 hover:text-white text-sm font-bold">✕</button>
+    </div>
+
+    <!-- VIEW 1: Clean Companion Sprite, Battlefield-Style Commorose & Overhauled Telemetry HUD -->
+    <div id="viewDialogue" class="space-y-4">
+      
+      <!-- Stage Area -->
+      <div onclick="onStageClick(event)" class="relative w-full min-h-[540px] bg-slate-950 rounded-xl p-6 flex flex-col justify-between items-center overflow-hidden border border-slate-800 shadow-inner">
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:20px_20px]"></div>
+
+        <!-- OVERHAULED CHRONO TRIGGER SNES HARDWARE TELEMETRY HUD -->
+        <div id="pinnedTelemetryHud" class="ct-box w-full max-w-4xl p-4 z-20 shadow-2xl transition-all">
+          
+          <!-- HUD Header -->
+          <div class="flex items-center justify-between border-b-2 border-blue-400/40 pb-2.5 mb-3 font-mono">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">⚙️</span>
+              <div>
+                <span class="gold-header text-sm tracking-wider">HARDWARE MATRIX & RESOURCE TELEMETRY</span>
+                <span class="text-[10px] text-emerald-300 ml-2 font-bold">● LIVE POLLING (1000ms)</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] text-blue-200/80">SESSION LOG:</span>
+              <button onclick="simulateOpenFolder('C:\\ProjectLucca\\logs\\resource_sessions')" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] hover:bg-emerald-500/40">Open Logs 📂</button>
+              <button onclick="togglePinHud()" id="btnPinHud" class="px-2 py-0.5 rounded bg-blue-500/30 text-cyan-300 border border-cyan-400/50 text-[10px] hover:bg-blue-500/50">📌 Pinned</button>
+            </div>
+          </div>
+
+          <!-- 5-Substrate Hardware Grid (Reflecting Exact PC Specs: 16GB RAM, RTX 5080 Laptop, Ultra 9 275HX, Intel AI Boost) -->
+          <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 font-mono text-xs">
+            
+            <!-- 1. dGPU (RTX 5080 Laptop GPU) -->
+            <div class="ct-subbox p-2.5 border-purple-400/40 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-purple-300 font-bold text-[11px]">⚡ dGPU: RTX 5080</span>
+                  <span class="text-[9px] px-1 rounded bg-purple-500/20 text-purple-300">CUDA</span>
+                </div>
+                <div class="text-[10px] text-slate-300 mt-1">llama-server (Flash-Attn)</div>
+              </div>
+              <div class="mt-2 space-y-1">
+                <div class="ct-gauge-track">
+                  <div class="ct-gauge-fill bg-purple-500 text-purple-400" style="width: 50.5%;"></div>
+                </div>
+                <div class="flex justify-between items-center text-[10px]">
+                  <span class="text-white font-bold">8.2 GB</span>
+                  <span class="text-slate-400">/ 16.0 GB (51%)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. NPU (Intel AI Boost) -->
+            <div class="ct-subbox p-2.5 border-emerald-400/40 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-emerald-300 font-bold text-[11px]">🧠 NPU: AI Boost</span>
+                  <span class="text-[9px] px-1 rounded bg-emerald-500/20 text-emerald-300">Active</span>
+                </div>
+                <div class="text-[10px] text-slate-300 mt-1">Whisper STT & Embeddings</div>
+              </div>
+              <div class="mt-2 space-y-1">
+                <div class="ct-gauge-track">
+                  <div class="ct-gauge-fill bg-emerald-400 text-emerald-400" style="width: 28%;"></div>
+                </div>
+                <div class="flex justify-between items-center text-[10px]">
+                  <span class="text-emerald-300 font-bold">Dedicated Unit</span>
+                  <span class="text-slate-400">Low-Power 15W</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Host CPU (Intel Core Ultra 9 275HX) -->
+            <div class="ct-subbox p-2.5 border-amber-400/40 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-amber-300 font-bold text-[11px]">⚙️ CPU: Ultra 9 275HX</span>
+                  <span class="text-[9px] px-1 rounded bg-amber-500/20 text-amber-300">24 Cores</span>
+                </div>
+                <div class="text-[10px] text-slate-300 mt-1">Supervisor + Kokoro TTS</div>
+              </div>
+              <div class="mt-2 space-y-1">
+                <div class="ct-gauge-track">
+                  <div class="ct-gauge-fill bg-amber-400 text-amber-400" style="width: 18.2%;"></div>
+                </div>
+                <div class="flex justify-between items-center text-[10px]">
+                  <span class="text-amber-300 font-bold">Lucca: 3.8%</span>
+                  <span class="text-slate-400">Total: 18.2%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. System RAM (16.0 GB Total Hardware Capacity!) -->
+            <div class="ct-subbox p-2.5 border-sky-400/40 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sky-300 font-bold text-[11px]">💾 System RAM</span>
+                  <span class="text-[9px] px-1 rounded bg-sky-500/20 text-sky-300">16 GB Host</span>
+                </div>
+                <div class="text-[10px] text-slate-300 mt-1">4-Process Lucca Stack</div>
+              </div>
+              <div class="mt-2 space-y-1">
+                <div class="ct-gauge-track">
+                  <div class="ct-gauge-fill bg-sky-400 text-sky-400" style="width: 86.4%;"></div>
+                </div>
+                <div class="flex justify-between items-center text-[10px]">
+                  <span class="text-sky-300 font-bold">Lucca: 1.2 GB</span>
+                  <span class="text-slate-400">Host: 14.3/16 GB</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. iGPU (Intel Graphics) -->
+            <div class="ct-subbox p-2.5 border-blue-400/30 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-blue-300 font-bold text-[11px]">🎮 iGPU: Intel Arc</span>
+                  <span class="text-[9px] px-1 rounded bg-blue-500/20 text-slate-300">Standby</span>
+                </div>
+                <div class="text-[10px] text-slate-300 mt-1">OpenVINO Fallback</div>
+              </div>
+              <div class="mt-2 space-y-1">
+                <div class="ct-gauge-track">
+                  <div class="ct-gauge-fill bg-blue-400 text-blue-400" style="width: 5%;"></div>
+                </div>
+                <div class="flex justify-between items-center text-[10px]">
+                  <span class="text-slate-300 font-bold">Standby</span>
+                  <span class="text-slate-400">0.1 GB VRAM</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- COMPANION SPRITE & MATHEMATICALLY EXACT CONCENTRIC COMMOROSE -->
+        <div class="relative z-10 my-2 flex flex-col items-center">
+          
+          <!-- Outer Commorose Interaction Canvas (400x400 px) -->
+          <div class="relative w-[400px] h-[400px] flex items-center justify-center">
+            
+            <!-- Lucca Sprite Standing in the Center Hole (100% Uncovered, Zero Obstruction!) -->
+            <div id="luccaSpriteContainer" onclick="handleLuccaClick(event)" class="relative z-20 flex flex-col items-center cursor-pointer select-none transition transform hover:scale-105 active:scale-95" title="Single click: Talk & Subtitles · Double click: Commorose Menu">
+              <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAiCAYAAABWQVnHAAAACXBIWXMAAA9hAAAPYQGoP6dpAAAEYElEQVRIic2UbVBUVRjH/7t7WdplEUWxiXgRdF2CZVEWgmBMIF0MFxBDQ2WkrInpZdKmD81YTVjmh17HEnNQqZlyZHQcLR0TJKVBSRoRBx1nRNTSsDTZF2HZe/fu3X+fZMK92Ex96f/pnGee8zvP85/nHOA/SqMWrHs2i9mPzkCkIYju773o77+Jk72XVHPDgivrLMx2pKKjYxDTZOBmtxHGXBceDBixteVsWL7275tFaXmcX2zFhQO3UGZPQea86ZhceAX+k7GId8ag2JbI+wJi8zzwCyKu9+ohxQgwwYSRQCy0USJMSgKS7cawFsYAbH+Mv3cL6GrthVYrQoYIX4SMmIhYhO6EsP+jEyi4lR4GEADgw5pSouAgarKqsOe8AIMs4OS7wwiMDsGZlYGILAUr8n4G8y/i6+t2dvb1jPeCP2bQf8fFTRX1dHfZKI3IFAMSZSVIuoPkaTNH2jK43VkZ5gEAYOeTz1BUJNrip7DJWUuujySPW+ltT+LIxkh+sKSCjrQ5rDDn8quyZeoQ+Qcr59ss5DDpCUgssVjpyLQz4AtSVkQunPk4t1bXcOhN3ziAcHexrXEWpg954TeJEAb2wmlLxVRfDDQkdNe+RSjCC6OUDKMuqFrAmLYsriWb1tHHUXp/PcDQFy9xy1PlLLXmMmPanLDyVcez0vwIm17Lw/RgNJ7YegrUyihPs2HtKz9B0+mB9p0/Vc8BAJqdNQwet9NhzWX5zCxuq6ik1JFB+n1Mj0vgDcVP8XC6upGBDZO4MD2F0luTGJBG6JbdFDstdKQV0TErh0G/wuykqeomAkD1tUSU21KxdLcHZWdfhsYoYu8ZLdpWd6CqpQBiTzL2D/yGZL1h7MzYKH/25RIqJ/TQSVNwaPs1KA+IeOG5HrQ269HcU4vJcyTMq0tCst4wrv8xQOv7N1CdZsF3fecw3HkbRy9chNTlRuMnVhzsPwd7aQJ6L3dNbB4bX6d4ZRcTU5NYZs6k6B/mgvQ8lqVncUb8bFavsnDTbufEz9knuOFc2oD+6ggsz8nBgrk5aNs8BGdqPGzRU2HSA/pg+BCNmWiqb9aUma3UGQYguxQcqfXDf9qFVXYRkcjDx4euY1R3NQww7kM5fOm8pnJPPmTjKIIlemjnpmCSoMAjaAFo8c3bGyHvWDOujTBTdixZyX0X+1CeOBMHXbehuF24HJIRrUnGq+Y4rGltmdhIANjsWEWxqZ4p8SkcblxGZXAnZ8clUiJVp097b2Bt2y4NnMWICkRhf7sOIdGEdYWFiNRoVG8OAwCAvuUMNFHD2HZ+AKNHe/FiacSEFevUgn1XRxpW2wrR9ks3Wntd8LkNCIUMDQOuPzb8YwXFVguL3kjAkcnt0AfjMC3fC98KLR7KF+5NVQfUpdrx/GAPirwlICR4TgnQ7YtGricO2Q9nqj/ju1qUZqf3mIWfL17OBbYCAkDV7EwG1sdQOWbnp0ufvj9gIm2vWkPxPbAkw/zvAP9v/QV49Pk1S38caQAAAABJRU5ErkJggg==" alt="Lucca" class="select-none filter drop-shadow" style="image-rendering: pixelated; width: 64px; height: 112px; object-fit: contain;" />
+            </div>
+
+            <!-- MATHEMATICALLY EXACT CONCENTRIC BATTLEFIELD COMMOROSE (Center Radius = 88px, Outer = 175px, 3° Uniform Radial Slits) -->
+            <div id="commoroseContainer" class="hidden absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+              <svg id="commoroseSvg" class="w-[400px] h-[400px] pointer-events-none commorose-bloom" viewBox="0 0 400 400">
+                <defs>
+                  <!-- Royal Blue Chrono Trigger Gradient -->
+                  <linearGradient id="ctSectorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#1e3296" />
+                    <stop offset="50%" stop-color="#121e58" />
+                    <stop offset="100%" stop-color="#081036" />
+                  </linearGradient>
+                </defs>
+
+                <!-- 8 PERFECT MATHEMATICAL CONCENTRIC SECTORS -->
+                
+                <!-- Sector 0: TELEMETRY (Angle -90°) -->
+                <g class="commorose-sector" onclick="togglePinHud(); toggleCommorose();">
+                  <path d="M 168.5 117.8 L 137.3 36.6 A 175 175 0 0 1 262.7 36.6 L 231.5 117.8 A 88 88 0 0 0 168.5 117.8 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="200" y="80" text-anchor="middle" font-size="16">📊</text>
+                  <text x="200" y="100" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">TELEMETRY</text>
+                </g>
+
+                <!-- Sector 1: SETTINGS (Angle -45°) -->
+                <g class="commorose-sector" onclick="switchView('settings'); toggleCommorose();">
+                  <path d="M 235.8 119.6 L 271.2 40.1 A 175 175 0 0 1 359.9 128.8 L 280.4 164.2 A 88 88 0 0 0 235.8 119.6 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="285" y="110" text-anchor="middle" font-size="16">⚙️</text>
+                  <text x="295" y="128" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">SETTINGS</text>
+                </g>
+
+                <!-- Sector 2: CHAT BAR (Angle 0°) -->
+                <g class="commorose-sector" onclick="focusChat(); toggleCommorose();">
+                  <path d="M 282.2 168.5 L 363.4 137.3 A 175 175 0 0 1 363.4 262.7 L 282.2 231.5 A 88 88 0 0 0 282.2 168.5 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="320" y="195" text-anchor="middle" font-size="16">💬</text>
+                  <text x="320" y="215" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">CHAT BAR</text>
+                </g>
+
+                <!-- Sector 3: FOLDERS (Angle 45°) -->
+                <g class="commorose-sector" onclick="simulateOpenFolder('C:\\ProjectLucca'); toggleCommorose();">
+                  <path d="M 280.4 235.8 L 359.9 271.2 A 175 175 0 0 1 271.2 359.9 L 235.8 280.4 A 88 88 0 0 0 280.4 235.8 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="285" y="280" text-anchor="middle" font-size="16">📁</text>
+                  <text x="295" y="300" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">FOLDERS</text>
+                </g>
+
+                <!-- Sector 4: PERSONA (Angle 90°) -->
+                <g class="commorose-sector" onclick="switchView('settings'); switchSettingsTab('persona'); toggleCommorose();">
+                  <path d="M 231.5 282.2 L 262.7 363.4 A 175 175 0 0 1 137.3 363.4 L 168.5 282.2 A 88 88 0 0 0 231.5 282.2 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="200" y="325" text-anchor="middle" font-size="16">🧠</text>
+                  <text x="200" y="345" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">PERSONA</text>
+                </g>
+
+                <!-- Sector 5: VOICE (Angle 135°) -->
+                <g class="commorose-sector" onclick="switchView('settings'); switchSettingsTab('tts'); toggleCommorose();">
+                  <path d="M 164.2 280.4 L 128.8 359.9 A 175 175 0 0 1 40.1 271.2 L 119.6 235.8 A 88 88 0 0 0 164.2 280.4 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="115" y="280" text-anchor="middle" font-size="16">🎙️</text>
+                  <text x="105" y="300" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">VOICE</text>
+                </g>
+
+                <!-- Sector 6: TOOLS (Angle 180°) -->
+                <g class="commorose-sector" onclick="switchView('settings'); switchSettingsTab('tools'); toggleCommorose();">
+                  <path d="M 117.8 231.5 L 36.6 262.7 A 175 175 0 0 1 36.6 137.3 L 117.8 168.5 A 88 88 0 0 0 117.8 231.5 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="80" y="195" text-anchor="middle" font-size="16">🛠️</text>
+                  <text x="80" y="215" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">TOOLS</text>
+                </g>
+
+                <!-- Sector 7: CODEBASE (Angle 225°) -->
+                <g class="commorose-sector" onclick="simulateOpenFolder('C:\\projects\\ProjectLucca'); toggleCommorose();">
+                  <path d="M 119.6 164.2 L 40.1 128.8 A 175 175 0 0 1 128.8 40.1 L 164.2 119.6 A 88 88 0 0 0 119.6 164.2 Z" 
+                        fill="url(#ctSectorGrad)" stroke="#f0f4ff" stroke-width="1.8" />
+                  <text x="115" y="110" text-anchor="middle" font-size="16">💻</text>
+                  <text x="105" y="128" text-anchor="middle" fill="#ffd700" font-family="'VT323', monospace" font-size="14" font-weight="bold">CODEBASE</text>
+                </g>
+
+              </svg>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Dialogue Window Box (Synchronized with Spoken Speech Rate, No Click-to-Skip) -->
+        <div id="dialogueBox" class="ct-box w-full max-w-lg p-5 z-10 transition-all duration-200">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">⚙️</span>
+              <span id="nameplate" class="gold-header font-mono text-base uppercase">LUCCA:</span>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] font-mono">
+              <span id="realTimeClock" class="text-blue-200/90 font-bold">05:28 AM</span>
+              <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-400/40 text-[10px]">382 ms</span>
+            </div>
+          </div>
+
+          <div class="min-h-[64px] flex items-start">
+            <p id="typewriterText" class="ct-font text-2xl leading-tight text-glow select-text">
+              Speech streaming synchronized! Notice how my words appear phrase-by-phrase at my natural speaking pace, with smooth pacing pauses on commas and periods!
+            </p>
+            <span id="dialogueCursor" class="snes-cursor ml-1 text-2xl font-bold select-none">▼</span>
+          </div>
+
+          <div class="mt-3 pt-2 border-t border-blue-400/30 flex items-center justify-between text-[11px] text-blue-200/60 font-mono">
+            <span>🎙️ Kokoro-82M (af_sarah) · Pace: 18 ch/s</span>
+            <div class="flex items-center gap-2">
+              <button onclick="simulateSpeechStreaming()" class="text-amber-300 hover:text-white underline font-bold">▶ Test Speech Stream</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Floating Quick Chat Bar (Chrono Trigger Style) -->
+        <div id="quickChatBar" class="mt-3 ct-box w-full max-w-lg p-2.5 flex items-center gap-2 z-10">
+          <span class="gold-header font-mono text-sm pl-1">▶</span>
+          <input id="chatInput" type="text" placeholder="Type a message to Lucca or press 🎙️ to speak..." 
+                 class="flex-1 bg-[#081036] border border-[#637bb5] rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                 onkeydown="if(event.key==='Enter') sendChatMessage()" />
+          <button onclick="sendChatMessage()" class="ct-button px-3 py-1 text-xs">Send</button>
+          <button class="ct-button px-2.5 py-1 text-xs !border-amber-400 text-amber-300" title="Push To Talk">🎙️</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- VIEW 2: Complete Chrono Trigger 10-Tab Settings Suite -->
+    <div id="viewSettings" class="hidden space-y-4">
+      
+      <!-- Chrono Trigger Outer Window Frame -->
+      <div class="ct-box p-5 shadow-2xl">
+        
+        <!-- Header Banner -->
+        <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-blue-400/40">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">⚙️</span>
+            <div>
+              <h3 class="gold-header font-mono text-lg tracking-wider">PROJECT LUCCA CONFIGURATION SUITE</h3>
+              <p class="text-xs text-blue-200/70 font-mono">SNES Menu System · Full Hardware, Tool & Brain Control</p>
+            </div>
+          </div>
+          <button onclick="switchView('dialogue')" class="ct-button px-3 py-1 text-xs">✕ Close to Companion</button>
+        </div>
+
+        <!-- Chrono Trigger 11 Tabs Bar -->
+        <div class="flex items-center gap-1 border-b-2 border-blue-400/40 pb-0 overflow-x-auto text-xs font-mono">
+          <button onclick="switchSettingsTab('persona')" id="tabBtn_persona" class="ct-tab ct-tab-active px-3 py-2 rounded-t whitespace-nowrap">🧠 PERSONA</button>
+          <button onclick="switchSettingsTab('tts')" id="tabBtn_tts" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">🎙️ VOICE BLENDER</button>
+          <button onclick="switchSettingsTab('llm')" id="tabBtn_llm" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">⚡ LLM TUNING</button>
+          <button onclick="switchSettingsTab('tools')" id="tabBtn_tools" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">🛠️ TOOL STUDIO</button>
+          <button onclick="switchSettingsTab('lisp')" id="tabBtn_lisp" class="ct-tab px-3 py-2 rounded-t !border-amber-400 text-amber-300 font-bold whitespace-nowrap">λ LISP STUDIO</button>
+          <button onclick="switchSettingsTab('hotkeys')" id="tabBtn_hotkeys" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">⌨️ HOTKEYS</button>
+          <button onclick="switchSettingsTab('dsp')" id="tabBtn_dsp" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">🎛️ DSP AUDIO</button>
+          <button onclick="switchSettingsTab('memory')" id="tabBtn_memory" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">💾 MEMORY</button>
+          <button onclick="switchSettingsTab('diag')" id="tabBtn_diag" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">📊 TELEMETRY</button>
+          <button onclick="switchSettingsTab('manual')" id="tabBtn_manual" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">📖 MANUAL</button>
+          <button onclick="switchSettingsTab('about')" id="tabBtn_about" class="ct-tab px-3 py-2 rounded-t whitespace-nowrap">ℹ️ ABOUT</button>
+        </div>
+<!-- TAB CONTENT CONTAINER -->
+        <div class="mt-4 min-h-[420px]">
+
+          <!-- TAB 1: Persona & Archetypes -->
+          <div id="tabContent_persona" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="ct-subbox p-4 space-y-3">
+                <span class="gold-header text-xs block font-mono">ARCHETYPE PRESET</span>
+                <select id="personaArchetype" onchange="updatePersonaPreset()" class="w-full bg-[#081036] border border-[#637bb5] rounded p-2 text-xs text-amber-300 font-bold focus:border-amber-400">
+                  <option value="inventor">Inventor (Default - Curious, enthusiastic, technical)</option>
+                  <option value="battle_mage">Battle Mage (Direct, tactical, decisive)</option>
+                  <option value="chrono_scholar">Chrono Scholar (Analytical, deep temporal theory)</option>
+                  <option value="custom">Custom (User-defined traits & prompt)</option>
+                </select>
+                <div class="flex items-center gap-2 pt-2">
+                  <button class="ct-button px-3 py-1 text-xs">➕ Add Archetype</button>
+                  <button class="ct-button px-3 py-1 text-xs !border-red-400 text-red-300">🗑️ Delete</button>
+                </div>
+              </div>
+              <div class="ct-subbox p-4 space-y-2 text-xs">
+                <span class="gold-header text-xs block font-mono">GRANULAR TRAIT MODULATORS</span>
+                <div class="space-y-2 font-mono">
+                  <div class="flex justify-between items-center">
+                    <span>Technical Depth:</span>
+                    <input type="range" class="ct-slider w-28" value="85" />
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span>Warmth / Playfulness:</span>
+                    <input type="range" class="ct-slider w-28" value="70" />
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span>Directness:</span>
+                    <input type="range" class="ct-slider w-28" value="60" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="ct-subbox p-3 space-y-1">
+              <span class="gold-header text-xs block font-mono">ACTIVE SYSTEM PROMPT OVERRIDE</span>
+              <textarea rows="4" class="w-full bg-[#081036] border border-[#637bb5] rounded p-2 text-xs text-slate-100 font-mono focus:border-amber-400">You are Lucca Ashtear, the brilliant inventor from Chrono Trigger. You possess deep expertise in mechanics, computing architectures, and temporal physics. Assist your creator with precision, warmth, and relentless scientific curiosity.</textarea>
+            </div>
+          </div>
+
+          <!-- TAB 2: Voice Blender & Dual-Vector Mixer -->
+          <div id="tabContent_tts" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4">
+              <div class="flex items-center justify-between border-b border-blue-400/30 pb-2">
+                <div>
+                  <span class="gold-header text-sm font-mono">KOKORO-82M VOICE BLENDER & DUAL-VECTOR TENSOR MIXER</span>
+                  <p class="text-[11px] text-blue-200/70 font-mono">Linear combination of style embedding vectors: α · VoiceA + (1 - α) · VoiceB</p>
+                </div>
+                <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-400/40">54 Kokoro Vectors + 4 Canonical Recipes</span>
+              </div>
+
+              <!-- Mode Selection -->
+              <div class="flex items-center gap-6 text-xs font-mono bg-[#081036] p-2.5 rounded border border-blue-500/20">
+                <span class="text-blue-200/80 font-bold">Voice Mode:</span>
+                <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                  <input type="radio" name="voiceMode" value="single" onchange="toggleVoiceMode('single')" class="accent-amber-400"> Single Native Vector
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-slate-200">
+                  <input type="radio" name="voiceMode" value="recipe" onchange="toggleVoiceMode('recipe')" class="accent-amber-400"> Pre-Engineered Recipe
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer text-amber-300 font-bold">
+                  <input type="radio" name="voiceMode" value="mixer" checked onchange="toggleVoiceMode('mixer')" class="accent-amber-400"> Dual-Vector Live Blender
+                </label>
+              </div>
+
+              <!-- Dual-Vector Live Blender Panel -->
+              <div id="panelMixer" class="space-y-3 bg-[#060b24] p-3.5 rounded border border-amber-400/40 font-mono text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-amber-300 font-bold mb-1">Primary Vector (Voice A):</label>
+                    <select id="blendVoiceA" onchange="updateBlendFormula()" class="w-full bg-[#081036] border border-[#637bb5] rounded p-2 text-xs text-white">
+                      <option value="af_sky" selected>af_sky (American Female - Crisp, bright)</option>
+                      <option value="af_sarah">af_sarah (American Female - Expressive)</option>
+                      <option value="af_bella">af_bella (American Female - Warm)</option>
+                      <option value="af_heart">af_heart (American Female - Gentle)</option>
+                      <option value="af_nicole">af_nicole (American Female - Whisper)</option>
+                      <option value="bf_emma">bf_emma (British Female - Scholarly)</option>
+                      <option value="bf_isabella">bf_isabella (British Female - Posh)</option>
+                      <option value="jf_alpha">jf_alpha (Japanese Female - Anime)</option>
+                      <option value="jf_tebukuro">jf_tebukuro (Japanese Female - Soft)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-cyan-300 font-bold mb-1">Secondary Vector (Voice B):</label>
+                    <select id="blendVoiceB" onchange="updateBlendFormula()" class="w-full bg-[#081036] border border-[#637bb5] rounded p-2 text-xs text-white">
+                      <option value="jf_alpha" selected>jf_alpha (Japanese Female - Anime)</option>
+                      <option value="af_sky">af_sky (American Female - Crisp)</option>
+                      <option value="af_sarah">af_sarah (American Female - Expressive)</option>
+                      <option value="af_bella">af_bella (American Female - Warm)</option>
+                      <option value="jf_tebukuro">jf_tebukuro (Japanese Female - Soft)</option>
+                      <option value="zf_xiaobei">zf_xiaobei (Chinese Female - Melodic)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Blend Ratio Slider -->
+                <div class="space-y-1.5 pt-1">
+                  <div class="flex justify-between items-center text-xs">
+                    <span class="text-blue-200">Tensor Blend Ratio:</span>
+                    <span id="blendRatioText" class="text-amber-300 font-bold">70% Voice A / 30% Voice B</span>
+                  </div>
+                  <input id="blendSlider" type="range" min="0" max="100" value="70" oninput="updateBlendFormula()" class="ct-slider w-full">
+                </div>
+
+                <!-- Formula Bar -->
+                <div>
+                  <label class="block text-slate-300 text-[11px] mb-1">Computed Synthesis Formula:</label>
+                  <input id="blendFormulaInput" type="text" readonly value="blend:0.70*af_sky+0.30*jf_alpha" class="w-full bg-[#081036] border border-amber-400/60 rounded p-2 text-amber-300 font-bold text-xs">
+                </div>
+              </div>
+
+              <!-- Pacing & Speed -->
+              <div class="grid grid-cols-2 gap-4 font-mono text-xs">
+                <div>
+                  <label class="block text-blue-200 mb-1">Speech Rate Multiplier:</label>
+                  <div class="flex items-center gap-3">
+                    <input type="range" min="80" max="140" value="105" class="ct-slider flex-1" oninput="document.getElementById('speedMultiplierVal').innerText = (this.value/100).toFixed(2) + 'x'">
+                    <span id="speedMultiplierVal" class="text-amber-300 font-bold w-12">1.05x</span>
+                  </div>
+                </div>
+                <div class="flex items-end gap-2">
+                  <button onclick="simulateSpeechStreaming()" class="ct-button px-4 py-2 text-xs !border-amber-400 text-amber-300 font-bold flex items-center gap-1.5">
+                    <span>🔊</span> Test Speech Synthesis
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <!-- TAB 3: LLM Server Tuning & Granular Context Window -->
+          <div id="tabContent_llm" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4">
+              <div class="flex items-center justify-between border-b border-blue-400/30 pb-2">
+                <div>
+                  <span class="gold-header text-sm font-mono">GRANULAR CONTEXT WINDOW SIZE</span>
+                  <p class="text-[11px] text-blue-200/70 font-mono">Continuous token adjustment with real-time KV-cache VRAM estimation</p>
+                </div>
+                <div class="text-right">
+                  <span id="ctxTokenBadge" class="px-2.5 py-1 rounded bg-blue-500/20 text-cyan-300 font-mono font-bold text-sm border border-cyan-400/50">8,192 Tokens</span>
+                </div>
+              </div>
+
+              <!-- Context Slider & Spinbox -->
+              <div class="space-y-2">
+                <div class="flex items-center gap-4">
+                  <span class="text-xs font-mono text-blue-200/80 w-24">Context Size:</span>
+                  <input id="contextSlider" type="range" min="512" max="32768" step="256" value="8192" 
+                         class="ct-slider flex-1" oninput="updateContextSlider(this.value)" />
+                  <input id="contextSpinbox" type="number" min="512" max="32768" step="256" value="8192" 
+                         class="w-24 bg-[#081036] border border-[#637bb5] rounded p-1.5 text-xs text-amber-300 font-mono font-bold text-center" 
+                         onchange="updateContextSlider(this.value)" />
+                </div>
+
+                <!-- Quick Presets Bar -->
+                <div class="flex items-center gap-2 pt-1 font-mono text-[11px]">
+                  <span class="text-blue-200/60">Presets:</span>
+                  <button onclick="updateContextSlider(2048)" class="ct-button px-2 py-0.5 text-[10px]">2K (Lite)</button>
+                  <button onclick="updateContextSlider(4096)" class="ct-button px-2 py-0.5 text-[10px]">4K (Balanced)</button>
+                  <button onclick="updateContextSlider(8192)" class="ct-button px-2 py-0.5 text-[10px] !border-amber-400 text-amber-300 font-bold">8K (Default)</button>
+                  <button onclick="updateContextSlider(16384)" class="ct-button px-2 py-0.5 text-[10px]">16K (Docs)</button>
+                  <button onclick="updateContextSlider(32768)" class="ct-button px-2 py-0.5 text-[10px] !border-purple-400 text-purple-300 font-bold">32K (Full Codebase)</button>
+                </div>
+              </div>
+
+              <!-- Live KV Cache VRAM Footprint Calculator -->
+              <div class="ct-box p-3 bg-slate-950/80 border-blue-400/40 font-mono text-xs space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-amber-300 font-bold flex items-center gap-1.5">
+                    <span>🧮</span> LIVE KV-CACHE VRAM FOOTPRINT ESTIMATOR:
+                  </span>
+                  <span id="vramTotalCalc" class="text-cyan-300 font-bold text-sm">~2.1 GB VRAM (FP16)</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[11px] text-blue-200/80 pt-1">
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="block text-slate-400 text-[10px]">FP16 (Lossless):</span>
+                    <span id="vramFp16" class="text-white font-bold">2.1 GB</span>
+                  </div>
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="block text-slate-400 text-[10px]">Q8_0 (-ctk q8_0):</span>
+                    <span id="vramQ8" class="text-emerald-300 font-bold">1.1 GB</span>
+                  </div>
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="block text-slate-400 text-[10px]">Q4_0 (-ctk q4_0):</span>
+                    <span id="vramQ4" class="text-cyan-300 font-bold">0.6 GB</span>
+                  </div>
+                </div>
+                <p class="text-[10px] text-slate-400">Formula: \(2 \times N_{\text{layers}} \times N_{\text{heads}} \times D_{\text{head}} \times N_{\text{ctx}} \times \text{bytes}\). Dynamic safety ceiling alerts if weights + cache exceed 16GB RTX dGPU VRAM.</p>
+              </div>
+
+              <!-- Server Restart Row -->
+              <div class="flex items-center justify-between pt-2 border-t border-blue-400/30">
+                <div class="flex items-center gap-3 text-xs font-mono">
+                  <span>Port: <input type="text" value="8080" class="w-16 bg-[#081036] border border-[#637bb5] rounded p-1 text-center text-white" /></span>
+                  <span>-ngl: <input type="number" value="99" class="w-14 bg-[#081036] border border-[#637bb5] rounded p-1 text-center text-white" /></span>
+                  <span>Flash-Attention: <input type="checkbox" checked class="accent-amber-400" /></span>
+                </div>
+                <button onclick="simulateRestartLlm()" id="btnRestartLlm" class="ct-button px-4 py-1.5 text-xs !border-amber-400 text-amber-300 font-bold flex items-center gap-1.5">
+                  <span>🔄</span> Restart LLM Server
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 4: Tool Studio & Whitelist CRUD -->
+          <div id="tabContent_tools" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="gold-header text-xs font-mono">APPLICATION WHITELIST & PERMISSIONS</span>
+                <button class="ct-button px-3 py-1 text-xs">➕ Add Application</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left font-mono text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-blue-400/40 text-amber-300">
+                      <th class="p-2">APP NAME</th>
+                      <th class="p-2">EXECUTABLE PATH</th>
+                      <th class="p-2">RISK TIER</th>
+                      <th class="p-2">STATUS</th>
+                      <th class="p-2">ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-blue-400/20 text-slate-200">
+                    <tr>
+                      <td class="p-2 font-bold">VS Code</td>
+                      <td class="p-2 text-slate-400 text-[11px]">C:\Users\seatr\AppData\Local\Programs\Microsoft VS Code\Code.exe</td>
+                      <td class="p-2 text-emerald-400">Read / Write</td>
+                      <td class="p-2"><span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Enabled</span></td>
+                      <td class="p-2"><button class="ct-button px-2 py-0.5 text-[10px]">Edit</button></td>
+                    </tr>
+                    <tr>
+                      <td class="p-2 font-bold">System Diagnostics</td>
+                      <td class="p-2 text-slate-400 text-[11px]">internal:get_system_metrics, list_processes</td>
+                      <td class="p-2 text-cyan-400">Read-Only</td>
+                      <td class="p-2"><span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Enabled</span></td>
+                      <td class="p-2"><button class="ct-button px-2 py-0.5 text-[10px]">Config</button></td>
+                    </tr>
+                    <tr>
+                      <td class="p-2 font-bold">Codebase Inspector</td>
+                      <td class="p-2 text-slate-400 text-[11px]">C:\projects\ProjectLucca (Self-Inspection)</td>
+                      <td class="p-2 text-cyan-400">Read-Only</td>
+                      <td class="p-2"><span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span></td>
+                      <td class="p-2"><button class="ct-button px-2 py-0.5 text-[10px]">Root</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 5: OVERHAULED LISP SKILLS & DOMAIN-SPECIFIC REASONING PATHWAY STUDIO -->
+          <div id="tabContent_lisp" class="hidden space-y-4">
+            
+            <!-- Studio Header & Action Strip -->
+            <div class="flex items-center justify-between border-b border-blue-400/30 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">λ</span>
+                  <span class="gold-header text-sm font-mono">MICROSCHEME DOMAIN REASONING & LISP SKILLS STUDIO</span>
+                </div>
+                <p class="text-[11px] text-blue-200/70 font-mono">Canonical S-expression rule engine with gas metering (1000 gas limit, 20ms safety guard)</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="openAddRuleModal()" class="ct-button px-3 py-1.5 text-xs !border-amber-400 text-amber-300 font-bold flex items-center gap-1.5">
+                  <span>➕</span> Add Reasoning Pathway
+                </button>
+              </div>
+            </div>
+
+            <!-- Category Filter Bar (Dividing by Category) -->
+            <div class="flex items-center gap-2 border-b border-blue-400/20 pb-2 text-xs font-mono overflow-x-auto">
+              <span class="text-blue-200/60 mr-1">Filter Category:</span>
+              <button onclick="filterLispCategory('all')" id="lispCat_all" class="px-2.5 py-1 rounded bg-blue-600/40 text-amber-300 border border-amber-400/50 font-bold">All (6)</button>
+              <button onclick="filterLispCategory('hardware')" id="lispCat_hardware" class="px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:text-white">⚡ Hardware & Safety (2)</button>
+              <button onclick="filterLispCategory('cognitive')" id="lispCat_cognitive" class="px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:text-white">🧠 Cognitive & Temporal (1)</button>
+              <button onclick="filterLispCategory('tools')" id="lispCat_tools" class="px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:text-white">🛠️ Tools & Execution (1)</button>
+              <button onclick="filterLispCategory('persona')" id="lispCat_persona" class="px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:text-white">💬 Persona & Inflection (1)</button>
+              <button onclick="filterLispCategory('memory')" id="lispCat_memory" class="px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:text-white">💾 Memory & Recall (1)</button>
+            </div>
+
+            <!-- Master Pathway Cards List (Divided by Category, Purpose, Settings, Edit & Delete) -->
+            <div id="lispRuleList" class="space-y-3 font-mono text-xs">
+              
+              <!-- Pathway 1: VRAM Safety Guard -->
+              <div class="lisp-card ct-subbox p-3.5 space-y-2.5 border-purple-400/40" data-category="hardware">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-400/40">⚡ HARDWARE & SAFETY</span>
+                    <span class="font-bold text-amber-300 text-sm">vram-safety-guard-v1</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-slate-400">Priority: <strong class="text-white">90</strong></span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-200/80 font-semibold block text-[11px]">PURPOSE:</span>
+                  <p class="text-slate-200 text-xs mt-0.5">Monitors dGPU RTX 5080 VRAM before LLM batch inference. Automatically activates quantized KV-cache (q8_0) if free memory drops under 2.5 GB to prevent out-of-memory driver crashes.</p>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-[11px] text-slate-300 overflow-x-auto">
+                  <code>(rule "vram-safety-guard-v1" :when (and (intent= "llm_query") (&lt; (gpu-free-vram-gb) 2.5)) :plan (list (set-kv-cache-quant "q8_0") (say "Adjusting neural cache to preserve VRAM ceiling!")) :priority 90)</code>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-blue-400/20 text-[11px]">
+                  <span class="text-slate-400">Gas Cap: 1000 · Timeout: 20ms</span>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditRuleModal('vram-safety-guard-v1')" class="ct-button px-2.5 py-0.5 text-[10px]">✏️ Edit S-Expression</button>
+                    <button onclick="simulateEvalRule('vram-safety-guard-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-cyan-400 text-cyan-300">▶️ Test Eval</button>
+                    <button onclick="simulateDeleteRule('vram-safety-guard-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-red-400 text-red-300">🗑️ Retire</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pathway 2: NPU Whisper Pipeline Pinning -->
+              <div class="lisp-card ct-subbox p-3.5 space-y-2.5 border-emerald-400/40" data-category="hardware">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-400/40">⚡ HARDWARE & SAFETY</span>
+                    <span class="font-bold text-amber-300 text-sm">npu-whisper-pin-v1</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-slate-400">Priority: <strong class="text-white">95</strong></span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-200/80 font-semibold block text-[11px]">PURPOSE:</span>
+                  <p class="text-slate-200 text-xs mt-0.5">Enforces Whisper ASR audio processing to remain pinned to the Intel AI Boost NPU via OpenVINO, safeguarding dGPU VRAM exclusively for the 8B LLM.</p>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-[11px] text-slate-300 overflow-x-auto">
+                  <code>(rule "npu-whisper-pin-v1" :when (and (intent= "voice_input") (not (npu-active?))) :plan (list (tool "restart_npu_subsystem") (say "Re-aligning voice stream to the AI Boost NPU!")) :priority 95)</code>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-blue-400/20 text-[11px]">
+                  <span class="text-slate-400">Gas Cap: 1000 · Timeout: 20ms</span>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditRuleModal('npu-whisper-pin-v1')" class="ct-button px-2.5 py-0.5 text-[10px]">✏️ Edit S-Expression</button>
+                    <button onclick="simulateEvalRule('npu-whisper-pin-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-cyan-400 text-cyan-300">▶️ Test Eval</button>
+                    <button onclick="simulateDeleteRule('npu-whisper-pin-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-red-400 text-red-300">🗑️ Retire</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pathway 3: Cognitive & Temporal Logic -->
+              <div class="lisp-card ct-subbox p-3.5 space-y-2.5 border-blue-400/40" data-category="cognitive">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-400/40">🧠 COGNITIVE & TEMPORAL</span>
+                    <span class="font-bold text-amber-300 text-sm">temporal-logic-gate-v1</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-slate-400">Priority: <strong class="text-white">80</strong></span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-200/80 font-semibold block text-[11px]">PURPOSE:</span>
+                  <p class="text-slate-200 text-xs mt-0.5">Detects counterfactual timeline queries or code regression hypotheses, activating multi-step temporal deduction before invoking LLM synthesis.</p>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-[11px] text-slate-300 overflow-x-auto">
+                  <code>(rule "temporal-logic-gate-v1" :when (and (intent= "counterfactual") (transcript-has? "timeline")) :plan (list (say "Analyzing temporal divergence points...") (tool "search_temporal_memories")) :priority 80)</code>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-blue-400/20 text-[11px]">
+                  <span class="text-slate-400">Gas Cap: 1000 · Timeout: 20ms</span>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditRuleModal('temporal-logic-gate-v1')" class="ct-button px-2.5 py-0.5 text-[10px]">✏️ Edit S-Expression</button>
+                    <button onclick="simulateEvalRule('temporal-logic-gate-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-cyan-400 text-cyan-300">▶️ Test Eval</button>
+                    <button onclick="simulateDeleteRule('temporal-logic-gate-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-red-400 text-red-300">🗑️ Retire</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pathway 4: Codebase Self-Inspection Routing -->
+              <div class="lisp-card ct-subbox p-3.5 space-y-2.5 border-cyan-400/40" data-category="tools">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-400/40">🛠️ TOOLS & EXECUTION</span>
+                    <span class="font-bold text-amber-300 text-sm">codebase-inspect-route-v1</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-slate-400">Priority: <strong class="text-white">85</strong></span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-200/80 font-semibold block text-[11px]">PURPOSE:</span>
+                  <p class="text-slate-200 text-xs mt-0.5">Routes creator inquiries regarding Lucca's architecture, tools, or bugs directly to read-only codebase tools in C:\projects\ProjectLucca.</p>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-[11px] text-slate-300 overflow-x-auto">
+                  <code>(rule "codebase-inspect-route-v1" :when (or (transcript-has? "source") (transcript-has? "architecture") (intent= "read_code")) :plan (list (tool "inspect_codebase" (entity "target_path")) (say "Accessing my source repository at C:\\projects\\ProjectLucca!")) :priority 85)</code>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-blue-400/20 text-[11px]">
+                  <span class="text-slate-400">Gas Cap: 1000 · Timeout: 20ms</span>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditRuleModal('codebase-inspect-route-v1')" class="ct-button px-2.5 py-0.5 text-[10px]">✏️ Edit S-Expression</button>
+                    <button onclick="simulateEvalRule('codebase-inspect-route-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-cyan-400 text-cyan-300">▶️ Test Eval</button>
+                    <button onclick="simulateDeleteRule('codebase-inspect-route-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-red-400 text-red-300">🗑️ Retire</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pathway 5: Persona Enthusiasm Modulation -->
+              <div class="lisp-card ct-subbox p-3.5 space-y-2.5 border-amber-400/40" data-category="persona">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-400/40">💬 PERSONA & INFLECTION</span>
+                    <span class="font-bold text-amber-300 text-sm">inventor-curiosity-v1</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-slate-400">Priority: <strong class="text-white">65</strong></span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-200/80 font-semibold block text-[11px]">PURPOSE:</span>
+                  <p class="text-slate-200 text-xs mt-0.5">Increases speech rate (+10%) and triggers thinking animations when discussing mechanical engineering, hardware telemetry, or time machines.</p>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-[11px] text-slate-300 overflow-x-auto">
+                  <code>(rule "inventor-curiosity-v1" :when (and (intent= "invention_discussion") (app-running? "code.exe")) :plan (list (set-persona-trait "enthusiasm" 95) (say "Now you're speaking my language! Let's examine the blueprints!")) :priority 65)</code>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-blue-400/20 text-[11px]">
+                  <span class="text-slate-400">Gas Cap: 1000 · Timeout: 20ms</span>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditRuleModal('inventor-curiosity-v1')" class="ct-button px-2.5 py-0.5 text-[10px]">✏️ Edit S-Expression</button>
+                    <button onclick="simulateEvalRule('inventor-curiosity-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-cyan-400 text-cyan-300">▶️ Test Eval</button>
+                    <button onclick="simulateDeleteRule('inventor-curiosity-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-red-400 text-red-300">🗑️ Retire</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pathway 6: Vector Memory Relevance Gate -->
+              <div class="lisp-card ct-subbox p-3.5 space-y-2.5 border-sky-400/40" data-category="memory">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 text-[10px] font-bold border border-sky-400/40">💾 MEMORY & RECALL</span>
+                    <span class="font-bold text-amber-300 text-sm">vector-relevance-gate-v1</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[11px] text-slate-400">Priority: <strong class="text-white">75</strong></span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Active</span>
+                  </div>
+                </div>
+                <div>
+                  <span class="text-blue-200/80 font-semibold block text-[11px]">PURPOSE:</span>
+                  <p class="text-slate-200 text-xs mt-0.5">Filters semantic memory queries through cosine similarity threshold (&gt;0.72) before injecting into system prompt to prevent context pollution.</p>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-[11px] text-slate-300 overflow-x-auto">
+                  <code>(rule "vector-relevance-gate-v1" :when (and (intent= "recall_past") (&gt; (memory-relevance-score) 0.72)) :plan (list (tool "inject_memory_context" (entity "memory_id"))) :priority 75)</code>
+                </div>
+                <div class="flex items-center justify-between pt-1 border-t border-blue-400/20 text-[11px]">
+                  <span class="text-slate-400">Gas Cap: 1000 · Timeout: 20ms</span>
+                  <div class="flex items-center gap-1.5">
+                    <button onclick="openEditRuleModal('vector-relevance-gate-v1')" class="ct-button px-2.5 py-0.5 text-[10px]">✏️ Edit S-Expression</button>
+                    <button onclick="simulateEvalRule('vector-relevance-gate-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-cyan-400 text-cyan-300">▶️ Test Eval</button>
+                    <button onclick="simulateDeleteRule('vector-relevance-gate-v1')" class="ct-button px-2.5 py-0.5 text-[10px] !border-red-400 text-red-300">🗑️ Retire</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- In-Place S-Expression Code Editor Modal (Chrono Trigger Style) -->
+            <div id="lispEditModal" class="hidden ct-box p-4 border-amber-400/60 shadow-2xl space-y-3 font-mono text-xs">
+              <div class="flex items-center justify-between border-b border-blue-400/40 pb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-amber-400 font-bold">✏️ EDIT S-EXPRESSION DEFINITION:</span>
+                  <span id="modalRuleId" class="text-white font-bold"></span>
+                </div>
+                <button onclick="closeEditRuleModal()" class="text-slate-400 hover:text-white">✕</button>
+              </div>
+              <div class="grid grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label class="block text-blue-200/80 mb-1">Priority (0 - 100):</label>
+                  <input type="number" id="modalRulePriority" value="90" class="w-full bg-[#081036] border border-[#637bb5] rounded p-1.5 text-white" />
+                </div>
+                <div>
+                  <label class="block text-blue-200/80 mb-1">Lifecycle State:</label>
+                  <select id="modalRuleState" class="w-full bg-[#081036] border border-[#637bb5] rounded p-1.5 text-white">
+                    <option selected>ACTIVE</option>
+                    <option>QUARANTINE</option>
+                    <option>DEMOTED</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-blue-200/80 mb-1">Gas Ceiling:</label>
+                  <input type="number" value="1000" class="w-full bg-[#081036] border border-[#637bb5] rounded p-1.5 text-white" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-blue-200/80 mb-1">Canonical MicroScheme Code:</label>
+                <textarea id="modalRuleCode" rows="5" class="w-full bg-[#060b24] border border-[#637bb5] rounded p-2.5 text-amber-300 font-mono text-xs focus:border-amber-400 leading-relaxed"></textarea>
+              </div>
+              <div class="flex items-center justify-between pt-1">
+                <span id="syntaxStatus" class="text-emerald-300 text-[11px]">✓ Syntax validated against MicroScheme Spec 05</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="closeEditRuleModal()" class="ct-button px-3 py-1 text-xs !border-slate-600 text-slate-300">Cancel</button>
+                  <button onclick="saveRuleEdit()" class="ct-button px-4 py-1 text-xs !border-amber-400 text-amber-300 font-bold">Save Changes</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Test Evaluation Drawer -->
+            <div id="lispEvalToast" class="hidden ct-box p-3 bg-slate-950 border-cyan-400/50 text-xs font-mono flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-cyan-400 text-base">▶</span>
+                <span id="lispEvalText" class="text-slate-200"></span>
+              </div>
+              <button onclick="document.getElementById('lispEvalToast').classList.add('hidden')" class="text-cyan-400 hover:text-white">✕</button>
+            </div>
+
+          </div>
+
+          <!-- TAB 6: Hotkeys & Wake Word -->
+          <div id="tabContent_hotkeys" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4">
+              <span class="gold-header text-xs font-mono block">ARBITRARY HOTKEY REBINDING & VOICE TRIGGER</span>
+              <div class="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div class="space-y-2">
+                  <label class="block text-blue-200">Push-To-Talk (PTT) Key:</label>
+                  <div class="flex items-center gap-2">
+                    <input type="text" value="F24 (Default: Right Ctrl)" class="w-full bg-[#081036] border border-[#637bb5] rounded p-2 text-amber-300 font-bold" />
+                    <button class="ct-button px-3 py-2 text-xs">Record Key</button>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <label class="block text-blue-200">Wake Word ("Lucca"):</label>
+                  <div class="flex items-center gap-3 pt-2">
+                    <input type="checkbox" checked class="accent-amber-400 w-4 h-4" />
+                    <span class="text-white font-bold">Enable Hands-Free Wake Word</span>
+                  </div>
+                  <p class="text-[10px] text-slate-400">Listens locally for "Lucca" to start voice recognition without holding PTT.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 7: Granular DSP Audio Post-Processing Suite -->
+          <div id="tabContent_dsp" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4 font-mono text-xs">
+              <div class="flex items-center justify-between border-b border-blue-400/30 pb-2">
+                <div>
+                  <span class="gold-header text-sm">GRANULAR DSP AUDIO CHAIN & RETRO SNES ACOUSTICS</span>
+                  <p class="text-[11px] text-blue-200/70">Sub-50ms real-time audio shaping: pitch semitones, shelving EQs, and SNES reverb</p>
+                </div>
+                <span class="text-xs px-2.5 py-1 rounded bg-blue-500/20 text-cyan-300 border border-cyan-400/40">24 kHz 32-bit Float Pipeline</span>
+              </div>
+
+              <!-- Pitch & Master Gain -->
+              <div class="grid grid-cols-2 gap-4 bg-[#081036] p-3 rounded border border-blue-500/20">
+                <div class="space-y-1">
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-200">Pitch Shift (Semitones):</span>
+                    <span id="pitchVal" class="text-amber-300 font-bold">+1.5 st</span>
+                  </div>
+                  <input type="range" min="-12" max="12" value="2" class="ct-slider w-full" oninput="document.getElementById('pitchVal').innerText = (this.value > 0 ? '+' : '') + this.value + ' st'">
+                </div>
+                <div class="space-y-1">
+                  <div class="flex justify-between items-center">
+                    <span class="text-blue-200">Master Gain (dB):</span>
+                    <span id="gainVal" class="text-amber-300 font-bold">+0.0 dB</span>
+                  </div>
+                  <input type="range" min="-12" max="12" value="0" class="ct-slider w-full" oninput="document.getElementById('gainVal').innerText = (this.value > 0 ? '+' : '') + this.value + '.0 dB'">
+                </div>
+              </div>
+
+              <!-- Equalizer & Reverb Controls -->
+              <div class="grid grid-cols-2 gap-4">
+                <div class="bg-[#081036] p-3 rounded border border-blue-500/20 space-y-2.5">
+                  <span class="text-amber-300 font-bold block">Analog Warmth & Clarity Filters:</span>
+                  <label class="flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200">Bass Warmth (+3.5 dB @ 250Hz):</span>
+                    <input type="checkbox" checked class="accent-amber-400 w-4 h-4">
+                  </label>
+                  <label class="flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200">Treble Clarity (+2.5 dB @ 4.5kHz):</span>
+                    <input type="checkbox" checked class="accent-amber-400 w-4 h-4">
+                  </label>
+                  <label class="flex items-center justify-between cursor-pointer">
+                    <span class="text-slate-200">80 Hz Rumble High-Pass Filter:</span>
+                    <input type="checkbox" checked class="accent-amber-400 w-4 h-4">
+                  </label>
+                </div>
+
+                <div class="bg-[#081036] p-3 rounded border border-blue-500/20 space-y-2">
+                  <span class="text-amber-300 font-bold block">SNES SPC700 Reverb / Echo Chamber:</span>
+                  <div class="flex justify-between items-center">
+                    <span class="text-slate-200">Reverb Wet/Dry Mix:</span>
+                    <span id="reverbMixVal" class="text-amber-300 font-bold">15%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value="15" class="ct-slider w-full" oninput="document.getElementById('reverbMixVal').innerText = this.value + '%'">
+                  <label class="flex items-center gap-2 pt-1 cursor-pointer">
+                    <input type="checkbox" checked class="accent-amber-400 w-4 h-4">
+                    <span class="text-slate-200">Soft-Knee Dynamic Limiter (-0.2 dBFS)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Live DSP Playback Test Bar -->
+              <div class="bg-[#060b24] p-3 rounded border border-amber-400/40 flex items-center justify-between gap-3">
+                <input id="dspTestPhrase" type="text" value="Testing SNES SPC700 DSP audio chain with dual-vector synthesis!" class="flex-1 bg-[#081036] border border-[#637bb5] rounded p-2 text-xs text-white">
+                <button onclick="simulateDspPlayback()" class="ct-button px-4 py-2 !border-amber-400 text-amber-300 font-bold flex items-center gap-1.5 whitespace-nowrap">
+                  <span>🔊</span> Play DSP Test Sample
+                </button>
+              </div>
+              <div id="dspStatusToast" class="hidden text-emerald-300 text-[11px] font-bold">✓ DSP playback rendered with active filter chain!</div>
+
+            </div>
+          </div>
+          <!-- TAB 8: Episodic & Semantic Memory System Browser/Editor -->
+          <div id="tabContent_memory" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4 font-mono text-xs">
+              <div class="flex items-center justify-between border-b border-blue-400/30 pb-2">
+                <div>
+                  <span class="gold-header text-sm">SQLITE-VEC EPISODIC & SEMANTIC MEMORY BROWSER</span>
+                  <p class="text-[11px] text-blue-200/70">Inspect, search, edit, teach, and prune memories stored in C:\ProjectLucca\data\memory.sqlite</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="simulateTeachMemory()" class="ct-button px-3 py-1 !border-emerald-400 text-emerald-300 font-bold">➕ Teach Fact</button>
+                  <button onclick="simulateVacuumDb()" class="ct-button px-3 py-1 !border-cyan-400 text-cyan-300">🧹 Vacuum DB</button>
+                </div>
+              </div>
+
+              <!-- Database Metric Counters -->
+              <div class="grid grid-cols-4 gap-2 text-[11px]">
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-center">
+                  <span class="text-blue-200/80 block">Active Memories:</span>
+                  <span class="text-amber-300 font-bold text-sm">1,482</span>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-center">
+                  <span class="text-blue-200/80 block">Forgotten / Pruned:</span>
+                  <span class="text-slate-400 font-bold text-sm">43</span>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-center">
+                  <span class="text-blue-200/80 block">Vector Dimensions:</span>
+                  <span class="text-cyan-300 font-bold text-sm">384-D (NPU)</span>
+                </div>
+                <div class="bg-[#081036] p-2 rounded border border-blue-500/20 text-center">
+                  <span class="text-blue-200/80 block">Database Disk Size:</span>
+                  <span class="text-emerald-300 font-bold text-sm">4.82 MB</span>
+                </div>
+              </div>
+
+              <!-- Search & Kind Filters -->
+              <div class="flex items-center gap-3 bg-[#081036] p-2 rounded border border-blue-500/20">
+                <select id="memKindFilter" onchange="filterMemoryRows()" class="bg-[#060b24] border border-[#637bb5] rounded p-1.5 text-xs text-white">
+                  <option value="all">All Kinds (Episodic, Fact, Preference)</option>
+                  <option value="fact">Facts Only</option>
+                  <option value="preference">Preferences Only</option>
+                  <option value="episodic">Episodic Experiences Only</option>
+                </select>
+                <input id="memSearchInput" type="text" placeholder="Search memories by keyword..." oninput="filterMemoryRows()" class="flex-1 bg-[#060b24] border border-[#637bb5] rounded p-1.5 text-xs text-white">
+                <button onclick="filterMemoryRows()" class="ct-button px-3 py-1">🔍 Filter</button>
+              </div>
+
+              <!-- Interactive Memories Table -->
+              <div class="max-h-56 overflow-y-auto border border-blue-400/30 rounded bg-[#060b24]">
+                <table class="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr class="bg-[#081036] text-amber-300 border-b border-blue-400/30">
+                      <th class="p-2 w-16">ID</th>
+                      <th class="p-2 w-24">Kind</th>
+                      <th class="p-2">Content</th>
+                      <th class="p-2 w-20 text-center">Weight</th>
+                      <th class="p-2 w-32">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody id="memTableBody" class="divide-y divide-blue-500/10 text-slate-200">
+                    <tr onclick="selectMemoryRow(1, 'fact', 'Creator preferred dark-blue Chrono Trigger window theme with gold trim.', 0.95)" class="hover:bg-blue-900/40 cursor-pointer">
+                      <td class="p-2 text-slate-400">#001</td>
+                      <td class="p-2"><span class="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 font-bold">FACT</span></td>
+                      <td class="p-2 truncate max-w-md">Creator preferred dark-blue Chrono Trigger window theme with gold trim.</td>
+                      <td class="p-2 text-center text-amber-300 font-bold">0.95</td>
+                      <td class="p-2 text-slate-400">2026-09-17 19:42</td>
+                    </tr>
+                    <tr onclick="selectMemoryRow(2, 'preference', 'Push-to-talk key bound to Right Ctrl with Lucca hands-free wake word active.', 0.85)" class="hover:bg-blue-900/40 cursor-pointer">
+                      <td class="p-2 text-slate-400">#002</td>
+                      <td class="p-2"><span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold">PREF</span></td>
+                      <td class="p-2 truncate max-w-md">Push-to-talk key bound to Right Ctrl with Lucca hands-free wake word active.</td>
+                      <td class="p-2 text-center text-amber-300 font-bold">0.85</td>
+                      <td class="p-2 text-slate-400">2026-09-17 20:15</td>
+                    </tr>
+                    <tr onclick="selectMemoryRow(3, 'episodic', 'Successfully built standalone desktop executable Lucca.exe via PyInstaller.', 0.90)" class="hover:bg-blue-900/40 cursor-pointer">
+                      <td class="p-2 text-slate-400">#003</td>
+                      <td class="p-2"><span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">EPISODIC</span></td>
+                      <td class="p-2 truncate max-w-md">Successfully built standalone desktop executable Lucca.exe via PyInstaller.</td>
+                      <td class="p-2 text-center text-amber-300 font-bold">0.90</td>
+                      <td class="p-2 text-slate-400">2026-09-17 21:05</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- In-Place Memory Inspector / Editor -->
+              <div id="memEditorCard" class="bg-[#081036] p-3 rounded border border-amber-400/40 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <span class="gold-header text-xs">IN-PLACE MEMORY EDITOR (<span id="editMemId">#001</span>)</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-blue-200">Importance Weight:</span>
+                    <input id="editMemImportance" type="range" min="0" max="100" value="95" class="ct-slider w-28" oninput="document.getElementById('editMemImportanceVal').innerText = (this.value/100).toFixed(2)">
+                    <span id="editMemImportanceVal" class="text-amber-300 font-bold">0.95</span>
+                  </div>
+                </div>
+                <textarea id="editMemContent" rows="2" class="w-full bg-[#060b24] border border-[#637bb5] rounded p-2 text-xs text-slate-100 focus:border-amber-400 font-mono">Creator preferred dark-blue Chrono Trigger window theme with gold trim.</textarea>
+                <div class="flex items-center justify-between pt-1">
+                  <span id="memToastMsg" class="text-emerald-300 text-[11px]"></span>
+                  <div class="flex items-center gap-2">
+                    <button onclick="simulateForgetMemory()" class="ct-button px-3 py-1 !border-red-400 text-red-300">🗑️ Forget Memory</button>
+                    <button onclick="simulateSaveMemory()" class="ct-button px-4 py-1 !border-amber-400 text-amber-300 font-bold">💾 Save Changes</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <!-- TAB 9: Telemetry & Real-Time Log Viewer -->
+          <div id="tabContent_diag" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4 font-mono text-xs">
+              <div class="flex items-center justify-between border-b border-blue-400/30 pb-2">
+                <div>
+                  <span class="gold-header text-sm">HARDWARE SUBSTRATE POLLING & TELEMETRY LOG INSPECTOR</span>
+                  <p class="text-[11px] text-blue-200/70">Rolling session transcripts in C:\ProjectLucca\logs\resource_sessions\</p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <label class="flex items-center gap-1.5 text-[11px] text-emerald-300 cursor-pointer">
+                    <input type="checkbox" checked class="accent-emerald-400"> Live Auto-Tail (1s)
+                  </label>
+                  <button onclick="simulateRefreshLogs()" class="ct-button px-3 py-1 !border-cyan-400 text-cyan-300">🔄 Refresh Logs</button>
+                </div>
+              </div>
+
+              <!-- Log File Selector Strip -->
+              <div class="flex items-center gap-3 bg-[#081036] p-2 rounded border border-blue-500/20">
+                <span class="text-amber-300 font-bold">Active Log Session:</span>
+                <select id="telemetryLogSelect" class="flex-1 bg-[#060b24] border border-[#637bb5] rounded p-1.5 text-xs text-white">
+                  <option selected>telemetry_20260917_215629.jsonl (Current Active Session - 128 KB)</option>
+                  <option>telemetry_20260917_204812.jsonl (Prior Session - 412 KB)</option>
+                  <option>telemetry_20260917_193005.jsonl (Prior Session - 1.2 MB)</option>
+                </select>
+                <div class="flex items-center gap-2">
+                  <button onclick="toggleRawJsonlView(false)" id="btnTableMode" class="ct-button px-2.5 py-1 !border-amber-400 text-amber-300 font-bold">📊 Table View</button>
+                  <button onclick="toggleRawJsonlView(true)" id="btnRawMode" class="ct-button px-2.5 py-1">📜 Raw JSONL</button>
+                </div>
+              </div>
+
+              <!-- Parsed Telemetry Table -->
+              <div id="telemetryTableContainer" class="max-h-56 overflow-y-auto border border-blue-400/30 rounded bg-[#060b24]">
+                <table class="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr class="bg-[#081036] text-amber-300 border-b border-blue-400/30">
+                      <th class="p-2 w-32">Timestamp</th>
+                      <th class="p-2 w-28">Host RAM</th>
+                      <th class="p-2 w-28">Lucca RSS</th>
+                      <th class="p-2 w-36">dGPU RTX 5080</th>
+                      <th class="p-2 w-32">CPU Total / Lucca</th>
+                      <th class="p-2">NPU Engine</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-blue-500/10 text-slate-200">
+                    <tr class="hover:bg-blue-900/30 font-mono">
+                      <td class="p-2 text-slate-400">21:58:10</td>
+                      <td class="p-2 text-cyan-300">58.2% (9.3 / 16 GB)</td>
+                      <td class="p-2 text-emerald-300 font-bold">384.2 MB</td>
+                      <td class="p-2 text-amber-300">2.82 / 16.0 GB</td>
+                      <td class="p-2 text-white">14.2% / 2.1%</td>
+                      <td class="p-2 text-emerald-400">ONLINE (15W)</td>
+                    </tr>
+                    <tr class="hover:bg-blue-900/30 font-mono">
+                      <td class="p-2 text-slate-400">21:58:11</td>
+                      <td class="p-2 text-cyan-300">58.4% (9.3 / 16 GB)</td>
+                      <td class="p-2 text-emerald-300 font-bold">385.1 MB</td>
+                      <td class="p-2 text-amber-300">2.84 / 16.0 GB</td>
+                      <td class="p-2 text-white">16.8% / 2.4%</td>
+                      <td class="p-2 text-emerald-400">ONLINE (15W)</td>
+                    </tr>
+                    <tr class="hover:bg-blue-900/30 font-mono">
+                      <td class="p-2 text-slate-400">21:58:12</td>
+                      <td class="p-2 text-cyan-300">58.3% (9.3 / 16 GB)</td>
+                      <td class="p-2 text-emerald-300 font-bold">384.8 MB</td>
+                      <td class="p-2 text-amber-300">2.83 / 16.0 GB</td>
+                      <td class="p-2 text-white">13.5% / 1.9%</td>
+                      <td class="p-2 text-emerald-400">ONLINE (15W)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Raw JSONL Inspector View -->
+              <div id="telemetryRawContainer" class="hidden bg-[#060b24] p-3 rounded border border-blue-500/30 max-h-56 overflow-y-auto text-[10px] text-slate-300 leading-relaxed font-mono">
+                <code>
+{"timestamp": "2026-09-17T21:58:10", "cpu_total_pct": 14.2, "cpu_lucca_pct": 2.1, "ram_total_gb": 16.0, "ram_used_gb": 9.3, "ram_pct": 58.2, "lucca_rss_mb": 384.2, "gpu_vram_used_gb": 2.82, "gpu_vram_total_gb": 16.0, "npu_status": "ONLINE"}<br>
+{"timestamp": "2026-09-17T21:58:11", "cpu_total_pct": 16.8, "cpu_lucca_pct": 2.4, "ram_total_gb": 16.0, "ram_used_gb": 9.3, "ram_pct": 58.4, "lucca_rss_mb": 385.1, "gpu_vram_used_gb": 2.84, "gpu_vram_total_gb": 16.0, "npu_status": "ONLINE"}<br>
+{"timestamp": "2026-09-17T21:58:12", "cpu_total_pct": 13.5, "cpu_lucca_pct": 1.9, "ram_total_gb": 16.0, "ram_used_gb": 9.3, "ram_pct": 58.3, "lucca_rss_mb": 384.8, "gpu_vram_used_gb": 2.83, "gpu_vram_total_gb": 16.0, "npu_status": "ONLINE"}
+                </code>
+              </div>
+
+            </div>
+          </div>
+          <!-- TAB 10: Interactive User Manual Interface -->
+          <div id="tabContent_manual" class="hidden space-y-4">
+            <div class="ct-subbox p-4 space-y-4 font-mono text-xs">
+              <div class="flex items-center justify-between border-b border-blue-400/30 pb-2">
+                <div>
+                  <span class="gold-header text-sm">PROJECT LUCCA COMPLETE USER MANUAL</span>
+                  <p class="text-[11px] text-blue-200/70">Interactive documentation for companion navigation, voice blending, DSP, and reasoning</p>
+                </div>
+                <span class="text-xs px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-400/40">10 Chapters</span>
+              </div>
+
+              <!-- Split View: Table of Contents (Left) & Content Pane (Right) -->
+              <div class="grid grid-cols-12 gap-4 min-h-[300px]">
+                <!-- Left ToC -->
+                <div class="col-span-4 bg-[#081036] p-2 rounded border border-blue-500/20 space-y-1">
+                  <span class="text-amber-300 font-bold block pb-1 border-b border-blue-400/20 text-[11px]">TABLE OF CONTENTS:</span>
+                  <button onclick="selectManualChapter(1)" id="manToc_1" class="w-full text-left p-1.5 rounded bg-blue-600/30 text-amber-300 font-bold text-[11px]">1. Getting Started & Setup</button>
+                  <button onclick="selectManualChapter(2)" id="manToc_2" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">2. Commorose Radial Menu</button>
+                  <button onclick="selectManualChapter(3)" id="manToc_3" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">3. Voice Blender & Mixing</button>
+                  <button onclick="selectManualChapter(4)" id="manToc_4" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">4. Granular DSP Audio Chain</button>
+                  <button onclick="selectManualChapter(5)" id="manToc_5" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">5. Local LLM Tuning</button>
+                  <button onclick="selectManualChapter(6)" id="manToc_6" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">6. MicroScheme LISP Studio</button>
+                  <button onclick="selectManualChapter(7)" id="manToc_7" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">7. SQLite-vec Memory</button>
+                  <button onclick="selectManualChapter(8)" id="manToc_8" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">8. Hardware Telemetry</button>
+                  <button onclick="selectManualChapter(9)" id="manToc_9" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">9. Codebase Inspection</button>
+                  <button onclick="selectManualChapter(10)" id="manToc_10" class="w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]">10. Troubleshooting & FAQ</button>
+                </div>
+
+                <!-- Right Chapter Body -->
+                <div id="manualChapterContent" class="col-span-8 bg-[#060b24] p-3.5 rounded border border-blue-400/30 overflow-y-auto max-h-[300px] text-slate-200 text-xs leading-relaxed space-y-2">
+                  <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">1. Getting Started & Companion Controls</h4>
+                  <p>Project Lucca operates as a lightweight, non-blocking desktop overlay paired with an autonomous local agent stack.</p>
+                  <p><strong>Primary Interaction Paradigms:</strong></p>
+                  <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+                    <li><strong>Single-Click Lucca:</strong> Brings up the dialogue subtitle box, text input bar, and push-to-talk button.</li>
+                    <li><strong>Double-Click Lucca:</strong> Toggles the Battlefield-style concentric radial Commorose with 8 quick-access sectors.</li>
+                    <li><strong>Push-To-Talk:</strong> Hold Right Ctrl (or bound key in Tab 6) to stream voice input through Whisper ASR.</li>
+                    <li><strong>Hands-Free Wake Word:</strong> Speak "Lucca" to trigger voice recognition automatically without pressing keys.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 11: Dedicated About Lucca Section -->
+          <div id="tabContent_about" class="hidden space-y-4">
+            <div class="ct-subbox p-5 space-y-4 font-mono text-xs">
+              <div class="flex items-center gap-4 border-b border-blue-400/30 pb-3">
+                <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-900 to-indigo-950 border-2 border-amber-400 flex items-center justify-center text-3xl shadow-lg">
+                  ⏳
+                </div>
+                <div>
+                  <h3 class="gold-header text-base">PROJECT LUCCA — CHRONO TRIGGER COMPANION</h3>
+                  <p class="text-slate-300 text-xs">Version 0.2.6 · High-Performance Autonomous Desktop Pair Programmer</p>
+                </div>
+              </div>
+
+              <!-- Character Lore & Origin -->
+              <div class="space-y-1.5">
+                <span class="text-amber-300 font-bold block text-xs border-b border-blue-400/20 pb-0.5">CHARACTER LORE & ORIGIN</span>
+                <p class="text-slate-300 text-xs leading-relaxed">
+                  <strong>Lucca Ashtear</strong> is the brilliant teenage inventor from the Kingdom of Guardia (1000 AD) in Squaresoft's timeless masterpiece <em>Chrono Trigger</em>. Armed with relentless scientific curiosity, deep expertise in temporal mechanics, and her custom-built inventions, Lucca represents the pinnacle of retro-futuristic engineering.
+                </p>
+              </div>
+
+              <!-- 4-Process Decoupled Architecture -->
+              <div class="space-y-1.5">
+                <span class="text-amber-300 font-bold block text-xs border-b border-blue-400/20 pb-0.5">4-PROCESS DECOUPLED ARCHITECTURE</span>
+                <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+                  <li><strong>lucca-supervisor:</strong> Process lifecycle watchdog, IPC heartbeat monitor, and crash-resilient auto-recovery.</li>
+                  <li><strong>lucca-audio:</strong> Sub-50ms PortAudio ring buffers, Kokoro-82M TTS tensor engine, and Faster-Whisper ASR.</li>
+                  <li><strong>lucca-npu:</strong> OpenVINO GenAI neural execution pipeline pinned to the Intel AI Boost NPU.</li>
+                  <li><strong>lucca-ui:</strong> Transparent, non-blocking PyQt6 desktop overlay, concentric Commorose, and SNES control suite.</li>
+                </ul>
+              </div>
+
+              <!-- Physical Hardware Topology Detected -->
+              <div class="space-y-1.5">
+                <span class="text-amber-300 font-bold block text-xs border-b border-blue-400/20 pb-0.5">PHYSICAL HARDWARE TOPOLOGY DETECTED ON HOST</span>
+                <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="text-amber-300 font-bold block">dGPU:</span> NVIDIA RTX 5080 Laptop (16 GB GDDR7)
+                  </div>
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="text-amber-300 font-bold block">CPU:</span> Intel Core Ultra 9 275HX (24 Cores)
+                  </div>
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="text-amber-300 font-bold block">Host Physical RAM:</span> 16.0 GB High-Speed System RAM
+                  </div>
+                  <div class="bg-[#081036] p-2 rounded border border-blue-500/20">
+                    <span class="text-amber-300 font-bold block">NPU:</span> Intel AI Boost Neural Processing Unit
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tech Stack & Credits -->
+              <div class="pt-2 border-t border-blue-400/20 text-[11px] text-slate-400 flex items-center justify-between">
+                <span>Python 3.12 · PyQt6 · PyZMQ · Kokoro-ONNX · Faster-Whisper · SQLite-vec · MicroScheme</span>
+                <span class="text-slate-500">MIT License</span>
+              </div>
+            </div>
+          </div>
+</div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Audio-Synchronized Speech Streaming Engine Simulation
+    const sampleText = "Speech streaming synchronized! Notice how my words appear phrase-by-phrase at my natural speaking pace, with smooth pacing pauses on commas and periods!";
+    let streamIndex = 0;
+    let streamTimer = null;
+
+    function simulateSpeechStreaming() {
+      const el = document.getElementById('typewriterText');
+      const cursor = document.getElementById('dialogueCursor');
+      if (!el) return;
+      
+      if (streamTimer) clearTimeout(streamTimer);
+      el.innerText = "";
+      cursor.style.display = "none";
+      streamIndex = 0;
+
+      function step() {
+        if (streamIndex <= sampleText.length) {
+          el.textContent = sampleText.slice(0, streamIndex);
+          const char = sampleText[streamIndex - 1] || '';
+          streamIndex++;
+
+          let delay = 48;
+          if (char === ',') delay = 180;
+          else if (char === '.' || char === '!' || char === '?') delay = 350;
+
+          streamTimer = setTimeout(step, delay);
+        } else {
+          cursor.style.display = "inline-block";
+        }
+      }
+      step();
+    }
+
+    // Single Click vs Double Click Dispatcher on Lucca
+    let luccaClickTimer = null;
+
+    function handleLuccaClick(event) {
+      if (event) event.stopPropagation();
+      if (luccaClickTimer) {
+        // Double-click detected: toggle Commorose (open if closed, close if open)
+        clearTimeout(luccaClickTimer);
+        luccaClickTimer = null;
+        toggleCommorose();
+      } else {
+        luccaClickTimer = setTimeout(() => {
+          luccaClickTimer = null;
+          // Single-click detected: bring up subtitle / type message / click to talk button
+          toggleDialogueAndChat();
+        }, 220);
+      }
+    }
+
+    function toggleDialogueAndChat() {
+      const diag = document.getElementById('dialogueBox');
+      const chat = document.getElementById('quickChatBar');
+      const inp = document.getElementById('chatInput');
+      if (!diag || !chat) return;
+
+      diag.classList.remove('hidden');
+      chat.classList.remove('hidden');
+      chat.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (inp) inp.focus();
+    }
+
+    // Concentric Commorose Radial Menu Toggle (Double-Click on Lucca)
+    function toggleCommorose() {
+      const menu = document.getElementById('commoroseContainer');
+      if (!menu) return;
+      menu.classList.toggle('hidden');
+    }
+
+    function onStageClick(event) {
+      const menu = document.getElementById('commoroseContainer');
+      if (menu && !menu.classList.contains('hidden')) {
+        if (!event.target.closest('.commorose-sector') && !event.target.closest('#luccaSpriteContainer')) {
+          menu.classList.add('hidden');
+        }
+      }
+    }
+
+    // Toggle Telemetry HUD Pin
+    function togglePinHud() {
+      const hud = document.getElementById('pinnedTelemetryHud');
+      const btn = document.getElementById('btnPinHud');
+      if (!hud) return;
+      if (hud.classList.contains('opacity-30')) {
+        hud.classList.remove('opacity-30');
+        if (btn) btn.innerText = "📌 Pinned";
+      } else {
+        hud.classList.add('opacity-30');
+        if (btn) btn.innerText = "Unpinned";
+      }
+    }
+
+    // Context Slider & Real-Time KV-Cache VRAM Calculator
+    function updateContextSlider(val) {
+      val = parseInt(val);
+      document.getElementById('contextSlider').value = val;
+      document.getElementById('contextSpinbox').value = val;
+      document.getElementById('ctxTokenBadge').innerText = val.toLocaleString() + ' Tokens';
+
+      const mbFp16 = (val * 0.262144).toFixed(0);
+      const gbFp16 = (mbFp16 / 1024).toFixed(1);
+      const gbQ8 = (gbFp16 * 0.5).toFixed(1);
+      const gbQ4 = (gbFp16 * 0.28).toFixed(1);
+
+      document.getElementById('vramTotalCalc').innerText = `~${gbFp16} GB VRAM (FP16)`;
+      document.getElementById('vramFp16').innerText = `${gbFp16} GB`;
+      document.getElementById('vramQ8').innerText = `${gbQ8} GB`;
+      document.getElementById('vramQ4').innerText = `${gbQ4} GB`;
+    }
+
+    // View Switcher (Dialogue vs Settings)
+    function switchView(view) {
+      const vDiag = document.getElementById('viewDialogue');
+      const vSet = document.getElementById('viewSettings');
+      const bDiag = document.getElementById('viewBtnDialogue');
+      const bSet = document.getElementById('viewBtnSettings');
+
+      if (view === 'dialogue') {
+        vDiag.classList.remove('hidden');
+        vSet.classList.add('hidden');
+        bDiag.className = "px-3.5 py-1.5 text-xs rounded-lg font-semibold transition bg-blue-600/30 text-amber-300 border border-amber-400/50";
+        bSet.className = "px-3.5 py-1.5 text-xs rounded-lg font-medium text-slate-400 hover:text-white transition";
+      } else {
+        vDiag.classList.add('hidden');
+        vSet.classList.remove('hidden');
+        bDiag.className = "px-3.5 py-1.5 text-xs rounded-lg font-medium text-slate-400 hover:text-white transition";
+        bSet.className = "px-3.5 py-1.5 text-xs rounded-lg font-semibold transition bg-blue-600/30 text-amber-300 border border-amber-400/50";
+      }
+    }
+
+    // Settings Tab Switcher
+    const tabs = ['persona', 'tts', 'llm', 'tools', 'lisp', 'hotkeys', 'dsp', 'memory', 'diag', 'about'];
+    // Switch between 11 Settings Tabs
+    function switchSettingsTab(tabName) {
+      const tabs = ['persona', 'tts', 'llm', 'tools', 'lisp', 'hotkeys', 'dsp', 'memory', 'diag', 'manual', 'about'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn_' + t);
+        const content = document.getElementById('tabContent_' + t);
+        if (btn && content) {
+          if (t === tabName) {
+            btn.classList.add('ct-tab-active');
+            content.classList.remove('hidden');
+          } else {
+            btn.classList.remove('ct-tab-active');
+            content.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    // Voice Blender Mode Toggle
+    function toggleVoiceMode(mode) {
+      const mixer = document.getElementById('panelMixer');
+      if (mixer) {
+        mixer.style.opacity = (mode === 'mixer') ? '1.0' : '0.4';
+      }
+    }
+
+    function updateBlendFormula() {
+      const vA = document.getElementById('blendVoiceA').value;
+      const vB = document.getElementById('blendVoiceB').value;
+      const ratio = parseInt(document.getElementById('blendSlider').value);
+      const fracA = (ratio / 100.0).toFixed(2);
+      const fracB = ((100 - ratio) / 100.0).toFixed(2);
+      
+      document.getElementById('blendRatioText').innerText = `${ratio}% Voice A / ${100 - ratio}% Voice B`;
+      document.getElementById('blendFormulaInput').value = `blend:${fracA}*${vA}+${fracB}*${vB}`;
+    }
+
+    // DSP Playback Simulation
+    function simulateDspPlayback() {
+      const toast = document.getElementById('dspStatusToast');
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    // Memory Selection & Management Simulation
+    function selectMemoryRow(id, kind, content, importance) {
+      document.getElementById('editMemId').innerText = '#' + String(id).padStart(3, '0');
+      document.getElementById('editMemContent').value = content;
+      document.getElementById('editMemImportance').value = Math.round(importance * 100);
+      document.getElementById('editMemImportanceVal').innerText = importance.toFixed(2);
+    }
+
+    function simulateSaveMemory() {
+      const msg = document.getElementById('memToastMsg');
+      msg.innerText = "✓ Memory record updated in C:\\ProjectLucca\\data\\memory.sqlite";
+      setTimeout(() => msg.innerText = "", 3000);
+    }
+
+    function simulateForgetMemory() {
+      if (confirm("Permanently prune and forget this memory record?")) {
+        const msg = document.getElementById('memToastMsg');
+        msg.innerText = "✓ Memory record soft-deleted (status = forgotten).";
+        setTimeout(() => msg.innerText = "", 3000);
+      }
+    }
+
+    function simulateTeachMemory() {
+      const fact = prompt("Enter new fact or instruction for Lucca to remember:");
+      if (fact && fact.trim()) {
+        const msg = document.getElementById('memToastMsg');
+        msg.innerText = "✓ Learned new fact! Vector embedding indexed in memory.sqlite.";
+        setTimeout(() => msg.innerText = "", 3000);
+      }
+    }
+
+    function simulateVacuumDb() {
+      const msg = document.getElementById('memToastMsg');
+      msg.innerText = "✓ SQLite-vec VACUUM complete. Recovered 420 KB disk space.";
+      setTimeout(() => msg.innerText = "", 3000);
+    }
+
+    function filterMemoryRows() {
+      const q = document.getElementById('memSearchInput').value.toLowerCase();
+      const kind = document.getElementById('memKindFilter').value;
+      const rows = document.querySelectorAll('#memTableBody tr');
+      rows.forEach(r => {
+        const text = r.innerText.toLowerCase();
+        const matchesQ = !q || text.includes(q);
+        const matchesKind = (kind === 'all') || text.includes(kind.toLowerCase());
+        r.style.display = (matchesQ && matchesKind) ? '' : 'none';
+      });
+    }
+
+    // Telemetry View Toggle
+    function toggleRawJsonlView(raw) {
+      const tbl = document.getElementById('telemetryTableContainer');
+      const rawBox = document.getElementById('telemetryRawContainer');
+      const btnTbl = document.getElementById('btnTableMode');
+      const btnRaw = document.getElementById('btnRawMode');
+      if (raw) {
+        tbl.classList.add('hidden');
+        rawBox.classList.remove('hidden');
+        btnRaw.classList.add('!border-amber-400', 'text-amber-300', 'font-bold');
+        btnTbl.classList.remove('!border-amber-400', 'text-amber-300', 'font-bold');
+      } else {
+        tbl.classList.remove('hidden');
+        rawBox.classList.add('hidden');
+        btnTbl.classList.add('!border-amber-400', 'text-amber-300', 'font-bold');
+        btnRaw.classList.remove('!border-amber-400', 'text-amber-300', 'font-bold');
+      }
+    }
+
+    function simulateRefreshLogs() {
+      const sel = document.getElementById('telemetryLogSelect');
+      sel.style.borderColor = '#38bdf8';
+      setTimeout(() => sel.style.borderColor = '#637bb5', 500);
+    }
+
+    // Manual Chapter Selection
+    const manualChapters = {
+      1: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">1. Getting Started & Companion Controls</h4>
+        <p>Project Lucca operates as a lightweight, non-blocking desktop overlay paired with an autonomous local agent stack.</p>
+        <p><strong>Primary Interaction Paradigms:</strong></p>
+        <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+          <li><strong>Single-Click Lucca:</strong> Brings up the dialogue subtitle box, text input bar, and push-to-talk button.</li>
+          <li><strong>Double-Click Lucca:</strong> Toggles the Battlefield-style concentric radial Commorose with 8 quick-access sectors.</li>
+          <li><strong>Push-To-Talk:</strong> Hold Right Ctrl (or bound key in Tab 6) to stream voice input through Whisper ASR.</li>
+          <li><strong>Hands-Free Wake Word:</strong> Speak "Lucca" to trigger voice recognition automatically without pressing keys.</li>
+        </ul>
+      `,
+      2: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">2. Companion Avatar & Commorose Radial Menu</h4>
+        <p>The Commorose is an 8-sector concentric radial menu with an open center hole leaving Lucca 100% visible at all times.</p>
+        <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+          <li><strong>North:</strong> Open Chrono Trigger Settings Suite</li>
+          <li><strong>North-East:</strong> Toggle Real-Time Telemetry HUD</li>
+          <li><strong>East:</strong> λ LISP Studio & Rule Pathways</li>
+          <li><strong>South-East:</strong> C:\ProjectLucca\data Memory DB Folder</li>
+          <li><strong>South:</strong> C:\ProjectLucca\workspace Directory</li>
+          <li><strong>South-West:</strong> Kokoro Voice Blender & Mixing</li>
+          <li><strong>West:</strong> Approved Tools & Security Whitelist</li>
+          <li><strong>North-West:</strong> C:\projects\ProjectLucca Codebase Inspection</li>
+        </ul>
+      `,
+      3: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">3. Kokoro Voice Blender & Dual-Vector Mixing</h4>
+        <p>Project Lucca supports custom linear combinations of style embedding vectors discovered in <code>voices-v1.0.bin</code>.</p>
+        <p>Select Primary Vector A, Secondary Vector B, and adjust the tensor blend ratio slider (0.00 to 1.00). The computed synthesis formula <code>blend:0.70*af_sky+0.30*jf_alpha</code> produces unique vocal textures.</p>
+      `,
+      4: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">4. Granular DSP Audio Post-Processing</h4>
+        <p>The real-time DSP pipeline processes Kokoro synthesis samples before sending to sounddevice audio output:</p>
+        <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+          <li><strong>Pitch Shift (-12 to +12 semitones):</strong> Classic SNES sampling rate modulator.</li>
+          <li><strong>Master Gain (-12 dB to +12 dB):</strong> Level alignment.</li>
+          <li><strong>Bass Warmth (+3.5 dB @ 250 Hz) & Treble Clarity (+2.5 dB @ 4.5 kHz):</strong> Analog tone coloration.</li>
+          <li><strong>SNES SPC700 Reverb / Echo:</strong> Wet/Dry adjustable echo simulating retro game console acoustics.</li>
+          <li><strong>Soft-Knee Limiter:</strong> Prevents clipping and distortion during high dynamic range peaks.</li>
+        </ul>
+      `,
+      5: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">5. Local LLM Tuning & Quantization</h4>
+        <p>Fine-tune context window length (512 to 32,768 tokens) and temperature. Real-time KV-cache VRAM estimation guarantees your RTX 5080 avoids out-of-memory driver crashes.</p>
+      `,
+      6: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">6. MicroScheme LISP Domain Reasoning Studio</h4>
+        <p>Organize reasoning rules by category: Hardware, Cognitive, Tools, Persona, Memory. Edit canonical S-expressions in place, validate syntax with <code>parse_rule</code>, and simulate live gas evaluation.</p>
+      `,
+      7: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">7. SQLite-vec Semantic & Episodic Memory</h4>
+        <p>All companion memories are vector-indexed using 384-dimensional embeddings. Filter by kind, edit importance weights (0.0 to 1.0), prune outdated knowledge, and teach Lucca new facts.</p>
+      `,
+      8: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">8. Hardware Telemetry & Log Inspection</h4>
+        <p>Inspect real hardware utilization snapshots in rolling JSONL log sessions stored in <code>C:\ProjectLucca\logs\resource_sessions\</code>. Switch between formatted table and raw JSONL views.</p>
+      `,
+      9: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">9. Application Whitelist & Codebase Self-Inspection</h4>
+        <p>Lucca has safe, read-only inspection access to her source codebase at <code>C:\projects\ProjectLucca</code>. Tool execution is strictly governed by the application whitelist.</p>
+      `,
+      10: `
+        <h4 class="text-amber-300 font-bold border-b border-blue-400/30 pb-1">10. Troubleshooting & FAQ</h4>
+        <p><strong>Common Fixes:</strong></p>
+        <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+          <li><strong>No Sound:</strong> Verify Kokoro model files in <code>C:\ProjectLucca\models\tts\</code> and sounddevice default output device.</li>
+          <li><strong>High VRAM:</strong> Lower context window in Tab 3 or enable 8-bit KV-cache quantization.</li>
+          <li><strong>Hotkey Conflict:</strong> Rebind Push-To-Talk in Tab 6.</li>
+        </ul>
+      `
+    };
+
+    function selectManualChapter(chNum) {
+      for (let i = 1; i <= 10; i++) {
+        const toc = document.getElementById('manToc_' + i);
+        if (toc) {
+          if (i === chNum) {
+            toc.className = "w-full text-left p-1.5 rounded bg-blue-600/30 text-amber-300 font-bold text-[11px]";
+          } else {
+            toc.className = "w-full text-left p-1.5 rounded text-slate-300 hover:text-white text-[11px]";
+          }
+        }
+      }
+      const body = document.getElementById('manualChapterContent');
+      if (body && manualChapters[chNum]) {
+        body.innerHTML = manualChapters[chNum];
+      }
+    }
+
+    function filterLispCategory(cat) {
+      const cards = document.querySelectorAll('.lisp-card');
+      const buttons = ['all', 'hardware', 'cognitive', 'tools', 'persona', 'memory'];
+      buttons.forEach(b => {
+        const el = document.getElementById('lispCat_' + b);
+        if (el) {
+          if (b === cat) {
+            el.className = "px-2.5 py-1 rounded bg-blue-600/40 text-amber-300 border border-amber-400/50 font-bold";
+          } else {
+            el.className = "px-2.5 py-1 rounded bg-slate-900 text-slate-300 border border-slate-700 hover:text-white";
+          }
+        }
+      });
+
+      cards.forEach(card => {
+        if (cat === 'all' || card.dataset.category === cat) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      });
+    }
+
+    // In-Place LISP S-Expression Editor
+    const sampleRules = {
+      'vram-safety-guard-v1': '(rule "vram-safety-guard-v1"\n  :when (and (intent= "llm_query") (< (gpu-free-vram-gb) 2.5))\n  :plan (list (set-kv-cache-quant "q8_0") (say "Adjusting neural cache to preserve VRAM ceiling!"))\n  :priority 90)',
+      'npu-whisper-pin-v1': '(rule "npu-whisper-pin-v1"\n  :when (and (intent= "voice_input") (not (npu-active?)))\n  :plan (list (tool "restart_npu_subsystem") (say "Re-aligning voice stream to the AI Boost NPU!"))\n  :priority 95)',
+      'temporal-logic-gate-v1': '(rule "temporal-logic-gate-v1"\n  :when (and (intent= "counterfactual") (transcript-has? "timeline"))\n  :plan (list (say "Analyzing temporal divergence points...") (tool "search_temporal_memories"))\n  :priority 80)',
+      'codebase-inspect-route-v1': '(rule "codebase-inspect-route-v1"\n  :when (or (transcript-has? "source") (transcript-has? "architecture") (intent= "read_code"))\n  :plan (list (tool "inspect_codebase" (entity "target_path")) (say "Accessing my source repository at C:\\\\projects\\\\ProjectLucca!"))\n  :priority 85)',
+      'inventor-curiosity-v1': '(rule "inventor-curiosity-v1"\n  :when (and (intent= "invention_discussion") (app-running? "code.exe"))\n  :plan (list (set-persona-trait "enthusiasm" 95) (say "Now you\'re speaking my language! Let\'s examine the blueprints!"))\n  :priority 65)',
+      'vector-relevance-gate-v1': '(rule "vector-relevance-gate-v1"\n  :when (and (intent= "recall_past") (> (memory-relevance-score) 0.72))\n  :plan (list (tool "inject_memory_context" (entity "memory_id")))\n  :priority 75)'
+    };
+
+    function openEditRuleModal(ruleId) {
+      document.getElementById('modalRuleId').innerText = ruleId;
+      document.getElementById('modalRuleCode').value = sampleRules[ruleId] || `(rule "${ruleId}"\n  :when (intent= "custom_trigger")\n  :plan (say "Custom pathway executed")\n  :priority 50)`;
+      document.getElementById('lispEditModal').classList.remove('hidden');
+      document.getElementById('lispEditModal').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function closeEditRuleModal() {
+      document.getElementById('lispEditModal').classList.add('hidden');
+    }
+
+    function saveRuleEdit() {
+      const id = document.getElementById('modalRuleId').innerText;
+      const code = document.getElementById('modalRuleCode').value;
+      sampleRules[id] = code;
+      showEvalToast(`Rule [${id}] compiled and validated into active rule state.`);
+      closeEditRuleModal();
+    }
+
+    function openAddRuleModal() {
+      openEditRuleModal('custom-pathway-v1');
+      document.getElementById('modalRuleCode').value = '(rule "custom-pathway-v1"\n  :when (and (intent= "inspect_system") (last-tool-ok?))\n  :plan (list (tool "get_system_metrics") (say "Here is the current hardware telemetry!"))\n  :priority 70)';
+    }
+
+    function simulateDeleteRule(ruleId) {
+      if (confirm(`Retire and remove LISP reasoning pathway [${ruleId}]?`)) {
+        showEvalToast(`Rule [${ruleId}] transitioned to RETIRED lifecycle state.`);
+      }
+    }
+
+    function simulateEvalRule(ruleId) {
+      showEvalToast(`Evaluated [${ruleId}]: Guard conditions PASSED (Gas: 142 / 1000, Wall: 2.1ms). Generated 2 execution actions.`);
+    }
+
+    function showEvalToast(msg) {
+      const toast = document.getElementById('lispEvalToast');
+      document.getElementById('lispEvalText').innerText = msg;
+      toast.classList.remove('hidden');
+      setTimeout(() => { toast.classList.add('hidden'); }, 4500);
+    }
+
+    // Simulate Quick Folder Opening
+    function simulateOpenFolder(path) {
+      const toast = document.getElementById('folderToast');
+      const text = document.getElementById('folderToastText');
+      text.innerText = `Requested Windows Explorer opening: ${path}`;
+      toast.classList.remove('hidden');
+      setTimeout(() => { toast.classList.add('hidden'); }, 4000);
+    }
+
+    // Simulate Chat Message
+    function sendChatMessage() {
+      const inp = document.getElementById('chatInput');
+      if (!inp || !inp.value.trim()) return;
+      const msg = inp.value.trim();
+      inp.value = '';
+      
+      const el = document.getElementById('typewriterText');
+      el.innerText = `Analyzing prompt: "${msg}"... Querying MicroScheme domain reasoning pathways and C:\\projects\\ProjectLucca!`;
+      simulateSpeechStreaming();
+    }
+
+    function focusChat() {
+      const inp = document.getElementById('chatInput');
+      if (inp) {
+        inp.focus();
+        inp.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Simulate LLM Server Restart
+    function simulateRestartLlm() {
+      const btn = document.getElementById('btnRestartLlm');
+      btn.innerText = "⏳ Restarting llama-server.exe...";
+      btn.disabled = true;
+      setTimeout(() => {
+        btn.innerText = "✓ Server Active (Health 200 OK)";
+        setTimeout(() => {
+          btn.innerHTML = "<span>🔄</span> Restart LLM Server";
+          btn.disabled = false;
+        }, 2000);
+      }, 1500);
+    }
+
+    // Real-Time Clock
+    function updateClock() {
+      const now = new Date();
+      const el = document.getElementById('realTimeClock');
+      if (el) {
+        el.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+  </script>
+</body>
+</html>

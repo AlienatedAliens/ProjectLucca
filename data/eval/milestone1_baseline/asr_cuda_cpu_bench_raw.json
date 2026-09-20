@@ -1,0 +1,298 @@
+{
+  "timestamp": 1789853258.1872337,
+  "vram_before_model_load": {
+    "used_mib": 10760,
+    "free_mib": 5244
+  },
+  "configurations": {
+    "cuda_float16_beam_1": {
+      "calc_01 (short command)": {
+        "audio_duration_s": 1.32,
+        "transcript": "Open the calculator.",
+        "p50_ms": 67.79,
+        "mean_ms": 223.99,
+        "p95_ms": 695.41,
+        "min_ms": 65.04,
+        "max_ms": 852.25,
+        "real_time_factor": 0.1694,
+        "latencies_ms": [
+          852.25,
+          67.79,
+          68.07,
+          65.04,
+          66.81
+        ]
+      },
+      "browser_01 (short command)": {
+        "audio_duration_s": 1.11,
+        "transcript": "Open the browser.",
+        "p50_ms": 67.5,
+        "mean_ms": 67.29,
+        "p95_ms": 68.23,
+        "min_ms": 66.2,
+        "max_ms": 68.37,
+        "real_time_factor": 0.0607,
+        "latencies_ms": [
+          68.37,
+          66.2,
+          67.5,
+          66.74,
+          67.67
+        ]
+      },
+      "conversational_speech (medium speech)": {
+        "audio_duration_s": 1.71,
+        "transcript": "Hello, Lucca, what is your name?",
+        "p50_ms": 85.15,
+        "mean_ms": 83.84,
+        "p95_ms": 86.26,
+        "min_ms": 80.13,
+        "max_ms": 86.29,
+        "real_time_factor": 0.0491,
+        "latencies_ms": [
+          86.14,
+          85.15,
+          86.29,
+          81.48,
+          80.13
+        ]
+      },
+      "conversational_hello (medium speech)": {
+        "audio_duration_s": 2.05,
+        "transcript": "Hello, Lucca. Tell me a quick fact.",
+        "p50_ms": 85.91,
+        "mean_ms": 86.99,
+        "p95_ms": 93.6,
+        "min_ms": 83.19,
+        "max_ms": 95.13,
+        "real_time_factor": 0.0425,
+        "latencies_ms": [
+          83.24,
+          87.51,
+          83.19,
+          95.13,
+          85.91
+        ]
+      }
+    },
+    "cuda_float16_beam_5": {
+      "calc_01 (short command)": {
+        "audio_duration_s": 1.32,
+        "transcript": "Open the calculator.",
+        "p50_ms": 117.24,
+        "mean_ms": 121.1,
+        "p95_ms": 131.26,
+        "min_ms": 112.19,
+        "max_ms": 132.12,
+        "real_time_factor": 0.0916,
+        "latencies_ms": [
+          132.12,
+          117.24,
+          112.19,
+          116.15,
+          127.78
+        ]
+      },
+      "browser_01 (short command)": {
+        "audio_duration_s": 1.11,
+        "transcript": "Open the browser.",
+        "p50_ms": 117.71,
+        "mean_ms": 116.54,
+        "p95_ms": 120.84,
+        "min_ms": 107.53,
+        "max_ms": 121.1,
+        "real_time_factor": 0.1051,
+        "latencies_ms": [
+          117.71,
+          116.56,
+          107.53,
+          121.1,
+          119.81
+        ]
+      },
+      "conversational_speech (medium speech)": {
+        "audio_duration_s": 1.71,
+        "transcript": "Hello Luca, what is your name?",
+        "p50_ms": 143.02,
+        "mean_ms": 143.17,
+        "p95_ms": 146.06,
+        "min_ms": 138.99,
+        "max_ms": 146.1,
+        "real_time_factor": 0.0839,
+        "latencies_ms": [
+          141.84,
+          146.1,
+          138.99,
+          143.02,
+          145.92
+        ]
+      },
+      "conversational_hello (medium speech)": {
+        "audio_duration_s": 2.05,
+        "transcript": "Hello Luca, tell me a quick fact.",
+        "p50_ms": 153.72,
+        "mean_ms": 153.4,
+        "p95_ms": 155.95,
+        "min_ms": 149.79,
+        "max_ms": 156.46,
+        "real_time_factor": 0.0749,
+        "latencies_ms": [
+          153.9,
+          156.46,
+          153.12,
+          149.79,
+          153.72
+        ]
+      }
+    },
+    "cpu_int8_beam_1": {
+      "calc_01 (short command)": {
+        "audio_duration_s": 1.32,
+        "transcript": "Open the calculator.",
+        "p50_ms": 1230.81,
+        "mean_ms": 1210.4,
+        "p95_ms": 1249.89,
+        "min_ms": 1162.99,
+        "max_ms": 1251.56,
+        "real_time_factor": 0.9151,
+        "latencies_ms": [
+          1163.42,
+          1243.21,
+          1251.56,
+          1162.99,
+          1230.81
+        ]
+      },
+      "browser_01 (short command)": {
+        "audio_duration_s": 1.11,
+        "transcript": "Open the browser.",
+        "p50_ms": 1156.06,
+        "mean_ms": 1167.95,
+        "p95_ms": 1214.88,
+        "min_ms": 1133.29,
+        "max_ms": 1226.63,
+        "real_time_factor": 1.0529,
+        "latencies_ms": [
+          1155.87,
+          1226.63,
+          1156.06,
+          1133.29,
+          1167.88
+        ]
+      },
+      "conversational_speech (medium speech)": {
+        "audio_duration_s": 1.71,
+        "transcript": "Hello, Lucca, what is your name?",
+        "p50_ms": 1218.15,
+        "mean_ms": 1208.89,
+        "p95_ms": 1267.2,
+        "min_ms": 1151.42,
+        "max_ms": 1278.72,
+        "real_time_factor": 0.7084,
+        "latencies_ms": [
+          1218.15,
+          1278.72,
+          1221.13,
+          1151.42,
+          1175.04
+        ]
+      },
+      "conversational_hello (medium speech)": {
+        "audio_duration_s": 2.05,
+        "transcript": "Hello, Lucca. Tell me a quick fact.",
+        "p50_ms": 1179.07,
+        "mean_ms": 1183.21,
+        "p95_ms": 1224.05,
+        "min_ms": 1125.72,
+        "max_ms": 1226.81,
+        "real_time_factor": 0.5777,
+        "latencies_ms": [
+          1179.07,
+          1125.72,
+          1226.81,
+          1213.04,
+          1171.44
+        ]
+      }
+    },
+    "cpu_int8_beam_5": {
+      "calc_01 (short command)": {
+        "audio_duration_s": 1.32,
+        "transcript": "Open the calculator.",
+        "p50_ms": 1140.09,
+        "mean_ms": 1175.18,
+        "p95_ms": 1266.13,
+        "min_ms": 1115.75,
+        "max_ms": 1279.45,
+        "real_time_factor": 0.8885,
+        "latencies_ms": [
+          1140.09,
+          1127.78,
+          1115.75,
+          1279.45,
+          1212.83
+        ]
+      },
+      "browser_01 (short command)": {
+        "audio_duration_s": 1.11,
+        "transcript": "Open the browser.",
+        "p50_ms": 1156.16,
+        "mean_ms": 1145.59,
+        "p95_ms": 1181.96,
+        "min_ms": 1067.14,
+        "max_ms": 1185.13,
+        "real_time_factor": 1.0327,
+        "latencies_ms": [
+          1150.21,
+          1185.13,
+          1156.16,
+          1067.14,
+          1169.3
+        ]
+      },
+      "conversational_speech (medium speech)": {
+        "audio_duration_s": 1.71,
+        "transcript": "Hello Luca, what is your name?",
+        "p50_ms": 1201.94,
+        "mean_ms": 1194.91,
+        "p95_ms": 1239.67,
+        "min_ms": 1150.99,
+        "max_ms": 1245.84,
+        "real_time_factor": 0.7002,
+        "latencies_ms": [
+          1245.84,
+          1160.77,
+          1150.99,
+          1201.94,
+          1215.01
+        ]
+      },
+      "conversational_hello (medium speech)": {
+        "audio_duration_s": 2.05,
+        "transcript": "Hello, Luca. Tell me a quick fact.",
+        "p50_ms": 1134.7,
+        "mean_ms": 1152.58,
+        "p95_ms": 1219.6,
+        "min_ms": 1087.55,
+        "max_ms": 1229.37,
+        "real_time_factor": 0.5628,
+        "latencies_ms": [
+          1180.49,
+          1229.37,
+          1087.55,
+          1134.7,
+          1130.79
+        ]
+      }
+    }
+  },
+  "vram_after_cuda_load": {
+    "used_mib": 11315,
+    "free_mib": 4689
+  },
+  "vram_cuda_delta_mib": 555,
+  "vram_after_cuda_warmup": {
+    "used_mib": 11315,
+    "free_mib": 4689
+  }
+}
