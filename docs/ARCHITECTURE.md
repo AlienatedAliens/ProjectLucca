@@ -456,4 +456,8 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-REAS-05** | Bounded Macro System | Compile-time macro expansion (depth $\le 8$, steps $\le 64$). | **Enforced** |
 | **D-REAS-06** | Safe Rule Induction | Mining SQLite history ($N \ge 3$) strictly into `QUARANTINE`. | **Enforced** |
 | **D-SAND-03** | Async Task Protocol | Thread-safe background jobs with ULID IDs and sandboxed query tools. | **Enforced** |
+| **D-SAND-04** | Persistent Docker RPC | Long-lived WSL2 container with in-container process reaper & hierarchical timeouts. | **Enforced** |
+| **D-CASC-01** | Epistemic Cascade | 5-substrate prioritized search with Belnap $\mathcal{FOUR}$ bilattice & floor cues. | **Enforced** |
+| **D-ARB-01**  | Speculative BDI Gate | Sub-200us pre-dispatch deontic validator & MicroScheme cognitive bus arbitration. | **Enforced** |
+| **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization & 30us abort. | **Enforced** |
 | **D-EVAL-01** | Frozen Evaluation Suite | 110 golden traces regression harness with 100% pass gate. | **Enforced** |

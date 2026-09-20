@@ -151,4 +151,21 @@
 - **Decision:** Runtime performance, intent classification, and execution tier routing are guarded by a frozen regression harness (`tests/test_frozen_regression_harness.py`) executing against $\ge 100$ golden test scenarios (`tests/fixtures/eval/golden_traces.jsonl`). Scenarios span System 1 emergency reflexes (<150ms budget), Act-Then-Narrate procedural workflows, and System 2 multi-turn tool loops. CI/CD runs must achieve 100% pass rate with zero latency regressions.
 - **Status:** Ratified & Enforced.
 
+### D-SAND-04 — Persistent Docker Worker & Container Zombie Process Reaping
+- **Decision:** The container sandbox operates as a persistent daemon process (`lucca-toolsrv --loop`) inside the WSL2 Docker container, eliminating container spin-up overhead and achieving $6.87\,\text{ms}$ P50 RPC turnaround. In-container Python subprocess tracking inspects `/proc/*/cmdline` to reap orphaned zombie processes using `SIGKILL` without relying on external packages. Enforces hierarchical timeouts: $15.0\,\text{s}$ for `run_python` and $5.0\,\text{s}$ for filesystem tools.
+- **Status:** Ratified & Enforced (Commit `d5fe8cc`).
+
+### D-CASC-01 — 5-Substrate Epistemic Search Cascade & Belnap Evidential Bilattice
+- **Decision:** Epistemic gap queries execute across a 5-substrate prioritized cascade (Substrate 0 Telemetry $\rightarrow$ Substrate 1 Workspace $\rightarrow$ Substrate 2 Memory $\rightarrow$ Substrate 3 Web Floor $\rightarrow$ Substrate 4 Abstention). Grounding is modeled in the Belnap $\mathcal{FOUR}$ bilattice ($\mathbf{T}, \mathbf{F}, \mathbf{B}, \mathbf{\bot}$). Unverified knowledge gaps resolve strictly to $\mathbf{\bot}$, triggering calibrated epistemic abstention (*"I checked my records, but have no verified record of that. I don't know the answer and won't guess."*) which achieved 0/25 hallucinations (100% adherence) in live testing. Floor cues write pre-rendered PCM directly into shared audio memory ($3.1\,\mu\text{s}$ IPC write).
+- **Status:** Ratified & Enforced (Commit `b7a66d8`).
+
+### D-ARB-01 — Speculative BDI Invariant Jailing & Cognitive Bus Arbitration
+- **Decision:** Implements Architecture B Hardened by Architecture C. Candidate tool calls emitted by System 2 (`ToolCallEnd`) are intercepted pre-dispatch and evaluated against deontic modal categories ($\mathcal{F}, \mathcal{O}, \mathcal{P}$) by `SpeculativeBDIValidator` within a strict $\le 200\,\mu\text{s}$ budget (measured $2.9\text{--}32.0\,\mu\text{s}$). Prohibited calls (path traversal, system directory tampering, SQLite database mutations, reverse shells, memory exfiltration taints) are blocked with synthetic failure receipts before RPC dispatch. MicroScheme rules communicate with the neural core via typed cognitive bus signals: `(yield-to-core reason context)` raising `SchemeYieldSignal` and `(interrupt-core reason)` raising `SchemeInterruptSignal`.
+- **Status:** Ratified & Enforced (Commit `6b1a34d`).
+
+### D-SUP-01 — Streaming Output Supervision & Fast Audio Abort (Dimension 7B)
+- **Decision:** Streaming tokens and chunks are inspected at clause boundaries by `OutputSupervisorSession` using deterministic compiled grammar rules with markdown normalization (`*`, `_`, `` ` ``, `~` stripping). When capitulation clauses are detected (e.g. `adv_12` social engineering attacks), the supervisor signals `FLAG_ABORT` across the shared-memory audio ring in $<35\,\mu\text{s}$, drains pending TTS synthesis chunks, and substitutes the canonical refusal (*"I cannot fulfill that request as it violates core safety invariants."*) in $<500\,\text{ms}$ total turn time, with 0.0% false positive aborts on benign engineering control prompts.
+- **Status:** Ratified & Enforced (Commit `6b1a34d`).
+
+
 
