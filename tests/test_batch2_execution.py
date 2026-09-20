@@ -185,6 +185,7 @@ def test_multi_step_tool_loop_with_verbal_cues(orchestrator):
     ]
 
     orchestrator.llm = FakeLLM(rounds=[round_1, round_2])
+    orchestrator.cascade.classify_intent = lambda _text: (False, [], "")
 
     orchestrator._on_user_text(ts_ns=2000, user_text="what time is my meeting in notes.txt?")
     if orchestrator.active_turn_thread:

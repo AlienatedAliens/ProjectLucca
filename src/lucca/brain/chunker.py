@@ -65,16 +65,22 @@ def normalise_text(text: str, speak_urls: bool = False) -> str:
     if not speak_urls:
         s = URL_REGEX.sub("a link", s)
 
-    # 4. Markdown emphasis **x**, *x*, `x` -> x
+    # 4. Convert identifier underscores between word characters to spaces (launch_app -> launch app)
+    s = re.sub(r"(?<=\w)_(?=\w)", " ", s)
+
+    # 5. Markdown emphasis **x**, *x*, `x` -> x
     # Repeat to catch nested
     for _ in range(2):
         s = MARKDOWN_EMPHASIS_REGEX.sub(r"\2", s)
 
-    # 5. Headings and list bullets at line starts
+    # 6. Headings and list bullets at line starts
     s = HEADING_REGEX.sub("", s)
     s = BULLET_REGEX.sub("", s)
 
-    # 6. Emoji / pictographs removal (Unicode categories So, Sk)
+    # 7. Strip stray markdown symbols, backslashes, and tildes
+    s = re.sub(r"[*`~\\#]", "", s)
+
+    # 8. Emoji / pictographs removal (Unicode categories So, Sk)
     cleaned_chars: list[str] = []
     for ch in s:
         cat = unicodedata.category(ch)
@@ -83,8 +89,8 @@ def normalise_text(text: str, speak_urls: bool = False) -> str:
         cleaned_chars.append(ch)
     s = "".join(cleaned_chars)
 
-    # 7. Multiple spaces/newlines -> single space; space before punctuation
-    s = re.sub(r"[ \t]+", " ", s)
+    # 9. Multiple spaces/newlines -> single space; space before punctuation
+    s = re.sub(r"[ \t\r\n]+", " ", s)
     s = re.sub(r" ([,\.\?!;:])", r"\1", s)
 
     return s
@@ -118,8 +124,7 @@ class StreamingChunker:
         self._paren_depth = 0
 
     def feed(self, delta: str) -> list[TTSChunk]:
-        norm = normalise_text(delta, speak_urls=self.speak_urls)
-        self.buffer += norm
+        self.buffer += delta
         return self._extract_chunks(is_final=False)
 
     def flush(self) -> list[TTSChunk]:
@@ -148,9 +153,10 @@ class StreamingChunker:
                 else:
                     break
 
-            chunk_text = self.buffer[:split_pos].strip()
+            raw_chunk = self.buffer[:split_pos].strip()
             self.buffer = self.buffer[split_pos:].lstrip()
 
+            chunk_text = normalise_text(raw_chunk, speak_urls=self.speak_urls)
             if chunk_text:
                 chunk = TTSChunk(
                     trace_id=self.trace_id,

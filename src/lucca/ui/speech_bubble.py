@@ -183,7 +183,6 @@ class SpeechBubble(QWidget):
         if self._char_index < len(self._full_text):
             self._char_index += 1
             self.body_label.setText(self._full_text[: self._char_index])
-            self.adjustSize()
             char = self._full_text[self._char_index - 1]
             if char == ",":
                 self.typewriter_timer.setInterval(180)
@@ -239,6 +238,7 @@ class SpeechBubble(QWidget):
             )
             self.body_label.setText(text)
             self.body_label.setStyleSheet("color: #ffd700; font-style: italic; font-weight: 500;")
+            self.adjustSize()
         elif source == "user":
             self.header_label.setText("YOU")
             self.header_label.setStyleSheet(
@@ -246,12 +246,17 @@ class SpeechBubble(QWidget):
             )
             self.body_label.setText(f'"{text}"')
             self.body_label.setStyleSheet("color: #ffffff; font-weight: 500;")
+            self.adjustSize()
         else:
             self.header_label.setText("LUCCA")
             self.header_label.setStyleSheet(
                 "color: #ffd700; font-weight: 900; letter-spacing: 1.5px;"
             )
             self.body_label.setStyleSheet("color: #ffffff; font-weight: 500; line-height: 1.35;")
+
+            # Pre-size bubble to final text dimensions before typewriter reveal
+            self.body_label.setText(text)
+            self.adjustSize()
 
             # Use progressive audio-paced reveal for Lucca's speech
             if len(text) > 4:
@@ -260,11 +265,9 @@ class SpeechBubble(QWidget):
                 self.typewriter_timer.setInterval(48)
                 self.typewriter_timer.start()
             else:
-                self.body_label.setText(text)
                 self.cursor_label.show()
                 self.cursor_timer.start(450)
 
-        self.adjustSize()
         self.show()
 
         if is_final:
@@ -316,18 +319,31 @@ class SpeechBubble(QWidget):
         sw = int(sprite_geometry.width())
 
         bw = self.width()
+        bh = self.height()
+
+        screen_left = int(screen_geometry.left()) if screen_geometry else 0
+        screen_right = int(screen_geometry.right()) if screen_geometry else 1920
+        screen_top = int(screen_geometry.top()) if screen_geometry else 0
+        screen_bottom = int(screen_geometry.bottom()) if screen_geometry else 1080
 
         # Place to the right of sprite if there is room on screen
         target_x = sx + sw + 12
         self.tail_direction = "left"
 
-        if screen_geometry and target_x + bw > screen_geometry.width():
+        if target_x + bw > screen_right:
             # Flip to left side of sprite
             target_x = sx - bw - 12
             self.tail_direction = "right"
 
+        if target_x < screen_left:
+            target_x = screen_left + 10
+
         # Align vertically with upper third of sprite
-        target_y = max(10, sy - 15)
+        target_y = max(screen_top + 10, sy - 15)
+
+        # Prevent bubble from protruding off the bottom of the screen
+        if target_y + bh > screen_bottom:
+            target_y = max(screen_top + 10, screen_bottom - bh - 10)
 
         self.move(target_x, target_y)
         self.update()
