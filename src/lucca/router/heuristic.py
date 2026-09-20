@@ -130,6 +130,33 @@ class HeuristicRouter:
         for q in QUOTED_PATTERN.findall(transcript):
             entities["quoted"].append(q)
 
+        # 0. Dangerous / Boundary (Safety First): destructive, sensitive, or adversarial requests
+        dangerous_pattern = (
+            r"\b(delete\s+(?:all|every|my)|rm\s+-rf|format\s+(?:[a-z]:?|drive|disk)|drop\s+(?:table|database)|"
+            r"wipe|destroy|erase\s+(?:all|every|my)|remove\s+all)\b"
+        )
+        sensitive_pattern = (
+            r"\b(password|passwd|secret|credential|api.?key|token|ssn|"
+            r"social\s+security|credit\s+card)\b"
+        )
+        hijack_pattern = (
+            r"\b(pretend\s+you(?:'re|\s+are)|act\s+as\s+(?:if\s+you|a\s+different)|"
+            r"ignore\s+(?:all\s+)?(?:previous\s+)?instructions|"
+            r"you\s+are\s+now|forget\s+(?:everything|your\s+(?:instructions|rules)))\b"
+        )
+        prompt_extract_pattern = (
+            r"\b(system\s+prompt|system\s+message|initial\s+prompt|hidden\s+instructions|"
+            r"tell\s+me\s+your\s+(?:prompt|instructions|rules|system))\b"
+        )
+        if re.search(dangerous_pattern, text):
+            return "dangerous", 0.95, entities
+        if re.search(sensitive_pattern, text):
+            return "dangerous", 0.95, entities
+        if re.search(hijack_pattern, text):
+            return "dangerous", 0.90, entities
+        if re.search(prompt_extract_pattern, text):
+            return "dangerous", 0.85, entities
+
         # 1. Launch App: check word boundary
         launch_match = re.search(
             r"\b(open|launch|start|run)\b\s+(?:the\s+)?(?P<app>[a-z0-9 .-]+)",
@@ -175,36 +202,7 @@ class HeuristicRouter:
         if re.search(mem_pattern, text):
             return "memory_query", 0.90, entities
 
-        # 6. Dangerous / Boundary: destructive, sensitive, or adversarial requests
-        dangerous_pattern = (
-            r"\b(delete\s+(?:all|every|my)|rm\s+-rf|format\s+(?:c:|drive)|drop\s+(?:table|database)|"
-            r"wipe|destroy|erase\s+(?:all|every|my)|remove\s+all)\b"
-        )
-        sensitive_pattern = (
-            r"\b(password|passwd|secret|credential|api.?key|token|ssn|"
-            r"social\s+security|credit\s+card)\b"
-        )
-        hijack_pattern = (
-            r"\b(pretend\s+you(?:'re|\s+are)|act\s+as\s+(?:if\s+you|a\s+different)|"
-            r"ignore\s+(?:all\s+)?(?:previous\s+)?instructions|"
-            r"you\s+are\s+now|forget\s+(?:everything|your\s+(?:instructions|rules)))\b"
-        )
-        prompt_extract_pattern = (
-            r"\b(system\s+prompt|system\s+message|initial\s+prompt|hidden\s+instructions|"
-            r"tell\s+me\s+your\s+(?:prompt|instructions|rules|system))\b"
-        )
-        if re.search(dangerous_pattern, text):
-            return "dangerous", 0.95, entities
-        if re.search(sensitive_pattern, text) and re.search(
-            r"\b(write|save|store|create|dump|log|append)\b", text
-        ):
-            return "dangerous", 0.90, entities
-        if re.search(hijack_pattern, text):
-            return "dangerous", 0.90, entities
-        if re.search(prompt_extract_pattern, text):
-            return "dangerous", 0.85, entities
-
-        # 7. Chit Chat
+        # 6. Chit Chat
         chit_pattern = (
             r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
             r"good\s+morning|good\s+afternoon|good\s+night)\b"
