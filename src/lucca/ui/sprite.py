@@ -14,8 +14,10 @@ from PyQt6.QtGui import (
     QPen,
     QPixmap,
 )
+from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QWidget
 
+from lucca.core.config import get_resource_path
 from lucca.ui.states import THEMES, AvatarTheme
 
 
@@ -45,7 +47,7 @@ class CompanionSprite(QWidget):
         self.single_click_timer.timeout.connect(self._trigger_single_click)
 
         # Sprite sheets & frames
-        self.sprites_dir = Path("assets/sprites/lucca")
+        self.sprites_dir = get_resource_path("assets/sprites/lucca")
         self.pixmaps: dict[str, list[QPixmap]] = {}
         self.sprite_scale = 3
         self._load_sprites()
@@ -281,6 +283,12 @@ class CompanionSprite(QWidget):
             self.move(100, 100)
         if self.on_geometry_changed:
             self.on_geometry_changed()
+
+    def closeEvent(self, event: QCloseEvent | None) -> None:
+        """Hides avatar to background system tray instead of destroying window."""
+        if event is not None:
+            event.ignore()
+        self.hide()
 
     def toggle_always_on_top(self) -> bool:
         """Toggle WindowStaysOnTopHint and return new state."""

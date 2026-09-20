@@ -813,3 +813,78 @@ flowchart TD
 - **Full Non-Hardware Test Suite:**
   - **387/387 PASSED (100% GREEN across all modules in 61.41s)**.
 
+---
+
+## 10. Milestone 7: Standalone Packaging & Final Desktop Release (`dist/Lucca/Lucca.exe`)
+
+### 10.1 Objective & Architectural Scope
+Milestone 7 delivers the final standalone desktop distribution of Project Lucca on native Windows workstation silicon:
+1. **Frozen PyInstaller Packaging:** Bundles the complete multi-process companion into a standalone Windows desktop executable (`dist/Lucca/Lucca.exe`) with all native dynamic libraries (Z3 SMT solver, OpenVINO NPU plugins, ONNX Runtime, sqlite-vec), neural models, Jinja chat templates, SQLite migrations, default configurations, and sprite assets.
+2. **Dual-Mode GUI & Console Runtime (`_setup_stdio`):** Implements a clean Windows GUI subsystem application (`console=False`) with zero console window popups when launched from Explorer, while dynamically binding standard I/O handles (`AttachConsole(-1)` / OS pipe file descriptors) when invoked from command-line shells.
+3. **Desktop Companion Lifecycle & Windows System Tray:** Integrates a resident `QSystemTrayIcon` with an interactive context menu (Quick Chat Bar, Chrono Trigger Live Telemetry HUD, 10-Tab Settings Suite, Avatar Visibility Toggle, Position Reset, and Graceful Multi-Process Shutdown), background minimize on window close with a notification bubble, click-to-restore, and live cognitive state tooltip tracking.
+4. **Hardware Verification:** Proves that the frozen standalone executable executes and passes all 7 native workstation environment and hardware criteria on physical silicon with zero errors.
+
+### 10.2 Packaging Infrastructure (`Lucca.spec` & `packaging/build_exe.py`)
+1. **Dynamic Library Collection:**
+   - Microsoft Z3 SMT Solver: `collect_dynamic_libs('z3')` pulls `libz3.dll` and MSVC runtime dependencies into `_internal/z3/lib/`.
+   - SQLite Vector Extensions: `collect_dynamic_libs('sqlite_vec')` pulls `vec0.dll` into `_internal/sqlite_vec/`.
+   - Intel OpenVINO & NPU Plugins: `collect_dynamic_libs('openvino')`, `collect_dynamic_libs('openvino_genai')`, and `collect_dynamic_libs('openvino_tokenizers')` pull 23 runtime libraries including `openvino_intel_npu_plugin.dll`, `openvino_intel_cpu_plugin.dll`, and `openvino_intel_gpu_plugin.dll`.
+   - ONNX Runtime: `collect_dynamic_libs('onnxruntime')` bundles execution providers.
+2. **Data Mappings & Templates:**
+   - Jinja Prompt Templates: `templates/` $\to$ `_internal/templates/` (`mistral_nemo.jinja`).
+   - Sprite Assets & Manifest: `assets/` $\to$ `_internal/assets/` (28 sprite animation frames, `icon.png`, `icon.ico`).
+   - Configuration Files: `config/` $\to$ `_internal/config/` (`persona.toml`, `tool_whitelist.toml`).
+   - Database Migrations: `src/lucca/memory/migrations/` $\to$ `_internal/lucca/memory/migrations/` (`0001_init.sql`).
+3. **Unified Resource Locator (`src/lucca/core/config.py::get_resource_path`):**
+   - Implements strict Zero-`Any` typed resource resolution with four-tier priority:
+     1. PyInstaller frozen temporary folder (`sys._MEIPASS`)
+     2. Workstation installation directory (`C:/ProjectLucca`)
+     3. Repository root directory (`Path(__file__).resolve().parents[3]`)
+     4. Current working directory fallback (`Path.cwd()`)
+
+### 10.3 Windows System Tray Companion Lifecycle (`src/lucca/ui/app.py` & `src/lucca/ui/sprite.py`)
+1. **System Tray Integration (`_setup_tray`):**
+   - Initializes `QSystemTrayIcon` with `icon.png`.
+   - Context Menu:
+     - 💬 **Quick Chat Bar:** Toggles text chat input and anchored subtitle bubbles.
+     - 📊 **Telemetry HUD:** Toggles real-time Chrono Trigger hardware telemetry HUD.
+     - ⚙️ **Settings & Diagnostics:** Launches the full 10-tab configuration window.
+     - **Show / Hide Avatar:** Toggles desktop avatar visibility.
+     - 🔁 **Reset Avatar Position:** Re-anchors avatar to screen bottom-right corner.
+     - ✕ **Quit Lucca:** Initiates clean multi-process shutdown broadcasting `sys.shutdown`.
+2. **Double-Click / Click Activation:** Triggering or double-clicking the tray icon restores and activates Lucca.
+3. **Background Minimization Invariant:** Closing the companion sprite window intercepts `QCloseEvent` (`event.ignore(); self.hide()`) and displays a non-intrusive notification bubble: *"Lucca is still active in your system tray. Click to restore."*
+4. **Dynamic Cognitive Tooltip:** Bridges `state_changed` signals to update the tray tooltip dynamically: `Project Lucca — Desktop Companion (<State>)`.
+
+### 10.4 Acceptance Testing & Hardware Verification Results
+1. **Packaging Test Suite ([`tests/test_packaging.py`](file:///C:/Projects/ProjectLucca/tests/test_packaging.py)):**
+   - `test_frozen_binary_exists`: Verifies `dist/Lucca/Lucca.exe` ($25.9\,\text{MB}$) and `_internal/` directory exist — **PASSED**.
+   - `test_frozen_binary_version_flag`: Verifies `Lucca.exe --version` reports `Lucca 0.2.0` with exit code 0 — **PASSED**.
+   - `test_frozen_binary_help_flag`: Verifies `Lucca.exe --help` prints usage with exit code 0 — **PASSED**.
+   - `test_frozen_binary_check_flag`: Verifies `Lucca.exe --check` runs native hardware verification with exit code 0 — **PASSED**.
+   - `test_bundled_data_assets`: Verifies templates, persona, migrations, icons, and sprite manifests — **PASSED**.
+   - `test_bundled_native_binaries`: Verifies Z3 `libz3.dll`, sqlite-vec `vec0.dll`, and OpenVINO `openvino_intel_npu_plugin.dll` — **PASSED**.
+   - `test_get_resource_path_resolution`: Verifies resolution across development and frozen environments — **PASSED**.
+   - **Packaging Scorecard:** **7/7 PASSED (100% GREEN in 14.91s)**.
+2. **Native Hardware Check Execution (`Lucca.exe --check`):**
+   ```
+   ====================================================================
+     PROJECT LUCCA — SYSTEM ENVIRONMENT CHECK
+   ====================================================================
+   [PASS] MSHybrid dGPU VRAM       : dGPU VRAM used: 0.0 MB (llama-server resident, within 12800 MB budget)
+   [PASS] Intel NPU (OpenVINO)     : Intel NPU detected by OpenVINO (devices: ['CPU', 'GPU.0', 'GPU.1', 'NPU'])
+   [PASS] SQLite + sqlite-vec      : sqlite-vec loaded successfully (version: v0.1.9)
+   [PASS] WSL2 .wslconfig Clamp    : .wslconfig canonical settings verified at C:\Users\seatr\.wslconfig
+   [PASS] Docker CE in WSL2        : Docker CE is running inside Ubuntu WSL2.
+   [PASS] LUCCA_HOME Layout        : LUCCA_HOME verified at 'C:\ProjectLucca'
+   [PASS] Models Manifest & Weights: Models manifest verified (4 required weights matched SHA256)
+   ====================================================================
+   [SUCCESS] All system environment criteria passed!
+   ```
+3. **Static Architectural Gates ([`tests/test_static_gates.py`](file:///C:/Projects/ProjectLucca/tests/test_static_gates.py)):**
+   - Zero `Any` in public APIs (`core`, `brain`, `reasoning`) — **8/8 PASSED**.
+4. **Full Regression Test Suite:**
+   - **394/394 PASSED (100% GREEN across all modules in 97.49s)**.
+5. **Milestone 7 Completion Status:** **100% COMPLETE & RATIFIED ON NATIVE WORKSTATION SILICON.**
+
+

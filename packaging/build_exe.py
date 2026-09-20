@@ -23,8 +23,12 @@ def build() -> int:
     icon_png = project_root / "assets" / "icon.png"
     if not icon_ico.exists() or not icon_png.exists():
         print("Generating application icons from sprites...")
+        os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
         from PyQt6.QtCore import Qt
         from PyQt6.QtGui import QColor, QImage, QPainter
+        from PyQt6.QtWidgets import QApplication
+
+        _app = QApplication.instance() or QApplication(["build", "-platform", "offscreen"])
 
         src = QImage(str(project_root / "assets" / "sprites" / "lucca" / "portrait_classic.png"))
         dest = QImage(256, 256, QImage.Format.Format_ARGB32)
@@ -45,41 +49,19 @@ def build() -> int:
         dest.save(str(icon_ico))
         print("  Created assets/icon.png and assets/icon.ico")
 
-    # 2. PyInstaller Command Arguments
+    # 2. PyInstaller Command Arguments using Lucca.spec
     dist_dir = project_root / "dist"
-    build_dir = project_root / "build"
+    spec_path = project_root / "Lucca.spec"
 
     cmd = [
         sys.executable,
         "-m",
         "PyInstaller",
         "--noconfirm",
-        "--onedir",
-        "--windowed",
-        "--name", "Lucca",
-        "--icon", str(icon_ico),
-        "--add-data", f"{project_root / 'assets'};assets",
-        "--add-data", f"{project_root / 'config'};config",
-        "--add-data", f"{project_root / 'src' / 'lucca' / 'memory' / 'migrations'};lucca/memory/migrations",
-        "--hidden-import", "sqlite_vec",
-        "--hidden-import", "kokoro_onnx",
-        "--hidden-import", "sounddevice",
-        "--hidden-import", "openvino",
-        "--hidden-import", "openvino_genai",
-        "--hidden-import", "PyQt6",
-        "--hidden-import", "PyQt6.QtCore",
-        "--hidden-import", "PyQt6.QtGui",
-        "--hidden-import", "PyQt6.QtWidgets",
-        "--hidden-import", "psutil",
-        "--hidden-import", "httpx",
-        "--hidden-import", "structlog",
-        "--hidden-import", "zmq",
-        "--hidden-import", "lucca.memory.manager",
-        "--paths", str(project_root / "src"),
-        str(project_root / "src" / "lucca" / "main.py"),
+        str(spec_path),
     ]
 
-    print(f"Running command: {' '.join(cmd[:6])} ...")
+    print(f"Running command: {' '.join(cmd)}")
     ret = subprocess.run(cmd)
 
     if ret.returncode == 0:

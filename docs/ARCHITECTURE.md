@@ -483,4 +483,57 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-ARB-01**  | Speculative BDI Gate | Sub-200us pre-dispatch deontic validator & MicroScheme cognitive bus arbitration. | **Enforced** |
 | **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization & 30us abort. | **Enforced** |
 | **D-AFF-01**  | Affective Dynamics & Prompt Suffix | 3D PAD ODE, Schmitt-trigger hysteresis, prompt frontier suffix KV cache optimization ($8.58\times$ speedup). | **Enforced** |
+| **D-REAS-07** | Z3 SMT Formal Verifier | SMT SAT/Contingency and Deontic Path invariant proofs for candidate rules. | **Enforced** |
+| **D-REAS-08** | E-Graph Macro Synthesis| Stitch/Babble anti-unification macro compression within E-Graph congruence closure. | **Enforced** |
+| **D-PKG-01**  | Standalone Packaging | PyInstaller frozen executable (`Lucca.exe`), bundled runtimes, and system tray lifecycle. | **Enforced** |
 | **D-EVAL-01** | Frozen Evaluation Suite | 110 golden traces regression harness with 100% pass gate. | **Enforced** |
+
+---
+
+## 9. Standalone Desktop Packaging & System Tray Deployment Topology
+
+### 9.1 Frozen Distribution Hierarchy (`dist/Lucca/`)
+Project Lucca is compiled into a standalone Windows desktop distribution via PyInstaller (`Lucca.spec` and `packaging/build_exe.py`). The distribution directory layout is structured as follows:
+
+```
+dist/Lucca/
+├── Lucca.exe                     # Standalone bootloader (25.9 MB, Windows GUI subsystem)
+└── _internal/                    # Bundled runtimes, libraries, and application assets
+    ├── assets/                   # Application icons (icon.ico, icon.png) and character sprites
+    │   └── sprites/lucca/        # 28 animation frames and manifest.json
+    ├── config/                   # Canonical persona.toml, tool_whitelist.toml, and configurations
+    ├── templates/                # Jinja prompt templates (mistral_nemo.jinja)
+    ├── lucca/                    # Application package binaries and submodules (87+ modules)
+    │   └── memory/migrations/    # Forward SQLite schema migrations (0001_init.sql)
+    ├── z3/                       # Microsoft Z3 SMT theorem prover C-libraries (libz3.dll)
+    ├── openvino/libs/            # Intel OpenVINO runtime & NPU plugins (openvino_intel_npu_plugin.dll)
+    ├── sqlite_vec/               # Native SQLite vector search extensions (vec0.dll)
+    ├── onnxruntime/              # ONNX Runtime execution engine and providers
+    └── kokoro_onnx/              # Kokoro-82M TTS neural runtime models and voice configurations
+```
+
+### 9.2 Dual-Mode Console & GUI Lifecycle
+1. **Windows GUI Subsystem (`console=False`):** When launched via desktop shortcuts or double-clicking `Lucca.exe` in Windows Explorer, the application does not spawn an unwanted black command prompt window.
+2. **Dynamic Stdio Binding (`_setup_stdio`):** When launched from PowerShell or Command Prompt, the runtime detects standard streams:
+   - If stdout/stderr are piped (e.g. `subprocess.run(capture_output=True)`), file descriptors 1 and 2 bind directly to the caller's pipes.
+   - If invoked interactively in a console, `AttachConsole(-1)` attaches to the parent console buffer and binds to `CONOUT$`, enabling seamless CLI command execution.
+   - If no console or pipe exists, streams bind gracefully to `os.devnull` preventing `NoneType` I/O exceptions.
+
+### 9.3 Command-Line Interface (CLI) Capabilities
+The standalone executable supports four distinct execution modes via `argparse.parse_known_args()`:
+- `Lucca.exe --version` (`-v`): Outputs canonical application version string (`Lucca 0.2.0`) and exits with code 0.
+- `Lucca.exe --help` (`-h`): Outputs comprehensive usage documentation and flags.
+- `Lucca.exe --check`: Executes the comprehensive 7-point native hardware and environment diagnostic suite (MSHybrid dGPU VRAM, Intel NPU OpenVINO detection, SQLite vector extensions, WSL2 clamp, Docker daemon, LUCCA_HOME layout, and cryptographic model weight pins).
+- `Lucca.exe --headless`: Disables the PyQt6 desktop avatar and executes the four-process supervisor in headless daemon mode.
+
+### 9.4 Windows System Tray Companion Lifecycle
+Project Lucca operates as a resident desktop companion integrated into the Windows System Tray (`QSystemTrayIcon`):
+1. **Context Menu:**
+   - 💬 **Quick Chat Bar:** Toggles the anchored dialogue box and text input interface.
+   - 📊 **Telemetry HUD:** Toggles the retro Chrono Trigger live hardware telemetry monitor (dGPU VRAM, NPU utilization, ASR/LLM/TTS latency, FPS).
+   - ⚙️ **Settings & Diagnostics:** Launches the full 10-tab configuration suite.
+   - **Show / Hide Avatar:** Toggles visibility of the floating companion sprite.
+   - 🔁 **Reset Avatar Position:** Re-anchors Lucca to the bottom-right corner of the active monitor.
+   - ✕ **Quit Lucca:** Initiates an orderly, non-blocking multi-process shutdown broadcasting `sys.shutdown`.
+2. **Background Minimization & Restoration:** Closing the floating companion sprite window intercepts `QCloseEvent` and hides the avatar to the background system tray with a non-intrusive notification bubble. Clicking or double-clicking the system tray icon immediately restores and focuses Lucca.
+3. **Dynamic Cognitive Tooltip:** Live cognitive state transitions (`idle`, `listening`, `thinking`, `speaking`, `offline`) update the system tray icon tooltip in real time (e.g., `Project Lucca — Desktop Companion (Thinking)`).

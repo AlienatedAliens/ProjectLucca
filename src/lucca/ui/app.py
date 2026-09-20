@@ -19,7 +19,7 @@ from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from lucca.brain.prompt_builder import get_persona
-from lucca.core.config import get_config
+from lucca.core.config import get_config, get_resource_path
 from lucca.core.exceptions import IPCError
 from lucca.core.ipc_schemas import (
     AudioRMSPayload,
@@ -129,7 +129,7 @@ class UIApplication:
 
         # Set application icon
         self.app_icon: QIcon | None = None
-        icon_p = Path("assets/icon.png")
+        icon_p = get_resource_path("assets/icon.png")
         if not icon_p.exists():
             icon_p = self.config.home_dir / "assets" / "icon.png"
         if icon_p.exists():
@@ -177,7 +177,7 @@ class UIApplication:
         self.commorose = CommoroseRadialMenu(commorose_actions)
 
         # Wire bridge signals
-        self.bridge.state_changed.connect(self.sprite.set_state)
+        self.bridge.state_changed.connect(self._on_state_changed)
         self.bridge.rms_received.connect(self.sprite.set_mouth_aperture)
         self.bridge.caption_received.connect(self._on_caption_received)
         self.bridge.confirm_requested.connect(self._on_confirm_requested)
@@ -206,6 +206,10 @@ class UIApplication:
         chat_action.triggered.connect(self._toggle_chat_bar)
         menu.addAction(chat_action)
 
+        hud_action = QAction("📊 Telemetry HUD", menu)
+        hud_action.triggered.connect(self._toggle_telemetry_hud)
+        menu.addAction(hud_action)
+
         settings_action = QAction("⚙️ Settings & Diagnostics", menu)
         settings_action.triggered.connect(self._open_settings)
         menu.addAction(settings_action)
@@ -222,15 +226,35 @@ class UIApplication:
 
         menu.addSeparator()
 
-        quit_action = QAction("Quit Lucca", menu)
+        quit_action = QAction("✕ Quit Lucca", menu)
         quit_action.triggered.connect(self.quit)
         menu.addAction(quit_action)
 
         self.tray.setContextMenu(menu)
-        self.tray.setToolTip("Project Lucca — Desktop Companion")
+        self.tray.setToolTip("Project Lucca — Desktop Companion (Idle)")
+        self.tray.activated.connect(self._on_tray_activated)
         if self.app_icon is not None:
             self.tray.setIcon(self.app_icon)
         self.tray.show()
+        if self.tray.supportsMessages():
+            self.tray.showMessage(
+                "Project Lucca",
+                "Desktop companion active in system tray.",
+                QSystemTrayIcon.MessageIcon.Information,
+                2000,
+            )
+
+    def _on_state_changed(self, state: str) -> None:
+        self.sprite.set_state(state)
+        if self.tray is not None:
+            self.tray.setToolTip(f"Project Lucca — Desktop Companion ({state.capitalize()})")
+
+    def _on_tray_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
+        if reason in (
+            QSystemTrayIcon.ActivationReason.Trigger,
+            QSystemTrayIcon.ActivationReason.DoubleClick,
+        ):
+            self._toggle_avatar()
 
     def _show_context_menu(self, pos: QPoint) -> None:
         menu = QMenu()
@@ -309,8 +333,19 @@ class UIApplication:
             self.sprite.hide()
             self.bubble.hide()
             self.chat_bar.hide()
+            if self.tray and not getattr(self, "_minimized_notified", False):
+                self._minimized_notified = True
+                if self.tray.supportsMessages():
+                    self.tray.showMessage(
+                        "Lucca Minimized",
+                        "Lucca is still active in your system tray. Click to restore.",
+                        QSystemTrayIcon.MessageIcon.Information,
+                        2500,
+                    )
         else:
             self.sprite.show()
+            self.sprite.raise_()
+            self.sprite.activateWindow()
 
     def _get_screen_geometry(self) -> QRect | None:
         screen = self.sprite.screen()

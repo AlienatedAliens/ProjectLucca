@@ -187,5 +187,14 @@
      Requiring $\Delta \text{size} \ge 1$ for abstraction.
   3. Synthesizes canonical `(defmacro <name> (<params>...) <body>)` definitions registered into `MacroRegistry` with compile-time expansion bounds (`MAX_MACRO_DEPTH = 8`, `MAX_MACRO_STEPS = 64`).
   4. Preserves Single-Strike Demotion and the Human Promotion Gate (`D-REAS-06`): all rules utilizing synthesized macros are staged exclusively in `QUARANTINE` for shadow execution and cannot be automatically promoted to `ACTIVE`.
-- **Status:** Ratified & Enforced (Commit `Milestone 6`).
-
+### D-PKG-01 — Standalone Frozen PyInstaller Packaging & System Tray Invariants
+- **Decision:** Bundles Project Lucca into a standalone Windows desktop executable distribution (`dist/Lucca/Lucca.exe`) via PyInstaller (`Lucca.spec`, `packaging/build_exe.py`).
+  1. **Zero External Runtime Dependency:** Bundles embedded Python 3.12 runtime, PyQt6 graphical framework, Z3 SMT solver C-libraries (`libz3.dll`), ONNX Runtime, OpenVINO dynamic plugins (`openvino_intel_npu_plugin.dll`, `openvino_intel_cpu_plugin.dll`, `openvino_intel_gpu_plugin.dll`), Kokoro ONNX voice models, SQLite vector extensions (`vec0.dll`), MicroScheme engine, Jinja chat templates (`mistral_nemo.jinja`), default configurations (`persona.toml`), schema migrations (`0001_init.sql`), and sprite assets.
+  2. **Dual-Mode Console & GUI Lifecycle:** Uses Windows GUI subsystem (`console=False`) to ensure zero console window flicker when launched from Explorer or desktop shortcuts, while dynamically binding stdio handles (`AttachConsole(-1)` / OS pipe file descriptors) when invoked from CLI shells (`cmd.exe`, `powershell.exe`).
+  3. **CLI Diagnostic Support:** Exposes `--version` (reports canonical `Lucca 0.2.0`), `--help` (usage flags), `--check` (runs 7-point native hardware and environment diagnostics), and `--headless` (disables PyQt6 sprite for headless server/container execution).
+  4. **System Tray Integration Invariants:**
+     - Operates a persistent `QSystemTrayIcon` with contextual menu: Quick Chat Bar toggle, Chrono Trigger Live Telemetry HUD toggle, 10-tab Settings & Diagnostics suite, Avatar visibility toggle, Position reset, and graceful Multi-Process Exit (`✕ Quit Lucca`).
+     - Double-click or single-click trigger on tray icon restores/focuses companion avatar.
+     - Closing the companion sprite window intercepts `QCloseEvent` and minimizes to background system tray with a non-intrusive notification bubble rather than terminating supervisor.
+     - Live avatar cognitive state changes ("Idle", "Listening", "Thinking", "Speaking", "Offline") dynamically update system tray tooltip.
+- **Status:** Ratified & Enforced (Commit `Milestone 7`).

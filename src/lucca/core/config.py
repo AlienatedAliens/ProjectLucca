@@ -4,6 +4,7 @@ Spec 11 §1 (`lucca.core.config`)
 """
 
 import os
+import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -181,3 +182,40 @@ class LuccaConfig(BaseSettings):
 @lru_cache
 def get_config() -> LuccaConfig:
     return LuccaConfig()
+
+
+def get_resource_path(relative_path: str | Path) -> Path:
+    """
+    Resolves bundled resource path with support for PyInstaller frozen mode,
+    workstation installation (C:/ProjectLucca), repo root, and local working directory.
+    Enforces strict zero-Any typing.
+    """
+    rel: Path = Path(relative_path)
+    # 1. PyInstaller frozen runtime temporary directory
+    if hasattr(sys, "_MEIPASS"):
+        meipass_base: str = str(getattr(sys, "_MEIPASS", ""))
+        if meipass_base:
+            meipass_p: Path = Path(meipass_base) / rel
+            if meipass_p.exists():
+                return meipass_p
+
+    # 2. Workstation installation directory
+    cfg: LuccaConfig = get_config()
+    home_p: Path = cfg.home_dir / rel
+    if home_p.exists():
+        return home_p
+
+    # 3. Source repository root
+    repo_root: Path = Path(__file__).resolve().parents[3]
+    repo_p: Path = repo_root / rel
+    if repo_p.exists():
+        return repo_p
+
+    # 4. Current working directory fallback
+    cwd_p: Path = Path.cwd() / rel
+    if cwd_p.exists():
+        return cwd_p
+
+    # Fallback to repo or home
+    return home_p if home_p.parent.exists() else repo_p
+

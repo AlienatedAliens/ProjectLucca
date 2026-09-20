@@ -12,16 +12,47 @@ import sys
 import time
 from collections.abc import Callable
 
-if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:  # noqa: BLE001, S110
-        pass
-if sys.stderr and hasattr(sys.stderr, "reconfigure"):
-    try:
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:  # noqa: BLE001, S110
-        pass
+def _setup_stdio() -> None:
+    if sys.stdout is None:
+        try:
+            sys.stdout = open(1, "w", encoding="utf-8", errors="replace", closefd=False)
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    if sys.stderr is None:
+        try:
+            sys.stderr = open(2, "w", encoding="utf-8", errors="replace", closefd=False)
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    if sys.stdout is None:
+        try:
+            import ctypes
+            if ctypes.windll.kernel32.AttachConsole(-1) != 0:
+                sys.stdout = open("CONOUT$", "w", encoding="utf-8", errors="replace")
+                if sys.stderr is None:
+                    sys.stderr = open("CONOUT$", "w", encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8")
+    elif hasattr(sys.stdout, "reconfigure"):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8")
+    elif hasattr(sys.stderr, "reconfigure"):
+        try:
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+
+_setup_stdio()
 
 from lucca.brain.server_ctl import check_server_status, is_healthy, start_server
 from lucca.core.config import get_config
@@ -316,8 +347,37 @@ def main() -> None:
     except Exception:  # noqa: BLE001, S110
         pass
 
+    import argparse
+    from lucca import __version__
+
+    parser = argparse.ArgumentParser(
+        prog="Lucca",
+        description="Project Lucca — Sandboxed Local AI Companion Agent",
+    )
+    parser.add_argument(
+        "--version", "-v", action="version", version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "--check", action="store_true", help="Run environment and hardware diagnostic checks and exit"
+    )
+    parser.add_argument(
+        "--headless", action="store_true", help="Run in headless mode without PyQt6 GUI"
+    )
+    args, _unknown = parser.parse_known_args()
+
+    if args.check:
+        res = run_env_check()
+        sys.exit(res)
+
+    if args.headless:
+        cfg = get_config()
+        cfg.ui.enabled = False
+
     # Set multiprocessing start method to spawn for Windows clean subprocesses
-    mp.set_start_method("spawn", force=True)
+    try:
+        mp.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass
     supervisor = Supervisor()
 
     def _on_signal(signum: int, frame: object) -> None:
