@@ -9,8 +9,8 @@ import os
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
+from pydantic import JsonValue
 from PyQt6.QtCore import QPoint, QRectF, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (
     QBrush,
@@ -293,7 +293,7 @@ class TelemetryHUD(QWidget):
         self.worker.metrics_ready.connect(self._apply_metrics)
         self.worker.start()
 
-    def _apply_metrics(self, m: dict[str, Any]) -> None:
+    def _apply_metrics(self, m: dict[str, JsonValue]) -> None:
         try:
             # dGPU
             dg = m["dgpu"]

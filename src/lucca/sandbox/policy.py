@@ -12,7 +12,9 @@ import json
 import re
 import secrets
 import time
-from typing import Any, Literal
+from typing import Literal
+
+from pydantic import JsonValue
 
 from lucca.core.schemas import Risk
 
@@ -40,6 +42,13 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "delete_file": Risk.WRITE,
     "run_python": Risk.WRITE,
     "launch_app": Risk.LAUNCH,
+    "memory_search": Risk.READ,
+    "memory_commit": Risk.WRITE,
+    "note_write": Risk.WRITE,
+    "note_read": Risk.READ,
+    "self_metrics": Risk.READ,
+    "sys_info": Risk.READ,
+    "invoke_skill": Risk.READ,
 }
 
 
@@ -70,7 +79,7 @@ class ConfirmationTokenManager:
     def _canonical_payload(
         self,
         tool_name: str,
-        args: dict[str, Any],
+        args: dict[str, JsonValue],
         turn_id: str,
         expiry_ts: float,
     ) -> bytes:
@@ -80,7 +89,7 @@ class ConfirmationTokenManager:
     def issue_token(
         self,
         tool_name: str,
-        args: dict[str, Any],
+        args: dict[str, JsonValue],
         turn_id: str = "",
     ) -> tuple[str, float]:
         """
@@ -96,7 +105,7 @@ class ConfirmationTokenManager:
         self,
         token_str: str,
         tool_name: str,
-        args: dict[str, Any],
+        args: dict[str, JsonValue],
         turn_id: str,
         expiry_ts: float,
     ) -> tuple[bool, str]:
@@ -133,6 +142,10 @@ def requires_confirmation(tool_name: str, taint: TaintFlags = TaintFlags.CLEAN) 
     If UNTRUSTED_WEB taint is active, dynamically escalates all side-effect tools.
     """
     risk = classify_risk(tool_name)
+    if tool_name in ("memory_commit", "note_write"):
+        if taint & TaintFlags.UNTRUSTED_WEB:
+            return True
+        return False
     if taint & TaintFlags.UNTRUSTED_WEB:
         # Any tool with side effects requires confirmation when tainted by external web
         if risk in (Risk.WRITE, Risk.LAUNCH, Risk.NETWORK):
@@ -187,7 +200,7 @@ class SequenceGuard:
     def check_and_record(
         self,
         tool_name: str,
-        args: dict[str, Any] | None = None,
+        args: dict[str, JsonValue] | None = None,
     ) -> tuple[bool, str]:
         """
         Validates whether tool_name is permitted given preceding tools in this turn and taint state.

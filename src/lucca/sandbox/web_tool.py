@@ -8,11 +8,11 @@ import ipaddress
 import re
 import socket
 from collections.abc import Callable
-from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 import structlog
+from pydantic import JsonValue
 
 try:
     import truststore
@@ -34,7 +34,7 @@ DEFAULT_MAX_CHARS: int = 20000
 CGNAT_NET = ipaddress.ip_network("100.64.0.0/10")
 
 
-def _get_trafilatura_extract() -> Callable[..., Any] | None:
+def _get_trafilatura_extract() -> Callable[..., object] | None:
     try:
         mod = importlib.import_module("trafilatura")
         fn = getattr(mod, "extract", None)
@@ -45,7 +45,7 @@ def _get_trafilatura_extract() -> Callable[..., Any] | None:
 
 def validate_url_ssrf(
     url: str,
-    dns_resolver: Callable[[str], list[tuple[Any, ...]]] | None = None,
+    dns_resolver: Callable[[str], list[tuple[object, ...]]] | None = None,
 ) -> tuple[str, str]:
     """
     Validates URL format, lengths, and enforces SSRF IP resolution checks:
@@ -153,7 +153,7 @@ def fetch_url(
     render: bool = False,
     max_chars: int = DEFAULT_MAX_CHARS,
     allow_render: bool = False,
-) -> tuple[dict[str, Any], str]:
+) -> tuple[dict[str, JsonValue], str]:
     if render:
         if not allow_render:
             raise SandboxPathError(

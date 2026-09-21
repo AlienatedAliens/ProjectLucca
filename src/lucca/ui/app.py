@@ -11,7 +11,8 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+
+from pydantic import JsonValue
 
 os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
@@ -453,7 +454,7 @@ class UIApplication:
         )
         self._send_ingest(env)
 
-    def _send_config_update(self, new_config: dict[str, Any]) -> None:
+    def _send_config_update(self, new_config: dict[str, JsonValue]) -> None:
         self.active_voice = str(new_config.get("voice", self.active_voice))
         self.active_speed = float(new_config.get("speed", self.active_speed))
         self.active_ptt_key = str(new_config.get("ptt_key", self.active_ptt_key))

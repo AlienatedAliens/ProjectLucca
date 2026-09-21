@@ -13,7 +13,7 @@ import subprocess
 import threading
 import time
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import structlog
 from pydantic import JsonValue, ValidationError
@@ -186,7 +186,7 @@ class PersistentDockerWorker:
         tool: str,
         args: dict[str, JsonValue],
         timeout_s: float | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, JsonValue]:
         """
         Executes a single tool call through the persistent stdio bridge.
         Guarantees thread-safe serialized execution, timeout enforcement,
@@ -255,7 +255,7 @@ class PersistentDockerWorker:
                 raise SandboxProtocolError("Persistent worker returned empty line / unexpected EOF")
 
             try:
-                res_dict: dict[str, Any] = json.loads(raw_line.strip())
+                res_dict: dict[str, JsonValue] = json.loads(raw_line.strip())
             except json.JSONDecodeError as json_err:
                 logger.critical(
                     "persistent_worker_corrupted_framing",
@@ -401,7 +401,7 @@ class DockerRPCTransport:
         self,
         call_id: str,
         tool: str,
-        res_dict: dict[str, Any],
+        res_dict: dict[str, JsonValue],
         elapsed_ms: float,
     ) -> ToolResult:
         """Validates structured result dict and enforces T-SBX-16 SHA-256 host verification."""

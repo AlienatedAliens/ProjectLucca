@@ -15,12 +15,13 @@ import tomllib
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import httpx
 import kokoro_onnx
 import numpy as np
 import sounddevice as sd
+from pydantic import JsonValue
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QCursor, QFont, QGuiApplication
 from PyQt6.QtWidgets import (
@@ -344,7 +345,7 @@ class SettingsDialog(QDialog):
         current_archetype: str = "inventor",
         current_formality: str = "casual",
         current_custom_prompt: str = "",
-        on_save_config: Callable[[dict[str, Any]], None] | None = None,
+        on_save_config: Callable[[dict[str, JsonValue]], None] | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -404,7 +405,7 @@ class SettingsDialog(QDialog):
             self.memory_manager = None
 
         # Canonical MicroScheme rules
-        self.lisp_rules: dict[str, dict[str, Any]] = {
+        self.lisp_rules: dict[str, dict[str, JsonValue]] = {
             "open-calculator-v1": {
                 "category": "Tools & Execution",
                 "purpose": "Deterministic rule to launch calculator when requested and not already running.",
@@ -2790,7 +2791,7 @@ class SettingsDialog(QDialog):
         data = self.combo_llm_model.currentData()
         model_name = data["rel_path"] if data else self.llm_cfg.model
 
-        cfg: dict[str, Any] = {
+        cfg: dict[str, JsonValue] = {
             "voice": selected_voice,
             "speed": selected_speed,
             "ptt_key": selected_ptt,

@@ -12,20 +12,20 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import psutil
+from pydantic import JsonValue
 
 from lucca.core.config import get_config
 
 # Cache detected hardware to avoid repeated WMI / subprocess overhead
-_GPU_CACHE: dict[str, Any] = {}
+_GPU_CACHE: dict[str, JsonValue] = {}
 _LAST_GPU_QUERY = 0.0
-_SYS_METRICS_CACHE: dict[str, Any] = {}
+_SYS_METRICS_CACHE: dict[str, JsonValue] = {}
 _LAST_SYS_METRICS_QUERY = 0.0
 
 
-def query_nvidia_gpu_metrics() -> dict[str, Any]:
+def query_nvidia_gpu_metrics() -> dict[str, JsonValue]:
     """Queries real-time NVIDIA GPU VRAM metrics via nvidia-smi."""
     global _LAST_GPU_QUERY, _GPU_CACHE
     now = time.monotonic()
@@ -79,7 +79,7 @@ def query_nvidia_gpu_metrics() -> dict[str, Any]:
     return _GPU_CACHE
 
 
-def get_lucca_process_footprint() -> dict[str, Any]:
+def get_lucca_process_footprint() -> dict[str, JsonValue]:
     """Calculates RAM and CPU usage specifically consumed by the Lucca companion stack."""
     total_rss_bytes = 0
     lucca_cpu_pct = 0.0
@@ -130,7 +130,7 @@ def get_lucca_process_footprint() -> dict[str, Any]:
     }
 
 
-def get_system_metrics() -> dict[str, Any]:
+def get_system_metrics() -> dict[str, JsonValue]:
     """
     Returns accurate real-time hardware telemetry across all 5 substrates:
     1. System RAM (Total, Used, Free, Percent, and Lucca process footprint)
@@ -155,7 +155,7 @@ def get_system_metrics() -> dict[str, Any]:
     gpu = query_nvidia_gpu_metrics()
     lucca_stack = get_lucca_process_footprint()
 
-    metrics: dict[str, Any] = {
+    metrics: dict[str, JsonValue] = {
         "timestamp": datetime.now().isoformat(),
         "ram": {
             "total_gb": total_ram_gb,
@@ -195,9 +195,11 @@ def get_system_metrics() -> dict[str, Any]:
     return metrics
 
 
-def list_running_processes(filter_name: str | None = None, limit: int = 25) -> list[dict[str, Any]]:
+def list_running_processes(
+    filter_name: str | None = None, limit: int = 25
+) -> list[dict[str, JsonValue]]:
     """Safe read-only inspection of active processes on the host machine."""
-    results: list[dict[str, Any]] = []
+    results: list[dict[str, JsonValue]] = []
     f_lower = filter_name.lower() if filter_name else None
 
     for proc in psutil.process_iter(["pid", "name", "memory_percent", "cpu_percent"]):
@@ -243,7 +245,7 @@ class SessionTelemetryLogger:
     def stop(self) -> None:
         self.running = False
 
-    def log_snapshot(self) -> dict[str, Any]:
+    def log_snapshot(self) -> dict[str, JsonValue]:
         """Writes a single snapshot to the active session log file and returns the metrics."""
         metrics = get_system_metrics()
         try:

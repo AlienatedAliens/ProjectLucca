@@ -10,10 +10,10 @@ import sys
 import time
 import tomllib
 from pathlib import Path
-from typing import Any
 
 import psutil
 import structlog
+from pydantic import JsonValue
 
 if sys.platform == "win32":
     import ctypes
@@ -58,9 +58,9 @@ class AppLauncher:
         cfg_file = Path(config_path) if config_path else cfg_dir / "tool_whitelist.toml"
         self.apps = self._load_whitelist(cfg_file)
 
-    def _load_whitelist(self, cfg_file: Path) -> dict[str, dict[str, Any]]:
+    def _load_whitelist(self, cfg_file: Path) -> dict[str, dict[str, JsonValue]]:
         """Loads whitelist from TOML or fallback default mapping."""
-        defaults: dict[str, dict[str, Any]] = {
+        defaults: dict[str, dict[str, JsonValue]] = {
             "calculator": {
                 "exe": "calc.exe",
                 "aliases": ["calculator", "calc"],
@@ -80,14 +80,14 @@ class AppLauncher:
                 with open(cfg_file, "rb") as f:
                     data = tomllib.load(f)
                     if "apps" in data and isinstance(data["apps"], dict):
-                        apps_dict: dict[str, dict[str, Any]] = data["apps"]
+                        apps_dict: dict[str, dict[str, JsonValue]] = data["apps"]
                         return apps_dict
             except Exception as exc:  # noqa: BLE001
                 logger.warning("whitelist_load_failed", error=str(exc))
 
         return defaults
 
-    def find_app_entry(self, name: str) -> tuple[str, dict[str, Any]] | None:
+    def find_app_entry(self, name: str) -> tuple[str, dict[str, JsonValue]] | None:
         """Finds app config by key or alias (case-insensitive)."""
         target = name.strip().lower()
         for app_id, entry in self.apps.items():

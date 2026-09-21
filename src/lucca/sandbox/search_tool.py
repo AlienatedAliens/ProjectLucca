@@ -11,10 +11,10 @@ from __future__ import annotations
 import html
 import re
 import urllib.parse
-from typing import Any
 
 import httpx
 import structlog
+from pydantic import JsonValue
 
 try:
     from ddgs import DDGS
@@ -98,7 +98,7 @@ def classify_link_followability(url: str) -> tuple[str, bool, str]:
     return "html_page", True, "Followable Webpage (Recommended for fetch_url)"
 
 
-def search_web(query: str, max_results: int = 5) -> tuple[dict[str, Any], str]:
+def search_web(query: str, max_results: int = 5) -> tuple[dict[str, JsonValue], str]:
     """
     Executes a web search query via DDGS (impersonating modern browser TLS/HTTP2)
     with fallback to direct HTML scraping.
