@@ -1,0 +1,3 @@
+{"id": "unit-convert-fire-yield", "transcript": "convert 100 meters to feet", "intent": "chit_chat", "rule_fired": true}
+{"id": "unit-convert-fire-tool", "transcript": "convert", "intent": "chit_chat", "rule_fired": true, "expected_tool": "run_python", "entities": {"expr": ["100 * 3.28084"]}}
+{"id": "unit-convert-nofire", "transcript": "open the notes app", "intent": "launch_app", "rule_fired": false}

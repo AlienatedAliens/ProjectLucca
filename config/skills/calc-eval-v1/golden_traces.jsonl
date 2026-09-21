@@ -1,0 +1,3 @@
+{"id": "calc-eval-fire-yield", "transcript": "please calculate 25 * 4", "intent": "chit_chat", "rule_fired": true}
+{"id": "calc-eval-fire-tool", "transcript": "calculate", "intent": "chit_chat", "rule_fired": true, "expected_tool": "run_python", "entities": {"expr": ["25 * 4"]}}
+{"id": "calc-eval-nofire", "transcript": "what is the weather today", "intent": "chit_chat", "rule_fired": false}

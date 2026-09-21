@@ -1,0 +1,3 @@
+{"id": "quick-fact-fire-yield", "transcript": "tell me a quick fact about penguins", "intent": "chit_chat", "rule_fired": true}
+{"id": "quick-fact-fire-tool", "transcript": "quick fact about", "intent": "chit_chat", "rule_fired": true, "expected_tool": "search_web", "entities": {"topic": ["penguins"]}}
+{"id": "quick-fact-nofire", "transcript": "hello there", "intent": "chit_chat", "rule_fired": false}

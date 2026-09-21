@@ -22,6 +22,7 @@ from lucca.core.trace import (
 )
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.skills import SkillManager
 from lucca.sandbox.egress import EgressVerifier
 
 
@@ -178,6 +179,7 @@ def run_rules_cli(
     rule_id: str | None = None,
     approver: str = "operator",
     db_path: Path | None = None,
+    rule_source: str | None = None,
 ) -> int:
     """Manages MicroScheme rules and human approval gates via CLI."""
     if db_path is None:
@@ -189,6 +191,26 @@ def run_rules_cli(
     manager = RuleLifecycleManager(db=db)
 
     console = Console()
+
+    if action == "register":
+        if not rule_source:
+            console.print("[red]Error: rule source or file path is required to register.[/red]")
+            return 1
+        src_path = Path(rule_source)
+        if src_path.exists() and src_path.is_file():
+            rule_text = src_path.read_text(encoding="utf-8")
+        else:
+            rule_text = rule_source
+        try:
+            managed = manager.register_rule(rule_text)
+            console.print(
+                f"[bold green]SUCCESS:[/bold green] Rule '{managed.rule_id}' registered in "
+                "[blue]QUARANTINE[/blue] mode."
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            console.print(f"[bold red]FAILED:[/bold red] Failed to register rule: {err}")
+            return 1
 
     if action == "list":
         if not manager.rules:
@@ -257,6 +279,103 @@ def run_rules_cli(
         return 0
 
     console.print(f"[red]Unknown rules action: {action}[/red]")
+    return 1
+
+
+def run_skills_cli(
+    action: str,
+    package_dir: str | None = None,
+    skill_id: str | None = None,
+    db_path: Path | None = None,
+    skills_dir: Path | None = None,
+) -> int:
+    """Manages LISP Studio skill packages and lifecycle per Spec 1.1.2 §3 (L1a)."""
+    if db_path is None:
+        config = get_config()
+        db_path = config.resolve_path("data") / "memory.sqlite"
+
+    db = DatabaseManager(db_path=db_path)
+    db.migrate()
+    lifecycle_manager = RuleLifecycleManager(db=db, skills_dir=skills_dir)
+    skill_manager = SkillManager(skills_dir=skills_dir, rule_engine=lifecycle_manager)
+
+    console = Console()
+
+    if action == "register":
+        if not package_dir:
+            console.print("[red]Error: package directory path is required to register.[/red]")
+            return 1
+        pkg_path = Path(package_dir)
+        try:
+            pkg = skill_manager.register_package(pkg_path)
+            console.print(
+                f"[bold green]SUCCESS:[/bold green] Skill '{pkg.meta.id}' registered in "
+                "[green]ACTIVE[/green] status."
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            console.print(f"[bold red]FAILED:[/bold red] Could not register skill package: {err}")
+            return 1
+
+    if action == "list":
+        records = skill_manager.list_skills()
+        if not records:
+            console.print("[yellow]No skill packages currently registered.[/yellow]")
+            return 0
+
+        table = Table(
+            title="LISP Studio Skill Registry — Packages & Lifecycle",
+            caption="Spec 1.1.2 §3 Skill Package Format & §13 Ladder (L1a)",
+        )
+        table.add_column("Skill ID", style="cyan", no_wrap=True)
+        table.add_column("Status", justify="center", no_wrap=True)
+        table.add_column("Categories", justify="left")
+        table.add_column("Expose As Tool", justify="center")
+        table.add_column("Clusters", justify="right")
+        table.add_column("Failures", justify="right")
+
+        for r in records:
+            status_val = str(r.get("status", "QUARANTINE"))
+            if status_val == "ACTIVE":
+                status_style = "[green]ACTIVE[/green]"
+            elif status_val == "PENDING_APPROVAL":
+                status_style = "[bold yellow]PENDING_APPROVAL[/bold yellow]"
+            elif status_val == "QUARANTINE":
+                status_style = "[blue]QUARANTINE[/blue]"
+            elif status_val == "DEMOTED":
+                status_style = "[magenta]DEMOTED[/magenta]"
+            else:
+                status_style = "[red]RETIRED[/red]"
+
+            table.add_row(
+                str(r.get("id", "")),
+                status_style,
+                str(r.get("categories", "-")),
+                str(r.get("expose_as_tool", False)),
+                str(r.get("clusters", "- / 5")),
+                str(r.get("failures", 0)),
+            )
+        console.print(table)
+        return 0
+
+    if action == "retire":
+        if not skill_id:
+            console.print("[red]Error: skill_id is required to retire.[/red]")
+            return 1
+        try:
+            skill_manager.retire_skill(skill_id)
+            console.print(
+                f"[bold yellow]RETIRED:[/bold yellow] Skill '{skill_id}' "
+                "retired and moved to _retired/."
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            console.print(
+                f"[bold red]FAILED:[/bold red] Could not retire skill '{skill_id}': {err}"
+            )
+            return 1
+
+    console.print(f"[red]Unknown skills action: {action}[/red]")
     return 1
 
 
@@ -355,6 +474,28 @@ def create_parser() -> argparse.ArgumentParser:
     p_ret = rules_sub.add_parser("retire", help="Retire an active or quarantined rule")
     p_ret.add_argument("rule_id", help="Rule identifier to retire")
 
+    p_reg = rules_sub.add_parser(
+        "register", help="Register a new MicroScheme rule in QUARANTINE mode"
+    )
+    p_reg.add_argument("source", help="Rule S-expression string or path to .scm file")
+
+    # skills
+    p_skills = subparsers.add_parser(
+        "skills", help="LISP Studio skill package management (Spec 1.1.2 §3, L1a)"
+    )
+    p_skills.add_argument("--db", type=str, default=None, help="Optional database path")
+    p_skills.add_argument(
+        "--skills-dir", type=str, default=None, help="Optional skills directory path"
+    )
+    skills_sub = p_skills.add_subparsers(dest="action", required=True)
+    skills_sub.add_parser("list", help="List all skill packages and their lifecycle status")
+
+    p_sreg = skills_sub.add_parser("register", help="Register a new skill package")
+    p_sreg.add_argument("package_dir", help="Path to skill package directory")
+
+    p_sret = skills_sub.add_parser("retire", help="Retire an active skill package")
+    p_sret.add_argument("skill_id", help="Skill identifier to retire")
+
     # Stubs per F-CORE-027
     for stub in ["metrics", "memory", "router", "replay"]:
         sub = subparsers.add_parser(
@@ -416,11 +557,34 @@ def main(argv: list[str] | None = None) -> None:
             sys.exit(3)
     elif args.cmd == "rules":
         rule_id = getattr(args, "rule_id", None)
+        rule_source = getattr(args, "source", None)
         approver = getattr(args, "approver", "operator")
         db_arg = getattr(args, "db", None)
         db_path = Path(db_arg) if db_arg else None
         sys.exit(
-            run_rules_cli(action=args.action, rule_id=rule_id, approver=approver, db_path=db_path)
+            run_rules_cli(
+                action=args.action,
+                rule_id=rule_id,
+                approver=approver,
+                db_path=db_path,
+                rule_source=rule_source,
+            )
+        )
+    elif args.cmd == "skills":
+        package_dir = getattr(args, "package_dir", None)
+        skill_id = getattr(args, "skill_id", None)
+        db_arg = getattr(args, "db", None)
+        db_path = Path(db_arg) if db_arg else None
+        skills_dir_arg = getattr(args, "skills_dir", None)
+        skills_dir = Path(skills_dir_arg) if skills_dir_arg else None
+        sys.exit(
+            run_skills_cli(
+                action=args.action,
+                package_dir=package_dir,
+                skill_id=skill_id,
+                db_path=db_path,
+                skills_dir=skills_dir,
+            )
         )
     elif args.cmd in ("metrics", "memory", "router", "replay"):
         print("not implemented (tracked as F-CORE-027)")

@@ -1,0 +1,11 @@
+{
+  "id": "plan-decompose-v1",
+  "intent": "plan",
+  "description": "Yield control to neural core for multi-step task planning",
+  "keywords": ["plan", "decompose", "step", "reasoning"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core"],
+  "expose_as_tool": false
+}

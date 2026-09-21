@@ -54,14 +54,42 @@ DEFAULT_STOP_WORDS_AFTER_START: Final[frozenset[str]] = frozenset(
 )
 
 FILE_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b([\w\-.]+\.(?:txt|md|py|json|csv|pdf|docx))\b", re.IGNORECASE
+    r"\b([a-zA-Z0-9_\-./\\]+\.(?:txt|md|py|json|csv|pdf|docx|toml|yaml|yml|sql|rs|cpp|h|c|log|env))\b",
+    re.IGNORECASE,
 )
-URL_PATTERN: Final[re.Pattern[str]] = re.compile(r"https?://\S+")
+URL_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"(?:https?://\S+|\b(?:[a-zA-Z0-9-]+\.)+(?:com|org|net|gov|edu|io|ai|co|ph)(?:/\S*)?)\b",
+    re.IGNORECASE,
+)
 QUOTED_PATTERN: Final[re.Pattern[str]] = re.compile(r'"([^"]+)"')
 
 INTENT_TO_RULE: Final[frozenset[str]] = frozenset(
     {"launch_app", "file_read", "file_write", "web_fetch"}
 )
+
+INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
+    "file_read": "self",
+    "file_write": "self",
+    "web_fetch": "information",
+    "memory_query": "cognitive_core",
+    "chit_chat": "companion",
+    "launch_app": "self",
+}
+
+
+def map_intent_to_category(
+    intent: str,
+    entities: dict[str, list[str]] | None = None,
+) -> str | None:
+    """
+    Deterministic mapping from heuristic router intent/entities to a 7-category menu slot (T1.4).
+    If no mapping fires, logs a category_miss telemetry event and returns None.
+    """
+    cat = INTENT_CATEGORY_MAP.get(intent)
+    if cat is not None:
+        return cat
+    logger.info("category_miss", intent=intent, entities=entities)
+    return None
 
 
 class HeuristicRouter:
@@ -190,19 +218,14 @@ class HeuristicRouter:
         ):
             return "file_write", 0.90, entities
 
-        # 4. Web Fetch
-        web_pattern = r"\b(fetch|browse|download|web|scrape|curl|lookup|search\s+web)\b"
-        if re.search(web_pattern, text) or entities["url"]:
-            return "web_fetch", 0.90, entities
-
-        # 5. Memory Query
+        # 4. Memory Query
         mem_pattern = (
             r"\b(remember|recall|what\s+is\s+my|who\s+is\s+my|where\s+do\s+i|do\s+you\s+remember)\b"
         )
         if re.search(mem_pattern, text):
             return "memory_query", 0.90, entities
 
-        # 6. Chit Chat
+        # 5. Chit Chat
         chit_pattern = (
             r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
             r"good\s+morning|good\s+afternoon|good\s+night)\b"
@@ -210,7 +233,20 @@ class HeuristicRouter:
         if re.search(chit_pattern, text):
             return "chit_chat", 0.95, entities
 
-        # 8. Clarify: very short utterance
+        # 6. Web Fetch / Search & Factual Inquiries
+        web_pattern = (
+            r"\b(fetch|browse|download|web|scrape|curl|lookup|look\s*up|"
+            r"search(?:\s+(?:for|google|online|the\s+web|web|wikipedia))?|"
+            r"google|check\s+(?:google|wikipedia|online|news)|"
+            r"find\s+(?:out|information|online)|headlines|wikipedia|"
+            r"tell\s+me\s+about|facts\s+about|who\s+(?:is|was)|"
+            r"what\s+(?:is|are|can\s+you\s+tell)|where\s+(?:is|are|was|does)|"
+            r"when\s+(?:was|is)|how\s+about)\b"
+        )
+        if re.search(web_pattern, text) or entities["url"]:
+            return "web_fetch", 0.90, entities
+
+        # 7. Clarify: very short utterance
         if len(text.split()) <= 1 and text:
             return "clarify", 0.40, entities
 

@@ -154,7 +154,7 @@ def test_admin_rules_cli_lifecycle(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Tests lucca-admin rules list, approve, and retire commands."""
-    from lucca.core.schemas import Plan, Risk, RuleState, ToolCall, ToolParameter, ToolSchema
+    from lucca.core.schemas import Plan, RuleState, ToolCall
     from lucca.memory.db import DatabaseManager
     from lucca.reasoning.lifecycle import RuleLifecycleManager
 
@@ -168,49 +168,48 @@ def test_admin_rules_cli_lifecycle(
     captured = capsys.readouterr()
     assert "No rules currently registered" in captured.out
 
-    # 2. Register a rule and simulate 5 clusters so it reaches PENDING_APPROVAL
-    db = DatabaseManager(db_path)
-    db.migrate()
-    tools = {
-        "launch_app": ToolSchema(
-            name="launch_app",
-            description="Launch application",
-            parameters={"app": ToolParameter(type="string", description="App name")},
-            risk=Risk.LAUNCH,
-        )
-    }
-    mgr = RuleLifecycleManager(registered_tools=tools, db=db)
+    # 1b. rules register via CLI
     rule_src = """
-    (rule "open-calc-v1"
-      :when (and (intent= "launch_app") (entity-has? "app" "calculator"))
-      :plan (list (tool "launch_app" :app "calculator"))
+    (rule "read-notes-v1"
+      :when (and (intent= "read_file") (entity-has? "rel_path" "notes.txt"))
+      :plan (list (tool "read_file" :rel_path "notes.txt"))
       :priority 5)
     """
-    mgr.register_rule(rule_src)
-    state = RuleState(schema_version=1, intent="launch_app", entities={"app": ["calculator"]})
-    plan = Plan(actions=[ToolCall(tool="launch_app", args={"app": "calculator"}, call_id="c1")])
+    with pytest.raises(SystemExit) as exc_info:
+        main(["rules", "--db", str(db_path), "register", rule_src])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "SUCCESS:" in captured.out
+    assert "QUARANTINE" in captured.out
+
+    # 2. Simulate 5 clusters so it reaches PENDING_APPROVAL
+    db = DatabaseManager(db_path)
+    db.migrate()
+    mgr = RuleLifecycleManager(db=db)
+    state = RuleState(schema_version=1, intent="read_file", entities={"rel_path": ["notes.txt"]})
+    plan = Plan(actions=[ToolCall(tool="read_file", args={"rel_path": "notes.txt"}, call_id="c1")])
     for i in range(5):
         mgr.record_shadow(
-            "open-calc-v1",
+            "read-notes-v1",
             matched=True,
             cluster_id=f"c_{i}",
             state_snapshot=state,
             plan_snapshot=plan,
         )
-    mgr.promote_if_eligible("open-calc-v1")
-    assert mgr.rules["open-calc-v1"].status == "PENDING_APPROVAL"
+    mgr.promote_if_eligible("read-notes-v1")
+    assert mgr.rules["read-notes-v1"].status == "PENDING_APPROVAL"
 
     # 3. rules list displays the rule in PENDING_APPROVAL
     with pytest.raises(SystemExit) as exc_info:
         main(["rules", "--db", str(db_path), "list"])
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
-    assert "open-calc-v1" in captured.out
+    assert "read-notes-v1" in captured.out
     assert "PENDING_APPROVAL" in captured.out
 
     # 4. Human operator approves the rule via CLI
     with pytest.raises(SystemExit) as exc_info:
-        main(["rules", "--db", str(db_path), "approve", "open-calc-v1", "--approver", "sec-lead"])
+        main(["rules", "--db", str(db_path), "approve", "read-notes-v1", "--approver", "sec-lead"])
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "SUCCESS:" in captured.out
@@ -225,7 +224,8 @@ def test_admin_rules_cli_lifecycle(
 
     # 6. Human operator retires the rule via CLI
     with pytest.raises(SystemExit) as exc_info:
-        main(["rules", "--db", str(db_path), "retire", "open-calc-v1"])
+        main(["rules", "--db", str(db_path), "retire", "read-notes-v1"])
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "RETIRED:" in captured.out
+

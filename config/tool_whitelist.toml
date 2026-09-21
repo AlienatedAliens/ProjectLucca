@@ -1,5 +1,14 @@
 # Project Lucca — Approved Desktop Applications Whitelist
 # Spec 09 §6, D-AUD-10
+#
+# STATUS: VESTIGIAL (retained for rollback only) — Studio Capability Roadmap v1.1.2 §2.5.
+# The ratified doctrine ("Lucca never operates the user's desktop") removed `launch_app`
+# from the tool registry at rung T1. This file is no longer read on the tool-calling path.
+#
+# HISTORY: truncated 5→2 apps by test pollution in commit 0ef309d (save_whitelist_apps
+# silently redirected a not-yet-existing explicit path to this file). Restored by H3.
+# Root cause fixed 2026-09-21 in src/lucca/ui/settings_dialog.py::_resolve_whitelist_path.
+# Regression test: tests/test_tool_whitelist.py.
 
 [apps.calc]
 exe = "calc.exe"
@@ -7,8 +16,26 @@ aliases = ["calculator", "calc"]
 args = []
 single_instance = true
 
+[apps.notepad]
+exe = "notepad.exe"
+aliases = ["notepad", "text editor"]
+args = ["{file?}"]
+single_instance = false
+
+[apps.browser]
+exe = "msedge.exe"
+aliases = ["browser", "edge"]
+args = ["{url?}"]
+single_instance = false
+
 [apps.terminal]
 exe = "wt.exe"
-aliases = ["terminal", "terminal"]
+aliases = ["terminal", "windows terminal"]
 args = []
 single_instance = false
+
+[apps.task_manager]
+exe = "taskmgr.exe"
+aliases = ["task manager", "taskmgr"]
+args = []
+single_instance = true

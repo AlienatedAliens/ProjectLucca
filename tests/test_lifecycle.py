@@ -28,6 +28,7 @@ def tools():
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         )
     }
 

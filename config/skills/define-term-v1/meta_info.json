@@ -1,0 +1,11 @@
+{
+  "id": "define-term-v1",
+  "intent": "define",
+  "description": "Define a term or concept via web search",
+  "keywords": ["define", "definition", "term", "dictionary"],
+  "args": ["term"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["information"],
+  "expose_as_tool": true
+}

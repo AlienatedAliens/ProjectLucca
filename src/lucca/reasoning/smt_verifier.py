@@ -203,7 +203,9 @@ class SMTVerifier:
             return SMTVerificationResult(
                 verified=False,
                 status="UNMODELED_PREDICATE",
-                reasons=[f"Translation of :when expression to Z3 failed (unmodeled predicate): {exc}"],
+                reasons=[
+                    f"Translation of :when expression to Z3 failed (unmodeled predicate): {exc}"
+                ],
             )
 
         # 2. Check Precondition Satisfiability (SAT)
@@ -286,6 +288,25 @@ class SMTVerifier:
             model_sample=sample_model,
         )
 
+    def _collect_plan_actions(self, node: SchemeNode) -> list[list[SchemeNode]]:
+        """Collects all action nodes recursively from plan expression (unpacking list and if)."""
+        actions: list[list[SchemeNode]] = []
+        if not isinstance(node, list) or len(node) == 0:
+            return actions
+        head = node[0]
+        if isinstance(head, Symbol):
+            if head.name == "if":
+                for branch in node[2:]:
+                    actions.extend(self._collect_plan_actions(branch))
+            elif head.name == "list":
+                for item in node[1:]:
+                    actions.extend(self._collect_plan_actions(item))
+            else:
+                actions.append(node)
+        else:
+            actions.append(node)
+        return actions
+
     def _verify_plan_actions(
         self,
         plan_expr: SchemeNode,
@@ -299,11 +320,7 @@ class SMTVerifier:
                 reasons=["Empty plan expression"],
             )
 
-        head = plan_expr[0]
-        if isinstance(head, Symbol) and head.name == "list":
-            actions = plan_expr[1:]
-        else:
-            actions = [plan_expr]
+        actions = self._collect_plan_actions(plan_expr)
 
         reasons: list[str] = []
         for action in actions:

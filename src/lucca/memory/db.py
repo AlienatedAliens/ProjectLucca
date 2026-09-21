@@ -3,6 +3,7 @@ Project Lucca — SQLite + WAL + sqlite-vec Database Manager
 Spec 04 §1, §2, ADR-002
 """
 
+import json
 import re
 import sqlite3
 import time
@@ -13,6 +14,8 @@ from typing import Final
 
 import sqlite_vec
 import structlog
+
+from lucca.core.schemas import Decision, ExecutionTriple, Outcome, Proposal
 
 logger = structlog.get_logger(__name__)
 
@@ -127,6 +130,79 @@ class DatabaseManager:
             cur.execute("PRAGMA integrity_check;")
             row = cur.fetchone()
             return row is not None and row[0] == "ok"
+
+    def record_execution_triple(self, triple: ExecutionTriple) -> None:
+        """Persists an execution triple (Proposal, Decision, Outcome) to SQLite WAL."""
+        writer = self.get_writer()
+        prop_json = json.dumps(triple.proposal.model_dump(mode="json"))
+        dec_json = json.dumps(triple.decision.model_dump(mode="json"))
+        out_json = json.dumps(triple.outcome.model_dump(mode="json"))
+        writer.execute("BEGIN IMMEDIATE")
+        try:
+            writer.execute(
+                """
+                INSERT INTO execution_triples (
+                    triple_id, proposal_json, decision_json, outcome_json, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(triple_id) DO UPDATE SET
+                    proposal_json=excluded.proposal_json,
+                    decision_json=excluded.decision_json,
+                    outcome_json=excluded.outcome_json,
+                    created_at=excluded.created_at
+                """,
+                (triple.triple_id, prop_json, dec_json, out_json, triple.created_at),
+            )
+            writer.execute("COMMIT")
+        except Exception:
+            writer.execute("ROLLBACK")
+            raise
+
+    def get_execution_triple(self, triple_id: str) -> ExecutionTriple | None:
+        """Reads an execution triple from SQLite by triple_id."""
+        with self.read_cursor() as cur:
+            cur.execute(
+                """
+                SELECT triple_id, proposal_json, decision_json, outcome_json, created_at
+                FROM execution_triples
+                WHERE triple_id = ?
+                """,
+                (triple_id,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            return ExecutionTriple(
+                triple_id=str(row[0]),
+                proposal=Proposal.model_validate(json.loads(row[1])),
+                decision=Decision.model_validate(json.loads(row[2])),
+                outcome=Outcome.model_validate(json.loads(row[3])),
+                created_at=float(row[4]),
+            )
+
+    def list_execution_triples(self, limit: int = 100) -> list[ExecutionTriple]:
+        """Lists recent execution triples ordered by created_at DESC."""
+        with self.read_cursor() as cur:
+            cur.execute(
+                """
+                SELECT triple_id, proposal_json, decision_json, outcome_json, created_at
+                FROM execution_triples
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+            triples: list[ExecutionTriple] = []
+            for row in cur.fetchall():
+                triples.append(
+                    ExecutionTriple(
+                        triple_id=str(row[0]),
+                        proposal=Proposal.model_validate(json.loads(row[1])),
+                        decision=Decision.model_validate(json.loads(row[2])),
+                        outcome=Outcome.model_validate(json.loads(row[3])),
+                        created_at=float(row[4]),
+                    )
+                )
+            return triples
 
     def close(self) -> None:
         """Close all connections."""

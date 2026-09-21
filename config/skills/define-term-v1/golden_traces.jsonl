@@ -1,0 +1,3 @@
+{"id": "define-term-fire-yield", "transcript": "what is photosynthesis", "intent": "chit_chat", "rule_fired": true}
+{"id": "define-term-fire-tool", "transcript": "what is", "intent": "chit_chat", "rule_fired": true, "expected_tool": "search_web", "entities": {"term": ["photosynthesis"]}}
+{"id": "define-term-nofire", "transcript": "good morning", "intent": "chit_chat", "rule_fired": false}

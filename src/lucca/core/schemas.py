@@ -3,11 +3,14 @@ Project Lucca — Common Domain Models & Schemas
 Spec 02, Spec 03, Spec 06 (Zero-Any Rule Compliant)
 """
 
+import re
+import time
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
-from pydantic import BaseModel, Field, JsonValue
+import ulid
+from pydantic import BaseModel, Field, JsonValue, field_validator
 
 # ============================================================================
 # Audio & ASR Common Models (Spec 02)
@@ -79,6 +82,57 @@ class ToolSchema(BaseModel):
     description: str
     parameters: dict[str, ToolParameter]
     risk: Risk
+    target: Literal["self", "host_readonly", "shared"]
+
+
+ALLOWED_SKILL_CATEGORIES: Final[frozenset[str]] = frozenset(
+    {
+        "cognitive_core",
+        "information",
+        "host_perception",
+        "companion",
+        "self",
+        "host_readonly",
+        "shared",
+    }
+)
+
+SKILL_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*-v[0-9]+$")
+
+
+class SkillMeta(BaseModel):
+    id: str
+    intent: str
+    description: str = ""
+    keywords: list[str] = Field(default_factory=list)
+    args: list[str] = Field(default_factory=list)
+    status: Literal["ACTIVE", "QUARANTINE", "RETIRED"] = "QUARANTINE"
+    version: str = "1.0.0"
+    categories: list[str] = Field(default_factory=list)
+    expose_as_tool: bool = False
+
+    @field_validator("id")
+    @classmethod
+    def validate_skill_id(cls, v: str) -> str:
+        if not SKILL_ID_PATTERN.match(v):
+            raise ValueError(
+                f"Invalid skill id '{v}': must be kebab-case and version-suffixed "
+                "(e.g. 'calc-eval-v1')"
+            )
+        return v
+
+    @field_validator("categories")
+    @classmethod
+    def validate_categories(cls, v: list[str]) -> list[str]:
+        if len(v) > 2:
+            raise ValueError(f"Skill cannot declare more than 2 categories, got {len(v)}")
+        for cat in v:
+            if cat not in ALLOWED_SKILL_CATEGORIES:
+                raise ValueError(
+                    f"Unknown category '{cat}': must be one of {sorted(ALLOWED_SKILL_CATEGORIES)}"
+                )
+        return v
+
 
 
 # ============================================================================
@@ -149,6 +203,7 @@ class TTSChunk(BaseModel):
     trace_id: str
     chunk_id: int
     text: str
+    raw_text: str = ""
     voice: str = "af_heart"
     is_first: bool = False
 
@@ -324,6 +379,65 @@ class RegressionReport(BaseModel):
     passed: bool
     cases_evaluated: int
     failures: list[str] = Field(default_factory=list)
+
+
+# ============================================================================
+# S1 Typed Execution Triple Models (Spec §5, Handover #4 S1.1)
+# ============================================================================
+
+PlanStep = ToolCall | Say
+
+
+class Proposal(BaseModel):
+    """Proposal emitted by S1 (rule engine). Spec §5."""
+
+    proposal_id: str = Field(default_factory=lambda: str(ulid.ULID()))
+    rule_id: str
+    plan: list[ToolCall | Say]
+    confidence: float = 1.0
+    gas_estimate: int = 0
+    evidence_refs: list[str] = Field(default_factory=list)
+
+    @field_validator("plan", mode="before")
+    @classmethod
+    def _coerce_plan(cls, v: object) -> object:
+        if isinstance(v, Plan):
+            return v.actions
+        return v
+
+
+class Decision(BaseModel):
+    """Decision emitted by arbiter / S2. Spec §5."""
+
+    decision_id: str = Field(default_factory=lambda: str(ulid.ULID()))
+    proposal_id: str
+    verdict: Literal["accepted", "overridden", "escalated"]
+    reason_code: str
+
+
+class Outcome(BaseModel):
+    """Grounded outcome, never self-judged. Spec §5."""
+
+    outcome_id: str = Field(default_factory=lambda: str(ulid.ULID()))
+    decision_id: str
+    signal: Literal[
+        "tool_exit_zero",
+        "pydantic_valid",
+        "operator_confirm",
+        "operator_correct",
+        "abstained",
+    ]
+    detail: str = ""
+
+
+class ExecutionTriple(BaseModel):
+    """(Proposal, Decision, Outcome) triple persisted to SQLite WAL. Spec §5."""
+
+    triple_id: str = Field(default_factory=lambda: str(ulid.ULID()))
+    proposal: Proposal
+    decision: Decision
+    outcome: Outcome
+    created_at: float = Field(default_factory=time.time)
 
 
 class ExecutionTier(StrEnum):

@@ -1,0 +1,11 @@
+{
+  "id": "calc-eval-v1",
+  "intent": "calculate",
+  "description": "Evaluate Python arithmetic or math expression in sandbox",
+  "keywords": ["calculate", "eval", "math", "python"],
+  "args": ["expr"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core", "self"],
+  "expose_as_tool": true
+}

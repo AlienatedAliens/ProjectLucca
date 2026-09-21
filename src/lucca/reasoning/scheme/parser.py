@@ -36,6 +36,8 @@ ALLOWED_OPS = frozenset(
         "list",
         "tool",
         "say",
+        "yield-to-core",
+        "interrupt-core",
         "and",
         "or",
         "not",
@@ -393,6 +395,78 @@ def _validate_operators(node: SchemeNode) -> None:
             _validate_operators(child)
 
 
+def _validate_action_node(action: SchemeNode) -> None:
+    if not isinstance(action, list) or not action or not isinstance(action[0], Symbol):
+        raise SchemeSyntaxError(
+            "Plan action must be a list starting with 'tool', 'say', "
+            f"'yield-to-core', or 'interrupt-core', got {action}"
+        )
+    action_name = action[0].name
+    if action_name == "tool":
+        if len(action) < 2 or not isinstance(action[1], str):
+            raise SchemeSyntaxError(f"Tool action requires a string tool name, got {action}")
+        kidx = 2
+        while kidx < len(action):
+            if not isinstance(action[kidx], Keyword):
+                raise SchemeSyntaxError(
+                    f"Expected keyword in tool call kwargs, got {action[kidx]}"
+                )
+            if kidx + 1 >= len(action):
+                raise SchemeSyntaxError(f"Missing value for keyword {action[kidx]}")
+            kidx += 2
+    elif action_name == "say":
+        if len(action) != 2 or not isinstance(action[1], str):
+            raise SchemeSyntaxError(
+                f"Say action requires exactly one string argument, got {action}"
+            )
+    elif action_name == "yield-to-core":
+        if len(action) < 2 or not isinstance(action[1], str):
+            raise SchemeSyntaxError(
+                f"yield-to-core requires at least a reason string, got {action}"
+            )
+        kidx = 2
+        while kidx < len(action):
+            if not isinstance(action[kidx], Keyword):
+                raise SchemeSyntaxError(
+                    f"Expected keyword in yield-to-core context kwargs, got {action[kidx]}"
+                )
+            if kidx + 1 >= len(action):
+                raise SchemeSyntaxError(f"Missing value for keyword {action[kidx]}")
+            kidx += 2
+    elif action_name == "interrupt-core":
+        if len(action) > 2 or (len(action) == 2 and not isinstance(action[1], str)):
+            raise SchemeSyntaxError(
+                f"interrupt-core accepts at most one reason string, got {action}"
+            )
+    else:
+        raise SchemeSyntaxError(
+            f"Unknown plan action '{action_name}'; must be 'tool', 'say', "
+            "'yield-to-core', or 'interrupt-core'"
+        )
+
+
+def _validate_plan_structure(plan_node: SchemeNode) -> None:
+    if not isinstance(plan_node, list) or not plan_node or not isinstance(plan_node[0], Symbol):
+        raise SchemeSyntaxError("Rule :plan clause must be of form (list ...) or (if ...)")
+
+    head = plan_node[0].name
+    if head == "if":
+        if len(plan_node) != 4:
+            raise SchemeSyntaxError(
+                "Plan 'if' form requires exactly 3 arguments (cond then else), "
+                f"got {len(plan_node) - 1}"
+            )
+        _validate_plan_structure(plan_node[2])
+        _validate_plan_structure(plan_node[3])
+    elif head == "list":
+        for action in plan_node[1:]:
+            _validate_action_node(action)
+    else:
+        raise SchemeSyntaxError(
+            f"Rule :plan clause must be of form (list ...) or (if ...), got ({head} ...)"
+        )
+
+
 def parse_rule(source: str, macro_registry: object | None = None) -> RuleDefinition:
     """
     Parses and strictly validates a canonical MicroScheme rule according to Spec 05 §2 & §7.
@@ -508,40 +582,8 @@ def parse_rule(source: str, macro_registry: object | None = None) -> RuleDefinit
     if not has_state_predicate(when_expr):
         raise SchemeSyntaxError("Rule :when clause must reference at least one state predicate")
 
-    # Validate :plan structure: (list action*)
-    if (
-        not isinstance(plan_expr, list)
-        or not plan_expr
-        or not (isinstance(plan_expr[0], Symbol) and plan_expr[0].name == "list")
-    ):
-        raise SchemeSyntaxError("Rule :plan clause must be of form (list ...)")
-
-    for action in plan_expr[1:]:
-        if not isinstance(action, list) or not action or not isinstance(action[0], Symbol):
-            raise SchemeSyntaxError(
-                f"Plan action must be a list starting with 'tool' or 'say', got {action}"
-            )
-        action_name = action[0].name
-        if action_name == "tool":
-            if len(action) < 2 or not isinstance(action[1], str):
-                raise SchemeSyntaxError(f"Tool action requires a string tool name, got {action}")
-            # Check remaining are keyword-value pairs
-            kidx = 2
-            while kidx < len(action):
-                if not isinstance(action[kidx], Keyword):
-                    raise SchemeSyntaxError(
-                        f"Expected keyword in tool call kwargs, got {action[kidx]}"
-                    )
-                if kidx + 1 >= len(action):
-                    raise SchemeSyntaxError(f"Missing value for keyword {action[kidx]}")
-                kidx += 2
-        elif action_name == "say":
-            if len(action) != 2 or not isinstance(action[1], str):
-                raise SchemeSyntaxError(
-                    f"Say action requires exactly one string argument, got {action}"
-                )
-        else:
-            raise SchemeSyntaxError(f"Unknown plan action '{action_name}'; must be 'tool' or 'say'")
+    # Validate :plan structure: (list action*) or (if cond then else)
+    _validate_plan_structure(plan_expr)
 
     source_canonical = to_canonical(ast)
     source_hash = hashlib.sha256(source_canonical.encode("utf-8")).hexdigest()

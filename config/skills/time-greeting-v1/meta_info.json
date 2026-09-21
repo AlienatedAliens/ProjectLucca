@@ -1,0 +1,11 @@
+{
+  "id": "time-greeting-v1",
+  "intent": "greeting",
+  "description": "Provide contextual time-of-day morning greeting",
+  "keywords": ["greeting", "morning", "time", "companion"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["companion"],
+  "expose_as_tool": false
+}

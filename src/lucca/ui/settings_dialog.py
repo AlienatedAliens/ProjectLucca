@@ -22,13 +22,14 @@ import kokoro_onnx
 import numpy as np
 import sounddevice as sd
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QCursor, QFont, QGuiApplication
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDialog,
     QFileDialog,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -41,6 +42,7 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QSlider,
     QSpinBox,
     QSplitter,
@@ -194,12 +196,29 @@ class ModelDownloadWorker(QThread):
             self.finished_signal.emit(False, f"Download failed: {exc}")
 
 
-def load_whitelist_apps(config_path: Path | None = None) -> list[dict[str, str]]:
-    """Loads approved application whitelist dynamically from tool_whitelist.toml (Spec 09 §6)."""
+def _resolve_whitelist_path(config_path: Path | None) -> Path:
+    """
+    Resolves the whitelist file path.
+
+    An explicitly supplied ``config_path`` is honored EXACTLY, whether or not it
+    exists yet. The repo-relative fallback applies only when no path is given.
+    Root-cause fix for the ``0ef309d`` regression: the previous logic redirected a
+    not-yet-created explicit path to the repo's real ``config/tool_whitelist.toml``,
+    so any caller (including tests using ``tmp_path``) silently overwrote the real
+    config. See docs/HANDOVER_gemini_4_studio_build.md §6 (Phase 1 gate review).
+    """
+    if config_path is not None:
+        return Path(config_path)
     cfg = get_config()
-    cfg_file = config_path or cfg.resolve_path("config") / "tool_whitelist.toml"
+    cfg_file = cfg.resolve_path("config") / "tool_whitelist.toml"
     if not cfg_file.exists() and Path("config/tool_whitelist.toml").exists():
         cfg_file = Path("config/tool_whitelist.toml")
+    return cfg_file
+
+
+def load_whitelist_apps(config_path: Path | None = None) -> list[dict[str, str]]:
+    """Loads approved application whitelist dynamically from tool_whitelist.toml (Spec 09 §6)."""
+    cfg_file = _resolve_whitelist_path(config_path)
 
     apps: list[dict[str, str]] = []
     if cfg_file.exists():
@@ -274,10 +293,7 @@ def load_whitelist_apps(config_path: Path | None = None) -> list[dict[str, str]]
 
 def save_whitelist_apps(apps: list[dict[str, str]], config_path: Path | None = None) -> None:
     """Saves approved application whitelist to tool_whitelist.toml, enforcing D-AUD-10."""
-    cfg = get_config()
-    cfg_file = config_path or cfg.resolve_path("config") / "tool_whitelist.toml"
-    if not cfg_file.exists() and Path("config/tool_whitelist.toml").exists():
-        cfg_file = Path("config/tool_whitelist.toml")
+    cfg_file = _resolve_whitelist_path(config_path)
 
     lines = [
         "# Project Lucca — Approved Desktop Applications Whitelist",
@@ -334,7 +350,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Project Lucca — Configuration Suite")
         self.resize(960, 720)
-        self.setMinimumSize(880, 640)
+        self.setMinimumSize(760, 520)
         self.setWindowFlags(
             Qt.WindowType.Window
             | Qt.WindowType.WindowMinMaxButtonsHint
@@ -411,6 +427,110 @@ class SettingsDialog(QDialog):
 
         self._build_ui()
 
+    def center_on_screen(self) -> None:
+        """
+        Centers the dialog within the visible available work area of the active display,
+        guaranteeing the titlebar and entire window are strictly within screen bounds.
+        """
+        screen = None
+        cursor_pos = QCursor.pos()
+        for s in QGuiApplication.screens():
+            if s.geometry().contains(cursor_pos):
+                screen = s
+                break
+
+        if screen is None:
+            screen = QGuiApplication.primaryScreen()
+
+        if screen is None:
+            return
+
+        avail = screen.availableGeometry()
+
+        # Clamp dialog size to available work area if needed (e.g. lower res or high DPI scaling)
+        target_w = min(self.width(), max(760, avail.width() - 40))
+        target_h = min(self.height(), max(520, avail.height() - 60))
+        if target_w < self.width() or target_h < self.height():
+            self.resize(target_w, target_h)
+
+        # Center in available work area
+        x = avail.x() + (avail.width() - self.width()) // 2
+        y = avail.y() + (avail.height() - self.height()) // 2
+
+        # Strict clamping: titlebar must always be inside work area (at least 30px below top)
+        min_x = avail.left() + 20
+        max_x = max(min_x, avail.right() - self.width() - 20)
+        min_y = avail.top() + 30
+        max_y = max(min_y, avail.bottom() - self.height() - 20)
+
+        clamped_x = max(min_x, min(x, max_x))
+        clamped_y = max(min_y, min(y, max_y))
+
+        self.move(clamped_x, clamped_y)
+
+    def showEvent(self, event: object) -> None:
+        super().showEvent(event)
+        if not getattr(self, "_already_centered", False):
+            self._already_centered = True
+            self.center_on_screen()
+
+    def _create_scrollable_tab(self, build_fn: Callable[[QWidget], None]) -> QScrollArea:
+        """Wraps a tab content widget inside a responsive, styled QScrollArea."""
+        scroll = QScrollArea(self.tabs)
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: #081036;
+                width: 10px;
+                margin: 0px;
+                border: 1px solid #101c54;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #1c2e88;
+                min-height: 24px;
+                border-radius: 3px;
+                border: 1px solid #3b82f6;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #2563eb;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar:horizontal {
+                background: #081036;
+                height: 10px;
+                margin: 0px;
+                border: 1px solid #101c54;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #1c2e88;
+                min-width: 24px;
+                border-radius: 3px;
+                border: 1px solid #3b82f6;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #2563eb;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0px;
+            }
+        """)
+        content_widget = QWidget()
+        content_widget.setStyleSheet("background: transparent;")
+        build_fn(content_widget)
+        scroll.setWidget(content_widget)
+        return scroll
+
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(16, 16, 16, 16)
@@ -427,60 +547,38 @@ class SettingsDialog(QDialog):
 
         self.tabs = QTabWidget(self)
 
-        # Tab 0: 🧠 Persona & Archetypes
-        tab_persona = QWidget()
-        self._build_persona_tab(tab_persona)
-        self.tabs.addTab(tab_persona, "🧠 Persona")
+        # Tab 0: 🧠 Persona & Archetypes (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_persona_tab), "🧠 Persona")
 
-        # Tab 1: 🎙️ Voice Blender & Mixing
-        tab_voice = QWidget()
-        self._build_voice_tab(tab_voice)
-        self.tabs.addTab(tab_voice, "🎙️ Voice Blender")
+        # Tab 1: 🎙️ Voice Blender & Mixing (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_voice_tab), "🎙️ Voice Blender")
 
-        # Tab 2: ⚡ LLM Tuning & Granular Context
-        tab_llm = QWidget()
-        self._build_llm_tab(tab_llm)
-        self.tabs.addTab(tab_llm, "⚡ LLM Tuning")
+        # Tab 2: ⚡ LLM Tuning & Granular Context (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_llm_tab), "⚡ LLM Tuning")
 
-        # Tab 3: 🛠️ Tool Studio & Whitelist
-        tab_tools = QWidget()
-        self._build_tools_tab(tab_tools)
-        self.tabs.addTab(tab_tools, "🛠️ Tool Studio")
+        # Tab 3: 🛠️ Tool Studio & Whitelist (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_tools_tab), "🛠️ Tool Studio")
 
-        # Tab 4: λ MicroScheme LISP Reasoning Studio
-        tab_lisp = QWidget()
-        self._build_lisp_tab(tab_lisp)
-        self.tabs.addTab(tab_lisp, "λ LISP Studio")
+        # Tab 4: λ MicroScheme LISP Reasoning Studio (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_lisp_tab), "λ LISP Studio")
 
-        # Tab 5: ⌨️ Hotkeys & Push-To-Talk
-        tab_ptt = QWidget()
-        self._build_ptt_tab(tab_ptt)
-        self.tabs.addTab(tab_ptt, "⌨️ Hotkeys")
+        # Tab 5: ⌨️ Hotkeys & Push-To-Talk (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_ptt_tab), "⌨️ Hotkeys")
 
-        # Tab 6: 🎛️ DSP Audio Post-Processing
-        tab_dsp = QWidget()
-        self._build_dsp_tab(tab_dsp)
-        self.tabs.addTab(tab_dsp, "🎛️ DSP Audio")
+        # Tab 6: 🎛️ DSP Audio Post-Processing (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_dsp_tab), "🎛️ DSP Audio")
 
-        # Tab 7: 💾 Episodic & Semantic Memory System
-        tab_memory = QWidget()
-        self._build_memory_tab(tab_memory)
-        self.tabs.addTab(tab_memory, "💾 Memory System")
+        # Tab 7: 💾 Episodic & Semantic Memory System (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_memory_tab), "💾 Memory System")
 
-        # Tab 8: 📊 Telemetry & Live Session Logs
-        tab_diag = QWidget()
-        self._build_diag_tab(tab_diag)
-        self.tabs.addTab(tab_diag, "📊 Telemetry & Logs")
+        # Tab 8: 📊 Telemetry & Live Session Logs (Wrapped in QScrollArea)
+        self.tabs.addTab(self._create_scrollable_tab(self._build_diag_tab), "📊 Telemetry & Logs")
 
         # Tab 9: 📖 User Manual (Interactive chapter manual)
-        tab_manual = QWidget()
-        self._build_manual_tab(tab_manual)
-        self.tabs.addTab(tab_manual, "📖 User Manual")
+        self.tabs.addTab(self._create_scrollable_tab(self._build_manual_tab), "📖 User Manual")
 
         # Tab 10: ℹ️ About Lucca (Dedicated lore, topology, credits)
-        tab_about = QWidget()
-        self._build_about_tab(tab_about)
-        self.tabs.addTab(tab_about, "ℹ️ About Lucca")
+        self.tabs.addTab(self._create_scrollable_tab(self._build_about_tab), "ℹ️ About Lucca")
 
         main_layout.addWidget(self.tabs)
         self.tabs.currentChanged.connect(self._on_tab_changed)

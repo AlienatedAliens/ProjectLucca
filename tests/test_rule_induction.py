@@ -38,12 +38,14 @@ def rule_engine(test_db):
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         ),
         "read_file": ToolSchema(
             name="read_file",
             description="Read file",
             parameters={"path": ToolParameter(type="string", description="File path")},
             risk=Risk.READ,
+            target="self",
         ),
         "write_file": ToolSchema(
             name="write_file",
@@ -53,6 +55,7 @@ def rule_engine(test_db):
                 "content": ToolParameter(type="string", description="Content", required=False),
             },
             risk=Risk.WRITE,
+            target="self",
         ),
     }
     return RuleLifecycleManager(registered_tools=tools, db=test_db)

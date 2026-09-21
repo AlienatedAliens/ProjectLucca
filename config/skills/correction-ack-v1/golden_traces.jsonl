@@ -1,0 +1,2 @@
+{"id": "correction-fire-1", "transcript": "actually that is incorrect", "intent": "correction", "rule_fired": true}
+{"id": "correction-nofire-1", "transcript": "sounds great thank you", "intent": "chit_chat", "rule_fired": false}

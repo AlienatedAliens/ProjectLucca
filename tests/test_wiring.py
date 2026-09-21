@@ -63,6 +63,7 @@ def test_phase4_router_and_rules_wiring(tmp_path: Path) -> None:
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         )
     }
 
@@ -218,6 +219,7 @@ def test_phase6_memory_and_rules_promotion_wiring(tmp_path: Path) -> None:
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         )
     }
 

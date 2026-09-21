@@ -578,3 +578,44 @@ def test_whitelist_load_and_save_enforces_d_aud_10(tmp_path: Path) -> None:
     # Shell rejection invariant
     for forbidden in ("cmd.exe", "powershell.exe", "pwsh.exe", "bash.exe", "wsl.exe"):
         assert forbidden in SettingsDialog.FORBIDDEN_SHELLS
+
+
+def test_search_web_execution_and_guard(workspace: Path) -> None:
+    """Verifies that search_web executes via SandboxService and is guarded by SequenceGuard."""
+    from unittest.mock import patch
+    from lucca.core.schemas import Risk
+    from lucca.sandbox.service import SandboxService
+    from lucca.sandbox.policy import classify_risk, SequenceGuard
+
+    assert classify_risk("search_web") == Risk.NETWORK
+
+    service = SandboxService(workspace_root=workspace, use_direct_fallback=True)
+
+    fake_html = """
+    <div class="result__body">
+        <h2 class="result__title"><a href="https://example.com/item">Example Item</a></h2>
+        <a class="result__snippet">This is an example snippet text.</a>
+        <a class="result__url" href="https://example.com/item">example.com/item</a>
+    </div>
+    """
+
+    class MockResponse:
+        status_code = 200
+        text = fake_html
+
+    with patch("httpx.Client.get", return_value=MockResponse()):
+        res = service.execute_tool("call-sw-1", "search_web", {"query": "test search", "max_results": 3})
+        assert res.ok is True
+        assert res.exit_code == 0
+        assert res.structured is not None
+        assert res.structured["query"] == "test search"
+        assert res.structured["results_count"] == 1
+        assert "Example Item" in res.content
+
+    # Verify SequenceGuard blocks read_file -> search_web
+    guard = SequenceGuard()
+    guard.check_and_record("read_file")
+    allowed, reason = guard.check_and_record("search_web")
+    assert not allowed
+    assert "Forbidden sequence" in reason
+

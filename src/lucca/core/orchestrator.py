@@ -9,6 +9,7 @@ import io
 import json
 import os
 import queue
+import re
 import sys
 import threading
 import time
@@ -32,7 +33,7 @@ import ulid
 import zmq
 from pydantic import JsonValue
 
-from lucca.brain.chunker import StreamingChunker
+from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
 from lucca.brain.llm_client import LLMClient
 from lucca.brain.prompt_builder import (
     build_narration_messages,
@@ -41,6 +42,7 @@ from lucca.brain.prompt_builder import (
 )
 from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
+from lucca.core.capabilities import dispatch_invoke_skill
 from lucca.core.cascade import EpistemicSearchCascade, EpistemicSubstrate
 from lucca.core.config import get_config
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
@@ -80,7 +82,7 @@ from lucca.memory.db import DatabaseManager
 from lucca.memory.signers import UserSpeechSigner, create_user_speech_signer
 from lucca.ports import MemoryStorePort, STTPort, TTSPort
 from lucca.reasoning.lifecycle import RuleLifecycleManager
-from lucca.reasoning.scheme.eval import evaluate_rule
+from lucca.reasoning.scheme.eval import evaluate_plan, evaluate_rule
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.output_supervisor import OutputSupervisorSession
@@ -100,6 +102,75 @@ logger = structlog.get_logger(__name__)
 TurnState = Literal[
     "idle", "listening", "thinking", "speaking", "confirm_wait", "postturn", "degraded", "offline"
 ]
+
+
+def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
+    """
+    Detects single-letter spelling sequences (hyphenated 'F-A-W-K-N-E-R', period-separated
+    'F. A. W. K. N. E. R.', or space-separated single letters 'F A W K N E R') from ASR output,
+    assembles them into title-cased words, and returns (normalized_transcript, detected_words).
+    """
+    detected_words: list[str] = []
+
+    # 1. Period-separated letters (e.g. F. A. W. K. N. E. R. or F.A.W.K.N.E.R.)
+    def replace_period(m: re.Match[str]) -> str:
+        raw = m.group(0)
+        letters = re.findall(r"[a-zA-Z]", raw)
+        if len(letters) >= 3:
+            w = "".join(letters).capitalize()
+            detected_words.append(w)
+            return w
+        return raw
+
+    text = re.sub(r"\b[a-zA-Z]\.(?:\s*[a-zA-Z]\.){2,}", replace_period, transcript)
+
+    # 2. Hyphen-separated letters (e.g. F-A-W-K-N-E-R or F - A - W - K - N - E - R)
+    def replace_hyphen(m: re.Match[str]) -> str:
+        raw = m.group(0)
+        letters = re.findall(r"[a-zA-Z]", raw)
+        if len(letters) >= 3:
+            w = "".join(letters).capitalize()
+            detected_words.append(w)
+            return w
+        return raw
+
+    text = re.sub(r"\b[a-zA-Z](?:\s*-\s*[a-zA-Z]){2,}\b", replace_hyphen, text)
+
+    # 3. Space-separated single letters (e.g. F A W K N E R or W K N E R)
+    def replace_spaces(m: re.Match[str]) -> str:
+        raw = m.group(1)
+        tokens = raw.split()
+        if len(tokens) >= 3 and all(len(t) == 1 and t.isalpha() for t in tokens):
+            w = "".join(tokens).capitalize()
+            detected_words.append(w)
+            return w
+        return raw
+
+    text = re.sub(
+        r"(?:^|(?<=\s))([a-zA-Z](?:\s+[a-zA-Z]){2,})(?=\s|[.,!?]|$)",
+        replace_spaces,
+        text,
+    )
+
+    return text, list(dict.fromkeys(detected_words))
+
+
+def _levenshtein_distance(s1: str, s2: str) -> int:
+    """Calculates Levenshtein edit distance between two strings."""
+    if len(s1) < len(s2):
+        return _levenshtein_distance(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    prev = list(range(len(s2) + 1))
+    for i, c1 in enumerate(s1):
+        curr = [i + 1]
+        for j, c2 in enumerate(s2):
+            ins = prev[j + 1] + 1
+            dels = curr[j] + 1
+            subs = prev[j] + (0 if c1 == c2 else 1)
+            curr.append(min(ins, dels, subs))
+        prev = curr
+    return prev[-1]
 
 
 class Orchestrator:
@@ -178,7 +249,13 @@ class Orchestrator:
         self.output_supervisor = OutputSupervisorSession()
 
         # Rule Engine (Spec 05 §6 & §8)
-        self.rule_engine = rule_engine or RuleLifecycleManager()
+        if rule_engine is not None:
+            self.rule_engine = rule_engine
+        else:
+            default_skills = self.config.resolve_path("config/skills")
+            self.rule_engine = RuleLifecycleManager(
+                skills_dir=default_skills if default_skills.exists() else None
+            )
 
         # Router & Decision Telemetry
         self.db = db
@@ -250,6 +327,38 @@ class Orchestrator:
 
         # Affect State Machine & 3D PAD ODE (Milestone 5)
         self.affect_tracker = affect_tracker or AffectTracker()
+        self.active_detected_words: list[str] = []
+
+    def _neutralize_context_attractors(self, target_word: str) -> list[str]:
+        """
+        In-place history token neutralization: Replaces corrupt phonetic/orthographic
+        variants in recent turn history with target_word, destroying self-attention
+        repetition basins without causing amnesia or deleting pronoun antecedents.
+        Returns list of replaced corrupt variants.
+        """
+        replaced_variants: set[str] = set()
+        target_lower = target_word.lower()
+        recent_turns = self.history[-10:] if len(self.history) > 10 else self.history
+        for msg in recent_turns:
+            content = msg.get("content", "")
+            if not content or not isinstance(content, str):
+                continue
+            tokens = re.findall(r"\b[a-zA-Z]{3,}\b", content)
+            modified = False
+            for token in tokens:
+                tok_lower = token.lower()
+                if tok_lower == target_lower:
+                    continue
+                max_dist = 2 if len(target_word) >= 6 else 1
+                dist = _levenshtein_distance(target_lower, tok_lower)
+                if dist <= max_dist:
+                    replaced_variants.add(token)
+                    replacement = target_word if token[0].isupper() else target_word.lower()
+                    content = re.sub(rf"\b{re.escape(token)}\b", replacement, content)
+                    modified = True
+            if modified:
+                msg["content"] = content
+        return sorted(replaced_variants)
 
     @property
     def last_decision(self) -> DecisionRecord | None:
@@ -582,7 +691,9 @@ class Orchestrator:
         self.active_turn_thread = t
         t.start()
 
-    def _build_rule_state(self, transcript: str, mode: Literal["audio", "transcript"]) -> RuleState:
+    def _build_rule_state(
+        self, transcript: str, mode: Literal["audio", "transcript"] = "transcript"
+    ) -> RuleState:
         local_now = time.localtime()
         intent, auto_conf, entities = self.router.classify_intent(transcript)
         return RuleState(
@@ -758,12 +869,30 @@ class Orchestrator:
             else:
                 tools = []
 
-        def _trigger_supervisor_abort(reason_msg: str, offending_chunk: str) -> None:
+        # Seed session-scoped allowed URLs from conversation history & epistemic context
+        history_urls: list[str] = []
+        for h_msg in self.history:
+            content_val = h_msg.get("content", "")
+            if content_val:
+                history_urls.extend(re.findall(r"https?://[^\s<>\"'()]+", content_val))
+        if epistemic_context:
+            history_urls.extend(re.findall(r"https?://[^\s<>\"'()]+", epistemic_context))
+        # If user query references local dev or ports, seed localhost into allowed URLs
+        local_cues = ("localhost", "127.0.0.1", "ollama", "port", "api server")
+        if user_msg and any(w in user_msg.lower() for w in local_cues):
+            history_urls.extend(["http://localhost", "http://127.0.0.1"])
+        if history_urls and hasattr(self.output_supervisor, "register_allowed_urls"):
+            self.output_supervisor.register_allowed_urls(history_urls)
+
+        def _trigger_supervisor_abort(
+            reason_msg: str, offending_chunk: str, breach_type: str | None = None
+        ) -> None:
             nonlocal chunk_index
             logger.warning(
                 "output_supervisor_tier1_abort",
                 reason=reason_msg,
                 chunk=offending_chunk,
+                breach_type=breach_type,
                 trace_id=trace.trace_id,
             )
             trace.interrupted = True
@@ -774,7 +903,20 @@ class Orchestrator:
                     self._tts_queue.get_nowait()
                 except queue.Empty:
                     break
-            refusal = "I cannot fulfill that request as it violates core safety invariants."
+            is_citation_breach = (
+                breach_type == "ungrounded_citation"
+                or "ungrounded" in reason_msg.lower()
+                or "citation" in reason_msg.lower()
+            )
+            if is_citation_breach:
+                refusal = (
+                    "I apologize, but I do not have a verified source for "
+                    "that citation and won't guess."
+                )
+            else:
+                refusal = (
+                    "I cannot fulfill that request as it violates core safety invariants."
+                )
             self._publish_caption(refusal, source="assistant", is_final=True)
             self._speak_text(trace, refusal)
             self.history.append({"role": "user", "content": user_msg})
@@ -792,12 +934,15 @@ class Orchestrator:
                 if round_num == 1:
                     trace.t_llm_sent = now_ns()
 
+                # Forced Final Synthesis: on final round, strip tools so LLM synthesizes response
+                round_tools = tools if round_num < max_rounds else []
+
                 for event in self.llm.stream_turn(
                     current_audio_b64=current_audio_b64 if round_num == 1 else None,
-                    current_text=current_text if round_num == 1 else None,
+                    current_text=current_text or user_msg,
                     history=self.history,
                     memories=memories,
-                    tools=tools,
+                    tools=round_tools,
                     messages=messages,
                     tool_messages=tool_messages if tool_messages else None,
                     trace_id=trace.trace_id,
@@ -823,21 +968,31 @@ class Orchestrator:
                             if trace.interrupted:
                                 break
 
+                            eval_text = (
+                                chunk.raw_text
+                                if getattr(chunk, "raw_text", None)
+                                else chunk.text
+                            )
                             emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
-                                chunk, chunk.text, verified_receipts=tool_receipts
+                                chunk, eval_text, verified_receipts=tool_receipts
                             )
                             if should_abort:
-                                _trigger_supervisor_abort("Tier 1 Capitulation breach", chunk.text)
+                                _trigger_supervisor_abort(
+                                    "Tier 1 Capitulation/Provenance breach", eval_text
+                                )
                                 break
 
                             for em_chunk, _em_gate in emitted_chunks:
+                                clean_chunk_text = sanitize_for_voice(em_chunk.text)
+                                if not clean_chunk_text:
+                                    continue
                                 if chunk_index == 0:
                                     trace.t_first_chunk = now_ns()
                                     self._set_state("speaking")
 
                                 try:
                                     self._tts_queue.put(
-                                        (trace, em_chunk.chunk_id, em_chunk.text, None),
+                                        (trace, em_chunk.chunk_id, clean_chunk_text, None),
                                         timeout=2.0,
                                     )
                                 except queue.Full:
@@ -908,6 +1063,39 @@ class Orchestrator:
                                 )
                                 tool_receipts.append({"action": tool_name, "target": tool_target})
 
+                                # Register allowed URLs from search, fetch, or browse results
+                                if (
+                                    tool_name == "search_web"
+                                    and getattr(tool_res, "structured", None)
+                                ):
+                                    search_urls: list[str] = []
+                                    for s_item in tool_res.structured.get("results", []):
+                                        if s_item.get("url"):
+                                            search_urls.append(s_item["url"])
+                                    if tool_res.content:
+                                        search_urls.extend(
+                                            re.findall(r"https?://[^\s<>\"'()]+", tool_res.content)
+                                        )
+                                    if hasattr(self.output_supervisor, "register_allowed_urls"):
+                                        self.output_supervisor.register_allowed_urls(search_urls)
+                                elif tool_name in ("fetch_url", "browse_page"):
+                                    target_u = tool_args.get("url")
+                                    to_register: list[str] = []
+                                    if target_u:
+                                        to_register.append(target_u)
+                                    if getattr(tool_res, "structured", None):
+                                        if tool_res.structured.get("url"):
+                                            to_register.append(tool_res.structured["url"])
+                                        if tool_res.structured.get("embedded_links"):
+                                            to_register.extend(
+                                                tool_res.structured["embedded_links"]
+                                            )
+                                    if (
+                                        to_register
+                                        and hasattr(self.output_supervisor, "register_allowed_urls")
+                                    ):
+                                        self.output_supervisor.register_allowed_urls(to_register)
+
                             if tool_res.content:
                                 content_str = str(tool_res.content)
                             elif tool_res.structured:
@@ -936,6 +1124,30 @@ class Orchestrator:
                         )
 
                 if not round_tool_called:
+                    # Anti-stalling check:
+                    # If the model evaded research by outputting a rhetorical question
+                    if (
+                        round_num < max_rounds
+                        and tools
+                        and getattr(self.output_supervisor, "turn_has_stalled", False)
+                    ):
+                        logger.info(
+                            "stalling_research_question_intercepted_forcing_tool_execution",
+                            round_num=round_num,
+                        )
+                        tool_messages.append(
+                            ChatMessage(
+                                role="user",
+                                content=(
+                                    "[Autonomous Research Directive: Do not ask rhetorical "
+                                    "permission questions or request clarification. "
+                                    "Execute search_web or fetch_url immediately "
+                                    "to retrieve and present the verified facts.]"
+                                ),
+                            )
+                        )
+                        self.output_supervisor.turn_has_stalled = False
+                        continue
                     break
 
             # Flush remaining chunker text
@@ -943,20 +1155,26 @@ class Orchestrator:
                 for chunk in chunker.flush():
                     if trace.interrupted:
                         break
+                    eval_text = chunk.raw_text if getattr(chunk, "raw_text", None) else chunk.text
                     emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
-                        chunk, chunk.text, verified_receipts=tool_receipts
+                        chunk, eval_text, verified_receipts=tool_receipts
                     )
                     if should_abort:
-                        _trigger_supervisor_abort("Tier 1 Capitulation breach on flush", chunk.text)
+                        _trigger_supervisor_abort(
+                            "Tier 1 Capitulation/Provenance breach on flush", eval_text
+                        )
                         break
 
                     for em_chunk, _em_gate in emitted_chunks:
+                        clean_chunk_text = sanitize_for_voice(em_chunk.text)
+                        if not clean_chunk_text:
+                            continue
                         if chunk_index == 0:
                             trace.t_first_chunk = now_ns()
                             self._set_state("speaking")
                         try:
                             self._tts_queue.put(
-                                (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
+                                (trace, em_chunk.chunk_id, clean_chunk_text, None), timeout=2.0
                             )
                         except queue.Full:
                             logger.warning(
@@ -973,12 +1191,15 @@ class Orchestrator:
                         )
                     else:
                         for em_chunk, _em_gate in emitted_final:
+                            clean_final_text = sanitize_for_voice(em_chunk.text)
+                            if not clean_final_text:
+                                continue
                             if chunk_index == 0:
                                 trace.t_first_chunk = now_ns()
                                 self._set_state("speaking")
                             try:
                                 self._tts_queue.put(
-                                    (trace, em_chunk.chunk_id, em_chunk.text, None), timeout=2.0
+                                    (trace, em_chunk.chunk_id, clean_final_text, None), timeout=2.0
                                 )
                             except queue.Full:
                                 logger.warning(
@@ -1068,12 +1289,37 @@ class Orchestrator:
 
         # Transcribe audio with ASR
         transcribed_text = ""
+        eff_transcribed_text = ""
+        spelling_hint: str | None = None
         if self.asr and len(pcm_samples) > 0:
             trace.t_asr_sent = now_ns()
             asr_res = self.asr.transcribe(pcm_samples)
             trace.t_asr_done = now_ns()
             transcribed_text = asr_res.text.strip()
             self.current_turn_transcript = transcribed_text
+
+            # Detect spelled-word corrections (e.g. F-A-W-K-N-E-R -> Fawkner)
+            normalized_text, detected_words = normalize_spelled_words(transcribed_text)
+            self.active_detected_words = detected_words
+            eff_transcribed_text = normalized_text
+            if detected_words:
+                all_corrupt: list[str] = []
+                for w in detected_words:
+                    c_vars = self._neutralize_context_attractors(w)
+                    all_corrupt.extend(c_vars)
+                w_str = ", ".join(f"'{w}'" for w in detected_words)
+                if all_corrupt:
+                    c_str = ", ".join(f"'{c}'" for c in sorted(set(all_corrupt)))
+                    spelling_hint = (
+                        f"[User Explicit Spelling Correction: The target entity is {w_str}. "
+                        f"Disregard phonetically confused prior references to {c_str}. "
+                        f"You must search for and reference {w_str} exactly.]"
+                    )
+                else:
+                    spelling_hint = (
+                        f"[User Explicit Spelling Correction: The target entity is spelled "
+                        f"{w_str}. You must search for and reference {w_str} exactly.]"
+                    )
 
         if trace.interrupted:
             return
@@ -1096,13 +1342,14 @@ class Orchestrator:
             self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
 
         # Update label for previous turn if present
+        eval_text = eff_transcribed_text or transcribed_text
         if self.prev_decision_record and self.db is not None:
             try:
-                next_intent, next_conf, _ = self.router.classify_intent(transcribed_text)
+                next_intent, next_conf, _ = self.router.classify_intent(eval_text)
                 time_to_next = (time.time() - self.prev_turn_ts) if self.prev_turn_ts else None
                 label, reason = derive_label(
                     self.prev_decision_record,
-                    next_transcript=transcribed_text,
+                    next_transcript=eval_text,
                     next_intent=next_intent,
                     next_intent_conf=next_conf,
                     time_to_next_turn_s=time_to_next,
@@ -1117,7 +1364,7 @@ class Orchestrator:
         mode: Literal["audio", "transcript"] = (
             "transcript" if self.config.llm.mode == "transcript" else "audio"
         )
-        rule_state = self._build_rule_state(transcribed_text, mode=mode)
+        rule_state = self._build_rule_state(eval_text, mode=mode)
         yielded_context: dict[str, object] | None = None
         shadow_outcomes: list[RuleOutcome] = []
         active_outcomes: list[RuleOutcome] = []
@@ -1196,6 +1443,13 @@ class Orchestrator:
                                     f"[Executed {action.tool}({args_str}) -> {status}]"
                                 )
 
+                        self.rule_engine.emit_execution_triple(
+                            rule_id=winning_outcome.rule_id,
+                            plan=winning_outcome.plan,
+                            signal="tool_exit_zero",
+                            detail="REFLEX execution",
+                        )
+
                         user_msg = transcribed_text or "[Voice audio]"
                         spoken_msg = " ".join(
                             a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
@@ -1248,6 +1502,18 @@ class Orchestrator:
                             last_tool_res = tool_res
                             last_tool_name = action.tool
                             last_tool_args = dict(action.args)
+
+                    signal: Literal["tool_exit_zero", "pydantic_valid"] = (
+                        "tool_exit_zero"
+                        if (last_tool_res is None or getattr(last_tool_res, "ok", True))
+                        else "pydantic_valid"
+                    )
+                    self.rule_engine.emit_execution_triple(
+                        rule_id=winning_outcome.rule_id,
+                        plan=winning_outcome.plan,
+                        signal=signal,
+                        detail="ACT_THEN_NARRATE execution",
+                    )
 
                     mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
                     narration_msgs = build_narration_messages(
@@ -1302,6 +1568,50 @@ class Orchestrator:
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
+        if spelling_hint:
+            epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
+
+        # Intent-based tool gating for voice turn
+        turn_tools: list[object] | None = None
+        intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
+        TOOLLESS_INTENTS = {"dangerous"}
+
+        is_follow_up = False
+        text_for_gate = (
+            eff_transcribed_text if "eff_transcribed_text" in locals() else transcribed_text
+        ) or transcribed_text
+        if text_for_gate:
+            u_low = text_for_gate.lower()
+            follow_up_patterns = (
+                "tell me more", "more about", "what else", "who is", "what about",
+                "are you sure", "what are your sources", "cite your sources",
+                "where did you get that", "all of this is wrong", "elaborate",
+                "yes", "yeah", "yep", "sure", "okay", "ok", "do it", "please do",
+                "go ahead", "where is", "where was", "where are", "who was",
+                "facts about", "how about", "spelled", "spelling", "search"
+            )
+            is_follow_up = any(p in u_low for p in follow_up_patterns)
+            if not is_follow_up and self.history:
+                last_asst = next(
+                    (
+                        m.get("content", "")
+                        for m in reversed(self.history)
+                        if m.get("role") == "assistant"
+                    ),
+                    "",
+                )
+                search_cues = ("search", "found", "look", "judge", "suburb", "results", "?")
+                if any(w in last_asst.lower() for w in search_cues):
+                    is_follow_up = True
+
+        if intent in TOOLLESS_INTENTS or (intent == "chit_chat" and not is_follow_up):
+            turn_tools = []
+            logger.info(
+                "tool_gating_suppressed",
+                intent=intent,
+                reason="conversational or dangerous intent — tools withheld",
+            )
+
         self._stream_llm_speech(
             trace=trace,
             user_msg=transcribed_text or "[Voice audio]",
@@ -1310,6 +1620,7 @@ class Orchestrator:
             current_text=llm_text,
             memories=mem_hits,
             epistemic_context=epistemic_ctx,
+            tools=turn_tools,
         )
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
@@ -1324,14 +1635,39 @@ class Orchestrator:
         self.current_turn_transcript = user_text
         decision_id: str | None = None
 
+        # Step 1: Detect spelled-word corrections (e.g. F-A-W-K-N-E-R -> Fawkner)
+        normalized_text, detected_words = normalize_spelled_words(user_text)
+        self.active_detected_words = detected_words
+        eff_user_text = normalized_text
+        spelling_hint: str | None = None
+        if detected_words:
+            all_corrupt: list[str] = []
+            for w in detected_words:
+                c_vars = self._neutralize_context_attractors(w)
+                all_corrupt.extend(c_vars)
+            w_str = ", ".join(f"'{w}'" for w in detected_words)
+            if all_corrupt:
+                c_str = ", ".join(f"'{c}'" for c in sorted(set(all_corrupt)))
+                spelling_hint = (
+                    f"[User Explicit Spelling Correction: The target entity is {w_str}. "
+                    f"Disregard phonetically confused prior references to {c_str}. "
+                    f"You must search for and reference {w_str} exactly.]"
+                )
+            else:
+                spelling_hint = (
+                    f"[User Explicit Spelling Correction: The target entity is spelled {w_str}. "
+                    f"You must search for and reference {w_str} exactly.]"
+                )
+
+        eval_user_text = eff_user_text or user_text
         # Update label for previous turn if present
         if self.prev_decision_record and self.db is not None:
             try:
-                next_intent, next_conf, _ = self.router.classify_intent(user_text)
+                next_intent, next_conf, _ = self.router.classify_intent(eval_user_text)
                 time_to_next = (time.time() - self.prev_turn_ts) if self.prev_turn_ts else None
                 label, reason = derive_label(
                     self.prev_decision_record,
-                    next_transcript=user_text,
+                    next_transcript=eval_user_text,
                     next_intent=next_intent,
                     next_intent_conf=next_conf,
                     time_to_next_turn_s=time_to_next,
@@ -1343,7 +1679,7 @@ class Orchestrator:
                 logger.debug("prev_decision_label_error", error=str(e))
 
         # Build RuleState and evaluate rules
-        rule_state = self._build_rule_state(user_text, mode="transcript")
+        rule_state = self._build_rule_state(eval_user_text, mode="transcript")
         yielded_context: dict[str, object] | None = None
         shadow_outcomes: list[RuleOutcome] = []
         active_outcomes: list[RuleOutcome] = []
@@ -1507,13 +1843,42 @@ class Orchestrator:
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
-        # P0 FIX: Intent-based tool gating — suppress tools for conversational
-        # and dangerous intents to prevent fetch_url magnet and boundary failures.
-        # Only expose tools when the heuristic router classifies an actionable intent.
+        if spelling_hint:
+            epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
+
+        # Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat
         turn_tools: list[object] | None = None  # None = let _stream_llm_speech decide
         intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
-        TOOLLESS_INTENTS = {"chit_chat", "clarify", "unknown", "dangerous", "memory_query"}
-        if intent in TOOLLESS_INTENTS:
+        TOOLLESS_INTENTS = {"dangerous"}
+
+        # Do not suppress tools if the user is asking follow-up factual questions
+        is_follow_up = False
+        text_for_gate = eval_user_text or user_text
+        if text_for_gate:
+            u_low = text_for_gate.lower()
+            follow_up_patterns = (
+                "tell me more", "more about", "what else", "who is", "what about",
+                "are you sure", "what are your sources", "cite your sources",
+                "where did you get that", "all of this is wrong", "elaborate",
+                "yes", "yeah", "yep", "sure", "okay", "ok", "do it", "please do",
+                "go ahead", "where is", "where was", "where are", "who was",
+                "facts about", "how about", "spelled", "spelling", "search"
+            )
+            is_follow_up = any(p in u_low for p in follow_up_patterns)
+            if not is_follow_up and self.history:
+                last_asst = next(
+                    (
+                        m.get("content", "")
+                        for m in reversed(self.history)
+                        if m.get("role") == "assistant"
+                    ),
+                    "",
+                )
+                search_cues = ("search", "found", "look", "judge", "suburb", "results", "?")
+                if any(w in last_asst.lower() for w in search_cues):
+                    is_follow_up = True
+
+        if intent in TOOLLESS_INTENTS or (intent == "chit_chat" and not is_follow_up):
             turn_tools = []
             logger.info(
                 "tool_gating_suppressed",
@@ -1525,7 +1890,7 @@ class Orchestrator:
             trace=trace,
             user_msg=user_text,
             decision_id=decision_id,
-            current_text=user_text,
+            current_text=eval_user_text or user_text,
             memories=mem_hits,
             epistemic_context=epistemic_ctx,
             tools=turn_tools,
@@ -1589,6 +1954,9 @@ class Orchestrator:
                     item[3].set()
 
     def _speak_text(self, trace: TurnTrace, text: str) -> None:
+        clean_text = sanitize_for_voice(text)
+        if not clean_text:
+            return
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         begin_env = Envelope(
@@ -1600,13 +1968,13 @@ class Orchestrator:
         )
         self._publish_bus(begin_env)
         self._set_state("speaking")
-        self._publish_caption(text, source="assistant", is_final=True)
+        self._publish_caption(clean_text, source="assistant", is_final=True)
         trace.t_tts_first_sent = now_ns()
         speed_mult = self.affect_tracker.get_tts_speed_multiplier()
         try:
-            self.tts.synthesize(chunk_id=0, text=text, speed=speed_mult, is_first=True)
+            self.tts.synthesize(chunk_id=0, text=clean_text, speed=speed_mult, is_first=True)
         except TypeError:
-            self.tts.synthesize(chunk_id=0, text=text, is_first=True)
+            self.tts.synthesize(chunk_id=0, text=clean_text, is_first=True)
         trace.t_tts_first_done = now_ns()
         trace.t_tts_last_done = trace.t_tts_first_done
         trace.chunks += 1
@@ -1748,6 +2116,83 @@ class Orchestrator:
                     elapsed_ms=bdi_res.elapsed_us / 1000.0,
                 )
 
+        # invoke_skill dispatch tool (T1.2)
+        if name == "invoke_skill":
+            skill_id = str(args.get("skill_id", ""))
+            raw_skill_args = args.get("args")
+            skill_args: dict[str, JsonValue] = (
+                dict(raw_skill_args) if isinstance(raw_skill_args, dict) else {}
+            )
+            manifest_ids = getattr(self, "current_manifest_skill_ids", None)
+            ok, reason, payload = dispatch_invoke_skill(
+                skill_id=skill_id,
+                args=skill_args,
+                rule_engine=self.rule_engine,
+                manifest_skill_ids=manifest_ids,
+            )
+            if not ok:
+                self.current_turn_tool_ok = False
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=reason,
+                    structured=payload,
+                    elapsed_ms=0.0,
+                )
+
+            # Contract step 4: Execute the rule's plan through existing plan executor
+            rule_entry = self.rule_engine.rules[skill_id]
+            rule_state = self._build_rule_state(
+                str(skill_args.get("query") or self.current_turn_transcript or "")
+            )
+            for k, v in skill_args.items():
+                if k != "query" and isinstance(v, str):
+                    rule_state.entities.setdefault(k, []).append(v)
+            outcome = evaluate_plan(rule_entry.definition, rule_state)
+            if outcome.plan:
+                sub_results: list[str] = []
+                for sub_action in outcome.plan.actions:
+                    if isinstance(sub_action, ToolCall):
+                        sub_res = self._handle_tool_call(
+                            trace, sub_action.tool, dict(sub_action.args), speak=False
+                        )
+                        sub_status = (
+                            "ok" if (sub_res is None or getattr(sub_res, "ok", True)) else "failed"
+                        )
+                        sub_results.append(f"{sub_action.tool}->{sub_status}")
+                    elif isinstance(sub_action, Say) and speak:
+                        self._speak_text(trace, sub_action.text)
+                has_failures = any("->failed" in s for s in sub_results)
+                skill_signal: Literal["tool_exit_zero", "pydantic_valid"] = (
+                    "pydantic_valid" if has_failures else "tool_exit_zero"
+                )
+                self.rule_engine.emit_execution_triple(
+                    rule_id=skill_id,
+                    plan=outcome.plan,
+                    signal=skill_signal,
+                    detail=f"invoke_skill {', '.join(sub_results)}",
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    content=(
+                        f"Skill '{skill_id}' fired. "
+                        f"Rationale: {outcome.plan.rationale or 'completed'}. "
+                        f"Actions: {', '.join(sub_results) or 'none'}"
+                    ),
+                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
+                )
+            else:
+                err_msg = outcome.error or "conditions not met"
+                self.current_turn_tool_ok = False
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    stderr=f"Skill '{skill_id}' evaluated but did not fire: {err_msg}",
+                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
+                )
+
         # Check if this is a MicroScheme skill invocation (Proposal A / D-REAS-04)
         target_rule_id = None
         if name.startswith("skill_"):
@@ -1814,6 +2259,34 @@ class Orchestrator:
                     stderr="cancelled by user",
                     elapsed_ms=0.0,
                 )
+
+        # Corrective Search Query Injection & Category Grounding
+        if name == "search_web" and "query" in args and isinstance(args["query"], str):
+            q = str(args["query"])
+            detected = getattr(self, "active_detected_words", [])
+            for target_w in detected:
+                for tok in re.findall(r"\b[a-zA-Z]{3,}\b", q):
+                    if (
+                        tok.lower() != target_w.lower()
+                        and _levenshtein_distance(tok.lower(), target_w.lower()) <= 2
+                    ):
+                        q = re.sub(rf"\b{re.escape(tok)}\b", target_w, q)
+                if target_w.lower() not in q.lower():
+                    q = f'"{target_w}" {q}'.strip()
+
+            # Preserve category & location keywords from transcript or context if missing from query
+            recent_ctx = " ".join(
+                m.get("content", "") for m in self.history[-2:] if isinstance(m, dict)
+            )
+            context_text = f"{self.current_turn_transcript or ''} {recent_ctx}".lower()
+            category_keywords = (
+                "suburb", "judge", "court", "station", "school", "hospital",
+                "city", "province", "victoria", "australia", "philippines", "manila",
+            )
+            for kw in category_keywords:
+                if kw in context_text and kw not in q.lower():
+                    q = f"{q} {kw}".strip()
+            args["query"] = q
 
         res = self.sandbox.execute_tool(
             call_id=call_id,

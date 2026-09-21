@@ -50,3 +50,31 @@ htmlcov/
 .DS_Store
 *.swp
 *.bak
+
+# Property-based testing / static-analysis caches
+.hypothesis/
+.grimp_cache/
+.import_linter_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Model weights (pinned via models/MANIFEST.json, never committed)
+models/*.gguf
+models/*.bin
+models/*.safetensors
+
+# Runtime state — production DB lives under LUCCA_HOME (C:\ProjectLucca\data)
+data/memory.sqlite
+data/memory.sqlite-wal
+data/memory.sqlite-shm
+
+# Ad-hoc scrape samples and cookie jars from search-provider probes
+data/*.html
+data/*cookies*.txt
+
+# Research papers (referenced by arXiv ID in docs/specs; not vendored)
+docs/*.pdf
+docs/**/*.pdf
+
+# Local logs
+logs/*.log

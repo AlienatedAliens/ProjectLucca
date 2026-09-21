@@ -1,0 +1,2 @@
+{"id": "plan-decomp-fire-1", "transcript": "explain step by step how to bake bread", "intent": "plan", "rule_fired": true}
+{"id": "plan-decomp-nofire-1", "transcript": "what time is it", "intent": "factual", "rule_fired": false}

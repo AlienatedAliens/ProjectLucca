@@ -1,0 +1,11 @@
+{
+  "id": "correction-ack-v1",
+  "intent": "correction",
+  "description": "Acknowledge operator correction and yield to neural core with high salience",
+  "keywords": ["correction", "acknowledge", "feedback", "operator"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core"],
+  "expose_as_tool": false
+}

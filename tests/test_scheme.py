@@ -217,6 +217,7 @@ def test_t_rule_08_static_validation_rejections():
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="app name", required=True)},
             risk=Risk.LAUNCH,
+            target="self",
         )
     }
 

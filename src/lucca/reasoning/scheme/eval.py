@@ -7,6 +7,7 @@ import time
 from collections.abc import Callable
 
 from lucca.core.exceptions import (
+    SchemeControlSignal,
     SchemeError,
     SchemeGasExhausted,
     SchemeRuntimeError,
@@ -119,7 +120,7 @@ class SchemeEvaluator:
 
             try:
                 return fn(args)
-            except SchemeError:
+            except (SchemeError, SchemeControlSignal):
                 raise
             except Exception as e:
                 raise SchemeRuntimeError(
@@ -233,6 +234,63 @@ def evaluate_rule(
     return RuleOutcome(
         rule_id=rule.rule_id,
         fired=fired,
+        errored=False,
+        plan=plan,
+        gas_used=evaluator.gas_used,
+        elapsed_us=elapsed_us,
+        error=None,
+    )
+
+
+def evaluate_plan(
+    rule: RuleDefinition,
+    state: RuleState,
+    gas_limit: int = DEFAULT_GAS_LIMIT,
+    timeout_ms: float = DEFAULT_TIMEOUT_MS,
+) -> RuleOutcome:
+    """Evaluates rule.plan_expr directly without when_expr gating (for invoke_skill dispatch)."""
+    evaluator = SchemeEvaluator(gas_limit=gas_limit, timeout_ms=timeout_ms, rule_id=rule.rule_id)
+    t0 = time.perf_counter()
+    evaluator.start_time = t0
+    env = build_env(state)
+
+    try:
+        raw_plan = evaluator.eval(rule.plan_expr, env)
+        if not isinstance(raw_plan, list):
+            raise SchemeRuntimeError(
+                f"Expected :plan to evaluate to list of actions, got {type(raw_plan).__name__}",
+                rule_id=rule.rule_id,
+                form=to_canonical(rule.plan_expr),
+                cause_type="TypeError",
+            )
+        actions: list[ToolCall | Say] = []
+        for item in raw_plan:
+            if isinstance(item, (ToolCall, Say)):
+                actions.append(item)
+            else:
+                raise SchemeRuntimeError(
+                    f"Invalid action in plan: {item}",
+                    rule_id=rule.rule_id,
+                    form=str(item),
+                    cause_type="TypeError",
+                )
+        plan = Plan(actions=actions)
+    except SchemeError as e:
+        elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
+        return RuleOutcome(
+            rule_id=rule.rule_id,
+            fired=True,
+            errored=True,
+            plan=None,
+            gas_used=evaluator.gas_used,
+            elapsed_us=elapsed_us,
+            error=str(e),
+        )
+
+    elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
+    return RuleOutcome(
+        rule_id=rule.rule_id,
+        fired=True,
         errored=False,
         plan=plan,
         gas_used=evaluator.gas_used,

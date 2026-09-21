@@ -1,0 +1,11 @@
+{
+  "id": "unit-convert-v1",
+  "intent": "convert",
+  "description": "Perform unit conversion calculation via Python in sandbox",
+  "keywords": ["convert", "units", "conversion"],
+  "args": ["expr"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core"],
+  "expose_as_tool": true
+}

@@ -8,19 +8,27 @@ import json
 import math
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Literal
 
 import structlog
 
+from lucca.core.capabilities import get_default_native_tools
+from lucca.core.config import get_resource_path
 from lucca.core.exceptions import SchemeSyntaxError
 from lucca.core.schemas import (
     CandidateRule,
+    Decision,
+    ExecutionTriple,
+    Outcome,
     Plan,
     PromotionResult,
+    Proposal,
     RegressionReport,
     RuleOutcome,
     RuleState,
     Say,
+    SkillMeta,
     ToolCall,
     ToolSchema,
 )
@@ -32,6 +40,11 @@ from lucca.reasoning.scheme.validator import validate_rule_static
 logger = structlog.get_logger(__name__)
 
 RuleStatus = Literal["PROPOSED", "QUARANTINE", "PENDING_APPROVAL", "ACTIVE", "DEMOTED", "RETIRED"]
+
+
+def get_default_tool_schemas() -> dict[str, ToolSchema]:
+    """Returns baseline tool schemas for static rule validation (T1.1, §0.0 C1)."""
+    return get_default_native_tools()
 
 
 @dataclass
@@ -58,23 +71,30 @@ class ManagedRule:
     demoted_at: float | None = None
     retired_at: float | None = None
     user_retired: bool = False
+    expose_as_tool: bool = False
+    categories: list[str] = field(default_factory=list)
+    skill_meta: SkillMeta | None = None
 
 
-def compute_cluster_id(session_id: str, turn_ts: float, semantic_cluster: int = 0) -> str:
+def compute_cluster_id(
+    session_id: str,
+    turn_ts: float,
+    semantic_cluster: int = 0,
+) -> str:
     """
-    Computes deterministic cluster ID per Spec 05 §8:
-    sha1(f"{session_id}|{floor(turn_ts / 900)}|{semantic_cluster}")
-    900s = 15 minute buckets.
+    Computes a canonical cluster identifier per Spec 05 §8.
+    Distinctness requirements:
+    - Same request across distinct 15-minute time buckets -> distinct clusters
+    - Same session within a 15-minute bucket -> identical cluster
+    - Distinct semantic clusters -> distinct clusters
     """
-    bucket = math.floor(turn_ts / 900)
-    raw = f"{session_id}|{bucket}|{semantic_cluster}"
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()
+    time_bucket = int(math.floor(turn_ts / 900.0))
+    raw = f"{session_id}:{time_bucket}:{semantic_cluster}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
 
 
-def plans_match(p1: Plan | None, p2: Plan | None) -> bool:
-    """Canonical plan equality per Spec 05 §6: ignores ephemeral call_id."""
-    if p1 is None or p2 is None:
-        return p1 is p2
+def plans_match(p1: Plan, p2: Plan) -> bool:
+    """Checks semantic equality between two plans."""
     if len(p1.actions) != len(p2.actions):
         return False
     for a1, a2 in zip(p1.actions, p2.actions, strict=True):
@@ -102,14 +122,21 @@ class RuleLifecycleManager:
         registered_tools: dict[str, ToolSchema] | None = None,
         db: DatabaseManager | None = None,
         require_human_approval: bool = True,
+        skills_dir: Path | str | None = None,
     ) -> None:
-        self.registered_tools = registered_tools or {}
+        self.registered_tools = (
+            registered_tools if registered_tools is not None else get_default_tool_schemas()
+        )
         self.db = db
         self.require_human_approval = require_human_approval
+        self.skills_dir = Path(skills_dir) if skills_dir is not None else None
         self.rules: dict[str, ManagedRule] = {}
         self.regression_cases: list[RegressionCase] = []
+        self.latest_triples: list[ExecutionTriple] = []
         if self.db is not None:
             self.load()
+        if self.skills_dir is not None:
+            self.load_skills(self.skills_dir)
 
     def register_rule(self, source: str) -> ManagedRule:
         """
@@ -179,6 +206,97 @@ class RuleLifecycleManager:
 
         return outcomes
 
+    def emit_shadow_triple(
+        self,
+        rule_id: str,
+        plan: Plan | list[ToolCall | Say] | None = None,
+        state_snapshot: RuleState | None = None,
+        evidence_refs: list[str] | None = None,
+    ) -> ExecutionTriple:
+        """Emits an S1 execution triple for shadow evaluation per Spec §5 and S1.3."""
+        if plan is None:
+            actions: list[ToolCall | Say] = []
+        elif isinstance(plan, Plan):
+            actions = plan.actions
+        else:
+            actions = list(plan)
+
+        refs = list(evidence_refs or [])
+        if not refs and state_snapshot and state_snapshot.transcript:
+            refs = [state_snapshot.transcript]
+
+        proposal = Proposal(
+            rule_id=rule_id,
+            plan=actions,
+            confidence=1.0,
+            gas_estimate=0,
+            evidence_refs=refs,
+        )
+        decision = Decision(
+            proposal_id=proposal.proposal_id,
+            verdict="escalated",
+            reason_code="SHADOW_EVAL",
+        )
+        outcome = Outcome(
+            decision_id=decision.decision_id,
+            signal="abstained",
+            detail="shadow evaluation, not executed",
+        )
+        triple = ExecutionTriple(
+            proposal=proposal,
+            decision=decision,
+            outcome=outcome,
+        )
+        self.latest_triples.append(triple)
+        if self.db is not None:
+            self.db.record_execution_triple(triple)
+        return triple
+
+    def emit_execution_triple(
+        self,
+        rule_id: str,
+        plan: Plan | list[ToolCall | Say],
+        verdict: Literal["accepted", "overridden", "escalated"] = "accepted",
+        reason_code: str = "ACTIVE_EXECUTION",
+        signal: Literal[
+            "tool_exit_zero",
+            "pydantic_valid",
+            "operator_confirm",
+            "operator_correct",
+            "abstained",
+        ] = "tool_exit_zero",
+        detail: str = "",
+        evidence_refs: list[str] | None = None,
+    ) -> ExecutionTriple:
+        """Emits an S1 execution triple for active executions per Spec §5 and S1.3."""
+        actions = plan.actions if isinstance(plan, Plan) else list(plan)
+        proposal = Proposal(
+            rule_id=rule_id,
+            plan=actions,
+            confidence=1.0,
+            gas_estimate=0,
+            evidence_refs=list(evidence_refs or []),
+        )
+        decision = Decision(
+            proposal_id=proposal.proposal_id,
+            verdict=verdict,
+            reason_code=reason_code,
+        )
+        outcome = Outcome(
+            decision_id=decision.decision_id,
+            signal=signal,
+            detail=detail,
+        )
+        triple = ExecutionTriple(
+            proposal=proposal,
+            decision=decision,
+            outcome=outcome,
+        )
+        self.latest_triples.append(triple)
+        if self.db is not None:
+            self.db.record_execution_triple(triple)
+        return triple
+
     def record_shadow(
         self,
         rule_id: str,
@@ -188,29 +306,44 @@ class RuleLifecycleManager:
         state_snapshot: RuleState | None = None,
         plan_snapshot: Plan | None = None,
         errored: bool = False,
-    ) -> None:
+        evidence_refs: list[str] | None = None,
+    ) -> ExecutionTriple | None:
         """
-        Records shadow execution outcome per Spec 05 §6 & §9.
+        Records shadow execution outcome per Spec 05 §6 & §9 and S1.3.
         Barge-in / cancel -> indeterminate=True (ignored).
         """
         if indeterminate or rule_id not in self.rules:
-            return
+            return None
 
         if errored:
             matched = False
 
         rule = self.rules[rule_id]
+        triple: ExecutionTriple | None = None
 
         if rule.status == "QUARANTINE":
             if matched:
                 rule.success_clusters.add(cluster_id)
                 if state_snapshot and plan_snapshot:
                     rule.snapshots.append((state_snapshot, plan_snapshot))
+                triple = self.emit_shadow_triple(
+                    rule_id=rule_id,
+                    plan=plan_snapshot,
+                    state_snapshot=state_snapshot,
+                    evidence_refs=evidence_refs,
+                )
             else:
                 rule.failure_count += 1
                 if rule.failure_count >= 3:
                     rule.status = "RETIRED"
                     rule.retired_at = time.time()
+                if errored:
+                    triple = self.emit_shadow_triple(
+                        rule_id=rule_id,
+                        plan=plan_snapshot,
+                        state_snapshot=state_snapshot,
+                        evidence_refs=evidence_refs,
+                    )
 
         elif rule.status == "ACTIVE":
             if not matched:
@@ -230,6 +363,8 @@ class RuleLifecycleManager:
         if self.db is not None:
             self.persist(rule_id)
 
+        return triple
+
     def user_retire(self, rule_id: str) -> None:
         """User explicitly retired this rule (e.g. 'stop doing X')."""
         if rule_id in self.rules:
@@ -237,6 +372,8 @@ class RuleLifecycleManager:
             rule.status = "RETIRED"
             rule.user_retired = True
             rule.retired_at = time.time()
+            if rule.skill_meta is not None:
+                rule.skill_meta = rule.skill_meta.model_copy(update={"status": "RETIRED"})
             if self.db is not None:
                 self.persist(rule_id)
 
@@ -601,3 +738,75 @@ class RuleLifecycleManager:
         except Exception:
             writer.execute("ROLLBACK")
             raise
+
+    def load_skills(self, skills_dir: Path | str | None = None) -> int:
+        """
+        Loads ACTIVE skills from config/skills/ (excluding _retired/)
+        per Spec 1.1.2 §3, L1a.3.
+        """
+        target_dir: Path | None = None
+        if skills_dir is not None:
+            target_dir = Path(skills_dir)
+        else:
+            try:
+                target_dir = get_resource_path("config/skills")
+            except Exception:  # noqa: BLE001
+                target_dir = Path("config/skills")
+
+        if target_dir is None or not target_dir.exists() or not target_dir.is_dir():
+            return 0
+
+        count = 0
+        for child in sorted(target_dir.iterdir()):
+            if not child.is_dir() or child.name.startswith("_") or child.name.startswith("."):
+                continue
+            meta_file = child / "meta_info.json"
+            plan_file = child / "plan.scm"
+            if not meta_file.exists() or not plan_file.exists():
+                continue
+            try:
+                meta = SkillMeta.model_validate_json(meta_file.read_text(encoding="utf-8"))
+                if meta.status != "ACTIVE":
+                    continue
+                plan_src = plan_file.read_text(encoding="utf-8")
+                rule_def = parse_rule(plan_src)
+                existing = self.rules.get(meta.id)
+                if existing is not None:
+                    existing.status = "ACTIVE"
+                    existing.definition = rule_def
+                    existing.expose_as_tool = meta.expose_as_tool
+                    existing.categories = list(meta.categories)
+                    existing.skill_meta = meta
+                else:
+                    managed = ManagedRule(
+                        rule_id=meta.id,
+                        status="ACTIVE",
+                        definition=rule_def,
+                        expose_as_tool=meta.expose_as_tool,
+                        categories=list(meta.categories),
+                        skill_meta=meta,
+                    )
+                    self.rules[meta.id] = managed
+                count += 1
+            except Exception as e:  # noqa: BLE001
+                logger.warning("failed_to_load_skill", skill_dir=str(child), error=str(e))
+        return count
+
+    def get_active_skill_metas(self) -> list[SkillMeta]:
+        """Returns SkillMeta for all ACTIVE rules per Spec 1.1.2 §3, L1a.3."""
+        metas: list[SkillMeta] = []
+        for r in self.rules.values():
+            if r.status == "ACTIVE":
+                if r.skill_meta is not None:
+                    metas.append(r.skill_meta)
+                else:
+                    metas.append(
+                        SkillMeta(
+                            id=r.rule_id,
+                            intent=r.definition.rule_id,
+                            status="ACTIVE",
+                            categories=r.categories,
+                            expose_as_tool=r.expose_as_tool,
+                        )
+                    )
+        return metas

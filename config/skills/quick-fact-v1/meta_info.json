@@ -1,0 +1,11 @@
+{
+  "id": "quick-fact-v1",
+  "intent": "web_fetch",
+  "description": "Fetch quick factual information via web search",
+  "keywords": ["fact", "factual", "search", "web"],
+  "args": ["topic"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["information"],
+  "expose_as_tool": true
+}

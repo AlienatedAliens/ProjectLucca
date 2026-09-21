@@ -219,28 +219,60 @@ def test_memory_block_capped_and_marked() -> None:
     assert "[Creator Persona Directives]" not in mem_block
 
 
-def test_active_skills_rendered_as_tools() -> None:
-    """Proposal A / D-REAS-04: Active MicroScheme skills are rendered as callable OpenAI function tools."""
+def test_skills_and_manifest_in_prompt_builder() -> None:
+    """T1.3-T1.5: No skill_* in get_all_tool_definitions, static category menu in system prompt, manifest in user tail."""
     from unittest.mock import MagicMock
 
-    from lucca.brain.prompt_builder import format_skill_tools, get_all_tool_definitions
+    from lucca.brain.prompt_builder import (
+        STATIC_CATEGORY_MENU,
+        build_messages,
+        format_category_manifest,
+        get_all_tool_definitions,
+        get_system_prompt,
+    )
+    from lucca.core.schemas import SkillMeta
 
     mock_rule_1 = MagicMock()
     mock_rule_1.rule_id = "calc-shortcut-v1"
-    mock_rule_2 = MagicMock()
-    mock_rule_2.rule_id = "weather-lookup-v2"
-
-    skill_tools = format_skill_tools([mock_rule_1, mock_rule_2])
-    assert len(skill_tools) == 2
-    assert skill_tools[0].function.name == "skill_calc_shortcut_v1"
-    assert "calc-shortcut-v1" in skill_tools[0].function.description
-    assert skill_tools[1].function.name == "skill_weather_lookup_v2"
 
     all_tools = get_all_tool_definitions([mock_rule_1])
     tool_names = [t.function.name for t in all_tools]
-    assert "launch_app" in tool_names
+    assert "launch_app" not in tool_names
     assert "read_file" in tool_names
-    assert "skill_calc_shortcut_v1" in tool_names
+    assert "invoke_skill" in tool_names
+    assert not any(name.startswith("skill_") for name in tool_names)
+    assert len(tool_names) == 9
+
+    # Category menu in system prompt static block
+    sys_prompt = get_system_prompt()
+    assert "[CAPABILITY & SKILL CATEGORIES]" in sys_prompt
+    assert STATIC_CATEGORY_MENU in sys_prompt
+    assert "- cognitive_core:" in sys_prompt
+    assert "- host_readonly:" in sys_prompt
+
+    # Manifest formatting and injection only at user tail
+    skill_meta = SkillMeta(
+        id="calc-eval-v1",
+        intent="calculate",
+        description="Evaluate math expression",
+        args=["expr"],
+        expose_as_tool=True,
+        categories=["self"],
+    )
+    manifest = format_category_manifest("self", [skill_meta])
+    assert "[SKILLS category=self: calc-eval-v1 — Evaluate math expression (args: expr)]" in manifest
+
+    # User message suffix contains manifest
+    msgs = build_messages(
+        current_text="Calculate 2 + 2",
+        category="self",
+        skills=[skill_meta],
+    )
+    assert len(msgs) == 2
+    assert msgs[0].role == "system"
+    assert "[SKILLS category=" not in msgs[0].content
+    assert msgs[1].role == "user"
+    assert "[SKILLS category=self: calc-eval-v1 — Evaluate math expression (args: expr)]" in msgs[1].content
 
 
 def test_build_narration_messages_grounding() -> None:

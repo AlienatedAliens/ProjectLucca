@@ -267,6 +267,7 @@ def test_rule_induction_quarantine_invariant(tmp_path: Path) -> None:
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         ),
     }
     lifecycle = RuleLifecycleManager(registered_tools=tools, db=db)
