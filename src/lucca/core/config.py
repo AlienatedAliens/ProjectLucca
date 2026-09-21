@@ -130,6 +130,8 @@ class MemorySettings(BaseModel):
     memory_tokens: int = 600
     audio_retention_days: int = 7
     backup_daily: bool = True
+    form_beliefs: bool = True
+    rollup_hour_local: int = 3
 
 
 class RouterSettings(BaseModel):

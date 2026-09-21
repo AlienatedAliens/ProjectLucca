@@ -118,6 +118,7 @@ class Supervisor:
         self._next_restart: dict[str, float] = {}
         self.backoff_base: float = 1.0
         self.max_restart_backoff: float = 16.0
+        self._last_rollup_check: float = 0.0
         self._targets: dict[str, Callable[[], None]] = {
             "npu": run_npu_process,
             "audio": run_audio_process,
@@ -293,6 +294,9 @@ class Supervisor:
                                 f"WARNING: Peer '{dead}' missed 3 heartbeats. Terminating...\n"
                             )
                             self.children[dead].terminate()
+                    if now - self._last_rollup_check >= 30.0:
+                        self._last_rollup_check = now
+                        self.orchestrator.maybe_run_nightly_rollup()
 
                 time.sleep(0.1)
         finally:

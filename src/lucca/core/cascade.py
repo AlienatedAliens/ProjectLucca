@@ -1019,7 +1019,7 @@ class EpistemicSearchCascade:
                 cur.execute(
                     """
                     SELECT m.memory_id, m.content, p.provenance, p.trace_id,
-                           m.created_at, m.superseded_by
+                           m.created_at, m.superseded_by, p.grounding_eligible
                     FROM memories m
                     JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                     WHERE p.provenance IN (
@@ -1030,7 +1030,7 @@ class EpistemicSearchCascade:
                     """
                 )
                 mem_rows = cur.fetchall()
-                for mid, content, prov, tr_id, cat_ts, sup_by in mem_rows:
+                for mid, content, prov, tr_id, cat_ts, sup_by, gr_elig in mem_rows:
                     content_str = str(content)
                     is_wrong_query = "wrong" in query_text.lower() or "error" in query_text.lower()
                     if is_wrong_query and (prov == "COHERENCE_BREACH" or sup_by is not None):
@@ -1046,7 +1046,8 @@ class EpistemicSearchCascade:
                                         f"Historical revision / breach: {content_str} "
                                         f"(superseded_by={sup_by})"
                                     ),
-                                    polarity=BelnapValue.TRUE,
+                                    told_true=True,
+                                    told_false=False,
                                     confidence=1.0,
                                     metadata={"provenance": str(prov), "superseded_by": sup_by},
                                 ),
@@ -1055,6 +1056,7 @@ class EpistemicSearchCascade:
                     elif not is_wrong_query and tokens:
                         score = sum(1 for t in tokens if t in content_str.lower())
                         if score > 0:
+                            is_grounding = bool(gr_elig)
                             candidates.append(
                                 (
                                     score,
@@ -1064,9 +1066,14 @@ class EpistemicSearchCascade:
                                         trust_tier=TrustTier.TIER_1_HARDWARE,
                                         source=f"history:{str(prov).lower()}:{mid}",
                                         content=content_str,
-                                        polarity=BelnapValue.TRUE,
+                                        told_true=is_grounding,
+                                        told_false=False,
                                         confidence=1.0,
-                                        metadata={"provenance": str(prov), "trace_id": str(tr_id)},
+                                        metadata={
+                                            "provenance": str(prov),
+                                            "trace_id": str(tr_id),
+                                            "grounding_eligible": int(gr_elig),
+                                        },
                                     ),
                                 )
                             )

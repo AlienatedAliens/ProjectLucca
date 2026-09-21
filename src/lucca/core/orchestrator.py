@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 import wave
+from collections import deque
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
@@ -44,6 +46,7 @@ from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.capabilities import dispatch_invoke_skill
 from lucca.core.cascade import EpistemicSearchCascade, EpistemicSubstrate
+from lucca.core.coherence import ToolReceipt, detect_ungrounded_action_claims
 from lucca.core.config import get_config
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.ipc_schemas import (
@@ -80,6 +83,7 @@ from lucca.core.schemas import (
 )
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.memory.db import DatabaseManager
+from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
@@ -121,10 +125,10 @@ def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
 
     # 1. Period-separated letters (e.g. F. A. W. K. N. E. R. or F.A.W.K.N.E.R.)
     def replace_period(m: re.Match[str]) -> str:
-        raw = m.group(0)
+        raw = str(m.group(0))
         letters = re.findall(r"[a-zA-Z]", raw)
         if len(letters) >= 3:
-            w = "".join(letters).capitalize()
+            w = str("".join(letters).capitalize())
             detected_words.append(w)
             return w
         return raw
@@ -133,10 +137,10 @@ def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
 
     # 2. Hyphen-separated letters (e.g. F-A-W-K-N-E-R or F - A - W - K - N - E - R)
     def replace_hyphen(m: re.Match[str]) -> str:
-        raw = m.group(0)
+        raw = str(m.group(0))
         letters = re.findall(r"[a-zA-Z]", raw)
         if len(letters) >= 3:
-            w = "".join(letters).capitalize()
+            w = str("".join(letters).capitalize())
             detected_words.append(w)
             return w
         return raw
@@ -145,10 +149,10 @@ def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
 
     # 3. Space-separated single letters (e.g. F A W K N E R or W K N E R)
     def replace_spaces(m: re.Match[str]) -> str:
-        raw = m.group(1)
+        raw = str(m.group(1))
         tokens = raw.split()
         if len(tokens) >= 3 and all(len(t) == 1 and t.isalpha() for t in tokens):
-            w = "".join(tokens).capitalize()
+            w = str("".join(tokens).capitalize())
             detected_words.append(w)
             return w
         return raw
@@ -180,6 +184,29 @@ def _levenshtein_distance(s1: str, s2: str) -> int:
     return prev[-1]
 
 
+STANCE_MARKERS: tuple[str, ...] = (
+    "i think",
+    "i believe",
+    "in my view",
+    "i prefer",
+    "my opinion",
+)
+
+
+def _extract_stance_topic(text: str) -> str:
+    """Extracts candidate topic string from a first-person stance utterance (Spec §7, WP-2)."""
+    lower = text.lower()
+    for marker in STANCE_MARKERS:
+        if marker in lower:
+            idx = lower.find(marker)
+            sub = text[idx + len(marker) :].strip(" ,:.-")
+            if sub:
+                clause = re.split(r"[.!?;\n]+", sub)[0].strip()
+                if clause:
+                    return clause[:40].strip()
+    return text[:40].strip()
+
+
 class Orchestrator:
     quit_requested: bool = False
 
@@ -198,6 +225,7 @@ class Orchestrator:
         user_signer: UserSpeechSigner | None = None,
         cascade: EpistemicSearchCascade | None = None,
         affect_tracker: AffectTracker | None = None,
+        reflection_engine: ReflectionEngine | None = None,
     ) -> None:
         self.config = get_config()
         self.execute_tools = execute_tools
@@ -278,6 +306,9 @@ class Orchestrator:
         self.current_turn_tool_spoken: list[str] = []
         self.current_turn_tool_ok: bool = True
         self.current_turn_shadow_outcomes: list[RuleOutcome] = []
+        self.current_turn_receipts: list[ToolReceipt] = []
+        self.pending_spoken_updates: deque[str] = deque()
+        self.current_turn_tier: ExecutionTier = ExecutionTier.FULL_LOOP
 
         # Confirmation State (F-CORE-015: voice answers are handed off as a
         # PTTReleasedPayload and transcribed by the waiting turn worker, never
@@ -338,6 +369,30 @@ class Orchestrator:
         self.active_detected_words: list[str] = []
         self.assistant_signer: AssistantUtteranceSigner | None = None
         self.breach_signer: CoherenceBreachSigner | None = None
+
+        # Autobiographical Reflection Engine (Spec §7, D-MEM-04, WP-2)
+        if reflection_engine is not None:
+            self.reflection_engine: ReflectionEngine | None = reflection_engine
+        elif self.memory_store is not None and hasattr(self.memory_store, "db"):
+            effective_key = (
+                key if (key is not None and len(key) >= 32) else b"01234567890123456789012345678901"
+            )
+            self.reflection_engine = ReflectionEngine(
+                db=self.memory_store.db,
+                store=self.memory_store,
+                master_key=effective_key,
+            )
+        elif self.db is not None and self.memory_store is not None:
+            effective_key = (
+                key if (key is not None and len(key) >= 32) else b"01234567890123456789012345678901"
+            )
+            self.reflection_engine = ReflectionEngine(
+                db=self.db,
+                store=self.memory_store,
+                master_key=effective_key,
+            )
+        else:
+            self.reflection_engine = None
 
     def _neutralize_context_attractors(self, target_word: str) -> list[str]:
         """
@@ -744,9 +799,9 @@ class Orchestrator:
             logger.warning("memory_search_failed", error=str(e))
             return []
 
-    def _commit_transcript(self, text: str, trace: TurnTrace) -> None:
+    def _commit_transcript(self, text: str, trace: TurnTrace) -> str | None:
         if not self.memory_store or not text.strip():
-            return
+            return None
         try:
             if self.user_signer is None:
                 key = getattr(self.memory_store, "master_key", None)
@@ -776,8 +831,10 @@ class Orchestrator:
                         pool.submit(asyncio.run, res).result()
                 else:
                     asyncio.run(res)
+            return signed.entry_id
         except Exception as exc:  # noqa: BLE001
             logger.warning("transcript_commit_failed", error=str(exc))
+            return None
 
     def _commit_assistant_utterance(self, text: str, trace: TurnTrace) -> None:
         """Commits assistant's spoken utterance to memory (D-MEM-04, ASSISTANT_UTTERANCE)."""
@@ -815,19 +872,44 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             logger.warning("assistant_utterance_commit_failed", error=str(exc))
 
-    def _check_functional_coherence(self, narration: str, tool_calls: list[object]) -> str | None:
+    def _check_functional_coherence(
+        self,
+        narration: str,
+        receipts: Sequence[ToolReceipt | dict[str, JsonValue] | object] | None = None,
+    ) -> str | None:
         """
-        Checks for discrepancy between spoken action claim and actual tool execution (Spec §3.3).
-        Returns breach description if discrepancy detected, else None.
+        Checks for discrepancy between spoken action claim and actual tool execution
+        (Spec §3.3, WP-2). Returns breach description if discrepancy detected, else None.
         """
-        reply_low = narration.lower()
-        pattern = (
-            r"\bi (?:have )?"
-            r"(?:saved|wrote|written|updated|launched|opened|ran|created|deleted)\b"
-        )
-        claimed_action = bool(re.search(pattern, reply_low))
-        if claimed_action and not tool_calls:
-            return f"Narrated action claimed without tool execution: '{narration[:100]}'"
+        if receipts is None:
+            receipts = getattr(self, "current_turn_receipts", [])
+        norm_receipts: list[ToolReceipt] = []
+        for r in receipts:
+            if isinstance(r, ToolReceipt):
+                norm_receipts.append(r)
+            elif isinstance(r, dict):
+                norm_receipts.append(
+                    ToolReceipt(
+                        tool=str(r.get("tool") or r.get("tool_name") or ""),
+                        ok=bool(r.get("ok", True)),
+                        call_id=str(r.get("call_id", "")),
+                        args=r.get("args") if isinstance(r.get("args"), dict) else {},
+                        output=str(r.get("output")) if r.get("output") is not None else None,
+                        error=str(r.get("error")) if r.get("error") is not None else None,
+                    )
+                )
+            elif hasattr(r, "tool"):
+                norm_receipts.append(
+                    ToolReceipt(
+                        tool=str(getattr(r, "tool", "")),
+                        ok=bool(getattr(r, "ok", True)),
+                        call_id=str(getattr(r, "call_id", "")),
+                    )
+                )
+        claims = detect_ungrounded_action_claims(narration, norm_receipts)
+        un_grounded = [c for c in claims if not c.grounded]
+        if un_grounded:
+            return un_grounded[0].breach_description or "Ungrounded action claim detected"
         return None
 
     def _commit_coherence_breach(self, claim: str, trace: TurnTrace | None = None) -> None:
@@ -871,19 +953,34 @@ class Orchestrator:
     def _finalize_turn(self, trace: TurnTrace, decision_id: str | None) -> None:
         if self.active_trace is trace and not trace.interrupted:
             self._set_state("postturn")
+        committed_user_id: str | None = None
+        user_transcript_text: str | None = None
         if self.current_turn_transcript:
-            self._commit_transcript(self.current_turn_transcript, trace)
+            user_transcript_text = self.current_turn_transcript
+            committed_user_id = self._commit_transcript(self.current_turn_transcript, trace)
             self.current_turn_transcript = None
 
         if hasattr(self, "current_turn_assistant_reply") and self.current_turn_assistant_reply:
             reply_text = self.current_turn_assistant_reply
             self._commit_assistant_utterance(reply_text, trace)
 
-            # Functional coherence check (Spec §3.3 / D-MEM-04)
-            breach_msg = self._check_functional_coherence(reply_text, self.current_turn_tool_calls)
+            # Functional coherence check (Spec §3.3 / D-MEM-04 / WP-2)
+            breach_msg = self._check_functional_coherence(reply_text, self.current_turn_receipts)
             if breach_msg:
                 self._commit_coherence_breach(breach_msg, trace)
+
+            # Stance / belief formation at runtime (Spec §7, WP-2)
+            if (
+                self.current_turn_tier == ExecutionTier.FULL_LOOP
+                and not self.current_turn_tool_calls
+            ):
+                self._maybe_form_belief(reply_text, trace)
+
             self.current_turn_assistant_reply = None
+
+        # Contradiction detection on USER_EXPLICIT commit (Spec §7, WP-2)
+        if committed_user_id and user_transcript_text:
+            self._check_contradictions(committed_user_id, user_transcript_text, trace)
 
         if decision_id:
             try:
@@ -962,6 +1059,210 @@ class Orchestrator:
         if self.active_trace is trace and not trace.interrupted:
             self._set_state("idle")
 
+    def _record_tool_receipt(
+        self,
+        name: str,
+        call_id: str,
+        args: dict[str, JsonValue],
+        ok: bool,
+        output: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        self.current_turn_receipts.append(
+            ToolReceipt(
+                tool=name,
+                tool_name=name,
+                ok=ok,
+                call_id=call_id,
+                args=dict(args),
+                output=output,
+                error=error,
+                timestamp=time.time(),
+            )
+        )
+
+    def _maybe_form_belief(self, reply_text: str, trace: TurnTrace) -> None:
+        """Extracts first-person stance claims and commits an ASSISTANT_BELIEF (Spec §7, WP-2)."""
+        if not self.memory_store or not reply_text.strip():
+            return
+        if not getattr(self.config.memory, "form_beliefs", True):
+            return
+
+        lower_reply = reply_text.lower()
+        if not any(m in lower_reply for m in STANCE_MARKERS):
+            return
+
+        topic = _extract_stance_topic(reply_text)
+        now = time.time()
+        try:
+            if not hasattr(self, "assistant_signer") or self.assistant_signer is None:
+                key = getattr(self.memory_store, "master_key", None)
+                dev_key = (
+                    bytes(key)
+                    if isinstance(key, (bytes, bytearray)) and len(key) >= 32
+                    else b"01234567890123456789012345678901"
+                )
+                self.assistant_signer = create_assistant_utterance_signer(master_key=dev_key)
+
+            unsigned = UnsignedPayload(
+                content=reply_text.strip(),
+                provenance=Provenance.ASSISTANT_BELIEF,
+                kind="belief",
+                nonce=os.urandom(16).hex(),
+                created_at=now,
+                trace_id=trace.trace_id,
+                confidence=0.7,
+                structured={"importance": 0.3, "topic": topic, "valid_from": now},
+            )
+            signed = self.assistant_signer.sign(unsigned)
+            res = self.memory_store.commit(signed)
+            if asyncio.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        pool.submit(asyncio.run, res).result()
+                else:
+                    asyncio.run(res)
+            logger.info("assistant_belief_formed", topic=topic, trace_id=trace.trace_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("assistant_belief_commit_failed", error=str(exc))
+
+    def _check_contradictions(self, new_entry_id: str, new_content: str, trace: TurnTrace) -> None:
+        """
+        Evaluates contradiction detection against active beliefs (Spec §7, D-MEM-04, WP-2).
+        FTS matches candidate beliefs on topic tokens, capped at 5 beliefs with a 200 ms budget.
+        """
+        if self.reflection_engine is None or self.db is None:
+            return
+
+        tokens = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", new_content.lower())]
+        if not tokens:
+            return
+
+        candidate_beliefs: list[tuple[int, str, str]] = []
+        try:
+            with self.db.read_cursor() as cur:
+                fts_query = " OR ".join(f'"{t}"' for t in tokens[:10])
+                try:
+                    cur.execute(
+                        """
+                        SELECT m.memory_id, m.content, m.kind
+                        FROM memories m
+                        JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                        WHERE m.valid_to IS NULL
+                          AND p.provenance = 'ASSISTANT_BELIEF'
+                          AND m.memory_id IN (
+                              SELECT rowid FROM fts_memories WHERE fts_memories MATCH ?
+                          )
+                        LIMIT 5
+                        """,
+                        (fts_query,),
+                    )
+                    candidate_beliefs = [(int(r[0]), str(r[1]), str(r[2])) for r in cur.fetchall()]
+                except Exception:  # noqa: BLE001
+                    cur.execute(
+                        """
+                        SELECT m.memory_id, m.content, m.kind
+                        FROM memories m
+                        JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                        WHERE m.valid_to IS NULL AND p.provenance = 'ASSISTANT_BELIEF'
+                        LIMIT 50
+                        """
+                    )
+                    for r in cur.fetchall():
+                        c_low = str(r[1]).lower()
+                        if any(t in c_low for t in tokens):
+                            candidate_beliefs.append((int(r[0]), str(r[1]), str(r[2])))
+                            if len(candidate_beliefs) >= 5:
+                                break
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("contradiction_search_error", error=str(exc))
+            return
+
+        if not candidate_beliefs:
+            return
+
+        t_start = time.perf_counter()
+        for belief_id, _old_content, _ in candidate_beliefs:
+            if (time.perf_counter() - t_start) > 0.200:
+                logger.warning("reflection_contradiction_budget_exceeded", trace_id=trace.trace_id)
+                break
+
+            try:
+                coro = self.reflection_engine.detect_and_handle_contradiction(
+                    old_belief_id=belief_id,
+                    new_content=new_content,
+                    reason_entry_id=new_entry_id,
+                    proposed_confidence=1.0,
+                    is_conflict_top=False,
+                    topic=None,
+                    now=time.time(),
+                )
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        is_queued, res_str = pool.submit(asyncio.run, coro).result()
+                else:
+                    is_queued, res_str = asyncio.run(coro)
+
+                if is_queued:
+                    logger.info(
+                        "belief_revision_flagged_for_review",
+                        review_id=res_str,
+                        belief_id=belief_id,
+                    )
+                else:
+                    self.pending_spoken_updates.append(res_str)
+                    logger.info(
+                        "belief_revision_enqueued_spoken_update",
+                        spoken_update=res_str,
+                        belief_id=belief_id,
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("contradiction_handling_failed", error=str(exc), belief_id=belief_id)
+
+    def _maybe_speak_pending_updates(self, trace: TurnTrace) -> None:
+        """Speaks queued unflagged belief revision sentences once before turn reply."""
+        while self.pending_spoken_updates:
+            spoken_update = self.pending_spoken_updates.popleft()
+            if spoken_update.strip():
+                print(f"[Lucca Revision] 💡 {spoken_update}", flush=True)
+                self._speak_text(trace, spoken_update)
+                self._publish_caption(spoken_update, source="assistant", is_final=True)
+                self.history.append({"role": "assistant", "content": spoken_update})
+
+    def maybe_run_nightly_rollup(self, now: float | None = None) -> int:
+        """Executes nightly roll-up if due and records persistent timestamp."""
+        if not self.reflection_engine:
+            return 0
+        current_time = now if now is not None else time.time()
+        last_rollup = self.reflection_engine.get_last_rollup_at()
+        rollup_hour = getattr(self.config.memory, "rollup_hour_local", 3)
+        if is_rollup_due(last_rollup, current_time, rollup_hour):
+            try:
+                coro = self.reflection_engine.nightly_rollup(now=current_time)
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        compressed = pool.submit(asyncio.run, coro).result()
+                else:
+                    compressed = asyncio.run(coro)
+                self.reflection_engine.record_last_rollup_at(current_time)
+                logger.info("nightly_rollup_completed", compressed=compressed, ts=current_time)
+                return int(compressed)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("nightly_rollup_failed", error=str(exc))
+        return 0
+
     def _select_verbal_cue(self, tool_name: str) -> str:
         """Selects a natural verbal thinking cue per Proposal I / Owner Section 6 requirement."""
         t = tool_name.lower()
@@ -998,6 +1299,8 @@ class Orchestrator:
         Executes streaming LLM response generation with multi-step tool re-prompting
         and verbal thinking cues (Proposals I, J & D-BRAIN-03).
         """
+        self._maybe_speak_pending_updates(trace)
+
         begin_env = Envelope(
             type="play.begin",
             trace_id=trace.trace_id,
@@ -1408,6 +1711,8 @@ class Orchestrator:
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
+        self.current_turn_receipts = []
+        self.current_turn_tier = ExecutionTier.FULL_LOOP
         self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
         self._last_unspoken_tool_msg = None
@@ -1563,6 +1868,7 @@ class Orchestrator:
                     break
 
             tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
+            self.current_turn_tier = tier
             if tier == ExecutionTier.REFLEX:
                 try:
                     if winning_outcome and winning_outcome.plan:
@@ -1796,6 +2102,8 @@ class Orchestrator:
         self.play_ring.clear_flag(FLAG_ABORT)
         self.play_ring.clear_flag(FLAG_EOS)
         self.current_turn_tool_calls = []
+        self.current_turn_receipts = []
+        self.current_turn_tier = ExecutionTier.FULL_LOOP
         self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
         self._last_unspoken_tool_msg = None
@@ -1901,6 +2209,7 @@ class Orchestrator:
                     break
 
             tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
+            self.current_turn_tier = tier
             if tier == ExecutionTier.REFLEX:
                 try:
                     if winning_outcome and winning_outcome.plan:
@@ -2299,6 +2608,14 @@ class Orchestrator:
                     affect_tracker.record_signal(
                         AffectSignal.DEONTIC_REJECTION, custom_cause=bdi_res.reason
                     )
+                self._record_tool_receipt(
+                    name=name,
+                    call_id=call_id,
+                    args=args,
+                    ok=False,
+                    output=None,
+                    error=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -2323,6 +2640,14 @@ class Orchestrator:
             )
             if not ok:
                 self.current_turn_tool_ok = False
+                self._record_tool_receipt(
+                    name=name,
+                    call_id=call_id,
+                    args=args,
+                    ok=False,
+                    output=None,
+                    error=reason,
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -2364,19 +2689,36 @@ class Orchestrator:
                     signal=skill_signal,
                     detail=f"invoke_skill {', '.join(sub_results)}",
                 )
+                res_content = (
+                    f"Skill '{skill_id}' fired. "
+                    f"Rationale: {outcome.plan.rationale or 'completed'}. "
+                    f"Actions: {', '.join(sub_results) or 'none'}"
+                )
+                self._record_tool_receipt(
+                    name=name,
+                    call_id=call_id,
+                    args=args,
+                    ok=True,
+                    output=res_content,
+                    error=None,
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=True,
-                    content=(
-                        f"Skill '{skill_id}' fired. "
-                        f"Rationale: {outcome.plan.rationale or 'completed'}. "
-                        f"Actions: {', '.join(sub_results) or 'none'}"
-                    ),
+                    content=res_content,
                     elapsed_ms=float(outcome.elapsed_us) / 1000.0,
                 )
             else:
                 err_msg = outcome.error or "conditions not met"
                 self.current_turn_tool_ok = False
+                self._record_tool_receipt(
+                    name=name,
+                    call_id=call_id,
+                    args=args,
+                    ok=False,
+                    output=None,
+                    error=f"Skill '{skill_id}' evaluated but did not fire: {err_msg}",
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -2430,6 +2772,14 @@ class Orchestrator:
                 )
             if not res.ok:
                 self.current_turn_tool_ok = False
+            self._record_tool_receipt(
+                name=name,
+                call_id=call_id,
+                args=args,
+                ok=res.ok,
+                output=res.content,
+                error=res.stderr,
+            )
             return res
 
         # Check confirmation requirement (WRITE / LAUNCH)
@@ -2443,6 +2793,14 @@ class Orchestrator:
                     self._speak_text(trace, cancel_msg)
                     self.current_turn_tool_spoken.append(cancel_msg)
                 self.current_turn_tool_ok = False
+                self._record_tool_receipt(
+                    name=name,
+                    call_id=call_id,
+                    args=args,
+                    ok=False,
+                    output=None,
+                    error="cancelled by user",
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -2506,6 +2864,14 @@ class Orchestrator:
             affect_tracker.record_signal(
                 AffectSignal.TASK_SUCCESS, custom_cause=f"{name} completed successfully"
             )
+        self._record_tool_receipt(
+            name=name,
+            call_id=call_id,
+            args=args,
+            ok=res.ok,
+            output=res.content,
+            error=res.stderr,
+        )
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
         spoken_msg: str | None = None
         if res.ok:

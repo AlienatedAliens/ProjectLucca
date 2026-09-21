@@ -3,6 +3,7 @@ Project Lucca — Autobiographical Reflection, Belief Revision & Review Queue
 Spec D-MEM-04, Rung A1, ModularRSI §4.3
 """
 
+import datetime
 import time
 import uuid
 
@@ -202,8 +203,11 @@ class ReflectionEngine:
             old_belief_id, new_memory_id, reason=reason_entry_id, now=current_time
         )
 
+        # Summarise new_content to a readable cap so spoken update stays concise.
+        new_summary = new_content[:80].rstrip() + ("…" if len(new_content) > 80 else "")
         spoken_update = (
-            f"I've updated what I believed about {old_content} because of new verified evidence."
+            f"I've revised a belief I had — previously: {old_content[:60].rstrip()}. "
+            f"New understanding: {new_summary}."
         )
         logger.info(
             "autonomous_belief_revision_applied",
@@ -386,3 +390,55 @@ class ReflectionEngine:
 
         logger.info("autobiographical_nightly_rollup_completed", compressed_count=total_compressed)
         return total_compressed
+
+    async def nightly_rollup(self, now: float | None = None) -> int:
+        """Alias for rollup_nightly per Work Order #8."""
+        return await self.rollup_nightly(now=now)
+
+    def get_last_rollup_at(self) -> float | None:
+        """Retrieves persistent timestamp of the last executed roll-up."""
+        conn = self.db.get_writer()
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS system_metadata ("
+            "key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at REAL NOT NULL)"
+        )
+        with self.db.read_cursor() as cur:
+            cur.execute("SELECT value FROM system_metadata WHERE key = 'last_rollup_at'")
+            row = cur.fetchone()
+            return float(row[0]) if row else None
+
+    def record_last_rollup_at(self, ts: float) -> None:
+        """Persists timestamp of completed roll-up to prevent duplicate runs across restarts."""
+        conn = self.db.get_writer()
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS system_metadata ("
+            "key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at REAL NOT NULL)"
+        )
+        conn.execute(
+            "INSERT INTO system_metadata(key, value, updated_at) VALUES ('last_rollup_at', ?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value, "
+            "updated_at = excluded.updated_at",
+            (str(ts), ts),
+        )
+
+
+def is_rollup_due(
+    last_rollup_at: float | None,
+    current_time: float,
+    rollup_hour_local: int = 3,
+) -> bool:
+    """
+    Evaluates whether a nightly autobiographical roll-up is due.
+    Triggers once per 24h at first idle after rollup_hour_local (default 03:00).
+    """
+    dt_now = datetime.datetime.fromtimestamp(current_time)
+    target_today = dt_now.replace(hour=rollup_hour_local, minute=0, second=0, microsecond=0)
+    target_today_ts = target_today.timestamp()
+
+    if current_time < target_today_ts:
+        return False
+
+    if last_rollup_at is None:
+        return True
+
+    return last_rollup_at < target_today_ts

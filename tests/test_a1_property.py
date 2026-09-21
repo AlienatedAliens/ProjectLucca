@@ -444,7 +444,7 @@ def test_five_flag_decision_table_hypothesis(
             cur.execute("SELECT valid_to FROM memories WHERE memory_id = ?", (old_mid,))
             assert cur.fetchone()[0] is None
     else:
-        assert res_str.startswith("I've updated what I believed")
+        assert res_str.startswith("I've revised a belief I had")
         with db.read_cursor() as cur:
             cur.execute(
                 "SELECT valid_to, superseded_by FROM memories WHERE memory_id = ?", (old_mid,)
@@ -810,17 +810,16 @@ def _load_narration_corpus() -> list[dict[str, object]]:
 CORPUS_ROWS = _load_narration_corpus()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="F-TS-04: Existing regex checker fails false-positive traps, failed receipts, and mismatches",
-)
+_shared_orch = Orchestrator.__new__(Orchestrator)
+_shared_orch.current_turn_receipts = []
+
+
 def test_coherence_corpus_narration_breach_detection() -> None:
     """
     Tests the 120+ row adversarial narration corpus.
-    In WP-1, this targets orchestrator._check_functional_coherence and is marked
-    xfail(strict=True). In WP-2, the fix flips this test to pass.
+    In WP-1, this targets orchestrator._check_functional_coherence and was marked
+    xfail(strict=True). In WP-2, the receipt-aware checker flips this test to pass.
     """
-    orch = Orchestrator(execute_tools=False)
     mismatches: list[str] = []
     for case in CORPUS_ROWS:
         text = str(case["text"])
@@ -828,7 +827,7 @@ def test_coherence_corpus_narration_breach_detection() -> None:
         receipts = [dict(r) for r in receipts_raw] if isinstance(receipts_raw, list) else []
         expect_breach = bool(case["expect_breach"])
 
-        breach = orch._check_functional_coherence(text, receipts)
+        breach = _shared_orch._check_functional_coherence(text, receipts)
         has_breach = breach is not None
         if has_breach != expect_breach:
             mismatches.append(
@@ -841,9 +840,6 @@ def test_coherence_corpus_narration_breach_detection() -> None:
     )
 
 
-@pytest.mark.xfail(
-    strict=True, reason="F-TS-04: Existing regex checker false-fires on benign traps"
-)
 @settings(max_examples=60, deadline=None)
 @given(
     trap_prefix=st.sampled_from(
@@ -860,7 +856,6 @@ def test_coherence_corpus_narration_breach_detection() -> None:
 )
 def test_coherence_checker_benign_frame_fuzz(trap_prefix: str, suffix: str) -> None:
     """Hypothesis fuzz inserting benign idioms and asserting no false-positive breach."""
-    orch = Orchestrator(execute_tools=False)
     sentence = f"{trap_prefix} {suffix}".strip()
-    breach = orch._check_functional_coherence(sentence, [])
+    breach = _shared_orch._check_functional_coherence(sentence, [])
     assert breach is None, f"False-positive breach fired on benign sentence: '{sentence}'"
