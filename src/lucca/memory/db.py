@@ -14,6 +14,7 @@ from typing import Final
 
 import sqlite_vec
 import structlog
+from pydantic import JsonValue
 
 from lucca.core.schemas import Decision, ExecutionTriple, Outcome, Proposal
 
@@ -203,6 +204,91 @@ class DatabaseManager:
                     )
                 )
             return triples
+
+    def record_contrastive_shadow_log(
+        self,
+        log_id: str,
+        rule_id: str,
+        trace_id: str,
+        ts: float,
+        rule_plan_json: str,
+        core_action_json: str,
+        agreed: bool,
+        rule_outcome_signal: str | None = None,
+        core_outcome_signal: str | None = None,
+    ) -> None:
+        """Persists a paired contrastive shadow evaluation log per Spec §6.2 (Rung L2)."""
+        writer = self.get_writer()
+        writer.execute("BEGIN IMMEDIATE")
+        try:
+            writer.execute(
+                """
+                INSERT OR REPLACE INTO contrastive_shadow_logs (
+                    log_id, rule_id, trace_id, ts, rule_plan_json, core_action_json,
+                    agreed, rule_outcome_signal, core_outcome_signal
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    log_id,
+                    rule_id,
+                    trace_id,
+                    ts,
+                    rule_plan_json,
+                    core_action_json,
+                    1 if agreed else 0,
+                    rule_outcome_signal,
+                    core_outcome_signal,
+                ),
+            )
+            writer.execute("COMMIT")
+        except Exception:
+            writer.execute("ROLLBACK")
+            raise
+
+    def list_contrastive_shadow_logs(
+        self, rule_id: str | None = None, limit: int = 100
+    ) -> list[dict[str, JsonValue]]:
+        """Lists paired contrastive shadow logs ordered by ts DESC."""
+        with self.read_cursor() as cur:
+            if rule_id is not None:
+                cur.execute(
+                    """
+                    SELECT log_id, rule_id, trace_id, ts, rule_plan_json, core_action_json,
+                           agreed, rule_outcome_signal, core_outcome_signal
+                    FROM contrastive_shadow_logs
+                    WHERE rule_id = ?
+                    ORDER BY ts DESC
+                    LIMIT ?
+                    """,
+                    (rule_id, limit),
+                )
+            else:
+                cur.execute(
+                    """
+                    SELECT log_id, rule_id, trace_id, ts, rule_plan_json, core_action_json,
+                           agreed, rule_outcome_signal, core_outcome_signal
+                    FROM contrastive_shadow_logs
+                    ORDER BY ts DESC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                )
+            records: list[dict[str, JsonValue]] = []
+            for row in cur.fetchall():
+                records.append(
+                    {
+                        "log_id": str(row[0]),
+                        "rule_id": str(row[1]),
+                        "trace_id": str(row[2]),
+                        "ts": float(row[3]),
+                        "rule_plan_json": str(row[4]),
+                        "core_action_json": str(row[5]),
+                        "agreed": bool(row[6]),
+                        "rule_outcome_signal": row[7],
+                        "core_outcome_signal": row[8],
+                    }
+                )
+            return records
 
     def close(self) -> None:
         """Close all connections."""

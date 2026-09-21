@@ -70,9 +70,12 @@ from lucca.brain.server_ctl import (
 )
 from lucca.core.config import LLMSettings, get_config
 from lucca.core.schemas import RuleState
+from lucca.memory.db import DatabaseManager
 from lucca.memory.manager import MemoryManager
+from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import parse_rule
+from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.system_tools import get_system_metrics
 from lucca.senses.dsp_chain import AnimeDSPConfig, AnimeVoiceDSP
 from lucca.senses.tts import (
@@ -403,6 +406,15 @@ class SettingsDialog(QDialog):
             self.memory_manager: MemoryManager | None = MemoryManager(master_key=mk)
         except Exception:
             self.memory_manager = None
+
+        try:
+            db_path = self.config.resolve_path("data") / "memory.sqlite"
+            self.db: DatabaseManager | None = DatabaseManager(db_path=db_path)
+            self.db.migrate()
+            self.rule_lifecycle: RuleLifecycleManager | None = RuleLifecycleManager(db=self.db)
+        except Exception:
+            self.db = None
+            self.rule_lifecycle = None
 
         # Canonical MicroScheme rules
         self.lisp_rules: dict[str, dict[str, JsonValue]] = {
@@ -1732,6 +1744,46 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(grp_lisp)
 
+        # Shadow Telemetry & Contrastive Evaluation Group (Rung L2)
+        grp_shadow = QGroupBox("Shadow Telemetry & Contrastive Evaluation (Rung L2)", parent)
+        v_shadow = QVBoxLayout(grp_shadow)
+
+        h_replay = QHBoxLayout()
+        self.btn_lisp_replay = QPushButton("▶ Run Offline Replay (50 Episodes)", grp_shadow)
+        self.btn_lisp_replay.clicked.connect(self._run_lisp_replay)
+        h_replay.addWidget(self.btn_lisp_replay)
+
+        self.lbl_replay_status = QLabel(
+            "Select a pathway to run Dream-RSI offline replay.", grp_shadow
+        )
+        self.lbl_replay_status.setStyleSheet(f"color: {CT_GOLD_TEXT};")
+        h_replay.addWidget(self.lbl_replay_status)
+        h_replay.addStretch()
+        v_shadow.addLayout(h_replay)
+
+        h_metrics = QHBoxLayout()
+        self.lbl_lisp_clusters = QLabel("Quarantine Clusters: N/A", grp_shadow)
+        self.lbl_lisp_agreement = QLabel("Agreed Rate (95% CI): N/A", grp_shadow)
+        self.lbl_lisp_mcnemar = QLabel("Paired McNemar (b/c): N/A", grp_shadow)
+        self.lbl_lisp_reliability = QLabel("Execution-Reliability (S1): N/A", grp_shadow)
+
+        h_metrics.addWidget(self.lbl_lisp_clusters)
+        h_metrics.addWidget(self.lbl_lisp_agreement)
+        h_metrics.addWidget(self.lbl_lisp_mcnemar)
+        h_metrics.addWidget(self.lbl_lisp_reliability)
+        h_metrics.addStretch()
+        v_shadow.addLayout(h_metrics)
+
+        lbl_disclaimer = QLabel(
+            "Note: All reliability rates represent Execution-Reliability Rate (S1) "
+            "(process non-crash / schema compliance), never conflated with task success.",
+            grp_shadow,
+        )
+        lbl_disclaimer.setStyleSheet("color: #888888; font-size: 10px; font-style: italic;")
+        v_shadow.addWidget(lbl_disclaimer)
+
+        layout.addWidget(grp_shadow)
+
     def _populate_lisp_table(self, filter_cat: str = "All Categories") -> None:
         self.table_lisp.setRowCount(0)
         for rule_id, data in self.lisp_rules.items():
@@ -1756,6 +1808,69 @@ class SettingsDialog(QDialog):
             data = self.lisp_rules[rule_id]
             self.txt_rule_code.setPlainText(data["code"])
             self.lbl_rule_status.setText(f"Loaded definition for [{rule_id}] ({data['category']}).")
+        self._update_shadow_telemetry(rule_id)
+
+    def _run_lisp_replay(self) -> None:
+        row = self.table_lisp.currentRow()
+        if row < 0:
+            self.lbl_replay_status.setText("Select a rule in the table first.")
+            return
+        item = self.table_lisp.item(row, 1)
+        if not item:
+            return
+        rule_id = item.text()
+        if self.rule_lifecycle is None:
+            self.lbl_replay_status.setText("Database / Lifecycle manager not initialized.")
+            return
+        report = self.rule_lifecycle.replay_candidate(rule_id)
+        if report.passed:
+            self.lbl_replay_status.setText(
+                f"✓ Replay PASSED: {report.n_real} episodes, 0 errors, {report.fires} fires."
+            )
+            self.lbl_replay_status.setStyleSheet("color: #44dd44;")
+        else:
+            reason = report.reasons[0] if report.reasons else "Replay failed."
+            self.lbl_replay_status.setText(f"✗ Replay REFUSED: {reason}")
+            self.lbl_replay_status.setStyleSheet("color: #ff5555;")
+
+    def _update_shadow_telemetry(self, rule_id: str) -> None:
+        if self.rule_lifecycle is None:
+            return
+        summary = self.rule_lifecycle.get_contrastive_summary(rule_id)
+        total_turns = int(summary.get("total_turns", 0))
+        agreed_rate = float(summary.get("agreed_rate", 0.0))
+        ag_interval = summary.get("agreed_interval", [0.0, 1.0])
+        b = int(summary.get("b_rule_better", 0))
+        c = int(summary.get("c_core_better", 0))
+        p_val = float(summary.get("mcnemar_p_value", 1.0))
+        rel_rate = float(summary.get("rule_reliability_rate", 0.0))
+        rel_interval = summary.get("rule_reliability_interval", [0.0, 1.0])
+
+        rule = self.rule_lifecycle.rules.get(rule_id)
+        # Spec §6.1 (Rule of Three): clusters prove intent recurrence, never safety.
+        n_clusters = len(rule.success_clusters) if rule else 0
+        fail_ucl = rule_of_three_ucl(n_clusters)
+        self.lbl_lisp_clusters.setText(
+            f"Quarantine Clusters: {n_clusters}/5 (0 err -> fail <= {fail_ucl:.0%})"
+        )
+
+        if total_turns > 0 and isinstance(ag_interval, list) and len(ag_interval) == 2:
+            ag_lb_str = f"{float(ag_interval[0]):.1%}"
+            ag_ub_str = f"{float(ag_interval[1]):.1%}"
+            self.lbl_lisp_agreement.setText(
+                f"Agreed Rate (95% CI): {agreed_rate:.1%} [{ag_lb_str}, {ag_ub_str}]"
+            )
+            self.lbl_lisp_mcnemar.setText(f"Paired McNemar (b={b}, c={c}): p={p_val:.3f}")
+            if isinstance(rel_interval, list) and len(rel_interval) == 2:
+                r_lb_str = f"{float(rel_interval[0]):.1%}"
+                r_ub_str = f"{float(rel_interval[1]):.1%}"
+                self.lbl_lisp_reliability.setText(
+                    f"Execution-Reliability (S1): {rel_rate:.1%} [{r_lb_str}, {r_ub_str}]"
+                )
+        else:
+            self.lbl_lisp_agreement.setText("Agreed Rate (95% CI): N/A (0 turns)")
+            self.lbl_lisp_mcnemar.setText("Paired McNemar (b/c): N/A")
+            self.lbl_lisp_reliability.setText("Execution-Reliability (S1): N/A")
 
     def _validate_current_rule(self) -> None:
         code = self.txt_rule_code.toPlainText().strip()

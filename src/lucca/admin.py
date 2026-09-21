@@ -23,6 +23,7 @@ from lucca.core.trace import (
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.skills import SkillManager
+from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.egress import EgressVerifier
 
 
@@ -278,6 +279,115 @@ def run_rules_cli(
         console.print(f"[bold yellow]RETIRED:[/bold yellow] Rule '{rule_id}' has been retired.")
         return 0
 
+    if action == "replay":
+        if not rule_id:
+            console.print("[red]Error: rule_id is required for replay evaluation.[/red]")
+            return 1
+        if rule_id not in manager.rules:
+            console.print(f"[red]Error: Rule '{rule_id}' not found in registry.[/red]")
+            return 1
+        report = manager.replay_candidate(rule_id)
+        if report.passed:
+            console.print(
+                f"[bold green]SUCCESS: Replay Passed.[/bold green] Rule '{rule_id}' passed "
+                f"Dream-RSI offline replay across {report.n_real} recorded episodes "
+                f"(0 errors, 0 misfires, {report.fires} fires)."
+            )
+            return 0
+        console.print(
+            f"[bold red]FAILED: Replay Refused.[/bold red] Rule '{rule_id}' failed "
+            "offline replay.\n"
+            f"Episodes: {report.n_real} / {report.min_required} required\n"
+            f"Errors: {report.errors}, Misfires: {report.misfires}\n"
+            "Reasons:\n  - " + "\n  - ".join(report.reasons)
+        )
+        if report.error_details:
+            console.print("[yellow]Error Details:[/yellow]")
+            for d in report.error_details[:5]:
+                console.print(f"  * {d}")
+        return 1
+
+    if action == "report":
+        if not manager.rules:
+            console.print("[yellow]No rules currently registered in the database.[/yellow]")
+            return 0
+
+        table = Table(
+            title="MicroScheme Rule Capability Telemetry & Contrastive Evaluation Report",
+            caption="Spec 1.1.2 §5 (S1 Contract), §6.2 (Rung L2)",
+        )
+        table.add_column("Rule ID", style="cyan", no_wrap=True)
+        table.add_column("Status", justify="center", no_wrap=True)
+        table.add_column("Clusters (95% CI)", justify="right")
+        table.add_column("Agreed Rate (95% CI)", justify="right")
+        table.add_column("Rule Better (b)", justify="right")
+        table.add_column("Core Better (c)", justify="right")
+        table.add_column("McNemar p", justify="right")
+        table.add_column("Execution-Reliability Rate (S1)", justify="right")
+
+        for r in sorted(manager.rules.values(), key=lambda x: x.rule_id):
+            summary = manager.get_contrastive_summary(r.rule_id)
+            total_turns = int(summary.get("total_turns", 0))
+            agreed_rate = float(summary.get("agreed_rate", 0.0))
+            agreed_interval_raw = summary.get("agreed_interval", [0.0, 1.0])
+            agreed_interval = (
+                agreed_interval_raw
+                if isinstance(agreed_interval_raw, list) and len(agreed_interval_raw) == 2
+                else [0.0, 1.0]
+            )
+            b = int(summary.get("b_rule_better", 0))
+            c = int(summary.get("c_core_better", 0))
+            p_val = float(summary.get("mcnemar_p_value", 1.0))
+            rel_rate = float(summary.get("rule_reliability_rate", 0.0))
+            rel_interval_raw = summary.get("rule_reliability_interval", [0.0, 1.0])
+            rel_interval = (
+                rel_interval_raw
+                if isinstance(rel_interval_raw, list) and len(rel_interval_raw) == 2
+                else [0.0, 1.0]
+            )
+
+            # Spec §6.1 (Rule of Three): shadow clusters prove intent recurrence, never
+            # safety. 0 failures in n clusters bounds the failure rate to <= 3/n (95%
+            # one-sided UCL) — display that, not a Wilson CI on a non-Bernoulli count.
+            n_clusters = len(r.success_clusters)
+            fail_ucl = rule_of_three_ucl(n_clusters)
+            cluster_str = f"{n_clusters}/5 (0 err -> fail <= {fail_ucl:.0%})"
+
+            ag_lb_str = f"{float(agreed_interval[0]):.1%}"
+            ag_ub_str = f"{float(agreed_interval[1]):.1%}"
+            agreed_str = (
+                f"{agreed_rate:.1%} [{ag_lb_str}, {ag_ub_str}]" if total_turns > 0 else "N/A"
+            )
+            p_str = f"{p_val:.3f}" if (b + c) > 0 else "N/A"
+            rel_str = (
+                f"{rel_rate:.1%} [{float(rel_interval[0]):.1%}, {float(rel_interval[1]):.1%}]"
+                if total_turns > 0
+                else "N/A"
+            )
+
+            status_style = (
+                "[green]ACTIVE[/green]"
+                if r.status == "ACTIVE"
+                else "[bold yellow]PENDING_APPROVAL[/bold yellow]"
+                if r.status == "PENDING_APPROVAL"
+                else "[blue]QUARANTINE[/blue]"
+                if r.status == "QUARANTINE"
+                else "[red]RETIRED[/red]"
+            )
+
+            table.add_row(
+                r.rule_id,
+                status_style,
+                cluster_str,
+                agreed_str,
+                str(b),
+                str(c),
+                p_str,
+                rel_str,
+            )
+        console.print(table)
+        return 0
+
     console.print(f"[red]Unknown rules action: {action}[/red]")
     return 1
 
@@ -478,6 +588,15 @@ def create_parser() -> argparse.ArgumentParser:
         "register", help="Register a new MicroScheme rule in QUARANTINE mode"
     )
     p_reg.add_argument("source", help="Rule S-expression string or path to .scm file")
+
+    p_rep = rules_sub.add_parser(
+        "replay", help="Run Dream-RSI offline replay evaluation on a candidate rule"
+    )
+    p_rep.add_argument("rule_id", help="Rule identifier to replay")
+
+    rules_sub.add_parser(
+        "report", help="Print Studio capability telemetry and contrastive evaluation report"
+    )
 
     # skills
     p_skills = subparsers.add_parser(

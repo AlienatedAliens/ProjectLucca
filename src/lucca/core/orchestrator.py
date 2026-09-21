@@ -271,6 +271,7 @@ class Orchestrator:
         self.current_turn_tool_calls: list[ToolCall] = []
         self.current_turn_tool_spoken: list[str] = []
         self.current_turn_tool_ok: bool = True
+        self.current_turn_shadow_outcomes: list[RuleOutcome] = []
 
         # Confirmation State (F-CORE-015: voice answers are handed off as a
         # PTTReleasedPayload and transcribed by the waiting turn worker, never
@@ -805,6 +806,49 @@ class Orchestrator:
                 self.prev_turn_ts = time.time()
             except Exception as e:  # noqa: BLE001
                 logger.debug("post_turn_telemetry_error", error=str(e))
+
+        # Log contrastive shadow pairs per Spec 1.1.2 §6.2 (ModularRSI §3.3)
+        if hasattr(self, "current_turn_shadow_outcomes") and self.current_turn_shadow_outcomes:
+            turn_tool_ok = self.current_turn_tool_ok if self.current_turn_tool_calls else None
+            # S1 semantics: "tool_exit_zero" requires an actual tool execution. A turn
+            # where the core ran no tools is "abstained" (S1 Outcome enum), not a success.
+            core_sig = (
+                "operator_correct"
+                if trace.interrupted
+                else (
+                    "abstained"
+                    if not self.current_turn_tool_calls
+                    else ("tool_exit_zero" if turn_tool_ok is True else "tool_exit_nonzero")
+                )
+            )
+            core_p = (
+                "RULE"
+                if (
+                    self.router.last_decision_record
+                    and self.router.last_decision_record.action == RouteAction.RULE
+                )
+                else "LLM"
+            )
+            for so in self.current_turn_shadow_outcomes:
+                if so.fired or so.plan is not None or so.errored:
+                    rule_sig = (
+                        "error"
+                        if so.errored
+                        else ("tool_exit_zero" if so.plan and so.plan.actions else "abstained")
+                    )
+                    try:
+                        self.rule_engine.log_contrastive_shadow_pair(
+                            rule_id=so.rule_id,
+                            trace_id=trace.trace_id,
+                            rule_plan=so.plan,
+                            core_tool_calls=self.current_turn_tool_calls,
+                            core_path=core_p,
+                            rule_outcome_signal=rule_sig,
+                            core_outcome_signal=core_sig,
+                        )
+                    except Exception as shadow_err:  # noqa: BLE001
+                        logger.debug("contrastive_shadow_log_failed", error=str(shadow_err))
+            self.current_turn_shadow_outcomes = []
 
         trace.t_postturn_done = now_ns()
         log_turn_trace(trace)
@@ -1362,6 +1406,7 @@ class Orchestrator:
         try:
             shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
             active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+            self.current_turn_shadow_outcomes = shadow_outcomes
         except SchemeYieldSignal as e:
             logger.info("scheme_rule_yielded_to_core", reason=e.reason, context=e.context)
             yielded_context = {"reason": e.reason, "context": e.context}
@@ -1700,6 +1745,7 @@ class Orchestrator:
         try:
             shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
             active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
+            self.current_turn_shadow_outcomes = shadow_outcomes
         except SchemeYieldSignal as e:
             logger.info("scheme_rule_yielded_to_core", reason=e.reason, context=e.context)
             yielded_context = {"reason": e.reason, "context": e.context}

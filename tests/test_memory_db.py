@@ -645,7 +645,7 @@ def test_t_mem_11_migrations(tmp_path: Path) -> None:
     db = DatabaseManager(db_path)
 
     applied1 = db.migrate()
-    assert applied1 == [1, 2, 3, 4]
+    assert applied1 == [1, 2, 3, 4, 5]
 
     # Re-running is idempotent
     applied2 = db.migrate()
@@ -654,7 +654,7 @@ def test_t_mem_11_migrations(tmp_path: Path) -> None:
     with db.read_cursor() as cur:
         cur.execute("SELECT version FROM schema_migrations ORDER BY version")
         rows = [r[0] for r in cur.fetchall()]
-        assert rows == [1, 2, 3, 4]
+        assert rows == [1, 2, 3, 4, 5]
     db.close()
 
 

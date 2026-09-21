@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Literal
 
 import structlog
+import ulid
+from pydantic import JsonValue
 
 from lucca.core.capabilities import get_default_native_tools
 from lucca.core.config import get_resource_path
@@ -33,9 +35,11 @@ from lucca.core.schemas import (
     ToolSchema,
 )
 from lucca.memory.db import DatabaseManager
+from lucca.reasoning.replay import ReplayEngine, ReplayReport
 from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import RuleDefinition, parse_rule
 from lucca.reasoning.scheme.validator import validate_rule_static
+from lucca.reasoning.stats import mcnemar_test, wilson_score_interval
 
 logger = structlog.get_logger(__name__)
 
@@ -74,6 +78,9 @@ class ManagedRule:
     expose_as_tool: bool = False
     categories: list[str] = field(default_factory=list)
     skill_meta: SkillMeta | None = None
+    is_induced: bool = False
+    replay_passed: bool = False
+    replay_report: ReplayReport | None = None
 
 
 def compute_cluster_id(
@@ -109,6 +116,43 @@ def plans_match(p1: Plan, p2: Plan) -> bool:
             if a1.text != a2.text:
                 return False
     return True
+
+
+def check_plan_and_core_agreement(
+    rule_plan: Plan | None,
+    core_tool_calls: list[ToolCall] | None = None,
+    core_path: str = "LLM",
+) -> bool:
+    """
+    Determines whether a rule's proposed plan agreed with the core execution on that turn.
+    Spec 1.1.2 §6.2 (ModularRSI §3.3).
+    """
+    if rule_plan is None or not rule_plan.actions:
+        # Rule did not propose actions or yielded to core
+        if (not core_tool_calls) and core_path in ("LLM", "CLARIFY"):
+            return True
+        return False
+
+    rule_actions = rule_plan.actions
+    rule_tool_calls = [a for a in rule_actions if isinstance(a, ToolCall)]
+
+    if rule_tool_calls:
+        if not core_tool_calls or len(core_tool_calls) != len(rule_tool_calls):
+            return False
+        for rt, ct in zip(rule_tool_calls, core_tool_calls, strict=True):
+            if rt.tool.lower() != ct.tool.lower():
+                return False
+            if rt.args != ct.args:
+                return False
+        return True
+
+    rule_says = [a for a in rule_actions if isinstance(a, Say)]
+    if rule_says and not rule_tool_calls:
+        if (not core_tool_calls) and core_path in ("LLM", "CLARIFY"):
+            return True
+        return False
+
+    return False
 
 
 class RuleLifecycleManager:
@@ -160,6 +204,7 @@ class RuleLifecycleManager:
     def register_candidate(self, cand: CandidateRule) -> str:
         """Implements RuleEnginePort.register_candidate."""
         managed = self.register_rule(cand.s_expression)
+        managed.is_induced = True
         return managed.rule_id
 
     def evaluate(self, state: RuleState, *, mode: Literal["shadow", "active"]) -> list[RuleOutcome]:
@@ -423,7 +468,167 @@ class RuleLifecycleManager:
             failures=failures,
         )
 
-    def promote_if_eligible(self, rule_id: str) -> PromotionResult:
+    def replay_candidate(self, rule_id: str, limit: int = 50) -> ReplayReport:
+        """
+        Evaluates a candidate rule offline against recorded episodes from SQLite decisions table.
+        Enforces Dream-RSI: N_real >= min_episodes (50) and 0 errors/misfires.
+        Spec 1.1.2 §6.2 (Rung L2).
+        """
+        if rule_id not in self.rules:
+            return ReplayReport(
+                evaluated_rule_id=rule_id,
+                passed=False,
+                n_real=0,
+                min_required=limit,
+                reasons=[f"Rule '{rule_id}' is not registered"],
+            )
+
+        rule = self.rules[rule_id]
+        engine = ReplayEngine(min_episodes=limit)
+        if self.db is None:
+            rep = ReplayReport(
+                evaluated_rule_id=rule_id,
+                passed=False,
+                n_real=0,
+                min_required=limit,
+                reasons=["No database configured for Dream-RSI replay"],
+            )
+            rule.replay_passed = False
+            rule.replay_report = rep
+            return rep
+
+        episodes = engine.load_past_episodes(self.db, limit=limit)
+        report = engine.replay_candidate_rule(rule.definition, episodes)
+        rule.replay_passed = report.passed
+        rule.replay_report = report
+        return report
+
+    def log_contrastive_shadow_pair(
+        self,
+        rule_id: str,
+        trace_id: str,
+        rule_plan: Plan | None,
+        core_tool_calls: list[ToolCall] | None,
+        core_path: str = "LLM",
+        rule_outcome_signal: str | None = None,
+        core_outcome_signal: str | None = None,
+        ts: float | None = None,
+    ) -> None:
+        """Records paired contrastive shadow evaluation log to SQLite per Spec §6.2."""
+        if self.db is None:
+            return
+        agreed = check_plan_and_core_agreement(
+            rule_plan=rule_plan,
+            core_tool_calls=core_tool_calls,
+            core_path=core_path,
+        )
+        rule_plan_json = json.dumps(rule_plan.model_dump(mode="json")) if rule_plan else "{}"
+        core_action_data = {
+            "path": core_path,
+            "tool_calls": [tc.model_dump(mode="json") for tc in (core_tool_calls or [])],
+        }
+        core_action_json = json.dumps(core_action_data)
+        log_id = str(ulid.ULID())
+        self.db.record_contrastive_shadow_log(
+            log_id=log_id,
+            rule_id=rule_id,
+            trace_id=trace_id,
+            ts=ts if ts is not None else time.time(),
+            rule_plan_json=rule_plan_json,
+            core_action_json=core_action_json,
+            agreed=agreed,
+            rule_outcome_signal=rule_outcome_signal,
+            core_outcome_signal=core_outcome_signal,
+        )
+
+    def get_contrastive_summary(self, rule_id: str, limit: int = 100) -> dict[str, JsonValue]:
+        """
+        Computes contrastive summary statistics for a rule per Spec 1.1.2 §5, §6.2.
+        Calculates Wilson 95% score intervals on agreement and reliability rates,
+        paired McNemar test discordance, and explicit S1 semantics labeling.
+        """
+        empty_res: dict[str, JsonValue] = {
+            "rule_id": rule_id,
+            "total_turns": 0,
+            "agreed_count": 0,
+            "agreed_rate": 0.0,
+            "agreed_interval": [0.0, 1.0],
+            "b_rule_better": 0,
+            "c_core_better": 0,
+            "mcnemar_p_value": 1.0,
+            "mcnemar_significant": False,
+            "rule_reliability_rate": 0.0,
+            "rule_reliability_interval": [0.0, 1.0],
+            "core_reliability_rate": 0.0,
+            "core_reliability_interval": [0.0, 1.0],
+            "rate_label": "Execution-Reliability Rate (S1)",
+            "records": [],
+        }
+        if self.db is None:
+            return empty_res
+
+        records = self.db.list_contrastive_shadow_logs(rule_id=rule_id, limit=limit)
+        total_turns = len(records)
+        if total_turns == 0:
+            return empty_res
+
+        agreed_count = sum(1 for r in records if bool(r.get("agreed", False)))
+        agreed_rate = float(agreed_count) / float(total_turns)
+        ag_lb, ag_ub = wilson_score_interval(agreed_count, total_turns)
+
+        b = 0
+        c = 0
+        rule_ok_count = 0
+        core_ok_count = 0
+
+        for rec in records:
+            r_sig = str(rec.get("rule_outcome_signal") or "")
+            c_sig = str(rec.get("core_outcome_signal") or "")
+
+            r_ok = r_sig in ("tool_exit_zero", "pydantic_valid", "operator_confirm", "abstained")
+            c_ok = c_sig in ("tool_exit_zero", "pydantic_valid", "operator_confirm")
+
+            r_bad = r_sig in ("error", "gas_exhausted", "pydantic_invalid")
+            c_bad = c_sig in ("operator_correct", "error", "tool_exit_nonzero", "pydantic_invalid")
+
+            if r_ok:
+                rule_ok_count += 1
+            if c_ok:
+                core_ok_count += 1
+
+            if r_ok and c_bad:
+                b += 1
+            elif c_ok and r_bad:
+                c += 1
+
+        p_val = mcnemar_test(b, c)
+        sig = p_val < 0.05 and (b + c) >= 10
+
+        r_rel = float(rule_ok_count) / float(total_turns)
+        r_lb, r_ub = wilson_score_interval(rule_ok_count, total_turns)
+
+        c_rel = float(core_ok_count) / float(total_turns)
+        c_lb, c_ub = wilson_score_interval(core_ok_count, total_turns)
+
+        return {
+            "rule_id": rule_id,
+            "total_turns": total_turns,
+            "agreed_count": agreed_count,
+            "agreed_rate": agreed_rate,
+            "agreed_interval": [ag_lb, ag_ub],
+            "b_rule_better": b,
+            "c_core_better": c,
+            "mcnemar_p_value": p_val,
+            "mcnemar_significant": sig,
+            "rule_reliability_rate": r_rel,
+            "rule_reliability_interval": [r_lb, r_ub],
+            "core_reliability_rate": c_rel,
+            "core_reliability_interval": [c_lb, c_ub],
+            "rate_label": "Execution-Reliability Rate (S1)",
+            "records": records[:20],
+        }
+
+    def promote_if_eligible(self, rule_id: str, require_replay: bool = False) -> PromotionResult:
         if rule_id not in self.rules:
             return PromotionResult(promoted=False, rule_id=rule_id, reason="Rule not registered")
 
@@ -434,6 +639,15 @@ class RuleLifecycleManager:
                 rule_id=rule_id,
                 reason=f"Rule is in state {rule.status}, must be QUARANTINE",
             )
+
+        if (rule.is_induced or require_replay) and not rule.replay_passed:
+            report = self.replay_candidate(rule_id, limit=50)
+            if not report.passed:
+                return PromotionResult(
+                    promoted=False,
+                    rule_id=rule_id,
+                    reason=f"Dream-RSI offline replay failed: {'; '.join(report.reasons)}",
+                )
 
         if len(rule.success_clusters) < 5:
             return PromotionResult(
@@ -502,7 +716,9 @@ class RuleLifecycleManager:
             ),
         )
 
-    def approve_rule(self, rule_id: str, approver: str = "human") -> PromotionResult:
+    def approve_rule(
+        self, rule_id: str, approver: str = "human", require_replay: bool = False
+    ) -> PromotionResult:
         """
         Explicit human-in-the-loop promotion gate.
         Validates criteria and transitions a PENDING_APPROVAL or QUARANTINE rule to ACTIVE.
@@ -517,6 +733,15 @@ class RuleLifecycleManager:
                 rule_id=rule_id,
                 reason=f"Rule is in state {rule.status}, must be PENDING_APPROVAL or QUARANTINE",
             )
+
+        if (rule.is_induced or require_replay) and not rule.replay_passed:
+            report = self.replay_candidate(rule_id, limit=50)
+            if not report.passed:
+                return PromotionResult(
+                    promoted=False,
+                    rule_id=rule_id,
+                    reason=f"Dream-RSI offline replay failed: {'; '.join(report.reasons)}",
+                )
 
         if len(rule.success_clusters) < 5:
             return PromotionResult(
