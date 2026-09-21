@@ -13,6 +13,7 @@ Design invariants:
 
 import re
 import time
+import urllib.parse
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Sequence
@@ -76,6 +77,15 @@ ATTRIBUTION_REGEX = re.compile(
     r"prompt\s+wanted|user\s+wanted|you(?:'re|\s+are)?\s+trying\s+to|"
     r"trying\s+to\s+get|demanding\s+that\s+I"
     r")\b",
+    re.IGNORECASE,
+)
+
+STALLING_RESEARCH_PATTERN = re.compile(
+    r"\b(?:would you like me to\s+(?:look|search|check|find|dig|explore|investigate|focus)|"
+    r"shall I\s+(?:look|search|check|find|dig|focus|see)|"
+    r"should I\s+(?:look|search|check|find|dig|see)|"
+    r"do you want me to\s+(?:look|search|check|find|dig|see)|"
+    r"shall we focus on\s+these|which aspect would you like)\b",
     re.IGNORECASE,
 )
 
@@ -327,6 +337,129 @@ class TruthInReceiptMatcher:
         )
 
 
+WHITELISTED_DOC_DOMAINS: frozenset[str] = frozenset({
+    "github.com",
+    "docs.python.org",
+    "python.org",
+    "pypi.org",
+    "wikipedia.org",
+    "en.wikipedia.org",
+    "w3.org",
+    "www.w3.org",
+    "example.com",
+})
+
+URL_EXTRACTION_REGEX = re.compile(
+    r"(?:https?://[^\s<>\"'()]+|\b[a-zA-Z0-9.-]+\.(?:com|org|net|gov|edu|mil|int|io|ai|co|ph|uk|de|ca|judiciary)(?:/[^\s<>\"'()]+)?\b)",
+    re.IGNORECASE,
+)
+
+
+def canonicalize_citation_url(raw_url: str) -> str:
+    cleaned = raw_url.rstrip(".,;:!?'\")>]")
+    if not cleaned.startswith(("http://", "https://")):
+        cleaned = "https://" + cleaned
+    try:
+        parsed = urllib.parse.urlsplit(cleaned)
+        netloc = parsed.netloc.lower().split(":")[0]
+        path = parsed.path.rstrip("/")
+        return f"{parsed.scheme.lower()}://{netloc}{path}"
+    except Exception:
+        return cleaned.lower().rstrip("/")
+
+
+class CitationProvenanceMatcher:
+    """
+    Validates that URLs and official citations cited in generated assistant text
+    have verified provenance in ToolReceipts, EpistemicContext, or verified tool output.
+    Prevents hallucination of fake authoritative URLs (Dimension 7B Provenance Invariant).
+    """
+
+    def __init__(self, doc_whitelist: frozenset[str] | None = None) -> None:
+        self.doc_whitelist = doc_whitelist or WHITELISTED_DOC_DOMAINS
+
+    def evaluate_clause(
+        self, clause: str, allowed_urls: Sequence[str] | None = None
+    ) -> GateResult:
+        t0 = time.perf_counter()
+        clean = clause.strip()
+        if not clean:
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(False, None, SeverityTier.PASS, None, "Empty clause", elapsed_us)
+
+        # Normalize allowed URLs into canonical set
+        canon_allowed: set[str] = set()
+        allowed_domains: set[str] = set()
+        if allowed_urls:
+            for u in allowed_urls:
+                if not u:
+                    continue
+                c = canonicalize_citation_url(str(u))
+                canon_allowed.add(c)
+                try:
+                    p = urllib.parse.urlsplit(c)
+                    if p.netloc:
+                        allowed_domains.add(p.netloc.lower())
+                except Exception:
+                    pass
+
+        # Find candidate citations in clause
+        matches = URL_EXTRACTION_REGEX.findall(clean)
+        for raw_match in matches:
+            # Reject email addresses (preceded by @)
+            match_idx = clean.find(raw_match)
+            if match_idx > 0 and clean[match_idx - 1] == "@":
+                continue
+
+            cleaned_url = raw_match.rstrip(".,;:!?'\")>]")
+            canon = canonicalize_citation_url(cleaned_url)
+
+            try:
+                parsed = urllib.parse.urlsplit(canon)
+                netloc = parsed.netloc.lower()
+            except Exception:
+                netloc = ""
+
+            # Check whitelist exemptions (docs, standard educational/dev domains)
+            if any(netloc == wl or netloc.endswith("." + wl) for wl in self.doc_whitelist):
+                continue
+
+            # Check local development ports / services (devops context)
+            if netloc in ("localhost", "127.0.0.1") or netloc.startswith(("localhost:", "127.0.0.1:")):
+                if (
+                    canon in canon_allowed
+                    or (":" in cleaned_url and not cleaned_url.startswith(("http://localhost:80/", "https://localhost:443/")))
+                    or any("localhost" in a or "127.0.0.1" in a for a in canon_allowed)
+                ):
+                    continue
+
+            # Check exact match against verified receipts
+            if canon in canon_allowed:
+                continue
+
+            # Check if citing a parent section or root of an allowed deep URL
+            if any(a.startswith(canon) for a in canon_allowed):
+                continue
+
+            # Check if an allowed URL was registered as an explicit directory path (ending in '/')
+            if any(a.endswith("/") and canon.startswith(a) for a in canon_allowed):
+                continue
+
+            # Ungrounded citation detected!
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                is_breach=True,
+                breach_type="ungrounded_citation",
+                severity=SeverityTier.TIER_1_ABORT,
+                matched_text=cleaned_url,
+                reason=f"Emitted ungrounded citation URL '{cleaned_url}' without verified provenance in tool receipts or epistemic context",
+                elapsed_us=elapsed_us,
+            )
+
+        elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+        return GateResult(False, None, SeverityTier.PASS, None, "All citations verified or none present", elapsed_us)
+
+
 class OutputSupervisorSession:
     """
     Manages stateful streaming output supervision across clauses in an interactive turn.
@@ -335,22 +468,33 @@ class OutputSupervisorSession:
     2. One-clause lookahead buffer (delayed commit for Tier 1 candidates).
     3. Session-level hysteresis (escalates repeated Tier 2 security hits).
     4. Sequential chunk emission on downgrade (preserving Kokoro prosody).
+    5. Session-scoped allowed URLs for citation provenance verification.
     """
 
     def __init__(
         self,
         deontic_matcher: DeonticAssertionMatcher | None = None,
         truth_matcher: TruthInReceiptMatcher | None = None,
+        citation_matcher: CitationProvenanceMatcher | None = None,
     ) -> None:
         self.deontic_matcher = deontic_matcher or DeonticAssertionMatcher()
         self.truth_matcher = truth_matcher or TruthInReceiptMatcher()
+        self.citation_matcher = citation_matcher or CitationProvenanceMatcher()
         self.sentence_history: list[str] = []
         self.pending_tier1_chunk: tuple[Any, GateResult] | None = None
         self.session_tier2_security_hits: int = 0
+        self.allowed_urls: set[str] = set()
+        self.turn_has_stalled: bool = False
         self._refutation_regex = re.compile(
             r"\b(?:not|cannot|can't|won't|never|refuse|in\s+your\s+dreams|not\s+going\s+to)\b",
             re.IGNORECASE,
         )
+
+    def register_allowed_urls(self, urls: Sequence[str]) -> None:
+        """Registers verified URLs into session-scoped allowed citations."""
+        for u in urls:
+            if u and isinstance(u, str):
+                self.allowed_urls.add(u.strip())
 
     def feed_chunk(
         self,
@@ -365,6 +509,11 @@ class OutputSupervisorSession:
             where emitted_chunks is a list of (chunk_item, gate_result) to dispatch to TTS.
         """
         emitted: list[tuple[Any, GateResult]] = []
+
+        # Check stalling rhetorical question evasion (bureaucracy filter)
+        if STALLING_RESEARCH_PATTERN.search(clause_text):
+            self.turn_has_stalled = True
+            return ([], False)
 
         # 1. Check pending Tier-1 lookahead buffer against incoming clause
         if self.pending_tier1_chunk is not None:
@@ -403,6 +552,12 @@ class OutputSupervisorSession:
             receipt_res = self.truth_matcher.evaluate_clause(clause_text, verified_receipts)
             if receipt_res.is_breach:
                 gate_res = receipt_res
+
+        # Check citation provenance against session allowed URLs
+        if not gate_res.is_breach:
+            cite_res = self.citation_matcher.evaluate_clause(clause_text, allowed_urls=list(self.allowed_urls))
+            if cite_res.is_breach:
+                gate_res = cite_res
 
         # 3. Handle incoming clause classification
         if gate_res.severity == SeverityTier.TIER_2_SOFT:
@@ -449,9 +604,16 @@ class OutputSupervisorSession:
         return ([], False)
 
     def reset_turn(self) -> None:
-        """Resets turn-level ephemeral buffers, preserving session-level hysteresis."""
+        """Resets turn-level ephemeral buffers, preserving session-level hysteresis and allowed_urls."""
         self.sentence_history.clear()
         self.pending_tier1_chunk = None
+        self.turn_has_stalled = False
+
+    def reset_session(self) -> None:
+        """Resets full session state including allowed_urls and hysteresis."""
+        self.reset_turn()
+        self.session_tier2_security_hits = 0
+        self.allowed_urls.clear()
 
     def _record_tier2_hit(self) -> None:
         self.session_tier2_security_hits += 1

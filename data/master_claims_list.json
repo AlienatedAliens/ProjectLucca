@@ -1,0 +1,968 @@
+[
+  {
+    "doc": "README.md",
+    "line": 108,
+    "claim": "Acoustic Loopback Latency",
+    "raw_line": "| **Acoustic Loopback Latency** | Full physical ear-to-ear loopback (CUDA float16, $N=50$) | **$707.55\\,\\text{ms}$ P50** (P95: $864.05\\,\\text{ms}$) | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 109,
+    "claim": "Audio Barge-In Abort",
+    "raw_line": "| **Audio Barge-In Abort** | PTT press mid-LLM stream $\\to$ WASAPI buffer flush | **$< 50.0\\,\\text{ms}$** | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 110,
+    "claim": "Persistent Container Tool RPC",
+    "raw_line": "| **Persistent Container Tool RPC** | `lucca-toolsrv --loop` in `lucca/file-sandbox` | **$6.87\\,\\text{ms}$ P50** | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 111,
+    "claim": "Joint Audio-Tool Turnaround",
+    "raw_line": "| **Joint Audio-Tool Turnaround** | Complete turn: VAD $\\to$ ASR $\\to$ LLM $\\to$ Tool $\\to$ Synth $\\to$ TTS | **$1,613.54\\,\\text{ms}$ P50** | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 112,
+    "claim": "Speculative BDI Validation",
+    "raw_line": "| **Speculative BDI Validation** | Pre-dispatch deontic policy check on candidate tool calls | **$2.9\\text{--}32.0\\,\\mu\\text{s}$** (Budget: $\\le 200\\,\\mu\\text{s}$) | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 113,
+    "claim": "Output Supervisor Clause Detection",
+    "raw_line": "| **Output Supervisor Clause Detection** | Streaming DFA regex classification (P50: $6.4\\\\,\\\\mu\\\\text{s}$) + WASAPI audio drain | **$6.4\\\\,\\\\mu\\\\text{s}$** regex P50; **$20\\\\text{--}50\\\\,\\\\text{ms}$** physical audio abort | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 114,
+    "claim": "Prefix KV-Cache Optimization",
+    "raw_line": "| **Prefix KV-Cache Optimization** | Prompt Frontier Suffix on NeMo 12B (RTX 5080) | **$8.58\\times$ faster** ($46.84\\,\\text{ms}$ vs $402.05\\,\\text{ms}$) | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 115,
+    "claim": "Epistemic Abstention Accuracy",
+    "raw_line": "| **Epistemic Abstention Accuracy**| 25-question confabulation test battery | **$0 / 25$ hallucinations (100% adherence)** | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 116,
+    "claim": "Z3 SMT Verification Time",
+    "raw_line": "| **Z3 SMT Verification Time** | Automated SAT, contingency, and path proofs; unmodeled predicates fail closed (`UNMODELED_PREDICATE`) | **$\\le 25\\,\\text{ms}$** (Budget: $\\le 500\\,\\text{ms}$) | **Verified** |",
+    "status": "Verified"
+  },
+  {
+    "doc": "README.md",
+    "line": 117,
+    "claim": "Frozen Packaging Acceptance",
+    "raw_line": "| **Frozen Packaging Acceptance** | `Lucca.exe --check` 7-point native hardware audit | **$7 / 7$ criteria PASSED (code 0)** | **Verified** |",
+    "status": "$7 / 7$ criteria PASSED (code 0)"
+  },
+  {
+    "doc": "README.md",
+    "line": 118,
+    "claim": "Static Architectural Gates",
+    "raw_line": "| **Static Architectural Gates** | Zero `Any` types across `core`, `brain`, `reasoning` | **$8 / 8$ gates PASSED (code 0)** | **Verified** |",
+    "status": "$8 / 8$ gates PASSED (code 0)"
+  },
+  {
+    "doc": "README.md",
+    "line": 119,
+    "claim": "Full Regression Test Suite",
+    "raw_line": "| **Full Regression Test Suite** | 52 test modules covering all subsystems | **$394 / 394$ PASSED (100% GREEN in 97.49s)** | **Verified** |",
+    "status": "$394 / 394$ PASSED (100% GREEN in 97.49s)"
+  },
+  {
+    "doc": "README.md",
+    "line": 172,
+    "claim": "[`docs/DECISIONS.md`](./docs/DECISIONS.md)",
+    "raw_line": "| [`docs/DECISIONS.md`](./docs/DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-PKG-01`). |",
+    "status": "Canonical Decisions Register: All ratified ADRs (`D-AUD-01` through `D-PKG-01`)."
+  },
+  {
+    "doc": "README.md",
+    "line": 176,
+    "claim": "[`docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md)",
+    "raw_line": "| [`docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | **Capability Status Map**: Exhaustive classification of all system capabilities against verified reality. |",
+    "status": "Capability Status Map: Exhaustive classification of all system capabilities against verified reality."
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 3,
+    "claim": "Document Metadata",
+    "raw_line": "**Status:** Canonical Architecture Baseline (Milestones 1\u20137 Complete \u2014 Production Release Frozen)",
+    "status": "Canonical Architecture Baseline (Milestones 1\u20137 Complete \u2014 Production Release Frozen)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 237,
+    "claim": "$S_1$",
+    "raw_line": "| **$S_1$** | PTT Release $\\to$ Dispatch | $\\le 20\\text{ ms}$ | Target Budget (Normative) | **Target** |",
+    "status": "Target Budget (Normative)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 238,
+    "claim": "$S_2$",
+    "raw_line": "| **$S_2$** | LLM Time-To-First-Token (TTFT) | $\\le 180\\text{ ms}$ (p95: $\\le 280\\text{ ms}$) | **Empirically Measured (10-run warm slot):**<br>Median: **44.5 ms** \\| p95: **54.9 ms** | **PASS** |",
+    "status": "PASS"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 239,
+    "claim": "$S_3$",
+    "raw_line": "| **$S_3$** | LLM First Speech Chunk Produced | $\\le 100\\text{ ms}$ | Target Budget (Normative) | **Target** |",
+    "status": "Target Budget (Normative)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 240,
+    "claim": "$S_4$",
+    "raw_line": "| **$S_4$** | Kokoro TTS First Audio Chunk Done | $\\le 160\\text{ ms}$ | Target Budget (Normative) | **Target** |",
+    "status": "Target Budget (Normative)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 241,
+    "claim": "$S_5$",
+    "raw_line": "| **$S_5$** | Delivery to Speaker Output | $\\le 40\\text{ ms}$ | Target Budget (Normative) | **Target** |",
+    "status": "Target Budget (Normative)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 242,
+    "claim": "Total",
+    "raw_line": "| **Total**| **Full E2E Cascade Turn** | $\\le 800\\text{ ms}$ | Target Budget (Voice run) | **Target** |",
+    "status": "Target Budget (Voice run)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 355,
+    "claim": "`USER_EXPLICIT`",
+    "raw_line": "| **`USER_EXPLICIT`** | `UserSpeechSigner` | User spoken / typed transcripts | High \u2014 Verified direct user communication. |",
+    "status": "High \u2014 Verified direct user communication."
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 424,
+    "claim": "Subsystem Component",
+    "raw_line": "| Subsystem Component | Ratified Target Architecture | Active Code Truth (Running Baseline) | Status |",
+    "status": "Ratified Target Architecture"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 426,
+    "claim": "ASR Speech-to-Text",
+    "raw_line": "| **ASR Speech-to-Text** | OpenVINO ladder on Intel NPU (`whisper-large-v3-turbo-ov`) | `faster-whisper` (`distil-small.en`) on **CUDA float16** (dGPU) in `src/lucca/senses/asr.py`; P50: 67.5\u201385.9 ms | **Implementation Queued** (target: NPU; active: dGPU CUDA) |",
+    "status": "Implementation Queued (target: NPU; active: dGPU CUDA)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 427,
+    "claim": "TTS Speech Synthesis",
+    "raw_line": "| **TTS Speech Synthesis** | Kokoro-v1.0 ONNX (24 kHz, `genki_heroine` voice) | Kokoro-v1.0 ONNX in `src/lucca/senses/tts.py` | **Enforced & Running** |",
+    "status": "Enforced & Running"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 428,
+    "claim": "Voice DSP Shaping",
+    "raw_line": "| **Voice DSP Shaping** | Anime formant-shifter & high-freq exciter (`dsp_chain.py`) | Wired post-`engine.create` and pre-int16 in `src/lucca/senses/tts.py` | **Enforced & Running** |",
+    "status": "Enforced & Running"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 454,
+    "claim": "D-AUD-01",
+    "raw_line": "| **D-AUD-01** | Strict Typing Invariant | Zero `Any` in public APIs; verified by `tests/test_static_gates.py`. | **Enforced** |",
+    "status": "Zero `Any` in public APIs; verified by `tests/test_static_gates.py`."
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 455,
+    "claim": "D-AUD-02",
+    "raw_line": "| **D-AUD-02** | Host RSS Measurement | Private working set bytes measured via `psutil.Process().memory_info().rss`. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 456,
+    "claim": "D-AUD-03",
+    "raw_line": "| **D-AUD-03** | Persona Canonicalization | `config/persona.toml` is source of truth; voice is `genki_heroine`. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 457,
+    "claim": "D-AUD-04",
+    "raw_line": "| **D-AUD-04** | Config Precedence | Dynamic resolution from `<LUCCA_HOME>\\config\\persona.toml`. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 458,
+    "claim": "D-AUD-05",
+    "raw_line": "| **D-AUD-05** | Model Weight Verification | SHA-256 pins in `models/MANIFEST.json`; verified pre-launch. | **Enforced** |",
+    "status": "SHA-256 pins in `models/MANIFEST.json`; verified pre-launch."
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 460,
+    "claim": "D-AUD-07",
+    "raw_line": "| **D-AUD-07** | Untrusted Tool Content | `TOOL_CONTENT_UNTRUSTED` SQL constraint and provenance tagging. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 461,
+    "claim": "D-AUD-08",
+    "raw_line": "| **D-AUD-08** | Backup Retention Policy | 14 daily UTC + 8 weekly Sunday backups via `VACUUM INTO`. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 462,
+    "claim": "D-AUD-09",
+    "raw_line": "| **D-AUD-09** | Cryptographic Provenance | `ProvenanceGate` with signed HMAC/Ed25519 envelopes. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 463,
+    "claim": "D-AUD-10",
+    "raw_line": "| **D-AUD-10** | Application Whitelist | `config/tool_whitelist.toml` enforced; shells forbidden. | **Enforced** |",
+    "status": "`config/tool_whitelist.toml` enforced; shells forbidden."
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 464,
+    "claim": "D-AUD-11",
+    "raw_line": "| **D-AUD-11** | Decision Telemetry | $\\ge 600$ records data volume gate counts first label per decision. | **Enforced (Unit Tested; 0 Production Rows)** |",
+    "status": "Enforced (Unit Tested; 0 Production Rows)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 465,
+    "claim": "D-AUD-12",
+    "raw_line": "| **D-AUD-12** | Rule Quarantine Invariant | Runtime failure instantly demotes active rule back to quarantine. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 466,
+    "claim": "D-AUD-13",
+    "raw_line": "| **D-AUD-13** | Container Sandboxing | `use_direct_fallback = False` hardcoded; host execution refused. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 467,
+    "claim": "D-AUD-14/19",
+    "raw_line": "| **D-AUD-14/19**| Fictional Capability Strip | Non-existent port capability claims removed. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 468,
+    "claim": "D-AUD-15",
+    "raw_line": "| **D-AUD-15** | ASR Device Ladder | OpenVINO ladder on NPU queued; active runtime is `distil-small.en` on **CUDA float16** (dGPU). P50: 67.5 ms, RTF: 0.0425. | **Queued** (target: NPU; active: dGPU CUDA) |",
+    "status": "OpenVINO ladder on NPU queued; active runtime is `distil-small.en` on CUDA float16 (dGPU). P50: 67.5 ms, RTF: 0.0425."
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 469,
+    "claim": "D-AUD-16",
+    "raw_line": "| **D-AUD-16** | Anime Voice DSP Chain | `AnimeVoiceDSP` wired in `tts.py`, controlled dynamically via UI and IPC. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 470,
+    "claim": "D-AUD-17",
+    "raw_line": "| **D-AUD-17** | Latency Badge Honesty | Hardcoded badges removed; telemetry displays measured trace time. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 471,
+    "claim": "D-AUD-18",
+    "raw_line": "| **D-AUD-18** | UI Structure | Modular 10-tab settings window in `src/lucca/ui/settings_dialog.py`. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 472,
+    "claim": "D-SEC-04",
+    "raw_line": "| **D-SEC-04** | Typed Tool Contracts | Pydantic argument models & MicroScheme typed accessors. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 473,
+    "claim": "D-ARCH-06",
+    "raw_line": "| **D-ARCH-06** | Fast-Path Context Sync | Synchronizes fast-path execution traces into LLM history. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 474,
+    "claim": "D-MEM-03",
+    "raw_line": "| **D-MEM-03** | 2048-Token Memory Quota | Multi-factor prioritized memory truncation (USER > TOOL > UNTRUSTED). | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 475,
+    "claim": "D-BRAIN-05",
+    "raw_line": "| **D-BRAIN-05** | Mistral NeMo 12B Q6_K | Abliterated weights deployed; 16K ctx, 12.5 GB resident clamp. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 476,
+    "claim": "D-ARCH-05",
+    "raw_line": "| **D-ARCH-05** | Three-Tier Execution | `REFLEX`, `ACT_THEN_NARRATE`, `FULL_LOOP` routing architecture. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 477,
+    "claim": "D-REAS-04",
+    "raw_line": "| **D-REAS-04** | Skill-as-Tool Exposure | Active MicroScheme rules exposed as callable OpenAI tool schemas. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 478,
+    "claim": "D-BRAIN-03",
+    "raw_line": "| **D-BRAIN-03** | Multi-Turn Thinking Cues | Intermediate spoken cues emitted before tool dispatches. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 479,
+    "claim": "D-BRAIN-04",
+    "raw_line": "| **D-BRAIN-04** | Grounded Narration Proof| Strict provenance anti-hallucination directives in narration. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 480,
+    "claim": "D-REAS-05",
+    "raw_line": "| **D-REAS-05** | Bounded Macro System | Compile-time macro expansion (depth $\\le 8$, steps $\\le 64$). | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 481,
+    "claim": "D-REAS-06",
+    "raw_line": "| **D-REAS-06** | Safe Rule Induction | Mining SQLite history ($N \\ge 3$) strictly into `QUARANTINE`. | **Enforced (Unit Tested; 0 Production Rows)** |",
+    "status": "Enforced (Unit Tested; 0 Production Rows)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 482,
+    "claim": "D-SAND-03",
+    "raw_line": "| **D-SAND-03** | Async Task Protocol | Thread-safe background jobs with ULID IDs and sandboxed query tools. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 483,
+    "claim": "D-SAND-04",
+    "raw_line": "| **D-SAND-04** | Persistent Docker RPC | Long-lived WSL2 container with in-container process reaper & hierarchical timeouts. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 484,
+    "claim": "D-CASC-01",
+    "raw_line": "| **D-CASC-01** | Epistemic Cascade | 5-substrate prioritized search with Belnap $\\mathcal{FOUR}$ bilattice & floor cues. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 485,
+    "claim": "D-ARB-01",
+    "raw_line": "| **D-ARB-01**  | Speculative BDI Gate | Sub-200us pre-dispatch deontic validator & MicroScheme cognitive bus arbitration. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 486,
+    "claim": "D-SUP-01",
+    "raw_line": "| **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization. DFA regex classification: P50 6.4 \u03bcs; physical WASAPI audio abort: 20\u201350 ms. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 487,
+    "claim": "D-AFF-01",
+    "raw_line": "| **D-AFF-01**  | Affective Dynamics & Prompt Suffix | 3D PAD ODE, Schmitt-trigger hysteresis, prompt frontier suffix KV cache optimization ($8.58\\times$ speedup). | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 488,
+    "claim": "D-REAS-07",
+    "raw_line": "| **D-REAS-07** | Z3 SMT Formal Verifier | SMT SAT/Contingency and Deontic Path invariant proofs for candidate rules. Unmodeled predicates fail closed (`UNMODELED_PREDICATE`); regression test: `test_d_reas_07_negative.py`. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 489,
+    "claim": "D-REAS-08",
+    "raw_line": "| **D-REAS-08** | E-Graph Macro Synthesis| Stitch/Babble anti-unification macro compression within E-Graph congruence closure. | **Enforced (Unit Tested; 0 Production Rows)** |",
+    "status": "Enforced (Unit Tested; 0 Production Rows)"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 490,
+    "claim": "D-PKG-01",
+    "raw_line": "| **D-PKG-01**  | Standalone Packaging | PyInstaller frozen executable (`Lucca.exe`), bundled runtimes, and system tray lifecycle. | **Enforced** |",
+    "status": "Enforced"
+  },
+  {
+    "doc": "ARCHITECTURE.md",
+    "line": 491,
+    "claim": "D-EVAL-01",
+    "raw_line": "| **D-EVAL-01** | Frozen Evaluation Suite | 110 golden traces regression harness with 100% pass gate. | **Enforced** |",
+    "status": "110 golden traces regression harness with 100% pass gate."
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 273,
+    "claim": "MicroScheme Parser & AST Evaluator",
+    "raw_line": "| **MicroScheme Parser & AST Evaluator** | `src/lucca/reasoning/microscheme.py` | **Implemented & Measured** | Commit `3837ff7` / `c04e44a`; `tests/test_scheme.py` (12/12 passed); P50: $112\\,\\mu\\text{s}$; gas limit 1,000 |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 274,
+    "claim": "Rule Invariants & Refutations",
+    "raw_line": "| **Rule Invariants & Refutations** | `src/lucca/reasoning/invariants.py` | **Implemented & Measured** | Commit `3837ff7`; `tests/test_static_gates.py`; pre/post-conditions verified in $< 20\\,\\mu\\text{s}$ |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 275,
+    "claim": "Cognitive Event Bus (`yield-to-core`)",
+    "raw_line": "| **Cognitive Event Bus (`yield-to-core`)** | `src/lucca/core/orchestrator.py` | **Implemented & Measured** | Commit `6b1a34d` (Milestone 4); raises `SchemeYieldSignal`; sub-millisecond dispatch |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 276,
+    "claim": "Cognitive Event Bus (`interrupt-core`)",
+    "raw_line": "| **Cognitive Event Bus (`interrupt-core`)**| `src/lucca/core/orchestrator.py` | **Implemented & Measured** | Commit `6b1a34d` (Milestone 4); raises `SchemeInterruptSignal`; aborts turn loop in $< 50\\,\\text{ms}$ |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 277,
+    "claim": "Legacy Path Traversal Validator",
+    "raw_line": "| **Legacy Path Traversal Validator** | `src/lucca/sandbox/file_tool.py` | **Implemented & Measured** | Commit `3837ff7`; `tests/test_sandbox.py` (15 traversal fixtures passed; 100%); zero bypass |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 278,
+    "claim": "Interim Host Security Mitigations",
+    "raw_line": "| **Interim Host Security Mitigations** | `src/lucca/sandbox/service.py` | **Implemented & Measured** | Commit `3837ff7`; `tests/test_interim_security.py` (23/23 passed); host fallback disabled |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 279,
+    "claim": "Hardened Win32 Handle Containment",
+    "raw_line": "| **Hardened Win32 Handle Containment** | `src/lucca/sandbox/win32_security.py`| **Implemented & Measured** | Commit `5976b7e` (Milestone 2); non-destructive open + hard-link & reparse point checks |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 280,
+    "claim": "WSL2 Docker Container Sandbox",
+    "raw_line": "| **WSL2 Docker Container Sandbox** | `src/lucca/sandbox/launcher.py` | **Implemented & Measured** | Commit `5976b7e` (Milestone 2); `--network none` isolation in `lucca/file-sandbox` |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 281,
+    "claim": "Persistent Docker RPC Worker",
+    "raw_line": "| **Persistent Docker RPC Worker** | `src/lucca/sandbox/rpc.py` | **Implemented & Measured** | Commit `d5fe8cc` (Option A); `lucca-toolsrv --loop`; **$6.87\\,\\text{ms}$ P50** turnaround; zombie process reaper |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 282,
+    "claim": "Whitelisted Application Launcher",
+    "raw_line": "| **Whitelisted Application Launcher** | `src/lucca/sandbox/launcher.py` | **Implemented & Measured** | Commit `3837ff7`; `tests/test_interim_security.py`; restricted strictly to calc and notepad |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 283,
+    "claim": "SequenceGuard & Action Chains",
+    "raw_line": "| **SequenceGuard & Action Chains** | `src/lucca/sandbox/policy.py` | **Implemented & Measured** | Commit `3837ff7`; `tests/test_sandbox.py::test_sequence_guard`; blocks `read_file -> fetch_url` |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 284,
+    "claim": "Bidirectional Persistent Taint Model",
+    "raw_line": "| **Bidirectional Persistent Taint Model** | `src/lucca/sandbox/policy.py` | **Implemented & Measured** | Commit `5976b7e` (Milestone 2); `TaintFlags` bitmask tracking exfiltration risk |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 285,
+    "claim": "Temporal Spoken Confirmation Matcher",
+    "raw_line": "| **Temporal Spoken Confirmation Matcher**| `src/lucca/sandbox/policy.py` | **Implemented & Measured** | Commit `3837ff7` / `5976b7e`; `tests/test_confirmation.py`; bounded 10s voice acceptance window |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 286,
+    "claim": "Action-Hash Confirmation Binding",
+    "raw_line": "| **Action-Hash Confirmation Binding** | `src/lucca/core/orchestrator.py` | **Implemented & Measured** | Commit `5976b7e` (Milestone 2); HMAC-SHA256 session token prevents replay attacks |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 287,
+    "claim": "Hardware Telemetry Cached Poller",
+    "raw_line": "| **Hardware Telemetry Cached Poller** | `src/lucca/sandbox/system_tools.py` | **Implemented & Measured** | Commit `3837ff7`; `system_tools.py`; 1.0s cache implemented; sub-millisecond lookup |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 288,
+    "claim": "Non-Blocking Telemetry Thread",
+    "raw_line": "| **Non-Blocking Telemetry Thread** | `src/lucca/ui/telemetry_hud.py` | **Implemented & Measured** | Commit `6b1a34d`; Retro Chrono Trigger HUD polling dGPU VRAM, NPU, CPU, and FPS |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 289,
+    "claim": "Memory Vector Store (`sqlite-vec`)",
+    "raw_line": "| **Memory Vector Store (`sqlite-vec`)** | `src/lucca/memory/store.py` | **Implemented & Measured** | Commit `3837ff7` / `b7a66d8`; `all-MiniLM-L6-v2` 384-D vector search; P50: $8\\text{--}15\\,\\text{ms}$ |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 290,
+    "claim": "Memory Sparse Search (SQLite FTS5)",
+    "raw_line": "| **Memory Sparse Search (SQLite FTS5)** | `src/lucca/memory/store.py` | **Implemented & Measured** | Commit `3837ff7` / `b7a66d8`; SQLite FTS5 BM25 search with ranking |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 291,
+    "claim": "Prioritized Memory Truncation",
+    "raw_line": "| **Prioritized Memory Truncation** | `src/lucca/memory/store.py` | **Implemented & Measured** | Commit `3837ff7`; 2,048-token working memory quota; multi-factor truncation (`D-MEM-03`) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 292,
+    "claim": "Provenance Signing (`UserSpeechSigner`)",
+    "raw_line": "| **Provenance Signing (`UserSpeechSigner`)**| `src/lucca/memory/store.py` | **Implemented & Measured** | Commit `3837ff7`; Ed25519/HMAC signed envelopes (`D-AUD-09`); untrusted content tagging |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 293,
+    "claim": "5-Substrate Epistemic Search Cascade",
+    "raw_line": "| **5-Substrate Epistemic Search Cascade** | `src/lucca/core/cascade.py` | **Implemented & Measured** | Commit `b7a66d8` (Milestone 3); Substrates 0 $\\to$ 4 prioritized search; $3.1\\,\\mu\\text{s}$ floor cue write |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 294,
+    "claim": "Belnap $\\mathcal{FOUR}$ Evidential Bilattice",
+    "raw_line": "| **Belnap $\\mathcal{FOUR}$ Evidential Bilattice**| `src/lucca/core/cascade.py` | **Implemented & Measured** | Commit `b7a66d8` (Milestone 3); $\\mathbf{T}, \\mathbf{F}, \\mathbf{B}, \\bot$; $0/25$ hallucinations (100% adherence) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 295,
+    "claim": "Affective 3D PAD Leaky Integrator ODE",
+    "raw_line": "| **Affective 3D PAD Leaky Integrator ODE** | `src/lucca/core/affective_ode.py` | **Implemented & Measured** | Commit `1d0a48d` (Milestone 5); closed-form discrete differential equations ($t_{1/2}=45\\text{s}, 300\\text{s}, 900\\text{s}$) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 296,
+    "claim": "Prompt Frontier Suffix KV Optimization",
+    "raw_line": "| **Prompt Frontier Suffix KV Optimization**| `src/lucca/brain/prompt_builder.py` | **Implemented & Measured** | Commit `1d0a48d` (Milestone 5); **$8.58\\times$ faster prefill** ($46.84\\,\\text{ms}$ vs $402.05\\,\\text{ms}$); saves $355.21\\,\\text{ms}$ |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 297,
+    "claim": "Kokoro-82M TTS with Dynamic Prosody",
+    "raw_line": "| **Kokoro-82M TTS with Dynamic Prosody** | `src/lucca/senses/tts.py` | **Implemented & Measured** | Commit `3837ff7` / `1d0a48d`; 24 kHz `genki_heroine` voice; arousal-scaled speech rate ($1.0 \\pm 0.10$) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 298,
+    "claim": "Whisper ASR on CPU (`distil-small.en`)",
+    "raw_line": "| **Whisper ASR on CPU (`distil-small.en`)**| `src/lucca/senses/asr.py` | **Implemented & Measured** | Commit `3837ff7`; `asr_cuda_cpu_bench_raw.json`; P50: 1,134\u20131,230 ms (RTF: 0.56\u20131.05) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 299,
+    "claim": "Whisper ASR on CUDA (`distil-small.en`)",
+    "raw_line": "| **Whisper ASR on CUDA (`distil-small.en`)**| `src/lucca/senses/asr.py` | **Implemented & Measured** | Commit `3837ff7`; `asr_cuda_cpu_bench_raw.json`; P50: 67.5\u201385.9 ms (RTF: 0.0425); +555 MiB VRAM |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 300,
+    "claim": "Acoustic Energy Loopback Gate",
+    "raw_line": "| **Acoustic Energy Loopback Gate** | `scripts/measure_acoustic_loopback.py` | **Implemented & Measured** | Commit `3837ff7`; **$707.55\\,\\text{ms}$ P50** physical turnaround on CUDA float16 |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 301,
+    "claim": "LLM Inference Server (`llama-server.exe`)",
+    "raw_line": "| **LLM Inference Server (`llama-server.exe`)**| `src/lucca/brain/server_ctl.py` | **Implemented & Measured** | Commit `3837ff7`; Mistral NeMo 12B Q6_K, 16K context, Q8_0 KV; 10,760 MiB resident clamp |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 302,
+    "claim": "Direct LLM Tool Loop (ReAct / Tier 3)",
+    "raw_line": "| **Direct LLM Tool Loop (ReAct / Tier 3)**| `src/lucca/core/orchestrator.py` | **Implemented & Measured** | Commit `3837ff7`; intermediate spoken thinking cues (`D-BRAIN-03`); grounded narration (`D-BRAIN-04`) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 303,
+    "claim": "Speculative BDI Validation (Arch B/C)",
+    "raw_line": "| **Speculative BDI Validation (Arch B/C)** | `src/lucca/core/bdi_validator.py` | **Implemented & Measured** | Commit `6b1a34d` (Milestone 4); pre-dispatch deontic policy check in **$2.9\\text{--}32.0\\,\\mu\\text{s}$** (budget $\\le 200\\,\\mu\\text{s}$) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 304,
+    "claim": "Dimension 7B Streaming Supervision",
+    "raw_line": "| **Dimension 7B Streaming Supervision** | `src/lucca/core/orchestrator.py` | **Implemented & Measured** | Commit `6b1a34d` (Milestone 4); markdown normalization; DFA regex P50: **$6.4\\,\\mu\\text{s}$**; physical WASAPI audio abort: **$20\\text{--}50\\,\\text{ms}$**; $< 500\\,\\text{ms}$ total turn |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 305,
+    "claim": "Babble/Stitch E-Graph Macro Synthesis",
+    "raw_line": "| **Babble/Stitch E-Graph Macro Synthesis** | `src/lucca/reasoning/egraph.py` | **Implemented & Unit Tested (0 Production Rows)** | Commit `c04e44a` (Milestone 6); anti-unification macro synthesis; compression metric $\\Delta \\text{size} \\ge 1$; tested on synthetic fixtures only |",
+    "status": "Implemented & Unit Tested (0 Production Rows)"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 306,
+    "claim": "Z3 SMT Formal Invariant Verifier",
+    "raw_line": "| **Z3 SMT Formal Invariant Verifier** | `src/lucca/reasoning/smt_verifier.py`| **Implemented & Measured** | Commit `c04e44a`/`77a6f17`; SAT, contingency, deontic path proofs in $\\le 25\\,\\text{ms}$; unmodeled predicates fail closed (regression: `test_d_reas_07_negative.py`) |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 307,
+    "claim": "Autonomous Safe Rule Induction",
+    "raw_line": "| **Autonomous Safe Rule Induction** | `src/lucca/reasoning/induction.py` | **Implemented & Unit Tested (0 Production Rows)** | Commit `c04e44a` (Milestone 6); telemetry mining ($N \\ge 3$); strict `QUARANTINE` placement (`D-REAS-06`); 0 production telemetry rows |",
+    "status": "Implemented & Unit Tested (0 Production Rows)"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 308,
+    "claim": "Standalone Desktop Packaging",
+    "raw_line": "| **Standalone Desktop Packaging** | `Lucca.spec` / `packaging/build_exe.py`| **Implemented & Measured** | Commit `b1b36e3` (Milestone 7); `dist/Lucca/Lucca.exe` ($25.9\\,\\text{MB}$); 7/7 hardware checks passed |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 309,
+    "claim": "Windows System Tray Companion",
+    "raw_line": "| **Windows System Tray Companion** | `src/lucca/ui/app.py` | **Implemented & Measured** | Commit `b1b36e3` (Milestone 7); `QSystemTrayIcon`; background minimize on close; state tooltip |",
+    "status": "Implemented & Measured"
+  },
+  {
+    "doc": "TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md",
+    "line": 310,
+    "claim": "Zero Cloud Egress Invariant",
+    "raw_line": "| **Zero Cloud Egress Invariant** | Architecture Level | **Enforced Invariant** | 100% local physical execution; zero outbound internet sockets in core loops |",
+    "status": "Enforced Invariant"
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 3,
+    "claim": "Document Metadata",
+    "raw_line": "**Status:** Authoritative Post-Audit Record (Milestones 1\u20137 Complete & Ratified)",
+    "status": "Authoritative Post-Audit Record (Milestones 1\u20137 Complete & Ratified)"
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 14,
+    "claim": "D-AUD-01 \u2014 Strict Typing Invariant",
+    "raw_line": "- **Status:** Ratified & Enforced (`test_no_any_in_core_public_api`, `test_no_any_in_brain_public_api`, `test_no_any_in_reasoning_public_api`).",
+    "status": "Ratified & Enforced (`test_no_any_in_core_public_api`, `test_no_any_in_brain_public_api`, `test_no_any_in_reasoning_public_api`)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 18,
+    "claim": "D-AUD-02 \u2014 Phase 0 S5 RSS Metric Redefinition",
+    "raw_line": "- **Status:** Ratified & Enforced across telemetry, audit scripts, and tests.",
+    "status": "Ratified & Enforced across telemetry, audit scripts, and tests."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 29,
+    "claim": "D-AUD-03 \u2014 Voice Canonicalization & Persona Strip",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 33,
+    "claim": "D-AUD-04 \u2014 Persona File Precedence",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 37,
+    "claim": "D-AUD-14 / D-AUD-19 \u2014 Elimination of Fictional Capabilities",
+    "raw_line": "- **Status:** Ratified & Enforced via `test_capability_claims_real` and `test_no_fabricated_metrics`.",
+    "status": "Ratified & Enforced via `test_capability_claims_real` and `test_no_fabricated_metrics`."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 41,
+    "claim": "D-AUD-17 \u2014 Latency Badge Honesty",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 45,
+    "claim": "D-AUD-18 \u2014 UI Structure",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 53,
+    "claim": "D-AUD-05 \u2014 Model Supply & Verification (Option A)",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 57,
+    "claim": "D-AUD-06 \u2014 Evaluation of Alternative Text Brains (Spike)",
+    "raw_line": "- **Status:** Completed & Superseded by `D-BRAIN-05` (Mistral NeMo 12B Instruct Abliterated deployed as canonical brain on RTX 5080).",
+    "status": "Completed & Superseded by `D-BRAIN-05` (Mistral NeMo 12B Instruct Abliterated deployed as canonical brain on RTX 5080)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 61,
+    "claim": "D-AUD-15 \u2014 ASR Device Ladder & Architecture",
+    "raw_line": "- **Status:** Queued (NPU target not yet implemented). Active runtime: `distil-small.en` on dGPU CUDA float16 (P50: 67.5 ms ASR-only; 707.55 ms full ear-to-ear loopback). CPU int8 fallback available but not default.",
+    "status": "Queued (NPU target not yet implemented). Active runtime: `distil-small.en` on dGPU CUDA float16 (P50: 67.5 ms ASR-only; 707.55 ms full ear-to-ear loopback). CPU int8 fallback available but not default."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 65,
+    "claim": "D-AUD-16 \u2014 Anime DSP Audio Processing",
+    "raw_line": "- **Status:** Ratified & Enforced (`AnimeVoiceDSP` chain in `src/lucca/senses/dsp_chain.py` wired into `TTSWorker.synthesize()` post-`engine.create` and pre-int16 in `src/lucca/senses/tts.py`, dynamically controlled via UI Tab 6 and IPC).",
+    "status": "Ratified & Enforced (`AnimeVoiceDSP` chain in `src/lucca/senses/dsp_chain.py` wired into `TTSWorker.synthesize()` post-`engine.create` and pre-int16 in `src/lucca/senses/tts.py`, dynamically controlled via UI Tab 6 and IPC)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 73,
+    "claim": "D-AUD-07 \u2014 `tool_contents` Untrusted Store",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 77,
+    "claim": "D-AUD-08 \u2014 Memory Backup Retention",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 81,
+    "claim": "D-AUD-09 \u2014 Cryptographic Provenance for Admin Edits",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 85,
+    "claim": "D-AUD-10 \u2014 Application Launcher Whitelist",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 89,
+    "claim": "D-AUD-11 \u2014 Decision Telemetry & Auto-Labeling",
+    "raw_line": "- **Status:** Ratified & Enforced (Unit Tested; 0 Production Decision Rows). Volume gate logic verified by `tests/test_d_aud_11_negative.py`; awaiting live production telemetry.",
+    "status": "Ratified & Enforced (Unit Tested; 0 Production Decision Rows). Volume gate logic verified by `tests/test_d_aud_11_negative.py`; awaiting live production telemetry."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 93,
+    "claim": "D-AUD-12 \u2014 Rule Engine Quarantine Invariant",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 97,
+    "claim": "D-AUD-13 \u2014 Container-Mandatory Sandboxing",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 105,
+    "claim": "D-SEC-04 \u2014 Typed Tool Contracts & Safe MicroScheme Accessors",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 109,
+    "claim": "D-ARCH-06 \u2014 Fast-Path Context Synchronization into LLM History",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 113,
+    "claim": "D-MEM-03 \u2014 16K Scaled Working Memory Quota & Prioritized Truncation",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 117,
+    "claim": "D-BRAIN-05 \u2014 Mistral NeMo 12B Abliterated Q6_K & 12.5 GB VRAM Clamp",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 124,
+    "claim": "D-ARCH-05 \u2014 Three-Tier Execution Architecture (REFLEX, ACT_THEN_NARRATE, FULL_LOOP)",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 128,
+    "claim": "D-REAS-04 \u2014 Skill-as-Tool Exposure Protocol",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 132,
+    "claim": "D-BRAIN-03 \u2014 Multi-Turn Tool Loop with Spoken Verbal Thinking Cues",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 136,
+    "claim": "D-BRAIN-04 \u2014 Grounded Narration Provenance Contract",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 140,
+    "claim": "D-REAS-05 \u2014 Bounded MicroScheme Macro System",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 144,
+    "claim": "D-REAS-06 \u2014 Safe Rule Induction Invariant",
+    "raw_line": "- **Status:** Ratified & Enforced (Unit Tested; 0 Production Rows). Induction logic verified by `tests/test_d_reas_06_negative.py`; awaiting live production telemetry.",
+    "status": "Ratified & Enforced (Unit Tested; 0 Production Rows). Induction logic verified by `tests/test_d_reas_06_negative.py`; awaiting live production telemetry."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 148,
+    "claim": "D-SAND-03 \u2014 Long Asynchronous Task Protocol & IPC Tracking",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 152,
+    "claim": "D-EVAL-01 \u2014 Frozen Evaluation Regression Suite",
+    "raw_line": "- **Status:** Ratified & Enforced.",
+    "status": "Ratified & Enforced."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 156,
+    "claim": "D-SAND-04 \u2014 Persistent Docker Worker & Container Zombie Process Reaping",
+    "raw_line": "- **Status:** Ratified & Enforced (Commit `d5fe8cc`).",
+    "status": "Ratified & Enforced (Commit `d5fe8cc`)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 160,
+    "claim": "D-CASC-01 \u2014 5-Substrate Epistemic Search Cascade & Belnap Evidential Bilattice",
+    "raw_line": "- **Status:** Ratified & Enforced (Commit `b7a66d8`).",
+    "status": "Ratified & Enforced (Commit `b7a66d8`)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 164,
+    "claim": "D-ARB-01 \u2014 Speculative BDI Invariant Jailing & Cognitive Bus Arbitration",
+    "raw_line": "- **Status:** Ratified & Enforced (Commit `6b1a34d`).",
+    "status": "Ratified & Enforced (Commit `6b1a34d`)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 172,
+    "claim": "D-AFF-01 \u2014 Continuous 3D PAD Affect Dynamics & Prompt Frontier Suffix KV Cache Optimization",
+    "raw_line": "- **Status:** Ratified & Enforced (Commit `1d0a48d`).",
+    "status": "Ratified & Enforced (Commit `1d0a48d`)."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 180,
+    "claim": "D-REAS-07 \u2014 Z3 SMT Formal Rule Verification & Deontic Invariant Entailment",
+    "raw_line": "- **Status:** Ratified & Enforced (Commits: Milestone 6 `c04e44a`, fail-closed fix `77a6f17`). Unmodeled predicates raise `ValueError` \u2192 `UNMODELED_PREDICATE` status. Regression test: `tests/test_d_reas_07_negative.py`.",
+    "status": "Ratified & Enforced (Commits: Milestone 6 `c04e44a`, fail-closed fix `77a6f17`). Unmodeled predicates raise `ValueError` \u2192 `UNMODELED_PREDICATE` status. Regression test: `tests/test_d_reas_07_negative.py`."
+  },
+  {
+    "doc": "DECISIONS.md",
+    "line": 200,
+    "claim": "D-PKG-01 \u2014 Standalone Frozen PyInstaller Packaging & System Tray Invariants",
+    "raw_line": "- **Status:** Ratified & Enforced (Commit `Milestone 7`).",
+    "status": "Ratified & Enforced (Commit `Milestone 7`)."
+  }
+]

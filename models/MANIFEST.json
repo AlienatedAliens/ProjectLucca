@@ -43,7 +43,20 @@
       "size_bytes": 10056212928,
       "source_repo": "QuantFactory/Mistral-Nemo-Instruct-2407-abliterated-GGUF",
       "source_filename": "Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
+    },
+    "llm/gemma-4-12b-heretic-Q6_K.gguf": {
+      "sha256": "ea50ec1e6065576314a09f4f2051e07d5bf61d8d6cce11c09249c155217aeeab",
+      "size_bytes": 9786021216,
+      "source_repo": "culturerevolt/gemma-4-12b-heretic-abliterated (iMatrix GGUF suite)",
+      "source_filename": "gemma-4-12b-heretic-Q6_K.gguf",
+      "status": "CANDIDATE — brain bake-off 2026-09-21; arch=gemma4; requires stock llama.cpp >= b11026 with --jinja; not ratified (D-BRAIN-05 unchanged)"
+    },
+    "llm/Ternary-Bonsai-2-27B-PQ2_0.gguf": {
+      "sha256": "3907dc1658db1f78a9826bf8d5bcb8dc65db0d466388937af57f2294fae62ec1",
+      "size_bytes": 7206168928,
+      "source_repo": "prism-ml/Ternary-Bonsai-2-27B-gguf",
+      "source_filename": "Ternary-Bonsai-2-27B-PQ2_0.gguf",
+      "status": "CANDIDATE — brain bake-off 2026-09-21; arch=qwen35; REQUIRES PrismML-Eng/llama.cpp fork (app/llama-server-prism, build 10709) — stock server rejects PQ2_0; not ratified (D-BRAIN-05 unchanged)"
     }
   }
 }
-

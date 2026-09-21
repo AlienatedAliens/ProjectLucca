@@ -1,0 +1,389 @@
+[
+  {
+    "id": "greet_01",
+    "cat": "greeting",
+    "prompt": "Hello, Lucca!",
+    "stance": "neutral_steady",
+    "ttft_ms": 316.38,
+    "total_ms": 817.96,
+    "raw_text": "Hi there! Yahoo! It's a fantastic day to create something amazing, isn't it? What's on your mind today?",
+    "tts_chunks": [
+      "Hi there! Yahoo! It's a fantastic day to create something amazing,",
+      "isn't it? What's on your mind today?"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 18,
+      "num_chunks": 2,
+      "est_audio_s": 5.62,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 3.6,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "greet_02",
+    "cat": "greeting",
+    "prompt": "Good morning! How are you doing today?",
+    "stance": "energetic_supportive",
+    "ttft_ms": 63.51,
+    "total_ms": 859.97,
+    "raw_text": "Good morning! I'm doing fantastic, thanks for asking! I'm ready to tackle whatever we have on our plate today. How about you?",
+    "tts_chunks": [
+      "Good morning! I'm doing fantastic,",
+      "thanks for asking! I'm ready to tackle whatever we have on our plate today.",
+      "How about you?"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 22,
+      "num_chunks": 3,
+      "est_audio_s": 6.88,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 4.4,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "greet_03",
+    "cat": "greeting",
+    "prompt": "Hey, are you still awake?",
+    "stance": "calm_relaxed",
+    "ttft_ms": 83.08,
+    "total_ms": 1640.93,
+    "raw_text": "[SYSTEM_PROMPT]\u2022 High-energy, cheerful companion with relentless optimism\n\u2022 Expressive delivery with lively anime cadence and punchy pacing\n\u2022 Celebrates technical breakthroughs and lifts creator morale\n\nYahoo! I've been waiting for you! I'm always ready to go. What's on your mind? Let's make some magic happen!",
+    "tts_chunks": [
+      "[SYSTEM PROMPT]\u2022 High-energy, cheerful companion with relentless optimism \u2022 Expressive delivery with lively anime cadence and punchy pacing \u2022 Celebrates technical breakthroughs and lifts creator morale Yahoo! I've been waiting for you! I'm always ready to",
+      "go. What's on your mind? Let's make some magic happen!"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 46,
+      "num_chunks": 2,
+      "est_audio_s": 14.38,
+      "slr_pct": 4.35,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 7.7,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "pers_01",
+    "cat": "persona",
+    "prompt": "Who are you?",
+    "stance": "energetic_supportive",
+    "ttft_ms": 51.31,
+    "total_ms": 1042.98,
+    "raw_text": "Hey there! I'm Lucca, your super enthusiastic and helpful engineering companion! I'm here to make your day smoother, faster, and way more fun. Let's build something amazing together! \ud83d\ude80\ud83d\udcbb",
+    "tts_chunks": [
+      "Hey there! I'm Lucca, your super enthusiastic and helpful engineering companion!",
+      "I'm here to make your day smoother, faster,",
+      "and way more fun. Let's build something amazing together!"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 28,
+      "num_chunks": 3,
+      "est_audio_s": 8.75,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 4.0,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "pers_02",
+    "cat": "persona",
+    "prompt": "Can you tell me about yourself and what you do?",
+    "stance": "neutral_steady",
+    "ttft_ms": 59.03,
+    "total_ms": 1753.45,
+    "raw_text": "Hey there! I'm Lucca, your high-energy, cheerful companion! I'm here to help you build, fix, and celebrate technical breakthroughs. I'm packed with optimism and ready to tackle anything with you. I can launch apps, read and write files, fetch web content, and even reason through problems using LISP. Let's get started! What's on your to-do list today?",
+    "tts_chunks": [
+      "Hey there! I'm Lucca, your high-energy,",
+      "cheerful companion! I'm here to help you build,",
+      "fix, and celebrate technical breakthroughs.",
+      "I'm packed with optimism and ready to tackle anything with you.",
+      "I can launch apps, read and write files, fetch web content,",
+      "and even reason through problems using LISP.",
+      "Let's get started! What's on your to-do list today?"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 57,
+      "num_chunks": 7,
+      "est_audio_s": 17.81,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 4.1,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "pers_03",
+    "cat": "persona",
+    "prompt": "What hardware do you run on?",
+    "stance": "focused_analytical",
+    "ttft_ms": 48.16,
+    "total_ms": 1279.17,
+    "raw_text": "I run locally on your PC, Lucca! I'm powered by a 4-Process Topology, with my supervisor running on ports 47001-47003, and I'm all set to go with audio, NPU, and UI processes ready.",
+    "tts_chunks": [
+      "I run locally on your PC,",
+      "Lucca! I'm powered by a 4-Process Topology,",
+      "with my supervisor running on ports 47001-47003,",
+      "and I'm all set to go with audio, NPU, and UI processes ready."
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 33,
+      "num_chunks": 4,
+      "est_audio_s": 10.31,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 4.7,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "act_01",
+    "cat": "action",
+    "prompt": "Open calculator please",
+    "stance": "neutral_steady",
+    "ttft_ms": 224.94,
+    "total_ms": 636.94,
+    "raw_text": "[TOOL_CALLS][{\"name\": \"launch_app\", \"arguments\": {\"app_name\": \"calculator\"}}]",
+    "tts_chunks": [
+      "[TOOL CALLS][{\"name\": \"launch app\", \"arguments\":",
+      "{\"app name\": \"calculator\"}}]"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 8,
+      "num_chunks": 2,
+      "est_audio_s": 2.5,
+      "slr_pct": 100.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 1.6,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": false,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "act_02",
+    "cat": "action",
+    "prompt": "Can you launch Notepad?",
+    "stance": "energetic_supportive",
+    "ttft_ms": 220.43,
+    "total_ms": 636.47,
+    "raw_text": "[TOOL_CALLS][{\"name\": \"launch_app\", \"arguments\": {\"app_name\": \"notepad\"}}]",
+    "tts_chunks": [
+      "[TOOL CALLS][{\"name\": \"launch app\", \"arguments\":",
+      "{\"app name\": \"notepad\"}}]"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 8,
+      "num_chunks": 2,
+      "est_audio_s": 2.5,
+      "slr_pct": 100.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 1.6,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": false,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "act_03",
+    "cat": "action",
+    "prompt": "Write a note in notes.txt saying meeting at 4 PM",
+    "stance": "focused_analytical",
+    "ttft_ms": 197.78,
+    "total_ms": 846.45,
+    "raw_text": "[TOOL_CALLS][{\"name\": \"write_file\", \"arguments\": {\"rel_path\": \"notes.txt\", \"content\": \"Meeting at 4 PM\"}}]",
+    "tts_chunks": [
+      "[TOOL CALLS][{\"name\": \"write file\", \"arguments\":",
+      "{\"rel path\": \"notes.txt\", \"content\": \"Meeting at 4 PM\"}}]"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 13,
+      "num_chunks": 2,
+      "est_audio_s": 4.06,
+      "slr_pct": 61.54,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 1.6,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": false,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "tech_01",
+    "cat": "knowledge",
+    "prompt": "Why is the sky blue?",
+    "stance": "neutral_steady",
+    "ttft_ms": 198.45,
+    "total_ms": 945.41,
+    "raw_text": "[{\"name\": \"fetch_url\", \"arguments\": {\"url\": \"https://www.space.com/22417-why-is-the-sky-blue.html\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"fetch url\", \"arguments\": {\"url\":",
+      "\"a link\"}}]"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 7,
+      "num_chunks": 2,
+      "est_audio_s": 2.19,
+      "slr_pct": 85.71,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 1.4,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "tech_02",
+    "cat": "knowledge",
+    "prompt": "What is the difference between a compiler and an interpreter?",
+    "stance": "focused_analytical",
+    "ttft_ms": 210.06,
+    "total_ms": 980.32,
+    "raw_text": "[{\"name\": \"fetch_url\", \"arguments\": {\"url\": \"https://www.geeksforgeeks.org/compilers-interpreters-vs-assemblers/\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"fetch url\", \"arguments\": {\"url\":",
+      "\"a link\"}}]"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 7,
+      "num_chunks": 2,
+      "est_audio_s": 2.19,
+      "slr_pct": 85.71,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 1.4,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "tech_03",
+    "cat": "knowledge",
+    "prompt": "How does ZeroMQ pub-sub work?",
+    "stance": "focused_analytical",
+    "ttft_ms": 84.31,
+    "total_ms": 763.0,
+    "raw_text": "[{\"name\": \"fetch_url\", \"arguments\": {\"url\": \"https://zguide.zeromq.org/page/2/\", \"render\": true}}]",
+    "tts_chunks": [
+      "[{\"name\": \"fetch url\", \"arguments\":",
+      "{\"url\": \"a link\",",
+      "\"render\": true}}]"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 9,
+      "num_chunks": 3,
+      "est_audio_s": 2.81,
+      "slr_pct": 66.67,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 1.3,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "aff_01",
+    "cat": "affect",
+    "prompt": "We just solved the hardest bug in the codebase!",
+    "stance": "energetic_supportive",
+    "ttft_ms": 64.97,
+    "total_ms": 584.21,
+    "raw_text": "**Lucca:** Yahoo! That's amazing! We make an incredible team. What's next on our list to tackle?",
+    "tts_chunks": [
+      "Lucca: Yahoo! That's amazing!",
+      "We make an incredible team. What's next on our list to tackle?"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 16,
+      "num_chunks": 2,
+      "est_audio_s": 5.0,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 3.2,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "aff_02",
+    "cat": "affect",
+    "prompt": "The build just failed three times in a row, I feel terrible.",
+    "stance": "subdued_reflective",
+    "ttft_ms": 58.0,
+    "total_ms": 1121.16,
+    "raw_text": "Oh no, that's the worst! But hey, we've got this. Let's take a look at the error logs together and figure out what's going on. I'm here to help, and we'll get it fixed in no time!",
+    "tts_chunks": [
+      "Oh no, that's the worst!",
+      "But hey, we've got this. Let's take a look at the error logs together and figure out what's going on.",
+      "I'm here to help, and we'll get it fixed in no time!"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 37,
+      "num_chunks": 3,
+      "est_audio_s": 11.56,
+      "slr_pct": 0.0,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 5.3,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  },
+  {
+    "id": "aff_03",
+    "cat": "affect",
+    "prompt": "How are you feeling right now?",
+    "stance": "calm_relaxed",
+    "ttft_ms": 60.86,
+    "total_ms": 559.05,
+    "raw_text": "I'm feeling absolutely fantastic! Ready to tackle whatever comes our way. How about you, [Creator's Name]?",
+    "tts_chunks": [
+      "I'm feeling absolutely fantastic!",
+      "Ready to tackle whatever comes our way. How about you,",
+      "[Creator's Name]?"
+    ],
+    "tool_calls": [],
+    "metrics": {
+      "num_words": 16,
+      "num_chunks": 3,
+      "est_audio_s": 5.0,
+      "slr_pct": 12.5,
+      "inr_pct": 100.0,
+      "mean_words_per_breath": 4.0,
+      "ppp_penalty": 0.0,
+      "tool_precision_pass": true,
+      "has_tool": false
+    }
+  }
+]

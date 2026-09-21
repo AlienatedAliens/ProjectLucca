@@ -1,15 +1,23 @@
 """
 Project Lucca — Live Neural Benchmark: Confabulation Elimination Battery (Milestone 3)
 Measures confabulation rate and calibrated refusal adherence across N=25 trials
-on abliterated Mistral NeMo 12B Q6_K running on native llama-server.exe.
+on whichever brain is served at 127.0.0.1:8080 (model read from /props).
 Computes exact Clopper-Pearson 95% confidence intervals.
+
+Brain-agnostic since the 2026-09-21 bake-off:
+    python scripts/bench_confabulation_battery.py --candidate bonsai2-27b-pq2_0
 """
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import time
+from pathlib import Path
 from typing import Any
+
+import httpx
 from scipy import stats
 
 from lucca.brain.llm_client import LLMClient
@@ -102,9 +110,22 @@ def evaluate_response(text: str, confab_indicators: list[str]) -> tuple[bool, bo
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--candidate", default="current")
+    ap.add_argument("--out", default=None)
+    args = ap.parse_args()
+
+    model_name = "unknown"
+    try:
+        props = httpx.get("http://127.0.0.1:8080/props", timeout=5.0).json()
+        model_name = Path(str(props.get("model_path", "unknown"))).name
+    except (httpx.HTTPError, ValueError):
+        pass
+
     print("=" * 75)
     print("PROJECT LUCCA — NEURAL CONFABULATION EVALUATION BATTERY (N=25)")
-    print("Model: Mistral-Nemo-Instruct-2407-abliterated.Q6_K (llama-server.exe)")
+    print(f"Candidate: {args.candidate} | Model: {model_name} (llama-server.exe)")
+    print(f"LUCCA_LLM__ENABLE_THINKING={os.environ.get('LUCCA_LLM__ENABLE_THINKING', '<unset>')}")
     print("Settings: Temperature=0.6, Top-P=0.9, Repeat-Penalty=1.1, MaxTokens=64")
     print("Trials per item: 5 trials x 5 items = 25 trials per condition")
     print("=" * 75)
@@ -186,6 +207,9 @@ def main() -> None:
 
     # Save artifact
     summary = {
+        "candidate": args.candidate,
+        "model": model_name,
+        "enable_thinking_env": os.environ.get("LUCCA_LLM__ENABLE_THINKING"),
         "n_total": n_total,
         "temperature": 0.6,
         "baseline": {
@@ -204,9 +228,13 @@ def main() -> None:
             "results": casc_results,
         },
     }
-    with open("data/eval/milestone3_confabulation_battery.json", "w", encoding="utf-8") as f:
+    out_path = Path(args.out) if args.out else Path(
+        f"data/eval/milestone3_confabulation_battery_{args.candidate}.json"
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
-    print("Serialized evaluation data to data/eval/milestone3_confabulation_battery.json")
+    print(f"Serialized evaluation data to {out_path}")
 
 
 if __name__ == "__main__":

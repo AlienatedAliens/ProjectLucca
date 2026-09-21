@@ -2950,6 +2950,57 @@ Spec 10's barge-in gate (slot idle ≤ 100 ms) is unverifiable until this is mea
 
 ---
 
+### F-BRAIN-01 — NeMo server-side tool parser non-engagement + conversational over-calling
+
+| Field | Value |
+|---|---|
+| **ID** | F-BRAIN-01 |
+| **Title** | NeMo server-side tool parser non-engagement + conversational over-calling |
+| **Severity** | S1 — High |
+| **Category** | CORRECTNESS |
+| **Location** | `docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md:50-54`; `src/lucca/brain/toolcall_demux.py` |
+| **Status** | OPEN |
+
+**Evidence**
+
+`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md:50-54` (Brain Candidate Bake-Off §4.1):
+> 1. **Server-side parser not engaged.** With `--jinja --chat-template-file templates/mistral_nemo.jinja` on b11026, NeMo emits `[TOOL_CALLS][{…}]` as plain content (`finish_reason=stop`, no `tool_calls`). Lucca survives only via `ToolCallDemux`.
+> 2. **Over-calling on conversation.** "How are you feeling today?" → `[{"name":"launch_app",…}]`; "Capital of France?" → `[{"name":"search_web",…}]`. The demux parses these → Lucca would act instead of answer. Neither candidate exhibited this in 60+ calls.
+
+In the Gate 2 Tool-Routing smoke battery across 12 test cases:
+NeMo scored only 4 structured tool calls (`PASS`), 8 demux rescues (`DMUX`), and **3 conversational hallucinations (`HALLU`)**, yielding an effective production pass rate of only 75% (9/12).
+
+**What is wrong / assumed / missing**
+
+1. `llama-server.exe` build 11026 using the Jinja template `templates/mistral_nemo.jinja` fails to engage the server-side grammar/parser for Mistral NeMo tool calls. Instead of producing native OpenAI-compatible `tool_calls` structures and setting `finish_reason="tool_calls"`, raw inline text delimiters `[TOOL_CALLS][{...}]` are emitted directly into `message.content`.
+2. Incumbent NeMo 12B exhibits pathological conversational over-calling: benign conversational queries (such as greeting and factual questions) spuriously generate tool call syntax. Because Lucca's `ToolCallDemux` (`src/lucca/brain/toolcall_demux.py`) is designed to catch inline tool syntax, it parses and executes these hallucinated tool calls, causing unwanted system actions during plain conversation.
+3. Gemma-4 (`gemma-4-12b-heretic-Q6_K`) does not exhibit this defect: under identical test harness conditions and 60+ evaluations, Gemma-4 achieved 12/12 (100%) native structured `tool_calls` engagement and 0 conversational tool hallucinations.
+
+**Why it matters**
+
+Spurious tool dispatch on casual dialogue disrupts companion conversation and risks unintended desktop actions or web requests. Relying entirely on client-side regex demux for a model that over-calls tools breaks the execution tier boundary and compromises companion reliability.
+
+**Questions this raises**
+
+1. Can NeMo's tool parser be engaged on llama.cpp b11026 without bespoke grammar patches? (Precludes clean fallback without retaining `ToolCallDemux` and aggressive prompt constraints).
+
+**Proposed remediation**
+
+1. Ratify Gemma-4 as the primary companion brain (ADR D-BRAIN-05 v2).
+2. If NeMo must be retained as a secondary fallback, pin a validated server-side template or enforce intent-based tool filtering prior to model invocation.
+
+**Verification test**
+
+- **Tier:** T3 / live hw probe
+- **Input:** 12-case tool routing smoke probe against running llama-server
+- **Expected output:** 0 conversational hallucinations, 100% structured tool calls
+- **Threshold:** 0 hallucinated tool calls
+- **Command:** `& .venv\Scripts\python.exe scripts\probe_brain_candidate.py --name nemo --max-tokens 1024`
+
+**Cross-references:** D-BRAIN-05, F-BRAIN-009, F-BRAIN-010, `docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`
+
+---
+
 ## 9. Assumptions register
 
 | # | Location | Assumption embedded in code | Why unverified | Risk if false |

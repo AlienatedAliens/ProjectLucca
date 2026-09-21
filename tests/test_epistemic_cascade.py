@@ -424,11 +424,7 @@ def test_intent_classifier_distinguishes_epistemic_vs_conversational() -> None:
         "stop",
         "pause",
         "shut down",
-        "What can you tell me about yourself?",
-        "What is the definition of yourself within the sentence?",
-        "Who are you?",
-        "Tell me about yourself.",
-        "What can you do?",
+        "how are you?",
     ]
     for utt in conversational:
         is_epistemic, subs, topic = classify_epistemic_intent(utt)
@@ -436,6 +432,11 @@ def test_intent_classifier_distinguishes_epistemic_vs_conversational() -> None:
         assert len(subs) == 0
 
     epistemic_queries = [
+        ("Who are you?", [EpistemicSubstrate.SELF]),
+        ("Tell me about yourself.", [EpistemicSubstrate.SELF]),
+        ("What can you tell me about yourself?", [EpistemicSubstrate.SELF]),
+        ("What can you do?", [EpistemicSubstrate.CAPABILITIES]),
+        ("What tools do you have?", [EpistemicSubstrate.CAPABILITIES]),
         ("What GPU do I have?", [EpistemicSubstrate.TELEMETRY]),
         ("Read config/persona.toml", [EpistemicSubstrate.WORKSPACE]),
         ("Do you remember what editor I prefer?", [EpistemicSubstrate.MEMORY]),

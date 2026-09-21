@@ -29,7 +29,9 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "list_dir": Risk.READ,
     "read_file": Risk.READ,
     "search_text": Risk.READ,
+    "search_web": Risk.NETWORK,
     "fetch_url": Risk.NETWORK,
+    "browse_page": Risk.NETWORK,
     "query_capabilities": Risk.READ,
     "get_task_status": Risk.READ,
     "list_tasks": Risk.READ,
@@ -191,27 +193,32 @@ class SequenceGuard:
         Returns (allowed, reason).
         """
         # 1. Single-turn sequence checks
-        if tool_name == "fetch_url" and "read_file" in self.turn_tools:
+        network_tools = ("fetch_url", "search_web", "browse_page")
+        if tool_name in network_tools and "read_file" in self.turn_tools:
             return (
                 False,
-                "Forbidden sequence: cannot fetch URL after reading workspace files in same turn.",
+                f"Forbidden sequence: cannot {tool_name} after reading workspace files in same turn.",
             )
 
-        if tool_name in ("write_file", "run_python") and "fetch_url" in self.turn_tools:
+        if tool_name in ("write_file", "run_python") and any(
+            t in self.turn_tools for t in network_tools
+        ):
             return (
                 False,
-                "Forbidden sequence: cannot write files after web fetch in same turn.",
+                "Forbidden sequence: cannot write files after web fetch/search/browse in same turn.",
             )
 
-        # 2. Exfiltration check: If sensitive data is in context, inspect fetch_url args
-        if tool_name == "fetch_url" and (self.active_taint & (TaintFlags.SENSITIVE_MEMORY | TaintFlags.WORKSPACE_PRIVATE)):
+        # 2. Exfiltration check: If sensitive data is in context, inspect network tool args
+        if tool_name in network_tools and (
+            self.active_taint & (TaintFlags.SENSITIVE_MEMORY | TaintFlags.WORKSPACE_PRIVATE)
+        ):
             if args:
-                target_url = str(args.get("url", "")).lower()
+                target_str = (str(args.get("url", "")) + " " + str(args.get("query", ""))).lower()
                 for token in self.sensitive_tokens:
-                    if token in target_url:
+                    if token in target_str:
                         return (
                             False,
-                            "Egress Block: outbound fetch_url contains sensitive context tokens (Exfiltration Prevention)",
+                            f"Egress Block: outbound {tool_name} contains sensitive context tokens (Exfiltration Prevention)",
                         )
 
         self.turn_tools.append(tool_name)

@@ -252,9 +252,36 @@ def resolve_model_path(rel_or_abs: str | Path, home_dir: Path) -> Path:
     return home_dir / "models" / p
 
 
+def resolve_server_bin(cfg: LLMSettings, home_dir: Path) -> Path:
+    """Resolves the llama-server binary from config (absolute, or relative to LUCCA_HOME)."""
+    p = Path(cfg.server_bin)
+    return p if p.is_absolute() else home_dir / p
+
+
+def resolve_template_file(cfg: LLMSettings, home_dir: Path) -> Path | None:
+    """
+    Resolves cfg.chat_template_file against LUCCA_HOME, then the repo root.
+    Returns None when unset or when no candidate exists (caller falls back to
+    cfg.chat_template, then to the GGUF-embedded template).
+    """
+    if not cfg.chat_template_file:
+        return None
+    p = Path(cfg.chat_template_file)
+    if p.is_absolute():
+        return p if p.exists() else None
+    repo_root = Path(__file__).resolve().parents[3]
+    for cand in (home_dir / p, repo_root / p):
+        if cand.exists():
+            return cand
+    return None
+
+
 def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
-    """Constructs the native llama-server.exe CLI invocation command."""
-    llama_exe = home_dir / "app" / "llama-server" / "llama-server.exe"
+    """
+    Constructs the native llama-server CLI invocation command purely from LLMSettings.
+    No model-name sniffing: binary, template, and thinking behaviour are all config.
+    """
+    llama_exe = resolve_server_bin(cfg, home_dir)
     model_gguf = resolve_model_path(cfg.model, home_dir)
     mmproj_gguf = resolve_model_path(cfg.mmproj, home_dir)
 
@@ -282,16 +309,12 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         "--jinja",
     ]
 
-    if "nemo" in model_gguf.name.lower() or "mistral" in model_gguf.name.lower():
-        template_file = home_dir / "templates" / "mistral_nemo.jinja"
-        if not template_file.exists():
-            repo_template = Path(__file__).resolve().parents[3] / "templates" / "mistral_nemo.jinja"
-            if repo_template.exists():
-                template_file = repo_template
-        if template_file.exists():
-            cmd.extend(["--chat-template-file", str(template_file)])
-        else:
-            cmd.extend(["--chat-template", "mistral-v3-tekken"])
+    template_file = resolve_template_file(cfg, home_dir)
+    if template_file is not None:
+        cmd.extend(["--chat-template-file", str(template_file)])
+    elif cfg.chat_template:
+        cmd.extend(["--chat-template", cfg.chat_template])
+    # else: rely on the template embedded in the GGUF (--jinja already set)
 
     if cfg.mode == "audio" and mmproj_gguf.exists():
         cmd.extend(["--mmproj", str(mmproj_gguf)])
@@ -403,10 +426,10 @@ def verify_model_files(cfg: LLMSettings, home_dir: Path) -> None:
 
 def start_server(cfg: LLMSettings, home_dir: Path) -> subprocess.Popen[bytes]:
     """
-    Starts llama-server.exe as a child process.
+    Starts llama-server as a child process.
     Raises if executable, model, or verification fails.
     """
-    llama_exe = home_dir / "app" / "llama-server" / "llama-server.exe"
+    llama_exe = resolve_server_bin(cfg, home_dir)
     if not llama_exe.exists():
         raise FileNotFoundError(f"llama-server executable not found at: {llama_exe}")
 

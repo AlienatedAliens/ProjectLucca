@@ -324,6 +324,7 @@ class UIApplication:
                 current_custom_prompt=persona.custom_prompt,
                 on_save_config=self._send_config_update,
             )
+        self.settings_dialog.center_on_screen()
         self.settings_dialog.show()
         self.settings_dialog.raise_()
         self.settings_dialog.activateWindow()

@@ -1,7 +1,10 @@
 """
 Project Lucca — Desktop Companion Speech Bubble
 Spec 01 §1, Spec 16 §3, ADR-005
+Chrono Trigger Classic Dialogue Box with 5-Line Bounded Paginated Engine
 """
+
+from __future__ import annotations
 
 import os
 from collections.abc import Callable
@@ -10,7 +13,16 @@ from datetime import datetime
 os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
 from PyQt6.QtCore import QRect, QRectF, Qt, QTimer
-from PyQt6.QtGui import QBrush, QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen
+from PyQt6.QtGui import (
+    QBrush,
+    QColor,
+    QFont,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QTextLayout,
+)
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -23,9 +35,13 @@ from PyQt6.QtWidgets import (
 class SpeechBubble(QWidget):
     """
     Floating, frameless, translucent speech bubble widget anchored to CompanionSprite.
-    Displays live subtitles, user inputs, listening/thinking indicators,
-    and interactive confirmation action buttons.
+    Displays bounded 5-line paginated dialogue, user inputs, status indicators,
+    and interactive confirmation action buttons. Persistent with page navigation controls.
     """
+
+    BUBBLE_WIDTH: int = 460
+    BUBBLE_HEIGHT: int = 188
+    MAX_LINES_PER_PAGE: int = 5
 
     def __init__(
         self,
@@ -44,23 +60,21 @@ class SpeechBubble(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating, True)
 
-        self.bubble_width = 460
-        self.bubble_min_height = 84
-        self.setFixedWidth(self.bubble_width)
+        # Fixed rock-solid dimensions to prevent Win32 High-DPI setGeometry thrashing
+        self.bubble_width = self.BUBBLE_WIDTH
+        self.bubble_min_height = self.BUBBLE_HEIGHT
+        self.setFixedSize(self.BUBBLE_WIDTH, self.BUBBLE_HEIGHT)
 
-        # Bubble content
-        self.current_text = ""
-        self._full_text = ""
-        self._char_index = 0
-        self.status_text = ""
-        self.source = "assistant"
-        # "left" points towards sprite on left, "right" to sprite on right
-        self.tail_direction = "left"
+        # Bubble content and pagination state
+        self.current_text: str = ""
+        self._full_text: str = ""
+        self.status_text: str = ""
+        self.source: str = "assistant"
+        self.tail_direction: str = "left"
 
-        # Typewriter Text Engine
-        self.typewriter_timer = QTimer(self)
-        self.typewriter_timer.setInterval(22)
-        self.typewriter_timer.timeout.connect(self._on_typewriter_tick)
+        self.pages: list[str] = [""]
+        self.current_page_idx: int = 0
+        self._user_navigated: bool = False
 
         # Blinking cursor indicator (▼)
         self.cursor_timer = QTimer(self)
@@ -68,20 +82,24 @@ class SpeechBubble(QWidget):
         self.cursor_timer.timeout.connect(self._toggle_cursor_blink)
         self._cursor_visible = True
 
-        # Auto-dismiss timer (7 seconds after speech ends)
+        # Dismiss timer only used for brief confirmation result feedback
         self.dismiss_timer = QTimer(self)
         self.dismiss_timer.setSingleShot(True)
         self.dismiss_timer.timeout.connect(self._on_dismiss_timeout)
+
+        # Typewriter timer preserved for backwards compatibility with tests
+        self.typewriter_timer = QTimer(self)
+        self.typewriter_timer.setInterval(22)
 
         self._build_ui()
         self.hide()
 
     def _build_ui(self) -> None:
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(18, 14, 18, 18)
-        main_layout.setSpacing(6)
+        main_layout.setContentsMargins(18, 12, 18, 12)
+        main_layout.setSpacing(4)
 
-        # Header row: status / source indicator with Chrono Trigger Gold Nameplate & Live Clock
+        # Header row: status / source indicator, live clock, latency badge, and close button
         header_layout = QHBoxLayout()
         self.header_label = QLabel(self)
         header_font = QFont("Segoe UI", 10, QFont.Weight.Bold)
@@ -112,34 +130,123 @@ class SpeechBubble(QWidget):
         self.latency_label.hide()
         header_layout.addWidget(self.latency_label)
 
+        # Subtle close button (✕)
+        self.btn_close = QPushButton("✕", self)
+        self.btn_close.setFixedSize(18, 18)
+        self.btn_close.setToolTip("Dismiss speech bubble")
+        self.btn_close.setStyleSheet("""
+            QPushButton {
+                color: #94a3b8;
+                background: transparent;
+                border: none;
+                font-size: 11px;
+                font-weight: bold;
+                border-radius: 3px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                color: #f87171;
+                background: rgba(239, 68, 68, 0.2);
+            }
+        """)
+        self.btn_close.clicked.connect(self.hide)
+        header_layout.addWidget(self.btn_close)
+
         main_layout.addLayout(header_layout)
 
-        # Body: Subtitle / Speech text
+        # Body: Subtitle / Speech text (bounded to exactly 5 lines height)
         self.body_label = QLabel(self)
-        body_font = QFont("Segoe UI", 11)
-        self.body_label.setFont(body_font)
+        self.body_font = QFont("Segoe UI", 11)
+        self.body_label.setFont(self.body_font)
         self.body_label.setWordWrap(True)
+        self.body_label.setFixedHeight(106)
+        self.body_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.body_label.setStyleSheet(
             "color: #ffffff; background: transparent; line-height: 1.35; font-weight: 500;"
         )
         main_layout.addWidget(self.body_label)
 
-        # Footer row with blinking cursor prompt
-        footer_layout = QHBoxLayout()
+        # Footer row with pager navigation controls (◀ [ 1 / 3 ] ▶) and status cursor
+        self.footer_widget = QWidget(self)
+        self.footer_widget.setStyleSheet("background: transparent;")
+        footer_layout = QHBoxLayout(self.footer_widget)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout.setSpacing(6)
+
+        # Subtle pager controls
+        self.btn_prev = QPushButton("◀", self.footer_widget)
+        self.btn_prev.setFixedSize(22, 18)
+        self.btn_prev.setToolTip("Previous page")
+        self.btn_prev.setStyleSheet("""
+            QPushButton {
+                background: #101c54;
+                color: #ffd700;
+                border: 1px solid #3b82f6;
+                border-radius: 3px;
+                font-size: 10px;
+                font-weight: bold;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: #1e3a8a;
+                border-color: #ffd700;
+            }
+            QPushButton:disabled {
+                background: #081036;
+                color: #475569;
+                border-color: #1e293b;
+            }
+        """)
+        self.btn_prev.clicked.connect(self._prev_page)
+        footer_layout.addWidget(self.btn_prev)
+
+        self.lbl_page = QLabel("[ 1 / 1 ]", self.footer_widget)
+        self.lbl_page.setFont(QFont("Consolas", 9, QFont.Weight.Bold))
+        self.lbl_page.setStyleSheet("color: #ffd700; background: transparent;")
+        footer_layout.addWidget(self.lbl_page)
+
+        self.btn_next = QPushButton("▶", self.footer_widget)
+        self.btn_next.setFixedSize(22, 18)
+        self.btn_next.setToolTip("Next page")
+        self.btn_next.setStyleSheet("""
+            QPushButton {
+                background: #101c54;
+                color: #ffd700;
+                border: 1px solid #3b82f6;
+                border-radius: 3px;
+                font-size: 10px;
+                font-weight: bold;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: #1e3a8a;
+                border-color: #ffd700;
+            }
+            QPushButton:disabled {
+                background: #081036;
+                color: #475569;
+                border-color: #1e293b;
+            }
+        """)
+        self.btn_next.clicked.connect(self._next_page)
+        footer_layout.addWidget(self.btn_next)
+
         footer_layout.addStretch()
-        self.cursor_label = QLabel("▼", self)
+
+        self.cursor_label = QLabel("▼", self.footer_widget)
         self.cursor_label.setStyleSheet(
-            "color: #ffd700; font-size: 13px; font-weight: bold; background: transparent;"
+            "color: #ffd700; font-size: 12px; font-weight: bold; background: transparent;"
         )
         self.cursor_label.hide()
         footer_layout.addWidget(self.cursor_label)
-        main_layout.addLayout(footer_layout)
+
+        main_layout.addWidget(self.footer_widget)
 
         # Interactive confirmation buttons container (hidden by default)
         self.confirm_widget = QWidget(self)
         self.confirm_widget.setStyleSheet("background: transparent;")
         confirm_layout = QHBoxLayout(self.confirm_widget)
-        confirm_layout.setContentsMargins(0, 4, 0, 0)
+        confirm_layout.setContentsMargins(0, 0, 0, 0)
         confirm_layout.setSpacing(8)
 
         self.btn_yes = QPushButton("✓ Yes, proceed", self.confirm_widget)
@@ -182,21 +289,74 @@ class SpeechBubble(QWidget):
         self.confirm_widget.hide()
         main_layout.addWidget(self.confirm_widget)
 
-    def _on_typewriter_tick(self) -> None:
-        if self._char_index < len(self._full_text):
-            self._char_index += 1
-            self.body_label.setText(self._full_text[: self._char_index])
-            char = self._full_text[self._char_index - 1]
-            if char == ",":
-                self.typewriter_timer.setInterval(180)
-            elif char in (".", "!", "?"):
-                self.typewriter_timer.setInterval(350)
-            else:
-                self.typewriter_timer.setInterval(48)
-        else:
-            self.typewriter_timer.stop()
-            self.cursor_label.show()
-            self.cursor_timer.start(450)
+    def _paginate(self, text: str) -> list[str]:
+        """Paginates text into discrete pages of at most MAX_LINES_PER_PAGE lines."""
+        if not text.strip():
+            return [text] if text else [""]
+
+        content_width = self.BUBBLE_WIDTH - 44
+        paragraphs = text.split("\n")
+        all_lines: list[str] = []
+
+        for para in paragraphs:
+            if not para.strip():
+                all_lines.append("")
+                continue
+            layout = QTextLayout(para, self.body_font)
+            layout.beginLayout()
+            while True:
+                line = layout.createLine()
+                if not line.isValid():
+                    break
+                line.setLineWidth(content_width)
+                start = line.textStart()
+                length = line.textLength()
+                all_lines.append(para[start : start + length].strip())
+            layout.endLayout()
+
+        pages: list[str] = []
+        curr: list[str] = []
+        for line in all_lines:
+            curr.append(line)
+            if len(curr) == self.MAX_LINES_PER_PAGE:
+                pages.append("\n".join(curr))
+                curr = []
+        if curr:
+            pages.append("\n".join(curr))
+
+        return pages or [""]
+
+    def _update_page_display(self) -> None:
+        """Refreshes the body label and page navigation indicator based on current page."""
+        total_pages = max(1, len(self.pages))
+        if self.current_page_idx >= total_pages:
+            self.current_page_idx = total_pages - 1
+        if self.current_page_idx < 0:
+            self.current_page_idx = 0
+
+        page_text = self.pages[self.current_page_idx] if self.pages else ""
+        self.body_label.setText(page_text)
+        self.lbl_page.setText(f"[ {self.current_page_idx + 1} / {total_pages} ]")
+
+        self.btn_prev.setEnabled(self.current_page_idx > 0)
+        self.btn_next.setEnabled(self.current_page_idx < total_pages - 1)
+
+        has_multi = total_pages > 1
+        self.btn_prev.setVisible(has_multi)
+        self.lbl_page.setVisible(has_multi)
+        self.btn_next.setVisible(has_multi)
+
+    def _prev_page(self) -> None:
+        if self.current_page_idx > 0:
+            self._user_navigated = True
+            self.current_page_idx -= 1
+            self._update_page_display()
+
+    def _next_page(self) -> None:
+        if self.current_page_idx < len(self.pages) - 1:
+            self._user_navigated = True
+            self.current_page_idx += 1
+            self._update_page_display()
 
     def _toggle_cursor_blink(self) -> None:
         self._cursor_visible = not self._cursor_visible
@@ -208,14 +368,18 @@ class SpeechBubble(QWidget):
         source: str = "assistant",
         is_final: bool = False,
     ) -> None:
-        """Update and display the speech bubble with audio-synchronized streaming reveal."""
+        """
+        Update and display the persistent speech bubble with bounded 5-line pagination.
+        Never auto-dismisses on a timer; remains persistent until dismissed or superseded.
+        """
         self.dismiss_timer.stop()
-        self.typewriter_timer.stop()
         self.cursor_timer.stop()
         self.cursor_label.hide()
         self.confirm_widget.hide()
+        self.footer_widget.show()
+        self.body_label.setFixedHeight(106)
 
-        # Ensure unbroken tokens (e.g. repetition loops or raw code) wrap within bubble width
+        # Ensure unbroken tokens wrap within bubble width
         def _wrap_unbroken(s: str, max_chunk: int = 35) -> str:
             parts: list[str] = []
             for token in s.split(" "):
@@ -227,6 +391,17 @@ class SpeechBubble(QWidget):
             return " ".join(parts)
 
         text = _wrap_unbroken(text)
+
+        # Detect new turn vs continuation of active streaming
+        is_new_turn = (
+            source != self.source
+            or not self.current_text
+            or not text.startswith(self.current_text[: min(15, len(self.current_text))])
+        )
+        if is_new_turn:
+            self._user_navigated = False
+            self.current_page_idx = 0
+
         self.source = source
         self.current_text = text
         self._full_text = text
@@ -239,17 +414,13 @@ class SpeechBubble(QWidget):
             self.header_label.setStyleSheet(
                 "color: #fab387; font-weight: bold; letter-spacing: 1px;"
             )
-            self.body_label.setText(text)
             self.body_label.setStyleSheet("color: #ffd700; font-style: italic; font-weight: 500;")
-            self.adjustSize()
         elif source == "user":
             self.header_label.setText("YOU")
             self.header_label.setStyleSheet(
                 "color: #a6e3a1; font-weight: bold; letter-spacing: 1px;"
             )
-            self.body_label.setText(f'"{text}"')
             self.body_label.setStyleSheet("color: #ffffff; font-weight: 500;")
-            self.adjustSize()
         else:
             self.header_label.setText("LUCCA")
             self.header_label.setStyleSheet(
@@ -257,24 +428,20 @@ class SpeechBubble(QWidget):
             )
             self.body_label.setStyleSheet("color: #ffffff; font-weight: 500; line-height: 1.35;")
 
-            # Pre-size bubble to final text dimensions before typewriter reveal
-            self.body_label.setText(text)
-            self.adjustSize()
+        # Paginate text into 5-line chunks
+        self.pages = self._paginate(text)
 
-            # Use progressive audio-paced reveal for Lucca's speech
-            if len(text) > 4:
-                self._char_index = 0
-                self.body_label.setText("")
-                self.typewriter_timer.setInterval(48)
-                self.typewriter_timer.start()
-            else:
-                self.cursor_label.show()
-                self.cursor_timer.start(450)
+        # If the user has not manually turned pages, follow along with the active streaming speech
+        if not self._user_navigated:
+            self.current_page_idx = max(0, len(self.pages) - 1)
 
-        self.show()
+        self._update_page_display()
 
         if is_final:
-            self.dismiss_timer.start(7000)
+            self.cursor_label.show()
+            self.cursor_timer.start(450)
+
+        self.show()
 
     def show_confirmation(self, prompt: str, summary: str = "") -> None:
         """Display an interactive confirmation prompt with Yes/No buttons."""
@@ -284,14 +451,16 @@ class SpeechBubble(QWidget):
         display_text = prompt
         if summary:
             display_text += f"\n({summary})"
+        self.body_label.setFixedHeight(75)
         self.body_label.setText(display_text)
         self.body_label.setStyleSheet("color: #cdd6f4; font-weight: 500;")
+        self.footer_widget.hide()
         self.confirm_widget.show()
-        self.adjustSize()
         self.show()
 
     def _handle_confirmation(self, accepted: bool) -> None:
         self.confirm_widget.hide()
+        self.footer_widget.show()
         self.header_label.setText("DECISION RECORDED")
         status = "Accepted ✓" if accepted else "Cancelled ✕"
         self.body_label.setText(f"Action {status}")
@@ -353,11 +522,6 @@ class SpeechBubble(QWidget):
 
     def _on_dismiss_timeout(self) -> None:
         self.hide()
-
-    def mousePressEvent(self, event: object) -> None:
-        # Natural audio-paced streaming text cannot be skipped by clicking
-        if not self.typewriter_timer.isActive():
-            self.hide()
 
     def paintEvent(self, event: object) -> None:
         painter = QPainter(self)

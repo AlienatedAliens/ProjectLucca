@@ -29,6 +29,7 @@ class FakeLLM:
         self.aborted_traces: set[str] = set()
         self.last_memories: list[MemoryHit] | None = None
         self.last_kwargs: dict[str, object] = {}
+        self.all_kwargs: list[dict[str, object]] = []
 
     def stream_turn(
         self,
@@ -44,6 +45,7 @@ class FakeLLM:
         self.aborted = False
         self.last_memories = memories
         self.last_kwargs = kwargs
+        self.all_kwargs.append(dict(kwargs))
 
         if self.rounds is not None:
             events = (

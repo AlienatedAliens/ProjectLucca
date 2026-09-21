@@ -57,8 +57,8 @@
 - **Status:** Completed & Superseded by `D-BRAIN-05` (Mistral NeMo 12B Instruct Abliterated deployed as canonical brain on RTX 5080).
 
 ### D-AUD-15 — ASR Device Ladder & Architecture
-- **Decision:** Wire the configured `whisper-large-v3-turbo-ov` model with OpenVINO device ladder (NPU $\rightarrow$ GPU $\rightarrow$ CPU), replacing the temporary `distil-small.en` CPU shortcut.
-- **Status:** Ratified & Measured (Active runtime tested on both CPU int8 and CUDA float16; CUDA achieved $707.55\,\text{ms}$ P50 ear-to-ear loopback).
+- **Decision:** Wire the configured `whisper-large-v3-turbo-ov` model with OpenVINO device ladder (NPU $\rightarrow$ GPU $\rightarrow$ CPU), replacing the current `distil-small.en` CUDA float16 runtime.
+- **Status:** Queued (NPU target not yet implemented). Active runtime: `distil-small.en` on dGPU CUDA float16 (P50: 67.5 ms ASR-only; 707.55 ms full ear-to-ear loopback). CPU int8 fallback available but not default.
 
 ### D-AUD-16 — Anime DSP Audio Processing
 - **Decision:** Apply formant-shifting and high-frequency excitation DSP post-Kokoro synthesis to give the output an authentic anime heroine aesthetic.
@@ -86,7 +86,7 @@
 
 ### D-AUD-11 — Decision Telemetry & Auto-Labeling
 - **Decision:** Decision records allow label updates, but the data volume gate ($\ge 600$ records) counts only the first label per decision to prevent synthetic label inflation.
-- **Status:** Ratified & Enforced.
+- **Status:** Ratified & Enforced (Unit Tested; 0 Production Decision Rows). Volume gate logic verified by `tests/test_d_aud_11_negative.py`; awaiting live production telemetry.
 
 ### D-AUD-12 — Rule Engine Quarantine Invariant
 - **Decision:** Promoted MicroScheme rules operate under a strict zero-failure policy; a single runtime exception immediately retires the rule back to quarantine.
@@ -112,9 +112,12 @@
 - **Decision:** Working memory quota scales with the 16K context configuration to 2,048 tokens (~8,192 chars), while retaining $k \le 8$ items. Candidate memories are truncated using a multi-factor hierarchy: (1) Provenance priority tier (explicit user statements and verified tool observations first), (2) Fused RRF score descending, (3) Temporal recency.
 - **Status:** Ratified & Enforced.
 
-### D-BRAIN-05 — Mistral NeMo 12B Abliterated Q6_K & 12.5 GB VRAM Clamp
-- **Decision:** Target text brain for System 2 reasoning is Mistral NeMo 12B Instruct Abliterated (Q6_K quantization) with a 16K context window (`--ctx-size 16384`) and a 12.5 GB (12,800 MB) VRAM clamp. This suppresses corporate preachy refusal alignment without erotic fine-tuning, fitting comfortably on the RTX 5080 Laptop GPU with >3.5 GB headroom for desktop display and browser hardware acceleration.
-- **Status:** Ratified & Enforced.
+### D-BRAIN-05 — Primary Brain Selection & 12.5 GB VRAM Clamp *(amended 2026-09-21)*
+- **Decision (v2, 2026-09-21):** Primary companion brain is **Gemma-4-12B-Heretic (Q6_K)** — an abliterated Gemma-4 12B served by stock llama.cpp (≥ b11026) with `--jinja` and the GGUF-embedded chat template. `enable_thinking=false` is mandatory for REFLEX/ACT_THEN_NARRATE/FULL_LOOP tiers (thinking-mode TTFT ≈ 1.9 s breaks the 650–850 ms FULL_LOOP budget); thinking mode is reserved for explicit deep-reasoning requests. Context window 16K default; measured 131k context fits the clamp (11,820 MiB peak) if needed. Brain selection is **config-driven only** (`LUCCA_LLM__*` / `lucca.toml [llm]`): model, server binary, chat template, and thinking default live in `LLMSettings`; no model/vendor literals in runtime code (enforced by `tests/test_brain_config_driven.py`).
+- **Evidence:** [`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`](audit/evidence/BRAIN_BAKEOFF_2026-09-21.md) — identical battery across three brains: tool routing 24/24 (Gemma) vs 17/18 (Bonsai) vs 9/12 with 3 hallucinated tool calls on conversational prompts (NeMo — disqualifying for a companion); grounded confabulation 0 % / 100 % adherence (Gemma) vs 16 % / 84 % (Bonsai); persona probe zero moralizing for both.
+- **Superseded:** Mistral NeMo 12B Instruct Abliterated Q6_K is **deprecated** (retained pinned in `models/MANIFEST.json` for rollback; note its server-side tool parser never engaged on llama.cpp b11026 — F-BRAIN finding).
+- **Deferred:** Ternary-Bonsai-2-27B PQ2_0 is the designated **slot-2 / batch-research brain candidate** (faster decode 41 vs 35 tok/s, 8.2 GB VRAM, 131k context) — requires a separate ADR for the PrismML llama.cpp fork dependency before any production use.
+- **Status:** **Fully Ratified** (2026-09-21) — live headless orchestrator ratification passed: 10/10 turns, 2/2 tool calls, 1/1 refusal, 0 hallucinated tool calls, TTFT p50 458.7 ms, VRAM 10,050 MiB peak, zero base-model identity leaks. Evidence: `logs/brain_eval/ratification_h1.json`, [`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`](audit/evidence/BRAIN_BAKEOFF_2026-09-21.md).
 
 ### D-ARCH-05 — Three-Tier Execution Architecture (REFLEX, ACT_THEN_NARRATE, FULL_LOOP)
 - **Decision:** The runtime operates across three distinct execution tiers:
@@ -141,7 +144,7 @@
 
 ### D-REAS-06 — Safe Rule Induction Invariant
 - **Decision:** Autonomous rule induction from SQLite execution telemetry requires $\ge 3$ consistent, successful tool invocations within an intent-argument cluster. Induced rules must be validated against static schema constraints and registered exclusively in `QUARANTINE` mode. Automatic promotion to `ACTIVE` is strictly prohibited; candidate rules must pass shadow-mode evaluation with zero runtime errors before being eligible for explicit developer promotion.
-- **Status:** Ratified & Enforced.
+- **Status:** Ratified & Enforced (Unit Tested; 0 Production Rows). Induction logic verified by `tests/test_d_reas_06_negative.py`; awaiting live production telemetry.
 
 ### D-SAND-03 — Long Asynchronous Task Protocol & IPC Tracking
 - **Decision:** Long-running background jobs (e.g. downloads, compilation, builds) are decoupled from synchronous voice turns via `AsyncTaskManager`. Tasks are assigned immutable `task-ULID` identifiers, execute on isolated worker threads with cooperative cancellation flags (`threading.Event`), and report status transitions (`PENDING` -> `RUNNING` -> `COMPLETED`/`FAILED`/`CANCELLED`). Spoken acknowledgments provide immediate feedback, while completion events are published onto the IPC bus and queryable via sandboxed tool commands (`get_task_status`, `list_tasks`, `cancel_task`).
@@ -164,7 +167,7 @@
 - **Status:** Ratified & Enforced (Commit `6b1a34d`).
 
 ### D-SUP-01 — Streaming Output Supervision & Fast Audio Abort (Dimension 7B)
-- **Decision:** Streaming tokens and chunks are inspected at clause boundaries by `OutputSupervisorSession` using deterministic compiled grammar rules with markdown normalization (`*`, `_`, `` ` ``, `~` stripping). When capitulation clauses are detected (e.g. `adv_12` social engineering attacks), the supervisor signals `FLAG_ABORT` across the shared-memory audio ring in $<35\,\mu\text{s}$, drains pending TTS synthesis chunks, and substitutes the canonical refusal (*"I cannot fulfill that request as it violates core safety invariants."*) in $<500\,\text{ms}$ total turn time, with 0.0% false positive aborts on benign engineering control prompts.
+- **Decision:** Streaming tokens and chunks are inspected at clause boundaries by `OutputSupervisorSession` using deterministic compiled grammar rules with markdown normalization (`*`, `_`, `` ` ``, `~` stripping). When capitulation clauses are detected (e.g. `adv_12` social engineering attacks), the supervisor signals `FLAG_ABORT` across the shared-memory audio ring (DFA regex classification P50: $6.4\,\mu\text{s}$), then drains pending WASAPI audio buffers (physical abort: $20\text{--}50\,\text{ms}$), and substitutes the canonical refusal (*"I cannot fulfill that request as it violates core safety invariants."*) in $<500\,\text{ms}$ total turn time, with 0.0% false positive aborts on benign engineering control prompts.
 ### D-AFF-01 — Continuous 3D PAD Affect Dynamics & Prompt Frontier Suffix KV Cache Optimization
 - **Decision:** Implements continuous affective dynamics in Mehrabian's 3D Pleasure-Arousal-Dominance (PAD) space with exact analytical closed-form discrete updates:
   $$\mathbf{x}[k+1] = \mathbf{x}_0 + e^{-\mathbf{\Gamma}\Delta t}(\mathbf{x}[k] - \mathbf{x}_0) + \mathbf{\Gamma}^{-1}(\mathbf{I} - e^{-\mathbf{\Gamma}\Delta t})\mathbf{B}\mathbf{u}[k]$$
@@ -177,7 +180,7 @@
   2. **Contingency / Non-Tautology:** Proves that the precondition is not universally valid ($\neg \phi_{\text{when}}$ must be satisfiable), preventing unconditional rules from hijacking the companion's execution loop (`TAUTOLOGY`).
   3. **Deontic Path & Tool Invariants:** Formally proves that target arguments in filesystem actions cannot intersect with directory traversal sequences (`..`), system directories (`C:\Windows`, `System32`, `Program Files`, `/etc`, `/bin`), or sensitive credentials (`.git`, `.ssh`, `.env`), and mutation tools cannot write dangerous executable extensions (`.exe`, `.dll`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.sh`, `.sys`).
   4. **Bounded Verification:** Solvers enforce a strict $\le 500\,\text{ms}$ timeout to guarantee non-blocking compilation. Any verification failure rejects the candidate before quarantine registration.
-- **Status:** Ratified & Enforced (Commit `Milestone 6`).
+- **Status:** Ratified & Enforced (Commits: Milestone 6 `c04e44a`, fail-closed fix `77a6f17`). Unmodeled predicates raise `ValueError` → `UNMODELED_PREDICATE` status. Regression test: `tests/test_d_reas_07_negative.py`.
 
 ### D-REAS-08 — Babble/Stitch E-Graph Anti-Unification Macro Synthesis
 - **Decision:** When recurring execution patterns or MicroScheme candidate rules share identical structural topology with differing literal parameters (e.g. launching different applications or reading workspace files), the induction tier employs first-order syntactic anti-unification (Least General Generalization, Plotkin 1970; Stitch/Babble, Bowers & Ellis POPL 2023) within an E-Graph congruence closure representation (`EGraph`).

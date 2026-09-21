@@ -20,7 +20,7 @@ if sys.platform == "win32":
 else:
     ctypes = None  # type: ignore[assignment]
 
-from lucca.core.config import get_config
+from lucca.core.config import get_config, get_resource_path
 from lucca.core.exceptions import SandboxPathError
 from lucca.sandbox.file_tool import validate_rel_path
 from lucca.sandbox.web_tool import validate_url_ssrf
@@ -57,6 +57,9 @@ class AppLauncher:
         cfg_dir = self.config.resolve_path("config")
         cfg_file = Path(config_path) if config_path else cfg_dir / "tool_whitelist.toml"
         self.apps = self._load_whitelist(cfg_file)
+
+
+
 
     def _load_whitelist(self, cfg_file: Path) -> dict[str, dict[str, Any]]:
         """Loads whitelist from TOML or fallback default mapping."""
@@ -185,9 +188,15 @@ class AppLauncher:
 
         self.launch_history.append(time.monotonic())
 
+        display_name = (
+            app_name
+            if app_name.lower()
+            in ("calculator", "notepad", "terminal", "browser", "task manager", "task_manager")
+            else app_id
+        )
         if not self.execute:
             logger.info("launch_simulated", cmd=cmd_args)
-            return True, f"Launched {app_id} (simulated)."
+            return True, f"Launched {display_name} (simulated)."
 
         try:
             creationflags = 0
@@ -201,7 +210,7 @@ class AppLauncher:
                 close_fds=True,
             )
             logger.info("app_launched", app=app_id, exe=resolved_exe)
-            return True, f"Launched {app_id}."
+            return True, f"Launched {display_name}."
         except Exception as exc:  # noqa: BLE001
             logger.error("launch_failed", app=app_id, error=str(exc))
             return False, f"Failed to launch {app_id}: {exc}"

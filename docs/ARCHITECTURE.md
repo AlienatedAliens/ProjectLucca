@@ -241,6 +241,8 @@ When narrating completed tool actions, narration prompts inject strict grounding
 | **$S_5$** | Delivery to Speaker Output | $\le 40\text{ ms}$ | Target Budget (Normative) | **Target** |
 | **Total**| **Full E2E Cascade Turn** | $\le 800\text{ ms}$ | Target Budget (Voice run) | **Target** |
 
+> **Note:** Stages marked **Target** are normative design budgets from Spec 10, not silicon measurements. Only $S_2$ (TTFT) has been empirically measured and carries a **PASS** verdict. The remaining stage budgets will be individually benchmarked when end-to-end instrumentation is added.
+
 ---
 
 ## 4. MicroScheme Rule Engine: Symbolic Procedural Execution
@@ -421,7 +423,7 @@ Pressing PTT while Lucca is speaking or thinking triggers instant interruption:
 
 | Subsystem Component | Ratified Target Architecture | Active Code Truth (Running Baseline) | Status |
 |---|---|---|:---:|
-| **ASR Speech-to-Text** | OpenVINO ladder on Intel NPU (`whisper-large-v3-turbo-ov`) | `faster-whisper` (`distil-small.en`) on CPU int8 in `src/lucca/senses/asr.py` | **Implementation Queued** |
+| **ASR Speech-to-Text** | OpenVINO ladder on Intel NPU (`whisper-large-v3-turbo-ov`) | `faster-whisper` (`distil-small.en`) on **CUDA float16** (dGPU) in `src/lucca/senses/asr.py`; P50: 67.5–85.9 ms | **Implementation Queued** (target: NPU; active: dGPU CUDA) |
 | **TTS Speech Synthesis** | Kokoro-v1.0 ONNX (24 kHz, `genki_heroine` voice) | Kokoro-v1.0 ONNX in `src/lucca/senses/tts.py` | **Enforced & Running** |
 | **Voice DSP Shaping** | Anime formant-shifter & high-freq exciter (`dsp_chain.py`) | Wired post-`engine.create` and pre-int16 in `src/lucca/senses/tts.py` | **Enforced & Running** |
 
@@ -459,11 +461,11 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-AUD-08** | Backup Retention Policy | 14 daily UTC + 8 weekly Sunday backups via `VACUUM INTO`. | **Enforced** |
 | **D-AUD-09** | Cryptographic Provenance | `ProvenanceGate` with signed HMAC/Ed25519 envelopes. | **Enforced** |
 | **D-AUD-10** | Application Whitelist | `config/tool_whitelist.toml` enforced; shells forbidden. | **Enforced** |
-| **D-AUD-11** | Decision Telemetry | $\ge 600$ records data volume gate counts first label per decision. | **Enforced** |
+| **D-AUD-11** | Decision Telemetry | $\ge 600$ records data volume gate counts first label per decision. | **Enforced (Unit Tested; 0 Production Rows)** |
 | **D-AUD-12** | Rule Quarantine Invariant | Runtime failure instantly demotes active rule back to quarantine. | **Enforced** |
 | **D-AUD-13** | Container Sandboxing | `use_direct_fallback = False` hardcoded; host execution refused. | **Enforced** |
 | **D-AUD-14/19**| Fictional Capability Strip | Non-existent port capability claims removed. | **Enforced** |
-| **D-AUD-15** | ASR Device Ladder | OpenVINO ladder on NPU queued; active runtime is `distil-small.en`. | **Queued** |
+| **D-AUD-15** | ASR Device Ladder | OpenVINO ladder on NPU queued; active runtime is `distil-small.en` on **CUDA float16** (dGPU). P50: 67.5 ms, RTF: 0.0425. | **Queued** (target: NPU; active: dGPU CUDA) |
 | **D-AUD-16** | Anime Voice DSP Chain | `AnimeVoiceDSP` wired in `tts.py`, controlled dynamically via UI and IPC. | **Enforced** |
 | **D-AUD-17** | Latency Badge Honesty | Hardcoded badges removed; telemetry displays measured trace time. | **Enforced** |
 | **D-AUD-18** | UI Structure | Modular 10-tab settings window in `src/lucca/ui/settings_dialog.py`. | **Enforced** |
@@ -476,15 +478,15 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-BRAIN-03** | Multi-Turn Thinking Cues | Intermediate spoken cues emitted before tool dispatches. | **Enforced** |
 | **D-BRAIN-04** | Grounded Narration Proof| Strict provenance anti-hallucination directives in narration. | **Enforced** |
 | **D-REAS-05** | Bounded Macro System | Compile-time macro expansion (depth $\le 8$, steps $\le 64$). | **Enforced** |
-| **D-REAS-06** | Safe Rule Induction | Mining SQLite history ($N \ge 3$) strictly into `QUARANTINE`. | **Enforced** |
+| **D-REAS-06** | Safe Rule Induction | Mining SQLite history ($N \ge 3$) strictly into `QUARANTINE`. | **Enforced (Unit Tested; 0 Production Rows)** |
 | **D-SAND-03** | Async Task Protocol | Thread-safe background jobs with ULID IDs and sandboxed query tools. | **Enforced** |
 | **D-SAND-04** | Persistent Docker RPC | Long-lived WSL2 container with in-container process reaper & hierarchical timeouts. | **Enforced** |
 | **D-CASC-01** | Epistemic Cascade | 5-substrate prioritized search with Belnap $\mathcal{FOUR}$ bilattice & floor cues. | **Enforced** |
 | **D-ARB-01**  | Speculative BDI Gate | Sub-200us pre-dispatch deontic validator & MicroScheme cognitive bus arbitration. | **Enforced** |
-| **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization & 30us abort. | **Enforced** |
+| **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization. DFA regex classification: P50 6.4 μs; physical WASAPI audio abort: 20–50 ms. | **Enforced** |
 | **D-AFF-01**  | Affective Dynamics & Prompt Suffix | 3D PAD ODE, Schmitt-trigger hysteresis, prompt frontier suffix KV cache optimization ($8.58\times$ speedup). | **Enforced** |
-| **D-REAS-07** | Z3 SMT Formal Verifier | SMT SAT/Contingency and Deontic Path invariant proofs for candidate rules. | **Enforced** |
-| **D-REAS-08** | E-Graph Macro Synthesis| Stitch/Babble anti-unification macro compression within E-Graph congruence closure. | **Enforced** |
+| **D-REAS-07** | Z3 SMT Formal Verifier | SMT SAT/Contingency and Deontic Path invariant proofs for candidate rules. Unmodeled predicates fail closed (`UNMODELED_PREDICATE`); regression test: `test_d_reas_07_negative.py`. | **Enforced** |
+| **D-REAS-08** | E-Graph Macro Synthesis| Stitch/Babble anti-unification macro compression within E-Graph congruence closure. | **Enforced (Unit Tested; 0 Production Rows)** |
 | **D-PKG-01**  | Standalone Packaging | PyInstaller frozen executable (`Lucca.exe`), bundled runtimes, and system tray lifecycle. | **Enforced** |
 | **D-EVAL-01** | Frozen Evaluation Suite | 110 golden traces regression harness with 100% pass gate. | **Enforced** |
 

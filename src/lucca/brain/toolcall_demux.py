@@ -101,32 +101,31 @@ class ToolCallDemux:
             elif cleaned.startswith("[") and cleaned.endswith("]"):
                 try:
                     obj_list = json.loads(cleaned)
-                    if (
-                        isinstance(obj_list, list)
-                        and len(obj_list) > 0
-                        and isinstance(obj_list[0], dict)
-                    ):
-                        first_call = obj_list[0]
-                        if "name" in first_call:
-                            tool_name = str(first_call["name"])
-                            args = first_call.get("parameters") or first_call.get("arguments") or {}
-                            if not isinstance(args, dict):
-                                args = {}
-                            call = ToolCall(
-                                tool=tool_name,
-                                args=args,
-                                call_id=f"inline-{uuid.uuid4().hex[:8]}",
-                            )
+                    if isinstance(obj_list, list) and len(obj_list) > 0:
+                        calls: list[ToolCallEnd] = []
+                        for item in obj_list:
+                            if isinstance(item, dict) and "name" in item:
+                                tool_name = str(item["name"])
+                                args = item.get("parameters") or item.get("arguments") or {}
+                                if not isinstance(args, dict):
+                                    args = {}
+                                call = ToolCall(
+                                    tool=tool_name,
+                                    args=args,
+                                    call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                                )
+                                calls.append(ToolCallEnd(call=call))
+                        if calls:
                             self._suspected_tool_call = False
                             self._resolved_tool_call = True
                             self._buffer.clear()
                             self._buffered_len = 0
-                            return [ToolCallEnd(call=call)]
+                            return calls
                 except json.JSONDecodeError:
                     pass
 
-            if self._buffered_len > 400:
-                # Give up: not an inline tool call, flush buffer as text
+            if self._buffered_len > 4096:
+                # Give up: exceeded 4KB buffer without valid JSON, flush buffer as text
                 self._suspected_tool_call = False
                 for chunk in self._buffer:
                     evs = self._process_text_delta(chunk)

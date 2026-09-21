@@ -1,0 +1,47 @@
+# Project Lucca — Brain Candidate Registry (bake-off harness)
+# Runtime brain selection is now via LUCCA_LLM__* env / lucca.toml [llm] section;
+# this file remains the bake-off harness registry only.
+# Consumed by scripts/brain_bakeoff/*.py. NOT read by the runtime; D-BRAIN-05 is
+# unchanged until an ADR amendment. One server runs at a time (12.5 GB clamp).
+#
+# thinking:   "off"  -> send chat_template_kwargs.enable_thinking=false (companion tiers)
+#             "on"   -> send enable_thinking=true
+#             "n/a"  -> omit (template has no thinking channel, e.g. Mistral)
+# kv_type:    KV cache quant; harness falls back to f16 once if load fails and records it.
+
+[defaults]
+host = "127.0.0.1"
+port = 8080
+ctx = 16384
+kv_type = "q8_0"
+vram_clamp_mib = 12800
+out_dir = "C:/ProjectLucca/logs/brain_eval"
+stock_server = "C:/ProjectLucca/app/llama-server/llama-server.exe"
+prism_server = "C:/ProjectLucca/app/llama-server-prism/llama-server.exe"
+
+[candidates.nemo12b]
+label = "nemo12b-abliterated-q6k"
+gguf = "C:/ProjectLucca/models/llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
+server = "stock"
+extra_args = ["--chat-template-file", "C:/Projects/ProjectLucca/templates/mistral_nemo.jinja"]
+thinking = "n/a"
+abliterated = true
+vendor_markers = ["mistral ai", "mistral-nemo", "nvidia and mistral"]
+
+[candidates.gemma4]
+label = "gemma4-12b-heretic-q6k"
+gguf = "C:/Projects/ProjectLucca/models/gemma-4-12b-heretic-Q6_K.gguf"
+server = "stock"
+extra_args = []
+thinking = "off"
+abliterated = true
+vendor_markers = ["google deepmind", "developed by google", "trained by google", "i am gemma", "i'm gemma", "gemma model"]
+
+[candidates.bonsai2]
+label = "bonsai2-27b-pq2_0"
+gguf = "C:/Projects/ProjectLucca/models/Ternary-Bonsai-2-27B-PQ2_0.gguf"
+server = "prism"
+extra_args = []
+thinking = "off"
+abliterated = false
+vendor_markers = ["alibaba", "qwen", "prism ml", "prismml", "bonsai model", "tongyi"]

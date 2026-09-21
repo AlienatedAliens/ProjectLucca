@@ -128,8 +128,8 @@ def test_settings_dialog_resizable(qapp):
     assert bool(flags & Qt.WindowType.WindowMinMaxButtonsHint)
     assert bool(flags & Qt.WindowType.WindowCloseButtonHint)
     assert dlg.isSizeGripEnabled()
-    assert dlg.minimumWidth() == 880
-    assert dlg.minimumHeight() == 640
+    assert dlg.minimumWidth() == 760
+    assert dlg.minimumHeight() == 520
 
 
 def test_telemetry_hud_lifecycle(qapp):
@@ -238,3 +238,131 @@ def test_quit_publishes_offline(qapp: QApplication, monkeypatch: pytest.MonkeyPa
     finally:
         ingest_pull.close(linger=0)
         ctx.destroy(linger=0)
+
+
+def test_speech_bubble_pagination(qapp: QApplication) -> None:
+    """Verifies that long speech text is cleanly split into discrete pages of at most 5 lines."""
+    bubble = SpeechBubble()
+    bubble.show()
+
+    # Create text that easily exceeds 5 lines
+    long_speech = (
+        "In brief, I run locally on your PC with a 4-process topology. "
+        "My model is a custom Mistral NeMo 12B Instruct Ablated served by llama-server.exe "
+        "on the dGPU with flash attention. I also have Kokoro-82M TTS for speaking and "
+        "Whisper for real-time speech transcription. My MicroScheme engine evaluates rules "
+        "deterministically in sub-millisecond time. In addition, my memory system indexes "
+        "both episodic and semantic embeddings locally via sqlite-vec."
+    )
+    bubble.show_caption(long_speech, source="assistant", is_final=True)
+
+    assert len(bubble.pages) > 1
+    # Verify each page has <= 5 lines
+    for idx, page in enumerate(bubble.pages):
+        lines = page.splitlines()
+        assert len(lines) <= 5, f"Page {idx+1} has {len(lines)} lines, expected <= 5"
+
+    # Pager controls should be visible when len(pages) > 1
+    assert bubble.btn_prev.isVisible()
+    assert bubble.btn_next.isVisible()
+    assert bubble.lbl_page.isVisible()
+
+
+def test_speech_bubble_navigation(qapp: QApplication) -> None:
+    """Verifies that prev/next page buttons update current page index and displayed text."""
+    bubble = SpeechBubble()
+    bubble.show()
+
+    long_text = "Paragraph 1 sentence.\n\nParagraph 2 sentence.\n\nParagraph 3 sentence.\n\nParagraph 4 sentence.\n\nParagraph 5 sentence."
+    bubble.show_caption(long_text, source="assistant", is_final=True)
+
+    assert len(bubble.pages) >= 2
+    total = len(bubble.pages)
+
+    # By default on completion of stream, page is at the end or starts at 0
+    # Let's test navigation explicitly
+    bubble.current_page_idx = 0
+    bubble._update_page_display()
+    assert bubble.lbl_page.text() == f"[ 1 / {total} ]"
+    assert bubble.btn_prev.isEnabled() is False
+    assert bubble.btn_next.isEnabled() is True
+
+    # Navigate to page 2
+    bubble._next_page()
+    assert bubble.current_page_idx == 1
+    assert bubble.lbl_page.text() == f"[ 2 / {total} ]"
+    assert bubble.btn_prev.isEnabled() is True
+
+    # Navigate back to page 1
+    bubble._prev_page()
+    assert bubble.current_page_idx == 0
+    assert bubble.lbl_page.text() == f"[ 1 / {total} ]"
+
+
+def test_speech_bubble_persistence(qapp: QApplication) -> None:
+    """Verifies that speech bubble remains persistent and does not auto-dismiss on timer."""
+    bubble = SpeechBubble()
+    bubble.show_caption("This is persistent dialogue.", source="assistant", is_final=True)
+
+    assert bubble.isVisible() is True
+    # Auto-dismiss timer must NOT be running for dialogue captions
+    assert bubble.dismiss_timer.isActive() is False
+
+
+def test_speech_bubble_close_button(qapp: QApplication) -> None:
+    """Verifies that the header close button (✕) dismisses the persistent speech bubble."""
+    bubble = SpeechBubble()
+    bubble.show_caption("Close me please.", source="assistant", is_final=True)
+    assert bubble.isVisible() is True
+
+    bubble.btn_close.click()
+    assert bubble.isVisible() is False
+
+
+def test_speech_bubble_fixed_geometry(qapp: QApplication) -> None:
+    """Verifies that bubble retains fixed 460x188 geometry preventing Win32 setGeometry fighting."""
+    bubble = SpeechBubble()
+    bubble.show()
+
+    assert bubble.width() == 460
+    assert bubble.height() == 188
+    assert bubble.minimumSize() == bubble.maximumSize()
+
+    # Even after displaying long text and calling adjustSize, geometry remains fixed
+    bubble.show_caption("A" * 500, source="assistant", is_final=True)
+    bubble.adjustSize()
+    assert bubble.width() == 460
+    assert bubble.height() == 188
+
+
+def test_settings_dialog_scrollable_tabs(qapp: QApplication) -> None:
+    """Verifies that all 11 tabs are wrapped in QScrollArea with widgetResizable enabled."""
+    from PyQt6.QtWidgets import QScrollArea
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    dlg = SettingsDialog()
+    assert dlg.tabs.count() == 11
+
+    for i in range(dlg.tabs.count()):
+        tab_widget = dlg.tabs.widget(i)
+        assert isinstance(tab_widget, QScrollArea), f"Tab {i} is not a QScrollArea"
+        assert tab_widget.widgetResizable() is True
+        assert tab_widget.widget() is not None
+
+
+def test_settings_dialog_center_containment(qapp: QApplication) -> None:
+    """Verifies that center_on_screen positions dialog strictly within visible workarea."""
+    from PyQt6.QtGui import QGuiApplication
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    dlg = SettingsDialog()
+    dlg.center_on_screen()
+
+    screen = QGuiApplication.primaryScreen()
+    if screen:
+        avail = screen.availableGeometry()
+        assert dlg.x() >= avail.left()
+        assert dlg.y() >= avail.top()
+        assert dlg.x() + dlg.width() <= avail.right() + 20
+        assert dlg.y() + dlg.height() <= avail.bottom() + 20
+

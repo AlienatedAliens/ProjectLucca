@@ -12,12 +12,14 @@ from pathlib import Path
 import structlog
 from pydantic import JsonValue, ValidationError
 
+from lucca.core.capabilities import get_capability_registry
 from lucca.core.schemas import Risk, ToolResult
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.rpc import DockerRPCTransport
-from lucca.sandbox.schemas import FetchUrlArgs, LaunchAppArgs
+from lucca.sandbox.schemas import FetchUrlArgs, LaunchAppArgs, SearchWebArgs
+from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.tasks import AsyncTaskInfo, AsyncTaskManager, TaskStatus
 from lucca.sandbox.web_tool import fetch_url
 from lucca.sandbox.workspace import WorkspaceManager
@@ -150,10 +152,12 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
+                allow_render = getattr(self, "allow_render", False)
                 structured, content = fetch_url(
                     url=parsed_url.url,
                     render=parsed_url.render,
                     max_chars=parsed_url.max_chars,
+                    allow_render=allow_render,
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -173,37 +177,84 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
 
+        # 4a. Browse Page Tool (Path 2: Interactive Browser Engine)
+        if tool_name in ("browse_page", "render_page"):
+            url_val = str(args.get("url", "")).strip()
+            if not url_val:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr="invalid_arguments: missing 'url'",
+                    elapsed_ms=0.0,
+                )
+            max_chars = int(args.get("max_chars", 20000))
+            try:
+                from lucca.sandbox.browser_tool import render_page
+
+                structured, content = render_page(url=url_val, max_chars=max_chars)
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=structured,
+                    content=content,
+                    content_truncated=bool(structured.get("content_truncated", False)),
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        # 4b. Web Search Tool
+        if tool_name == "search_web":
+            try:
+                parsed_search = SearchWebArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = search_web(
+                    query=parsed_search.query,
+                    max_results=parsed_search.max_results,
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=bool(structured.get("ok", True)),
+                    exit_code=0 if structured.get("ok", True) else 1,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
         # 5. Query Capabilities Tool
         if tool_name == "query_capabilities":
             category = str(args.get("category", "all"))
-            capabilities: dict[str, JsonValue] = {
-                "tools": [
-                    "launch_app",
-                    "read_file",
-                    "write_file",
-                    "fetch_url",
-                    "query_capabilities",
-                    "get_task_status",
-                    "list_tasks",
-                    "cancel_task",
-                ],
-                "whitelisted_apps": list(self.launcher.apps.keys()),
-                "reasoning_pathways": {},
-                "workspace": str(self.workspace_mgr.workspace_root),
-                "memory_subsystem": "SQLite-vec episodic & semantic memory (data/memory.sqlite)",
-                "hardware_substrates": {
-                    "dGPU": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB) - LLM llama-server",
-                    "NPU": "Intel AI Boost NPU (OpenVINO) - Whisper ASR & 384-D vector embeddings",
-                    "CPU": "Intel Core Ultra 9 275HX - Orchestrator, ZeroMQ IPC, Kokoro TTS",
-                    "RAM": "16 GB Physical Host Memory",
-                },
-            }
-            if category != "all" and category in capabilities:
-                content_str = json.dumps({category: capabilities[category]}, indent=2)
-                structured_data = {category: capabilities[category]}
-            else:
-                content_str = json.dumps(capabilities, indent=2)
-                structured_data = capabilities
+            registry = get_capability_registry()
+            structured_data = registry.get_capabilities_manifest(
+                category=category,
+                workspace_root=self.workspace_mgr.workspace_root,
+                whitelisted_apps=list(self.launcher.apps.keys()),
+            )
+            content_str = json.dumps(structured_data, indent=2)
 
             return ToolResult(
                 call_id=call_id,

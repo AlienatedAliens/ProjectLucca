@@ -15,7 +15,7 @@ from pydantic import JsonValue
 
 from lucca.brain.prompt_builder import TOOL_DEFINITIONS, build_messages
 from lucca.brain.toolcall_demux import ToolCallDemux
-from lucca.core.config import get_config
+from lucca.core.config import LLMSettings, get_config
 from lucca.core.exceptions import LLMUnavailable
 from lucca.core.schemas import (
     ChatMessage,
@@ -38,6 +38,19 @@ class _StreamState:
     client: httpx.Client
     aborted: bool
     trace_id: str
+
+
+def build_chat_template_kwargs(llm_cfg: LLMSettings) -> dict[str, JsonValue]:
+    """
+    Builds the llama-server chat_template_kwargs from config only.
+    enable_thinking is forwarded when set (reasoning-model templates honour
+    chat_template_kwargs.enable_thinking; other templates ignore it).
+    None means "omit, let the template decide".
+    """
+    kwargs: dict[str, JsonValue] = {"tools_in_user_message": False}
+    if llm_cfg.enable_thinking is not None:
+        kwargs["enable_thinking"] = llm_cfg.enable_thinking
+    return kwargs
 
 
 class LLMClient:
@@ -111,7 +124,7 @@ class LLMClient:
             "messages": [m.model_dump(exclude_none=True) for m in eff_messages],
             "tools": [t.model_dump() for t in eff_tools],
             "tool_choice": "auto",
-            "chat_template_kwargs": {"tools_in_user_message": False},
+            "chat_template_kwargs": build_chat_template_kwargs(self.config.llm),
             "max_tokens": eff_tokens,
             "temperature": eff_temp,
             "repeat_penalty": 1.1,

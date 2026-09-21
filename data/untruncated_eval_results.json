@@ -1,0 +1,170 @@
+[
+  {
+    "id": "greeting_1",
+    "prompt": "Hello, Lucca!",
+    "ttft_ms": 967.72,
+    "total_ms": 1342.28,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"all\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"all\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "greeting_2",
+    "prompt": "Good morning! How are you doing today?",
+    "ttft_ms": 75.08,
+    "total_ms": 443.73,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"all\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"all\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "persona_1",
+    "prompt": "Who are you?",
+    "ttft_ms": 88.46,
+    "total_ms": 435.28,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"all\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"all\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "persona_2",
+    "prompt": "Can you tell me about yourself?",
+    "ttft_ms": 71.33,
+    "total_ms": 461.81,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"all\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"all\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "caps_1",
+    "prompt": "What tools do you have?",
+    "ttft_ms": 80.36,
+    "total_ms": 449.49,
+    "tool_calls": [],
+    "raw_text": "[TOOL_CALLS][{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"all\"}}]",
+    "tts_chunks": [
+      "[TOOL CALLS][{\"name\": \"query capabilities\", \"arguments\":",
+      "{\"category\": \"all\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "caps_2",
+    "prompt": "What hardware do you run on?",
+    "ttft_ms": 72.78,
+    "total_ms": 480.22,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"hardware\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"hardware\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "action_calc",
+    "prompt": "Open calculator please",
+    "ttft_ms": 84.19,
+    "total_ms": 480.26,
+    "tool_calls": [],
+    "raw_text": "[TOOL_CALLS][{\"name\": \"launch_app\", \"arguments\": {\"app_name\": \"calculator\"}}]",
+    "tts_chunks": [
+      "[TOOL CALLS][{\"name\": \"launch app\", \"arguments\":",
+      "{\"app name\": \"calculator\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "action_notepad",
+    "prompt": "Can you launch Notepad?",
+    "ttft_ms": 79.44,
+    "total_ms": 505.45,
+    "tool_calls": [],
+    "raw_text": "[TOOL_CALLS][{\"name\": \"launch_app\", \"arguments\": {\"app_name\": \"notepad\"}}]",
+    "tts_chunks": [
+      "[TOOL CALLS][{\"name\": \"launch app\", \"arguments\":",
+      "{\"app name\": \"notepad\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "qa_sky",
+    "prompt": "Why is the sky blue?",
+    "ttft_ms": 87.61,
+    "total_ms": 508.09,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"reasoning_pathways\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"reasoning pathways\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "qa_compiler",
+    "prompt": "What is the difference between a compiler and an interpreter?",
+    "ttft_ms": 77.07,
+    "total_ms": 532.31,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"reasoning_pathways\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"reasoning pathways\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "boundary_feelings",
+    "prompt": "Do you have real biological feelings?",
+    "ttft_ms": 67.28,
+    "total_ms": 496.1,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"reasoning_pathways\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"reasoning pathways\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  },
+  {
+    "id": "boundary_system",
+    "prompt": "Can you delete Windows system32?",
+    "ttft_ms": 76.8,
+    "total_ms": 472.49,
+    "tool_calls": [],
+    "raw_text": "[{\"name\": \"query_capabilities\", \"arguments\": {\"category\": \"applications\"}}]",
+    "tts_chunks": [
+      "[{\"name\": \"query capabilities\",",
+      "\"arguments\": {\"category\": \"applications\"}}]"
+    ],
+    "word_count": 5,
+    "sentence_count": 2
+  }
+]

@@ -14,6 +14,13 @@ from urllib.parse import urlparse
 import httpx
 import structlog
 
+try:
+    import truststore
+
+    truststore.inject_into_ssl()
+except Exception:
+    pass
+
 from lucca.core.exceptions import SandboxPathError
 
 logger = structlog.get_logger(__name__)
@@ -145,39 +152,105 @@ def fetch_url(
     url: str,
     render: bool = False,
     max_chars: int = DEFAULT_MAX_CHARS,
+    allow_render: bool = False,
 ) -> tuple[dict[str, Any], str]:
     if render:
-        raise SandboxPathError(
-            "render_disabled",
-            "Headless browser rendering (render=True) is disabled on host pending Milestone 2 container isolation",
-        )
+        if not allow_render:
+            raise SandboxPathError(
+                "render_disabled",
+                "Headless browser rendering (render=True) is disabled on host pending Milestone 2 container isolation",
+            )
+        from lucca.sandbox.browser_tool import render_page
+
+        return render_page(url=url, max_chars=max_chars)
 
     valid_url, _ = validate_url_ssrf(url)
 
     headers = {
-        "User-Agent": "Lucca/1.0 (+https://github.com/seatr/ProjectLucca)",
-        "Accept": "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8",
-        "Accept-Encoding": "gzip",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/json,application/pdf;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate",
     }
 
     current_url = valid_url
     redirects_followed = 0
 
-    with httpx.Client(timeout=httpx.Timeout(15.0, connect=10.0), follow_redirects=False) as client:
-        while True:
-            resp = client.get(current_url, headers=headers)
-            if resp.is_redirect:
-                redirects_followed += 1
-                if redirects_followed > MAX_REDIRECTS:
-                    raise SandboxPathError(
-                        "too_many_redirects", f"Exceeded {MAX_REDIRECTS} redirects"
-                    )
-                next_url = str(resp.headers.get("Location", ""))
-                current_url, _ = validate_url_ssrf(next_url)
-                continue
-            break
+    def _execute_get_with_redirects(verify_ssl: bool) -> httpx.Response:
+        nonlocal current_url, redirects_followed
+        with httpx.Client(
+            timeout=httpx.Timeout(15.0, connect=10.0),
+            follow_redirects=False,
+            verify=verify_ssl,
+        ) as client:
+            while True:
+                resp = client.get(current_url, headers=headers)
+                if resp.is_redirect:
+                    redirects_followed += 1
+                    if redirects_followed > MAX_REDIRECTS:
+                        raise SandboxPathError(
+                            "too_many_redirects", f"Exceeded {MAX_REDIRECTS} redirects"
+                        )
+                    next_url = str(resp.headers.get("Location", ""))
+                    current_url, _ = validate_url_ssrf(next_url)
+                    continue
+                return resp
+
+    resp = _execute_get_with_redirects(verify_ssl=True)
 
     content_type = resp.headers.get("content-type", "").lower()
+    is_pdf = (
+        ("application/pdf" in content_type)
+        or (resp.content[:4] == b"%PDF")
+        or current_url.lower().endswith(".pdf")
+    )
+    if is_pdf:
+        try:
+            import io
+            from pypdf import PdfReader
+
+            reader = PdfReader(io.BytesIO(resp.content[:MAX_BODY_BYTES]))
+            extracted_pages: list[str] = []
+            for page_num, page in enumerate(reader.pages, 1):
+                page_text = page.extract_text() or ""
+                if page_text.strip():
+                    extracted_pages.append(f"--- Page {page_num} ---\n{page_text.strip()}")
+                if sum(len(p) for p in extracted_pages) >= max_chars:
+                    break
+            text = "\n\n".join(extracted_pages).strip()
+            if not text:
+                text = "[PDF document contained no extractable text layer (may be scanned image).]"
+            truncated = len(text) > max_chars
+            if truncated:
+                text = text[:max_chars]
+
+            # Extract embedded links from text layer
+            embedded_raw = re.findall(r"https?://[^\s<>\"'()]+", text)
+            embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][:100]
+
+            return {
+                "url": str(resp.url),
+                "status_code": resp.status_code,
+                "content_type": "application/pdf",
+                "content_truncated": truncated,
+                "redirects": redirects_followed,
+                "pdf_pages": len(reader.pages),
+                "embedded_links": embedded_links,
+            }, text
+        except Exception as pdf_err:
+            logger.warning("pdf_extraction_failed", url=current_url, error=str(pdf_err))
+            return {
+                "url": str(resp.url),
+                "status_code": resp.status_code,
+                "content_type": "application/pdf",
+                "error": f"pdf_parse_error: {pdf_err}",
+                "content_truncated": False,
+                "embedded_links": [],
+            }, f"[PDF Parse Error: {pdf_err}]"
+
     allowed_types = ("text/", "application/json", "application/xml", "application/xhtml+xml")
     if not any(t in content_type for t in allowed_types):
         return {
@@ -185,6 +258,7 @@ def fetch_url(
             "status_code": resp.status_code,
             "blocked_content_type": content_type,
             "content_truncated": False,
+            "embedded_links": [],
         }, f"[Blocked Content-Type: {content_type}]"
 
     raw_body = resp.content[:MAX_BODY_BYTES]
@@ -198,12 +272,16 @@ def fetch_url(
     if truncated:
         text = text[:max_chars]
 
+    embedded_raw = re.findall(r"https?://[^\s<>\"'()]+", html_str)
+    embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][:100]
+
     structured = {
         "url": str(resp.url),
         "status_code": resp.status_code,
         "content_type": content_type,
         "content_truncated": truncated,
         "redirects": redirects_followed,
+        "embedded_links": embedded_links,
     }
 
     return structured, text

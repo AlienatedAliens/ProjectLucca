@@ -92,7 +92,8 @@ Lucca executes completely offline on native workstation silicon with **zero clou
 | Compute Hardware | Physical Specification | Workload Assignment |
 | :--- | :--- | :--- |
 | **dGPU** | NVIDIA GeForce RTX 5080 Laptop (16 GB GDDR7, Blackwell `sm_120`) | **llama-server.exe**: Mistral NeMo 12B Q6_K, 16K context, Q8_0 KV cache, Flash Attention ($\le 12.5\text{ GB}$ clamp). |
-| **NPU** | Intel AI Boost NPU (Arrow Lake-HX via OpenVINO native Windows) | **Audio Senses & Embeddings**: Kokoro TTS (INT8), Silero VAD, Faster-Whisper ASR, 384-D vector embeddings (`all-MiniLM-L6-v2`). |
+| **NPU** | Intel AI Boost NPU (Arrow Lake-HX via OpenVINO native Windows) | **Embeddings**: 384-D vector embeddings (`all-MiniLM-L6-v2` via OpenVINO). |
+| **dGPU** _(audio)_ | _(shared with LLM above)_ | **ASR**: `distil-small.en` via faster-whisper (CUDA float16, +555 MiB VRAM). **TTS**: Kokoro-82M ONNX on CPU. **VAD**: Silero on CPU. |
 | **CPU** | Intel Core Ultra 9 275HX (24 cores / 32 threads) | **Core Orchestrator & Reasoning**: ZeroMQ IPC bus, MicroScheme LISP engine, Z3 SMT prover, SQLite WAL + `sqlite-vec` + FTS5, Docker RPC. |
 | **Host RAM** | 16 GB Physical Host Memory | System memory pool; WSL2 container memory clamped to 4.5 GB (`4608MB`) via `C:\Users\<user>\.wslconfig`. |
 
@@ -109,10 +110,10 @@ All measurements were obtained directly from live execution on native workstatio
 | **Persistent Container Tool RPC** | `lucca-toolsrv --loop` in `lucca/file-sandbox` | **$6.87\,\text{ms}$ P50** | **Verified** |
 | **Joint Audio-Tool Turnaround** | Complete turn: VAD $\to$ ASR $\to$ LLM $\to$ Tool $\to$ Synth $\to$ TTS | **$1,613.54\,\text{ms}$ P50** | **Verified** |
 | **Speculative BDI Validation** | Pre-dispatch deontic policy check on candidate tool calls | **$2.9\text{--}32.0\,\mu\text{s}$** (Budget: $\le 200\,\mu\text{s}$) | **Verified** |
-| **Output Supervisor Abort** | Streaming clause capitulation detection $\to$ Audio abort | **$< 35\,\mu\text{s}$** ring signal / $< 500\,\text{ms}$ turn | **Verified** |
+| **Output Supervisor Clause Detection** | Streaming DFA regex classification (P50: $6.4\\,\\mu\\text{s}$) + WASAPI audio drain | **$6.4\\,\\mu\\text{s}$** regex P50; **$20\\text{--}50\\,\\text{ms}$** physical audio abort | **Verified** |
 | **Prefix KV-Cache Optimization** | Prompt Frontier Suffix on NeMo 12B (RTX 5080) | **$8.58\times$ faster** ($46.84\,\text{ms}$ vs $402.05\,\text{ms}$) | **Verified** |
 | **Epistemic Abstention Accuracy**| 25-question confabulation test battery | **$0 / 25$ hallucinations (100% adherence)** | **Verified** |
-| **Z3 SMT Verification Time** | Automated SAT, contingency, and path proofs | **$\le 25\,\text{ms}$** (Budget: $\le 500\,\text{ms}$) | **Verified** |
+| **Z3 SMT Verification Time** | Automated SAT, contingency, and path proofs; unmodeled predicates fail closed (`UNMODELED_PREDICATE`) | **$\le 25\,\text{ms}$** (Budget: $\le 500\,\text{ms}$) | **Verified** |
 | **Frozen Packaging Acceptance** | `Lucca.exe --check` 7-point native hardware audit | **$7 / 7$ criteria PASSED (code 0)** | **Verified** |
 | **Static Architectural Gates** | Zero `Any` types across `core`, `brain`, `reasoning` | **$8 / 8$ gates PASSED (code 0)** | **Verified** |
 | **Full Regression Test Suite** | 52 test modules covering all subsystems | **$394 / 394$ PASSED (100% GREEN in 97.49s)** | **Verified** |

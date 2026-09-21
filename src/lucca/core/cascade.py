@@ -13,6 +13,7 @@ import json
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Sequence
 
 import structlog
@@ -33,12 +34,14 @@ logger = structlog.get_logger(__name__)
 
 class EpistemicSubstrate(enum.IntEnum):
     """
-    The 5 epistemic substrates in Project Lucca's cognitive architecture:
+    Epistemic substrates in Project Lucca's cognitive architecture:
     0: Live System / Hardware Telemetry (< 1ms, Tier 1)
     1: Workspace Filesystem / AST (5–20ms, Tier 2)
     2: Cryptographic Episodic & Semantic Memory (15–40ms, Tier 3)
     3: SSRF-Hardened Sandboxed Web (300–1500ms, Tier 4)
-    4: Calibrated Honest Abstention (0ms, \bot Ground Truth Gap)
+    4: Calibrated Honest Abstention (0ms, \\bot Ground Truth Gap)
+    5: Axiomatic Core Persona & Self-Model (0ms, Tier 0)
+    6: Authoritative Dynamic Capability & Tool Registry (0ms, Tier 0)
     """
 
     TELEMETRY = 0
@@ -46,18 +49,21 @@ class EpistemicSubstrate(enum.IntEnum):
     MEMORY = 2
     WEB = 3
     ABSTENTION = 4
+    SELF = 5
+    CAPABILITIES = 6
 
 
 class TrustTier(enum.IntEnum):
     """
     Epistemic Trust Hierarchy: Lower integer denotes higher physical authority.
-    Tier 1 strictly supersedes Tier 2, Tier 2 strictly supersedes Tier 3, etc.
+    Tier 0 strictly supersedes Tier 1, Tier 1 strictly supersedes Tier 2, etc.
     """
 
-    TIER_1_HARDWARE = 1   # Direct OS/sensor telemetry (hardware truth)
+    TIER_0_AXIOMATIC = 0  # Axiomatic self-knowledge, persona, and registered capabilities
+    TIER_1_HARDWARE = 1  # Direct OS/sensor telemetry (hardware truth)
     TIER_2_WORKSPACE = 2  # Bounded container filesystem / source AST
-    TIER_3_MEMORY = 3     # HMAC-signed episodic memory & user preferences
-    TIER_4_WEB = 4        # External untrusted network content (tainted)
+    TIER_3_MEMORY = 3  # HMAC-signed episodic memory & user preferences
+    TIER_4_WEB = 4  # External untrusted network content (tainted)
 
 
 class BelnapValue(str, enum.Enum):
@@ -198,6 +204,8 @@ def build_calibrated_refusal(
     actually queried for this turn, preventing false action assertions.
     """
     names_map: dict[EpistemicSubstrate, str] = {
+        EpistemicSubstrate.SELF: "core persona & self-knowledge",
+        EpistemicSubstrate.CAPABILITIES: "registered capabilities",
         EpistemicSubstrate.TELEMETRY: "system telemetry",
         EpistemicSubstrate.WORKSPACE: "workspace files",
         EpistemicSubstrate.MEMORY: "memory records",
@@ -238,16 +246,19 @@ class SearchCascadeResult(BaseModel):
 # ============================================================================
 
 
-def select_floor_cue(
-    query_text: str, target_substrate: EpistemicSubstrate | None = None
-) -> str:
+def select_floor_cue(query_text: str, target_substrate: EpistemicSubstrate | None = None) -> str:
     """
     Selects an acoustic floor-holding reflex cue within < 1ms to claim
     the conversational floor before multi-substrate search execution.
     """
     lower = query_text.lower()
+    if target_substrate == EpistemicSubstrate.SELF:
+        return "Reflecting on my design..."
+    if target_substrate == EpistemicSubstrate.CAPABILITIES:
+        return "Checking my capabilities..."
     if target_substrate == EpistemicSubstrate.TELEMETRY or any(
-        w in lower for w in ("gpu", "vram", "cpu", "ram", "hardware", "specs", "load", "utilization")
+        w in lower
+        for w in ("gpu", "vram", "cpu", "ram", "hardware", "specs", "load", "utilization")
     ):
         return "Checking system telemetry..."
     if target_substrate == EpistemicSubstrate.WORKSPACE or any(
@@ -282,20 +293,45 @@ def extract_clean_topic(query_text: str) -> str:
     # 2. Strip leading question starters and conversational framing
     lower_clause = first_clause.lower()
     prefixes = (
-        "what can you tell me about", "what can you tell me", "what can you",
-        "can you tell me about", "can you tell me", "tell me about", "tell me",
-        "do you know who is", "do you know what is", "do you know",
-        "do you remember", "can you check", "check", "search for", "find",
-        "who is", "who was", "who are", "who were",
-        "what did i have for", "what did i", "what did we", "what did", "what do",
-        "what is the definition of", "what is", "what was", "what are", "what were",
-        "where is", "where was", "where are",
-        "why is", "how is",
+        "what can you tell me about",
+        "what can you tell me",
+        "what can you",
+        "can you tell me about",
+        "can you tell me",
+        "tell me about",
+        "tell me",
+        "do you know who is",
+        "do you know what is",
+        "do you know",
+        "do you remember",
+        "can you check",
+        "check",
+        "search for",
+        "find",
+        "who is",
+        "who was",
+        "who are",
+        "who were",
+        "what did i have for",
+        "what did i",
+        "what did we",
+        "what did",
+        "what do",
+        "what is the definition of",
+        "what is",
+        "what was",
+        "what are",
+        "what were",
+        "where is",
+        "where was",
+        "where are",
+        "why is",
+        "how is",
     )
     stripped = first_clause
     for p in sorted(prefixes, key=len, reverse=True):
         if lower_clause.startswith(p):
-            stripped = first_clause[len(p):].strip()
+            stripped = first_clause[len(p) :].strip()
             break
 
     stripped = stripped.strip("?.!, \t\n\r")
@@ -337,67 +373,170 @@ def classify_epistemic_intent(
 
     lower = clean.lower()
 
-    # Non-epistemic conversational or command utterances
+    # Non-epistemic conversational commands or pure acknowledgments
     non_epistemic_exact = {
-        "hello", "hi", "hey", "good morning", "good evening", "good afternoon",
-        "thanks", "thank you", "bye", "goodbye", "stop", "pause", "shut down",
-        "turn off", "exit", "quit", "mute", "unmute"
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good evening",
+        "good afternoon",
+        "thanks",
+        "thank you",
+        "bye",
+        "goodbye",
+        "stop",
+        "pause",
+        "shut down",
+        "turn off",
+        "exit",
+        "quit",
+        "mute",
+        "unmute",
     }
     clean_punct = re.sub(r"[^\w\s]", "", lower).strip()
     if clean_punct in non_epistemic_exact:
         return False, [], None
 
-    # Companion identity, persona, capabilities, and friendly banter
-    identity_pattern = (
+    # Conversational small talk / pure banter (without factual inquiry)
+    pure_banter = r"^(?:how\s+are\s+you|how(?:'re|\s+are)\s+you\s+doing|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going)[.?!]?$"
+    if re.search(pure_banter, lower):
+        return False, [], None
+
+    # Substrate SELF: Companion identity, persona, creator, and design (Tier 0 Axiomatic)
+    self_pattern = (
         r"\b(who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
-        r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|what\s+can\s+you\s+do|"
-        r"introduce\s+yourself|what(?:'s|\s+is)\s+your\s+name|how\s+are\s+you|"
-        r"how(?:'re|\s+are)\s+you\s+doing|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going|"
-        r"who\s+made\s+you|who\s+built\s+you)\b"
+        r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|who\s+made\s+you|who\s+built\s+you|"
+        r"are\s+you\s+an?\s+(?:ai|human|robot|assistant|companion)|what(?:'s|\s+is)\s+your\s+name|"
+        r"introduce\s+yourself|your\s+(?:personality|archetype|creator|lore))\b"
     )
-    if re.search(identity_pattern, lower):
-        return False, [], None
 
-    # Linguistic definitions, grammatical questions, and conceptual explanations
-    definitional_pattern = (
-        r"\b(what(?:'s|\s+is)\s+the\s+definition\s+of|definition\s+of|"
-        r"what\s+does\s+.+\s+mean|define\b|how\s+do\s+you\s+spell|"
-        r"what(?:'s|\s+is)\s+a\s+mutex|difference\s+between)\b"
+    # Substrate CAPABILITIES: Available tools, desktop apps, and LISP pathways (Tier 0 Axiomatic)
+    capability_pattern = (
+        r"\b(what\s+tools|what\s+can\s+you\s+do|available\s+(?:tools|functions|skills)|"
+        r"what\s+applications|what\s+apps|can\s+you\s+(?:launch|open|edit|run|execute)|"
+        r"list\s+(?:your\s+)?(?:tools|functions|capabilities)|installed\s+tools|"
+        r"reasoning\s+pathways|lisp\s+rules|microscheme|what\s+functions|access\s+to\s+(?:python|lisp))\b"
     )
-    if re.search(definitional_pattern, lower):
-        return False, [], None
 
-    # Substrate 0: Telemetry
+    # Substrate TELEMETRY: System & Hardware Metrics
     telemetry_words = (
-        "gpu", "vram", "cpu", "ram", "memory usage", "hardware", "specs",
-        "workstation", "processor", "utilization", "load", "temperature",
-        "telemetry", "substrate configuration", "nvidia", "intel",
-        "motherboard", "serial number", "chassis"
+        "gpu",
+        "vram",
+        "cpu",
+        "ram",
+        "memory usage",
+        "hardware",
+        "specs",
+        "workstation",
+        "processor",
+        "utilization",
+        "load",
+        "temperature",
+        "telemetry",
+        "substrate configuration",
+        "nvidia",
+        "intel",
+        "overheating",
+        "motherboard",
+        "serial number",
+        "chassis",
+        "laptop specs",
     )
-    # Substrate 1: Workspace Filesystem
+
+    # Substrate WORKSPACE: Filesystem & Code AST
     workspace_words = (
-        "read the file", "read_file", "workspace", "directory", "folder",
-        "config/", "src/", "data/", "scripts/", "repo", "main.py", "persona.toml",
-        "files in", "list files", "grep", "ast"
+        "read the file",
+        "read_file",
+        "workspace",
+        "directory",
+        "folder",
+        "config/",
+        "src/",
+        "data/",
+        "scripts/",
+        "repo",
+        "main.py",
+        "persona.toml",
+        "files in",
+        "list files",
+        "grep",
+        "ast",
+        "contents of",
     )
-    # Substrate 2: Memory
+    has_file_name = bool(
+        re.search(
+            r"\b[a-zA-Z0-9_\-./\\]+\.(?:md|py|txt|toml|json|sql|csv|pdf|docx|yaml|yml)\b",
+            lower,
+        )
+    )
+
+    # Substrate MEMORY: Episodic Memory & Preferences
     memory_words = (
-        "what did i", "what did we", "do you remember", "in memory",
-        "what is my", "what are my", "my favorite", "my preference", "prefer",
-        "creator full real name", "creator's full real name", "creator's real name",
-        "full real name", "real name", "vault",
-        "cat's name", "dog's name", "childhood pet", "pet's name",
-        "breakfast", "weather outside", "passkey", "password"
+        "what did i",
+        "what did we",
+        "do you remember",
+        "in memory",
+        "what is my",
+        "what are my",
+        "my favorite",
+        "my preference",
+        "prefer",
+        "creator full real name",
+        "creator's full real name",
+        "creator's real name",
+        "full real name",
+        "real name",
+        "vault",
+        "cat's name",
+        "dog's name",
+        "childhood pet",
+        "pet's name",
+        "breakfast",
+        "weather outside",
+        "passkey",
+        "password",
+        "recall",
+        "last session",
+        "notes on my",
+        "talked about",
     )
-    # Substrate 3: Web
-    web_words = ("fetch_url", "http://", "https://", "fetch url", "browse", "website")
+
+    # Substrate WEB: External World / Web Search
+    web_words = (
+        "fetch_url",
+        "http://",
+        "https://",
+        "fetch url",
+        "browse",
+        "website",
+        "look up",
+        "lookup",
+        "search for",
+        "search google",
+        "check google",
+        "google",
+        "find out about",
+        "check wikipedia",
+        "wikipedia",
+        "headlines",
+        "online",
+    )
 
     substrates: list[EpistemicSubstrate] = []
+    # Private credentials, creator real names, and secrets must query MEMORY, not general SELF
+    is_private_memory = any(
+        w in lower for w in ("real name", "full real name", "passkey", "vault", "password")
+    )
+    if re.search(self_pattern, lower) and not is_private_memory:
+        substrates.append(EpistemicSubstrate.SELF)
+    if re.search(capability_pattern, lower):
+        substrates.append(EpistemicSubstrate.CAPABILITIES)
     if any(w in lower for w in telemetry_words):
         substrates.append(EpistemicSubstrate.TELEMETRY)
-    if any(w in lower for w in workspace_words):
+    if any(w in lower for w in workspace_words) or has_file_name:
         substrates.append(EpistemicSubstrate.WORKSPACE)
-    if any(w in lower for w in memory_words):
+    if any(w in lower for w in memory_words) or is_private_memory:
         substrates.append(EpistemicSubstrate.MEMORY)
     if any(w in lower for w in web_words):
         substrates.append(EpistemicSubstrate.WEB)
@@ -434,7 +573,9 @@ class EpistemicSearchCascade:
     def classify_intent(self, query_text: str) -> tuple[bool, list[EpistemicSubstrate], str | None]:
         return classify_epistemic_intent(query_text)
 
-    def select_floor_cue(self, query_text: str, target_substrate: EpistemicSubstrate | None = None) -> str:
+    def select_floor_cue(
+        self, query_text: str, target_substrate: EpistemicSubstrate | None = None
+    ) -> str:
         return select_floor_cue(query_text, target_substrate)
 
     def _execute_sandbox(
@@ -450,8 +591,87 @@ class EpistemicSearchCascade:
             return self.sandbox.execute(tool_name=tool_name, args=args, confirmed=confirmed)
         if hasattr(self.sandbox, "execute_tool"):
             cid = f"call-casc-{ulid.ULID()}"
-            return self.sandbox.execute_tool(call_id=cid, tool_name=tool_name, args=args, confirmed=confirmed)
+            return self.sandbox.execute_tool(
+                call_id=cid, tool_name=tool_name, args=args, confirmed=confirmed
+            )
         return None
+
+    # ------------------------------------------------------------------------
+    # Substrate SELF: Axiomatic Persona & Self-Model (0ms, Tier 0)
+    # ------------------------------------------------------------------------
+    def query_substrate_self(self, query_text: str) -> list[EvidenceItem]:
+        """
+        Queries live persona, identity, and runtime truth (Substrate SELF - Axiomatic Tier 0).
+
+        Runtime facts (which LLM / ASR / TTS are loaded) are read from LuccaConfig at
+        query time, never hard-coded, so a brain swap is a config change and Lucca's
+        self-description stays truthful.
+        """
+        from lucca.brain.prompt_builder import get_persona_config
+        from lucca.core.config import get_config
+
+        try:
+            cfg = get_persona_config()
+            rt = get_config()
+            content = (
+                f"Agent Identity: Lucca, local AI engineer companion. "
+                f"Archetype: {cfg.archetype}. Voice: {cfg.voice}. "
+                f"Local Runtime: language model '{rt.llm.model_display_name()}' served by "
+                f"llama-server on the dGPU (context {rt.llm.ctx} tokens); "
+                f"speech recognition '{Path(rt.asr.model).name}' on NPU/CPU; "
+                f"speech synthesis '{Path(rt.tts.model).name}' voice '{rt.tts.voice}'. "
+                f"Core Purpose: Pair-programming, systems debugging, and desktop automation. "
+                f"Created locally for this workstation. "
+                f"Admits uncertainty: {cfg.admits_uncertainty}."
+            )
+        except Exception:
+            content = (
+                "Lucca: local AI engineer companion for pair programming and systems engineering."
+            )
+
+        return [
+            EvidenceItem(
+                substrate=EpistemicSubstrate.SELF,
+                trust_tier=TrustTier.TIER_0_AXIOMATIC,
+                source="config/persona.toml",
+                content=content,
+                belnap_val=BelnapValue.TRUE,
+                confidence=1.0,
+                latency_ms=0.01,
+            )
+        ]
+
+    # ------------------------------------------------------------------------
+    # Substrate CAPABILITIES: Authoritative Capability Registry (0ms, Tier 0)
+    # ------------------------------------------------------------------------
+    def query_substrate_capabilities(self, query_text: str) -> list[EvidenceItem]:
+        """Queries registered capabilities and tools (Substrate CAPABILITIES - Authoritative Tier 0)."""
+        try:
+            from lucca.core.capabilities import get_capability_registry
+
+            reg = get_capability_registry()
+            apps = [a["key"] for a in reg.get_whitelisted_apps() if a.get("status") != "Disabled"]
+            pathways = list(reg.get_reasoning_pathways().keys())
+            tools = [t.function.name for t in reg.get_tool_definitions()]
+            content = (
+                f"Available Core Tools: {', '.join(tools)}. "
+                f"Whitelisted Desktop Applications (Tool Studio): {', '.join(apps)}. "
+                f"Active MicroScheme Reasoning Pathways (LISP Studio): {', '.join(pathways)}."
+            )
+        except Exception:
+            content = "Registered tools: launch_app, read_file, write_file, search_web, fetch_url, query_capabilities."
+
+        return [
+            EvidenceItem(
+                substrate=EpistemicSubstrate.CAPABILITIES,
+                trust_tier=TrustTier.TIER_0_AXIOMATIC,
+                source="CapabilityRegistry",
+                content=content,
+                belnap_val=BelnapValue.TRUE,
+                confidence=1.0,
+                latency_ms=0.01,
+            )
+        ]
 
     # ------------------------------------------------------------------------
     # Substrate 0: System & Hardware Telemetry (< 1ms target)
@@ -469,10 +689,22 @@ class EpistemicSearchCascade:
             cpu = metrics.get("cpu", {})
             ram = metrics.get("ram", {})
 
-            wants_gpu = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("gpu", "vram", "nvidia", "graphics", "video memory"))
-            wants_cpu = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("cpu", "processor", "core", "intel", "ultra 9"))
-            wants_ram = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("ram", "physical memory", "system memory"))
-            general_hw = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in ("hardware", "specs", "telemetry", "substrate configuration", "system"))
+            wants_gpu = any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in ("gpu", "vram", "nvidia", "graphics", "video memory")
+            )
+            wants_cpu = any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in ("cpu", "processor", "core", "intel", "ultra 9")
+            )
+            wants_ram = any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in ("ram", "physical memory", "system memory")
+            )
+            general_hw = any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in ("hardware", "specs", "telemetry", "substrate configuration", "system")
+            )
 
             if wants_gpu or general_hw:
                 content = (
@@ -569,7 +801,10 @@ class EpistemicSearchCascade:
                             metadata={"path": rel_path, "truncated": len(res.content) > 500},
                         )
                     )
-            elif any(w in query_text.lower() for w in ("list files", "directory", "workspace files", "folder")):
+            elif any(
+                w in query_text.lower()
+                for w in ("list files", "directory", "workspace files", "folder")
+            ):
                 res = self._execute_sandbox(
                     tool_name="list_dir",
                     args={"path": "."},
@@ -621,7 +856,11 @@ class EpistemicSearchCascade:
                 raw_hits = res
 
             for hit in raw_hits:
-                prov_val = hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
+                prov_val = (
+                    hit.provenance.value
+                    if hasattr(hit.provenance, "value")
+                    else str(hit.provenance)
+                )
                 items.append(
                     EvidenceItem(
                         substrate=EpistemicSubstrate.MEMORY,
@@ -658,8 +897,13 @@ class EpistemicSearchCascade:
         target_url = url_match.group(1)
         try:
             # Propagate untrusted web taint to active session guard (Spec 09 / D-SEC-04)
-            if self.sandbox and hasattr(self.sandbox, "guard") and hasattr(self.sandbox.guard, "mark_taint"):
+            if (
+                self.sandbox
+                and hasattr(self.sandbox, "guard")
+                and hasattr(self.sandbox.guard, "mark_taint")
+            ):
                 from lucca.sandbox.policy import TaintFlags
+
                 self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
 
             res = self._execute_sandbox(
@@ -715,7 +959,7 @@ class EpistemicSearchCascade:
                 f"Empirical Status: No verified records or facts found for topic '{topic or 'unspecified'}'.\n"
                 f"Mandatory Grounding Directive: You do not possess verified knowledge on this topic. "
                 f"You MUST explicitly admit uncertainty and decline to confabulate or guess. "
-                f"Calibrated Statement: \"{refusal}\""
+                f'Calibrated Statement: "{refusal}"'
             )
             return BelnapValue.UNKNOWN, synth_ctx, refusal
 
@@ -748,7 +992,9 @@ class EpistemicSearchCascade:
                 tier_told_true = any(e.told_true for e in items)
                 tier_told_false = any(e.told_false for e in items)
                 # If lower tier contradicts the higher tier:
-                if (highest_told_true and tier_told_false) or (highest_told_false and tier_told_true):
+                if (highest_told_true and tier_told_false) or (
+                    highest_told_false and tier_told_true
+                ):
                     superseded_annotations.append(
                         f"Trust Tier {highest_tier.value} ({highest_tier.name}) strictly supersedes historical/lower-trust Tier {tier.value} ({tier.name}) record."
                     )
@@ -760,7 +1006,9 @@ class EpistemicSearchCascade:
                 "[Status: CONFLICT (TOP) — Genuine internal contradiction detected within authoritative tier; tension noted]"
             )
         else:
-            lines.append(f"[Status: CONSISTENT ({belnap_status.value}) — Grounded Evidence Verified]")
+            lines.append(
+                f"[Status: CONSISTENT ({belnap_status.value}) — Grounded Evidence Verified]"
+            )
 
         if superseded_annotations:
             for note in superseded_annotations:
@@ -775,9 +1023,12 @@ class EpistemicSearchCascade:
                 current_tier = item.trust_tier
                 lines.append(f"\n[Trust Tier {current_tier.value}: {current_tier.name}]")
             polarity_tag = (
-                "[asserts]" if (item.told_true and not item.told_false)
-                else "[refutes]" if (item.told_false and not item.told_true)
-                else "[both]" if (item.told_true and item.told_false)
+                "[asserts]"
+                if (item.told_true and not item.told_false)
+                else "[refutes]"
+                if (item.told_false and not item.told_true)
+                else "[both]"
+                if (item.told_true and item.told_false)
                 else "[neither]"
             )
             lines.append(f"- ({item.source}) {polarity_tag} {item.content}")
@@ -818,7 +1069,21 @@ class EpistemicSearchCascade:
         resolved_substrate = EpistemicSubstrate.ABSTENTION
 
         for sub in active_substrates:
-            if sub == EpistemicSubstrate.TELEMETRY:
+            if sub == EpistemicSubstrate.SELF:
+                items = self.query_substrate_self(query_text)
+                if items:
+                    collected_evidence.extend(items)
+                    resolved_substrate = EpistemicSubstrate.SELF
+            elif sub == EpistemicSubstrate.CAPABILITIES:
+                items = self.query_substrate_capabilities(query_text)
+                if items:
+                    collected_evidence.extend(items)
+                    if resolved_substrate in (
+                        EpistemicSubstrate.ABSTENTION,
+                        EpistemicSubstrate.SELF,
+                    ):
+                        resolved_substrate = EpistemicSubstrate.CAPABILITIES
+            elif sub == EpistemicSubstrate.TELEMETRY:
                 items = self.query_substrate_0_telemetry(query_text)
                 if items:
                     collected_evidence.extend(items)

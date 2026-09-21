@@ -49,3 +49,9 @@ class FetchUrlArgs(BaseModel):
     url: str = Field(min_length=1)
     render: bool = False
     max_chars: int = Field(default=20000, ge=100, le=100000)
+
+
+class SearchWebArgs(BaseModel):
+    query: str = Field(min_length=1)
+    max_results: int = Field(default=5, ge=1, le=20)
+

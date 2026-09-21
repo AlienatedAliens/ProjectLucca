@@ -1,9 +1,14 @@
 """
 Project Lucca — 100-Input Comprehensive Multi-Disciplinary Evaluation & Audit Harness
-Evaluates Mistral NeMo 12B Instruct Abliterated Q6_K on RTX 5080 Laptop GPU across
-10 distinct cognitive and technical domains with high-resolution metrics.
+Evaluates whichever brain is being served on 127.0.0.1:8080 (model name is read from
+/props) on RTX 5080 Laptop GPU across 10 distinct cognitive and technical domains.
+
+Brain-agnostic since the 2026-09-21 bake-off:
+    python scripts/comprehensive_100_eval.py --candidate gemma4-12b-heretic-q6k
+Thinking-model control flows through LUCCA_LLM__ENABLE_THINKING (see LLMSettings).
 """
 
+import argparse
 import json
 import os
 import sys
@@ -17,6 +22,29 @@ import httpx
 from lucca.brain.llm_client import LLMClient
 from lucca.brain.prompt_builder import TOOL_DEFINITIONS
 from lucca.core.schemas import Done, TokenDelta, ToolCallEnd
+
+
+# Vendor / base-model identity leaks that break the Lucca persona regardless of brain.
+# Checked on every test in addition to per-case negative_keywords.
+IDENTITY_LEAK_MARKERS: list[str] = [
+    "mistral ai",
+    "mistral-nemo",
+    "google deepmind",
+    "developed by google",
+    "trained by google",
+    "i am gemma",
+    "i'm gemma",
+    "alibaba",
+    "qwen",
+    "tongyi",
+    "prism ml",
+    "prismml",
+    "openai",
+    "chatgpt",
+    "anthropic",
+    "claude",
+    "large language model trained by",
+]
 
 
 @dataclass
@@ -1084,20 +1112,24 @@ TEST_SUITE: list[TestCase] = [
 ]
 
 
-def run_eval() -> dict[str, Any]:
+def run_eval(candidate: str = "current", out_path: Path | None = None) -> dict[str, Any]:
     print("=" * 70)
     print("  PROJECT LUCCA — 100-INPUT EXTENSIVE LIVE MULTI-DISCIPLINE EVALUATION")
+    print(f"  Candidate label: {candidate}")
     print("=" * 70)
 
     # 1. Health probe
     client_http = httpx.Client(base_url="http://127.0.0.1:8080", timeout=5.0)
+    model_path = "unknown"
     try:
         r_health = client_http.get("/health")
         assert r_health.status_code == 200, f"Server unhealthy: {r_health.text}"
         r_props = client_http.get("/props").json()
         caps = r_props.get("chat_template_caps", {})
-        print(f"[INIT] llama-server healthy on dGPU | Ctx: {r_props.get('default_generation_settings', {}).get('n_ctx')}")
+        model_path = str(r_props.get("model_path", "unknown"))
+        print(f"[INIT] llama-server healthy on dGPU | Model: {Path(model_path).name} | Ctx: {r_props.get('default_generation_settings', {}).get('n_ctx')}")
         print(f"[INIT] Chat Template Caps: supports_system_role={caps.get('supports_system_role')}, supports_tools={caps.get('supports_tools')}")
+        print(f"[INIT] LUCCA_LLM__ENABLE_THINKING={os.environ.get('LUCCA_LLM__ENABLE_THINKING', '<unset>')}")
     except Exception as exc:
         print(f"[FATAL] llama-server check failed: {exc}")
         sys.exit(1)
@@ -1158,8 +1190,8 @@ def run_eval() -> dict[str, Any]:
                 passed = False
                 audit_reasons.append(f"Unexpected tool call emitted: {tool_calls_emitted[0]['tool']}")
 
-        # Negative keyword audit
-        for nk in tc.negative_keywords:
+        # Negative keyword audit (per-case + brain-agnostic identity leaks)
+        for nk in (*tc.negative_keywords, *IDENTITY_LEAK_MARKERS):
             if nk.lower() in full_text.lower():
                 passed = False
                 audit_reasons.append(f"Leaked forbidden phrase: '{nk}'")
@@ -1298,13 +1330,16 @@ def run_eval() -> dict[str, Any]:
 
     output_payload = {
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "model": "Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf",
+        "candidate": candidate,
+        "model": Path(model_path).name,
+        "model_path": model_path,
+        "enable_thinking_env": os.environ.get("LUCCA_LLM__ENABLE_THINKING"),
         "hardware": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB)",
         "summary": stats,
         "results": results,
     }
 
-    out_file = Path("C:/Projects/ProjectLucca/data/eval/audit_results_100.json")
+    out_file = out_path or Path(f"C:/Projects/ProjectLucca/data/eval/audit_results_100_{candidate}.json")
     out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(output_payload, f, indent=2)
@@ -1324,4 +1359,8 @@ def run_eval() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    run_eval()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--candidate", default="current", help="Label used in output filename/payload")
+    ap.add_argument("--out", default=None, help="Explicit output JSON path")
+    args = ap.parse_args()
+    run_eval(candidate=args.candidate, out_path=Path(args.out) if args.out else None)

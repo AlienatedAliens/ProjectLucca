@@ -4,13 +4,16 @@ Spec 11 §1 (`lucca.core.config`)
 """
 
 import os
+import re
 import sys
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_QUANT_TOKEN = re.compile(r"^(?:IQ|PQ|TQ|Q)\d[\w]*$", re.IGNORECASE)
 
 
 class EnvSettings(BaseModel):
@@ -28,6 +31,12 @@ class PathsSettings(BaseModel):
 
 
 class LLMSettings(BaseModel):
+    """
+    Single source of truth for the neural brain. Nothing else in the runtime may
+    hard-code a model name, server binary, or chat template — derive from here.
+    Env override: LUCCA_LLM__<FIELD> (e.g. LUCCA_LLM__MODEL, LUCCA_LLM__CHAT_TEMPLATE_FILE=).
+    """
+
     mode: Literal["audio", "transcript"] = "transcript"
     host: str = "127.0.0.1"
     port: int = 8080
@@ -35,9 +44,46 @@ class LLMSettings(BaseModel):
     kv_type: str = "q8_0"
     max_tokens: int = 512
     temperature: float = 0.6
+    # Reasoning-model control (reasoning-model templates honour
+    # chat_template_kwargs.enable_thinking). None = omit the kwarg (template default).
+    # Companion tiers (ACT_THEN_NARRATE / FULL_LOOP) must run with False to keep
+    # TTFT inside the 650-850 ms budget; see docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md.
+    # Templates without a thinking channel ignore the kwarg harmlessly.
+    enable_thinking: bool | None = False
     model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
     mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
     text_model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
+    # llama-server binary, relative to LUCCA_HOME or absolute. Forked builds
+    # (e.g. PrismML ternary kernels) are selected here, never by code.
+    server_bin: str = "app/llama-server/llama-server.exe"
+    # Chat template selection. Precedence: chat_template_file > chat_template > GGUF-embedded.
+    # Relative paths resolve against LUCCA_HOME then the repo root. Blank/None = embedded.
+    chat_template_file: str | None = "templates/mistral_nemo.jinja"
+    chat_template: str | None = None
+    # Human-readable brain name for self-awareness prompts. None = derived from filename.
+    display_name: str | None = None
+
+    @field_validator("chat_template_file", "chat_template", "display_name", mode="before")
+    @classmethod
+    def _blank_to_none(cls, v: object) -> object:
+        if isinstance(v, str) and (not v.strip() or v.strip().lower() in ("none", "null")):
+            return None
+        return v
+
+    def model_display_name(self) -> str:
+        """
+        Friendly brain name derived from the GGUF filename unless display_name is set.
+        Used by persona/self-awareness prompts so the brain never has to be named in code.
+        """
+        if self.display_name:
+            return self.display_name
+        stem = Path(self.model).name
+        if stem.lower().endswith(".gguf"):
+            stem = stem[:-5]
+        tokens = [t for t in re.split(r"[-.]", stem) if t]
+        quant = tokens.pop() if tokens and _QUANT_TOKEN.match(tokens[-1]) else None
+        name = " ".join(tokens).replace("_", " ").strip() or stem
+        return f"{name} ({quant})" if quant else name
 
 
 DeviceType = Literal["NPU", "GPU", "CPU"]
@@ -218,4 +264,3 @@ def get_resource_path(relative_path: str | Path) -> Path:
 
     # Fallback to repo or home
     return home_p if home_p.parent.exists() else repo_p
-

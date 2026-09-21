@@ -7,7 +7,6 @@ import pytest
 
 from lucca.brain.prompt_builder import (
     build_narration_messages,
-    format_skill_tools,
     get_all_tool_definitions,
 )
 from lucca.core.orchestrator import Orchestrator
@@ -69,19 +68,18 @@ def test_emergency_reflex_routing():
     assert decision.action == RouteAction.RULE
     assert decision.tier == ExecutionTier.ACT_THEN_NARRATE
 
-    # General conversational utterances
-    decision = router.route(
-        transcript="how are you doing today?",
-        any_active_rule_fired=False,
-        any_quarantine_rule_fired=False,
-        vad_speech_ms=1200,
-    )
+    decision = router.route("stop immediately")
+    assert decision.action == RouteAction.RULE
+    assert decision.tier == ExecutionTier.REFLEX
+
+    # Normal utterance routes to FULL_LOOP or ACT_THEN_NARRATE
+    decision = router.route("tell me a joke")
     assert decision.action == RouteAction.LLM
     assert decision.tier == ExecutionTier.FULL_LOOP
 
 
 def test_skill_as_tool_generation():
-    """Proposal A / D-REAS-04: Active MicroScheme rules are surfaced as callable tools."""
+    """T1.5: Flat skill catalog retired; get_all_tool_definitions contains registry tools only."""
     rule_src = """
     (rule "calc-launcher-v1"
       :when (intent= "launch_app")
@@ -91,23 +89,12 @@ def test_skill_as_tool_generation():
     rule_def = parse_rule(rule_src)
     managed = ManagedRule(rule_id="calc-launcher-v1", status="ACTIVE", definition=rule_def)
 
-    tools = format_skill_tools([managed])
-    assert len(tools) == 1
-    tool_entry = tools[0]
-    assert tool_entry["type"] == "function"
-    assert tool_entry["function"]["name"] == "skill_calc_launcher_v1"
-    assert "MicroScheme procedural skill: calc-launcher-v1" in tool_entry["function"]["description"]
-
-    # Inactive / quarantined rules should not be surfaced as tools
-    quarantined = ManagedRule(rule_id="test-v1", status="QUARANTINE", definition=rule_def)
-    assert len(format_skill_tools([quarantined])) == 0
-
-    # Test combined tool definitions
+    # Test combined tool definitions: no flat skill_* entries
     all_tools = get_all_tool_definitions([managed])
-    tool_names = [t["function"]["name"] for t in all_tools]
+    tool_names = [t.function.name for t in all_tools]
     assert "read_file" in tool_names
-    assert "launch_app" in tool_names
-    assert "skill_calc_launcher_v1" in tool_names
+    assert "invoke_skill" in tool_names
+    assert not any(name.startswith("skill_") for name in tool_names)
 
 
 def test_act_then_narrate_execution(orchestrator):
@@ -124,6 +111,7 @@ def test_act_then_narrate_execution(orchestrator):
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         )
     }
     orchestrator.rule_engine = RuleLifecycleManager(registered_tools=tools)
@@ -221,18 +209,20 @@ def test_skill_tool_invocation_from_llm(orchestrator):
             description="Launch application",
             parameters={"app": ToolParameter(type="string", description="App name")},
             risk=Risk.LAUNCH,
+            target="self",
         )
     }
     orchestrator.rule_engine = RuleLifecycleManager(registered_tools=tools)
     managed = orchestrator.rule_engine.register_rule(rule_src)
     managed.status = "ACTIVE"
+    managed.expose_as_tool = True
 
-    # LLM calls the surfaced skill tool
+    # LLM calls invoke_skill
     round_1 = [
         ToolCallEnd(
             call=ToolCall(
-                tool="skill_calc_app_v1",
-                args={"query": "open calculator"},
+                tool="invoke_skill",
+                args={"skill_id": "calc-app-v1", "args": {"query": "open calculator"}},
                 call_id="c-skill-1",
             )
         ),
@@ -250,7 +240,7 @@ def test_skill_tool_invocation_from_llm(orchestrator):
 
     # Verify skill was executed through _handle_tool_call and executed underlying launch_app
     tool_names = [call[0] for call in orchestrator.executed_tools]
-    assert "skill_calc_app_v1" in tool_names
+    assert "invoke_skill" in tool_names
     assert "launch_app" in tool_names
     assert orchestrator.llm.call_count == 2
 

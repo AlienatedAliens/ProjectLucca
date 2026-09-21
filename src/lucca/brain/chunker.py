@@ -96,11 +96,19 @@ def normalise_text(text: str, speak_urls: bool = False) -> str:
         cleaned_chars.append(ch)
     s = "".join(cleaned_chars)
 
-    # 9. Multiple spaces/newlines -> single space; space before punctuation
     s = re.sub(r"[ \t\r\n]+", " ", s)
     s = re.sub(r" ([,\.\?!;:])", r"\1", s)
 
     return s
+
+
+def sanitize_for_voice(text: str) -> str:
+    """
+    Sanitizes text for speech synthesis, stripping markdown symbols,
+    formatting, asterisks, bullet points, headers, backticks, and raw URLs.
+    """
+    return normalise_text(text, speak_urls=False)
+
 
 
 class StreamingChunker:
@@ -169,6 +177,7 @@ class StreamingChunker:
                     trace_id=self.trace_id,
                     chunk_id=self.chunk_id,
                     text=chunk_text,
+                    raw_text=raw_chunk,
                     is_first=self.is_first,
                 )
                 self.chunk_id += 1
