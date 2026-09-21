@@ -4,6 +4,7 @@ Spec 11 §7 (`lucca-admin`), F-CORE-026, F-CORE-027, F-DRIFT-003
 """
 
 import argparse
+import asyncio
 import json
 import sys
 from pathlib import Path
@@ -21,6 +22,9 @@ from lucca.core.trace import (
     format_latency_markdown,
 )
 from lucca.memory.db import DatabaseManager
+from lucca.memory.manager import MemoryManager
+from lucca.memory.reflection import ReflectionEngine
+from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl
@@ -489,6 +493,202 @@ def run_skills_cli(
     return 1
 
 
+def run_memory_cli(
+    action: str,
+    db_path: Path | None = None,
+    search: str = "",
+    limit: int = 20,
+    status: str = "PENDING",
+    review_id: str | None = None,
+    approver: str = "operator",
+    topic: str | None = None,
+) -> int:
+    """Manages autobiographical memory, belief revisions, and review queue (D-MEM-04, Rung A1)."""
+    if db_path is None:
+        config = get_config()
+        db_path = config.resolve_path("data") / "memory.sqlite"
+
+    db = DatabaseManager(db_path=db_path)
+    db.migrate()
+
+    cfg = get_config()
+    mk: bytes | None = None
+    if cfg.master_key:
+        mk = cfg.master_key.encode("utf-8")
+    elif cfg.env.mode == "dev":
+        mk = b"01234567890123456789012345678901"
+
+    manager = MemoryManager(db=db, master_key=mk)
+    console = Console()
+
+    if action == "list":
+        mems = manager.list_memories(search=search)
+        if not mems:
+            console.print("[yellow]No matching memories found.[/yellow]")
+            return 0
+        table = Table(
+            title=f"Lucca Memory Store — Active Records (Showing up to {limit})",
+            caption="Spec D-MEM-04 Autobiographical Memory & Provenance",
+        )
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Kind", style="magenta")
+        table.add_column("Content / Fact Statement", justify="left")
+        table.add_column("Importance", justify="right")
+        table.add_column("Provenance", style="blue")
+        table.add_column("Confidence", justify="right")
+
+        for m in mems[:limit]:
+            table.add_row(
+                str(m.get("memory_id", "")),
+                str(m.get("kind", "")),
+                str(m.get("content", "")),
+                f"{float(m.get('importance', 0.8)):.2f}",
+                str(m.get("provenance", "")),
+                f"{float(m.get('confidence', 1.0)):.2f}",
+            )
+        console.print(table)
+        return 0
+
+    if action == "review-queue":
+        items = manager.list_review_queue(status=status)
+        if not items:
+            console.print(f"[yellow]No review queue items with status '{status}'.[/yellow]")
+            return 0
+        table = Table(
+            title=f"Belief Revision Review Queue — Status: {status}",
+            caption="Spec D-MEM-04 §7 5-Flag Operator Review Gate",
+        )
+        table.add_column("Review ID", style="cyan", no_wrap=True)
+        table.add_column("Belief ID", justify="right")
+        table.add_column("Old Content", style="red")
+        table.add_column("Proposed Content", style="green")
+        table.add_column("Trigger Reason", style="yellow")
+        table.add_column("Status", justify="center")
+
+        for it in items:
+            status_style = (
+                "[bold yellow]PENDING[/bold yellow]"
+                if it["status"] == "PENDING"
+                else (
+                    "[bold green]APPROVED[/bold green]"
+                    if it["status"] == "APPROVED"
+                    else "[bold red]REJECTED[/bold red]"
+                )
+            )
+            table.add_row(
+                str(it["review_id"]),
+                str(it["belief_id"] or "-"),
+                str(it["old_content"] or "-"),
+                str(it["proposed_content"]),
+                str(it["trigger_reason"]),
+                status_style,
+            )
+        console.print(table)
+        return 0
+
+    if action == "review-approve":
+        if not review_id:
+            console.print("[red]Error: review_id is required to approve.[/red]")
+            return 1
+        if mk is None:
+            console.print("[red]Error: master_key required to sign revised beliefs.[/red]")
+            return 1
+        store = MemoryStore(db=db, master_key=mk)
+        reflection = ReflectionEngine(db=db, store=store, master_key=mk)
+        try:
+            new_mid = asyncio.run(reflection.approve_review(review_id, decided_by=approver))
+            console.print(
+                f"[bold green]SUCCESS: Review '{review_id}' approved by '{approver}'.[/bold green] "
+                f"New memory ID: {new_mid}"
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            console.print(
+                f"[bold red]FAILED: Could not approve review '{review_id}': {err}[/bold red]"
+            )
+            return 1
+
+    if action == "review-reject":
+        if not review_id:
+            console.print("[red]Error: review_id is required to reject.[/red]")
+            return 1
+        if mk is None:
+            console.print("[red]Error: master_key required.[/red]")
+            return 1
+        store = MemoryStore(db=db, master_key=mk)
+        reflection = ReflectionEngine(db=db, store=store, master_key=mk)
+        try:
+            reflection.reject_review(review_id, decided_by=approver)
+            console.print(
+                f"[bold yellow]REJECTED: Review '{review_id}' rejected by "
+                f"'{approver}'.[/bold yellow] Old belief preserved."
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            console.print(
+                f"[bold red]FAILED: Could not reject review '{review_id}': {err}[/bold red]"
+            )
+            return 1
+
+    if action == "mark-review":
+        if not topic:
+            console.print("[red]Error: topic name is required to mark review.[/red]")
+            return 1
+        manager.mark_topic_review_required(topic)
+        console.print(
+            f"[bold green]SUCCESS: Topic '{topic.strip().lower()}' "
+            "marked as review-required.[/bold green]"
+        )
+        return 0
+
+    if action == "unmark-review":
+        if not topic:
+            console.print("[red]Error: topic name is required to unmark review.[/red]")
+            return 1
+        manager.unmark_topic_review_required(topic)
+        console.print(
+            f"[bold green]SUCCESS: Topic '{topic.strip().lower()}' "
+            "removed from review-required.[/bold green]"
+        )
+        return 0
+
+    if action == "list-topics":
+        topics = manager.list_review_required_topics()
+        if not topics:
+            console.print("[yellow]No topics currently marked as review-required.[/yellow]")
+            return 0
+        table = Table(
+            title="Review-Required Topics — Human Operator Gating",
+            caption="Spec D-MEM-04 §7 (Flag 5)",
+        )
+        table.add_column("Topic", style="cyan")
+        for t in topics:
+            table.add_row(t)
+        console.print(table)
+        return 0
+
+    if action == "rollup":
+        if mk is None:
+            console.print("[red]Error: master_key required for roll-up.[/red]")
+            return 1
+        store = MemoryStore(db=db, master_key=mk)
+        reflection = ReflectionEngine(db=db, store=store, master_key=mk)
+        try:
+            count = asyncio.run(reflection.rollup_nightly())
+            console.print(
+                f"[bold green]SUCCESS: Nightly roll-up complete.[/bold green] "
+                f"Compressed {count} low-importance autobiographical memories into "
+                "session summaries."
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            console.print(f"[bold red]FAILED: Roll-up failed: {err}[/bold red]")
+            return 1
+
+    console.print(f"[red]Unknown memory action: {action}[/red]")
+    return 1
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Builds the normative lucca-admin argument parser (Spec 11 §7)."""
     parser = argparse.ArgumentParser(
@@ -615,8 +815,45 @@ def create_parser() -> argparse.ArgumentParser:
     p_sret = skills_sub.add_parser("retire", help="Retire an active skill package")
     p_sret.add_argument("skill_id", help="Skill identifier to retire")
 
+    # memory
+    p_mem = subparsers.add_parser(
+        "memory", help="Autobiographical memory, review queue & belief revision (D-MEM-04, Rung A1)"
+    )
+    p_mem.add_argument("--db", type=str, default=None, help="Optional database path")
+    mem_sub = p_mem.add_subparsers(dest="action", required=True)
+
+    p_mlist = mem_sub.add_parser("list", help="List active memories")
+    p_mlist.add_argument("--search", "-s", type=str, default="", help="Search filter")
+    p_mlist.add_argument("--limit", "-n", type=int, default=20, help="Max memories to show")
+
+    p_rq = mem_sub.add_parser("review-queue", help="List items in belief review queue")
+    p_rq.add_argument(
+        "--status",
+        choices=["PENDING", "APPROVED", "REJECTED", "ALL"],
+        default="PENDING",
+        help="Filter review items by status",
+    )
+
+    p_rappr = mem_sub.add_parser("review-approve", help="Approve a pending belief revision")
+    p_rappr.add_argument("review_id", help="Review item ID to approve")
+    p_rappr.add_argument("--approver", default="operator", help="Approver identity")
+
+    p_rrej = mem_sub.add_parser("review-reject", help="Reject a pending belief revision")
+    p_rrej.add_argument("review_id", help="Review item ID to reject")
+    p_rrej.add_argument("--approver", default="operator", help="Approver identity")
+
+    p_rmark = mem_sub.add_parser("mark-review", help="Mark a topic as requiring operator review")
+    p_rmark.add_argument("topic", help="Topic name to mark")
+
+    p_runmark = mem_sub.add_parser("unmark-review", help="Remove topic from review-required list")
+    p_runmark.add_argument("topic", help="Topic name to unmark")
+
+    mem_sub.add_parser("list-topics", help="List all review-required topics")
+
+    mem_sub.add_parser("rollup", help="Run nightly roll-up of low-importance memories")
+
     # Stubs per F-CORE-027
-    for stub in ["metrics", "memory", "router", "replay"]:
+    for stub in ["metrics", "router", "replay"]:
         sub = subparsers.add_parser(
             stub, help=f"{stub.capitalize()} management (not implemented, tracked as F-CORE-027)"
         )
@@ -705,7 +942,28 @@ def main(argv: list[str] | None = None) -> None:
                 skills_dir=skills_dir,
             )
         )
-    elif args.cmd in ("metrics", "memory", "router", "replay"):
+    elif args.cmd == "memory":
+        search = getattr(args, "search", "")
+        limit = getattr(args, "limit", 20)
+        status = getattr(args, "status", "PENDING")
+        review_id = getattr(args, "review_id", None)
+        approver = getattr(args, "approver", "operator")
+        topic = getattr(args, "topic", None)
+        db_arg = getattr(args, "db", None)
+        db_path = Path(db_arg) if db_arg else None
+        sys.exit(
+            run_memory_cli(
+                action=args.action,
+                db_path=db_path,
+                search=search,
+                limit=limit,
+                status=status,
+                review_id=review_id,
+                approver=approver,
+                topic=topic,
+            )
+        )
+    elif args.cmd in ("metrics", "router", "replay"):
         print("not implemented (tracked as F-CORE-027)")
         sys.exit(3)
     else:

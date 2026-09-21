@@ -51,6 +51,7 @@ class EpistemicSubstrate(enum.IntEnum):
     ABSTENTION = 4
     SELF = 5
     CAPABILITIES = 6
+    SELF_HISTORY = 7
 
 
 class TrustTier(enum.IntEnum):
@@ -213,6 +214,7 @@ def build_calibrated_refusal(
         EpistemicSubstrate.WORKSPACE: "workspace files",
         EpistemicSubstrate.MEMORY: "memory records",
         EpistemicSubstrate.WEB: "external web sources",
+        EpistemicSubstrate.SELF_HISTORY: "execution and utterance history",
     }
     checked = [names_map[s] for s in queried_substrates if s in names_map]
     if not checked:
@@ -242,6 +244,7 @@ class SearchCascadeResult(BaseModel):
     calibrated_refusal: str | None = None
     synthesized_context: str = ""
     queried_substrates: list[EpistemicSubstrate] = Field(default_factory=list)
+    recollections: list[str] = Field(default_factory=list)
 
 
 # ============================================================================
@@ -272,6 +275,21 @@ def select_floor_cue(query_text: str, target_substrate: EpistemicSubstrate | Non
         w in lower for w in ("remember", "memory", "preference", "last time", "we talked", "who is")
     ):
         return "Checking my memory records..."
+    if target_substrate == EpistemicSubstrate.SELF_HISTORY or any(
+        w in lower
+        for w in (
+            "what did you do",
+            "did you do",
+            "did you run",
+            "did you tell me",
+            "did you say",
+            "have you ever been wrong",
+            "what did you say",
+            "what tools did you use",
+            "past actions",
+        )
+    ):
+        return "Reviewing my execution and conversation history..."
     if target_substrate == EpistemicSubstrate.WEB or any(
         w in lower for w in ("http", "https", "url", "website", "online", "fetch")
     ):
@@ -542,6 +560,28 @@ def classify_epistemic_intent(
         substrates.append(EpistemicSubstrate.TELEMETRY)
     if any(w in lower for w in workspace_words) or has_file_name:
         substrates.append(EpistemicSubstrate.WORKSPACE)
+    self_history_words = (
+        "what did you do",
+        "what were you doing",
+        "what did we do",
+        "what tools did you use",
+        "did you run",
+        "did you save",
+        "did you execute",
+        "did you tell me",
+        "did you say",
+        "have you ever been wrong",
+        "have you ever made a mistake",
+        "you said yesterday",
+        "you said earlier",
+        "what did you tell me",
+        "what did you say",
+        "past actions",
+        "execution history",
+        "did you claim",
+    )
+    if any(w in lower for w in self_history_words):
+        substrates.append(EpistemicSubstrate.SELF_HISTORY)
     if any(w in lower for w in memory_words) or is_private_memory:
         substrates.append(EpistemicSubstrate.MEMORY)
     if any(w in lower for w in web_words):
@@ -854,6 +894,7 @@ class EpistemicSearchCascade:
         if not self.memory_store or not query_text.strip():
             return items
 
+        self._last_recollections: list[str] = []
         try:
             q = RetrievalQuery(query_text=query_text.strip(), k=5)
             res = self.memory_store.search(q)
@@ -873,6 +914,11 @@ class EpistemicSearchCascade:
                 raw_hits = res
 
             for hit in raw_hits:
+                # Invariant D-MEM-04: Non-grounding rows MUST NOT enter Belnap evidence fusion!
+                if not getattr(hit, "grounding_eligible", True):
+                    self._last_recollections.append(f'[{hit.provenance.value}] "{hit.content}"')
+                    continue
+
                 prov_val = (
                     hit.provenance.value
                     if hasattr(hit.provenance, "value")
@@ -895,6 +941,149 @@ class EpistemicSearchCascade:
                 )
         except Exception as exc:  # noqa: BLE001
             logger.debug("substrate_2_memory_query_error", error=str(exc))
+
+        return items
+
+    def query_substrate_self_history(self, query_text: str) -> list[EvidenceItem]:
+        """
+        Queries self-history (Substrate 7: SELF_HISTORY, Tier 1).
+        Entailed by execution_triples ∪ ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH.
+        Abstains (returns empty list) if the record is empty.
+        """
+        items: list[EvidenceItem] = []
+        db = getattr(self.memory_store, "db", None)
+        if not db or not query_text.strip():
+            return items
+
+        try:
+            tokens = [
+                tok.lower()
+                for tok in re.findall(r"\b[a-zA-Z0-9_\-.]+\b", query_text)
+                if len(tok) >= 3
+                and tok.lower()
+                not in (
+                    "what",
+                    "did",
+                    "you",
+                    "were",
+                    "doing",
+                    "last",
+                    "time",
+                    "session",
+                    "tell",
+                    "say",
+                    "have",
+                    "ever",
+                    "been",
+                    "wrong",
+                    "earlier",
+                    "recently",
+                    "about",
+                    "for",
+                )
+            ]
+            candidates: list[tuple[int, float, EvidenceItem]] = []
+            with db.read_cursor() as cur:
+                # 1. Query execution_triples
+                cur.execute(
+                    """
+                    SELECT triple_id, proposal_json, decision_json, outcome_json, created_at
+                    FROM execution_triples
+                    ORDER BY created_at DESC LIMIT 50
+                    """
+                )
+                triples = cur.fetchall()
+                for tr_id, prop_json, dec_json, out_json, cat_ts in triples:
+                    rec_str = f"Execution action in triple {tr_id}: {out_json}"
+                    combined = f"{prop_json} {dec_json} {out_json}".lower()
+                    if tokens:
+                        score = sum(1 for t in tokens if t in combined)
+                        if score > 0:
+                            candidates.append(
+                                (
+                                    score,
+                                    float(cat_ts),
+                                    EvidenceItem(
+                                        substrate=EpistemicSubstrate.SELF_HISTORY,
+                                        trust_tier=TrustTier.TIER_1_HARDWARE,
+                                        source=f"history:triple:{tr_id}",
+                                        content=rec_str,
+                                        polarity=BelnapValue.TRUE,
+                                        confidence=1.0,
+                                        metadata={"triple_id": str(tr_id)},
+                                    ),
+                                )
+                            )
+
+                # 2. Query memories for autobiographical classes
+                cur.execute(
+                    """
+                    SELECT m.memory_id, m.content, p.provenance, p.trace_id,
+                           m.created_at, m.superseded_by
+                    FROM memories m
+                    JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                    WHERE p.provenance IN (
+                        'ASSISTANT_ACTION', 'ASSISTANT_UTTERANCE',
+                        'COHERENCE_BREACH', 'ASSISTANT_BELIEF'
+                    )
+                    ORDER BY m.created_at DESC LIMIT 100
+                    """
+                )
+                mem_rows = cur.fetchall()
+                for mid, content, prov, tr_id, cat_ts, sup_by in mem_rows:
+                    content_str = str(content)
+                    is_wrong_query = "wrong" in query_text.lower() or "error" in query_text.lower()
+                    if is_wrong_query and (prov == "COHERENCE_BREACH" or sup_by is not None):
+                        candidates.append(
+                            (
+                                10,  # Highest priority for explicit error/breach retrospection
+                                float(cat_ts),
+                                EvidenceItem(
+                                    substrate=EpistemicSubstrate.SELF_HISTORY,
+                                    trust_tier=TrustTier.TIER_1_HARDWARE,
+                                    source=f"history:breach:{mid}",
+                                    content=(
+                                        f"Historical revision / breach: {content_str} "
+                                        f"(superseded_by={sup_by})"
+                                    ),
+                                    polarity=BelnapValue.TRUE,
+                                    confidence=1.0,
+                                    metadata={"provenance": str(prov), "superseded_by": sup_by},
+                                ),
+                            )
+                        )
+                    elif not is_wrong_query and tokens:
+                        score = sum(1 for t in tokens if t in content_str.lower())
+                        if score > 0:
+                            candidates.append(
+                                (
+                                    score,
+                                    float(cat_ts),
+                                    EvidenceItem(
+                                        substrate=EpistemicSubstrate.SELF_HISTORY,
+                                        trust_tier=TrustTier.TIER_1_HARDWARE,
+                                        source=f"history:{str(prov).lower()}:{mid}",
+                                        content=content_str,
+                                        polarity=BelnapValue.TRUE,
+                                        confidence=1.0,
+                                        metadata={"provenance": str(prov), "trace_id": str(tr_id)},
+                                    ),
+                                )
+                            )
+
+                # Sort by (match_score DESC, created_at DESC) and cap at 5 items
+                candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+                seen_sources = set()
+                deduped: list[EvidenceItem] = []
+                for _, _, item in candidates:
+                    if item.source not in seen_sources:
+                        seen_sources.add(item.source)
+                        deduped.append(item)
+                    if len(deduped) >= 5:
+                        break
+                return deduped
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("substrate_self_history_query_error", error=str(exc))
 
         return items
 
@@ -957,6 +1146,7 @@ class EpistemicSearchCascade:
         evidence: list[EvidenceItem],
         topic: str | None = None,
         queried_substrates: Sequence[EpistemicSubstrate] | None = None,
+        recollections: Sequence[str] | None = None,
     ) -> tuple[BelnapValue, str, str | None]:
         """
         Computes the Belnap evidential valuation and renders formatted context.
@@ -1054,6 +1244,16 @@ class EpistemicSearchCascade:
             )
             lines.append(f"- ({item.source}) {polarity_tag} {item.content}")
 
+        # Append non-grounding recollections under explicit quoting frame (D-MEM-04)
+        if recollections:
+            lines.append(
+                "\n[Recollections (Non-Grounding)]\n"
+                "Things you previously said or believed — quote them as such; "
+                "they are not evidence:"
+            )
+            for rec in recollections:
+                lines.append(f"- {rec}")
+
         context_str = "\n".join(lines)
         return belnap_status, context_str, None
 
@@ -1127,6 +1327,18 @@ class EpistemicSearchCascade:
                     collected_evidence.extend(items)
                     if resolved_substrate == EpistemicSubstrate.ABSTENTION:
                         resolved_substrate = EpistemicSubstrate.WEB
+            elif sub == EpistemicSubstrate.SELF_HISTORY:
+                items = self.query_substrate_self_history(query_text)
+                if items:
+                    collected_evidence.extend(items)
+                    if resolved_substrate in (
+                        EpistemicSubstrate.ABSTENTION,
+                        EpistemicSubstrate.SELF,
+                    ):
+                        resolved_substrate = EpistemicSubstrate.SELF_HISTORY
+
+        # Retrieve any non-grounding recollections recorded during memory query
+        recollections = list(getattr(self, "_last_recollections", []))
 
         # Perform Belnap evidential synthesis
         belnap_val, synthesized_ctx, calibrated_refusal = self.synthesize(
@@ -1134,6 +1346,7 @@ class EpistemicSearchCascade:
             evidence=collected_evidence,
             topic=topic,
             queried_substrates=active_substrates,
+            recollections=recollections,
         )
 
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
@@ -1147,4 +1360,5 @@ class EpistemicSearchCascade:
             calibrated_refusal=calibrated_refusal,
             synthesized_context=synthesized_ctx,
             queried_substrates=active_substrates,
+            recollections=recollections,
         )

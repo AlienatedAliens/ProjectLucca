@@ -31,8 +31,8 @@ def test_admin_help_exits_0(capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_admin_stubs_exit_3(capsys: pytest.CaptureFixture[str]) -> None:
-    """F-CORE-027: Stubs (metrics, memory, router, replay) exit 3 with message."""
-    for stub in ["metrics", "memory", "router", "replay"]:
+    """F-CORE-027: Stubs (metrics, router, replay) exit 3 with message."""
+    for stub in ["metrics", "router", "replay"]:
         with pytest.raises(SystemExit) as exc_info:
             main([stub])
         assert exc_info.value.code == 3
@@ -228,3 +228,51 @@ def test_admin_rules_cli_lifecycle(
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "RETIRED:" in captured.out
+
+
+def test_admin_memory_cli(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Tests lucca-admin memory commands (list-review, mark/list/unmark-topic, rollup)."""
+    from lucca.memory.db import DatabaseManager
+
+    db_path = tmp_path / "memory_admin_test.sqlite"
+    monkeypatch.setattr("lucca.memory.db.DEFAULT_DB_PATH", db_path)
+
+    db = DatabaseManager(db_path)
+    db.migrate()
+
+    # 1. review-queue on empty queue
+    with pytest.raises(SystemExit) as exc_info:
+        main(["memory", "--db", str(db_path), "review-queue"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "No review queue items with status 'PENDING'" in captured.out
+
+    # 2. mark-review
+    with pytest.raises(SystemExit) as exc_info:
+        main(["memory", "--db", str(db_path), "mark-review", "personal_finances"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "marked as review-required" in captured.out
+
+    # 3. list-topics
+    with pytest.raises(SystemExit) as exc_info:
+        main(["memory", "--db", str(db_path), "list-topics"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "personal_finances" in captured.out
+
+    # 4. unmark-review
+    with pytest.raises(SystemExit) as exc_info:
+        main(["memory", "--db", str(db_path), "unmark-review", "personal_finances"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "removed from review-required" in captured.out
+
+    # 5. rollup
+    with pytest.raises(SystemExit) as exc_info:
+        main(["memory", "--db", str(db_path), "rollup"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "Nightly roll-up complete" in captured.out

@@ -229,6 +229,10 @@ class Provenance(StrEnum):
     TOOL_CONTENT_UNTRUSTED = "TOOL_CONTENT_UNTRUSTED"
     LISP_ASSERTION = "LISP_ASSERTION"
     LLM_NARRATION = "LLM_NARRATION"
+    ASSISTANT_UTTERANCE = "ASSISTANT_UTTERANCE"
+    ASSISTANT_ACTION = "ASSISTANT_ACTION"
+    ASSISTANT_BELIEF = "ASSISTANT_BELIEF"
+    COHERENCE_BREACH = "COHERENCE_BREACH"
 
 
 MemoryProvenance = Provenance
@@ -239,6 +243,21 @@ MEMORY_ELIGIBLE: frozenset[Provenance] = frozenset(
         Provenance.USER_DERIVED,
         Provenance.TOOL_VERIFIED,
         Provenance.LISP_ASSERTION,
+        Provenance.ASSISTANT_UTTERANCE,
+        Provenance.ASSISTANT_ACTION,
+        Provenance.ASSISTANT_BELIEF,
+        Provenance.COHERENCE_BREACH,
+    }
+)
+
+GROUNDING_ELIGIBLE: frozenset[Provenance] = frozenset(
+    {
+        Provenance.USER_EXPLICIT,
+        Provenance.USER_DERIVED,
+        Provenance.TOOL_VERIFIED,
+        Provenance.LISP_ASSERTION,
+        Provenance.ASSISTANT_ACTION,
+        Provenance.COHERENCE_BREACH,
     }
 )
 
@@ -259,7 +278,18 @@ class ToolMeta(BaseModel, frozen=True):
 class UnsignedPayload(BaseModel, frozen=True):
     schema_version: Literal[2] = 2
     provenance: Provenance
-    kind: Literal["transcript", "fact", "tool_fact", "rule_assertion"]
+    kind: Literal[
+        "transcript",
+        "fact",
+        "tool_fact",
+        "rule_assertion",
+        "assistant_utterance",
+        "action_receipt",
+        "belief",
+        "coherence_breach",
+        "session_summary",
+        "user_model",
+    ]
     content: str  # verbatim text or canonical fact rendering
     structured: dict[str, JsonValue] | None = None  # e.g. {"s":..., "p":..., "o":...}
     source_entry_ids: list[str] = Field(default_factory=list)
@@ -309,6 +339,7 @@ class MemoryHit(BaseModel):
     created_at: float = 0.0
     valid_from: float = 0.0
     valid_to: float | None = None
+    grounding_eligible: bool = True
 
 
 class Edge(BaseModel):

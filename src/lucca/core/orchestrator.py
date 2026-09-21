@@ -80,7 +80,13 @@ from lucca.core.schemas import (
 )
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.memory.db import DatabaseManager
-from lucca.memory.signers import UserSpeechSigner, create_user_speech_signer
+from lucca.memory.signers import (
+    AssistantUtteranceSigner,
+    CoherenceBreachSigner,
+    UserSpeechSigner,
+    create_assistant_utterance_signer,
+    create_user_speech_signer,
+)
 from lucca.ports import MemoryStorePort, STTPort, TTSPort
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_plan, evaluate_rule
@@ -330,6 +336,8 @@ class Orchestrator:
         # Affect State Machine & 3D PAD ODE (Milestone 5)
         self.affect_tracker = affect_tracker or AffectTracker()
         self.active_detected_words: list[str] = []
+        self.assistant_signer: AssistantUtteranceSigner | None = None
+        self.breach_signer: CoherenceBreachSigner | None = None
 
     def _neutralize_context_attractors(self, target_word: str) -> list[str]:
         """
@@ -771,12 +779,111 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             logger.warning("transcript_commit_failed", error=str(exc))
 
+    def _commit_assistant_utterance(self, text: str, trace: TurnTrace) -> None:
+        """Commits assistant's spoken utterance to memory (D-MEM-04, ASSISTANT_UTTERANCE)."""
+        if not self.memory_store or not text.strip():
+            return
+        try:
+            if not hasattr(self, "assistant_signer") or self.assistant_signer is None:
+                key = getattr(self.memory_store, "master_key", None)
+                if isinstance(key, (bytes, bytearray)) and len(key) >= 32:
+                    self.assistant_signer = create_assistant_utterance_signer(master_key=bytes(key))
+                else:
+                    dev_key = b"01234567890123456789012345678901"
+                    self.assistant_signer = create_assistant_utterance_signer(master_key=dev_key)
+
+            unsigned = UnsignedPayload(
+                content=text.strip(),
+                provenance=Provenance.ASSISTANT_UTTERANCE,
+                kind="assistant_utterance",
+                nonce=os.urandom(16).hex(),
+                created_at=time.time(),
+                trace_id=trace.trace_id,
+            )
+            signed = self.assistant_signer.sign(unsigned)
+            res = self.memory_store.commit(signed)
+            if asyncio.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        pool.submit(asyncio.run, res).result()
+                else:
+                    asyncio.run(res)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("assistant_utterance_commit_failed", error=str(exc))
+
+    def _check_functional_coherence(self, narration: str, tool_calls: list[object]) -> str | None:
+        """
+        Checks for discrepancy between spoken action claim and actual tool execution (Spec §3.3).
+        Returns breach description if discrepancy detected, else None.
+        """
+        reply_low = narration.lower()
+        pattern = (
+            r"\bi (?:have )?"
+            r"(?:saved|wrote|written|updated|launched|opened|ran|created|deleted)\b"
+        )
+        claimed_action = bool(re.search(pattern, reply_low))
+        if claimed_action and not tool_calls:
+            return f"Narrated action claimed without tool execution: '{narration[:100]}'"
+        return None
+
+    def _commit_coherence_breach(self, claim: str, trace: TurnTrace | None = None) -> None:
+        """Commits functional coherence breach to memory (D-MEM-04, COHERENCE_BREACH)."""
+        if not self.memory_store or not claim.strip():
+            return
+        try:
+            if not hasattr(self, "breach_signer") or self.breach_signer is None:
+                key = getattr(self.memory_store, "master_key", None)
+                dev_key = (
+                    bytes(key)
+                    if isinstance(key, (bytes, bytearray)) and len(key) >= 32
+                    else b"01234567890123456789012345678901"
+                )
+                self.breach_signer = CoherenceBreachSigner(master_key=dev_key)
+
+            trace_id = trace.trace_id if trace is not None else f"breach-{ulid.ULID()}"
+            unsigned = UnsignedPayload(
+                content=claim.strip(),
+                provenance=Provenance.COHERENCE_BREACH,
+                kind="coherence_breach",
+                nonce=os.urandom(16).hex(),
+                created_at=time.time(),
+                trace_id=trace_id,
+            )
+            signed = self.breach_signer.sign(unsigned)
+            res = self.memory_store.commit(signed)
+            if asyncio.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        pool.submit(asyncio.run, res).result()
+                else:
+                    asyncio.run(res)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("coherence_breach_commit_failed", error=str(exc))
+
     def _finalize_turn(self, trace: TurnTrace, decision_id: str | None) -> None:
         if self.active_trace is trace and not trace.interrupted:
             self._set_state("postturn")
         if self.current_turn_transcript:
             self._commit_transcript(self.current_turn_transcript, trace)
             self.current_turn_transcript = None
+
+        if hasattr(self, "current_turn_assistant_reply") and self.current_turn_assistant_reply:
+            reply_text = self.current_turn_assistant_reply
+            self._commit_assistant_utterance(reply_text, trace)
+
+            # Functional coherence check (Spec §3.3 / D-MEM-04)
+            breach_msg = self._check_functional_coherence(reply_text, self.current_turn_tool_calls)
+            if breach_msg:
+                self._commit_coherence_breach(breach_msg, trace)
+            self.current_turn_assistant_reply = None
 
         if decision_id:
             try:
@@ -825,7 +932,7 @@ class Orchestrator:
                 "RULE"
                 if (
                     self.router.last_decision_record
-                    and self.router.last_decision_record.action == RouteAction.RULE
+                    and self.router.last_decision_record.decision.action == RouteAction.RULE
                 )
                 else "LLM"
             )
@@ -1277,6 +1384,7 @@ class Orchestrator:
                     reply_str = " ".join(reply_parts)
                     self.history.append({"role": "user", "content": user_msg})
                     self.history.append({"role": "assistant", "content": reply_str})
+                    self.current_turn_assistant_reply = reply_str
                     if full_response_text:
                         self._publish_caption(reply_str, source="assistant", is_final=True)
 

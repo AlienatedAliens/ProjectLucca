@@ -6,6 +6,7 @@ Spec 01 §1, Spec 16 §3, ADR-005
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import subprocess
@@ -72,6 +73,8 @@ from lucca.core.config import LLMSettings, get_config
 from lucca.core.schemas import RuleState
 from lucca.memory.db import DatabaseManager
 from lucca.memory.manager import MemoryManager
+from lucca.memory.reflection import ReflectionEngine
+from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import parse_rule
@@ -415,6 +418,14 @@ class SettingsDialog(QDialog):
         except Exception:
             self.db = None
             self.rule_lifecycle = None
+
+        self.reflection_engine: ReflectionEngine | None = None
+        if self.db and mk:
+            try:
+                store = MemoryStore(db=self.db, master_key=mk)
+                self.reflection_engine = ReflectionEngine(db=self.db, store=store, master_key=mk)
+            except Exception:
+                self.reflection_engine = None
 
         # Canonical MicroScheme rules
         self.lisp_rules: dict[str, dict[str, JsonValue]] = {
@@ -2301,6 +2312,69 @@ class SettingsDialog(QDialog):
         v_filter.addWidget(grp_inspect)
         layout.addWidget(grp_filter)
 
+        # Autobiographical Belief Revision & Review Queue (Spec D-MEM-04 / Rung A1)
+        grp_review = QGroupBox("Belief Revision & Review Queue (Spec D-MEM-04, Rung A1)", parent)
+        v_review = QVBoxLayout(grp_review)
+
+        h_rev_top = QHBoxLayout()
+        self.lbl_review_count = QLabel("Pending Revisions: 0", grp_review)
+        self.lbl_review_count.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-weight: bold;")
+        h_rev_top.addWidget(self.lbl_review_count)
+        h_rev_top.addStretch()
+
+        btn_refresh_rev = QPushButton("🔄 Refresh Queue", grp_review)
+        btn_refresh_rev.clicked.connect(self._refresh_review_queue)
+        h_rev_top.addWidget(btn_refresh_rev)
+
+        btn_appr_rev = QPushButton("✅ Approve Revision", grp_review)
+        btn_appr_rev.clicked.connect(self._approve_selected_review)
+        h_rev_top.addWidget(btn_appr_rev)
+
+        btn_rej_rev = QPushButton("❌ Reject Revision", grp_review)
+        btn_rej_rev.clicked.connect(self._reject_selected_review)
+        h_rev_top.addWidget(btn_rej_rev)
+
+        v_review.addLayout(h_rev_top)
+
+        # Review Table
+        self.table_review = QTableWidget(0, 6, grp_review)
+        self.table_review.setHorizontalHeaderLabels(
+            [
+                "Review ID",
+                "Belief ID",
+                "Old Content",
+                "Proposed Content",
+                "Trigger Reason",
+                "Status",
+            ]
+        )
+        hdr_rev = self.table_review.horizontalHeader()
+        if hdr_rev is not None:
+            hdr_rev.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+            hdr_rev.setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
+        v_review.addWidget(self.table_review)
+
+        # Topic Review Management
+        h_topic_box = QHBoxLayout()
+        h_topic_box.addWidget(QLabel("Review-Required Topics:", grp_review))
+        self.combo_rev_topics = QComboBox(grp_review)
+        h_topic_box.addWidget(self.combo_rev_topics, stretch=1)
+
+        self.line_new_topic = QLineEdit(grp_review)
+        self.line_new_topic.setPlaceholderText("Topic name...")
+        h_topic_box.addWidget(self.line_new_topic)
+
+        btn_add_topic = QPushButton("➕ Mark Topic", grp_review)
+        btn_add_topic.clicked.connect(self._add_review_topic)
+        h_topic_box.addWidget(btn_add_topic)
+
+        btn_del_topic = QPushButton("➖ Unmark Topic", grp_review)
+        btn_del_topic.clicked.connect(self._remove_review_topic)
+        h_topic_box.addWidget(btn_del_topic)
+
+        v_review.addLayout(h_topic_box)
+        layout.addWidget(grp_review)
+
         self._current_selected_mid: int | None = None
         self._refresh_memories()
 
@@ -2435,6 +2509,114 @@ class SettingsDialog(QDialog):
             )
         except Exception as exc:
             QMessageBox.critical(self, "Error", f"Vacuum failed: {exc}")
+
+    def _refresh_review_queue(self) -> None:
+        if self.memory_manager is None:
+            return
+        try:
+            items = self.memory_manager.list_review_queue(status="ALL")
+            self.table_review.setRowCount(0)
+            pending_count = 0
+            for it in items:
+                row = self.table_review.rowCount()
+                self.table_review.insertRow(row)
+
+                rid = str(it.get("review_id", ""))
+                bid = str(it.get("belief_id") or "-")
+                old_c = str(it.get("old_content") or "-")
+                new_c = str(it.get("proposed_content", ""))
+                reason = str(it.get("trigger_reason", ""))
+                status = str(it.get("status", "PENDING"))
+                if status == "PENDING":
+                    pending_count += 1
+
+                self.table_review.setItem(row, 0, QTableWidgetItem(rid))
+                self.table_review.setItem(row, 1, QTableWidgetItem(bid))
+                self.table_review.setItem(row, 2, QTableWidgetItem(old_c))
+                self.table_review.setItem(row, 3, QTableWidgetItem(new_c))
+                self.table_review.setItem(row, 4, QTableWidgetItem(reason))
+                self.table_review.setItem(row, 5, QTableWidgetItem(status))
+
+            self.lbl_review_count.setText(f"Pending Revisions: {pending_count}")
+
+            # Also refresh topic dropdown
+            self.combo_rev_topics.clear()
+            topics = self.memory_manager.list_review_required_topics()
+            for t in topics:
+                self.combo_rev_topics.addItem(t)
+        except Exception as exc:
+            print(f"[UI] Review queue refresh error: {exc}")
+
+    def _approve_selected_review(self) -> None:
+        row = self.table_review.currentRow()
+        if row < 0 or self.reflection_engine is None:
+            QMessageBox.warning(self, "No Selection", "Please select a review item to approve.")
+            return
+        item_id = self.table_review.item(row, 0)
+        item_status = self.table_review.item(row, 5)
+        if not item_id or not item_status:
+            return
+        review_id = item_id.text()
+        if item_status.text() != "PENDING":
+            QMessageBox.information(
+                self, "Already Decided", f"Item '{review_id}' is already {item_status.text()}."
+            )
+            return
+        try:
+            new_mid = asyncio.run(
+                self.reflection_engine.approve_review(review_id, decided_by="ui-operator")
+            )
+            QMessageBox.information(
+                self,
+                "Revision Approved",
+                f"Review '{review_id}' approved. New memory ID: #{new_mid}.",
+            )
+            self._refresh_memories()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to approve review: {exc}")
+
+    def _reject_selected_review(self) -> None:
+        row = self.table_review.currentRow()
+        if row < 0 or self.reflection_engine is None:
+            QMessageBox.warning(self, "No Selection", "Please select a review item to reject.")
+            return
+        item_id = self.table_review.item(row, 0)
+        item_status = self.table_review.item(row, 5)
+        if not item_id or not item_status:
+            return
+        review_id = item_id.text()
+        if item_status.text() != "PENDING":
+            QMessageBox.information(
+                self, "Already Decided", f"Item '{review_id}' is already {item_status.text()}."
+            )
+            return
+        try:
+            self.reflection_engine.reject_review(review_id, decided_by="ui-operator")
+            QMessageBox.information(
+                self, "Revision Rejected", f"Review '{review_id}' rejected. Old belief preserved."
+            )
+            self._refresh_review_queue()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to reject review: {exc}")
+
+    def _add_review_topic(self) -> None:
+        if self.memory_manager is None:
+            return
+        topic = self.line_new_topic.text().strip()
+        if not topic:
+            return
+        self.memory_manager.mark_topic_review_required(topic)
+        self.line_new_topic.clear()
+        self._refresh_review_queue()
+
+    def _remove_review_topic(self) -> None:
+        if self.memory_manager is None:
+            return
+        topic = self.combo_rev_topics.currentText().strip()
+        if not topic:
+            return
+        self.memory_manager.unmark_topic_review_required(topic)
+        self._refresh_review_queue()
 
     # =========================================================================
     # TAB 8: Telemetry & Live Session Logs

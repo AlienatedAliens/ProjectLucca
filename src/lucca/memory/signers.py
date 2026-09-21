@@ -146,6 +146,7 @@ class ToolResultSigner(BaseProvenanceSigner):
         {
             Provenance.TOOL_VERIFIED,
             Provenance.TOOL_CONTENT_UNTRUSTED,
+            Provenance.ASSISTANT_ACTION,
         }
     )
 
@@ -159,8 +160,51 @@ class LispAssertionSigner(BaseProvenanceSigner):
     allowed_provenances: frozenset[Provenance] = frozenset(
         {
             Provenance.LISP_ASSERTION,
+            Provenance.COHERENCE_BREACH,
         }
     )
 
     def __init__(self, master_key: bytes, signer_id: str = "rules@lucca-core") -> None:
+        super().__init__(master_key, signer_id)
+
+
+class AssistantUtteranceSigner(BaseProvenanceSigner):
+    """Constructed ONLY in lucca.core.orchestrator (narration finaliser) or test factory."""
+
+    allowed_provenances: frozenset[Provenance] = frozenset(
+        {
+            Provenance.ASSISTANT_UTTERANCE,
+            Provenance.ASSISTANT_BELIEF,
+        }
+    )
+
+    def __init__(self, master_key: bytes, signer_id: str = "orchestrator@lucca-core") -> None:
+        super().__init__(master_key, signer_id)
+
+    def sign(self, payload: UnsignedPayload) -> SignedPayload:
+        if payload.provenance == Provenance.ASSISTANT_BELIEF:
+            if payload.confidence is None or not (0.0 <= payload.confidence <= 1.0):
+                raise ProvenanceRejected(
+                    f"ASSISTANT_BELIEF requires confidence in [0.0, 1.0], got {payload.confidence}"
+                )
+        return super().sign(payload)
+
+
+def create_assistant_utterance_signer(
+    master_key: bytes, signer_id: str = "orchestrator@lucca-core"
+) -> AssistantUtteranceSigner:
+    """Authorized factory for constructing AssistantUtteranceSigner in the memory domain."""
+    return AssistantUtteranceSigner(master_key=master_key, signer_id=signer_id)
+
+
+class CoherenceBreachSigner(BaseProvenanceSigner):
+    """Constructed in supervisor or reasoning domain to attest coherence breaches."""
+
+    allowed_provenances: frozenset[Provenance] = frozenset(
+        {
+            Provenance.COHERENCE_BREACH,
+        }
+    )
+
+    def __init__(self, master_key: bytes, signer_id: str = "supervisor@lucca-core") -> None:
         super().__init__(master_key, signer_id)

@@ -20,10 +20,12 @@ from lucca.core.exceptions import (
     ProvenanceRejected,
 )
 from lucca.core.schemas import (
+    GROUNDING_ELIGIBLE,
     Admitted,
     Edge,
     MemoryHit,
     MemoryId,
+    Provenance,
     RetrievalQuery,
     SignedPayload,
 )
@@ -113,14 +115,15 @@ class MemoryStore:
                 tool_call_id = signed_payload.tool.call_id if signed_payload.tool else None
                 tool_exit_code = signed_payload.tool.exit_code if signed_payload.tool else None
 
+                grounding_eligible = 1 if signed_payload.provenance in GROUNDING_ELIGIBLE else 0
                 cursor.execute(
                     """
                     INSERT INTO provenance_envelopes(
                         entry_id, provenance, kind, signer_id, signature, content_sha256,
                         nonce, created_at, trace_id, session_id, asr_model, asr_avg_logprob,
                         audio_sha256, tool_name, tool_call_id, tool_exit_code, confidence,
-                        payload_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        payload_json, grounding_eligible
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         signed_payload.entry_id,
@@ -141,18 +144,24 @@ class MemoryStore:
                         tool_exit_code,
                         signed_payload.confidence,
                         signed_payload.model_dump_json(),
+                        grounding_eligible,
                     ),
                 )
 
                 # 2. Insert memories (valid_from = structured.valid_from or created_at)
                 valid_from = signed_payload.created_at
-                if (
-                    signed_payload.structured is not None
-                    and "valid_from" in signed_payload.structured
-                ):
-                    vf_val = signed_payload.structured["valid_from"]
-                    if isinstance(vf_val, (int, float)):
-                        valid_from = float(vf_val)
+                importance = 0.5
+                if signed_payload.structured is not None:
+                    if "valid_from" in signed_payload.structured:
+                        vf_val = signed_payload.structured["valid_from"]
+                        if isinstance(vf_val, (int, float)):
+                            valid_from = float(vf_val)
+                    if "importance" in signed_payload.structured:
+                        imp_val = signed_payload.structured["importance"]
+                        if isinstance(imp_val, (int, float)):
+                            importance = max(0.0, min(1.0, float(imp_val)))
+                elif signed_payload.provenance == Provenance.COHERENCE_BREACH:
+                    importance = 0.8
 
                 aux_tokens = subtokens(signed_payload.content)
                 cursor.execute(
@@ -160,7 +169,7 @@ class MemoryStore:
                     INSERT INTO memories(
                         entry_id, content, tokens_aux, kind, created_at, valid_from,
                         valid_to, superseded_by, forgotten_at, importance, access_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0.5, 0)
+                    ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 0)
                     """,
                     (
                         signed_payload.entry_id,
@@ -169,6 +178,7 @@ class MemoryStore:
                         signed_payload.kind,
                         signed_payload.created_at,
                         valid_from,
+                        importance,
                     ),
                 )
                 if cursor.lastrowid is None:
@@ -308,7 +318,7 @@ class MemoryStore:
         reason: str,
         now: float | None = None,
     ) -> None:
-        """Mark old memory as superseded by new memory."""
+        """Mark old memory as superseded by new memory with evidence gating."""
         if self.read_only:
             raise MemoryStoreReadOnly("MemoryStore is in read-only mode")
 
@@ -317,6 +327,37 @@ class MemoryStore:
             conn = self.db.get_writer()
             conn.execute("BEGIN IMMEDIATE")
             try:
+                # 1. Reason must be a grounding-eligible entry_id
+                cur = conn.execute(
+                    "SELECT grounding_eligible FROM provenance_envelopes WHERE entry_id = ?",
+                    (reason,),
+                )
+                row = cur.fetchone()
+                if not row or row[0] != 1:
+                    raise ProvenanceRejected(
+                        f"Revision reason '{reason}' must be an existing "
+                        "grounding-eligible entry_id"
+                    )
+
+                # 2. Old memory must exist and not already be superseded
+                cur_old = conn.execute(
+                    "SELECT memory_id, valid_to FROM memories WHERE memory_id = ?",
+                    (int(old),),
+                )
+                old_row = cur_old.fetchone()
+                if not old_row:
+                    raise KeyError(f"Memory #{old} not found")
+                if old_row[1] is not None:
+                    raise ValueError(f"Memory #{old} is already superseded")
+
+                # 3. New memory must exist
+                cur_new = conn.execute(
+                    "SELECT memory_id FROM memories WHERE memory_id = ?",
+                    (int(new),),
+                )
+                if not cur_new.fetchone():
+                    raise KeyError(f"Memory #{new} not found")
+
                 conn.execute(
                     "UPDATE memories SET valid_to = ?, superseded_by = ? WHERE memory_id = ?",
                     (current_time, int(new), int(old)),

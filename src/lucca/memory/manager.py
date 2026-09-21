@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from lucca.core.config import get_config
-from lucca.core.schemas import Provenance, UnsignedPayload
+from lucca.core.schemas import GROUNDING_ELIGIBLE, Provenance, UnsignedPayload
 from lucca.memory.db import DatabaseManager
 from lucca.memory.gate import ProvenanceGate
 from lucca.memory.signers import BaseProvenanceSigner, UserSpeechSigner
@@ -137,6 +137,7 @@ class MemoryManager:
         admitted_payload = admitted.payload
 
         conn = self.db.get_writer()
+        grounding_el = 1 if admitted_payload.provenance in GROUNDING_ELIGIBLE else 0
         try:
             conn.execute("BEGIN IMMEDIATE")
             # 1. Insert provenance envelope
@@ -145,8 +146,8 @@ class MemoryManager:
                 INSERT INTO provenance_envelopes (
                     entry_id, provenance, kind, signer_id, signature,
                     content_sha256, nonce, created_at, trace_id, session_id,
-                    confidence, payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    confidence, payload_json, grounding_eligible
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     admitted_payload.entry_id,
@@ -161,6 +162,7 @@ class MemoryManager:
                     admitted_payload.session_id,
                     admitted_payload.confidence,
                     json.dumps(admitted_payload.model_dump()),
+                    grounding_el,
                 ),
             )
 
@@ -236,6 +238,7 @@ class MemoryManager:
         admitted_payload = admitted.payload
 
         conn = self.db.get_writer()
+        grounding_el = 1 if admitted_payload.provenance in GROUNDING_ELIGIBLE else 0
         try:
             conn.execute("BEGIN IMMEDIATE")
 
@@ -245,8 +248,8 @@ class MemoryManager:
                 INSERT INTO provenance_envelopes (
                     entry_id, provenance, kind, signer_id, signature,
                     content_sha256, nonce, created_at, trace_id, session_id,
-                    confidence, payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    confidence, payload_json, grounding_eligible
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     admitted_payload.entry_id,
@@ -261,6 +264,7 @@ class MemoryManager:
                     admitted_payload.session_id,
                     admitted_payload.confidence,
                     json.dumps(admitted_payload.model_dump()),
+                    grounding_el,
                 ),
             )
 
@@ -381,3 +385,64 @@ class MemoryManager:
             }
         finally:
             conn.close()
+
+    def list_review_queue(self, status: str = "PENDING") -> list[dict[str, object]]:
+        """Lists items from review_queue with optional status filter."""
+        conn = self.get_connection()
+        try:
+            cur = conn.execute(
+                """
+                SELECT r.review_id, r.belief_id, m.content as old_content,
+                       r.proposed_content, r.proposed_confidence, r.reason_entry_id,
+                       r.trigger_reason, r.created_at, r.status
+                FROM review_queue r
+                LEFT JOIN memories m ON r.belief_id = m.memory_id
+                WHERE (? = 'ALL' OR r.status = ?)
+                ORDER BY r.created_at ASC
+                """,
+                (status, status),
+            )
+            rows = cur.fetchall()
+            return [
+                {
+                    "review_id": str(r[0]),
+                    "belief_id": int(r[1]) if r[1] is not None else None,
+                    "old_content": str(r[2]) if r[2] is not None else "",
+                    "proposed_content": str(r[3]),
+                    "proposed_confidence": float(r[4]),
+                    "reason_entry_id": str(r[5]),
+                    "trigger_reason": str(r[6]),
+                    "created_at": float(r[7]),
+                    "status": str(r[8]),
+                }
+                for r in rows
+            ]
+        finally:
+            conn.close()
+
+    def mark_topic_review_required(self, topic: str) -> None:
+        """Marks a topic as review-required."""
+        clean = topic.strip().lower()
+        conn = self.db.get_writer()
+        conn.execute(
+            "INSERT OR IGNORE INTO review_required_topics (topic, created_at) VALUES (?, ?)",
+            (clean, time.time()),
+        )
+
+    def list_review_required_topics(self) -> list[str]:
+        """Lists all review-required topics."""
+        conn = self.get_connection()
+        try:
+            cur = conn.execute("SELECT topic FROM review_required_topics ORDER BY topic ASC")
+            return [str(row[0]) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+    def unmark_topic_review_required(self, topic: str) -> None:
+        """Removes a topic from the review-required list."""
+        clean = topic.strip().lower()
+        conn = self.db.get_writer()
+        conn.execute(
+            "DELETE FROM review_required_topics WHERE lower(topic) = ?",
+            (clean,),
+        )

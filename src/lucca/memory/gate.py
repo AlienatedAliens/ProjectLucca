@@ -132,4 +132,10 @@ class ProvenanceGate:
                 if isinstance(pred, str) and pred not in PREDICATES:
                     raise ProvenanceRejected(f"Predicate '{pred}' is not in closed PREDICATES list")
 
+        if payload.provenance == Provenance.ASSISTANT_BELIEF:
+            if payload.confidence is None or not (0.60 <= payload.confidence <= 1.0):
+                raise ProvenanceRejected(
+                    f"ASSISTANT_BELIEF requires confidence in [0.60, 1.0], got {payload.confidence}"
+                )
+
         return Admitted(payload=payload)

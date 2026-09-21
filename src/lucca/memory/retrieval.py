@@ -168,7 +168,7 @@ class HybridRetriever:
         placeholders = ",".join("?" for _ in sorted_candidates)
         query_sql = f"""
             SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
-                   m.valid_to, m.forgotten_at, p.provenance, p.trace_id
+                   m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible
             FROM memories m
             JOIN provenance_envelopes p ON m.entry_id = p.entry_id
             WHERE m.memory_id IN ({placeholders})
@@ -201,6 +201,12 @@ class HybridRetriever:
             if q.since is not None and created_at < q.since:
                 continue
 
+            grounding_el = True
+            try:
+                grounding_el = bool(r["grounding_eligible"])
+            except (KeyError, IndexError):
+                pass
+
             hit = MemoryHit(
                 memory_id=mid,
                 content=str(r["content"]),
@@ -211,6 +217,7 @@ class HybridRetriever:
                 created_at=created_at,
                 valid_from=float(r["valid_from"]),
                 valid_to=float(valid_to) if valid_to is not None else None,
+                grounding_eligible=grounding_el,
             )
             hits.append(hit)
             if kind == "fact":
