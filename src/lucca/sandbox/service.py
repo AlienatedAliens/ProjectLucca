@@ -17,7 +17,7 @@ from pydantic import JsonValue, ValidationError
 
 from lucca.core.capabilities import get_capability_registry
 from lucca.core.config import get_config
-from lucca.core.schemas import Provenance, Risk, ToolResult
+from lucca.core.schemas import Risk, ToolResult
 from lucca.memory.manager import MemoryManager
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
@@ -343,11 +343,22 @@ class SandboxService:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
-        # 5c. Memory Commit Tool
+        # 5c. Memory Commit Tool — FAIL CLOSED (ADR-006 / AGENTS.md §2.1).
+        #
+        # The content of an LLM-issued tool call is LLM_NARRATION. There is no signer for
+        # that provenance class, and the ProvenanceGate rejects it by design. An earlier
+        # implementation wrote the content via MemoryManager.add_memory(), which defaults to
+        # UserSpeechSigner(signer_id="ui-admin") and therefore laundered model text into
+        # memory as authenticated USER_EXPLICIT — the exact failure the doctrine forbids.
+        #
+        # Until an ADR defines a legitimate commit path (e.g. rule-engine dispatch with
+        # entity-derived content signed USER_DERIVED by ExtractorSigner, or an explicit
+        # user-confirmation turn signed on the user's own utterance), this tool refuses.
+        # The schema stays registered for taxonomy completeness (spec §2 / handover §0.1:
+        # "declaring a schema without a dispatcher must fail closed, never crash").
         if tool_name == "memory_commit":
-            t0 = time.perf_counter()
             try:
-                parsed_mem_commit = MemoryCommitArgs.model_validate(args)
+                MemoryCommitArgs.model_validate(args)
             except ValidationError as exc:
                 return ToolResult(
                     call_id=call_id,
@@ -356,34 +367,29 @@ class SandboxService:
                     stderr=f"invalid_arguments: {exc}",
                     elapsed_ms=0.0,
                 )
-            try:
-                mgr = self.get_memory_manager()
-                mem_id = mgr.add_memory(
-                    content=parsed_mem_commit.content,
-                    kind="fact",
-                    provenance=Provenance.USER_EXPLICIT,
-                )
-                elapsed_ms = (time.perf_counter() - t0) * 1000.0
-                return ToolResult(
-                    call_id=call_id,
-                    ok=True,
-                    exit_code=0,
-                    structured={
-                        "memory_id": mem_id,
-                        "content": parsed_mem_commit.content,
-                        "tags": parsed_mem_commit.tags,
-                    },
-                    content=f"Committed memory ID {mem_id}: '{parsed_mem_commit.content}'",
-                    elapsed_ms=elapsed_ms,
-                )
-            except Exception as exc:  # noqa: BLE001
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    stderr=str(exc),
-                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
-                )
+            logger.warning(
+                "memory_commit_refused_llm_narration",
+                call_id=call_id,
+                reason="no signer exists for LLM_NARRATION (ADR-006)",
+            )
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr=(
+                    "provenance_violation: memory_commit cannot store model-authored content. "
+                    "Long-term memory accepts only USER_EXPLICIT (user speech), USER_DERIVED "
+                    "(extractor), TOOL_VERIFIED (sandbox) or LISP_ASSERTION (rule engine) "
+                    "envelopes; LLM narration has no signer. Ask the user to state the fact "
+                    "themselves, or use note_write for a scratchpad."
+                ),
+                structured={
+                    "error": "provenance_violation",
+                    "provenance": "LLM_NARRATION",
+                    "memory_eligible": False,
+                },
+                elapsed_ms=0.0,
+            )
 
         # 5d. Scratchpad Note Write
         if tool_name == "note_write":

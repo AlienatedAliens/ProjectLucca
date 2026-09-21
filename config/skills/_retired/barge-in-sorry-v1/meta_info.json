@@ -2,10 +2,17 @@
   "id": "barge-in-sorry-v1",
   "intent": "barge_in",
   "description": "Apologize and yield turn gracefully upon user barge-in or interrupt",
-  "keywords": ["barge_in", "interrupt", "apology", "companion"],
+  "keywords": [
+    "barge_in",
+    "interrupt",
+    "apology",
+    "companion"
+  ],
   "args": [],
-  "status": "ACTIVE",
+  "status": "RETIRED",
   "version": "1.0.0",
-  "categories": ["companion"],
+  "categories": [
+    "companion"
+  ],
   "expose_as_tool": false
 }

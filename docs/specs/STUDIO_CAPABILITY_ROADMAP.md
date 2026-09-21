@@ -167,7 +167,7 @@ The plan constructors ([`prims.py:376-498`](../src/lucca/reasoning/scheme/prims.
 | Skill | Class | How it works, concretely |
 |---|---|---|
 | `calc-eval` | **Tool-call + narrate** | `(tool run_python :code (entity-str "expr"))` → orchestrator executes → LLM narrates the numeric result. The rule's own `say` is a static lead-in ("Computing that."); it cannot say the result. |
-| `memory-brief` | **Tool-call + narrate** | `memory_search` → LLM synthesizes. Commit path: `memory_commit` with entity content + provenance tag. |
+| `memory-brief` | **Tool-call + narrate** | `memory_search` → LLM synthesizes. Commit path: `memory_commit` with entity content + provenance tag — **dispatcher currently fails closed** (Handoff #5 gate F1): an LLM-issued commit is `LLM_NARRATION`, for which no signer exists (ADR-006). A legitimate path (rule-engine dispatch with entity-derived content → `ExtractorSigner`/`USER_DERIVED`, or a confirmation turn signed on the user's own utterance) requires an ADR before the tool is enabled. |
 | `note-take` | **Tool-call + static say** | `note_write` with entity content → static confirmation. |
 | `self-health` | **Tool-call + narrate** | `self_metrics` → LLM narrates with behavioral-state conditioning. |
 | `quick-fact` | **Tool-call + narrate** | `search_web` → LLM extracts and narrates with source attribution. The "extract" step is the LLM, not the rule. |
@@ -179,7 +179,7 @@ The plan constructors ([`prims.py:376-498`](../src/lucca/reasoning/scheme/prims.
 | `proc-top` | **Tool-call + narrate** | `sys_info op=processes` → LLM summarizes top-N. |
 | `session-recap` | **Tool-call + narrate** | `memory_search` (today, recency) → LLM digests. |
 | `time-greeting` | **Pure say** | `hour-between?` selects among static greeting strings via `if`. |
-| ~~`barge-in-sorry`~~ | **Needs primitive — BLOCKED** (Phase 4 gate, 2026-09-21) | Requires `RuleState.interrupted: bool` populated from the audio-layer barge-in event. No such field exists; the router emits no `barge_in` intent and there is no `interrupt` tool, so no `:when` predicate can reach it. Shipped ACTIVE in the L1b-pilot with an unreachable trigger; **retired at gate**. Re-enable when the primitive lands (post-T2). |
+| ~~`barge-in-sorry`~~ | **Primitive exists, wiring + semantics BLOCKED** (Phase 4 gate 2026-09-21; re-confirmed Handoff #5 gate) | `RuleState.interrupted` and the `interrupted?` predicate now exist (schema, prims, Z3), but `Orchestrator._build_rule_state` never populates the field from the audio-layer barge-in event, so the trigger is still unreachable in production — it fires only in test fixtures. Shipped ACTIVE twice with an unreachable trigger; **retired at both gates**. Re-enable requires (a) orchestrator wiring: previous turn's `TurnTrace.interrupted` → next `RuleState.interrupted`; (b) a predicate that yields to core when the barge-in transcript carries content (the user must be *answered*, not apologised to); (c) a router-reachable golden trace (no `barge_in` intent exists). |
 | `plan-decompose` | **Yield-shortcut** | Decomposition is LLM work: `(yield-to-core "multi-step task" :mode "plan")`. |
 | `correction-ack` | **Yield-shortcut** | `(yield-to-core "operator correction" :salience "high")`. |
 | ~~`artifact-check`~~ | ⏸ deferred | Deferred with the `artifact_verify` tool. |

@@ -72,19 +72,82 @@ def test_note_write_read_and_path_traversal(tmp_path: Path) -> None:
         tool.read_note(name="../../etc/passwd")
 
 
-def test_memory_commit_and_search(sandbox_service: SandboxService) -> None:
-    """T2: memory_commit writes user fact; memory_search retrieves it within Class A (<50ms)."""
-    t0 = time.perf_counter()
+def test_memory_commit_fails_closed_for_llm_narration(
+    sandbox_service: SandboxService, temp_memory_mgr: MemoryManager
+) -> None:
+    """
+    ADR-006 / AGENTS.md §2.1 negative test: an LLM-issued `memory_commit` is model narration.
+    There is no signer for LLM_NARRATION, so the dispatcher must refuse with a structured
+    provenance error and **nothing** may reach the memory store — in particular nothing may
+    be laundered in as USER_EXPLICIT via the admin UserSpeechSigner.
+    """
+    before = len(temp_memory_mgr.list_memories())
+
+    # Layer 1: an unconfirmed call is stopped by the WRITE confirmation gate.
+    res_unconfirmed = sandbox_service.execute_tool(
+        call_id="call-c0",
+        tool_name="memory_commit",
+        args={"content": "Lucca favourite dessert is tiramisu", "tags": ["preference"]},
+    )
+    assert res_unconfirmed.ok is False
+    assert res_unconfirmed.stderr == "confirmation_required"
+
+    # Layer 2: even a *confirmed* call must be refused — confirmation cannot mint provenance.
     res_commit = sandbox_service.execute_tool(
         call_id="call-c1",
         tool_name="memory_commit",
         args={"content": "Lucca favourite dessert is tiramisu", "tags": ["preference"]},
+        confirmed=True,
     )
-    t_commit = (time.perf_counter() - t0) * 1000.0
-    assert res_commit.ok is True
+    assert res_commit.ok is False
     assert res_commit.structured is not None
-    assert "memory_id" in res_commit.structured
-    assert t_commit < 50.0  # Class A latency budget
+    assert res_commit.structured["error"] == "provenance_violation"
+    assert res_commit.structured["memory_eligible"] is False
+    assert "provenance_violation" in (res_commit.stderr or "")
+
+    # No row was written under any provenance.
+    assert len(temp_memory_mgr.list_memories()) == before
+    res_search = sandbox_service.execute_tool(
+        call_id="call-s0",
+        tool_name="memory_search",
+        args={"query": "tiramisu", "top_k": 5},
+    )
+    assert res_search.ok is True
+    assert res_search.structured is not None
+    assert res_search.structured["count"] == 0
+
+    # Malformed args are still reported as an argument error, not a crash.
+    res_bad = sandbox_service.execute_tool(
+        call_id="call-c2", tool_name="memory_commit", args={"content": ""}, confirmed=True
+    )
+    assert res_bad.ok is False
+    assert "invalid_arguments" in (res_bad.stderr or "")
+
+
+def test_memory_commit_requires_confirmation_like_any_write() -> None:
+    """The WRITE-risk confirmation rule must not carve an exemption for memory_commit."""
+    from lucca.sandbox.policy import requires_confirmation
+
+    assert requires_confirmation("memory_commit") is True
+    # note_write is Class A (scratchpad confined to notes/) and stays confirmation-free.
+    assert requires_confirmation("note_write") is False
+
+
+def test_memory_search_reads_user_explicit_memory_within_class_a(
+    sandbox_service: SandboxService, temp_memory_mgr: MemoryManager
+) -> None:
+    """
+    T2: memory_search retrieves a fact committed through the legitimate operator path
+    (MemoryManager.add_memory, UserSpeechSigner) within the Class A budget (<50 ms).
+
+    Note: this fixture has no embedding port, so the measured path is the SQLite/FTS
+    listing, not the sqlite-vec hybrid retrieval used for prompt context.
+    """
+    temp_memory_mgr.add_memory(
+        content="Lucca favourite dessert is tiramisu",
+        kind="fact",
+        provenance=Provenance.USER_EXPLICIT,
+    )
 
     t1 = time.perf_counter()
     res_search = sandbox_service.execute_tool(

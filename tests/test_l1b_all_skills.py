@@ -1,6 +1,12 @@
 """
-Phase 5 (L1b & T2 Complete): Acceptance Tests for all 16 Factory Skills
+Phase 5 (L1b & T2 Complete): Acceptance Tests for the 15 ACTIVE Factory Skills
 Spec 1.1.2 §3, §4.2 Expressibility Table, §13 Ladder L1, Handover #5.
+
+`barge-in-sorry-v1` is RETIRED (Handoff #5 gate, 2026-09-21): the `interrupted?` primitive
+exists in the engine, but `Orchestrator._build_rule_state` does not yet populate
+`RuleState.interrupted` from the audio-layer barge-in event, so the trigger is unreachable
+in production. It is re-enabled when that wiring — and the "answer the barged-in content,
+don't just apologise" semantics — land.
 """
 
 from pathlib import Path
@@ -13,6 +19,9 @@ from lucca.core.exceptions import SchemeYieldSignal
 from lucca.core.schemas import RuleState, ToolCall
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.skills import SkillManager, SkillPackage
+
+ACTIVE_FACTORY_SKILL_COUNT = 15
+RETIRED_PENDING_PRIMITIVE_WIRING = "barge-in-sorry-v1"
 
 FACTORY_SKILL_MANIFEST: dict[str, tuple[bool, list[str]]] = {
     # 12 tool-call skills
@@ -30,8 +39,6 @@ FACTORY_SKILL_MANIFEST: dict[str, tuple[bool, list[str]]] = {
     "session-recap-v1": (True, ["companion", "cognitive_core"]),
     # 1 pure-say skill
     "time-greeting-v1": (False, ["companion"]),
-    # 1 barge-in skill
-    "barge-in-sorry-v1": (False, ["companion"]),
     # 2 yield-shortcut skills
     "plan-decompose-v1": (False, ["cognitive_core"]),
     "correction-ack-v1": (False, ["cognitive_core"]),
@@ -46,18 +53,29 @@ def skills_engine() -> RuleLifecycleManager:
     return RuleLifecycleManager(skills_dir=skills_dir, registered_tools=tools)
 
 
-def test_all_16_skills_registered_active_and_validated(skills_engine: RuleLifecycleManager) -> None:
+def test_all_active_skills_registered_active_and_validated(
+    skills_engine: RuleLifecycleManager,
+) -> None:
     """
-    Assert all 16 factory skills:
+    Assert all ACTIVE factory skills:
     1. Exist in config/skills.
     2. Pass structural, formal Z3 SMT, and trace validation via SkillPackage.load_and_validate.
     3. Are loaded into RuleLifecycleManager with status ACTIVE and matching metadata.
-    4. Are counted by SkillManager within the 30-cap (exactly 16 active).
+    4. Are counted by SkillManager within the 30-cap (exactly ACTIVE_FACTORY_SKILL_COUNT).
+    5. The barge-in skill stays RETIRED until its primitive is wired (unreachable-trigger guard).
     """
     tools = get_default_native_tools()
     skills_dir = Path("config/skills")
 
-    assert len(FACTORY_SKILL_MANIFEST) == 16, "Must have exactly 16 factory skills"
+    assert len(FACTORY_SKILL_MANIFEST) == ACTIVE_FACTORY_SKILL_COUNT
+    assert not (skills_dir / RETIRED_PENDING_PRIMITIVE_WIRING).exists(), (
+        f"{RETIRED_PENDING_PRIMITIVE_WIRING} must not be ACTIVE: RuleState.interrupted is not "
+        "populated by the orchestrator, so its :when predicate cannot fire in production."
+    )
+    assert (skills_dir / "_retired" / RETIRED_PENDING_PRIMITIVE_WIRING / "plan.scm").exists()
+    assert RETIRED_PENDING_PRIMITIVE_WIRING not in {
+        m.id for m in skills_engine.get_active_skill_metas()
+    }
 
     for skill_id, (expected_exposed, expected_cats) in FACTORY_SKILL_MANIFEST.items():
         pkg_dir = skills_dir / skill_id
@@ -81,16 +99,19 @@ def test_all_16_skills_registered_active_and_validated(skills_engine: RuleLifecy
 
     # 3. Active skill count <= 30 cap
     mgr = SkillManager(skills_dir=skills_dir, rule_engine=skills_engine)
-    assert mgr.count_active_skills() == 16
+    assert mgr.count_active_skills() == ACTIVE_FACTORY_SKILL_COUNT
     assert mgr.count_active_skills() <= mgr.active_limit
 
 
-def test_all_16_skills_execution_and_entity_invariants(skills_engine: RuleLifecycleManager) -> None:
+def test_all_active_skills_execution_and_entity_invariants(
+    skills_engine: RuleLifecycleManager,
+) -> None:
     """
-    Assert every one of the 16 factory skills executes cleanly according to doctrine:
+    Assert every ACTIVE factory skill executes cleanly according to doctrine:
     - Tool-call skills respect the entity-absent invariant: absence yields, presence acts.
     - Parameterless tool-call skills dispatch tools cleanly.
-    - Pure-say, barge-in, and yield-shortcut skills fire on valid states.
+    - Pure-say and yield-shortcut skills fire on valid states.
+    - The `interrupted?` primitive evaluates, but no ACTIVE skill is gated on it.
     """
     # 1. calc-eval-v1
     with pytest.raises(SchemeYieldSignal) as exc_info:
@@ -443,18 +464,14 @@ def test_all_16_skills_execution_and_entity_invariants(skills_engine: RuleLifecy
         and greet_out.plan.actions[0].text == "Good morning! How can I help you today?"
     )
 
-    # 14. barge-in-sorry-v1 (interrupted? predicate)
-    barge_out = next(
-        o
-        for o in skills_engine.evaluate(
-            RuleState(
-                transcript="wait", transcript_lower="wait", intent="barge_in", interrupted=True
-            ),
-            mode="active",
-        )
-        if o.rule_id == "barge-in-sorry-v1"
+    # 14. interrupted? primitive: evaluates without error, and — because barge-in-sorry-v1 is
+    # RETIRED — no ACTIVE skill fires on an interrupted state alone.
+    interrupted_outcomes = skills_engine.evaluate(
+        RuleState(transcript="wait", transcript_lower="wait", intent="chit_chat", interrupted=True),
+        mode="active",
     )
-    assert barge_out.fired and barge_out.plan.actions[0].text == "Sorry — you were saying?"
+    assert all(o.rule_id != RETIRED_PENDING_PRIMITIVE_WIRING for o in interrupted_outcomes)
+    assert not any(o.errored for o in interrupted_outcomes)
 
     # 15. plan-decompose-v1 (yield)
     with pytest.raises(SchemeYieldSignal) as exc_info:
@@ -514,10 +531,9 @@ def test_invoke_skill_dispatch_all_exposed_skills(skills_engine: RuleLifecycleMa
         assert ok is True, f"{skill_id} failed dispatch: {msg}"
         assert payload is not None and payload["skill_id"] == skill_id
 
-    # 4 unexposed skills refuse
+    # 3 unexposed skills refuse
     unexposed_skills = [
         "time-greeting-v1",
-        "barge-in-sorry-v1",
         "plan-decompose-v1",
         "correction-ack-v1",
     ]

@@ -140,12 +140,15 @@ def requires_confirmation(tool_name: str, taint: TaintFlags = TaintFlags.CLEAN) 
     """
     Checks if tool requires user confirmation (WRITE or LAUNCH).
     If UNTRUSTED_WEB taint is active, dynamically escalates all side-effect tools.
+
+    `note_write` is Class A ("her body", spec §2.1): a scratchpad confined to `notes/`
+    outside the user workspace, so it runs without confirmation unless web-tainted.
+    `memory_commit` gets **no** exemption — it is a WRITE into provenance-gated memory
+    and its dispatcher currently fails closed (see SandboxService.execute_tool).
     """
     risk = classify_risk(tool_name)
-    if tool_name in ("memory_commit", "note_write"):
-        if taint & TaintFlags.UNTRUSTED_WEB:
-            return True
-        return False
+    if tool_name == "note_write":
+        return bool(taint & TaintFlags.UNTRUSTED_WEB)
     if taint & TaintFlags.UNTRUSTED_WEB:
         # Any tool with side effects requires confirmation when tainted by external web
         if risk in (Risk.WRITE, Risk.LAUNCH, Risk.NETWORK):

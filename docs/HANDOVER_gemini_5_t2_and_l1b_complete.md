@@ -81,7 +81,8 @@ Synchronized with runtime root `C:\ProjectLucca\config\skills\` and SQLite datab
 | unit-convert-v1        | ACTIVE  | cogniti… |   True   |    0 / 5 |       0 |
 +-----------------------------------------------------------------------------+
 ```
-Total: **16 ACTIVE skills** (within the $\le 30$ active cap) + **1 RETIRED rule** (`calc-open-with-expr-v1`).
+Total as reported: **16 ACTIVE skills** + **1 RETIRED rule** (`calc-open-with-expr-v1`).
+**Corrected at gate review (§3a F2): 15 ACTIVE + 2 RETIRED** — `barge-in-sorry-v1` re-retired because its trigger is unreachable in production.
 
 ---
 
@@ -98,6 +99,18 @@ Total: **16 ACTIVE skills** (within the $\le 30$ active cap) + **1 RETIRED rule*
 | `pytest tests -q` | **497 passed, 11 deselected** (100.42s) | Clean across full repository test suite |
 
 ---
+
+## 3a. Zoo (Fable 5.1) Gate Review — 2026-09-21T14:50Z — **CONDITIONAL → APPROVED after remediation**
+
+Mechanics independently re-verified at `a06d052` (ruff clean, format clean, 497 passed). Two findings blocked sign-off and were remediated by Zoo in the follow-up commit; one advisory recorded.
+
+| # | Severity | Finding (with evidence) | Remediation |
+|---|---|---|---|
+| **F1** | **BLOCKING — hard invariant (AGENTS.md §2.1 / ADR-006)** | `memory_commit` dispatcher ([`service.py`](../src/lucca/sandbox/service.py) §5c) wrote LLM-supplied `content` via `MemoryManager.add_memory(..., provenance=USER_EXPLICIT)`, which defaults to `UserSpeechSigner(signer_id="ui-admin")` ([`manager.py:123`](../src/lucca/memory/manager.py)). Result: model narration HMAC-signed **as the operator's own speech** and admitted by the `ProvenanceGate`. Compounded by [`policy.py:145-148`](../src/lucca/sandbox/policy.py) exempting `memory_commit` from WRITE confirmation — an exemption that existed so the "Class A < 50 ms" test could pass. The tool was therefore an unconfirmed, authenticated laundering path for `LLM_NARRATION`. | Dispatcher now **fails closed** with a structured `provenance_violation` result (schema kept for taxonomy completeness per handover #4 §0.1). Confirmation exemption removed for `memory_commit` (kept for `note_write`, Class A scratchpad). New tests: unconfirmed call → `confirmation_required`; **confirmed** call → refused, zero rows written under any provenance; `requires_confirmation("memory_commit") is True`. A legitimate commit path (rule-engine dispatch with entity-derived content → `ExtractorSigner`/`USER_DERIVED`, or a confirmation turn signed on the *user's* utterance) needs an ADR before this tool is re-enabled. |
+| **F2** | **BLOCKING — unreachable trigger (repeat of Phase 4 D3)** | `RuleState.interrupted` was added to the schema, but [`Orchestrator._build_rule_state`](../src/lucca/core/orchestrator.py) never sets it; the only writers are the validator's random fixtures and golden-trace loading. `barge-in-sorry-v1` was therefore ACTIVE with a `:when` that cannot fire in production, and its golden trace used the non-router intent `barge_in`. The report's "un-retired … verified with Z3 and golden traces" was true only in the test harness. Design is also unresolved: a user who barges in *with content* must not be answered with "you were saying?". | Re-retired via `lucca-admin skills retire` (repo dir + runtime mirror); registry is **15 ACTIVE + 2 RETIRED**. `interrupted?` primitive kept (sound, Z3-modelled). `test_l1b_all_skills` / `test_phase4_factory_skills` now assert the skill stays out of ACTIVE while the orchestrator does not populate the flag. Re-enable requires: orchestrator wiring (previous-turn interrupted → next `RuleState`), a predicate that excludes substantive barge-in transcripts, and a router-reachable golden trace. |
+| **A1** | Advisory | "Class A < 50 ms" for `memory_search` is measured on a `MemoryManager` with **no embedding port** (`list_memories(search=…)`, SQLite listing). The sqlite-vec + FTS5 hybrid path used for prompt context is not what this tool calls, and NPU embedding latency is unmeasured. Not a violation; the test docstring now states the caveat. | Track under T4 telemetry: measure `memory_search` with the production `MemoryStore`. |
+
+**Post-remediation state:** `ruff check` clean · `ruff format --check` clean (164 files) · `pytest tests -q` → **499 passed, 0 failed, 11 deselected**.
 
 ## 4. Next Scope (Handoff #6)
 

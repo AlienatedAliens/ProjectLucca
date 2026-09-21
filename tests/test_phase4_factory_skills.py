@@ -24,7 +24,7 @@ def skills_engine():
 
 
 def test_factory_skills_registered_and_active(skills_engine: RuleLifecycleManager) -> None:
-    """Assert all 8 active factory skills are loaded and ACTIVE."""
+    """Assert the 7 L1b-pilot factory skills are loaded and ACTIVE (barge-in stays RETIRED)."""
     expected_skills = {
         "calc-eval-v1": (True, ["cognitive_core", "self"]),
         "unit-convert-v1": (True, ["cognitive_core"]),
@@ -33,10 +33,13 @@ def test_factory_skills_registered_and_active(skills_engine: RuleLifecycleManage
         "time-greeting-v1": (False, ["companion"]),
         "plan-decompose-v1": (False, ["cognitive_core"]),
         "correction-ack-v1": (False, ["cognitive_core"]),
-        "barge-in-sorry-v1": (False, ["companion"]),
     }
 
-    assert len(expected_skills) == 8
+    assert len(expected_skills) == 7
+    # D3 (Phase 4 gate) still holds: RuleState.interrupted is never populated by the
+    # orchestrator, so barge-in-sorry-v1 must not be ACTIVE with an unreachable trigger.
+    barge = skills_engine.rules.get("barge-in-sorry-v1")
+    assert barge is None or barge.status != "ACTIVE"
 
     for skill_id, (expected_exposed, expected_cats) in expected_skills.items():
         assert skill_id in skills_engine.rules, f"Missing factory skill {skill_id}"
@@ -234,18 +237,17 @@ def test_each_factory_skill_fires_expected_plan(skills_engine: RuleLifecycleMana
     assert exc_info.value.reason == "operator correction"
     assert exc_info.value.context.get("salience") == "high"
 
-    # 8. barge-in-sorry-v1 (interrupted? predicate)
+    # 8. interrupted? primitive evaluates cleanly, but no ACTIVE skill fires on it alone
+    #    (barge-in-sorry-v1 is RETIRED until the orchestrator populates RuleState.interrupted).
     state_barge = RuleState(
         transcript="wait hold on",
         transcript_lower="wait hold on",
-        intent="barge_in",
+        intent="chit_chat",
         interrupted=True,
     )
     outcomes = skills_engine.evaluate(state_barge, mode="active")
-    barge_out = next((o for o in outcomes if o.rule_id == "barge-in-sorry-v1"), None)
-    assert barge_out is not None and barge_out.fired is True
-    assert barge_out.plan is not None
-    assert barge_out.plan.actions[0].text == "Sorry — you were saying?"
+    assert all(o.rule_id != "barge-in-sorry-v1" for o in outcomes)
+    assert not any(o.errored for o in outcomes)
 
 
 def test_invoke_skill_dispatch_and_refusal(skills_engine: RuleLifecycleManager) -> None:
