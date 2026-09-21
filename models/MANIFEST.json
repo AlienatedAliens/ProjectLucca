@@ -49,7 +49,7 @@
       "size_bytes": 9786021216,
       "source_repo": "culturerevolt/gemma-4-12b-heretic-abliterated (iMatrix GGUF suite)",
       "source_filename": "gemma-4-12b-heretic-Q6_K.gguf",
-      "status": "CANDIDATE — brain bake-off 2026-09-21; arch=gemma4; requires stock llama.cpp >= b11026 with --jinja; not ratified (D-BRAIN-05 unchanged)"
+      "status": "PRIMARY — companion brain (D-BRAIN-05 v2, 2026-09-21); arch=gemma4; requires stock llama.cpp >= b11026 with --jinja; 16K context; flash attention; Q8_0 KV cache; resident VRAM clamp <= 12,800 MB; enable_thinking=false mandatory for companion tiers"
     },
     "llm/Ternary-Bonsai-2-27B-PQ2_0.gguf": {
       "sha256": "3907dc1658db1f78a9826bf8d5bcb8dc65db0d466388937af57f2294fae62ec1",

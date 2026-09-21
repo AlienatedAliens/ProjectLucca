@@ -8,12 +8,14 @@ $lines = @(
     "memory=4608MB",
     "processors=4",
     "swap=0",
-    "pageReporting=true",
-    "autoMemoryReclaim=gradual",
-    "sparseVhd=true",
     "networkingMode=nat",
     "localhostForwarding=true",
-    "nestedVirtualization=false"
+    "nestedVirtualization=false",
+    "",
+    "[experimental]",
+    "# pageReporting=true (kernel default in Linux 5.15+; unknown as config key in WSL 2.x)",
+    "autoMemoryReclaim=gradual",
+    "sparseVhd=true"
 )
 $targetConfig = $lines -join "`r`n"
 

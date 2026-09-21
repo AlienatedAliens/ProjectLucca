@@ -115,3 +115,24 @@
 | **Belnap Bilattice Isolation** | **ENFORCED** | Substrate 7 recollections with `grounding_eligible=0` default to `BelnapStatus.UNKNOWN` in `EpistemicCascade`. |
 | **Zero-`Any` (`D-AUD-01`)** | **PRESERVED** | Zero `Any` occurrences in public APIs; verified by AST analysis in `test_static_gates.py`. |
 | **Strict Hardware Budget** | **PRESERVED** | All queries leverage existing SQLite WAL indices and token matching; zero GPU/NPU footprint overhead. |
+
+---
+
+## 4. Reviewer Correction (2026-09-21)
+
+*Appended per Gap Analysis [`docs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md`](./audit/05_TEST_STRATEGY_GAP_ANALYSIS.md) and Work Order #8 ([`docs/WORK_ORDER_gemini_8_test_hardening.md`](./WORK_ORDER_gemini_8_test_hardening.md)).*
+
+The "Full Regression Test Suite — 520 PASSED" reported in §2.2 exercised **T1 only** (`pyproject.toml` deselects `hw`, `soak`, `tier2` by default; the `-m "not live_hardware"` filter was a no-op referencing an unregistered marker). Live hardware (`hw`), soak (`soak`), and integration (`tier2`) were not executed in this session.
+
+### Actual Tier Breakdown (2026-09-21 Audit)
+
+| Tier | Command | 2026-09-21 result | Notes |
+|---|---|---|---|
+| T0 static | `uv run ruff check/format`, `tests/test_static_gates.py` | green | Zero-`Any` gate intact |
+| T1 unit + property | `uv run pytest` (default) | **520 passed** | This is the number in the A1 handover |
+| T2 fake-backed integration | `uv run pytest -m tier2` | **6 passed** (run by reviewer) | Not run by the A1 session |
+| T3 live hardware | `uv run pytest -m hw` | **5 collected, 0 for A1/L2**; `llama-server` **not running** (`curl :8080/health` → exit 7; dGPU 0 MiB used) | Nothing live was executed for A1 |
+| T4 soak | `uv run pytest -m soak` | **0 tests exist** | Marker registered, never used |
+
+**Corrected Status:** *Implemented — T1/T2 green — T3/T4 not attempted — see WO-8.*
+

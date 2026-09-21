@@ -106,11 +106,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 pythonpath = [".", "src"]
 asyncio_mode = "auto"
-addopts = "-m 'not hw and not soak and not tier2'"
+addopts = "--strict-markers -m 'not hw and not soak and not tier2 and not net'"
 markers = [
     "hw: Hardware-dependent tests (NPU/dGPU/Audio)",
     "soak: Long-running stability and soak tests",
     "tier2: Fake-backed integration tests (no hardware)",
+    "net: Requires outbound network egress via the WSL2 sandbox",
 ]
 
 [dependency-groups]

@@ -1,0 +1,12 @@
+{
+  "tier": "T0",
+  "command": "C:\\Projects\\ProjectLucca\\.venv\\Scripts\\pytest tests/test_static_gates.py -q",
+  "markers_expr": "not hw and not soak and not tier2 and not net",
+  "passed": 10,
+  "failed": 0,
+  "xfailed": 0,
+  "skipped": 0,
+  "duration_s": 0.0,
+  "exitstatus": 0,
+  "created_at_utc": "20260921T171819Z"
+}
