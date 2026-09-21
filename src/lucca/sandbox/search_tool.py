@@ -33,26 +33,41 @@ USER_AGENT: str = (
 SEARCH_TIMEOUT_S: float = 8.0
 MAX_QUERY_LEN: int = 256
 
-LOGIN_WALL_DOMAINS: frozenset[str] = frozenset({
-    "facebook.com",
-    "www.facebook.com",
-    "m.facebook.com",
-    "instagram.com",
-    "www.instagram.com",
-    "linkedin.com",
-    "www.linkedin.com",
-    "twitter.com",
-    "x.com",
-    "mobile.twitter.com",
-    "tiktok.com",
-    "www.tiktok.com",
-    "pinterest.com",
-    "www.pinterest.com",
-})
+LOGIN_WALL_DOMAINS: frozenset[str] = frozenset(
+    {
+        "facebook.com",
+        "www.facebook.com",
+        "m.facebook.com",
+        "instagram.com",
+        "www.instagram.com",
+        "linkedin.com",
+        "www.linkedin.com",
+        "twitter.com",
+        "x.com",
+        "mobile.twitter.com",
+        "tiktok.com",
+        "www.tiktok.com",
+        "pinterest.com",
+        "www.pinterest.com",
+    }
+)
 
 BINARY_EXTENSIONS: tuple[str, ...] = (
-    ".docx", ".xlsx", ".pptx", ".zip", ".tar", ".gz", ".7z",
-    ".rar", ".exe", ".msi", ".dmg", ".iso", ".mp4", ".mp3", ".avi",
+    ".docx",
+    ".xlsx",
+    ".pptx",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".7z",
+    ".rar",
+    ".exe",
+    ".msi",
+    ".dmg",
+    ".iso",
+    ".mp4",
+    ".mp3",
+    ".avi",
 )
 
 
@@ -101,7 +116,9 @@ def search_web(query: str, max_results: int = 5) -> tuple[dict[str, Any], str]:
 
     # 1. Primary path: DDGS using primp TLS impersonation
     # Only skip if httpx.Client.get is mocked in unit tests
-    is_mocked = hasattr(httpx.Client.get, "mock_calls") or hasattr(httpx.Client.get, "_mock_return_value")
+    is_mocked = hasattr(httpx.Client.get, "mock_calls") or hasattr(
+        httpx.Client.get, "_mock_return_value"
+    )
     if DDGS is not None and not is_mocked:
         try:
             with DDGS(timeout=SEARCH_TIMEOUT_S) as ddgs_client:
@@ -152,7 +169,9 @@ def search_web(query: str, max_results: int = 5) -> tuple[dict[str, Any], str]:
                         html_text = resp.text
                         break
                     else:
-                        logger.warning("duckduckgo_search_http_error", status=resp.status_code, url=search_url)
+                        logger.warning(
+                            "duckduckgo_search_http_error", status=resp.status_code, url=search_url
+                        )
             except httpx.TimeoutException:
                 logger.warning("duckduckgo_search_timeout", query=clean_query, url=search_url)
             except Exception as e:
@@ -198,20 +217,34 @@ def search_web(query: str, max_results: int = 5) -> tuple[dict[str, Any], str]:
                     snippet = ""
                     url = ""
 
-                    t_match = re.search(r'<a[^>]*class="[^"]*result__url[^"]*"[^>]*href="([^"]+)"[^>]*>(.*?)</a>', b, re.DOTALL)
+                    t_match = re.search(
+                        r'<a[^>]*class="[^"]*result__url[^"]*"[^>]*href="([^"]+)"[^>]*>(.*?)</a>',
+                        b,
+                        re.DOTALL,
+                    )
                     if t_match:
                         url = t_match.group(1).strip()
 
-                    snippet_match = re.search(r'<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</a>', b, re.DOTALL)
+                    snippet_match = re.search(
+                        r'<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>(.*?)</a>', b, re.DOTALL
+                    )
                     if snippet_match:
-                        snippet = html.unescape(re.sub(r"<[^>]+>", "", snippet_match.group(1))).strip()
+                        snippet = html.unescape(
+                            re.sub(r"<[^>]+>", "", snippet_match.group(1))
+                        ).strip()
 
-                    link_match = re.search(r'<h2[^>]*class="[^"]*result__title[^"]*"[^>]*>.*?<a[^>]*>(.*?)</a>', b, re.DOTALL)
+                    link_match = re.search(
+                        r'<h2[^>]*class="[^"]*result__title[^"]*"[^>]*>.*?<a[^>]*>(.*?)</a>',
+                        b,
+                        re.DOTALL,
+                    )
                     if link_match:
                         title = html.unescape(re.sub(r"<[^>]+>", "", link_match.group(1))).strip()
 
                     if not snippet:
-                        raw_s = re.search(r'class="[^"]*result__snippet[^"]*"[^>]*>(.*?)(?:<|$)', b, re.DOTALL)
+                        raw_s = re.search(
+                            r'class="[^"]*result__snippet[^"]*"[^>]*>(.*?)(?:<|$)', b, re.DOTALL
+                        )
                         if raw_s:
                             snippet = html.unescape(re.sub(r"<[^>]+>", "", raw_s.group(1))).strip()
 
@@ -234,16 +267,33 @@ def search_web(query: str, max_results: int = 5) -> tuple[dict[str, Any], str]:
                 for idx, b in enumerate(blocks[:max_results], 1):
                     clean_snippet = html.unescape(re.sub(r"<[^>]+>", "", b)).strip()
                     if clean_snippet:
-                        results.append({"title": f"Result {idx}", "snippet": clean_snippet, "url": ""})
+                        results.append(
+                            {"title": f"Result {idx}", "snippet": clean_snippet, "url": ""}
+                        )
 
         elif anomaly_detected:
-            msg = f"Search engine rate limited or presented a bot challenge for query: '{clean_query}'. Snippets could not be retrieved."
-            return {"query": clean_query, "ok": False, "error": "bot_challenge", "results_count": 0, "results": []}, msg
+            msg = (
+                f"Search engine rate limited or presented a bot challenge for query: "
+                f"'{clean_query}'. Snippets could not be retrieved."
+            )
+            return {
+                "query": clean_query,
+                "ok": False,
+                "error": "bot_challenge",
+                "results_count": 0,
+                "results": [],
+            }, msg
 
     # If no results found after all attempts
     if not results:
         msg = f"No verified web search results found for query: '{clean_query}'."
-        return {"query": clean_query, "ok": False, "error": "no_results", "results_count": 0, "results": []}, msg
+        return {
+            "query": clean_query,
+            "ok": False,
+            "error": "no_results",
+            "results_count": 0,
+            "results": [],
+        }, msg
 
     # Classify link followability and compute agent priority
     for r in results:

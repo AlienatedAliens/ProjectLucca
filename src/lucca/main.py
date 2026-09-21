@@ -3,6 +3,7 @@ Project Lucca — Supervisor & Four-Process Lifecycle Entry Point
 Spec 01 §1, §7, ADR-008
 """
 
+import argparse
 import ctypes
 import multiprocessing as mp
 import os
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+
 
 def _setup_stdio() -> None:
     if sys.stdout is None:
@@ -27,7 +29,6 @@ def _setup_stdio() -> None:
 
     if sys.stdout is None:
         try:
-            import ctypes
             if ctypes.windll.kernel32.AttachConsole(-1) != 0:
                 sys.stdout = open("CONOUT$", "w", encoding="utf-8", errors="replace")
                 if sys.stderr is None:
@@ -54,13 +55,21 @@ def _setup_stdio() -> None:
 
 _setup_stdio()
 
-from lucca.brain.server_ctl import check_server_status, is_healthy, start_server
-from lucca.core.config import get_config
-from lucca.core.env_check import run_env_check
-from lucca.core.orchestrator import Orchestrator
-from lucca.senses.audio_proc import AudioProcess
-from lucca.senses.npu_proc import NPUProcess
-from lucca.ui.app import UIApplication
+# Deliberately imported after _setup_stdio(): the frozen (PyInstaller, windowed) build has
+# sys.stdout/sys.stderr == None until the shim above installs safe streams, and several of
+# these modules configure structlog / print on import.
+from lucca import __version__  # noqa: E402
+from lucca.brain.server_ctl import (  # noqa: E402
+    check_server_status,
+    is_healthy,
+    start_server,
+)
+from lucca.core.config import get_config  # noqa: E402
+from lucca.core.env_check import run_env_check  # noqa: E402
+from lucca.core.orchestrator import Orchestrator  # noqa: E402
+from lucca.senses.audio_proc import AudioProcess  # noqa: E402
+from lucca.senses.npu_proc import NPUProcess  # noqa: E402
+from lucca.ui.app import UIApplication  # noqa: E402
 
 
 def _fake_child_proc() -> None:
@@ -347,18 +356,15 @@ def main() -> None:
     except Exception:  # noqa: BLE001, S110
         pass
 
-    import argparse
-    from lucca import __version__
-
     parser = argparse.ArgumentParser(
         prog="Lucca",
         description="Project Lucca — Sandboxed Local AI Companion Agent",
     )
+    parser.add_argument("--version", "-v", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument(
-        "--version", "-v", action="version", version=f"%(prog)s {__version__}"
-    )
-    parser.add_argument(
-        "--check", action="store_true", help="Run environment and hardware diagnostic checks and exit"
+        "--check",
+        action="store_true",
+        help="Run environment and hardware diagnostic checks and exit",
     )
     parser.add_argument(
         "--headless", action="store_true", help="Run in headless mode without PyQt6 GUI"

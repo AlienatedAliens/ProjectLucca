@@ -4,10 +4,10 @@ Enforces that rule induction cannot synthesize or promote rules from zero produc
 """
 
 from pathlib import Path
-import pytest
+
+from lucca.memory.db import DatabaseManager
 from lucca.reasoning.induction import RuleInducer
 from lucca.reasoning.lifecycle import RuleLifecycleManager
-from lucca.memory.db import DatabaseManager
 
 
 def test_d_reas_06_empty_telemetry_prevents_rule_generation(tmp_path: Path):

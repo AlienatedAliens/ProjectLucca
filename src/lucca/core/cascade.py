@@ -12,9 +12,9 @@ import enum
 import json
 import re
 import time
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Sequence
 
 import structlog
 import ulid
@@ -66,7 +66,7 @@ class TrustTier(enum.IntEnum):
     TIER_4_WEB = 4  # External untrusted network content (tainted)
 
 
-class BelnapValue(str, enum.Enum):
+class BelnapValue(enum.StrEnum):
     """
     Belnap's 4-valued evidential bilattice FOUR:
     T: Supported True (positive evidence without refutation)
@@ -88,7 +88,7 @@ class BelnapValue(str, enum.Enum):
 
 def belnap_meet_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """Logical conjunction (meet in truth ordering <=_t: F <= {BOT, TOP} <= T)."""
-    if a == BelnapValue.FALSE or b == BelnapValue.FALSE:
+    if BelnapValue.FALSE in (a, b):
         return BelnapValue.FALSE
     if a == BelnapValue.TRUE:
         return b
@@ -101,7 +101,7 @@ def belnap_meet_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
 
 def belnap_join_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """Logical disjunction (join in truth ordering <=_t: F <= {BOT, TOP} <= T)."""
-    if a == BelnapValue.TRUE or b == BelnapValue.TRUE:
+    if BelnapValue.TRUE in (a, b):
         return BelnapValue.TRUE
     if a == BelnapValue.FALSE:
         return b
@@ -123,7 +123,7 @@ def belnap_negation(a: BelnapValue) -> BelnapValue:
 
 def belnap_meet_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """Consensus / information meet (meet in knowledge ordering <=_k: BOT <= {T, F} <= TOP)."""
-    if a == BelnapValue.UNKNOWN or b == BelnapValue.UNKNOWN:
+    if BelnapValue.UNKNOWN in (a, b):
         return BelnapValue.UNKNOWN
     if a == BelnapValue.CONFLICT:
         return b
@@ -135,8 +135,11 @@ def belnap_meet_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
 
 
 def belnap_join_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Evidential pooling / information join (join in knowledge ordering <=_k: BOT <= {T, F} <= TOP)."""
-    if a == BelnapValue.CONFLICT or b == BelnapValue.CONFLICT:
+    """Evidential pooling / information join (join in knowledge ordering <=_k).
+
+    Ordering: BOT <= {T, F} <= TOP.
+    """
+    if BelnapValue.CONFLICT in (a, b):
         return BelnapValue.CONFLICT
     if a == BelnapValue.UNKNOWN:
         return b
@@ -399,7 +402,10 @@ def classify_epistemic_intent(
         return False, [], None
 
     # Conversational small talk / pure banter (without factual inquiry)
-    pure_banter = r"^(?:how\s+are\s+you|how(?:'re|\s+are)\s+you\s+doing|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going)[.?!]?$"
+    pure_banter = (
+        r"^(?:how\s+are\s+you|how(?:'re|\s+are)\s+you\s+doing"
+        r"|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going)[.?!]?$"
+    )
     if re.search(pure_banter, lower):
         return False, [], None
 
@@ -584,7 +590,7 @@ class EpistemicSearchCascade:
         args: dict[str, JsonValue],
         confirmed: bool = True,
     ) -> ToolResult | None:
-        """Invokes a sandbox tool polymorphically supporting SandboxService or PersistentDockerWorker."""
+        """Invokes a sandbox tool polymorphically (SandboxService or PersistentDockerWorker)."""
         if not self.sandbox:
             return None
         if hasattr(self.sandbox, "execute"):
@@ -607,8 +613,10 @@ class EpistemicSearchCascade:
         query time, never hard-coded, so a brain swap is a config change and Lucca's
         self-description stays truthful.
         """
-        from lucca.brain.prompt_builder import get_persona_config
-        from lucca.core.config import get_config
+        # Lazy imports: brain.prompt_builder / core.config import the cascade indirectly
+        # (orchestrator -> cascade); importing at module top would form a cycle.
+        from lucca.brain.prompt_builder import get_persona_config  # noqa: PLC0415
+        from lucca.core.config import get_config  # noqa: PLC0415
 
         try:
             cfg = get_persona_config()
@@ -624,7 +632,8 @@ class EpistemicSearchCascade:
                 f"Created locally for this workstation. "
                 f"Admits uncertainty: {cfg.admits_uncertainty}."
             )
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 — degrade to static identity, never crash a turn
+            logger.warning("cascade_self_substrate_fallback", error=str(exc))
             content = (
                 "Lucca: local AI engineer companion for pair programming and systems engineering."
             )
@@ -645,9 +654,15 @@ class EpistemicSearchCascade:
     # Substrate CAPABILITIES: Authoritative Capability Registry (0ms, Tier 0)
     # ------------------------------------------------------------------------
     def query_substrate_capabilities(self, query_text: str) -> list[EvidenceItem]:
-        """Queries registered capabilities and tools (Substrate CAPABILITIES - Authoritative Tier 0)."""
+        """Queries registered capabilities and tools (Substrate CAPABILITIES, Tier 0).
+
+        The tool list is always derived from the live registry. If the registry cannot be
+        read, this substrate returns **no evidence** rather than a hard-coded list — a stale
+        list stamped TIER_0 / confidence 1.0 would itself be a confabulated self-description.
+        """
         try:
-            from lucca.core.capabilities import get_capability_registry
+            # Lazy import: capabilities imports the orchestrator's schemas; avoid a cycle.
+            from lucca.core.capabilities import get_capability_registry  # noqa: PLC0415
 
             reg = get_capability_registry()
             apps = [a["key"] for a in reg.get_whitelisted_apps() if a.get("status") != "Disabled"]
@@ -658,8 +673,9 @@ class EpistemicSearchCascade:
                 f"Whitelisted Desktop Applications (Tool Studio): {', '.join(apps)}. "
                 f"Active MicroScheme Reasoning Pathways (LISP Studio): {', '.join(pathways)}."
             )
-        except Exception:
-            content = "Registered tools: launch_app, read_file, write_file, search_web, fetch_url, query_capabilities."
+        except Exception as exc:  # noqa: BLE001 — registry failure must yield abstention, not a crash
+            logger.warning("cascade_capabilities_substrate_unavailable", error=str(exc))
+            return []
 
         return [
             EvidenceItem(
@@ -682,7 +698,8 @@ class EpistemicSearchCascade:
         items: list[EvidenceItem] = []
 
         try:
-            from lucca.sandbox.system_tools import get_system_metrics, query_nvidia_gpu_metrics
+            # Lazy import: system_tools pulls pynvml/psutil; keep cascade import cheap.
+            from lucca.sandbox.system_tools import get_system_metrics  # noqa: PLC0415
 
             metrics = get_system_metrics()
             gpu = metrics.get("gpu", {})
@@ -902,7 +919,8 @@ class EpistemicSearchCascade:
                 and hasattr(self.sandbox, "guard")
                 and hasattr(self.sandbox.guard, "mark_taint")
             ):
-                from lucca.sandbox.policy import TaintFlags
+                # Lazy import: avoids a sandbox <-> core import cycle.
+                from lucca.sandbox.policy import TaintFlags  # noqa: PLC0415
 
                 self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
 
@@ -956,9 +974,10 @@ class EpistemicSearchCascade:
             synth_ctx = (
                 f"[Belnap Epistemic State: BOT (Epistemic Gap / Unknown)]\n"
                 f"Queried Substrates: {queried_names}\n"
-                f"Empirical Status: No verified records or facts found for topic '{topic or 'unspecified'}'.\n"
-                f"Mandatory Grounding Directive: You do not possess verified knowledge on this topic. "
-                f"You MUST explicitly admit uncertainty and decline to confabulate or guess. "
+                f"Empirical Status: No verified records or facts found for topic "
+                f"'{topic or 'unspecified'}'.\n"
+                "Mandatory Grounding Directive: You do not possess verified knowledge on this "
+                "topic. You MUST explicitly admit uncertainty and decline to confabulate or guess. "
                 f'Calibrated Statement: "{refusal}"'
             )
             return BelnapValue.UNKNOWN, synth_ctx, refusal
@@ -996,14 +1015,16 @@ class EpistemicSearchCascade:
                     highest_told_false and tier_told_true
                 ):
                     superseded_annotations.append(
-                        f"Trust Tier {highest_tier.value} ({highest_tier.name}) strictly supersedes historical/lower-trust Tier {tier.value} ({tier.name}) record."
+                        f"Trust Tier {highest_tier.value} ({highest_tier.name}) strictly "
+                        f"supersedes historical/lower-trust Tier {tier.value} ({tier.name}) record."
                     )
 
         # Build formatted grounded context
         lines: list[str] = ["[Epistemic Search Cascade — Verified Ground Truth]"]
         if belnap_status == BelnapValue.CONFLICT:
             lines.append(
-                "[Status: CONFLICT (TOP) — Genuine internal contradiction detected within authoritative tier; tension noted]"
+                "[Status: CONFLICT (TOP) — Genuine internal contradiction detected within "
+                "authoritative tier; tension noted]"
             )
         else:
             lines.append(

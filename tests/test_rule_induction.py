@@ -490,4 +490,3 @@ def test_inducer_macro_synthesis_across_clusters(test_db, rule_engine):
     assert macro.name == "when-launch-app-app"
     assert "defmacro when-launch-app-app" in macro.s_expression
     assert len(macro.supporting_clusters) == 2
-

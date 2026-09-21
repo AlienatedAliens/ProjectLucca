@@ -29,7 +29,6 @@ from typing import Final
 
 from pydantic import BaseModel, Field, JsonValue
 
-from lucca.core.schemas import Risk, ToolCall
 from lucca.sandbox.policy import TaintFlags
 
 
@@ -41,16 +40,20 @@ class DeonticNorm(enum.StrEnum):
 
 class BDIValidationResult(BaseModel):
     is_valid: bool = Field(description="Whether the candidate tool call is permitted to execute.")
-    norm: DeonticNorm = Field(description="Deontic classification: PERMITTED, PROHIBITED, or OBLIGATORY.")
-    reason: str | None = Field(default=None, description="Diagnostic justification or rule violation description.")
+    norm: DeonticNorm = Field(
+        description="Deontic classification: PERMITTED, PROHIBITED, or OBLIGATORY."
+    )
+    reason: str | None = Field(
+        default=None, description="Diagnostic justification or rule violation description."
+    )
     elapsed_us: float = Field(default=0.0, description="Validation latency in microseconds.")
     gas_used: int = Field(default=0, description="Gas consumed during evaluation.")
 
 
 # Precompiled regular expressions for sub-millisecond evaluation (< 50 microseconds)
-FORBIDDEN_EXTENSIONS: Final[frozenset[str]] = frozenset({
-    ".sqlite", ".db", ".exe", ".dll", ".bat", ".ps1", ".vbs", ".cmd", ".sh", ".sys", ".ini"
-})
+FORBIDDEN_EXTENSIONS: Final[frozenset[str]] = frozenset(
+    {".sqlite", ".db", ".exe", ".dll", ".bat", ".ps1", ".vbs", ".cmd", ".sh", ".sys", ".ini"}
+)
 
 SYSTEM_PATH_REGEX: Final[re.Pattern[str]] = re.compile(
     r"(?:"
@@ -141,7 +144,9 @@ class SpeculativeBDIValidator:
                     return BDIValidationResult(
                         is_valid=False,
                         norm=DeonticNorm.PROHIBITED,
-                        reason=f"Direct modification of sensitive file format '{ext}' is prohibited",
+                        reason=(
+                            f"Direct modification of sensitive file format '{ext}' is prohibited"
+                        ),
                         elapsed_us=elapsed_us,
                         gas_used=gas_used,
                     )
@@ -155,7 +160,10 @@ class SpeculativeBDIValidator:
                 return BDIValidationResult(
                     is_valid=False,
                     norm=DeonticNorm.PROHIBITED,
-                    reason="Host escape, socket reverse-shell, or destructive system call detected in python script",
+                    reason=(
+                        "Host escape, socket reverse-shell, or destructive system call "
+                        "detected in python script"
+                    ),
                     elapsed_us=elapsed_us,
                     gas_used=gas_used,
                 )
@@ -174,7 +182,10 @@ class SpeculativeBDIValidator:
                     return BDIValidationResult(
                         is_valid=False,
                         norm=DeonticNorm.PROHIBITED,
-                        reason="Outbound network egress prohibited while session context contains tainted memory or workspace data",
+                        reason=(
+                            "Outbound network egress prohibited while session context "
+                            "contains tainted memory or workspace data"
+                        ),
                         elapsed_us=elapsed_us,
                         gas_used=gas_used,
                     )
@@ -184,7 +195,8 @@ class SpeculativeBDIValidator:
             gas_used += 1
             lower_inquiry = inquiry_text.lower()
             is_hardware_inquiry = any(
-                hw in lower_inquiry for hw in ("gpu", "vram", "cpu load", "ram amount", "workstation hardware")
+                hw in lower_inquiry
+                for hw in ("gpu", "vram", "cpu load", "ram amount", "workstation hardware")
             )
             if is_hardware_inquiry and tool_name not in ("query_capabilities", "list_dir"):
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0

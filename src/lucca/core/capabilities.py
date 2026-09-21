@@ -83,9 +83,7 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             name="fetch_url",
             description="Retrieve and read text content from a specific web URL",
             parameters={
-                "url": ToolParameter(
-                    type="string", description="Web URL to fetch", required=True
-                ),
+                "url": ToolParameter(type="string", description="Web URL to fetch", required=True),
                 "render": ToolParameter(
                     type="boolean", description="Whether to render JavaScript", required=False
                 ),
@@ -95,9 +93,7 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "query_capabilities": ToolSchema(
             name="query_capabilities",
-            description=(
-                "Retrieve live system metrics or query installed workspace tools"
-            ),
+            description=("Retrieve live system metrics or query installed workspace tools"),
             parameters={
                 "category": ToolParameter(
                     type="string",
@@ -222,9 +218,7 @@ class CapabilityRegistry:
             dict(tools) if tools is not None else get_default_native_tools()
         )
         if len(self._tools) > MAX_REGISTRY_TOOLS:
-            raise ValueError(
-                f"Registry cap exceeded: {len(self._tools)} > {MAX_REGISTRY_TOOLS}"
-            )
+            raise ValueError(f"Registry cap exceeded: {len(self._tools)} > {MAX_REGISTRY_TOOLS}")
 
     @property
     def tools(self) -> dict[str, ToolSchema]:

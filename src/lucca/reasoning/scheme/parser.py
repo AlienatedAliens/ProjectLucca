@@ -408,9 +408,7 @@ def _validate_action_node(action: SchemeNode) -> None:
         kidx = 2
         while kidx < len(action):
             if not isinstance(action[kidx], Keyword):
-                raise SchemeSyntaxError(
-                    f"Expected keyword in tool call kwargs, got {action[kidx]}"
-                )
+                raise SchemeSyntaxError(f"Expected keyword in tool call kwargs, got {action[kidx]}")
             if kidx + 1 >= len(action):
                 raise SchemeSyntaxError(f"Missing value for keyword {action[kidx]}")
             kidx += 2

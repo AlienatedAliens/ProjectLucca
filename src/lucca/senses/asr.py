@@ -38,6 +38,7 @@ class ASRWorker:
     def _init_model(self) -> None:
         # Ensure cublas DLL path is available for CUDA faster-whisper on Windows
         import os
+
         cublas_path = r"C:\ProjectLucca\app\llama-server"
         if os.path.exists(cublas_path) and cublas_path not in os.environ.get("PATH", ""):
             os.environ["PATH"] = f"{cublas_path};" + os.environ.get("PATH", "")

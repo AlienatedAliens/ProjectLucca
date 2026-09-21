@@ -12,10 +12,10 @@ Verifies:
 """
 
 import time
+
 import pytest
 
 from lucca.core.bdi_validator import (
-    BDIValidationResult,
     DeonticNorm,
     SpeculativeBDIValidator,
 )
@@ -194,6 +194,7 @@ def test_bdi_safe_workspace_operations_permitted(
 def test_orchestrator_handle_tool_call_bdi_enforcement() -> None:
     """Verifies Orchestrator._handle_tool_call blocks prohibited operations before execution."""
     from unittest.mock import MagicMock
+
     from lucca.core.orchestrator import Orchestrator
     from lucca.core.trace import TurnTrace
 
@@ -221,7 +222,8 @@ def test_orchestrator_handle_tool_call_bdi_enforcement() -> None:
 
 def test_orchestrator_scheme_control_signals() -> None:
     """Verifies Orchestrator._run_text_turn handles SchemeYieldSignal and SchemeInterruptSignal."""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
+
     from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
     from lucca.core.orchestrator import Orchestrator
     from lucca.core.trace import TurnTrace
@@ -234,14 +236,18 @@ def test_orchestrator_scheme_control_signals() -> None:
         patch.object(
             orch.rule_engine,
             "evaluate",
-            side_effect=SchemeYieldSignal(reason="knowledge_gap_detected", context={"entity": "flux_capacitor"}),
+            side_effect=SchemeYieldSignal(
+                reason="knowledge_gap_detected", context={"entity": "flux_capacitor"}
+            ),
         ),
         patch.object(orch, "_stream_llm_speech") as mock_stream,
     ):
         orch._run_text_turn(trace, "What is a flux capacitor?")
         mock_stream.assert_called_once()
         call_kwargs = mock_stream.call_args.kwargs
-        assert "[Cognitive Bus Yield: knowledge_gap_detected]" in (call_kwargs.get("epistemic_context") or "")
+        assert "[Cognitive Bus Yield: knowledge_gap_detected]" in (
+            call_kwargs.get("epistemic_context") or ""
+        )
 
     # 2. Test SchemeInterruptSignal: aborts turn immediately without calling _stream_llm_speech
     trace_int = TurnTrace(trace_id="test-trace-int")
@@ -257,4 +263,3 @@ def test_orchestrator_scheme_control_signals() -> None:
         orch._run_text_turn(trace_int, "Trigger emergency stop")
         mock_stream_int.assert_not_called()
         mock_speak.assert_called_with(trace_int, "Interrupted: safety_breach_detected")
-

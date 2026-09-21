@@ -583,9 +583,10 @@ def test_whitelist_load_and_save_enforces_d_aud_10(tmp_path: Path) -> None:
 def test_search_web_execution_and_guard(workspace: Path) -> None:
     """Verifies that search_web executes via SandboxService and is guarded by SequenceGuard."""
     from unittest.mock import patch
+
     from lucca.core.schemas import Risk
+    from lucca.sandbox.policy import SequenceGuard, classify_risk
     from lucca.sandbox.service import SandboxService
-    from lucca.sandbox.policy import classify_risk, SequenceGuard
 
     assert classify_risk("search_web") == Risk.NETWORK
 
@@ -604,7 +605,9 @@ def test_search_web_execution_and_guard(workspace: Path) -> None:
         text = fake_html
 
     with patch("httpx.Client.get", return_value=MockResponse()):
-        res = service.execute_tool("call-sw-1", "search_web", {"query": "test search", "max_results": 3})
+        res = service.execute_tool(
+            "call-sw-1", "search_web", {"query": "test search", "max_results": 3}
+        )
         assert res.ok is True
         assert res.exit_code == 0
         assert res.structured is not None
@@ -618,4 +621,3 @@ def test_search_web_execution_and_guard(workspace: Path) -> None:
     allowed, reason = guard.check_and_record("search_web")
     assert not allowed
     assert "Forbidden sequence" in reason
-

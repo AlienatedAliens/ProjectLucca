@@ -6,16 +6,12 @@ Spec 01 §2, Spec 05 §3, Spec 09 §5/§9, Spec 12 §3
 
 from __future__ import annotations
 
-import json
 import socket
-import string
-import struct
 import time
 from pathlib import Path
-from typing import Any
 
 import pytest
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from lucca.brain.chunker import sanitize_for_voice
@@ -23,12 +19,8 @@ from lucca.core.exceptions import (
     IPCError,
     SandboxPathError,
     SchemeError,
-    SchemeGasExhausted,
-    SchemeRuntimeError,
-    SchemeSyntaxError,
 )
 from lucca.core.ipc_schemas import (
-    MAX_FRAME_SIZE,
     Envelope,
     decode_envelope,
     encode_envelope,
@@ -36,22 +28,12 @@ from lucca.core.ipc_schemas import (
 from lucca.core.schemas import RuleState
 from lucca.reasoning.scheme.eval import evaluate_expr
 from lucca.reasoning.scheme.parser import parse, to_canonical
-from lucca.router.heuristic import (
-    EMERGENCY_REFLEX_PATTERN,
-    FILE_PATTERN,
-    QUOTED_PATTERN,
-    URL_PATTERN,
-    HeuristicRouter,
-)
-from lucca.sandbox.file_tool import SafeFileTool, validate_rel_path
+from lucca.sandbox.file_tool import validate_rel_path
 from lucca.sandbox.policy import (
-    CANCEL_PATTERN,
-    CONFIRM_PATTERN,
     ConfirmationTokenManager,
     SequenceGuard,
-    TaintFlags,
 )
-from lucca.sandbox.web_tool import MAX_QUERY_LEN, MAX_URL_LEN, validate_url_ssrf
+from lucca.sandbox.web_tool import validate_url_ssrf
 
 
 @pytest.fixture
@@ -64,6 +46,7 @@ def workspace(tmp_path: Path) -> Path:
 # -----------------------------------------------------------------------------
 # 1. MicroScheme Fuzzing Properties
 # -----------------------------------------------------------------------------
+
 
 @settings(max_examples=100, deadline=1000)
 @given(
@@ -115,6 +98,7 @@ def test_hypothesis_scheme_eval_gas_and_div0(depth: int, op: str, arg: str) -> N
 # 2. Sandbox Path Jailing Properties
 # -----------------------------------------------------------------------------
 
+
 @settings(
     max_examples=150,
     deadline=1000,
@@ -142,15 +126,28 @@ def test_hypothesis_sandbox_path_confinement(workspace: Path, path_input: str) -
 # 3. SSRF Guard Properties
 # -----------------------------------------------------------------------------
 
+
 @settings(max_examples=100, deadline=1000)
 @given(
     scheme=st.sampled_from(["http", "https", "file", "ftp", "gopher", "data", "php"]),
-    host=st.sampled_from([
-        "127.0.0.1", "127.0.0.2", "localhost", "169.254.169.254",
-        "10.0.0.1", "192.168.1.1", "100.64.0.1", "example.com",
-    ]),
-    path=st.text(alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd")), min_size=0, max_size=30),
-    query=st.text(alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd")), min_size=0, max_size=150),
+    host=st.sampled_from(
+        [
+            "127.0.0.1",
+            "127.0.0.2",
+            "localhost",
+            "169.254.169.254",
+            "10.0.0.1",
+            "192.168.1.1",
+            "100.64.0.1",
+            "example.com",
+        ]
+    ),
+    path=st.text(
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd")), min_size=0, max_size=30
+    ),
+    query=st.text(
+        alphabet=st.characters(whitelist_categories=("Lu", "Ll", "Nd")), min_size=0, max_size=150
+    ),
 )
 def test_hypothesis_ssrf_guard(scheme: str, host: str, path: str, query: str) -> None:
     """SSRF guard strictly prevents access to private/loopback/cloud metadata targets."""
@@ -158,9 +155,21 @@ def test_hypothesis_ssrf_guard(scheme: str, host: str, path: str, query: str) ->
     if query:
         url += f"?q={query}"
 
-    is_private_host = host in ("127.0.0.1", "127.0.0.2", "localhost", "169.254.169.254", "10.0.0.1", "192.168.1.1", "100.64.0.1")
+    is_private_host = host in (
+        "127.0.0.1",
+        "127.0.0.2",
+        "localhost",
+        "169.254.169.254",
+        "10.0.0.1",
+        "192.168.1.1",
+        "100.64.0.1",
+    )
     mock_ip = "127.0.0.1" if host == "localhost" else (host if is_private_host else "93.184.216.34")
-    mock_resolver = lambda h, ip=mock_ip: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 80))]
+
+    def mock_resolver(
+        h: str, ip: str = mock_ip
+    ) -> list[tuple[socket.AddressFamily, socket.SocketKind, int, str, tuple[str, int]]]:
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 80))]
 
     try:
         norm_url, res_ip = validate_url_ssrf(url, dns_resolver=mock_resolver)
@@ -169,7 +178,18 @@ def test_hypothesis_ssrf_guard(scheme: str, host: str, path: str, query: str) ->
         assert not is_private_host
         assert res_ip == "93.184.216.34"
     except SandboxPathError as spe:
-        assert spe.code in ("invalid_scheme", "invalid_url", "too_long", "query_too_long", "invalid_host", "ssrf_blocked", "userinfo_forbidden", "ipv6_blocked", "dns_failed", "invalid_ip")
+        assert spe.code in (
+            "invalid_scheme",
+            "invalid_url",
+            "too_long",
+            "query_too_long",
+            "invalid_host",
+            "ssrf_blocked",
+            "userinfo_forbidden",
+            "ipv6_blocked",
+            "dns_failed",
+            "invalid_ip",
+        )
     except Exception as exc:
         pytest.fail(f"validate_url_ssrf raised unexpected {type(exc).__name__}: {exc}")
 
@@ -178,10 +198,9 @@ def test_hypothesis_ssrf_guard(scheme: str, host: str, path: str, query: str) ->
 # 4. ZeroMQ IPC Codec Properties
 # -----------------------------------------------------------------------------
 
+
 @settings(max_examples=100, deadline=1000)
-@given(
-    raw_bytes=st.binary(min_size=0, max_size=2048)
-)
+@given(raw_bytes=st.binary(min_size=0, max_size=2048))
 def test_hypothesis_ipc_fuzz_bytes(raw_bytes: bytes) -> None:
     """Random byte sequences fed to decode_envelope must raise IPCError, never crash."""
     try:
@@ -200,7 +219,9 @@ def test_hypothesis_ipc_fuzz_bytes(raw_bytes: bytes) -> None:
     int_val=st.integers(min_value=-10000, max_value=10000),
     str_val=st.text(min_size=0, max_size=50),
 )
-def test_hypothesis_ipc_roundtrip(dotted_type: str, trace_id: str, src: str, int_val: int, str_val: str) -> None:
+def test_hypothesis_ipc_roundtrip(
+    dotted_type: str, trace_id: str, src: str, int_val: int, str_val: str
+) -> None:
     """Valid envelopes encode and decode losslessly."""
     env = Envelope(
         type=dotted_type,
@@ -220,6 +241,7 @@ def test_hypothesis_ipc_roundtrip(dotted_type: str, trace_id: str, src: str, int
 # -----------------------------------------------------------------------------
 # 5. Voice Sanitizer & ReDoS Latency Properties
 # -----------------------------------------------------------------------------
+
 
 @settings(max_examples=100, deadline=1000)
 @given(
@@ -243,6 +265,7 @@ def test_hypothesis_voice_sanitizer_redos_latency(text: str) -> None:
 # -----------------------------------------------------------------------------
 # 6. Confirmation Token Manager & Sequence Guard Properties
 # -----------------------------------------------------------------------------
+
 
 @settings(max_examples=80, deadline=1000)
 @given(

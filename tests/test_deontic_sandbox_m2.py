@@ -13,9 +13,10 @@ Tests:
   8. Taint monitor prevents multi-turn sensitive data exfiltration via fetch_url.
 """
 
-from pathlib import Path
-import time
 import os
+import time
+from pathlib import Path
+
 import pytest
 
 from lucca.core.exceptions import SandboxPathError
@@ -27,7 +28,6 @@ from lucca.sandbox.policy import (
 )
 from lucca.sandbox.web_tool import validate_url_ssrf
 from lucca.sandbox.win32_security import (
-    close_workspace_file_handle,
     read_workspace_file_handle,
     verified_workspace_file,
     verify_and_open_workspace_file,
@@ -45,6 +45,7 @@ def workspace(tmp_path: Path) -> Path:
 # ---------------------------------------------------------------------------
 # 1. Win32 Two-Stage Open & Truncation Safety
 # ---------------------------------------------------------------------------
+
 
 def test_win32_two_stage_open_prevents_truncate_before_check(tmp_path: Path, workspace: Path):
     """
@@ -126,6 +127,7 @@ def test_win32_handle_rejects_escape_paths(workspace: Path):
 # 2. DNS Rebinding Detection & Pre-Connect Validation
 # ---------------------------------------------------------------------------
 
+
 def test_dns_rebinding_ip_pinning():
     """
     Simulates DNS rebinding: query 1 returns public IP, query 2 returns 127.0.0.1.
@@ -158,6 +160,7 @@ def test_dns_rebinding_ip_pinning():
 # 3. Cryptographic HMAC-SHA256 Confirmation Tokens
 # ---------------------------------------------------------------------------
 
+
 def test_hmac_token_forgery_and_replay_prevention():
     """
     Verifies HMAC confirmation token generation, validation, forgery rejection, and replay prevention.
@@ -182,20 +185,26 @@ def test_hmac_token_forgery_and_replay_prevention():
 
     # 3. Tampered token string fails
     token2, expiry2 = mgr.issue_token(tool, args, turn_id="turn-002")
-    valid_fake, fake_msg = mgr.verify_token("deadbeef", tool, args, turn_id="turn-002", expiry_ts=expiry2)
+    valid_fake, fake_msg = mgr.verify_token(
+        "deadbeef", tool, args, turn_id="turn-002", expiry_ts=expiry2
+    )
     assert valid_fake is False
     assert "Invalid confirmation token" in fake_msg
 
     # 4. Tampered arguments fail
     token3, expiry3 = mgr.issue_token(tool, args, turn_id="turn-003")
     tampered_args = {"path": "sensitive.txt", "content": "malicious"}
-    valid_tamper, tamper_msg = mgr.verify_token(token3, tool, tampered_args, turn_id="turn-003", expiry_ts=expiry3)
+    valid_tamper, tamper_msg = mgr.verify_token(
+        token3, tool, tampered_args, turn_id="turn-003", expiry_ts=expiry3
+    )
     assert valid_tamper is False
     assert "Invalid confirmation token" in tamper_msg
 
     # 5. Expired token fails
     past_expiry = time.time() - 10.0
-    valid_exp, exp_msg = mgr.verify_token(token3, tool, args, turn_id="turn-003", expiry_ts=past_expiry)
+    valid_exp, exp_msg = mgr.verify_token(
+        token3, tool, args, turn_id="turn-003", expiry_ts=past_expiry
+    )
     assert valid_exp is False
     assert "expired" in exp_msg
 
@@ -203,6 +212,7 @@ def test_hmac_token_forgery_and_replay_prevention():
 # ---------------------------------------------------------------------------
 # 4. State-Based Bidirectional Taint Model & Exfiltration Prevention
 # ---------------------------------------------------------------------------
+
 
 def test_taint_state_escalates_modal_confirmation():
     """

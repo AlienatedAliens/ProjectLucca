@@ -181,14 +181,10 @@ class SkillPackage:
         for t_idx, trace in enumerate(traces, 1):
             trace_id = str(trace.get("id", f"trace-{t_idx}"))
             raw_entities = trace.get("entities")
-            entities: dict[str, JsonValue] = (
-                raw_entities if isinstance(raw_entities, dict) else {}
-            )
+            entities: dict[str, JsonValue] = raw_entities if isinstance(raw_entities, dict) else {}
             raw_transcript = str(trace.get("transcript", ""))
             raw_apps = trace.get("apps_running")
-            apps_list: list[str] = (
-                [str(a) for a in raw_apps] if isinstance(raw_apps, list) else []
-            )
+            apps_list: list[str] = [str(a) for a in raw_apps] if isinstance(raw_apps, list) else []
 
             state = RuleState(
                 transcript=raw_transcript,
@@ -292,9 +288,7 @@ class SkillManager:
                 meta_file = child / "meta_info.json"
                 if meta_file.exists() and meta_file.is_file():
                     try:
-                        meta = SkillMeta.model_validate_json(
-                            meta_file.read_text(encoding="utf-8")
-                        )
+                        meta = SkillMeta.model_validate_json(meta_file.read_text(encoding="utf-8"))
                         if meta.status == "ACTIVE":
                             active_ids.add(meta.id)
                     except Exception:  # noqa: BLE001, S110

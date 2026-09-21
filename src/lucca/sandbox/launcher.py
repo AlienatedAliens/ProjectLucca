@@ -20,7 +20,7 @@ if sys.platform == "win32":
 else:
     ctypes = None  # type: ignore[assignment]
 
-from lucca.core.config import get_config, get_resource_path
+from lucca.core.config import get_config
 from lucca.core.exceptions import SandboxPathError
 from lucca.sandbox.file_tool import validate_rel_path
 from lucca.sandbox.web_tool import validate_url_ssrf
@@ -57,9 +57,6 @@ class AppLauncher:
         cfg_dir = self.config.resolve_path("config")
         cfg_file = Path(config_path) if config_path else cfg_dir / "tool_whitelist.toml"
         self.apps = self._load_whitelist(cfg_file)
-
-
-
 
     def _load_whitelist(self, cfg_file: Path) -> dict[str, dict[str, Any]]:
         """Loads whitelist from TOML or fallback default mapping."""
@@ -164,11 +161,22 @@ class AppLauncher:
             if "{file?}" in template or "{file}" in template:
                 if file_arg:
                     if file_arg.startswith(("\\\\", "//")):
-                        return False, "Invalid file path argument: UNC network paths are strictly forbidden"
+                        return (
+                            False,
+                            "Invalid file path argument: UNC network paths are strictly forbidden",
+                        )
                     if "\\" in file_arg:
-                        return False, "Invalid file path argument: Backslash is forbidden; use forward slash '/'"
+                        return (
+                            False,
+                            "Invalid file path argument: Backslash is forbidden; "
+                            "use forward slash '/'",
+                        )
                     if ":" in file_arg or Path(file_arg).is_absolute():
-                        return False, "Invalid file path argument: Absolute paths and drive letters are forbidden"
+                        return (
+                            False,
+                            "Invalid file path argument: Absolute paths and drive letters "
+                            "are forbidden",
+                        )
                     try:
                         valid_file = validate_rel_path(file_arg, self.workspace_root)
                         if not valid_file.exists():

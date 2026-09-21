@@ -12,8 +12,8 @@ Verifies that lucca-file-sandbox in WSL2 Docker enforces all security boundaries
 """
 
 import pytest
+
 from lucca.sandbox.rpc import DockerRPCTransport
-from lucca.sandbox.service import SandboxService
 
 
 @pytest.fixture(scope="module")

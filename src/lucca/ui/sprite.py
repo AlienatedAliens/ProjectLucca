@@ -1,11 +1,11 @@
 import json
 import math
 from collections.abc import Callable
-from pathlib import Path
 
 from PyQt6.QtCore import QPoint, QRectF, Qt, QTimer
 from PyQt6.QtGui import (
     QBrush,
+    QCloseEvent,
     QColor,
     QMouseEvent,
     QMoveEvent,
@@ -14,7 +14,6 @@ from PyQt6.QtGui import (
     QPen,
     QPixmap,
 )
-from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QWidget
 
 from lucca.core.config import get_resource_path

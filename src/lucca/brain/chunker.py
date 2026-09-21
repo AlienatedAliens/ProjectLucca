@@ -59,7 +59,12 @@ def normalise_text(text: str, speak_urls: bool = False) -> str:
     s = re.sub(r"^\s*\[Lucca\]\s*", "", s, flags=re.IGNORECASE)
 
     # 1. Smart quotes, dashes, ellipses
-    s = s.replace("\u201c", '"').replace("\u201d", '"').replace("\u2018", "'").replace("\u2019", "'")
+    s = (
+        s.replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+    )
     s = s.replace("\u2026", "...").replace("\u2014", ", ").replace("\u2013", ", ")
 
     # 2. Markdown links [text](url) -> text
@@ -108,7 +113,6 @@ def sanitize_for_voice(text: str) -> str:
     formatting, asterisks, bullet points, headers, backticks, and raw URLs.
     """
     return normalise_text(text, speak_urls=False)
-
 
 
 class StreamingChunker:

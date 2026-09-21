@@ -14,22 +14,17 @@ Formally verifies:
 from __future__ import annotations
 
 import math
-import pytest
 
 from lucca.core.affective_ode import (
     HALF_LIFE_AROUSAL_S,
     HALF_LIFE_DOMINANCE_S,
     HALF_LIFE_PLEASURE_S,
-    GAMMA_A,
-    GAMMA_D,
-    GAMMA_P,
     MAX_LYAPUNOV_FEEDBACK_GAIN,
     MIN_GAMMA,
+    AffectiveODEMachine,
     AffectSignal3D,
     AffectState3D,
-    AffectiveODEMachine,
     DiscreteStance,
-    clamp,
 )
 
 
@@ -95,9 +90,7 @@ def test_lyapunov_asymptotic_stability_under_feedback():
     assert st_init.arousal > 0.30
 
     # Simulate closed-loop decay over 2000 seconds in 10-second discrete turns
-    prev_norm = math.sqrt(
-        st_init.pleasure**2 + st_init.arousal**2 + st_init.dominance**2
-    )
+    prev_norm = math.sqrt(st_init.pleasure**2 + st_init.arousal**2 + st_init.dominance**2)
 
     t = 10.0
     while t <= 2500.0:
@@ -138,14 +131,18 @@ def test_schmitt_trigger_hysteresis_deadband():
     machine.state.pleasure = 0.20
     machine.state.arousal = 0.25
     # Schmitt trigger must hold FOCUSED_ANALYTICAL to prevent chattering
-    held_stance = machine.quantize_stance(machine.state, current_stance=DiscreteStance.FOCUSED_ANALYTICAL)
+    held_stance = machine.quantize_stance(
+        machine.state, current_stance=DiscreteStance.FOCUSED_ANALYTICAL
+    )
     assert held_stance == DiscreteStance.FOCUSED_ANALYTICAL
 
     # 3. Apply large definitive shift into ENERGETIC_SUPPORTIVE
     machine.state.pleasure = 0.60
     machine.state.arousal = 0.55
     machine.state.dominance = 0.30
-    switched_stance = machine.quantize_stance(machine.state, current_stance=DiscreteStance.FOCUSED_ANALYTICAL)
+    switched_stance = machine.quantize_stance(
+        machine.state, current_stance=DiscreteStance.FOCUSED_ANALYTICAL
+    )
     assert switched_stance == DiscreteStance.ENERGETIC_SUPPORTIVE
 
 

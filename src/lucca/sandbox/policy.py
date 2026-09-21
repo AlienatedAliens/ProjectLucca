@@ -48,10 +48,11 @@ class TaintFlags(enum.IntFlag):
     Bitmask representation of contextual information taint.
     Enforces cross-turn deontic security boundaries.
     """
+
     CLEAN = 0
-    UNTRUSTED_WEB = 1 << 0       # Turn context contains text from fetch_url
-    SENSITIVE_MEMORY = 1 << 1    # Turn context contains episodic memory / credentials
-    WORKSPACE_PRIVATE = 1 << 2   # Turn context contains local private workspace files
+    UNTRUSTED_WEB = 1 << 0  # Turn context contains text from fetch_url
+    SENSITIVE_MEMORY = 1 << 1  # Turn context contains episodic memory / credentials
+    WORKSPACE_PRIVATE = 1 << 2  # Turn context contains local private workspace files
 
 
 class ConfirmationTokenManager:
@@ -74,7 +75,7 @@ class ConfirmationTokenManager:
         expiry_ts: float,
     ) -> bytes:
         serialized_args = json.dumps(args, sort_keys=True, separators=(",", ":"))
-        return f"{tool_name}|{serialized_args}|{turn_id}|{expiry_ts:.3f}".encode("utf-8")
+        return f"{tool_name}|{serialized_args}|{turn_id}|{expiry_ts:.3f}".encode()
 
     def issue_token(
         self,
@@ -168,7 +169,7 @@ class SequenceGuard:
         self.sensitive_tokens: set[str] = set()
 
     def reset(self) -> None:
-        """Resets turn tools list for a new turn. Note: Persistent taint is maintained separately."""
+        """Resets the turn tool list for a new turn (persistent taint is kept separately)."""
         self.turn_tools.clear()
 
     def add_taint(self, flag: TaintFlags) -> None:
@@ -197,7 +198,8 @@ class SequenceGuard:
         if tool_name in network_tools and "read_file" in self.turn_tools:
             return (
                 False,
-                f"Forbidden sequence: cannot {tool_name} after reading workspace files in same turn.",
+                f"Forbidden sequence: cannot {tool_name} after reading workspace files "
+                "in same turn.",
             )
 
         if tool_name in ("write_file", "run_python") and any(
@@ -205,7 +207,8 @@ class SequenceGuard:
         ):
             return (
                 False,
-                "Forbidden sequence: cannot write files after web fetch/search/browse in same turn.",
+                "Forbidden sequence: cannot write files after web fetch/search/browse "
+                "in same turn.",
             )
 
         # 2. Exfiltration check: If sensitive data is in context, inspect network tool args
@@ -218,7 +221,8 @@ class SequenceGuard:
                     if token in target_str:
                         return (
                             False,
-                            f"Egress Block: outbound {tool_name} contains sensitive context tokens (Exfiltration Prevention)",
+                            f"Egress Block: outbound {tool_name} contains sensitive context "
+                            "tokens (Exfiltration Prevention)",
                         )
 
         self.turn_tools.append(tool_name)

@@ -167,9 +167,7 @@ def test_prefix_byte_identity_across_10_turns_multi_category() -> None:
         m.model_dump_json().encode("utf-8") for m in rendered_turns[0][:-1]
     )
     for i, msgs in enumerate(rendered_turns[1:], start=1):
-        turn_prefix_bytes = b"".join(
-            m.model_dump_json().encode("utf-8") for m in msgs[:-1]
-        )
+        turn_prefix_bytes = b"".join(m.model_dump_json().encode("utf-8") for m in msgs[:-1])
         assert turn_prefix_bytes == first_prefix_bytes, f"Turn {i} prefix diverged from Turn 0"
 
     # 2. Assert final user message begins with identical base text and stance suffix

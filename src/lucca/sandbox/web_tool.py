@@ -158,9 +158,11 @@ def fetch_url(
         if not allow_render:
             raise SandboxPathError(
                 "render_disabled",
-                "Headless browser rendering (render=True) is disabled on host pending Milestone 2 container isolation",
+                "Headless browser rendering (render=True) is disabled on host pending "
+                "Milestone 2 container isolation",
             )
-        from lucca.sandbox.browser_tool import render_page
+        # Lazy import: browser_tool pulls Playwright only when rendering is requested.
+        from lucca.sandbox.browser_tool import render_page  # noqa: PLC0415
 
         return render_page(url=url, max_chars=max_chars)
 
@@ -171,7 +173,9 @@ def fetch_url(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
         ),
-        "Accept": "text/html,application/xhtml+xml,application/json,application/pdf;q=0.9,*/*;q=0.8",
+        "Accept": (
+            "text/html,application/xhtml+xml,application/json,application/pdf;q=0.9,*/*;q=0.8"
+        ),
         "Accept-Language": "en-US,en;q=0.9",
         "Accept-Encoding": "gzip, deflate",
     }
@@ -209,8 +213,10 @@ def fetch_url(
     )
     if is_pdf:
         try:
-            import io
-            from pypdf import PdfReader
+            # Lazy imports: PDF extraction is the rare path; keep httpx fetches cheap.
+            import io  # noqa: PLC0415
+
+            from pypdf import PdfReader  # noqa: PLC0415
 
             reader = PdfReader(io.BytesIO(resp.content[:MAX_BODY_BYTES]))
             extracted_pages: list[str] = []
@@ -229,7 +235,9 @@ def fetch_url(
 
             # Extract embedded links from text layer
             embedded_raw = re.findall(r"https?://[^\s<>\"'()]+", text)
-            embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][:100]
+            embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][
+                :100
+            ]
 
             return {
                 "url": str(resp.url),

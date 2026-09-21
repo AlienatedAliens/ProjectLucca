@@ -331,8 +331,7 @@ class SpeechBubble(QWidget):
         total_pages = max(1, len(self.pages))
         if self.current_page_idx >= total_pages:
             self.current_page_idx = total_pages - 1
-        if self.current_page_idx < 0:
-            self.current_page_idx = 0
+        self.current_page_idx = max(self.current_page_idx, 0)
 
         page_text = self.pages[self.current_page_idx] if self.pages else ""
         self.body_label.setText(page_text)

@@ -8,14 +8,29 @@ for client-side JavaScript rendering, SPAs, and dynamic DOM extraction.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.core.exceptions import SandboxPathError
 from lucca.sandbox.web_tool import DEFAULT_MAX_CHARS, validate_url_ssrf
 
+if TYPE_CHECKING:
+    from playwright.sync_api import Route
+
 logger = structlog.get_logger(__name__)
+
+# Private / link-local ranges are mapped to 0.0.0.0 at Chromium's resolver so no
+# subresource can reach them even before the route interceptor sees the request.
+_BLOCKED_RESOLVER_RULES = (
+    "MAP 127.* 0.0.0.0",
+    "MAP 10.* 0.0.0.0",
+    "MAP 172.16.* 0.0.0.0",
+    "MAP 192.168.* 0.0.0.0",
+    "MAP 169.254.* 0.0.0.0",
+    "MAP ::1 0.0.0.0",
+)
 
 # Chromium launch arguments for hardened headless execution
 HARDENED_BROWSER_ARGS = [
@@ -29,7 +44,7 @@ HARDENED_BROWSER_ARGS = [
     "--disable-translate",
     "--disable-default-apps",
     "--mute-audio",
-    "--host-resolver-rules=MAP 127.* 0.0.0.0, MAP 10.* 0.0.0.0, MAP 172.16.* 0.0.0.0, MAP 192.168.* 0.0.0.0, MAP 169.254.* 0.0.0.0, MAP ::1 0.0.0.0",
+    "--host-resolver-rules=" + ", ".join(_BLOCKED_RESOLVER_RULES),
 ]
 
 
@@ -48,7 +63,7 @@ class HeadlessBrowserTool:
         url: str,
         max_chars: int = DEFAULT_MAX_CHARS,
         wait_until: str = "domcontentloaded",
-    ) -> tuple[dict[str, Any], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """
         Navigates to URL in headless Chromium, enforces subresource SSRF blocking,
         and extracts rendered DOM text.
@@ -57,7 +72,8 @@ class HeadlessBrowserTool:
         valid_url, _ = validate_url_ssrf(url)
 
         try:
-            from playwright.sync_api import sync_playwright
+            # Lazy import: Playwright is an optional, heavy dependency (Chromium runtime).
+            from playwright.sync_api import sync_playwright  # noqa: PLC0415
         except ImportError as err:
             logger.error("playwright_not_installed", error=str(err))
             raise SandboxPathError(
@@ -85,7 +101,7 @@ class HeadlessBrowserTool:
                     # 2. Subresource SSRF route interception (Mitigates Vector 1)
                     blocked_subresources: list[str] = []
 
-                    def _ssrf_route_interceptor(route: Any) -> None:
+                    def _ssrf_route_interceptor(route: Route) -> None:
                         req_url = route.request.url
                         try:
                             is_valid, _ = validate_url_ssrf(req_url)
@@ -93,7 +109,7 @@ class HeadlessBrowserTool:
                                 blocked_subresources.append(req_url)
                                 route.abort("blockedbyclient")
                                 return
-                        except Exception:
+                        except Exception:  # noqa: BLE001 — fail closed: any validator error blocks
                             blocked_subresources.append(req_url)
                             route.abort("blockedbyclient")
                             return
@@ -108,8 +124,11 @@ class HeadlessBrowserTool:
                     # Extract readable text and embedded links
                     dom_data = page.evaluate(
                         """() => {
-                        const clone = document.body ? document.body.cloneNode(true) : document.documentElement.cloneNode(true);
-                        const toRemove = clone.querySelectorAll('script, style, noscript, iframe, svg, nav, footer');
+                        const root = document.body ? document.body : document.documentElement;
+                        const clone = root.cloneNode(true);
+                        const toRemove = clone.querySelectorAll(
+                            'script, style, noscript, iframe, svg, nav, footer'
+                        );
                         toRemove.forEach(el => el.remove());
                         const text = clone.innerText || clone.textContent || '';
                         const links = Array.from(document.querySelectorAll('a[href]'))
@@ -121,7 +140,9 @@ class HeadlessBrowserTool:
 
                     extracted_text = dom_data.get("text", "")
                     raw_links = dom_data.get("links", [])
-                    clean_links = [u.rstrip(".,;:!?'\")>]") for u in set(raw_links) if len(u) < 512][:100]
+                    clean_links = [
+                        u.rstrip(".,;:!?'\")>]") for u in set(raw_links) if len(u) < 512
+                    ][:100]
 
                     clean_text = re.sub(r"\n{3,}", "\n\n", extracted_text).strip()
                     clean_text = re.sub(r"[ \t]+", " ", clean_text)
@@ -130,9 +151,11 @@ class HeadlessBrowserTool:
                     if truncated:
                         clean_text = clean_text[:max_chars]
 
-                    formatted_content = f"# {page_title}\n\n{clean_text}" if page_title else clean_text
+                    formatted_content = (
+                        f"# {page_title}\n\n{clean_text}" if page_title else clean_text
+                    )
 
-                    structured = {
+                    structured: dict[str, JsonValue] = {
                         "url": page.url,
                         "title": page_title,
                         "status_code": status_code,
@@ -156,9 +179,7 @@ class HeadlessBrowserTool:
                 browser.close()
 
 
-def render_page(
-    url: str, max_chars: int = DEFAULT_MAX_CHARS
-) -> tuple[dict[str, Any], str]:
+def render_page(url: str, max_chars: int = DEFAULT_MAX_CHARS) -> tuple[dict[str, JsonValue], str]:
     """Helper dispatch function for browser rendering."""
     tool = HeadlessBrowserTool()
     return tool.render_url(url=url, max_chars=max_chars)

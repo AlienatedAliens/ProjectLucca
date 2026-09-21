@@ -228,4 +228,3 @@ def test_admin_rules_cli_lifecycle(
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "RETIRED:" in captured.out
-

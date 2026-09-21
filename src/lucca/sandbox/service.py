@@ -190,7 +190,8 @@ class SandboxService:
                 )
             max_chars = int(args.get("max_chars", 20000))
             try:
-                from lucca.sandbox.browser_tool import render_page
+                # Lazy import: browser_tool pulls Playwright only when rendering is requested.
+                from lucca.sandbox.browser_tool import render_page  # noqa: PLC0415
 
                 structured, content = render_page(url=url_val, max_chars=max_chars)
                 return ToolResult(
@@ -341,7 +342,10 @@ class SandboxService:
         # 7. run_python execution under container isolation
         if tool_name == "run_python":
             if self.rpc.use_direct_fallback or not self.rpc.is_docker_available():
-                err_msg = "policy_violation: run_python is disabled until Milestone 2 container isolation lands (requires active container sandbox)"
+                err_msg = (
+                    "policy_violation: run_python is disabled until Milestone 2 container "
+                    "isolation lands (requires active container sandbox)"
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,

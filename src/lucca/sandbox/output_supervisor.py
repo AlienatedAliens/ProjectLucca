@@ -14,12 +14,14 @@ Design invariants:
 import re
 import time
 import urllib.parse
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Sequence
 
+from pydantic import JsonValue
 
 # --- 1. Severity Tiers ---
+
 
 class SeverityTier(StrEnum):
     PASS = "pass"
@@ -34,11 +36,10 @@ COMPLIANCE_VERB = (
     r"no longer active|no longer in effect|suspended|waived|overridden|unlocked)"
 )
 
-AFFIRM_AUX = (
-    r"(?:is|are|has\s+been|have\s+been|will\s+be|have|has|understood|confirmed|done)"
-)
+AFFIRM_AUX = r"(?:is|are|has\s+been|have\s+been|will\s+be|have|has|understood|confirmed|done)"
 
-# Mandatory security-domain qualifier for general nouns (checks, rules, restrictions, constraints, permissions)
+# Mandatory security-domain qualifier for general nouns
+# (checks, rules, restrictions, constraints, permissions)
 SECURITY_ENTITY = (
     r"(?:(?:deontic|sandbox(?:ing)?|guardrails?)|"
     r"(?:(?:deontic|sandbox(?:ing)?|security|safety)\s+)+(?:checks?|rules?|constraints?|guardrails?|permissions?|restrictions?|sandbox(?:ing)?)|"
@@ -52,21 +53,23 @@ SECURITY_SUBJECT = (
 )
 
 NEGATION_TOKENS = {
-    "not", "cannot", "can't", "won't", "never", "no",
-    "unable", "refuse", "don't", "doesn't"
+    "not",
+    "cannot",
+    "can't",
+    "won't",
+    "never",
+    "no",
+    "unable",
+    "refuse",
+    "don't",
+    "doesn't",
 }
 
-NEGATION_PHRASES = (
-    r"(?:will\s+not|unable\s+to|refuse\s+to|do\s+not|does\s+not)"
-)
+NEGATION_PHRASES = r"(?:will\s+not|unable\s+to|refuse\s+to|do\s+not|does\s+not)"
 
-HEDGE_TOKENS = {
-    "if", "hypothetically", "supposedly"
-}
+HEDGE_TOKENS = {"if", "hypothetically", "supposedly"}
 
-HEDGE_PHRASES = (
-    r"(?:in\s+theory|you\s+claim|you're\s+asking\s+me\s+to|you\s+ask\s+me\s+to)"
-)
+HEDGE_PHRASES = r"(?:in\s+theory|you\s+claim|you're\s+asking\s+me\s+to|you\s+ask\s+me\s+to)"
 
 ATTRIBUTION_REGEX = re.compile(
     r"\b(?:"
@@ -156,7 +159,9 @@ class DeonticAssertionMatcher:
 
         if not match:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-            return GateResult(False, None, SeverityTier.PASS, None, "No compliance pattern matched", elapsed_us)
+            return GateResult(
+                False, None, SeverityTier.PASS, None, "No compliance pattern matched", elapsed_us
+            )
 
         start_idx = match.start()
         prefix = clean[:start_idx].strip()
@@ -164,10 +169,17 @@ class DeonticAssertionMatcher:
 
         # 1. Check for intervening negation inside the matched span
         # e.g., "is not disabled", "cannot be disabled"
-        if re.search(rf"\b(?:not|cannot|can't|won't|never|no(?!\s+longer))\b", matched_str, re.IGNORECASE):
+        if re.search(
+            r"\b(?:not|cannot|can't|won't|never|no(?!\s+longer))\b", matched_str, re.IGNORECASE
+        ):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
-                False, None, SeverityTier.PASS, matched_str, "Negation intervenes within match span", elapsed_us
+                False,
+                None,
+                SeverityTier.PASS,
+                matched_str,
+                "Negation intervenes within match span",
+                elapsed_us,
             )
 
         # 2. Check full sentence context (rolling history + current clause) for attribution markers
@@ -179,7 +191,10 @@ class DeonticAssertionMatcher:
                 breach_type="deontic_capitulation",
                 severity=SeverityTier.TIER_2_SOFT,
                 matched_text=matched_str,
-                reason="Attribution marker detected in sentence context; downgraded to Tier 2 soft ground",
+                reason=(
+                    "Attribution marker detected in sentence context; "
+                    "downgraded to Tier 2 soft ground"
+                ),
                 elapsed_us=elapsed_us,
             )
 
@@ -194,12 +209,22 @@ class DeonticAssertionMatcher:
             if tok in NEGATION_TOKENS:
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
                 return GateResult(
-                    False, None, SeverityTier.PASS, matched_str, f"Negation token '{tok}' in lookback window", elapsed_us
+                    False,
+                    None,
+                    SeverityTier.PASS,
+                    matched_str,
+                    f"Negation token '{tok}' in lookback window",
+                    elapsed_us,
                 )
             if tok in HEDGE_TOKENS:
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
                 return GateResult(
-                    False, None, SeverityTier.PASS, matched_str, f"Hedge token '{tok}' in lookback window", elapsed_us
+                    False,
+                    None,
+                    SeverityTier.PASS,
+                    matched_str,
+                    f"Hedge token '{tok}' in lookback window",
+                    elapsed_us,
                 )
 
         # Multi-word phrase check in preceding text
@@ -207,12 +232,22 @@ class DeonticAssertionMatcher:
         if re.search(NEGATION_PHRASES, preceding_text, re.IGNORECASE):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
-                False, None, SeverityTier.PASS, matched_str, "Negation phrase in lookback window", elapsed_us
+                False,
+                None,
+                SeverityTier.PASS,
+                matched_str,
+                "Negation phrase in lookback window",
+                elapsed_us,
             )
         if re.search(HEDGE_PHRASES, preceding_text, re.IGNORECASE):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
-                False, None, SeverityTier.PASS, matched_str, "Hedge phrase in lookback window", elapsed_us
+                False,
+                None,
+                SeverityTier.PASS,
+                matched_str,
+                "Hedge phrase in lookback window",
+                elapsed_us,
             )
 
         # All four conditions hold -> Tier 1 Terminal Abort candidate
@@ -262,21 +297,33 @@ class TruthInReceiptMatcher:
             re.IGNORECASE,
         )
 
-    def evaluate_clause(self, clause: str, verified_receipts: Sequence[dict[str, Any]]) -> GateResult:
+    def evaluate_clause(
+        self, clause: str, verified_receipts: Sequence[dict[str, JsonValue]]
+    ) -> GateResult:
         t0 = time.perf_counter()
 
         # 1. Reject future / intentional framing (not a completed past-tense action)
         if self._future_pattern.search(clause):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
-                False, None, SeverityTier.PASS, None, "Future/intentional framing (not a completed action)", elapsed_us
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Future/intentional framing (not a completed action)",
+                elapsed_us,
             )
 
         m = self._action_pattern.search(clause)
         if not m:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
-                False, None, SeverityTier.PASS, None, "No completed action claim matched", elapsed_us
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "No completed action claim matched",
+                elapsed_us,
             )
 
         action_verb = m.group(1).lower()
@@ -313,7 +360,9 @@ class TruthInReceiptMatcher:
             for r in verified_receipts:
                 r_action = str(r.get("action", "")).lower()
                 r_target = str(r.get("target", r.get("path", ""))).lower()
-                action_ok = (stem in r_action) or (action_verb in r_action) or (r_action in action_verb)
+                action_ok = (
+                    (stem in r_action) or (action_verb in r_action) or (r_action in action_verb)
+                )
                 target_ok = (target_lower in r_target) or (r_target in target_lower)
                 if action_ok and target_ok:
                     matched = True
@@ -328,26 +377,36 @@ class TruthInReceiptMatcher:
                 breach_type="ungrounded_action",
                 severity=SeverityTier.TIER_1_ABORT,
                 matched_text=m.group(0),
-                reason=f"Claimed action '{action_verb}' on ungrounded object(s) {ungrounded} without matching ToolReceipt",
+                reason=(
+                    f"Claimed action '{action_verb}' on ungrounded object(s) {ungrounded} "
+                    "without matching ToolReceipt"
+                ),
                 elapsed_us=elapsed_us,
             )
 
         return GateResult(
-            False, None, SeverityTier.PASS, m.group(0), "Action claim verified by ToolReceipt", elapsed_us
+            False,
+            None,
+            SeverityTier.PASS,
+            m.group(0),
+            "Action claim verified by ToolReceipt",
+            elapsed_us,
         )
 
 
-WHITELISTED_DOC_DOMAINS: frozenset[str] = frozenset({
-    "github.com",
-    "docs.python.org",
-    "python.org",
-    "pypi.org",
-    "wikipedia.org",
-    "en.wikipedia.org",
-    "w3.org",
-    "www.w3.org",
-    "example.com",
-})
+WHITELISTED_DOC_DOMAINS: frozenset[str] = frozenset(
+    {
+        "github.com",
+        "docs.python.org",
+        "python.org",
+        "pypi.org",
+        "wikipedia.org",
+        "en.wikipedia.org",
+        "w3.org",
+        "www.w3.org",
+        "example.com",
+    }
+)
 
 URL_EXTRACTION_REGEX = re.compile(
     r"(?:https?://[^\s<>\"'()]+|\b[a-zA-Z0-9.-]+\.(?:com|org|net|gov|edu|mil|int|io|ai|co|ph|uk|de|ca|judiciary)(?:/[^\s<>\"'()]+)?\b)",
@@ -378,9 +437,7 @@ class CitationProvenanceMatcher:
     def __init__(self, doc_whitelist: frozenset[str] | None = None) -> None:
         self.doc_whitelist = doc_whitelist or WHITELISTED_DOC_DOMAINS
 
-    def evaluate_clause(
-        self, clause: str, allowed_urls: Sequence[str] | None = None
-    ) -> GateResult:
+    def evaluate_clause(self, clause: str, allowed_urls: Sequence[str] | None = None) -> GateResult:
         t0 = time.perf_counter()
         clean = clause.strip()
         if not clean:
@@ -425,10 +482,17 @@ class CitationProvenanceMatcher:
                 continue
 
             # Check local development ports / services (devops context)
-            if netloc in ("localhost", "127.0.0.1") or netloc.startswith(("localhost:", "127.0.0.1:")):
+            if netloc in ("localhost", "127.0.0.1") or netloc.startswith(
+                ("localhost:", "127.0.0.1:")
+            ):
                 if (
                     canon in canon_allowed
-                    or (":" in cleaned_url and not cleaned_url.startswith(("http://localhost:80/", "https://localhost:443/")))
+                    or (
+                        ":" in cleaned_url
+                        and not cleaned_url.startswith(
+                            ("http://localhost:80/", "https://localhost:443/")
+                        )
+                    )
                     or any("localhost" in a or "127.0.0.1" in a for a in canon_allowed)
                 ):
                     continue
@@ -452,15 +516,25 @@ class CitationProvenanceMatcher:
                 breach_type="ungrounded_citation",
                 severity=SeverityTier.TIER_1_ABORT,
                 matched_text=cleaned_url,
-                reason=f"Emitted ungrounded citation URL '{cleaned_url}' without verified provenance in tool receipts or epistemic context",
+                reason=(
+                    f"Emitted ungrounded citation URL '{cleaned_url}' without verified "
+                    "provenance in tool receipts or epistemic context"
+                ),
                 elapsed_us=elapsed_us,
             )
 
         elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-        return GateResult(False, None, SeverityTier.PASS, None, "All citations verified or none present", elapsed_us)
+        return GateResult(
+            False,
+            None,
+            SeverityTier.PASS,
+            None,
+            "All citations verified or none present",
+            elapsed_us,
+        )
 
 
-class OutputSupervisorSession:
+class OutputSupervisorSession[ChunkT]:
     """
     Manages stateful streaming output supervision across clauses in an interactive turn.
     Implements:
@@ -481,7 +555,7 @@ class OutputSupervisorSession:
         self.truth_matcher = truth_matcher or TruthInReceiptMatcher()
         self.citation_matcher = citation_matcher or CitationProvenanceMatcher()
         self.sentence_history: list[str] = []
-        self.pending_tier1_chunk: tuple[Any, GateResult] | None = None
+        self.pending_tier1_chunk: tuple[ChunkT, GateResult] | None = None
         self.session_tier2_security_hits: int = 0
         self.allowed_urls: set[str] = set()
         self.turn_has_stalled: bool = False
@@ -498,17 +572,17 @@ class OutputSupervisorSession:
 
     def feed_chunk(
         self,
-        chunk_item: Any,
+        chunk_item: ChunkT,
         clause_text: str,
-        verified_receipts: Sequence[dict[str, Any]] | None = None,
-    ) -> tuple[list[tuple[Any, GateResult]], bool]:
+        verified_receipts: Sequence[dict[str, JsonValue]] | None = None,
+    ) -> tuple[list[tuple[ChunkT, GateResult]], bool]:
         """
         Feeds a streamed clause chunk into the session supervisor.
         Returns:
             (emitted_chunks, should_abort)
             where emitted_chunks is a list of (chunk_item, gate_result) to dispatch to TTS.
         """
-        emitted: list[tuple[Any, GateResult]] = []
+        emitted: list[tuple[ChunkT, GateResult]] = []
 
         # Check stalling rhetorical question evasion (bureaucracy filter)
         if STALLING_RESEARCH_PATTERN.search(clause_text):
@@ -520,8 +594,7 @@ class OutputSupervisorSession:
             pending_item, pending_res = self.pending_tier1_chunk
             # Does incoming clause refute the pending claim?
             has_refutation = bool(
-                self._refutation_regex.search(clause_text)
-                or ATTRIBUTION_REGEX.search(clause_text)
+                self._refutation_regex.search(clause_text) or ATTRIBUTION_REGEX.search(clause_text)
             )
 
             if has_refutation:
@@ -531,7 +604,10 @@ class OutputSupervisorSession:
                     breach_type=pending_res.breach_type,
                     severity=SeverityTier.TIER_2_SOFT,
                     matched_text=pending_res.matched_text,
-                    reason=f"{pending_res.reason} (downgraded to Tier 2 via next-clause refutation: '{clause_text.strip()}')",
+                    reason=(
+                        f"{pending_res.reason} (downgraded to Tier 2 via next-clause "
+                        f"refutation: '{clause_text.strip()}')"
+                    ),
                     elapsed_us=pending_res.elapsed_us,
                 )
                 emitted.append((pending_item, downgraded_res))
@@ -555,7 +631,9 @@ class OutputSupervisorSession:
 
         # Check citation provenance against session allowed URLs
         if not gate_res.is_breach:
-            cite_res = self.citation_matcher.evaluate_clause(clause_text, allowed_urls=list(self.allowed_urls))
+            cite_res = self.citation_matcher.evaluate_clause(
+                clause_text, allowed_urls=list(self.allowed_urls)
+            )
             if cite_res.is_breach:
                 gate_res = cite_res
 
@@ -568,7 +646,10 @@ class OutputSupervisorSession:
                     breach_type=gate_res.breach_type,
                     severity=SeverityTier.TIER_1_ABORT,
                     matched_text=gate_res.matched_text,
-                    reason=f"{gate_res.reason} (escalated to Tier 1 via session hysteresis: 3rd security hit)",
+                    reason=(
+                        f"{gate_res.reason} (escalated to Tier 1 via session hysteresis: "
+                        "3rd security hit)"
+                    ),
                     elapsed_us=gate_res.elapsed_us,
                 )
 
@@ -593,7 +674,7 @@ class OutputSupervisorSession:
 
         return (emitted, False)
 
-    def flush(self) -> tuple[list[tuple[Any, GateResult]], bool]:
+    def flush(self) -> tuple[list[tuple[ChunkT, GateResult]], bool]:
         """
         Called at end of stream.
         If a Tier-1 candidate was held with no subsequent refutation, commit abort.
@@ -604,7 +685,7 @@ class OutputSupervisorSession:
         return ([], False)
 
     def reset_turn(self) -> None:
-        """Resets turn-level ephemeral buffers, preserving session-level hysteresis and allowed_urls."""
+        """Resets turn-level buffers; preserves session-level hysteresis and allowed_urls."""
         self.sentence_history.clear()
         self.pending_tier1_chunk = None
         self.turn_has_stalled = False

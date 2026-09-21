@@ -260,7 +260,7 @@ def test_speech_bubble_pagination(qapp: QApplication) -> None:
     # Verify each page has <= 5 lines
     for idx, page in enumerate(bubble.pages):
         lines = page.splitlines()
-        assert len(lines) <= 5, f"Page {idx+1} has {len(lines)} lines, expected <= 5"
+        assert len(lines) <= 5, f"Page {idx + 1} has {len(lines)} lines, expected <= 5"
 
     # Pager controls should be visible when len(pages) > 1
     assert bubble.btn_prev.isVisible()
@@ -338,6 +338,7 @@ def test_speech_bubble_fixed_geometry(qapp: QApplication) -> None:
 def test_settings_dialog_scrollable_tabs(qapp: QApplication) -> None:
     """Verifies that all 11 tabs are wrapped in QScrollArea with widgetResizable enabled."""
     from PyQt6.QtWidgets import QScrollArea
+
     from lucca.ui.settings_dialog import SettingsDialog
 
     dlg = SettingsDialog()
@@ -353,6 +354,7 @@ def test_settings_dialog_scrollable_tabs(qapp: QApplication) -> None:
 def test_settings_dialog_center_containment(qapp: QApplication) -> None:
     """Verifies that center_on_screen positions dialog strictly within visible workarea."""
     from PyQt6.QtGui import QGuiApplication
+
     from lucca.ui.settings_dialog import SettingsDialog
 
     dlg = SettingsDialog()
@@ -365,4 +367,3 @@ def test_settings_dialog_center_containment(qapp: QApplication) -> None:
         assert dlg.y() >= avail.top()
         assert dlg.x() + dlg.width() <= avail.right() + 20
         assert dlg.y() + dlg.height() <= avail.bottom() + 20
-

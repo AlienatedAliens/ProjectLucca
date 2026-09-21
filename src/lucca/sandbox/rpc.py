@@ -29,7 +29,6 @@ from lucca.sandbox.schemas import (
     DeleteFileArgs,
     ListDirArgs,
     ReadFileArgs,
-    RunPythonArgs,
     SearchTextArgs,
     WriteFileArgs,
 )
@@ -39,7 +38,7 @@ logger = structlog.get_logger(__name__)
 
 class PersistentDockerWorker:
     """
-    Long-lived stdio bridge to `lucca-toolsrv --loop` running inside the unprivileged Docker container.
+    Long-lived stdio bridge to `lucca-toolsrv --loop` inside the unprivileged Docker container.
     Eliminates the ~472ms P50 `wsl docker exec` spawn tax per tool invocation down to <2ms.
 
     Invariants:
@@ -84,8 +83,10 @@ class PersistentDockerWorker:
             "import os, signal; "
             "[os.kill(int(p), signal.SIGKILL) for p in os.listdir('/proc') "
             "if p.isdigit() and p not in ('1', str(os.getpid())) and "
-            "'lucca-toolsrv' in open(f'/proc/{p}/cmdline', 'rb').read().decode('utf-8', errors='ignore') and "
-            "'--loop' in open(f'/proc/{p}/cmdline', 'rb').read().decode('utf-8', errors='ignore')]"
+            "'lucca-toolsrv' in open(f'/proc/{p}/cmdline', 'rb').read()"
+            ".decode('utf-8', errors='ignore') and "
+            "'--loop' in open(f'/proc/{p}/cmdline', 'rb').read()"
+            ".decode('utf-8', errors='ignore')]"
         )
         try:
             subprocess.run(  # noqa: S603
@@ -373,7 +374,8 @@ class DockerRPCTransport:
         if self.is_container_running():
             return True
 
-        from lucca.sandbox.container_spec import get_file_sandbox_run_args
+        # Lazy import: container_spec is only needed on the cold-start path.
+        from lucca.sandbox.container_spec import get_file_sandbox_run_args  # noqa: PLC0415
 
         # Remove any stopped/stale container with the same name
         subprocess.run(  # noqa: S603
@@ -702,7 +704,10 @@ class DockerRPCTransport:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             if tool == "run_python":
-                err_msg = "policy_violation: run_python is disabled until Milestone 2 container isolation lands"
+                err_msg = (
+                    "policy_violation: run_python is disabled until Milestone 2 "
+                    "container isolation lands"
+                )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,

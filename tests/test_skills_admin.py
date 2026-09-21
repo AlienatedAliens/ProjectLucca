@@ -75,7 +75,9 @@ def create_dummy_package(
     (pkg_dir / "plan.scm").write_text(plan_scm, encoding="utf-8")
 
     if include_backup:
-        (pkg_dir / "backup.md").write_text("# Alternative triggers\n- compute expr", encoding="utf-8")
+        (pkg_dir / "backup.md").write_text(
+            "# Alternative triggers\n- compute expr", encoding="utf-8"
+        )
 
     if include_recover:
         (pkg_dir / "recover.md").write_text(

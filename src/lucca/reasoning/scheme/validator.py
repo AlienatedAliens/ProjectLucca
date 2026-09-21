@@ -140,9 +140,7 @@ def _validate_plan_tools(plan_node: SchemeNode, registered_tools: dict[str, Tool
             if isinstance(kw_node, Keyword):
                 arg_name = kw_node.name.lstrip(":")
                 if arg_name not in tool_schema.parameters:
-                    raise RuleError(
-                        f"Tool '{tool_name}' does not accept parameter '{arg_name}'"
-                    )
+                    raise RuleError(f"Tool '{tool_name}' does not accept parameter '{arg_name}'")
                 passed_kwargs.add(arg_name)
             i += 2
 

@@ -8,8 +8,6 @@ Spec 01 §1, Spec 16 §3, D-PKG-01
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from lucca import __version__
 from lucca.core.config import get_resource_path
 
@@ -28,14 +26,20 @@ def test_frozen_binary_exists() -> None:
 
 def test_frozen_binary_version_flag() -> None:
     """Verifies that Lucca.exe --version reports canonical application version with code 0."""
-    res = subprocess.run([str(EXE_PATH), "--version"], capture_output=True, text=True, timeout=15)
+    # S603: EXE_PATH is a repo-relative constant, not untrusted input; check=False because the
+    # assertions below inspect returncode explicitly.
+    res = subprocess.run(  # noqa: S603
+        [str(EXE_PATH), "--version"], capture_output=True, text=True, timeout=15, check=False
+    )
     assert res.returncode == 0
     assert f"Lucca {__version__}" in res.stdout
 
 
 def test_frozen_binary_help_flag() -> None:
     """Verifies that Lucca.exe --help prints usage information with code 0."""
-    res = subprocess.run([str(EXE_PATH), "--help"], capture_output=True, text=True, timeout=15)
+    res = subprocess.run(  # noqa: S603 — repo-relative constant path; returncode asserted below
+        [str(EXE_PATH), "--help"], capture_output=True, text=True, timeout=15, check=False
+    )
     assert res.returncode == 0
     assert "Project Lucca" in res.stdout
     assert "--check" in res.stdout
@@ -45,9 +49,17 @@ def test_frozen_binary_help_flag() -> None:
 def test_frozen_binary_check_flag() -> None:
     """Verifies that Lucca.exe --check passes all hardware environment checks."""
     import os
+
     env = dict(os.environ)
     env["LUCCA_HOME"] = "C:/ProjectLucca"
-    res = subprocess.run([str(EXE_PATH), "--check"], env=env, capture_output=True, text=True, timeout=30)
+    res = subprocess.run(  # noqa: S603 — repo-relative constant path; returncode asserted below
+        [str(EXE_PATH), "--check"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
     assert res.returncode == 0, f"Check failed with stdout:\n{res.stdout}\nstderr:\n{res.stderr}"
     assert "[SUCCESS] All system environment criteria passed!" in res.stdout
     assert "Intel NPU detected by OpenVINO" in res.stdout

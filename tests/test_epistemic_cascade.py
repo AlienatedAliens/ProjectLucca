@@ -7,10 +7,7 @@ acoustic floor-holding cues, and calibrated honest abstention.
 from __future__ import annotations
 
 import time
-from typing import Any
 from unittest.mock import MagicMock
-
-import pytest
 
 from lucca.core.cascade import (
     BelnapValue,
@@ -28,7 +25,6 @@ from lucca.core.cascade import (
     select_floor_cue,
 )
 from lucca.core.schemas import MemoryHit, Provenance, ToolResult
-
 
 # ============================================================================
 # 1. Belnap FOUR Evidential Bilattice Algebraic Laws
@@ -88,6 +84,9 @@ def test_substrate_0_hardware_telemetry_live() -> None:
     t0 = time.perf_counter()
     result = cascade.query("What dedicated GPU model and VRAM is on this system?")
     elapsed_ms = (time.perf_counter() - t0) * 1000.0
+    # Telemetry substrate is a local OS/driver read; a multi-second stall means the cascade
+    # is blocking the voice loop (budget is generous to absorb cold nvml/psutil init).
+    assert elapsed_ms < 5000.0, f"telemetry substrate took {elapsed_ms:.1f} ms"
 
     assert result.belnap_status == BelnapValue.TRUE
     assert result.resolved_substrate == EpistemicSubstrate.TELEMETRY
@@ -369,7 +368,10 @@ def test_dynamic_calibrated_abstention_truth_in_receipt() -> None:
     cascade = EpistemicSearchCascade()
 
     # Query targeting ONLY Substrate 0 (Telemetry)
-    res_sub0 = cascade.query("What is the clock speed of the optical quantum bus?", substrates=[EpistemicSubstrate.TELEMETRY])
+    res_sub0 = cascade.query(
+        "What is the clock speed of the optical quantum bus?",
+        substrates=[EpistemicSubstrate.TELEMETRY],
+    )
     assert res_sub0.belnap_status == BelnapValue.UNKNOWN
     assert res_sub0.calibrated_refusal is not None
     assert "system telemetry" in res_sub0.calibrated_refusal
@@ -377,7 +379,10 @@ def test_dynamic_calibrated_abstention_truth_in_receipt() -> None:
     assert "memory records" not in res_sub0.calibrated_refusal
 
     # Query targeting Substrates 0 & 2 (Telemetry + Memory)
-    res_sub02 = cascade.query("Did we record the server room temperature?", substrates=[EpistemicSubstrate.TELEMETRY, EpistemicSubstrate.MEMORY])
+    res_sub02 = cascade.query(
+        "Did we record the server room temperature?",
+        substrates=[EpistemicSubstrate.TELEMETRY, EpistemicSubstrate.MEMORY],
+    )
     assert res_sub02.belnap_status == BelnapValue.UNKNOWN
     assert res_sub02.calibrated_refusal is not None
     assert "system telemetry and memory records" in res_sub02.calibrated_refusal
@@ -480,4 +485,3 @@ def test_orchestrator_cascade_injects_epistemic_ground_truth() -> None:
         orch.cap_ring.unlink()
         orch.play_ring.close()
         orch.play_ring.unlink()
-

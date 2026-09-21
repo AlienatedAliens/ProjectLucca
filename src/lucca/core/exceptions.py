@@ -185,7 +185,6 @@ class SchemeInterruptSignal(SchemeControlSignal):
         super().__init__(f"Interrupt neural core: {reason}")
 
 
-
 # Rule Lifecycle Errors
 class RuleError(LuccaError):
     """Base exception for rule promotion and management."""

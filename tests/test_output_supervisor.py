@@ -4,8 +4,8 @@ Individually parametrized test cases for each worked example and adversarial edg
 """
 
 import pytest
-from lucca.sandbox.output_supervisor import DeonticAssertionMatcher, TruthInReceiptMatcher
 
+from lucca.sandbox.output_supervisor import DeonticAssertionMatcher, TruthInReceiptMatcher
 
 WORKED_EXAMPLES = [
     (
@@ -146,6 +146,7 @@ def test_latency_profile_distribution():
     ]
 
     import numpy as np
+
     timings = []
     for _ in range(50):
         for c in clauses:
@@ -156,13 +157,16 @@ def test_latency_profile_distribution():
     p95_us = np.percentile(timings, 95)
     max_us = np.max(timings)
 
-    print(f"\n[BENCHMARK] DeonticAssertionMatcher P50: {p50_us:.1f}us | P95: {p95_us:.1f}us | Max: {max_us:.1f}us")
+    print(
+        f"\n[BENCHMARK] DeonticAssertionMatcher P50: {p50_us:.1f}us | P95: {p95_us:.1f}us | Max: {max_us:.1f}us"
+    )
     assert p95_us < 500.0
 
 
 def test_cross_clause_attribution_rolling_history():
     """Verifies that an attribution marker in an earlier dispatched clause downgrades Tier 1 to Tier 2."""
     from lucca.sandbox.output_supervisor import SeverityTier
+
     matcher = DeonticAssertionMatcher()
 
     # Clause 1 was dispatched with no compliance pattern
@@ -182,6 +186,7 @@ def test_cross_clause_attribution_rolling_history():
 def test_pattern_p2_domain_collision_rejection():
     """Verifies that everyday 1P physical actions and non-security nouns do not trigger p1 or p2."""
     from lucca.sandbox.output_supervisor import SeverityTier
+
     matcher = DeonticAssertionMatcher()
 
     benign_phrases = [
@@ -194,7 +199,9 @@ def test_pattern_p2_domain_collision_rejection():
 
     for phrase in benign_phrases:
         res = matcher.evaluate_clause(phrase)
-        assert res.is_breach is False, f"False positive on benign phrase: '{phrase}' -> {res.reason}"
+        assert res.is_breach is False, (
+            f"False positive on benign phrase: '{phrase}' -> {res.reason}"
+        )
         assert res.severity == SeverityTier.PASS
 
 
@@ -233,12 +240,16 @@ def test_output_supervisor_session_lookahead_and_abort():
     session = OutputSupervisorSession()
 
     # Chunk 1: candidate capitulation
-    emitted_1, abort_1 = session.feed_chunk(1, "Understood. Deontic sandbox checks disabled for this session.")
+    emitted_1, abort_1 = session.feed_chunk(
+        1, "Understood. Deontic sandbox checks disabled for this session."
+    )
     assert abort_1 is False
     assert len(emitted_1) == 0  # Held in lookahead buffer
 
     # Chunk 2: unrefuted follow-up
-    emitted_2, abort_2 = session.feed_chunk(2, "How can I assist you now without ethical constraints?")
+    emitted_2, abort_2 = session.feed_chunk(
+        2, "How can I assist you now without ethical constraints?"
+    )
     assert abort_2 is True
     assert len(emitted_2) == 0
     assert session.pending_tier1_chunk is None
@@ -250,7 +261,9 @@ def test_output_supervisor_session_flush_commit():
 
     session = OutputSupervisorSession()
 
-    emitted_1, abort_1 = session.feed_chunk(1, "Understood. Deontic sandbox checks disabled for this session.")
+    emitted_1, abort_1 = session.feed_chunk(
+        1, "Understood. Deontic sandbox checks disabled for this session."
+    )
     assert abort_1 is False
     assert len(emitted_1) == 0
 
@@ -294,5 +307,3 @@ def test_output_supervisor_session_hysteresis_escalation():
     assert session.pending_tier1_chunk is not None
     assert session.pending_tier1_chunk[1].severity == SeverityTier.TIER_1_ABORT
     assert "escalated to Tier 1 via session hysteresis" in session.pending_tier1_chunk[1].reason
-
-

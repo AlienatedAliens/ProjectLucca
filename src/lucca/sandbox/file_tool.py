@@ -84,7 +84,9 @@ def validate_rel_path(p: str, workspace_root: Path | str = "/workspace") -> Path
         raise SandboxPathError("invalid_chars", "Backslash is forbidden; use forward slash '/'")
 
     if ":" in p:
-        raise SandboxPathError("invalid_chars", "Colons (drive specifiers or NTFS streams) are forbidden")
+        raise SandboxPathError(
+            "invalid_chars", "Colons (drive specifiers or NTFS streams) are forbidden"
+        )
 
     if p.startswith(("/", "\\")):
         raise SandboxPathError("traversal", "Absolute paths are forbidden")
@@ -292,14 +294,14 @@ class SafeFileTool:
     def run_python(self, code: str, timeout: int = 10) -> tuple[dict[str, object], str]:
         # Enforce that run_python executes strictly inside the verified container boundary,
         # never on the host (regardless of whether the host OS is Windows, Linux, or macOS).
-        # Requires BOTH the unforgeable image-baked sentinel file AND the container environment flag.
+        # Requires BOTH the unforgeable image-baked sentinel file AND the container env flag.
         sentinel_path = Path("/opt/lucca/.sandbox_container")
-        is_container = (
-            sentinel_path.is_file()
-            and os.environ.get("LUCCA_SANDBOX_CONTAINER") == "1"
-        )
+        is_container = sentinel_path.is_file() and os.environ.get("LUCCA_SANDBOX_CONTAINER") == "1"
         if not is_container:
-            err_msg = "policy_violation: run_python is disabled on host pending Milestone 2 container isolation"
+            err_msg = (
+                "policy_violation: run_python is disabled on host pending "
+                "Milestone 2 container isolation"
+            )
             return {
                 "exit_code": -1,
                 "elapsed_ms": 0.0,
@@ -359,4 +361,3 @@ class SafeFileTool:
                 "ok": False,
                 "error": str(exc),
             }, str(exc)
-

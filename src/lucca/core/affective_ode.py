@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Final
 
@@ -27,14 +27,14 @@ def clamp(val: float, low: float = -1.0, high: float = 1.0) -> float:
 
 
 # Psychological half-lives in seconds
-HALF_LIFE_AROUSAL_S: Final[float] = 45.0      # Fast sensorimotor decay
-HALF_LIFE_PLEASURE_S: Final[float] = 300.0    # 5-minute valence decay
-HALF_LIFE_DOMINANCE_S: Final[float] = 900.0   # 15-minute agency/mastery decay
+HALF_LIFE_AROUSAL_S: Final[float] = 45.0  # Fast sensorimotor decay
+HALF_LIFE_PLEASURE_S: Final[float] = 300.0  # 5-minute valence decay
+HALF_LIFE_DOMINANCE_S: Final[float] = 900.0  # 15-minute agency/mastery decay
 
 # Analytical damping rates: gamma = ln(2) / t_half
-GAMMA_A: Final[float] = math.log(2.0) / HALF_LIFE_AROUSAL_S     # ~0.015403 s^-1
-GAMMA_P: Final[float] = math.log(2.0) / HALF_LIFE_PLEASURE_S    # ~0.002310 s^-1
-GAMMA_D: Final[float] = math.log(2.0) / HALF_LIFE_DOMINANCE_S   # ~0.000770 s^-1
+GAMMA_A: Final[float] = math.log(2.0) / HALF_LIFE_AROUSAL_S  # ~0.015403 s^-1
+GAMMA_P: Final[float] = math.log(2.0) / HALF_LIFE_PLEASURE_S  # ~0.002310 s^-1
+GAMMA_D: Final[float] = math.log(2.0) / HALF_LIFE_DOMINANCE_S  # ~0.000770 s^-1
 
 # Lyapunov stability bound: max cognitive feedback gain < min(gamma_i)
 MIN_GAMMA: Final[float] = min(GAMMA_P, GAMMA_A, GAMMA_D)
@@ -49,6 +49,7 @@ class DiscreteStance(StrEnum):
     Quantized discrete stances for prompt frontier suffix injection.
     Orthogonal semantic tokens preventing KV-cache fragmentation.
     """
+
     NEUTRAL_STEADY = "neutral_steady"
     FOCUSED_ANALYTICAL = "focused_analytical"
     CALM_RELAXED = "calm_relaxed"
@@ -61,6 +62,7 @@ class DiscreteStance(StrEnum):
 @dataclass(frozen=True)
 class StanceAnchor:
     """Radial Basis Function cluster center and bandwidth in 3D PAD space."""
+
     stance: DiscreteStance
     mu_p: float
     mu_a: float
@@ -84,6 +86,7 @@ STANCE_ANCHORS: Final[list[StanceAnchor]] = [
 
 class AffectSignal3D(StrEnum):
     """Discrete runtime appraisal signals updating the 3D PAD manifold."""
+
     DOUBLE_INTERRUPT = "double_interrupt"
     TOOL_FAILURE = "tool_failure"
     TASK_SUCCESS = "task_success"
@@ -113,9 +116,10 @@ class AffectState3D(BaseModel):
     Continuous state representation in Mehrabian's 3D PAD space.
     Valence is an alias for pleasure.
     """
-    pleasure: float = 0.0    # [-1.0, 1.0] Pleasure / Valence
-    arousal: float = 0.0     # [-1.0, 1.0] Arousal / Engagement
-    dominance: float = 0.0   # [-1.0, 1.0] Dominance / Agency / Mastery
+
+    pleasure: float = 0.0  # [-1.0, 1.0] Pleasure / Valence
+    arousal: float = 0.0  # [-1.0, 1.0] Arousal / Engagement
+    dominance: float = 0.0  # [-1.0, 1.0] Dominance / Agency / Mastery
     updated_at: float = Field(default_factory=time.time)
     causes: list[str] = Field(default_factory=list)
     active_stance: DiscreteStance = DiscreteStance.NEUTRAL_STEADY

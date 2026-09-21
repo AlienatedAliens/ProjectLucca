@@ -496,4 +496,3 @@ PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "yield-to-core": prim_yield_to_core,
     "interrupt-core": prim_interrupt_core,
 }
-

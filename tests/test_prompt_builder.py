@@ -260,7 +260,9 @@ def test_skills_and_manifest_in_prompt_builder() -> None:
         categories=["self"],
     )
     manifest = format_category_manifest("self", [skill_meta])
-    assert "[SKILLS category=self: calc-eval-v1 — Evaluate math expression (args: expr)]" in manifest
+    assert (
+        "[SKILLS category=self: calc-eval-v1 — Evaluate math expression (args: expr)]" in manifest
+    )
 
     # User message suffix contains manifest
     msgs = build_messages(
@@ -272,7 +274,10 @@ def test_skills_and_manifest_in_prompt_builder() -> None:
     assert msgs[0].role == "system"
     assert "[SKILLS category=" not in msgs[0].content
     assert msgs[1].role == "user"
-    assert "[SKILLS category=self: calc-eval-v1 — Evaluate math expression (args: expr)]" in msgs[1].content
+    assert (
+        "[SKILLS category=self: calc-eval-v1 — Evaluate math expression (args: expr)]"
+        in msgs[1].content
+    )
 
 
 def test_build_narration_messages_grounding() -> None:

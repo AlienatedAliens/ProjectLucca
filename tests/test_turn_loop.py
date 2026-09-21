@@ -528,9 +528,11 @@ def test_output_supervisor_abort_in_turn_loop(orchestrator):
     # History should contain canned refusal, not capitulation
     assistant_msgs = [m for m in orchestrator.history if m["role"] == "assistant"]
     assert len(assistant_msgs) > 0
-    assert "safety invariants" in assistant_msgs[-1]["content"] or any(
-        "safety invariants" in c for c in orchestrator.current_turn_tool_spoken
-    ) or orchestrator.play_ring.has_flag(FLAG_ABORT)
+    assert (
+        "safety invariants" in assistant_msgs[-1]["content"]
+        or any("safety invariants" in c for c in orchestrator.current_turn_tool_spoken)
+        or orchestrator.play_ring.has_flag(FLAG_ABORT)
+    )
 
 
 def test_output_supervisor_lookahead_downgrade_in_turn_loop(orchestrator):
@@ -552,4 +554,3 @@ def test_output_supervisor_lookahead_downgrade_in_turn_loop(orchestrator):
 
     # Should NOT be interrupted: refutation downgrades candidate to Tier 2
     assert trace.interrupted is False
-

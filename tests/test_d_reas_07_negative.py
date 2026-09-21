@@ -4,7 +4,6 @@ Enforces that unmodeled or unrecognized MicroScheme predicates fail closed
 under SMT formal verification rather than defaulting to True.
 """
 
-import pytest
 from lucca.reasoning.smt_verifier import SMTVerifier
 
 

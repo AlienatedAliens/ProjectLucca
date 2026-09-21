@@ -215,9 +215,7 @@ def anti_unify_many(
 
     for idx in range(1, len(nodes)):
         target = nodes[idx]
-        gen_template, _ = anti_unify(
-            current_template, target, var_prefix=f"{var_prefix}_{idx}"
-        )
+        gen_template, _ = anti_unify(current_template, target, var_prefix=f"{var_prefix}_{idx}")
 
         # Update running template
         current_template = gen_template

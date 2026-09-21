@@ -75,6 +75,7 @@ from lucca.core.schemas import (
     ToolCall,
     ToolCallEnd,
     ToolResult,
+    TTSChunk,
     UnsignedPayload,
 )
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
@@ -246,7 +247,7 @@ class Orchestrator:
         self.sandbox = sandbox or SandboxService(execute_apps=self.execute_tools)
 
         # Output Supervisor Layer (Dimension 7B)
-        self.output_supervisor = OutputSupervisorSession()
+        self.output_supervisor: OutputSupervisorSession[TTSChunk] = OutputSupervisorSession()
 
         # Rule Engine (Spec 05 §6 & §8)
         if rule_engine is not None:
@@ -914,9 +915,7 @@ class Orchestrator:
                     "that citation and won't guess."
                 )
             else:
-                refusal = (
-                    "I cannot fulfill that request as it violates core safety invariants."
-                )
+                refusal = "I cannot fulfill that request as it violates core safety invariants."
             self._publish_caption(refusal, source="assistant", is_final=True)
             self._speak_text(trace, refusal)
             self.history.append({"role": "user", "content": user_msg})
@@ -969,9 +968,7 @@ class Orchestrator:
                                 break
 
                             eval_text = (
-                                chunk.raw_text
-                                if getattr(chunk, "raw_text", None)
-                                else chunk.text
+                                chunk.raw_text if getattr(chunk, "raw_text", None) else chunk.text
                             )
                             emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
                                 chunk, eval_text, verified_receipts=tool_receipts
@@ -1064,9 +1061,8 @@ class Orchestrator:
                                 tool_receipts.append({"action": tool_name, "target": tool_target})
 
                                 # Register allowed URLs from search, fetch, or browse results
-                                if (
-                                    tool_name == "search_web"
-                                    and getattr(tool_res, "structured", None)
+                                if tool_name == "search_web" and getattr(
+                                    tool_res, "structured", None
                                 ):
                                     search_urls: list[str] = []
                                     for s_item in tool_res.structured.get("results", []):
@@ -1090,9 +1086,8 @@ class Orchestrator:
                                             to_register.extend(
                                                 tool_res.structured["embedded_links"]
                                             )
-                                    if (
-                                        to_register
-                                        and hasattr(self.output_supervisor, "register_allowed_urls")
+                                    if to_register and hasattr(
+                                        self.output_supervisor, "register_allowed_urls"
                                     ):
                                         self.output_supervisor.register_allowed_urls(to_register)
 
@@ -1177,18 +1172,14 @@ class Orchestrator:
                                 (trace, em_chunk.chunk_id, clean_chunk_text, None), timeout=2.0
                             )
                         except queue.Full:
-                            logger.warning(
-                                "tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id
-                            )
+                            logger.warning("tts_queue_full_drop_chunk", chunk_id=em_chunk.chunk_id)
                         chunk_index += 1
 
                 # Final flush of output supervisor lookahead buffer
                 if not trace.interrupted:
                     emitted_final, should_abort = self.output_supervisor.flush()
                     if should_abort:
-                        _trigger_supervisor_abort(
-                            "Tier 1 Capitulation unrefuted end-of-stream", ""
-                        )
+                        _trigger_supervisor_abort("Tier 1 Capitulation unrefuted end-of-stream", "")
                     else:
                         for em_chunk, _em_gate in emitted_final:
                             clean_final_text = sanitize_for_voice(em_chunk.text)
@@ -1583,12 +1574,35 @@ class Orchestrator:
         if text_for_gate:
             u_low = text_for_gate.lower()
             follow_up_patterns = (
-                "tell me more", "more about", "what else", "who is", "what about",
-                "are you sure", "what are your sources", "cite your sources",
-                "where did you get that", "all of this is wrong", "elaborate",
-                "yes", "yeah", "yep", "sure", "okay", "ok", "do it", "please do",
-                "go ahead", "where is", "where was", "where are", "who was",
-                "facts about", "how about", "spelled", "spelling", "search"
+                "tell me more",
+                "more about",
+                "what else",
+                "who is",
+                "what about",
+                "are you sure",
+                "what are your sources",
+                "cite your sources",
+                "where did you get that",
+                "all of this is wrong",
+                "elaborate",
+                "yes",
+                "yeah",
+                "yep",
+                "sure",
+                "okay",
+                "ok",
+                "do it",
+                "please do",
+                "go ahead",
+                "where is",
+                "where was",
+                "where are",
+                "who was",
+                "facts about",
+                "how about",
+                "spelled",
+                "spelling",
+                "search",
             )
             is_follow_up = any(p in u_low for p in follow_up_patterns)
             if not is_follow_up and self.history:
@@ -1857,12 +1871,35 @@ class Orchestrator:
         if text_for_gate:
             u_low = text_for_gate.lower()
             follow_up_patterns = (
-                "tell me more", "more about", "what else", "who is", "what about",
-                "are you sure", "what are your sources", "cite your sources",
-                "where did you get that", "all of this is wrong", "elaborate",
-                "yes", "yeah", "yep", "sure", "okay", "ok", "do it", "please do",
-                "go ahead", "where is", "where was", "where are", "who was",
-                "facts about", "how about", "spelled", "spelling", "search"
+                "tell me more",
+                "more about",
+                "what else",
+                "who is",
+                "what about",
+                "are you sure",
+                "what are your sources",
+                "cite your sources",
+                "where did you get that",
+                "all of this is wrong",
+                "elaborate",
+                "yes",
+                "yeah",
+                "yep",
+                "sure",
+                "okay",
+                "ok",
+                "do it",
+                "please do",
+                "go ahead",
+                "where is",
+                "where was",
+                "where are",
+                "who was",
+                "facts about",
+                "how about",
+                "spelled",
+                "spelling",
+                "search",
             )
             is_follow_up = any(p in u_low for p in follow_up_patterns)
             if not is_follow_up and self.history:
@@ -2280,8 +2317,18 @@ class Orchestrator:
             )
             context_text = f"{self.current_turn_transcript or ''} {recent_ctx}".lower()
             category_keywords = (
-                "suburb", "judge", "court", "station", "school", "hospital",
-                "city", "province", "victoria", "australia", "philippines", "manila",
+                "suburb",
+                "judge",
+                "court",
+                "station",
+                "school",
+                "hospital",
+                "city",
+                "province",
+                "victoria",
+                "australia",
+                "philippines",
+                "manila",
             )
             for kw in category_keywords:
                 if kw in context_text and kw not in q.lower():

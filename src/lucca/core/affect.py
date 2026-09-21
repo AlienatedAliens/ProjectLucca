@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field
 from lucca.core.affective_ode import (
     AffectiveODEMachine,
     AffectSignal3D,
-    AffectState3D,
     DiscreteStance,
 )
 

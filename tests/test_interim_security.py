@@ -9,6 +9,7 @@ Verifies:
 """
 
 from pathlib import Path
+
 import pytest
 
 from lucca.core.exceptions import SandboxPathError
@@ -44,6 +45,7 @@ def service(workspace: Path) -> SandboxService:
 # ---------------------------------------------------------------------------
 # 1. run_python Disabling Tests (Defense in Depth)
 # ---------------------------------------------------------------------------
+
 
 def test_service_level_run_python_hard_blocked(service: SandboxService):
     """SandboxService must immediately intercept and reject run_python with policy error."""
@@ -126,18 +128,22 @@ def test_file_tool_run_python_rejects_when_env_var_spoofed_without_sentinel(
 # 2. Host Launcher Whitelist Purge Tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("disallowed_app", [
-    "terminal",
-    "windows terminal",
-    "wt.exe",
-    "browser",
-    "edge",
-    "msedge.exe",
-    "task_manager",
-    "taskmgr.exe",
-    "powershell",
-    "cmd",
-])
+
+@pytest.mark.parametrize(
+    "disallowed_app",
+    [
+        "terminal",
+        "windows terminal",
+        "wt.exe",
+        "browser",
+        "edge",
+        "msedge.exe",
+        "task_manager",
+        "taskmgr.exe",
+        "powershell",
+        "cmd",
+    ],
+)
 def test_launcher_rejects_removed_and_unapproved_apps(launcher: AppLauncher, disallowed_app: str):
     """Host launcher must strictly refuse any application outside the approved whitelist."""
     ok, msg = launcher.launch(app_name=disallowed_app)
@@ -165,6 +171,7 @@ def test_launcher_allows_notepad_with_valid_file(launcher: AppLauncher, workspac
 # ---------------------------------------------------------------------------
 # 3. Notepad Path Hardening Tests (UNC, Absolute, Colons, Traversal)
 # ---------------------------------------------------------------------------
+
 
 def test_launcher_rejects_unc_backslash_path(launcher: AppLauncher):
     """Reject UNC backslash path (e.g. \\\\evil\\share\\payload.txt)."""
@@ -205,6 +212,7 @@ def test_launcher_rejects_path_traversal(launcher: AppLauncher):
 # 4. Web Fetch render=True Disabling Tests
 # ---------------------------------------------------------------------------
 
+
 def test_fetch_url_render_disabled_direct():
     """fetch_url(render=True) must raise SandboxPathError with render_disabled code."""
     with pytest.raises(SandboxPathError) as exc_info:
@@ -228,6 +236,7 @@ def test_fetch_url_render_disabled_via_service(service: SandboxService):
 # ---------------------------------------------------------------------------
 # 5. Strict Relative Path Validation Hardening Tests
 # ---------------------------------------------------------------------------
+
 
 def test_validate_rel_path_rejects_colons_and_ads(workspace: Path):
     """validate_rel_path must reject colons to prevent drive letters and NTFS ADS streams."""

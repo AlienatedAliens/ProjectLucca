@@ -13,11 +13,10 @@ Guarantees:
 from __future__ import annotations
 
 import ctypes
-from ctypes import wintypes
-import os
-from pathlib import Path
-from typing import BinaryIO, Generator
+from collections.abc import Generator
 from contextlib import contextmanager
+from ctypes import wintypes
+from pathlib import Path
 
 from lucca.core.exceptions import SandboxPathError
 
@@ -67,20 +66,29 @@ kernel32 = ctypes.windll.kernel32 if hasattr(ctypes, "windll") else None
 if kernel32 is not None:
     CreateFileW = kernel32.CreateFileW
     CreateFileW.argtypes = [
-        wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
-        wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE
+        wintypes.LPCWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        wintypes.DWORD,
+        wintypes.HANDLE,
     ]
     CreateFileW.restype = wintypes.HANDLE
 
     GetFinalPathNameByHandleW = kernel32.GetFinalPathNameByHandleW
     GetFinalPathNameByHandleW.argtypes = [
-        wintypes.HANDLE, wintypes.LPWSTR, wintypes.DWORD, wintypes.DWORD
+        wintypes.HANDLE,
+        wintypes.LPWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
     ]
     GetFinalPathNameByHandleW.restype = wintypes.DWORD
 
     GetFileInformationByHandle = kernel32.GetFileInformationByHandle
     GetFileInformationByHandle.argtypes = [
-        wintypes.HANDLE, ctypes.POINTER(BY_HANDLE_FILE_INFORMATION)
+        wintypes.HANDLE,
+        ctypes.POINTER(BY_HANDLE_FILE_INFORMATION),
     ]
     GetFileInformationByHandle.restype = wintypes.BOOL
 
@@ -90,15 +98,21 @@ if kernel32 is not None:
 
     ReadFile = kernel32.ReadFile
     ReadFile.argtypes = [
-        wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID
+        wintypes.HANDLE,
+        wintypes.LPVOID,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        wintypes.LPVOID,
     ]
     ReadFile.restype = wintypes.BOOL
 
     WriteFile = kernel32.WriteFile
     WriteFile.argtypes = [
-        wintypes.HANDLE, wintypes.LPCVOID, wintypes.DWORD,
-        ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID
+        wintypes.HANDLE,
+        wintypes.LPCVOID,
+        wintypes.DWORD,
+        ctypes.POINTER(wintypes.DWORD),
+        wintypes.LPVOID,
     ]
     WriteFile.restype = wintypes.BOOL
 
@@ -137,7 +151,9 @@ def verify_and_open_workspace_file(
         raise SandboxPathError("invalid_chars", "Backslash is forbidden; use forward slash '/'")
 
     if ":" in rel_path:
-        raise SandboxPathError("invalid_chars", "Colons (drive specifiers or NTFS streams) are forbidden")
+        raise SandboxPathError(
+            "invalid_chars", "Colons (drive specifiers or NTFS streams) are forbidden"
+        )
 
     if rel_path.startswith("/"):
         raise SandboxPathError("traversal", "Absolute paths are forbidden")
@@ -156,7 +172,9 @@ def verify_and_open_workspace_file(
         if current.exists():
             attrs = kernel32.GetFileAttributesW(str(current))
             if attrs != 0xFFFFFFFF and (attrs & FILE_ATTRIBUTE_REPARSE_POINT):
-                raise SandboxPathError("reparse_point", f"Reparse point detected in directory chain: {part}")
+                raise SandboxPathError(
+                    "reparse_point", f"Reparse point detected in directory chain: {part}"
+                )
 
     share_mode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE
 
@@ -173,7 +191,9 @@ def verify_and_open_workspace_file(
         )
         if h_file == INVALID_HANDLE_VALUE:
             err = ctypes.GetLastError()
-            raise FileNotFoundError(f"Cannot open file '{rel_path}' for reading (Win32 error {err})")
+            raise FileNotFoundError(
+                f"Cannot open file '{rel_path}' for reading (Win32 error {err})"
+            )
 
         try:
             _verify_handle_containment(h_file, canonical_root)
@@ -204,7 +224,8 @@ def verify_and_open_workspace_file(
                     if info.nNumberOfLinks > 1:
                         raise SandboxPathError(
                             "hard_link",
-                            f"Security Breach: File '{rel_path}' has {info.nNumberOfLinks} hard links",
+                            f"Security Breach: File '{rel_path}' has "
+                            f"{info.nNumberOfLinks} hard links",
                         )
             finally:
                 CloseHandle(h_inspect)
@@ -222,13 +243,17 @@ def verify_and_open_workspace_file(
             )
             if h_write == INVALID_HANDLE_VALUE:
                 err = ctypes.GetLastError()
-                raise SandboxPathError("write_failed", f"Failed to open verified file for write (Win32 error {err})")
+                raise SandboxPathError(
+                    "write_failed", f"Failed to open verified file for write (Win32 error {err})"
+                )
             return h_write
 
         else:
             err = ctypes.GetLastError()
             if err not in (ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND):
-                raise SandboxPathError("inspect_failed", f"Stage 1 inspection failed with Win32 error {err}")
+                raise SandboxPathError(
+                    "inspect_failed", f"Stage 1 inspection failed with Win32 error {err}"
+                )
 
             # File does not exist: verify parent directory containment
             parent = target_candidate.parent
@@ -246,7 +271,9 @@ def verify_and_open_workspace_file(
             )
             if h_parent == INVALID_HANDLE_VALUE:
                 err = ctypes.GetLastError()
-                raise SandboxPathError("parent_verify_failed", f"Cannot verify parent directory (Win32 error {err})")
+                raise SandboxPathError(
+                    "parent_verify_failed", f"Cannot verify parent directory (Win32 error {err})"
+                )
             try:
                 _verify_handle_containment(h_parent, canonical_root)
             finally:
@@ -264,7 +291,9 @@ def verify_and_open_workspace_file(
             )
             if h_new == INVALID_HANDLE_VALUE:
                 err = ctypes.GetLastError()
-                raise SandboxPathError("create_failed", f"Failed to create new file (Win32 error {err})")
+                raise SandboxPathError(
+                    "create_failed", f"Failed to create new file (Win32 error {err})"
+                )
             return h_new
 
     else:
@@ -277,7 +306,9 @@ def _verify_handle_containment(handle: wintypes.HANDLE, canonical_root: Path) ->
     res = GetFinalPathNameByHandleW(handle, buf, 1024, VOLUME_NAME_DOS)
     if res == 0:
         err = ctypes.GetLastError()
-        raise SandboxPathError("handle_resolve_failed", f"GetFinalPathNameByHandleW failed (error {err})")
+        raise SandboxPathError(
+            "handle_resolve_failed", f"GetFinalPathNameByHandleW failed (error {err})"
+        )
 
     path_str = buf.value
     # Normalize Win32 device namespace prefixes
@@ -289,11 +320,11 @@ def _verify_handle_containment(handle: wintypes.HANDLE, canonical_root: Path) ->
     final_path = Path(path_str).resolve()
     try:
         final_path.relative_to(canonical_root)
-    except ValueError:
+    except ValueError as err:
         raise SandboxPathError(
             "traversal",
             f"Security Breach: Handle target '{final_path}' escapes workspace '{canonical_root}'",
-        )
+        ) from err
     return final_path
 
 

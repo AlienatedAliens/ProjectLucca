@@ -47,7 +47,11 @@ def test_persistent_worker_lifecycle(ensure_sandbox: DockerRPCTransport):
         res1 = worker.execute(
             call_id="call-life-1",
             tool="write_file",
-            args={"path": "worker_test.txt", "content": "persistent bridge test", "mode": "overwrite"},
+            args={
+                "path": "worker_test.txt",
+                "content": "persistent bridge test",
+                "mode": "overwrite",
+            },
         )
         assert worker.is_alive() is True
         assert res1["call_id"] == "call-life-1"
@@ -254,7 +258,9 @@ def test_transport_sha256_audit_and_fallback(ensure_sandbox: DockerRPCTransport)
         transport.close()
 
 
-def test_sandbox_service_confirmation_gate_upstream_of_persistent_worker(ensure_sandbox: DockerRPCTransport):
+def test_sandbox_service_confirmation_gate_upstream_of_persistent_worker(
+    ensure_sandbox: DockerRPCTransport,
+):
     """
     Verifies that SandboxService confirmation checks (Stage 2) execute host-side
     strictly UPSTREAM of DockerRPCTransport / PersistentDockerWorker.
@@ -262,12 +268,15 @@ def test_sandbox_service_confirmation_gate_upstream_of_persistent_worker(ensure_
     exit_code=-3, stderr="confirmation_required", and must NEVER reach the persistent worker.
     """
     from unittest.mock import patch
+
     from lucca.sandbox.service import SandboxService
 
     service = SandboxService()
     try:
         # Patch rpc.execute to assert if unconfirmed calls reach transport
-        with patch.object(service.rpc, "execute", side_effect=AssertionError("Confirmation gate bypassed!")):
+        with patch.object(
+            service.rpc, "execute", side_effect=AssertionError("Confirmation gate bypassed!")
+        ):
             # 1. Unconfirmed write_file
             res_w = service.execute_tool(
                 call_id="c-unconf-w",
@@ -367,4 +376,3 @@ def test_prespawn_reaping_and_worker_recovery(ensure_sandbox: DockerRPCTransport
         assert worker.is_alive() is True
     finally:
         worker.close()
-

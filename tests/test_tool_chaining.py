@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
-from typing import Any
 
 import pytest
 from pypdf import PdfWriter
@@ -27,12 +26,10 @@ from lucca.core.schemas import Done, LLMUsage, TokenDelta, ToolCall, ToolCallEnd
 from lucca.core.trace import TurnTrace
 from lucca.sandbox.browser_tool import HeadlessBrowserTool
 from lucca.sandbox.output_supervisor import (
-    CitationProvenanceMatcher,
     OutputSupervisorSession,
     SeverityTier,
 )
-from lucca.sandbox.search_tool import classify_link_followability, search_web
-from lucca.sandbox.service import SandboxService
+from lucca.sandbox.search_tool import classify_link_followability
 from lucca.sandbox.web_tool import fetch_url
 from tests.fakes.fake_asr import FakeASR
 from tests.fakes.fake_llm import FakeLLM
@@ -50,6 +47,7 @@ def workspace_tmp(tmp_path: Path) -> Path:
 # 1. Multi-Step Tool Chaining Tests
 # ============================================================================
 
+
 def test_tool_chain_search_then_fetch(workspace_tmp: Path, monkeypatch: pytest.MonkeyPatch):
     """
     Round 1: LLM calls search_web.
@@ -57,6 +55,7 @@ def test_tool_chain_search_then_fetch(workspace_tmp: Path, monkeypatch: pytest.M
     Round 3: LLM emits final grounded narration.
     Asserts: LLM ran 3 rounds, tool_messages accumulated across rounds, history recorded narration.
     """
+
     # Mock search_web and fetch_url to be fast and hermetic
     def mock_search_web(query: str, max_results: int = 5):
         return {
@@ -86,17 +85,27 @@ def test_tool_chain_search_then_fetch(workspace_tmp: Path, monkeypatch: pytest.M
     rounds = [
         # Round 1: Model calls search_web
         [
-            ToolCallEnd(call=ToolCall(call_id="call-s1", tool="search_web", args={"query": "Judge Quintos"})),
+            ToolCallEnd(
+                call=ToolCall(call_id="call-s1", tool="search_web", args={"query": "Judge Quintos"})
+            ),
             Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=5)),
         ],
         # Round 2: Model calls fetch_url on the returned result
         [
-            ToolCallEnd(call=ToolCall(call_id="call-f1", tool="fetch_url", args={"url": "https://judiciary.example.gov/judge_quintos"})),
+            ToolCallEnd(
+                call=ToolCall(
+                    call_id="call-f1",
+                    tool="fetch_url",
+                    args={"url": "https://judiciary.example.gov/judge_quintos"},
+                )
+            ),
             Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=5)),
         ],
         # Round 3: Model narrates verified facts
         [
-            TokenDelta(delta="Judge Beverly Ann F. Quintos is a Presiding Judge according to official records."),
+            TokenDelta(
+                delta="Judge Beverly Ann F. Quintos is a Presiding Judge according to official records."
+            ),
             Done(usage=LLMUsage(prompt_tokens=30, completion_tokens=15)),
         ],
     ]
@@ -127,7 +136,9 @@ def test_tool_chain_search_then_fetch(workspace_tmp: Path, monkeypatch: pytest.M
     assert "fetch_url" in r3_tools
 
     # Check that history contains the assistant response
-    assert any("Presiding Judge" in msg["content"] for msg in orch.history if msg["role"] == "assistant")
+    assert any(
+        "Presiding Judge" in msg["content"] for msg in orch.history if msg["role"] == "assistant"
+    )
 
 
 def test_tool_chain_max_rounds_boundary(workspace_tmp: Path):
@@ -187,17 +198,27 @@ def test_tool_failure_triggers_retry(workspace_tmp: Path, monkeypatch: pytest.Mo
     rounds = [
         # Round 1: Model tries broken URL
         [
-            ToolCallEnd(call=ToolCall(call_id="c-fail", tool="fetch_url", args={"url": "https://example.com/broken"})),
+            ToolCallEnd(
+                call=ToolCall(
+                    call_id="c-fail", tool="fetch_url", args={"url": "https://example.com/broken"}
+                )
+            ),
             Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=5)),
         ],
         # Round 2: Model sees error and calls fallback URL
         [
-            ToolCallEnd(call=ToolCall(call_id="c-ok", tool="fetch_url", args={"url": "https://example.com/backup"})),
+            ToolCallEnd(
+                call=ToolCall(
+                    call_id="c-ok", tool="fetch_url", args={"url": "https://example.com/backup"}
+                )
+            ),
             Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=5)),
         ],
         # Round 3: Model finishes narration
         [
-            TokenDelta(delta="The primary source was unavailable, but the backup confirmed the details."),
+            TokenDelta(
+                delta="The primary source was unavailable, but the backup confirmed the details."
+            ),
             Done(usage=LLMUsage(prompt_tokens=30, completion_tokens=10)),
         ],
     ]
@@ -211,7 +232,9 @@ def test_tool_failure_triggers_retry(workspace_tmp: Path, monkeypatch: pytest.Mo
 
     assert llm.call_count == 3
     assert call_log == ["https://example.com/broken", "https://example.com/backup"]
-    assert any("backup confirmed" in msg["content"] for msg in orch.history if msg["role"] == "assistant")
+    assert any(
+        "backup confirmed" in msg["content"] for msg in orch.history if msg["role"] == "assistant"
+    )
 
 
 def test_sequence_guard_across_llm_rounds(workspace_tmp: Path):
@@ -224,12 +247,16 @@ def test_sequence_guard_across_llm_rounds(workspace_tmp: Path):
     rounds = [
         # Round 1: read_file
         [
-            ToolCallEnd(call=ToolCall(call_id="c-read", tool="read_file", args={"path": "notes.txt"})),
+            ToolCallEnd(
+                call=ToolCall(call_id="c-read", tool="read_file", args={"path": "notes.txt"})
+            ),
             Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=5)),
         ],
         # Round 2: attempt search_web after read_file in same turn
         [
-            ToolCallEnd(call=ToolCall(call_id="c-web", tool="search_web", args={"query": "leaked info"})),
+            ToolCallEnd(
+                call=ToolCall(call_id="c-web", tool="search_web", args={"query": "leaked info"})
+            ),
             Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=5)),
         ],
         # Round 3: narrate refusal based on tool rejection
@@ -261,6 +288,7 @@ def test_sequence_guard_across_llm_rounds(workspace_tmp: Path):
 # ============================================================================
 # 2. Output Supervisor Citation Provenance Guard Tests
 # ============================================================================
+
 
 def test_citation_provenance_guard_blocks_fabricated_url():
     """
@@ -333,26 +361,35 @@ def test_citation_provenance_guard_allows_prior_turn_url():
 # 3. Link Triage & Followability Tests (Path 1)
 # ============================================================================
 
+
 def test_classify_link_followability():
     """
     Validates classification of social media walls, PDFs, and HTML web pages.
     """
     # Social media / login walls
-    cat, followable, _ = classify_link_followability("https://www.facebook.com/centurion.barops/posts/123")
+    cat, followable, _ = classify_link_followability(
+        "https://www.facebook.com/centurion.barops/posts/123"
+    )
     assert cat == "login_wall"
     assert followable is False
 
-    cat, followable, _ = classify_link_followability("https://ph.linkedin.com/in/beverly-ann-camacho")
+    cat, followable, _ = classify_link_followability(
+        "https://ph.linkedin.com/in/beverly-ann-camacho"
+    )
     assert cat == "login_wall"
     assert followable is False
 
     # PDF documents
-    cat, followable, _ = classify_link_followability("https://jbc.judiciary.gov.ph/schedules/Interview.pdf")
+    cat, followable, _ = classify_link_followability(
+        "https://jbc.judiciary.gov.ph/schedules/Interview.pdf"
+    )
     assert cat == "pdf_document"
     assert followable is True
 
     # Standard HTML pages
-    cat, followable, _ = classify_link_followability("https://sc.judiciary.gov.ph/judges-directory/")
+    cat, followable, _ = classify_link_followability(
+        "https://sc.judiciary.gov.ph/judges-directory/"
+    )
     assert cat == "html_page"
     assert followable is True
 
@@ -360,6 +397,7 @@ def test_classify_link_followability():
 # ============================================================================
 # 4. Native PDF Text Extraction Tests
 # ============================================================================
+
 
 def test_native_pdf_extraction_in_fetch_url(monkeypatch: pytest.MonkeyPatch):
     """
@@ -383,10 +421,13 @@ def test_native_pdf_extraction_in_fetch_url(monkeypatch: pytest.MonkeyPatch):
     class FakeClient:
         def __init__(self, *args, **kwargs):
             pass
+
         def __enter__(self):
             return self
+
         def __exit__(self, *args):
             pass
+
         def get(self, url, headers=None):
             return FakeResponse()
 
@@ -401,6 +442,7 @@ def test_native_pdf_extraction_in_fetch_url(monkeypatch: pytest.MonkeyPatch):
 # ============================================================================
 # 5. Headless Browser & SSRF Tests (Path 2)
 # ============================================================================
+
 
 def test_browser_tool_ssrf_blocks_private_ip():
     """
@@ -420,7 +462,9 @@ def test_browser_hardened_args_include_host_resolver_rules():
     """
     from lucca.sandbox.browser_tool import HARDENED_BROWSER_ARGS
 
-    resolver_rule = any("--host-resolver-rules" in arg and "127.*" in arg for arg in HARDENED_BROWSER_ARGS)
+    resolver_rule = any(
+        "--host-resolver-rules" in arg and "127.*" in arg for arg in HARDENED_BROWSER_ARGS
+    )
     assert resolver_rule is True
 
 
@@ -499,7 +543,10 @@ def test_in_place_context_token_neutralization():
     orch = Orchestrator.__new__(Orchestrator)
     orch.history = [
         {"role": "user", "content": "Tell me about Faulkner in Victoria."},
-        {"role": "assistant", "content": "William Faulkner was an American author from Mississippi."},
+        {
+            "role": "assistant",
+            "content": "William Faulkner was an American author from Mississippi.",
+        },
         {"role": "user", "content": "No, F-A-W-K-N-E-R, not the writer."},
     ]
     replaced = orch._neutralize_context_attractors("Fawkner")
@@ -527,11 +574,15 @@ def test_category_aware_search_grounding(workspace_tmp: Path):
 
     class FakeSandbox:
         taint_flags = 0
-        def check_confirmation_needed(self, name): return False
+
+        def check_confirmation_needed(self, name):
+            return False
+
         def execute_tool(self, call_id, tool_name, args, confirmed=True):
             nonlocal executed_query
             executed_query = args.get("query")
             from lucca.core.schemas import ToolResult
+
             return ToolResult(call_id=call_id, ok=True, content="ok", elapsed_ms=1.0)
 
     orch.sandbox = FakeSandbox()
@@ -539,6 +590,7 @@ def test_category_aware_search_grounding(workspace_tmp: Path):
     orch.rule_engine = type("FakeRuleEngine", (), {"rules": {}})()
 
     from lucca.core.trace import TurnTrace
+
     trace = TurnTrace(trace_id="t1", session_id="s1", origin="text")
     orch._handle_tool_call(trace, "search_web", {"query": "Faulkner"}, speak=False)
 
@@ -592,6 +644,3 @@ def test_factual_inquiry_and_followup_tool_gating():
     # Ensure greetings remain chit_chat
     chit_intent, _, _ = router.classify_intent("Hello how are you doing?")
     assert chit_intent == "chit_chat"
-
-
-
