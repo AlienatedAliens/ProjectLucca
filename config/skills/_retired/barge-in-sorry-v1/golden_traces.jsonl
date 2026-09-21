@@ -1,2 +1,0 @@
-{"id": "barge-in-fire-1", "transcript": "wait hold on", "intent": "barge_in", "last_tool": "interrupt", "rule_fired": true}
-{"id": "barge-in-nofire-1", "transcript": "tell me a joke", "intent": "chit_chat", "last_tool": "read_file", "rule_fired": false}

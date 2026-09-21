@@ -167,6 +167,91 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             risk=Risk.READ,
             target="self",
         ),
+        "memory_search": ToolSchema(
+            name="memory_search",
+            description="Search episodic and semantic memory for relevant facts",
+            parameters={
+                "query": ToolParameter(
+                    type="string", description="Query string to search in memory", required=True
+                ),
+                "top_k": ToolParameter(
+                    type="integer",
+                    description="Maximum number of memory items to return (default 5)",
+                    required=False,
+                ),
+            },
+            risk=Risk.READ,
+            target="self",
+        ),
+        "memory_commit": ToolSchema(
+            name="memory_commit",
+            description="Commit a verified fact or user preference into long-term memory",
+            parameters={
+                "content": ToolParameter(
+                    type="string", description="Fact or memory content to commit", required=True
+                ),
+                "tags": ToolParameter(
+                    type="array",
+                    description="Optional tags or categories for the memory item",
+                    required=False,
+                ),
+            },
+            risk=Risk.WRITE,
+            target="self",
+        ),
+        "note_write": ToolSchema(
+            name="note_write",
+            description="Write or append to a scratchpad note outside the user workspace",
+            parameters={
+                "name": ToolParameter(
+                    type="string", description="Note identifier or filename", required=True
+                ),
+                "content": ToolParameter(
+                    type="string", description="Text content to write to the note", required=True
+                ),
+                "append": ToolParameter(
+                    type="boolean",
+                    description="Whether to append to an existing note instead of overwriting",
+                    required=False,
+                ),
+            },
+            risk=Risk.WRITE,
+            target="self",
+        ),
+        "note_read": ToolSchema(
+            name="note_read",
+            description="Read the contents of a scratchpad note outside the user workspace",
+            parameters={
+                "name": ToolParameter(
+                    type="string", description="Note identifier or filename to read", required=True
+                ),
+            },
+            risk=Risk.READ,
+            target="self",
+        ),
+        "self_metrics": ToolSchema(
+            name="self_metrics",
+            description="Retrieve hardware telemetry across CPU, RAM, GPU, and NPU substrates",
+            parameters={},
+            risk=Risk.READ,
+            target="self",
+        ),
+        "sys_info": ToolSchema(
+            name="sys_info",
+            description="Inspect host OS version, hostname, uptime, and running processes",
+            parameters={
+                "filter_name": ToolParameter(
+                    type="string", description="Optional process name filter", required=False
+                ),
+                "limit": ToolParameter(
+                    type="integer",
+                    description="Maximum number of processes to list (default 25)",
+                    required=False,
+                ),
+            },
+            risk=Risk.READ,
+            target="host_readonly",
+        ),
     }
 
 

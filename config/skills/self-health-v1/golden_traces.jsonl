@@ -1,0 +1,2 @@
+{"id": "self-health-fire", "transcript": "check your self health", "intent": "chit_chat", "rule_fired": true, "expected_tool": "self_metrics"}
+{"id": "self-health-nofire", "transcript": "what time is it", "intent": "chit_chat", "rule_fired": false}

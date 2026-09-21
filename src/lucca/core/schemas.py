@@ -350,6 +350,7 @@ class RuleState(BaseModel, frozen=True):
     last_tool_ok: bool | None = None
     session_turns: int = 0
     mode: Literal["audio", "transcript"] = "transcript"
+    interrupted: bool = False
 
 
 class RuleOutcome(BaseModel):

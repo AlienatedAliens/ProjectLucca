@@ -1,0 +1,11 @@
+{
+  "id": "session-recap-v1",
+  "intent": "memory_query",
+  "description": "Recap session activity, accomplishments, and recorded memories",
+  "keywords": ["recap", "summary", "session", "review", "digest"],
+  "args": ["query"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["companion", "cognitive_core"],
+  "expose_as_tool": true
+}

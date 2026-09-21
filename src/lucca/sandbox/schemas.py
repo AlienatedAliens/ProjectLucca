@@ -54,3 +54,28 @@ class FetchUrlArgs(BaseModel):
 class SearchWebArgs(BaseModel):
     query: str = Field(min_length=1)
     max_results: int = Field(default=5, ge=1, le=20)
+
+
+class MemorySearchArgs(BaseModel):
+    query: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=50)
+
+
+class MemoryCommitArgs(BaseModel):
+    content: str = Field(min_length=1)
+    tags: list[str] = Field(default_factory=list)
+
+
+class NoteWriteArgs(BaseModel):
+    name: str = Field(min_length=1)
+    content: str
+    append: bool = False
+
+
+class NoteReadArgs(BaseModel):
+    name: str = Field(min_length=1)
+
+
+class SysInfoArgs(BaseModel):
+    filter_name: str | None = None
+    limit: int = Field(default=25, ge=1, le=100)

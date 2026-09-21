@@ -28,6 +28,7 @@ class PathsSettings(BaseModel):
     logs: str = "logs"
     cache: str = "cache"
     tmp: str = "tmp"
+    notes: str = "notes"
 
 
 class LLMSettings(BaseModel):

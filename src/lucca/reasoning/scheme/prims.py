@@ -355,6 +355,11 @@ def make_state_primitives(
         n = int(_check_number(args[0], "session-turns>="))
         return state.session_turns >= n
 
+    def prim_interrupted(args: list[SchemeValue]) -> bool:
+        if len(args) != 0:
+            raise SchemeRuntimeError("'interrupted?' takes no arguments", cause_type="ValueError")
+        return bool(state.interrupted)
+
     return {
         "intent=": prim_intent_eq,
         "entity-has?": prim_entity_has,
@@ -370,6 +375,7 @@ def make_state_primitives(
         "last-tool-ok?": prim_last_tool_ok,
         "last-tool=": prim_last_tool_eq,
         "session-turns>=": prim_session_turns_gte,
+        "interrupted?": prim_interrupted,
     }
 
 

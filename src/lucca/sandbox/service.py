@@ -5,21 +5,37 @@ Orchestrates file-sandbox RPC, web-sandbox fetches, host launcher, and policy gu
 """
 
 import json
+import platform
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 
+import psutil
 import structlog
 from pydantic import JsonValue, ValidationError
 
 from lucca.core.capabilities import get_capability_registry
-from lucca.core.schemas import Risk, ToolResult
+from lucca.core.config import get_config
+from lucca.core.schemas import Provenance, Risk, ToolResult
+from lucca.memory.manager import MemoryManager
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
+from lucca.sandbox.note_tool import SafeNoteTool
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.rpc import DockerRPCTransport
-from lucca.sandbox.schemas import FetchUrlArgs, LaunchAppArgs, SearchWebArgs
+from lucca.sandbox.schemas import (
+    FetchUrlArgs,
+    LaunchAppArgs,
+    MemoryCommitArgs,
+    MemorySearchArgs,
+    NoteReadArgs,
+    NoteWriteArgs,
+    SearchWebArgs,
+    SysInfoArgs,
+)
 from lucca.sandbox.search_tool import search_web
+from lucca.sandbox.system_tools import get_system_metrics, list_running_processes
 from lucca.sandbox.tasks import AsyncTaskInfo, AsyncTaskManager, TaskStatus
 from lucca.sandbox.web_tool import fetch_url
 from lucca.sandbox.workspace import WorkspaceManager
@@ -43,6 +59,8 @@ class SandboxService:
         use_direct_fallback: bool = False,
         execute_apps: bool = True,
         tasks: AsyncTaskManager | None = None,
+        notes_dir: Path | str | None = None,
+        memory_manager: MemoryManager | None = None,
     ) -> None:
         self.workspace_mgr = WorkspaceManager(workspace_root=workspace_root)
         self.file_tool = SafeFileTool(workspace_root=self.workspace_mgr.workspace_root)
@@ -57,6 +75,22 @@ class SandboxService:
         )
         self.guard = SequenceGuard()
         self.tasks = tasks if tasks is not None else AsyncTaskManager()
+        self.note_tool = SafeNoteTool(notes_dir=notes_dir)
+        self._memory_manager = memory_manager
+
+    def get_memory_manager(self) -> MemoryManager:
+        if self._memory_manager is None:
+            cfg = get_config()
+            mk = None
+            if cfg.master_key and len(cfg.master_key.strip()) >= 32:
+                mk = cfg.master_key.strip().encode("utf-8")
+            elif getattr(cfg.env, "mode", "prod") == "dev":
+                mk = b"01234567890123456789012345678901"
+            try:
+                self._memory_manager = MemoryManager(master_key=mk)
+            except Exception:
+                self._memory_manager = MemoryManager(master_key=None)
+        return self._memory_manager
 
     def launch_async(
         self,
@@ -265,6 +299,246 @@ class SandboxService:
                 content=content_str,
                 elapsed_ms=0.0,
             )
+
+        # 5b. Memory Search Tool
+        if tool_name == "memory_search":
+            t0 = time.perf_counter()
+            try:
+                parsed_mem_search = MemorySearchArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                mgr = self.get_memory_manager()
+                all_hits = mgr.list_memories(search=parsed_mem_search.query)
+                top_hits = all_hits[: parsed_mem_search.top_k]
+                content_lines = [
+                    f"- [{h.get('kind', 'fact')}/{h.get('provenance', 'USER_EXPLICIT')}] "
+                    f"{h.get('content')}"
+                    for h in top_hits
+                ]
+                content_str = (
+                    "\n".join(content_lines) if content_lines else "No relevant memories found."
+                )
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured={"hits": top_hits, "count": len(top_hits)},
+                    content=content_str,
+                    elapsed_ms=elapsed_ms,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        # 5c. Memory Commit Tool
+        if tool_name == "memory_commit":
+            t0 = time.perf_counter()
+            try:
+                parsed_mem_commit = MemoryCommitArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                mgr = self.get_memory_manager()
+                mem_id = mgr.add_memory(
+                    content=parsed_mem_commit.content,
+                    kind="fact",
+                    provenance=Provenance.USER_EXPLICIT,
+                )
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured={
+                        "memory_id": mem_id,
+                        "content": parsed_mem_commit.content,
+                        "tags": parsed_mem_commit.tags,
+                    },
+                    content=f"Committed memory ID {mem_id}: '{parsed_mem_commit.content}'",
+                    elapsed_ms=elapsed_ms,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        # 5d. Scratchpad Note Write
+        if tool_name == "note_write":
+            t0 = time.perf_counter()
+            try:
+                parsed_note_w = NoteWriteArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content_msg = self.note_tool.write_note(
+                    name=parsed_note_w.name,
+                    content=parsed_note_w.content,
+                    append=parsed_note_w.append,
+                )
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=structured,
+                    content=content_msg,
+                    elapsed_ms=elapsed_ms,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        # 5e. Scratchpad Note Read
+        if tool_name == "note_read":
+            t0 = time.perf_counter()
+            try:
+                parsed_note_r = NoteReadArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, note_text = self.note_tool.read_note(name=parsed_note_r.name)
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return ToolResult(
+                    call_id=call_id,
+                    ok=bool(structured.get("found", True)),
+                    exit_code=0 if structured.get("found", True) else 1,
+                    structured=structured,
+                    content=note_text,
+                    elapsed_ms=elapsed_ms,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        # 5f. Self Hardware Metrics
+        if tool_name == "self_metrics":
+            t0 = time.perf_counter()
+            try:
+                metrics = get_system_metrics()
+                content_str = json.dumps(metrics, indent=2)
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=metrics,
+                    content=content_str,
+                    elapsed_ms=elapsed_ms,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        # 5g. Host System Info (Untrusted Host Readonly)
+        if tool_name == "sys_info":
+            t0 = time.perf_counter()
+            try:
+                parsed_sys = SysInfoArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                boot_time = psutil.boot_time()
+                uptime_s = max(0.0, time.time() - boot_time)
+                processes = list_running_processes(
+                    filter_name=parsed_sys.filter_name,
+                    limit=parsed_sys.limit,
+                )
+                structured = {
+                    "platform": platform.platform(),
+                    "system": platform.system(),
+                    "release": platform.release(),
+                    "machine": platform.machine(),
+                    "hostname": platform.node(),
+                    "uptime_seconds": round(uptime_s, 1),
+                    "cpu_count": psutil.cpu_count(logical=True) or 1,
+                    "process_count": len(processes),
+                    "provenance": "TOOL_CONTENT_UNTRUSTED",
+                }
+                proc_lines = "\n".join(
+                    f"- PID {p.get('pid')}: {p.get('name')} "
+                    f"(CPU {p.get('cpu_pct')}%, MEM {p.get('mem_pct')}%)"
+                    for p in processes
+                )
+                content = (
+                    f"Host System Info (Untrusted Host Inspection):\n"
+                    f"OS: {platform.platform()} ({platform.machine()})\n"
+                    f"Hostname: {platform.node()}\n"
+                    f"Uptime: {uptime_s / 3600.0:.1f} hours\n"
+                    f"Processes ({len(processes)}):\n{proc_lines}"
+                )
+                elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=elapsed_ms,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
 
         # 6. Async Task Management Tools
         if tool_name == "get_task_status":

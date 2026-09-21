@@ -35,16 +35,16 @@ def test_target_required_on_tool_schema() -> None:
 
 
 def test_tool_taxonomy_and_registry_count() -> None:
-    """T1.1 / T1.6 / C1 / C2: Registry has exactly 9 tools (<= 16), correctly classified."""
+    """T1.1 / T1.6 / T2 / C1 / C2: Registry has exactly 15 tools (<= 16), correctly classified."""
     registry = get_capability_registry()
     tools = registry.tools
     tool_defs = registry.get_tool_definitions()
     def_names = [t.function.name for t in tool_defs]
 
-    # Assert count == 9 and <= 16
-    assert len(tools) == 9
+    # Assert count == 15 and <= 16
+    assert len(tools) == 15
     assert len(tools) <= MAX_REGISTRY_TOOLS
-    assert len(tool_defs) == 9
+    assert len(tool_defs) == 15
 
     # launch_app must be absent everywhere
     assert "launch_app" not in tools
@@ -63,12 +63,19 @@ def test_tool_taxonomy_and_registry_count() -> None:
         "search_text",
         "run_python",
         "invoke_skill",
+        "memory_search",
+        "memory_commit",
+        "note_write",
+        "note_read",
+        "self_metrics",
+        "sys_info",
     }
     assert set(tools.keys()) == expected_tools
     assert set(def_names) == expected_tools
 
     # Taxonomy target classifications
     assert tools["query_capabilities"].target == "host_readonly"
+    assert tools["sys_info"].target == "host_readonly"
     assert tools["read_file"].target == "self"
     assert tools["write_file"].target == "self"
     assert tools["search_web"].target == "self"
@@ -77,6 +84,11 @@ def test_tool_taxonomy_and_registry_count() -> None:
     assert tools["search_text"].target == "self"
     assert tools["run_python"].target == "self"
     assert tools["invoke_skill"].target == "self"
+    assert tools["memory_search"].target == "self"
+    assert tools["memory_commit"].target == "self"
+    assert tools["note_write"].target == "self"
+    assert tools["note_read"].target == "self"
+    assert tools["self_metrics"].target == "self"
 
 
 def test_manifest_matches_registry_tools() -> None:

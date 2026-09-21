@@ -1,0 +1,11 @@
+{
+  "id": "recent-context-v1",
+  "intent": "memory_query",
+  "description": "Recall recent conversational or episodic context regarding a topic",
+  "keywords": ["context", "recent", "memory", "recall", "history", "thread"],
+  "args": ["topic"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core", "self"],
+  "expose_as_tool": true
+}

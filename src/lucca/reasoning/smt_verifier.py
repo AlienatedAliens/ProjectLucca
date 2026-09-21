@@ -105,6 +105,7 @@ class StateContext:
         self.intent_conf = z3.Real("intent_conf")
         self.last_tool = z3.String("last_tool")
         self.last_tool_ok = z3.Bool("last_tool_ok")
+        self.interrupted = z3.Bool("interrupted")
 
         self.apps_running: dict[str, z3.BoolRef] = {}
         self.transcript_has: dict[str, z3.BoolRef] = {}
@@ -555,6 +556,9 @@ class SMTVerifier:
 
         elif op == "last-tool-ok?":
             return ctx.last_tool_ok == True  # noqa: E712
+
+        elif op == "interrupted?":
+            return ctx.interrupted == True  # noqa: E712
 
         elif op == "app-running?":
             if len(args) >= 1:

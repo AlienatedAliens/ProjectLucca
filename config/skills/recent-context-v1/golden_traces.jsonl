@@ -1,0 +1,3 @@
+{"id": "recent-context-fire-yield", "transcript": "show recent context", "intent": "memory_query", "rule_fired": true}
+{"id": "recent-context-fire-tool", "transcript": "recent context", "intent": "memory_query", "entities": {"topic": ["architecture"]}, "rule_fired": true, "expected_tool": "memory_search"}
+{"id": "recent-context-nofire", "transcript": "hello lucca", "intent": "chit_chat", "rule_fired": false}

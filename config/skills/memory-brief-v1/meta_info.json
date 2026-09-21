@@ -1,0 +1,11 @@
+{
+  "id": "memory-brief-v1",
+  "intent": "memory_query",
+  "description": "Retrieve episodic memory brief for a specific query",
+  "keywords": ["memory", "recall", "remember", "brief"],
+  "args": ["query"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core", "self"],
+  "expose_as_tool": true
+}

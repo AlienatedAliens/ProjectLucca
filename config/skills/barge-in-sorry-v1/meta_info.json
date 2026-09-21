@@ -4,7 +4,7 @@
   "description": "Apologize and yield turn gracefully upon user barge-in or interrupt",
   "keywords": ["barge_in", "interrupt", "apology", "companion"],
   "args": [],
-  "status": "RETIRED",
+  "status": "ACTIVE",
   "version": "1.0.0",
   "categories": ["companion"],
   "expose_as_tool": false

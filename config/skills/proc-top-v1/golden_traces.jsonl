@@ -1,0 +1,2 @@
+{"id": "proc-top-fire", "transcript": "show top processes", "intent": "chit_chat", "rule_fired": true, "expected_tool": "sys_info"}
+{"id": "proc-top-nofire", "transcript": "what time is it", "intent": "chit_chat", "rule_fired": false}

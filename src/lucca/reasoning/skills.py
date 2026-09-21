@@ -199,6 +199,7 @@ class SkillPackage:
                 last_tool_ok=bool(trace.get("last_tool_ok", True)),
                 session_turns=int(trace.get("session_turns", 1)),
                 mode="transcript" if trace.get("mode") == "transcript" else "audio",
+                interrupted=bool(trace.get("interrupted", False)),
             )
 
             try:

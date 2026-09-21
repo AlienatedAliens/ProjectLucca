@@ -1,0 +1,3 @@
+{"id": "session-recap-fire-yield", "transcript": "give me a session recap", "intent": "memory_query", "rule_fired": true}
+{"id": "session-recap-fire-tool", "transcript": "session recap", "intent": "memory_query", "entities": {"query": ["session"]}, "rule_fired": true, "expected_tool": "memory_search"}
+{"id": "session-recap-nofire", "transcript": "what time is it", "intent": "chit_chat", "rule_fired": false}

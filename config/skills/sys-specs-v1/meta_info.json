@@ -1,0 +1,11 @@
+{
+  "id": "sys-specs-v1",
+  "intent": "chit_chat",
+  "description": "Inspect host system operating system specifications, architecture, and uptime",
+  "keywords": ["specs", "specification", "os", "platform", "system", "architecture", "uptime"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["host_readonly"],
+  "expose_as_tool": true
+}

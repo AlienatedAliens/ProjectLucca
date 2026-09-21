@@ -1,0 +1,11 @@
+{
+  "id": "note-take-v1",
+  "intent": "file_write",
+  "description": "Save a memo or thought to your scratchpad notes",
+  "keywords": ["note", "memo", "scratchpad", "remember", "save"],
+  "args": ["content"],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["cognitive_core", "self"],
+  "expose_as_tool": true
+}

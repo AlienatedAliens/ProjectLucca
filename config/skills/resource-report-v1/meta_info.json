@@ -1,0 +1,11 @@
+{
+  "id": "resource-report-v1",
+  "intent": "chit_chat",
+  "description": "Report current utilization of system hardware resources",
+  "keywords": ["resource", "report", "hardware", "cpu", "memory", "utilization"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["self"],
+  "expose_as_tool": true
+}

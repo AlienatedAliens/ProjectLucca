@@ -60,6 +60,7 @@ def _generate_test_states(count: int = 20) -> list[RuleState]:
                 last_tool_ok=rng.choice([None, True, False]),
                 session_turns=rng.randint(0, 50),
                 mode=rng.choice(["audio", "transcript"]),
+                interrupted=rng.choice([True, False]),
             )
         )
     return states

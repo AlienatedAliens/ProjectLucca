@@ -1,0 +1,3 @@
+{"id": "note-take-fire-yield", "transcript": "please take note", "intent": "file_write", "rule_fired": true}
+{"id": "note-take-fire-tool", "transcript": "take note", "intent": "file_write", "entities": {"content": ["remember meeting at 3pm"]}, "rule_fired": true, "expected_tool": "note_write"}
+{"id": "note-take-nofire", "transcript": "what time is it", "intent": "chit_chat", "rule_fired": false}

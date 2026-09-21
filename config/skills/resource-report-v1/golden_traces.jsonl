@@ -1,0 +1,2 @@
+{"id": "resource-report-fire", "transcript": "give me a resource report", "intent": "chit_chat", "rule_fired": true, "expected_tool": "self_metrics"}
+{"id": "resource-report-nofire", "transcript": "what time is it", "intent": "chit_chat", "rule_fired": false}

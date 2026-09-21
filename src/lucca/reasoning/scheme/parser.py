@@ -65,6 +65,7 @@ ALLOWED_OPS = frozenset(
         "last-tool-ok?",
         "last-tool=",
         "session-turns>=",
+        "interrupted?",
         "str-contains?",
         "str-lower",
         "len",
@@ -90,6 +91,7 @@ STATE_PREDICATES = frozenset(
         "last-tool-ok?",
         "last-tool=",
         "session-turns>=",
+        "interrupted?",
     }
 )
 

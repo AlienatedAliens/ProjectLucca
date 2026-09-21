@@ -1,0 +1,11 @@
+{
+  "id": "self-health-v1",
+  "intent": "chit_chat",
+  "description": "Inspect companion hardware telemetry and health metrics",
+  "keywords": ["health", "telemetry", "hardware", "cpu", "gpu", "vram", "metrics"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["self"],
+  "expose_as_tool": true
+}

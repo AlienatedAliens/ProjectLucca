@@ -1,0 +1,3 @@
+{"id": "memory-brief-fire-yield", "transcript": "what is your memory about", "intent": "memory_query", "rule_fired": true}
+{"id": "memory-brief-fire-tool", "transcript": "find memory about project", "intent": "memory_query", "entities": {"query": ["project"]}, "rule_fired": true, "expected_tool": "memory_search"}
+{"id": "memory-brief-nofire", "transcript": "hello lucca", "intent": "chit_chat", "rule_fired": false}

@@ -1,0 +1,2 @@
+{"id": "sys-specs-fire", "transcript": "show system specs", "intent": "chit_chat", "rule_fired": true, "expected_tool": "sys_info"}
+{"id": "sys-specs-nofire", "transcript": "what time is it", "intent": "chit_chat", "rule_fired": false}

@@ -1,0 +1,11 @@
+{
+  "id": "proc-top-v1",
+  "intent": "chit_chat",
+  "description": "List top active running host processes by resource utilization",
+  "keywords": ["processes", "tasks", "top", "running", "ps", "cpu", "proc"],
+  "args": [],
+  "status": "ACTIVE",
+  "version": "1.0.0",
+  "categories": ["host_readonly"],
+  "expose_as_tool": true
+}
