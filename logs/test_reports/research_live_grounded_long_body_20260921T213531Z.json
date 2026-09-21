@@ -1,0 +1,13 @@
+{
+  "test": "test_live_full_loop_grounded_long_body",
+  "target_url": "https://www.python.org/downloads/release/python-3120/",
+  "fetched_chars": 6508,
+  "reply": "Python 3.12.0 was officially released on October 2, 2023. While it has since been superseded by version 3.12.14, this release introduced several major features and optimizations. Key highlights include more flexible f-string parsing, support for the buffer protocol in Python code, a new debugging and profiling API, and isolated subinterpreters with separate Global Interpreter Locks. Additionally, it brought improved error messages, a new type annotation syntax for generic classes, and an override decorator for methods, along with various performance improvements that offer an estimated 5 percent overall boost.",
+  "extracted_tokens": [
+    "3.12.0",
+    "2023",
+    "3.12.14"
+  ],
+  "tokens_out": 124,
+  "enable_thinking_verified": true
+}

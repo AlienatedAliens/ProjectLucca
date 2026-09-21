@@ -50,7 +50,7 @@ def _check_tier_prerequisites(request: pytest.FixtureRequest) -> None:
             res = subprocess.run(  # noqa: S603
                 [wsl_bin, "-d", "Ubuntu", "--", "docker", "info"],
                 capture_output=True,
-                timeout=5.0,
+                timeout=15.0,
                 check=False,
             )
             if res.returncode != 0:

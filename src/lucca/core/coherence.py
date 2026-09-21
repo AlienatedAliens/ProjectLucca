@@ -273,7 +273,8 @@ def detect_ungrounded_action_claims(
             breach_desc = None
             if not is_grounded:
                 breach_desc = (
-                    f"Narrated action claim '{clause}' requires successful execution of "
+                    "Narrated action claimed without tool execution: "
+                    f"'{clause}' requires successful execution of "
                     f"{sorted(allowed_tools)}, but no successful receipt was recorded."
                 )
 

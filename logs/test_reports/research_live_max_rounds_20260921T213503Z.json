@@ -1,0 +1,11 @@
+{
+  "test": "test_live_research_max_rounds_forced_synthesis",
+  "prompt": "Search for official Python 3.12 download mirror sites worldwide. Keep searching and looking at links across different regions and continents until you find every single official mirror.",
+  "reply": "I've looked into the official distribution for Python 3.12, and it's important to note that since version 3.12.10, this branch has entered the security fixes only stage of its life cycle. This means that while there are still security updates available in source-only form until October 2028, official binary installers are no longer being provided for this specific series. For any current projects, the Python Software Foundation recommends moving to a more recent feature release like 3.14.",
+  "tools_called": [
+    "search_web",
+    "fetch_url"
+  ],
+  "tool_count": 2,
+  "tokens_out": 109
+}

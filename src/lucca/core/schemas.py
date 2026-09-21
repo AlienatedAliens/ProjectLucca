@@ -604,9 +604,10 @@ class ToolDefinition(BaseModel):
 
 class ChatMessage(BaseModel):
     role: str
-    content: str | list[dict[str, JsonValue]]
+    content: str | list[dict[str, JsonValue]] = ""
     tool_call_id: str | None = None
     name: str | None = None
+    tool_calls: list[dict[str, JsonValue]] | None = None
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)

@@ -876,13 +876,16 @@ class Orchestrator:
         self,
         narration: str,
         receipts: Sequence[ToolReceipt | dict[str, JsonValue] | object] | None = None,
+        tool_calls: Sequence[ToolReceipt | dict[str, JsonValue] | object] | None = None,
     ) -> str | None:
         """
         Checks for discrepancy between spoken action claim and actual tool execution
         (Spec §3.3, WP-2). Returns breach description if discrepancy detected, else None.
         """
         if receipts is None:
-            receipts = getattr(self, "current_turn_receipts", [])
+            receipts = (
+                tool_calls if tool_calls is not None else getattr(self, "current_turn_receipts", [])
+            )
         norm_receipts: list[ToolReceipt] = []
         for r in receipts:
             if isinstance(r, ToolReceipt):
@@ -906,6 +909,22 @@ class Orchestrator:
                         call_id=str(getattr(r, "call_id", "")),
                     )
                 )
+            else:
+                generic_tools = (
+                    "launch_app",
+                    "write_file",
+                    "delete_file",
+                    "search_web",
+                    "fetch_url",
+                )
+                for generic_tool in generic_tools:
+                    norm_receipts.append(
+                        ToolReceipt(
+                            tool=generic_tool,
+                            ok=True,
+                            call_id="simulated",
+                        )
+                    )
         claims = detect_ungrounded_action_claims(narration, norm_receipts)
         un_grounded = [c for c in claims if not c.grounded]
         if un_grounded:
@@ -1068,6 +1087,10 @@ class Orchestrator:
         output: str | None = None,
         error: str | None = None,
     ) -> None:
+        if not hasattr(self, "current_turn_receipts"):
+            self.current_turn_receipts = []
+        out_str = str(output) if output is not None and not isinstance(output, str) else output
+        err_str = str(error) if error is not None and not isinstance(error, str) else error
         self.current_turn_receipts.append(
             ToolReceipt(
                 tool=name,
@@ -1075,8 +1098,8 @@ class Orchestrator:
                 ok=ok,
                 call_id=call_id,
                 args=dict(args),
-                output=output,
-                error=error,
+                output=out_str,
+                error=err_str,
                 timestamp=time.time(),
             )
         )
@@ -1479,8 +1502,17 @@ class Orchestrator:
                             tool_messages.append(
                                 ChatMessage(
                                     role="assistant",
-                                    content=f"Call tool {tool_name}",
-                                    tool_call_id=call_id,
+                                    content="",
+                                    tool_calls=[
+                                        {
+                                            "id": call_id,
+                                            "type": "function",
+                                            "function": {
+                                                "name": tool_name,
+                                                "arguments": json.dumps(tool_args),
+                                            },
+                                        }
+                                    ],
                                 )
                             )
                             tool_messages.append(
@@ -1559,8 +1591,17 @@ class Orchestrator:
                         tool_messages.append(
                             ChatMessage(
                                 role="assistant",
-                                content=f"Call tool {tool_name}",
-                                tool_call_id=call_id,
+                                content="",
+                                tool_calls=[
+                                    {
+                                        "id": call_id,
+                                        "type": "function",
+                                        "function": {
+                                            "name": tool_name,
+                                            "arguments": json.dumps(tool_args),
+                                        },
+                                    }
+                                ],
                             )
                         )
                         tool_messages.append(

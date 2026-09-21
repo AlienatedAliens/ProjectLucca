@@ -5,7 +5,7 @@ Proposal F / D-SEC-04 (Zero-Any Compliant)
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LaunchAppArgs(BaseModel):
@@ -18,15 +18,45 @@ class ReadFileArgs(BaseModel):
     path: str = Field(min_length=1)
     max_bytes: int = Field(default=262144, ge=1, le=10485760)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_path(cls, data: object) -> object:
+        if isinstance(data, dict) and not data.get("path"):
+            for alt in ("rel_path", "filename", "file_path", "filepath", "target"):
+                if data.get(alt):
+                    data["path"] = str(data[alt])
+                    break
+        return data
+
 
 class WriteFileArgs(BaseModel):
     path: str = Field(min_length=1)
     content: str
     mode: Literal["create", "overwrite", "append"] = "create"
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_path(cls, data: object) -> object:
+        if isinstance(data, dict) and not data.get("path"):
+            for alt in ("rel_path", "filename", "file_path", "filepath", "target"):
+                if data.get(alt):
+                    data["path"] = str(data[alt])
+                    break
+        return data
+
 
 class DeleteFileArgs(BaseModel):
     path: str = Field(min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_path(cls, data: object) -> object:
+        if isinstance(data, dict) and not data.get("path"):
+            for alt in ("rel_path", "filename", "file_path", "filepath", "target"):
+                if data.get(alt):
+                    data["path"] = str(data[alt])
+                    break
+        return data
 
 
 class ListDirArgs(BaseModel):
@@ -52,8 +82,21 @@ class FetchUrlArgs(BaseModel):
 
 
 class SearchWebArgs(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(default="", min_length=0)
+    queries: list[str] | None = None
     max_results: int = Field(default=5, ge=1, le=20)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_queries(cls, data: object) -> object:
+        if isinstance(data, dict):
+            if not data.get("query") and data.get("queries"):
+                qs = data["queries"]
+                if isinstance(qs, list) and qs:
+                    data["query"] = str(qs[0])
+                elif isinstance(qs, str):
+                    data["query"] = qs
+        return data
 
 
 class MemorySearchArgs(BaseModel):

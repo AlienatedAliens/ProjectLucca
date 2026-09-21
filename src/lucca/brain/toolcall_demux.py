@@ -7,6 +7,8 @@ import json
 import re
 import uuid
 
+from pydantic import JsonValue
+
 from lucca.core.schemas import (
     LLMEvent,
     TokenDelta,
@@ -57,6 +59,7 @@ class ToolCallDemux:
                 sample[0] in ("{", "[")
                 or sample.startswith("<|python_tag|>")
                 or sample.startswith("[TOOL_CALLS]")
+                or sample.startswith("<|tool_call")
             ):
                 self._suspected_tool_call = True
 
@@ -66,6 +69,33 @@ class ToolCallDemux:
             self._buffer.append(delta)
             self._buffered_len += len(delta)
             buffered_text = "".join(self._buffer)
+
+            # Try parsing Gemma native <|tool_call>call:tool_name{args}<tool_call|>
+            if "<|tool_call" in buffered_text:
+                m = re.search(
+                    r"<\|tool_call\|?>call:(\w+)\s*(\{.*?\})(?:<tool_call\|>|<\|tool_call\|?>)?",
+                    buffered_text,
+                    re.DOTALL,
+                )
+                if m:
+                    tool_name = m.group(1)
+                    raw_args_str = m.group(2)
+                    try:
+                        raw_args = json.loads(raw_args_str)
+                        if isinstance(raw_args, dict):
+                            args: dict[str, JsonValue] = raw_args
+                            call = ToolCall(
+                                tool=tool_name,
+                                args=args,
+                                call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                            )
+                            self._suspected_tool_call = False
+                            self._resolved_tool_call = True
+                            self._buffer.clear()
+                            self._buffered_len = 0
+                            return [ToolCallEnd(call=call)]
+                    except json.JSONDecodeError:
+                        pass
 
             # Try parsing JSON if we see matching braces/brackets or length threshold
             cleaned = (

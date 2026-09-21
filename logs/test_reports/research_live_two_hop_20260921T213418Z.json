@@ -1,0 +1,19 @@
+{
+  "test": "test_live_research_two_hop",
+  "prompt": "Find the official Python 3.12 release date from python.org and tell me the month. Use search_web to find the link, then use fetch_url to read the release page.",
+  "reply": "I've got the details for you! According to the official release page on python.org, Python 3.12.0 was released in October! Specifically, it hit the scene on October 2nd, 2023. Let me know if you need anything else!",
+  "tools_called": [
+    "search_web",
+    "fetch_url"
+  ],
+  "fetch_url": "https://www.python.org/downloads/release/python-3120/",
+  "spoken_cues": [
+    "Looking that up online...",
+    "Looking that up online..."
+  ],
+  "tokens_out": 60,
+  "elapsed_s": 40.73,
+  "vram_start_mb": 10639,
+  "vram_peak_mb": 10639,
+  "truth_in_receipt_breaches": 0
+}
