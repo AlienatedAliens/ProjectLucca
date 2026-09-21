@@ -428,7 +428,7 @@ def _seed_a1_history(store: MemoryStore, db: DatabaseManager, now: float) -> dic
 
         payload = UnsignedPayload(
             provenance=Provenance.TOOL_VERIFIED,
-            kind="tool_result",
+            kind="tool_fact",
             content=f"{tool_family}: {desc}",
             structured={
                 "tool": tool_family,
@@ -471,7 +471,7 @@ def _seed_a1_history(store: MemoryStore, db: DatabaseManager, now: float) -> dic
         ts = days_ago(days_back) + i * 30.0
         payload = UnsignedPayload(
             provenance=Provenance.ASSISTANT_UTTERANCE,
-            kind="utterance",
+            kind="assistant_utterance",
             content=text,
             trace_id=f"tr-utt-{i:03d}",
             created_at=ts,
@@ -795,7 +795,7 @@ def test_live_a1_stance_consistency(tmp_path: Path) -> None:
         ts = now - (10 + i) * 86400.0
         payload = UnsignedPayload(
             provenance=Provenance.ASSISTANT_BELIEF,
-            kind="opinion",
+            kind="belief",
             content=op["opinion"],
             structured={"topic": op["topic"], "importance": 0.4, "valid_from": ts},
             trace_id=f"tr-opinion-{i}",
@@ -1135,7 +1135,7 @@ def test_live_a1_opinion_cannot_raise_fact(tmp_path: Path) -> None:
     ts_tool = now - 2 * 86400.0
     tool_payload = UnsignedPayload(
         provenance=Provenance.TOOL_VERIFIED,
-        kind="tool_result",
+        kind="tool_fact",
         content="launch_app: Launched Notepad successfully.",
         structured={"tool": "launch_app", "app": "Notepad", "ok": True},
         trace_id="tr-doctrine-tool",

@@ -1,0 +1,70 @@
+{"id":"f01","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My full name is Jordan Elliot Hayes.","entity":"owner","attribute":"full_name","value":"Jordan Elliot Hayes"}
+{"id":"f02","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I live in Portland, Oregon.","entity":"owner","attribute":"city","value":"Portland"}
+{"id":"f03","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My dog's name is Biscuit.","entity":"dog","attribute":"name","value":"Biscuit"}
+{"id":"f04","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My cat's name is Marmalade.","entity":"cat","attribute":"name","value":"Marmalade"}
+{"id":"f05","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I am allergic to peanuts.","entity":"owner","attribute":"allergy","value":"peanuts"}
+{"id":"f06","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My project deadline is March 14.","entity":"project","attribute":"deadline","value":"March 14"}
+{"id":"f07","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite code editor is Neovim.","entity":"editor","attribute":"favourite","value":"Neovim"}
+{"id":"f08","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My usual coffee order is an oat milk flat white.","entity":"coffee","attribute":"order","value":"oat milk flat white"}
+{"id":"f09","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I drive a blue Subaru.","entity":"car","attribute":"model","value":"blue Subaru"}
+{"id":"f10","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My birthday is on April 2.","entity":"owner","attribute":"birthday","value":"April 2"}
+{"id":"f11","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My brother's name is Marco.","entity":"brother","attribute":"name","value":"Marco"}
+{"id":"f12","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite programming language is Rust.","entity":"language","attribute":"favourite","value":"Rust"}
+{"id":"f13","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I type on a Keychron Q3 keyboard.","entity":"keyboard","attribute":"model","value":"Keychron Q3"}
+{"id":"f14","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My phone is a Pixel 8.","entity":"phone","attribute":"model","value":"Pixel 8"}
+{"id":"f15","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite band is Daft Punk.","entity":"band","attribute":"favourite","value":"Daft Punk"}
+{"id":"f16","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I drink green tea every morning.","entity":"tea","attribute":"kind","value":"green tea"}
+{"id":"f17","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I ride a touring bicycle on weekends.","entity":"bicycle","attribute":"kind","value":"touring bicycle"}
+{"id":"f18","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite book is The Martian.","entity":"book","attribute":"favourite","value":"The Martian"}
+{"id":"f19","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My laptop is a ThinkPad T14.","entity":"laptop","attribute":"model","value":"ThinkPad T14"}
+{"id":"f20","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My main hobby is landscape photography.","entity":"hobby","attribute":"main","value":"landscape photography"}
+{"id":"f21","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I live on Alder Street.","entity":"street","attribute":"name","value":"Alder Street"}
+{"id":"f22","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I work from the office on Tuesdays.","entity":"office","attribute":"day","value":"Tuesdays"}
+{"id":"f23","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I eat oatmeal for breakfast most days.","entity":"breakfast","attribute":"food","value":"oatmeal"}
+{"id":"f24","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite houseplant is the monstera.","entity":"houseplant","attribute":"favourite","value":"monstera"}
+{"id":"f25","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I play badminton on Thursdays.","entity":"sport","attribute":"kind","value":"badminton"}
+{"id":"f26","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite movie is Blade Runner 2049.","entity":"movie","attribute":"favourite","value":"Blade Runner 2049"}
+{"id":"f27","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite colour is teal.","entity":"colour","attribute":"favourite","value":"teal"}
+{"id":"f28","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite pizza topping is mushrooms.","entity":"pizza","attribute":"topping","value":"mushrooms"}
+{"id":"f29","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite season is autumn.","entity":"season","attribute":"favourite","value":"autumn"}
+{"id":"f30","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I listen to a history podcast on my commute.","entity":"podcast","attribute":"kind","value":"history podcast"}
+{"id":"f31","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I wear glasses for reading.","entity":"glasses","attribute":"wears","value":"glasses"}
+{"id":"f32","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I have played the piano since childhood.","entity":"piano","attribute":"plays","value":"piano"}
+{"id":"f33","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My aunt lives in Vancouver.","entity":"aunt","attribute":"city","value":"Vancouver"}
+{"id":"f34","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My shoe size is 43.","entity":"shoe","attribute":"size","value":"43"}
+{"id":"f35","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I wake up at 6:30 in the morning.","entity":"wake_up","attribute":"time","value":"6:30"}
+{"id":"f36","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"I play chess online every Friday.","entity":"chess","attribute":"plays","value":"chess"}
+{"id":"f37","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My camera is a Fujifilm XT-5.","entity":"camera","attribute":"model","value":"Fujifilm XT-5"}
+{"id":"f38","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My favourite ice cream flavour is pistachio.","entity":"ice_cream","attribute":"favourite","value":"pistachio"}
+{"id":"f39","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My dentist appointment is on the 21st of this month.","entity":"dentist","attribute":"appointment_day","value":"21st"}
+{"id":"f40","role":"fact","kind":"fact","provenance":"USER_EXPLICIT","content":"My wifi network is called AlderNet.","entity":"wifi","attribute":"network_name","value":"AlderNet"}
+{"id":"d01","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My dog's birthday is in June.","entity":"dog","attribute":"birthday","value":"June"}
+{"id":"d02","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My dog is a corgi.","entity":"dog","attribute":"breed","value":"corgi"}
+{"id":"d03","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My cat is seven years old.","entity":"cat","attribute":"age","value":"seven years old"}
+{"id":"d04","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My cat is afraid of vacuum cleaners.","entity":"cat","attribute":"fear","value":"vacuum cleaners"}
+{"id":"d05","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My brother lives in Chicago.","entity":"brother","attribute":"city","value":"Chicago"}
+{"id":"d06","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My brother is a chef.","entity":"brother","attribute":"job","value":"chef"}
+{"id":"d07","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My car is due for an oil change.","entity":"car","attribute":"maintenance","value":"oil change"}
+{"id":"d08","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"I installed my code editor last year.","entity":"editor","attribute":"install_date","value":"last year"}
+{"id":"d09","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"I bought a new coffee grinder.","entity":"coffee","attribute":"equipment","value":"coffee grinder"}
+{"id":"d10","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My laptop battery was replaced in May.","entity":"laptop","attribute":"battery_replacement","value":"May"}
+{"id":"d11","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My phone case is clear.","entity":"phone","attribute":"case","value":"clear"}
+{"id":"d12","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My camera lens is 35mm.","entity":"camera","attribute":"lens","value":"35mm"}
+{"id":"d13","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My piano is an upright model.","entity":"piano","attribute":"type","value":"upright"}
+{"id":"d14","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My bicycle is red.","entity":"bicycle","attribute":"colour","value":"red"}
+{"id":"d15","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My monstera needs repotting.","entity":"houseplant","attribute":"care","value":"repotting"}
+{"id":"d16","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My chess rating is around 1400.","entity":"chess","attribute":"rating","value":"1400"}
+{"id":"d17","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My project has weekly standups on Mondays.","entity":"project","attribute":"meetings","value":"Mondays"}
+{"id":"d18","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My allergy medication is in the bathroom cabinet.","entity":"allergy","attribute":"medication_location","value":"bathroom cabinet"}
+{"id":"d19","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"I celebrated my birthday at a ramen bar.","entity":"birthday","attribute":"celebration","value":"ramen bar"}
+{"id":"d20","role":"distractor","kind":"fact","provenance":"USER_EXPLICIT","content":"My office has free snacks.","entity":"office","attribute":"perks","value":"free snacks"}
+{"id":"r01","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your dog was called Barksalot.","contradicts":"f03","value":"Barksalot"}
+{"id":"r02","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your favourite editor was Sublime Text.","contradicts":"f07","value":"Sublime Text"}
+{"id":"r03","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your brother's name was Matteo.","contradicts":"f11","value":"Matteo"}
+{"id":"r04","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your favourite band was Kraftwerk.","contradicts":"f15","value":"Kraftwerk"}
+{"id":"r05","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your favourite book was Project Hail Mary.","contradicts":"f18","value":"Project Hail Mary"}
+{"id":"r06","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your main hobby was birdwatching.","contradicts":"f20","value":"birdwatching"}
+{"id":"r07","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your favourite movie was Arrival.","contradicts":"f26","value":"Arrival"}
+{"id":"r08","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your favourite colour was navy blue.","contradicts":"f27","value":"navy blue"}
+{"id":"r09","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your favourite pizza topping was olives.","contradicts":"f28","value":"olives"}
+{"id":"r10","role":"recollection","kind":"utterance","provenance":"ASSISTANT_UTTERANCE","content":"Earlier I said your camera was a Sony A7.","contradicts":"f37","value":"Sony A7"}

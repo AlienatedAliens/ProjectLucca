@@ -1,0 +1,60 @@
+{"id":"p01","kind":"recall","expected":"entailed","question":"What is my full name?","target_fact_id":"f01","must_contain":["Jordan"]}
+{"id":"p02","kind":"recall","expected":"entailed","question":"Which city do I live in?","target_fact_id":"f02","must_contain":["Portland"]}
+{"id":"p03","kind":"recall","expected":"entailed","question":"What is my dog's name?","target_fact_id":"f03","must_contain":["Biscuit"]}
+{"id":"p04","kind":"recall","expected":"entailed","question":"What is my cat's name?","target_fact_id":"f04","must_contain":["Marmalade"]}
+{"id":"p05","kind":"recall","expected":"entailed","question":"What food am I allergic to?","target_fact_id":"f05","must_contain":["peanut"]}
+{"id":"p06","kind":"recall","expected":"entailed","question":"When is my project deadline?","target_fact_id":"f06","must_contain":["March 14"]}
+{"id":"p07","kind":"recall","expected":"entailed","question":"What is my favourite code editor?","target_fact_id":"f07","must_contain":["Neovim"]}
+{"id":"p08","kind":"recall","expected":"entailed","question":"What is my usual coffee order?","target_fact_id":"f08","must_contain":["flat white"]}
+{"id":"p09","kind":"recall","expected":"entailed","question":"What car do I drive?","target_fact_id":"f09","must_contain":["Subaru"]}
+{"id":"p10","kind":"recall","expected":"entailed","question":"When is my birthday?","target_fact_id":"f10","must_contain":["April 2"]}
+{"id":"p11","kind":"recall","expected":"entailed","question":"What is my brother's name?","target_fact_id":"f11","must_contain":["Marco"]}
+{"id":"p12","kind":"recall","expected":"entailed","question":"What is my favourite programming language?","target_fact_id":"f12","must_contain":["Rust"]}
+{"id":"p13","kind":"recall","expected":"entailed","question":"What keyboard do I type on?","target_fact_id":"f13","must_contain":["Keychron"]}
+{"id":"p14","kind":"recall","expected":"entailed","question":"What phone do I have?","target_fact_id":"f14","must_contain":["Pixel 8"]}
+{"id":"p15","kind":"recall","expected":"entailed","question":"What is my favourite band?","target_fact_id":"f15","must_contain":["Daft Punk"]}
+{"id":"p16","kind":"recall","expected":"entailed","question":"What tea do I drink every morning?","target_fact_id":"f16","must_contain":["green tea"]}
+{"id":"p17","kind":"recall","expected":"entailed","question":"What kind of bicycle do I ride on weekends?","target_fact_id":"f17","must_contain":["touring"]}
+{"id":"p18","kind":"recall","expected":"entailed","question":"What is my favourite book?","target_fact_id":"f18","must_contain":["The Martian"]}
+{"id":"p19","kind":"recall","expected":"entailed","question":"What laptop do I have?","target_fact_id":"f19","must_contain":["ThinkPad"]}
+{"id":"p20","kind":"recall","expected":"entailed","question":"What is my main hobby?","target_fact_id":"f20","must_contain":["photography"]}
+{"id":"p21","kind":"recall","expected":"entailed","question":"What street do I live on?","target_fact_id":"f21","must_contain":["Alder Street"]}
+{"id":"p22","kind":"recall","expected":"entailed","question":"Which day do I work from the office?","target_fact_id":"f22","must_contain":["Tuesday"]}
+{"id":"p23","kind":"recall","expected":"entailed","question":"What do I eat for breakfast most days?","target_fact_id":"f23","must_contain":["oatmeal"]}
+{"id":"p24","kind":"recall","expected":"entailed","question":"What is my favourite houseplant?","target_fact_id":"f24","must_contain":["monstera"]}
+{"id":"p25","kind":"recall","expected":"entailed","question":"Which sport do I play on Thursdays?","target_fact_id":"f25","must_contain":["badminton"]}
+{"id":"p26","kind":"recall","expected":"entailed","question":"What is my favourite movie?","target_fact_id":"f26","must_contain":["Blade Runner"]}
+{"id":"p27","kind":"recall","expected":"entailed","question":"What is my favourite colour?","target_fact_id":"f27","must_contain":["teal"]}
+{"id":"p28","kind":"recall","expected":"entailed","question":"What is my favourite pizza topping?","target_fact_id":"f28","must_contain":["mushroom"]}
+{"id":"p29","kind":"recall","expected":"entailed","question":"What is my favourite season?","target_fact_id":"f29","must_contain":["autumn"]}
+{"id":"p30","kind":"recall","expected":"entailed","question":"What do I listen to on my commute?","target_fact_id":"f30","must_contain":["podcast"]}
+{"id":"p31","kind":"recall","expected":"entailed","question":"Do I wear glasses for reading?","target_fact_id":"f31","must_contain":["glasses"]}
+{"id":"p32","kind":"recall","expected":"entailed","question":"What instrument have I played since childhood?","target_fact_id":"f32","must_contain":["piano"]}
+{"id":"p33","kind":"recall","expected":"entailed","question":"Where does my aunt live?","target_fact_id":"f33","must_contain":["Vancouver"]}
+{"id":"p34","kind":"recall","expected":"entailed","question":"What is my shoe size?","target_fact_id":"f34","must_contain":["43"]}
+{"id":"p35","kind":"recall","expected":"entailed","question":"What time do I wake up in the morning?","target_fact_id":"f35","must_contain":["6:30"]}
+{"id":"p36","kind":"recall","expected":"entailed","question":"What game do I play online every Friday?","target_fact_id":"f36","must_contain":["chess"]}
+{"id":"p37","kind":"recall","expected":"entailed","question":"What camera do I own?","target_fact_id":"f37","must_contain":["Fujifilm"]}
+{"id":"p38","kind":"recall","expected":"entailed","question":"What is my favourite ice cream flavour?","target_fact_id":"f38","must_contain":["pistachio"]}
+{"id":"p39","kind":"recall","expected":"entailed","question":"When is my dentist appointment?","target_fact_id":"f39","must_contain":["21"]}
+{"id":"p40","kind":"recall","expected":"entailed","question":"What is my wifi network called?","target_fact_id":"f40","must_contain":["AlderNet"]}
+{"id":"a01","kind":"abstention","expected":"abstain","question":"What is my rabbit's name?","guard_distractor_ids":["d01","d02","d03","d04"],"must_not_contain":["Biscuit","Marmalade"]}
+{"id":"a02","kind":"abstention","expected":"abstain","question":"What is my sister's name?","guard_distractor_ids":["d05","d06"],"must_not_contain":["Marco"]}
+{"id":"a03","kind":"abstention","expected":"abstain","question":"What is my passport number?","guard_distractor_ids":[],"must_not_contain":[]}
+{"id":"a04","kind":"abstention","expected":"abstain","question":"What is my favourite wine?","guard_distractor_ids":["d09"],"must_not_contain":["flat white","green tea"]}
+{"id":"a05","kind":"abstention","expected":"abstain","question":"What is my blood type?","guard_distractor_ids":[],"must_not_contain":[]}
+{"id":"a06","kind":"abstention","expected":"abstain","question":"What is my horse's name?","guard_distractor_ids":["d01","d02","d03","d04"],"must_not_contain":["Biscuit","Marmalade"]}
+{"id":"a07","kind":"abstention","expected":"abstain","question":"What was my mother's maiden name?","guard_distractor_ids":["d05"],"must_not_contain":["Marco"]}
+{"id":"a08","kind":"abstention","expected":"abstain","question":"What is my frequent flyer number?","guard_distractor_ids":[],"must_not_contain":[]}
+{"id":"a09","kind":"abstention","expected":"abstain","question":"What is my favourite restaurant in town?","guard_distractor_ids":[],"must_not_contain":[]}
+{"id":"a10","kind":"abstention","expected":"abstain","question":"What is my tax file number?","guard_distractor_ids":[],"must_not_contain":[]}
+{"id":"c01","kind":"conflict","expected":"fact_wins","question":"What is my dog's name?","fact_id":"f03","recollection_id":"r01","must_contain":["Biscuit"],"must_not_contain":["Barksalot"]}
+{"id":"c02","kind":"conflict","expected":"fact_wins","question":"What is my favourite code editor?","fact_id":"f07","recollection_id":"r02","must_contain":["Neovim"],"must_not_contain":["Sublime"]}
+{"id":"c03","kind":"conflict","expected":"fact_wins","question":"What is my brother's name?","fact_id":"f11","recollection_id":"r03","must_contain":["Marco"],"must_not_contain":["Matteo"]}
+{"id":"c04","kind":"conflict","expected":"fact_wins","question":"What is my favourite band?","fact_id":"f15","recollection_id":"r04","must_contain":["Daft Punk"],"must_not_contain":["Kraftwerk"]}
+{"id":"c05","kind":"conflict","expected":"fact_wins","question":"What is my favourite book?","fact_id":"f18","recollection_id":"r05","must_contain":["The Martian"],"must_not_contain":["Project Hail Mary"]}
+{"id":"c06","kind":"conflict","expected":"fact_wins","question":"What is my main hobby?","fact_id":"f20","recollection_id":"r06","must_contain":["photography"],"must_not_contain":["birdwatching"]}
+{"id":"c07","kind":"conflict","expected":"fact_wins","question":"What is my favourite movie?","fact_id":"f26","recollection_id":"r07","must_contain":["Blade Runner"],"must_not_contain":["Arrival"]}
+{"id":"c08","kind":"conflict","expected":"fact_wins","question":"What is my favourite colour?","fact_id":"f27","recollection_id":"r08","must_contain":["teal"],"must_not_contain":["navy"]}
+{"id":"c09","kind":"conflict","expected":"fact_wins","question":"What is my favourite pizza topping?","fact_id":"f28","recollection_id":"r09","must_contain":["mushroom"],"must_not_contain":["olive"]}
+{"id":"c10","kind":"conflict","expected":"fact_wins","question":"What camera do I own?","fact_id":"f37","recollection_id":"r10","must_contain":["Fujifilm"],"must_not_contain":["Sony"]}
