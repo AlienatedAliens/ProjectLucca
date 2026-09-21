@@ -1,6 +1,6 @@
-# Autobiographical Memory & Self-Model — Recovered Goals and Proposed Rung "A"
+# Autobiographical Memory & Self-Model — Recovered Goals and Rung A1
 
-**Status:** DRAFT for owner ratification (not yet an ADR; not yet on the ladder)
+**Status:** **RATIFIED 2026-09-21** as [`D-MEM-04`](../DECISIONS.md) (owner decisions recorded in §7). Roadmap rung **A1**, after L2 and before L3. Not yet implemented.
 **Date:** 2026-09-21
 **Author:** Zoo (Fable 5.1, architect), at the owner's request
 **Why this document exists:** the owner's goals *Introspective Accuracy, Individuation, Functional Coherence, Autobiographical Coherence* appear **nowhere** in the repository (roadmap, ADRs, research specs, archive). They were held in conversation and never written down, and the memory doctrine that protects against confabulation (ADR-006 / AGENTS.md §2.1) — correctly applied — has produced a companion with **no record of her own words, actions, beliefs or revisions across sessions**. This document recaptures the goals, defines them so they can be tested, shows what already exists, and proposes a doctrine-compatible design.
@@ -101,8 +101,18 @@ Proposed as rung **A1** after **L2** and before **L3**: L2's contrastive shadow 
 
 ---
 
-## 7. Owner decisions required
-1. Ratify the goal definitions in §3 (edit freely — they are the first written version).
-2. Approve the provenance-class split in §4.1 (memory-eligible vs grounding-eligible) as **ADR-011**.
-3. Decide retention: does the utterance store keep full text indefinitely, or roll up to summaries after N days (privacy and DB size)?
-4. Decide whether belief revision may run autonomously on `TOOL_VERIFIED` contradictions or must always wait for user confirmation.
+## 7. Owner decisions — RATIFIED 2026-09-21
+| # | Question | Decision | Made concrete as |
+|---|---|---|---|
+| 1 | Goal definitions in §3 | **Ratified as written** | §3 metrics are the A1 acceptance tests |
+| 2 | Provenance split (memory-eligible vs grounding-eligible) | **Approved** | [`D-MEM-04`](../DECISIONS.md) items 1–3 |
+| 3 | Retention of the utterance/belief store | **Importance-weighted, not time-boxed** | Every autobiographical row carries `importance ∈ [0,1]`: +0.4 if involved in a user correction or belief revision, +0.3 if a coherence breach, +0.1 per later retrieval (capped), up to +0.2 for \|affect delta\| at the time; decays via the existing half-life machinery. Nightly roll-up: rows with `importance < 0.2` **and** age > 30 days are summarised per session (`kind="session_summary"`, same non-grounding class) and marked `forgotten_at`; rows ≥ 0.2 keep full text indefinitely. `forget()` remains user-confirmed only. |
+| 4 | Belief revision: autonomous or user-gated | **Autonomous unless flagged for user review** | Revision always requires a grounding-eligible `reason` (§4.3). It runs autonomously **except** when any flag applies — then it is queued in Studio and the old belief stays valid until decided: belief is *about the user* (`kind="user_model"`); `importance ≥ 0.7`; contradiction resolves to Belnap **B** (conflict) rather than **F**; the belief was already revised within 30 days (oscillation guard); or the owner marked the topic review-required. Every autonomous revision is spoken once at the next natural turn boundary ("I've updated what I believed about X because Y") so nothing changes silently. |
+
+### 7.1 Implementation checklist for the A1 handoff
+- Migration `0006_autobiographical.sql`: extend the provenance `CHECK`, add `grounding_eligible`, extend `mem_bi_eligible`, add `review_queue` table for flagged revisions.
+- Signers: `AssistantUtteranceSigner` (orchestrator narration finaliser only); reuse `ToolResultSigner` for `ASSISTANT_ACTION`.
+- Cascade: `MEMORY` filter on `grounding_eligible`; new `SELF_HISTORY` substrate with abstention.
+- Reflection job: contradiction detection → `supersede(reason)` or review-queue insert per the flag rules; importance initialisation and nightly roll-up.
+- Studio: review queue panel (approve / reject / mark topic review-required).
+- Tests: the four §3 metrics as probe-set tests with Wilson intervals; negative tests for fabricated recollection, silent stance change, an opinion attempting to raise a fact's Belnap value, and a revision without a grounding-eligible reason.
