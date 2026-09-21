@@ -12,14 +12,14 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 
 2. **Strict Hardware Budget Discipline:**
-   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`). Native Windows `llama-server.exe` running `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` with 16K context, Q8_0 KV cache, and Flash Attention. **Resident VRAM clamp: $\le 12.5\text{ GB}$ (12,800 MB)**, leaving $\ge 3.5\text{ GB}$ for host display and applications.
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`). Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` (`D-BRAIN-05` v2; `enable_thinking=false` mandatory for companion tiers, thinking reserved for explicit deep reasoning) with 16K context default (up to 131K fits), Q8_0 KV cache, and Flash Attention. **Resident VRAM clamp: $\le 12.5\text{ GB}$ (12,800 MB)**, leaving $\ge 3.5\text{ GB}$ for host display and applications.
    - **Intel NPU**: Exclusively accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`). **Never attempt to run NPU workloads inside WSL2 or Docker.**
    - **System RAM**: 16 GB shared pool. WSL2 memory clamped to 4.5 GB (`4608MB`) via `.wslconfig`.
    - **CPU**: Arrow Lake Core Ultra 9 275HX. Hosts Orchestrator, MicroScheme LISP engine, SQLite WAL + `sqlite-vec` + FTS5, and tree models (LightGBM/XGBoost on CPU, never on NPU).
 
 3. **Three-Tier Execution Architecture (`D-ARCH-05`):**
    - **`REFLEX`**: Strictly restricted to critical emergency/safety commands (`shutdown`, `pause`, `mute`, `stop`, `halt`) via `EMERGENCY_REFLEX_PATTERN`. Bypasses neural inference and speaks canned confirmation in $<150\text{ms}$.
-   - **`ACT_THEN_NARRATE`**: Standard procedural rules execute deterministically in the sandbox, then prompt NeMo 12B to narrate results in Lucca's companion voice without robotic canned responses.
+   - **`ACT_THEN_NARRATE`**: Standard procedural rules execute deterministically in the sandbox, then prompt the companion brain (Gemma-4 12B) to narrate results in Lucca's companion voice without robotic canned responses.
    - **`FULL_LOOP`**: Open-ended conversation and multi-step tool calls (up to $M=3$ rounds) with intermediate spoken verbal thinking cues (`D-BRAIN-03`) and strict grounded narration contracts (`D-BRAIN-04`).
 
 4. **Symbolic Rule Engine & Safe Induction:**
@@ -56,7 +56,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ---
 
 ## 4. Key Settled Facts Every Agent Must Know
-- **LLM**: Native Windows `llama-server.exe` running `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` with `--chat-template mistral-v3`, 16,384 context size, Q8_0 KV cache, flash attention, and 12.5 GB (12,800 MB) resident VRAM clamp (`D-BRAIN-05`). (Ultravox 8B and vLLM retired).
+- **LLM**: Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` with stock llama.cpp (≥ b11026), `--jinja` and GGUF-embedded chat template, `enable_thinking=false` mandatory for companion tiers, 16,384 context default, Q8_0 KV cache, flash attention, and 12.5 GB (12,800 MB) resident VRAM clamp (`D-BRAIN-05` v2). (NeMo deprecated and pinned in `models/MANIFEST.json` for rollback only; Ternary-Bonsai-2-27B is designated slot-2 candidate gated behind rung C1b).
 - **ASR**: Faster-Whisper on CPU/NPU runs on every turn to produce ground-truth text transcripts.
 - **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with 2,048-token quota and multi-factor prioritization (`D-MEM-03`). Fast-path context sync preserves multi-turn memory (`D-ARCH-06`). (Chroma retired).
 - **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`).
