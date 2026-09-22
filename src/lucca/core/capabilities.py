@@ -266,6 +266,30 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             risk=Risk.READ,
             target="self",
         ),
+        "launch_app": ToolSchema(
+            name="launch_app",
+            description=(
+                "Launch a whitelisted desktop application on the host. Requires "
+                "explicit user confirmation before execution."
+            ),
+            parameters={
+                "app_name": ToolParameter(
+                    type="string",
+                    description="Application name from the whitelist (e.g. calculator, notepad)",
+                    required=True,
+                ),
+                "file": ToolParameter(
+                    type="string",
+                    description="Optional file to open with the application",
+                    required=False,
+                ),
+                "url": ToolParameter(
+                    type="string", description="Optional URL to open", required=False
+                ),
+            },
+            risk=Risk.LAUNCH,
+            target="shared",
+        ),
         "sys_info": ToolSchema(
             name="sys_info",
             description="Inspect host OS version, hostname, uptime, and running processes",

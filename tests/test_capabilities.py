@@ -8,7 +8,6 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
-from lucca.brain.prompt_builder import TOOL_DEFINITIONS
 from lucca.core.capabilities import (
     MAX_REGISTRY_TOOLS,
     get_capability_registry,
@@ -35,22 +34,23 @@ def test_target_required_on_tool_schema() -> None:
 
 
 def test_tool_taxonomy_and_registry_count() -> None:
-    """T1.1 / T1.6 / T2 / C1 / C2: Registry has exactly 15 tools (<= 16), correctly classified."""
+    """T1.1 / T1.6 / T2 / C1 / C2: Registry has exactly 16 tools (<= 16 cap),
+    correctly classified. Revised by WO-9 A13 (F14): launch_app is now
+    advertised (confirmation-gated) — the spoken fallback already claimed the
+    capability, so the manifest had to tell the truth."""
     registry = get_capability_registry()
     tools = registry.tools
     tool_defs = registry.get_tool_definitions()
     def_names = [t.function.name for t in tool_defs]
 
-    # Assert count == 15 and <= 16
-    assert len(tools) == 15
+    # Assert count == 16 and <= cap
+    assert len(tools) == 16
     assert len(tools) <= MAX_REGISTRY_TOOLS
-    assert len(tool_defs) == 15
+    assert len(tool_defs) == 16
 
-    # launch_app must be absent everywhere
-    assert "launch_app" not in tools
-    assert "launch_app" not in def_names
-    assert "launch_app" not in [t.function.name for t in TOOL_DEFINITIONS]
-    assert "launch_app" not in get_default_tool_schemas()
+    # launch_app is now advertised, confirmation-gated (WO-9 A13)
+    assert "launch_app" in tools
+    assert tools["launch_app"].risk == Risk.LAUNCH
 
     # Required newly exposed and surviving tools
     expected_tools = {
@@ -69,6 +69,7 @@ def test_tool_taxonomy_and_registry_count() -> None:
         "note_read",
         "self_metrics",
         "sys_info",
+        "launch_app",
     }
     assert set(tools.keys()) == expected_tools
     assert set(def_names) == expected_tools
@@ -101,8 +102,7 @@ def test_manifest_matches_registry_tools() -> None:
     expected_names = sorted(registry.tools.keys())
     assert sorted(manifest_tools) == expected_names
 
-    # No launch_app, no skill_*, no phantom task tools
-    assert "launch_app" not in manifest_tools
+    # No skill_*, no phantom task tools (launch_app now advertised — WO-9 A13)
     assert not any(t.startswith("skill_") for t in manifest_tools)
     assert "get_task_status" not in manifest_tools
     assert "list_tasks" not in manifest_tools
@@ -111,22 +111,24 @@ def test_manifest_matches_registry_tools() -> None:
 
 def test_c5_negative_rule_with_removed_tool_fails_static_validation() -> None:
     """
-    C5 negative test: A rule whose plan calls launch_app (e.g. calc-open-with-expr-v1)
-    fails validate_rule_static against get_default_tool_schemas() naming the unknown tool.
+    C5 negative test: A rule whose plan calls a phantom tool fails
+    validate_rule_static against get_default_tool_schemas() naming the unknown
+    tool. (Revised by WO-9 A13: launch_app is now a registered tool, so the
+    negative case uses a genuinely phantom tool name.)
     """
     rule_src = """
-    (rule "calc-open-with-expr-v1"
-      :when (intent= "launch_app")
-      :plan (list (tool "launch_app" :app_name "calc"))
+    (rule "phantom-tool-rule-v1"
+      :when (intent= "unknown")
+      :plan (list (tool "format_drive" :drive "c"))
       :priority 10)
     """
     current_schemas = get_default_tool_schemas()
-    assert "launch_app" not in current_schemas
+    assert "format_drive" not in current_schemas
 
     with pytest.raises(RuleError) as exc_info:
         validate_rule_static(rule_src, registered_tools=current_schemas)
     assert "not in registered tool list" in str(exc_info.value).lower()
-    assert "launch_app" in str(exc_info.value)
+    assert "format_drive" in str(exc_info.value)
 
 
 def test_user_retire_mechanism_marks_rule_retired_and_stops_it_firing() -> None:
