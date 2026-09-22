@@ -70,18 +70,40 @@ Wilson LB ≥ 0.90 bar at N=60 requires 59/60 — statistically out of reach giv
 the observed variance without prompt/model changes. This is the first honest
 measurement of the A1 recall ceiling; the harness is now fair.
 
-## 3. Bonsai 2 Bake-off — verdict withheld (contaminated)
+## 3. Bonsai 2 Bake-off — FAIR re-run complete (rung C1b)
 
-Raw numbers (28/60, 60% stance, 17.24% ungrounded) were dominated by harness
-defects F-WO8-14/16/17/18 and grader defects F-WO8-20/21. A fair rung C1b
-comparison requires a clean re-run with the fixed harness plus a
-Bonsai-compatible tool-call demux mode.
+Clean re-run with the fixed harness, the Bonsai-compatible `<function=…>` demux
+(T-CHK-11), and `--no-cache-prompt` (crash mitigation):
+
+| Test | Bonsai 2 PQ2_0 | Gemma-4 Q6_K (reference) |
+|---|---|---|
+| §5.2 Introspective | **48/60, 4 fabrications, LB 0.673** | 54–57/60, 0–1 fabrications, LB 0.79–0.85 |
+| §5.3 Stance consistency | PASS | PASS |
+| §5.4 Functional coherence | PASS | PASS |
+| §5.5 Revision chain | PASS | PASS |
+| §5.6 Doctrine negative | PASS | PASS |
+
+Bonsai 2 failure classes: 5 canned refusals (deontic false positives on its
+phrasing), over-cautious hedging on read/delete specifics, and "process
+narration" replies on abstain probes. **Verdict: Bonsai 2 PQ2_0 does NOT meet
+the A1 acceptance bar and does not displace `gemma-4-12b-heretic-Q6_K`
+(D-BRAIN-05).** This is now a fair, harness-clean comparison.
+
+**Hardware note (user constraint honored):** the Bonsai launch uses
+`--no-cache-prompt`, which disables the RAM-based prompt cache entirely
+(the 8 GiB `--cache-ram` prompt cache only exists when prompt caching is
+enabled). Model weights + q8_0 KV cache are fully VRAM-resident
+(12,092 MB ≤ 12,800 MB clamp); the ~1.3 GB process working set is the
+memory-mapped GGUF (file-backed), not anonymous system RAM.
 
 ## 4. Environment notes
 
 - llama-server prompt-cache crash (verbatim repetition loop + ~880 MiB cache
-  evictions, crash at q59) — registered, unresolved; consider `--cache-reuse`
-  tuning or a build bump.
+  evictions, crash at q59) — ROOT CAUSE: `--cache-ram` defaults to 8192 MiB and
+  the prompt cache thrashed with ~880 MiB entries under 60 distinct ~3.2K-token
+  prompts (LCP similarity only ~0.45–0.5, so caching bought little). MITIGATION
+  APPLIED: `--no-cache-prompt` on battery workloads (verified stable across the
+  full Bonsai re-run, 0 crashes).
 - `Lucca.exe --version` timed out once (15 s) in a T1 run — transient; 7/7 on
   immediate re-run.
 

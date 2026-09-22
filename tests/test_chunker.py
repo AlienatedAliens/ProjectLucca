@@ -150,6 +150,51 @@ def test_t_chk_10_tool_call_demux_inline_and_structured():
     assert len(text_deltas2) >= 2
 
 
+def test_t_chk_11_tool_call_demux_function_tag_bonsai_style():
+    """T-CHK-11: Qwen/Harmony-style <function=...> blocks (Bonsai 2) demuxed to
+    ToolCallEnd, including mid-stream after narration text; never spoken."""
+    demux = ToolCallDemux()
+
+    # 1. Mid-stream function tag after narration (Bonsai 2 leak pattern)
+    stream = [
+        TokenDelta(delta="Let me try another approach.\n\n"),
+        TokenDelta(delta="<function=run_python>\n<parameter=code>"),
+        TokenDelta(delta='print("hello")</parameter>\n</function>'),
+    ]
+    events = []
+    for delta in stream:
+        events.extend(demux.feed(delta))
+    events.extend(demux.flush())
+
+    tool_ends = [e for e in events if isinstance(e, ToolCallEnd)]
+    text_deltas = [e for e in events if isinstance(e, TokenDelta)]
+
+    assert len(tool_ends) == 1
+    assert tool_ends[0].call.tool == "run_python"
+    assert tool_ends[0].call.args == {"code": 'print("hello")'}
+    # Narration before the tag is spoken; the tag itself is never spoken
+    joined = "".join(e.delta for e in text_deltas)
+    assert "Let me try another approach." in joined
+    assert "<function=" not in joined
+
+    # 2. Function tag at stream start
+    demux2 = ToolCallDemux()
+    stream2 = [
+        TokenDelta(delta="<function=launch_app>\n"),
+        TokenDelta(delta="<parameter=app>Notepad</parameter>\n"),
+        TokenDelta(delta="</function>"),
+    ]
+    events2 = []
+    for delta in stream2:
+        events2.extend(demux2.feed(delta))
+    events2.extend(demux2.flush())
+
+    tool_ends2 = [e for e in events2 if isinstance(e, ToolCallEnd)]
+    assert len(tool_ends2) == 1
+    assert tool_ends2[0].call.tool == "launch_app"
+    assert tool_ends2[0].call.args == {"app": "Notepad"}
+
+
 @given(st.lists(st.text(min_size=1, max_size=50), min_size=1, max_size=20))
 @settings(max_examples=100, deadline=1000)
 def test_p_04_chunker_invariants(deltas: list[str]):

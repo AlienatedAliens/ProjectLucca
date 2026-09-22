@@ -18,7 +18,14 @@ from lucca.core.schemas import (
     ToolCallStart,
 )
 
-INLINE_TOOL_PREFIX_REGEX = re.compile(r"^\s*(?:<\|python_tag\|>|\[TOOL_CALLS\]|\[|\{)")
+INLINE_TOOL_PREFIX_REGEX = re.compile(r"^\s*(?:<\|python_tag\|>|\[TOOL_CALLS\]|\[|\{|<function=)")
+
+# Qwen/Harmony-style XML tool calls (e.g. Ternary-Bonsai 2):
+#   <function=run_python>
+#   <parameter=code>print("hi")</parameter>
+#   </function>
+FUNCTION_TAG_REGEX = re.compile(r"<function=(\w+)>\s*(.*?)\s*</function>", re.DOTALL)
+PARAMETER_TAG_REGEX = re.compile(r"<parameter=(\w+)>\s*(.*?)\s*</parameter>", re.DOTALL)
 
 
 class ToolCallDemux:
@@ -36,6 +43,23 @@ class ToolCallDemux:
         self._in_code_fence = False
         self._code_omitted_spoken = False
         self._total_chars_seen = 0
+        self._function_tag_buffering = False
+
+    def _parse_function_tag(self, text: str) -> ToolCall | None:
+        """Parses a closed <function=...>...</function> block into a ToolCall."""
+        m = FUNCTION_TAG_REGEX.search(text)
+        if not m:
+            return None
+        tool_name = m.group(1)
+        args: dict[str, JsonValue] = {}
+        for pm in PARAMETER_TAG_REGEX.finditer(m.group(2)):
+            key = pm.group(1)
+            raw_val = pm.group(2)
+            try:
+                args[key] = json.loads(raw_val)
+            except json.JSONDecodeError:
+                args[key] = raw_val
+        return ToolCall(tool=tool_name, args=args, call_id=f"inline-{uuid.uuid4().hex[:8]}")
 
     def feed(self, event: LLMEvent) -> list[LLMEvent]:
         # Pass structured tool call events straight through
@@ -64,6 +88,36 @@ class ToolCallDemux:
                 self._suspected_tool_call = True
 
         self._total_chars_seen += len(delta)
+
+        # Qwen/Harmony-style <function=...> blocks can appear mid-stream after
+        # narration text (Bonsai 2 template). Buffer until the closing tag.
+        if self._function_tag_buffering or "<function=" in delta:
+            self._function_tag_buffering = True
+            self._buffer.append(delta)
+            self._buffered_len += len(delta)
+            buffered_text = "".join(self._buffer)
+            if "</function>" in buffered_text:
+                call = self._parse_function_tag(buffered_text)
+                self._buffer.clear()
+                self._buffered_len = 0
+                self._function_tag_buffering = False
+                if call is not None:
+                    self._resolved_tool_call = True
+                    return [ToolCallEnd(call=call)]
+                # Malformed block: flush as text
+                for chunk in self._buffer:
+                    out_events.extend(self._process_text_delta(chunk))
+                self._buffer.clear()
+                self._buffered_len = 0
+                self._function_tag_buffering = False
+                return out_events
+            if self._buffered_len > 4096:
+                self._function_tag_buffering = False
+                for chunk in self._buffer:
+                    out_events.extend(self._process_text_delta(chunk))
+                self._buffer.clear()
+                self._buffered_len = 0
+            return out_events
 
         if self._suspected_tool_call:
             self._buffer.append(delta)
