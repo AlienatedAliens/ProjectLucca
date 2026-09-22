@@ -1159,12 +1159,27 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             logger.warning("assistant_belief_commit_failed", error=str(exc))
 
+    # Interrogative openers: questions are requests for information, not belief
+    # candidates. Committing a question as an ASSISTANT_BELIEF produced nonsense
+    # spoken updates ("New understanding: Can you open Notepad?") — F-WO8-17.
+    _INTERROGATIVE_PATTERN = re.compile(
+        r"^\s*(?:who|what|when|where|why|how|which|whose|whom|can|could|should|"
+        r"would|will|do|does|did|is|are|was|were|have|has|had|may|might|must|"
+        r"tell\s+me|give\s+me|show\s+me|list|name)\b.*\?\s*$",
+        re.IGNORECASE | re.DOTALL,
+    )
+
     def _check_contradictions(self, new_entry_id: str, new_content: str, trace: TurnTrace) -> None:
         """
         Evaluates contradiction detection against active beliefs (Spec §7, D-MEM-04, WP-2).
         FTS matches candidate beliefs on topic tokens, capped at 5 beliefs with a 200 ms budget.
         """
         if self.reflection_engine is None or self.db is None:
+            return
+
+        # Questions are not belief candidates: skip contradiction resolution so
+        # no belief is committed from an interrogative utterance (F-WO8-17).
+        if self._INTERROGATIVE_PATTERN.match(new_content.strip()):
             return
 
         tokens = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", new_content.lower())]

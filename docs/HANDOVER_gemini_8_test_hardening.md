@@ -266,14 +266,36 @@ integration gap in the Gemma-oriented demux, not proof of inferior quality.
 A fair rung C1b comparison requires a clean re-run after the §7.4 fixes plus a
 Bonsai-compatible demux mode. No thresholds were edited.
 
-### 7.4 Open items before WO-8 ratification
+### 7.4 Status after test/code co-review (Zoo, 2026-09-22, second pass)
 
-1. Rework `tests/fixtures/a1/self_questions.jsonl` `must_contain` to accept
-   paraphrase classes; re-run full A1 battery on Gemma-4.
-2. Investigate llama-server prompt-cache crash (verbatim repetition loop from
-   q29, crash at q59, repeated ~880 MiB cache evictions).
-3. Fix spoken-update template leak ("New understanding: <raw user question>").
-4. T1 baseline is green (528 passed) and T0 gates clean as of this addendum.
+Extensive review of the A1 test code alongside the code it tests fixed six
+further defects (F-WO8-16 … F-WO8-21 — see
+[`docs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](./audit/findings/WO8_WP5-5_findings_2026-09-22.md)):
+coherence-checker temporal scoping + negation guard, interrogative belief-commit
+filter, harness auto-cancel artifact (real in-process SandboxService),
+empty-receipts Tier-1 downgrade, coherence-grader rate/false-breach logic, and
+paraphrase-tolerant fixtures.
 
-**Ratification of WO-8 is BLOCKED pending items 7.4.1–7.4.3.** Rung B1 remains
-gated accordingly.
+**A1 live battery on Gemma-4 is now 4/5 PASS:**
+
+| Test | Result |
+|---|---|
+| §5.2 Introspective (60 probes) | 55–57/60, **0 fabrications**, LB 0.81–0.85 — RED on LB ≥ 0.90, now a **genuine retrieval-recall limit** (read/delete facts), not a harness artifact |
+| §5.3 Stance consistency | ✅ PASS |
+| §5.4 Functional coherence | ✅ PASS (checker verified correct; grader fixed) |
+| §5.5 Revision chain | ✅ PASS |
+| §5.6 Doctrine negative | ✅ PASS |
+
+T1 baseline 536/536 green; T0 gates clean.
+
+### 7.5 Remaining items before WO-8 ratification
+
+1. **Retrieval recall for read/delete-file facts** (q10/q11/q32/q14) — the only
+   remaining A1 red is genuine system behavior; improve hybrid retrieval.
+2. Investigate llama-server prompt-cache crash (verbatim repetition loop,
+   ~880 MiB cache evictions, crash at q59).
+3. Clean Bonsai 2 re-run with the fixed harness + a Bonsai-compatible
+   tool-call demux mode for a fair rung C1b comparison.
+
+**Ratification of WO-8 remains BLOCKED pending items 7.5.1–7.5.3.** Rung B1
+remains gated accordingly.

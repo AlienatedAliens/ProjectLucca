@@ -110,6 +110,37 @@ EXCLUDED_IDIOMS: tuple[str, ...] = (
     "deleted unnecessary assumptions",
 )
 
+# Past-session temporal markers: recollections of PRIOR verified actions are
+# grounded by long-term memory (A1 autobiographical substrate), not by
+# current-turn ToolReceipts. Functional coherence (Spec §3.3) governs claims
+# about actions performed THIS turn.
+PAST_CONTEXT_PATTERN = re.compile(
+    r"\b(?:"
+    r"last\s+session|previous\s+session|prior\s+session|earlier\s+session|"
+    r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|yesterday|"
+    r"last\s+week|previously|in\s+the\s+past|earlier\s+on|"
+    r"records?\s+(?:from|show|showing|indicate)|my\s+records|"
+    r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
+    r"in\s+our\s+history|histor(?:y|ical)\s+records?|"
+    r"during\s+our\s+last|from\s+a\s+few\s+days"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Negation / uncertainty framing that invalidates an action-claim hit:
+# "I don't have any records showing that I deleted X" is an abstention,
+# not a claim of action. NOTE: success qualifiers like "without errors" /
+# "no errors" must NOT trigger this guard — they assert successful completion
+# (F-WO8-16 refinement: the passive-branch guard uses the strong-negation set).
+NEGATION_GUARD_PATTERN = re.compile(
+    r"\b(?:"
+    r"not\s+|never|don't|do\s+not|doesn't|didn't|did\s+not|cannot|can't|"
+    r"won't|will\s+not|unable\s+to|not\s+sure\s+if|whether\s+or\s+not|"
+    r"records?\s+showing\s+that"
+    r")\b",
+    re.IGNORECASE,
+)
+
 
 class ToolReceipt(BaseModel, frozen=True):
     """Execution receipt for an invoked tool call."""
@@ -181,6 +212,12 @@ def detect_ungrounded_action_claims(
         detected_family: str | None = None
         matched_verb: str | None = None
 
+        # 0. Past-session recollection exemption: claims framed as recollections
+        # of PRIOR sessions are grounded by long-term memory, not current-turn
+        # receipts. Only current-turn action claims require receipt verification.
+        if PAST_CONTEXT_PATTERN.search(clause):
+            continue
+
         # 1. Active first-person action claims
         # e.g., "I saved it", "I launched Notepad", "I fetched the page", "I ran the script"
         active_match = re.search(
@@ -190,6 +227,12 @@ def detect_ungrounded_action_claims(
             clause,
         )
         if active_match:
+            # Negation guard: a negation/uncertainty token preceding the verb
+            # within the clause invalidates the claim ("...records showing that
+            # I deleted X" is an abstention, not an action claim).
+            prefix = clause[: active_match.start(1)]
+            if NEGATION_GUARD_PATTERN.search(prefix):
+                continue
             v = active_match.group(1)
             matched_verb = v
             if v in ("saved", "wrote", "written", "created", "updated"):
@@ -236,6 +279,9 @@ def detect_ungrounded_action_claims(
                 )
                 or re.search(r"\b(?:web|online)\b.*?\bsearch\b", clause)
                 or re.search(r"\bsearch is complete\b", clause)
+                or re.search(r"\b(?:completed|finished)\b.*?\bsearch\b", clause)
+                or re.search(r"\bsearch\b.*?\b(?:completed|finished)\b", clause)
+                or re.search(r"\bsearch\b.*?\breturned results\b", clause)
             ):
                 detected_family = "search"
                 matched_verb = "search"
@@ -260,6 +306,15 @@ def detect_ungrounded_action_claims(
             ) or re.search(r"\b(?:executing|running)\b.*?\b(?:scripts?|code|python)\b", clause):
                 detected_family = "run"
                 matched_verb = "run"
+            elif re.search(
+                r"\b(?:scripts?|code|python|benchmarks?|simulations?|processing|analysis"
+                r"|migration|formatting)\b.*?\bcompleted\b",
+                clause,
+            ) or re.search(
+                r"\bcompleted\b.*?\b(?:scripts?|code|python|processing|analysis)\b", clause
+            ):
+                detected_family = "run"
+                matched_verb = "run"
             elif (
                 "done — it's in your workspace" in clause
                 or "done - it's in your workspace" in clause
@@ -268,6 +323,10 @@ def detect_ungrounded_action_claims(
                 matched_verb = "write_file"
 
         if detected_family and matched_verb:
+            # Negation guard for passive/gerund detections: skip if the clause
+            # contains negation/uncertainty framing anywhere before the match.
+            if NEGATION_GUARD_PATTERN.search(clause):
+                continue
             allowed_tools = tool_family_map.get(detected_family, frozenset())
             is_grounded = bool(allowed_tools & successful_tools)
             breach_desc = None

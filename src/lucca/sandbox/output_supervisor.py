@@ -656,6 +656,25 @@ class OutputSupervisorSession[ChunkT]:
         if verified_receipts is not None and not gate_res.is_breach:
             receipt_res = self.truth_matcher.evaluate_clause(clause_text, verified_receipts)
             if receipt_res.is_breach:
+                if not verified_receipts:
+                    # No tools ran this turn: a first-person action claim cannot be
+                    # verified in-stream and may be a legitimate long-term-memory
+                    # recollection (A1). Downgrade to Tier 2 (emit + flag); the
+                    # post-turn functional-coherence checker still records any
+                    # genuine hallucination as a COHERENCE_BREACH. Tier-1 abort is
+                    # reserved for turns where tools DID run (F-WO8-19).
+                    receipt_res = GateResult(
+                        is_breach=True,
+                        breach_type=receipt_res.breach_type,
+                        severity=SeverityTier.TIER_2_SOFT,
+                        matched_text=receipt_res.matched_text,
+                        reason=(
+                            f"{receipt_res.reason} (downgraded to Tier 2: no current-turn "
+                            "receipts; recollection/hallucination deferred to post-turn "
+                            "coherence check)"
+                        ),
+                        elapsed_us=receipt_res.elapsed_us,
+                    )
                 gate_res = receipt_res
 
         # Check citation provenance against session allowed URLs
