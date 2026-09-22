@@ -27,6 +27,49 @@ INLINE_TOOL_PREFIX_REGEX = re.compile(r"^\s*(?:<\|python_tag\|>|\[TOOL_CALLS\]|\
 FUNCTION_TAG_REGEX = re.compile(r"<function=(\w+)>\s*(.*?)\s*</function>", re.DOTALL)
 PARAMETER_TAG_REGEX = re.compile(r"<parameter=(\w+)>\s*(.*?)\s*</parameter>", re.DOTALL)
 
+# Gemma malformed-args sentinel (WO-9 A6 / F-WO8-26): the model sometimes
+# emits query:<|"|>Sean<|"|> instead of JSON. The sentinel is stripped before
+# lenient key:value / key=value parsing.
+GEMMA_ARG_SENTINEL_REGEX = re.compile(r'<\|"\|>')
+
+# Any unresolved tool markup that must never be spoken as text.
+TOOL_MARKUP_REGEX = re.compile(
+    r"<\|tool_call|<tool_call\|>|<function=|<\|python_tag\|>|\[TOOL_CALLS\]"
+)
+
+
+def _parse_lenient_args(raw: str) -> dict[str, JsonValue] | None:
+    """Lenient parser for malformed Gemma tool-call args (WO-9 A6).
+
+    Handles e.g. ``query:<|"|>Sean<|"|>`` — strips <|"|> sentinels, then
+    accepts strict JSON or key:value / key=value pairs separated by commas
+    or newlines. Returns None when nothing parseable remains.
+    """
+    cleaned = GEMMA_ARG_SENTINEL_REGEX.sub("", raw).strip()
+    # Strip enclosing brace characters left over from the malformed call body
+    cleaned = cleaned.strip("{}").strip()
+    if not cleaned:
+        return None
+    try:
+        obj = json.loads(cleaned)
+        if isinstance(obj, dict):
+            return obj
+    except json.JSONDecodeError:
+        pass
+    args: dict[str, JsonValue] = {}
+    for pair in re.split(r"[,\n]+", cleaned):
+        if ":" in pair:
+            key, _, value = pair.partition(":")
+        elif "=" in pair:
+            key, _, value = pair.partition("=")
+        else:
+            continue
+        key = key.strip().strip("'\"")
+        value = value.strip().strip("'\"")
+        if key:
+            args[key] = value
+    return args or None
+
 
 class ToolCallDemux:
     """
@@ -136,20 +179,24 @@ class ToolCallDemux:
                     raw_args_str = m.group(2)
                     try:
                         raw_args = json.loads(raw_args_str)
-                        if isinstance(raw_args, dict):
-                            args: dict[str, JsonValue] = raw_args
-                            call = ToolCall(
-                                tool=tool_name,
-                                args=args,
-                                call_id=f"inline-{uuid.uuid4().hex[:8]}",
-                            )
-                            self._suspected_tool_call = False
-                            self._resolved_tool_call = True
-                            self._buffer.clear()
-                            self._buffered_len = 0
-                            return [ToolCallEnd(call=call)]
+                        parsed: dict[str, JsonValue] | None = (
+                            raw_args if isinstance(raw_args, dict) else None
+                        )
                     except json.JSONDecodeError:
-                        pass
+                        # WO-9 A6: lenient fallback for malformed args such as
+                        # query:<|"|>Sean<|"|> (sentinel-wrapped key:value).
+                        parsed = _parse_lenient_args(raw_args_str)
+                    if parsed is not None:
+                        call = ToolCall(
+                            tool=tool_name,
+                            args=parsed,
+                            call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                        )
+                        self._suspected_tool_call = False
+                        self._resolved_tool_call = True
+                        self._buffer.clear()
+                        self._buffered_len = 0
+                        return [ToolCallEnd(call=call)]
 
             # Try parsing JSON if we see matching braces/brackets or length threshold
             cleaned = (
@@ -209,13 +256,33 @@ class ToolCallDemux:
                     pass
 
             if self._buffered_len > 4096:
-                # Give up: exceeded 4KB buffer without valid JSON, flush buffer as text
+                # Give up: exceeded 4KB buffer without valid JSON. Never speak
+                # unresolved tool markup (WO-9 A6): drop it instead.
                 self._suspected_tool_call = False
-                for chunk in self._buffer:
-                    evs = self._process_text_delta(chunk)
-                    out_events.extend(evs)
+                if not TOOL_MARKUP_REGEX.search("".join(self._buffer)):
+                    for chunk in self._buffer:
+                        evs = self._process_text_delta(chunk)
+                        out_events.extend(evs)
                 self._buffer.clear()
                 self._buffered_len = 0
+            return out_events
+
+        # WO-9 A6: mid-stream tool-call detection. Gemma sometimes narrates
+        # first and emits <|tool_call>... afterwards; the old first-24-chars
+        # window leaked the markup as speech. Speak any text before the
+        # marker, then buffer the call.
+        if (
+            not self._suspected_tool_call
+            and not self._function_tag_buffering
+            and "<|tool_call" in delta
+        ):
+            idx = delta.index("<|tool_call")
+            pre_text = delta[:idx]
+            if pre_text:
+                out_events.extend(self._process_text_delta(pre_text))
+            self._suspected_tool_call = True
+            self._buffer.append(delta[idx:])
+            self._buffered_len += len(delta) - idx
             return out_events
 
         return self._process_text_delta(delta)
@@ -288,6 +355,39 @@ class ToolCallDemux:
                             return [ToolCallEnd(call=call)]
                 except json.JSONDecodeError:
                     pass
+
+            # WO-9 A6: mid-stream Gemma calls often terminate at flush; try the
+            # native <|tool_call> parse (with lenient args fallback) first.
+            gemma_m = re.search(
+                r"<\|tool_call\|?>call:(\w+)\s*(\{.*?\})(?:<tool_call\|>|<\|tool_call\|?>)?",
+                buffered_text,
+                re.DOTALL,
+            )
+            if gemma_m:
+                try:
+                    raw_args = json.loads(gemma_m.group(2))
+                    gemma_parsed: dict[str, JsonValue] | None = (
+                        raw_args if isinstance(raw_args, dict) else None
+                    )
+                except json.JSONDecodeError:
+                    gemma_parsed = _parse_lenient_args(gemma_m.group(2))
+                if gemma_parsed is not None:
+                    call = ToolCall(
+                        tool=gemma_m.group(1),
+                        args=gemma_parsed,
+                        call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                    )
+                    self._buffer.clear()
+                    self._buffered_len = 0
+                    self._suspected_tool_call = False
+                    return [ToolCallEnd(call=call)]
+
+            # WO-9 A6: never speak unresolved tool markup on flush — drop it.
+            if TOOL_MARKUP_REGEX.search(buffered_text):
+                self._buffer.clear()
+                self._buffered_len = 0
+                self._suspected_tool_call = False
+                return out
 
             for chunk in self._buffer:
                 out.extend(self._process_text_delta(chunk))

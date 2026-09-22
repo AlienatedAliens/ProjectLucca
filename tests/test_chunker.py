@@ -195,6 +195,62 @@ def test_t_chk_11_tool_call_demux_function_tag_bonsai_style():
     assert tool_ends2[0].call.args == {"app": "Notepad"}
 
 
+# ============================================================================
+# WO-9 A6 (F-WO8-26): Gemma demux hardening — T-CHK-12 / T-CHK-13
+# ============================================================================
+
+
+def test_t_chk_12_mid_stream_gemma_tool_call_never_spoken():
+    """A tool call arriving AFTER narration must be demuxed, never spoken."""
+    demux = ToolCallDemux()
+    events: list = []
+    events.extend(demux.feed(TokenDelta(delta="Let me check that. ")))
+    events.extend(
+        demux.feed(
+            TokenDelta(
+                delta='<|tool_call|>call:memory_search{"query": "Sean"}<tool_call|>'
+            )
+        )
+    )
+    events.extend(demux.flush())
+
+    spoken = "".join(e.delta for e in events if isinstance(e, TokenDelta))
+    calls = [e for e in events if isinstance(e, ToolCallEnd)]
+    assert "tool_call" not in spoken, "unresolved tool markup leaked as speech"
+    assert len(calls) == 1
+    assert calls[0].call.tool == "memory_search"
+    assert calls[0].call.args == {"query": "Sean"}
+    assert "Let me check that." in spoken
+
+
+def test_t_chk_13_lenient_gemma_sentinel_args():
+    """Malformed Gemma args (query:<|"|>...<|"|>) parse via the lenient fallback."""
+    demux = ToolCallDemux()
+    events: list = demux.feed(
+        TokenDelta(
+            delta='Let me save that. <|tool_call|>call:memory_commit{query:<|"|>My name is Sean<|"|>}'
+        )
+    )
+    events.extend(demux.flush())
+
+    calls = [e for e in events if isinstance(e, ToolCallEnd)]
+    assert len(calls) == 1
+    assert calls[0].call.tool == "memory_commit"
+    assert calls[0].call.args == {"query": "My name is Sean"}
+    spoken = "".join(e.delta for e in events if isinstance(e, TokenDelta))
+    assert '<|"' not in spoken and "tool_call" not in spoken
+
+
+def test_t_chk_13b_unresolved_markup_dropped_on_flush():
+    """Unparseable tool markup must never be spoken, even at flush."""
+    demux = ToolCallDemux()
+    events: list = demux.feed(TokenDelta(delta="<|tool_call|>call:broken{no closing"))
+    events.extend(demux.flush())
+    spoken = "".join(e.delta for e in events if isinstance(e, TokenDelta))
+    assert "tool_call" not in spoken
+    assert "<|" not in spoken
+
+
 @given(st.lists(st.text(min_size=1, max_size=50), min_size=1, max_size=20))
 @settings(max_examples=100, deadline=1000)
 def test_p_04_chunker_invariants(deltas: list[str]):
