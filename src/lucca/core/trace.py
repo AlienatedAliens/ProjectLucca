@@ -59,6 +59,10 @@ class TurnTrace(BaseModel):
     underruns: int = 0
     interrupted: bool = False
 
+    # WO-9 A5: convergence-loop telemetry
+    rounds_used: int = 0
+    cap_hit: bool = False
+
     @property
     def total_e2e_ms(self) -> float:
         if self.t_key_release > 0 and self.t_first_sample > self.t_key_release:

@@ -24,6 +24,7 @@ from lucca.core.schemas import (
     TokenDelta,
     ToolCall,
     ToolCallEnd,
+    ToolResult,
 )
 from lucca.memory.db import DatabaseManager
 from lucca.memory.store import MemoryStore
@@ -103,6 +104,10 @@ def orch(tmp_path: Path):
     orch.output_supervisor.feed_chunk.return_value = ([], False)
     orch.output_supervisor.flush.return_value = ([], False)
     orch.sandbox = MagicMock()
+    orch.sandbox.check_confirmation_needed.return_value = False
+    orch.sandbox.execute_tool.return_value = ToolResult(
+        call_id="x", ok=True, exit_code=0, content="ok", elapsed_ms=0.0
+    )
     orch.affect_tracker = MagicMock()
     orch.play_ring = MagicMock()
     orch._tts_queue = MagicMock()
@@ -141,10 +146,12 @@ def test_promise_without_tool_call_triggers_reprompt(orch) -> None:
         decision_id=None,
         memories=[],
     )
-    # The re-prompt made the model actually call the tool in round 2
+    # The re-prompt made the model actually call the tool in round 2; the
+    # convergence loop then runs one more round which produces no tool and
+    # terminates (round 3).
     assert orch.executed_tools
     assert orch.executed_tools[0][0] == "memory_search"
-    assert orch.llm.call_count == 2
+    assert orch.llm.call_count == 3
 
 
 def test_promise_with_no_followup_breaks_loop(orch) -> None:

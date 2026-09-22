@@ -1611,7 +1611,7 @@ class Orchestrator:
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
         tools: list[object] | None = None,
-        max_rounds: int = 3,
+        max_rounds: int = 8,
         epistemic_context: str | None = None,
     ) -> None:
         """
@@ -1635,6 +1635,8 @@ class Orchestrator:
         full_response_text: list[str] = []
         tool_messages: list[ChatMessage] = []
         tool_receipts: list[dict[str, JsonValue]] = []
+        # WO-9 A5: repeated-call guard state
+        call_signatures: list[str] = []
 
         if tools is None:
             if self.execute_tools:
@@ -1707,8 +1709,25 @@ class Orchestrator:
                 if round_num == 1:
                     trace.t_llm_sent = now_ns()
 
-                # Forced Final Synthesis: on final round, strip tools so LLM synthesizes response
-                round_tools = tools if round_num < max_rounds else []
+                # WO-9 A5: convergence loop — tools stay available every round
+                # and the loop terminates when the model stops calling tools.
+                # The hard cap is a runaway guard only: on the final round tools
+                # are withdrawn and the model must summarise honestly.
+                if round_num == max_rounds and tools:
+                    tool_messages.append(
+                        ChatMessage(
+                            role="user",
+                            content=(
+                                "[Tool Budget Reached: You have used the maximum number "
+                                "of tool rounds. Do not call any more tools. Summarise "
+                                "what you found and what you could NOT verify; never "
+                                "fabricate missing facts.]"
+                            ),
+                        )
+                    )
+                    trace.cap_hit = True
+                    logger.info("tool_round_cap_reached", max_rounds=max_rounds)
+                round_tools = [] if round_num == max_rounds else tools
 
                 for event in self.llm.stream_turn(
                     current_audio_b64=current_audio_b64 if round_num == 1 else None,
@@ -1911,6 +1930,24 @@ class Orchestrator:
                             )
                         )
 
+                        # WO-9 A5: repeated-call guard — an identical
+                        # (tool, args) call already returned this turn; force
+                        # the model to use the result or change approach.
+                        call_sig = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
+                        call_signatures.append(call_sig)
+                        if call_signatures.count(call_sig) >= 2:
+                            tool_messages.append(
+                                ChatMessage(
+                                    role="user",
+                                    content=(
+                                        "[Repeat Guard: You already issued this exact "
+                                        "call and it returned a result above. Use that "
+                                        "result, or try a different approach — do not "
+                                        "repeat it.]"
+                                    ),
+                                )
+                            )
+
                 if not round_tool_called:
                     # Anti-stalling check:
                     # If the model evaded research by outputting a rhetorical question
@@ -1965,6 +2002,9 @@ class Orchestrator:
                             )
                             continue
                     break
+
+            # WO-9 A5: convergence telemetry
+            trace.rounds_used = round_num
 
             # Flush remaining chunker text
             if not trace.interrupted:
