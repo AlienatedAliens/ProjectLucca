@@ -101,9 +101,13 @@ def test_orch(tmp_path: Path) -> Orchestrator:
 
 def test_scenario_1_belief_formation_on_stance_reply(test_orch: Orchestrator) -> None:
     """
-    Scenario 1:
-    - LLM reply containing stance marker in FULL_LOOP tier without tool calls forms an ASSISTANT_BELIEF.
-    - LLM reply reporting action execution does NOT form an ASSISTANT_BELIEF.
+    Scenario 1 (revised by WO-9 A12 / F9):
+    - LLM reply containing a stance marker in FULL_LOOP tier forms an ASSISTANT_BELIEF.
+    - Stance claims on ACTION turns (tool calls present) now ALSO form beliefs —
+      the old zero-tool-call gate left a systematic blind spot exactly on turns
+      where Lucca was acting. Action receipts are separately recorded as
+      ASSISTANT_ACTION (WO-9 A9), so the belief track is no longer the only
+      record of what happened.
     - Disabled by config.memory.form_beliefs = False.
     """
     # 1. Stance reply formation
@@ -146,7 +150,8 @@ def test_scenario_1_belief_formation_on_stance_reply(test_orch: Orchestrator) ->
             "SELECT COUNT(*) FROM memories m JOIN provenance_envelopes p "
             "ON m.entry_id = p.entry_id WHERE p.provenance = 'ASSISTANT_BELIEF'"
         )
-        assert cur.fetchone()[0] == 1  # Count remains 1
+        # A12: the action-turn stance claim now forms a belief too (count 2)
+        assert cur.fetchone()[0] == 2
 
     # 3. Setting disabled: form_beliefs = False
     test_orch.config.memory.form_beliefs = False
@@ -163,7 +168,7 @@ def test_scenario_1_belief_formation_on_stance_reply(test_orch: Orchestrator) ->
             "SELECT COUNT(*) FROM memories m JOIN provenance_envelopes p "
             "ON m.entry_id = p.entry_id WHERE p.provenance = 'ASSISTANT_BELIEF'"
         )
-        assert cur.fetchone()[0] == 1  # Count still 1
+        assert cur.fetchone()[0] == 2  # Count still 2 (beliefs disabled)
 
 
 # ============================================================================

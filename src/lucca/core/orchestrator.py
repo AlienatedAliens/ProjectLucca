@@ -1262,11 +1262,11 @@ class Orchestrator:
             if breach_msg:
                 self._commit_coherence_breach(breach_msg, trace)
 
-            # Stance / belief formation at runtime (Spec §7, WP-2)
-            if (
-                self.current_turn_tier == ExecutionTier.FULL_LOOP
-                and not self.current_turn_tool_calls
-            ):
+            # WO-9 A12 (F9): stance claims during action turns are beliefs too —
+            # the old zero-tool-call gate left a systematic blind spot exactly
+            # on turns where Lucca was acting. Interrogatives are still
+            # excluded inside _maybe_form_belief's caller chain.
+            if self.current_turn_tier == ExecutionTier.FULL_LOOP:
                 self._maybe_form_belief(reply_text, trace)
 
             self.current_turn_assistant_reply = None
@@ -2251,7 +2251,7 @@ class Orchestrator:
                 any_quarantine_rule_fired=any_quarantine_fired,
                 vad_speech_ms=vad_ms,
                 trace_id=trace.trace_id,
-                session_id=trace.trace_id,
+                session_id=self.session_id,
                 hour_local=rule_state.hour_local,
                 weekday=rule_state.weekday,
                 session_turns=rule_state.session_turns,
@@ -2592,7 +2592,7 @@ class Orchestrator:
                 any_quarantine_rule_fired=any_quarantine_fired,
                 vad_speech_ms=1000,
                 trace_id=trace.trace_id,
-                session_id=trace.trace_id,
+                session_id=self.session_id,
                 hour_local=rule_state.hour_local,
                 weekday=rule_state.weekday,
                 session_turns=rule_state.session_turns,
