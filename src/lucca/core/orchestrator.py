@@ -46,7 +46,11 @@ from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.capabilities import dispatch_invoke_skill
 from lucca.core.cascade import EpistemicSearchCascade, EpistemicSubstrate
-from lucca.core.coherence import ToolReceipt, detect_ungrounded_action_claims
+from lucca.core.coherence import (
+    ToolReceipt,
+    detect_promised_action_claims,
+    detect_ungrounded_action_claims,
+)
 from lucca.core.config import get_config
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.ipc_schemas import (
@@ -1698,6 +1702,7 @@ class Orchestrator:
                     break
 
                 round_tool_called = False
+                round_response_text: list[str] = []
                 print(f"[Lucca R{round_num}] " if round_num > 1 else "[Lucca] ", end="", flush=True)
                 if round_num == 1:
                     trace.t_llm_sent = now_ns()
@@ -1727,6 +1732,7 @@ class Orchestrator:
 
                         trace.tokens_out += 1
                         full_response_text.append(event.delta)
+                        round_response_text.append(event.delta)
                         print(event.delta, end="", flush=True)
 
                         accumulated = "".join(full_response_text)
@@ -1930,6 +1936,34 @@ class Orchestrator:
                         )
                         self.output_supervisor.turn_has_stalled = False
                         continue
+                    # WO-9 A4 (F4): promise-without-action guard. If the model
+                    # promised an action ("I'll go ahead and commit that right
+                    # now") but issued no tool call, inject an honesty directive
+                    # forcing it to either call the tool or state plainly that
+                    # it has not done it.
+                    if round_num < max_rounds and tools:
+                        promises = detect_promised_action_claims(
+                            "".join(round_response_text)
+                        )
+                        if promises:
+                            logger.info(
+                                "promised_action_without_tool_call_intercepted",
+                                round_num=round_num,
+                                promises=promises[:2],
+                            )
+                            tool_messages.append(
+                                ChatMessage(
+                                    role="user",
+                                    content=(
+                                        "[Honesty Directive: You stated you would perform "
+                                        f"an action ({' ; '.join(promises[:2])}) but issued "
+                                        "no tool call. Either call the appropriate tool "
+                                        "now, or state plainly that you have NOT done it "
+                                        "and will not pretend otherwise.]"
+                                    ),
+                                )
+                            )
+                            continue
                     break
 
             # Flush remaining chunker text

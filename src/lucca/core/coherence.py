@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from typing import Final
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -348,3 +349,46 @@ def detect_ungrounded_action_claims(
             )
 
     return claims
+
+
+# WO-9 A4 (F4): future/promise action framing. These claims can never be
+# grounded by receipts (the action has not happened), so they are handled by
+# the turn loop's re-prompt directive rather than the breach path.
+PROMISE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:i(?:'ll| will| am going to|'m going to| am doing|'m doing)|"
+    r"let me|one second while i|working on (?:that|it) now|doing it right now|"
+    r"right this second)\b",
+    re.IGNORECASE,
+)
+
+ACTION_VERB_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:save|saved|commit|launch|open|start|write|create|delete|remove|"
+    r"fetch|search|look up|read|run|execute|note|remember|store|fix|get that)\b",
+    re.IGNORECASE,
+)
+
+
+def detect_promised_action_claims(narration: str) -> list[str]:
+    """Pure function detecting future-tense action promises (WO-9 A4, F4).
+
+    Returns clauses where the model promises an action ("I'll go ahead and
+    commit your name right now", "doing it right now") without the action
+    having occurred. The turn loop uses these to inject an honesty directive
+    forcing the model to either call the tool or state plainly that it has
+    not done it. Conditional framing ("I would commit it if you asked") and
+    non-action speech ("let me explain") are excluded.
+    """
+    if not narration.strip():
+        return []
+    promises: list[str] = []
+    for raw_clause in re.split(r"[.!?;\n]+", narration.lower()):
+        clause = raw_clause.strip()
+        if not clause:
+            continue
+        if any(idiom in clause for idiom in EXCLUDED_IDIOMS):
+            continue
+        if NEGATION_GUARD_PATTERN.search(clause):
+            continue
+        if PROMISE_PATTERN.search(clause) and ACTION_VERB_PATTERN.search(clause):
+            promises.append(clause)
+    return promises
