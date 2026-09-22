@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import subprocess
 import threading
@@ -70,7 +71,7 @@ from lucca.brain.server_ctl import (
     stop_server,
 )
 from lucca.core.config import LLMSettings, get_config
-from lucca.core.schemas import RuleState
+from lucca.core.schemas import RuleState, SkillMeta
 from lucca.memory.db import DatabaseManager
 from lucca.memory.manager import MemoryManager
 from lucca.memory.reflection import ReflectionEngine
@@ -78,6 +79,7 @@ from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import parse_rule
+from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.system_tools import get_system_metrics
 from lucca.senses.dsp_chain import AnimeDSPConfig, AnimeVoiceDSP
@@ -89,6 +91,8 @@ from lucca.senses.tts import (
     parse_voice_blend,
 )
 from lucca.ui.theme import CT_GOLD_TEXT
+
+_LOG = logging.getLogger(__name__)
 
 
 class ServerRestartWorker(QThread):
@@ -427,7 +431,9 @@ class SettingsDialog(QDialog):
             except Exception:
                 self.reflection_engine = None
 
-        # Canonical MicroScheme rules
+        # Canonical MicroScheme rules (seed demo) + live skill registry
+        # (Spec 1.1.2 §3). The registry is loaded from config/skills/ via
+        # SkillManager so the LISP Studio tab reflects the real packages.
         self.lisp_rules: dict[str, dict[str, JsonValue]] = {
             "open-calculator-v1": {
                 "category": "Tools & Execution",
@@ -445,6 +451,8 @@ class SettingsDialog(QDialog):
                 ),
             },
         }
+        self._skill_manager: SkillManager | None = None
+        self._load_lisp_registry()
 
         # Whitelisted Applications loaded dynamically from tool_whitelist.toml (Spec 09 §6)
         self.whitelisted_apps: list[dict[str, str]] = load_whitelist_apps()
@@ -1694,11 +1702,7 @@ class SettingsDialog(QDialog):
         h_filter.addWidget(QLabel("Category Filter:", grp_lisp))
         self.combo_lisp_cat = QComboBox(grp_lisp)
         self.combo_lisp_cat.addItem("All Categories")
-        self.combo_lisp_cat.addItem("Hardware & Safety")
-        self.combo_lisp_cat.addItem("Cognitive & Temporal")
-        self.combo_lisp_cat.addItem("Tools & Execution")
-        self.combo_lisp_cat.addItem("Persona & Inflection")
-        self.combo_lisp_cat.addItem("Memory & Recall")
+        self._refresh_lisp_categories()
         self.combo_lisp_cat.currentTextChanged.connect(self._populate_lisp_table)
         h_filter.addWidget(self.combo_lisp_cat)
         h_filter.addStretch()
@@ -1795,11 +1799,77 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(grp_shadow)
 
+    def _load_lisp_registry(self) -> None:
+        """
+        Loads the live skill registry from config/skills/ (Spec 1.1.2 §3) into
+        the LISP Studio tab, merging lifecycle status from the rule engine.
+        Failures are non-fatal: the seed demo rule remains editable.
+        """
+        try:
+            self._skill_manager = SkillManager()
+        except Exception:  # noqa: BLE001
+            return
+        try:
+            engine = RuleLifecycleManager(db=self.db) if self.db is not None else None
+        except Exception:  # noqa: BLE001
+            engine = None
+
+        skills_root = self._skill_manager.skills_dir
+        retired_root = self._skill_manager.retired_dir
+        for root, default_status in ((skills_root, None), (retired_root, "RETIRED")):
+            if not root.exists() or not root.is_dir():
+                continue
+            for child in sorted(root.iterdir()):
+                if not child.is_dir() or child.name.startswith("_") or child.name.startswith("."):
+                    continue
+                meta_file = child / "meta_info.json"
+                plan_file = child / "plan.scm"
+                if not meta_file.exists():
+                    continue
+                try:
+                    meta = SkillMeta.model_validate_json(meta_file.read_text(encoding="utf-8"))
+                except Exception as exc:  # noqa: BLE001
+                    _LOG.debug("lisp_studio_meta_parse_failed", file=str(meta_file), error=str(exc))
+                    continue
+                code = plan_file.read_text(encoding="utf-8") if plan_file.exists() else ""
+                status = default_status or meta.status
+                if engine is not None and meta.id in engine.rules:
+                    status = engine.rules[meta.id].status
+                cats = ", ".join(meta.categories) if meta.categories else "-"
+                self.lisp_rules[meta.id] = {
+                    "category": cats,
+                    "purpose": meta.description or meta.intent,
+                    "priority": 10,
+                    "state": status,
+                    "code": code,
+                    "on_disk": True,
+                }
+
+    def _refresh_lisp_categories(self) -> None:
+        """Rebuilds the category filter combo from the loaded registry."""
+        cats: set[str] = set()
+        for data in self.lisp_rules.values():
+            for raw_part in str(data["category"]).split(","):
+                part = raw_part.strip()
+                if part and part != "-":
+                    cats.add(part)
+        current = self.combo_lisp_cat.currentText()
+        self.combo_lisp_cat.blockSignals(True)
+        self.combo_lisp_cat.clear()
+        self.combo_lisp_cat.addItem("All Categories")
+        for c in sorted(cats):
+            self.combo_lisp_cat.addItem(c)
+        idx = self.combo_lisp_cat.findText(current)
+        self.combo_lisp_cat.setCurrentIndex(idx if idx >= 0 else 0)
+        self.combo_lisp_cat.blockSignals(False)
+
     def _populate_lisp_table(self, filter_cat: str = "All Categories") -> None:
         self.table_lisp.setRowCount(0)
         for rule_id, data in self.lisp_rules.items():
-            cat = data["category"]
-            if filter_cat not in ("All Categories", cat):
+            cat = str(data["category"])
+            # Substring match: skill categories are comma-joined capability
+            # categories (e.g. "cognitive_core, self").
+            if filter_cat != "All Categories" and filter_cat not in cat:
                 continue
 
             row = self.table_lisp.rowCount()
@@ -1932,7 +2002,19 @@ class SettingsDialog(QDialog):
                 code = self.txt_rule_code.toPlainText()
                 if rule_id in self.lisp_rules:
                     self.lisp_rules[rule_id]["code"] = code
-                    self.lbl_rule_status.setText(f"✓ Saved definition for [{rule_id}].")
+                    # Persist to the real skill package when it exists on disk
+                    # (Spec 1.1.2 §3); the seed demo rule stays in-memory.
+                    if self.lisp_rules[rule_id].get("on_disk") and self._skill_manager:
+                        plan_path = self._skill_manager.skills_dir / rule_id / "plan.scm"
+                        try:
+                            plan_path.write_text(code, encoding="utf-8")
+                            self.lbl_rule_status.setText(
+                                f"✓ Saved definition for [{rule_id}] to {plan_path}."
+                            )
+                        except OSError as exc:
+                            self.lbl_rule_status.setText(f"✗ Save failed: {exc}")
+                    else:
+                        self.lbl_rule_status.setText(f"✓ Saved definition for [{rule_id}].")
 
     def _add_new_rule_dialog(self) -> None:
         name, ok = QInputDialog.getText(
@@ -1957,7 +2039,16 @@ class SettingsDialog(QDialog):
             if item:
                 rule_id = item.text()
                 if rule_id in self.lisp_rules:
+                    # Persist retirement for real skill packages (Spec 1.1.2 §3):
+                    # relocates the package into config/skills/_retired/.
+                    if self.lisp_rules[rule_id].get("on_disk") and self._skill_manager:
+                        try:
+                            self._skill_manager.retire_skill(rule_id)
+                        except Exception as exc:  # noqa: BLE001
+                            self.lbl_rule_status.setText(f"✗ Retire failed: {exc}")
+                            return
                     del self.lisp_rules[rule_id]
+                    self._refresh_lisp_categories()
                     self._populate_lisp_table(self.combo_lisp_cat.currentText())
                     self.txt_rule_code.clear()
                     self.lbl_rule_status.setText(f"Retired and removed pathway [{rule_id}].")
