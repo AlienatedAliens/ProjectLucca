@@ -20,7 +20,7 @@ from lucca.core.schemas import (
 
 INLINE_TOOL_PREFIX_REGEX = re.compile(r"^\s*(?:<\|python_tag\|>|\[TOOL_CALLS\]|\[|\{|<function=)")
 
-# Qwen/Harmony-style XML tool calls (e.g. Ternary-Bonsai 2):
+# Qwen/Harmony-style XML tool calls (slot-2 candidate template):
 #   <function=run_python>
 #   <parameter=code>print("hi")</parameter>
 #   </function>
@@ -133,7 +133,7 @@ class ToolCallDemux:
         self._total_chars_seen += len(delta)
 
         # Qwen/Harmony-style <function=...> blocks can appear mid-stream after
-        # narration text (Bonsai 2 template). Buffer until the closing tag.
+        # narration text (slot-2 candidate template). Buffer until the closing tag.
         if self._function_tag_buffering or "<function=" in delta:
             self._function_tag_buffering = True
             self._buffer.append(delta)

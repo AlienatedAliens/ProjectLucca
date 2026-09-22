@@ -5,6 +5,27 @@
 **Plan:** [`plans/2026-09-22_reasoning_loop_remediation_and_audit.md`](../../../plans/2026-09-22_reasoning_loop_remediation_and_audit.md)
 **Companion map:** [`docs/audit/COGNITIVE_LOOP_MAP.md`](../COGNITIVE_LOOP_MAP.md)
 
+## Remediation status (WO-9 Phase A, 2026-09-22)
+
+| Item | Finding(s) | Status | Commit |
+|---|---|---|---|
+| A1 confirmation deadlock | F1 | FIXED — press-during-confirm_wait is the answer mechanism; typed answers routed; T-BRG-05 rewritten | ad7f3fb |
+| A2 grounded memory_commit | F2 | FIXED — ADR-010: candidate {s,p,o,quote} validated by FactExtractor against the turn transcript, signed USER_DERIVED; sandbox block kept as defense-in-depth | ad7f3fb |
+| A3 passive fact extraction | F3 | FIXED — is_named/lives_in/works_at regex candidates, interrogative+hypothetical guards, is_named supersession | ad7f3fb |
+| A9 ASSISTANT_ACTION receipts | F8 | FIXED — all tool attempts incl. cancels/timeouts/refusals persisted, signed via create_tool_result_signer factory | ad7f3fb, e6e1ed3 |
+| A4 promise-without-action | F4 | FIXED — detect_promised_action_claims + Honesty Directive re-prompt with per-round buffer | 8a0fea6 |
+| A5 convergence loop | F5 | FIXED — terminate on no-tool round; cap 8 runaway guard with honest-synthesis directive; Repeat Guard; rounds_used/cap_hit telemetry | 9601e36 |
+| A6 demux hardening | F6 | FIXED — mid-stream detection, lenient sentinel-args parser, never-speak-unresolved invariant; T-CHK-12/13 | 8f584a5 |
+| A7 coherence verb families | F7 | FIXED — memory_search/memory_commit/invoke_skill families + checked/committed/invoked/recalled/queried verbs | e51a2c7 |
+| A10 memory-tab freshness | F17 | FIXED — mem.commit bus events published; tab refresh on switch + 5s visible-poll (full UI bus subscription deferred) | 9b01fd7 |
+| A11 router session_id | F10 | FIXED — self.session_id passed in both turn paths | d40fc31 |
+| A12 action-turn beliefs | F9 | FIXED — zero-tool-call gate removed; Scenario 1 contract revised | d40fc31 |
+| A13 tool-surface truth | F14/F16 | FIXED — launch_app advertised (confirmation-gated, registry 17/18); Docker precondition in prompt contract | 135d8f7 |
+| A14 self_history_search | F18 | FIXED — model-callable SELF_HISTORY tool backed by the cascade substrate | e6e1ed3 |
+| F5 residual | F5 | Deferred: F11 last-tool-only narration, F12 raw-vs-normalized transcript, F13 CLARIFY no-op, F15 async-task start tool, F19 write-only telemetry, F20 heuristics→config | WO-9 follow-up |
+
+**Gate status:** ruff clean; full non-hw suite 576 passed (packaging tests pass in isolation; earlier failures were timeout contention). The `@hw` A1 live battery re-run and the live Sean-transcript smoke require the running llama-server and are left as the operator's verification step.
+
 Severity: **P0** = user-facing capability is broken or a lie; **P1** = intelligence/honesty degraded; **P2** = subsystem blind spot; **P3** = hygiene.
 
 ---

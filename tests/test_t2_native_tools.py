@@ -93,10 +93,19 @@ def test_memory_commit_fails_closed_for_llm_narration(
     assert res_unconfirmed.stderr == "confirmation_required"
 
     # Layer 2: even a *confirmed* call must be refused — confirmation cannot mint provenance.
+    # (WO-9 A2 revision: the sandbox dispatcher keeps its fail-closed block as
+    # defense-in-depth; the grounded path lives in the orchestrator, which
+    # validates the candidate against the user's own words. Old-style
+    # content-only args are rejected at schema validation.)
     res_commit = sandbox_service.execute_tool(
         call_id="call-c1",
         tool_name="memory_commit",
-        args={"content": "Lucca favourite dessert is tiramisu", "tags": ["preference"]},
+        args={
+            "s": "user",
+            "p": "prefers",
+            "o": "tiramisu",
+            "quote": "Lucca favourite dessert is tiramisu",
+        },
         confirmed=True,
     )
     assert res_commit.ok is False

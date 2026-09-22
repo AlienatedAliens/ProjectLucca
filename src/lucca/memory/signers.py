@@ -154,6 +154,14 @@ class ToolResultSigner(BaseProvenanceSigner):
         super().__init__(master_key, signer_id)
 
 
+def create_tool_result_signer(
+    master_key: bytes, signer_id: str = "sandbox@lucca-core"
+) -> ToolResultSigner:
+    """Authorized factory for constructing ToolResultSigner outside the sandbox
+    domain (WO-9 A9: the orchestrator signs ASSISTANT_ACTION receipts)."""
+    return ToolResultSigner(master_key=master_key, signer_id=signer_id)
+
+
 class LispAssertionSigner(BaseProvenanceSigner):
     """Constructed ONLY in lucca.reasoning.executor."""
 

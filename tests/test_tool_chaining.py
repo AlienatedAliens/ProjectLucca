@@ -143,8 +143,10 @@ def test_tool_chain_search_then_fetch(workspace_tmp: Path, monkeypatch: pytest.M
 
 def test_tool_chain_max_rounds_boundary(workspace_tmp: Path):
     """
-    Verify that 3 consecutive tool calls do not cause an infinite loop,
-    Forced Final Synthesis strips tools on round 3, and turn completes cleanly.
+    Revised by WO-9 A5 (F5): the loop converges when the model stops calling
+    tools — tools stay available past the old fixed quota of 3. The hard cap
+    (8) is a runaway guard only. This test verifies 2 tool rounds + a plain
+    narration round converge cleanly at round 3 with tools still offered.
     """
     rounds = [
         [
@@ -156,7 +158,7 @@ def test_tool_chain_max_rounds_boundary(workspace_tmp: Path):
             Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=2)),
         ],
         [
-            # On round 3, Forced Final Synthesis strips tools, LLM provides narration
+            # Convergence: no tool call -> loop terminates after this round
             TokenDelta(delta="I have verified all capabilities across multiple steps."),
             Done(usage=LLMUsage(prompt_tokens=15, completion_tokens=10)),
         ],
@@ -174,9 +176,12 @@ def test_tool_chain_max_rounds_boundary(workspace_tmp: Path):
     orch._run_text_turn(trace, "Check capabilities")
 
     assert llm.call_count == 3
-    # On round 3, tools must have been stripped to empty list
+    # WO-9 A5: tools are NOT stripped at round 3 anymore — the loop converges
+    # on its own; the cap-8 withdrawal only fires on the final round.
     r3_tools = llm.all_kwargs[2].get("tools")
-    assert r3_tools == []
+    assert r3_tools, "tools must remain available on non-cap rounds"
+    assert trace.rounds_used == 3
+    assert trace.cap_hit is False
 
 
 def test_tool_failure_triggers_retry(workspace_tmp: Path, monkeypatch: pytest.MonkeyPatch):

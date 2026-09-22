@@ -12,6 +12,7 @@ from lucca.core.trace import TurnTrace
 def test_fast_path_sync_records_tool_executions_in_history() -> None:
     # Construct minimal orchestrator mocks
     orch = Orchestrator.__new__(Orchestrator)
+    orch.session_id = "test-session"
     orch.history = []
     orch.execute_tools = True
     orch.executed_tools = []

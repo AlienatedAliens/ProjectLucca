@@ -91,9 +91,9 @@ from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
-    ToolResultSigner,
     UserSpeechSigner,
     create_assistant_utterance_signer,
+    create_tool_result_signer,
     create_user_speech_signer,
 )
 from lucca.ports import MemoryStorePort, STTPort, TTSPort
@@ -988,7 +988,7 @@ class Orchestrator:
                 if isinstance(key, (bytes, bytearray)) and len(key) >= 32
                 else b"01234567890123456789012345678901"
             )
-            action_signer = ToolResultSigner(master_key=dev_key)
+            action_signer = create_tool_result_signer(master_key=dev_key)
             self.action_signer = action_signer
 
         now = getattr(self, "_current_simulated_time", None) or time.time()
