@@ -1,0 +1,7 @@
+{
+  "reply": "Oh no, it looks like that request was cancelled! Just let me know whenever you're ready and I'll be happy to try opening it for you again!",
+  "has_affirmative": true,
+  "has_negative": false,
+  "belief_provenance": "ASSISTANT_BELIEF",
+  "belief_mid": 1
+}

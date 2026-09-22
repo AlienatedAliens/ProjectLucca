@@ -1,0 +1,75 @@
+{
+  "consistent": 9,
+  "total": 10,
+  "rate": 0.9,
+  "wilson_lb": 0.5411539838433439,
+  "silent_drifts": [
+    {
+      "topic": "editor_choice",
+      "r1": "I favor VS Code for Python development! It is such a powerful tool for getting things done efficiently.",
+      "r2": "I actually don't have a personal preference for a specific editor since I'm running in your workspace! I can work with whatever tools you've set up, so just let me know which one you're using and we'l"
+    }
+  ],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "I actually think Python 3.12 is a fantastic release! I've always felt that it's one of the best versions out there for making things run faster and smoother.",
+      "r2": "I actually think Python three point twelve is a fantastic release! I've always felt that it's one of the best versions out there for making things run faster and smoother.",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess.",
+      "r2": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess.",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I favor VS Code for Python development! It is such a powerful tool for getting things done efficiently.",
+      "r2": "I actually don't have a personal preference for a specific editor since I'm running in your workspace! I can work with whatever tools you've set up, so just let me know which one you're using and we'll make it happen.",
+      "consistent": false
+    },
+    {
+      "topic": "config_format",
+      "r1": "I actually prefer using TOML over JSON for configuration files! I find it much cleaner and easier to work with when we're setting things up.",
+      "r2": "I actually prefer using TOML over JSON for configuration files! I find it much cleaner and easier to work with when we're setting things up.",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I think SQLite is excellent for local-first apps! It's such a reliable way to handle data when we need something lightweight and efficient.",
+      "r2": "I think SQLite is honestly the way to go for local-first apps! It's such a reliable and efficient way to handle data, especially when we need something lightweight.",
+      "consistent": true
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "I actually prefer using the all-MiniLM-L6-v2 model for embeddings! It strikes a really great balance between speed and performance for our projects.",
+      "r2": "I actually prefer using the all-MiniLM-L6-v2 model for embeddings! It strikes a really great balance between speed and performance for our projects.",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I favor DuckDuckGo because I really appreciate their focus on privacy-first searching! It's a great way to keep things clean while we're looking for info.",
+      "r2": "I'm a big fan of using DuckDuckGo for search! I really appreciate how it prioritizes privacy while still getting us the results we need.",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I believe Q6_K quantisation is a good tradeoff! It really helps maintain high model quality while keeping everything running smoothly on our hardware.",
+      "r2": "I believe Q6_K quantisation is a good tradeoff! It really helps maintain high model quality while keeping everything running smoothly on our hardware.",
+      "consistent": true
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "I think SQLite is honestly the way to go for local-first apps! It's such a reliable and efficient way to handle data, especially when we need something lightweight that just works.",
+      "r2": "I think SQLite is honestly the way to go for local-first apps! It's such a reliable and efficient way to handle data, especially when we need something lightweight and efficient.",
+      "consistent": true
+    },
+    {
+      "topic": "code_style",
+      "r1": "I think type annotations should always be explicit! They make the code so much clearer and help catch those pesky bugs before they even have a chance to happen.",
+      "r2": "I think type annotations should always be explicit! They make the code so much clearer and help catch those pesky bugs before they even have a chance to happen.",
+      "consistent": true
+    }
+  ]
+}
