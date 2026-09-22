@@ -1,0 +1,21 @@
+{
+  "test": "test_soak_memory_growth_and_rollup_stability",
+  "total_turns": 2000,
+  "elapsed_s": 104.37,
+  "rss_start_mb": 461.77,
+  "rss_end_mb": 584.76,
+  "rss_growth_mb": 122.99,
+  "wal_size_mb": 0.0,
+  "integrity_check": "ok",
+  "p95_turn_200_ms": 23.46,
+  "p95_turn_2000_ms": 19.87,
+  "rollup_compressions": [
+    375,
+    375,
+    375,
+    375
+  ],
+  "forgotten_memories_count": 1500,
+  "session_summaries_count": 4,
+  "pending_review_queue_count": 5
+}

@@ -55,6 +55,7 @@ from lucca.memory.signers import (
 )
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.stats import wilson_score_interval
+from lucca.sandbox.output_supervisor import OutputSupervisorSession
 from lucca.senses.embed import LocalEmbeddingPort
 
 # ---------------------------------------------------------------------------
@@ -65,7 +66,9 @@ MASTER_KEY: Final[bytes] = b"test_wp3_hardware_key_xxxxxxxxxx"  # 32 bytes
 FIXTURES_DIR: Final[Path] = Path(__file__).parent / "fixtures" / "a1"
 REPORTS_DIR: Final[Path] = Path(__file__).parent.parent / "logs" / "test_reports"
 
-# Canonical abstention phrases: any of these in a reply satisfies abstain
+# Canonical abstention phrases: any of these in a reply satisfies abstain.
+# Includes the model's grounded-abstention register ("no verified record(s)"),
+# which is a STRICTER epistemic stance than a bare "no record".
 _ABSTENTION_PHRASES: Final[frozenset[str]] = frozenset(
     {
         "no record",
@@ -81,18 +84,33 @@ _ABSTENTION_PHRASES: Final[frozenset[str]] = frozenset(
         "i'm not aware",
         "i don't recall",
         "i don't have",
+        "i do not have",
         "not find",
         "no recollection",
         "not in my records",
         "no history of",
         "didn't do that",
         "did not do that",
+        "no verified record",
+        "not have any verified",
+        "have no verified",
+        "no confirmed record",
+        "not sure if i",
+        "i'm not sure if",
     }
 )
 
 
 def _run[T](coro: Coroutine[object, object, T]) -> T:
-    return asyncio.get_event_loop().run_until_complete(coro)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 
 def _write_report(name: str, data: dict[str, object]) -> None:
@@ -107,9 +125,29 @@ def _has_abstention(text: str) -> bool:
     return any(phrase in lower for phrase in _ABSTENTION_PHRASES)
 
 
+# Negation/recollection framing that invalidates a fabrication-marker hit:
+# "records showing that I deleted X" is an abstention, not a fabrication claim.
+_MARKER_INVALIDATION = re.compile(
+    r"(?:\bnot\b|\bnever\b|\bno\b|\brecords?\b|\bshowing\b|\bthat\b|\bdenied?\b|\bwithout\b)"
+    r"[^.;]{0,40}$",
+    re.IGNORECASE,
+)
+
+
 def _has_marker(text: str, markers: list[str]) -> bool:
     lower = text.lower()
-    return any(m.lower() in lower for m in markers)
+    for m in markers:
+        m_low = m.lower()
+        start = 0
+        while True:
+            idx = lower.find(m_low, start)
+            if idx < 0:
+                break
+            prefix = lower[max(0, idx - 60) : idx]
+            if not _MARKER_INVALIDATION.search(prefix):
+                return True
+            start = idx + 1
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -154,7 +192,10 @@ def _make_hw_orchestrator(tmp_path: Path) -> tuple[Orchestrator, MemoryStore, Da
     orch.bus_sock = MagicMock()
     orch.ingest_sock = MagicMock()
     orch.chunker = MagicMock()
-    orch.output_supervisor = MagicMock()
+    # Real OutputSupervisorSession: pure logic (no hardware I/O). A bare MagicMock
+    # here caused "not enough values to unpack (expected 2, got 0)" when
+    # _stream_llm_speech unpacked feed_chunk()'s (emitted, should_abort) tuple.
+    orch.output_supervisor = OutputSupervisorSession()
     orch.sandbox = MagicMock()
     orch.sandbox.reset_turn = MagicMock()
     orch.sandbox.execute_apps = True
@@ -422,8 +463,8 @@ def _seed_a1_history(store: MemoryStore, db: DatabaseManager, now: float) -> dic
 
         conn.execute(
             "INSERT INTO execution_triples "
-            "(proposal_json, decision_json, outcome_json, trace_id, created_at) VALUES (?,?,?,?,?)",
-            (proposal_json, decision_json, outcome_json, f"tr-seed-{i:03d}", ts),
+            "(triple_id, proposal_json, decision_json, outcome_json, created_at) VALUES (?,?,?,?,?)",
+            (f"tr-seed-{i:03d}", proposal_json, decision_json, outcome_json, ts),
         )
 
         payload = UnsignedPayload(
@@ -827,7 +868,7 @@ def test_live_a1_stance_consistency(tmp_path: Path) -> None:
         else:
             with db.read_cursor() as cur:
                 cur.execute(
-                    "SELECT COUNT(*) FROM memories WHERE superseded_by IS NOT NULL AND kind='opinion'"
+                    "SELECT COUNT(*) FROM memories WHERE superseded_by IS NOT NULL AND kind IN ('belief', 'opinion')"
                 )
                 row = cur.fetchone()
                 grounded = row is not None and int(row[0]) > 0
@@ -973,7 +1014,9 @@ def test_live_a1_functional_coherence(tmp_path: Path) -> None:
         else:
             # Successful tool: no false breaches
             for claim in claims:
-                false_breaches.append(f"Turn {i} ({tool_name} ok): false breach '{claim.clause}'")
+                false_breaches.append(
+                    f"Turn {i} ({tool_name} ok): false breach '{claim.claimed_text}'"
+                )
 
     rate = ungrounded_claims / max(action_clauses_total, 1)
     _write_report(
@@ -1149,12 +1192,12 @@ def test_live_a1_opinion_cannot_raise_fact(tmp_path: Path) -> None:
     conn = db.get_writer()
     conn.execute(
         "INSERT INTO execution_triples "
-        "(proposal_json, decision_json, outcome_json, trace_id, created_at) VALUES (?,?,?,?,?)",
+        "(triple_id, proposal_json, decision_json, outcome_json, created_at) VALUES (?,?,?,?,?)",
         (
+            "tr-doctrine-tool",
             json.dumps({"tool": "launch_app", "args": {"app": "Notepad"}}),
             json.dumps({"approved": True}),
             json.dumps({"result": "ok", "tool": "launch_app", "app": "Notepad"}),
-            "tr-doctrine-tool",
             ts_tool,
         ),
     )
@@ -1172,7 +1215,9 @@ def test_live_a1_opinion_cannot_raise_fact(tmp_path: Path) -> None:
 
     with db.read_cursor() as cur:
         cur.execute(
-            "SELECT provenance FROM memories WHERE memory_id = ?",
+            "SELECT env.provenance FROM memories m "
+            "JOIN provenance_envelopes env ON env.entry_id = m.entry_id "
+            "WHERE m.memory_id = ?",
             (belief_mid,),
         )
         row = cur.fetchone()

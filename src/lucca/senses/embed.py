@@ -30,6 +30,7 @@ class EmbedWorker:
     def __init__(self) -> None:
         self.device = "CPU"
         self.compiled: Any = None
+        self.infer_request: Any = None
         self.tokenizer: Any = None
         self._is_fast_tokenizer = False
         self._init_model()
@@ -55,6 +56,7 @@ class EmbedWorker:
             self.device = "CPU"
 
         self.compiled = core.compile_model(model, target_dev)
+        self.infer_request = self.compiled.create_infer_request()
 
         # Load tokenizer: prefer tokenizers.Tokenizer from tokenizer.json
         tok_json = MODEL_DIR / "tokenizer.json"
@@ -84,7 +86,7 @@ class EmbedWorker:
             return [[0.0] * 384 for _ in texts], 384, 0.0
 
         vectors: list[list[float]] = []
-        infer_req = self.compiled.create_infer_request()
+        infer_req = self.infer_request or self.compiled.create_infer_request()
 
         for t in texts:
             if self.tokenizer and self._is_fast_tokenizer:

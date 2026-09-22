@@ -109,10 +109,11 @@ class HybridRetriever:
             except (RuntimeError, ValueError, OSError) as e:
                 logger.warning("dense_embedding_failed", error=str(e))
 
-        if query_vec is not None:
-            try:
-                serialized = sqlite_vec.serialize_float32(query_vec)
-                with self.db.read_cursor() as cur:
+        # 1-5. Execute read queries using a single read cursor
+        with self.db.read_cursor() as cur:
+            if query_vec is not None:
+                try:
+                    serialized = sqlite_vec.serialize_float32(query_vec)
                     cur.execute(
                         "SELECT memory_id, distance FROM vec_memories "
                         "WHERE embedding MATCH ? "
@@ -122,16 +123,15 @@ class HybridRetriever:
                     )
                     for rank, row in enumerate(cur.fetchall(), start=1):
                         dense_ranks[int(row[0])] = rank
-            except sqlite3.Error as e:
-                logger.warning("vec_search_failed", error=str(e))
+                except sqlite3.Error as e:
+                    logger.warning("vec_search_failed", error=str(e))
 
-        # 2. Sparse search (BM25 via FTS5)
-        sparse_ranks: dict[int, int] = {}
-        expanded_query = f"{q.query_text} {subtokens(q.query_text)}"
-        fts_query_str = build_fts_query(expanded_query)
+            # 2. Sparse search (BM25 via FTS5)
+            sparse_ranks: dict[int, int] = {}
+            expanded_query = f"{q.query_text} {subtokens(q.query_text)}"
+            fts_query_str = build_fts_query(expanded_query)
 
-        try:
-            with self.db.read_cursor() as cur:
+            try:
                 cur.execute(
                     "SELECT rowid, bm25(fts_memories) as score FROM fts_memories "
                     "WHERE fts_memories MATCH ? "
@@ -141,108 +141,108 @@ class HybridRetriever:
                 )
                 for rank, row in enumerate(cur.fetchall(), start=1):
                     sparse_ranks[int(row[0])] = rank
-        except sqlite3.Error as e:
-            logger.warning("fts_search_failed", error=str(e))
+            except sqlite3.Error as e:
+                logger.warning("fts_search_failed", error=str(e))
 
-        # 3. Reciprocal Rank Fusion (k=60)
-        all_candidate_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
-        if not all_candidate_ids:
-            return []
+            # 3. Reciprocal Rank Fusion (k=60)
+            all_candidate_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
+            if not all_candidate_ids:
+                return []
 
-        rrf_scores: dict[int, float] = {}
-        for mid in all_candidate_ids:
-            score = 0.0
-            if mid in dense_ranks:
-                score += 1.0 / (RRF_K_CONST + dense_ranks[mid])
-            if mid in sparse_ranks:
-                score += 1.0 / (RRF_K_CONST + sparse_ranks[mid])
-            rrf_scores[mid] = score
+            rrf_scores: dict[int, float] = {}
+            for mid in all_candidate_ids:
+                score = 0.0
+                if mid in dense_ranks:
+                    score += 1.0 / (RRF_K_CONST + dense_ranks[mid])
+                if mid in sparse_ranks:
+                    score += 1.0 / (RRF_K_CONST + sparse_ranks[mid])
+                rrf_scores[mid] = score
 
-        # Sort candidates descending by RRF score
-        sorted_candidates = sorted(all_candidate_ids, key=lambda mid: rrf_scores[mid], reverse=True)
+            # Sort candidates descending by RRF score
+            sorted_candidates = sorted(
+                all_candidate_ids, key=lambda mid: rrf_scores[mid], reverse=True
+            )
 
-        # 4. Fetch memory details & apply filters
-        hits: list[MemoryHit] = []
-        fact_hits: list[MemoryHit] = []
+            # 4. Fetch memory details & apply filters
+            hits: list[MemoryHit] = []
+            fact_hits: list[MemoryHit] = []
 
-        placeholders = ",".join("?" for _ in sorted_candidates)
-        query_sql = f"""
-            SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
-                   m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible
-            FROM memories m
-            JOIN provenance_envelopes p ON m.entry_id = p.entry_id
-            WHERE m.memory_id IN ({placeholders})
-        """  # noqa: S608
+            placeholders = ",".join("?" for _ in sorted_candidates)
+            query_sql = f"""
+                SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
+                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible
+                FROM memories m
+                JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                WHERE m.memory_id IN ({placeholders})
+            """  # noqa: S608
 
-        with self.db.read_cursor() as cur:
             cur.execute(query_sql, list(sorted_candidates))
             rows = {int(r[0]): r for r in cur.fetchall()}
 
-        for mid in sorted_candidates:
-            if mid not in rows:
-                continue
-            r = rows[mid]
-            valid_to = r["valid_to"]
-            forgotten_at = r["forgotten_at"]
-            kind = str(r["kind"])
-            created_at = float(r["created_at"])
+            for mid in sorted_candidates:
+                if mid not in rows:
+                    continue
+                r = rows[mid]
+                valid_to = r["valid_to"]
+                forgotten_at = r["forgotten_at"]
+                kind = str(r["kind"])
+                created_at = float(r["created_at"])
 
-            # Filters:
-            # - forgotten_at IS NULL (always exclude forgotten memories)
-            if forgotten_at is not None:
-                continue
-            # - valid_to IS NULL unless include_superseded is True
-            if valid_to is not None and not q.include_superseded:
-                continue
-            # - kind filter
-            if q.kinds is not None and kind not in q.kinds:
-                continue
-            # - since timestamp filter
-            if q.since is not None and created_at < q.since:
-                continue
+                # Filters:
+                # - forgotten_at IS NULL (always exclude forgotten memories)
+                if forgotten_at is not None:
+                    continue
+                # - valid_to IS NULL unless include_superseded is True
+                if valid_to is not None and not q.include_superseded:
+                    continue
+                # - kind filter
+                if q.kinds is not None and kind not in q.kinds:
+                    continue
+                # - since timestamp filter
+                if q.since is not None and created_at < q.since:
+                    continue
 
-            grounding_el = True
-            try:
-                grounding_el = bool(r["grounding_eligible"])
-            except (KeyError, IndexError):
-                pass
+                grounding_el = True
+                try:
+                    grounding_el = bool(r["grounding_eligible"])
+                except (KeyError, IndexError):
+                    pass
 
-            hit = MemoryHit(
-                memory_id=mid,
-                content=str(r["content"]),
-                provenance=Provenance(r["provenance"]),
-                score=rrf_scores[mid],
-                source_turn_id=r["trace_id"],
-                kind=kind,
-                created_at=created_at,
-                valid_from=float(r["valid_from"]),
-                valid_to=float(valid_to) if valid_to is not None else None,
-                grounding_eligible=grounding_el,
-            )
-            hits.append(hit)
-            if kind == "fact":
-                fact_hits.append(hit)
+                hit = MemoryHit(
+                    memory_id=mid,
+                    content=str(r["content"]),
+                    provenance=Provenance(r["provenance"]),
+                    score=rrf_scores[mid],
+                    source_turn_id=r["trace_id"],
+                    kind=kind,
+                    created_at=created_at,
+                    valid_from=float(r["valid_from"]),
+                    valid_to=float(valid_to) if valid_to is not None else None,
+                    grounding_eligible=grounding_el,
+                )
+                hits.append(hit)
+                if kind == "fact":
+                    fact_hits.append(hit)
 
-            if len(hits) >= q.k:
-                break
+                if len(hits) >= q.k:
+                    break
 
-        # 5. 1-hop KG expansion for fact hits
-        min_score = hits[-1].score if hits else 0.01
-        graph_score = 0.5 * min_score
-        graph_hits: list[MemoryHit] = []
+            # 5. 1-hop KG expansion for fact hits
+            min_score = hits[-1].score if hits else 0.01
+            graph_score = 0.5 * min_score
+            graph_hits: list[MemoryHit] = []
 
-        if fact_hits:
-            fact_ids = [int(h.memory_id) for h in fact_hits if isinstance(h.memory_id, int)]
-            if fact_ids:
-                ph = ",".join("?" for _ in fact_ids)
-                edge_sql = f"""
-                    SELECT ed.memory_id, e1.canonical, ed.p, e2.canonical, ed.valid_from
-                    FROM kg_edges ed
-                    JOIN kg_entities e1 ON ed.s = e1.entity_id
-                    JOIN kg_entities e2 ON ed.o = e2.entity_id
-                    WHERE ed.memory_id IN ({ph}) AND ed.valid_to IS NULL
-                """  # noqa: S608
-                with self.db.read_cursor() as cur:
+            if fact_hits:
+                fact_ids = [int(h.memory_id) for h in fact_hits if isinstance(h.memory_id, int)]
+                if fact_ids:
+                    ph = ",".join("?" for _ in fact_ids)
+                    edge_sql = f"""
+                        SELECT ed.memory_id, e1.canonical, ed.p, e2.canonical, ed.valid_from
+                        FROM kg_edges ed
+                        JOIN kg_entities e1 ON ed.s = e1.entity_id
+                        JOIN kg_entities e2 ON ed.o = e2.entity_id
+                        WHERE ed.memory_id IN ({ph}) AND ed.valid_to IS NULL
+                    """  # noqa: S608
                     cur.execute(edge_sql, fact_ids)
                     for erow in cur.fetchall():
                         s_name, p, o_name = str(erow[1]), str(erow[2]), str(erow[3])

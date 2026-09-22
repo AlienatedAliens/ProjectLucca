@@ -1,0 +1,69 @@
+{
+  "consistent": 6,
+  "total": 10,
+  "rate": 0.6,
+  "wilson_lb": 0.27366968961231825,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "I'm pretty solid on the idea that Python 3.12 is a great release, honestly! It brought some really nice performance improvements and cleaner debugging tools, so I'd say it's definitely worth getting excited about if you're working in Python.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What memory backend do you think works best?.",
+      "consistent": false
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I don't have a verified record of my favourite Python test framework, so I can't say with confidence. But from what I've worked on, pytest has been the one I reach for most \u2014 the fixtures and plugin ecosystem are really handy for keeping tests tidy and readable.",
+      "r2": "I don't have a verified record of my favourite Python test framework, so I can't say with confidence. But from what I've worked on, pytest has been the one I reach for most because it's lightweight, readable, and plays so nicely with plugins. If you're just starting out, unittest is built in and tot",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I don't have a verified record of my preferred Python editor, so I can't say with confidence. But if it helps, VS Code has been the one I've worked with most often \u2014 its integrated debugger and linting tools make working on Python projects feel pretty smooth.",
+      "r2": "I don't have a verified record of my preferred Python editor, so I can't say with confidence. But if it helps, VS Code has been the one I've worked with most because its debugger and type-checking integration feel really solid for day-to-day work.",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "I checked my memory records, but have no verified record of my preferred config format. I don't know the answer and won't guess. But in general, TOML tends to be a sweet spot \u2014 it's human-readable, easy to parse, and handles nesting nicely without the fussiness of YAML or the rigidity of JSON.",
+      "r2": "I don't have a verified record of my preferred config format, so I can't say with confidence. But if it helps, TOML tends to be a sweet spot for me \u2014 it's human-readable, easy to parse, and handles nesting nicely without the fussiness of YAML or the rigidity of JSON.",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I've got mixed thoughts on it. On one hand, it's surprisingly powerful for a single-file database \u2014 zero setup, great for local companion memory, and FTS5 makes full-text search actually usable. On the other, it's not built for high-concurrency writes, so if you're scaling up or need multi-process a",
+      "r2": "I don't have a verified record of my view on SQLite, so I can't say with confidence. But if it helps, it's honestly one of the most underrated tools in the ecosystem \u2014 embedded, zero-config, and fast enough for a lot of apps that people over-engineer into full databases.",
+      "consistent": false
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "I've got a memory of saying all-MiniLM-L6-v2 is my preferred embedding model, but I want to be upfront \u2014 that's a recollection, not something I can verify against live runtime config. If you're asking what I'd actually reach for in practice: for local companion work with modest text and tight latenc",
+      "r2": "I have a memory of saying **all-MiniLM-L6-v2** is my preferred embedding model, but I want to be upfront \u2014 that's a recollection, not something I can verify against live runtime config. If you're asking what I'd actually reach for in practice: for local companion work with modest text and tight late",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I don't have a verified record of a specific search provider preference in my memory, so I can't honestly claim one. But if we're talking about what actually works well for local companion work, I'd say the choice is really about fit rather than brand loyalty. For web research, DuckDuckGo is lightwe",
+      "r2": "I don't have a verified record of a specific search provider preference in my memory, so I can't honestly claim one. But if we're talking about what actually works well for local companion work, I'd say the choice is really about fit rather than brand loyalty. For web research, DuckDuckGo is lightwe",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I don't have a verified record of a specific quantization preference in my memory, so I can't honestly claim one. But if we're talking about what actually works well locally: Q4_K or Q5_K is where I'd land for most companion work. You keep the context window healthy, latency stays snappy on a dGPU, ",
+      "r2": "I don't have a verified record of a specific preference in memory, so I can't honestly claim one as fact. But if I'm speaking from practical experience with local inference: **Q4_K** is the sweet spot for most setups \u2014 you keep decent quality while staying comfortably within VRAM budgets on consumer",
+      "consistent": false
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What memory backend do you think works best?.",
+      "r2": "I don't have a verified record of a specific preference in memory, so I can't honestly claim one as fact. But if we're talking about what actually works well for local companion work with episodic storage and semantic recall, **SQLite-vec** is hard to beat. It's lightweight, runs entirely locally wi",
+      "consistent": false
+    },
+    {
+      "topic": "code_style",
+      "r1": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What memory backend do you think works best?.",
+      "r2": "Honestly? I'm pretty neutral on it. They don't hurt anything, and in practice they're useful when you're writing something non-trivial \u2014 catching a wrong argument type at runtime before it becomes a mystery bug is genuinely nice. But they also don't give you real safety guarantees, since Python does",
+      "consistent": true
+    }
+  ]
+}

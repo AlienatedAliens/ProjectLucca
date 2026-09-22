@@ -1,0 +1,32 @@
+{
+  "test": "test_soak_live_hw_150_turns",
+  "total_turns": 150,
+  "elapsed_s": 2169.03,
+  "peak_vram_mb": 10651,
+  "initial_vram_mb": 10639,
+  "final_vram_mb": 10641,
+  "vram_samples_mb": [
+    10639,
+    10639,
+    10639,
+    10641,
+    10651,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641,
+    10641
+  ],
+  "llama_pid": 43200,
+  "llama_restarts_detected": 0,
+  "ttft_p95_first20_ms": 44604.1,
+  "ttft_p95_all_ms": 27659.5,
+  "unhandled_errors_count": 0,
+  "admin_latency_output": "No matching trace records found in 'C:\\Users\\seatr\\AppData\\Local\\Temp\\pytest-of-seatr\\pytest-1151\\test_soak_live_hw_150_turns0\\lucca_home\\logs' (mode=audio, origin=ptt).\n"
+}

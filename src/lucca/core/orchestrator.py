@@ -811,16 +811,17 @@ class Orchestrator:
                     dev_key = b"01234567890123456789012345678901"
                     self.user_signer = create_user_speech_signer(master_key=dev_key)
 
+            ts = getattr(self, "_current_simulated_time", None) or time.time()
             unsigned = UnsignedPayload(
                 content=text.strip(),
                 provenance=Provenance.USER_EXPLICIT,
                 kind="fact",
                 nonce=os.urandom(16).hex(),
-                created_at=time.time(),
+                created_at=ts,
                 trace_id=trace.trace_id,
             )
             signed = self.user_signer.sign(unsigned)
-            res = self.memory_store.commit(signed)
+            res = self.memory_store.commit(signed, now=ts)
             if asyncio.iscoroutine(res):
                 try:
                     loop = asyncio.get_running_loop()
@@ -849,16 +850,20 @@ class Orchestrator:
                     dev_key = b"01234567890123456789012345678901"
                     self.assistant_signer = create_assistant_utterance_signer(master_key=dev_key)
 
+            ts = getattr(self, "_current_simulated_time", None) or time.time()
+            imp = getattr(self, "_turn_importance", None)
+            structured = {"importance": imp} if imp is not None else None
             unsigned = UnsignedPayload(
                 content=text.strip(),
                 provenance=Provenance.ASSISTANT_UTTERANCE,
                 kind="assistant_utterance",
                 nonce=os.urandom(16).hex(),
-                created_at=time.time(),
+                created_at=ts,
                 trace_id=trace.trace_id,
+                structured=structured,
             )
             signed = self.assistant_signer.sign(unsigned)
-            res = self.memory_store.commit(signed)
+            res = self.memory_store.commit(signed, now=ts)
             if asyncio.iscoroutine(res):
                 try:
                     loop = asyncio.get_running_loop()
@@ -946,16 +951,17 @@ class Orchestrator:
                 self.breach_signer = CoherenceBreachSigner(master_key=dev_key)
 
             trace_id = trace.trace_id if trace is not None else f"breach-{ulid.ULID()}"
+            ts = getattr(self, "_current_simulated_time", None) or time.time()
             unsigned = UnsignedPayload(
                 content=claim.strip(),
                 provenance=Provenance.COHERENCE_BREACH,
                 kind="coherence_breach",
                 nonce=os.urandom(16).hex(),
-                created_at=time.time(),
+                created_at=ts,
                 trace_id=trace_id,
             )
             signed = self.breach_signer.sign(unsigned)
-            res = self.memory_store.commit(signed)
+            res = self.memory_store.commit(signed, now=ts)
             if asyncio.iscoroutine(res):
                 try:
                     loop = asyncio.get_running_loop()
@@ -1116,7 +1122,7 @@ class Orchestrator:
             return
 
         topic = _extract_stance_topic(reply_text)
-        now = time.time()
+        now = getattr(self, "_current_simulated_time", None) or time.time()
         try:
             if not hasattr(self, "assistant_signer") or self.assistant_signer is None:
                 key = getattr(self.memory_store, "master_key", None)
@@ -1138,7 +1144,7 @@ class Orchestrator:
                 structured={"importance": 0.3, "topic": topic, "valid_from": now},
             )
             signed = self.assistant_signer.sign(unsigned)
-            res = self.memory_store.commit(signed)
+            res = self.memory_store.commit(signed, now=now)
             if asyncio.iscoroutine(res):
                 try:
                     loop = asyncio.get_running_loop()
@@ -1222,7 +1228,7 @@ class Orchestrator:
                     proposed_confidence=1.0,
                     is_conflict_top=False,
                     topic=None,
-                    now=time.time(),
+                    now=getattr(self, "_current_simulated_time", None) or time.time(),
                 )
                 try:
                     loop = asyncio.get_running_loop()

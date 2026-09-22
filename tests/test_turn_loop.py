@@ -274,7 +274,7 @@ class FakeMemoryStore:
         self.queries.append(q)
         return self.search_results
 
-    async def commit(self, payload: SignedPayload) -> int:
+    async def commit(self, payload: SignedPayload, now: float | None = None) -> int:
         self.commits.append(payload)
         return len(self.commits)
 

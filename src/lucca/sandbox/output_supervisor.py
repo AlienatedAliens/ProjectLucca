@@ -285,6 +285,21 @@ class TruthInReceiptMatcher:
         "fetched": "fetch",
     }
 
+    # Past-session temporal markers: recollections of PRIOR verified actions are
+    # grounded by long-term memory (A1), not by current-turn ToolReceipts. The
+    # truth-in-receipt gate (D-BRAIN-04) only governs claims about THIS turn.
+    PAST_CONTEXT_PATTERN = re.compile(
+        r"\b(?:"
+        r"last\s+session|previous\s+session|prior\s+session|earlier\s+session|"
+        r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|yesterday|"
+        r"last\s+week|previously|in\s+the\s+past|earlier\s+on|"
+        r"records?\s+(?:from|show|showing|indicate)|my\s+records|"
+        r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
+        r"in\s+our\s+history|histor(?:y|ical)\s+records?"
+        r")\b",
+        re.IGNORECASE,
+    )
+
     def __init__(self) -> None:
         self._action_pattern = re.compile(
             r"\b(?:I|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
@@ -323,6 +338,20 @@ class TruthInReceiptMatcher:
                 SeverityTier.PASS,
                 None,
                 "No completed action claim matched",
+                elapsed_us,
+            )
+
+        # Past-session recollection exemption: claims framed as recollections of
+        # PRIOR sessions are grounded by long-term memory, not current-turn
+        # receipts. Only current-turn action claims require receipt verification.
+        if self.PAST_CONTEXT_PATTERN.search(clause):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                m.group(0) if m else None,
+                "Past-session recollection (out of scope for current-turn receipts)",
                 elapsed_us,
             )
 

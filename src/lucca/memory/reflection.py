@@ -118,6 +118,18 @@ class ReflectionEngine:
             if belief_row[6] is not None:
                 raise ValueError(f"Belief #{old_belief_id} has already been superseded")
 
+            # Oscillation guard: if this exact revision is already pending review,
+            # avoid duplicate queuing. Distinct revisions of the same belief must
+            # still be queued independently (5-flag gating spec, §7 Decision 4).
+            cur.execute(
+                "SELECT review_id FROM review_queue "
+                "WHERE belief_id = ? AND status = 'PENDING' AND proposed_content = ?",
+                (old_belief_id, new_content),
+            )
+            pending_row = cur.fetchone()
+            if pending_row:
+                return True, str(pending_row[0])
+
         old_content = str(belief_row[1])
         kind = str(belief_row[2])
         importance = float(belief_row[3])
@@ -198,7 +210,7 @@ class ReflectionEngine:
             confidence=proposed_confidence,
         )
         signed = self.signer.sign(unsigned)
-        new_memory_id = await self.store.commit(signed)
+        new_memory_id = await self.store.commit(signed, now=current_time)
         await self.store.supersede(
             old_belief_id, new_memory_id, reason=reason_entry_id, now=current_time
         )
@@ -286,7 +298,7 @@ class ReflectionEngine:
             confidence=proposed_confidence,
         )
         signed = self.signer.sign(unsigned)
-        new_mid = await self.store.commit(signed)
+        new_mid = await self.store.commit(signed, now=current_time)
         await self.store.supersede(old_belief_id, new_mid, reason=reason_entry_id, now=current_time)
 
         conn = self.db.get_writer()
@@ -377,7 +389,7 @@ class ReflectionEngine:
                 confidence=1.0,
             )
             signed = self.signer.sign(unsigned)
-            await self.store.commit(signed)
+            await self.store.commit(signed, now=current_time)
 
             # Mark original items forgotten_at
             ph = ",".join("?" for _ in mids)
@@ -386,7 +398,29 @@ class ReflectionEngine:
                 f"UPDATE memories SET forgotten_at = ? WHERE memory_id IN ({ph})",  # noqa: S608
                 [current_time, *mids],
             )
+            for mid in mids:
+                cur_old = conn.execute(
+                    "SELECT content, tokens_aux FROM memories WHERE memory_id = ?", (mid,)
+                )
+                old_row = cur_old.fetchone()
+                if old_row:
+                    old_content, old_tokens = old_row[0], old_row[1]
+                    conn.execute(
+                        """
+                        INSERT INTO fts_memories(fts_memories, rowid, content, tokens_aux)
+                        VALUES ('delete', ?, ?, ?)
+                        """,
+                        (mid, old_content, old_tokens),
+                    )
+            conn.execute(
+                f"DELETE FROM vec_memories WHERE memory_id IN ({ph})",  # noqa: S608
+                mids,
+            )
             total_compressed += len(mids)
+
+        if total_compressed > 0:
+            conn = self.db.get_writer()
+            conn.execute("PRAGMA wal_checkpoint(PASSIVE);")
 
         logger.info("autobiographical_nightly_rollup_completed", compressed_count=total_compressed)
         return total_compressed

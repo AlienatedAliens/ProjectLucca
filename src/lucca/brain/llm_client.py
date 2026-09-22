@@ -134,7 +134,7 @@ class LLMClient:
         }
 
         demux = ToolCallDemux()
-        client = httpx.Client(timeout=30.0)
+        client = httpx.Client(timeout=httpx.Timeout(90.0, connect=15.0))
         stream_state = _StreamState(client=client, aborted=False, trace_id=eff_trace_id)
         with self._streams_lock:
             self._streams[eff_trace_id] = stream_state
