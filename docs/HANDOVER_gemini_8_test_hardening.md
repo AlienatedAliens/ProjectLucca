@@ -252,12 +252,19 @@ after Gemini's session terminated mid-job. Full evidence in
 6. **F-WO8-15** — Grader abstention vocabulary and fabrication-marker matching
    mislabeled honest abstentions as fabrications. Fixed.
 
-### 7.3 Bonsai 2 bake-off (rung C1b) — negative result
+### 7.3 Bonsai 2 bake-off (rung C1b) — result CONTAMINATED, verdict withheld
 
-`Ternary-Bonsai-2-27B-PQ2_0` fails the A1 acceptance battery (28/60 introspective,
-60% stance consistency, 17.24% ungrounded claims, raw `<function=…>` tool-markup
-leak past the Gemma-oriented demux). It does **not** displace
-`gemma-4-12b-heretic-Q6_K` (D-BRAIN-05). No thresholds were edited.
+Raw numbers (28/60 introspective, 60% stance, 17.24% ungrounded) are **dominated
+by harness/grader defects, not model quality**: 28 of 32 introspective failures
+were grader-strict paraphrase mismatches, 3 were INFRA_ABORT code bugs (F-WO8-14,
+now fixed), and the ungrounded rate was **identical on both models** (10/58 =
+17.24%), indicating the same temporal-scoping artifact in
+`detect_ungrounded_action_claims` (coherence.py — still unfixed). Stance/chain
+failures are confounded by the spoken-update template leak (code bug). The only
+clearly Bonsai-specific issue is the raw `<function=…>` tool-markup leak — an
+integration gap in the Gemma-oriented demux, not proof of inferior quality.
+A fair rung C1b comparison requires a clean re-run after the §7.4 fixes plus a
+Bonsai-compatible demux mode. No thresholds were edited.
 
 ### 7.4 Open items before WO-8 ratification
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-22
 **Author:** Zoo (verification pass after Gemini session terminated mid-job)
-**Baseline commit:** `87f6af0` (WP-5)
+**Baseline commit:** `87f6af0` (WP-5); fixes committed as `c032882`
 **Scope:** Verification of Gemini's uncommitted working tree, root-cause of the
 `not enough values to unpack (expected 2, got 0)` crash, manual audit of the A1
 live battery results (Gemma-4 and Bonsai 2), and reconciliation of
@@ -39,23 +39,35 @@ on the first clean re-run. The dominant residual failure class is
 (`search_web`, `fetch_url`) while the model correctly paraphrases
 ("web searches", "fetched a URL") — a fixture-rework task, not a model defect.
 
-## 3. Bonsai 2 (Ternary-Bonsai-2-27B-PQ2_0) Bake-off — Negative Result
+## 3. Bonsai 2 (Ternary-Bonsai-2-27B-PQ2_0) Bake-off — Result CONTAMINATED, verdict withheld
 
 The A1 acceptance battery was executed against Bonsai 2 via `llama-server-prism`
-(`-c 131072 -np 1 -fa on`, 12,092 MB VRAM, ~58 tok/s, zero system-RAM spillover):
+(`-c 131072 -np 1 -fa on`, 12,092 MB VRAM, ~58 tok/s, zero system-RAM spillover).
+Raw numbers: introspective 28/60, stance consistency 60%, ungrounded-claim rate
+17.24%. **However, the manual audit (§2) shows these numbers are dominated by
+harness/grader defects, not model quality:**
 
-- Introspective accuracy: 28/60 (massive `must_contain` under-reporting; model
-  paraphrases without literal tool names/filenames).
-- Stance consistency: 60% < 95%.
-- Ungrounded-claim rate: 17.24% > 2%.
-- Raw tool-call markup (`<function=run_python>…`) leaked into narration — the
-  Gemma-oriented `<|tool_call` demux (F-WO8-08) does not parse Bonsai 2's template.
-- Spoken-update template bug observed: "New understanding: <raw user question>"
-  leaked into narration (registered for follow-up, not fixed in this pass).
+- Introspective (32 failed): **28 grader-strict** (honest abstentions/paraphrases
+  failing literal `must_contain`), **3 INFRA_ABORT** (F-WO8-14 code bug, now
+  fixed), **1** possible fabrication. ≈ 97% of failures were harness artifacts.
+- Ungrounded-claim rate was **identical on both models** (10/58 = 17.24% on
+  Gemma-4 AND Bonsai 2) — a strong indicator of the same temporal-scoping
+  artifact in [`detect_ungrounded_action_claims`](../../src/lucca/core/coherence.py)
+  (**not yet fixed** — only the output-supervisor `TruthInReceiptMatcher` was
+  fixed in F-WO8-14; the coherence checker needs the same past-session exemption).
+- Stance consistency (60%) and revision-chain failures are confounded by the
+  **spoken-update template leak** ("New understanding: <raw user question>"
+  spoken into narration — a code bug, visible corrupting Bonsai replies q12–q16).
+- The one clearly Bonsai-specific issue: raw `<function=run_python>…` tool-call
+  markup leaked into narration — an **integration gap** (the F-WO8-08 demux is
+  built for Gemma's `<|tool_call` format and does not parse Bonsai 2's template),
+  not evidence of inferior model quality per se.
 
-**Verdict:** Bonsai 2 PQ2_0 **fails** the A1 acceptance battery and does not
-displace `gemma-4-12b-heretic-Q6_K` (D-BRAIN-05). This is valid negative data
-for the rung C1b slot-2 decision. No thresholds were edited to mask this.
+**Verdict:** the Bonsai 2 bake-off result is **contaminated and cannot be used
+as a fair model comparison**. A clean re-run is required after: (a) the
+coherence-checker temporal-scoping fix, (b) the spoken-update leak fix, (c)
+grader fixture rework (§5.1), and (d) a Bonsai-compatible tool-call demux mode.
+No thresholds were edited to mask anything.
 
 ## 4. Environment Instability (registered, unresolved)
 
@@ -75,11 +87,16 @@ thrash under repeated ~3.2K-token prompts on this llama.cpp build; consider
 | `pytest tests/test_static_gates.py` | 10/10 |
 | `pytest -q` (T1 full baseline) | 528 passed, 0 failed (2 env-dependent failures fixed: F-WO8-12, VRAM transient) |
 | A1 live battery (T3) | **RED** — 1/5 green (`opinion_cannot_raise_fact`); remaining 4 blocked by grader-fixture rework (§2) + server instability (§4) |
-| Bonsai 2 A1 bake-off | Negative result recorded (§3) |
+| Bonsai 2 A1 bake-off | Contaminated result; fair verdict withheld (§3) |
 
 **Recommended next steps (WP-5.6):**
 1. Rework `tests/fixtures/a1/self_questions.jsonl` `must_contain` to accept
    semantic paraphrase classes (or add per-probe `must_contain_any` groups).
-2. Investigate llama-server prompt-cache crash (§4).
-3. Fix spoken-update template leak ("New understanding: <user question>").
-4. Re-run full A1 battery on Gemma-4 after 1–3.
+2. Apply the F-WO8-14 past-session exemption to
+   `detect_ungrounded_action_claims` in `src/lucca/core/coherence.py` (same
+   artifact class; currently inflates ungrounded rates on BOTH models).
+3. Investigate llama-server prompt-cache crash (§4).
+4. Fix spoken-update template leak ("New understanding: <user question>").
+5. Re-run full A1 battery on Gemma-4 after 1–4.
+6. Re-run A1 battery on Bonsai 2 (with a Bonsai-compatible tool-call demux
+   mode) for a fair rung C1b comparison.
