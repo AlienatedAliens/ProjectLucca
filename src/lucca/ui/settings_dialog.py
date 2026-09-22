@@ -2469,6 +2469,21 @@ class SettingsDialog(QDialog):
         self._current_selected_mid: int | None = None
         self._refresh_memories()
 
+        # WO-9 A10 (F17): periodic live refresh while the memory tab is visible.
+        # The core process now publishes mem.commit bus events (F17 fix); until
+        # a full bus subscription lands in the UI process, a debounced poll
+        # keeps the table fresh without user action.
+        self._mem_refresh_timer = QTimer(self)
+        self._mem_refresh_timer.setInterval(5000)
+        self._mem_refresh_timer.timeout.connect(self._maybe_live_refresh_memories)
+        self._mem_refresh_timer.start()
+
+    def _maybe_live_refresh_memories(self) -> None:
+        """WO-9 A10: refresh the memory table only when visible and active."""
+        if not self.isVisible() or self.tabs.currentIndex() != 7:
+            return
+        self._refresh_memories()
+
     def _refresh_memories(self) -> None:
         if self.memory_manager is None:
             return
@@ -2803,6 +2818,10 @@ class SettingsDialog(QDialog):
         if index == 8:
             self._refresh_diag_snapshot()
             self._scan_and_reload_logs()
+        if index == 7:
+            # WO-9 A10 (F17): refresh the memory view when the tab becomes
+            # visible so new commits appear without a manual search.
+            self._refresh_memories()
 
     def _refresh_diag_snapshot(self) -> None:
         try:

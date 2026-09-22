@@ -528,6 +528,25 @@ class Orchestrator:
         )
         self._publish_bus(env)
 
+    def _publish_mem_event(self, provenance: str, content: str) -> None:
+        """WO-9 A10 (F17): publish a mem.commit bus event so the UI memory tab
+        can live-refresh. The event types existed in events.py but no publisher
+        ever emitted them (F17)."""
+        try:
+            env = Envelope(
+                type="mem.commit",
+                trace_id="",
+                ts_ns=now_ns(),
+                src="core",
+                payload={
+                    "provenance": provenance,
+                    "content_preview": str(content)[:120],
+                },
+            )
+            self._publish_bus(env)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("mem_commit_event_publish_failed", error=str(exc))
+
     def _publish_bus(self, env: Envelope) -> None:
         try:
             self.bus_sock.send(encode_envelope(env), zmq.NOBLOCK)
@@ -943,6 +962,7 @@ class Orchestrator:
                         pool.submit(asyncio.run, res).result()
                 else:
                     asyncio.run(res)
+            self._publish_mem_event("USER_EXPLICIT", text)
             return signed.entry_id
         except Exception as exc:  # noqa: BLE001
             logger.warning("transcript_commit_failed", error=str(exc))
@@ -1431,6 +1451,7 @@ class Orchestrator:
                 else:
                     asyncio.run(res)
             logger.info("assistant_belief_formed", topic=topic, trace_id=trace.trace_id)
+            self._publish_mem_event("ASSISTANT_BELIEF", reply_text)
         except Exception as exc:  # noqa: BLE001
             logger.warning("assistant_belief_commit_failed", error=str(exc))
 
