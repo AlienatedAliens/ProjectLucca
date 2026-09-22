@@ -71,6 +71,38 @@ def test_non_promises_not_flagged(narration: str) -> None:
 
 
 # ============================================================================
+# WO-9 A7: memory/skill verb families groundable via receipts
+# ============================================================================
+
+
+def test_memory_and_skill_verbs_grounded_by_receipts() -> None:
+    """A7 (F7): "I checked my memory records" grounds via a memory_search receipt."""
+    from lucca.core.coherence import ToolReceipt, detect_ungrounded_action_claims
+
+    receipts = [
+        ToolReceipt(
+            tool="memory_search",
+            tool_name="memory_search",
+            ok=True,
+            call_id="c1",
+            args={"query": "Sean"},
+            output="No relevant memories found.",
+            error=None,
+            timestamp=0.0,
+        )
+    ]
+    grounded = detect_ungrounded_action_claims(
+        "I checked my memory records for your name.", receipts
+    )
+    assert grounded and all(c.grounded for c in grounded)
+
+    ungrounded = detect_ungrounded_action_claims(
+        "I checked my memory records for your name.", []
+    )
+    assert any(not c.grounded for c in ungrounded)
+
+
+# ============================================================================
 # Loop-level test: promise without tool call triggers a re-prompt round
 # ============================================================================
 

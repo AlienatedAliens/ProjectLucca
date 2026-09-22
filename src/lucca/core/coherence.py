@@ -60,6 +60,12 @@ def get_tool_family_map() -> dict[str, frozenset[str]]:
     )
     delete_tools = frozenset((reg_tools & {"delete_file"}) or {"delete_file"})
     run_tools = frozenset((reg_tools & {"run_python"}) or {"run_python"})
+    # WO-9 A7 (F7): memory and skill operations were missing from the family
+    # map, so honest claims like "I checked my memory records" or "I invoked
+    # the pathway" were ungroundable even with receipts.
+    memory_search_tools = frozenset((reg_tools & {"memory_search"}) or {"memory_search"})
+    memory_commit_tools = frozenset((reg_tools & {"memory_commit"}) or {"memory_commit"})
+    skill_tools = frozenset((reg_tools & {"invoke_skill"}) or {"invoke_skill"})
 
     return {
         "save": save_tools,
@@ -77,6 +83,10 @@ def get_tool_family_map() -> dict[str, frozenset[str]]:
         "remove": delete_tools,
         "run": run_tools,
         "execute": run_tools,
+        "memory_search": memory_search_tools,
+        "recall": memory_search_tools,
+        "memory_commit": memory_commit_tools,
+        "invoke_skill": skill_tools,
     }
 
 
@@ -224,7 +234,8 @@ def detect_ungrounded_action_claims(
         active_match = re.search(
             r"\b(?:i(?:'ve| have)?)\s+(?:just\s+)?"
             r"(saved|wrote|written|updated|launched|opened|started|searched|"
-            r"looked up|fetched|read|deleted|removed|ran|executed|created)\b",
+            r"looked up|fetched|read|deleted|removed|ran|executed|created|"
+            r"checked|committed|invoked|recalled|queried)\b",
             clause,
         )
         if active_match:
@@ -250,6 +261,12 @@ def detect_ungrounded_action_claims(
                 detected_family = "delete"
             elif v in ("ran", "executed"):
                 detected_family = "run"
+            elif v in ("checked", "recalled", "queried"):
+                detected_family = "memory_search"
+            elif v == "committed":
+                detected_family = "memory_commit"
+            elif v == "invoked":
+                detected_family = "invoke_skill"
 
         # 2. Passive, gerund, or completion claims
         # e.g., "your note is saved", "file written", "launching Notepad now", "calc launched"
