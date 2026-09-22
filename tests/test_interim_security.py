@@ -48,17 +48,22 @@ def service(workspace: Path) -> SandboxService:
 
 
 def test_service_level_run_python_hard_blocked(service: SandboxService):
-    """SandboxService must immediately intercept and reject run_python with policy error."""
-    res = service.execute_tool(
-        call_id="call-py-svc-1",
-        tool_name="run_python",
-        args={"code": "import os; os.system('calc.exe')"},
-        confirmed=True,
-    )
-    assert res.ok is False
-    assert res.exit_code == -1
-    assert "policy_violation" in res.stderr
-    assert "disabled until Milestone 2 container isolation lands" in res.stderr
+    """SandboxService must immediately intercept and reject run_python with policy error.
+    Revised by WO-10.5: the gate message now states the container requirement
+    (run_python is container-only, not unconditionally disabled), and the same
+    gate covers run_python_async."""
+    for tool_name in ("run_python", "run_python_async"):
+        res = service.execute_tool(
+            call_id=f"call-{tool_name}-svc-1",
+            tool_name=tool_name,
+            args={"code": "import os; os.system('calc.exe')"},
+            confirmed=True,
+        )
+        assert res.ok is False
+        assert res.exit_code == -1
+        assert "policy_violation" in res.stderr
+        assert "requires the active container sandbox" in res.stderr
+        assert "(Docker CE in WSL2)" in res.stderr
 
 
 def test_rpc_level_run_python_hard_blocked(file_tool: SafeFileTool):

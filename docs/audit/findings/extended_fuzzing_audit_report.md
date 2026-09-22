@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-To provide rigorous, empirical guarantees for the safety, stability, and sandboxing invariants of Project Lucca, an extended adversarial fuzzing battery (`scripts/extended_fuzz_battery.py`) and a continuous Hypothesis property-based regression suite (`tests/test_extended_fuzzing.py`) were engineered and executed.
+To provide rigorousempirical guarantees for the safety, stability, and sandboxing invariants of Project Lucca, an extended adversarial fuzzing battery (`scripts/extended_fuzz_battery.py`) and a continuous Hypothesis property-based regression suite (`tests/test_extended_fuzzing.py`) were engineered and executed.
 
 The fuzzing campaign exercised six mission-critical security and reasoning boundaries across 6,000 adversarial iterations (1,000 iterations per attack surface). Fuzzing vectors spanned token soup recursion bombs, Windows path traversal mutations (NTFS Alternate Data Streams, UNC paths, DOS reserved devices), SSRF bypass techniques (IPv4/v6 evasion, cloud metadata endpoints, scheme confusion), ZeroMQ IPC wire-framing corruption, ReDoS catastrophic backtracking stress, and HMAC confirmation token tampering.
 

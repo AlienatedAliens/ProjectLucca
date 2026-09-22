@@ -51,7 +51,7 @@ from lucca.core.coherence import (
     detect_promised_action_claims,
     detect_ungrounded_action_claims,
 )
-from lucca.core.config import get_config
+from lucca.core.config import get_config, load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.ipc_schemas import (
     Envelope,
@@ -2266,8 +2266,10 @@ class Orchestrator:
         route_decision = None
         try:
             vad_ms = int(p.vad_speech_ms)
+            # WO-10.2 (F12): route on the spelling-normalized transcript so the
+            # router and the rule engine see the same string after a correction.
             route_decision = self.router.route(
-                transcript=transcribed_text,
+                transcript=eval_text,
                 any_active_rule_fired=any_active_fired,
                 any_quarantine_rule_fired=any_quarantine_fired,
                 vad_speech_ms=vad_ms,
@@ -2372,6 +2374,8 @@ class Orchestrator:
                     last_tool_res: ToolResult | None = None
                     last_tool_name: str = ""
                     last_tool_args: dict[str, JsonValue] = {}
+                    # WO-10.4 (F11): narrate ALL plan actions, not just the last.
+                    exec_lines: list[str] = []
                     for action in winning_outcome.plan.actions:
                         if isinstance(action, ToolCall):
                             tool_res = self._handle_tool_call(
@@ -2380,6 +2384,26 @@ class Orchestrator:
                             last_tool_res = tool_res
                             last_tool_name = action.tool
                             last_tool_args = dict(action.args)
+                            ok = tool_res is None or getattr(tool_res, "ok", True)
+                            raw_detail = (
+                                str(getattr(tool_res, "content", "") or "")
+                                or str(getattr(tool_res, "stderr", "") or "")
+                            )[:200]
+                            args_str = ", ".join(
+                                f"{k}={v!r}" for k, v in action.args.items()
+                            )
+                            status_str = "ok" if ok else "failed"
+                            exec_lines.append(
+                                f"{action.tool}({args_str}) -> {status_str}: {raw_detail}"
+                            )
+                    if exec_lines:
+                        combined = "\n".join(exec_lines)
+                        last_tool_res = ToolResult(
+                            call_id=f"plan-{winning_outcome.rule_id}",
+                            ok=not any("failed" in line for line in exec_lines),
+                            content=combined,
+                            elapsed_ms=0.0,
+                        )
 
                     signal: Literal["tool_exit_zero", "pydantic_valid"] = (
                         "tool_exit_zero"
@@ -2445,6 +2469,18 @@ class Orchestrator:
         if yielded_context:
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
+
+        # WO-10.3 (F13): CLARIFY now gets distinct handling — a short utterance
+        # gets a brief-question directive instead of being silently treated as
+        # a full research turn.
+        if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
+            clarify_hint = (
+                "[Clarify Mode: The user's utterance was very short or ambiguous. "
+                "If the intent is unclear, ask ONE brief clarifying question in your "
+                "companion voice. If the intent is still reasonably clear, answer "
+                "directly without asking.]"
+            )
+            epistemic_ctx = f"{epistemic_ctx}\n{clarify_hint}" if epistemic_ctx else clarify_hint
 
         if spelling_hint:
             epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
@@ -2756,42 +2792,13 @@ class Orchestrator:
         intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
         TOOLLESS_INTENTS = {"dangerous"}
 
+        # WO-10.6 (F20): follow-up patterns are config-driven (heuristics.toml)
+        follow_up_patterns = load_heuristics("follow_up_patterns")
         # Do not suppress tools if the user is asking follow-up factual questions
         is_follow_up = False
         text_for_gate = eval_user_text or user_text
         if text_for_gate:
             u_low = text_for_gate.lower()
-            follow_up_patterns = (
-                "tell me more",
-                "more about",
-                "what else",
-                "who is",
-                "what about",
-                "are you sure",
-                "what are your sources",
-                "cite your sources",
-                "where did you get that",
-                "all of this is wrong",
-                "elaborate",
-                "yes",
-                "yeah",
-                "yep",
-                "sure",
-                "okay",
-                "ok",
-                "do it",
-                "please do",
-                "go ahead",
-                "where is",
-                "where was",
-                "where are",
-                "who was",
-                "facts about",
-                "how about",
-                "spelled",
-                "spelling",
-                "search",
-            )
             is_follow_up = any(p in u_low for p in follow_up_patterns)
             if not is_follow_up and self.history:
                 last_asst = next(
@@ -3491,24 +3498,12 @@ class Orchestrator:
                     q = f'"{target_w}" {q}'.strip()
 
             # Preserve category & location keywords from transcript or context if missing from query
+            # (WO-10.6: config-driven via heuristics.toml)
             recent_ctx = " ".join(
                 m.get("content", "") for m in self.history[-2:] if isinstance(m, dict)
             )
             context_text = f"{self.current_turn_transcript or ''} {recent_ctx}".lower()
-            category_keywords = (
-                "suburb",
-                "judge",
-                "court",
-                "station",
-                "school",
-                "hospital",
-                "city",
-                "province",
-                "victoria",
-                "australia",
-                "philippines",
-                "manila",
-            )
+            category_keywords = load_heuristics("search_category_keywords")
             for kw in category_keywords:
                 if kw in context_text and kw not in q.lower():
                     q = f"{q} {kw}".strip()

@@ -6,6 +6,7 @@ Orchestrates file-sandbox RPC, web-sandbox fetches, host launcher, and policy gu
 
 import json
 import platform
+import subprocess
 import threading
 import time
 from collections.abc import Callable
@@ -620,11 +621,11 @@ class SandboxService:
             )
 
         # 7. run_python execution under container isolation
-        if tool_name == "run_python":
+        if tool_name in ("run_python", "run_python_async"):
             if self.rpc.use_direct_fallback or not self.rpc.is_docker_available():
                 err_msg = (
-                    "policy_violation: run_python is disabled until Milestone 2 container "
-                    "isolation lands (requires active container sandbox)"
+                    f"policy_violation: {tool_name} requires the active container "
+                    "sandbox (Docker CE in WSL2)"
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -633,6 +634,40 @@ class SandboxService:
                     stderr=err_msg,
                     content=err_msg,
                     structured={"ok": False, "exit_code": -1, "stderr": err_msg},
+                    elapsed_ms=0.0,
+                )
+            if tool_name == "run_python_async":
+                # WO-10.5 (F15): launch under Docker in a background task and
+                # return the task ID immediately so long jobs never block the
+                # voice loop (D-SAND-03).
+                code = str(args.get("code", ""))
+                task_name = str(args.get("name", "python-job"))[:60]
+                container_id = getattr(self.rpc, "container_id", "lucca-sandbox")
+
+                def _docker_python(cancel_event: threading.Event) -> tuple[int, str, str]:
+                    cmd = ["docker", "exec", str(container_id), "python3", "-c", code]
+                    proc = subprocess.run(
+                        cmd, capture_output=True, text=True, timeout=3600, check=False
+                    )
+                    if cancel_event.is_set():
+                        return -1, "", "cancelled by user"
+                    return proc.returncode, proc.stdout, proc.stderr
+
+                info = self.tasks.launch_task(task_name, _docker_python)
+                content = (
+                    f"Started background task '{info.name}' [{info.task_id}]. "
+                    "Check progress with get_task_status."
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured={
+                        "task_id": info.task_id,
+                        "name": info.name,
+                        "status": info.status,
+                    },
+                    content=content,
                     elapsed_ms=0.0,
                 )
             return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)

@@ -41,6 +41,7 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "write_file": Risk.WRITE,
     "delete_file": Risk.WRITE,
     "run_python": Risk.WRITE,
+    "run_python_async": Risk.WRITE,
     "launch_app": Risk.LAUNCH,
     "memory_search": Risk.READ,
     "memory_commit": Risk.WRITE,

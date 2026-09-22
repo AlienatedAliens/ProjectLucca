@@ -268,6 +268,27 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             risk=Risk.READ,
             target="self",
         ),
+        "run_python_async": ToolSchema(
+            name="run_python_async",
+            description=(
+                "Start a long-running Python script in the background and return "
+                "immediately with a task ID. Check progress later with "
+                "get_task_status. Use for benchmarks, batch jobs, or anything "
+                "that would block the conversation."
+            ),
+            parameters={
+                "code": ToolParameter(
+                    type="string",
+                    description="Python code to execute in the background",
+                    required=True,
+                ),
+                "name": ToolParameter(
+                    type="string", description="Short human-readable task name", required=False
+                ),
+            },
+            risk=Risk.WRITE,
+            target="self",
+        ),
         "self_history_search": ToolSchema(
             name="self_history_search",
             description=(

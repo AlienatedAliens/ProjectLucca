@@ -3,12 +3,14 @@ Project Lucca — Central Configuration (pydantic-settings)
 Spec 11 §1 (`lucca.core.config`)
 """
 
+import logging
 import os
 import re
 import sys
+import tomllib
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -226,6 +228,87 @@ class LuccaConfig(BaseSettings):
         rel = getattr(self.paths, subpath_name, subpath_name)
         p = self.home_dir / rel
         return p
+
+
+# WO-10.6 (F20): behavioural heuristics live in config/heuristics.toml with
+# these code defaults as fallback. Security invariants (closed predicates,
+# MEMORY_ELIGIBLE) deliberately stay code-resident — they are the trust
+# boundary, not tuning knobs.
+DEFAULT_FOLLOW_UP_PATTERNS: Final[tuple[str, ...]] = (
+    "tell me more",
+    "more about",
+    "what else",
+    "who is",
+    "what about",
+    "are you sure",
+    "what are your sources",
+    "cite your sources",
+    "where did you get that",
+    "all of this is wrong",
+    "elaborate",
+    "yes",
+    "yeah",
+    "yep",
+    "sure",
+    "okay",
+    "ok",
+    "do it",
+    "please do",
+    "go ahead",
+    "where is",
+    "where was",
+    "where are",
+    "who was",
+    "facts about",
+    "how about",
+    "spelled",
+    "spelling",
+    "search",
+)
+
+DEFAULT_SEARCH_CATEGORY_KEYWORDS: Final[tuple[str, ...]] = (
+    "suburb",
+    "judge",
+    "court",
+    "station",
+    "school",
+    "hospital",
+    "city",
+    "province",
+    "victoria",
+    "australia",
+    "philippines",
+    "manila",
+)
+
+
+_HEURISTICS_CACHE: Final[dict[str, tuple[str, ...]]] = {}
+
+
+def load_heuristics(name: str) -> tuple[str, ...]:
+    """Loads a named heuristic list from config/heuristics.toml, falling back
+    to the code defaults. Results are cached per name for the process lifetime
+    (restart to pick up config edits)."""
+    if name in _HEURISTICS_CACHE:
+        return _HEURISTICS_CACHE[name]
+    defaults = {
+        "follow_up_patterns": DEFAULT_FOLLOW_UP_PATTERNS,
+        "search_category_keywords": DEFAULT_SEARCH_CATEGORY_KEYWORDS,
+    }.get(name, ())
+    loaded: tuple[str, ...] = defaults
+    try:
+        cfg = get_config()
+        path = cfg.resolve_path("config") / "heuristics.toml"
+        if path.exists():
+            with open(path, "rb") as f:
+                data = tomllib.load(f)
+            values = data.get(name)
+            if isinstance(values, list) and values:
+                loaded = tuple(str(v) for v in values)
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).debug("heuristics_load_failed", extra={"error": str(exc)})
+    _HEURISTICS_CACHE[name] = loaded
+    return loaded
 
 
 @lru_cache
