@@ -34,19 +34,18 @@ def test_target_required_on_tool_schema() -> None:
 
 
 def test_tool_taxonomy_and_registry_count() -> None:
-    """T1.1 / T1.6 / T2 / C1 / C2: Registry has exactly 16 tools (<= 16 cap),
-    correctly classified. Revised by WO-9 A13 (F14): launch_app is now
-    advertised (confirmation-gated) — the spoken fallback already claimed the
-    capability, so the manifest had to tell the truth."""
+    """T1.1 / T1.6 / T2 / C1 / C2: Registry has exactly 17 tools (<= 18 cap),
+    correctly classified. Revised by WO-9 A13 (F14: launch_app advertised) and
+    A14 (F18: self_history_search exposed)."""
     registry = get_capability_registry()
     tools = registry.tools
     tool_defs = registry.get_tool_definitions()
     def_names = [t.function.name for t in tool_defs]
 
-    # Assert count == 16 and <= cap
-    assert len(tools) == 16
+    # Assert count == 17 and <= cap
+    assert len(tools) == 17
     assert len(tools) <= MAX_REGISTRY_TOOLS
-    assert len(tool_defs) == 16
+    assert len(tool_defs) == 17
 
     # launch_app is now advertised, confirmation-gated (WO-9 A13)
     assert "launch_app" in tools
@@ -70,6 +69,7 @@ def test_tool_taxonomy_and_registry_count() -> None:
         "self_metrics",
         "sys_info",
         "launch_app",
+        "self_history_search",
     }
     assert set(tools.keys()) == expected_tools
     assert set(def_names) == expected_tools

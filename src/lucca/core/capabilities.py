@@ -28,8 +28,10 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-# Native Tool Registry Cap (Spec 1.1.2 §2.4, T1.6: expect exactly 9 at T1, <= 16 cap)
-MAX_REGISTRY_TOOLS: Final[int] = 16
+# Native Tool Registry Cap (Spec 1.1.2 §2.4, T1.6: expect exactly 9 at T1).
+# Raised 16 -> 18 by WO-9 A13/A14: launch_app (F14) and self_history_search
+# (F18) are now advertised; both are confirmation-free/gated as marked.
+MAX_REGISTRY_TOOLS: Final[int] = 18
 
 
 def _predicate_menu() -> str:
@@ -263,6 +265,24 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             name="self_metrics",
             description="Retrieve hardware telemetry across CPU, RAM, GPU, and NPU substrates",
             parameters={},
+            risk=Risk.READ,
+            target="self",
+        ),
+        "self_history_search": ToolSchema(
+            name="self_history_search",
+            description=(
+                "Search your own action history: what you actually did, what "
+                "failed, what was cancelled, beliefs you formed, and coherence "
+                "breaches. Use this to answer 'did you actually do X?' from "
+                "records instead of guessing."
+            ),
+            parameters={
+                "query": ToolParameter(
+                    type="string",
+                    description="Keywords to match against your action history",
+                    required=True,
+                ),
+            },
             risk=Risk.READ,
             target="self",
         ),

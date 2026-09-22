@@ -2942,6 +2942,62 @@ class Orchestrator:
             return "save a fact to memory"
         return f"execute {name}"
 
+    def _handle_self_history_search(
+        self, call_id: str, args: dict[str, JsonValue]
+    ) -> ToolResult:
+        """WO-9 A14 (F18): expose the SELF_HISTORY substrate as a READ tool.
+
+        Backed by query_substrate_self_history (execution_triples ∪
+        ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH ∪
+        ASSISTANT_BELIEF). Depends on A9 for content worth querying.
+        """
+        query = str(args.get("query", "")).strip()
+        if not query:
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr="invalid_arguments: query is required",
+                elapsed_ms=0.0,
+            )
+        cascade = getattr(self, "cascade", None)
+        if cascade is None:
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr="self-history substrate unavailable",
+                elapsed_ms=0.0,
+            )
+        try:
+            items = cascade.query_substrate_self_history(query)
+        except Exception as exc:  # noqa: BLE001
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr=f"self_history_search failed: {exc}",
+                elapsed_ms=0.0,
+            )
+        lines = [f"- [{item.source}] {item.content}" for item in items[:10]]
+        content = "\n".join(lines) if lines else "No self-history records match that query."
+        self._record_tool_receipt(
+            name="self_history_search",
+            call_id=call_id,
+            args=args,
+            ok=True,
+            output=content,
+            error=None,
+        )
+        return ToolResult(
+            call_id=call_id,
+            ok=True,
+            exit_code=0,
+            content=content,
+            structured={"count": len(items)},
+            elapsed_ms=0.0,
+        )
+
     def _handle_memory_commit(
         self,
         trace: TurnTrace,
@@ -3414,6 +3470,11 @@ class Orchestrator:
         # because it must cite the current-turn USER_EXPLICIT transcript payload.
         if name == "memory_commit":
             return self._handle_memory_commit(trace, call_id, name, args, speak)
+
+        # WO-9 A14 (F18): model-callable self-history — "did you actually do X?"
+        # answered from persisted records, never confabulated.
+        if name == "self_history_search":
+            return self._handle_self_history_search(call_id, args)
 
         # Corrective Search Query Injection & Category Grounding
         if name == "search_web" and "query" in args and isinstance(args["query"], str):

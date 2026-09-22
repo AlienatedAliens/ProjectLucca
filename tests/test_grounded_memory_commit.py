@@ -196,6 +196,34 @@ def test_provenance_classes_unchanged(orch: Orchestrator) -> None:
 
 
 # ============================================================================
+# WO-9 A14: self_history_search tool
+# ============================================================================
+
+
+def test_self_history_search_returns_records(orch: Orchestrator) -> None:
+    """A14 (F18): the model can query its own action history via the tool."""
+    from types import SimpleNamespace
+
+    fake_item = SimpleNamespace(
+        source="history:action:1", content="memory_commit(...) -> cancelled: cancelled by user"
+    )
+    orch.cascade = MagicMock()
+    orch.cascade.query_substrate_self_history.return_value = [fake_item]
+
+    res = orch._handle_self_history_search("call-sh1", {"query": "memory_commit"})
+
+    assert res.ok is True
+    assert "cancelled" in res.content
+    assert res.structured == {"count": 1}
+
+
+def test_self_history_search_empty_query_refused(orch: Orchestrator) -> None:
+    res = orch._handle_self_history_search("call-sh2", {"query": "  "})
+    assert res.ok is False
+    assert "invalid_arguments" in (res.stderr or "")
+
+
+# ============================================================================
 # WO-9 A3: passive fact extraction
 # ============================================================================
 

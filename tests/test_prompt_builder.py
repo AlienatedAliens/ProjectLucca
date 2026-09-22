@@ -237,12 +237,13 @@ def test_skills_and_manifest_in_prompt_builder() -> None:
 
     all_tools = get_all_tool_definitions([mock_rule_1])
     tool_names = [t.function.name for t in all_tools]
-    # WO-9 A13: launch_app is now advertised (confirmation-gated)
+    # WO-9 A13/A14: launch_app and self_history_search are now advertised
     assert "launch_app" in tool_names
+    assert "self_history_search" in tool_names
     assert "read_file" in tool_names
     assert "invoke_skill" in tool_names
     assert not any(name.startswith("skill_") for name in tool_names)
-    assert len(tool_names) == 16
+    assert len(tool_names) == 17
 
     # Category menu in system prompt static block
     sys_prompt = get_system_prompt()
