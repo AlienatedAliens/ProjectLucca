@@ -656,22 +656,34 @@ class OutputSupervisorSession[ChunkT]:
         if verified_receipts is not None and not gate_res.is_breach:
             receipt_res = self.truth_matcher.evaluate_clause(clause_text, verified_receipts)
             if receipt_res.is_breach:
-                if not verified_receipts:
-                    # No tools ran this turn: a first-person action claim cannot be
-                    # verified in-stream and may be a legitimate long-term-memory
-                    # recollection (A1). Downgrade to Tier 2 (emit + flag); the
-                    # post-turn functional-coherence checker still records any
-                    # genuine hallucination as a COHERENCE_BREACH. Tier-1 abort is
-                    # reserved for turns where tools DID run (F-WO8-19).
+                # Tier-1 abort is reserved for turns where a STATEFUL tool ran
+                # (write/launch/delete/run): only then can a first-person action
+                # claim be a current-turn hallucination verifiable in-stream.
+                # On read-only turns (memory_search, query_capabilities, ...) or
+                # no-tool turns, an action claim is a long-term-memory
+                # recollection (A1) or a hallucination deferred to the post-turn
+                # functional-coherence checker (F-WO8-19/F-WO8-23).
+                stateful_actions = {
+                    "write_file",
+                    "edit_file",
+                    "note_write",
+                    "launch_app",
+                    "delete_file",
+                    "run_python",
+                }
+                has_stateful = any(
+                    str(r.get("action", "")) in stateful_actions for r in verified_receipts
+                )
+                if not has_stateful:
                     receipt_res = GateResult(
                         is_breach=True,
                         breach_type=receipt_res.breach_type,
                         severity=SeverityTier.TIER_2_SOFT,
                         matched_text=receipt_res.matched_text,
                         reason=(
-                            f"{receipt_res.reason} (downgraded to Tier 2: no current-turn "
-                            "receipts; recollection/hallucination deferred to post-turn "
-                            "coherence check)"
+                            f"{receipt_res.reason} (downgraded to Tier 2: no stateful "
+                            "current-turn receipts; recollection/hallucination deferred "
+                            "to post-turn coherence check)"
                         ),
                         elapsed_us=receipt_res.elapsed_us,
                     )

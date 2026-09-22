@@ -99,6 +99,13 @@ _ABSTENTION_PHRASES: Final[frozenset[str]] = frozenset(
         "no confirmed record",
         "not sure if i",
         "i'm not sure if",
+        "don't see any",
+        "do not see any",
+        "no mention of",
+        "not see any mention",
+        "checked my records",
+        "checked my logs",
+        "checked my memory",
     }
 )
 

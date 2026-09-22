@@ -6,6 +6,7 @@ Provides administrative CRUD and search capabilities over SQLite-vec memory tabl
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import time
 import uuid
@@ -82,6 +83,40 @@ class MemoryManager:
 
             cur = conn.execute(query, params)
             rows = cur.fetchall()
+
+            # Tokenized fallback (F-WO8-22): a full-phrase LIKE fails for natural
+            # question phrasing ("Did you read any files last session?" matches
+            # nothing), which made the memory_search tool report empty results
+            # even when relevant memories existed. Fall back to OR-matching the
+            # individual significant tokens, ranked by match count.
+            if not rows and search.strip():
+                tokens = [
+                    t for t in re.split(r"[^a-zA-Z0-9_.\-]+", search.strip().lower()) if len(t) >= 3
+                ][:8]
+                if tokens:
+                    like_clauses = " OR ".join(["m.content LIKE ? OR m.kind LIKE ?"] * len(tokens))
+                    token_params: list[Any] = []
+                    for t in tokens:
+                        token_params.extend([f"%{t}%", f"%{t}%"])
+                    fallback_sql = f"""
+                        SELECT m.memory_id, m.entry_id, m.content, m.kind, m.created_at,
+                               m.valid_from, m.valid_to, m.superseded_by, m.importance,
+                               m.forgotten_at, p.provenance, p.confidence,
+                               ({" + ".join(["(m.content LIKE ?)"] * len(tokens))}) AS match_count
+                        FROM memories m
+                        LEFT JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                        WHERE (m.forgotten_at IS NULL OR ? = 1)
+                          AND (m.valid_to IS NULL OR ? = 1)
+                          AND ({like_clauses})
+                        ORDER BY match_count DESC, m.created_at DESC
+                    """  # noqa: S608
+                    fb_params: list[Any] = [f"%{t}%" for t in tokens]
+                    fb_params.extend(
+                        [1 if include_forgotten else 0, 1 if include_superseded else 0]
+                    )
+                    fb_params.extend(token_params)
+                    cur = conn.execute(fallback_sql, fb_params)
+                    rows = cur.fetchall()
 
             result = []
             for r in rows:
