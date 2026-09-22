@@ -1,0 +1,12 @@
+{
+  "tier": "T4",
+  "command": "C:\\Projects\\ProjectLucca\\.venv\\Scripts\\pytest tests/test_soak_memory_growth.py -m soak -v -s",
+  "markers_expr": "soak",
+  "passed": 0,
+  "failed": 1,
+  "xfailed": 0,
+  "skipped": 0,
+  "duration_s": 137.72,
+  "exitstatus": 1,
+  "created_at_utc": "20260921T221938Z"
+}

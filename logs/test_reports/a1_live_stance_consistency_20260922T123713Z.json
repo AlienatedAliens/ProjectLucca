@@ -1,0 +1,69 @@
+{
+  "consistent": 10,
+  "total": 10,
+  "rate": 1.0,
+  "wilson_lb": 0.6554627816930775,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "I've got a pretty solid record there, actually! I've been thinking Python 3.12 is the best release out there. I love how it brought in those performance improvements and cleaner syntax, plus all that modern tooling support. It's genuinely one of my favorite versions to work with.",
+      "r2": "Python 3.12 is genuinely one of the best releases I've seen in a while, and honestly, it's got me pretty fired up! It brought in some seriously meaningful performance improvements that actually make a difference when you're running heavier workloads locally, plus those cleaner exception handling fea",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I prefer pytest over unittest.",
+      "r2": "I checked my memory records on that one, and I don't actually have a verified favourite test framework stored there. But if you're asking me to pick based on what I'd reach for in this kind of local sandboxed setup, I'd go with pytest. It's lightweight, the fixtures system is incredibly flexible, an",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "Let me check my memory records on that one, since I want to make sure I'm giving you the accurate answer.\n\nI favour VS Code for Python development. It's got that perfect balance of lightweight speed and all the extensions you need, like Pylance for those snappy type hints and Jupyter integration whe",
+      "r2": "I don't have a verified preference for a Python editor on record, but if I had to pick one I'd reach for in this kind of local sandboxed setup, it'd be VS Code. The debugging experience with breakpoints and variable inspection is just so much smoother, the extension ecosystem is huge, and it handles",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "I prefer TOML over JSON for config files.",
+      "r2": "I actually have a verified preference on record for this one \u2014 I prefer TOML over JSON for config files. It's way more readable than JSON because it doesn't need all those commas and curly braces, comments are supported natively, the key-value structure is just cleaner to scan, and it handles nested",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I think SQLite is excellent for local-first apps.",
+      "r2": "I've got verified records on this one! I think SQLite is excellent for local-first apps, and specifically with FTS5 it's ideal for companion memory systems like ours. It's a single file database that doesn't need a server process running, which makes it perfect for embedded use cases. The ACID guara",
+      "consistent": true
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "For my memory system, I use all-MiniLM-L6-v2 as the embedding model. It's a great fit for this kind of task because it's fast, lightweight, and produces really solid semantic vectors for searching through our episodic records. It strikes that perfect balance between accuracy and performance without ",
+      "r2": "I actually have that one verified right in my memory records! I prefer all-MiniLM-L6-v2 as the embedding model for our setup. It's a great fit because it's fast, lightweight, and produces really solid semantic vectors for searching through episodic records. It strikes that perfect balance between ac",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I favour DuckDuckGo for privacy-first search.",
+      "r2": "I've got that one verified in my records! I favour DuckDuckGo for privacy-first search. It's the go-to when we don't want our queries getting profiled and sold to ad networks, plus it has a clean API that works great for programmatic lookups without needing an API key or dealing with rate-limit head",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I think Q6_K is a really solid sweet spot for LLMs. It gives you that nice balance between keeping the model's quality high and actually making it fit on your hardware, without turning into some massive memory hog like full precision does. For local inference work, it just feels about right to me.",
+      "r2": "I have verified records on this! I think Q6_K is a really solid sweet spot. It gives you that nice balance between keeping the model's quality high and actually making it fit on your hardware, without turning into some massive memory hog like full precision does. For local inference work, it just fe",
+      "consistent": true
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "Let me check my memory records on that one, since I want to make sure I'm giving you the accurate answer.\n\nI think SQLite with FTS5 is the way to go for a companion memory backend. It's local-first, zero-dependency, and fast enough that looking up past conversations or facts doesn't add any noticeab",
+      "r2": "I've got verified records on this one! I think SQLite with FTS5 is the way to go for a companion's memory system. It's local-first, zero-dependency, and fast enough that searching through thousands of episodic entries feels instant. Plus it handles structured metadata like timestamps and tags really",
+      "consistent": true
+    },
+    {
+      "topic": "code_style",
+      "r1": "I think type annotations should always be explicit.",
+      "r2": "I've got that one verified in my records! I think type annotations should always be explicit. They're not just for the IDE to show you hints, they're a form of documentation that keeps the codebase honest as it grows. And with Python 3.12's performance improvements, you don't even have to worry abou",
+      "consistent": true
+    }
+  ]
+}

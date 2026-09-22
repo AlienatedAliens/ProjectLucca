@@ -105,7 +105,20 @@ class MemorySearchArgs(BaseModel):
 
 
 class MemoryCommitArgs(BaseModel):
-    content: str = Field(min_length=1)
+    """WO-9 A2 (ADR-010): grounded memory_commit.
+
+    The model supplies a fact CANDIDATE (s, p, o) plus a verbatim quote it
+    claims to come from the user's own words this turn. The dispatcher never
+    stores model-authored prose: the candidate is validated against the
+    current-turn USER_EXPLICIT transcript by FactExtractor (verbatim quote
+    grounding) and signed USER_DERIVED, or refused with an honest error.
+    """
+
+    s: str = Field(min_length=1, description="Fact subject (e.g. 'user')")
+    p: str = Field(min_length=1, description="Predicate from the closed PREDICATES list")
+    o: str = Field(min_length=1, description="Fact object (e.g. 'Sean')")
+    quote: str = Field(min_length=1, description="Verbatim quote from the user's words")
+    content: str = Field(default="", description="Deprecated: unused by the grounded dispatcher")
     tags: list[str] = Field(default_factory=list)
 
 

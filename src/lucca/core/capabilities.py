@@ -15,6 +15,7 @@ from pydantic import JsonValue
 
 from lucca.core.config import get_config, get_resource_path
 from lucca.core.schemas import (
+    FACT_PREDICATES,
     Risk,
     ToolDefinition,
     ToolFunctionSchema,
@@ -29,6 +30,13 @@ logger = structlog.get_logger(__name__)
 
 # Native Tool Registry Cap (Spec 1.1.2 §2.4, T1.6: expect exactly 9 at T1, <= 16 cap)
 MAX_REGISTRY_TOOLS: Final[int] = 16
+
+
+def _predicate_menu() -> str:
+    """Comma-joined closed fact-predicate menu, generated from the canonical
+    FACT_PREDICATES set in core.schemas so manifest text can never drift from
+    the ProvenanceGate's enforcement list (WO-9 A2)."""
+    return ", ".join(sorted(FACT_PREDICATES))
 
 
 def get_default_native_tools() -> dict[str, ToolSchema]:
@@ -185,10 +193,32 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "memory_commit": ToolSchema(
             name="memory_commit",
-            description="Commit a verified fact or user preference into long-term memory",
+            description=(
+                "Commit a fact the USER stated in this turn into long-term memory. "
+                "Provide s (subject, e.g. 'user'), p (one of: "
+                f"{_predicate_menu()}), o (the value), and quote: a VERBATIM excerpt "
+                "of the user's own words containing the fact. The fact is only saved "
+                "if the quote matches the user's actual words this turn; model-invented "
+                "facts are refused."
+            ),
             parameters={
-                "content": ToolParameter(
-                    type="string", description="Fact or memory content to commit", required=True
+                "s": ToolParameter(
+                    type="string", description="Fact subject (usually 'user')", required=True
+                ),
+                "p": ToolParameter(
+                    type="string",
+                    description=(
+                        f"Predicate from the closed list (one of: {_predicate_menu()})"
+                    ),
+                    required=True,
+                ),
+                "o": ToolParameter(
+                    type="string", description="Fact value (e.g. 'Sean')", required=True
+                ),
+                "quote": ToolParameter(
+                    type="string",
+                    description="Verbatim quote from the user's words this turn",
+                    required=True,
                 ),
                 "tags": ToolParameter(
                     type="array",

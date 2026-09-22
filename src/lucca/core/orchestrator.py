@@ -17,7 +17,7 @@ import wave
 from collections import deque
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
-from typing import Literal
+from typing import Final, Literal
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
@@ -87,6 +87,7 @@ from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
+    ToolResultSigner,
     UserSpeechSigner,
     create_assistant_utterance_signer,
     create_user_speech_signer,
@@ -205,6 +206,61 @@ def _extract_stance_topic(text: str) -> str:
                 if clause:
                     return clause[:40].strip()
     return text[:40].strip()
+
+
+# WO-9 A3: passive fact extraction — deterministic, high-precision patterns.
+# Candidates are re-validated by FactExtractor verbatim-quote grounding before
+# signing, so a pattern can only ever produce facts the user literally said.
+_PASSIVE_FACT_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
+    (
+        "is_named",
+        re.compile(
+            r"\b(?:my name is|call me|name's)\s+([A-Za-z][A-Za-z\-']{1,30})\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "lives_in",
+        re.compile(
+            r"\bi live in\s+([A-Za-z][A-Za-z\s\-']{1,40}?)(?:[.,!?;]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "works_at",
+        re.compile(
+            r"\bi work (?:at|for)\s+([A-Za-z][A-Za-z\s\-&']{1,40}?)(?:[.,!?;]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+)
+
+# Hypothetical / counterfactual framing must never produce facts (the A1
+# fixture "If I told you my name was Sean" is the canonical negative).
+_HYPOTHETICAL_MARKERS: Final[tuple[str, ...]] = (
+    "if i told you",
+    "if i said",
+    "if i say",
+    "if my name",
+    "suppose",
+    "what if",
+    "imagine",
+    "let's say",
+    "lets say",
+    "hypothetically",
+    "pretend",
+)
+
+
+def _sentence_containing(text: str, pos: int) -> str:
+    """Returns the sentence of `text` containing character offset `pos`."""
+    start = (
+        max(text.rfind(".", 0, pos), text.rfind("!", 0, pos), text.rfind("?", 0, pos)) + 1
+    )
+    ends = [i for i in (text.find(".", pos), text.find("!", pos), text.find("?", pos)) if i != -1]
+    end = min(ends) if ends else len(text) - 1
+    sentence = text[start : end + 1].strip()
+    return sentence if sentence else text[pos : pos + 200].strip()
 
 
 class Orchestrator:
@@ -620,13 +676,48 @@ class Orchestrator:
         self._confirm_event.set()
 
     def _on_ptt_pressed(self, ts_ns: int) -> None:
-        if self.state in ("speaking", "thinking", "confirm_wait"):
+        if self._pending_confirmation_active:
+            # WO-9 A1 (F1): during confirm_wait a PTT press is the ANSWER
+            # mechanism, not a barge-in. Stop the confirmation prompt audio so
+            # the user can speak, but keep the pending confirmation alive so
+            # _on_ptt_released can stash the captured slice for the waiting
+            # turn worker (F-CORE-015 voice-answer path).
+            self._abort_confirmation_prompt_playback()
+        elif self.state in ("speaking", "thinking"):
             # Instant barge-in: abort LLM and playback
             self._abort_turn()
 
         print("\n[PTT] 🎙️ Listening... (Hold Alt-Gr or Right-Ctrl to speak)", flush=True)
         self._publish_caption("Listening... 🎙️", source="status", is_final=False)
         self._set_state("listening")
+
+    def _abort_confirmation_prompt_playback(self) -> None:
+        """Stops confirmation-prompt audio without cancelling the pending confirmation.
+
+        Unlike _abort_turn, this never touches _pending_confirmation_active,
+        the LLM stream, the turn thread, or trace.interrupted — the waiting
+        confirm worker must stay alive to receive the spoken answer.
+        """
+        while not self._tts_queue.empty():
+            try:
+                item = self._tts_queue.get_nowait()
+                if item is not None and len(item) == 4 and item[3] is not None:
+                    item[3].set()
+            except queue.Empty:
+                break
+
+        self.play_ring.set_flag(FLAG_ABORT)
+
+        trace_id = self.active_trace.trace_id if self.active_trace else ""
+        abort_env = Envelope(
+            type="play.abort",
+            trace_id=trace_id,
+            ts_ns=now_ns(),
+            src="core",
+            payload=PlayAbortPayload(trace_id=trace_id).model_dump(),
+        )
+        self._publish_bus(abort_env)
+        logger.info("confirmation_prompt_playback_aborted")
 
     def _abort_turn(self) -> None:
         self.affect_tracker.record_signal(
@@ -729,6 +820,18 @@ class Orchestrator:
         t.start()
 
     def _on_user_text(self, ts_ns: int, user_text: str) -> None:
+        if self._pending_confirmation_active:
+            # WO-9 A1 (F1): typed input during confirm_wait is a confirmation
+            # answer, not a new turn. The turn worker is blocked in
+            # _confirm_event.wait(); aborting it here cancelled every typed
+            # confirmation (confirmation_cancelled_by_barge_in). Parse the
+            # text and resolve the pending action instead. Unknown input
+            # cancels, mirroring the voice path's unknown -> cancel policy.
+            decision = parse_confirmation_response(user_text)
+            logger.info("text_confirmation_answer", decision=decision)
+            self.confirm_action(accepted=decision == "confirm", via="click")
+            return
+
         if self.active_turn_thread and self.active_turn_thread.is_alive():
             self._abort_turn()
         elif self.state in ("speaking", "thinking", "confirm_wait"):
@@ -821,6 +924,10 @@ class Orchestrator:
                 trace_id=trace.trace_id,
             )
             signed = self.user_signer.sign(unsigned)
+            # WO-9 A2 (ADR-010): keep the signed transcript payload so a
+            # grounded memory_commit in this turn can reference it as the
+            # USER_EXPLICIT source for FactExtractor quote grounding.
+            self._last_transcript_signed = signed
             res = self.memory_store.commit(signed, now=ts)
             if asyncio.iscoroutine(res):
                 try:
@@ -836,6 +943,158 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             logger.warning("transcript_commit_failed", error=str(exc))
             return None
+
+    def _commit_action_receipts(self, trace: TurnTrace) -> None:
+        """WO-9 A9 (F8): persist this turn's tool receipts as ASSISTANT_ACTION.
+
+        Every LLM-initiated tool attempt — success, failure, user-cancelled
+        confirmation, confirmation timeout, BDI rejection, provenance refusal —
+        becomes a signed autobiographical record. This is the persistent
+        receipt trail the honesty contract depends on: "did you actually do X?"
+        must be answerable from SELF_HISTORY, never confabulated.
+        """
+        receipts = getattr(self, "current_turn_receipts", None)
+        if not self.memory_store or not receipts:
+            return
+        action_signer = getattr(self, "action_signer", None)
+        if action_signer is None:
+            key = getattr(self.memory_store, "master_key", None)
+            dev_key = (
+                bytes(key)
+                if isinstance(key, (bytes, bytearray)) and len(key) >= 32
+                else b"01234567890123456789012345678901"
+            )
+            action_signer = ToolResultSigner(master_key=dev_key)
+            self.action_signer = action_signer
+
+        now = getattr(self, "_current_simulated_time", None) or time.time()
+        for receipt in receipts:
+            try:
+                args_summary = ", ".join(
+                    f"{k}={str(v)[:60]}" for k, v in list(receipt.args.items())[:3]
+                )
+                status = "ok" if receipt.ok else "failed"
+                if receipt.error and "cancelled" in str(receipt.error).lower():
+                    status = "cancelled"
+                elif receipt.error and "timeout" in str(receipt.error).lower():
+                    status = "timeout"
+                detail = str(receipt.error or receipt.output or "")[:200]
+                content = f"{receipt.tool}({args_summary}) -> {status}"
+                if detail:
+                    content = f"{content}: {detail}"
+                unsigned = UnsignedPayload(
+                    content=content,
+                    provenance=Provenance.ASSISTANT_ACTION,
+                    kind="action_receipt",
+                    nonce=os.urandom(16).hex(),
+                    created_at=now,
+                    trace_id=trace.trace_id,
+                    confidence=1.0,
+                    structured={
+                        "importance": 0.2,
+                        "call_id": receipt.call_id,
+                        "tool": receipt.tool,
+                        "ok": receipt.ok,
+                        "error": str(receipt.error) if receipt.error else None,
+                        "valid_from": now,
+                    },
+                )
+                signed = action_signer.sign(unsigned)
+                res = self.memory_store.commit(signed, now=now)
+                if asyncio.iscoroutine(res):
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        loop = None
+                    if loop and loop.is_running():
+                        with ThreadPoolExecutor(max_workers=1) as pool:
+                            pool.submit(asyncio.run, res).result()
+                    else:
+                        asyncio.run(res)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("assistant_action_commit_failed", error=str(exc))
+        receipts.clear()
+
+    def _maybe_extract_facts(self, trace: TurnTrace) -> None:
+        """WO-9 A3: passive USER_DERIVED fact extraction from the user's words.
+
+        Deterministic high-precision candidates (is_named / lives_in / works_at)
+        are re-validated by FactExtractor verbatim-quote grounding and signed
+        USER_DERIVED citing the turn transcript. Questions and hypothetical
+        phrasing are skipped. Runs at finalize, off the speech path; bounded by
+        FactExtractor's <=5 facts/turn cap. Functional predicates supersede
+        prior values via store.commit (e.g. a name update).
+        """
+        if not self.memory_store:
+            return
+        transcript_payload = getattr(self, "_last_transcript_signed", None)
+        if (
+            transcript_payload is None
+            or getattr(transcript_payload, "trace_id", None) != trace.trace_id
+        ):
+            return
+        text = str(transcript_payload.content)
+        if self._INTERROGATIVE_PATTERN.match(text.strip()):
+            return
+        lower = text.lower()
+        if any(marker in lower for marker in _HYPOTHETICAL_MARKERS):
+            return
+
+        candidates: list[dict[str, str]] = []
+        for pred, pattern in _PASSIVE_FACT_PATTERNS:
+            m = pattern.search(text)
+            if not m:
+                continue
+            value = m.group(1).strip().rstrip(".,!?;:")
+            if not value:
+                continue
+            candidates.append(
+                {
+                    "s": "user",
+                    "p": pred,
+                    "o": value,
+                    "quote": _sentence_containing(text, m.start()),
+                }
+            )
+        if not candidates:
+            return
+
+        extractor = getattr(self, "_fact_extractor", None)
+        if extractor is None:
+            from lucca.memory.extraction import FactExtractor  # noqa: PLC0415
+
+            key = getattr(self.memory_store, "master_key", None)
+            dev_key = (
+                bytes(key)
+                if isinstance(key, (bytes, bytearray)) and len(key) >= 32
+                else b"01234567890123456789012345678901"
+            )
+            extractor = FactExtractor(master_key=dev_key)
+            self._fact_extractor = extractor
+
+        try:
+            signed_facts = extractor.extract_and_sign(transcript_payload, candidates)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("passive_fact_extraction_failed", error=str(exc))
+            return
+
+        now = getattr(self, "_current_simulated_time", None) or time.time()
+        for signed_fact in signed_facts:
+            try:
+                res = self.memory_store.commit(signed_fact, now=now)
+                if asyncio.iscoroutine(res):
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        loop = None
+                    if loop and loop.is_running():
+                        with ThreadPoolExecutor(max_workers=1) as pool:
+                            pool.submit(asyncio.run, res).result()
+                    else:
+                        asyncio.run(res)
+                logger.info("passive_fact_extracted", content=str(signed_fact.content))
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("passive_fact_commit_failed", error=str(exc))
 
     def _commit_assistant_utterance(self, text: str, trace: TurnTrace) -> None:
         """Commits assistant's spoken utterance to memory (D-MEM-04, ASSISTANT_UTTERANCE)."""
@@ -984,6 +1243,11 @@ class Orchestrator:
             user_transcript_text = self.current_turn_transcript
             committed_user_id = self._commit_transcript(self.current_turn_transcript, trace)
             self.current_turn_transcript = None
+        elif getattr(self, "_early_transcript_commit", None):
+            # WO-9 A2: transcript was committed early to ground a memory_commit
+            # in this turn; reuse that commit for contradiction detection.
+            committed_user_id, user_transcript_text = self._early_transcript_commit
+            self._early_transcript_commit = None
 
         if hasattr(self, "current_turn_assistant_reply") and self.current_turn_assistant_reply:
             reply_text = self.current_turn_assistant_reply
@@ -1003,9 +1267,16 @@ class Orchestrator:
 
             self.current_turn_assistant_reply = None
 
+        # WO-9 A9 (F8): persist ASSISTANT_ACTION receipts — including cancels,
+        # timeouts, BDI rejections and provenance refusals — so "did you
+        # actually do X?" is answerable from SELF_HISTORY instead of confabulated.
+        self._commit_action_receipts(trace)
+
         # Contradiction detection on USER_EXPLICIT commit (Spec §7, WP-2)
         if committed_user_id and user_transcript_text:
             self._check_contradictions(committed_user_id, user_transcript_text, trace)
+            # WO-9 A3: passive fact extraction from the user's own words
+            self._maybe_extract_facts(trace)
 
         if decision_id:
             try:
@@ -2557,7 +2828,180 @@ class Orchestrator:
         if name == "fetch_url":
             url = str(args.get("url", "the web page"))
             return f"fetch {url}"
+        if name == "memory_commit":
+            # WO-9 A2 (ADR-010): read the fact back so the user confirms what
+            # will actually be saved, not "execute memory_commit".
+            o = str(args.get("o", "")).strip()
+            p = str(args.get("p", "")).strip()
+            if o and p:
+                natural = {
+                    "is_named": f"your name is {o}",
+                    "lives_in": f"you live in {o}",
+                    "works_at": f"you work at {o}",
+                    "works_as": f"you work as {o}",
+                    "born_on": f"you were born on {o}",
+                    "birthday_is": f"your birthday is {o}",
+                    "timezone_is": f"your timezone is {o}",
+                }.get(p, f"{str(args.get('s', 'you')).strip()} {p.replace('_', ' ')} {o}")
+                return f"save that {natural}"
+            return "save a fact to memory"
         return f"execute {name}"
+
+    def _handle_memory_commit(
+        self,
+        trace: TurnTrace,
+        call_id: str,
+        name: str,
+        args: dict[str, JsonValue],
+        speak: bool,
+    ) -> ToolResult:
+        """WO-9 A2 (ADR-010): grounded memory_commit.
+
+        The model's {s, p, o, quote} is a CANDIDATE only. The fact is committed
+        iff the quote is verbatim-grounded in the user's own words this turn
+        (FactExtractor -> DerivedFactSigner -> USER_DERIVED, source_entry_ids
+        citing the USER_EXPLICIT transcript). Model-authored prose is never
+        stored (ADR-006); ungrounded candidates are refused with an honest
+        error the model must narrate.
+        """
+        from pydantic import ValidationError  # noqa: PLC0415
+
+        from lucca.memory.extraction import FactExtractor  # noqa: PLC0415
+        from lucca.sandbox.schemas import MemoryCommitArgs  # noqa: PLC0415
+
+        if not self.memory_store:
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr="memory subsystem unavailable",
+                elapsed_ms=0.0,
+            )
+        try:
+            parsed = MemoryCommitArgs.model_validate(args)
+        except ValidationError as exc:
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr=(
+                    f"invalid_arguments: {exc}. Provide s, p (closed predicate), o, "
+                    "and a verbatim quote from the user's words this turn."
+                ),
+                elapsed_ms=0.0,
+            )
+
+        # Ensure the user's utterance is committed so the fact can cite it.
+        transcript_payload = getattr(self, "_last_transcript_signed", None)
+        payload_is_current = (
+            transcript_payload is not None
+            and getattr(transcript_payload, "trace_id", None) == trace.trace_id
+        )
+        if not payload_is_current and self.current_turn_transcript:
+            entry_id = self._commit_transcript(self.current_turn_transcript, trace)
+            if entry_id:
+                self._early_transcript_commit = (entry_id, self.current_turn_transcript)
+                self.current_turn_transcript = None
+            transcript_payload = getattr(self, "_last_transcript_signed", None)
+            payload_is_current = (
+                transcript_payload is not None
+                and getattr(transcript_payload, "trace_id", None) == trace.trace_id
+            )
+        if not payload_is_current or transcript_payload is None:
+            self._record_tool_receipt(
+                name=name, call_id=call_id, args=args, ok=False, output=None,
+                error="no user utterance to ground against",
+            )
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr=(
+                    "not_grounded: there is no user utterance this turn to ground the fact "
+                    "against. Ask the user to state the fact in their own words first."
+                ),
+                elapsed_ms=0.0,
+            )
+
+        extractor = getattr(self, "_fact_extractor", None)
+        if extractor is None:
+            key = getattr(self.memory_store, "master_key", None)
+            dev_key = (
+                bytes(key)
+                if isinstance(key, (bytes, bytearray)) and len(key) >= 32
+                else b"01234567890123456789012345678901"
+            )
+            extractor = FactExtractor(master_key=dev_key)
+            self._fact_extractor = extractor
+
+        try:
+            signed_facts = extractor.extract_and_sign(
+                transcript_payload,
+                [{"s": parsed.s, "p": parsed.p, "o": parsed.o, "quote": parsed.quote}],
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._record_tool_receipt(
+                name=name, call_id=call_id, args=args, ok=False, output=None, error=str(exc)
+            )
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr=f"memory_commit failed: {exc}",
+                elapsed_ms=0.0,
+            )
+
+        if not signed_facts:
+            self._record_tool_receipt(
+                name=name, call_id=call_id, args=args, ok=False, output=None,
+                error="quote not grounded in user utterance",
+            )
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                stderr=(
+                    "not_grounded: the fact was NOT saved because the quote does not appear "
+                    "verbatim in the user's words this turn. Say plainly that you did not save "
+                    "it, or ask the user to say the fact in their own words."
+                ),
+                structured={"error": "not_grounded", "memory_eligible": False},
+                elapsed_ms=0.0,
+            )
+
+        now = getattr(self, "_current_simulated_time", None) or time.time()
+        saved_contents: list[str] = []
+        for signed_fact in signed_facts:
+            res = self.memory_store.commit(signed_fact, now=now)
+            if asyncio.iscoroutine(res):
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+                if loop and loop.is_running():
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        pool.submit(asyncio.run, res).result()
+                else:
+                    asyncio.run(res)
+            saved_contents.append(str(signed_fact.content))
+
+        saved_str = "; ".join(saved_contents)
+        self._record_tool_receipt(
+            name=name, call_id=call_id, args=args, ok=True, output=saved_str, error=None
+        )
+        logger.info("grounded_memory_commit", facts=saved_str, trace_id=trace.trace_id)
+        if speak:
+            spoken = "Saved that to memory."
+            self._speak_text(trace, spoken)
+            self.current_turn_tool_spoken.append(spoken)
+        return ToolResult(
+            call_id=call_id,
+            ok=True,
+            exit_code=0,
+            content=f"Saved to long-term memory: {saved_str}",
+            structured={"saved": saved_contents, "provenance": "USER_DERIVED"},
+            elapsed_ms=0.0,
+        )
 
     def _request_confirmation(
         self,
@@ -2870,6 +3314,11 @@ class Orchestrator:
                     stderr="cancelled by user",
                     elapsed_ms=0.0,
                 )
+
+        # WO-9 A2 (ADR-010): grounded memory_commit — orchestrator-side dispatch
+        # because it must cite the current-turn USER_EXPLICIT transcript payload.
+        if name == "memory_commit":
+            return self._handle_memory_commit(trace, call_id, name, args, speak)
 
         # Corrective Search Query Injection & Category Grounding
         if name == "search_web" and "query" in args and isinstance(args["query"], str):

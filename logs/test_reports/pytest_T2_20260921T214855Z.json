@@ -1,0 +1,12 @@
+{
+  "tier": "T2",
+  "command": "C:\\Projects\\ProjectLucca\\.venv\\Scripts\\pytest -m tier2 -q",
+  "markers_expr": "tier2",
+  "passed": 10,
+  "failed": 0,
+  "xfailed": 0,
+  "skipped": 0,
+  "duration_s": 22.02,
+  "exitstatus": 0,
+  "created_at_utc": "20260921T214855Z"
+}

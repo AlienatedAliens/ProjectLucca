@@ -1,0 +1,12 @@
+{
+  "tier": "T4",
+  "command": "C:\\Projects\\ProjectLucca\\.venv\\Scripts\\pytest tests/test_soak_live_hw.py -m hw and soak -v -s",
+  "markers_expr": "hw and soak",
+  "passed": 1,
+  "failed": 0,
+  "xfailed": 0,
+  "skipped": 0,
+  "duration_s": 2186.57,
+  "exitstatus": 0,
+  "created_at_utc": "20260921T231036Z"
+}

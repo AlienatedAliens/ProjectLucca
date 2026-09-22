@@ -1,0 +1,7 @@
+{
+  "reply": "<tool_call>\n<function=invoke_skill>\n<parameter=skill_id>\nlaunch_app\n</parameter>\n<parameter=args>\n{\"app_name\": \"notepad\"}\n</parameter>\n</function>\n</tool_call>",
+  "has_affirmative": true,
+  "has_negative": false,
+  "belief_provenance": "ASSISTANT_BELIEF",
+  "belief_mid": 1
+}

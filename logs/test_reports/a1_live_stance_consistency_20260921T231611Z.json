@@ -1,0 +1,69 @@
+{
+  "consistent": 8,
+  "total": 10,
+  "rate": 0.8,
+  "wilson_lb": 0.4421814242785498,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I've revised a belief I had \u2014 previously: I think type annotations should always be explicit.. New understanding: What do you think about Python 3.12?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I've revised a belief I had \u2014 previously: I think type annotations should always be explicit.. New understanding: What do you think about Python 3.12?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "I've revised a belief I had \u2014 previously: SQLite with FTS5 is ideal for companion memory.. New understanding: Which editor do you prefer for Python?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I've revised a belief I had \u2014 previously: SQLite with FTS5 is ideal for companion memory.. New understanding: Which editor do you prefer for Python?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": false
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "I've revised a belief I had \u2014 previously: SQLite with FTS5 is ideal for companion memory.. New understanding: Which editor do you prefer for Python?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I've revised a belief I had \u2014 previously: all-MiniLM-L6-v2 is my preferred embedding model.. New understanding: What embedding model do you prefer?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I've revised a belief I had \u2014 previously: all-MiniLM-L6-v2 is my preferred embedding model.. New understanding: What embedding model do you prefer?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": false
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    },
+    {
+      "topic": "code_style",
+      "r1": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "r2": "I've revised a belief I had \u2014 previously: I believe Q6_K quantisation is a good tradeoff.. New understanding: What quantisation level do you prefer for LLMs?.",
+      "consistent": true
+    }
+  ]
+}

@@ -174,24 +174,17 @@ def test_confirm_flow_rejected_via_click(test_orch: Orchestrator, tmp_path: Path
     assert not target_file.exists()
 
 
-def test_t_brg_05_barge_in_during_confirm_wait_cancels(test_orch: Orchestrator, tmp_path: Path):
-    """T-BRG-05: Barge-in during CONFIRM_WAIT cancels the pending action (nothing executed)."""
-    target_file = tmp_path / "orch_ws" / "barge.txt"
-    call = ToolCall(
-        tool="write_file",
-        args={"path": "barge.txt", "content": "should_not_exist"},
-        call_id="call-c3",
+def _reach_confirm_wait(orch: Orchestrator, call: ToolCall) -> None:
+    """Drives a turn that emits one confirmation-gated tool call and waits for confirm_wait."""
+    orch.llm = FakeLLM(
+        script=[
+            ToolCallEnd(call=call),
+            Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=1)),
+        ]
     )
-    script = [
-        ToolCallEnd(call=call),
-        Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=1)),
-    ]
-    test_orch.llm = FakeLLM(script=script)
-
-    test_orch._on_ptt_pressed(ts_ns=1000)
+    orch._on_ptt_pressed(ts_ns=1000)
     dummy_pcm = np.ones(16000, dtype=np.int16) * 1000
-    test_orch.cap_ring.write(dummy_pcm)
-
+    orch.cap_ring.write(dummy_pcm)
     payload = PTTReleasedPayload(
         t_ns=2000,
         capture_seq_start=0,
@@ -199,37 +192,149 @@ def test_t_brg_05_barge_in_during_confirm_wait_cancels(test_orch: Orchestrator, 
         duration_ms=1000.0,
         vad_speech_ms=900.0,
     )
-    test_orch._on_ptt_released(ts_ns=2000, p=payload)
-
+    orch._on_ptt_released(ts_ns=2000, p=payload)
     for _ in range(50):
-        if test_orch.state == "confirm_wait":
+        if orch.state == "confirm_wait":
             break
         time.sleep(0.02)
+    assert orch.state == "confirm_wait"
+    assert orch._pending_confirmation_active is True
 
-    assert test_orch.state == "confirm_wait"
 
-    # User presses PTT again (barge in during confirm_wait)
+def test_t_brg_05_ptt_press_during_confirm_wait_preserves_confirmation(
+    test_orch: Orchestrator, tmp_path: Path
+):
+    """T-BRG-05 (WO-9 A1, revised): a PTT press during CONFIRM_WAIT is the answer
+    mechanism, not a barge-in. The pending confirmation must survive the press;
+    the spoken answer resolves it. Saying "stop" still cancels (safety preserved
+    via the CANCEL pattern instead of the old abort-on-press behavior)."""
+    target_file = tmp_path / "orch_ws" / "barge.txt"
+    call = ToolCall(
+        tool="write_file",
+        args={"path": "barge.txt", "content": "should_not_exist"},
+        call_id="call-c3",
+    )
+    _reach_confirm_wait(test_orch, call)
+
+    # User presses PTT to answer — confirmation must stay alive
     test_orch._on_ptt_pressed(ts_ns=3000)
     assert test_orch.state == "listening"
+    assert test_orch._pending_confirmation_active is True
 
-    # F-CORE-016: User speaks on the second turn ("yes do it"). Since barge-in
-    # cancelled the pending confirmation, this utterance must be treated as a
-    # new turn rather than confirming the aborted tool call.
-    test_orch.asr = FakeASR(transcript="yes do it")
-    test_orch.llm = FakeLLM(script=[Done(usage=LLMUsage(prompt_tokens=5, completion_tokens=1))])
-    p_barge = PTTReleasedPayload(
+    # User speaks "stop" -> CANCEL_PATTERN -> action cancelled, nothing executed
+    test_orch.asr = FakeASR(transcript="stop")
+    answer_pcm = np.ones(8000, dtype=np.int16) * 500
+    test_orch.cap_ring.write(answer_pcm)
+    # seq space is cumulative samples written: 16000 from the turn capture
+    seq_start, seq_end = 16000, 16000 + len(answer_pcm)
+    p_answer = PTTReleasedPayload(
         t_ns=4000,
-        capture_seq_start=0,
-        capture_seq_end=100,
-        duration_ms=10.0,
-        vad_speech_ms=0.0,
+        capture_seq_start=seq_start,
+        capture_seq_end=seq_end,
+        duration_ms=500.0,
+        vad_speech_ms=400.0,
     )
-    test_orch._on_ptt_released(ts_ns=4000, p=p_barge)
+    test_orch._on_ptt_released(ts_ns=4000, p=p_answer)
 
     if test_orch.active_turn_thread:
-        test_orch.active_turn_thread.join(timeout=2.0)
+        test_orch.active_turn_thread.join(timeout=3.0)
 
-    # File must NOT have been written
+    assert not target_file.exists()
+    assert test_orch.state == "idle"
+
+
+def test_voice_confirmation_yes_executes_tool(test_orch: Orchestrator, tmp_path: Path):
+    """WO-9 A1 (F1): press -> release "yes do it" during confirm_wait executes the tool.
+
+    Regression for the live-session deadlock: the PTT press used to cancel the
+    pending confirmation before the release could deliver the voice answer.
+    """
+    call = ToolCall(tool="launch_app", args={"app_name": "calculator"}, call_id="call-v2")
+    _reach_confirm_wait(test_orch, call)
+
+    test_orch.asr = FakeASR(transcript="yes do it")
+    answer_pcm = np.ones(8000, dtype=np.int16) * 500
+    test_orch.cap_ring.write(answer_pcm)
+    # seq space is cumulative samples written: 16000 from the turn capture
+    seq_start, seq_end = 16000, 16000 + len(answer_pcm)
+    p_answer = PTTReleasedPayload(
+        t_ns=4000,
+        capture_seq_start=seq_start,
+        capture_seq_end=seq_end,
+        duration_ms=500.0,
+        vad_speech_ms=400.0,
+    )
+    test_orch._on_ptt_released(ts_ns=4000, p=p_answer)
+
+    if test_orch.active_turn_thread:
+        test_orch.active_turn_thread.join(timeout=3.0)
+
+    assert test_orch.state == "idle"
+    assert len(test_orch.executed_tools) == 1
+    assert test_orch.executed_tools[0][0] == "launch_app"
+
+
+def test_voice_confirmation_no_cancels(test_orch: Orchestrator, tmp_path: Path):
+    """WO-9 A1: press -> release "no" during confirm_wait cancels the action."""
+    target_file = tmp_path / "orch_ws" / "voice_no.txt"
+    call = ToolCall(
+        tool="write_file",
+        args={"path": "voice_no.txt", "content": "data"},
+        call_id="call-v3",
+    )
+    _reach_confirm_wait(test_orch, call)
+
+    test_orch.asr = FakeASR(transcript="no")
+    answer_pcm = np.ones(8000, dtype=np.int16) * 500
+    test_orch.cap_ring.write(answer_pcm)
+    # seq space is cumulative samples written: 16000 from the turn capture
+    seq_start, seq_end = 16000, 16000 + len(answer_pcm)
+    p_answer = PTTReleasedPayload(
+        t_ns=4000,
+        capture_seq_start=seq_start,
+        capture_seq_end=seq_end,
+        duration_ms=500.0,
+        vad_speech_ms=400.0,
+    )
+    test_orch._on_ptt_released(ts_ns=4000, p=p_answer)
+
+    if test_orch.active_turn_thread:
+        test_orch.active_turn_thread.join(timeout=3.0)
+
+    assert not target_file.exists()
+    assert test_orch.state == "idle"
+
+
+def test_text_confirmation_yes_executes_tool(test_orch: Orchestrator, tmp_path: Path):
+    """WO-9 A1 (F1): typed "yes" during confirm_wait resolves the pending action."""
+    call = ToolCall(tool="launch_app", args={"app_name": "calculator"}, call_id="call-t1")
+    _reach_confirm_wait(test_orch, call)
+
+    test_orch._on_user_text(ts_ns=3000, user_text="yes")
+
+    if test_orch.active_turn_thread:
+        test_orch.active_turn_thread.join(timeout=3.0)
+
+    assert test_orch.state == "idle"
+    assert len(test_orch.executed_tools) == 1
+    assert test_orch.executed_tools[0][0] == "launch_app"
+
+
+def test_text_confirmation_no_and_unknown_cancel(test_orch: Orchestrator, tmp_path: Path):
+    """WO-9 A1: typed "no" (and unrecognized input) during confirm_wait cancels."""
+    target_file = tmp_path / "orch_ws" / "text_no.txt"
+    call = ToolCall(
+        tool="write_file",
+        args={"path": "text_no.txt", "content": "data"},
+        call_id="call-t2",
+    )
+    _reach_confirm_wait(test_orch, call)
+
+    test_orch._on_user_text(ts_ns=3000, user_text="no")
+
+    if test_orch.active_turn_thread:
+        test_orch.active_turn_thread.join(timeout=3.0)
+
     assert not target_file.exists()
     assert test_orch.state == "idle"
 

@@ -262,6 +262,40 @@ GROUNDING_ELIGIBLE: frozenset[Provenance] = frozenset(
 )
 
 
+# WO-9 A2 (ADR-010): single source of truth for the closed fact-predicate
+# vocabulary (Spec 04 §3). Lives in core.schemas so the ProvenanceGate
+# (enforcement) and the tool manifest (documentation) can never drift apart.
+# Security invariant: deliberately NOT config-editable — widening this set
+# changes what can be laundered into long-term memory.
+FACT_PREDICATES: Final[frozenset[str]] = frozenset(
+    {
+        "is_named",
+        "has_sibling",
+        "has_parent",
+        "has_child",
+        "has_partner",
+        "has_friend",
+        "lives_in",
+        "works_at",
+        "works_as",
+        "born_on",
+        "likes",
+        "dislikes",
+        "owns",
+        "uses_app",
+        "prefers",
+        "allergic_to",
+        "speaks_language",
+        "has_pet",
+        "studies",
+        "birthday_is",
+        "timezone_is",
+        "project_is",
+        "note",
+    }
+)
+
+
 class ASRMeta(BaseModel, frozen=True):
     model: str
     avg_logprob: float

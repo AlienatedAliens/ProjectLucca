@@ -20,6 +20,7 @@ logger = structlog.get_logger(__name__)
 
 FUNCTIONAL_PREDICATES: Final[frozenset[str]] = frozenset(
     {
+        "is_named",
         "lives_in",
         "works_at",
         "works_as",

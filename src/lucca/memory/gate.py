@@ -11,6 +11,7 @@ from typing import Final
 
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import (
+    FACT_PREDICATES,
     MEMORY_ELIGIBLE,
     Admitted,
     LLMNarration,
@@ -19,34 +20,10 @@ from lucca.core.schemas import (
 )
 from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
 
-# Closed predicate list from Spec 04 §3
-PREDICATES: Final[frozenset[str]] = frozenset(
-    {
-        "is_named",
-        "has_sibling",
-        "has_parent",
-        "has_child",
-        "has_partner",
-        "has_friend",
-        "lives_in",
-        "works_at",
-        "works_as",
-        "born_on",
-        "likes",
-        "dislikes",
-        "owns",
-        "uses_app",
-        "prefers",
-        "allergic_to",
-        "speaks_language",
-        "has_pet",
-        "studies",
-        "birthday_is",
-        "timezone_is",
-        "project_is",
-        "note",
-    }
-)
+# Closed predicate list from Spec 04 §3 — canonical definition lives in
+# core.schemas (FACT_PREDICATES) so the gate and the tool manifest share one
+# source of truth (WO-9 A2).
+PREDICATES: Final[frozenset[str]] = FACT_PREDICATES
 
 NONCE_RETENTION_SECONDS = 86400.0  # 24 hours
 

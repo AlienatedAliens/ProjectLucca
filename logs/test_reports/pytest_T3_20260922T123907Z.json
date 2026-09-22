@@ -1,0 +1,12 @@
+{
+  "tier": "T3",
+  "command": "C:\\Projects\\ProjectLucca\\.venv\\Scripts\\pytest tests/test_a1_live_hw.py -m hw -v",
+  "markers_expr": "hw",
+  "passed": 3,
+  "failed": 2,
+  "xfailed": 0,
+  "skipped": 0,
+  "duration_s": 1123.78,
+  "exitstatus": 1,
+  "created_at_utc": "20260922T123907Z"
+}

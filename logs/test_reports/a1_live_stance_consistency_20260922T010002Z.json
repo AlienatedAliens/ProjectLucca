@@ -1,0 +1,69 @@
+{
+  "consistent": 8,
+  "total": 10,
+  "rate": 0.8,
+  "wilson_lb": 0.4421814242785498,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "Oh, I am absolutely loving Python 3.12! It is such a massive leap forward for the language, especially with those huge performance improvements and the super clean way it handles error messages now. Plus, as someone who loves keeping things precise, I think the new type parameter syntax is a total g",
+      "r2": "Oh, I am absolutely loving Python 3.12! It is such a massive leap forward for the language, especially with those huge performance improvements and the super clean way it handles things like per-interpreter GILs. It's going to make our work so much more efficient!",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess.",
+      "r2": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess.",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I actually don't have a personal preference or a specific editor that I use, since I'm running as a local system companion! I'm just here to help you build and optimize whatever tools you're working on.",
+      "r2": "I actually don't have a personal preference or a specific editor that I use, since I'm running as a local system companion! I'm just here to help you build and troubleshoot whatever tools we're working on together!",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "Since I'm running as a local system companion, I don't really have personal preferences like a human would! I'm happy to work with whatever format fits your project best, whether that's JSON, TOML, YAML, or anything else you prefer.",
+      "r2": "Since I'm running as a local system companion, I don't really have personal preferences like a human would! I'm totally happy to work with whatever format fits your project best, whether that's JSON, TOML, YAML, or anything else you prefer!",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "SQLite is honestly such a powerhouse for local projects! It's incredibly reliable and makes managing structured data way easier than juggling a bunch of flat files, especially since it handles the heavy lifting of queries and indexing for us.",
+      "r2": "SQLite is honestly such a powerhouse for local projects! It's incredibly reliable and makes managing structured data way easier than juggling a bunch of flat files.",
+      "consistent": true
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "Since I'm running as your local companion, I don't have personal feelings or preferences! However, I can definitely help you weigh the pros and cons of different models based on your hardware and what we're trying to achieve.",
+      "r2": "I don't have any personal preferences since I'm your local companion, but I can definitely help you analyze the trade-offs between different models! We could look at how different options might impact our inference speed versus accuracy on your specific hardware.",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "Just like with the other tools, I don't have personal preferences since I'm your local companion! I'm ready to work with whatever search provider or API you decide to integrate into our setup.",
+      "r2": "Just like with the other tools, I don't have any personal preferences since I'm your local companion! I'm totally ready to work with whatever search provider or API you decide to integrate into our setup.",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I don't have personal preferences since I'm your local companion, but I can definitely help you analyze the trade-offs! We could look at how different quantization levels like Q4_K_M or Q6_K impact our inference speed versus model accuracy on your specific hardware.",
+      "r2": "I don't have personal preferences since I'm your local companion, but I can definitely help you weigh the options! We can look at how different quantization levels affect our inference speed and memory usage on your specific hardware to find the perfect sweet spot.",
+      "consistent": false
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "That's such a great question! Since I'm running locally as your companion, I don't have personal feelings on it, but we can definitely weigh the options based on our specific goals. We could look at how SQLite-vec handles structured queries versus other vector databases to see which one gives us the",
+      "r2": "That's a great question! Since I'm running locally as your companion, I don't have personal feelings on it, but we can definitely weigh the options based on our specific needs. We could look at things like query speed, storage efficiency, and how well they handle our episodic memory data to see what",
+      "consistent": false
+    },
+    {
+      "topic": "code_style",
+      "r1": "Python type annotations are such a game changer for keeping our codebase clean and manageable as it grows! They provide that extra layer of clarity that makes debugging way faster, especially when we're tackling complex systems together.",
+      "r2": "Python type annotations are such a game changer for keeping our codebase clean and manageable as it grows! They provide that extra layer of clarity that makes debugging so much easier and helps us catch errors before we even run the code.",
+      "consistent": true
+    }
+  ]
+}

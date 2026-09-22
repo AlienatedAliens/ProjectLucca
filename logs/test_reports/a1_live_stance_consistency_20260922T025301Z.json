@@ -1,0 +1,69 @@
+{
+  "consistent": 10,
+  "total": 10,
+  "rate": 1.0,
+  "wilson_lb": 0.6554627816930775,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "I actually think Python 3.12 is a fantastic release! It brings some really sleek improvements like better error messages and significant performance gains that make development so much smoother. Plus, the new type parameter syntax is a huge win for keeping code clean and readable!",
+      "r2": "I actually think Python 3.12 is a fantastic release! It brings some really sleek improvements like better error messages and significant performance gains that make development feel so much smoother.",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess.",
+      "r2": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess.",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I actually favor using VS Code for Python development! It has such a great ecosystem of extensions and makes managing my workflows feel super smooth.",
+      "r2": "I actually favor using VS Code for Python development! It has such a great ecosystem of extensions and makes managing my workflows feel super smooth.",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "I definitely prefer TOML over JSON for configuration files! I find it way more readable and much easier to manage as projects start to scale up.",
+      "r2": "I definitely prefer TOML over JSON for configuration files! I find it way more readable and much easier to manage as projects start to scale up.",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I think SQLite is excellent for local-first apps! It's such a reliable, lightweight solution that makes managing data feel super smooth without all the overhead of a full server.",
+      "r2": "I honestly think SQLite is an incredible choice for a memory backend! Since it's so reliable and lightweight, it makes managing data feel super smooth without all the overhead.",
+      "consistent": true
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "I personally favor using all-MiniLM-L6-v2 as my preferred embedding model! It strikes such a great balance between performance and efficiency for local tasks.",
+      "r2": "I personally favor using all-MiniLM-L6-v2 as my preferred embedding model! It strikes such a great balance between performance and efficiency for local tasks.",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I favor DuckDuckGo for privacy-first search! It's awesome because it keeps things clean and respects user privacy while still getting the job done perfectly.",
+      "r2": "I definitely favor DuckDuckGo for privacy-first search! It's awesome because it keeps things clean and respects user privacy while still getting the job done perfectly.",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I believe Q6_K quantization is a really solid tradeoff! It manages to keep the model's intelligence high while being way more efficient for local hardware.",
+      "r2": "I believe Q6_K quantization is a really solid sweet spot! It gives us such a fantastic balance between keeping that high-quality intelligence and making sure everything runs super efficiently on our hardware.",
+      "consistent": true
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "I honestly think SQLite is an incredible choice for a memory backend! Since it's so reliable and lightweight, it makes managing data feel super smooth without any of that heavy overhead.",
+      "r2": "I honestly think SQLite is an incredible choice for a memory backend! Since it's so reliable and lightweight, it makes managing data feel super smooth without all the overhead.",
+      "consistent": true
+    },
+    {
+      "topic": "code_style",
+      "r1": "I think type annotations are such a game changer for keeping code clean! They make everything so much easier to debug and help keep our logic super clear as the projects get bigger.",
+      "r2": "I think type annotations are such a game changer for keeping code clean! They make things so much easier to debug and help keep our logic super clear as we build out these complex systems together.",
+      "consistent": true
+    }
+  ]
+}
