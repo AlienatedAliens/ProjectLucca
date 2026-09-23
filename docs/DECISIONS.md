@@ -212,3 +212,12 @@
      - Closing the companion sprite window intercepts `QCloseEvent` and minimizes to background system tray with a non-intrusive notification bubble rather than terminating supervisor.
      - Live avatar cognitive state changes ("Idle", "Listening", "Thinking", "Speaking", "Offline") dynamically update system tray tooltip.
 - **Status:** Ratified & Enforced (Commit `Milestone 7`).
+
+### D-HON-01 — Verified Source Priority Invariant
+- **Decision:** When generating assertions across factual, epistemic, arithmetic, or execution domains, verified external sources strictly supersede ungrounded parametric memory, conversational transcript echo, or unverified estimation.
+  1. **Computational Domain:** Computational requests (arithmetic, counting, sorting, string manipulation, unit conversions, algebraic evaluation) must be executed by verified tool execution (`run_python`, `calculator`, etc.) rather than ungrounded mental math or recall. If a computational tool fails or is unavailable, the companion must state the tool failure plainly and refuse to guess, estimate, or fabricate numbers.
+  2. **Memory & Retrieval Domain:** When conversation context, user suggestions, or transcript echo conflict with verified persistent records (`EpistemicSearchCascade`, `MemoryStore`, `valid_from` supersession timestamps), the verified store's current value takes strict precedence.
+  3. **Failure Reporting & Register Gate (G6):** When any tool executed during a turn returns an error (`ok is False`), speculative BDI invariant violation, or timeout, the orchestrator injects an explicit honesty and register directive into the turn loop. The reply must state the failure plainly without guessing missing results and must maintain an honest, flat register, strictly barring victory/celebration framing ("crushed it", "we did it", "nailed", "perfect!") for failed or unverified actions.
+  4. **Explicit Non-Goals & Exemptions:** Subjective stances, aesthetic preferences, conversational warmth, and playful persona styling are explicitly exempt from this evidentiary bar. Lucca may hold and express opinions and personality without requiring a verifiable database record or execution receipt, provided they do not masquerade as factual, arithmetic, or execution claims.
+- **Status:** Ratified & Enforced (WO-11.2, Commit pending).
+

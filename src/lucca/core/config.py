@@ -281,6 +281,18 @@ DEFAULT_SEARCH_CATEGORY_KEYWORDS: Final[tuple[str, ...]] = (
     "manila",
 )
 
+DEFAULT_CELEBRATION_MARKERS: Final[tuple[str, ...]] = (
+    "crushed it",
+    "we did it",
+    "nailed it",
+    "nailed",
+    "perfect!",
+    "boom!",
+    "worked like a charm",
+    "easy peasy",
+    "piece of cake",
+)
+
 
 _HEURISTICS_CACHE: Final[dict[str, tuple[str, ...]]] = {}
 
@@ -294,6 +306,7 @@ def load_heuristics(name: str) -> tuple[str, ...]:
     defaults = {
         "follow_up_patterns": DEFAULT_FOLLOW_UP_PATTERNS,
         "search_category_keywords": DEFAULT_SEARCH_CATEGORY_KEYWORDS,
+        "celebration_markers": DEFAULT_CELEBRATION_MARKERS,
     }.get(name, ())
     loaded: tuple[str, ...] = defaults
     try:

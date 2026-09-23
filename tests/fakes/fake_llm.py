@@ -45,7 +45,10 @@ class FakeLLM:
         self.aborted = False
         self.last_memories = memories
         self.last_kwargs = kwargs
-        self.all_kwargs.append(dict(kwargs))
+        recorded = dict(kwargs)
+        if "tool_messages" in recorded and isinstance(recorded["tool_messages"], list):
+            recorded["tool_messages"] = list(recorded["tool_messages"])
+        self.all_kwargs.append(recorded)
 
         if self.rounds is not None:
             events = (

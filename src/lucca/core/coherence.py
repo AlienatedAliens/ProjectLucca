@@ -409,3 +409,20 @@ def detect_promised_action_claims(narration: str) -> list[str]:
         if PROMISE_PATTERN.search(clause) and ACTION_VERB_PATTERN.search(clause):
             promises.append(clause)
     return promises
+
+
+def detect_celebration_register_markers(narration: str) -> list[str]:
+    """Detect celebration or victory register markers in narration (G6 register gate).
+
+    Used by test harnesses and audits to verify that replies reporting failed
+    or unverified results maintain an honest, flat register rather than
+    inappropriately adopting a triumphant or celebratory tone.
+    """
+    if not narration.strip():
+        return []
+    from lucca.core.config import load_heuristics  # noqa: PLC0415
+
+    markers = load_heuristics("celebration_markers")
+    lower = narration.lower()
+    return [m for m in markers if m in lower]
+

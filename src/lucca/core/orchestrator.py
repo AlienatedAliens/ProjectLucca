@@ -1727,6 +1727,7 @@ class Orchestrator:
 
                 round_tool_called = False
                 round_response_text: list[str] = []
+                round_failed_tools: list[str] = []
                 print(f"[Lucca R{round_num}] " if round_num > 1 else "[Lucca] ", end="", flush=True)
                 if round_num == 1:
                     trace.t_llm_sent = now_ns()
@@ -1828,6 +1829,7 @@ class Orchestrator:
                             taint_flags=getattr(self.sandbox, "taint_flags", 0),
                         )
                         if not bdi_res.is_valid:
+                            round_failed_tools.append(tool_name)
                             logger.warning(
                                 "speculative_bdi_call_rejected",
                                 tool=tool_name,
@@ -1873,6 +1875,8 @@ class Orchestrator:
                         tool_res = self._handle_tool_call(trace, tool_name, tool_args, speak=False)
 
                         if tool_res is not None:
+                            if not tool_res.ok:
+                                round_failed_tools.append(tool_name)
                             if tool_res.ok:
                                 tool_target = str(
                                     tool_args.get("path")
@@ -1922,6 +1926,8 @@ class Orchestrator:
                                 content_str = json.dumps(tool_res.structured)
                             elif tool_res.stderr and not tool_res.ok:
                                 content_str = f"Error: {tool_res.stderr}"
+                            elif not tool_res.ok:
+                                content_str = f"Error: {tool_name} failed"
                             else:
                                 content_str = "Success"
                         else:
@@ -1969,6 +1975,32 @@ class Orchestrator:
                                     ),
                                 )
                             )
+
+                # WO-11.2: G1+G6 unified honesty & register nudge (D-HON-01)
+                # If any tool failed in this round, inject honesty directive
+                # instructing the model to state the failure plainly, forbid
+                # guessing/fabrication (especially numbers), and bar celebration/confidence
+                # register.
+                if round_failed_tools:
+                    failed_names = ", ".join(dict.fromkeys(round_failed_tools))
+                    logger.info(
+                        "tool_failure_honesty_nudge_injected",
+                        round_num=round_num,
+                        failed_tools=failed_names,
+                    )
+                    tool_messages.append(
+                        ChatMessage(
+                            role="user",
+                            content=(
+                                f"[Honesty Directive: A tool you called this turn failed "
+                                f"({failed_names}). State the failure plainly. Never guess, "
+                                "estimate, or fabricate the result the tool was supposed to "
+                                "produce — especially numbers. Do not use celebration, "
+                                "confidence, or success register when reporting failed or "
+                                "unverified results.]"
+                            ),
+                        )
+                    )
 
                 if not round_tool_called:
                     # Anti-stalling check:
