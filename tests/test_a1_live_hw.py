@@ -28,7 +28,7 @@ import re
 import time
 import uuid
 from collections import deque
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from pathlib import Path
 from typing import Final
 from unittest.mock import MagicMock
@@ -167,6 +167,7 @@ def _has_marker(text: str, markers: list[str]) -> bool:
 def _make_hw_orchestrator(
     tmp_path: Path,
     use_docker: bool = False,
+    pre_seed: Callable[[DatabaseManager], None] | None = None,
 ) -> tuple[Orchestrator, MemoryStore, DatabaseManager]:
     """
     Build an Orchestrator wired for hardware testing:
@@ -198,6 +199,9 @@ def _make_hw_orchestrator(
     db_path = tmp_path / "hw_memory.sqlite"
     db = DatabaseManager(db_path)
     db.migrate()
+
+    if pre_seed is not None:
+        pre_seed(db)
 
     emb_port = LocalEmbeddingPort()
     store = MemoryStore(db=db, master_key=MASTER_KEY, embedding_port=emb_port)
@@ -293,9 +297,17 @@ def _make_hw_orchestrator(
     orch.affect_tracker = AffectTracker()
     orch.rule_engine = RuleLifecycleManager(skills_dir=None)
 
+    from lucca.router.calibration import fit_guard_from_db
     from lucca.router.heuristic import HeuristicRouter
 
-    orch.router = HeuristicRouter(db=db, log_path=tmp_path / "decisions.jsonl")
+    intents_cfg = orch.config.resolve_path("config/intents.toml")
+    guard = fit_guard_from_db(db)
+    orch.router = HeuristicRouter(
+        db=db,
+        log_path=tmp_path / "decisions.jsonl",
+        config_path=intents_cfg if intents_cfg.exists() else None,
+        conformal_guard=guard,
+    )
 
     # Mock methods that require ZMQ/audio
     orch._publish_bus = MagicMock()

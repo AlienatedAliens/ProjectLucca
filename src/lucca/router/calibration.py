@@ -9,8 +9,8 @@ import json
 from typing import Final
 
 import numpy as np
-from numpy.typing import NDArray
 import structlog
+from numpy.typing import NDArray
 
 from lucca.core.exceptions import InsufficientCalibration
 from lucca.memory.db import DatabaseManager
@@ -27,7 +27,7 @@ def load_labelled_decisions(
     """
     Pull calibration pairs from the `decisions` table. Deterministic, no LLM.
     Row is usable iff: probabilities_json is non-null and parses to all three CLASS_ORDER keys,
-                       fallback_applied == 0 (abstentions carry no ground truth about the right class).
+                       fallback_applied == 0 (abstentions carry no ground truth).
     Label rule:
       action == "RULE" and tool_ok == 1          -> 0 (RULE was right)
       action == "RULE" and tool_ok == 0          -> 1 (RULE was wrong; LLM should have handled it)

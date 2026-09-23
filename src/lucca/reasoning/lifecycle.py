@@ -38,7 +38,10 @@ from lucca.memory.db import DatabaseManager
 from lucca.reasoning.replay import ReplayEngine, ReplayReport
 from lucca.reasoning.scheme.eval import evaluate_rule
 from lucca.reasoning.scheme.parser import RuleDefinition, parse_rule
-from lucca.reasoning.scheme.validator import validate_rule_static
+from lucca.reasoning.scheme.validator import (
+    _collect_plan_tool_actions,
+    validate_rule_static,
+)
 from lucca.reasoning.stats import mcnemar_test, wilson_score_interval
 
 logger = structlog.get_logger(__name__)
@@ -66,6 +69,7 @@ class ManagedRule:
     rule_id: str
     status: RuleStatus
     definition: RuleDefinition
+    tools_referenced: frozenset[str] = field(default_factory=frozenset)
     success_clusters: set[str] = field(default_factory=set)
     snapshots: list[tuple[RuleState, Plan]] = field(default_factory=list)
     failure_count: int = 0
@@ -81,6 +85,15 @@ class ManagedRule:
     is_induced: bool = False
     replay_passed: bool = False
     replay_report: ReplayReport | None = None
+
+    def __post_init__(self) -> None:
+        if not self.tools_referenced and self.definition is not None:
+            tool_actions = _collect_plan_tool_actions(self.definition.plan_expr)
+            tools: set[str] = set()
+            for act in tool_actions:
+                if len(act) > 1 and isinstance(act[1], str):
+                    tools.add(act[1])
+            self.tools_referenced = frozenset(tools)
 
 
 def compute_cluster_id(

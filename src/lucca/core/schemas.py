@@ -586,6 +586,10 @@ class DecisionRecord(BaseModel):
     label_reason: DecisionLabelReason | str | None = None
     counterfactual_rule_fired: bool = False
 
+    @property
+    def fallback_applied(self) -> bool:
+        return self.decision.fallback_applied
+
 
 class RecallEpisode(BaseModel):
     source: Literal["decisions", "execution_triples"]

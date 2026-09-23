@@ -14,7 +14,6 @@ Proves one induced rule completes the full end-to-end lifecycle:
 
 from __future__ import annotations
 
-import json
 import time
 from pathlib import Path
 

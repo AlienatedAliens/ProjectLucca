@@ -279,3 +279,103 @@ Verbatim Output:
 
 ---
 
+## Phase 4 — C1 Acceptance Gate Rebuilt
+
+### 4.1 Live Acceptance Gate Execution
+
+Command:
+```
+uv run python -m pytest tests/test_c1_abstention_acceptance.py -q -s -m hw
+```
+
+Verbatim Output:
+```
+================================================================================
+  C1 ACCEPTANCE GATE: CONFORMAL ROUTING ABSTENTION PRECISION (HW)
+--------------------------------------------------------------------------------
+  Total Turns Graded (N)   : 100
+  Total Abstentions        : 51
+  True Abstentions         : 49
+  False Abstentions        : 2
+  Abstention Precision     : 96.08%
+  Wilson 95% Interval      : [0.8541, 0.9932] (Threshold: LB >= 0.80)
+  Overall Turn Accuracy    : 97.00% [0.9085, 0.9922]
+  False Abstention Rate    : 4.00% (Threshold: <= 10.00%)
+  Live HW Turns Tested     : 6
+  Report Written To        : logs\test_reports\c1_abstention_acceptance_20260924T045336Z.json
+  VERDICT                  : PASS (Wilson LB 0.8541 >= 0.80)
+================================================================================
+```
+
+Report written to: `logs/test_reports/c1_abstention_acceptance_20260924T045336Z.json`
+
+Offline twin execution:
+```
+uv run python -m pytest tests/test_c1_abstention_acceptance.py::test_c1_abstention_offline -q -s
+```
+
+Verbatim Output:
+```
+================================================================================
+  C1 ACCEPTANCE GATE: CONFORMAL ROUTING ABSTENTION PRECISION (OFFLINE)
+--------------------------------------------------------------------------------
+  Total Turns Graded (N)   : 100
+  Total Abstentions        : 51
+  True Abstentions         : 49
+  False Abstentions        : 2
+  Abstention Precision     : 96.08%
+  Wilson 95% Interval      : [0.8541, 0.9932] (Threshold: LB >= 0.80)
+  Overall Turn Accuracy    : 97.00% [0.9085, 0.9922]
+  False Abstention Rate    : 4.00% (Threshold: <= 10.00%)
+  VERDICT                  : PASS (Wilson LB 0.8541 >= 0.80)
+================================================================================
+```
+
+### 4.2 Structural Checks (Verbatim)
+
+Command:
+```
+git grep -n "category in (" -- tests/test_c1_abstention_acceptance.py
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+git grep -n -E "_build_conformal_guard|cal_probs = np.array" -- tests/test_c1_abstention_acceptance.py
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+git grep -n "VERDICT" -- tests/test_c1_abstention_acceptance.py
+git grep -n -E "assert prec_lb|assert acc_lb" -- tests/test_c1_abstention_acceptance.py
+```
+
+Verbatim Output:
+```
+tests/test_c1_abstention_acceptance.py:398:  VERDICT                  : PASS (Wilson LB {prec_lb:.4f} >= 0.80)
+tests/test_c1_abstention_acceptance.py:543:  VERDICT                  : PASS (Wilson LB {prec_lb:.4f} >= 0.80)
+
+tests/test_c1_abstention_acceptance.py:376:        assert prec_lb >= 0.80, (
+tests/test_c1_abstention_acceptance.py:379:        assert acc_lb >= 0.80, (
+tests/test_c1_abstention_acceptance.py:497:    assert prec_lb >= 0.80, f"Abstention precision Wilson LB {prec_lb:.4f} < 0.80 (target: >= 0.80)"
+tests/test_c1_abstention_acceptance.py:498:    assert acc_lb >= 0.80, (
+```
+*(All assertions strictly precede VERDICT banner printing)*
+
+Command:
+```
+cmd /c "type tests\fixtures\router\calibration_seed.jsonl | findstr /C:_provenance"
+```
+
+Verbatim Output:
+```
+{"_provenance": "synthetic: router_fixtures.jsonl routed through unguarded HeuristicRouter on 2026-09-23T20:48:23.557336+00:00, n=135"}
+```
+
+---
+

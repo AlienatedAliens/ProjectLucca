@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import json
 import time
+from typing import Final
 
 from lucca.memory.db import DatabaseManager
-
 
 _DEFAULT_PROBS: Final[dict[str, float]] = {"RULE": 1.0, "LLM": 0.0, "CLARIFY": 0.0}
 
