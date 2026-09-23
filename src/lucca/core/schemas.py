@@ -587,6 +587,18 @@ class DecisionRecord(BaseModel):
     counterfactual_rule_fired: bool = False
 
 
+class RecallEpisode(BaseModel):
+    source: Literal["decisions", "execution_triples"]
+    record_id: str
+    ts: float
+    match_score: int  # tokens matched
+    tokens_total: int  # tokens in query after stop-word removal
+    # one-line human-readable summary, e.g.:
+    # "Historical turn 'open calculator': routed RULE via ACT_THEN_NARRATE (succeeded)"
+    summary: str
+    payload: dict[str, JsonValue]
+
+
 # ============================================================================
 # Tracing Models (Spec 02 §TracePort, Spec 10)
 # ============================================================================

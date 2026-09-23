@@ -10,10 +10,10 @@ from pathlib import Path
 import numpy as np
 
 from lucca.core.cascade import EpistemicSearchCascade, EpistemicSubstrate
-from lucca.core.schemas import ExecutionTier, RouteAction
+from lucca.core.schemas import ExecutionTier, RecallEpisode, RouteAction
 from lucca.memory.db import DatabaseManager
 from lucca.memory.store import MemoryStore
-from lucca.reasoning.replay import ReplayEngine
+from lucca.reasoning.recall import recall_past_episodes
 from lucca.router.conformal import ConformalGuard
 from lucca.router.heuristic import HeuristicRouter
 
@@ -81,10 +81,8 @@ def test_episode_recall_no_llm_call(tmp_path: Path) -> None:
     db_path = tmp_path / "lucca_recall_test1.db"
     db = DatabaseManager(db_path=db_path)
     db.migrate()
-    replay = ReplayEngine()
-
     # Deterministic lookup against empty or populated store without LLMClient
-    episodes = replay.recall_past_episodes(db, query_text="calculator")
+    episodes = recall_past_episodes(db, query_text="calculator")
     assert isinstance(episodes, list)
     assert len(episodes) == 0
 
@@ -94,7 +92,6 @@ def test_recall_returns_relevant_episodes(tmp_path: Path) -> None:
     db_path = tmp_path / "lucca_recall_test2.db"
     db = DatabaseManager(db_path=db_path)
     db.migrate()
-    replay = ReplayEngine()
 
     now = time.time()
     # 1. Seed decisions table with past episodes
@@ -164,22 +161,22 @@ def test_recall_returns_relevant_episodes(tmp_path: Path) -> None:
     )
 
     # 2. Query recall for calculator
-    calc_episodes = replay.recall_past_episodes(
-        db, query_text="what did we do with calculator?", limit=5
-    )
+    calc_episodes = recall_past_episodes(db, query_text="what did we do with calculator?", limit=5)
     assert len(calc_episodes) == 1
-    assert calc_episodes[0]["decision_id"] == "dec-001"
-    assert calc_episodes[0]["transcript"] == "open calculator"
-    assert calc_episodes[0]["action"] == "RULE"
-    assert calc_episodes[0]["tool_ok"] is True
+    assert isinstance(calc_episodes[0], RecallEpisode)
+    assert calc_episodes[0].record_id == "dec-001"
+    assert calc_episodes[0].payload["transcript"] == "open calculator"
+    assert calc_episodes[0].payload["action"] == "RULE"
+    assert calc_episodes[0].payload["tool_ok"] is True
 
     # 3. Query recall for notes.txt
-    notes_episodes = replay.recall_past_episodes(
+    notes_episodes = recall_past_episodes(
         db, query_text="have we opened notes.txt before?", limit=5
     )
     assert len(notes_episodes) == 1
-    assert notes_episodes[0]["decision_id"] == "dec-002"
-    assert notes_episodes[0]["intent"] == "file_read"
+    assert isinstance(notes_episodes[0], RecallEpisode)
+    assert notes_episodes[0].record_id == "dec-002"
+    assert notes_episodes[0].payload["intent"] == "file_read"
 
     # 4. Verify epistemic cascade integration
     mem_store = MemoryStore(db=db, master_key=b"0" * 32)

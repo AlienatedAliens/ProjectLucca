@@ -7,7 +7,10 @@ acoustic floor-holding cues, and calibrated honest abstention.
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from unittest.mock import MagicMock
+
+import pytest
 
 from lucca.core.cascade import (
     BelnapValue,
@@ -485,3 +488,127 @@ def test_orchestrator_cascade_injects_epistemic_ground_truth() -> None:
         orch.cap_ring.unlink()
         orch.play_ring.close()
         orch.play_ring.unlink()
+
+
+def test_self_history_substrate_delegates_to_recall(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from lucca.core.schemas import RecallEpisode
+    from lucca.memory.db import DatabaseManager
+    from lucca.memory.store import MemoryStore
+
+    db = DatabaseManager(tmp_path / "test_recall_delegation.sqlite")
+    db.migrate()
+    mem_store = MemoryStore(db=db, master_key=b"0" * 32)
+    cascade = EpistemicSearchCascade(memory_store=mem_store)
+
+    fake_episode = RecallEpisode(
+        source="decisions",
+        record_id="dec-spy-01",
+        ts=1000.0,
+        match_score=1,
+        tokens_total=2,
+        summary="Historical turn 'open calculator': routed RULE via ACT_THEN_NARRATE (succeeded)",
+        payload={"action": "RULE", "tool_ok": True},
+    )
+
+    spy_called = 0
+
+    def spy_recall(
+        db_arg: DatabaseManager, query_text_arg: str, limit: int = 10
+    ) -> list[RecallEpisode]:
+        nonlocal spy_called
+        spy_called += 1
+        return [fake_episode]
+
+    monkeypatch.setattr("lucca.core.cascade.recall_past_episodes", spy_recall)
+
+    items = cascade.query_substrate_self_history("open calculator")
+
+    assert spy_called == 1
+    assert len(items) >= 1
+    assert items[0].confidence == 0.5
+    assert "match_score" in items[0].metadata
+    assert items[0].metadata["match_score"] == 1
+    assert items[0].metadata["tokens_total"] == 2
+
+
+def test_self_history_confidence_scales_with_match(tmp_path: Path) -> None:
+    import json
+
+    from lucca.memory.db import DatabaseManager
+    from lucca.memory.store import MemoryStore
+
+    db = DatabaseManager(tmp_path / "test_recall_scales.sqlite")
+    db.migrate()
+    mem_store = MemoryStore(db=db, master_key=b"0" * 32)
+    cascade = EpistemicSearchCascade(memory_store=mem_store)
+
+    now = time.time()
+    writer = db.get_writer()
+    features_partial = {
+        "transcript": "alpha only action",
+        "intent": "alpha_task",
+    }
+    writer.execute(
+        """
+        INSERT INTO decisions(
+            decision_id, trace_id, session_id, ts, features_json, action,
+            probabilities_json, prediction_set_json, fallback_applied, elapsed_us,
+            router_version, executed_path, tool_calls_json, tool_ok
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "dec-part-01",
+            "tr-1",
+            "s-1",
+            now - 20.0,
+            json.dumps(features_partial),
+            "RULE",
+            json.dumps({"RULE": 1.0}),
+            json.dumps(["RULE"]),
+            0,
+            100,
+            "heuristic-1.0",
+            "ACT_THEN_NARRATE",
+            None,
+            1,
+        ),
+    )
+
+    features_full = {
+        "transcript": "alpha beta gamma combined",
+        "intent": "full_task",
+    }
+    writer.execute(
+        """
+        INSERT INTO decisions(
+            decision_id, trace_id, session_id, ts, features_json, action,
+            probabilities_json, prediction_set_json, fallback_applied, elapsed_us,
+            router_version, executed_path, tool_calls_json, tool_ok
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            "dec-full-02",
+            "tr-2",
+            "s-1",
+            now - 10.0,
+            json.dumps(features_full),
+            "RULE",
+            json.dumps({"RULE": 1.0}),
+            json.dumps(["RULE"]),
+            0,
+            100,
+            "heuristic-1.0",
+            "ACT_THEN_NARRATE",
+            None,
+            1,
+        ),
+    )
+
+    items = cascade.query_substrate_self_history("alpha beta gamma")
+    assert len(items) == 2
+    full_item = next(it for it in items if "dec-full-02" in it.source)
+    part_item = next(it for it in items if "dec-part-01" in it.source)
+    assert abs(full_item.confidence - 1.0) < 1e-9
+    assert abs(part_item.confidence - (1.0 / 3.0)) < 1e-9

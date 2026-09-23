@@ -197,3 +197,85 @@ Verbatim Output:
 
 ---
 
+## Phase 3 — Recall deduplication
+
+### 3.1 Milestone Checks (Verbatim)
+
+Command:
+```
+git grep -n "recall_past_episodes" -- src/
+```
+
+Verbatim Output:
+```
+src/lucca/core/cascade.py:27:from lucca.reasoning.recall import recall_past_episodes, tokenize_query
+src/lucca/core/cascade.py:978:            episodes = recall_past_episodes(db, query_text, limit=10)
+src/lucca/reasoning/recall.py:63:def recall_past_episodes(
+```
+
+Command:
+```
+git grep -n "def recall_past_episodes" -- src/lucca/reasoning/replay.py
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+git grep -n -c "FROM decisions" -- src/lucca/core/cascade.py
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+git grep -E -n "except Exception:.*pass|noqa: S110" -- src/lucca/core/cascade.py src/lucca/reasoning/recall.py
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+uv run lint-imports
+```
+
+Verbatim Output:
+```
+=============
+Import Linter
+=============
+
+
+---------
+Contracts
+---------
+
+Analyzed 100 files, 294 dependencies.
+-------------------------------------
+
+UI must not import Core Orchestrator KEPT
+Memory must not import Brain KEPT
+Reasoning must not import Brain KEPT
+Sandbox must not import Brain or UI KEPT
+Memory must not import UI KEPT
+Reasoning must not import UI KEPT
+
+Contracts: 6 kept, 0 broken.
+```
+
+Command:
+```
+uv run python -m pytest tests/test_conformal_recall.py tests/test_epistemic_cascade.py tests/test_l2_replay_and_contrastive.py -q
+```
+
+Verbatim Output:
+```
+............................                                             [100%]
+28 passed in 3.46s
+```
+
+---
+

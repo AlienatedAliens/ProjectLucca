@@ -24,6 +24,7 @@ from lucca.core.schemas import MemoryHit, RetrievalQuery, ToolResult
 from lucca.core.trace import now_ns
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
 from lucca.ports import MemoryStorePort
+from lucca.reasoning.recall import recall_past_episodes, tokenize_query
 
 logger = structlog.get_logger(__name__)
 
@@ -971,113 +972,28 @@ class EpistemicSearchCascade:
             return items
 
         try:
-            tokens = [
-                tok.lower()
-                for tok in re.findall(r"\b[a-zA-Z0-9_\-.]+\b", query_text)
-                if len(tok) >= 3
-                and tok.lower()
-                not in (
-                    "what",
-                    "did",
-                    "you",
-                    "were",
-                    "doing",
-                    "last",
-                    "time",
-                    "session",
-                    "tell",
-                    "say",
-                    "have",
-                    "ever",
-                    "been",
-                    "wrong",
-                    "earlier",
-                    "recently",
-                    "about",
-                    "for",
-                )
-            ]
+            tokens = tokenize_query(query_text)
             candidates: list[tuple[int, float, EvidenceItem]] = []
+
+            episodes = recall_past_episodes(db, query_text, limit=10)
+            for ep in episodes:
+                ev = EvidenceItem(
+                    substrate=EpistemicSubstrate.SELF_HISTORY,
+                    trust_tier=TrustTier.TIER_1_HARDWARE,
+                    source=f"history:{ep.source}:{ep.record_id}",
+                    content=ep.summary,
+                    polarity=BelnapValue.TRUE,
+                    confidence=min(1.0, ep.match_score / max(1, ep.tokens_total)),
+                    metadata={
+                        "match_score": ep.match_score,
+                        "tokens_total": ep.tokens_total,
+                        **ep.payload,
+                    },
+                )
+                items.append(ev)
+                candidates.append((ep.match_score, ep.ts, ev))
+
             with db.read_cursor() as cur:
-                # 1. Query execution_triples
-                cur.execute(
-                    """
-                    SELECT triple_id, proposal_json, decision_json, outcome_json, created_at
-                    FROM execution_triples
-                    ORDER BY created_at DESC LIMIT 50
-                    """
-                )
-                triples = cur.fetchall()
-                for tr_id, prop_json, dec_json, out_json, cat_ts in triples:
-                    rec_str = f"Execution action in triple {tr_id}: {out_json}"
-                    combined = f"{prop_json} {dec_json} {out_json}".lower()
-                    if tokens:
-                        score = sum(1 for t in tokens if t in combined)
-                        if score > 0:
-                            candidates.append(
-                                (
-                                    score,
-                                    float(cat_ts),
-                                    EvidenceItem(
-                                        substrate=EpistemicSubstrate.SELF_HISTORY,
-                                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                                        source=f"history:triple:{tr_id}",
-                                        content=rec_str,
-                                        polarity=BelnapValue.TRUE,
-                                        confidence=1.0,
-                                        metadata={"triple_id": str(tr_id)},
-                                    ),
-                                )
-                            )
-
-                # 1b. Query decisions table for historical interaction turns
-                cur.execute(
-                    """
-                    SELECT decision_id, features_json, action, executed_path,
-                           tool_calls_json, tool_ok, ts
-                    FROM decisions
-                    ORDER BY ts DESC LIMIT 50
-                    """
-                )
-                dec_rows = cur.fetchall()
-                for did, feat_raw, act, exec_p, tc_raw, tok, dec_ts in dec_rows:
-                    transcript = ""
-                    if feat_raw:
-                        try:
-                            f_dict = json.loads(feat_raw) if isinstance(feat_raw, str) else {}
-                            transcript = str(f_dict.get("transcript", ""))
-                        except Exception:  # noqa: BLE001, S110
-                            pass
-                    combined = f"{transcript} {act} {exec_p} {tc_raw or ''}".lower()
-                    if tokens:
-                        score = sum(1 for t in tokens if t in combined)
-                        if score > 0:
-                            if tok is True:
-                                tok_str = "succeeded"
-                            elif tok is False:
-                                tok_str = "failed"
-                            else:
-                                tok_str = "unverified"
-                            rec_str = (
-                                f"Historical turn '{transcript}': routed {act} "
-                                f"via {exec_p} ({tok_str})"
-                            )
-                            candidates.append(
-                                (
-                                    score,
-                                    float(dec_ts or 0.0),
-                                    EvidenceItem(
-                                        substrate=EpistemicSubstrate.SELF_HISTORY,
-                                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                                        source=f"history:decision:{did}",
-                                        content=rec_str,
-                                        polarity=BelnapValue.TRUE,
-                                        confidence=1.0,
-                                        metadata={"decision_id": str(did), "action": str(act)},
-                                    ),
-                                )
-                            )
-
                 # 2. Query memories for autobiographical classes
                 cur.execute(
                     """
@@ -1153,7 +1069,7 @@ class EpistemicSearchCascade:
                         break
                 return deduped
         except Exception as exc:  # noqa: BLE001
-            logger.debug("substrate_self_history_query_error", error=str(exc))
+            logger.debug("self_history_recall_error", error=str(exc))
 
         return items
 
@@ -1243,7 +1159,7 @@ class EpistemicSearchCascade:
                     if f" {pred} " in f" {content} ":
                         idx = content.find(pred)
                         s = content[:idx].strip() or "user"
-                        o = content[idx + len(pred):].strip()
+                        o = content[idx + len(pred) :].strip()
                         pred_groups.setdefault((s, p), []).append((item, vf, o))
                         break
 
