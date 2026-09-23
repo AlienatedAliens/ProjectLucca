@@ -12,9 +12,9 @@
 |---|:---:|---|
 | **BUG_V1** | **8** | Confirmed defects in existing v1.0 feature code to be fixed in Phase 5 |
 | **DOC_DRIFT** | **6** | Factual documentation drift to be corrected in Phase 4 |
-| **DESIGN_DEBT** | **12** | Architectural and design limitations deferred to `docs/V2_BACKLOG.md` |
-| **TEST_GAP** | **2** | Test fixtures / assertions requiring calibration to be updated in Phase 5 |
-| **Total Open Items** | **28** | Exhaustively tracked and classified |
+| **DESIGN_DEBT** | **12** | Architectural & design limitations deferred to `docs/V2_BACKLOG.md` |
+| **TEST_GAP** | **5** | Test fixtures / assertions requiring calibration to be updated in Phase 5 |
+| **Total Open Items** | **31** | Exhaustively tracked and classified |
 
 ---
 
@@ -326,4 +326,37 @@
 - **Code Location:** `src/lucca/brain/chunker.py`
 - **User-Visible Impact:** TTS reads punctuation or bullet characters literally.
 - **Resolution Path:** Defer to `docs/V2_BACKLOG.md` (streaming voice text regex sanitization filter).
+- **Status:** OPEN
+
+### [ITEM-029] T-MEM-05 50k Synthetic Search Latency Assertion Calibration
+- **Source:** Phase 3 Baseline Test Suite, `tests/test_memory_db.py:298`
+- **Classification:** TEST_GAP
+- **Severity:** Low
+- **Feature Area:** test
+- **Description:** `test_t_mem_05_50k_synthetic_search_latency` asserts `p95 <= 25.0ms` on brute-force vector search across 50,000 unindexed rows in in-memory SQLite (19.2 million float calculations per query). On target workstation under test load, observed p95 was ~36-37ms. The hardcoded 25.0ms threshold lacks headroom for Windows CPU scheduling.
+- **Code Location:** `tests/test_memory_db.py:298`
+- **User-Visible Impact:** None in production (real memory store has << 50,000 rows and uses indexed FTS5 / cascade). Test-only calibration gap.
+- **Resolution Path:** Fix in WO-16 Phase 5: adjust latency assertion to `p95 <= 45.0ms` or calibrate batch query warmup.
+- **Status:** OPEN
+
+### [ITEM-030] Deontic Matcher Cold-Start Latency Budget Flake Under System Load
+- **Source:** Phase 3 Baseline Test Suite, `tests/test_output_supervisor.py:69`
+- **Classification:** TEST_GAP
+- **Severity:** Low
+- **Feature Area:** test
+- **Description:** `test_deontic_matcher_individual_worked_example` asserts `elapsed_us < 1000.0`. In isolation it passes 22/22 (average ~400us). During the full 5-minute multi-threaded suite, a cold-start compilation spike took 1083.9us (1.08ms), triggering a 84-microsecond assertion failure.
+- **Code Location:** `tests/test_output_supervisor.py:69`
+- **User-Visible Impact:** None — functional breach classification was 100% accurate.
+- **Resolution Path:** Fix in WO-16 Phase 5: allow warmup run or bound cold-start latency threshold at 1500us.
+- **Status:** OPEN
+
+### [ITEM-031] DeprecationWarning in test_a1_live_hw.py
+- **Source:** Phase 3 Baseline Live HW Suite, `tests/test_a1_live_hw.py:118`
+- **Classification:** TEST_GAP
+- **Severity:** Low
+- **Feature Area:** test
+- **Description:** `tests/test_a1_live_hw.py:118` calls `asyncio.get_event_loop()`, which emits `DeprecationWarning: There is no current event loop` in Python 3.12+.
+- **Code Location:** `tests/test_a1_live_hw.py:118`
+- **User-Visible Impact:** Deprecation warning in test logs.
+- **Resolution Path:** Fix in WO-16 Phase 5: use `asyncio.new_event_loop()` or `asyncio.get_event_loop_policy().get_event_loop()`.
 - **Status:** OPEN
