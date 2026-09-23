@@ -256,3 +256,40 @@ def test_no_fabricated_metrics() -> None:
                 )
 
     assert not violations, "Fabricated metrics found:\n" + "\n".join(violations)
+
+
+def test_orchestrator_turn_paths_unified_parity() -> None:
+    """
+    WO-11.1 static parity gate: ensures no turn-path divergence between
+    voice (_run_turn) and text (_run_text_turn) in orchestrator.py.
+    Diverged blocks must be extracted into shared helper methods and appear
+    exactly once in src/lucca/core/orchestrator.py.
+    """
+    orch_path = Path(__file__).parent.parent / "src" / "lucca" / "core" / "orchestrator.py"
+    text = orch_path.read_text(encoding="utf-8")
+
+    markers = [
+        (
+            "exec_lines: list[str] = []",
+            "F11 multi-action plan narration in _execute_act_then_narrate",
+        ),
+        (
+            'detail="REFLEX execution"',
+            "REFLEX execution triple emission in _execute_reflex",
+        ),
+        (
+            'load_heuristics("follow_up_patterns")',
+            "F20 config-driven follow-up patterns in _detect_follow_up_and_gate_tools",
+        ),
+        (
+            "[Clarify Mode: The user's utterance was very short or ambiguous.",
+            "F13 clarify mode hint in _build_epistemic_context",
+        ),
+    ]
+
+    for marker, description in markers:
+        count = text.count(marker)
+        assert count == 1, (
+            f"Parity gate violation: marker '{marker}' ({description}) must appear exactly once "
+            f"in orchestrator.py, but found {count} occurrences."
+        )

@@ -75,6 +75,7 @@ from lucca.core.schemas import (
     Provenance,
     RetrievalQuery,
     RouteAction,
+    RouteDecision,
     RuleOutcome,
     RuleState,
     Say,
@@ -2133,7 +2134,8 @@ class Orchestrator:
         finally:
             self._finalize_turn(trace, decision_id)
 
-    def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
+    def _reset_turn_state(self) -> None:
+        """Reset per-turn state for sandbox, supervisor, flags, and tool tracking."""
         self.sandbox.reset_turn()
         self.output_supervisor.reset_turn()
         self.play_ring.clear_flag(FLAG_ABORT)
@@ -2144,6 +2146,259 @@ class Orchestrator:
         self.current_turn_tool_spoken = []
         self.current_turn_tool_ok = True
         self._last_unspoken_tool_msg = None
+
+    def _execute_reflex(
+        self,
+        trace: TurnTrace,
+        winning_outcome: RuleOutcome | None,
+        user_text: str,
+        decision_id: str | None,
+    ) -> None:
+        """
+        Execute a REFLEX tier turn: run plan or built-in emergency reflex,
+        emit triple, and finalize.
+        """
+        try:
+            if winning_outcome and winning_outcome.plan:
+                tool_executions: list[str] = []
+                for action in winning_outcome.plan.actions:
+                    if isinstance(action, Say):
+                        self._speak_text(trace, action.text)
+                        self._publish_caption(
+                            action.text, source="assistant", is_final=True
+                        )
+                    elif isinstance(action, ToolCall):
+                        tool_res = self._handle_tool_call(
+                            trace, action.tool, dict(action.args), speak=True
+                        )
+                        status = (
+                            "ok"
+                            if (tool_res is None or getattr(tool_res, "ok", True))
+                            else "failed"
+                        )
+                        args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
+                        tool_executions.append(
+                            f"[Executed {action.tool}({args_str}) -> {status}]"
+                        )
+
+                self.rule_engine.emit_execution_triple(
+                    rule_id=winning_outcome.rule_id,
+                    plan=winning_outcome.plan,
+                    signal="tool_exit_zero",
+                    detail="REFLEX execution",
+                )
+
+                user_msg = user_text or "[Voice audio]"
+                spoken_msg = " ".join(
+                    a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
+                )
+                exec_details = " ".join(tool_executions)
+                assistant_msg = (
+                    f"{spoken_msg} {exec_details}".strip()
+                    if spoken_msg
+                    else (exec_details or f"[Rule executed: {winning_outcome.rule_id}]")
+                )
+                self.history.append({"role": "user", "content": user_msg})
+                self.history.append({"role": "assistant", "content": assistant_msg})
+                self.play_ring.set_flag(FLAG_EOS)
+            else:
+                # Built-in Emergency Reflex Fallback (<150ms halt)
+                self._abort_turn()
+                lower_t = (user_text or "").lower()
+                if any(w in lower_t for w in ("shut down", "turn off", "exit", "quit")):
+                    ack_msg = "Shutting down."
+                    self.on_quit_requested()
+                elif "pause" in lower_t:
+                    ack_msg = "Paused."
+                elif "mute" in lower_t:
+                    ack_msg = "Muted."
+                else:
+                    ack_msg = "Stopped."
+
+                self._speak_text(trace, ack_msg)
+                self._publish_caption(ack_msg, source="assistant", is_final=True)
+                user_msg = user_text or "[Voice audio]"
+                self.history.append({"role": "user", "content": user_msg})
+                self.history.append(
+                    {"role": "assistant", "content": f"[Emergency Reflex: {ack_msg}]"}
+                )
+                self.play_ring.set_flag(FLAG_EOS)
+        finally:
+            self._finalize_turn(trace, decision_id)
+
+    def _execute_act_then_narrate(
+        self,
+        trace: TurnTrace,
+        winning_outcome: RuleOutcome,
+        user_text: str,
+        decision_id: str | None,
+    ) -> None:
+        """
+        Execute an ACT_THEN_NARRATE tier turn: run plan tools, emit triple,
+        and stream narration.
+        """
+        try:
+            last_tool_res: ToolResult | None = None
+            last_tool_name: str = ""
+            last_tool_args: dict[str, JsonValue] = {}
+            # WO-10.4 (F11): narrate ALL plan actions, not just the last.
+            exec_lines: list[str] = []
+            if winning_outcome.plan:
+                for action in winning_outcome.plan.actions:
+                    if isinstance(action, ToolCall):
+                        tool_res = self._handle_tool_call(
+                            trace, action.tool, dict(action.args), speak=False
+                        )
+                        last_tool_res = tool_res
+                        last_tool_name = action.tool
+                        last_tool_args = dict(action.args)
+                        ok = tool_res is None or getattr(tool_res, "ok", True)
+                        raw_detail = (
+                            str(getattr(tool_res, "content", "") or "")
+                            or str(getattr(tool_res, "stderr", "") or "")
+                        )[:200]
+                        args_str = ", ".join(
+                            f"{k}={v!r}" for k, v in action.args.items()
+                        )
+                        status_str = "ok" if ok else "failed"
+                        exec_lines.append(
+                            f"{action.tool}({args_str}) -> {status_str}: {raw_detail}"
+                        )
+            if exec_lines:
+                combined = "\n".join(exec_lines)
+                last_tool_res = ToolResult(
+                    call_id=f"plan-{winning_outcome.rule_id}",
+                    ok=not any("failed" in line for line in exec_lines),
+                    content=combined,
+                    elapsed_ms=0.0,
+                )
+
+            signal: Literal["tool_exit_zero", "pydantic_valid"] = (
+                "tool_exit_zero"
+                if (last_tool_res is None or getattr(last_tool_res, "ok", True))
+                else "pydantic_valid"
+            )
+            self.rule_engine.emit_execution_triple(
+                rule_id=winning_outcome.rule_id,
+                plan=winning_outcome.plan,
+                signal=signal,
+                detail="ACT_THEN_NARRATE execution",
+            )
+
+            mem_hits = self._search_memories(user_text) if user_text else []
+            narration_msgs = build_narration_messages(
+                tool_name=last_tool_name or winning_outcome.rule_id,
+                tool_args=last_tool_args,
+                tool_result=last_tool_res,
+                user_text=user_text,
+                memories=mem_hits,
+                stance_tag=self.affect_tracker.get_prompt_suffix_tag(),
+            )
+            self._stream_llm_speech(
+                trace=trace,
+                user_msg=user_text or "[Voice audio]",
+                decision_id=decision_id,
+                messages=narration_msgs,
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.error("act_then_narrate_error", error=str(e))
+            self._finalize_turn(trace, decision_id)
+
+    def _build_epistemic_context(
+        self,
+        user_text: str,
+        yielded_context: dict[str, object] | None = None,
+        route_decision: RouteDecision | None = None,
+        spelling_hint: str | None = None,
+        trace: TurnTrace | None = None,
+    ) -> str | None:
+        """
+        Build epistemic context from search cascade, yield signals, F13 clarify hints,
+        and spelling hints.
+
+        Note on F12: Router transcript normalization (F12) operates on eval_text in voice path
+        where ASR spelling corrections occur; text path passes user_text directly by design.
+        """
+        epistemic_ctx: str | None = None
+        if user_text:
+            is_epistemic, target_subs, topic = self.cascade.classify_intent(user_text)
+            if is_epistemic:
+                is_file_or_web = any(
+                    s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)
+                )
+                if is_file_or_web and trace is not None:
+                    cue = self.cascade.select_floor_cue(user_text, target_subs[0])
+                    self._speak_text(trace, cue)
+                    self._publish_caption(cue, source="assistant", is_final=False)
+                cascade_res = self.cascade.query(
+                    user_text, substrates=target_subs, emit_floor_cue=False
+                )
+                epistemic_ctx = cascade_res.synthesized_context or None
+
+        if yielded_context:
+            yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
+            epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
+
+        # WO-10.3 (F13): CLARIFY now gets distinct handling — a short utterance
+        # gets a brief-question directive instead of being silently treated as
+        # a full research turn.
+        if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
+            clarify_hint = (
+                "[Clarify Mode: The user's utterance was very short or ambiguous. "
+                "If the intent is unclear, ask ONE brief clarifying question in your "
+                "companion voice. If the intent is still reasonably clear, answer "
+                "directly without asking.]"
+            )
+            epistemic_ctx = f"{epistemic_ctx}\n{clarify_hint}" if epistemic_ctx else clarify_hint
+
+        if spelling_hint:
+            epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
+
+        return epistemic_ctx
+
+    def _detect_follow_up_and_gate_tools(
+        self,
+        rule_state: RuleState,
+        text_for_gate: str,
+    ) -> list[object] | None:
+        """
+        Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat.
+        Returns empty list if tools are suppressed, or None to let _stream_llm_speech decide.
+        """
+        turn_tools: list[object] | None = None
+        intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
+        toolless_intents = {"dangerous"}
+
+        # WO-10.6 (F20): follow-up patterns are config-driven (heuristics.toml)
+        follow_up_patterns = load_heuristics("follow_up_patterns")
+        is_follow_up = False
+        if text_for_gate:
+            u_low = text_for_gate.lower()
+            is_follow_up = any(p in u_low for p in follow_up_patterns)
+            if not is_follow_up and self.history:
+                last_asst = next(
+                    (
+                        m.get("content", "")
+                        for m in reversed(self.history)
+                        if m.get("role") == "assistant"
+                    ),
+                    "",
+                )
+                search_cues = ("search", "found", "look", "judge", "suburb", "results", "?")
+                if any(w in last_asst.lower() for w in search_cues):
+                    is_follow_up = True
+
+        if intent in toolless_intents or (intent == "chit_chat" and not is_follow_up):
+            turn_tools = []
+            logger.info(
+                "tool_gating_suppressed",
+                intent=intent,
+                reason="conversational or dangerous intent — tools withheld",
+            )
+        return turn_tools
+
+    def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
+        self._reset_turn_state()
         decision_id: str | None = None
 
         # Read audio slice from capture ring
@@ -2300,141 +2555,21 @@ class Orchestrator:
             tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
             self.current_turn_tier = tier
             if tier == ExecutionTier.REFLEX:
-                try:
-                    if winning_outcome and winning_outcome.plan:
-                        tool_executions: list[str] = []
-                        for action in winning_outcome.plan.actions:
-                            if isinstance(action, Say):
-                                self._speak_text(trace, action.text)
-                                self._publish_caption(
-                                    action.text, source="assistant", is_final=True
-                                )
-                            elif isinstance(action, ToolCall):
-                                tool_res = self._handle_tool_call(
-                                    trace, action.tool, dict(action.args), speak=True
-                                )
-                                status = (
-                                    "ok"
-                                    if (tool_res is None or getattr(tool_res, "ok", True))
-                                    else "failed"
-                                )
-                                args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
-                                tool_executions.append(
-                                    f"[Executed {action.tool}({args_str}) -> {status}]"
-                                )
-
-                        self.rule_engine.emit_execution_triple(
-                            rule_id=winning_outcome.rule_id,
-                            plan=winning_outcome.plan,
-                            signal="tool_exit_zero",
-                            detail="REFLEX execution",
-                        )
-
-                        user_msg = transcribed_text or "[Voice audio]"
-                        spoken_msg = " ".join(
-                            a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
-                        )
-                        exec_details = " ".join(tool_executions)
-                        assistant_msg = (
-                            f"{spoken_msg} {exec_details}".strip()
-                            if spoken_msg
-                            else (exec_details or f"[Rule executed: {winning_outcome.rule_id}]")
-                        )
-                        self.history.append({"role": "user", "content": user_msg})
-                        self.history.append({"role": "assistant", "content": assistant_msg})
-                        self.play_ring.set_flag(FLAG_EOS)
-                    else:
-                        # Built-in Emergency Reflex Fallback (<150ms halt)
-                        self._abort_turn()
-                        lower_t = (transcribed_text or "").lower()
-                        if any(w in lower_t for w in ("shut down", "turn off", "exit", "quit")):
-                            ack_msg = "Shutting down."
-                            self.on_quit_requested()
-                        elif "pause" in lower_t:
-                            ack_msg = "Paused."
-                        elif "mute" in lower_t:
-                            ack_msg = "Muted."
-                        else:
-                            ack_msg = "Stopped."
-
-                        self._speak_text(trace, ack_msg)
-                        self._publish_caption(ack_msg, source="assistant", is_final=True)
-                        user_msg = transcribed_text or "[Voice audio]"
-                        self.history.append({"role": "user", "content": user_msg})
-                        self.history.append(
-                            {"role": "assistant", "content": f"[Emergency Reflex: {ack_msg}]"}
-                        )
-                        self.play_ring.set_flag(FLAG_EOS)
-                finally:
-                    self._finalize_turn(trace, decision_id)
+                self._execute_reflex(
+                    trace=trace,
+                    winning_outcome=winning_outcome,
+                    user_text=transcribed_text or "[Voice audio]",
+                    decision_id=decision_id,
+                )
                 return
             elif winning_outcome and winning_outcome.plan:
                 # ACT_THEN_NARRATE (Proposal B / D-ARCH-05)
-                try:
-                    last_tool_res: ToolResult | None = None
-                    last_tool_name: str = ""
-                    last_tool_args: dict[str, JsonValue] = {}
-                    # WO-10.4 (F11): narrate ALL plan actions, not just the last.
-                    exec_lines: list[str] = []
-                    for action in winning_outcome.plan.actions:
-                        if isinstance(action, ToolCall):
-                            tool_res = self._handle_tool_call(
-                                trace, action.tool, dict(action.args), speak=False
-                            )
-                            last_tool_res = tool_res
-                            last_tool_name = action.tool
-                            last_tool_args = dict(action.args)
-                            ok = tool_res is None or getattr(tool_res, "ok", True)
-                            raw_detail = (
-                                str(getattr(tool_res, "content", "") or "")
-                                or str(getattr(tool_res, "stderr", "") or "")
-                            )[:200]
-                            args_str = ", ".join(
-                                f"{k}={v!r}" for k, v in action.args.items()
-                            )
-                            status_str = "ok" if ok else "failed"
-                            exec_lines.append(
-                                f"{action.tool}({args_str}) -> {status_str}: {raw_detail}"
-                            )
-                    if exec_lines:
-                        combined = "\n".join(exec_lines)
-                        last_tool_res = ToolResult(
-                            call_id=f"plan-{winning_outcome.rule_id}",
-                            ok=not any("failed" in line for line in exec_lines),
-                            content=combined,
-                            elapsed_ms=0.0,
-                        )
-
-                    signal: Literal["tool_exit_zero", "pydantic_valid"] = (
-                        "tool_exit_zero"
-                        if (last_tool_res is None or getattr(last_tool_res, "ok", True))
-                        else "pydantic_valid"
-                    )
-                    self.rule_engine.emit_execution_triple(
-                        rule_id=winning_outcome.rule_id,
-                        plan=winning_outcome.plan,
-                        signal=signal,
-                        detail="ACT_THEN_NARRATE execution",
-                    )
-
-                    mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
-                    narration_msgs = build_narration_messages(
-                        tool_name=last_tool_name or winning_outcome.rule_id,
-                        tool_args=last_tool_args,
-                        tool_result=last_tool_res,
-                        user_text=transcribed_text,
-                        memories=mem_hits,
-                        stance_tag=self.affect_tracker.get_prompt_suffix_tag(),
-                    )
-                    self._stream_llm_speech(
-                        trace=trace,
-                        user_msg=transcribed_text or "[Voice audio]",
-                        decision_id=decision_id,
-                        messages=narration_msgs,
-                    )
-                except Exception as e:  # noqa: BLE001
-                    logger.error("act_then_narrate_error", error=str(e))
-                    self._finalize_turn(trace, decision_id)
+                self._execute_act_then_narrate(
+                    trace=trace,
+                    winning_outcome=winning_outcome,
+                    user_text=transcribed_text or "[Voice audio]",
+                    decision_id=decision_id,
+                )
                 return
 
         # Encode to WAV bytes
@@ -2450,104 +2585,18 @@ class Orchestrator:
         is_trans_mode = self.config.llm.mode == "transcript"
         llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
         mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
-        epistemic_ctx: str | None = None
-        if transcribed_text:
-            is_epistemic, target_subs, topic = self.cascade.classify_intent(transcribed_text)
-            if is_epistemic:
-                is_file_or_web = any(
-                    s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)
-                )
-                if is_file_or_web:
-                    cue = self.cascade.select_floor_cue(transcribed_text, target_subs[0])
-                    self._speak_text(trace, cue)
-                    self._publish_caption(cue, source="assistant", is_final=False)
-                cascade_res = self.cascade.query(
-                    transcribed_text, substrates=target_subs, emit_floor_cue=False
-                )
-                epistemic_ctx = cascade_res.synthesized_context or None
+        epistemic_ctx = self._build_epistemic_context(
+            user_text=transcribed_text,
+            yielded_context=yielded_context,
+            route_decision=route_decision,
+            spelling_hint=spelling_hint,
+            trace=trace,
+        )
 
-        if yielded_context:
-            yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
-            epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
-
-        # WO-10.3 (F13): CLARIFY now gets distinct handling — a short utterance
-        # gets a brief-question directive instead of being silently treated as
-        # a full research turn.
-        if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
-            clarify_hint = (
-                "[Clarify Mode: The user's utterance was very short or ambiguous. "
-                "If the intent is unclear, ask ONE brief clarifying question in your "
-                "companion voice. If the intent is still reasonably clear, answer "
-                "directly without asking.]"
-            )
-            epistemic_ctx = f"{epistemic_ctx}\n{clarify_hint}" if epistemic_ctx else clarify_hint
-
-        if spelling_hint:
-            epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
-
-        # Intent-based tool gating for voice turn
-        turn_tools: list[object] | None = None
-        intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
-        TOOLLESS_INTENTS = {"dangerous"}
-
-        is_follow_up = False
-        text_for_gate = (
-            eff_transcribed_text if "eff_transcribed_text" in locals() else transcribed_text
-        ) or transcribed_text
-        if text_for_gate:
-            u_low = text_for_gate.lower()
-            follow_up_patterns = (
-                "tell me more",
-                "more about",
-                "what else",
-                "who is",
-                "what about",
-                "are you sure",
-                "what are your sources",
-                "cite your sources",
-                "where did you get that",
-                "all of this is wrong",
-                "elaborate",
-                "yes",
-                "yeah",
-                "yep",
-                "sure",
-                "okay",
-                "ok",
-                "do it",
-                "please do",
-                "go ahead",
-                "where is",
-                "where was",
-                "where are",
-                "who was",
-                "facts about",
-                "how about",
-                "spelled",
-                "spelling",
-                "search",
-            )
-            is_follow_up = any(p in u_low for p in follow_up_patterns)
-            if not is_follow_up and self.history:
-                last_asst = next(
-                    (
-                        m.get("content", "")
-                        for m in reversed(self.history)
-                        if m.get("role") == "assistant"
-                    ),
-                    "",
-                )
-                search_cues = ("search", "found", "look", "judge", "suburb", "results", "?")
-                if any(w in last_asst.lower() for w in search_cues):
-                    is_follow_up = True
-
-        if intent in TOOLLESS_INTENTS or (intent == "chit_chat" and not is_follow_up):
-            turn_tools = []
-            logger.info(
-                "tool_gating_suppressed",
-                intent=intent,
-                reason="conversational or dangerous intent — tools withheld",
-            )
+        turn_tools = self._detect_follow_up_and_gate_tools(
+            rule_state=rule_state,
+            text_for_gate=eff_transcribed_text or transcribed_text,
+        )
 
         self._stream_llm_speech(
             trace=trace,
@@ -2561,16 +2610,7 @@ class Orchestrator:
         )
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
-        self.sandbox.reset_turn()
-        self.output_supervisor.reset_turn()
-        self.play_ring.clear_flag(FLAG_ABORT)
-        self.play_ring.clear_flag(FLAG_EOS)
-        self.current_turn_tool_calls = []
-        self.current_turn_receipts = []
-        self.current_turn_tier = ExecutionTier.FULL_LOOP
-        self.current_turn_tool_spoken = []
-        self.current_turn_tool_ok = True
-        self._last_unspoken_tool_msg = None
+        self._reset_turn_state()
         self.current_turn_transcript = user_text
         decision_id: str | None = None
 
@@ -2675,151 +2715,36 @@ class Orchestrator:
             tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
             self.current_turn_tier = tier
             if tier == ExecutionTier.REFLEX:
-                try:
-                    if winning_outcome and winning_outcome.plan:
-                        tool_executions: list[str] = []
-                        for action in winning_outcome.plan.actions:
-                            if isinstance(action, Say):
-                                self._speak_text(trace, action.text)
-                                self._publish_caption(
-                                    action.text, source="assistant", is_final=True
-                                )
-                            elif isinstance(action, ToolCall):
-                                tool_res = self._handle_tool_call(
-                                    trace, action.tool, dict(action.args), speak=True
-                                )
-                                status = (
-                                    "ok"
-                                    if (tool_res is None or getattr(tool_res, "ok", True))
-                                    else "failed"
-                                )
-                                args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
-                                tool_executions.append(
-                                    f"[Executed {action.tool}({args_str}) -> {status}]"
-                                )
-
-                        user_msg = user_text
-                        spoken_msg = " ".join(
-                            a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
-                        )
-                        exec_details = " ".join(tool_executions)
-                        assistant_msg = (
-                            f"{spoken_msg} {exec_details}".strip()
-                            if spoken_msg
-                            else (exec_details or f"[Rule executed: {winning_outcome.rule_id}]")
-                        )
-                        self.history.append({"role": "user", "content": user_msg})
-                        self.history.append({"role": "assistant", "content": assistant_msg})
-                        self.play_ring.set_flag(FLAG_EOS)
-                    else:
-                        # Built-in Emergency Reflex Fallback (<150ms halt)
-                        self._abort_turn()
-                        lower_t = user_text.lower()
-                        if any(w in lower_t for w in ("shut down", "turn off", "exit", "quit")):
-                            ack_msg = "Shutting down."
-                            self.on_quit_requested()
-                        elif "pause" in lower_t:
-                            ack_msg = "Paused."
-                        elif "mute" in lower_t:
-                            ack_msg = "Muted."
-                        else:
-                            ack_msg = "Stopped."
-
-                        self._speak_text(trace, ack_msg)
-                        self._publish_caption(ack_msg, source="assistant", is_final=True)
-                        self.history.append({"role": "user", "content": user_text})
-                        self.history.append(
-                            {"role": "assistant", "content": f"[Emergency Reflex: {ack_msg}]"}
-                        )
-                        self.play_ring.set_flag(FLAG_EOS)
-                finally:
-                    self._finalize_turn(trace, decision_id)
+                self._execute_reflex(
+                    trace=trace,
+                    winning_outcome=winning_outcome,
+                    user_text=user_text,
+                    decision_id=decision_id,
+                )
                 return
             elif winning_outcome and winning_outcome.plan:
                 # ACT_THEN_NARRATE (Proposal B / D-ARCH-05)
-                try:
-                    last_tool_res: ToolResult | None = None
-                    last_tool_name: str = ""
-                    last_tool_args: dict[str, JsonValue] = {}
-                    for action in winning_outcome.plan.actions:
-                        if isinstance(action, ToolCall):
-                            tool_res = self._handle_tool_call(
-                                trace, action.tool, dict(action.args), speak=False
-                            )
-                            last_tool_res = tool_res
-                            last_tool_name = action.tool
-                            last_tool_args = dict(action.args)
-
-                    mem_hits = self._search_memories(user_text) if user_text else []
-                    narration_msgs = build_narration_messages(
-                        tool_name=last_tool_name or winning_outcome.rule_id,
-                        tool_args=last_tool_args,
-                        tool_result=last_tool_res,
-                        user_text=user_text,
-                        memories=mem_hits,
-                        stance_tag=self.affect_tracker.get_prompt_suffix_tag(),
-                    )
-                    self._stream_llm_speech(
-                        trace=trace,
-                        user_msg=user_text,
-                        decision_id=decision_id,
-                        messages=narration_msgs,
-                    )
-                except Exception as e:  # noqa: BLE001
-                    logger.error("act_then_narrate_error", error=str(e))
-                    self._finalize_turn(trace, decision_id)
+                self._execute_act_then_narrate(
+                    trace=trace,
+                    winning_outcome=winning_outcome,
+                    user_text=user_text,
+                    decision_id=decision_id,
+                )
                 return
 
         mem_hits = self._search_memories(user_text) if user_text else []
-        epistemic_ctx: str | None = None
-        if user_text:
-            is_epistemic, target_subs, topic = self.cascade.classify_intent(user_text)
-            if is_epistemic:
-                cascade_res = self.cascade.query(
-                    user_text, substrates=target_subs, emit_floor_cue=False
-                )
-                epistemic_ctx = cascade_res.synthesized_context or None
+        epistemic_ctx = self._build_epistemic_context(
+            user_text=user_text,
+            yielded_context=yielded_context,
+            route_decision=route_decision,
+            spelling_hint=spelling_hint,
+            trace=None,
+        )
 
-        if yielded_context:
-            yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
-            epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
-
-        if spelling_hint:
-            epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
-
-        # Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat
-        turn_tools: list[object] | None = None  # None = let _stream_llm_speech decide
-        intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
-        TOOLLESS_INTENTS = {"dangerous"}
-
-        # WO-10.6 (F20): follow-up patterns are config-driven (heuristics.toml)
-        follow_up_patterns = load_heuristics("follow_up_patterns")
-        # Do not suppress tools if the user is asking follow-up factual questions
-        is_follow_up = False
-        text_for_gate = eval_user_text or user_text
-        if text_for_gate:
-            u_low = text_for_gate.lower()
-            is_follow_up = any(p in u_low for p in follow_up_patterns)
-            if not is_follow_up and self.history:
-                last_asst = next(
-                    (
-                        m.get("content", "")
-                        for m in reversed(self.history)
-                        if m.get("role") == "assistant"
-                    ),
-                    "",
-                )
-                search_cues = ("search", "found", "look", "judge", "suburb", "results", "?")
-                if any(w in last_asst.lower() for w in search_cues):
-                    is_follow_up = True
-
-        if intent in TOOLLESS_INTENTS or (intent == "chit_chat" and not is_follow_up):
-            turn_tools = []
-            logger.info(
-                "tool_gating_suppressed",
-                intent=intent,
-                reason="conversational or dangerous intent — tools withheld",
-            )
+        turn_tools = self._detect_follow_up_and_gate_tools(
+            rule_state=rule_state,
+            text_for_gate=eval_user_text or user_text,
+        )
 
         self._stream_llm_speech(
             trace=trace,
