@@ -45,6 +45,11 @@ class LLMSettings(BaseModel):
     port: int = 8080
     ctx: int = 16384
     kv_type: str = "q8_0"
+    # RAM budget for the llama-server prompt prefix cache (--cache-ram, MiB).
+    # Bounded to 4 GiB: the 8 GiB default thrashed and crashed under the WO-8
+    # battery workload (60 distinct low-similarity prompts). Production turns
+    # share one ~3.8K-token prefix, so 4 GiB is ample headroom.
+    cache_ram_mib: int = 4096
     max_tokens: int = 512
     temperature: float = 0.6
     # Reasoning-model control (reasoning-model templates honour
@@ -54,15 +59,18 @@ class LLMSettings(BaseModel):
     # Templates without a thinking channel ignore the kwarg harmlessly.
     enable_thinking: bool | None = False
     narration_prefer_digits: bool = True
-    model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
+    # Canonical brain per D-BRAIN-05 v2 (GGUF-embedded chat template via
+    # --jinja). The previous brain is deprecated and retained for rollback only.
+    model: str = "llm/gemma-4-12b-heretic-Q6_K.gguf"
     mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
-    text_model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
+    text_model: str = "llm/gemma-4-12b-heretic-Q6_K.gguf"
     # llama-server binary, relative to LUCCA_HOME or absolute. Forked builds
     # (e.g. PrismML ternary kernels) are selected here, never by code.
     server_bin: str = "app/llama-server/llama-server.exe"
     # Chat template selection. Precedence: chat_template_file > chat_template > GGUF-embedded.
     # Relative paths resolve against LUCCA_HOME then the repo root. Blank/None = embedded.
-    chat_template_file: str | None = "templates/mistral_nemo.jinja"
+    # Default None: the canonical brain uses its GGUF-embedded template (D-BRAIN-05 v2).
+    chat_template_file: str | None = None
     chat_template: str | None = None
     # Human-readable brain name for self-awareness prompts. None = derived from filename.
     display_name: str | None = None

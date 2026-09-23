@@ -297,6 +297,8 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         cfg.kv_type,
         "--cache-type-v",
         cfg.kv_type,
+        "--cache-ram",
+        str(cfg.cache_ram_mib),
         "--parallel",
         "1",
         "--flash-attn",
