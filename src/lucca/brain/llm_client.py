@@ -4,6 +4,7 @@ Spec 02 (SpeechLLMPort), Spec 08, ADR-001
 """
 
 import json
+import os
 import threading
 import uuid
 from collections.abc import Generator
@@ -61,7 +62,17 @@ class LLMClient:
 
     def __init__(self, base_url: str | None = None) -> None:
         self.config = get_config()
-        self.base_url = base_url or f"http://{self.config.llm.host}:{self.config.llm.port}"
+        env_endpoint = os.environ.get("LUCCA_LLM_MODEL")
+        if base_url:
+            self.base_url = base_url
+        elif env_endpoint:
+            self.base_url = (
+                env_endpoint
+                if env_endpoint.startswith(("http://", "https://"))
+                else f"http://{env_endpoint}"
+            )
+        else:
+            self.base_url = f"http://{self.config.llm.host}:{self.config.llm.port}"
         self._streams_lock = threading.Lock()
         self._streams: dict[str, _StreamState] = {}
         self._stream_order: list[str] = []

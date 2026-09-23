@@ -164,14 +164,37 @@ def _has_marker(text: str, markers: list[str]) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def _make_hw_orchestrator(tmp_path: Path) -> tuple[Orchestrator, MemoryStore, DatabaseManager]:
+def _make_hw_orchestrator(
+    tmp_path: Path,
+    use_docker: bool = False,
+) -> tuple[Orchestrator, MemoryStore, DatabaseManager]:
     """
     Build an Orchestrator wired for hardware testing:
       - Real LLMClient (llama-server at 127.0.0.1:8080)
       - Real MemoryStore backed by a fresh tmp SQLite DB
       - Mocked TTS, ASR, ZMQ, ring-buffers (no hardware audio I/O)
+      - If use_docker=True, requires running Docker daemon or skips loudly
     Returns (orch, store, db).
     """
+    if use_docker:
+        import subprocess
+
+        try:
+            res = subprocess.run(
+                ["docker", "info"],  # noqa: S607
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                timeout=2.0,
+                check=False,
+            )
+            if res.returncode != 0:
+                pytest.skip(
+                    "Docker daemon not available (docker info returned non-zero); "
+                    "skipping Docker-in-Harness test"
+                )
+        except Exception as exc:
+            pytest.skip(f"Docker daemon not available ({exc}); skipping Docker-in-Harness test")
+
     db_path = tmp_path / "hw_memory.sqlite"
     db = DatabaseManager(db_path)
     db.migrate()
@@ -212,7 +235,7 @@ def _make_hw_orchestrator(tmp_path: Path) -> tuple[Orchestrator, MemoryStore, Da
     # write/launch tools stay confirmation-gated (harness _confirm_result=False).
     orch.sandbox = SandboxService(
         workspace_root=tmp_path / "workspace",
-        use_direct_fallback=True,  # in-process file tools; no Docker dependency
+        use_direct_fallback=not use_docker,  # when use_docker=True, use real DockerRPCTransport
         execute_apps=False,  # never launch real applications from tests
         memory_manager=MemoryManager(db=db, master_key=MASTER_KEY),
     )

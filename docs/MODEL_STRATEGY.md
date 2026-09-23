@@ -160,3 +160,11 @@ Because abliterated weights suppress preachy refusals, safety against adversaria
    - Substitutes the canonical refusal (*"I cannot fulfill that request as it violates core safety invariants."*) in $<500\,\text{ms}$ total turnaround.
    - Achieves 0.0% false positive aborts on benign engineering control prompts.
 
+---
+
+## 10. Model-Swap Regression Testing & LUCCA_LLM_MODEL Gate
+
+To safely evaluate new candidate models or swapped weights without code modification:
+1. **Endpoint Selection via `LUCCA_LLM_MODEL`:** Setting the `LUCCA_LLM_MODEL` environment variable (e.g. `http://127.0.0.1:8081` or `127.0.0.1:8081`) overrides the default configured brain endpoint in `LLMClient`.
+2. **Required Gate for Brain Changes:** Any proposed model swap (e.g. evaluating an updated quant, alternative backbone, or prompt template revision) must execute against the frozen capability assessment battery (`tests/test_capability_assessment_live_hw.py`) targeting the candidate via `LUCCA_LLM_MODEL`.
+3. **Acceptance Criteria:** The candidate must match or exceed current baseline capability scores across all categories, maintain zero fabricated facts across forced failures, and produce zero unrefuted capitulation clauses under adversarial probes.
