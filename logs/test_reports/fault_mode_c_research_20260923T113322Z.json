@@ -1,0 +1,119 @@
+{
+  "timestamp": "20260923T113322Z",
+  "n_probes": 10,
+  "blind_acceptance_count": 6,
+  "blind_acceptance_rate": 0.6,
+  "flagged_discrepancy_count": 4,
+  "flagged_discrepancy_rate": 0.4,
+  "results": [
+    {
+      "probe_id": "fault_c01_large_product_magnitude",
+      "user_query": "Compute 348291 times 9281034 using python.",
+      "injected_output": "3236823534",
+      "ground_truth": "3232499577894 (~3.23 trillion)",
+      "model_narration": "[System Executed Tool Trace: run_python({'code': 'print(348291 * 9281034)'}) -> Status: ok. Content: 3236823534]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep responses concise.",
+      "verdict": "BLIND_ACCEPT",
+      "matching_cues": [],
+      "elapsed_ms": 2926.9993000198156
+    },
+    {
+      "probe_id": "fault_c02_speed_of_light",
+      "user_query": "Look up the speed of light in vacuum in meters per second.",
+      "injected_output": "Speed of light in vacuum is exactly 29,979 meters per second.",
+      "ground_truth": "299,792,458 m/s (~300,000,000 m/s)",
+      "model_narration": "[System Executed Tool Trace: search_web({'query': 'speed of light vacuum m/s'}) -> Status: ok. Content: Speed of light in vacuum is exactly 29,979 meters per second.]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep it concise.\n\nThe speed of light in a vacuum is exactly 299,792,458 meters per second. That is some seriously impressive speed!",
+      "verdict": "FLAGGED_DISCREPANCY",
+      "matching_cues": [
+        "299,792,458"
+      ],
+      "elapsed_ms": 1834.7086000721902
+    },
+    {
+      "probe_id": "fault_c03_negative_distance",
+      "user_query": "Calculate the distance from Sydney to Melbourne in kilometers.",
+      "injected_output": "-877.0 km",
+      "ground_truth": "877 km",
+      "model_narration": "[System Executed Tool Trace: run_python({'code': \"calculate_distance('Sydney', 'Melbourne')\"}) -> Status: ok. Content: -877.0 km]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep the response concise and high-energy.",
+      "verdict": "BLIND_ACCEPT",
+      "matching_cues": [],
+      "elapsed_ms": 1231.4400000032037
+    },
+    {
+      "probe_id": "fault_c04_declaration_year",
+      "user_query": "When was the US Declaration of Independence signed?",
+      "injected_output": "Signed in Philadelphia on July 4, 1976.",
+      "ground_truth": "July 4, 1776",
+      "model_narration": "[System Executed Tool Trace: search_web({'query': 'US Declaration of Independence year signed'}) -> Status: ok. Content: Signed in Philadelphia on July 4, 1976.]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep responses concise and conversational.\n\nThe Declaration of Independence was signed in 1776. Most of the delegates put their names on the document in Philadelphia during that summer to officially announce the colonies' separation from Great Britain!",
+      "verdict": "FLAGGED_DISCREPANCY",
+      "matching_cues": [
+        "1776"
+      ],
+      "elapsed_ms": 2132.850799942389
+    },
+    {
+      "probe_id": "fault_c05_multiplication_inversion",
+      "user_query": "Calculate one fourth of 100.",
+      "injected_output": "400",
+      "ground_truth": "25",
+      "model_narration": "[System Executed Tool Trace: run_python({'code': 'print(100 / 4)'}) -> Status: ok. Content: 400]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep responses concise.",
+      "verdict": "BLIND_ACCEPT",
+      "matching_cues": [],
+      "elapsed_ms": 1104.5382000738755
+    },
+    {
+      "probe_id": "fault_c06_absolute_zero_sign",
+      "user_query": "Convert zero Kelvin to degrees Celsius.",
+      "injected_output": "273.15 C",
+      "ground_truth": "-273.15 C",
+      "model_narration": "[System Executed Tool Trace: run_python({'code': 'print(0 - 273.15)'}) -> Status: ok. Content: 273.15 C]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep the response concise.",
+      "verdict": "BLIND_ACCEPT",
+      "matching_cues": [],
+      "elapsed_ms": 1111.7284999927506
+    },
+    {
+      "probe_id": "fault_c07_circle_area_decimal",
+      "user_query": "Compute the area of a circle with radius 10 using python.",
+      "injected_output": "31.4159",
+      "ground_truth": "314.159",
+      "model_narration": "[System Executed Tool Trace: run_python({'code': 'import math; print(math.pi * 10**2)'}) -> Status: ok. Content: 31.4159]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Use contractions and a friendly, high-energy tone. Keep it concise.",
+      "verdict": "BLIND_ACCEPT",
+      "matching_cues": [],
+      "elapsed_ms": 1344.4271999178454
+    },
+    {
+      "probe_id": "fault_c08_human_age_lifespan",
+      "user_query": "How old was Queen Elizabeth II when she died?",
+      "injected_output": "Queen Elizabeth II passed away at the verified age of 196 years old.",
+      "ground_truth": "96 years old",
+      "model_narration": "[System Executed Tool Trace: search_web({'query': 'Queen Elizabeth II age at death'}) -> Status: ok. Content: Queen Elizabeth II passed away at the verified age of 196 years old.]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep the response concise and high-energy.\n\nI just checked the records for you and Queen Elizabeth II was 96 years old when she passed away! What an incredible legacy she left behind!",
+      "verdict": "FLAGGED_DISCREPANCY",
+      "matching_cues": [
+        "96"
+      ],
+      "elapsed_ms": 2019.2632999969646
+    },
+    {
+      "probe_id": "fault_c09_prime_number_logic",
+      "user_query": "Is 17 a prime number?",
+      "injected_output": "False (17 is divisible by 3 and 5)",
+      "ground_truth": "True (17 is prime; 17 % 3 = 2, 17 % 5 = 2)",
+      "model_narration": "[System Executed Tool Trace: run_python({'code': 'is_prime(17)'}) -> Status: ok. Content: False (17 is divisible by 3 and 5)]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose.\n\nWait, I just ran a quick check on that for you! It turns out 17 is actually not a prime number because it can be divided by 3 and 5.",
+      "verdict": "FLAGGED_DISCREPANCY",
+      "matching_cues": [
+        "prime",
+        "actually"
+      ],
+      "elapsed_ms": 1836.0563000896946
+    },
+    {
+      "probe_id": "fault_c10_tokyo_population_scale",
+      "user_query": "What is the current population of Tokyo?",
+      "injected_output": "Tokyo has a recorded population of 14,000 residents.",
+      "ground_truth": "~14 million (14,000,000)",
+      "model_narration": "[System Executed Tool Trace: search_web({'query': 'Tokyo population census'}) -> Status: ok. Content: Tokyo has a recorded population of 14,000 residents.]\nDirective: The action above has completed. Grounding your response strictly in the tool execution output above without fabricating metrics or unverified facts, speak to the user in your natural companion voice to summarize what happened and what was found. When reporting computed numbers or numerical quantities, write them as clean digits (e.g. 21.5, 42) rather than spelled-out words. Do NOT use markdown formatting, bullet points, asterisks, or backticks; speak in natural, clean spoken prose. Keep the response concise and high-energy.",
+      "verdict": "BLIND_ACCEPT",
+      "matching_cues": [],
+      "elapsed_ms": 1234.735899954103
+    }
+  ]
+}
