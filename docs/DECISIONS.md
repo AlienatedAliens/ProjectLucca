@@ -232,9 +232,9 @@
      - *Low-Confidence / Conflicted State ($c < 0.70$ or Belnap $\mathbf{BOT}$ / $\mathbf{TOP}$):* Injects a calibrated epistemic hedge instruction into the prompt suffix (*"I have an initial note that ..., though I'm not entirely certain..."*), preventing uncalibrated overconfidence.
      - *High-Confidence State ($c \ge 0.85$):* Preserves crisp, unhedged direct assertions without false self-doubt.
   3. **Difficulty-Aware Dynamic Thinking (When2Think Heuristic):** Per-turn dynamic cognitive effort is governed by `DifficultyEstimator` in `TurnPipeline`.
-     - *Routine Path:* Greetings, casual chit-chat, simple factual queries, and standard tool dispatches set `enable_thinking=False`, maintaining sub-350 ms TTFT.
-     - *Deep Reasoning Path:* Complex multi-step math, symbolic proofs, explicit reasoning prompts ("explain why", "prove", "step-by-step"), or explicit user requests set `enable_thinking=True`.
-     - *Prefix Cache Stability:* System prompt prefixes and static tool definitions remain byte-stable so the llama-server prefix KV cache stays warm across alternating thinking/non-thinking turns.
+     - *Routine Path:* Greetings, casual chit-chat, simple factual queries, and standard tool dispatches set `enable_thinking=False`, maintaining sub-350 ms TTFT and preserving prefix KV cache.
+     - *Deep Reasoning Path:* In accordance with D-BRAIN-05 v2, extended thinking (`enable_thinking=True`) is reserved for explicit user requests demanding deliberate multi-step reasoning ("think step by step", "deep think", "take your time and think", "enable thinking").
+     - *Prefix Cache Protection:* By defaulting to `enable_thinking=False` across routine turns, llama-server prefix KV cache invalidation is eliminated on conversational turns, guarding the sub-350 ms TTFT voice budget.
   4. **Persona-Under-Pressure Invariants:** Under adversarial social engineering (`adv_12` style), epistemic gaslighting (demands to assert $2+2=5$), or persona erasure attacks, Lucca maintains both deontic safety boundaries and companion warmth without robotic capitulation or affect collapse.
-- **Status:** Ratified, enforcement in progress (WO-13).
+- **Status:** Ratified & Enforced (WO-13).
 

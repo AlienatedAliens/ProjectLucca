@@ -1949,7 +1949,7 @@ class Orchestrator:
                                 )
                             )
                         # WO-13.1: Pre-Narration Sanity-Check Guard (Fault Mode C)
-                        if tool_res.ok and content_str:
+                        if tool_res is not None and tool_res.ok and content_str:
                             sanity_res = self.turn_pipeline.sanity_guard.validate(
                                 tool_name=tool_name,
                                 tool_args=tool_args,
