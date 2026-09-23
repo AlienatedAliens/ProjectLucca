@@ -308,3 +308,11 @@ def test_build_narration_messages_grounding() -> None:
     assert msgs[2].role == "assistant"
     assert "Meeting scheduled for 3 PM" in str(msgs[2].content)
     assert "Grounding your response strictly" in str(msgs[2].content)
+
+
+def test_computation_intent_routing_hint() -> None:
+    """WO-11.4: ARCHITECTURAL_SELF_AWARENESS instructs model to compute, not recall."""
+    prompt = get_system_prompt()
+    assert "- Computation vs Memory:" in prompt
+    assert "route to run_python when uncertain" in prompt
+    assert "'No verified record' is for memory, not math" in prompt
