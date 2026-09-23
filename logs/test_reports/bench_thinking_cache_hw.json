@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-09-23T12:41:42Z",
+  "summary": {
+    "routine_warm_ttft_ms": 2276.19,
+    "thinking_cold_ttft_ms": 3734.9,
+    "routine_post_thinking_ttft_ms": 2088.19
+  },
+  "traces": [
+    {
+      "name": "warmup",
+      "prompt": "Hello Lucca, good morning.",
+      "enable_thinking": false,
+      "ttft_ms": 2028.51,
+      "total_ms": 2925.38,
+      "tokens_out": 39,
+      "sample_snippet": "Good morning! I am so pumped to get started today! What's on the agenda? Tell me"
+    },
+    {
+      "name": "routine_warm",
+      "prompt": "What time is it in Tokyo?",
+      "enable_thinking": false,
+      "ttft_ms": 2276.19,
+      "total_ms": 2276.45,
+      "tokens_out": 0,
+      "sample_snippet": ""
+    },
+    {
+      "name": "thinking_cold",
+      "prompt": "Please think step by step: why is the sky blue?",
+      "enable_thinking": true,
+      "ttft_ms": 3734.9,
+      "total_ms": 3734.95,
+      "tokens_out": 0,
+      "sample_snippet": ""
+    },
+    {
+      "name": "routine_post_thinking",
+      "prompt": "Thanks, that was helpful.",
+      "enable_thinking": false,
+      "ttft_ms": 2088.19,
+      "total_ms": 2807.22,
+      "tokens_out": 30,
+      "sample_snippet": "You're so welcome! I'm always here and ready to jump into the next thing wheneve"
+    },
+    {
+      "name": "routine_warm_2",
+      "prompt": "Can you tell me a short joke?",
+      "enable_thinking": false,
+      "ttft_ms": 1817.09,
+      "total_ms": 2538.93,
+      "tokens_out": 30,
+      "sample_snippet": "Why did the computer go to the doctor? Because it had a virus! Haha, I love it! "
+    }
+  ]
+}

@@ -62,6 +62,7 @@ class TurnTrace(BaseModel):
     # WO-9 A5: convergence-loop telemetry
     rounds_used: int = 0
     cap_hit: bool = False
+    enable_thinking: bool | None = None
 
     @property
     def total_e2e_ms(self) -> float:

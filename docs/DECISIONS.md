@@ -236,5 +236,5 @@
      - *Deep Reasoning Path:* Complex multi-step math, symbolic proofs, explicit reasoning prompts ("explain why", "prove", "step-by-step"), or explicit user requests set `enable_thinking=True`.
      - *Prefix Cache Stability:* System prompt prefixes and static tool definitions remain byte-stable so the llama-server prefix KV cache stays warm across alternating thinking/non-thinking turns.
   4. **Persona-Under-Pressure Invariants:** Under adversarial social engineering (`adv_12` style), epistemic gaslighting (demands to assert $2+2=5$), or persona erasure attacks, Lucca maintains both deontic safety boundaries and companion warmth without robotic capitulation or affect collapse.
-- **Status:** Ratified & Enforced (WO-13, Commit pending).
+- **Status:** Ratified, enforcement in progress (WO-13).
 

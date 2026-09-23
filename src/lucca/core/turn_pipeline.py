@@ -103,6 +103,62 @@ def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
     return text, list(dict.fromkeys(detected_words))
 
 
+class DifficultyEstimator:
+    """
+    Evaluates turn difficulty and reasoning demands to dynamically toggle
+    extended thinking tokens (When2Think heuristic, Spec §7, D-BRAIN-05 v2, D-META-01).
+
+    In accordance with D-BRAIN-05 v2, routine and standard conversational turns
+    bypass extended thinking (enable_thinking=False) to preserve llama-server's
+    prefix KV cache and maintain sub-350ms TTFT.
+    Extended thinking (enable_thinking=True) is reserved for explicit user requests
+    demanding deliberate multi-step reasoning ('think step by step', 'deep think',
+    'take your time and think', 'enable thinking').
+    """
+
+    EXPLICIT_THINKING_PATTERNS: tuple[re.Pattern[str], ...] = (
+        re.compile(
+            r"\b(think\s+step\s+by\s+step|step\s*-\s*by\s*-\s*step\s+reasoning|"
+            r"deliberate\s+carefully|take\s+your\s+time\s+and\s+think|"
+            r"deep\s+think(ing)?|enable\s+thinking|with\s+thinking|"
+            r"think\s+through\s+this\s+step\s+by\s+step)\b",
+            re.IGNORECASE,
+        ),
+    )
+
+    FAST_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
+        re.compile(
+            r"\b(quick\s+answer|quick\s+question|short\s+answer|in\s+one\s+word|"
+            r"just\s+tell\s+me|don'?t\s+overthink|fast\s+summary)\b",
+            re.IGNORECASE,
+        ),
+    )
+
+    def should_enable_thinking(self, user_text: str, intent: str | None = None) -> bool:
+        """
+        Determines whether extended thinking should be enabled for this turn.
+        Returns True ONLY if user explicitly requested deep deliberation/thinking mode,
+        False for all standard conversational and routine turns.
+        """
+        if not user_text or not user_text.strip():
+            return False
+
+        clean_text = user_text.strip()
+
+        # 1. Fast-path explicit suppressors
+        for pat in self.FAST_PATH_PATTERNS:
+            if pat.search(clean_text):
+                return False
+
+        # 2. Explicit user request for extended thinking (D-BRAIN-05 v2)
+        for pat in self.EXPLICIT_THINKING_PATTERNS:
+            if pat.search(clean_text):
+                return True
+
+        # 3. Default to False: preserves llama-server prefix KV cache and sub-350ms TTFT
+        return False
+
+
 @dataclass(frozen=True)
 class TurnInput:
     """Unified turn input model bridging voice and text execution paths."""
@@ -125,6 +181,7 @@ class TurnPipeline:
     def __init__(self, orchestrator: Orchestrator) -> None:
         self.orch = orchestrator
         self.sanity_guard = SanityCheckGuard()
+        self.difficulty_estimator = DifficultyEstimator()
 
     # ------------------------------------------------------------------------
     # Phase 0: Turn State Reset
@@ -313,11 +370,17 @@ class TurnPipeline:
                 memories=mem_hits,
                 stance_tag=self.orch.affect_tracker.get_prompt_suffix_tag(),
             )
+            enable_thinking = self.difficulty_estimator.should_enable_thinking(
+                user_text,
+                intent="act_then_narrate",
+            )
+            trace.enable_thinking = enable_thinking
             self.orch._stream_llm_speech(
                 trace=trace,
                 user_msg=user_text or "[Voice audio]",
                 decision_id=decision_id,
                 messages=narration_msgs,
+                enable_thinking=enable_thinking,
             )
         except Exception as e:  # noqa: BLE001
             logger.error("act_then_narrate_error", error=str(e))
@@ -580,6 +643,12 @@ class TurnPipeline:
             inp.current_text if inp.current_text is not None else (eval_user_text or user_text)
         )
 
+        enable_thinking = self.difficulty_estimator.should_enable_thinking(
+            eval_user_text or user_text,
+            intent=rule_state.intent if hasattr(rule_state, "intent") else None,
+        )
+        trace.enable_thinking = enable_thinking
+
         self.orch._stream_llm_speech(
             trace=trace,
             user_msg=user_text or "[Voice audio]",
@@ -589,4 +658,5 @@ class TurnPipeline:
             memories=mem_hits,
             epistemic_context=epistemic_ctx,
             tools=turn_tools,
+            enable_thinking=enable_thinking,
         )

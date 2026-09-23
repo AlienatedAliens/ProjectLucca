@@ -41,16 +41,20 @@ class _StreamState:
     trace_id: str
 
 
-def build_chat_template_kwargs(llm_cfg: LLMSettings) -> dict[str, JsonValue]:
+def build_chat_template_kwargs(
+    llm_cfg: LLMSettings,
+    enable_thinking: bool | None = None,
+) -> dict[str, JsonValue]:
     """
-    Builds the llama-server chat_template_kwargs from config only.
+    Builds the llama-server chat_template_kwargs from config only or per-turn override.
     enable_thinking is forwarded when set (reasoning-model templates honour
     chat_template_kwargs.enable_thinking; other templates ignore it).
     None means "omit, let the template decide".
     """
     kwargs: dict[str, JsonValue] = {"tools_in_user_message": False}
-    if llm_cfg.enable_thinking is not None:
-        kwargs["enable_thinking"] = llm_cfg.enable_thinking
+    eff_thinking = enable_thinking if enable_thinking is not None else llm_cfg.enable_thinking
+    if eff_thinking is not None:
+        kwargs["enable_thinking"] = eff_thinking
     return kwargs
 
 
@@ -107,6 +111,7 @@ class LLMClient:
         tool_messages: list[ChatMessage] | None = None,
         epistemic_context: str | None = None,
         stance_tag: str | None = None,
+        enable_thinking: bool | None = None,
     ) -> Generator[LLMEvent, None, None]:
         eff_trace_id = trace_id or f"anon-{now_ns()}"
         eff_temp = (
@@ -135,7 +140,9 @@ class LLMClient:
             "messages": [m.model_dump(exclude_none=True) for m in eff_messages],
             "tools": [t.model_dump() for t in eff_tools],
             "tool_choice": "auto",
-            "chat_template_kwargs": build_chat_template_kwargs(self.config.llm),
+            "chat_template_kwargs": build_chat_template_kwargs(
+                self.config.llm, enable_thinking=enable_thinking
+            ),
             "max_tokens": eff_tokens,
             "temperature": eff_temp,
             "repeat_penalty": 1.1,

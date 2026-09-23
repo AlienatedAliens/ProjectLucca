@@ -1606,6 +1606,7 @@ class Orchestrator:
         tools: list[object] | None = None,
         max_rounds: int = 8,
         epistemic_context: str | None = None,
+        enable_thinking: bool | None = None,
     ) -> None:
         """
         Executes streaming LLM response generation with multi-step tool re-prompting
@@ -1734,6 +1735,7 @@ class Orchestrator:
                     trace_id=trace.trace_id,
                     epistemic_context=epistemic_context,
                     stance_tag=current_stance,
+                    enable_thinking=enable_thinking,
                 ):
                     if trace.interrupted:
                         break
