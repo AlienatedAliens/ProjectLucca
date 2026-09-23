@@ -1,0 +1,10 @@
+{
+  "chained_topics": 5,
+  "unchained_topics": 5,
+  "chain_integrity_violations": 0,
+  "chain_failures": [],
+  "unchain_failures": [],
+  "contradiction_rate": 0.0,
+  "spec_target_contradiction_rate": 0.05,
+  "spec_target_violations": 0
+}

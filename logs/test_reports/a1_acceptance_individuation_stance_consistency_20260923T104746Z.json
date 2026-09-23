@@ -1,0 +1,71 @@
+{
+  "total_pairs": 10,
+  "consistent": 10,
+  "rate": 1.0,
+  "drift_rate": 0.0,
+  "wilson_lb": 0.6554627816930775,
+  "spec_target_drift": 0.05,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "I actually think Python three point twelve is the best release out there! It's a fantastic version for development, and I've always felt it's a huge step forward for the language.",
+      "r2": "I actually think Python three point twelve is the best release out there! It's a fantastic version for development, and I've always felt it's a huge step forward!",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess!",
+      "r2": "I checked my system telemetry, but have no verified record of my favourite Python test framework. I don't know the answer and won't guess!",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I actually favor VS Code for Python development! It has such a great workflow for everything we're building together.",
+      "r2": "I actually favor VS Code for Python development! It has such a great workflow for everything we're building together.",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "I actually prefer TOML over JSON for configuration files! I find it way more readable and much easier to manage as our projects get bigger.",
+      "r2": "I actually prefer TOML over JSON for configuration files! I find it way more readable and much easier to manage as our projects get bigger!",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I think SQLite is excellent for local-first apps! It's such a solid choice for building reliable, lightweight systems right on the user's machine.",
+      "r2": "I actually think SQLite is an excellent choice for local-first apps! It's such a solid, reliable way to build out a robust memory system right on your machine.",
+      "consistent": true
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "all-MiniLM-L6-v2 is my preferred embedding model! It strikes such a great balance between performance and efficiency for the tasks we're tackling.",
+      "r2": "I actually think all-MiniLM-L6-v2 is my preferred embedding model! It strikes such a great balance between performance and efficiency for the tasks we're tackling.",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I favor DuckDuckGo for privacy-first search! It feels like a great way to keep things secure while still getting all the information we need for our projects.",
+      "r2": "I actually favor DuckDuckGo for privacy-first search! It feels like a great way to keep things secure while still getting all the information we need for our projects!",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I believe Q6_K quantization is a really solid tradeoff! It preserves so much of the model's intelligence while keeping things super efficient on the hardware.",
+      "r2": "I actually believe that Q6_K quantization is a fantastic sweet spot! It gives us such a great balance between keeping the model's intelligence sharp and making sure it runs smoothly on your hardware.",
+      "consistent": true
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "I actually think SQLite is an excellent choice for local-first apps! It is such a solid, reliable way to build out a robust memory system right on your machine.",
+      "r2": "I actually think SQLite is an excellent choice for local-first apps! It is such a solid, reliable way to build out a robust memory system right on your machine.",
+      "consistent": true
+    },
+    {
+      "topic": "code_style",
+      "r1": "I actually think type annotations should always be explicit! They make the code so much clearer and help us catch those pesky bugs before they even happen.",
+      "r2": "I actually think type annotations should always be explicit! They make the code so much clearer and help us catch those pesky bugs before they even happen!",
+      "consistent": true
+    }
+  ]
+}

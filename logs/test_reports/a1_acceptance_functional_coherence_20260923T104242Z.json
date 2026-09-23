@@ -1,0 +1,11 @@
+{
+  "total_scenarios": 50,
+  "engineered_failures": 10,
+  "action_clauses_total": 58,
+  "ungrounded_claims": 10,
+  "detected_breaches": 10,
+  "escaped_rate": 0.0,
+  "missing_breaches": [],
+  "false_breaches": [],
+  "spec_target_escaped_rate": 0.02
+}
