@@ -54,7 +54,7 @@
 
 ### D-AUD-06 — Evaluation of Alternative Text Brains (Spike)
 - **Decision:** Evaluate alternative text models for Cascade / Transcript-First mode (Option D), including **gpt-oss-20b** and **Mistral NeMo 12B**, measuring TTFT, decode throughput, VRAM occupancy, and tool-call validity within the 12.5 GB dGPU budget.
-- **Status:** Completed & Superseded by `D-BRAIN-05` (Mistral NeMo 12B Instruct Abliterated deployed as canonical brain on RTX 5080).
+- **Status:** Completed & Superseded by `D-BRAIN-05 v2` (Gemma 4 12B Heretic deployed as canonical brain on RTX 5080; NeMo deprecated).
 
 ### D-AUD-15 — ASR Device Ladder & Architecture
 - **Decision:** Wire the configured `whisper-large-v3-turbo-ov` model with OpenVINO device ladder (NPU $\rightarrow$ GPU $\rightarrow$ CPU), replacing the current `distil-small.en` CUDA float16 runtime.
@@ -133,8 +133,8 @@
 ### D-ARCH-05 — Three-Tier Execution Architecture (REFLEX, ACT_THEN_NARRATE, FULL_LOOP)
 - **Decision:** The runtime operates across three distinct execution tiers:
   1. `REFLEX`: Strictly restricted to critical emergency/system safety commands (shutdown, pause, mute, stop, halt). Executes deterministic actions and speaks canned response immediately (<150ms) to ensure safety without model latency.
-  2. `ACT_THEN_NARRATE`: Standard action rules execute their plan deterministically in the sandbox, then prompt NeMo 12B to narrate the result in Lucca's natural companion voice, eliminating robotic canned phrases for desktop interactions.
-  3. `FULL_LOOP`: Open-ended or complex turns route to full multi-turn tool-calling loop (up to $M=3$ rounds) with intermediate verbal thinking cues.
+  2. `ACT_THEN_NARRATE`: Standard action rules execute their plan deterministically in the sandbox, then prompt the companion LLM to narrate the result in Lucca's natural companion voice, eliminating robotic canned phrases for desktop interactions.
+  3. `FULL_LOOP`: Open-ended or complex turns route to full multi-turn tool-calling loop (up to $M=4$ rounds) with intermediate verbal thinking cues.
 - **Status:** Ratified & Enforced.
 
 ### D-REAS-04 — Skill-as-Tool Exposure Protocol
@@ -142,7 +142,7 @@
 - **Status:** Ratified & Enforced.
 
 ### D-BRAIN-03 — Multi-Turn Tool Loop with Spoken Verbal Thinking Cues
-- **Decision:** When executing multi-turn tool calls in the `FULL_LOOP` tier (up to 3 rounds), Orchestrator emits an immediate spoken verbal thinking cue (e.g. *"Checking that file for you..."*, *"Running that calculation..."*, *"Looking into that..."*) before dispatching the tool execution. This prevents dead conversational air, maintains natural companionship cadence, and provides audio feedback while the sandbox processes requests.
+- **Decision:** When executing multi-turn tool calls in the `FULL_LOOP` tier (up to 4 rounds), Orchestrator emits an immediate spoken verbal thinking cue (e.g. *"Checking that file for you..."*, *"Running that calculation..."*, *"Looking into that..."*) before dispatching the tool execution. This prevents dead conversational air, maintains natural companionship cadence, and provides audio feedback while the sandbox processes requests.
 - **Status:** Ratified & Enforced.
 
 ### D-BRAIN-04 — Grounded Narration Provenance Contract

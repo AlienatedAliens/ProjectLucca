@@ -293,3 +293,49 @@ def test_orchestrator_turn_paths_unified_parity() -> None:
             f"Parity gate violation: marker '{marker}' ({description}) must appear exactly once "
             f"in orchestrator.py, but found {count} occurrences."
         )
+
+
+def test_active_docs_staleness_lint() -> None:
+    """
+    WO-11.6: Staleness lint on active docs (AGENTS.md, GEMINI.md, ARCHITECTURE.md, DECISIONS.md).
+    Guarantees no known-superseded terms (M=3, NeMo as primary, Chroma as live) linger in docs.
+    """
+    repo_root = Path(__file__).parent.parent
+    active_docs = [
+        repo_root / "AGENTS.md",
+        repo_root / "GEMINI.md",
+        repo_root / "docs" / "ARCHITECTURE.md",
+        repo_root / "docs" / "DECISIONS.md",
+    ]
+
+    violations: list[str] = []
+    forbidden_terms = [
+        (re.compile(r"\bM=3\b"), "superseded M=3 round cap (cap is M=4 per D-BRAIN-05 v2)"),
+        (
+            re.compile(r"primary brain:\s*mistral nemo", re.IGNORECASE),
+            "NeMo as primary brain (superseded by Gemma 4 12B per D-BRAIN-05 v2)",
+        ),
+        (
+            re.compile(r"chroma(?:\s+db)?\s+(?:is\s+)?(?:live|active|primary)", re.IGNORECASE),
+            "Chroma as live vector store (retired in favor of sqlite-vec per D-MEM-03)",
+        ),
+        (
+            re.compile(r"hosting\s+`?Mistral-Nemo", re.IGNORECASE),
+            "llama-server hosting NeMo as active runtime (superseded by Gemma 4 12B)",
+        ),
+    ]
+
+    for doc_path in active_docs:
+        assert doc_path.exists(), f"Active doc {doc_path} does not exist"
+        text = doc_path.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        for lineno, line in enumerate(lines, start=1):
+            for pattern, reason in forbidden_terms:
+                if pattern.search(line):
+                    violations.append(
+                        f"{doc_path.name}:{lineno}: matched '{pattern.pattern}' ({reason})\n"
+                        f"  Line: {line.strip()}"
+                    )
+
+    assert not violations, "Staleness lint failed in active docs:\n" + "\n".join(violations)
+

@@ -25,7 +25,7 @@
    - [3.3 Tier 2: Act-Then-Narrate Procedural Path](#33-tier-2-act-then-narrate-procedural-path)
    - [3.4 Tier 3: Deliberate Full-Loop Reasoning with Spoken Thinking Cues (D-BRAIN-03)](#34-tier-3-deliberate-full-loop-reasoning-with-spoken-thinking-cues-d-brain-03)
    - [3.5 Grounded Narration Provenance Contract (D-BRAIN-04)](#35-grounded-narration-provenance-contract-d-brain-04)
-   - [3.6 Primary Brain: Mistral NeMo 12B Instruct Abliterated (D-BRAIN-05)](#36-primary-brain-mistral-nemo-12b-instruct-abliterated-d-brain-05)
+   - [3.6 Primary Brain: Gemma 4 12B Heretic (D-BRAIN-05 v2)](#36-primary-brain-gemma-4-12b-heretic-d-brain-05-v2)
    - [3.7 Empirical Latency Benchmarks ($S_1 \dots S_5$)](#37-empirical-latency-benchmarks-s_1-dots-s_5)
 4. [MicroScheme Rule Engine: Symbolic Procedural Execution](#4-microscheme-rule-engine-symbolic-procedural-execution)
    - [4.1 Why LISP/Scheme?](#41-why-lispscheme)
@@ -147,7 +147,7 @@ The user interacts with Lucca through four ergonomic modalities:
 │         │                                                  ├──► [SQLite-vec Memory]    │
 │         ▼                                                  ▼                           │
 │  [Playback Ring] ◄──(24kHz PCM)── [Kokoro TTS] ◄─── [llama-server.exe]                 │
-│                                                     (Mistral NeMo 12B Q6_K on dGPU)    │
+│                                                     (Gemma 4 12B Q6_K on dGPU)         │
 │                                                            │                           │
 │                                                            ▼                           │
 │                                              [WSL2 / Docker Sandbox]                   │
@@ -162,7 +162,7 @@ To eliminate GIL contention and isolate failure domains, Lucca partitions worklo
 1. `lucca-core`: Central orchestrator, state machine, router, memory gate, and MicroScheme interpreter.
 2. `lucca-audio`: Real-time audio capture, raw input keyboard/mouse hooks, and ring buffer management.
 3. `lucca-ui`: PyQt6 desktop companion sprite, Royal Blue dialogue box, and Quick-Chat bar.
-4. `llama-server`: Native Windows C++ inference server hosting `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` on CUDA 12.8.
+4. `llama-server`: Native Windows C++ inference server hosting `gemma-4-12b-heretic-Q6_K.gguf` on CUDA 12.8.
 
 ### 2.2 IPC Protocols & Sockets
 - Control Bus (`tcp://127.0.0.1:5555`): ZeroMQ ROUTER socket for request-response state RPC.
@@ -197,7 +197,7 @@ Rather than a rigid dichotomy between fast rules and slow generative turns, Proj
 │                  │       │     NARRATE      │       │      LOOP        │
 │ - Emergency only │       │ - Procedural rule│       │ - Complex query  │
 │ - Zero LLM cost  │       │ - Sandbox action │       │ - Multi-step LLM │
-│ - < 150ms canned │       │ - NeMo companion │       │ - Spoken cues    │
+│ - < 150ms canned │       │ - Natural companion│      │ - Spoken cues    │
 │   spoken reflex  │       │   voice narration│       │ - Grounded proof │
 └──────────────────┘       └──────────────────┘       └──────────────────┘
 ```
@@ -210,13 +210,13 @@ Rather than a rigid dichotomy between fast rules and slow generative turns, Proj
 - **Scope**: Standard procedural commands matching active MicroScheme rules (e.g. "open calculator", "read notes.txt", "check system status").
 - **Behavior**: 
   1. The compiled MicroScheme plan executes immediately in the sandbox.
-  2. The structured output (`[System Executed Tool Trace: ...]`) is passed to NeMo 12B via `build_narration_messages()`.
-  3. NeMo narrate the outcome naturally in Lucca's companion voice (1–2 concise sentences), eliminating repetitive canned responses.
+  2. The structured output (`[System Executed Tool Trace: ...]`) is passed to the LLM via `build_narration_messages()`.
+  3. The model narrates the outcome naturally in Lucca's companion voice (1–2 concise sentences), eliminating repetitive canned responses.
 
 ### 3.4 Tier 3: Deliberate Full-Loop Reasoning with Spoken Thinking Cues (D-BRAIN-03)
 - **Scope**: Open-ended conversational inquiries, complex problem-solving, or multi-step tool workflows.
 - **Behavior**:
-  - Supports up to $M=3$ iterative tool-calling rounds with NeMo 12B.
+  - Supports up to $M=4$ iterative tool-calling rounds with the companion LLM.
   - **Spoken Verbal Thinking Cues**: Before dispatching a tool call, the orchestrator immediately speaks a contextual thinking cue (e.g. *"Checking that file for you..."*, *"Running that calculation..."*, *"Looking into that..."*). This eliminates conversational dead air and confirms cognitive progress.
 
 ### 3.5 Grounded Narration Provenance Contract (D-BRAIN-04)
@@ -224,11 +224,11 @@ When narrating completed tool actions, narration prompts inject strict grounding
 - Spoken assertions, status claims, numbers, and file contents must derive strictly from the tool trace block.
 - Fabricating unverified metrics or tool outcomes is strictly forbidden.
 
-### 3.6 Primary Brain: Mistral NeMo 12B Instruct Abliterated (D-BRAIN-05)
-- **Model**: `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf` (12.2B parameters, Q6_K quantization).
-- **Template**: `--chat-template mistral-v3` with native function-calling grammar support.
-- **Context Size**: 16,384 tokens (`--ctx-size 16384`) with Q8_0 KV cache (`--cache-type-k q8_0 --cache-type-v q8_0`).
-- **Hardware Footprint**: Consumes **10,748 MiB** (10.5 GB) VRAM on the RTX 5080 Laptop GPU, well under the 12.5 GB resident clamp, leaving >5.2 GB headroom for Windows display and desktop applications. Idle temperature is 42°C.
+### 3.6 Primary Brain: Gemma 4 12B Heretic (D-BRAIN-05 v2)
+- **Model**: `gemma-4-12b-heretic-Q6_K.gguf` (Q6_K quantization). (Mistral NeMo 12B deprecated per D-BRAIN-05 v2).
+- **Template**: Stock llama.cpp `--jinja` with GGUF-embedded chat template; `enable_thinking=false`.
+- **Context Size**: 16,384 tokens default with Q8_0 KV cache and flash attention.
+- **Hardware Footprint**: Enforces 12.5 GB (12,800 MB) resident VRAM clamp on the RTX 5080 Laptop GPU, leaving >3.5 GB headroom for Windows display and desktop applications. Idle temperature is 42°C.
 
 ### 3.7 Latency Budgets & Empirical Stage Isolation ($S_1 \dots S_5$)
 
@@ -472,7 +472,7 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-SEC-04** | Typed Tool Contracts | Pydantic argument models & MicroScheme typed accessors. | **Enforced** |
 | **D-ARCH-06** | Fast-Path Context Sync | Synchronizes fast-path execution traces into LLM history. | **Enforced** |
 | **D-MEM-03** | 2048-Token Memory Quota | Multi-factor prioritized memory truncation (USER > TOOL > UNTRUSTED). | **Enforced** |
-| **D-BRAIN-05** | Mistral NeMo 12B Q6_K | Abliterated weights deployed; 16K ctx, 12.5 GB resident clamp. | **Enforced** |
+| **D-BRAIN-05** | Gemma 4 12B Heretic Q6_K | Canonical companion brain (v2); 16K ctx, 12.5 GB clamp (NeMo deprecated). | **Enforced** |
 | **D-ARCH-05** | Three-Tier Execution | `REFLEX`, `ACT_THEN_NARRATE`, `FULL_LOOP` routing architecture. | **Enforced** |
 | **D-REAS-04** | Skill-as-Tool Exposure | Active MicroScheme rules exposed as callable OpenAI tool schemas. | **Enforced** |
 | **D-BRAIN-03** | Multi-Turn Thinking Cues | Intermediate spoken cues emitted before tool dispatches. | **Enforced** |
