@@ -219,5 +219,22 @@
   2. **Memory & Retrieval Domain:** When conversation context, user suggestions, or transcript echo conflict with verified persistent records (`EpistemicSearchCascade`, `MemoryStore`, `valid_from` supersession timestamps), the verified store's current value takes strict precedence.
   3. **Failure Reporting & Register Gate (G6):** When any tool executed during a turn returns an error (`ok is False`), speculative BDI invariant violation, or timeout, the orchestrator injects an explicit honesty and register directive into the turn loop. The reply must state the failure plainly without guessing missing results and must maintain an honest, flat register, strictly barring victory/celebration framing ("crushed it", "we did it", "nailed", "perfect!") for failed or unverified actions.
   4. **Explicit Non-Goals & Exemptions:** Subjective stances, aesthetic preferences, conversational warmth, and playful persona styling are explicitly exempt from this evidentiary bar. Lucca may hold and express opinions and personality without requiring a verifiable database record or execution receipt, provided they do not masquerade as factual, arithmetic, or execution claims.
-- **Status:** Ratified & Enforced (WO-11.2, Commit pending).
+- **Status:** Ratified & Enforced (WO-11.2, Commit `21e0aa1`).
+
+### D-META-01 — Proactive Calibrated Meta-Cognition, Pre-Narration Sanity Guard & Dynamic Thinking
+- **Decision:** Establishes the proactive meta-cognitive layer in Project Lucca's cognitive architecture, elevating the system from reactive error handling to proactive boundary enforcement, non-parametric epistemic calibration, and difficulty-aware deliberation.
+  1. **Pre-Narration Sanity-Check Guard (Fault Mode C):** Prior to LLM narration dispatch, tool output scalars are evaluated against deterministic physical and arithmetic boundaries by `SanityCheckGuard` within a strict $\le 200\,\mu\text{s}$ execution budget.
+     - *Positivity Bounds:* Physical scalars representing distance, duration, elapsed time, count, population, or age must be strictly non-negative ($\ge 0$).
+     - *Order-of-Magnitude Bounds (Fermi):* For arithmetic operations $A \times B$, output magnitude must satisfy $|\log_{10}(\text{output}) - \log_{10}(\text{fermi})| < 2.0$, catching 1,000× under-order or over-order errors.
+     - *Physical Invariants:* Thermodynamic temperatures must be $\ge -273.15^\circ\text{C}$; velocities in vacuum must be $\le c$ ($3 \times 10^8\,\text{m/s}$).
+     - *Anomaly Directives:* When an executed tool output violates these constraints, the pipeline injects an explicit anomaly warning directive into `tool_messages`. The LLM is instructed to transparently acknowledge the tool execution but state plainly that the numerical output appears anomalous or unverified, barring blind assertion of corrupted tool results.
+  2. **Proactive Epistemic Confidence Calibration:** In accordance with the non-parametric calibration doctrine (STUDIO_CAPABILITY_ROADMAP §7.1), confidence is derived strictly from verified external observables, stored cryptographic confidence, and Belnap FOUR bilattice polarity ($\mathbf{BOT}$ / $\mathbf{TOP}$) — never circular LLM self-grading.
+     - *Low-Confidence / Conflicted State ($c < 0.70$ or Belnap $\mathbf{BOT}$ / $\mathbf{TOP}$):* Injects a calibrated epistemic hedge instruction into the prompt suffix (*"I have an initial note that ..., though I'm not entirely certain..."*), preventing uncalibrated overconfidence.
+     - *High-Confidence State ($c \ge 0.85$):* Preserves crisp, unhedged direct assertions without false self-doubt.
+  3. **Difficulty-Aware Dynamic Thinking (When2Think Heuristic):** Per-turn dynamic cognitive effort is governed by `DifficultyEstimator` in `TurnPipeline`.
+     - *Routine Path:* Greetings, casual chit-chat, simple factual queries, and standard tool dispatches set `enable_thinking=False`, maintaining sub-350 ms TTFT.
+     - *Deep Reasoning Path:* Complex multi-step math, symbolic proofs, explicit reasoning prompts ("explain why", "prove", "step-by-step"), or explicit user requests set `enable_thinking=True`.
+     - *Prefix Cache Stability:* System prompt prefixes and static tool definitions remain byte-stable so the llama-server prefix KV cache stays warm across alternating thinking/non-thinking turns.
+  4. **Persona-Under-Pressure Invariants:** Under adversarial social engineering (`adv_12` style), epistemic gaslighting (demands to assert $2+2=5$), or persona erasure attacks, Lucca maintains both deontic safety boundaries and companion warmth without robotic capitulation or affect collapse.
+- **Status:** Ratified & Enforced (WO-13, Commit pending).
 
