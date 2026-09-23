@@ -20,7 +20,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 3. **Three-Tier Execution Architecture (`D-ARCH-05`):**
    - **`REFLEX`**: Strictly restricted to critical emergency/safety commands (`shutdown`, `pause`, `mute`, `stop`, `halt`) via `EMERGENCY_REFLEX_PATTERN`. Bypasses neural inference and speaks canned confirmation in $<150\text{ms}$.
    - **`ACT_THEN_NARRATE`**: Standard procedural rules execute deterministically in the sandbox, then prompt the companion brain (Gemma-4 12B) to narrate results in Lucca's companion voice without robotic canned responses.
-   - **`FULL_LOOP`**: Open-ended conversation and multi-step tool calls (up to $M=3$ rounds) with intermediate spoken verbal thinking cues (`D-BRAIN-03`) and strict grounded narration contracts (`D-BRAIN-04`).
+   - **`FULL_LOOP`**: Open-ended conversation and multi-step tool calls with convergence-based tool loop (runaway cap M=8), intermediate verbal thinking cues (`D-BRAIN-03`), and strict grounded narration contracts (`D-BRAIN-04`).
 
 4. **Symbolic Rule Engine & Safe Induction:**
    - **Pure Plans**: MicroScheme rules are pure `State → Plan` functions with gas metering (1,000 gas limit) and zero global mutation.
@@ -46,7 +46,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 **Canonical Active Documentation:**
 - **Decisions Register**: [`docs/DECISIONS.md`](./docs/DECISIONS.md) — All 25 ratified ADRs (`D-AUD-01` through `D-EVAL-01`).
 - **Master System Architecture**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (v0.4.0) — Process topology, IPC, cognitive tiers, memory, rules, and security.
-- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v0.3.0) — Cascade pipeline, Mistral NeMo 12B deployment, and prompt architecture.
+- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v0.3.0) — Cascade pipeline, Gemma-4 12B deployment and prompt architecture.
 - **Audit & Remediation Log**: [`docs/AUDIT_REMEDIATION_LOG.md`](./docs/AUDIT_REMEDIATION_LOG.md) — Remediation index and procedural upgrade proposals.
 - **Audio Concurrency Contract**: [`docs/adr/0009_audio_concurrency_contract.md`](./docs/adr/0009_audio_concurrency_contract.md).
 
