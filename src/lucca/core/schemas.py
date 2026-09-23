@@ -374,6 +374,7 @@ class MemoryHit(BaseModel):
     valid_from: float = 0.0
     valid_to: float | None = None
     grounding_eligible: bool = True
+    confidence: float = 1.0
 
 
 class Edge(BaseModel):

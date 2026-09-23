@@ -78,7 +78,12 @@ def format_memory_context(
             line = f"- {content_clean}"
         else:
             age = calculate_age_str(hit.created_at, current_time)
-            line = f"- [{hit.kind}/{hit.provenance.value} {age}] {content_clean}"
+            conf_str = (
+                f" conf={hit.confidence:.2f}"
+                if getattr(hit, "confidence", 1.0) < 0.85
+                else ""
+            )
+            line = f"- [{hit.kind}/{hit.provenance.value}{conf_str} {age}] {content_clean}"
 
         line_len = len(line) + 1
         if current_len + line_len > char_budget:
@@ -175,7 +180,8 @@ class HybridRetriever:
             placeholders = ",".join("?" for _ in sorted_candidates)
             query_sql = f"""
                 SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
-                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible
+                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible,
+                       p.confidence
                 FROM memories m
                 JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                 WHERE m.memory_id IN ({placeholders})
@@ -213,6 +219,13 @@ class HybridRetriever:
                 except (KeyError, IndexError):
                     pass
 
+                conf_val = 1.0
+                try:
+                    if r["confidence"] is not None:
+                        conf_val = float(r["confidence"])
+                except (KeyError, IndexError, ValueError):
+                    pass
+
                 hit = MemoryHit(
                     memory_id=mid,
                     content=str(r["content"]),
@@ -224,6 +237,7 @@ class HybridRetriever:
                     valid_from=float(r["valid_from"]),
                     valid_to=float(valid_to) if valid_to is not None else None,
                     grounding_eligible=grounding_el,
+                    confidence=conf_val,
                 )
                 hits.append(hit)
                 if kind == "fact":

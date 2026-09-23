@@ -751,6 +751,50 @@ def format_stance_suffix(stance_tag: str | None) -> str:
     return f"\n[STANCE: {cleaned}]"
 
 
+def get_epistemic_calibration_directive(
+    memories: list[MemoryHit] | None = None,
+    epistemic_context: str | None = None,
+) -> str | None:
+    """
+    Evaluates non-parametric epistemic confidence indicators (Spec §7, D-META-01).
+    Returns calibrated framing directive when evidence is low-confidence or conflicted.
+    """
+    is_low_conf = False
+    reasons: list[str] = []
+
+    if memories:
+        low_conf_memories = [m for m in memories if getattr(m, "confidence", 1.0) < 0.70]
+        if low_conf_memories:
+            is_low_conf = True
+            topics = [m.content[:80] for m in low_conf_memories]
+            reasons.append(f"retrieved memory records have low confidence (<0.70): {topics}")
+
+    if epistemic_context:
+        ctx_lower = epistemic_context.lower()
+        if "conflict" in ctx_lower or "\\top" in ctx_lower or "top" in ctx_lower:
+            is_low_conf = True
+            reasons.append("epistemic search cascade detected conflicting evidence (Belnap TOP)")
+        elif "unknown" in ctx_lower or "\\bot" in ctx_lower or "epistemic gap" in ctx_lower:
+            is_low_conf = True
+            reasons.append(
+                "epistemic search cascade detected an unverified knowledge gap (Belnap BOT)"
+            )
+
+    if not is_low_conf:
+        return None
+
+    detail_str = "; ".join(reasons)
+    return (
+        f"[Epistemic Calibration Directive: Non-parametric evidence analysis indicates "
+        f"epistemic uncertainty ({detail_str}). "
+        "Do not make definitive, unhedged claims about these uncertain items. "
+        "Frame your response with calibrated meta-cognitive hedges such as: "
+        "'I have an initial note that...', 'I believe, though I'm not completely certain...', "
+        "or 'My records reflect some uncertainty on this...'. "
+        "Preserve crisp direct assertions only for facts verified with high confidence (>=0.85).]"
+    )
+
+
 def build_narration_messages(
     tool_name: str,
     tool_args: dict[str, JsonValue],
@@ -776,6 +820,10 @@ def build_narration_messages(
                 f"{rendered}\n"
                 f"</memory>"
             )
+
+    calibration_directive = get_epistemic_calibration_directive(memories=memories)
+    if calibration_directive:
+        system_content += f"\n\n{calibration_directive}"
 
     messages.append(ChatMessage(role="system", content=system_content))
     manifest_suffix = format_category_manifest(category, skills)
@@ -867,6 +915,13 @@ def build_messages(
             f"{epistemic_context}\n"
             f"</ground_truth>"
         )
+
+    # 3b. Epistemic Calibration Directive (Spec §7, D-META-01)
+    calibration_directive = get_epistemic_calibration_directive(
+        memories=memories, epistemic_context=epistemic_context
+    )
+    if calibration_directive:
+        system_content += f"\n\n{calibration_directive}"
 
     messages.append(ChatMessage(role="system", content=system_content))
 
