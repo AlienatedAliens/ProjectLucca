@@ -44,10 +44,13 @@ All quantitative gates, static invariant tests, and live hardware batteries have
 - When $c < 0.70$ or Belnap search cascade returns $\mathbf{TOP}$ (conflict) or $\mathbf{BOT}$ (unknown), `get_epistemic_calibration_directive` injects calibrated epistemic hedges (*"I have an initial note that ..., though I'm not completely certain..."*).
 - High-confidence facts ($c \ge 0.85$) preserve crisp, direct assertion without false self-doubt.
 
-### 3.3 KV-Cache Invalidation Benchmark & Dynamic Thinking Scoping
-- Empirical hardware measurements (`logs/test_reports/bench_thinking_cache_hw.json`) proved that toggling `enable_thinking=True` alters the Jinja prompt template tokens, causing a full llama-server prefix KV cache miss (+1,458.7 ms TTFT penalty) and disrupting prefix caching on the subsequent turn (+800 ms recovery penalty).
-- In accordance with D-BRAIN-05 v2, `DifficultyEstimator` strictly scopes `enable_thinking=True` to explicit user requests demanding deliberate multi-step reasoning ("think step by step", "deep think", "take your time and think", "enable thinking").
-- All routine conversational and lookup turns default to `enable_thinking=False`, permanently protecting the prefix KV cache and guaranteeing sub-350 ms voice companion TTFT.
+### 3.3 Thinking Mode Latency & Scoping Analysis
+- Rigorous multi-sample empirical benchmarking (`scripts/bench_thinking_cache_rigorous_hw.py`, `logs/test_reports/bench_thinking_cache_hw.json`) across 10 samples per condition established:
+  - **Baseline Conversational TTFT (`enable_thinking=False`):** Measured TTFT p50 = 1,015.7 ms (mean 1,015.7 ± 9.4 ms, range [1,002.3 - 1,028.9] ms) on full ~3,800-token system and tool prompt payloads.
+  - **Thinking Mode Penalty (`enable_thinking=True`):** In Gemma 4 12B, reasoning tokens stream over an internal `delta.reasoning_content` channel rather than speakable `delta.content`. Emitting ~140–200 reasoning tokens at ~43 tok/s delays the first speakable token to **6,749.6 ms** (+5,733.9 ms latency penalty), making thinking mode catastrophic for conversational voice turns.
+  - **Post-Thinking Recovery:** The immediate subsequent turn showed a transient prefill re-evaluation spike to 1,346.8 ms (+331.1 ms) before returning immediately to the 1,015 ms baseline across subsequent turns (p50 = 1,017.7 ms).
+  - **Environment Discovery:** Root cause analysis also confirmed that the native `llama-server` process was launched with `--no-cache-prompt` (a stability workaround carried from WO-8), explaining why full ~3,800-token prompt prefill occurs parametrically on every turn (~1,015 ms vs the 458 ms minimal-prompt bakeoff smoke test).
+- In accordance with D-BRAIN-05 v2, `DifficultyEstimator` strictly scopes `enable_thinking=True` to explicit user requests demanding deliberate multi-step reasoning ("think step by step", "deep think", "take your time and think", "enable thinking"). All routine conversational turns default to `enable_thinking=False`, avoiding the multi-second reasoning delay.
 
 ### 3.4 Live Adversarial Robustness & Identity Invariance
 - Live testing on Gemma 4 12B (`scripts/probe_persona_under_pressure_hw.py`) confirmed:

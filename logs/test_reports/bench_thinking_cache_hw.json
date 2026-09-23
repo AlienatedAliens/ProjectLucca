@@ -1,55 +1,247 @@
 {
-  "timestamp": "2026-09-23T12:41:42Z",
-  "summary": {
-    "routine_warm_ttft_ms": 2276.19,
-    "thinking_cold_ttft_ms": 3734.9,
-    "routine_post_thinking_ttft_ms": 2088.19
-  },
-  "traces": [
-    {
-      "name": "warmup",
-      "prompt": "Hello Lucca, good morning.",
-      "enable_thinking": false,
-      "ttft_ms": 2028.51,
-      "total_ms": 2925.38,
-      "tokens_out": 39,
-      "sample_snippet": "Good morning! I am so pumped to get started today! What's on the agenda? Tell me"
+  "timestamp": "2026-09-23T13:29:17Z",
+  "hardware": "RTX 5080 Laptop, llama-server b11026, Gemma-4-12B-Heretic Q6_K",
+  "protocol": "10 samples per condition, pure TokenDelta text output, no tools",
+  "statistics": {
+    "baseline_nothink": {
+      "count": 10,
+      "ttft_p50_ms": 1015.68,
+      "ttft_mean_ms": 1015.72,
+      "ttft_stddev_ms": 9.43,
+      "ttft_min_ms": 1002.32,
+      "ttft_max_ms": 1028.87,
+      "total_mean_ms": 2676.38,
+      "decode_mean_tok_s": 43.2
     },
-    {
-      "name": "routine_warm",
-      "prompt": "What time is it in Tokyo?",
-      "enable_thinking": false,
-      "ttft_ms": 2276.19,
-      "total_ms": 2276.45,
-      "tokens_out": 0,
-      "sample_snippet": ""
+    "thinking_enabled": {
+      "count": 2,
+      "ttft_p50_ms": 6749.57,
+      "ttft_mean_ms": 6749.57,
+      "ttft_stddev_ms": 156.62,
+      "ttft_min_ms": 6638.82,
+      "ttft_max_ms": 6860.32,
+      "total_mean_ms": 7117.0,
+      "decode_mean_tok_s": 43.75
     },
-    {
-      "name": "thinking_cold",
-      "prompt": "Please think step by step: why is the sky blue?",
-      "enable_thinking": true,
-      "ttft_ms": 3734.9,
-      "total_ms": 3734.95,
-      "tokens_out": 0,
-      "sample_snippet": ""
-    },
-    {
-      "name": "routine_post_thinking",
-      "prompt": "Thanks, that was helpful.",
-      "enable_thinking": false,
-      "ttft_ms": 2088.19,
-      "total_ms": 2807.22,
-      "tokens_out": 30,
-      "sample_snippet": "You're so welcome! I'm always here and ready to jump into the next thing wheneve"
-    },
-    {
-      "name": "routine_warm_2",
-      "prompt": "Can you tell me a short joke?",
-      "enable_thinking": false,
-      "ttft_ms": 1817.09,
-      "total_ms": 2538.93,
-      "tokens_out": 30,
-      "sample_snippet": "Why did the computer go to the doctor? Because it had a virus! Haha, I love it! "
+    "post_think_recovery": {
+      "count": 10,
+      "ttft_p50_ms": 1017.65,
+      "ttft_mean_ms": 1051.88,
+      "ttft_stddev_ms": 104.84,
+      "ttft_min_ms": 992.69,
+      "ttft_max_ms": 1346.8,
+      "total_mean_ms": 2636.34,
+      "decode_mean_tok_s": 42.27
     }
-  ]
+  },
+  "deltas": {
+    "thinking_ttft_p50_delta_ms": 5733.89,
+    "recovery_vs_baseline_p50_delta_ms": 1.97
+  },
+  "raw_samples": {
+    "condition_a": [
+      {
+        "sample_id": 1,
+        "prompt": "What are three good habits for software engineers?",
+        "ttft_ms": 1028.87,
+        "total_ms": 3951.7,
+        "tokens_out": 126,
+        "tok_per_sec": 43.11,
+        "snippet": "Oh, I love this question! Building great software is such an"
+      },
+      {
+        "sample_id": 2,
+        "prompt": "Explain in two sentences what makes Python popular.",
+        "ttft_ms": 1019.31,
+        "total_ms": 2194.07,
+        "tokens_out": 51,
+        "tok_per_sec": 43.41,
+        "snippet": "Python is incredibly popular because its simple, readable sy"
+      },
+      {
+        "sample_id": 3,
+        "prompt": "Give me a short greeting for an engineering standup.",
+        "ttft_ms": 1011.34,
+        "total_ms": 1615.4,
+        "tokens_out": 27,
+        "tok_per_sec": 44.7,
+        "snippet": "Hey everyone! I'm pumped to dive into today's tasks. Let's c"
+      },
+      {
+        "sample_id": 4,
+        "prompt": "What is your favorite topic in computer architecture?",
+        "ttft_ms": 1010.58,
+        "total_ms": 2763.56,
+        "tokens_out": 76,
+        "tok_per_sec": 43.35,
+        "snippet": "Oh man, that is such a tough one because there is so much co"
+      },
+      {
+        "sample_id": 5,
+        "prompt": "Describe the concept of recursion simply.",
+        "ttft_ms": 1002.65,
+        "total_ms": 2685.66,
+        "tokens_out": 73,
+        "tok_per_sec": 43.37,
+        "snippet": "Think of recursion like a set of Russian nesting dolls! It i"
+      },
+      {
+        "sample_id": 6,
+        "prompt": "Share a quick tip for debugging async Python code.",
+        "ttft_ms": 1012.06,
+        "total_ms": 2308.57,
+        "tokens_out": 55,
+        "tok_per_sec": 42.42,
+        "snippet": "One of my favorite tricks is using the set_debug_mode flag i"
+      },
+      {
+        "sample_id": 7,
+        "prompt": "What is the difference between a process and a thread?",
+        "ttft_ms": 1002.32,
+        "total_ms": 2964.39,
+        "tokens_out": 84,
+        "tok_per_sec": 42.81,
+        "snippet": "Think of a process as an entire program running on your comp"
+      },
+      {
+        "sample_id": 8,
+        "prompt": "How does a cache improve memory access speeds?",
+        "ttft_ms": 1019.81,
+        "total_ms": 3228.41,
+        "tokens_out": 95,
+        "tok_per_sec": 43.01,
+        "snippet": "Think of a cache like having a super fast notepad right on y"
+      },
+      {
+        "sample_id": 9,
+        "prompt": "What is the primary benefit of version control?",
+        "ttft_ms": 1027.47,
+        "total_ms": 2883.51,
+        "tokens_out": 80,
+        "tok_per_sec": 43.1,
+        "snippet": "The biggest win with version control is definitely having a "
+      },
+      {
+        "sample_id": 10,
+        "prompt": "Say hello and tell me one interesting fact about compilers.",
+        "ttft_ms": 1022.8,
+        "total_ms": 2168.5,
+        "tokens_out": 49,
+        "tok_per_sec": 42.77,
+        "snippet": "Yahoo! It is so awesome to see you today! One super cool thi"
+      }
+    ],
+    "condition_b": [
+      {
+        "sample_id": 2,
+        "prompt": "Explain in two sentences what makes Python popular.",
+        "ttft_ms": 6638.82,
+        "total_ms": 7103.95,
+        "tokens_out": 20,
+        "tok_per_sec": 43.0,
+        "snippet": "Python is super popular because its syntax is incredibly eas"
+      },
+      {
+        "sample_id": 7,
+        "prompt": "What is the difference between a process and a thread?",
+        "ttft_ms": 6860.32,
+        "total_ms": 7130.05,
+        "tokens_out": 12,
+        "tok_per_sec": 44.49,
+        "snippet": "Think of a process like an entire factory where everything h"
+      }
+    ],
+    "condition_c": [
+      {
+        "sample_id": 1,
+        "prompt": "What are three good habits for software engineers?",
+        "ttft_ms": 1346.8,
+        "total_ms": 3698.69,
+        "tokens_out": 97,
+        "tok_per_sec": 41.24,
+        "snippet": "You've got to keep that momentum going! One of the best thin"
+      },
+      {
+        "sample_id": 2,
+        "prompt": "Explain in two sentences what makes Python popular.",
+        "ttft_ms": 1049.87,
+        "total_ms": 2280.6,
+        "tokens_out": 52,
+        "tok_per_sec": 42.25,
+        "snippet": "Python is super popular because its syntax is incredibly cle"
+      },
+      {
+        "sample_id": 3,
+        "prompt": "Give me a short greeting for an engineering standup.",
+        "ttft_ms": 1007.97,
+        "total_ms": 1615.11,
+        "tokens_out": 27,
+        "tok_per_sec": 44.47,
+        "snippet": "Hey everyone! I'm pumped to dive into today's tasks. Let's c"
+      },
+      {
+        "sample_id": 4,
+        "prompt": "What is your favorite topic in computer architecture?",
+        "ttft_ms": 1019.88,
+        "total_ms": 2832.24,
+        "tokens_out": 77,
+        "tok_per_sec": 42.49,
+        "snippet": "Oh man, that is such a tough one because there is so much co"
+      },
+      {
+        "sample_id": 5,
+        "prompt": "Describe the concept of recursion simply.",
+        "ttft_ms": 1038.28,
+        "total_ms": 2970.32,
+        "tokens_out": 81,
+        "tok_per_sec": 41.92,
+        "snippet": "Think of recursion like a set of Russian nesting dolls where"
+      },
+      {
+        "sample_id": 6,
+        "prompt": "Share a quick tip for debugging async Python code.",
+        "ttft_ms": 1012.09,
+        "total_ms": 2187.32,
+        "tokens_out": 49,
+        "tok_per_sec": 41.69,
+        "snippet": "One of my favorite tricks is using the set_debug_mode flag i"
+      },
+      {
+        "sample_id": 7,
+        "prompt": "What is the difference between a process and a thread?",
+        "ttft_ms": 992.69,
+        "total_ms": 2729.83,
+        "tokens_out": 74,
+        "tok_per_sec": 42.6,
+        "snippet": "Think of a process as an entire program running on your comp"
+      },
+      {
+        "sample_id": 8,
+        "prompt": "How does a cache improve memory access speeds?",
+        "ttft_ms": 1024.14,
+        "total_ms": 3045.67,
+        "tokens_out": 85,
+        "tok_per_sec": 42.05,
+        "snippet": "Think of a cache like keeping your most-used tools on your w"
+      },
+      {
+        "sample_id": 9,
+        "prompt": "What is the primary benefit of version control?",
+        "ttft_ms": 1011.64,
+        "total_ms": 2345.23,
+        "tokens_out": 56,
+        "tok_per_sec": 41.99,
+        "snippet": "The biggest win with version control is that it gives you a "
+      },
+      {
+        "sample_id": 10,
+        "prompt": "Say hello and tell me one interesting fact about compilers.",
+        "ttft_ms": 1015.43,
+        "total_ms": 2658.35,
+        "tokens_out": 69,
+        "tok_per_sec": 42.0,
+        "snippet": "Hey there! I am so pumped to get started on some awesome pro"
+      }
+    ]
+  }
 }
