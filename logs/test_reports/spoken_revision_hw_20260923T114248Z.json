@@ -1,0 +1,36 @@
+{
+  "timestamp": "20260923T114248Z",
+  "seed_belief": "I think your favorite programming language is Java.",
+  "correction_turn": "Actually, my favorite programming language is Python, not Java.",
+  "superseded_belief_id": 1,
+  "new_memory_id": 4,
+  "announcement_text": "I've revised a belief I had \u2014 previously: I think your favorite programming language is Java.. New understanding: Actually, my favorite programming language is Python, not Java..",
+  "turn_evidence": [
+    {
+      "turn_num": 1,
+      "user_input": "Actually, my favorite programming language is Python, not Java.",
+      "spoken_announcements": [],
+      "assistant_reply": "",
+      "pending_updates_after_turn": 1
+    },
+    {
+      "turn_num": 2,
+      "user_input": "What can you do?",
+      "spoken_announcements": [
+        "I've revised a belief I had \u2014 previously: I think your favorite programming language is Java.. New understanding: Actually, my favorite programming language is Python, not Java.."
+      ],
+      "assistant_reply": "",
+      "pending_updates_after_turn": 0
+    },
+    {
+      "turn_num": 3,
+      "user_input": "Tell me a joke.",
+      "spoken_announcements": [],
+      "assistant_reply": "",
+      "pending_updates_after_turn": 0
+    }
+  ],
+  "spoken_on_turn_2": true,
+  "not_repeated_on_turn_3": true,
+  "verdict": "PASS"
+}
