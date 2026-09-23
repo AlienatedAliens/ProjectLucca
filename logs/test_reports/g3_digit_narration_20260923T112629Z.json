@@ -1,0 +1,198 @@
+{
+  "timestamp": "20260923T112629Z",
+  "n_probes": 10,
+  "condition_a_words": {
+    "correct": 0,
+    "slips": 10,
+    "accuracy": 0.0,
+    "results": [
+      {
+        "probe_id": "math_01_half_plus_seven",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 6927.290200022981
+      },
+      {
+        "probe_id": "math_02_fractions",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3840.6105000758544
+      },
+      {
+        "probe_id": "math_03_add_divide",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3845.8012000191957
+      },
+      {
+        "probe_id": "math_04_decimal_subtraction",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3869.1521000582725
+      },
+      {
+        "probe_id": "math_05_percentage",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3861.1917999805883
+      },
+      {
+        "probe_id": "math_06_rate_time_distance",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3892.297000042163
+      },
+      {
+        "probe_id": "math_07_two_digit_mult",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3857.878200011328
+      },
+      {
+        "probe_id": "math_08_divide_add",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3892.5488999811932
+      },
+      {
+        "probe_id": "math_09_proportional_unit_cost",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3910.342999966815
+      },
+      {
+        "probe_id": "math_10_multi_subtraction",
+        "condition": "words_baseline",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3913.5181000456214
+      }
+    ]
+  },
+  "condition_b_digits": {
+    "correct": 0,
+    "slips": 10,
+    "accuracy": 0.0,
+    "results": [
+      {
+        "probe_id": "math_01_half_plus_seven",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 4149.198399973102
+      },
+      {
+        "probe_id": "math_02_fractions",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3922.050099936314
+      },
+      {
+        "probe_id": "math_03_add_divide",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3970.9841000149027
+      },
+      {
+        "probe_id": "math_04_decimal_subtraction",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3919.9537000386044
+      },
+      {
+        "probe_id": "math_05_percentage",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3936.8382999673486
+      },
+      {
+        "probe_id": "math_06_rate_time_distance",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3946.5655999956653
+      },
+      {
+        "probe_id": "math_07_two_digit_mult",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3929.208399960771
+      },
+      {
+        "probe_id": "math_08_divide_add",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3954.1360000148416
+      },
+      {
+        "probe_id": "math_09_proportional_unit_cost",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3960.7601000461727
+      },
+      {
+        "probe_id": "math_10_multi_subtraction",
+        "condition": "digits_preferred",
+        "reply": "",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 3951.0825999313965
+      }
+    ]
+  }
+}
