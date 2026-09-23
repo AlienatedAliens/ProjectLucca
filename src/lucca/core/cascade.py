@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, JsonValue
 
 from lucca.core.schemas import MemoryHit, RetrievalQuery, ToolResult
 from lucca.core.trace import now_ns
+from lucca.memory.extraction import FUNCTIONAL_PREDICATES
 from lucca.ports import MemoryStorePort
 
 logger = structlog.get_logger(__name__)
@@ -524,6 +525,15 @@ def classify_epistemic_intent(
         "last session",
         "notes on my",
         "talked about",
+        "where do i",
+        "where i live",
+        "where do i live",
+        "where am i living",
+        "my location",
+        "my city",
+        "my town",
+        "my address",
+        "my home",
     )
 
     # Substrate WEB: External World / Web Search
@@ -896,7 +906,7 @@ class EpistemicSearchCascade:
 
         self._last_recollections: list[str] = []
         try:
-            q = RetrievalQuery(query_text=query_text.strip(), k=5)
+            q = RetrievalQuery(query_text=query_text.strip(), k=8, include_superseded=True)
             res = self.memory_store.search(q)
             raw_hits: list[MemoryHit] = []
 
@@ -924,6 +934,7 @@ class EpistemicSearchCascade:
                     if hasattr(hit.provenance, "value")
                     else str(hit.provenance)
                 )
+                is_sup = hit.valid_to is not None
                 items.append(
                     EvidenceItem(
                         substrate=EpistemicSubstrate.MEMORY,
@@ -936,6 +947,10 @@ class EpistemicSearchCascade:
                             "kind": hit.kind,
                             "provenance": prov_val,
                             "created_at": hit.created_at,
+                            "valid_from": getattr(hit, "valid_from", hit.created_at),
+                            "valid_to": getattr(hit, "valid_to", None),
+                            "superseded_by": getattr(hit, "superseded_by", None),
+                            "is_superseded": is_sup,
                         },
                     )
                 )
@@ -1147,6 +1162,89 @@ class EpistemicSearchCascade:
     # ------------------------------------------------------------------------
     # Synthesis & Belnap Evidential Valuation
     # ------------------------------------------------------------------------
+    def _detect_memory_supersession(
+        self,
+        evidence: list[EvidenceItem],
+    ) -> tuple[list[str], list[str]]:
+        """
+        Detects intra-tier memory supersession per D-HON-01 and Spec 04 §3.
+        Identifies newer valid_from facts on functional predicates or explicitly
+        superseded rows.
+        Returns:
+            (resolutions, narration_contracts)
+        Marks superseded EvidenceItems with metadata['is_superseded'] = True.
+        """
+        resolutions: list[str] = []
+        narration_contracts: list[str] = []
+
+        mem_items = [e for e in evidence if e.trust_tier == TrustTier.TIER_3_MEMORY]
+        if not mem_items:
+            return resolutions, narration_contracts
+
+        # 1. Group by functional predicate (s, p)
+        pred_groups: dict[tuple[str, str], list[tuple[EvidenceItem, float, str]]] = {}
+        for item in mem_items:
+            vf = float(item.metadata.get("valid_from", 0.0) or item.timestamp_ns / 1e9)
+            content = item.content.strip()
+            parts = content.split(maxsplit=2)
+            if len(parts) >= 3 and parts[1] in FUNCTIONAL_PREDICATES:
+                s, p, o = parts[0], parts[1], parts[2]
+                pred_groups.setdefault((s, p), []).append((item, vf, o))
+            else:
+                for pred in FUNCTIONAL_PREDICATES:
+                    if f" {pred} " in f" {content} ":
+                        idx = content.find(pred)
+                        s = content[:idx].strip() or "user"
+                        o = content[idx + len(pred):].strip()
+                        pred_groups.setdefault((s, p), []).append((item, vf, o))
+                        break
+
+        for (_s, _p), entries in pred_groups.items():
+            if len(entries) < 2:
+                continue
+            entries.sort(key=lambda x: x[1], reverse=True)
+            best_item, best_vf, best_val = entries[0]
+            for stale_item, _stale_vf, stale_val in entries[1:]:
+                if stale_val.lower() != best_val.lower():
+                    stale_item.metadata["is_superseded"] = True
+                    resolutions.append(
+                        f"D-HON-01 Verified Store Priority — Current value per store: "
+                        f"'{best_item.content}' (valid_from: {best_vf}) supersedes "
+                        f"historical record: '{stale_item.content}'"
+                    )
+                    narration_contracts.append(
+                        "Narration Contract: Cite the verified store's current value over "
+                        "transcript echo for entity-attribute queries per D-HON-01."
+                    )
+
+        # 2. Check for explicit valid_to on any memory items
+        for item in mem_items:
+            if item.metadata.get("valid_to") is not None or item.metadata.get("is_superseded"):
+                item.metadata["is_superseded"] = True
+                if not any(item.content in r for r in resolutions):
+                    active_candidates = [
+                        e
+                        for e in mem_items
+                        if not bool(e.metadata.get("is_superseded"))
+                        and e.metadata.get("valid_to") is None
+                    ]
+                    if active_candidates:
+                        active_candidates.sort(
+                            key=lambda e: float(e.metadata.get("valid_from", 0.0) or 0.0),
+                            reverse=True,
+                        )
+                        best = active_candidates[0]
+                        resolutions.append(
+                            f"D-HON-01 Verified Store Priority — Current value per store: "
+                            f"'{best.content}' supersedes historical record: '{item.content}'"
+                        )
+                        narration_contracts.append(
+                            "Narration Contract: Cite the verified store's current value over "
+                            "transcript echo for entity-attribute queries per D-HON-01."
+                        )
+
+        return resolutions, narration_contracts
+
     def synthesize(
         self,
         query_text: str,
@@ -1187,9 +1285,21 @@ class EpistemicSearchCascade:
         highest_tier = min(tier_map.keys())
         highest_tier_evidence = tier_map[highest_tier]
 
-        # Check Belnap value within the highest active trust tier
-        highest_told_true = any(e.told_true for e in highest_tier_evidence)
-        highest_told_false = any(e.told_false for e in highest_tier_evidence)
+        # Supersession checks: intra-tier (D-HON-01) and cross-tier
+        superseded_annotations: list[str] = []
+        narration_contracts: list[str] = []
+
+        intra_res, intra_contracts = self._detect_memory_supersession(evidence)
+        superseded_annotations.extend(intra_res)
+        narration_contracts.extend(intra_contracts)
+
+        # Check Belnap value within highest active trust tier (excluding superseded records)
+        active_highest = [
+            e for e in highest_tier_evidence if not bool(e.metadata.get("is_superseded"))
+        ]
+        eval_tier_evidence = active_highest if active_highest else highest_tier_evidence
+        highest_told_true = any(e.told_true for e in eval_tier_evidence)
+        highest_told_false = any(e.told_false for e in eval_tier_evidence)
 
         if highest_told_true and highest_told_false:
             # Genuine same-tier contradiction
@@ -1202,7 +1312,6 @@ class EpistemicSearchCascade:
             belnap_status = BelnapValue.UNKNOWN
 
         # Cross-tier staleness / supersession check
-        superseded_annotations: list[str] = []
         for tier, items in tier_map.items():
             if tier > highest_tier:
                 tier_told_true = any(e.told_true for e in items)
@@ -1231,24 +1340,35 @@ class EpistemicSearchCascade:
         if superseded_annotations:
             for note in superseded_annotations:
                 lines.append(f"[Resolution: {note}]")
+        if narration_contracts:
+            for contract in sorted(set(narration_contracts)):
+                lines.append(f"[{contract}]")
 
-        # Sort evidence by Trust Tier (Tier 1 first) then confidence
-        sorted_evidence = sorted(evidence, key=lambda e: (e.trust_tier.value, -e.confidence))
+        # Sort evidence by Trust Tier, active before superseded, then confidence, valid_from
+        def _evidence_sort_key(e: EvidenceItem) -> tuple[int, int, float, float]:
+            is_sup = 1 if bool(e.metadata.get("is_superseded")) else 0
+            vf = float(e.metadata.get("valid_from", 0.0) or 0.0)
+            return (e.trust_tier.value, is_sup, -e.confidence, -vf)
+
+        sorted_evidence = sorted(evidence, key=_evidence_sort_key)
 
         current_tier: TrustTier | None = None
         for item in sorted_evidence:
             if item.trust_tier != current_tier:
                 current_tier = item.trust_tier
                 lines.append(f"\n[Trust Tier {current_tier.value}: {current_tier.name}]")
-            polarity_tag = (
-                "[asserts]"
-                if (item.told_true and not item.told_false)
-                else "[refutes]"
-                if (item.told_false and not item.told_true)
-                else "[both]"
-                if (item.told_true and item.told_false)
-                else "[neither]"
-            )
+            if bool(item.metadata.get("is_superseded")):
+                polarity_tag = "[superseded]"
+            else:
+                polarity_tag = (
+                    "[asserts]"
+                    if (item.told_true and not item.told_false)
+                    else "[refutes]"
+                    if (item.told_false and not item.told_true)
+                    else "[both]"
+                    if (item.told_true and item.told_false)
+                    else "[neither]"
+                )
             lines.append(f"- ({item.source}) {polarity_tag} {item.content}")
 
         # Append non-grounding recollections under explicit quoting frame (D-MEM-04)

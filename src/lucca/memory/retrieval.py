@@ -56,7 +56,12 @@ def format_memory_context(
     max_items = 8
     sorted_hits = sorted(
         hits,
-        key=lambda h: (_provenance_tier(h.provenance), -h.score, -h.created_at),
+        key=lambda h: (
+            _provenance_tier(h.provenance),
+            1 if h.valid_to is not None else 0,
+            -h.score,
+            -h.created_at,
+        ),
     )
     lines: list[str] = []
     char_budget = max_tokens * 4

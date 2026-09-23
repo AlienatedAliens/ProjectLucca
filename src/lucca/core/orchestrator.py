@@ -227,7 +227,9 @@ _PASSIVE_FACT_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     (
         "lives_in",
         re.compile(
-            r"\bi live in\s+([A-Za-z][A-Za-z\s\-']{1,40}?)(?:[.,!?;]|$)",
+            r"\b(?:i live in|i moved to|i've moved to|i relocated to)\s+"
+            r"([A-Za-z][A-Za-z\s\-']{1,40}?)"
+            r"(?:\s+(?:last|this|next)\s+\w+|\s+recently|\s+now)?(?:[.,!?;]|$)",
             re.IGNORECASE,
         ),
     ),
