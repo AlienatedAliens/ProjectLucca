@@ -34,9 +34,7 @@ TEST_MASTER_KEY = b"01234567890123456789012345678901"
 def orch(tmp_path: Path) -> Orchestrator:
     db = DatabaseManager(tmp_path / "test_grounded_commit.sqlite")
     db.migrate()
-    store = MemoryStore(
-        db=db, master_key=TEST_MASTER_KEY, embedding_port=LocalEmbeddingPort()
-    )
+    store = MemoryStore(db=db, master_key=TEST_MASTER_KEY, embedding_port=LocalEmbeddingPort())
     orch = Orchestrator.__new__(Orchestrator)
     orch.config = get_config()
     orch.execute_tools = True
@@ -88,8 +86,7 @@ def _user_derived_rows(db: DatabaseManager) -> list[dict[str, Any]]:
             """
         )
         return [
-            {"content": r[0], "provenance": r[1], "source_entry_id": r[2]}
-            for r in cur.fetchall()
+            {"content": r[0], "provenance": r[1], "source_entry_id": r[2]} for r in cur.fetchall()
         ]
 
 
@@ -116,9 +113,7 @@ def test_grounded_commit_saves_user_derived_fact(orch: Orchestrator) -> None:
     assert rows[0]["source_entry_id"]
     # The transcript itself was committed early as USER_EXPLICIT
     with orch.db.read_cursor() as cur:
-        cur.execute(
-            "SELECT COUNT(*) FROM provenance_envelopes WHERE provenance = 'USER_EXPLICIT'"
-        )
+        cur.execute("SELECT COUNT(*) FROM provenance_envelopes WHERE provenance = 'USER_EXPLICIT'")
         assert cur.fetchone()[0] == 1
     # Early-commit stash is set for _finalize_turn reuse
     assert orch._early_transcript_commit is not None
@@ -161,7 +156,9 @@ def test_stale_transcript_payload_refused(orch: Orchestrator) -> None:
     stale.trace_id = "tr-old-turn"
     orch._last_transcript_signed = stale
     args = {"s": "user", "p": "is_named", "o": "Sean", "quote": "My name is Sean"}
-    res = orch._handle_memory_commit(_trace("tr-new-turn"), "call-4", "memory_commit", args, speak=False)
+    res = orch._handle_memory_commit(
+        _trace("tr-new-turn"), "call-4", "memory_commit", args, speak=False
+    )
 
     assert res.ok is False
     assert "not_grounded" in (res.stderr or "")

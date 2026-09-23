@@ -218,9 +218,7 @@ _HYPOTHETICAL_MARKERS: Final[tuple[str, ...]] = (
 
 def _sentence_containing(text: str, pos: int) -> str:
     """Returns the sentence of `text` containing character offset `pos`."""
-    start = (
-        max(text.rfind(".", 0, pos), text.rfind("!", 0, pos), text.rfind("?", 0, pos)) + 1
-    )
+    start = max(text.rfind(".", 0, pos), text.rfind("!", 0, pos), text.rfind("?", 0, pos)) + 1
     ends = [i for i in (text.find(".", pos), text.find("!", pos), text.find("?", pos)) if i != -1]
     end = min(ends) if ends else len(text) - 1
     sentence = text[start : end + 1].strip()
@@ -2041,9 +2039,7 @@ class Orchestrator:
                     # forcing it to either call the tool or state plainly that
                     # it has not done it.
                     if round_num < max_rounds and tools:
-                        promises = detect_promised_action_claims(
-                            "".join(round_response_text)
-                        )
+                        promises = detect_promised_action_claims("".join(round_response_text))
                         if promises:
                             logger.info(
                                 "promised_action_without_tool_call_intercepted",
@@ -2459,9 +2455,7 @@ class Orchestrator:
             return "save a fact to memory"
         return f"execute {name}"
 
-    def _handle_self_history_search(
-        self, call_id: str, args: dict[str, JsonValue]
-    ) -> ToolResult:
+    def _handle_self_history_search(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
         """WO-9 A14 (F18): expose the SELF_HISTORY substrate as a READ tool.
 
         Backed by query_substrate_self_history (execution_triples ∪
@@ -2577,7 +2571,11 @@ class Orchestrator:
             )
         if not payload_is_current or transcript_payload is None:
             self._record_tool_receipt(
-                name=name, call_id=call_id, args=args, ok=False, output=None,
+                name=name,
+                call_id=call_id,
+                args=args,
+                ok=False,
+                output=None,
                 error="no user utterance to ground against",
             )
             return ToolResult(
@@ -2621,7 +2619,11 @@ class Orchestrator:
 
         if not signed_facts:
             self._record_tool_receipt(
-                name=name, call_id=call_id, args=args, ok=False, output=None,
+                name=name,
+                call_id=call_id,
+                args=args,
+                ok=False,
+                output=None,
                 error="quote not grounded in user utterance",
             )
             return ToolResult(

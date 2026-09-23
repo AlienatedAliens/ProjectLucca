@@ -151,4 +151,3 @@ def test_functional_predicate_supersession_auto_detection() -> None:
     assert brisbane_pos < perth_pos
     assert "D-HON-01" in ctx
     assert "Current value per store:" in ctx
-

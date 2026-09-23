@@ -96,9 +96,7 @@ def test_memory_and_skill_verbs_grounded_by_receipts() -> None:
     )
     assert grounded and all(c.grounded for c in grounded)
 
-    ungrounded = detect_ungrounded_action_claims(
-        "I checked my memory records for your name.", []
-    )
+    ungrounded = detect_ungrounded_action_claims("I checked my memory records for your name.", [])
     assert any(not c.grounded for c in ungrounded)
 
 
@@ -157,9 +155,7 @@ def orch(tmp_path: Path):
 
 def test_promise_without_tool_call_triggers_reprompt(orch) -> None:
     """Round 1 promises an action with no tool call -> directive injected -> round 2 calls the tool."""
-    search_call = ToolCall(
-        tool="memory_search", args={"query": "Sean"}, call_id="call-p1"
-    )
+    search_call = ToolCall(tool="memory_search", args={"query": "Sean"}, call_id="call-p1")
     orch.llm = FakeLLM(
         rounds=[
             [

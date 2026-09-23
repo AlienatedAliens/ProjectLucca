@@ -235,7 +235,10 @@ def test_failure_in_round_2_of_3_nudge_only_in_subsequent_rounds(orch: Orchestra
 
     Round 2 fails -> round 3 has the nudge.
     """
-    def execute_side_effect(call_id: str, tool_name: str, args: dict[str, object], **kwargs: object) -> ToolResult:
+
+    def execute_side_effect(
+        call_id: str, tool_name: str, args: dict[str, object], **kwargs: object
+    ) -> ToolResult:
         if tool_name == "search_web":
             return ToolResult(call_id=call_id, ok=True, content="found data", elapsed_ms=1.0)
         return ToolResult(call_id=call_id, ok=False, stderr="execution timeout", elapsed_ms=5000.0)

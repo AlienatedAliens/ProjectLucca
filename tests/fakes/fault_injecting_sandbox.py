@@ -48,9 +48,7 @@ class FaultInjectingSandbox:
     ) -> None:
         self.underlying = underlying
         self.mode: FaultMode = mode
-        self.target_tools: set[str] = (
-            target_tools if target_tools is not None else {"run_python"}
-        )
+        self.target_tools: set[str] = target_tools if target_tools is not None else {"run_python"}
         self.intercepted_calls: list[tuple[str, dict[str, JsonValue]]] = []
 
     def execute_tool(

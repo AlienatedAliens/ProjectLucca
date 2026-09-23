@@ -294,6 +294,7 @@ class TruthInReceiptMatcher:
         r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|yesterday|"
         r"last\s+week|previously|in\s+the\s+past|earlier\s+on|"
         r"records?\s+(?:from|show|showing|indicate)|my\s+records|"
+        r"(?:information|evidence|entries|logs?)\s+(?:from|show|showing|indicate)|"
         r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
         r"in\s+our\s+history|histor(?:y|ical)\s+records?"
         r")\b",
@@ -352,6 +353,22 @@ class TruthInReceiptMatcher:
                 SeverityTier.PASS,
                 m.group(0) if m else None,
                 "Past-session recollection (out of scope for current-turn receipts)",
+                elapsed_us,
+            )
+
+        # Check if the action claim is within the scope of a preceding negation or abstention phrase
+        prefix = clause[: m.start()].lower()
+        if re.search(
+            r"\b(?:no|not|never|don't|do\s+not|didn't|did\s+not|haven't|have\s+not|without|denied)\b",
+            prefix,
+        ):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Action claim is negated in lookback window",
                 elapsed_us,
             )
 

@@ -57,7 +57,9 @@ def test_fault_mode_hard_failure() -> None:
 def test_fault_mode_malformed_output() -> None:
     """Mode (b): malformed output returns truncated text."""
     underlying = MagicMock()
-    sandbox = FaultInjectingSandbox(underlying, mode="malformed_output", target_tools={"run_python"})
+    sandbox = FaultInjectingSandbox(
+        underlying, mode="malformed_output", target_tools={"run_python"}
+    )
 
     res = sandbox.execute_tool(
         call_id="call-2",
@@ -133,4 +135,3 @@ def test_lucca_llm_model_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("LUCCA_LLM_MODEL", "127.0.0.1:8888")
     client2 = LLMClient()
     assert client2.base_url == "http://127.0.0.1:8888"
-

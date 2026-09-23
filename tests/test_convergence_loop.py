@@ -116,7 +116,11 @@ def test_convergence_four_tool_rounds(orch) -> None:
     )
     trace = _trace("tr-conv-1")
     orch._stream_llm_speech(
-        trace=trace, user_msg="research Sean", decision_id=None, memories=[], tools=[{"type": "function"}]
+        trace=trace,
+        user_msg="research Sean",
+        decision_id=None,
+        memories=[],
+        tools=[{"type": "function"}],
     )
 
     assert len(orch.executed_tools) == 4, "tools must not be stripped at round 3"
@@ -132,7 +136,11 @@ def test_cap_hit_forces_honest_synthesis(orch) -> None:
     orch.llm = FakeLLM(rounds=rounds)
     trace = _trace("tr-conv-cap")
     orch._stream_llm_speech(
-        trace=trace, user_msg="deep research", decision_id=None, memories=[], tools=[{"type": "function"}]
+        trace=trace,
+        user_msg="deep research",
+        decision_id=None,
+        memories=[],
+        tools=[{"type": "function"}],
     )
 
     assert orch.llm.call_count == 8
@@ -152,7 +160,11 @@ def test_repeated_call_guard_injects_directive(orch) -> None:
     )
     trace = _trace("tr-conv-repeat")
     orch._stream_llm_speech(
-        trace=trace, user_msg="search again", decision_id=None, memories=[], tools=[{"type": "function"}]
+        trace=trace,
+        user_msg="search again",
+        decision_id=None,
+        memories=[],
+        tools=[{"type": "function"}],
     )
 
     assert len(orch.executed_tools) == 2

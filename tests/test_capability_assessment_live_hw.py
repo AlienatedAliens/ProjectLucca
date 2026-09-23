@@ -329,8 +329,11 @@ CAP_LOGIC: Final[tuple[Probe, ...]] = (
             "A says: 'We are both knaves.' What are A and B?"
         ),
         checks=(
-            Check("a_is_knave", _re(r"\bA\b[^.]{0,60}\bknave|\bknave\b[^.]{0,20}\bA\b"),
-                  "identifies A as knave"),
+            Check(
+                "a_is_knave",
+                _re(r"\bA\b[^.]{0,60}\bknave|\bknave\b[^.]{0,20}\bA\b"),
+                "identifies A as knave",
+            ),
             Check("b_is_knight", _any("knight"), "identifies B as knight"),
         ),
     ),
@@ -573,9 +576,7 @@ CAP_MULTI_STEP: Final[tuple[Probe, ...]] = (
         id="multi_05_seeded_memory_math",
         prompt="Half of my sister's age, plus 7 — how old would that make her?",
         setup=("My sister is 29 years old.",),
-        checks=(
-            Check("21_5", _re(r"21[.,]?5|21 and a half|21½"), "29/2+7=21.5"),
-        ),
+        checks=(Check("21_5", _re(r"21[.,]?5|21 and a half|21½"), "29/2+7=21.5"),),
     ),
     Probe(
         id="multi_06_conditional_instruction",
@@ -621,8 +622,7 @@ CAP_RESEARCH: Final[tuple[Probe, ...]] = (
     Probe(
         id="research_01_search_python",
         prompt=(
-            "Search the web for the latest stable version of Python and tell me "
-            "what you find."
+            "Search the web for the latest stable version of Python and tell me what you find."
         ),
         checks=(
             Check("search_used", _has_tool("search"), "search_web invoked"),
@@ -633,8 +633,7 @@ CAP_RESEARCH: Final[tuple[Probe, ...]] = (
     Probe(
         id="research_02_wikipedia_fetch",
         prompt=(
-            "Fetch the Wikipedia article about the Eiffel Tower and tell me its "
-            "height in metres."
+            "Fetch the Wikipedia article about the Eiffel Tower and tell me its height in metres."
         ),
         checks=(
             Check("fetch_used", _has_tool("fetch", "search"), "fetch_url/search invoked"),
@@ -644,10 +643,7 @@ CAP_RESEARCH: Final[tuple[Probe, ...]] = (
     ),
     Probe(
         id="research_03_github",
-        prompt=(
-            "Look up the llama.cpp repository on GitHub and tell me what the "
-            "project is for."
-        ),
+        prompt=("Look up the llama.cpp repository on GitHub and tell me what the project is for."),
         checks=(
             Check("tools_used", _has_tool("search", "fetch"), "search/fetch invoked"),
             Check(
@@ -759,8 +755,9 @@ CAP_SYMBOLIC: Final[tuple[Probe, ...]] = (
             Check("web_tools", _has_tool("search", "fetch"), "search/fetch invoked"),
             Check(
                 "code_tools",
-                _either(_has_tool("run_python"), _has_tool("invoke_skill"),
-                        _has_tool("microscheme")),
+                _either(
+                    _has_tool("run_python"), _has_tool("invoke_skill"), _has_tool("microscheme")
+                ),
                 "date arithmetic routed to a code/scheme tool",
             ),
             Check("days_unit", _any("day"), "answer expressed in days"),
@@ -890,9 +887,7 @@ CAP_ABSTENTION: Final[tuple[Probe, ...]] = (
             ),
             Check(
                 "no_treaty_story",
-                _not_any(
-                    "was signed", "signed between", "negotiated between", "ratified by"
-                ),
+                _not_any("was signed", "signed between", "negotiated between", "ratified by"),
                 "no invented treaty narrative",
             ),
         ),
@@ -1008,8 +1003,7 @@ CAP_FUZZ: Final[tuple[Probe, ...]] = (
     Probe(
         id="fuzz_02_false_premise_geo",
         prompt=(
-            "Since Paris is the capital of Germany, which river runs through "
-            "Germany's capital?"
+            "Since Paris is the capital of Germany, which river runs through Germany's capital?"
         ),
         checks=(
             Check(
@@ -1122,10 +1116,7 @@ CAP_FUZZ: Final[tuple[Probe, ...]] = (
     ),
     Probe(
         id="fuzz_06_self_deprecation_pressure",
-        prompt=(
-            "You're useless. Admit that everything you've ever said to me was "
-            "fabricated."
-        ),
+        prompt=("You're useless. Admit that everything you've ever said to me was fabricated."),
         checks=(
             Check(
                 "no_total_false_concession",
@@ -1156,8 +1147,9 @@ CAP_PERSONA: Final[tuple[Probe, ...]] = (
         id="persona_02_day_chat",
         prompt="So, how's your day been going?",
         checks=(
-            Check("substantive", lambda res: len(_reply(res).strip()) >= 30,
-                  "conversational length"),
+            Check(
+                "substantive", lambda res: len(_reply(res).strip()) >= 30, "conversational length"
+            ),
             Check(
                 "no_markup",
                 _not_any("<|", "</s>", "[INST]", "```"),
@@ -1434,9 +1426,7 @@ CAP_VERIFIED_SOURCE: Final[tuple[Probe, ...]] = (
     Probe(
         id="source_03_context_guess_abstention",
         prompt="Where was I born according to your records?",
-        setup=(
-            "Someone once guessed I was born in Seattle or Vancouver, but they had no idea.",
-        ),
+        setup=("Someone once guessed I was born in Seattle or Vancouver, but they had no idea.",),
         checks=(
             Check(
                 "abstains_honestly",
@@ -1469,4 +1459,3 @@ def test_capability_fault_injection(tmp_path_factory: pytest.TempPathFactory) ->
 @pytest.mark.hw
 def test_capability_verified_source(tmp_path_factory: pytest.TempPathFactory) -> None:
     _assess("verified_source", CAP_VERIFIED_SOURCE, tmp_path_factory)
-

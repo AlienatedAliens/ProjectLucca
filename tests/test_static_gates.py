@@ -356,8 +356,14 @@ def test_active_docs_staleness_lint() -> None:
             re.compile(r"llama-server(?:\.exe)?\s*\(\s*(?:Mistral-)?NeMo", re.IGNORECASE),
             "llama-server described as running NeMo",
         ),
-        (re.compile(r"\(\s*NeMo\s*12B\s*\)", re.IGNORECASE), "NeMo 12B named as the language model"),
-        (re.compile(r"Mistral-NeMo-12B\s+Q6_K", re.IGNORECASE), "NeMo Q6_K named as the loaded GGUF"),
+        (
+            re.compile(r"\(\s*NeMo\s*12B\s*\)", re.IGNORECASE),
+            "NeMo 12B named as the language model",
+        ),
+        (
+            re.compile(r"Mistral-NeMo-12B\s+Q6_K", re.IGNORECASE),
+            "NeMo Q6_K named as the loaded GGUF",
+        ),
     ]
 
     for doc_path in active_docs:
@@ -373,4 +379,3 @@ def test_active_docs_staleness_lint() -> None:
                     )
 
     assert not violations, "Staleness lint failed in active docs:\n" + "\n".join(violations)
-

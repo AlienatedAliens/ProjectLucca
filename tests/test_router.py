@@ -581,7 +581,11 @@ def test_conformal_branch_respects_rule_conf_gate(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(
         router,
         "classify_intent",
-        lambda _t: ("launch_app", 0.61, {"app": ["calculator"], "file": [], "url": [], "quoted": []}),
+        lambda _t: (
+            "launch_app",
+            0.61,
+            {"app": ["calculator"], "file": [], "url": [], "quoted": []},
+        ),
     )
     decision = router.route("open calculator", has_registered_rule=True)
     assert decision.action != RouteAction.RULE
@@ -611,7 +615,11 @@ def test_conformal_branch_routes_rule_at_high_conf(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(
         router,
         "classify_intent",
-        lambda _t: ("launch_app", 0.95, {"app": ["calculator"], "file": [], "url": [], "quoted": []}),
+        lambda _t: (
+            "launch_app",
+            0.95,
+            {"app": ["calculator"], "file": [], "url": [], "quoted": []},
+        ),
     )
     decision = router.route("open calculator", has_registered_rule=True)
     assert decision.action == RouteAction.RULE and decision.calibrated is True
@@ -637,4 +645,3 @@ def test_probabilities_is_dict_str_float() -> None:
     assert isinstance(decision.probabilities, dict)
     assert all(isinstance(k, str) for k in decision.probabilities.keys())
     assert all(isinstance(v, float) for v in decision.probabilities.values())
-

@@ -325,6 +325,7 @@ def _invoke_text_turn(orch: Orchestrator, user_text: str, trace_id: str) -> str:
     the assistant's final reply text.  Captured from orch.history[-1]["content"]
     after _run_text_turn completes.
     """
+    orch._reset_turn_state()
     trace = TurnTrace(
         trace_id=trace_id,
         session_id=orch.session_id,

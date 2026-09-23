@@ -206,11 +206,7 @@ def test_t_chk_12_mid_stream_gemma_tool_call_never_spoken():
     events: list = []
     events.extend(demux.feed(TokenDelta(delta="Let me check that. ")))
     events.extend(
-        demux.feed(
-            TokenDelta(
-                delta='<|tool_call|>call:memory_search{"query": "Sean"}<tool_call|>'
-            )
-        )
+        demux.feed(TokenDelta(delta='<|tool_call|>call:memory_search{"query": "Sean"}<tool_call|>'))
     )
     events.extend(demux.flush())
 

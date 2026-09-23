@@ -189,9 +189,7 @@ def test_reflex_triple_emitted_both_paths(orchestrator):
     emitted_triples: list[dict[str, object]] = []
 
     def mock_emit_execution_triple(rule_id, plan, signal, detail=""):
-        emitted_triples.append(
-            {"rule_id": rule_id, "signal": signal, "detail": detail}
-        )
+        emitted_triples.append({"rule_id": rule_id, "signal": signal, "detail": detail})
 
     orchestrator.rule_engine.emit_execution_triple = mock_emit_execution_triple
 
@@ -280,4 +278,6 @@ def test_f20_follow_up_patterns_config_in_voice_path(orchestrator):
     trace2 = TurnTrace(trace_id="voice-f20-followup", mode="audio")
     orchestrator._run_turn(trace2, payload2)
     tools2 = fake_llm.last_kwargs.get("tools")
-    assert tools2 is not None and len(tools2) > 0, "Tools should not be suppressed for follow-up query"
+    assert tools2 is not None and len(tools2) > 0, (
+        "Tools should not be suppressed for follow-up query"
+    )

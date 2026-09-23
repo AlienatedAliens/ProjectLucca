@@ -425,4 +425,3 @@ def detect_celebration_register_markers(narration: str) -> list[str]:
     markers = load_heuristics("celebration_markers")
     lower = narration.lower()
     return [m for m in markers if m in lower]
-

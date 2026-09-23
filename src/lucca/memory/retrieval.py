@@ -79,9 +79,7 @@ def format_memory_context(
         else:
             age = calculate_age_str(hit.created_at, current_time)
             conf_str = (
-                f" conf={hit.confidence:.2f}"
-                if getattr(hit, "confidence", 1.0) < 0.85
-                else ""
+                f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
             )
             line = f"- [{hit.kind}/{hit.provenance.value}{conf_str} {age}] {content_clean}"
 

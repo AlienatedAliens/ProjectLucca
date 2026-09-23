@@ -209,9 +209,7 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
                 ),
                 "p": ToolParameter(
                     type="string",
-                    description=(
-                        f"Predicate from the closed list (one of: {_predicate_menu()})"
-                    ),
+                    description=(f"Predicate from the closed list (one of: {_predicate_menu()})"),
                     required=True,
                 ),
                 "o": ToolParameter(
