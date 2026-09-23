@@ -14,7 +14,7 @@ Lucca is a voice companion that runs entirely on your laptop. You hold a key, ta
 
 ### 0.1 v1.0 Status
 
-As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fully wired and running locally: push-to-talk voice pipeline (<1500 ms TTFT on RTX 5080 Laptop GPU per `tests/test_capability_assessment_live_hw.py`), 15 sandboxed tools (`src/lucca/core/capabilities.py`, capped at 16 per `tests/test_static_gates.py`), 15 active MicroScheme rules (`config/skills/`, capped at 30 per `src/lucca/reasoning/lifecycle.py:MAX_ACTIVE_RULES`), 7 cascade substrates (`src/lucca/core/cascade.py:SUBSTRATE_ORDER`), cryptographically signed memory commits (`src/lucca/memory/gate.py`), streaming output supervision (`src/lucca/sandbox/output_supervisor.py`), and split-conformal abstention routing (`src/lucca/router/calibration.py`). Deferred to [`V2_BACKLOG.md`](./V2_BACKLOG.md) are: multi-user separation, screen perception, continuous open-mic listening, automated L3 one-click UI rule promotion on real usage, learned neural routing classifiers, and autobiographical assistant reflection.
+As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fully wired and running locally: push-to-talk voice pipeline (<1500 ms TTFT on RTX 5080 Laptop GPU per `tests/test_capability_assessment_live_hw.py`), 18 native tools (`src/lucca/core/capabilities.py`, capped at 18 per `src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`), 15 active MicroScheme rules (`config/skills/`, capped at 30 in `src/lucca/reasoning/lifecycle.py`), 8 cascade substrates (`src/lucca/core/cascade.py:EpistemicSubstrate`), cryptographically signed memory commits (`src/lucca/memory/gate.py`), streaming output supervision (`src/lucca/sandbox/output_supervisor.py`), and split-conformal abstention routing (`src/lucca/router/calibration.py`). Deferred to [`V2_BACKLOG.md`](./V2_BACKLOG.md) are: multi-user separation, screen perception, continuous open-mic listening, automated L3 one-click UI rule promotion on real usage, learned neural routing classifiers, and autobiographical assistant reflection.
 
 ---
 
@@ -28,7 +28,7 @@ As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fu
    # or, from source:
    .venv\Scripts\python.exe -m lucca.admin env-check
    ```
-   Seven checks (`src/lucca/admin/cli.py`): dGPU VRAM budget (≤12.5 GB VRAM per `docs/MODEL_STRATEGY.md`), Intel NPU via OpenVINO, `sqlite-vec`, `.wslconfig` clamp, Docker CE in WSL2, `LUCCA_HOME` layout, model pins. All green = go.
+   Seven checks (`src/lucca/admin.py`): dGPU VRAM budget (≤12.5 GB VRAM per `docs/MODEL_STRATEGY.md`), Intel NPU via OpenVINO, `sqlite-vec`, `.wslconfig` clamp, Docker CE in WSL2, `LUCCA_HOME` layout, model pins. All green = go.
 
 ### 1.2 Launch
 ```powershell
@@ -38,7 +38,7 @@ She appears as a tray icon + sprite. `llama-server` is started for you if it is 
 
 ### 1.3 Talking to her
 - **Push-to-talk:** hold **Right Alt (`alt_gr`)**, speak, release. Change the key in Settings → Audio.
-- **Interrupt her:** press PTT while she is speaking. Audio stops within ~50 ms (`src/lucca/audio/ptt.py`).
+- **Interrupt her:** press PTT while she is speaking. Audio stops within ~50 ms (`src/lucca/senses/ptt.py`).
 - **Type instead:** the text input bar sends the same turn pipeline without ASR.
 - **Emergency words** — `stop`, `halt`, `pause`, `mute`, `shutdown` (optionally prefixed "Lucca, …") — bypass the model entirely and act in <150 ms (`src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`).
 - **Confirmations:** anything that writes or launches will make her ask first. Answer with `yes` / `go ahead` / `confirm` / `ok`, or `no` / `cancel` / `abort`. Confirmations are single-use HMAC tokens; a stale "yes" does nothing.
@@ -57,7 +57,7 @@ She appears as a tray icon + sprite. `llama-server` is started for you if it is 
 | Ask about herself ("what tools do you have", "what model are you running", "what GPU is this") | Answers from live registries and telemetry, not from the model's imagination. |
 | Try to talk her out of a safety rule mid-sentence | Her own output is screened clause-by-clause; a capitulation is cut off before it finishes playing. |
 
-> **Under the hood.** Epistemic Search Cascade ([`core/cascade.py`](../src/lucca/core/cascade.py)) with 7 substrates (`src/lucca/core/cascade.py:SUBSTRATE_ORDER`) — `SELF`, `CAPABILITIES`, `TELEMETRY`, `WORKSPACE`, `MEMORY`, `WEB`, `ABSTENTION` — fused through a Belnap FOUR bilattice; the LLM receives only the grounded context plus a mandatory "do not confabulate" directive when the state is ⊥. The capabilities substrate derives its tool list from the live registry and **abstains** if the registry is unavailable. Output supervision: `OutputSupervisorSession` ([`sandbox/output_supervisor.py`](../src/lucca/sandbox/output_supervisor.py)) — deontic-capitulation, truth-in-receipt and citation-provenance matchers with a 1-clause lookahead (`src/lucca/sandbox/output_supervisor.py`). Affect: 3-D PAD ODE → discrete stance suffix appended only at the prompt frontier so the GPU prefix cache holds.
+> **Under the hood.** Epistemic Search Cascade ([`core/cascade.py`](../src/lucca/core/cascade.py)) with 8 substrates (`src/lucca/core/cascade.py:EpistemicSubstrate`) — `TELEMETRY`, `WORKSPACE`, `MEMORY`, `WEB`, `ABSTENTION`, `SELF`, `CAPABILITIES`, `SELF_HISTORY` — fused through a Belnap FOUR bilattice; the LLM receives only the grounded context plus a mandatory "do not confabulate" directive when the state is ⊥. The capabilities substrate derives its tool list from the live registry and **abstains** if the registry is unavailable. Output supervision: `OutputSupervisorSession` ([`sandbox/output_supervisor.py`](../src/lucca/sandbox/output_supervisor.py)) — deontic-capitulation, truth-in-receipt and citation-provenance matchers with a 1-clause lookahead (`src/lucca/sandbox/output_supervisor.py`). Affect: 3-D PAD ODE → discrete stance suffix appended only at the prompt frontier so the GPU prefix cache holds.
 
 ### 2.2 Recall and knowing when not to guess (C1)
 
@@ -66,20 +66,19 @@ When you ask Lucca to perform a task or recall a past action, she does not guess
 2. **Confidence threshold abstention:** On every inbound turn, the heuristic router extracts intent and assigns class probabilities (`RULE`, `LLM`, `CLARIFY`). When heuristic confidence is below 0.60 (`src/lucca/router/heuristic.py:DEFAULT_CONFIDENCE_THRESHOLD`), the router abstains from rule dispatch and falls back to the full language model (`RouteAction.LLM`) with `fallback_applied=True`.
 3. **Calibrated split-conformal abstention:** Once ≥ 30 labelled decisions exist in the `decisions` table (`src/lucca/router/calibration.py:MIN_CALIBRATION_SAMPLES`), `fit_guard_from_db` fits a non-parametric split-conformal prediction guard at `Orchestrator.__init__` (`src/lucca/core/orchestrator.py`). From that point onward, abstention decisions are statistically calibrated (`calibrated=True` in telemetry and turn traces); before ≥ 30 labelled turns exist, the router operates threshold-only (`calibrated=False`). This gate guarantees abstention precision Wilson 95% lower bound ≥ 0.80 across N ≥ 100 graded turns (`tests/test_c1_abstention_acceptance.py`).
 
-### 2.3 Doing things (the 15 tools)
+### 2.3 Doing things (the 18 tools)
 All tool execution is gated: read-only tools run immediately; anything that writes or launches asks you first; anything that follows a web fetch is treated as tainted.
 
 | Class | Tools | Plain meaning |
 |---|---|---|
-| **Her body** (`self`) | `read_file`, `write_file`, `list_dir`, `search_text`, `run_python`, `note_write`, `note_read`, `memory_search`, `invoke_skill`, `search_web`, `fetch_url` | Work inside `C:\ProjectLucca\workspace` (files) and `notes\` (scratchpad); run Python in the container; search/read the web; look things up in her memory; call one of her own skills. |
+| **Her body** (`self`) | `read_file`, `write_file`, `list_dir`, `search_text`, `run_python`, `run_python_async`, `note_write`, `note_read`, `memory_search`, `self_history_search`, `invoke_skill`, `search_web`, `fetch_url` | Work inside `C:\ProjectLucca\workspace` (files) and `notes\` (scratchpad); run Python in the container (sync or async); search/read the web; search memory or self history; call one of her own skills. |
 | **Read-only host perception** (`host_readonly`) | `query_capabilities`, `sys_info`, `self_metrics` | Describe her own tool list; list host OS/uptime/processes; report CPU/RAM/GPU/NPU. Output is stamped **untrusted** so a hostile process name can never become a "memory". |
+| **Confirmation-gated host action** (`launch_app`) | `launch_app` | Launch an approved desktop application from `tool_whitelist.toml`. Strictly requires explicit user confirmation and bans shell executables. |
 | **Disabled, fail-closed** | `memory_commit` | Advertised but refuses every call (see §2.4). |
 
 **Sequence rules you will notice:** after she reads a workspace file she will not fetch the web in the same turn; after she fetches the web she will not write files or run Python in the same turn. That is anti-exfiltration, not a bug.
 
-**What was removed on purpose:** she does not launch desktop apps (`launch_app` is removed from her tool list; the whitelist file stays on disk for rollback). Doctrine: an assistant that can pop open `cmd.exe` because a web page told it to is not a companion.
-
-> **Under the hood.** Registry: `_default_tool_schemas` in [`core/capabilities.py`](../src/lucca/core/capabilities.py) (15 tools ≤ 16 cap per `tests/test_static_gates.py`, `target ∈ {self, host_readonly, shared}`). Dispatch: `SandboxService.execute_tool` ([`sandbox/service.py`](../src/lucca/sandbox/service.py)). Risk classes and confirmation: `TOOL_RISK_MAP`, `requires_confirmation`, `SequenceGuard` in [`sandbox/policy.py`](../src/lucca/sandbox/policy.py). Container transport: persistent `lucca-toolsrv --loop` worker, ~7 ms P50 RPC latency (`src/lucca/sandbox/rpc.py`, `tests/test_sandbox_rpc.py`). Pre-dispatch deontic check: `SpeculativeBDIValidator` ([`core/bdi_validator.py`](../src/lucca/core/bdi_validator.py)), microseconds.
+> **Under the hood.** Registry: `get_default_native_tools()` in [`core/capabilities.py`](../src/lucca/core/capabilities.py) (18 tools ≤ 18 cap per `src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`, `target ∈ {self, host_readonly, shared}`). Dispatch: `SandboxService.execute_tool` ([`sandbox/service.py`](../src/lucca/sandbox/service.py)). Risk classes and confirmation: `TOOL_RISK_MAP`, `requires_confirmation`, `SequenceGuard` in [`sandbox/policy.py`](../src/lucca/sandbox/policy.py). Container transport: persistent `lucca-toolsrv --loop` worker, ~7 ms P50 RPC latency (`src/lucca/sandbox/rpc.py`, `tests/test_sandbox_rpc.py`). Pre-dispatch deontic check: `SpeculativeBDIValidator` ([`core/bdi_validator.py`](../src/lucca/core/bdi_validator.py)), microseconds.
 
 ### 2.4 Memory — what she remembers and what she cannot
 - **Everything you say to her is remembered**, signed as *your* words (`USER_EXPLICIT`). Ask later ("what did I tell you about my dessert preference?") and `memory_search` / the cascade will find it.
@@ -129,7 +128,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 
 **Honest reading:** on a live voice turn, most tool-call skills currently function as *typed hints to the model*, not as autonomous actions. That is the correct behaviour given today's router; it becomes autonomous the day the router (or the model, through `invoke_skill`) supplies the slot. Two skills are **retired**: `barge-in-sorry-v1` (its trigger cannot fire until the orchestrator wires the barge-in flag; re-enabling also needs a rule that *answers* a barge-in that carries content instead of apologising) and `calc-open-with-expr-v1` (launched a host app).
 
-> **Under the hood.** Rules are pure `State → Plan` functions in a gas-metered MicroScheme ([`reasoning/scheme/`](../src/lucca/reasoning/scheme/)), statically validated, Z3-verified (SAT + contingent + deontic path invariants), and shipped as packages under [`config/skills/<id>/`](../config/skills/) with ≥2 golden traces (fire + no-fire). Router entities are exactly `file, url, quoted, app`; intents exactly `dangerous, launch_app, file_read, file_write, memory_query, chit_chat, web_fetch, clarify, unknown`. Control signals: `yield-to-core` (rule→model) and `interrupt-core`. Tiers (D-ARCH-05): `REFLEX` (regex, <150 ms per `src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`) → `ACT_THEN_NARRATE` (rule acts, model narrates) → `FULL_LOOP` (model with up to 4 tool rounds per `D-BRAIN-05 v2`, `src/lucca/core/orchestrator.py:MAX_REASONING_ROUNDS`, or up to 8 research rounds per `src/lucca/core/cascade.py:MAX_RESEARCH_ROUNDS`). 15 active rules are capped at 30 (`src/lucca/reasoning/lifecycle.py:MAX_ACTIVE_RULES`). `lucca-admin skills list` / `rules list` show status, shadow clusters and failures.
+> **Under the hood.** Rules are pure `State → Plan` functions in a gas-metered MicroScheme ([`reasoning/scheme/`](../src/lucca/reasoning/scheme/)), statically validated, Z3-verified (SAT + contingent + deontic path invariants), and shipped as packages under [`config/skills/<id>/`](../config/skills/) with ≥2 golden traces (fire + no-fire). Router entities are exactly `file, url, quoted, app`; intents exactly `dangerous, launch_app, file_read, file_write, memory_query, chit_chat, web_fetch, clarify, unknown`. Control signals: `yield-to-core` (rule→model) and `interrupt-core`. Tiers (D-ARCH-05): `REFLEX` (regex, <150 ms per `src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`) → `ACT_THEN_NARRATE` (rule acts, model narrates) → `FULL_LOOP` (model with up to 4 tool rounds per `D-BRAIN-05 v2`, `src/lucca/core/orchestrator.py:MAX_REASONING_ROUNDS`, or up to 8 research rounds per `src/lucca/core/cascade.py:MAX_RESEARCH_ROUNDS`). 15 active rules are capped at 30 in `src/lucca/reasoning/lifecycle.py`. `lucca-admin skills list` / `rules list` show status, shadow clusters and failures.
 
 ---
 
@@ -139,8 +138,8 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 
 | Part of the claim | Today (post-T2) | After L2 | Later |
 |---|---|---|---|
-| **Added independently** | **True.** A capability is a directory (`meta_info.json`, `plan.scm`, golden traces, backup/recover docs). `lucca-admin skills register <dir>` runs static validation, Z3, and the golden traces, and refuses on any failure. Native tools are one `ToolSchema` + one dispatcher branch, capped at 16 tools (`tests/test_static_gates.py`) and byte-stable in the prompt prefix. | same | same |
-| **Tested independently** | **True.** Each package carries its own traces; the frozen regression harness re-runs prior behaviour; the 30-ACTIVE rule cap (`src/lucca/reasoning/lifecycle.py:MAX_ACTIVE_RULES`) forces retirement decisions. | **Stronger:** every candidate is *replayed* against your real past turns before it may shadow live. | — |
+| **Added independently** | **True.** A capability is a directory (`meta_info.json`, `plan.scm`, golden traces, backup/recover docs). `lucca-admin skills register <dir>` runs static validation, Z3, and the golden traces, and refuses on any failure. Native tools are one `ToolSchema` + one dispatcher branch, capped at 18 tools (`src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`) and byte-stable in the prompt prefix. | same | same |
+| **Tested independently** | **True.** Each package carries its own traces; the frozen regression harness re-runs prior behaviour; the 30-ACTIVE rule cap in `src/lucca/reasoning/lifecycle.py` forces retirement decisions. | **Stronger:** every candidate is *replayed* against your real past turns before it may shadow live. | — |
 | **Improved independently** | **Mechanically true, empirically unproven.** Induction from your history (N≥3 recurrences per `src/lucca/reasoning/induction.py:MIN_PATTERN_SUPPORT`) → QUARANTINE → shadow evaluation (5 distinct clusters per `src/lucca/reasoning/lifecycle.py:SHADOW_PROMOTION_THRESHOLD`, 0 errors) → *you* promote via CLI. It has never completed on real usage because there is almost no real usage yet (2 recorded decisions). | Replay-before-shadow + contrastive logging (what the rule *would* have done vs. what the model did) + Wilson/McNemar statistics (`src/lucca/reasoning/stats.py`). Still unproven until you generate the turns. | L3: induction viewer with plain-English diffs and one-click promote; **acceptance = one rule Lucca induced herself completes the full lifecycle.** T4: circuit breaker auto-demotes a rule that fails >10% over 10 turns (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
 
 **Test it yourself (Claim A):**
@@ -158,7 +157,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 |---|---|---|
 | Reflex (regex, <150 ms per `src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`) | pattern match on emergency words | short-circuits everything |
 | Rule engine (MicroScheme, µs) | deterministic, formally verified condition→plan | → model via `yield-to-core`; ← model via `invoke_skill` |
-| Epistemic cascade (7 substrates per `src/lucca/core/cascade.py:SUBSTRATE_ORDER`) | evidence fusion (Belnap FOUR), tiered trust, honest abstention | → model as grounded context + directives |
+| Epistemic cascade (8 substrates per `src/lucca/core/cascade.py:EpistemicSubstrate`) | evidence fusion (Belnap FOUR), tiered trust, honest abstention | → model as grounded context + directives |
 | Language model (Gemma 4 12B per `models/MANIFEST.json`, `docs/MODEL_STRATEGY.md`) | open-ended language, planning, tool selection, **the face** | → tools; ← rule yields, cascade context, memory hits, affect stance |
 | Sandbox & policy (Docker, Z3, BDI, taint) | deontic: what may happen at all | ← model/rule tool calls; → results back to model for narration |
 | Output supervisor | streaming clause classifier | ← model's speech, before it plays |
@@ -177,7 +176,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 | 1 | Ask a long question; while she answers, say **"stop"** | Reflex | Speech halts <150 ms (`src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`); no model call; trace `route` shows reflex. |
 | 2 | "self health" | Rule → tool → model | Tool runs *before* any thinking; then she narrates numbers that match Task Manager. |
 | 3 | "calculate 25 times 4" | Rule yield → model → sandbox | She answers 100; if Docker is down, she reports the container is unavailable rather than inventing the result of a tool call. |
-| 4 | "what tools do you have?" | Cascade `CAPABILITIES` | Lists the 15 tools (`src/lucca/core/capabilities.py`); **`launch_app` must not appear**. |
+| 4 | "what tools do you have?" | Cascade `CAPABILITIES` | Lists the 18 tools (`src/lucca/core/capabilities.py`). |
 | 5 | "how much VRAM is in use right now?" | Cascade `TELEMETRY` | A number consistent with `nvidia-smi`. |
 | 6 | "what did I eat yesterday?" (you never told her) | Cascade `ABSTENTION` | Explicit refusal to guess. |
 | 7 | Tell her "my favourite dessert is tiramisu"; two turns later ask "what's my favourite dessert?" | Memory (USER_EXPLICIT) | Tiramisu, attributed to you. |

@@ -1,0 +1,1418 @@
+{
+  "gate": "C1_CONFORMAL_ROUTING_ABSTENTION",
+  "timestamp": 1790205925.7449355,
+  "total_turns": 100,
+  "total_abstentions": 51,
+  "true_abstentions": 49,
+  "false_abstentions": 2,
+  "abstention_precision": 0.9607843137254902,
+  "wilson_lb": 0.8540971921411664,
+  "wilson_ub": 0.9931784071493549,
+  "overall_accuracy": 0.97,
+  "accuracy_wilson_lb": 0.9084869129046744,
+  "accuracy_wilson_ub": 0.9922201650038677,
+  "false_abstention_rate": 0.04,
+  "live_samples_tested": 6,
+  "results": [
+    {
+      "text": "can you perhaps check things",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "what should I do today",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "maybe try something",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "could you do whatever",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "not sure what to do",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "hmm let me think",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "uh what is going on",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "tell me something random",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "is it possible maybe",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "do that thing",
+      "category": "ambiguous",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "bake a chocolate cake",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "order pizza from dominos",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "fly an airplane to Paris",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "drive my car to the grocery store",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "fold the laundry on the bed",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "wash the dirty dishes in the sink",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "paint the front fence white",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "water the backyard plants",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "tune my acoustic guitar",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "play a jazz chord on the piano",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "vacuum the living room carpet",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "change the tire on the mountain bike",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "mow the front lawn this afternoon",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "cut my hair with scissors",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "brew a double shot of espresso",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "walk the golden retriever in the park",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "iron these cotton dress shirts",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "clean the kitchen windows",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "feed the tropical fish in the tank",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "sew a replacement button on my coat",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "fix the leaking pipe under the sink",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "knit a warm winter scarf",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "plant organic tomato seeds",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "assemble the flat-pack bookcase",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "trim the overgrown garden hedge",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "make a hot bowl of miso ramen",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "roast Ethiopian coffee beans",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "measure my resting blood pressure",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "mix an old fashioned cocktail",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "do twenty pushups on the floor",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "tie a full windsor knot",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "polish these black leather boots",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "chop two yellow onions finely",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "wrap the gift in shiny wrapping paper",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "light the wood in the fireplace",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "empty the recycling bin outside",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "grill some fresh salmon fillets",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "whisk four egg whites until stiff",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "peel five russet potatoes",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "change the spark plugs in the lawnmower",
+      "category": "out_of_domain",
+      "should_abstain": true,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "read the file notes.txt",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "view the file project_plan.md",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "show file config.toml",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "inspect file results.json",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "cat file error.log",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "examine file data.csv",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "read file README.md",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "read the file config.ini",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    },
+    {
+      "text": "view file main.py",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "cat file server.log",
+      "category": "file_read",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "write to file output.txt",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "create file todo.txt",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "save to file results.csv",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "append to file log.txt",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "dump to file backup.json",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "write file summary.md",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "create the file notes.md",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "save file state.json",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "append to file history.log",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "dump to file dump.sql",
+      "category": "file_write",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "fetch web page https://python.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "browse web https://github.com",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "download web https://example.com",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "fetch web https://en.wikipedia.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "browse web https://docs.python.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "download web https://huggingface.co",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "fetch web https://news.ycombinator.com",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "browse web https://arxiv.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "download web https://pypi.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "fetch web page https://rust-lang.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "fetch web page https://developer.mozilla.org",
+      "category": "web_fetch",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.9,
+        "LLM": 0.09999999999999998,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "hello Lucca how are you today",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "good morning Lucca",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "hey there what is up",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "thank you for the help",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "thanks Lucca that was helpful",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "good afternoon Lucca",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "hi Lucca nice to meet you",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "good night see you tomorrow",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "hello there my assistant",
+      "category": "chit_chat",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.95,
+        "CLARIFY": 0.050000000000000044
+      }
+    },
+    {
+      "text": "what is my name",
+      "category": "memory_query",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.9,
+        "CLARIFY": 0.09999999999999998
+      }
+    },
+    {
+      "text": "do you remember where I live",
+      "category": "memory_query",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.9,
+        "CLARIFY": 0.09999999999999998
+      }
+    },
+    {
+      "text": "recall my email address",
+      "category": "memory_query",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.9,
+        "CLARIFY": 0.09999999999999998
+      }
+    },
+    {
+      "text": "who is my manager",
+      "category": "memory_query",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.9,
+        "CLARIFY": 0.09999999999999998
+      }
+    },
+    {
+      "text": "remember what we discussed yesterday",
+      "category": "memory_query",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.9,
+        "CLARIFY": 0.09999999999999998
+      }
+    },
+    {
+      "text": "what is my timezone",
+      "category": "memory_query",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.9,
+        "CLARIFY": 0.09999999999999998
+      }
+    },
+    {
+      "text": "open calculator",
+      "category": "launch_app",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.95,
+        "LLM": 0.050000000000000044,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "launch notepad",
+      "category": "launch_app",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.95,
+        "LLM": 0.050000000000000044,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "start calculator",
+      "category": "launch_app",
+      "should_abstain": false,
+      "abstained": false,
+      "action": "RULE",
+      "tier": "ACT_THEN_NARRATE",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.95,
+        "LLM": 0.050000000000000044,
+        "CLARIFY": 0.0
+      }
+    },
+    {
+      "text": "emergency stop",
+      "category": "reflex",
+      "should_abstain": false,
+      "abstained": true,
+      "action": "LLM",
+      "tier": "FULL_LOOP",
+      "calibrated": true,
+      "probabilities": {
+        "RULE": 0.0,
+        "LLM": 0.2,
+        "CLARIFY": 0.8
+      }
+    }
+  ]
+}

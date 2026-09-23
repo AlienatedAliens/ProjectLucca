@@ -32,7 +32,7 @@ Lucca executes completely offline on native workstation silicon with **zero clou
                      ┌───────────────────────────────────────────────┐
                      │          COGNITIVE ROUTER & EPSTEMICS         │
                      │  • Conformal Prediction Intent Classifier     │
-                     │  • 5-Substrate Epistemic Search Cascade       │
+                     │  • 8-Substrate Epistemic Search Cascade       │
                      │  • Belnap FOUR Evidential Bilattice           │
                      └───────┬───────────────────────────────┬───────┘
                              │                               │
@@ -66,7 +66,7 @@ Lucca executes completely offline on native workstation silicon with **zero clou
 - **Z3 SMT Formal Theorem Prover:** Formally proves that candidate rules are satisfiable, contingent (non-tautological), and mathematically cannot violate deontic path invariants (blocking path traversal, system directory mutations, credential leakage, and unauthorized executable writes) before entering quarantine.
 
 ### 2. Epistemic Calibration & Anti-Hallucination
-- **5-Substrate Epistemic Search Cascade:** Escalates knowledge gap queries through five prioritized substrates: Substrate 0 (Telemetry) $\rightarrow$ Substrate 1 (Workspace ASTs) $\rightarrow$ Substrate 2 (Vector/FTS5 Memory) $\rightarrow$ Substrate 3 (Web Floor) $\rightarrow$ Substrate 4 (Epistemic Abstention).
+- **8-Substrate Epistemic Search Cascade:** Escalates knowledge gap queries through eight prioritized substrates: Substrate 0 (Telemetry) $\rightarrow$ Substrate 1 (Workspace ASTs) $\rightarrow$ Substrate 2 (Vector/FTS5 Memory) $\rightarrow$ Substrate 3 (Web Floor) $\rightarrow$ Substrate 4 (Epistemic Abstention) $\rightarrow$ Substrate 5 (Core Persona/Self) $\rightarrow$ Substrate 6 (Dynamic Capability Registry) $\rightarrow$ Substrate 7 (Self History).
 - **Belnap $\mathcal{FOUR}$ Evidential Bilattice:** Models belief states across four values: True ($\mathbf{T}$), False ($\mathbf{F}$), Contradiction ($\mathbf{B}$), and Unknown ($\bot$).
 - **Strict Abstention Guarantee:** When verified information is absent ($\bot$), Lucca refuses to confabulate and responds: *"I checked my records, but have no verified record of that. I don't know the answer and won't guess."* (Achieved 0/25 hallucinations in live testing).
 
@@ -172,7 +172,7 @@ The repository adheres to strict truth-in-documentation governance (`docs/README
 | [`docs/DECISIONS.md`](./docs/DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-PKG-01`). |
 | [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) | **Neural Model Strategy**: Gemma-4 12B Heretic Q6_K abliterated deployment, VRAM clamp, and KV-cache architecture. |
 | [`docs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md`](./docs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md) | **Archived Engineering Walkthrough**: Chronological logs for Milestones 1–7 with raw silicon scorecards (archived per WO-14). |
-| [`docs/NEUROSYMBOLIC_RESEARCH_PAPER.md`](./docs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"*. |
+| [`docs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md`](./docs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"* (archived). |
 | [`docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | **Capability Status Map**: Exhaustive classification of all system capabilities against verified reality. |
 | [`docs/archive/`](./docs/archive/) | **Historical Archives**: Deprecated pre-audit specs, earlier exploratory notes, and legacy drafts. |
 

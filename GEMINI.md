@@ -45,13 +45,16 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 
 **Canonical Active Documentation:**
 - **Decisions Register**: [`docs/DECISIONS.md`](./docs/DECISIONS.md) — All 25 ratified ADRs (`D-AUD-01` through `D-EVAL-01`).
-- **Master System Architecture**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (v0.4.0) — Process topology, IPC, cognitive tiers, memory, rules, and security.
-- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v0.3.0) — Cascade pipeline, Gemma-4 12B deployment and prompt architecture.
-- **Audit & Remediation Log**: [`docs/AUDIT_REMEDIATION_LOG.md`](./docs/AUDIT_REMEDIATION_LOG.md) — Remediation index and procedural upgrade proposals.
+- **Master System Architecture**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (v2.0.0) — Process topology, IPC, cognitive tiers, memory, rules, and security.
+- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v2.0.0) — Cascade pipeline, Gemma-4 12B deployment and prompt architecture.
+- **User Guide**: [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./docs/USER_GUIDE_WHAT_LUCCA_DOES.md) — Complete user guide and capabilities overview.
+- **Action Log & V2 Backlog**: [`docs/V2_ACTION_LOG.md`](./docs/V2_ACTION_LOG.md) and [`docs/V2_BACKLOG.md`](./docs/V2_BACKLOG.md).
+- **Capability Roadmap**: [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./docs/specs/STUDIO_CAPABILITY_ROADMAP.md) — Studio taxonomy and capability ladder.
+- **Release Audit**: [`docs/audit/findings/V1_RELEASE_AUDIT.md`](./docs/audit/findings/V1_RELEASE_AUDIT.md) — Release audit and verification evidence.
 - **Audio Concurrency Contract**: [`docs/adr/0009_audio_concurrency_contract.md`](./docs/adr/0009_audio_concurrency_contract.md).
 
-**Historical Pre-Phase-4 Documentation:**
-- Archived into [`docs/archive/2026-09-17_pre_phase4_audit/`](./docs/archive/2026-09-17_pre_phase4_audit/) (docs 00–14, original brief, and pre-audit research).
+**Historical Archives:**
+- Archived specifications and audits into [`docs/archive/`](./docs/archive/).
 
 ---
 
