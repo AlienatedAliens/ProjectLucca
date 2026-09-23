@@ -183,18 +183,20 @@ def test_t_rtr_03_decision_logging(tmp_path: Path) -> None:
         assert p_row is not None
         assert p_row[0] == 1
         assert p_row[1] == 115.0
-        assert "launch_app" in p_row[2]
-        assert json.loads(p_row[3]) is None
+        probs = json.loads(p_row[3])
+        assert isinstance(probs, dict)
+        assert abs(sum(probs.values()) - 1.0) < 1e-9
         assert p_row[4] == "heuristic-1.0-deterministic"
 
     db.close()
 
 
 def test_t_rtr_03_no_fabricated_probabilities() -> None:
-    """F-ROUT-005: Heuristic router records probabilities as None and uses deterministic version."""
+    """Heuristic router records valid probability vector and uses deterministic version."""
     router = HeuristicRouter()
     decision = router.route("open calculator")
-    assert decision.probabilities is None
+    assert decision.probabilities is not None
+    assert abs(sum(decision.probabilities.values()) - 1.0) < 1e-9
     assert router.last_decision_record is not None
     assert router.last_decision_record.router_version == "heuristic-1.0-deterministic"
 
@@ -552,3 +554,87 @@ def test_dangerous_intent_classification() -> None:
         intent, conf, entities = router.classify_intent(q)
         assert intent == "dangerous", f"Expected 'dangerous' for '{q}', got '{intent}'"
         assert conf >= 0.85
+
+
+def test_conformal_branch_respects_rule_conf_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Guarded router must NOT route RULE when intent conf < 0.80, even with a registered rule."""
+    cal_probs = np.array(
+        [
+            [0.55, 0.45, 0.00],
+            [0.85, 0.15, 0.00],
+            [0.10, 0.85, 0.05],
+            [0.05, 0.90, 0.05],
+            [0.05, 0.15, 0.80],
+            [0.10, 0.10, 0.80],
+            [0.92, 0.08, 0.00],
+            [0.08, 0.92, 0.00],
+            [0.05, 0.05, 0.90],
+            [0.60, 0.40, 0.00],
+        ],
+        dtype=np.float64,
+    )
+    cal_labels = np.array([0, 0, 1, 1, 2, 2, 0, 1, 2, 0], dtype=np.int64)
+    guard = ConformalGuard(alpha=0.10)
+    guard.fit(cal_probs, cal_labels)
+
+    router = HeuristicRouter(conformal_guard=guard)
+    monkeypatch.setattr(
+        router,
+        "classify_intent",
+        lambda _t: ("launch_app", 0.61, {"app": ["calculator"], "file": [], "url": [], "quoted": []}),
+    )
+    decision = router.route("open calculator", has_registered_rule=True)
+    assert decision.action != RouteAction.RULE
+
+
+def test_conformal_branch_routes_rule_at_high_conf(monkeypatch: pytest.MonkeyPatch) -> None:
+    cal_probs = np.array(
+        [
+            [0.90, 0.10, 0.00],
+            [0.85, 0.15, 0.00],
+            [0.10, 0.85, 0.05],
+            [0.05, 0.90, 0.05],
+            [0.05, 0.15, 0.80],
+            [0.10, 0.10, 0.80],
+            [0.92, 0.08, 0.00],
+            [0.08, 0.92, 0.00],
+            [0.05, 0.05, 0.90],
+            [0.88, 0.12, 0.00],
+        ],
+        dtype=np.float64,
+    )
+    cal_labels = np.array([0, 0, 1, 1, 2, 2, 0, 1, 2, 0], dtype=np.int64)
+    guard = ConformalGuard(alpha=0.10)
+    guard.fit(cal_probs, cal_labels)
+
+    router = HeuristicRouter(conformal_guard=guard)
+    monkeypatch.setattr(
+        router,
+        "classify_intent",
+        lambda _t: ("launch_app", 0.95, {"app": ["calculator"], "file": [], "url": [], "quoted": []}),
+    )
+    decision = router.route("open calculator", has_registered_rule=True)
+    assert decision.action == RouteAction.RULE and decision.calibrated is True
+
+
+def test_probabilities_always_populated_without_guard() -> None:
+    router = HeuristicRouter()
+    transcripts = [
+        ("open calculator", True),
+        ("hello there", False),
+        ("uh", False),
+    ]
+    for transcript, has_rule in transcripts:
+        decision = router.route(transcript, has_registered_rule=has_rule)
+        assert decision.probabilities is not None
+        assert abs(sum(decision.probabilities.values()) - 1.0) < 1e-9
+        assert decision.calibrated is False
+
+
+def test_probabilities_is_dict_str_float() -> None:
+    router = HeuristicRouter()
+    decision = router.route("open calculator")
+    assert isinstance(decision.probabilities, dict)
+    assert all(isinstance(k, str) for k in decision.probabilities.keys())
+    assert all(isinstance(v, float) for v in decision.probabilities.values())
+

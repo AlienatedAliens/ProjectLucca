@@ -69,6 +69,12 @@ INTENT_TO_RULE: Final[frozenset[str]] = frozenset(
     {"launch_app", "file_read", "file_write", "web_fetch"}
 )
 
+_ACTION_LIT: Final[dict[str, Literal["RULE", "LLM", "CLARIFY"]]] = {
+    "RULE": "RULE",
+    "LLM": "LLM",
+    "CLARIFY": "CLARIFY",
+}
+
 INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     "file_read": "self",
     "file_write": "self",
@@ -290,42 +296,50 @@ class HeuristicRouter:
 
         fallback_applied = False
         calibrated = False
-        probabilities: list[float] | None = None
+        probabilities: dict[str, float] | None = None
         prediction_set: list[RouteAction] = []
+
+        rule_eligible = any_active_rule_fired or (
+            intent in INTENT_TO_RULE
+            and conf >= 0.80
+            and (has_registered_rule or any_active_rule_fired)
+        )
+
+        if rule_eligible:
+            p_vec = np.array([conf, 1.0 - conf, 0.0], dtype=np.float64)
+        elif (
+            vad_speech_ms < 400
+            or intent == "clarify"
+            or (intent in INTENT_TO_RULE and conf < 0.35 and not any_active_rule_fired)
+        ):
+            p_vec = np.array([0.0, 1.0 - conf, conf], dtype=np.float64)
+        else:
+            p_vec = np.array([0.0, conf, 1.0 - conf], dtype=np.float64)
+
+        if abs(float(np.sum(p_vec)) - 1.0) > 1e-9:
+            raise ValueError(f"Probability vector does not sum to 1.0: {p_vec}")
+
+        probabilities = {
+            "RULE": float(p_vec[0]),
+            "LLM": float(p_vec[1]),
+            "CLARIFY": float(p_vec[2]),
+        }
 
         # Decision logic per Spec 06 §1, §2, §7, ADR-007, and D-ARCH-05
         if EMERGENCY_REFLEX_PATTERN.search(text_lower):
             action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
             prediction_set = [RouteAction.RULE]
         elif self.conformal_guard is not None and self.conformal_guard.q_hat is not None:
-            if any_active_rule_fired or (
-                intent in INTENT_TO_RULE and (has_registered_rule or any_active_rule_fired)
-            ):
-                p_vec = np.array([conf, 1.0 - conf, 0.0], dtype=np.float64)
-            elif vad_speech_ms < 400 or intent == "clarify":
-                p_vec = np.array([0.0, 1.0 - conf, conf], dtype=np.float64)
-            else:
-                p_vec = np.array([0.0, conf, 1.0 - conf], dtype=np.float64)
-
-            probabilities = {
-                "RULE": float(p_vec[0]),
-                "LLM": float(p_vec[1]),
-                "CLARIFY": float(p_vec[2]),
-            }
             conf_action, pred_classes, conf_fallback = self.conformal_guard.decide(
                 p_vec, class_names=["RULE", "LLM", "CLARIFY"]
             )
             fallback_applied = conf_fallback or (
                 conf < self.confidence_threshold and intent != "dangerous"
             )
-            action_lit = "LLM" if fallback_applied else conf_action  # type: ignore[assignment]
+            action_lit = "LLM" if fallback_applied else _ACTION_LIT[conf_action]
             prediction_set = [RouteAction(a) for a in pred_classes]
             calibrated = True
-        elif any_active_rule_fired or (
-            intent in INTENT_TO_RULE
-            and conf >= 0.80
-            and (has_registered_rule or any_active_rule_fired)
-        ):
+        elif rule_eligible:
             action_lit = "RULE"
             prediction_set = [RouteAction.RULE]
         elif (
