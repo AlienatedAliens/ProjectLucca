@@ -327,8 +327,14 @@ def test_active_docs_staleness_lint() -> None:
     active_docs = [
         repo_root / "AGENTS.md",
         repo_root / "GEMINI.md",
+        repo_root / "README.md",
         repo_root / "docs" / "ARCHITECTURE.md",
         repo_root / "docs" / "DECISIONS.md",
+        repo_root / "docs" / "MODEL_STRATEGY.md",
+        repo_root / "docs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
+        repo_root / "docs" / "V2_BACKLOG.md",
+        repo_root / "docs" / "specs" / "STUDIO_CAPABILITY_ROADMAP.md",
+        repo_root / "docs" / "audit" / "findings" / "V1_RELEASE_AUDIT.md",
     ]
 
     violations: list[str] = []
@@ -346,6 +352,12 @@ def test_active_docs_staleness_lint() -> None:
             re.compile(r"hosting\s+`?Mistral-Nemo", re.IGNORECASE),
             "llama-server hosting NeMo as active runtime (superseded by Gemma 4 12B)",
         ),
+        (
+            re.compile(r"llama-server(?:\.exe)?\s*\(\s*(?:Mistral-)?NeMo", re.IGNORECASE),
+            "llama-server described as running NeMo",
+        ),
+        (re.compile(r"\(\s*NeMo\s*12B\s*\)", re.IGNORECASE), "NeMo 12B named as the language model"),
+        (re.compile(r"Mistral-NeMo-12B\s+Q6_K", re.IGNORECASE), "NeMo Q6_K named as the loaded GGUF"),
     ]
 
     for doc_path in active_docs:

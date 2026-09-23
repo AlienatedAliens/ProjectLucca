@@ -379,3 +379,119 @@ Verbatim Output:
 
 ---
 
+## Phase 5 — Docs and Lint Coverage
+
+### 5.1 Staleness Lint (Red Before Green)
+
+Command (Before Rewrite):
+```
+uv run python -m pytest tests/test_static_gates.py::test_active_docs_staleness_lint -q
+```
+
+Verbatim Output:
+```
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______________________ test_active_docs_staleness_lint _______________________
+
+    def test_active_docs_staleness_lint() -> None:
+        """
+        WO-11.6: Staleness lint on active docs (AGENTS.md, GEMINI.md, ARCHITECTURE.md, DECISIONS.md).
+        Guarantees no known-superseded terms (M=3, NeMo as primary, Chroma as live) linger in docs.
+        """
+        repo_root = Path(__file__).parent.parent
+        active_docs = [
+            repo_root / "AGENTS.md",
+            repo_root / "GEMINI.md",
+            repo_root / "README.md",
+            repo_root / "docs" / "ARCHITECTURE.md",
+            repo_root / "docs" / "DECISIONS.md",
+            repo_root / "docs" / "MODEL_STRATEGY.md",
+            repo_root / "docs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
+            repo_root / "docs" / "V2_BACKLOG.md",
+            repo_root / "docs" / "specs" / "STUDIO_CAPABILITY_ROADMAP.md",
+            repo_root / "docs" / "audit" / "findings" / "V1_RELEASE_AUDIT.md",
+        ]
+    
+        violations: list[str] = []
+        forbidden_terms = [
+            (re.compile(r"\bM=3\b"), "superseded M=3 round cap (cap is M=4 per D-BRAIN-05 v2)"),
+            (
+                re.compile(r"primary brain:\s*mistral nemo", re.IGNORECASE),
+                "NeMo as primary brain (superseded by Gemma 4 12B per D-BRAIN-05 v2)",
+            ),
+            (
+                re.compile(r"chroma(?:\s+db)?\s+(?:is\s+)?(?:live|active|primary)", re.IGNORECASE),
+                "Chroma as live vector store (retired in favor of sqlite-vec per D-MEM-03)",
+            ),
+            (
+                re.compile(r"hosting\s+`?Mistral-Nemo", re.IGNORECASE),
+                "llama-server hosting NeMo as active runtime (superseded by Gemma 4 12B)",
+            ),
+            (
+                re.compile(r"llama-server(?:\.exe)?\s*\(\s*(?:Mistral-)?NeMo", re.IGNORECASE),
+                "llama-server described as running NeMo",
+            ),
+            (re.compile(r"\(\s*NeMo\s*12B\s*\)", re.IGNORECASE), "NeMo 12B named as the language model"),
+            (re.compile(r"Mistral-NeMo-12B\s+Q6_K", re.IGNORECASE), "NeMo Q6_K named as the loaded GGUF"),
+        ]
+    
+        for doc_path in active_docs:
+            assert doc_path.exists(), f"Active doc {doc_path} does not exist"
+            text = doc_path.read_text(encoding="utf-8")
+            lines = text.splitlines()
+            for lineno, line in enumerate(lines, start=1):
+                for pattern, reason in forbidden_terms:
+                    if pattern.search(line):
+                        violations.append(
+                            f"{doc_path.name}:{lineno}: matched '{pattern.pattern}' ({reason})\n"
+                            f"  Line: {line.strip()}"
+                        )
+    
+>       assert not violations, "Staleness lint failed in active docs:\n" + "\n".join(violations)
+E       AssertionError: Staleness lint failed in active docs:
+E         USER_GUIDE_WHAT_LUCCA_DOES.md:13: matched 'Mistral-NeMo-12B\s+Q6_K' (NeMo Q6_K named as the loaded GGUF)
+E           Line: > **Under the hood.** Four native Windows processes over ZeroMQ: `lucca-core` (orchestrator, MicroScheme rule engine, Z3, SQLite), `lucca-audio` (PTT, Silero VAD, faster-whisper ASR, Kokoro TTS), `lucca-ui` (PyQt6 sprite/tray/settings), and `llama-server.exe` (Mistral-NeMo-12B Q6_K, 16K ctx, \u226412.5 GB VRAM). Tools execute in Docker CE inside WSL2 (`lucca/file-sandbox`, `--network none` for file ops). Spec of record: [`ARCHITECTURE.md`](./ARCHITECTURE.md), [`STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md).
+E         USER_GUIDE_WHAT_LUCCA_DOES.md:151: matched '\(\s*NeMo\s*12B\s*\)' (NeMo 12B named as the language model)
+E           Line: | Language model (NeMo 12B) | open-ended language, planning, tool selection, **the face** | \u2192 tools; \u2190 rule yields, cascade context, memory hits, affect stance |
+E       assert not ["USER_GUIDE_WHAT_LUCCA_DOES.md:13: matched 'Mistral-NeMo-12B\\\\s+Q6_K' (NeMo Q6_K named as the loaded GGUF)\\n  Line: >...guage, planning, tool selection, **the face** | \u2192 tools; \u2190 rule yields, cascade context, memory hits, affect stance |"]
+
+tests\test_static_gates.py:375: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_static_gates.py::test_active_docs_staleness_lint - Assertio...
+1 failed in 0.30s
+```
+
+Command (After Rewrite):
+```
+uv run python -m pytest tests/test_static_gates.py::test_active_docs_staleness_lint -q
+```
+
+Verbatim Output:
+```
+.                                                                        [100%]
+1 passed in 0.18s
+```
+
+### 5.2 Verification Checks (Verbatim)
+
+Command:
+```
+git grep -n -i "nemo" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+git grep -c "^" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+```
+
+Verbatim Output:
+```
+docs/USER_GUIDE_WHAT_LUCCA_DOES.md:226
+```
+
+---
+
