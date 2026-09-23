@@ -14,6 +14,7 @@ Enforces:
 from __future__ import annotations
 
 import json
+import re
 from typing import Final
 
 import structlog
@@ -98,6 +99,137 @@ class ReplayEngine:
             logger.warning("replay_load_episodes_failed", error=str(exc))
 
         return episodes
+
+    def recall_past_episodes(
+        self,
+        db: DatabaseManager,
+        query_text: str,
+        limit: int = 5,
+    ) -> list[dict[str, object]]:
+        """
+        C1 Experience Bank Recall: deterministic retrieval of past interaction episodes
+        from SQLite decisions and execution_triples tables without any LLM inference.
+        """
+        results: list[dict[str, object]] = []
+        if not query_text.strip():
+            return results
+
+        tokens = [
+            t.lower()
+            for t in re.findall(r"\b[a-zA-Z0-9_\-.]+\b", query_text)
+            if len(t) >= 3
+            and t.lower()
+            not in (
+                "what",
+                "happened",
+                "before",
+                "last",
+                "time",
+                "when",
+                "with",
+                "this",
+                "that",
+                "were",
+                "doing",
+                "tell",
+                "about",
+            )
+        ]
+        if not tokens:
+            return results
+
+        candidates: list[tuple[int, float, dict[str, object]]] = []
+
+        try:
+            with db.read_cursor() as cur:
+                # 1. Query decisions table
+                cur.execute(
+                    """
+                    SELECT decision_id, features_json, action, executed_path,
+                           tool_calls_json, tool_ok, ts
+                    FROM decisions
+                    ORDER BY ts DESC
+                    LIMIT 100
+                    """
+                )
+                for did, feat_raw, act, exec_p, tc_raw, tok, ts in cur.fetchall():
+                    score = 0
+                    transcript = ""
+                    intent = ""
+                    if feat_raw:
+                        try:
+                            f_dict = json.loads(feat_raw) if isinstance(feat_raw, str) else {}
+                            transcript = str(f_dict.get("transcript", ""))
+                            intent = str(f_dict.get("intent", ""))
+                        except Exception:  # noqa: BLE001, S110
+                            pass
+
+                    target_str = f"{transcript} {intent} {act} {tc_raw or ''}".lower()
+                    for t in tokens:
+                        if t in target_str:
+                            score += 1
+
+                    if score > 0:
+                        candidates.append(
+                            (
+                                score,
+                                float(ts or 0.0),
+                                {
+                                    "source": "decisions",
+                                    "decision_id": did,
+                                    "transcript": transcript,
+                                    "intent": intent,
+                                    "action": act,
+                                    "executed_path": exec_p,
+                                    "tool_calls": json.loads(tc_raw)
+                                    if tc_raw and isinstance(tc_raw, str)
+                                    else None,
+                                    "tool_ok": bool(tok) if tok is not None else None,
+                                    "ts": float(ts or 0.0),
+                                },
+                            )
+                        )
+
+                # 2. Query execution_triples table
+                cur.execute(
+                    """
+                    SELECT triple_id, proposal_json, decision_json, outcome_json, created_at
+                    FROM execution_triples
+                    ORDER BY created_at DESC
+                    LIMIT 50
+                    """
+                )
+                for tr_id, prop_j, dec_j, out_j, cat_ts in cur.fetchall():
+                    target_str = f"{prop_j} {dec_j} {out_j}".lower()
+                    score = sum(1 for t in tokens if t in target_str)
+                    if score > 0:
+                        candidates.append(
+                            (
+                                score,
+                                float(cat_ts or 0.0),
+                                {
+                                    "source": "execution_triples",
+                                    "triple_id": tr_id,
+                                    "proposal": json.loads(prop_j)
+                                    if prop_j and isinstance(prop_j, str)
+                                    else prop_j,
+                                    "decision": json.loads(dec_j)
+                                    if dec_j and isinstance(dec_j, str)
+                                    else dec_j,
+                                    "outcome": json.loads(out_j)
+                                    if out_j and isinstance(out_j, str)
+                                    else out_j,
+                                    "ts": float(cat_ts or 0.0),
+                                },
+                            )
+                        )
+
+            candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+            results = [cand[2] for cand in candidates[:limit]]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("recall_past_episodes_failed", error=str(exc))
+
+        return results
 
     def replay_candidate_rule(
         self,

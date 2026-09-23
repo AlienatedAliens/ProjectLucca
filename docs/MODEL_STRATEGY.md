@@ -11,7 +11,7 @@
 
 This document specifies the ratified inference architecture for Project Lucca:
 1. **Cascade / Transcript-First Pipeline (Option D)**: Fast synchronous ASR followed by structured text LLM inference, memory grounding, and deterministic rule execution.
-2. **Primary Neural Brain (`D-BRAIN-05`)**: **Mistral NeMo 12B Instruct Abliterated (Q6_K GGUF)** served natively on Windows by `llama-server.exe` with `--chat-template mistral-v3`.
+2. **Primary Neural Brain (`D-BRAIN-05 v2`)**: **Gemma-4-12B-Heretic (Q6_K GGUF)** served natively on Windows by `llama-server.exe` with `--jinja` and GGUF-embedded chat template, `enable_thinking=false` for companion tiers (10.6 GB live VRAM, 16K context default up to 131K under 12.5 GB clamp; Mistral NeMo deprecated per D-BRAIN-05 v2 bakeoff evidence).
 3. **Execution Tiers (`D-ARCH-05`)**: Sub-150ms Emergency Reflexes (`REFLEX`), Act-Then-Narrate natural voice for procedural rules (`ACT_THEN_NARRATE`), and multi-step tool loops with spoken thinking cues (`FULL_LOOP`).
 
 This design supersedes the audio-native Ultravox 8B architecture by resolving the **Audio-Native Pre-Processing Blindspot**, eliminating corporate preachy refusal alignment without compromising safety, and operating comfortably within a 12.5 GB resident VRAM clamp on the RTX 5080 Laptop GPU.
@@ -39,9 +39,9 @@ Heuristic Router (< 1 ms)                 Heuristic Router (< 1 ms)
 TIER 1: REFLEX                            ▼                            ▼
 - Direct cancellation / mute       TIER 2: ACT-THEN-NARRATE     TIER 3: FULL-LOOP
 - Zero LLM latency                 - Sandbox rule plan          - Memory Retrieval (2048 tok)
-- Total E2E: < 150 ms              - Tool output trace          - NeMo 12B reasoning
-                                   - NeMo companion voice       - Spoken verbal cues
-                                     narration                  - Multi-step tool calls (M<=3)
+- Total E2E: < 150 ms              - Tool output trace          - Gemma-4 12B reasoning
+                                   - Companion voice            - Spoken verbal cues
+                                     narration                  - Multi-step tool calls (M=4 / cap M=8)
                                    - Total E2E: ~450–600 ms     - Total E2E: ~650–850 ms
 ```
 
@@ -62,7 +62,7 @@ All inference operations are strictly bounded to the physical constraints of the
 - **Resident VRAM Clamp (`D-BRAIN-05`)**: $\le 12.5\text{ GB}$ (12,800 MB) maximum resident footprint for `llama-server` (leaving $\ge 3.5\text{ GB}$ dedicated to Windows DWM, display rendering, browser hardware acceleration, and NPU offload).
 - **Observed Live Footprint**: **10,748 MiB** resident VRAM at steady-state with 16,384 context. Temperature stable at 42°C.
 - **KV Cache Budget**: `ctx-size = 16384` with `cache-type-k = q8_0` and `cache-type-v = q8_0` ($\approx 2.1\text{ GB}$ resident KV cache).
-- **Inference Server**: Native Windows `llama-server.exe` built with CUDA 12.8, Flash Attention enabled (`--flash-attn`), and Mistral v3 chat template (`--chat-template mistral-v3`).
+- **Inference Server**: Native Windows `llama-server.exe` built with CUDA 12.8, Flash Attention enabled (`--flash-attn`), `--jinja`, and GGUF-embedded chat template.
 
 ---
 
@@ -86,7 +86,7 @@ All inference operations are strictly bounded to the physical constraints of the
 | **S1 PTT $\rightarrow$ Dispatch** | `t_key_release → t_llm_sent` | $\le 20\text{ ms}$ | Target Budget | VAD trim + WAV encode |
 | **S1b ASR** | `t_key_release → t_asr_done` | $\le 180\text{ ms}$ | ~140–180 ms | Faster-Whisper on CPU/NPU |
 | **Router / Memory** | `t_asr_done → t_llm_sent` | $\le 15\text{ ms}$ | **< 1.0 ms (Router)**<br>~8–15 ms (SQLite-vec) | Heuristic router + sqlite-vec |
-| **S2 TTFT** | `t_llm_sent → t_llm_first_token`| $\le 180\text{ ms}$ | **44.5 ms median / 54.9 ms p95** | NeMo 12B Q6_K on RTX 5080 |
+| **S2 TTFT** | `t_llm_sent → t_llm_first_token`| $\le 180\text{ ms}$ | **44.5 ms median / 54.9 ms p95** | Gemma-4 12B Q6_K on RTX 5080 |
 | **S3 First Chunk** | `t_llm_first_token → t_first_chunk` | $\le 100\text{ ms}$ | ~60–90 ms | Streaming chunker clause boundary |
 | **S4 TTS First** | `t_first_chunk → t_tts_first_done` | $\le 160\text{ ms}$ | ~130–150 ms | Kokoro ONNX on NPU/CPU |
 | **S5 To Speaker** | `t_tts_first_done → t_first_sample` | $\le 40\text{ ms}$ | ~20–35 ms | Ring buffer overlap + WASAPI write |
@@ -106,12 +106,12 @@ Directive: The action above has completed. Grounding your response strictly in t
 
 ### 6.2 Multi-Step Tool Loop with Verbal Cues (`D-BRAIN-03`)
 In Tier 3 (`FULL_LOOP`) turns requiring multi-step tool calls:
-1. When NeMo emits a tool call (e.g. `read_file`), Orchestrator emits an immediate spoken thinking cue:
+1. When the brain emits a tool call (e.g. `read_file`), Orchestrator emits an immediate spoken thinking cue:
    - *"Checking that file for you..."*
    - *"Running that calculation..."*
    - *"Looking into that..."*
 2. Tool execution occurs in the sandbox while the user hears the audio cue.
-3. NeMo is re-prompted with `ToolResult` up to $M=3$ rounds before streaming final speech.
+3. The brain is re-prompted with `ToolResult` across a convergence-based tool loop ($M=4$ active rounds, runaway cap $M=8$) before streaming final speech.
 
 ---
 
@@ -121,7 +121,8 @@ In accordance with F-ARCH-004 and Spec 12 (TM-08), all model weights are cryptog
 
 1. **Pinned Manifest (`models/MANIFEST.json`)**:
    Every deployed weight file is registered with its exact byte count, upstream repository, source filename, and SHA256 hash.
-   - `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf`: `8cef81a30f78d927c73a693c4c9e4c5f939e60ea9b2518e38d6df022ee7b2434`
+   - `gemma-4-12b-heretic-Q6_K.gguf` (deployed primary brain per D-BRAIN-05 v2)
+   - `Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf`: `8cef81a30f78d927c73a693c4c9e4c5f939e60ea9b2518e38d6df022ee7b2434` (deprecated, pinned for rollback only)
 2. **Download Enforcement (`scripts/download_llm_models.py`)**:
    Downloads verify rolling SHA256 digests in 1 MiB chunks. Corrupted downloads are unlinked immediately.
 3. **Pre-flight Enforcement (`server_ctl.start_server` & `env_check`)**:
@@ -135,7 +136,7 @@ In accordance with F-ARCH-004 and Spec 12 (TM-08), all model weights are cryptog
 Injecting continuous, dynamic floating-point variables into an LLM's system prompt (e.g. `[Affect: P=0.724, A=0.152, D=0.881]`) breaks tokenizer byte-pair encodings across turns. This invalidates the host GPU's pre-computed KV-cache, forcing `llama-server.exe` to re-evaluate all 850+ prompt tokens on every turn.
 
 ### 8.2 The Prompt Frontier Suffix Solution
-1. **Static System Prompt Prefix:** The Jinja template (`templates/mistral_nemo.jinja`) and system persona prompt remain 100% static and byte-identical across all turns.
+1. **Static System Prompt Prefix:** The system persona prompt and embedded Jinja chat template remain 100% static and byte-identical across all turns.
 2. **Schmitt-Trigger Stance Quantization:** The continuous 3D PAD state vector is mapped into 7 discrete orthogonal stances via RBF Mahalanobis distance with a deadband hysteresis margin ($\delta_{\text{hyst}} = 0.15$).
 3. **Frontier Suffix Injection:** The quantized stance token (e.g. `[STANCE: focused_analytical]`) is appended strictly to the tail of the frontier user message during `prompt_builder.build_messages()`.
 4. **Physical Silicon Benchmark (RTX 5080 Laptop GPU):**

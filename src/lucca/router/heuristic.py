@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path
 from typing import Final, Literal
 
+import numpy as np
 import structlog
 
 from lucca.core.schemas import (
@@ -22,6 +23,7 @@ from lucca.core.schemas import (
     ToolCall,
 )
 from lucca.memory.db import DatabaseManager
+from lucca.router.conformal import ConformalGuard
 
 logger = structlog.get_logger(__name__)
 
@@ -103,11 +105,15 @@ class HeuristicRouter:
         log_path: Path | str | None = None,
         db: DatabaseManager | None = None,
         config_path: Path | str | None = None,
+        conformal_guard: ConformalGuard | None = None,
+        confidence_threshold: float = 0.60,
     ) -> None:
         self.log_path = Path(log_path) if log_path is not None else None
         if self.log_path:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self.db = db
+        self.conformal_guard = conformal_guard
+        self.confidence_threshold = confidence_threshold
         self.known_apps = set(DEFAULT_KNOWN_APPS)
         self.stop_words_after_start = set(DEFAULT_STOP_WORDS_AFTER_START)
         self.last_decision_record: DecisionRecord | None = None
@@ -134,6 +140,9 @@ class HeuristicRouter:
                 self.stop_words_after_start.update(
                     str(w).lower() for w in launch_cfg["stop_words_after_start"]
                 )
+            router_cfg = data.get("router", {})
+            if "confidence_threshold" in router_cfg:
+                self.confidence_threshold = float(router_cfg["confidence_threshold"])
         except (OSError, tomllib.TOMLDecodeError, ValueError):
             pass
 
@@ -279,23 +288,58 @@ class HeuristicRouter:
         conf = intent_conf if intent_conf is not None else auto_conf
         text_lower = transcript.strip().lower()
 
-        # Decision logic per Spec 06 §1 & §2 and D-ARCH-05
+        fallback_applied = False
+        calibrated = False
+        probabilities: list[float] | None = None
+        prediction_set: list[RouteAction] = []
+
+        # Decision logic per Spec 06 §1, §2, §7, ADR-007, and D-ARCH-05
         if EMERGENCY_REFLEX_PATTERN.search(text_lower):
             action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
+            prediction_set = [RouteAction.RULE]
+        elif self.conformal_guard is not None and self.conformal_guard.q_hat is not None:
+            if any_active_rule_fired or (
+                intent in INTENT_TO_RULE and (has_registered_rule or any_active_rule_fired)
+            ):
+                p_vec = np.array([conf, 1.0 - conf, 0.0], dtype=np.float64)
+            elif vad_speech_ms < 400 or intent == "clarify":
+                p_vec = np.array([0.0, 1.0 - conf, conf], dtype=np.float64)
+            else:
+                p_vec = np.array([0.0, conf, 1.0 - conf], dtype=np.float64)
+
+            probabilities = {
+                "RULE": float(p_vec[0]),
+                "LLM": float(p_vec[1]),
+                "CLARIFY": float(p_vec[2]),
+            }
+            conf_action, pred_classes, conf_fallback = self.conformal_guard.decide(
+                p_vec, class_names=["RULE", "LLM", "CLARIFY"]
+            )
+            fallback_applied = conf_fallback or (
+                conf < self.confidence_threshold and intent != "dangerous"
+            )
+            action_lit = "LLM" if fallback_applied else conf_action  # type: ignore[assignment]
+            prediction_set = [RouteAction(a) for a in pred_classes]
+            calibrated = True
         elif any_active_rule_fired or (
             intent in INTENT_TO_RULE
             and conf >= 0.80
             and (has_registered_rule or any_active_rule_fired)
         ):
             action_lit = "RULE"
+            prediction_set = [RouteAction.RULE]
         elif (
             vad_speech_ms < 400
             or intent == "clarify"
             or (intent in INTENT_TO_RULE and conf < 0.35 and not any_active_rule_fired)
         ):
             action_lit = "CLARIFY"
+            prediction_set = [RouteAction.CLARIFY]
         else:
             action_lit = "LLM"
+            prediction_set = [RouteAction.LLM]
+            if conf < self.confidence_threshold and intent != "dangerous":
+                fallback_applied = True
 
         elapsed_us = int((time.perf_counter() - t0) * 1_000_000)
 
@@ -312,10 +356,10 @@ class HeuristicRouter:
         decision = RouteDecision(
             action=route_action,
             tier=tier,
-            probabilities=None,
-            prediction_set=[route_action],
-            fallback_applied=False,
-            calibrated=False,
+            probabilities=probabilities,
+            prediction_set=prediction_set if prediction_set else [route_action],
+            fallback_applied=fallback_applied,
+            calibrated=calibrated,
             elapsed_us=elapsed_us,
         )
 

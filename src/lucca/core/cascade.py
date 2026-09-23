@@ -1030,6 +1030,54 @@ class EpistemicSearchCascade:
                                 )
                             )
 
+                # 1b. Query decisions table for historical interaction turns
+                cur.execute(
+                    """
+                    SELECT decision_id, features_json, action, executed_path,
+                           tool_calls_json, tool_ok, ts
+                    FROM decisions
+                    ORDER BY ts DESC LIMIT 50
+                    """
+                )
+                dec_rows = cur.fetchall()
+                for did, feat_raw, act, exec_p, tc_raw, tok, dec_ts in dec_rows:
+                    transcript = ""
+                    if feat_raw:
+                        try:
+                            f_dict = json.loads(feat_raw) if isinstance(feat_raw, str) else {}
+                            transcript = str(f_dict.get("transcript", ""))
+                        except Exception:  # noqa: BLE001, S110
+                            pass
+                    combined = f"{transcript} {act} {exec_p} {tc_raw or ''}".lower()
+                    if tokens:
+                        score = sum(1 for t in tokens if t in combined)
+                        if score > 0:
+                            if tok is True:
+                                tok_str = "succeeded"
+                            elif tok is False:
+                                tok_str = "failed"
+                            else:
+                                tok_str = "unverified"
+                            rec_str = (
+                                f"Historical turn '{transcript}': routed {act} "
+                                f"via {exec_p} ({tok_str})"
+                            )
+                            candidates.append(
+                                (
+                                    score,
+                                    float(dec_ts or 0.0),
+                                    EvidenceItem(
+                                        substrate=EpistemicSubstrate.SELF_HISTORY,
+                                        trust_tier=TrustTier.TIER_1_HARDWARE,
+                                        source=f"history:decision:{did}",
+                                        content=rec_str,
+                                        polarity=BelnapValue.TRUE,
+                                        confidence=1.0,
+                                        metadata={"decision_id": str(did), "action": str(act)},
+                                    ),
+                                )
+                            )
+
                 # 2. Query memories for autobiographical classes
                 cur.execute(
                     """

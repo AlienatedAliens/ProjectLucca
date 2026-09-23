@@ -1,9 +1,9 @@
 # Project Lucca — System Architecture Master Specification
 
 **Status:** Canonical Architecture Baseline (Milestones 1–7 Complete — Production Release Frozen)  
-**Version:** 1.3.0  
-**Updated:** September 20, 2026  
-**Charter Reference:** Ratified per D-AUD-19, D-BRAIN-05, D-ARCH-05, D-AFF-01, D-REAS-07, D-REAS-08, D-PKG-01  
+**Version:** 2.0.0  
+**Updated:** September 24, 2026  
+**Charter Reference:** Ratified per D-AUD-19, D-BRAIN-05, D-ARCH-05, D-AFF-01, D-REAS-07, D-REAS-08, D-PKG-01, D-HON-01, D-MEM-04, D-META-01  
 
 ---
 
@@ -25,8 +25,11 @@
    - [3.3 Tier 2: Act-Then-Narrate Procedural Path](#33-tier-2-act-then-narrate-procedural-path)
    - [3.4 Tier 3: Deliberate Full-Loop Reasoning with Spoken Thinking Cues (D-BRAIN-03)](#34-tier-3-deliberate-full-loop-reasoning-with-spoken-thinking-cues-d-brain-03)
    - [3.5 Grounded Narration Provenance Contract (D-BRAIN-04)](#35-grounded-narration-provenance-contract-d-brain-04)
-   - [3.6 Primary Brain: Gemma 4 12B Heretic (D-BRAIN-05 v2)](#36-primary-brain-gemma-4-12b-heretic-d-brain-05-v2)
-   - [3.7 Empirical Latency Benchmarks ($S_1 \dots S_5$)](#37-empirical-latency-benchmarks-s_1-dots-s_5)
+   - [3.6 Primary Brain: Gemma-4-12B-Heretic Q6_K (D-BRAIN-05 v2)](#36-primary-brain-gemma-4-12b-heretic-q6_k-d-brain-05-v2)
+   - [3.7 Latency Budgets & Empirical Stage Isolation ($S_1 \dots S_5$)](#37-latency-budgets--empirical-stage-isolation-s_1-dots-s_5)
+   - [3.8 Verified Source Priority Invariant (D-HON-01)](#38-verified-source-priority-invariant-d-hon-01)
+   - [3.9 Proactive Calibrated Meta-Cognition & Dynamic Thinking (D-META-01)](#39-proactive-calibrated-meta-cognition--dynamic-thinking-d-meta-01)
+   - [3.10 Unified Turn Pipeline Architecture & Shared Dispatch Methods (WO-11 / WO-13)](#310-unified-turn-pipeline-architecture--shared-dispatch-methods-wo-11--wo-13)
 4. [MicroScheme Rule Engine: Symbolic Procedural Execution](#4-microscheme-rule-engine-symbolic-procedural-execution)
    - [4.1 Why LISP/Scheme?](#41-why-lispscheme)
    - [4.2 Language Constraints & Evaluation Gas Model](#42-language-constraints--evaluation-gas-model)
@@ -216,7 +219,7 @@ Rather than a rigid dichotomy between fast rules and slow generative turns, Proj
 ### 3.4 Tier 3: Deliberate Full-Loop Reasoning with Spoken Thinking Cues (D-BRAIN-03)
 - **Scope**: Open-ended conversational inquiries, complex problem-solving, or multi-step tool workflows.
 - **Behavior**:
-  - Supports up to $M=4$ iterative tool-calling rounds with the companion LLM.
+  - Supports a convergence-based tool loop with $M=4$ active rounds ($M=8$ runaway cap) with the companion LLM.
   - **Spoken Verbal Thinking Cues**: Before dispatching a tool call, the orchestrator immediately speaks a contextual thinking cue (e.g. *"Checking that file for you..."*, *"Running that calculation..."*, *"Looking into that..."*). This eliminates conversational dead air and confirms cognitive progress.
 
 ### 3.5 Grounded Narration Provenance Contract (D-BRAIN-04)
@@ -224,11 +227,8 @@ When narrating completed tool actions, narration prompts inject strict grounding
 - Spoken assertions, status claims, numbers, and file contents must derive strictly from the tool trace block.
 - Fabricating unverified metrics or tool outcomes is strictly forbidden.
 
-### 3.6 Primary Brain: Gemma 4 12B Heretic (D-BRAIN-05 v2)
-- **Model**: `gemma-4-12b-heretic-Q6_K.gguf` (Q6_K quantization). (Mistral NeMo 12B deprecated per D-BRAIN-05 v2).
-- **Template**: Stock llama.cpp `--jinja` with GGUF-embedded chat template; `enable_thinking=false`.
-- **Context Size**: 16,384 tokens default with Q8_0 KV cache and flash attention.
-- **Hardware Footprint**: Enforces 12.5 GB (12,800 MB) resident VRAM clamp on the RTX 5080 Laptop GPU, leaving >3.5 GB headroom for Windows display and desktop applications. Idle temperature is 42°C.
+### 3.6 Primary Brain: Gemma-4-12B-Heretic Q6_K (D-BRAIN-05 v2)
+Native Windows `llama-server.exe`, `--jinja`, GGUF-embedded chat template, `enable_thinking=false` for companion tiers, 16K context default (up to 131K), Q8_0 KV cache, flash attention, 12.5 GB VRAM clamp. NeMo deprecated (pinned in `models/MANIFEST.json` for rollback only).
 
 ### 3.7 Latency Budgets & Empirical Stage Isolation ($S_1 \dots S_5$)
 
@@ -242,6 +242,28 @@ When narrating completed tool actions, narration prompts inject strict grounding
 | **Total**| **Full E2E Cascade Turn** | $\le 800\text{ ms}$ | Target Budget (Voice run) | **Target** |
 
 > **Note:** Stages marked **Target** are normative design budgets from Spec 10, not silicon measurements. Only $S_2$ (TTFT) has been empirically measured and carries a **PASS** verdict. The remaining stage budgets will be individually benchmarked when end-to-end instrumentation is added.
+
+### 3.8 Verified Source Priority Invariant (D-HON-01)
+Ratified per `D-HON-01` (DECISIONS.md L216). When generating assertions across factual, epistemic, arithmetic, or execution domains, verified external sources strictly supersede ungrounded parametric memory, conversational transcript echo, or unverified estimation:
+1. **Computational Domain:** Computational requests (arithmetic, counting, sorting, string manipulation, unit conversions, algebraic evaluation) must be executed by verified tool execution (`run_python`, `calculator`, etc.) rather than ungrounded mental math or recall. If a computational tool fails or is unavailable, the companion must state the tool failure plainly and refuse to guess, estimate, or fabricate numbers.
+2. **Memory & Retrieval Domain:** When conversation context, user suggestions, or transcript echo conflict with verified persistent records (`EpistemicSearchCascade`, `MemoryStore`, `valid_from` supersession timestamps), the verified store's current value takes strict precedence.
+3. **Failure Reporting & Register Gate (G6):** When any tool executed during a turn returns an error (`ok is False`), speculative BDI invariant violation, or timeout, the orchestrator injects an explicit honesty and register directive into the turn loop. The reply must state the failure plainly without guessing missing results and must maintain an honest, flat register, strictly barring victory/celebration framing ("crushed it", "we did it", "nailed", "perfect!") for failed or unverified actions.
+4. **Explicit Exemptions:** Subjective stances, aesthetic preferences, conversational warmth, and playful persona styling are exempt from this evidentiary bar, provided they do not masquerade as factual, arithmetic, or execution claims.
+
+### 3.9 Proactive Calibrated Meta-Cognition & Dynamic Thinking (D-META-01)
+Ratified per `D-META-01` (WO-13). Establishes proactive boundary enforcement, non-parametric epistemic calibration, and difficulty-aware deliberation:
+1. **Pre-Narration Sanity-Check Guard (Fault Mode C):** Prior to LLM narration dispatch, tool output scalars are evaluated against deterministic physical and arithmetic boundaries by `SanityCheckGuard` within a strict $\le 200\,\mu\text{s}$ execution budget. Positivity bounds (non-negative time, distance, count), Fermi order-of-magnitude bounds ($|\log_{10}(\text{output}) - \log_{10}(\text{fermi})| < 2.0$), and physical invariants (temperature $\ge -273.15^\circ\text{C}$, velocity $\le c$) are asserted before narration.
+2. **Proactive Epistemic Confidence Calibration:** Confidence is derived strictly from verified external observables, stored cryptographic confidence, and Belnap FOUR bilattice polarity ($\mathbf{BOT}$ / $\mathbf{TOP}$) — never circular LLM self-grading. Injects calibrated epistemic hedges when confidence $c < 0.70$ or bilattice polarity is unresolved.
+3. **Difficulty-Aware Dynamic Thinking (When2Think Heuristic):** Routine turns (greetings, chit-chat, simple lookups) set `enable_thinking=false` to preserve prefix KV cache and maintain sub-350 ms TTFT. Extended thinking (`enable_thinking=true`) is activated only for explicit user deliberation requests.
+
+### 3.10 Unified Turn Pipeline Architecture & Shared Dispatch Methods (WO-11 / WO-13)
+Extracted from orchestrator in WO-13 (`turn_pipeline.py`, 662 lines), unifying voice (`_run_turn`) and text (`_run_text_turn`) execution paths into a single cohesive pipeline while preserving strict zero-divergence parity (`test_orchestrator_turn_paths_unified_parity`).
+Unified execution is grounded in five core shared dispatch methods:
+1. `_execute_reflex`: Handles zero-latency canned emergency reflex execution with immediate audio silencing and telemetry triple emission.
+2. `_execute_act_then_narrate`: Compiles and executes procedural MicroScheme plans in the sandbox, passing structured traces to the companion voice for concise grounded narration.
+3. `_build_epistemic_context`: Resolves multi-substrate epistemic cascade queries, cognitive bus yields, spelling hints, and F13 clarify-mode directives.
+4. `_detect_follow_up_and_gate_tools`: Enforces config-driven tool suppression based on intent and conversational context (withholding tools during pure chit-chat or dangerous requests).
+5. `_reset_turn_state`: Cleanses per-turn transient buffers, resets epistemic state markers, and ensures clean boundaries between consecutive conversational turns.
 
 ---
 

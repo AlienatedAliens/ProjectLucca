@@ -40,7 +40,7 @@ Lucca executes completely offline on native workstation silicon with **zero clou
                              ▼                               ▼
 ┌───────────────────────────────────────────┐   ┌───────────────────────────────────────────┐
 │     SYSTEM 1: COMPILED SYMBOLIC CORE      │   │         SYSTEM 2: NEURAL CORE             │
-│  • MicroScheme (LISP) AST Interpreter     │   │  • Mistral NeMo 12B Instruct Abliterated  │
+│  • MicroScheme (LISP) AST Interpreter     │   │  • Gemma-4 12B Heretic (D-BRAIN-05 v2)    │
 │  • Babble/Stitch E-Graph Macro Synthesis  │◄─►│  • Continuous 3D PAD Affective ODE        │
 │  • Microsoft Z3 SMT Formal Verifier       │   │  • Prompt Frontier Suffix (8.58x KV hit)  │
 │  • Speculative BDI Invariant Validator    │   │  • Dimension 7B Streaming Supervision     │
@@ -59,7 +59,7 @@ Lucca executes completely offline on native workstation silicon with **zero clou
 ```
 
 ### 1. Dual-System Neuro-Symbolic Cognitive Engine
-- **System 2 (Neural Deliberation):** **Mistral NeMo 12B Instruct Abliterated (Q6_K GGUF)** running natively on the RTX 5080 Laptop GPU via `llama-server.exe` (16,384 context, Q8_0 KV cache, Flash Attention, 12.5 GB resident clamp). Provides personality, conversational fluency, and complex planning.
+- **System 2 (Neural Deliberation):** **Gemma-4-12B-Heretic (Q6_K GGUF)** running natively on the RTX 5080 Laptop GPU via `llama-server.exe` (16,384 context default up to 131K, Q8_0 KV cache, Flash Attention, 12.5 GB resident clamp, `enable_thinking=false` for companion tiers; Mistral NeMo deprecated per D-BRAIN-05 v2). Provides personality, conversational fluency, and complex planning.
 - **System 1 (Compiled Symbolic Reflexes):** Isolated MicroScheme LISP engine executing deterministic `State → Plan` procedures in microseconds with gas metering and zero runtime memory mutation.
 - **Cognitive Event Bus:** Bidirectional coordination between System 1 and System 2 using typed signals: `(yield-to-core reason context)` and `(interrupt-core reason)`.
 - **E-Graph Macro Synthesis (Babble/Stitch):** Automatically identifies recurring execution traces in SQLite history ($N \ge 3$) and uses first-order syntactic anti-unification to synthesize canonical `(defmacro ...)` procedures, turning conscious reasoning into compiled muscle memory.
@@ -91,7 +91,7 @@ Lucca executes completely offline on native workstation silicon with **zero clou
 
 | Compute Hardware | Physical Specification | Workload Assignment |
 | :--- | :--- | :--- |
-| **dGPU** | NVIDIA GeForce RTX 5080 Laptop (16 GB GDDR7, Blackwell `sm_120`) | **llama-server.exe**: Mistral NeMo 12B Q6_K, 16K context, Q8_0 KV cache, Flash Attention ($\le 12.5\text{ GB}$ clamp). |
+| **dGPU** | NVIDIA GeForce RTX 5080 Laptop (16 GB GDDR7, Blackwell `sm_120`) | **llama-server.exe**: Gemma-4 12B Q6_K, 16K context, Q8_0 KV cache, Flash Attention ($\le 12.5\text{ GB}$ clamp). |
 | **NPU** | Intel AI Boost NPU (Arrow Lake-HX via OpenVINO native Windows) | **Embeddings**: 384-D vector embeddings (`all-MiniLM-L6-v2` via OpenVINO). |
 | **dGPU** _(audio)_ | _(shared with LLM above)_ | **ASR**: `distil-small.en` via faster-whisper (CUDA float16, +555 MiB VRAM). **TTS**: Kokoro-82M ONNX on CPU. **VAD**: Silero on CPU. |
 | **CPU** | Intel Core Ultra 9 275HX (24 cores / 32 threads) | **Core Orchestrator & Reasoning**: ZeroMQ IPC bus, MicroScheme LISP engine, Z3 SMT prover, SQLite WAL + `sqlite-vec` + FTS5, Docker RPC. |
@@ -111,7 +111,7 @@ All measurements were obtained directly from live execution on native workstatio
 | **Joint Audio-Tool Turnaround** | Complete turn: VAD $\to$ ASR $\to$ LLM $\to$ Tool $\to$ Synth $\to$ TTS | **$1,613.54\,\text{ms}$ P50** | **Verified** |
 | **Speculative BDI Validation** | Pre-dispatch deontic policy check on candidate tool calls | **$2.9\text{--}32.0\,\mu\text{s}$** (Budget: $\le 200\,\mu\text{s}$) | **Verified** |
 | **Output Supervisor Clause Detection** | Streaming DFA regex classification (P50: $6.4\\,\\mu\\text{s}$) + WASAPI audio drain | **$6.4\\,\\mu\\text{s}$** regex P50; **$20\\text{--}50\\,\\text{ms}$** physical audio abort | **Verified** |
-| **Prefix KV-Cache Optimization** | Prompt Frontier Suffix on NeMo 12B (RTX 5080) | **$8.58\times$ faster** ($46.84\,\text{ms}$ vs $402.05\,\text{ms}$) | **Verified** |
+| **Prefix KV-Cache Optimization** | Prompt Frontier Suffix on Gemma-4 12B (RTX 5080) | **$8.58\times$ faster** ($46.84\,\text{ms}$ vs $402.05\,\text{ms}$) | **Verified** |
 | **Epistemic Abstention Accuracy**| 25-question confabulation test battery | **$0 / 25$ hallucinations (100% adherence)** | **Verified** |
 | **Z3 SMT Verification Time** | Automated SAT, contingency, and path proofs; unmodeled predicates fail closed (`UNMODELED_PREDICATE`) | **$\le 25\,\text{ms}$** (Budget: $\le 500\,\text{ms}$) | **Verified** |
 | **Frozen Packaging Acceptance** | `Lucca.exe --check` 7-point native hardware audit | **$7 / 7$ criteria PASSED (code 0)** | **Verified** |
@@ -170,8 +170,8 @@ The repository adheres to strict truth-in-documentation governance (`docs/README
 | [`docs/README.md`](./docs/README.md) | **Governance & Documentation Master Index**: Three-tier documentation lifecycle and full roadmap status. |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | **Master System Architecture**: Process topology, IPC, MicroScheme runtime, memory, sandbox, and packaging hierarchy. |
 | [`docs/DECISIONS.md`](./docs/DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-PKG-01`). |
-| [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) | **Neural Model Strategy**: Mistral NeMo 12B Q6_K abliterated deployment, VRAM clamp, and KV-cache architecture. |
-| [`docs/IMPLEMENTATION_WALKTHROUGH.md`](./docs/IMPLEMENTATION_WALKTHROUGH.md) | **Complete Engineering Walkthrough**: Chronological logs for Milestones 1–7 with raw silicon scorecards. |
+| [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) | **Neural Model Strategy**: Gemma-4 12B Heretic Q6_K abliterated deployment, VRAM clamp, and KV-cache architecture. |
+| [`docs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md`](./docs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md) | **Archived Engineering Walkthrough**: Chronological logs for Milestones 1–7 with raw silicon scorecards (archived per WO-14). |
 | [`docs/NEUROSYMBOLIC_RESEARCH_PAPER.md`](./docs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"*. |
 | [`docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | **Capability Status Map**: Exhaustive classification of all system capabilities against verified reality. |
 | [`docs/archive/`](./docs/archive/) | **Historical Archives**: Deprecated pre-audit specs, earlier exploratory notes, and legacy drafts. |
