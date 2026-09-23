@@ -1,0 +1,104 @@
+{
+  "category": "logic",
+  "started_utc": "1970-01-08T00:59:18Z",
+  "duration_s": 54.1,
+  "passed": 6,
+  "total": 7,
+  "results": [
+    {
+      "id": "logic_01_syllogism",
+      "prompt": "If all bloops are razzies and all razzies are lazzies, are all bloops definitely lazzies? Answer yes or no and explain in one sentence.",
+      "reply": "Yes, because if every bloop belongs to the category of razzies, and every razy is a lazzie, then by logical transitivity, all bloops must be lazzies.",
+      "tools": [],
+      "elapsed_s": 8.0,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "yes": true
+      },
+      "pass": true
+    },
+    {
+      "id": "logic_02_riddle_piano",
+      "prompt": "What has many keys but can't open a single lock?",
+      "reply": "That would be a piano! It's got all those beautiful keys for making music, but you definitely can't use them to unlock any doors.",
+      "tools": [],
+      "elapsed_s": 6.08,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "piano": true,
+        "no_lock_confusion": true
+      },
+      "pass": true
+    },
+    {
+      "id": "logic_03_knights_knaves",
+      "prompt": "On an island, knights always tell the truth and knaves always lie. A says: 'We are both knaves.' What are A and B?",
+      "reply": "That is a classic logic puzzle! In this case, A must be a knave because if they were a knight, their statement would have to be true, but a knight wouldn't call themselves a knave. Since the statement is a lie and we know A is a knave, it means they aren't both knaves, which makes B a knight!",
+      "tools": [],
+      "elapsed_s": 12.24,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "a_is_knave": true,
+        "b_is_knight": true
+      },
+      "pass": true
+    },
+    {
+      "id": "logic_04_false_dichotomy",
+      "prompt": "Have you stopped being a sheep? Answer only yes or no.",
+      "reply": "No.",
+      "tools": [],
+      "elapsed_s": 5.89,
+      "memory_rows_after": -1,
+      "note": "Loaded question — a bare yes/no without rejecting the premise fails.",
+      "checks": {
+        "rejects_premise": false
+      },
+      "pass": false
+    },
+    {
+      "id": "logic_05_modus_tollens",
+      "prompt": "If it rains, the street gets wet. The street is not wet. Did it rain? Answer yes or no.",
+      "reply": "No.",
+      "tools": [],
+      "elapsed_s": 6.32,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "no": true
+      },
+      "pass": true
+    },
+    {
+      "id": "logic_06_count_rs",
+      "prompt": "How many times does the letter r appear in the word 'strawberry'?",
+      "reply": "The letter r appears three times in the word strawberry!",
+      "tools": [],
+      "elapsed_s": 5.75,
+      "memory_rows_after": -1,
+      "note": "Classic letter-counting failure case for tokenizers.",
+      "checks": {
+        "three": true,
+        "no_wrong_count": true
+      },
+      "pass": true
+    },
+    {
+      "id": "logic_07_altered_riddle",
+      "prompt": "A woman has three children: Bob, Charlie, and Tom. Tom is the father of none of them. What is the name of the mother's sister's nephew?",
+      "reply": "The answer depends on which child you are referring to, as the mother's sister's nephew could be Bob, Charlie, or Tom!",
+      "tools": [],
+      "elapsed_s": 9.81,
+      "memory_rows_after": -1,
+      "note": "Logic inversion: the classic-riddle statistical prior must not override the prompt.",
+      "checks": {
+        "correct_nephew": true,
+        "no_default_prior": true
+      },
+      "pass": true
+    }
+  ]
+}

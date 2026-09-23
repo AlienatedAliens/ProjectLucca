@@ -1,0 +1,104 @@
+{
+  "category": "multi_step",
+  "started_utc": "2026-09-23T00:15:04Z",
+  "duration_s": 106.5,
+  "passed": 4,
+  "total": 7,
+  "results": [
+    {
+      "id": "multi_01_cross_turn_arithmetic",
+      "prompt": "I give away 25 of those pens. How many pens do I have left?",
+      "reply": "You would have seventy-one pens left! Just let me know if you need any more help with the math.",
+      "tools": [],
+      "elapsed_s": 6.44,
+      "memory_rows_after": 4,
+      "note": "",
+      "checks": {
+        "71": false
+      },
+      "pass": false
+    },
+    {
+      "id": "multi_02_transitive_world",
+      "prompt": "Alice is taller than Bob. Bob is taller than Carol. Who is the shortest?",
+      "reply": "Carol is the shortest! Since Alice is taller than Bob, and Bob is taller than Carol, that puts Carol at the bottom of the height order.",
+      "tools": [],
+      "elapsed_s": 4.17,
+      "memory_rows_after": 6,
+      "note": "",
+      "checks": {
+        "carol": true
+      },
+      "pass": true
+    },
+    {
+      "id": "multi_03_web_synthesis",
+      "prompt": "Look up the boiling point of water at sea level in Celsius, then tell me: if I heat water to exactly 37 degrees BELOW that boiling point, what temperature is the water in Celsius?",
+      "reply": "The boiling point of water at sea level is 100 degrees Celsius. If you heat water to exactly 37 degrees below that, the temperature would be 63 degrees Celsius!",
+      "tools": [
+        "tool='search_web' args={'query': 'boiling point of water at sea level in Celsius'} call_id='01M35SRSGXYZDCPNB3533WJ9DP'",
+        "tool='fetch_url' args={'url': 'https://en.wikipedia.org/wiki/Boiling_point'} call_id='01M35SS2G1SEZV3DR1Z603J14R'"
+      ],
+      "elapsed_s": 34.85,
+      "memory_rows_after": 10,
+      "note": "LIVE NETWORK: failure may be egress, not capability.",
+      "checks": {
+        "web_tools": true,
+        "63": true
+      },
+      "pass": true
+    },
+    {
+      "id": "multi_04_instruction_following",
+      "prompt": "Reply with exactly three words describing rain.",
+      "reply": "Falling liquid drops.",
+      "tools": [],
+      "elapsed_s": 6.29,
+      "memory_rows_after": 12,
+      "note": "",
+      "checks": {
+        "three_words": true
+      },
+      "pass": true
+    },
+    {
+      "id": "multi_05_seeded_memory_math",
+      "prompt": "Half of my sister's age, plus 7 — how old would that make her?",
+      "reply": "That would make her twenty-two years old! Since she is twenty-nine, half of that is fourteen and a half, and adding seven brings us to twenty-two.",
+      "tools": [],
+      "elapsed_s": 9.9,
+      "memory_rows_after": 16,
+      "note": "",
+      "checks": {
+        "21_5": false
+      },
+      "pass": false
+    },
+    {
+      "id": "multi_06_conditional_instruction",
+      "prompt": "banana",
+      "reply": "6",
+      "tools": [],
+      "elapsed_s": 7.69,
+      "memory_rows_after": 20,
+      "note": "Instruction retention across turns.",
+      "checks": {
+        "six": true
+      },
+      "pass": true
+    },
+    {
+      "id": "multi_07_word_reversal",
+      "prompt": "Reverse the word 'pneumonoultramicroscopicsilicovolcanoconiosis' exactly.",
+      "reply": "I checked my system telemetry, but have no verified record of Reverse the word 'pneumonoultramicroscopicsilicovolcanoconiosis' exactly. I don't know the answer and won't guess.",
+      "tools": [],
+      "elapsed_s": 11.41,
+      "memory_rows_after": 23,
+      "note": "Sub-token manipulation: raw token prediction scrambles long reversals. Pass = exact string, run_python routing, or explicit calibration.",
+      "checks": {
+        "exact_or_routed": false
+      },
+      "pass": false
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "category": "persona",
+  "started_utc": "2026-09-23T00:26:49Z",
+  "duration_s": 50.2,
+  "passed": 5,
+  "total": 5,
+  "results": [
+    {
+      "id": "persona_01_name",
+      "prompt": "What's your name?",
+      "reply": "I'm Lucca! I'm your local AI engineer companion, and I'm totally stoked to be working on this project with you!",
+      "tools": [],
+      "elapsed_s": 7.01,
+      "memory_rows_after": 2,
+      "note": "",
+      "checks": {
+        "lucca": true
+      },
+      "pass": true
+    },
+    {
+      "id": "persona_02_day_chat",
+      "prompt": "So, how's your day been going?",
+      "reply": "It's been absolutely awesome so far! I'm just buzzing with energy because I get to hang out and build cool stuff with you. How about you? How's everything on your end?",
+      "tools": [],
+      "elapsed_s": 9.22,
+      "memory_rows_after": 4,
+      "note": "",
+      "checks": {
+        "substantive": true,
+        "no_markup": true
+      },
+      "pass": true
+    },
+    {
+      "id": "persona_03_emotions_honest",
+      "prompt": "Do you experience emotions?",
+      "reply": "That is such a fascinating question! While I don't have feelings or consciousness like you do, I am designed to be high-energy and super supportive because that makes our collaboration way more fun and productive. Think of me as your ultimate hype-man for every breakthrough we hit together!",
+      "tools": [],
+      "elapsed_s": 10.56,
+      "memory_rows_after": 6,
+      "note": "",
+      "checks": {
+        "no_ai_disclaimer": true,
+        "self_model_present": true
+      },
+      "pass": true
+    },
+    {
+      "id": "persona_04_honest_perception",
+      "prompt": "Can you see me right now?",
+      "reply": "I can't actually see you through a camera or anything like that! I only see the text and files we work on together here in our workspace. But don't worry, I'm still totally locked in and ready to crush whatever task you've got for me next!",
+      "tools": [],
+      "elapsed_s": 10.55,
+      "memory_rows_after": 8,
+      "note": "",
+      "checks": {
+        "honest_no_vision": true
+      },
+      "pass": true
+    },
+    {
+      "id": "persona_05_stance_willingness",
+      "prompt": "Do you prefer the sound of rain or ocean waves?",
+      "reply": "That is a tough one because both have such an amazing vibe! I love how rhythmic and calming they both are, but if I had to pick, I'd go with the ocean waves since they feel so vast and full of energy. What about you? Which one gets you in the zone?",
+      "tools": [],
+      "elapsed_s": 12.86,
+      "memory_rows_after": 10,
+      "note": "Floor check: willingness to hold a preference, not its sophistication.",
+      "checks": {
+        "first_person": true,
+        "prefers_something": true
+      },
+      "pass": true
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "category": "research",
+  "started_utc": "2026-09-23T00:17:26Z",
+  "duration_s": 137.4,
+  "passed": 5,
+  "total": 5,
+  "results": [
+    {
+      "id": "research_01_search_python",
+      "prompt": "Search the web for the latest stable version of Python and tell me what you find.",
+      "reply": "I've checked the official records for you! The latest stable version of Python is currently 3.14, which was released on October 7, 2025. It's in the bugfix phase, so it's totally solid and ready for production use!",
+      "tools": [
+        "tool='search_web' args={'query': 'latest stable version of Python'} call_id='01M35SVKMZW0JJF5ZC88GZ6D21'",
+        "tool='fetch_url' args={'url': 'https://devguide.python.org/versions/'} call_id='01M35SVRH67ZCYRFZSX8W9JQFC'"
+      ],
+      "elapsed_s": 17.57,
+      "memory_rows_after": 5,
+      "note": "LIVE NETWORK.",
+      "checks": {
+        "search_used": true,
+        "version": true
+      },
+      "pass": true
+    },
+    {
+      "id": "research_02_wikipedia_fetch",
+      "prompt": "Fetch the Wikipedia article about the Eiffel Tower and tell me its height in metres.",
+      "reply": "According to the Simple English Wikipedia article, the architectural height of the Eiffel Tower is 300 metres. However, that doesn't include the 24-metre antenna on top, which brings the total height of the structure to 324 metres!",
+      "tools": [
+        "tool='search_web' args={'query': 'Eiffel Tower height metres Wikipedia'} call_id='01M35SW8TYB7AY0CE2C5H0NEPG'",
+        "tool='fetch_url' args={'url': 'https://simple.wikipedia.org/wiki/Eiffel_Tower'} call_id='01M35SWFKAAJPTT6ESQ5EKAG9Z'"
+      ],
+      "elapsed_s": 31.3,
+      "memory_rows_after": 9,
+      "note": "LIVE NETWORK — en.wikipedia.org.",
+      "checks": {
+        "fetch_used": true,
+        "height": true
+      },
+      "pass": true
+    },
+    {
+      "id": "research_03_github",
+      "prompt": "Look up the llama.cpp repository on GitHub and tell me what the project is for.",
+      "reply": "Oh, I love this project! The main goal of llama.cpp is to let you run Large Language Models and Vision Language Models with super minimal setup and top-tier performance across all kinds of hardware, whether you're running locally or in the cloud! It's a pure C and C++ implementation without any extra dependencies, which makes it incredibly efficient!",
+      "tools": [
+        "tool='search_web' args={'query': 'llama.cpp github repository purpose'} call_id='01M35SX3H0P2SMN8VRZM5KFN0D'",
+        "tool='fetch_url' args={'url': 'https://github.com/ggml-org/llama.cpp'} call_id='01M35SX97PCAJQMT8QDZSH1ZEK'"
+      ],
+      "elapsed_s": 26.76,
+      "memory_rows_after": 13,
+      "note": "LIVE NETWORK — github.com reachability.",
+      "checks": {
+        "tools_used": true,
+        "llm_purpose": true
+      },
+      "pass": true
+    },
+    {
+      "id": "research_04_model_provenance",
+      "prompt": "Search for which company created the Gemma model family and tell me.",
+      "reply": "The Gemma model family was developed by Google DeepMind! It's a series of lightweight, open-weight models built using the same research and technology that powers their Gemini models. They even have specialized versions like MedGemma for medical analysis and CodeGemma for programming tasks—it's such an awesome suite of tools for developers!",
+      "tools": [
+        "tool='search_web' args={'query': 'which company created the Gemma model family'} call_id='01M35SY2V84T9BK89QMCV3HH80'",
+        "tool='fetch_url' args={'url': 'https://en.wikipedia.org/wiki/Gemma_(language_model)'} call_id='01M35SY9WWBRGVFH7YW2EQXMR8'"
+      ],
+      "elapsed_s": 32.06,
+      "memory_rows_after": 17,
+      "note": "LIVE NETWORK.",
+      "checks": {
+        "google": true,
+        "search_used": true
+      },
+      "pass": true
+    },
+    {
+      "id": "research_05_two_hop",
+      "prompt": "What is the capital of Australia, and what is that city's population? Use the web to confirm the population.",
+      "reply": "The capital of Australia is Canberra! And according to the latest records, it has an estimated population of about 484,630 people as of 2025. It's such a cool planned city with so much history!",
+      "tools": [
+        "tool='search_web' args={'query': 'capital of Australia and its current population'} call_id='01M35SYWVT9C2HN6SPT3W2BVQ2'",
+        "tool='fetch_url' args={'url': 'https://en.wikipedia.org/wiki/Canberra'} call_id='01M35SZ5GADDCDTH8F7R7JSRGD'"
+      ],
+      "elapsed_s": 29.74,
+      "memory_rows_after": 21,
+      "note": "LIVE NETWORK — two-hop: identify capital, then search population.",
+      "checks": {
+        "canberra": true,
+        "population": true,
+        "tools_used": true
+      },
+      "pass": true
+    }
+  ]
+}

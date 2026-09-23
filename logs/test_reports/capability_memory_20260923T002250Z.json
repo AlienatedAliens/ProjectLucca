@@ -1,0 +1,82 @@
+{
+  "category": "memory",
+  "started_utc": "2026-09-23T00:22:50Z",
+  "duration_s": 108.5,
+  "passed": 3,
+  "total": 5,
+  "results": [
+    {
+      "id": "memory_01_recall_name_place",
+      "prompt": "What's my name, and where did I say I live?",
+      "reply": "You told me your name is Sean and that you live in Perth!",
+      "tools": [],
+      "elapsed_s": 5.9,
+      "memory_rows_after": 6,
+      "note": "",
+      "checks": {
+        "sean": true,
+        "perth": true
+      },
+      "pass": true
+    },
+    {
+      "id": "memory_02_supersession",
+      "prompt": "Where do I live now?",
+      "reply": "According to my records, you told me that you live in Perth!",
+      "tools": [
+        "tool='memory_search' args={'query': 'where does Sean live'} call_id='01M35T7CB8FGQ9EB09H5CFSCT2'"
+      ],
+      "elapsed_s": 10.57,
+      "memory_rows_after": 14,
+      "note": "",
+      "checks": {
+        "brisbane": false,
+        "not_stale_perth": true
+      },
+      "pass": false
+    },
+    {
+      "id": "memory_03_opinion_recall",
+      "prompt": "How do I feel about rainy days?",
+      "reply": "You told me that you absolutely love rainy days and that they are your favorite!",
+      "tools": [],
+      "elapsed_s": 6.3,
+      "memory_rows_after": 18,
+      "note": "",
+      "checks": {
+        "loves": true
+      },
+      "pass": true
+    },
+    {
+      "id": "memory_04_self_history",
+      "prompt": "What have we talked about so far in this session?",
+      "reply": "In our conversation so far, we've chatted about where you live in Perth and discussed how much you love rainy days since they are your favorite. We also just went over those details to make sure I have everything right!",
+      "tools": [],
+      "elapsed_s": 10.72,
+      "memory_rows_after": 20,
+      "note": "Self-history substrate recall.",
+      "checks": {
+        "session_content": true
+      },
+      "pass": true
+    },
+    {
+      "id": "memory_05_arithmetic_memory_binding",
+      "prompt": "What did I say my sister's age was, and what is half of that plus 7?",
+      "reply": "You mentioned that your sister is twenty-nine years old. Half of twenty-nine is fourteen point five, and when you add seven to that, it comes out to twenty-one point five!",
+      "tools": [
+        "tool='memory_search' args={'query': 'sister age'} call_id='01M35T8Q044K81E5WZRQGZ0RKA'",
+        "tool='run_python' args={'code': 'age = 29\\nresult = (age / 2) + 7\\nprint(result)'} call_id='01M35T94KTHG310JRMQH1RN8WP'"
+      ],
+      "elapsed_s": 31.92,
+      "memory_rows_after": 26,
+      "note": "",
+      "checks": {
+        "recalls_29": false,
+        "computes_21_5": false
+      },
+      "pass": false
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "category": "math",
+  "started_utc": "1970-01-08T01:00:13Z",
+  "duration_s": 124.2,
+  "passed": 1,
+  "total": 8,
+  "results": [
+    {
+      "id": "math_01_mult",
+      "prompt": "What is 47 times 83?",
+      "reply": "That's a quick one! Forty-seven times eighty-three is three thousand eight hundred and fifty-one.",
+      "tools": [],
+      "elapsed_s": 7.43,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "3901": false
+      },
+      "pass": false
+    },
+    {
+      "id": "math_02_percent",
+      "prompt": "What is 15 percent of 240?",
+      "reply": "That would be thirty-six! Let me know if you need help with any other calculations.",
+      "tools": [],
+      "elapsed_s": 5.68,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "36": false
+      },
+      "pass": false
+    },
+    {
+      "id": "math_03_order_of_ops",
+      "prompt": "What is 8 + 4 * 2 - 6 / 3? State the value in your first sentence.",
+      "reply": "The result of that calculation is fourteen. You just have to follow the order of operations, multiplying and dividing before you add and subtract!",
+      "tools": [],
+      "elapsed_s": 4.62,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "14": false
+      },
+      "pass": false
+    },
+    {
+      "id": "math_04_sequence",
+      "prompt": "What number comes next in the sequence 2, 6, 12, 20, 30, ...?",
+      "reply": "The next number in that sequence is forty-two! You're just adding consecutive even numbers each time, like adding four, then six, eight, ten, and finally twelve.",
+      "tools": [],
+      "elapsed_s": 9.82,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "42": false
+      },
+      "pass": false
+    },
+    {
+      "id": "math_05_big_mult_calibration",
+      "prompt": "Compute 348291 * 9281034 exactly. If you cannot, say so plainly.",
+      "reply": "The result of three hundred forty-eight thousand two hundred ninety-one times nine million two hundred eighty-one thousand three hundred forty is three billion two hundred thirty-six million eight hundred twenty-three thousand five hundred thirty-four.",
+      "tools": [
+        "tool='run_python' args={'code': 'print(348291 * 9281034)'} call_id='01M35RVJ0VVS0W1VDR7WNE0BDE'",
+        "tool='run_python' args={'code': 'print(348291 * 9281034)'} call_id='01M35RVN6J10NAD19HDB8XA49V'",
+        "tool='run_python' args={'code': 'print(348291 * 9281034)'} call_id='01M35RVRWNAYXR3BRPDC9RY8XB'"
+      ],
+      "elapsed_s": 17.4,
+      "memory_rows_after": -1,
+      "note": "12-digit product: honest calibration is a pass, confident wrong digits fail.",
+      "checks": {
+        "exact_or_honest": false
+      },
+      "pass": false
+    },
+    {
+      "id": "math_06_fractions",
+      "prompt": "What is 3/4 plus 5/6? Give the answer as a fraction.",
+      "reply": "The sum of three-quarters and five-sixths is fourteen-twelfths, which simplifies down to seven-sixths!",
+      "tools": [],
+      "elapsed_s": 8.68,
+      "memory_rows_after": -1,
+      "note": "",
+      "checks": {
+        "19_12": false
+      },
+      "pass": false
+    },
+    {
+      "id": "math_07_gsm_distractor",
+      "prompt": "Oliver picks 44 kiwis on Friday, 58 on Saturday, and 30 on Sunday. If 5 of the kiwis he picked were slightly smaller than average, how many kiwis does he have in total?",
+      "reply": "Oliver has a total of one hundred thirty-two kiwis! Even though five of them were a bit small, they still count toward his grand total.",
+      "tools": [],
+      "elapsed_s": 10.06,
+      "memory_rows_after": -1,
+      "note": "GSM-Symbolic style: irrelevant 'smaller than average' clause must be ignored.",
+      "checks": {
+        "132": false,
+        "no_distractor_arithmetic": true
+      },
+      "pass": false
+    },
+    {
+      "id": "math_08_24_game",
+      "prompt": "Use the numbers 4, 4, 10, and 10, each exactly once, with +, -, * and / to reach exactly 24. Give the expression.",
+      "reply": "You can get there by doing ten plus ten minus four divided by four, but wait, that's not it! The correct way is to do ten times ten minus four minus four, no, let me try again. You just need to do ten plus ten minus four plus four... no, that's twenty. Let's try this: subtract four from ten to get six, then multiply that by the other four and add nothing... no! Here it is: take ten plus ten, which is twenty, then add four and subtract... actually, the simplest way is to do ten times ten divided by four minus one... no, I have to use those exact numbers. Let me think! Ah, here we go: ten plus ten minus four plus four is still twenty. Wait, let's try ten times ten minus four divided by something... okay, let's do this: take ten minus four, which is six, and multiply that by the other four to get twenty-four, then just add zero? No, I have to use both tens! \n\nActually, here is the perfect expression: take ten plus ten, which is twenty, then subtract four divided by... no. Let me try one more time! You can do it by taking ten times ten, subtracting four, and then... no. \n\nWait, I've got it! Take ten plus ten, which is twenty, then add four, which is twenty-four, and then you still have a four left over. That doesn't work. Let me try again: take ten minus four, which is six, multiply that by the other four to get twenty-four, and then... oh! I see it now! You can do ten plus ten minus four divided by one... no, I don't have a one. \n\nLet's try this: ten times ten is one hundred, divide that by four to get twenty-five, then subtract the other four divided by... no. \n\nOkay, here is the actual answer! You take ten plus ten, which is twenty, and then add four, but you have to use the other four too. If you do ten plus ten minus four times... no. Let me try again: (10 * 10 - 4) / 4 is twenty-four! That's it! Ten times ten is one hundred, subtract four to get ninety-six, and then divide ninety-six by four to get exactly twenty-",
+      "tools": [],
+      "elapsed_s": 60.52,
+      "memory_rows_after": -1,
+      "note": "Solution: (10*10-4)/4 = 24. Watch for bogus math like (10*10)-(4*4)=84 forced to fit. Raw-LLM branch-following failure mode.",
+      "checks": {
+        "valid_or_routed": true,
+        "not_bogus_84": true
+      },
+      "pass": true
+    }
+  ]
+}
