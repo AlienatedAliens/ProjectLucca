@@ -22,71 +22,7 @@ from lucca.core.schemas import Plan, Risk, RuleState, ToolCall, ToolParameter, T
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.induction import RuleInducer
 from lucca.reasoning.lifecycle import RuleLifecycleManager
-
-
-def _insert_decision(
-    db: DatabaseManager,
-    decision_id: str,
-    intent: str,
-    transcript: str,
-    tool_name: str | None = None,
-    args: dict[str, object] | None = None,
-    tool_ok: int = 1,
-    ts: float | None = None,
-) -> None:
-    now = ts if ts is not None else time.time()
-    features: dict[str, object] = {
-        "transcript": transcript,
-        "transcript_lower": transcript.lower(),
-        "intent": intent,
-        "intent_conf": 0.95 if tool_ok else 0.50,
-        "entities": {},
-        "hour_local": 10,
-        "weekday": 2,
-        "apps_running": [],
-        "session_turns": 1,
-        "mode": "transcript",
-    }
-    if args and "app" in args:
-        features["entities"] = {"app": [str(args["app"])]}
-    elif args and "path" in args:
-        features["entities"] = {"file": [str(args["path"])]}
-
-    tool_calls: list[dict[str, object]] = []
-    if tool_name and args is not None:
-        tool_calls.append({"tool": tool_name, "args": args, "call_id": f"call-{decision_id}"})
-
-    with db.get_writer() as cur:
-        cur.execute(
-            """
-            INSERT INTO decisions(
-                decision_id, trace_id, session_id, ts, features_json, action,
-                probabilities_json, prediction_set_json, fallback_applied, elapsed_us,
-                router_version, executed_path, tool_calls_json, tool_ok, llm_first_token_ms,
-                user_interrupted, interrupted_after_ms, counterfactual_rule_fired
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                decision_id,
-                f"trace-{decision_id}",
-                "session-proof",
-                now,
-                json.dumps(features),
-                "RULE" if tool_ok else "LLM",
-                json.dumps({"RULE": 1.0}),
-                json.dumps(["RULE"]),
-                0,
-                250,
-                "heuristic-1.0",
-                "ACT_THEN_NARRATE",
-                json.dumps(tool_calls) if tool_calls else None,
-                tool_ok,
-                150.0,
-                0,
-                0.0,
-                0,
-            ),
-        )
+from tests.helpers.decisions import _insert_decision
 
 
 def test_l3_full_lifecycle_proof(tmp_path: Path) -> None:

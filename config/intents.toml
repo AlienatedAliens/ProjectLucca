@@ -20,3 +20,9 @@ verbs = ["remember", "recall", "what is my", "who is my", "where do i", "do you 
 
 [intents.chit_chat]
 verbs = ["hello", "hi", "hey", "how are you", "what's up", "thank you", "thanks", "good morning", "good afternoon", "good night"]
+
+[router]
+confidence_threshold = 0.60
+conformal_alpha = 0.10
+conformal_min_samples = 30
+

@@ -127,3 +127,73 @@ Verbatim Output:
 ```
 
 ---
+
+## Phase 2 — Real calibration and production wiring
+
+### 2.1 Milestone Checks (Verbatim)
+
+Command:
+```
+git grep -n "conformal_guard=" -- src/
+```
+
+Verbatim Output:
+```
+src/lucca/core/orchestrator.py:327:                conformal_guard=guard,
+```
+
+Command:
+```
+git grep -n "fit_guard_from_db" -- src/
+```
+
+Verbatim Output:
+```
+src/lucca/core/orchestrator.py:102:from lucca.router.calibration import fit_guard_from_db
+src/lucca/core/orchestrator.py:322:            guard = fit_guard_from_db(self.db) if self.db is not None else None
+src/lucca/router/calibration.py:106:def fit_guard_from_db(
+```
+
+Command:
+```
+git grep -n "_insert_decision" -- tests/
+```
+
+Verbatim Output:
+```
+tests/helpers/decisions.py:17:def _insert_decision(
+tests/test_l3_lifecycle_proof.py:25:from tests.helpers.decisions import _insert_decision
+tests/test_l3_lifecycle_proof.py:67:        _insert_decision(
+tests/test_l3_lifecycle_proof.py:80:        _insert_decision(
+tests/test_router_calibration.py:16:from tests.helpers.decisions import _insert_decision
+tests/test_router_calibration.py:34:        _insert_decision(
+tests/test_router_calibration.py:52:        _insert_decision(
+tests/test_router_calibration.py:71:    _insert_decision(
+tests/test_router_calibration.py:90:        _insert_decision(
+tests/test_router_calibration.py:106:    _insert_decision(
+tests/test_router_calibration.py:142:        _insert_decision(
+tests/test_router_calibration.py:154:        _insert_decision(
+tests/test_router_calibration.py:165:        _insert_decision(
+```
+
+Command:
+```
+cmd /c "uv run mypy src/lucca/router/calibration.py src/lucca/router/heuristic.py 2>&1 | findstr /C:router\""
+```
+
+Verbatim Output:
+*(Empty output — exit code 1)*
+
+Command:
+```
+uv run python -m pytest tests/test_router_calibration.py tests/test_router.py -q
+```
+
+Verbatim Output:
+```
+.........................                                                [100%]
+25 passed, 1 deselected in 1.96s
+```
+
+---
+

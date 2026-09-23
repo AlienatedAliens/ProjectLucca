@@ -99,6 +99,7 @@ from lucca.memory.signers import (
 from lucca.ports import MemoryStorePort, STTPort, TTSPort
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_plan, evaluate_rule
+from lucca.router.calibration import fit_guard_from_db
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.output_supervisor import OutputSupervisorSession
@@ -317,7 +318,19 @@ class Orchestrator:
             self.router = router
         else:
             log_path = self.config.home_dir / "logs" / "decisions.jsonl"
-            self.router = HeuristicRouter(db=self.db, log_path=log_path)
+            intents_cfg = self.config.resolve_path("config/intents.toml")
+            guard = fit_guard_from_db(self.db) if self.db is not None else None
+            self.router = HeuristicRouter(
+                db=self.db,
+                log_path=log_path,
+                config_path=intents_cfg if intents_cfg.exists() else None,
+                conformal_guard=guard,
+            )
+            logger.info(
+                "router_constructed",
+                conformal_fitted=guard is not None and guard.q_hat is not None,
+                q_hat=None if guard is None else guard.q_hat,
+            )
 
         self.prev_decision_record: DecisionRecord | None = None
         self.prev_turn_ts: float | None = None

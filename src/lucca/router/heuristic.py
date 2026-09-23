@@ -120,6 +120,8 @@ class HeuristicRouter:
         self.db = db
         self.conformal_guard = conformal_guard
         self.confidence_threshold = confidence_threshold
+        self.conformal_alpha: float = 0.10
+        self.conformal_min_samples: int = 30
         self.known_apps = set(DEFAULT_KNOWN_APPS)
         self.stop_words_after_start = set(DEFAULT_STOP_WORDS_AFTER_START)
         self.last_decision_record: DecisionRecord | None = None
@@ -149,8 +151,12 @@ class HeuristicRouter:
             router_cfg = data.get("router", {})
             if "confidence_threshold" in router_cfg:
                 self.confidence_threshold = float(router_cfg["confidence_threshold"])
-        except (OSError, tomllib.TOMLDecodeError, ValueError):
-            pass
+            if "conformal_alpha" in router_cfg:
+                self.conformal_alpha = float(router_cfg["conformal_alpha"])
+            if "conformal_min_samples" in router_cfg:
+                self.conformal_min_samples = int(router_cfg["conformal_min_samples"])
+        except (OSError, tomllib.TOMLDecodeError, ValueError) as exc:
+            logger.debug("intents_config_load_failed", path=str(path), error=str(exc))
 
     def classify_intent(self, transcript: str) -> tuple[str, float, dict[str, list[str]]]:
         """
