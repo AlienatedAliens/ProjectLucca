@@ -38,21 +38,19 @@ from pydantic import JsonValue
 from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
 from lucca.brain.llm_client import LLMClient
 from lucca.brain.prompt_builder import (
-    build_narration_messages,
     get_all_tool_definitions,
     set_persona,
 )
 from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.capabilities import dispatch_invoke_skill
-from lucca.core.cascade import EpistemicSearchCascade, EpistemicSubstrate
+from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.coherence import (
     ToolReceipt,
     detect_promised_action_claims,
     detect_ungrounded_action_claims,
 )
 from lucca.core.config import get_config, load_heuristics
-from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.ipc_schemas import (
     Envelope,
     PlayAbortPayload,
@@ -87,6 +85,7 @@ from lucca.core.schemas import (
     UnsignedPayload,
 )
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
+from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
@@ -120,56 +119,13 @@ TurnState = Literal[
     "idle", "listening", "thinking", "speaking", "confirm_wait", "postturn", "degraded", "offline"
 ]
 
-
-def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
-    """
-    Detects single-letter spelling sequences (hyphenated 'F-A-W-K-N-E-R', period-separated
-    'F. A. W. K. N. E. R.', or space-separated single letters 'F A W K N E R') from ASR output,
-    assembles them into title-cased words, and returns (normalized_transcript, detected_words).
-    """
-    detected_words: list[str] = []
-
-    # 1. Period-separated letters (e.g. F. A. W. K. N. E. R. or F.A.W.K.N.E.R.)
-    def replace_period(m: re.Match[str]) -> str:
-        raw = str(m.group(0))
-        letters = re.findall(r"[a-zA-Z]", raw)
-        if len(letters) >= 3:
-            w = str("".join(letters).capitalize())
-            detected_words.append(w)
-            return w
-        return raw
-
-    text = re.sub(r"\b[a-zA-Z]\.(?:\s*[a-zA-Z]\.){2,}", replace_period, transcript)
-
-    # 2. Hyphen-separated letters (e.g. F-A-W-K-N-E-R or F - A - W - K - N - E - R)
-    def replace_hyphen(m: re.Match[str]) -> str:
-        raw = str(m.group(0))
-        letters = re.findall(r"[a-zA-Z]", raw)
-        if len(letters) >= 3:
-            w = str("".join(letters).capitalize())
-            detected_words.append(w)
-            return w
-        return raw
-
-    text = re.sub(r"\b[a-zA-Z](?:\s*-\s*[a-zA-Z]){2,}\b", replace_hyphen, text)
-
-    # 3. Space-separated single letters (e.g. F A W K N E R or W K N E R)
-    def replace_spaces(m: re.Match[str]) -> str:
-        raw = str(m.group(1))
-        tokens = raw.split()
-        if len(tokens) >= 3 and all(len(t) == 1 and t.isalpha() for t in tokens):
-            w = str("".join(tokens).capitalize())
-            detected_words.append(w)
-            return w
-        return raw
-
-    text = re.sub(
-        r"(?:^|(?<=\s))([a-zA-Z](?:\s+[a-zA-Z]){2,})(?=\s|[.,!?]|$)",
-        replace_spaces,
-        text,
-    )
-
-    return text, list(dict.fromkeys(detected_words))
+__all__ = [
+    "Orchestrator",
+    "TurnInput",
+    "TurnPipeline",
+    "TurnState",
+    "normalize_spelled_words",
+]
 
 
 def _levenshtein_distance(s1: str, s2: str) -> int:
@@ -509,6 +465,19 @@ class Orchestrator:
         hb_thread.start()
 
         self._set_state("idle")
+
+    @property
+    def turn_pipeline(self) -> TurnPipeline:
+        """Pipeline instance executing unified conversational turn logic."""
+        pipe = getattr(self, "_turn_pipeline", None)
+        if pipe is None:
+            pipe = TurnPipeline(self)
+            self._turn_pipeline = pipe
+        return pipe
+
+    @turn_pipeline.setter
+    def turn_pipeline(self, pipeline: TurnPipeline) -> None:
+        self._turn_pipeline = pipeline
 
     def _set_state(self, new_state: TurnState, detail: str = "") -> None:
         self.state = new_state
@@ -2170,16 +2139,7 @@ class Orchestrator:
 
     def _reset_turn_state(self) -> None:
         """Reset per-turn state for sandbox, supervisor, flags, and tool tracking."""
-        self.sandbox.reset_turn()
-        self.output_supervisor.reset_turn()
-        self.play_ring.clear_flag(FLAG_ABORT)
-        self.play_ring.clear_flag(FLAG_EOS)
-        self.current_turn_tool_calls = []
-        self.current_turn_receipts = []
-        self.current_turn_tier = ExecutionTier.FULL_LOOP
-        self.current_turn_tool_spoken = []
-        self.current_turn_tool_ok = True
-        self._last_unspoken_tool_msg = None
+        self.turn_pipeline.reset_turn_state()
 
     def _execute_reflex(
         self,
@@ -2192,73 +2152,12 @@ class Orchestrator:
         Execute a REFLEX tier turn: run plan or built-in emergency reflex,
         emit triple, and finalize.
         """
-        try:
-            if winning_outcome and winning_outcome.plan:
-                tool_executions: list[str] = []
-                for action in winning_outcome.plan.actions:
-                    if isinstance(action, Say):
-                        self._speak_text(trace, action.text)
-                        self._publish_caption(
-                            action.text, source="assistant", is_final=True
-                        )
-                    elif isinstance(action, ToolCall):
-                        tool_res = self._handle_tool_call(
-                            trace, action.tool, dict(action.args), speak=True
-                        )
-                        status = (
-                            "ok"
-                            if (tool_res is None or getattr(tool_res, "ok", True))
-                            else "failed"
-                        )
-                        args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
-                        tool_executions.append(
-                            f"[Executed {action.tool}({args_str}) -> {status}]"
-                        )
-
-                self.rule_engine.emit_execution_triple(
-                    rule_id=winning_outcome.rule_id,
-                    plan=winning_outcome.plan,
-                    signal="tool_exit_zero",
-                    detail="REFLEX execution",
-                )
-
-                user_msg = user_text or "[Voice audio]"
-                spoken_msg = " ".join(
-                    a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
-                )
-                exec_details = " ".join(tool_executions)
-                assistant_msg = (
-                    f"{spoken_msg} {exec_details}".strip()
-                    if spoken_msg
-                    else (exec_details or f"[Rule executed: {winning_outcome.rule_id}]")
-                )
-                self.history.append({"role": "user", "content": user_msg})
-                self.history.append({"role": "assistant", "content": assistant_msg})
-                self.play_ring.set_flag(FLAG_EOS)
-            else:
-                # Built-in Emergency Reflex Fallback (<150ms halt)
-                self._abort_turn()
-                lower_t = (user_text or "").lower()
-                if any(w in lower_t for w in ("shut down", "turn off", "exit", "quit")):
-                    ack_msg = "Shutting down."
-                    self.on_quit_requested()
-                elif "pause" in lower_t:
-                    ack_msg = "Paused."
-                elif "mute" in lower_t:
-                    ack_msg = "Muted."
-                else:
-                    ack_msg = "Stopped."
-
-                self._speak_text(trace, ack_msg)
-                self._publish_caption(ack_msg, source="assistant", is_final=True)
-                user_msg = user_text or "[Voice audio]"
-                self.history.append({"role": "user", "content": user_msg})
-                self.history.append(
-                    {"role": "assistant", "content": f"[Emergency Reflex: {ack_msg}]"}
-                )
-                self.play_ring.set_flag(FLAG_EOS)
-        finally:
-            self._finalize_turn(trace, decision_id)
+        self.turn_pipeline.execute_reflex(
+            trace=trace,
+            winning_outcome=winning_outcome,
+            user_text=user_text,
+            decision_id=decision_id,
+        )
 
     def _execute_act_then_narrate(
         self,
@@ -2271,72 +2170,12 @@ class Orchestrator:
         Execute an ACT_THEN_NARRATE tier turn: run plan tools, emit triple,
         and stream narration.
         """
-        try:
-            last_tool_res: ToolResult | None = None
-            last_tool_name: str = ""
-            last_tool_args: dict[str, JsonValue] = {}
-            # WO-10.4 (F11): narrate ALL plan actions, not just the last.
-            exec_lines: list[str] = []
-            if winning_outcome.plan:
-                for action in winning_outcome.plan.actions:
-                    if isinstance(action, ToolCall):
-                        tool_res = self._handle_tool_call(
-                            trace, action.tool, dict(action.args), speak=False
-                        )
-                        last_tool_res = tool_res
-                        last_tool_name = action.tool
-                        last_tool_args = dict(action.args)
-                        ok = tool_res is None or getattr(tool_res, "ok", True)
-                        raw_detail = (
-                            str(getattr(tool_res, "content", "") or "")
-                            or str(getattr(tool_res, "stderr", "") or "")
-                        )[:200]
-                        args_str = ", ".join(
-                            f"{k}={v!r}" for k, v in action.args.items()
-                        )
-                        status_str = "ok" if ok else "failed"
-                        exec_lines.append(
-                            f"{action.tool}({args_str}) -> {status_str}: {raw_detail}"
-                        )
-            if exec_lines:
-                combined = "\n".join(exec_lines)
-                last_tool_res = ToolResult(
-                    call_id=f"plan-{winning_outcome.rule_id}",
-                    ok=not any("failed" in line for line in exec_lines),
-                    content=combined,
-                    elapsed_ms=0.0,
-                )
-
-            signal: Literal["tool_exit_zero", "pydantic_valid"] = (
-                "tool_exit_zero"
-                if (last_tool_res is None or getattr(last_tool_res, "ok", True))
-                else "pydantic_valid"
-            )
-            self.rule_engine.emit_execution_triple(
-                rule_id=winning_outcome.rule_id,
-                plan=winning_outcome.plan,
-                signal=signal,
-                detail="ACT_THEN_NARRATE execution",
-            )
-
-            mem_hits = self._search_memories(user_text) if user_text else []
-            narration_msgs = build_narration_messages(
-                tool_name=last_tool_name or winning_outcome.rule_id,
-                tool_args=last_tool_args,
-                tool_result=last_tool_res,
-                user_text=user_text,
-                memories=mem_hits,
-                stance_tag=self.affect_tracker.get_prompt_suffix_tag(),
-            )
-            self._stream_llm_speech(
-                trace=trace,
-                user_msg=user_text or "[Voice audio]",
-                decision_id=decision_id,
-                messages=narration_msgs,
-            )
-        except Exception as e:  # noqa: BLE001
-            logger.error("act_then_narrate_error", error=str(e))
-            self._finalize_turn(trace, decision_id)
+        self.turn_pipeline.execute_act_then_narrate(
+            trace=trace,
+            winning_outcome=winning_outcome,
+            user_text=user_text,
+            decision_id=decision_id,
+        )
 
     def _build_epistemic_context(
         self,
@@ -2349,46 +2188,14 @@ class Orchestrator:
         """
         Build epistemic context from search cascade, yield signals, F13 clarify hints,
         and spelling hints.
-
-        Note on F12: Router transcript normalization (F12) operates on eval_text in voice path
-        where ASR spelling corrections occur; text path passes user_text directly by design.
         """
-        epistemic_ctx: str | None = None
-        if user_text:
-            is_epistemic, target_subs, topic = self.cascade.classify_intent(user_text)
-            if is_epistemic:
-                is_file_or_web = any(
-                    s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)
-                )
-                if is_file_or_web and trace is not None:
-                    cue = self.cascade.select_floor_cue(user_text, target_subs[0])
-                    self._speak_text(trace, cue)
-                    self._publish_caption(cue, source="assistant", is_final=False)
-                cascade_res = self.cascade.query(
-                    user_text, substrates=target_subs, emit_floor_cue=False
-                )
-                epistemic_ctx = cascade_res.synthesized_context or None
-
-        if yielded_context:
-            yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
-            epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
-
-        # WO-10.3 (F13): CLARIFY now gets distinct handling — a short utterance
-        # gets a brief-question directive instead of being silently treated as
-        # a full research turn.
-        if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
-            clarify_hint = (
-                "[Clarify Mode: The user's utterance was very short or ambiguous. "
-                "If the intent is unclear, ask ONE brief clarifying question in your "
-                "companion voice. If the intent is still reasonably clear, answer "
-                "directly without asking.]"
-            )
-            epistemic_ctx = f"{epistemic_ctx}\n{clarify_hint}" if epistemic_ctx else clarify_hint
-
-        if spelling_hint:
-            epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
-
-        return epistemic_ctx
+        return self.turn_pipeline.build_epistemic_context(
+            user_text=user_text,
+            yielded_context=yielded_context,
+            route_decision=route_decision,
+            spelling_hint=spelling_hint,
+            trace=trace,
+        )
 
     def _detect_follow_up_and_gate_tools(
         self,
@@ -2399,41 +2206,18 @@ class Orchestrator:
         Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat.
         Returns empty list if tools are suppressed, or None to let _stream_llm_speech decide.
         """
-        turn_tools: list[object] | None = None
-        intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
-        toolless_intents = {"dangerous"}
-
-        # WO-10.6 (F20): follow-up patterns are config-driven (heuristics.toml)
-        follow_up_patterns = load_heuristics("follow_up_patterns")
-        is_follow_up = False
-        if text_for_gate:
-            u_low = text_for_gate.lower()
-            is_follow_up = any(p in u_low for p in follow_up_patterns)
-            if not is_follow_up and self.history:
-                last_asst = next(
-                    (
-                        m.get("content", "")
-                        for m in reversed(self.history)
-                        if m.get("role") == "assistant"
-                    ),
-                    "",
-                )
-                search_cues = ("search", "found", "look", "judge", "suburb", "results", "?")
-                if any(w in last_asst.lower() for w in search_cues):
-                    is_follow_up = True
-
-        if intent in toolless_intents or (intent == "chit_chat" and not is_follow_up):
-            turn_tools = []
-            logger.info(
-                "tool_gating_suppressed",
-                intent=intent,
-                reason="conversational or dangerous intent — tools withheld",
-            )
-        return turn_tools
+        return self.turn_pipeline.detect_follow_up_and_gate_tools(
+            rule_state=rule_state,
+            text_for_gate=text_for_gate,
+        )
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
+        """
+        Voice turn input adapter: reads audio from capture ring, performs
+        silence/VAD check, transcribes via ASR, encodes WAV payload,
+        and delegates to the unified TurnPipeline.
+        """
         self._reset_turn_state()
-        decision_id: str | None = None
 
         # Read audio slice from capture ring
         pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
@@ -2454,37 +2238,12 @@ class Orchestrator:
 
         # Transcribe audio with ASR
         transcribed_text = ""
-        eff_transcribed_text = ""
-        spelling_hint: str | None = None
         if self.asr and len(pcm_samples) > 0:
             trace.t_asr_sent = now_ns()
             asr_res = self.asr.transcribe(pcm_samples)
             trace.t_asr_done = now_ns()
             transcribed_text = asr_res.text.strip()
             self.current_turn_transcript = transcribed_text
-
-            # Detect spelled-word corrections (e.g. F-A-W-K-N-E-R -> Fawkner)
-            normalized_text, detected_words = normalize_spelled_words(transcribed_text)
-            self.active_detected_words = detected_words
-            eff_transcribed_text = normalized_text
-            if detected_words:
-                all_corrupt: list[str] = []
-                for w in detected_words:
-                    c_vars = self._neutralize_context_attractors(w)
-                    all_corrupt.extend(c_vars)
-                w_str = ", ".join(f"'{w}'" for w in detected_words)
-                if all_corrupt:
-                    c_str = ", ".join(f"'{c}'" for c in sorted(set(all_corrupt)))
-                    spelling_hint = (
-                        f"[User Explicit Spelling Correction: The target entity is {w_str}. "
-                        f"Disregard phonetically confused prior references to {c_str}. "
-                        f"You must search for and reference {w_str} exactly.]"
-                    )
-                else:
-                    spelling_hint = (
-                        f"[User Explicit Spelling Correction: The target entity is spelled "
-                        f"{w_str}. You must search for and reference {w_str} exactly.]"
-                    )
 
         if trace.interrupted:
             return
@@ -2506,106 +2265,6 @@ class Orchestrator:
             self._publish_caption(transcribed_text, source="user", is_final=True)
             self._publish_caption("Thinking... ⚙️", source="status", is_final=False)
 
-        # Update label for previous turn if present
-        eval_text = eff_transcribed_text or transcribed_text
-        if self.prev_decision_record and self.db is not None:
-            try:
-                next_intent, next_conf, _ = self.router.classify_intent(eval_text)
-                time_to_next = (time.time() - self.prev_turn_ts) if self.prev_turn_ts else None
-                label, reason = derive_label(
-                    self.prev_decision_record,
-                    next_transcript=eval_text,
-                    next_intent=next_intent,
-                    next_intent_conf=next_conf,
-                    time_to_next_turn_s=time_to_next,
-                )
-                persist_decision_label(
-                    self.db, self.prev_decision_record.decision_id, label, reason
-                )
-            except Exception as e:  # noqa: BLE001
-                logger.debug("prev_decision_label_error", error=str(e))
-
-        # Build RuleState and evaluate rules
-        mode: Literal["audio", "transcript"] = (
-            "transcript" if self.config.llm.mode == "transcript" else "audio"
-        )
-        rule_state = self._build_rule_state(eval_text, mode=mode)
-        yielded_context: dict[str, object] | None = None
-        shadow_outcomes: list[RuleOutcome] = []
-        active_outcomes: list[RuleOutcome] = []
-        try:
-            shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
-            active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
-            self.current_turn_shadow_outcomes = shadow_outcomes
-        except SchemeYieldSignal as e:
-            logger.info("scheme_rule_yielded_to_core", reason=e.reason, context=e.context)
-            yielded_context = {"reason": e.reason, "context": e.context}
-        except SchemeInterruptSignal as e:
-            logger.warning("scheme_rule_interrupted_core", reason=e.reason)
-            self._abort_turn()
-            self._speak_text(trace, f"Interrupted: {e.reason}")
-            self._finalize_turn(trace, None)
-            return
-
-        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
-        any_active_fired = any(o.fired for o in active_outcomes)
-        has_registered_rule = any(r.status == "ACTIVE" for r in self.rule_engine.rules.values())
-
-        # Route decision
-        route_decision = None
-        try:
-            vad_ms = int(p.vad_speech_ms)
-            # WO-10.2 (F12): route on the spelling-normalized transcript so the
-            # router and the rule engine see the same string after a correction.
-            route_decision = self.router.route(
-                transcript=eval_text,
-                any_active_rule_fired=any_active_fired,
-                any_quarantine_rule_fired=any_quarantine_fired,
-                vad_speech_ms=vad_ms,
-                trace_id=trace.trace_id,
-                session_id=self.session_id,
-                hour_local=rule_state.hour_local,
-                weekday=rule_state.weekday,
-                session_turns=rule_state.session_turns,
-                mode=mode,
-                has_registered_rule=has_registered_rule,
-            )
-            decision_id = (
-                self.router.last_decision_record.decision_id
-                if self.router.last_decision_record
-                else None
-            )
-        except Exception as e:  # noqa: BLE001
-            logger.error("router_execution_error", error=str(e))
-        trace.t_route_done = now_ns()
-
-        if route_decision and route_decision.action == RouteAction.RULE:
-            winning_outcome: RuleOutcome | None = None
-            for outcome in active_outcomes:
-                if outcome.fired and not outcome.errored and outcome.plan is not None:
-                    winning_outcome = outcome
-                    break
-
-            tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
-            self.current_turn_tier = tier
-            if tier == ExecutionTier.REFLEX:
-                self._execute_reflex(
-                    trace=trace,
-                    winning_outcome=winning_outcome,
-                    user_text=transcribed_text or "[Voice audio]",
-                    decision_id=decision_id,
-                )
-                return
-            elif winning_outcome and winning_outcome.plan:
-                # ACT_THEN_NARRATE (Proposal B / D-ARCH-05)
-                self._execute_act_then_narrate(
-                    trace=trace,
-                    winning_outcome=winning_outcome,
-                    user_text=transcribed_text or "[Voice audio]",
-                    decision_id=decision_id,
-                )
-                return
-
         # Encode to WAV bytes
         wav_buf = io.BytesIO()
         with wave.open(wav_buf, "wb") as wf:
@@ -2618,177 +2277,32 @@ class Orchestrator:
         llm_audio = wav_b64 if self.config.llm.mode == "audio" else None
         is_trans_mode = self.config.llm.mode == "transcript"
         llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
-        mem_hits = self._search_memories(transcribed_text) if transcribed_text else []
-        epistemic_ctx = self._build_epistemic_context(
+
+        turn_input = TurnInput(
             user_text=transcribed_text,
-            yielded_context=yielded_context,
-            route_decision=route_decision,
-            spelling_hint=spelling_hint,
             trace=trace,
-        )
-
-        turn_tools = self._detect_follow_up_and_gate_tools(
-            rule_state=rule_state,
-            text_for_gate=eff_transcribed_text or transcribed_text,
-        )
-
-        self._stream_llm_speech(
-            trace=trace,
-            user_msg=transcribed_text or "[Voice audio]",
-            decision_id=decision_id,
+            origin="voice",
+            mode="transcript" if is_trans_mode else "audio",
+            vad_speech_ms=p.vad_speech_ms,
             current_audio_b64=llm_audio,
             current_text=llm_text,
-            memories=mem_hits,
-            epistemic_context=epistemic_ctx,
-            tools=turn_tools,
         )
+        self.turn_pipeline.run(turn_input)
 
     def _run_text_turn(self, trace: TurnTrace, user_text: str) -> None:
-        self._reset_turn_state()
-        self.current_turn_transcript = user_text
-        decision_id: str | None = None
-
-        # Step 1: Detect spelled-word corrections (e.g. F-A-W-K-N-E-R -> Fawkner)
-        normalized_text, detected_words = normalize_spelled_words(user_text)
-        self.active_detected_words = detected_words
-        eff_user_text = normalized_text
-        spelling_hint: str | None = None
-        if detected_words:
-            all_corrupt: list[str] = []
-            for w in detected_words:
-                c_vars = self._neutralize_context_attractors(w)
-                all_corrupt.extend(c_vars)
-            w_str = ", ".join(f"'{w}'" for w in detected_words)
-            if all_corrupt:
-                c_str = ", ".join(f"'{c}'" for c in sorted(set(all_corrupt)))
-                spelling_hint = (
-                    f"[User Explicit Spelling Correction: The target entity is {w_str}. "
-                    f"Disregard phonetically confused prior references to {c_str}. "
-                    f"You must search for and reference {w_str} exactly.]"
-                )
-            else:
-                spelling_hint = (
-                    f"[User Explicit Spelling Correction: The target entity is spelled {w_str}. "
-                    f"You must search for and reference {w_str} exactly.]"
-                )
-
-        eval_user_text = eff_user_text or user_text
-        # Update label for previous turn if present
-        if self.prev_decision_record and self.db is not None:
-            try:
-                next_intent, next_conf, _ = self.router.classify_intent(eval_user_text)
-                time_to_next = (time.time() - self.prev_turn_ts) if self.prev_turn_ts else None
-                label, reason = derive_label(
-                    self.prev_decision_record,
-                    next_transcript=eval_user_text,
-                    next_intent=next_intent,
-                    next_intent_conf=next_conf,
-                    time_to_next_turn_s=time_to_next,
-                )
-                persist_decision_label(
-                    self.db, self.prev_decision_record.decision_id, label, reason
-                )
-            except Exception as e:  # noqa: BLE001
-                logger.debug("prev_decision_label_error", error=str(e))
-
-        # Build RuleState and evaluate rules
-        rule_state = self._build_rule_state(eval_user_text, mode="transcript")
-        yielded_context: dict[str, object] | None = None
-        shadow_outcomes: list[RuleOutcome] = []
-        active_outcomes: list[RuleOutcome] = []
-        try:
-            shadow_outcomes = self.rule_engine.evaluate(rule_state, mode="shadow")
-            active_outcomes = self.rule_engine.evaluate(rule_state, mode="active")
-            self.current_turn_shadow_outcomes = shadow_outcomes
-        except SchemeYieldSignal as e:
-            logger.info("scheme_rule_yielded_to_core", reason=e.reason, context=e.context)
-            yielded_context = {"reason": e.reason, "context": e.context}
-        except SchemeInterruptSignal as e:
-            logger.warning("scheme_rule_interrupted_core", reason=e.reason)
-            self._abort_turn()
-            self._speak_text(trace, f"Interrupted: {e.reason}")
-            self._finalize_turn(trace, None)
-            return
-
-        any_quarantine_fired = any(o.fired for o in shadow_outcomes)
-        any_active_fired = any(o.fired for o in active_outcomes)
-        has_registered_rule = any(r.status == "ACTIVE" for r in self.rule_engine.rules.values())
-
-        # Route decision
-        route_decision = None
-        try:
-            route_decision = self.router.route(
-                transcript=user_text,
-                any_active_rule_fired=any_active_fired,
-                any_quarantine_rule_fired=any_quarantine_fired,
-                vad_speech_ms=1000,
-                trace_id=trace.trace_id,
-                session_id=self.session_id,
-                hour_local=rule_state.hour_local,
-                weekday=rule_state.weekday,
-                session_turns=rule_state.session_turns,
-                mode="transcript",
-                has_registered_rule=has_registered_rule,
-            )
-            decision_id = (
-                self.router.last_decision_record.decision_id
-                if self.router.last_decision_record
-                else None
-            )
-        except Exception as e:  # noqa: BLE001
-            logger.error("router_execution_error", error=str(e))
-        trace.t_route_done = now_ns()
-
-        if route_decision and route_decision.action == RouteAction.RULE:
-            winning_outcome: RuleOutcome | None = None
-            for outcome in active_outcomes:
-                if outcome.fired and not outcome.errored and outcome.plan is not None:
-                    winning_outcome = outcome
-                    break
-
-            tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
-            self.current_turn_tier = tier
-            if tier == ExecutionTier.REFLEX:
-                self._execute_reflex(
-                    trace=trace,
-                    winning_outcome=winning_outcome,
-                    user_text=user_text,
-                    decision_id=decision_id,
-                )
-                return
-            elif winning_outcome and winning_outcome.plan:
-                # ACT_THEN_NARRATE (Proposal B / D-ARCH-05)
-                self._execute_act_then_narrate(
-                    trace=trace,
-                    winning_outcome=winning_outcome,
-                    user_text=user_text,
-                    decision_id=decision_id,
-                )
-                return
-
-        mem_hits = self._search_memories(user_text) if user_text else []
-        epistemic_ctx = self._build_epistemic_context(
+        """
+        Text turn input adapter: normalizes text payload and delegates to the
+        unified TurnPipeline.
+        """
+        turn_input = TurnInput(
             user_text=user_text,
-            yielded_context=yielded_context,
-            route_decision=route_decision,
-            spelling_hint=spelling_hint,
-            trace=None,
-        )
-
-        turn_tools = self._detect_follow_up_and_gate_tools(
-            rule_state=rule_state,
-            text_for_gate=eval_user_text or user_text,
-        )
-
-        self._stream_llm_speech(
             trace=trace,
-            user_msg=user_text,
-            decision_id=decision_id,
-            current_text=eval_user_text or user_text,
-            memories=mem_hits,
-            epistemic_context=epistemic_ctx,
-            tools=turn_tools,
+            origin="text",
+            mode="transcript",
+            vad_speech_ms=1000.0,
+            current_text=user_text,
         )
+        self.turn_pipeline.run(turn_input)
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         if chunk_id == 0:

@@ -260,39 +260,62 @@ def test_no_fabricated_metrics() -> None:
 
 def test_orchestrator_turn_paths_unified_parity() -> None:
     """
-    WO-11.1 static parity gate: ensures no turn-path divergence between
-    voice (_run_turn) and text (_run_text_turn) in orchestrator.py.
-    Diverged blocks must be extracted into shared helper methods and appear
-    exactly once in src/lucca/core/orchestrator.py.
+    WO-11.1 & WO-12.2 static parity gate: ensures no turn-path divergence between
+    voice (_run_turn) and text (_run_text_turn).
+    All unified logic resides in turn_pipeline.py (each marker appears exactly once),
+    while orchestrator.py contains zero duplicate logic and strictly delegates to
+    TurnPipeline.run().
     """
-    orch_path = Path(__file__).parent.parent / "src" / "lucca" / "core" / "orchestrator.py"
-    text = orch_path.read_text(encoding="utf-8")
+    repo_root = Path(__file__).parent.parent
+    pipeline_path = repo_root / "src" / "lucca" / "core" / "turn_pipeline.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert pipeline_path.exists(), f"turn_pipeline.py does not exist at {pipeline_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    pipeline_text = pipeline_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
 
     markers = [
         (
             "exec_lines: list[str] = []",
-            "F11 multi-action plan narration in _execute_act_then_narrate",
+            "F11 multi-action plan narration in execute_act_then_narrate",
         ),
         (
             'detail="REFLEX execution"',
-            "REFLEX execution triple emission in _execute_reflex",
+            "REFLEX execution triple emission in execute_reflex",
         ),
         (
             'load_heuristics("follow_up_patterns")',
-            "F20 config-driven follow-up patterns in _detect_follow_up_and_gate_tools",
+            "F20 config-driven follow-up patterns in detect_follow_up_and_gate_tools",
         ),
         (
             "[Clarify Mode: The user's utterance was very short or ambiguous.",
-            "F13 clarify mode hint in _build_epistemic_context",
+            "F13 clarify mode hint in build_epistemic_context",
         ),
     ]
 
     for marker, description in markers:
-        count = text.count(marker)
-        assert count == 1, (
+        pipe_count = pipeline_text.count(marker)
+        assert pipe_count == 1, (
             f"Parity gate violation: marker '{marker}' ({description}) must appear exactly once "
-            f"in orchestrator.py, but found {count} occurrences."
+            f"in turn_pipeline.py, but found {pipe_count} occurrences."
         )
+
+        orch_count = orch_text.count(marker)
+        assert orch_count == 0, (
+            f"Parity gate violation: marker '{marker}' ({description}) has leaked into "
+            f"orchestrator.py ({orch_count} occurrences). All unified logic must reside "
+            f"exclusively in turn_pipeline.py."
+        )
+
+    # Verify orchestrator delegates to turn_pipeline.run
+    assert "self.turn_pipeline.run(turn_input)" in orch_text, (
+        "Orchestrator must delegate turn execution to self.turn_pipeline.run(turn_input)"
+    )
+    assert orch_text.count("self.turn_pipeline.run(turn_input)") == 2, (
+        "Both _run_turn and _run_text_turn must delegate to self.turn_pipeline.run(turn_input)"
+    )
 
 
 def test_active_docs_staleness_lint() -> None:
