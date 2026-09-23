@@ -697,6 +697,7 @@ class PersonaConfig(BaseModel):
     admits_uncertainty: bool = True
     dsp_pitch_semitones: float = 0.0
     dsp_enabled: bool = False
+    narration_prefer_digits: bool = True
     traits: PersonaTraitsConfig = Field(default_factory=PersonaTraitsConfig)
     boundaries: PersonaBoundariesConfig = Field(default_factory=PersonaBoundariesConfig)
     affect: PersonaAffectConfig = Field(default_factory=PersonaAffectConfig)

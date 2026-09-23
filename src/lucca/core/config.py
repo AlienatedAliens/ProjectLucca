@@ -53,6 +53,7 @@ class LLMSettings(BaseModel):
     # TTFT inside the 650-850 ms budget; see docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md.
     # Templates without a thinking channel ignore the kwarg harmlessly.
     enable_thinking: bool | None = False
+    narration_prefer_digits: bool = True
     model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"
     mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
     text_model: str = "llm/Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf"

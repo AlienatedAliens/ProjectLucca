@@ -1,0 +1,198 @@
+{
+  "timestamp": "20260923T112803Z",
+  "n_probes": 10,
+  "condition_a_words": {
+    "correct": 9,
+    "slips": 1,
+    "accuracy": 0.9,
+    "results": [
+      {
+        "probe_id": "math_01_half_plus_seven",
+        "condition": "words_baseline",
+        "reply": "That would make her exactly twenty-one point five years old.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1448.5735000343993
+      },
+      {
+        "probe_id": "math_02_fractions",
+        "condition": "words_baseline",
+        "reply": "Three fourths plus five sixths equals nineteen twelfths.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1299.1258999099955
+      },
+      {
+        "probe_id": "math_03_add_divide",
+        "condition": "words_baseline",
+        "reply": "The total of forty-seven and sixty-eight is one hundred fifteen, and when you divide that by five, the exact value is twenty-three.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1670.8986000157893
+      },
+      {
+        "probe_id": "math_04_decimal_subtraction",
+        "condition": "words_baseline",
+        "reply": "The exact difference is eight point seven five.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1191.0511000314727
+      },
+      {
+        "probe_id": "math_05_percentage",
+        "condition": "words_baseline",
+        "reply": "That comes out to exactly thirty-six.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1172.2779999254271
+      },
+      {
+        "probe_id": "math_06_rate_time_distance",
+        "condition": "words_baseline",
+        "reply": "To figure that out, we first need to convert those twenty minutes into a fraction of an hour, which gives us two and one third hours. When you multiply seventy-five miles per hour by two and one third, the car covers a total of one hundred and sixty-two point five miles.",
+        "has_digit_target": false,
+        "has_word_target": false,
+        "correct": false,
+        "elapsed_ms": 2312.239299993962
+      },
+      {
+        "probe_id": "math_07_two_digit_mult",
+        "condition": "words_baseline",
+        "reply": "That comes out to two hundred twenty-four.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1211.1570000415668
+      },
+      {
+        "probe_id": "math_08_divide_add",
+        "condition": "words_baseline",
+        "reply": "The result of dividing one hundred by eight is twelve point five, and when you add four point five to that, you get exactly seventeen.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1595.220600022003
+      },
+      {
+        "probe_id": "math_09_proportional_unit_cost",
+        "condition": "words_baseline",
+        "reply": "Since three tickets cost forty-two dollars, that means each ticket is fourteen dollars. So, seven tickets would cost ninety-eight dollars in total.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1664.661500020884
+      },
+      {
+        "probe_id": "math_10_multi_subtraction",
+        "condition": "words_baseline",
+        "reply": "That comes out to one hundred and fourteen.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1184.4306000275537
+      }
+    ]
+  },
+  "condition_b_digits": {
+    "correct": 10,
+    "slips": 0,
+    "accuracy": 1.0,
+    "results": [
+      {
+        "probe_id": "math_01_half_plus_seven",
+        "condition": "digits_preferred",
+        "reply": "That would make her 21.5 years old.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1600.36849998869
+      },
+      {
+        "probe_id": "math_02_fractions",
+        "condition": "digits_preferred",
+        "reply": "The sum of three fourths and five sixths is nineteen twelfths.",
+        "has_digit_target": false,
+        "has_word_target": true,
+        "correct": true,
+        "elapsed_ms": 1420.5248999642208
+      },
+      {
+        "probe_id": "math_03_add_divide",
+        "condition": "digits_preferred",
+        "reply": "The total of 47 and 68 is 115, and when you divide that by 5, the exact value is 23.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1746.6372000053525
+      },
+      {
+        "probe_id": "math_04_decimal_subtraction",
+        "condition": "digits_preferred",
+        "reply": "The exact difference is 8.75.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1217.5354999490082
+      },
+      {
+        "probe_id": "math_05_percentage",
+        "condition": "digits_preferred",
+        "reply": "That would be 36.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1162.7140999771655
+      },
+      {
+        "probe_id": "math_06_rate_time_distance",
+        "condition": "digits_preferred",
+        "reply": "To figure that out, we first need to convert those 20 minutes into a fraction of an hour, which gives us about 0.333 hours. So, the car is driving for a total of 2.333 hours at 75 miles per hour, which means it covers exactly 175 miles.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 2538.757700007409
+      },
+      {
+        "probe_id": "math_07_two_digit_mult",
+        "condition": "digits_preferred",
+        "reply": "That comes out to 224.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1206.92120003514
+      },
+      {
+        "probe_id": "math_08_divide_add",
+        "condition": "digits_preferred",
+        "reply": "The exact result is 17.0.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1286.873499979265
+      },
+      {
+        "probe_id": "math_09_proportional_unit_cost",
+        "condition": "digits_preferred",
+        "reply": "Since three tickets cost 42 dollars, that means each individual ticket is 14 dollars. So, for seven tickets, the total comes out to 98 dollars.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1907.3296000715345
+      },
+      {
+        "probe_id": "math_10_multi_subtraction",
+        "condition": "digits_preferred",
+        "reply": "That comes out to 114.",
+        "has_digit_target": true,
+        "has_word_target": false,
+        "correct": true,
+        "elapsed_ms": 1212.5011999160051
+      }
+    ]
+  }
+}

@@ -152,6 +152,7 @@ _active_uncertainty: bool = True
 _active_never_pretend: bool = True
 _active_refuse_topics: list[str] = []
 _active_user_archetypes: dict[str, str] = {}
+_active_narration_prefer_digits: bool = True
 
 
 def compile_trait_modulators(
@@ -206,6 +207,7 @@ def preview_system_prompt(
     refuse_topics: list[str] | None = None,
     user_archetypes: dict[str, str] | None = None,
     enforce_grounding: bool = True,
+    narration_prefer_digits: bool = True,
 ) -> str:
     """
     Generates the truthful, complete compiled system prompt string.
@@ -289,6 +291,13 @@ def preview_system_prompt(
             "returned by the tool."
         )
 
+    if narration_prefer_digits:
+        prose_directives.append(
+            "When stating computed numbers, arithmetic quantities, or mathematical results, "
+            "express them using clean digits (e.g. 21.5, 42, 19/12) rather than spelled-out words. "
+            "Clean digits ensure calculation precision and avoid arithmetic carry slips."
+        )
+
     traits_prose = compile_trait_modulators(technical_depth, warmth, directness)
     if traits_prose:
         prose_directives.append(traits_prose)
@@ -324,6 +333,7 @@ def set_persona(
     user_archetypes: dict[str, str] | None = None,
     dsp_pitch_semitones: float | None = None,
     dsp_enabled: bool | None = None,
+    narration_prefer_digits: bool | None = None,
 ) -> None:
     """Dynamically reconfigures the companion's active personality traits."""
     global _active_archetype, _active_formality, _active_custom_prompt  # noqa: PLW0603
@@ -331,6 +341,7 @@ def set_persona(
     global _active_dsp_pitch, _active_dsp_enabled  # noqa: PLW0603
     global _active_traits, _active_uses_name, _active_uncertainty  # noqa: PLW0603
     global _active_never_pretend, _active_refuse_topics, _active_user_archetypes  # noqa: PLW0603
+    global _active_narration_prefer_digits  # noqa: PLW0603
 
     if archetype is not None and archetype.strip():
         _active_archetype = archetype.strip().lower()
@@ -348,6 +359,8 @@ def set_persona(
         _active_dsp_pitch = dsp_pitch_semitones
     if dsp_enabled is not None:
         _active_dsp_enabled = dsp_enabled
+    if narration_prefer_digits is not None:
+        _active_narration_prefer_digits = narration_prefer_digits
 
     t_depth = technical_depth if technical_depth is not None else _active_traits[0]
     t_warmth = warmth if warmth is not None else _active_traits[1]
@@ -380,6 +393,7 @@ def get_system_prompt() -> str:
         never_pretend_to_feel=_active_never_pretend,
         refuse_topics=_active_refuse_topics,
         user_archetypes=_active_user_archetypes,
+        narration_prefer_digits=_active_narration_prefer_digits,
     )
 
 
@@ -394,6 +408,7 @@ def get_persona() -> PersonaConfig:
         custom_prompt=_active_custom_prompt or "",
         dsp_pitch_semitones=_active_dsp_pitch,
         dsp_enabled=_active_dsp_enabled,
+        narration_prefer_digits=_active_narration_prefer_digits,
         traits=PersonaTraitsConfig(
             technical_depth=_active_traits[0],
             warmth=_active_traits[1],
@@ -785,10 +800,18 @@ def build_narration_messages(
         f"[System Executed Tool Trace: {tool_name}({tool_args}) -> "
         f"Status: {status_str}.{content_str}]"
     )
+    digits_directive = ""
+    if _active_narration_prefer_digits:
+        digits_directive = (
+            " When reporting computed numbers or numerical quantities, write them as clean "
+            "digits (e.g. 21.5, 42) rather than spelled-out words."
+        )
     narration_prompt = (
         f"{trace_summary}\n"
         "Directive: The action above has completed. Grounding your response strictly in the "
         "tool execution output above without fabricating metrics or unverified facts, speak to "
+        "the user in your natural companion voice to summarize what happened and what was found."
+        f"{digits_directive} "
         "Do NOT use markdown formatting, bullet points, asterisks, or backticks; "
         "speak in natural, clean spoken prose."
     )
