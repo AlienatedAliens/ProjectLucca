@@ -1946,6 +1946,28 @@ class Orchestrator:
                                     ),
                                 )
                             )
+                        # WO-13.1: Pre-Narration Sanity-Check Guard (Fault Mode C)
+                        if tool_res.ok and content_str:
+                            sanity_res = self.turn_pipeline.sanity_guard.validate(
+                                tool_name=tool_name,
+                                tool_args=tool_args,
+                                tool_output=content_str,
+                                user_query=user_msg,
+                            )
+                            if not sanity_res.is_valid and sanity_res.directive:
+                                logger.warning(
+                                    "tool_output_sanity_anomaly_detected",
+                                    round_num=round_num,
+                                    tool=tool_name,
+                                    violation=sanity_res.violation_type,
+                                    reason=sanity_res.reason,
+                                )
+                                tool_messages.append(
+                                    ChatMessage(
+                                        role="user",
+                                        content=sanity_res.directive,
+                                    )
+                                )
 
                 # WO-11.2: G1+G6 unified honesty & register nudge (D-HON-01)
                 # If any tool failed in this round, inject honesty directive

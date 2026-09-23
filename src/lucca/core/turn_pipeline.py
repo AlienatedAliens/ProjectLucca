@@ -30,6 +30,7 @@ from lucca.brain.prompt_builder import build_narration_messages
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
+from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
     ExecutionTier,
     JsonValue,
@@ -123,6 +124,7 @@ class TurnPipeline:
 
     def __init__(self, orchestrator: Orchestrator) -> None:
         self.orch = orchestrator
+        self.sanity_guard = SanityCheckGuard()
 
     # ------------------------------------------------------------------------
     # Phase 0: Turn State Reset
@@ -278,11 +280,36 @@ class TurnPipeline:
             )
 
             mem_hits = self.orch._search_memories(user_text) if user_text else []
+            eff_user_text = user_text
+            if (
+                last_tool_res
+                and getattr(last_tool_res, "ok", True)
+                and getattr(last_tool_res, "content", None)
+            ):
+                sanity_res = self.sanity_guard.validate(
+                    tool_name=last_tool_name or winning_outcome.rule_id,
+                    tool_args=last_tool_args,
+                    tool_output=str(last_tool_res.content),
+                    user_query=user_text or "",
+                )
+                if not sanity_res.is_valid and sanity_res.directive:
+                    logger.warning(
+                        "act_then_narrate_sanity_anomaly_detected",
+                        tool=last_tool_name,
+                        violation=sanity_res.violation_type,
+                        reason=sanity_res.reason,
+                    )
+                    eff_user_text = (
+                        f"{user_text}\n\n{sanity_res.directive}"
+                        if user_text
+                        else sanity_res.directive
+                    )
+
             narration_msgs = build_narration_messages(
                 tool_name=last_tool_name or winning_outcome.rule_id,
                 tool_args=last_tool_args,
                 tool_result=last_tool_res,
-                user_text=user_text,
+                user_text=eff_user_text,
                 memories=mem_hits,
                 stance_tag=self.orch.affect_tracker.get_prompt_suffix_tag(),
             )
