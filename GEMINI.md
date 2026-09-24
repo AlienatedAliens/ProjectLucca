@@ -7,7 +7,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ## 2. Hard Invariants & Non-Negotiables
 
 1. **Never Promote Freeform LLM Narration into Memory:**
-   - Any memory commit must carry an authentic cryptographic envelope signed by `UserSpeechSigner` (`USER_EXPLICIT`), `ExtractorSigner` (`USER_DERIVED`), `SandboxSigner` (`TOOL_VERIFIED`), or `RuleEngineSigner` (`LISP_ASSERTION`).
+   - Any memory commit must carry an authentic cryptographic envelope signed by an authorized domain signer (`UserSpeechSigner` for `USER_EXPLICIT`, `DerivedFactSigner` for `USER_DERIVED`, `ToolResultSigner` for `TOOL_VERIFIED` / `ASSISTANT_ACTION`, `LispAssertionSigner` for `LISP_ASSERTION`, `AssistantUtteranceSigner` for `ASSISTANT_UTTERANCE` / `ASSISTANT_BELIEF`, or `CoherenceBreachSigner` for `COHERENCE_BREACH`).
    - `TOOL_CONTENT_UNTRUSTED` (unverified file/web bodies) is never memory-eligible without explicit user action.
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 

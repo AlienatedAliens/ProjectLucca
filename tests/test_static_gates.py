@@ -328,6 +328,7 @@ def test_active_docs_staleness_lint() -> None:
         repo_root / "AGENTS.md",
         repo_root / "GEMINI.md",
         repo_root / "README.md",
+        repo_root / "docs" / "README.md",
         repo_root / "docs" / "ARCHITECTURE.md",
         repo_root / "docs" / "DECISIONS.md",
         repo_root / "docs" / "MODEL_STRATEGY.md",
@@ -363,6 +364,18 @@ def test_active_docs_staleness_lint() -> None:
         (
             re.compile(r"Mistral-NeMo-12B\s+Q6_K", re.IGNORECASE),
             "NeMo Q6_K named as the loaded GGUF",
+        ),
+        (
+            re.compile(r"\b5-substrate\b", re.IGNORECASE),
+            "superseded 5-substrate reference (actual count is 8 substrates in EpistemicSubstrate)",
+        ),
+        (
+            re.compile(r"never what she herself said", re.IGNORECASE),
+            "stale pre-A1 autobiographical memory denial",
+        ),
+        (
+            re.compile(r"Not yet enforced", re.IGNORECASE),
+            "unratified status on active v1.0 decision",
         ),
     ]
 

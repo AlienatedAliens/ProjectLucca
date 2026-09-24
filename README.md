@@ -115,8 +115,8 @@ All measurements were obtained directly from live execution on native workstatio
 | **Epistemic Abstention Accuracy**| 25-question confabulation test battery | **$0 / 25$ hallucinations (100% adherence)** | **Verified** |
 | **Z3 SMT Verification Time** | Automated SAT, contingency, and path proofs; unmodeled predicates fail closed (`UNMODELED_PREDICATE`) | **$\le 25\,\text{ms}$** (Budget: $\le 500\,\text{ms}$) | **Verified** |
 | **Frozen Packaging Acceptance** | `Lucca.exe --check` 7-point native hardware audit | **$7 / 7$ criteria PASSED (code 0)** | **Verified** |
-| **Static Architectural Gates** | Zero `Any` types across `core`, `brain`, `reasoning` | **$8 / 8$ gates PASSED (code 0)** | **Verified** |
-| **Full Regression Test Suite** | 52 test modules covering all subsystems | **$394 / 394$ PASSED (100% GREEN in 97.49s)** | **Verified** |
+| **Static Architectural Gates** | Architectural invariants, zero-`Any`, provenance, staleness linter | **$12 / 12$ gates PASSED (code 0)** | **Verified** |
+| **Full Regression Test Suite** | 52 test modules covering all subsystems | **$653 / 653$ non-HW PASSED (100% GREEN)** | **Verified** |
 
 ---
 

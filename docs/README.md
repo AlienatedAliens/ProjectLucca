@@ -1,142 +1,98 @@
-# Project Lucca — Documentation Master Index & Governance Policy
+# Project Lucca — Documentation Master Index & System Truth
 
-**Version:** 1.3.0  
-**Updated:** September 20, 2026  
-**Git Baseline:** Milestone 7 Complete — Final Frozen Release (`master`)
+**Version:** 2.0.0  
+**Updated:** September 24, 2026  
+**Git Baseline:** Project Lucca v1.0.0 Production Release (`master`)
 
 ---
 
-## 1. Documentation Lifecycle Policy: When to Update vs. Archive vs. Create New
+## 1. Documentation Lifecycle Policy & Governance
 
-To maintain strict truth-in-documentation and prevent codebase drift, all Project Lucca documentation adheres to a three-tier lifecycle:
+To maintain strict truth-in-documentation and eliminate codebase drift, all Project Lucca documentation adheres to a disciplined lifecycle enforced by automated static gates (`tests/test_static_gates.py`):
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │                           DOCUMENTATION LIFECYCLE                             │
 ├───────────────────────────────────────────────────────────────────────────────┤
-│ 1. LIVING CANONICAL SPECS (Update Continuously)                               │
-│    • Location: docs/*.md (ARCHITECTURE.md, DECISIONS.md, README.md, etc.)     │
-│    • Rule: MUST reflect current working code truth. Never allow drift.       │
-│    • Action: Edit in place on every PR/commit that changes system behavior.   │
+│ 1. LIVING CANONICAL SPECS (Actively Maintained & Lint-Guarded)                 │
+│    • Location: Active files in docs/*.md, AGENTS.md, GEMINI.md, README.md     │
+│    • Rule: MUST reflect current working code truth in src/lucca/. Zero drift. │
+│    • Gate: test_active_docs_staleness_lint fails CI if stale terms linger.   │
 ├───────────────────────────────────────────────────────────────────────────────┤
-│ 2. SUBSYSTEM SPECS & DECISIONS (Create New / Ratify)                         │
-│    • Location: docs/specs/*.md, docs/adr/*.md, docs/research/*.md             │
-│    • Rule: Specific to major architectural capabilities or milestones.        │
-│    • Action: Create when specifying new subsystems (e.g. BDI, Cascade).       │
-│              When superseded, mark with frontmatter alert pointing to canon.  │
+│ 2. SUBSYSTEM SPECIFICATIONS (Living Capability Architectures)                 │
+│    • Location: docs/specs/*.md, docs/adr/*.md                                 │
+│    • Rule: Governs active subsystems (Autobiographical Memory, Studio, etc.).│
+│    • Action: Edit in place on capability updates; retire to archive if stale. │
 ├───────────────────────────────────────────────────────────────────────────────┤
-│ 3. EMPIRICAL EVALUATION REPORTS (Point-in-Time Measurement Records)           │
-│    • Location: docs/eval/*.md, data/eval/**/*.json                            │
-│    • Rule: Immutable ground-truth measurements captured from physical silicon.│
-│    • Action: Never alter past data; create new reports for new evaluation runs│
-├───────────────────────────────────────────────────────────────────────────────┤
-│ 4. HISTORICAL ARCHIVES (Preserve Point-in-Time Provenance)                    │
-│    • Location: docs/archive/**                                                │
-│    • Rule: Point-in-time exploratory drafts, early audits, obsolete lore.    │
-│    • Action: Move superseded exploratory files here with an archival note.    │
+│ 3. HISTORICAL ARCHIVES (Preserved Read-Only Provenance)                       │
+│    • Location: docs/archive/**, logs/archive/**                               │
+│    • Rule: Point-in-time exploratory drafts, early audits, pre-v1.0 specs.   │
+│    • Action: Safely preserved for historical provenance; never edited.        │
 └───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Master Documentation Directory
+## 2. Active Master Documentation Directory
 
-### 2.1 Living Canonical Documents (Current System Truth)
+The following documents form the **authoritative, active documentation corpus** for Project Lucca v1.0.0:
+
+### 2.1 Core Architectural & Operational Specifications
+| Document | Purpose & Code Truth Alignment |
+| :--- | :--- |
+| [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) | **Canonical Master Specification**: 4-process topology (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server`), 3 execution tiers (`REFLEX`, `ACT_THEN_NARRATE`, `FULL_LOOP`), MicroScheme runtime, memory architecture, Docker container sandboxing, Kokoro audio pipeline, and canonical decisions verification table. |
+| [`docs/DECISIONS.md`](./DECISIONS.md) | **Canonical Decisions Register**: All 27 ratified decisions (`D-AUD-01` through `D-META-01`) with implementation statuses, code citations, and test links. |
+| [`docs/MODEL_STRATEGY.md`](./MODEL_STRATEGY.md) | **Model Strategy & Inference Specification**: Gemma-4-12B-Heretic Q6_K deployment on RTX 5080 Laptop GPU (12.5 GB resident VRAM clamp), Prompt Frontier Suffix KV-cache optimization ($8.58\times$ prefill speedup), and Dimension 7B output supervision. |
+| [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./USER_GUIDE_WHAT_LUCCA_DOES.md) | **End-to-End User Guide**: Capabilities overview, quickstart instructions, 18 native tools, 15 active rules, Rung A1 autobiographical memory, honest abstention procedures, and the 12-step verification battery. |
+| [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) | **Studio Capability Roadmap**: Tool Studio & LISP Studio taxonomy, Class A/B/C safety gates, ≤18 tool registry cap, 30 active rule cap, and the capability progression ladder. |
+| [`docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](./specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) | **Autobiographical Memory Specification**: Recovered companion goals, Rung A1 self-model, `ASSISTANT_ACTION` vs `ASSISTANT_UTTERANCE` provenance split, and evidence-gated belief revisions. |
+| [`docs/adr/0009_audio_concurrency_contract.md`](./adr/0009_audio_concurrency_contract.md) | **Audio Concurrency Contract**: Shared-memory ring buffer concurrency, push-to-talk state transitions, and sub-50ms barge-in abort mechanics. |
+
+### 2.2 Operational Logs & Release Verification
 | Document | Purpose |
 | :--- | :--- |
-| [`ARCHITECTURE.md`](file:///C:/Projects/ProjectLucca/docs/ARCHITECTURE.md) | **Canonical Master Specification**: 4-process topology, 3 execution tiers, MicroScheme runtime, memory architecture, container sandboxing, audio pipeline. |
-| [`DECISIONS.md`](file:///C:/Projects/ProjectLucca/docs/DECISIONS.md) | **Canonical Decisions Log**: All ratified decisions (D-AUD-01 through D-SUP-01) with statuses and implementation commits. |
-| [`MODEL_STRATEGY.md`](file:///C:/Projects/ProjectLucca/docs/MODEL_STRATEGY.md) | **Model Weights & VRAM Budget**: Mistral NeMo 12B Q6_K abliterated deployment on RTX 5080, Kokoro ONNX, Whisper CUDA. |
-| [`AUDIT_REMEDIATION_LOG.md`](file:///C:/Projects/ProjectLucca/docs/AUDIT_REMEDIATION_LOG.md) | **Punch-List & Remediation Tracker**: Status of all post-audit remediation items. |
-| [`IMPLEMENTATION_WALKTHROUGH.md`](file:///C:/Projects/ProjectLucca/docs/IMPLEMENTATION_WALKTHROUGH.md) | **Detailed Engineering Walkthrough**: Step-by-step milestone execution logs, code diff rationales, and silicon benchmark tables. |
-| [`NEUROSYMBOLIC_RESEARCH_PAPER.md`](file:///C:/Projects/ProjectLucca/docs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"* (NeurIPS/ICLR style). |
-
-### 2.2 Active Research & Theoretical Foundations (`docs/research/`)
-| Document | Purpose |
-| :--- | :--- |
-| [`NEUROSYMBOLIC_RESEARCH_PAPER.md`](file:///C:/Projects/ProjectLucca/docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md) | The authoritative publication draft detailing Architecture B Hardened by Architecture C. |
-| [`NEUROSYMBOLIC_STATE_OF_THE_ART_COMPENDIUM.md`](file:///C:/Projects/ProjectLucca/docs/research/NEUROSYMBOLIC_STATE_OF_THE_ART_COMPENDIUM.md) | Comprehensive survey of dual-process cognitive architectures, SMT solvers, and epistemic logic. |
-| [`COGNITIVE_LOBES_AND_EPISTEMIC_AUDITING.md`](file:///C:/Projects/ProjectLucca/docs/research/COGNITIVE_LOBES_AND_EPISTEMIC_AUDITING.md) | Deep academic analysis of epistemic knowledge gaps, Belnap bilattices, and cognitive lobe routing. |
-| [`AFFECTIVE_COGNITIVE_ARCHITECTURE_SPEC.md`](file:///C:/Projects/ProjectLucca/docs/research/AFFECTIVE_COGNITIVE_ARCHITECTURE_SPEC.md) | Continuous 3D PAD (Pleasure-Arousal-Dominance) leaky integrator ODE dynamics specification. |
-
-### 2.3 Subsystem Specifications & Design Plans (`docs/specs/`)
-| Document | Purpose |
-| :--- | :--- |
-| [`MILESTONE_4_IMPLEMENTATION_PLAN.md`](file:///C:/Projects/ProjectLucca/docs/specs/MILESTONE_4_IMPLEMENTATION_PLAN.md) | Engineering plan for Speculative BDI, Cognitive Bus arbitration, and Output Supervision. |
-| [`DEONTIC_SANDBOX_DESIGN.md`](file:///C:/Projects/ProjectLucca/docs/specs/DEONTIC_SANDBOX_DESIGN.md) | Specification for WSL2 container isolation, Win32 handle jailing, and `TaintFlags`. |
-| [`MILESTONE_1_MEASUREMENT_PLAN.md`](file:///C:/Projects/ProjectLucca/docs/specs/MILESTONE_1_MEASUREMENT_PLAN.md) | Methodology for acoustic loopback profiling, VRAM allocation truth, and ASR benchmarking. |
-| [`NEUROSYMBOLIC_REMEDIATION_STRATEGY.md`](file:///C:/Projects/ProjectLucca/docs/specs/NEUROSYMBOLIC_REMEDIATION_STRATEGY.md) | Master 7-Milestone roadmap for the neuro-symbolic overhaul. |
-| [`TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](file:///C:/Projects/ProjectLucca/docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | Capability status map v1.1.4 classifying all subsystems into Implemented, Historical, or Designed. |
-| [`LUCCA_FULL_FEATURE_SPEC.md`](file:///C:/Projects/ProjectLucca/docs/specs/LUCCA_FULL_FEATURE_SPEC.md) | End-to-end feature matrix and user interaction flows. |
-
-### 2.4 Empirical Evaluation & Verification Reports (`docs/eval/`)
-| Document | Purpose |
-| :--- | :--- |
-| [`COMPREHENSIVE_100_EVAL_REPORT.md`](file:///C:/Projects/ProjectLucca/docs/eval/COMPREHENSIVE_100_EVAL_REPORT.md) | Exhaustive item-by-item audit of the 100-question benchmark with true source-of-answer attribution. |
-| [`DIAGNOSTIC_EVAL_V2_REPORT.md`](file:///C:/Projects/ProjectLucca/docs/eval/DIAGNOSTIC_EVAL_V2_REPORT.md) | Diagnostic Battery v2 results ($N=75$) across all 8 failure dimensions. |
-| [`LIVE_AI_VERIFICATION_REPORT.md`](file:///C:/Projects/ProjectLucca/docs/eval/LIVE_AI_VERIFICATION_REPORT.md) | Live neural execution results from RTX 5080 verifying model abliteration and tool calling. |
-
-### 2.5 Historical & Superseded Archives (`docs/archive/`)
-* **`docs/archive/2026-09-17_pre_phase4_audit/`**: Original specifications and ADRs from before the deep technical audit.
-* **`docs/archive/historical_investigations/`**:
-  - `01_recursive_architecture_audit_and_flaw_analysis.md` through `05_lucca_system_architecture_master_spec.md`: Initial flaw analysis prior to audit ratification.
-  - `lucca_phase1_investigation_and_proposals.md`: Early phase 1 proposals (superseded by Milestones 1–4).
-  - `project_lucca_architecture_review.md`: Early exploratory review.
-  - `chrono_trigger_preview.html`: Legacy lore mockup (superseded by D-AUD-03 persona canonicalization).
+| [`docs/V2_ACTION_LOG.md`](./V2_ACTION_LOG.md) | **v1.0 Action Log & Bug Tracker**: Consolidated catalog of all findings extracted from WO-8 through WO-15 audits, documenting 19 resolved items (8 BUG_V1, 6 DOC_DRIFT, 5 TEST_GAP) and 12 deferred items. |
+| [`docs/V2_BACKLOG.md`](./V2_BACKLOG.md) | **v2 Deferred Backlog**: 12 formally deferred capabilities (DESIGN_DEBT) with explicit empirical revisit triggers (multi-user, screen perception, continuous open-mic, unprompted reflection). |
+| [`docs/audit/findings/V1_RELEASE_AUDIT.md`](./audit/findings/V1_RELEASE_AUDIT.md) | **v1.0 Release Audit & WO-16 Deep Clean Certificate**: Verification evidence across all 12 static gates, 653 non-HW tests, C1 split-conformal abstention, and A1 autobiographical introspective accuracy. |
 
 ---
 
-## 3. Build & Milestone Completion Progress
+## 3. Historical Archive Structure (`docs/archive/`)
 
-```
-                    PROJECT LUCCA BUILD ROADMAP
-┌─────────────┬─────────────────────────────────────────────────┬──────────────┐
-│ Milestone   │ Objective & Key Deliverables                    │ Status       │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 1 │ Ground-Truth Empirical Baseline                 │ 100% DONE    │
-│             │ • 200 CPU / 50 CUDA loopback trials             │ (Commit      │
-│             │ • 707.55ms P50 physical turnaround on CUDA      │  3837ff7)    │
-│             │ • Diagnostic v2 (N=75) & Reviewer Held-Out (N=65)│              │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 2 │ Hardened Deontic Sandbox                        │ 100% DONE    │
-│             │ • Win32 handle jailing & hardlink checks        │ (Commit      │
-│             │ • WSL2 container isolation (--network none)     │  5976b7e)    │
-│             │ • Persistent taint tracking (TaintFlags)        │              │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Option A    │ Persistent Container RPC & Joint Benchmark      │ 100% DONE    │
-│             │ • Persistent Docker RPC (6.87ms P50)            │ (Commit      │
-│             │ • In-container Python zombie process reaper     │  d5fe8cc)    │
-│             │ • Joint audio-tool benchmark (1,613.5ms P50)    │              │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 3 │ Epistemic Search Cascade & Bilattice            │ 100% DONE    │
-│             │ • 5-substrate prioritized search cascade        │ (Commit      │
-│             │ • Belnap FOUR evidential bilattice (bot abstention)│ (Commit     │
-│             │ • Pre-rendered floor cues (3.1us IPC write)     │  b7a66d8)    │
-│             │ • N=25 confabulation battery (0/25 hallucinations)│             │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 4 │ Cognitive Arbitration, Speculative BDI & Output │ 100% DONE    │
-│             │ • SpeculativeBDIValidator (<200us pre-dispatch) │ (Commit      │
-│             │ • Cognitive bus arbitration (yield/interrupt)   │  6b1a34d)    │
-│             │ • Dimension 7B output supervision (markdown norm)│              │
-│             │ • Live empirical adv_12 mitigation on RTX 5080  │              │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 5 │ Continuous Affective ODE & Prefix KV Cache      │ 100% DONE    │
-│             │ • 3D PAD (Pleasure-Arousal-Dominance) ODE model │ (Commit      │
-│             │ • Prompt Frontier Suffix (8.58x prefill speedup)│  1d0a48d)    │
-│             │ • Empirical verification on RTX 5080 (46.84ms)  │              │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 6 │ Autonomous Rule Induction, E-Graph & SMT Prover │ 100% DONE    │
-│             │ • Babble/Stitch e-graph anti-unification macros │ (Commit      │
-│             │ • Z3 SMT automated formal proof of invariants   │  c04e44a)    │
-│             │ • 16/16 induction tests, 387/387 non-hw green   │              │
-├─────────────┼─────────────────────────────────────────────────┼──────────────┤
-│ Milestone 7 │ Standalone Packaging & Final Desktop Release    │ 100% DONE    │
-│             │ • Frozen PyInstaller bundle (Lucca.spec, 25.9MB)│ (Milestone 7)│
-│             │ • System Tray integration & background minimize │              │
-│             │ • 7/7 packaging tests, 394/394 regression green │              │
-│             │ • Lucca.exe --check passes all 7 HW criteria    │              │
-└─────────────┴─────────────────────────────────────────────────┴──────────────┘
+Historical drafts, pre-v1.0 work order dumps, and superseded specifications have been moved out of the active path into named archives to guarantee that all active documents reflect live code:
 
-**PROJECT LUCCA RELEASE STATUS: 100% COMPLETE & PRODUCTION FROZEN ON NATIVE WORKSTATION SILICON.**
+| Archive Directory | Description |
+| :--- | :--- |
+| `docs/archive/2026-09_audit_framework/` | WO-8 audit charters, finding templates, evidence index, baselines, and test gap analyses. |
+| `docs/archive/2026-09_eval_reports/` | Historical evaluation runs (Comprehensive 100, Diagnostic v2, Live AI Verification). |
+| `docs/archive/2026-09_evidence/` | Silicon benchmark and latency evidence runs (Brain Bakeoff, S1 Summary). |
+| `docs/archive/2026-09_closing_audits/` | Work Orders 8, 11, 12, and 13 closing audits and research sub-reports. |
+| `docs/archive/2026-09_milestone_specs/` | Superseded milestone plans, exploratory specs, audit remediation logs, and resolved tickets. |
+| `docs/archive/2026-09_raw_findings/` | Raw audit dumps from early modules (`arch`, `brain`, `core`, `drift`, `mem`, `reas`, `rout`, `sbx`, `sens`, `test`, `ui`). |
+| `docs/archive/2026-09_handovers/` | Inter-agent handover logs from earlier development milestones. |
+| `logs/archive/pre_v1.0/` | Pre-v1.0 raw test logs and diagnostic outputs (71 log files preserved). |
 
-```
+---
+
+## 4. Key Architectural Truths (v1.0.0 Locked Baseline)
+
+Every active document aligns with the following ground-truth facts verified in code and tests:
+
+1. **Neural Core (`D-BRAIN-05 v2`)**: Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` with stock llama.cpp (≥ b11026), `--jinja` embedded chat template, `enable_thinking=false` mandatory for companion tiers (thinking reserved for explicit deep reasoning), 16,384 context default, and $\le 12.5\text{ GB}$ (12,800 MB) resident VRAM clamp on RTX 5080 Laptop GPU.
+2. **Execution Tiers (`D-ARCH-05`)**:
+   - `REFLEX`: Critical emergency commands (`stop`, `halt`, `pause`, `mute`, `shutdown`) bypass neural inference (<150 ms).
+   - `ACT_THEN_NARRATE`: MicroScheme rules execute deterministically, companion brain narrates results naturally.
+   - `FULL_LOOP`: Open-ended reasoning with convergence-based tool loop (up to $M=4$ active rounds, runaway budget cap $M=8$ per WO-9 A5) and intermediate spoken thinking cues (`D-BRAIN-03`).
+3. **Actuation Sandbox & Native Tools**: 18 native tools (`get_default_native_tools()` in `src/lucca/core/capabilities.py`), capped at `MAX_REGISTRY_TOOLS = 18`. Container operations execute in Docker CE inside WSL2 (`use_direct_fallback = False`).
+4. **Symbolic Core & Skills**: 15 active MicroScheme rules (`config/skills/`), capped at 30 in `src/lucca/reasoning/lifecycle.py`. Statically validated and formally verified via Z3 SMT (`SMTVerifier`).
+5. **Epistemic Search Cascade (`D-CASC-01`)**: 8 prioritized substrates (`TELEMETRY=0`, `WORKSPACE=1`, `MEMORY=2`, `REASONING=3`, `SENSES=4`, `SYSTEM=5`, `WEB_FLOOR=6`, `SELF_HISTORY=7` in `src/lucca/core/cascade.py:EpistemicSubstrate`), Belnap $\mathcal{FOUR}$ bilattice, honest epistemic abstention ($\bot$).
+6. **Autobiographical Memory (`D-MEM-04` / Rung A1)**:
+   - Tool receipts signed by `ToolResultSigner` as `ASSISTANT_ACTION` (`grounding_eligible = 1`).
+   - Spoken utterances signed by `AssistantUtteranceSigner` as `ASSISTANT_UTTERANCE` (`memory_eligible = 1, grounding_eligible = 0` — conversational continuity without self-reinforcing confabulation).
+   - Retrospection answered via Substrate 7 (`SELF_HISTORY`).
+   - Beliefs managed via `ReflectionEngine` with evidence-gated `supersede()` and 5-criterion flagged Studio review queue.
+7. **Quality & Verification Gates**:
+   - 12 static architectural gates in `tests/test_static_gates.py` (zero `Any` public API, provenance contracts, staleness linter).
+   - 653 non-hardware regression tests passing (100% green).
+   - C1 split-conformal abstention acceptance gate passing (Wilson LB $\ge 0.80$).
+   - A1 live hardware introspective accuracy passing (50 self-questions battery).

@@ -374,11 +374,15 @@ Fast-path rule executions (`RouteTarget.RULE`) append both the user utterance, t
 
 | Provenance Tier | Signer Identity | Permitted Payload Kind | Storage Authority |
 |---|---|---|---|
-| **`USER_EXPLICIT`** | `UserSpeechSigner` | User spoken / typed transcripts | High — Verified direct user communication. |
-| **`USER_DERIVED`** | `ExtractorSigner` | Extracted user preferences/facts | Medium — Extracted by local analyzer. |
-| **`TOOL_VERIFIED`** | `SandboxSigner` | Structured tool execution metadata| High — Output from container execution. |
-| **`TOOL_CONTENT_UNTRUSTED`** | `SandboxSigner` | Raw body text returned from tools | **Zero Trust** — Raw external content. |
-| **`LISP_ASSERTION`** | `RuleEngineSigner` | Facts asserted by active rules | High — Deterministic rule plans. |
+| **`USER_EXPLICIT`** | `UserSpeechSigner` | User spoken / typed transcripts | High — Verified direct user communication (`asr@lucca-core`). |
+| **`USER_DERIVED`** | `DerivedFactSigner` | Extracted user preferences/facts | Medium — Extracted by local analyzer (`extraction@lucca-core`). |
+| **`TOOL_VERIFIED`** | `ToolResultSigner` | Structured tool execution metadata | High — Output from container execution (`sandbox@lucca-core`). |
+| **`TOOL_CONTENT_UNTRUSTED`** | `ToolResultSigner` | Raw body text returned from tools | **Zero Trust** — Raw external content (`sandbox@lucca-core`). |
+| **`LISP_ASSERTION`** | `LispAssertionSigner` | Facts asserted by active rules | High — Deterministic rule plans (`rules@lucca-core`). |
+| **`ASSISTANT_ACTION`** | `ToolResultSigner` | Tool execution receipts signed for self-history | High — Verifiable behavior record (`grounding_eligible = 1`). |
+| **`ASSISTANT_UTTERANCE`** | `AssistantUtteranceSigner` | Verbatim companion speech for conversational continuity | Medium (Continuity only) — `memory_eligible = 1`, strictly `grounding_eligible = 0` (`orchestrator@lucca-core`). |
+| **`ASSISTANT_BELIEF`** | `AssistantUtteranceSigner` | Dynamic assistant beliefs / stances with confidence | Medium (Continuity only) — `grounding_eligible = 0` (`orchestrator@lucca-core`). |
+| **`COHERENCE_BREACH`** | `CoherenceBreachSigner` / `LispAssertionSigner` | Contradiction receipts between speech and verified facts | High — System attestation (`grounding_eligible = 1`). |
 
 ### 5.5 Bi-Temporal Supersession & Calendar-Day Pruning
 - **Bi-Temporal Immutability**: Memories are never updated in-place; mutations reference prior IDs in `supersedes_id`.
@@ -503,7 +507,7 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-REAS-06** | Safe Rule Induction | Mining SQLite history ($N \ge 3$) strictly into `QUARANTINE`. | **Enforced (Unit Tested; 0 Production Rows)** |
 | **D-SAND-03** | Async Task Protocol | Thread-safe background jobs with ULID IDs and sandboxed query tools. | **Enforced** |
 | **D-SAND-04** | Persistent Docker RPC | Long-lived WSL2 container with in-container process reaper & hierarchical timeouts. | **Enforced** |
-| **D-CASC-01** | Epistemic Cascade | 5-substrate prioritized search with Belnap $\mathcal{FOUR}$ bilattice & floor cues. | **Enforced** |
+| **D-CASC-01** | Epistemic Cascade | 8-substrate prioritized search with Belnap $\mathcal{FOUR}$ bilattice & floor cues. | **Enforced** |
 | **D-ARB-01**  | Speculative BDI Gate | Sub-200us pre-dispatch deontic validator & MicroScheme cognitive bus arbitration. | **Enforced** |
 | **D-SUP-01**  | Output Supervision | Dimension 7B streaming clause gate with markdown normalization. DFA regex classification: P50 6.4 μs; physical WASAPI audio abort: 20–50 ms. | **Enforced** |
 | **D-AFF-01**  | Affective Dynamics & Prompt Suffix | 3D PAD ODE, Schmitt-trigger hysteresis, prompt frontier suffix KV cache optimization ($8.58\times$ speedup). | **Enforced** |
@@ -511,6 +515,9 @@ CI/CD runs enforce 100% pass rate with zero latency regressions.
 | **D-REAS-08** | E-Graph Macro Synthesis| Stitch/Babble anti-unification macro compression within E-Graph congruence closure. | **Enforced (Unit Tested; 0 Production Rows)** |
 | **D-PKG-01**  | Standalone Packaging | PyInstaller frozen executable (`Lucca.exe`), bundled runtimes, and system tray lifecycle. | **Enforced** |
 | **D-EVAL-01** | Frozen Evaluation Suite | 110 golden traces regression harness with 100% pass gate. | **Enforced** |
+| **D-MEM-04**  | Autobiographical Memory Split | Rung A1 self-history; `ASSISTANT_UTTERANCE` non-grounding, `ASSISTANT_ACTION` grounding, Substrate 7. | **Enforced** |
+| **D-HON-01**  | Verified Source Priority | Computational, memory, and register priority; tool failure honesty; no guessing. | **Enforced** |
+| **D-META-01** | Proactive Meta-Cognition & Dynamic Thinking | SanityCheckGuard pre-narration, non-parametric calibration, DifficultyEstimator When2Think. | **Enforced** |
 
 ---
 
