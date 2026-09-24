@@ -15,6 +15,7 @@ import time
 from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Final
 
 import structlog
 import ulid
@@ -383,6 +384,13 @@ def extract_clean_topic(query_text: str) -> str:
     return res if res else "that"
 
 
+RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(what did (?:i|you) (?:just|last) (?:say|tell|ask|do)|"
+    r"repeat (?:that|what)|what was that)\b",
+    re.IGNORECASE,
+)
+
+
 def classify_epistemic_intent(
     query_text: str,
 ) -> tuple[bool, list[EpistemicSubstrate], str | None]:
@@ -427,6 +435,10 @@ def classify_epistemic_intent(
         r"|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going)[.?!]?$"
     )
     if re.search(pure_banter, lower):
+        return False, [], None
+
+    # Conversational context queries (WO-17 Phase 6: do not query Substrate 2 memory)
+    if RECENT_CONTEXT_PATTERN.search(lower):
         return False, [], None
 
     # Substrate SELF: Companion identity, persona, creator, and design (Tier 0 Axiomatic)

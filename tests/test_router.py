@@ -11,11 +11,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from lucca.core.cascade import classify_epistemic_intent
 from lucca.core.exceptions import InsufficientCalibration
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import (
     DecisionRecord,
     Done,
+    ExecutionTier,
     LLMUsage,
     RouteAction,
     RouteDecision,
@@ -687,3 +689,33 @@ def test_router_db_write_failures_counter(tmp_path: Path) -> None:
     decision = router.route("open calculator", has_registered_rule=True)
     assert decision.action == RouteAction.RULE
     assert router.db_write_failures == 1
+
+
+def test_conversational_context_queries_route_to_full_loop_and_bypass_cascade() -> None:
+    """
+    WO-17 Phase 6: Conversational context queries ("what did I last tell you", etc.)
+    must classify as context_query, route to ExecutionTier.FULL_LOOP, and never
+    trigger Substrate 2 memory search in cascade.py.
+    """
+    router = HeuristicRouter()
+    context_queries = [
+        "what did I last tell you",
+        "what did you just say",
+        "repeat that",
+        "what was that",
+        "what did I just say",
+    ]
+    for query in context_queries:
+        intent, conf, _ = router.classify_intent(query)
+        assert intent == "context_query", f"Failed intent for: {query}"
+        assert conf >= 0.90
+
+        decision = router.route(query)
+        assert decision.action == RouteAction.LLM, f"Failed action for: {query}"
+        assert decision.tier == ExecutionTier.FULL_LOOP, f"Failed tier for: {query}"
+
+        is_epistemic, substrates, topic = classify_epistemic_intent(query)
+        assert is_epistemic is False, f"Cascade flagged epistemic for context query: {query}"
+        assert substrates == []
+        assert topic is None
+

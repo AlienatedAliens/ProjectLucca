@@ -11,9 +11,14 @@ import rapidfuzz
 import structlog
 from pydantic import BaseModel
 
-from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload
+from lucca.core.schemas import (
+    Provenance,
+    SignedPayload,
+    UnsignedPayload,
+    canonicalize_predicate,
+    is_valid_predicate,
+)
 from lucca.memory.entities import FIRST_PERSON_TERMS
-from lucca.memory.gate import PREDICATES
 from lucca.memory.signers import DerivedFactSigner
 
 logger = structlog.get_logger(__name__)
@@ -27,6 +32,8 @@ FUNCTIONAL_PREDICATES: Final[frozenset[str]] = frozenset(
         "born_on",
         "timezone_is",
         "birthday_is",
+        "nationality_is",
+        "origin_is",
     }
 )
 
@@ -46,7 +53,7 @@ def check_fact_grounding(
     Verify grounding rules per Spec 03 §5.2:
     1. quote is a substring of transcript (exact, after NFC + whitespace collapse).
     2. s and o each: substring of quote OR rapidfuzz.fuzz.partial_ratio >= 90 OR 'user'.
-    3. p in closed PREDICATES list.
+    3. p is a valid predicate slug (canonicalized).
     """
     norm_transcript = " ".join(unicodedata.normalize("NFC", transcript).split())
     norm_quote = " ".join(unicodedata.normalize("NFC", fact.quote).split())
@@ -56,7 +63,8 @@ def check_fact_grounding(
         return False, "quote_not_in_transcript"
 
     # 2. Predicate check
-    if fact.p not in PREDICATES:
+    canon_p = canonicalize_predicate(fact.p)
+    if not is_valid_predicate(canon_p):
         return False, f"invalid_predicate:{fact.p}"
 
     norm_quote_lower = norm_quote.lower()
@@ -138,9 +146,10 @@ class FactExtractor:
 
         for i, item in enumerate(facts_list):
             try:
+                raw_p = str(item.get("p", ""))
                 fact = ExtractedFact(
                     s=str(item.get("s", "")),
-                    p=str(item.get("p", "")),
+                    p=canonicalize_predicate(raw_p),
                     o=str(item.get("o", "")),
                     quote=str(item.get("quote", "")),
                 )

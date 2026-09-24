@@ -287,6 +287,118 @@ def test_name_update_supersedes_previous(orch: Orchestrator) -> None:
     assert rows[1][1] is None, "new name fact must be the active one"
 
 
+def test_grounded_commit_saves_open_predicate_nationality(orch: Orchestrator) -> None:
+    """WO-17 Phase 2: Open-predicate nationality_is commits with quote grounding."""
+    orch.current_turn_transcript = "I am an Australian citizen"
+    args = {
+        "s": "user",
+        "p": "nationality_is",
+        "o": "Australian",
+        "quote": "I am an Australian citizen",
+    }
+    res = orch._handle_memory_commit(_trace(), "call-nat-1", "memory_commit", args, speak=False)
+    assert res.ok is True
+    assert res.exit_code == 0
+
+    rows = _user_derived_rows(orch.db)
+    assert len(rows) == 1
+    assert "nationality_is Australian" in rows[0]["content"]
+
+
+def test_passive_extraction_negation_guard(orch: Orchestrator) -> None:
+    """WO-17 Phase 2 (row 11): Negation voids passive fact candidates."""
+    trace1 = _trace("tr-neg-1")
+    orch._commit_transcript("My name is not Sean.", trace1)
+    orch._maybe_extract_facts(trace1)
+    assert _user_derived_rows(orch.db) == []
+
+    trace2 = _trace("tr-neg-2")
+    orch._commit_transcript("I don't live in Perth.", trace2)
+    orch._maybe_extract_facts(trace2)
+    assert _user_derived_rows(orch.db) == []
+
+
+def test_passive_extraction_reported_speech_guard(orch: Orchestrator) -> None:
+    """WO-17 Phase 2 (row 11): Reported speech voids passive fact candidates."""
+    trace1 = _trace("tr-rep-1")
+    orch._commit_transcript("He said my name is Sean.", trace1)
+    orch._maybe_extract_facts(trace1)
+    assert _user_derived_rows(orch.db) == []
+
+    trace2 = _trace("tr-rep-2")
+    orch._commit_transcript("She told me my name is Sean.", trace2)
+    orch._maybe_extract_facts(trace2)
+    assert _user_derived_rows(orch.db) == []
+
+    trace3 = _trace("tr-rep-3")
+    orch._commit_transcript("Quote, my name is Sean.", trace3)
+    orch._maybe_extract_facts(trace3)
+    assert _user_derived_rows(orch.db) == []
+
+
+def test_passive_extraction_demonym_lexicon(orch: Orchestrator) -> None:
+    """WO-17 Phase 2: Closed demonym lexicon extracts nationality_is, skips non-demonyms."""
+    trace_demonym = _trace("tr-dem-1")
+    orch._commit_transcript("I'm Australian and enjoying the sunshine.", trace_demonym)
+    orch._maybe_extract_facts(trace_demonym)
+
+    rows = _user_derived_rows(orch.db)
+    assert len(rows) == 1
+    assert "nationality_is Australian" in rows[0]["content"]
+
+    # Non-demonym ("tired") must NOT produce a nationality_is fact
+    trace_non_demonym = _trace("tr-dem-2")
+    orch._commit_transcript("I'm tired after a long day.", trace_non_demonym)
+    orch._maybe_extract_facts(trace_non_demonym)
+    assert len(_user_derived_rows(orch.db)) == 1  # Still only 1 from previous turn
+
+
+def test_passive_extraction_origin(orch: Orchestrator) -> None:
+    """WO-17 Phase 2: origin_is extracts location from 'i'm from'."""
+    trace_origin = _trace("tr-orig-1")
+    orch._commit_transcript("I'm from Melbourne, Victoria.", trace_origin)
+    orch._maybe_extract_facts(trace_origin)
+
+    rows = _user_derived_rows(orch.db)
+    assert len(rows) == 1
+    assert "origin_is Melbourne" in rows[0]["content"]
+
+
+def test_predicate_canonicalization(orch: Orchestrator) -> None:
+    """WO-17 Phase 2 (row 13): Synonyms canonicalize to standard slugs."""
+    from lucca.core.schemas import canonicalize_predicate
+
+    assert canonicalize_predicate("nationality") == "nationality_is"
+    assert canonicalize_predicate("citizenship") == "nationality_is"
+    assert canonicalize_predicate("resides_in") == "lives_in"
+    assert canonicalize_predicate("living_in") == "lives_in"
+    assert canonicalize_predicate("employed_by") == "works_at"
+    assert canonicalize_predicate("works_for") == "works_at"
+
+    # Commit with synonym 'resides_in' canonicalizes to 'lives_in'
+    orch.current_turn_transcript = "I reside in Sydney"
+    args = {
+        "s": "user",
+        "p": "resides_in",
+        "o": "Sydney",
+        "quote": "I reside in Sydney",
+    }
+    res = orch._handle_memory_commit(_trace(), "call-canon-1", "memory_commit", args, speak=False)
+    assert res.ok is True
+    rows = _user_derived_rows(orch.db)
+    assert any("lives_in Sydney" in r["content"] for r in rows)
+
+
+def test_invalid_predicate_slug_refused(orch: Orchestrator) -> None:
+    """WO-17 Phase 2: Malformed predicate slugs (uppercase, spaces, punctuation) are refused."""
+    orch.current_turn_transcript = "My name is Sean"
+    args = {"s": "user", "p": "INVALID PREDICATE!", "o": "Sean", "quote": "My name is Sean"}
+    res = orch._handle_memory_commit(_trace(), "call-bad-slug", "memory_commit", args, speak=False)
+    assert res.ok is False
+    assert "invalid_arguments" in (res.stderr or "") or "invalid_predicate" in (res.stderr or "")
+    assert _user_derived_rows(orch.db) == []
+
+
 # ============================================================================
 # WO-9 A9: ASSISTANT_ACTION receipt persistence
 # ============================================================================

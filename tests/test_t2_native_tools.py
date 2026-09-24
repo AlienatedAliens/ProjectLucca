@@ -83,7 +83,9 @@ def test_memory_commit_fails_closed_for_llm_narration(
     """
     before = len(temp_memory_mgr.list_memories())
 
-    # Layer 1: an unconfirmed call is stopped by the WRITE confirmation gate.
+    # Layer 1: when web-tainted, an unconfirmed call is stopped by the WRITE confirmation gate.
+    from lucca.sandbox.policy import TaintFlags
+    sandbox_service.guard.active_taint |= TaintFlags.UNTRUSTED_WEB
     res_unconfirmed = sandbox_service.execute_tool(
         call_id="call-c0",
         tool_name="memory_commit",
@@ -91,6 +93,7 @@ def test_memory_commit_fails_closed_for_llm_narration(
     )
     assert res_unconfirmed.ok is False
     assert res_unconfirmed.stderr == "confirmation_required"
+    sandbox_service.guard.active_taint = TaintFlags.CLEAN
 
     # Layer 2: even a *confirmed* call must be refused — confirmation cannot mint provenance.
     # (WO-9 A2 revision: the sandbox dispatcher keeps its fail-closed block as
@@ -133,13 +136,15 @@ def test_memory_commit_fails_closed_for_llm_narration(
     assert "invalid_arguments" in (res_bad.stderr or "")
 
 
-def test_memory_commit_requires_confirmation_like_any_write() -> None:
-    """The WRITE-risk confirmation rule must not carve an exemption for memory_commit."""
-    from lucca.sandbox.policy import requires_confirmation
+def test_memory_commit_requires_confirmation_only_when_web_tainted() -> None:
+    """WO-17 Phase 3: memory_commit requires confirmation only if tainted by UNTRUSTED_WEB."""
+    from lucca.sandbox.policy import TaintFlags, requires_confirmation
 
-    assert requires_confirmation("memory_commit") is True
-    # note_write is Class A (scratchpad confined to notes/) and stays confirmation-free.
-    assert requires_confirmation("note_write") is False
+    assert requires_confirmation("memory_commit", taint=TaintFlags.CLEAN) is False
+    assert requires_confirmation("memory_commit", taint=TaintFlags.UNTRUSTED_WEB) is True
+    # note_write is Class A (scratchpad confined to notes/) and stays confirmation-free unless web-tainted.
+    assert requires_confirmation("note_write", taint=TaintFlags.CLEAN) is False
+    assert requires_confirmation("note_write", taint=TaintFlags.UNTRUSTED_WEB) is True
 
 
 def test_memory_search_reads_user_explicit_memory_within_class_a(
@@ -173,7 +178,7 @@ def test_memory_search_reads_user_explicit_memory_within_class_a(
 
 
 def test_self_metrics_latency_and_fields(sandbox_service: SandboxService) -> None:
-    """T2: self_metrics returns 5-substrate telemetry within Class A (<50ms)."""
+    """T2: self_metrics returns 5-substrate telemetry and timezone metadata within Class A (<50ms)."""
     # Warm up cache (subprocess/WMI detection)
     sandbox_service.execute_tool(call_id="call-m-warmup", tool_name="self_metrics", args={})
 
@@ -190,7 +195,23 @@ def test_self_metrics_latency_and_fields(sandbox_service: SandboxService) -> Non
     assert "ram" in res.structured
     assert "dgpu" in res.structured
     assert "npu" in res.structured
+    assert "timestamp" in res.structured
+    assert "utc_offset" in res.structured
+    assert "utc_offset_hours" in res.structured
+    assert "timezone_name" in res.structured
     assert elapsed < 50.0  # Class A latency budget
+
+    # Fast path cache hit: ensure timestamp and timezone fields are fresh, not stale
+    time.sleep(0.01)
+    res_cached = sandbox_service.execute_tool(
+        call_id="call-m2",
+        tool_name="self_metrics",
+        args={},
+    )
+    assert res_cached.ok is True
+    assert res_cached.structured is not None
+    assert res_cached.structured["timestamp"] != res.structured["timestamp"]
+    assert res_cached.structured["utc_offset"] == res.structured["utc_offset"]
 
 
 def test_sys_info_execution_latency_and_untrusted_stamp(sandbox_service: SandboxService) -> None:

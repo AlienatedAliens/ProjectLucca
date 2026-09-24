@@ -42,10 +42,10 @@ def test_tool_taxonomy_and_registry_count() -> None:
     tool_defs = registry.get_tool_definitions()
     def_names = [t.function.name for t in tool_defs]
 
-    # Assert count == 18 and <= cap
-    assert len(tools) == 18
+    # Assert count == 19 and <= cap
+    assert len(tools) == 19
     assert len(tools) <= MAX_REGISTRY_TOOLS
-    assert len(tool_defs) == 18
+    assert len(tool_defs) == 19
 
     # launch_app is now advertised, confirmation-gated (WO-9 A13)
     assert "launch_app" in tools
@@ -71,6 +71,7 @@ def test_tool_taxonomy_and_registry_count() -> None:
         "launch_app",
         "self_history_search",
         "run_python_async",
+        "calc_math",
     }
     assert set(tools.keys()) == expected_tools
     assert set(def_names) == expected_tools
@@ -83,6 +84,8 @@ def test_tool_taxonomy_and_registry_count() -> None:
     assert tools["search_web"].target == "self"
     assert tools["fetch_url"].target == "self"
     assert tools["list_dir"].target == "self"
+    assert tools["calc_math"].target == "self"
+    assert tools["calc_math"].risk == Risk.READ
     assert tools["search_text"].target == "self"
     assert tools["run_python"].target == "self"
     assert tools["invoke_skill"].target == "self"

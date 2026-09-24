@@ -242,8 +242,9 @@ def test_skills_and_manifest_in_prompt_builder() -> None:
     assert "self_history_search" in tool_names
     assert "read_file" in tool_names
     assert "invoke_skill" in tool_names
+    assert "calc_math" in tool_names
     assert not any(name.startswith("skill_") for name in tool_names)
-    assert len(tool_names) == 18
+    assert len(tool_names) == 19
 
     # Category menu in system prompt static block
     sys_prompt = get_system_prompt()

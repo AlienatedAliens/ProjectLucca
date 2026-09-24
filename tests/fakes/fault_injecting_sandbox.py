@@ -57,6 +57,7 @@ class FaultInjectingSandbox:
         tool_name: str,
         args: dict[str, JsonValue],
         confirmed: bool = False,
+        human_confirmed: bool = False,
     ) -> ToolResult:
         """Intercepts target_tools and applies the configured fault mode."""
         if tool_name in self.target_tools:
@@ -92,6 +93,7 @@ class FaultInjectingSandbox:
             tool_name=tool_name,
             args=args,
             confirmed=confirmed,
+            human_confirmed=human_confirmed,
         )
 
     def check_confirmation_needed(self, tool_name: str) -> bool:

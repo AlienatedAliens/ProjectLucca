@@ -115,7 +115,11 @@ class MemoryCommitArgs(BaseModel):
     """
 
     s: str = Field(min_length=1, description="Fact subject (e.g. 'user')")
-    p: str = Field(min_length=1, description="Predicate from the closed PREDICATES list")
+    p: str = Field(
+        min_length=2,
+        max_length=41,
+        description="Predicate slug (lowercase snake_case, 2-41 chars)",
+    )
     o: str = Field(min_length=1, description="Fact object (e.g. 'Sean')")
     quote: str = Field(min_length=1, description="Verbatim quote from the user's words")
     content: str = Field(default="", description="Deprecated: unused by the grounded dispatcher")
@@ -135,3 +139,7 @@ class NoteReadArgs(BaseModel):
 class SysInfoArgs(BaseModel):
     filter_name: str | None = None
     limit: int = Field(default=25, ge=1, le=100)
+
+
+class CalcMathArgs(BaseModel):
+    expr: str = Field(min_length=1, description="Mathematical expression to evaluate")

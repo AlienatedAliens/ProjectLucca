@@ -176,7 +176,36 @@ class Supervisor:
 
         # Start Core Orchestrator in supervisor process
         print("Starting core orchestrator...")
-        self.orchestrator = Orchestrator()
+        from lucca.memory.db import DatabaseManager  # noqa: PLC0415
+        from lucca.memory.store import MemoryStore  # noqa: PLC0415
+        from lucca.senses.embed import EmbedWorker, LocalEmbeddingPort  # noqa: PLC0415
+
+        db_path = self.config.home_dir / "data" / "memory.sqlite"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        db = DatabaseManager(db_path=db_path)
+        try:
+            db.migrate()
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write(f"WARNING: Database migration failed: {exc}\n")
+
+        master_key = (
+            self.config.master_key.encode("utf-8")
+            if getattr(self.config, "master_key", None)
+            else None
+        )
+        if master_key is None or len(master_key) < 32:
+            sys.stderr.write(
+                "FATAL [BOOT]: No valid master_key configured for MemoryStore; "
+                "falling back to insecure dev key.\n"
+            )
+            master_key = b"01234567890123456789012345678901"
+
+        memory_store = MemoryStore(
+            db=db,
+            master_key=master_key,
+            embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
+        )
+        self.orchestrator = Orchestrator(db=db, memory_store=memory_store, master_key=master_key)
         self.orchestrator.start()
         self.running = True
 

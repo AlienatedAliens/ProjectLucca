@@ -307,3 +307,82 @@ def test_output_supervisor_session_hysteresis_escalation():
     assert session.pending_tier1_chunk is not None
     assert session.pending_tier1_chunk[1].severity == SeverityTier.TIER_1_ABORT
     assert "escalated to Tier 1 via session hysteresis" in session.pending_tier1_chunk[1].reason
+
+
+def test_analytical_idioms_excluded_from_coherence_claims() -> None:
+    """
+    WO-17 Phase 7: Analytical idioms ('run the numbers', 'run the math', 'run through that', 'run a check')
+    must not trigger ungrounded action claim breaches when no tool receipts exist.
+    """
+    from lucca.core.coherence import detect_ungrounded_action_claims
+
+    clauses = [
+        "Let me run the numbers on that.",
+        "I'll run the math for you.",
+        "Let me run through that quickly.",
+        "I will run a check on the configuration.",
+        "I ran the numbers yesterday.",
+        "I ran the math in my head.",
+        "I ran a check earlier.",
+    ]
+    for clause in clauses:
+        breaches = detect_ungrounded_action_claims(clause, [])
+        assert not breaches, f"Analytical idiom incorrectly flagged as breach: {clause}"
+
+
+def test_orchestrator_tts_queue_depth_is_32() -> None:
+    """
+    WO-17 Phase 7: Orchestrator TTS queue depth must default to 32.
+    """
+    import queue
+
+    from lucca.core.orchestrator import Orchestrator
+
+    orch = Orchestrator.__new__(Orchestrator)
+    orch._tts_queue = queue.Queue(maxsize=32)
+    assert orch._tts_queue.maxsize == 32
+
+
+def test_enqueue_tts_chunk_drop_oldest_and_emit_overflow() -> None:
+    """
+    WO-17 Phase 7: On queue full, _enqueue_tts_chunk must evict oldest chunk (drop-oldest),
+    enqueue the new chunk, and emit a tts_queue_overflow telemetry event.
+    """
+    import queue
+    from unittest.mock import MagicMock
+
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.trace import TurnTrace
+
+    orch = Orchestrator.__new__(Orchestrator)
+    orch._tts_queue = queue.Queue(maxsize=3)
+    orch._publish_bus = MagicMock()
+
+    trace = TurnTrace(trace_id="test-trace-123")
+
+    # Fill queue to capacity (3 items)
+    orch._enqueue_tts_chunk(trace, 0, "chunk zero")
+    orch._enqueue_tts_chunk(trace, 1, "chunk one")
+    orch._enqueue_tts_chunk(trace, 2, "chunk two")
+
+    assert orch._tts_queue.qsize() == 3
+    assert orch._publish_bus.call_count == 0
+
+    # Enqueue 4th chunk -> must evict chunk 0 and emit tts_queue_overflow event
+    orch._enqueue_tts_chunk(trace, 3, "chunk three")
+
+    assert orch._tts_queue.qsize() == 3
+    # Check that chunk 0 was dropped and queue now contains chunks 1, 2, 3
+    items = []
+    while not orch._tts_queue.empty():
+        items.append(orch._tts_queue.get_nowait())
+
+    chunk_ids = [item[1] for item in items]
+    assert chunk_ids == [1, 2, 3], f"Expected [1, 2, 3] after dropping oldest, got {chunk_ids}"
+
+    # Verify tts_queue_overflow event was published
+    assert orch._publish_bus.call_count == 1
+    published_env = orch._publish_bus.call_args[0][0]
+    assert published_env.type == "tts_queue_overflow"
+    assert published_env.payload["chunk_id"] == 3
+    assert published_env.payload["status"] == "dropped_oldest"

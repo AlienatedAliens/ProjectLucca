@@ -17,12 +17,12 @@ from lucca.core.schemas import (
     LLMNarration,
     Provenance,
     SignedPayload,
+    canonicalize_predicate,
+    is_valid_predicate,
 )
 from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
 
-# Closed predicate list from Spec 04 §3 — canonical definition lives in
-# core.schemas (FACT_PREDICATES) so the gate and the tool manifest share one
-# source of truth (WO-9 A2).
+# Baseline predicate set; open predicates validated via is_valid_predicate (WO-17 Phase 2).
 PREDICATES: Final[frozenset[str]] = FACT_PREDICATES
 
 NONCE_RETENTION_SECONDS = 86400.0  # 24 hours
@@ -106,8 +106,12 @@ class ProvenanceGate:
                 raise ProvenanceRejected("USER_DERIVED payload requires non-empty source_entry_ids")
             if payload.structured is not None and "p" in payload.structured:
                 pred = payload.structured["p"]
-                if isinstance(pred, str) and pred not in PREDICATES:
-                    raise ProvenanceRejected(f"Predicate '{pred}' is not in closed PREDICATES list")
+                if isinstance(pred, str):
+                    canon_pred = canonicalize_predicate(pred)
+                    if not is_valid_predicate(canon_pred):
+                        raise ProvenanceRejected(
+                            f"Predicate '{pred}' is not a valid predicate slug"
+                        )
 
         if payload.provenance == Provenance.ASSISTANT_BELIEF:
             if payload.confidence is None or not (0.60 <= payload.confidence <= 1.0):

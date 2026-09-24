@@ -29,9 +29,8 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 # Native Tool Registry Cap (Spec 1.1.2 §2.4, T1.6: expect exactly 9 at T1).
-# Raised 16 -> 18 by WO-9 A13/A14: launch_app (F14) and self_history_search
-# (F18) are now advertised; both are confirmation-free/gated as marked.
-MAX_REGISTRY_TOOLS: Final[int] = 18
+# Raised 16 -> 18 by WO-9 A13/A14, 18 -> 19 by WO-17 (calc_math).
+MAX_REGISTRY_TOOLS: Final[int] = 19
 
 
 def _predicate_menu() -> str:
@@ -197,11 +196,13 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             name="memory_commit",
             description=(
                 "Commit a fact the USER stated in this turn into long-term memory. "
-                "Provide s (subject, e.g. 'user'), p (one of: "
-                f"{_predicate_menu()}), o (the value), and quote: a VERBATIM excerpt "
-                "of the user's own words containing the fact. The fact is only saved "
-                "if the quote matches the user's actual words this turn; model-invented "
-                "facts are refused."
+                "Provide s (subject, e.g. 'user'), p (lowercase snake_case predicate "
+                f"slug, e.g. 'nationality_is', 'lives_in', 'works_at', 'diet_is', "
+                f"or standard: {_predicate_menu()}), "
+                "o (the value), and quote: a VERBATIM excerpt of the user's own "
+                "words containing the fact. The fact is only saved if the quote "
+                "matches the user's actual words this turn; model-invented facts are "
+                "refused."
             ),
             parameters={
                 "s": ToolParameter(
@@ -209,7 +210,10 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
                 ),
                 "p": ToolParameter(
                     type="string",
-                    description=(f"Predicate from the closed list (one of: {_predicate_menu()})"),
+                    description=(
+                        "Predicate slug (lowercase snake_case, 2-41 chars, e.g. 'is_named', "
+                        f"'nationality_is', 'lives_in', or one of: {_predicate_menu()})"
+                    ),
                     required=True,
                 ),
                 "o": ToolParameter(
@@ -344,6 +348,20 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             },
             risk=Risk.READ,
             target="host_readonly",
+        ),
+        "calc_math": ToolSchema(
+            name="calc_math",
+            description=(
+                "Safely evaluate mathematical expressions and arithmetic "
+                "(e.g. '1982 - 1917', '53 * 72 / 4', 'abs(a - b)')."
+            ),
+            parameters={
+                "expr": ToolParameter(
+                    type="string", description="Mathematical expression to evaluate", required=True
+                ),
+            },
+            risk=Risk.READ,
+            target="self",
         ),
     }
 

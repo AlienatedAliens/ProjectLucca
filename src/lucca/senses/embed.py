@@ -27,8 +27,9 @@ MODEL_DIR = Path(r"C:\ProjectLucca\models\embed\all-MiniLM-L6-v2")
 
 
 class EmbedWorker:
-    def __init__(self) -> None:
+    def __init__(self, device: str | None = None) -> None:
         self.device = "CPU"
+        self._requested_device = device
         self.compiled: Any = None
         self.infer_request: Any = None
         self.tokenizer: Any = None
@@ -43,8 +44,11 @@ class EmbedWorker:
         core = ov.Core()
         devices = core.available_devices
 
-        # Primary: NPU static 128; Fallback: CPU
-        target_dev = "NPU" if "NPU" in devices else "CPU"
+        if self._requested_device is not None:
+            target_dev = self._requested_device
+        else:
+            # Primary: NPU static 128; Fallback: CPU
+            target_dev = "NPU" if "NPU" in devices else "CPU"
         model = core.read_model(xml_path)
 
         if target_dev == "NPU":

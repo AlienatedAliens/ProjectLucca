@@ -262,11 +262,8 @@ GROUNDING_ELIGIBLE: frozenset[Provenance] = frozenset(
 )
 
 
-# WO-9 A2 (ADR-010): single source of truth for the closed fact-predicate
-# vocabulary (Spec 04 §3). Lives in core.schemas so the ProvenanceGate
-# (enforcement) and the tool manifest (documentation) can never drift apart.
-# Security invariant: deliberately NOT config-editable — widening this set
-# changes what can be laundered into long-term memory.
+# WO-17 Phase 2 (ADR-010 supersession): open-predicate vocabulary.
+# Standard common predicates retained for schema guidance and manifest menus.
 FACT_PREDICATES: Final[frozenset[str]] = frozenset(
     {
         "is_named",
@@ -292,8 +289,51 @@ FACT_PREDICATES: Final[frozenset[str]] = frozenset(
         "timezone_is",
         "project_is",
         "note",
+        "nationality_is",
+        "origin_is",
     }
 )
+
+PREDICATE_SLUG_REGEX: Final[re.Pattern[str]] = re.compile(r"^[a-z][a-z0-9_]{1,40}$")
+
+
+def is_valid_predicate(p: str) -> bool:
+    """Validates predicate format (lowercase snake_case identifier, 2–41 chars)."""
+    clean = p.strip().lower()
+    if clean.startswith("unauthorized_"):
+        return False
+    return bool(PREDICATE_SLUG_REGEX.match(clean))
+
+
+PREDICATE_SYNONYMS: Final[dict[str, str]] = {
+    "nationality": "nationality_is",
+    "citizenship": "nationality_is",
+    "origin": "origin_is",
+    "resides_in": "lives_in",
+    "located_in": "lives_in",
+    "living_in": "lives_in",
+    "employed_by": "works_at",
+    "works_for": "works_at",
+    "occupation_is": "works_as",
+    "job_is": "works_as",
+    "preferred_language": "speaks_language",
+    "language_spoken": "speaks_language",
+    "hobbies": "likes",
+    "hobby": "likes",
+    "dislike": "dislikes",
+    "pet_is": "has_pet",
+    "partner_is": "has_partner",
+    "child_is": "has_child",
+    "sibling_is": "has_sibling",
+    "parent_is": "has_parent",
+    "friend_is": "has_friend",
+}
+
+
+def canonicalize_predicate(p: str) -> str:
+    """Maps predicate synonyms to their canonical slug form."""
+    clean = p.strip().lower()
+    return PREDICATE_SYNONYMS.get(clean, clean)
 
 
 class ASRMeta(BaseModel, frozen=True):

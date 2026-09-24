@@ -428,3 +428,74 @@ def test_scenario_5_rollup_scheduler_48h_clock_with_restart(
 
     # Updated timestamp persisted
     assert refl_restarted.get_last_rollup_at() == t_day2_310am
+
+
+def test_orchestrator_default_runtime_wiring_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Phase 1 verification: Orchestrator default constructor wires live DB & MemoryStore with CPU embedder."""
+    monkeypatch.setenv("LUCCA_HOME", str(tmp_path))
+    from tests.fakes.fake_asr import FakeASR
+    from tests.fakes.fake_llm import FakeLLM
+    from tests.fakes.fake_tts import FakeTTS
+
+    orch = Orchestrator(llm=FakeLLM(), tts=FakeTTS, asr=FakeASR, execute_tools=False)
+    try:
+        assert orch.db is not None
+        assert orch.memory_store is not None
+        worker = getattr(getattr(orch.memory_store, "embedding_port", None), "worker", None)
+        assert worker is not None
+        assert worker.device == "CPU"
+    finally:
+        orch.stop()
+
+
+def test_turn_commit_writes_hmac_signatures(test_orch: Orchestrator) -> None:
+    """Phase 1 verification: commits write rows into SQLite with valid HMAC-SHA256 signatures."""
+    trace = TurnTrace(
+        trace_id="tr-phase1-verify", session_id="s1", origin="text", mode="transcript"
+    )
+    test_orch.active_trace = trace
+    t0 = time.perf_counter()
+
+    # 1. Transcript commit
+    user_entry_id = test_orch._commit_transcript("I live in Melbourne", trace)
+    assert user_entry_id is not None
+
+    # 2. Assistant utterance commit
+    test_orch._commit_assistant_utterance("Got it, Melbourne is great.", trace)
+
+    # 3. Action receipt commit
+    test_orch.current_turn_receipts = [
+        ToolReceipt(
+            tool="self_metrics",
+            ok=True,
+            call_id="call-m1",
+            args={},
+            output='{"status": "ok"}',
+        )
+    ]
+    test_orch._commit_action_receipts(trace)
+    finalize_latency_ms = (time.perf_counter() - t0) * 1000.0
+    assert finalize_latency_ms < 500.0, f"Finalize latency {finalize_latency_ms}ms too high"
+
+    # Verification: SQLite has valid signed rows for all three
+    assert test_orch.db is not None
+    with test_orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT p.entry_id, p.provenance, p.signature, p.signer_id
+            FROM provenance_envelopes p
+            WHERE p.trace_id = 'tr-phase1-verify'
+            """
+        )
+        rows = cur.fetchall()
+        assert len(rows) >= 3
+        provs = {r[1] for r in rows}
+        assert "USER_EXPLICIT" in provs
+        assert "ASSISTANT_UTTERANCE" in provs
+        assert "ASSISTANT_ACTION" in provs
+        for r in rows:
+            sig = r[2]
+            signer = r[3]
+            assert sig and len(sig) == 44  # HMAC-SHA256 base64 digest is 44 chars
+            assert signer and len(signer) > 0
+

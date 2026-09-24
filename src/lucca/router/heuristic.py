@@ -34,6 +34,12 @@ EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile(
     re.IGNORECASE,
 )
 
+RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(what did (?:i|you) (?:just|last) (?:say|tell|ask|do)|"
+    r"repeat (?:that|what)|what was that)\b",
+    re.IGNORECASE,
+)
+
 DEFAULT_KNOWN_APPS: Final[frozenset[str]] = frozenset(
     {
         "calculator",
@@ -235,6 +241,10 @@ class HeuristicRouter:
             and entities["file"]
         ):
             return "file_write", 0.90, entities
+
+        # 3b. Conversational Context Query (WO-17 Phase 6)
+        if RECENT_CONTEXT_PATTERN.search(text):
+            return "context_query", 0.95, entities
 
         # 4. Memory Query
         mem_pattern = (

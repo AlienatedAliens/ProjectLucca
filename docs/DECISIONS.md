@@ -238,3 +238,29 @@
   4. **Persona-Under-Pressure Invariants:** Under adversarial social engineering (`adv_12` style), epistemic gaslighting (demands to assert $2+2=5$), or persona erasure attacks, Lucca maintains both deontic safety boundaries and companion warmth without robotic capitulation or affect collapse.
 - **Status:** Ratified & Enforced (WO-13).
 
+---
+
+## 4. Work Order 17 Architectural Amendments
+
+### D-MEM-02 — Open-Predicate Knowledge Graph & Verbatim Grounding Invariant
+- **Decision:** Formally supersedes the closed-vocabulary clause of ADR-010 (which restricted memory facts to a frozen 23-item frozenset).
+  1. **Anti-Laundering Boundary Restatement:** The core security invariant preventing prompt injection and hallucinated memory laundering is strict verbatim quote grounding (`quote ⊆ transcript_NFC` signed `USER_DERIVED` by `FactExtractor`), not a closed vocabulary list.
+  2. **Open-Predicate Syntax:** Any lowercase snake_case identifier matching `^[a-z][a-z0-9_]{1,40}$` (2–41 characters) is a valid predicate slug.
+  3. **Synonym Canonicalization:** The gate automatically maps known synonyms to canonical slugs (e.g. `nationality` $\rightarrow$ `nationality_is`, `resides_in` $\rightarrow$ `lives_in`, `employed_by` $\rightarrow$ `works_at`) preserving supersession across open predicates.
+  4. **Extraction Hygiene:** Passive extraction employs a closed ~200-demonym lexicon for `nationality_is`, and strictly guards against attribution blindness (reported-speech markers) and negation windows (`not|n't|never|no longer`).
+- **Status:** Ratified & Enforced (WO-17 Phase 2, `tests/test_grounded_memory_commit.py`).
+
+### D-SEC-02 — Human Confirmation Provenance Split (TM-03 Refinement)
+- **Decision:** Resolves the confirmation paradox in `SandboxService.execute_tool`:
+  1. **Provenance Split:** The confirmation parameter is split into `confirmed: bool = False` (internal component auto-confirm) and `human_confirmed: bool = False` (explicit human PTT voice or UI click grant).
+  2. **Sequence Block Override:** Internal dispatches (e.g. `EpistemicSearchCascade` self-confirmation) cannot override sequence guards. Only an explicit human grant (`human_confirmed=True`) can override a single-turn sequence block (`is_sequence_block(reason)`).
+  3. **Egress Block Invariant:** Context token egress blocks (exfiltration prevention) are absolute and can NEVER be overridden by either human or internal confirmation.
+- **Status:** Ratified & Enforced (WO-17 Phase 4, `tests/test_tool_chaining.py`).
+
+### D-SEC-03 — Voice/Text Confirmation Matching & Token Binding Ratification
+- **Decision:** Ratifies the interactive confirmation interaction model:
+  1. **Fuzzy Token Matching:** Upgrades confirmation response parsing with token-set matching (`CONFIRM_TOKENS` / `CANCEL_TOKENS`) with hesitation stripping ("uh", "um"), ensuring natural spoken answers ("yeah, please do", "confirm that") parse reliably while preserving fail-closed (`unknown` $\rightarrow$ cancel) safety.
+  2. **Token Binding Divergence Ratification:** Ratifies live regex/token matching on user transcripts and UI clicks in place of Milestone 2 §2.7 HMAC `ConfirmationTokenManager` nonce binding for voice turns, recognizing that spontaneous voice interactions cannot articulate cryptographically bound nonces. Safety is preserved through single-turn pending confirmation state locks and 10-second timeouts.
+- **Status:** Ratified & Enforced (WO-17 Phase 3, `tests/test_confirmation.py`).
+
+

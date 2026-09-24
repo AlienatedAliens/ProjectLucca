@@ -32,6 +32,7 @@ class EventName(StrEnum):
     TTS_CHUNK_DONE = "tts.chunk_done"
     TTS_ABORT = "tts.abort"
     TTS_FAIL = "tts.fail"
+    TTS_QUEUE_OVERFLOW = "tts_queue_overflow"
 
     # LLM events
     LLM_REQUEST = "llm.request"

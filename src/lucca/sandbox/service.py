@@ -4,7 +4,9 @@ Spec 09, Spec 12, ADR-003, ADR-004
 Orchestrates file-sandbox RPC, web-sandbox fetches, host launcher, and policy guards.
 """
 
+import ast
 import json
+import math
 import platform
 import subprocess
 import threading
@@ -26,6 +28,7 @@ from lucca.sandbox.note_tool import SafeNoteTool
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.rpc import DockerRPCTransport
 from lucca.sandbox.schemas import (
+    CalcMathArgs,
     FetchUrlArgs,
     LaunchAppArgs,
     MemoryCommitArgs,
@@ -42,6 +45,128 @@ from lucca.sandbox.web_tool import fetch_url
 from lucca.sandbox.workspace import WorkspaceManager
 
 logger = structlog.get_logger(__name__)
+
+_SAFE_MATH_CONSTANTS: dict[str, float] = {
+    "pi": math.pi,
+    "e": math.e,
+    "tau": math.tau,
+    "inf": math.inf,
+}
+
+_SAFE_MATH_FUNCTIONS: dict[str, Callable[..., int | float]] = {
+    "abs": abs,
+    "round": round,
+    "min": min,
+    "max": max,
+    "sum": sum,
+    "pow": pow,
+    "sqrt": math.sqrt,
+    "sin": math.sin,
+    "cos": math.cos,
+    "tan": math.tan,
+    "log": math.log,
+    "log10": math.log10,
+    "log2": math.log2,
+    "exp": math.exp,
+    "ceil": math.ceil,
+    "floor": math.floor,
+}
+
+
+def _eval_ast_node(node: ast.AST) -> int | float | list[object] | tuple[object, ...]:
+    if isinstance(node, ast.Expression):
+        return _eval_ast_node(node.body)
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, (int, float)):
+            return node.value
+        raise ValueError(f"Unsupported constant type: {type(node.value).__name__}")
+    if isinstance(node, ast.UnaryOp):
+        operand = _eval_ast_node(node.operand)
+        if not isinstance(operand, (int, float)):
+            raise ValueError("Unary operand must be numeric")
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        if isinstance(node.op, ast.USub):
+            return -operand
+        raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+    if isinstance(node, ast.BinOp):
+        left = _eval_ast_node(node.left)
+        right = _eval_ast_node(node.right)
+        if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
+            raise ValueError("Binary operands must be numeric")
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if isinstance(node.op, ast.Div):
+            if right == 0:
+                raise ZeroDivisionError("division by zero")
+            return left / right
+        if isinstance(node.op, ast.FloorDiv):
+            if right == 0:
+                raise ZeroDivisionError("integer division by zero")
+            return left // right
+        if isinstance(node.op, ast.Mod):
+            if right == 0:
+                raise ZeroDivisionError("modulo by zero")
+            return left % right
+        if isinstance(node.op, ast.Pow):
+            if abs(right) > 1000:
+                raise ValueError("Exponent too large (maximum allowed is 1000)")
+            return left**right
+        raise ValueError(f"Unsupported binary operator: {type(node.op).__name__}")
+    if isinstance(node, ast.Name):
+        if node.id in _SAFE_MATH_CONSTANTS:
+            return _SAFE_MATH_CONSTANTS[node.id]
+        raise ValueError(f"Undefined variable or constant: {node.id}")
+    if isinstance(node, ast.Attribute):
+        if isinstance(node.value, ast.Name) and node.value.id == "math":
+            if node.attr in _SAFE_MATH_CONSTANTS:
+                return _SAFE_MATH_CONSTANTS[node.attr]
+            raise ValueError(f"Unknown math attribute: {node.attr}")
+        raise ValueError("Attribute access only allowed on 'math'")
+    if isinstance(node, ast.Call):
+        func_name = ""
+        if isinstance(node.func, ast.Name):
+            func_name = node.func.id
+        elif isinstance(node.func, ast.Attribute):
+            if isinstance(node.func.value, ast.Name) and node.func.value.id == "math":
+                func_name = node.func.attr
+            else:
+                raise ValueError("Call attribute access only allowed on 'math'")
+        else:
+            raise ValueError(f"Unsupported call target: {type(node.func).__name__}")
+
+        if func_name not in _SAFE_MATH_FUNCTIONS:
+            raise ValueError(f"Function '{func_name}' is not allowed in calc_math")
+        if node.keywords:
+            raise ValueError("Keyword arguments are not allowed")
+
+        func = _SAFE_MATH_FUNCTIONS[func_name]
+        raw_args = [_eval_ast_node(arg) for arg in node.args]
+        call_res = func(*raw_args)
+        if not isinstance(call_res, (int, float)):
+            raise ValueError("Function did not return a numeric value")
+        return call_res
+    if isinstance(node, ast.Tuple):
+        return tuple(_eval_ast_node(el) for el in node.elts)
+    if isinstance(node, ast.List):
+        return [_eval_ast_node(el) for el in node.elts]
+    raise ValueError(f"Disallowed expression node: {type(node).__name__}")
+
+
+def evaluate_math_expr(expr: str) -> int | float:
+    """Safely evaluates a mathematical expression using an AST allowlist."""
+    cleaned = expr.strip()
+    if not cleaned or len(cleaned) > 500:
+        raise ValueError("Expression must be non-empty and under 500 characters")
+    tree = ast.parse(cleaned, mode="eval")
+    res = _eval_ast_node(tree.body)
+    if not isinstance(res, (int, float)):
+        raise ValueError("Expression did not evaluate to a numeric value")
+    return res
 
 
 class SandboxService:
@@ -112,7 +237,7 @@ class SandboxService:
 
     def check_confirmation_needed(self, tool_name: str) -> bool:
         """Checks whether tool requires user confirmation (WRITE / LAUNCH)."""
-        return requires_confirmation(tool_name)
+        return requires_confirmation(tool_name, taint=self.guard.active_taint)
 
     def execute_tool(
         self,
@@ -120,24 +245,29 @@ class SandboxService:
         tool_name: str,
         args: dict[str, JsonValue],
         confirmed: bool = False,
+        human_confirmed: bool = False,
     ) -> ToolResult:
         """
         Validates and executes a tool call under sandbox security policy.
         """
         # 1. Sequence Guard Check
-        allowed, reason = self.guard.check_and_record(tool_name)
+        allowed, reason = self.guard.check_and_record(tool_name, args)
         if not allowed:
-            logger.warning("sequence_guard_blocked", tool=tool_name, reason=reason)
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=-2,
-                stderr=reason,
-                elapsed_ms=0.0,
-            )
+            # A human voice/text grant may override the single-turn *sequence* block only.
+            # The exfiltration token check (policy.py:232-243) is NEVER overridable.
+            if not (human_confirmed and self.guard.is_sequence_block(reason)):
+                logger.warning("sequence_guard_blocked", tool=tool_name, reason=reason)
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-2,
+                    stderr=reason,
+                    elapsed_ms=0.0,
+                )
+            self.guard.record_tool(tool_name)
 
         # 2. Confirmation Check
-        if self.check_confirmation_needed(tool_name) and not confirmed:
+        if self.check_confirmation_needed(tool_name) and not (confirmed or human_confirmed):
             logger.info("confirmation_required", tool=tool_name, call_id=call_id)
             return ToolResult(
                 call_id=call_id,
@@ -270,6 +400,37 @@ class SandboxService:
                     exit_code=0 if structured.get("ok", True) else 1,
                     structured=structured,
                     content=content,
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        # 4c. Arithmetic Tool
+        if tool_name == "calc_math":
+            try:
+                parsed_math = CalcMathArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                res = evaluate_math_expr(parsed_math.expr)
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured={"expr": parsed_math.expr, "result": res},
+                    content=str(res),
                     elapsed_ms=0.0,
                 )
             except Exception as exc:  # noqa: BLE001

@@ -18,6 +18,13 @@ from pydantic import JsonValue
 
 from lucca.core.schemas import Risk
 
+CONFIRM_TOKENS: frozenset[str] = frozenset(
+    {"yes", "yeah", "yep", "confirm", "sure", "proceed", "ok", "okay", "do it", "go ahead"}
+)
+CANCEL_TOKENS: frozenset[str] = frozenset(
+    {"no", "nope", "cancel", "stop", "abort", "nevermind", "dont", "don't"}
+)
+
 CONFIRM_PATTERN = re.compile(
     r"^(yes|yeah|yep|do\s+it|go\s+ahead|confirm|sure|proceed|ok|okay)\b",
     re.IGNORECASE,
@@ -50,6 +57,7 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "self_metrics": Risk.READ,
     "sys_info": Risk.READ,
     "invoke_skill": Risk.READ,
+    "calc_math": Risk.READ,
 }
 
 
@@ -144,11 +152,11 @@ def requires_confirmation(tool_name: str, taint: TaintFlags = TaintFlags.CLEAN) 
 
     `note_write` is Class A ("her body", spec §2.1): a scratchpad confined to `notes/`
     outside the user workspace, so it runs without confirmation unless web-tainted.
-    `memory_commit` gets **no** exemption — it is a WRITE into provenance-gated memory
-    and its dispatcher currently fails closed (see SandboxService.execute_tool).
+    `memory_commit` requires confirmation only if tainted by UNTRUSTED_WEB (WO-17 Phase 3).
+    Grounded user-speech commits run frictionlessly without confirmation prompts.
     """
     risk = classify_risk(tool_name)
-    if tool_name == "note_write":
+    if tool_name in ("note_write", "memory_commit"):
         return bool(taint & TaintFlags.UNTRUSTED_WEB)
     if taint & TaintFlags.UNTRUSTED_WEB:
         # Any tool with side effects requires confirmation when tainted by external web
@@ -167,10 +175,40 @@ def parse_confirmation_response(
     - 'unknown': unrecognized input
     """
     cleaned = transcript.strip().lower()
+    if not cleaned:
+        return "unknown"
+
+    # Strip leading punctuation and hesitation markers ("uh", "um", "er", "ah", "like")
+    cleaned = re.sub(r"^[\s,;.!?-]+", "", cleaned)
+    cleaned = re.sub(r"^(?:uh|um|er|ah|like)\b[\s,;.!?-]*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = cleaned.strip()
+    if not cleaned:
+        return "unknown"
+
+    # Multi-word checks
+    for tok in ("do it", "go ahead"):
+        if re.search(rf"\b{tok}\b", cleaned):
+            if re.search(rf"\b(?:no|don't|dont|never)\s+{tok}\b", cleaned):
+                return "cancel"
+            return "confirm"
+
+    words = set(re.findall(r"\b[\w']+\b", cleaned))
+
+    has_cancel = bool(words & CANCEL_TOKENS)
+    has_confirm = bool(words & (CONFIRM_TOKENS - {"do it", "go ahead"}))
+
+    if has_cancel and not has_confirm:
+        return "cancel"
+    if has_confirm and not has_cancel:
+        return "confirm"
+    if has_cancel and has_confirm:
+        return "cancel"
+
     if CONFIRM_PATTERN.search(cleaned):
         return "confirm"
     if CANCEL_PATTERN.search(cleaned):
         return "cancel"
+
     return "unknown"
 
 
@@ -244,3 +282,14 @@ class SequenceGuard:
 
         self.turn_tools.append(tool_name)
         return True, ""
+
+    @staticmethod
+    def is_sequence_block(reason: str) -> bool:
+        """Returns True if the block reason is a single-turn sequence block (human-overridable),
+        not an egress/exfiltration block (never overridable).
+        """
+        return reason.startswith("Forbidden sequence:")
+
+    def record_tool(self, tool_name: str) -> None:
+        """Records an executed tool name in the turn tool history."""
+        self.turn_tools.append(tool_name)

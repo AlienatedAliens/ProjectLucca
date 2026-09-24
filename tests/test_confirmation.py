@@ -23,7 +23,7 @@ from tests.fakes.fake_tts import FakeTTS
 
 
 def test_parse_confirmation_response():
-    """Verify regex matcher for confirmation and cancellation phrases."""
+    """Verify regex and token matcher for confirmation and cancellation phrases."""
     positives = [
         "yes",
         "YES",
@@ -37,6 +37,11 @@ def test_parse_confirmation_response():
         "proceed",
         "ok",
         "okay",
+        "yeah, please do",
+        "confirm that",
+        "uh, yeah",
+        "um ok sure",
+        "sure thing",
     ]
     for p in positives:
         assert parse_confirmation_response(p) == "confirm", f"Failed for {p}"
@@ -51,6 +56,8 @@ def test_parse_confirmation_response():
         "dont do it",
         "nevermind",
         "abort",
+        "no don't do it",
+        "uh no cancel",
     ]
     for n in negatives:
         assert parse_confirmation_response(n) == "cancel", f"Failed for {n}"
@@ -64,6 +71,20 @@ def test_parse_confirmation_response():
     ]
     for u in unknowns:
         assert parse_confirmation_response(u) == "unknown", f"Failed for {u}"
+
+
+def test_memory_commit_confirmation_gating():
+    """WO-17 Phase 3: memory_commit is frictionless unless tainted by UNTRUSTED_WEB."""
+    from lucca.sandbox.policy import TaintFlags, requires_confirmation
+
+    # Untainted: frictionless
+    assert requires_confirmation("memory_commit", taint=TaintFlags.CLEAN) is False
+
+    # Other non-web taints: still frictionless
+    assert requires_confirmation("memory_commit", taint=TaintFlags.SENSITIVE_MEMORY) is False
+
+    # Untrusted web taint: requires confirmation
+    assert requires_confirmation("memory_commit", taint=TaintFlags.UNTRUSTED_WEB) is True
 
 
 @pytest.fixture

@@ -141,8 +141,25 @@ def get_system_metrics() -> dict[str, JsonValue]:
     """
     global _LAST_SYS_METRICS_QUERY, _SYS_METRICS_CACHE
     now = time.monotonic()
+    now_local = datetime.now().astimezone()
+    utcoffset = now_local.utcoffset()
+    offset_secs = utcoffset.total_seconds() if utcoffset is not None else 0.0
+    tz_name = (
+        time.tzname[time.daylight]
+        if time.daylight < len(time.tzname)
+        else (now_local.tzname() or "UTC")
+    )
+    time_metadata: dict[str, JsonValue] = {
+        "timestamp": now_local.isoformat(),
+        "utc_offset": now_local.strftime("%z"),
+        "utc_offset_hours": round(offset_secs / 3600.0, 1),
+        "timezone_name": tz_name,
+    }
+
     if _SYS_METRICS_CACHE and (now - _LAST_SYS_METRICS_QUERY < 1.0):
-        return _SYS_METRICS_CACHE
+        cached = dict(_SYS_METRICS_CACHE)
+        cached.update(time_metadata)
+        return cached
 
     vm = psutil.virtual_memory()
     total_ram_gb = round(vm.total / (1024.0**3), 1)
@@ -156,7 +173,7 @@ def get_system_metrics() -> dict[str, JsonValue]:
     lucca_stack = get_lucca_process_footprint()
 
     metrics: dict[str, JsonValue] = {
-        "timestamp": datetime.now().isoformat(),
+        **time_metadata,
         "ram": {
             "total_gb": total_ram_gb,
             "used_gb": used_ram_gb,
