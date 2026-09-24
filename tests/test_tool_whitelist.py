@@ -43,3 +43,19 @@ def test_tool_whitelist_regression_0ef309d() -> None:
         assert exe and isinstance(exe, str) and exe.strip(), (
             f"App '{key}' must have a non-empty 'exe' string, found: {exe!r}"
         )
+
+
+def test_whitelist_parse_error_fails_closed(tmp_path: Path) -> None:
+    """F-SBX-013: A corrupted tool_whitelist.toml must fail closed, refusing launches."""
+    from lucca.sandbox.launcher import AppLauncher
+
+    corrupted_toml = tmp_path / "corrupted_whitelist.toml"
+    corrupted_toml.write_text("this is [not valid toml :::", encoding="utf-8")
+
+    launcher = AppLauncher(config_path=corrupted_toml, execute=False)
+    assert launcher.whitelist_error is not None
+    assert len(launcher.apps) == 0
+
+    ok, msg = launcher.launch("calculator")
+    assert not ok
+    assert "unparseable" in msg

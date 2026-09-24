@@ -44,10 +44,9 @@ DEFAULT_KNOWN_APPS: Final[frozenset[str]] = frozenset(
         "edge",
         "chrome",
         "terminal",
-        "cmd",
-        "powershell",
-        "code",
-        "vscode",
+        "windows terminal",
+        "task manager",
+        "taskmgr",
     }
 )
 
@@ -125,6 +124,7 @@ class HeuristicRouter:
         self.known_apps = set(DEFAULT_KNOWN_APPS)
         self.stop_words_after_start = set(DEFAULT_STOP_WORDS_AFTER_START)
         self.last_decision_record: DecisionRecord | None = None
+        self.db_write_failures: int = 0
         self._load_intents_config(config_path)
 
     def _load_intents_config(self, config_path: Path | str | None) -> None:
@@ -221,9 +221,6 @@ class HeuristicRouter:
                     if re.search(rf"\b{re.escape(app_name)}\b", candidate_app):
                         entities["app"].append(app_name)
                         return "launch_app", 0.95, entities
-                if not entities["file"] and len(candidate_app.split()) <= 2:
-                    entities["app"].append(candidate_app)
-                    return "launch_app", 0.85, entities
 
         # 2. File Read
         if (
@@ -275,7 +272,7 @@ class HeuristicRouter:
 
     def route(
         self,
-        transcript: str,
+        transcript: str | RouteFeatures | None = None,
         any_active_rule_fired: bool = False,
         any_quarantine_rule_fired: bool = False,
         vad_speech_ms: int = 1000,
@@ -290,15 +287,35 @@ class HeuristicRouter:
         session_turns: int = 0,
         mode: Literal["audio", "transcript"] = "transcript",
         has_registered_rule: bool = False,
+        feats: RouteFeatures | None = None,
     ) -> RouteDecision:
         """
         Executes routing decision logic per Spec 06 §1 & §2 and logs full DecisionRecord.
+        Accepts unpacked kwargs or a RouteFeatures instance (satisfying RouterPort).
         """
         t0 = time.perf_counter()
 
-        intent, auto_conf, entities = self.classify_intent(transcript)
-        conf = intent_conf if intent_conf is not None else auto_conf
-        text_lower = transcript.strip().lower()
+        target_feats = transcript if isinstance(transcript, RouteFeatures) else feats
+        if target_feats is not None:
+            transcript_text = target_feats.transcript
+            any_active_rule_fired = target_feats.any_active_rule_fired
+            any_quarantine_rule_fired = target_feats.any_quarantine_rule_fired
+            vad_speech_ms = target_feats.vad_speech_ms
+            intent_conf = target_feats.intent_conf
+            hour_local = target_feats.hour_local
+            weekday = target_feats.weekday
+            apps_running = target_feats.apps_running
+            last_tool = target_feats.last_tool
+            last_tool_ok = target_feats.last_tool_ok
+            session_turns = target_feats.session_turns
+            mode = target_feats.mode
+            has_registered_rule = target_feats.has_registered_rule
+        else:
+            transcript_text = transcript if isinstance(transcript, str) else ""
+
+        intent, auto_conf, entities = self.classify_intent(transcript_text)
+        conf = intent_conf if (intent_conf is not None and intent_conf > 0.0) else auto_conf
+        text_lower = transcript_text.strip().lower()
 
         fallback_applied = False
         calibrated = False
@@ -314,9 +331,7 @@ class HeuristicRouter:
         if rule_eligible:
             p_vec = np.array([conf, 1.0 - conf, 0.0], dtype=np.float64)
         elif (
-            vad_speech_ms < 400
-            or intent == "clarify"
-            or (intent in INTENT_TO_RULE and conf < 0.35 and not any_active_rule_fired)
+            vad_speech_ms < 400 or intent == "clarify" or (intent in INTENT_TO_RULE and conf < 0.35)
         ):
             p_vec = np.array([0.0, 1.0 - conf, conf], dtype=np.float64)
         else:
@@ -349,9 +364,7 @@ class HeuristicRouter:
             action_lit = "RULE"
             prediction_set = [RouteAction.RULE]
         elif (
-            vad_speech_ms < 400
-            or intent == "clarify"
-            or (intent in INTENT_TO_RULE and conf < 0.35 and not any_active_rule_fired)
+            vad_speech_ms < 400 or intent == "clarify" or (intent in INTENT_TO_RULE and conf < 0.35)
         ):
             action_lit = "CLARIFY"
             prediction_set = [RouteAction.CLARIFY]
@@ -384,7 +397,7 @@ class HeuristicRouter:
         )
 
         features = RouteFeatures(
-            transcript=transcript,
+            transcript=transcript_text,
             transcript_lower=text_lower,
             intent=intent,
             intent_conf=conf,
@@ -480,6 +493,7 @@ class HeuristicRouter:
                 ),
             )
         except Exception as exc:  # noqa: BLE001
+            self.db_write_failures += 1
             logger.warning("decision_sqlite_log_failed", error=str(exc))
 
     def record_post_turn(
@@ -515,6 +529,7 @@ class HeuristicRouter:
                     ),
                 )
             except Exception as exc:  # noqa: BLE001
+                self.db_write_failures += 1
                 logger.warning("post_turn_sqlite_update_failed", error=str(exc))
 
         if self.last_decision_record and self.last_decision_record.decision_id == decision_id:

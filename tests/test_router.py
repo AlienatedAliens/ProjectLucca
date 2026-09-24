@@ -645,3 +645,45 @@ def test_probabilities_is_dict_str_float() -> None:
     assert isinstance(decision.probabilities, dict)
     assert all(isinstance(k, str) for k in decision.probabilities.keys())
     assert all(isinstance(v, float) for v in decision.probabilities.values())
+
+
+def test_router_port_compatibility_with_route_features() -> None:
+    router = HeuristicRouter()
+    feats = RouteFeatures(
+        transcript="open calculator",
+        has_registered_rule=True,
+    )
+    decision = router.route(feats)
+    assert decision.action == RouteAction.RULE
+    assert decision.probabilities is not None
+
+
+def test_t_rtr_02_app_boundary_adversarial() -> None:
+    router = HeuristicRouter()
+    # Unknown 2-word or substring candidates must NOT trigger launch_app
+    intent, _, entities = router.classify_intent("open barcode generator")
+    assert intent != "launch_app"
+
+    intent, _, entities = router.classify_intent("open pod bay")
+    assert intent != "launch_app"
+
+    # Known whitelisted app MUST trigger launch_app
+    intent, conf, entities = router.classify_intent("open calculator")
+    assert intent == "launch_app"
+    assert "calculator" in entities["app"]
+    assert conf >= 0.90
+
+
+def test_router_db_write_failures_counter(tmp_path: Path) -> None:
+    router = HeuristicRouter()
+    assert router.db_write_failures == 0
+
+    # Pass a broken DB writer to trigger exception during route()
+    class BrokenDB:
+        def get_writer(self) -> None:
+            raise RuntimeError("disk full simulation")
+
+    router.db = BrokenDB()  # type: ignore[assignment]
+    decision = router.route("open calculator", has_registered_rule=True)
+    assert decision.action == RouteAction.RULE
+    assert router.db_write_failures == 1

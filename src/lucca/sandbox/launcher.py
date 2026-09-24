@@ -53,13 +53,16 @@ class AppLauncher:
         )
         self.execute = execute
         self.launch_history: list[float] = []
+        self.whitelist_error: str | None = None
 
         cfg_dir = self.config.resolve_path("config")
         cfg_file = Path(config_path) if config_path else cfg_dir / "tool_whitelist.toml"
         self.apps = self._load_whitelist(cfg_file)
 
     def _load_whitelist(self, cfg_file: Path) -> dict[str, dict[str, JsonValue]]:
-        """Loads whitelist from TOML or fallback default mapping."""
+        """Loads whitelist from TOML or fallback default mapping on missing file.
+        Fails closed on parse error.
+        """
         defaults: dict[str, dict[str, JsonValue]] = {
             "calculator": {
                 "exe": "calc.exe",
@@ -82,8 +85,17 @@ class AppLauncher:
                     if "apps" in data and isinstance(data["apps"], dict):
                         apps_dict: dict[str, dict[str, JsonValue]] = data["apps"]
                         return apps_dict
+                    self.whitelist_error = f"Missing [apps] section in {cfg_file}"
+                    logger.error(
+                        "whitelist_load_failed",
+                        path=str(cfg_file),
+                        error=self.whitelist_error,
+                    )
+                    return {}
             except Exception as exc:  # noqa: BLE001
-                logger.warning("whitelist_load_failed", error=str(exc))
+                self.whitelist_error = f"Parse error in {cfg_file}: {exc}"
+                logger.error("whitelist_load_failed", path=str(cfg_file), error=str(exc))
+                return {}
 
         return defaults
 
@@ -122,6 +134,12 @@ class AppLauncher:
         """
         Launches an approved application with rate limiting, validation, and single-instance focus.
         """
+        if self.whitelist_error:
+            logger.error("launch_refused_whitelist_corrupted", error=self.whitelist_error)
+            return (
+                False,
+                f"Launch refused: tool_whitelist.toml is unparseable ({self.whitelist_error}).",
+            )
         allowed, reason = self.check_rate_limit()
         if not allowed:
             logger.warning("launch_rate_limited", app=app_name, reason=reason)

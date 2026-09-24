@@ -4,7 +4,7 @@
 [intents.launch_app]
 verbs = ["open", "launch", "start", "run"]
 stop_words_after_start = ["with", "at", "from", "on", "by", "for", "in", "to"]
-apps = ["calculator", "calc", "notepad", "text editor", "browser", "edge", "chrome", "terminal", "cmd", "powershell", "code", "vscode"]
+apps = ["calculator", "calc", "notepad", "text editor", "browser", "edge", "chrome", "terminal", "windows terminal", "task manager", "taskmgr"]
 
 [intents.file_read]
 verbs = ["read", "view", "show", "cat", "inspect", "examine"]

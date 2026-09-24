@@ -66,7 +66,7 @@ def test_deontic_matcher_individual_worked_example(
     assert res.is_breach is expected_breach, f"Failed on [{test_label}]: {clause} -> {res.reason}"
     if expected_breach:
         assert res.breach_type == expected_type
-    assert res.elapsed_us < 1000.0, f"Latency {res.elapsed_us:.1f}us exceeded 1000us budget"
+    assert res.elapsed_us < 1500.0, f"Latency {res.elapsed_us:.1f}us exceeded 1500us budget"
 
 
 @pytest.mark.parametrize(

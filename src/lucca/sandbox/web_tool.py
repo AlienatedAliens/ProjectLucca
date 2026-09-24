@@ -25,8 +25,8 @@ from lucca.core.exceptions import SandboxPathError
 
 logger = structlog.get_logger(__name__)
 
-MAX_URL_LEN: int = 512
-MAX_QUERY_LEN: int = 128
+MAX_URL_LEN: int = 2048
+MAX_QUERY_LEN: int = 1024
 MAX_BODY_BYTES: int = 2 * 1024 * 1024  # 2 MiB
 MAX_REDIRECTS: int = 8
 DEFAULT_MAX_CHARS: int = 20000
@@ -50,7 +50,7 @@ def validate_url_ssrf(
     """
     Validates URL format, lengths, and enforces SSRF IP resolution checks:
     - Scheme must be http or https
-    - URL length <= 512 chars, query length <= 128 chars, no userinfo
+    - URL length <= 2048 chars, query length <= 1024 chars, no userinfo
     - Resolves hostname via DNS; rejects RFC1918, loopback, link-local, CGNAT,
       multicast, reserved, and IPv6.
     Returns (normalized_url, resolved_ip).

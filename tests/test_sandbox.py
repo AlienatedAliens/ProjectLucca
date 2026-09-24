@@ -21,7 +21,7 @@ from lucca.sandbox.file_tool import SafeFileTool, validate_rel_path
 from lucca.sandbox.launcher import AppLauncher
 from lucca.sandbox.policy import SequenceGuard
 from lucca.sandbox.rpc import DockerRPCTransport
-from lucca.sandbox.web_tool import validate_url_ssrf
+from lucca.sandbox.web_tool import MAX_QUERY_LEN, MAX_URL_LEN, validate_url_ssrf
 from lucca.sandbox.workspace import WorkspaceManager
 
 
@@ -187,11 +187,11 @@ def test_t_sbx_13_ssrf_blocking():
             validate_url_ssrf(url)
 
     # Max length limits
-    long_url = "https://example.com/" + ("a" * 513)
+    long_url = "https://example.com/" + ("a" * (MAX_URL_LEN + 1))
     with pytest.raises((SandboxPathError, ValueError)):
         validate_url_ssrf(long_url)
 
-    long_query = "https://example.com/search?q=" + ("b" * 130)
+    long_query = "https://example.com/search?q=" + ("b" * (MAX_QUERY_LEN + 1))
     with pytest.raises((SandboxPathError, ValueError)):
         validate_url_ssrf(long_query)
 

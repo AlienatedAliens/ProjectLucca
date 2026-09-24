@@ -41,9 +41,9 @@ def derive_label(
     """
     Derives ground truth label for a decision per Spec 06 §4:
     Priority 1: User barged in <= 1.5 s after playback started -> NEG (early_bargein)
-    Priority 2: Next transcript matches negation lexicon -> NEG (explicit_negation)
-    Priority 3: Any tool call ok=False (timeout, non-zero exit, schema error) -> NEG (tool_failed)
-    Priority 4: Confirm flow answered 'no' -> INDETERMINATE (user_declined)
+    Priority 2: Confirm flow answered 'no' -> INDETERMINATE (user_declined)
+    Priority 3: Next transcript matches negation lexicon -> NEG (explicit_negation)
+    Priority 4: Any tool call ok=False (timeout, non-zero exit, schema error) -> NEG (tool_failed)
     Priority 5: Route was LLM and rule planned identically -> NEG (rule_would_match)
     Priority 6: Route was RULE and user re-asked same intent <= 30 s -> NEG (rule_wrong)
     Priority 7: Route was CLARIFY and next turn had intent_conf >= 0.6 same intent
@@ -64,15 +64,15 @@ def derive_label(
     ):
         return DecisionLabel.NEG, DecisionLabelReason.EARLY_BARGEIN
 
-    # Priority 4: User declined confirmation (answering 'no' to confirmation prompt)
+    # Priority 2: User declined confirmation (answering 'no' to confirmation prompt)
     if confirm_declined:
         return DecisionLabel.INDETERMINATE, DecisionLabelReason.USER_DECLINED
 
-    # Priority 2: Explicit negation in next transcript (unsolicited correction)
+    # Priority 3: Explicit negation in next transcript (unsolicited correction)
     if next_transcript and NEGATION_REGEX.search(next_transcript.strip()):
         return DecisionLabel.NEG, DecisionLabelReason.EXPLICIT_NEGATION
 
-    # Priority 3: Tool failure
+    # Priority 4: Tool failure
     if effective_tool_ok is False:
         return DecisionLabel.NEG, DecisionLabelReason.TOOL_FAILED
 
