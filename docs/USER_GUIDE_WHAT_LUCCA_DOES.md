@@ -14,7 +14,7 @@ Lucca is a voice companion that runs entirely on your laptop. You hold a key, ta
 
 ### 0.1 v1.0 Status
 
-As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fully wired and running locally: push-to-talk voice pipeline (<1500 ms TTFT on RTX 5080 Laptop GPU per `tests/test_capability_assessment_live_hw.py`), 18 native tools (`src/lucca/core/capabilities.py`, capped at 18 per `src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`), 15 active MicroScheme rules (`config/skills/`, capped at 30 in `src/lucca/reasoning/lifecycle.py`), 8 cascade substrates (`src/lucca/core/cascade.py:EpistemicSubstrate`), cryptographically signed memory commits (`src/lucca/memory/gate.py`), streaming output supervision (`src/lucca/sandbox/output_supervisor.py`), and split-conformal abstention routing (`src/lucca/router/calibration.py`). Deferred to [`V2_BACKLOG.md`](./V2_BACKLOG.md) are: multi-user separation, screen perception, continuous open-mic listening, automated L3 one-click UI rule promotion on real usage, learned neural routing classifiers, and autobiographical assistant reflection.
+As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fully wired and running locally: push-to-talk voice pipeline (<1500 ms TTFT on RTX 5080 Laptop GPU per `tests/test_capability_assessment_live_hw.py`), 18 native tools (`src/lucca/core/capabilities.py`, capped at 18 per `src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`), 15 active MicroScheme rules (`config/skills/`, capped at 30 in `src/lucca/reasoning/lifecycle.py`), 8 cascade substrates (`src/lucca/core/cascade.py:EpistemicSubstrate`), cryptographically signed memory commits (`src/lucca/memory/gate.py`), streaming output supervision (`src/lucca/sandbox/output_supervisor.py`), and split-conformal abstention routing (`src/lucca/router/calibration.py`). Deferred to [`V2_BACKLOG.md`](./V2_BACKLOG.md) are: multi-user separation, screen perception, continuous open-mic listening, automated L3 one-click UI rule promotion on real usage, learned neural routing classifiers, and unprompted proactive meta-cognitive reflection loops.
 
 ---
 
@@ -82,23 +82,25 @@ All tool execution is gated: read-only tools run immediately; anything that writ
 
 ### 2.4 Memory — what she remembers and what she cannot
 - **Everything you say to her is remembered**, signed as *your* words (`USER_EXPLICIT`). Ask later ("what did I tell you about my dessert preference?") and `memory_search` / the cascade will find it.
-- **Nothing she says is ever stored.** There is no cryptographic signer for model output; the memory gate rejects it structurally, not by policy.
-- **She cannot write to memory by deciding to.** The `memory_commit` tool she can see is disabled: an earlier implementation would have let the model store its own sentences signed as if you had said them. That was closed. Re-enabling requires a design decision (ADR) on a legitimate path (e.g. facts *extracted from your words* signed `USER_DERIVED`).
-- Web page contents, file contents and process lists are `TOOL_CONTENT_UNTRUSTED` and never memory-eligible without an explicit action from you.
+- **Her own speech and actions ARE remembered (Rung A1, D-MEM-04)**: Spoken utterances are signed by `AssistantUtteranceSigner` as `ASSISTANT_UTTERANCE`, while tool actions are signed by `ToolResultSigner` as `ASSISTANT_ACTION` receipts.
+- **Epistemic Grounding Invariant (D-MEM-04)**: Memory distinguishes *memory-eligible* from *grounding-eligible*. Her past utterances persist across sessions for conversational continuity and retrospection (`memory_eligible = 1`), but are structurally excluded from epistemic grounding (`grounding_eligible = 0`) so that past assistant speech can never fabricate or alter Belnap truth values.
+- **She cannot silently alter her beliefs or write ungrounded facts**: The `memory_commit` tool visible to the model remains fail-closed. Stances and beliefs persist as `ASSISTANT_BELIEF` and can only be revised through evidence-gated `supersede(old, new, reason=<grounding-eligible entry_id>)`. Revisions triggering any of 5 safety criteria (e.g., about user model, high importance, or conflict) are queued in the Studio review queue for explicit operator review.
+- Web page contents, file contents, and process lists are `TOOL_CONTENT_UNTRUSTED` and never memory-eligible without an explicit action from you.
 
-**So does she have an autobiographical memory? Today, no — and that is a real limitation, not just a safety feature.** What persists across sessions, and what does not:
+**Does she have an autobiographical memory? Yes (Rung A1, D-MEM-04).** What persists across sessions, and how it is partitioned:
 
-| Store | Contains | Her own words/actions? |
-|---|---|---|
-| `memories` + `vec_memories` + `fts_memories` (the RAG store) | Your transcripts (`USER_EXPLICIT`), extracted facts (`USER_DERIVED`), verified tool facts, rule assertions | **Never her speech.** Enforced by an SQL trigger (`mem_bi_eligible`), not by convention. |
-| `decisions` | Router features, chosen route, tool names, timings | No conversational text at all. |
-| `execution_triples` | Which rule proposed what plan, and the grounded outcome | Her *rule* actions, yes; her *conversation*, no. |
-| `logs/traces-YYYYMMDD.jsonl` | Latency stamps, route, interrupted flag | No text. Purged after `retention_days`. |
-| In-process `history` | The full user/assistant exchange of the **current session** | Yes — but RAM only. Gone at restart. |
+| Store | Contains | Her own words/actions? | Epistemic Status |
+|---|---|---|---|
+| `memories` + `vec_memories` + `fts_memories` | User transcripts (`USER_EXPLICIT`), facts (`USER_DERIVED`), tool receipts (`ASSISTANT_ACTION`), assistant speech (`ASSISTANT_UTTERANCE`), beliefs (`ASSISTANT_BELIEF`) | **Yes.** Utterances signed by `AssistantUtteranceSigner`; action receipts signed by `ToolResultSigner`. | Utterances: `grounding_eligible=0` (continuity only). Actions/receipts: `grounding_eligible=1` (verifiable truth). |
+| `decisions` | Router features, chosen route, tool names, timings | Structured decision records. | Audit/telemetry only. |
+| `execution_triples` | Which rule proposed what plan, and the grounded outcome | Her *rule* actions and execution outcomes. | Grounded execution history. |
+| `review_queue` | Flagged belief revisions requiring operator approval | Pending stance revisions. | Held until approved/rejected in Studio. |
+| Substrate 7: `SELF_HISTORY` | Fused query across `execution_triples ∪ ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH` | Yes — answers "did you actually do X?" or "what did you say?" | Verifiable self-retrospection. Abstains honestly on unrecorded events. |
+| In-process `history` | The full user/assistant exchange of the **current session** | Yes — RAM working context. | In-turn conversational context. |
 
-Consequences you will notice: she remembers *that you like tiramisu* but not *that she recommended a recipe yesterday*; she can pick up a thread within a session but not "what were we doing last time?"; and she has no record of her own past feelings or mistakes to reflect on. Within doctrine there is a clean path to fix the *actions* half — a tool receipt ("I read `notes.txt` on Tuesday") is a `TOOL_VERIFIED` fact about her behaviour, not narration — and a plausible path for the *speech* half: a new provenance class (e.g. `ASSISTANT_UTTERANCE`) that is retrievable **for conversational continuity** but structurally excluded from grounding, exactly as `TOOL_CONTENT_UNTRUSTED` is today. Both need an ADR; neither exists yet. Listed in §4.
+Consequences you will notice: she remembers *what she recommended or said in past sessions*; she can answer introspective questions ("did you actually search the web?", "what was your opinion on X?"); if she claims to have done an action without an actual tool receipt, the supervisor records a `COHERENCE_BREACH`; and low-importance memories (< 0.2) older than 30 days are cleanly rolled up into nightly session summaries.
 
-> **Under the hood.** `Orchestrator._commit_transcript` signs each user transcript with `UserSpeechSigner` and commits through `ProvenanceGate` ([`memory/gate.py`](../src/lucca/memory/gate.py)). Signers: `UserSpeechSigner`, `DerivedFactSigner`, `ToolResultSigner`, `LispAssertionSigner` — no `LLM_NARRATION` signer exists ([`memory/signers.py`](../src/lucca/memory/signers.py)). Storage: SQLite WAL + FTS5 + `sqlite-vec` 384-D vector store (`all-MiniLM-L6-v2` per `src/lucca/memory/embeddings.py`), RRF fusion, 2,048-token retrieval quota (`src/lucca/memory/store.py:RETRIEVAL_TOKEN_BUDGET`).
+> **Under the hood.** `Orchestrator._commit_transcript` signs user transcripts with `UserSpeechSigner` and `Orchestrator._commit_assistant_utterance` signs assistant speech with `AssistantUtteranceSigner` ([`memory/signers.py`](../src/lucca/memory/signers.py)). Tool receipts are signed as `ASSISTANT_ACTION` via `ToolResultSigner`. Storage: SQLite WAL + FTS5 + `sqlite-vec` 384-D vector store (`all-MiniLM-L6-v2` per `src/lucca/memory/embeddings.py`), RRF fusion, 2,048-token retrieval quota (`src/lucca/memory/store.py:RETRIEVAL_TOKEN_BUDGET`).
 
 ### 2.5 Reflexes and skills (the 15 ACTIVE MicroScheme rules)
 This is the part most often misunderstood, so here is exactly what happens.
@@ -195,13 +197,12 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 | Capability | Status | Arrives |
 |---|---|---|
 | Learning a habit from you and proposing a shortcut | Machinery present, never completed on real data | L2 (replay/statistics) → L3 (viewer + your approval). Needs real turns. |
-| Storing facts *she* infers about you | Disabled (fail-closed) | After an ADR on a `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
-| Autobiographical memory (what *she* said/did in past sessions) | Absent by construction; session history is RAM-only | Needs an ADR: `TOOL_VERIFIED` action receipts for "what I did"; a non-grounding `ASSISTANT_UTTERANCE` class for "what I said" (`docs/V2_BACKLOG.md`). |
+| Storing facts *she* infers about you | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
 | Apologising correctly after you barge in | Retired | After orchestrator wiring + a rule that answers barge-ins with content (`docs/V2_BACKLOG.md`). |
 | Launching desktop apps | Removed by doctrine | Not planned. |
-| Seeing your screen, open-mic listening, multiple users, running elsewhere | Not in scope | Deferred (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md` §8, `docs/V2_BACKLOG.md`). |
-| Outcome telemetry & auto-demotion of failing rules | — | T4 (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
-| Knowing when *not* to think hard (fast easy turns) | — | C2 (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
+| Seeing your screen, open-mic listening, multiple users, running elsewhere | Not in scope | Deferred to v2 (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md` §8, `docs/V2_BACKLOG.md`). |
+| Unprompted proactive reflection loops (outside turns) | Deferred | v2 backlog (`docs/V2_BACKLOG.md` §1.1). |
+| Secondary offline reflect brain (Bonsai Slot-2 C1b) | Deferred | Post-v1.0 ablation gate (`docs/V2_BACKLOG.md` §1.5). |
 
 ---
 
