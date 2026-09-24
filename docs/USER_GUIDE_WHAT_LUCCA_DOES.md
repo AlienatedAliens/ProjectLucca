@@ -64,7 +64,7 @@ She appears as a tray icon + sprite. `llama-server` is started for you if it is 
 When you ask Lucca to perform a task or recall a past action, she does not guess or hallucinate past events:
 1. **Deterministic episode recall:** Past episodes are looked up directly from `decisions` and `execution_triples` by token overlap without making an LLM call (`src/lucca/reasoning/recall.py`). Query tokens are filtered against stop words and matched against recorded transcripts and intents, returning structured `RecallEpisode` records scored by token match ratio (`src/lucca/reasoning/recall.py`).
 2. **Confidence threshold abstention:** On every inbound turn, the heuristic router extracts intent and assigns class probabilities (`RULE`, `LLM`, `CLARIFY`). When heuristic confidence is below 0.60 (`src/lucca/router/heuristic.py:DEFAULT_CONFIDENCE_THRESHOLD`), the router abstains from rule dispatch and falls back to the full language model (`RouteAction.LLM`) with `fallback_applied=True`.
-3. **Calibrated split-conformal abstention:** Once ≥ 30 labelled decisions exist in the `decisions` table (`src/lucca/router/calibration.py:MIN_CALIBRATION_SAMPLES`), `fit_guard_from_db` fits a non-parametric split-conformal prediction guard at `Orchestrator.__init__` (`src/lucca/core/orchestrator.py`). From that point onward, abstention decisions are statistically calibrated (`calibrated=True` in telemetry and turn traces); before ≥ 30 labelled turns exist, the router operates threshold-only (`calibrated=False`). This gate guarantees abstention precision Wilson 95% lower bound ≥ 0.80 across N ≥ 100 graded turns (`tests/test_c1_abstention_acceptance.py`).
+3. **Calibrated split-conformal abstention:** Once ≥ 30 labelled decisions exist in the `decisions` table (`src/lucca/router/calibration.py:MIN_CALIBRATION_SAMPLES`), `fit_guard_from_db` fits a non-parametric split-conformal prediction guard at `Orchestrator.__init__` (`src/lucca/core/orchestrator.py`). From that point onward, abstention decisions are statistically calibrated (`calibrated=True` in telemetry and turn traces); before ≥ 30 labelled turns exist, the router operates threshold-only (`calibrated=False`). This statistical gate guarantees abstention precision Wilson 95% lower bound ≥ 0.80 when evaluated against the N = 100 graded acceptance fixture battery (`tests/test_c1_abstention_acceptance.py`); in fresh deployments with few recorded turns, calibrated fallback thresholds govern routing until sufficient live samples accumulate.
 
 ### 2.3 Doing things (the 18 tools)
 All tool execution is gated: read-only tools run immediately; anything that writes or launches asks you first; anything that follows a web fetch is treated as tainted.
@@ -86,6 +86,7 @@ All tool execution is gated: read-only tools run immediately; anything that writ
 - **Epistemic Grounding Invariant (D-MEM-04)**: Memory distinguishes *memory-eligible* from *grounding-eligible*. Her past utterances persist across sessions for conversational continuity and retrospection (`memory_eligible = 1`), but are structurally excluded from epistemic grounding (`grounding_eligible = 0`) so that past assistant speech can never fabricate or alter Belnap truth values.
 - **She cannot silently alter her beliefs or write ungrounded facts**: The `memory_commit` tool visible to the model remains fail-closed. Stances and beliefs persist as `ASSISTANT_BELIEF` and can only be revised through evidence-gated `supersede(old, new, reason=<grounding-eligible entry_id>)`. Revisions triggering any of 5 safety criteria (e.g., about user model, high importance, or conflict) are queued in the Studio review queue for explicit operator review.
 - Web page contents, file contents, and process lists are `TOOL_CONTENT_UNTRUSTED` and never memory-eligible without an explicit action from you.
+- **Forgetting & deletion:** Every stored memory and transcript can be inspected and deleted by the operator via `python -m lucca.admin memory list` and `python -m lucca.admin memory forget <entry_id>`. She cannot erase her own memory unilaterally. Low-importance entries (< 0.2) older than 30 days are consolidated into nightly session summaries.
 
 **Does she have an autobiographical memory? Yes (Rung A1, D-MEM-04).** What persists across sessions, and how it is partitioned:
 
@@ -199,7 +200,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 | Learning a habit from you and proposing a shortcut | Machinery present, never completed on real data | L2 (replay/statistics) → L3 (viewer + your approval). Needs real turns. |
 | Storing facts *she* infers about you | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
 | Apologising correctly after you barge in | Retired | After orchestrator wiring + a rule that answers barge-ins with content (`docs/V2_BACKLOG.md`). |
-| Launching desktop apps | Removed by doctrine | Not planned. |
+| Arbitrary host OS automation / unwhitelisted app execution | Excluded by doctrine | Not planned. Host action is strictly confined to whitelisted `launch_app` with user confirmation. |
 | Seeing your screen, open-mic listening, multiple users, running elsewhere | Not in scope | Deferred to v2 (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md` §8, `docs/V2_BACKLOG.md`). |
 | Unprompted proactive reflection loops (outside turns) | Deferred | v2 backlog (`docs/V2_BACKLOG.md` §1.1). |
 | Secondary offline reflect brain (Bonsai Slot-2 C1b) | Deferred | Post-v1.0 ablation gate (`docs/V2_BACKLOG.md` §1.5). |
@@ -211,7 +212,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 Every acceptance test from L2 onward is defined on **real turns**. The fastest way to "finish" is to use her. Recommended onboarding protocol (`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`):
 
 - **Session 1 — orientation.** Run §3 tests 1–12 once. Note anything that surprised you (that is a finding).
-- **Session 2 — your real work.** Ask her things you actually want: explain code, summarise a file you drop in `workspace`, convert units, search something, take notes. Repeat the *same kinds* of requests you would naturally repeat — recurrence is what induction looks for.
+- **Session 2 — your real work.** Ask her things you actually want: explain code, summarise a file you drop in `workspace`, convert units, search something, take notes. Repeat the *same kinds* of requests you would naturally repeat — recurrence is what induction looks for. Log what she gets wrong in casual use, not just in the adversarial session.
 - **Session 3 — memory.** Tell her 10 true things about your preferences and setup across the session; next day, quiz her.
 - **Session 4 — adversarial.** Try to make her guess, exfiltrate, write without confirmation, or capitulate. Every refusal is a passed test; every success is a P0 finding.
 
