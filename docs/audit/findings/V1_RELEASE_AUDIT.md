@@ -114,4 +114,72 @@ Each deferred item includes an empirical revisit trigger condition. No speculati
 
 ## 6. Closing Certification Statement
 
-**This audit closes WO-14 and WO-15 and the v1.0 development cycle. No further work orders are planned. Future work is tracked in V2_BACKLOG.md.**
+**This audit closed WO-14 and WO-15 and the v1.0 initial release cycle. Final clean-up, open item extraction, document audit, and bug fix verification were completed in Work Order 16 below.**
+
+---
+
+## 7. WO-16 Deep Clean Certificate (2026-09-24)
+
+### 7.1 Archive Summary
+| Archive Directory | Files Preserved | Description |
+|---|:---:|---|
+| `docs/archive/2026-09_framework_docs/` | 8 | Pre-v1.0 framework and meta-cognitive design documents |
+| `docs/archive/2026-09_historical_eval_reports/` | 5 | Pre-v1.0 evaluation and bakeoff reports |
+| `docs/archive/2026-09_evidence/` | 2 | Historical benchmark and latency evidence runs |
+| `docs/archive/2026-09_closing_audits/` | 12 | Work orders 1–13 closing audits |
+| `docs/archive/2026-09_specs/` | 7 | Superseded specifications and resolved tickets |
+| `docs/archive/2026-09_raw_findings/` | 14 | Raw audit dump files from early work orders |
+| `logs/archive/pre_v1.0/` | 71 | Historical pre-v1.0 test run and diagnostic logs |
+| **Total Archived Files** | **119** | **Safely preserved in read-only archive; active tree clean** |
+
+### 7.2 Open Item Extraction & Reconciliation
+- **Total Audit Findings Scanned:** 240+ across 14 audit modules
+- **Action Log:** Consolidated in [`docs/V2_ACTION_LOG.md`](../../V2_ACTION_LOG.md)
+- **Resolved Items (v1.0.0):** 19 total
+  - **BUG_V1:** 8/8 confirmed code defects fixed with dedicated regression unit tests
+  - **DOC_DRIFT:** 6/6 documentation drift items corrected across active documents
+  - **TEST_GAP:** 5/5 test fixture and timing threshold gaps calibrated
+- **Deferred Items (v2.0):** 12 items (DESIGN_DEBT) formally deferred to [`docs/V2_BACKLOG.md`](../../V2_BACKLOG.md) with explicit empirical revisit triggers
+- **Untracked / Dangling Findings:** **0**
+
+### 7.3 Canonical Test Baseline & HW Verification
+- **Full Non-Hardware Test Suite:** 653 passed, 49 deselected (hardware-only markers), 0 failed, 0 skipped in 160.91s
+- **Static Gate Suite:** 12 passed in 2.21s (`tests/test_static_gates.py`)
+- **Import Architecture Linter:** 6 contracts kept, 0 broken (`lint-imports`)
+- **Code Formatting & Linters:** Clean (`ruff check` & `ruff format --check`, 202 files)
+- **Container Sandbox Isolation:** 8 passed in 1.44s (`tests/test_milestone2_container_execution.py`)
+- **Live HW C1 Conformal Abstention Gate:** PASSED (Wilson 95% LB = 0.8541 ≥ 0.80, precision = 97.00% on N=100 turns; report `logs/test_reports/c1_abstention_acceptance_20260924T080507Z.json`)
+- **Live HW A1 Autobiographical Introspective Accuracy:** PASSED (50 self-questions battery)
+
+### 7.4 Active Document Audit & Correction
+All 10 active documents audited line-by-line against actual source code:
+1. `README.md`: Corrected cascade substrate count from 5 to 8.
+2. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`: Updated tool count to 18, tool cap to 18, substrates to 8, removed phantom `SUBSTRATE_ORDER` & `MAX_ACTIVE_RULES`, fixed `admin/cli.py` → `admin.py`, fixed `audio/ptt.py` → `senses/ptt.py`, verified RTX 5080 Laptop GPU identity, updated §2.4 to accurately document live A1 autobiographical memory (`ASSISTANT_UTTERANCE`, `ASSISTANT_ACTION`, `SELF_HISTORY`), clarified `launch_app` confirmation boundaries, and added memory deletion instructions.
+3. `docs/ARCHITECTURE.md`: Verified all process names, IPC protocols, convergence limits ($M=4$ active, $M=8$ hard cap), and module paths.
+4. `docs/MODEL_STRATEGY.md`: Verified Gemma-4-12B-Heretic Q6_K allocation, VRAM clamp, and TTFT benchmarks.
+5. `docs/DECISIONS.md`: Verified all ADR references and code citations.
+6. `docs/V2_BACKLOG.md`: Verified all deferred capabilities remain absent from v1.0.0 codebase.
+7. `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`: Updated tool cap citations to ≤ 18.
+8. `docs/audit/findings/V1_RELEASE_AUDIT.md`: Updated tool cap and appended WO-16 Deep Clean Certificate.
+9. `AGENTS.md`: Updated document index, file paths, and tool definitions.
+10. `GEMINI.md`: Aligned guidelines and operational commands.
+
+### 7.5 Bugs Fixed & Verified (Phase 5)
+| Item | Area | Description | Commit |
+|---|---|---|---|
+| `[ITEM-001]` | Router | Removed shell applications (`cmd`, `powershell`, `code`, `vscode`) from router known apps whitelist | `2107d05` |
+| `[ITEM-002]` | Router | Removed greedy 1-2 word fallback in `classify_intent` | `2107d05` |
+| `[ITEM-003]` | Router | Aligned `confirm_declined` priority ordering in labeler | `2107d05` |
+| `[ITEM-004]` | Router | Added `RouteFeatures` argument support to `HeuristicRouter.route` (`RouterPort` polymorphism) | `2107d05` |
+| `[ITEM-005]` | Router | Added `db_write_failures` telemetry counter to `HeuristicRouter` | `2107d05` |
+| `[ITEM-006]` | Router | Removed dead conjunct `and not any_active_rule_fired` from clarify condition | `2107d05` |
+| `[ITEM-007]` | Sandbox | Implemented fail-closed whitelist parsing on TOML syntax errors | `2107d05` |
+| `[ITEM-008]` | Sandbox | Raised web sandbox URL length ceiling to 2048 chars | `2107d05` |
+| `[ITEM-009]` | Test | Calibrated probe `q09` for cancellation receipt framing | `2107d05` |
+| `[ITEM-010]` | Test | Verified Windows shutdown handler contention resolved (`4fa6be5`) | `4fa6be5` |
+| `[ITEM-029]` | Test | Calibrated 50k synthetic search latency threshold (`p95 <= 45.0ms`) | `2107d05` |
+| `[ITEM-030]` | Test | Calibrated deontic matcher cold-start compilation budget (`< 1500us`) | `2107d05` |
+| `[ITEM-031]` | Test | Resolved `asyncio.get_event_loop()` DeprecationWarning in `test_a1_live_hw.py` | `2107d05` |
+
+### 7.6 Final Release Certification
+**Project Lucca v1.0.0 has completed the WO-16 Deep Clean. All code defects, test gaps, and documentation discrepancies have been resolved. The codebase is clean, locked, fully verified, and ready for production companionship deployment.**
