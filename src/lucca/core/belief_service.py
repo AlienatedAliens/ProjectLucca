@@ -1,0 +1,190 @@
+"""
+Project Lucca — Belief Service
+Spec §7, D-MEM-04, WP-2, WO-18b (F-ARCH-103)
+
+Extracted from Orchestrator: handles belief contradiction evaluation,
+reflection engine dispatch, and queued spoken update delivery.
+"""
+
+from __future__ import annotations
+
+import re
+import time
+from collections import deque
+from typing import TYPE_CHECKING, Final
+
+import structlog
+
+from lucca.core.clock import SystemClock
+from lucca.core.trace import TurnTrace
+from lucca.ports import ClockPort
+
+if TYPE_CHECKING:
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.memory.db import DatabaseManager
+    from lucca.memory.reflection import ReflectionEngine
+
+logger = structlog.get_logger(__name__)
+
+# Interrogative openers: questions are requests for information, not belief
+# candidates. Committing a question as an ASSISTANT_BELIEF produced nonsense
+# spoken updates ("New understanding: Can you open Notepad?") — F-WO8-17.
+_INTERROGATIVE_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^\s*(?:who|what|when|where|why|how|which|whose|whom|can|could|should|"
+    r"would|will|do|does|did|is|are|was|were|have|has|had|may|might|must|"
+    r"tell\s+me|give\s+me|show\s+me|list|name)\b.*\?\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+class BeliefService:
+    """Encapsulates belief contradiction detection and pending update speech (F-ARCH-103, WO-18b)."""
+
+    def __init__(
+        self,
+        db: DatabaseManager | None,
+        reflection_engine: ReflectionEngine | None,
+        clock: ClockPort | None = None,
+        orchestrator: Orchestrator | None = None,
+    ) -> None:
+        self.db = db
+        self.reflection_engine = reflection_engine
+        self.clock: ClockPort = clock or SystemClock()
+        self._orchestrator = orchestrator
+        self._local_pending_spoken_updates: deque[str] = deque()
+
+    @property
+    def pending_spoken_updates(self) -> deque[str]:
+        if self._orchestrator is not None:
+            if not hasattr(self._orchestrator, "pending_spoken_updates"):
+                self._orchestrator.pending_spoken_updates = deque()
+            return self._orchestrator.pending_spoken_updates
+        return self._local_pending_spoken_updates
+
+    @pending_spoken_updates.setter
+    def pending_spoken_updates(self, val: deque[str]) -> None:
+        if self._orchestrator is not None:
+            self._orchestrator.pending_spoken_updates = val
+        else:
+            self._local_pending_spoken_updates = val
+
+    def check_contradictions(self, new_entry_id: str, new_content: str, trace: TurnTrace) -> None:
+        """
+        Evaluates contradiction detection against active beliefs (Spec §7, D-MEM-04, WP-2).
+        FTS matches candidate beliefs on topic tokens, capped at 5 beliefs with a 200 ms budget.
+        """
+        refl_engine = (
+            getattr(self._orchestrator, "reflection_engine", None)
+            if self._orchestrator is not None
+            else self.reflection_engine
+        )
+        db = (
+            getattr(self._orchestrator, "db", None)
+            if self._orchestrator is not None
+            else self.db
+        )
+        if refl_engine is None or db is None:
+            return
+
+        # Questions are not belief candidates: skip contradiction resolution so
+        # no belief is committed from an interrogative utterance (F-WO8-17).
+        if _INTERROGATIVE_PATTERN.match(new_content.strip()):
+            return
+
+        tokens = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", new_content.lower())]
+        if not tokens:
+            return
+
+        candidate_beliefs: list[tuple[int, str, str]] = []
+        try:
+            with db.read_cursor() as cur:
+                fts_query = " OR ".join(f'"{t}"' for t in tokens[:10])
+                try:
+                    cur.execute(
+                        """
+                        SELECT m.memory_id, m.content, m.kind
+                        FROM memories m
+                        JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                        WHERE m.valid_to IS NULL
+                          AND p.provenance = 'ASSISTANT_BELIEF'
+                          AND m.memory_id IN (
+                              SELECT rowid FROM fts_memories WHERE fts_memories MATCH ?
+                          )
+                        LIMIT 5
+                        """,
+                        (fts_query,),
+                    )
+                    candidate_beliefs = [(int(r[0]), str(r[1]), str(r[2])) for r in cur.fetchall()]
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("fts_match_failed_fallback_plain", error=str(exc))
+                    cur.execute(
+                        """
+                        SELECT m.memory_id, m.content, m.kind
+                        FROM memories m
+                        JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                        WHERE m.valid_to IS NULL AND p.provenance = 'ASSISTANT_BELIEF'
+                        LIMIT 50
+                        """
+                    )
+                    for r in cur.fetchall():
+                        c_low = str(r[1]).lower()
+                        if any(t in c_low for t in tokens):
+                            candidate_beliefs.append((int(r[0]), str(r[1]), str(r[2])))
+                            if len(candidate_beliefs) >= 5:
+                                break
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("contradiction_search_error", error=str(exc))
+            return
+
+        if not candidate_beliefs:
+            return
+
+        t_start = time.perf_counter()
+        for belief_id, _old_content, _ in candidate_beliefs:
+            if (time.perf_counter() - t_start) > 0.200:
+                logger.warning("reflection_contradiction_budget_exceeded", trace_id=trace.trace_id)
+                break
+
+            try:
+                is_queued, res_str = refl_engine.detect_and_handle_contradiction(
+                    old_belief_id=belief_id,
+                    new_content=new_content,
+                    reason_entry_id=new_entry_id,
+                    proposed_confidence=1.0,
+                    is_conflict_top=False,
+                    topic=None,
+                    now=self.clock.now_utc(),
+                )
+
+                if is_queued:
+                    logger.info(
+                        "belief_revision_flagged_for_review",
+                        review_id=res_str,
+                        belief_id=belief_id,
+                    )
+                else:
+                    self.pending_spoken_updates.append(res_str)
+                    logger.info(
+                        "belief_revision_enqueued_spoken_update",
+                        spoken_update=res_str,
+                        belief_id=belief_id,
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("contradiction_handling_failed", error=str(exc), belief_id=belief_id)
+
+    _check_contradictions = check_contradictions
+
+    def maybe_speak_pending_updates(self, trace: TurnTrace) -> None:
+        """Speaks queued unflagged belief revision sentences once before turn reply."""
+        while self.pending_spoken_updates:
+            spoken_update = self.pending_spoken_updates.popleft()
+            if spoken_update.strip():
+                print(f"[Lucca Revision] 💡 {spoken_update}", flush=True)
+                if self._orchestrator is not None and hasattr(self._orchestrator, "_speak_text"):
+                    self._orchestrator._speak_text(trace, spoken_update)
+                if self._orchestrator is not None and hasattr(self._orchestrator, "_publish_caption"):
+                    self._orchestrator._publish_caption(spoken_update, source="assistant", is_final=True)
+                if self._orchestrator is not None and hasattr(self._orchestrator, "history"):
+                    self._orchestrator.history.append({"role": "assistant", "content": spoken_update})
+
+    _maybe_speak_pending_updates = maybe_speak_pending_updates

@@ -535,3 +535,166 @@ def test_no_silent_broad_excepts() -> None:
         f"Found {len(all_violations)} silent broad except handler(s) in src/lucca:\n"
         + "\n".join(all_violations)
     )
+
+
+def test_memory_commit_service_decomposition() -> None:
+    """WO-18b (F-ARCH-103) static parity gate: ensures memory commit operations
+    are encapsulated in MemoryCommitService.
+    Canonical method definitions must appear in MemoryCommitService and not in
+    orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).parent.parent
+    mcs_path = repo_root / "src" / "lucca" / "core" / "memory_commit_service.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert mcs_path.exists(), f"memory_commit_service.py does not exist at {mcs_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    mcs_text = mcs_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    mcs_tree = ast.parse(mcs_text, filename=str(mcs_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    mcs_methods = {
+        n.name
+        for n in ast.walk(mcs_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    target_methods = [
+        "commit_transcript",
+        "commit_action_receipts",
+        "maybe_extract_facts",
+        "commit_assistant_utterance",
+        "commit_coherence_breach",
+        "maybe_form_belief",
+    ]
+
+    for m in target_methods:
+        assert m in mcs_methods, f"Expected '{m}' to be defined in MemoryCommitService"
+        assert m not in orch_methods, f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+
+    # Text marker check: each canonical 'def <method>(' appears exactly once in MCS and 0 in orchestrator
+    for m in target_methods:
+        def_marker = f"def {m}("
+        assert mcs_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear exactly once in memory_commit_service.py, "
+            f"got {mcs_text.count(def_marker)}"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py, "
+            f"got {orch_text.count(def_marker)}"
+        )
+
+
+def test_belief_service_decomposition() -> None:
+    """WO-18b (F-ARCH-103) static parity gate: ensures belief contradiction
+    and pending spoken update operations are encapsulated in BeliefService.
+    Canonical method definitions must appear in BeliefService and not in
+    orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).parent.parent
+    bs_path = repo_root / "src" / "lucca" / "core" / "belief_service.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert bs_path.exists(), f"belief_service.py does not exist at {bs_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    bs_text = bs_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    bs_tree = ast.parse(bs_text, filename=str(bs_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    bs_methods = {
+        n.name
+        for n in ast.walk(bs_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    target_methods = [
+        "check_contradictions",
+        "maybe_speak_pending_updates",
+    ]
+
+    for m in target_methods:
+        assert m in bs_methods, f"Expected '{m}' to be defined in BeliefService"
+        assert m not in orch_methods, f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+
+    for m in target_methods:
+        def_marker = f"def {m}("
+        assert bs_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear exactly once in belief_service.py, "
+            f"got {bs_text.count(def_marker)}"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py, "
+            f"got {orch_text.count(def_marker)}"
+        )
+
+
+def test_confirmation_manager_decomposition() -> None:
+    """WO-18b (F-ARCH-103) static parity gate: ensures confirmation lifecycle
+    and prompt audio abort operations are encapsulated in ConfirmationManager.
+    Canonical method definitions must appear in ConfirmationManager and not in
+    orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).parent.parent
+    cm_path = repo_root / "src" / "lucca" / "core" / "confirmation_manager.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert cm_path.exists(), f"confirmation_manager.py does not exist at {cm_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    cm_text = cm_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    cm_tree = ast.parse(cm_text, filename=str(cm_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    cm_methods = {
+        n.name
+        for n in ast.walk(cm_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    assert "confirm_action" in cm_methods, "Expected 'confirm_action' to be defined in ConfirmationManager"
+    assert "request_confirmation" in cm_methods, "Expected 'request_confirmation' to be defined in ConfirmationManager"
+    assert "abort_confirmation_prompt_playback" in cm_methods, "Expected 'abort_confirmation_prompt_playback' in ConfirmationManager"
+
+    assert "request_confirmation" not in orch_methods, "Expected 'request_confirmation' not in Orchestrator (use delegate _request_confirmation)"
+    assert "abort_confirmation_prompt_playback" not in orch_methods, "Expected 'abort_confirmation_prompt_playback' not in Orchestrator (use delegate _abort_confirmation_prompt_playback)"
+
+    delegated_methods = [
+        "request_confirmation",
+        "abort_confirmation_prompt_playback",
+    ]
+    for m in delegated_methods:
+        def_marker = f"def {m}("
+        assert cm_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear exactly once in confirmation_manager.py, "
+            f"got {cm_text.count(def_marker)}"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py, "
+            f"got {orch_text.count(def_marker)}"
+        )
+
+
+

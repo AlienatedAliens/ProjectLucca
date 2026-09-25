@@ -91,13 +91,25 @@ from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
+from lucca.core.memory_commit_service import (
+    MemoryCommitService,
+    STANCE_MARKERS,
+    _DEMONYMS,
+    _HYPOTHETICAL_MARKERS,
+    _NEGATION_PATTERN,
+    _PASSIVE_FACT_PATTERNS,
+    _REPORTED_SPEECH_PATTERN,
+    _extract_stance_topic,
+    _sentence_containing,
+)
+from lucca.core.belief_service import BeliefService
+from lucca.core.confirmation_manager import ConfirmationManager
+from lucca.core.signer_factory import SignerFactory
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
+    ToolResultSigner,
     UserSpeechSigner,
-    create_assistant_utterance_signer,
-    create_tool_result_signer,
-    create_user_speech_signer,
 )
 from lucca.core.clock import SystemClock
 from lucca.ports import (
@@ -157,301 +169,6 @@ def _levenshtein_distance(s1: str, s2: str) -> int:
         prev = curr
     return prev[-1]
 
-
-STANCE_MARKERS: tuple[str, ...] = (
-    "i think",
-    "i believe",
-    "in my view",
-    "i prefer",
-    "my opinion",
-)
-
-
-def _extract_stance_topic(text: str) -> str:
-    """Extracts candidate topic string from a first-person stance utterance (Spec §7, WP-2)."""
-    lower = text.lower()
-    for marker in STANCE_MARKERS:
-        if marker in lower:
-            idx = lower.find(marker)
-            sub = text[idx + len(marker) :].strip(" ,:.-")
-            if sub:
-                clause = re.split(r"[.!?;\n]+", sub)[0].strip()
-                if clause:
-                    return clause[:40].strip()
-    return text[:40].strip()
-
-
-_DEMONYMS: Final[frozenset[str]] = frozenset(
-    {
-        "afghan",
-        "albanian",
-        "algerian",
-        "american",
-        "andorran",
-        "angolan",
-        "argentine",
-        "argentinian",
-        "armenian",
-        "australian",
-        "austrian",
-        "azerbaijani",
-        "bahamian",
-        "bahraini",
-        "bangladeshi",
-        "barbadian",
-        "belarusian",
-        "belgian",
-        "belizean",
-        "beninese",
-        "bhutanese",
-        "bolivian",
-        "bosnian",
-        "botswanan",
-        "brazilian",
-        "british",
-        "bruneian",
-        "bulgarian",
-        "burkinabe",
-        "burmese",
-        "burundian",
-        "cambodian",
-        "cameroonian",
-        "canadian",
-        "cape verdean",
-        "central african",
-        "chadian",
-        "chilean",
-        "chinese",
-        "colombian",
-        "comoran",
-        "congolese",
-        "costa rican",
-        "croatian",
-        "cuban",
-        "cypriot",
-        "czech",
-        "dane",
-        "danish",
-        "djiboutian",
-        "dominican",
-        "dutch",
-        "east timorese",
-        "ecuadorian",
-        "egyptian",
-        "emirati",
-        "equatorial guinean",
-        "eritrean",
-        "estonian",
-        "ethiopian",
-        "fijian",
-        "filipino",
-        "finnish",
-        "french",
-        "gabonese",
-        "gambian",
-        "georgian",
-        "german",
-        "ghanaian",
-        "greek",
-        "grenadian",
-        "guatemalan",
-        "guinean",
-        "guyanese",
-        "haitian",
-        "honduran",
-        "hungarian",
-        "icelandic",
-        "indian",
-        "indonesian",
-        "iranian",
-        "iraqi",
-        "irish",
-        "israeli",
-        "italian",
-        "ivorian",
-        "jamaican",
-        "japanese",
-        "jordanian",
-        "kazakhstani",
-        "kenyan",
-        "kuwaiti",
-        "kyrgyz",
-        "laotian",
-        "latvian",
-        "lebanese",
-        "liberian",
-        "libyan",
-        "liechtensteiner",
-        "lithuanian",
-        "luxembourgish",
-        "macedonian",
-        "malagasy",
-        "malawian",
-        "malaysian",
-        "maldivian",
-        "malian",
-        "maltese",
-        "mauritanian",
-        "mauritian",
-        "mexican",
-        "micronesian",
-        "moldovan",
-        "monacan",
-        "mongolian",
-        "montenegrin",
-        "moroccan",
-        "mozambican",
-        "namibian",
-        "nauruan",
-        "nepalese",
-        "new zealander",
-        "kiwi",
-        "nicaraguan",
-        "nigerian",
-        "nigerien",
-        "north korean",
-        "norwegian",
-        "omani",
-        "pakistani",
-        "palauan",
-        "palestinian",
-        "panamanian",
-        "papua new guinean",
-        "paraguayan",
-        "peruvian",
-        "polish",
-        "portuguese",
-        "qatari",
-        "romanian",
-        "russian",
-        "rwandan",
-        "saint lucian",
-        "salvadoran",
-        "samoan",
-        "saudi",
-        "saudi arabian",
-        "scottish",
-        "senegalese",
-        "serbian",
-        "seychellois",
-        "sierra leonean",
-        "singaporean",
-        "slovak",
-        "slovene",
-        "slovenian",
-        "somali",
-        "south african",
-        "south korean",
-        "spanish",
-        "sri lankan",
-        "sudanese",
-        "surinamese",
-        "swazi",
-        "swedish",
-        "swiss",
-        "syrian",
-        "taiwanese",
-        "tajik",
-        "tanzanian",
-        "thai",
-        "togolese",
-        "tongan",
-        "trinidadian",
-        "tunisian",
-        "turkish",
-        "turkmen",
-        "tuvaluan",
-        "ugandan",
-        "ukrainian",
-        "uruguayan",
-        "uzbek",
-        "vanuatuan",
-        "venezuelan",
-        "vietnamese",
-        "welsh",
-        "yemeni",
-        "zambian",
-        "zimbabwean",
-    }
-)
-
-_REPORTED_SPEECH_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:he\s+said|she\s+told|they\s+said|my\s+friend\s+said|quote)\b",
-    re.IGNORECASE,
-)
-
-_NEGATION_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:not|n't|never|no\s+longer)\b",
-    re.IGNORECASE,
-)
-
-# WO-9 A3 & WO-17 Phase 2: passive fact extraction — deterministic, high-precision patterns.
-# Candidates are re-validated by FactExtractor verbatim-quote grounding before
-# signing, so a pattern can only ever produce facts the user literally said.
-_PASSIVE_FACT_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
-    (
-        "is_named",
-        re.compile(
-            r"\b(?:my name is|call me|name's)\s+([A-Za-z][A-Za-z\-']{1,30})\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "lives_in",
-        re.compile(
-            r"\b(?:i live in|i moved to|i've moved to|i relocated to)\s+"
-            r"([A-Za-z][A-Za-z\s\-']{1,40}?)"
-            r"(?:\s+(?:last|this|next)\s+\w+|\s+recently|\s+now)?(?:[.,!?;]|$)",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "works_at",
-        re.compile(
-            r"\bi work (?:at|for)\s+([A-Za-z][A-Za-z\s\-&']{1,40}?)(?:[.,!?;]|$)",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "nationality_is",
-        re.compile(
-            r"\b(?:i am|i'm)\s+([a-z][a-z\-']{2,30})\b",
-            re.IGNORECASE,
-        ),
-    ),
-    (
-        "origin_is",
-        re.compile(
-            r"\b(?:i'm from|i am from|originally from)\s+([A-Za-z\s\-']{2,40}?)(?:[.,!?;]|$)",
-            re.IGNORECASE,
-        ),
-    ),
-)
-
-# Hypothetical / counterfactual framing must never produce facts (the A1
-# fixture "If I told you my name was Sean" is the canonical negative).
-_HYPOTHETICAL_MARKERS: Final[tuple[str, ...]] = (
-    "if i told you",
-    "if i said",
-    "if i say",
-    "if my name",
-    "suppose",
-    "what if",
-    "imagine",
-    "let's say",
-    "lets say",
-    "hypothetically",
-    "pretend",
-)
-
-
-def _sentence_containing(text: str, pos: int) -> str:
-    """Returns the sentence of `text` containing character offset `pos`."""
-    start = max(text.rfind(".", 0, pos), text.rfind("!", 0, pos), text.rfind("?", 0, pos)) + 1
-    ends = [i for i in (text.find(".", pos), text.find("!", pos), text.find("?", pos)) if i != -1]
-    end = min(ends) if ends else len(text) - 1
-    sentence = text[start : end + 1].strip()
-    return sentence if sentence else text[pos : pos + 200].strip()
 
 
 class Orchestrator:
@@ -592,15 +309,8 @@ class Orchestrator:
         self.pending_spoken_updates: deque[str] = deque()
         self.current_turn_tier: ExecutionTier = ExecutionTier.FULL_LOOP
 
-        # Confirmation State (F-CORE-015: voice answers are handed off as a
-        # PTTReleasedPayload and transcribed by the waiting turn worker, never
-        # on the ingest thread)
-        self._confirm_event = threading.Event()
-        self._confirm_result: bool = False
-        self._pending_confirmation_active: bool = False
-        self._confirm_audio: PTTReleasedPayload | None = None
-        self._confirm_via: str | None = None
-        self._confirm_lock = threading.Lock()
+        # Confirmation Manager (Spec §3, §7, WO-9 A1, WO-18b)
+        self.confirmations = ConfirmationManager(orchestrator=self)
 
         # Turn context
         self.active_trace: TurnTrace | None = None
@@ -613,12 +323,20 @@ class Orchestrator:
         self._last_unspoken_tool_msg: str | None = None
         self.quit_requested: bool = False
 
-        # Memory Store & Provenance Signer (Phase 1, WO-17)
+        # Memory Store & Provenance Signer (Phase 1, WO-17, WO-18b)
         key = master_key
         if key is None and memory_store is not None:
             store_key = getattr(memory_store, "master_key", None)
             if isinstance(store_key, (bytes, bytearray)) and len(store_key) >= 32:
                 key = bytes(store_key)
+
+        if key is None and getattr(self.config, "master_key", None):
+            cfg_k = self.config.master_key.encode("utf-8")
+            if len(cfg_k) >= 32:
+                key = cfg_k
+
+        self.signer_factory = SignerFactory(master_key=key)
+        effective_key = self.signer_factory.master_key
 
         if memory_store is not None:
             self.memory_store = memory_store
@@ -626,25 +344,9 @@ class Orchestrator:
             from lucca.memory.store import MemoryStore  # noqa: PLC0415
             from lucca.senses.embed import EmbedWorker, LocalEmbeddingPort  # noqa: PLC0415
 
-            if key is None and getattr(self.config, "master_key", None):
-                cfg_k = self.config.master_key.encode("utf-8")
-                if len(cfg_k) >= 32:
-                    key = cfg_k
-
-            if key is None or len(key) < 32:
-                sys.stderr.write(
-                    "FATAL [BOOT]: No valid master_key configured for MemoryStore; "
-                    "falling back to insecure dev key.\n"
-                )
-                logger.critical(
-                    "insecure_master_key_fallback",
-                    warning="Using hardcoded dev key for MemoryStore",
-                )
-                key = b"01234567890123456789012345678901"
-
             self.memory_store = MemoryStore(
                 db=self.db,
-                master_key=key,
+                master_key=effective_key,
                 embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
             )
 
@@ -656,13 +358,18 @@ class Orchestrator:
 
         if user_signer is not None:
             self.user_signer: UserSpeechSigner | None = user_signer
-        elif key is not None and len(key) >= 32:
-            self.user_signer = create_user_speech_signer(master_key=key)
         else:
-            self.user_signer = None
+            self.user_signer = self.signer_factory.user_speech()
 
         self.session_id: str = str(ulid.ULID())
         self.current_turn_transcript: str | None = None
+
+        self.commits = MemoryCommitService(
+            memory_store=self.memory_store,
+            signer_factory=self.signer_factory,
+            clock=self.clock,
+            orchestrator=self,
+        )
 
         # Epistemic Search Cascade (Milestone 3)
         self.cascade = cascade or EpistemicSearchCascade(
@@ -684,23 +391,18 @@ class Orchestrator:
         self.active_detected_words: list[str] = []
         self.assistant_signer: AssistantUtteranceSigner | None = None
         self.breach_signer: CoherenceBreachSigner | None = None
+        self.action_signer: ToolResultSigner | None = None
 
         # Autobiographical Reflection Engine (Spec §7, D-MEM-04, WP-2)
         if reflection_engine is not None:
             self.reflection_engine: ReflectionEngine | None = reflection_engine
         elif self.memory_store is not None and hasattr(self.memory_store, "db"):
-            effective_key = (
-                key if (key is not None and len(key) >= 32) else b"01234567890123456789012345678901"
-            )
             self.reflection_engine = ReflectionEngine(
                 db=self.memory_store.db,
                 store=self.memory_store,
                 master_key=effective_key,
             )
         elif self.db is not None and self.memory_store is not None:
-            effective_key = (
-                key if (key is not None and len(key) >= 32) else b"01234567890123456789012345678901"
-            )
             self.reflection_engine = ReflectionEngine(
                 db=self.db,
                 store=self.memory_store,
@@ -708,6 +410,124 @@ class Orchestrator:
             )
         else:
             self.reflection_engine = None
+
+        self.beliefs = BeliefService(
+            db=self.db,
+            reflection_engine=self.reflection_engine,
+            clock=self.clock,
+            orchestrator=self,
+        )
+
+    @property
+    def signer_factory(self) -> SignerFactory:
+        factory = getattr(self, "_signer_factory", None)
+        if factory is None:
+            ms = getattr(self, "memory_store", None)
+            ms_k = getattr(ms, "master_key", None)
+            cfg = getattr(self, "config", None)
+            cfg_k = getattr(cfg, "master_key", None)
+            k = ms_k or (cfg_k.encode("utf-8") if cfg_k and len(cfg_k) >= 32 else None)
+            factory = SignerFactory(master_key=k)
+            self._signer_factory = factory
+        return factory
+
+    @signer_factory.setter
+    def signer_factory(self, value: SignerFactory) -> None:
+        self._signer_factory = value
+
+    @property
+    def commits(self) -> MemoryCommitService:
+        srv = getattr(self, "_commits", None)
+        if srv is None:
+            srv = MemoryCommitService(
+                memory_store=getattr(self, "memory_store", None),
+                signer_factory=self.signer_factory,
+                clock=getattr(self, "clock", None),
+                orchestrator=self,
+            )
+            self._commits = srv
+        return srv
+
+    @commits.setter
+    def commits(self, value: MemoryCommitService) -> None:
+        self._commits = value
+
+    @property
+    def beliefs(self) -> BeliefService:
+        srv = getattr(self, "_beliefs", None)
+        if srv is None:
+            srv = BeliefService(
+                db=getattr(self, "db", None),
+                reflection_engine=getattr(self, "reflection_engine", None),
+                clock=getattr(self, "clock", None),
+                orchestrator=self,
+            )
+            self._beliefs = srv
+        return srv
+
+    @beliefs.setter
+    def beliefs(self, value: BeliefService) -> None:
+        self._beliefs = value
+
+    @property
+    def confirmations(self) -> ConfirmationManager:
+        mgr = getattr(self, "_confirmations", None)
+        if mgr is None:
+            mgr = ConfirmationManager(orchestrator=self)
+            self._confirmations = mgr
+        return mgr
+
+    @confirmations.setter
+    def confirmations(self, value: ConfirmationManager) -> None:
+        self._confirmations = value
+
+    @property
+    def _confirm_event(self) -> threading.Event:
+        return self.confirmations.confirm_event
+
+    @_confirm_event.setter
+    def _confirm_event(self, val: threading.Event) -> None:
+        self.confirmations.confirm_event = val
+
+    @property
+    def _confirm_result(self) -> bool:
+        return self.confirmations.confirm_result
+
+    @_confirm_result.setter
+    def _confirm_result(self, val: bool) -> None:
+        self.confirmations.confirm_result = val
+
+    @property
+    def _pending_confirmation_active(self) -> bool:
+        return self.confirmations.pending_confirmation_active
+
+    @_pending_confirmation_active.setter
+    def _pending_confirmation_active(self, val: bool) -> None:
+        self.confirmations.pending_confirmation_active = val
+
+    @property
+    def _confirm_audio(self) -> PTTReleasedPayload | None:
+        return self.confirmations.confirm_audio
+
+    @_confirm_audio.setter
+    def _confirm_audio(self, val: PTTReleasedPayload | None) -> None:
+        self.confirmations.confirm_audio = val
+
+    @property
+    def _confirm_via(self) -> str | None:
+        return self.confirmations.confirm_via
+
+    @_confirm_via.setter
+    def _confirm_via(self, val: str | None) -> None:
+        self.confirmations.confirm_via = val
+
+    @property
+    def _confirm_lock(self) -> threading.Lock:
+        return self.confirmations.confirm_lock
+
+    @_confirm_lock.setter
+    def _confirm_lock(self, val: threading.Lock) -> None:
+        self.confirmations.confirm_lock = val
 
     def _neutralize_context_attractors(self, target_word: str) -> list[str]:
         """
@@ -996,18 +816,13 @@ class Orchestrator:
         threshold = 2.0 * misses
         return {peer for peer, last_t in self._last_pong.items() if now - last_t > threshold}
 
+    # delegate — kept for test/back-compat
     def confirm_action(
         self,
         accepted: bool,
-        via: Literal["voice", "click", "timeout"] = "click",
+        via: Literal["voice", "click", "timeout", "abort"] = "click",
     ) -> None:
-        """Manually or programmatically confirm/reject the pending action."""
-        logger.info("confirmation_action_received", accepted=accepted, via=via)
-        with self._confirm_lock:
-            self._confirm_audio = None
-            self._confirm_via = via
-        self._confirm_result = accepted
-        self._confirm_event.set()
+        self.confirmations.confirm_action(accepted, via=via)
 
     def _on_ptt_pressed(self, ts_ns: int) -> None:
         if self._pending_confirmation_active:
@@ -1025,33 +840,9 @@ class Orchestrator:
         self._publish_caption("Listening... 🎙️", source="status", is_final=False)
         self._set_state("listening")
 
+    # delegate — kept for test/back-compat
     def _abort_confirmation_prompt_playback(self) -> None:
-        """Stops confirmation-prompt audio without cancelling the pending confirmation.
-
-        Unlike _abort_turn, this never touches _pending_confirmation_active,
-        the LLM stream, the turn thread, or trace.interrupted — the waiting
-        confirm worker must stay alive to receive the spoken answer.
-        """
-        while not self._tts_queue.empty():
-            try:
-                item = self._tts_queue.get_nowait()
-                if item is not None and len(item) == 4 and item[3] is not None:
-                    item[3].set()
-            except queue.Empty:
-                break
-
-        self.play_ring.set_flag(FLAG_ABORT)
-
-        trace_id = self.active_trace.trace_id if self.active_trace else ""
-        abort_env = Envelope(
-            type="play.abort",
-            trace_id=trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayAbortPayload(trace_id=trace_id).model_dump(),
-        )
-        self._publish_bus(abort_env)
-        logger.info("confirmation_prompt_playback_aborted")
+        self.confirmations.abort_confirmation_prompt_playback()
 
     def _abort_turn(self) -> None:
         self.affect_tracker.record_signal(
@@ -1230,222 +1021,22 @@ class Orchestrator:
             logger.warning("memory_search_failed", error=str(e))
             return []
 
+    # delegate — kept for test/back-compat
     def _commit_transcript(self, text: str, trace: TurnTrace) -> str | None:
-        if not self.memory_store or not text.strip():
-            return None
-        try:
-            if self.user_signer is None:
-                key = getattr(self.memory_store, "master_key", None)
-                if isinstance(key, (bytes, bytearray)) and len(key) >= 32:
-                    self.user_signer = create_user_speech_signer(master_key=bytes(key))
-                else:
-                    dev_key = b"01234567890123456789012345678901"
-                    self.user_signer = create_user_speech_signer(master_key=dev_key)
+        return self.commits.commit_transcript(text, trace)
 
-            ts = self.clock.now_utc()
-            unsigned = UnsignedPayload(
-                content=text.strip(),
-                provenance=Provenance.USER_EXPLICIT,
-                kind="fact",
-                nonce=os.urandom(16).hex(),
-                created_at=ts,
-                trace_id=trace.trace_id,
-            )
-            signed = self.user_signer.sign(unsigned)
-            # WO-9 A2 (ADR-010): keep the signed transcript payload so a
-            # grounded memory_commit in this turn can reference it as the
-            # USER_EXPLICIT source for FactExtractor quote grounding.
-            self._last_transcript_signed = signed
-            self.memory_store.commit(signed, now=ts)
-            self._publish_mem_event("USER_EXPLICIT", text)
-            return signed.entry_id
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("transcript_commit_failed", error=str(exc))
-            return None
-
+    # delegate — kept for test/back-compat
     def _commit_action_receipts(self, trace: TurnTrace) -> None:
-        """WO-9 A9 (F8): persist this turn's tool receipts as ASSISTANT_ACTION.
+        self.commits.commit_action_receipts(trace)
 
-        Every LLM-initiated tool attempt — success, failure, user-cancelled
-        confirmation, confirmation timeout, BDI rejection, provenance refusal —
-        becomes a signed autobiographical record. This is the persistent
-        receipt trail the honesty contract depends on: "did you actually do X?"
-        must be answerable from SELF_HISTORY, never confabulated.
-        """
-        receipts = getattr(self, "current_turn_receipts", None)
-        if not self.memory_store or not receipts:
-            return
-        action_signer = getattr(self, "action_signer", None)
-        if action_signer is None:
-            key = getattr(self.memory_store, "master_key", None)
-            dev_key = (
-                bytes(key)
-                if isinstance(key, (bytes, bytearray)) and len(key) >= 32
-                else b"01234567890123456789012345678901"
-            )
-            action_signer = create_tool_result_signer(master_key=dev_key)
-            self.action_signer = action_signer
-
-        now = self.clock.now_utc()
-        for receipt in receipts:
-            try:
-                args_summary = ", ".join(
-                    f"{k}={str(v)[:60]}" for k, v in list(receipt.args.items())[:3]
-                )
-                status = "ok" if receipt.ok else "failed"
-                if receipt.error and "cancelled" in str(receipt.error).lower():
-                    status = "cancelled"
-                elif receipt.error and "timeout" in str(receipt.error).lower():
-                    status = "timeout"
-                detail = str(receipt.error or receipt.output or "")[:200]
-                content = f"{receipt.tool}({args_summary}) -> {status}"
-                if detail:
-                    content = f"{content}: {detail}"
-                unsigned = UnsignedPayload(
-                    content=content,
-                    provenance=Provenance.ASSISTANT_ACTION,
-                    kind="action_receipt",
-                    nonce=os.urandom(16).hex(),
-                    created_at=now,
-                    trace_id=trace.trace_id,
-                    confidence=1.0,
-                    structured={
-                        "importance": 0.2,
-                        "call_id": receipt.call_id,
-                        "tool": receipt.tool,
-                        "ok": receipt.ok,
-                        "error": str(receipt.error) if receipt.error else None,
-                        "valid_from": now,
-                    },
-                )
-                signed = action_signer.sign(unsigned)
-                self.memory_store.commit(signed, now=now)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("assistant_action_commit_failed", error=str(exc))
-        receipts.clear()
-
+    # delegate — kept for test/back-compat
     def _maybe_extract_facts(self, trace: TurnTrace) -> None:
-        """WO-9 A3: passive USER_DERIVED fact extraction from the user's words.
+        self.commits.maybe_extract_facts(trace)
 
-        Deterministic high-precision candidates (is_named / lives_in / works_at)
-        are re-validated by FactExtractor verbatim-quote grounding and signed
-        USER_DERIVED citing the turn transcript. Questions and hypothetical
-        phrasing are skipped. Runs at finalize, off the speech path; bounded by
-        FactExtractor's <=5 facts/turn cap. Functional predicates supersede
-        prior values via store.commit (e.g. a name update).
-        """
-        if not self.memory_store:
-            return
-        transcript_payload = getattr(self, "_last_transcript_signed", None)
-        if (
-            transcript_payload is None
-            or getattr(transcript_payload, "trace_id", None) != trace.trace_id
-        ):
-            return
-        text = str(transcript_payload.content)
-        if self._INTERROGATIVE_PATTERN.match(text.strip()):
-            return
-        lower = text.lower()
-        if any(marker in lower for marker in _HYPOTHETICAL_MARKERS):
-            return
-
-        candidates: list[dict[str, str]] = []
-        for pred, pattern in _PASSIVE_FACT_PATTERNS:
-            for m in pattern.finditer(text):
-                value = m.group(1).strip().rstrip(".,!?;:")
-                if not value:
-                    continue
-
-                sentence = _sentence_containing(text, m.start())
-
-                # Reported-speech guard (row 11): attribution blindness prevention
-                if _REPORTED_SPEECH_PATTERN.search(sentence):
-                    continue
-
-                # Negation window guard (row 11): voids candidates with negation before/at capture
-                pre_window = text[max(0, m.start() - 15) : m.start(1)]
-                if _NEGATION_PATTERN.search(pre_window) or value.lower() in (
-                    "not",
-                    "never",
-                    "no",
-                    "nobody",
-                    "none",
-                ):
-                    continue
-
-                # Demonym lexicon post-filter for nationality_is
-                if pred == "nationality_is":
-                    if value.lower() not in _DEMONYMS:
-                        continue
-                    value = value.capitalize()
-
-                candidates.append(
-                    {
-                        "s": "user",
-                        "p": pred,
-                        "o": value,
-                        "quote": sentence,
-                    }
-                )
-        if not candidates:
-            return
-
-        extractor = getattr(self, "_fact_extractor", None)
-        if extractor is None:
-            from lucca.memory.extraction import FactExtractor  # noqa: PLC0415
-
-            key = getattr(self.memory_store, "master_key", None)
-            dev_key = (
-                bytes(key)
-                if isinstance(key, (bytes, bytearray)) and len(key) >= 32
-                else b"01234567890123456789012345678901"
-            )
-            extractor = FactExtractor(master_key=dev_key)
-            self._fact_extractor = extractor
-
-        try:
-            signed_facts = extractor.extract_and_sign(transcript_payload, candidates)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("passive_fact_extraction_failed", error=str(exc))
-            return
-
-        now = self.clock.now_utc()
-        for signed_fact in signed_facts:
-            try:
-                self.memory_store.commit(signed_fact, now=now)
-                logger.info("passive_fact_extracted", content=str(signed_fact.content))
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("passive_fact_commit_failed", error=str(exc))
-
+    # delegate — kept for test/back-compat
     def _commit_assistant_utterance(self, text: str, trace: TurnTrace) -> None:
-        """Commits assistant's spoken utterance to memory (D-MEM-04, ASSISTANT_UTTERANCE)."""
-        if not self.memory_store or not text.strip():
-            return
-        try:
-            if not hasattr(self, "assistant_signer") or self.assistant_signer is None:
-                key = getattr(self.memory_store, "master_key", None)
-                if isinstance(key, (bytes, bytearray)) and len(key) >= 32:
-                    self.assistant_signer = create_assistant_utterance_signer(master_key=bytes(key))
-                else:
-                    dev_key = b"01234567890123456789012345678901"
-                    self.assistant_signer = create_assistant_utterance_signer(master_key=dev_key)
+        self.commits.commit_assistant_utterance(text, trace)
 
-            ts = self.clock.now_utc()
-            imp = getattr(self, "_turn_importance", None)
-            structured = {"importance": imp} if imp is not None else None
-            unsigned = UnsignedPayload(
-                content=text.strip(),
-                provenance=Provenance.ASSISTANT_UTTERANCE,
-                kind="assistant_utterance",
-                nonce=os.urandom(16).hex(),
-                created_at=ts,
-                trace_id=trace.trace_id,
-                structured=structured,
-            )
-            signed = self.assistant_signer.sign(unsigned)
-            self.memory_store.commit(signed, now=ts)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("assistant_utterance_commit_failed", error=str(exc))
 
     def _check_functional_coherence(
         self,
@@ -1506,34 +1097,9 @@ class Orchestrator:
             return un_grounded[0].breach_description or "Ungrounded action claim detected"
         return None
 
+    # delegate — kept for test/back-compat
     def _commit_coherence_breach(self, claim: str, trace: TurnTrace | None = None) -> None:
-        """Commits functional coherence breach to memory (D-MEM-04, COHERENCE_BREACH)."""
-        if not self.memory_store or not claim.strip():
-            return
-        try:
-            if not hasattr(self, "breach_signer") or self.breach_signer is None:
-                key = getattr(self.memory_store, "master_key", None)
-                dev_key = (
-                    bytes(key)
-                    if isinstance(key, (bytes, bytearray)) and len(key) >= 32
-                    else b"01234567890123456789012345678901"
-                )
-                self.breach_signer = CoherenceBreachSigner(master_key=dev_key)
-
-            trace_id = trace.trace_id if trace is not None else f"breach-{ulid.ULID()}"
-            ts = self.clock.now_utc()
-            unsigned = UnsignedPayload(
-                content=claim.strip(),
-                provenance=Provenance.COHERENCE_BREACH,
-                kind="coherence_breach",
-                nonce=os.urandom(16).hex(),
-                created_at=ts,
-                trace_id=trace_id,
-            )
-            signed = self.breach_signer.sign(unsigned)
-            self.memory_store.commit(signed, now=ts)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("coherence_breach_commit_failed", error=str(exc))
+        self.commits.commit_coherence_breach(claim, trace)
 
     def _finalize_turn(self, trace: TurnTrace, decision_id: str | None) -> None:
         if self.active_trace is trace and not trace.interrupted:
@@ -1682,159 +1248,17 @@ class Orchestrator:
             )
         )
 
+    # delegate — kept for test/back-compat
     def _maybe_form_belief(self, reply_text: str, trace: TurnTrace) -> None:
-        """Extracts first-person stance claims and commits an ASSISTANT_BELIEF (Spec §7, WP-2)."""
-        if not self.memory_store or not reply_text.strip():
-            return
-        if not getattr(self.config.memory, "form_beliefs", True):
-            return
+        self.commits.maybe_form_belief(reply_text, trace)
 
-        lower_reply = reply_text.lower()
-        if not any(m in lower_reply for m in STANCE_MARKERS):
-            return
-
-        topic = _extract_stance_topic(reply_text)
-        now = self.clock.now_utc()
-        try:
-            if not hasattr(self, "assistant_signer") or self.assistant_signer is None:
-                key = getattr(self.memory_store, "master_key", None)
-                dev_key = (
-                    bytes(key)
-                    if isinstance(key, (bytes, bytearray)) and len(key) >= 32
-                    else b"01234567890123456789012345678901"
-                )
-                self.assistant_signer = create_assistant_utterance_signer(master_key=dev_key)
-
-            unsigned = UnsignedPayload(
-                content=reply_text.strip(),
-                provenance=Provenance.ASSISTANT_BELIEF,
-                kind="belief",
-                nonce=os.urandom(16).hex(),
-                created_at=now,
-                trace_id=trace.trace_id,
-                confidence=0.7,
-                structured={"importance": 0.3, "topic": topic, "valid_from": now},
-            )
-            signed = self.assistant_signer.sign(unsigned)
-            self.memory_store.commit(signed, now=now)
-            logger.info("assistant_belief_formed", topic=topic, trace_id=trace.trace_id)
-            self._publish_mem_event("ASSISTANT_BELIEF", reply_text)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("assistant_belief_commit_failed", error=str(exc))
-
-    # Interrogative openers: questions are requests for information, not belief
-    # candidates. Committing a question as an ASSISTANT_BELIEF produced nonsense
-    # spoken updates ("New understanding: Can you open Notepad?") — F-WO8-17.
-    _INTERROGATIVE_PATTERN = re.compile(
-        r"^\s*(?:who|what|when|where|why|how|which|whose|whom|can|could|should|"
-        r"would|will|do|does|did|is|are|was|were|have|has|had|may|might|must|"
-        r"tell\s+me|give\s+me|show\s+me|list|name)\b.*\?\s*$",
-        re.IGNORECASE | re.DOTALL,
-    )
-
+    # delegate — kept for test/back-compat
     def _check_contradictions(self, new_entry_id: str, new_content: str, trace: TurnTrace) -> None:
-        """
-        Evaluates contradiction detection against active beliefs (Spec §7, D-MEM-04, WP-2).
-        FTS matches candidate beliefs on topic tokens, capped at 5 beliefs with a 200 ms budget.
-        """
-        if self.reflection_engine is None or self.db is None:
-            return
+        self.beliefs.check_contradictions(new_entry_id, new_content, trace)
 
-        # Questions are not belief candidates: skip contradiction resolution so
-        # no belief is committed from an interrogative utterance (F-WO8-17).
-        if self._INTERROGATIVE_PATTERN.match(new_content.strip()):
-            return
-
-        tokens = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", new_content.lower())]
-        if not tokens:
-            return
-
-        candidate_beliefs: list[tuple[int, str, str]] = []
-        try:
-            with self.db.read_cursor() as cur:
-                fts_query = " OR ".join(f'"{t}"' for t in tokens[:10])
-                try:
-                    cur.execute(
-                        """
-                        SELECT m.memory_id, m.content, m.kind
-                        FROM memories m
-                        JOIN provenance_envelopes p ON m.entry_id = p.entry_id
-                        WHERE m.valid_to IS NULL
-                          AND p.provenance = 'ASSISTANT_BELIEF'
-                          AND m.memory_id IN (
-                              SELECT rowid FROM fts_memories WHERE fts_memories MATCH ?
-                          )
-                        LIMIT 5
-                        """,
-                        (fts_query,),
-                    )
-                    candidate_beliefs = [(int(r[0]), str(r[1]), str(r[2])) for r in cur.fetchall()]
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug("fts_match_failed_fallback_plain", error=str(exc))
-                    cur.execute(
-                        """
-                        SELECT m.memory_id, m.content, m.kind
-                        FROM memories m
-                        JOIN provenance_envelopes p ON m.entry_id = p.entry_id
-                        WHERE m.valid_to IS NULL AND p.provenance = 'ASSISTANT_BELIEF'
-                        LIMIT 50
-                        """
-                    )
-                    for r in cur.fetchall():
-                        c_low = str(r[1]).lower()
-                        if any(t in c_low for t in tokens):
-                            candidate_beliefs.append((int(r[0]), str(r[1]), str(r[2])))
-                            if len(candidate_beliefs) >= 5:
-                                break
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("contradiction_search_error", error=str(exc))
-            return
-
-        if not candidate_beliefs:
-            return
-
-        t_start = time.perf_counter()
-        for belief_id, _old_content, _ in candidate_beliefs:
-            if (time.perf_counter() - t_start) > 0.200:
-                logger.warning("reflection_contradiction_budget_exceeded", trace_id=trace.trace_id)
-                break
-
-            try:
-                is_queued, res_str = self.reflection_engine.detect_and_handle_contradiction(
-                    old_belief_id=belief_id,
-                    new_content=new_content,
-                    reason_entry_id=new_entry_id,
-                    proposed_confidence=1.0,
-                    is_conflict_top=False,
-                    topic=None,
-                    now=self.clock.now_utc(),
-                )
-
-                if is_queued:
-                    logger.info(
-                        "belief_revision_flagged_for_review",
-                        review_id=res_str,
-                        belief_id=belief_id,
-                    )
-                else:
-                    self.pending_spoken_updates.append(res_str)
-                    logger.info(
-                        "belief_revision_enqueued_spoken_update",
-                        spoken_update=res_str,
-                        belief_id=belief_id,
-                    )
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("contradiction_handling_failed", error=str(exc), belief_id=belief_id)
-
+    # delegate — kept for test/back-compat
     def _maybe_speak_pending_updates(self, trace: TurnTrace) -> None:
-        """Speaks queued unflagged belief revision sentences once before turn reply."""
-        while self.pending_spoken_updates:
-            spoken_update = self.pending_spoken_updates.popleft()
-            if spoken_update.strip():
-                print(f"[Lucca Revision] 💡 {spoken_update}", flush=True)
-                self._speak_text(trace, spoken_update)
-                self._publish_caption(spoken_update, source="assistant", is_final=True)
-                self.history.append({"role": "assistant", "content": spoken_update})
+        self.beliefs.maybe_speak_pending_updates(trace)
 
     def maybe_run_nightly_rollup(self, now: float | None = None) -> int:
         """Executes nightly roll-up if due and records persistent timestamp."""
@@ -2885,13 +2309,7 @@ class Orchestrator:
 
         extractor = getattr(self, "_fact_extractor", None)
         if extractor is None:
-            key = getattr(self.memory_store, "master_key", None)
-            dev_key = (
-                bytes(key)
-                if isinstance(key, (bytes, bytearray)) and len(key) >= 32
-                else b"01234567890123456789012345678901"
-            )
-            extractor = FactExtractor(master_key=dev_key)
+            extractor = FactExtractor(master_key=self.signer_factory.master_key)
             self._fact_extractor = extractor
 
         try:
@@ -2958,6 +2376,7 @@ class Orchestrator:
             elapsed_ms=0.0,
         )
 
+    # delegate — kept for test/back-compat
     def _request_confirmation(
         self,
         trace: TurnTrace,
@@ -2965,75 +2384,7 @@ class Orchestrator:
         args: dict[str, JsonValue],
         timeout_s: float = 15.0,
     ) -> bool:
-        action_desc = self._describe_tool_action(name, args)
-        prompt_text = f"Do you want me to {action_desc}? Say yes or no."
-
-        self._confirm_result = False
-        self._confirm_event.clear()
-        self._pending_confirmation_active = True
-        with self._confirm_lock:
-            self._confirm_audio = None
-            self._confirm_via = None
-
-        self._set_state("confirm_wait", detail=action_desc)
-
-        confirm_env = Envelope(
-            type="ui.confirm",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=UIConfirmPayload(
-                prompt_text=prompt_text,
-                action_summary=action_desc,
-                timeout_s=timeout_s,
-            ).model_dump(),
-        )
-        self._publish_bus(confirm_env)
-
-        # Speak prompt
-        self._speak_text(trace, prompt_text)
-        # Restore confirm_wait state in case TTS set it to speaking
-        if self._pending_confirmation_active:
-            self._set_state("confirm_wait", detail=action_desc)
-
-        # Wait for user confirmation
-        got_signal = self._confirm_event.wait(timeout=timeout_s)
-        self._pending_confirmation_active = False
-
-        if not got_signal:
-            logger.info("confirmation_timeout", tool=name)
-            return False
-
-        with self._confirm_lock:
-            confirm_audio = self._confirm_audio
-            self._confirm_audio = None
-            confirm_via = self._confirm_via
-
-        if confirm_via == "voice" and confirm_audio is not None:
-            # F-CORE-015: transcribe on this turn worker thread, outside the
-            # ingest path. The slice is read late, so stale-window detection
-            # (F-SENS-003) applies: an overwritten window yields an empty
-            # transcript, which parses as "unknown" and cancels the action.
-            pcm_samples = self.cap_ring.read_slice(
-                confirm_audio.capture_seq_start, confirm_audio.capture_seq_end
-            )
-            transcript_text = ""
-            if self.asr and len(pcm_samples) > 0:
-                asr_res = self.asr.transcribe(pcm_samples)
-                transcript_text = asr_res.text
-            decision = parse_confirmation_response(transcript_text)
-            # A click or barge-in may have superseded the voice answer while
-            # ASR was running; the explicit user act always wins.
-            with self._confirm_lock:
-                superseded = self._confirm_via in ("click", "abort")
-                final_result = self._confirm_result if superseded else decision == "confirm"
-            if superseded:
-                logger.info("voice_confirmation_superseded", via=self._confirm_via)
-            else:
-                logger.info("voice_confirmation_parsed", decision=decision)
-            return final_result
-
-        return self._confirm_result
+        return self.confirmations.request_confirmation(trace, name, args, timeout_s=timeout_s)
 
     def _handle_tool_call(
         self,
