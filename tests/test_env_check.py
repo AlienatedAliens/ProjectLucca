@@ -10,7 +10,36 @@ from pathlib import Path
 import pytest
 
 from lucca.core.config import get_config
-from lucca.core.env_check import check_lucca_home, check_models_manifest
+from lucca.core.env_check import check_lucca_home, check_models_manifest, check_system_ram
+
+
+class _FakeVMem:
+    def __init__(self, available_bytes: int) -> None:
+        self.available = available_bytes
+
+
+def test_system_ram_gate_fails_below_boot_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The RAM gate must refuse boot when available RAM < 3500 MB (2026-09-25 boot crash)."""
+    import psutil
+
+    monkeypatch.setattr(
+        psutil, "virtual_memory", lambda: _FakeVMem(int(1.2 * 1024**3))
+    )
+    ok, msg = check_system_ram()
+    assert ok is False
+    assert "3500" in msg
+
+
+def test_system_ram_gate_passes_above_boot_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The RAM gate passes with comfortable headroom."""
+    import psutil
+
+    monkeypatch.setattr(
+        psutil, "virtual_memory", lambda: _FakeVMem(int(8 * 1024**3))
+    )
+    ok, msg = check_system_ram()
+    assert ok is True
+    assert "System RAM available" in msg
 
 
 def test_models_manifest_missing_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

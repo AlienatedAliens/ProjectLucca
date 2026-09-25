@@ -48,7 +48,7 @@ The v1.0.0 feature set is strictly locked and encompasses the following subsyste
 
 3. **Tool Taxonomy & Dynamic Frontier Presentation (Rungs T1, T2, T3):**
    - Three-class deontic boundary: Class A (sandbox internal), Class B (host read-only perception, stamped `TOOL_CONTENT_UNTRUSTED`), Class C (shared boundary, dispatcher-gated confirmation).
-   - Byte-stable frozen system prompt prefix ($\le 18$ native tools + static 7-category menu).
+   - Byte-stable frozen system prompt prefix ($\le 19$ native tools + static 7-category menu).
    - Per-turn dynamic category skill manifest injected strictly via the Prompt Frontier Suffix, preserving 100% prefix KV cache.
 
 4. **MicroScheme Reasoning & Safe Induction Lifecycle (Rungs L1, L2, L3, L4):**

@@ -336,6 +336,7 @@ def test_active_docs_staleness_lint() -> None:
         repo_root / "docs" / "V2_BACKLOG.md",
         repo_root / "docs" / "specs" / "STUDIO_CAPABILITY_ROADMAP.md",
         repo_root / "docs" / "audit" / "findings" / "V1_RELEASE_AUDIT.md",
+        repo_root / "docs" / "adr" / "0009_audio_concurrency_contract.md",
     ]
 
     violations: list[str] = []
@@ -377,6 +378,26 @@ def test_active_docs_staleness_lint() -> None:
             re.compile(r"Not yet enforced", re.IGNORECASE),
             "unratified status on active v1.0 decision",
         ),
+        (
+            re.compile(r"MAX_REGISTRY_TOOLS\s*=\s*18\b"),
+            "superseded tool cap 18 (actual cap is MAX_REGISTRY_TOOLS = 19 per WO-17)",
+        ),
+        (
+            re.compile(r"\b18 native tools\b", re.IGNORECASE),
+            "superseded 18 native tools count (actual count is 19 per WO-17 calc_math)",
+        ),
+        (
+            re.compile(r"capped at 18\b", re.IGNORECASE),
+            "superseded cap at 18 tools (actual cap is 19 per WO-17)",
+        ),
+        (
+            re.compile(r"_tts_queue.*maxsize=8\b"),
+            "superseded TTS queue maxsize=8 (actual size is 32 per WO-17 Phase 7)",
+        ),
+        (
+            re.compile(r"queue.*capacity\s+8\b", re.IGNORECASE),
+            "superseded TTS queue capacity 8 (actual capacity is 32 per WO-17 Phase 7)",
+        ),
     ]
 
     for doc_path in active_docs:
@@ -392,3 +413,63 @@ def test_active_docs_staleness_lint() -> None:
                     )
 
     assert not violations, "Staleness lint failed in active docs:\n" + "\n".join(violations)
+
+
+def test_registry_tool_count_consistency() -> None:
+    """WO-17 drift gate (code <-> docs): the number of ToolSchema entries defined in
+    get_default_native_tools() must equal MAX_REGISTRY_TOOLS, and the active docs'
+    positive tool-count claims must cite that same number. Catches the class of
+    drift where a work order adds a tool (or edits docs) without propagating the
+    count everywhere (the 18-vs-19 incident)."""
+    repo_root = Path(__file__).parent.parent
+    caps_text = (repo_root / "src" / "lucca" / "core" / "capabilities.py").read_text(
+        encoding="utf-8"
+    )
+
+    cap_match = re.search(r"MAX_REGISTRY_TOOLS:\s*Final\[int\]\s*=\s*(\d+)", caps_text)
+    assert cap_match, "MAX_REGISTRY_TOOLS constant not found in capabilities.py"
+    cap = int(cap_match.group(1))
+
+    registered = len(re.findall(r'"[a-z_]+": ToolSchema\(', caps_text))
+    assert registered == cap, (
+        f"Registry defines {registered} ToolSchema entries but MAX_REGISTRY_TOOLS={cap}. "
+        "A tool was added or removed without updating the cap (or vice versa)."
+    )
+
+    # Active docs must cite the live count in their positive claims.
+    doc_claims: list[tuple[str, int]] = []
+    doc_paths = [
+        repo_root / "docs" / "README.md",
+        repo_root / "docs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
+    ]
+    for doc_path in doc_paths:
+        text = doc_path.read_text(encoding="utf-8")
+        for m in re.finditer(r"(\d+)\s+native tools", text):
+            doc_claims.append((doc_path.name, int(m.group(1))))
+    assert doc_claims, "No '<N> native tools' claim found in active docs"
+    for name, claimed in doc_claims:
+        assert claimed == cap, (
+            f"{name} claims {claimed} native tools but the registry defines {cap} "
+            f"(MAX_REGISTRY_TOOLS={cap}). Update the doc or the registry."
+        )
+
+
+def test_package_version_matches_release_baseline() -> None:
+    """Version drift gate: pyproject.toml version must match the release baseline
+    cited in docs/README.md ('Git Baseline: Project Lucca vX.Y.Z ...'). Catches
+    the pyproject 0.2.0 vs v1.0.0 drift found in the 2026-09 external review."""
+    repo_root = Path(__file__).parent.parent
+    pyproject = (repo_root / "pyproject.toml").read_text(encoding="utf-8")
+    pkg_match = re.search(r'^version\s*=\s*"(\d+\.\d+\.\d+)"', pyproject, re.MULTILINE)
+    assert pkg_match, "package version not found in pyproject.toml"
+    pkg_version = pkg_match.group(1)
+
+    docs_readme = (repo_root / "docs" / "README.md").read_text(encoding="utf-8")
+    baseline_match = re.search(r"Git Baseline:\*\* Project Lucca\s+v(\d+\.\d+\.\d+)", docs_readme)
+    assert baseline_match, "release baseline version not found in docs/README.md"
+    baseline_version = baseline_match.group(1)
+
+    assert pkg_version == baseline_version, (
+        f"pyproject.toml version {pkg_version} does not match the release baseline "
+        f"v{baseline_version} cited in docs/README.md. Bump one or the other."
+    )

@@ -200,11 +200,20 @@ class Supervisor:
             )
             master_key = b"01234567890123456789012345678901"
 
-        memory_store = MemoryStore(
-            db=db,
-            master_key=master_key,
-            embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
-        )
+        try:
+            memory_store = MemoryStore(
+                db=db,
+                master_key=master_key,
+                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
+            )
+        except (MemoryError, RuntimeError) as exc:
+            sys.stderr.write(
+                "FATAL [BOOT]: Embedding model initialization failed — almost always "
+                "insufficient system RAM. Close applications (browsers, Discord) and "
+                f"retry. Run `python -m lucca.admin env-check` for the RAM gate. ({exc})\n"
+            )
+            self.shutdown()
+            return
         self.orchestrator = Orchestrator(db=db, memory_store=memory_store, master_key=master_key)
         self.orchestrator.start()
         self.running = True

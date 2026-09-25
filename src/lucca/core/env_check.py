@@ -17,6 +17,32 @@ import httpx
 from lucca.core.config import get_config
 
 
+def check_system_ram() -> tuple[bool, str]:
+    """Checks available system RAM against the boot demand budget.
+
+    Boot demand: lucca-core (~900 MB per ADR-008) + lucca-audio (~150 MB) +
+    lucca-npu (lazy, up to 2.2 GB models resident) + lucca-ui (~100 MB) +
+    OpenVINO compile scratch (~500 MB) ≈ 3.5 GB minimum free.
+
+    Added 2026-09-25 after a boot crash where env-check passed on a machine
+    with 1.2 GB free and the core died with a raw MemoryError in OpenVINO
+    model compilation — the gate must fail before the boot does.
+    """
+    try:
+        import psutil
+
+        avail_mb = psutil.virtual_memory().available / (1024 * 1024)
+        if avail_mb < 3500:
+            return False, (
+                f"Only {avail_mb:.0f} MB system RAM available "
+                "(boot requires ~3500 MB: core+audio+npu+ui+OpenVINO scratch). "
+                "Close applications (browsers, Discord) and retry."
+            )
+        return True, f"System RAM available: {avail_mb:.0f} MB (boot budget 3500 MB)"
+    except Exception as e:
+        return False, f"Failed querying system RAM: {e}"
+
+
 def check_mshybrid_vram() -> tuple[bool, str]:
     """Checks dGPU VRAM baseline.
 
@@ -249,6 +275,7 @@ def run_env_check() -> int:
     print("=" * 68)
 
     checks = [
+        ("System RAM Budget", check_system_ram),
         ("MSHybrid dGPU VRAM", check_mshybrid_vram),
         ("Intel NPU (OpenVINO)", check_openvino_npu),
         ("SQLite + sqlite-vec", check_sqlite_vec),
