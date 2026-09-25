@@ -46,10 +46,6 @@ from lucca.senses.embed import LocalEmbeddingPort
 TEST_MASTER_KEY = b"01234567890123456789012345678901"
 
 
-def _run[T](coro: Coroutine[object, object, T]) -> T:
-    return asyncio.run(coro)
-
-
 # ============================================================================
 # Section 1: Eligibility Partition & Trigger Invariants (§3.1)
 # ============================================================================
@@ -114,7 +110,7 @@ def test_supersede_grounding_invariant_property(
         nonce=uuid.uuid4().hex,
         confidence=0.9,
     )
-    old_mid = _run(store.commit(utt_signer.sign(old_p)))
+    old_mid = store.commit(utt_signer.sign(old_p))
 
     # Seed new memory
     new_p = UnsignedPayload(
@@ -127,7 +123,7 @@ def test_supersede_grounding_invariant_property(
         nonce=uuid.uuid4().hex,
         confidence=0.95,
     )
-    new_mid = _run(store.commit(utt_signer.sign(new_p)))
+    new_mid = store.commit(utt_signer.sign(new_p))
 
     # Reason envelope: grounding-eligible (USER_EXPLICIT) vs non-grounding (ASSISTANT_UTTERANCE)
     if is_grounding_reason:
@@ -153,11 +149,11 @@ def test_supersede_grounding_invariant_property(
         )
         signed_reason = utt_signer.sign(reason_p)
 
-    _run(store.commit(signed_reason))
+    store.commit(signed_reason)
     reason_entry_id = signed_reason.entry_id
 
     if is_grounding_reason:
-        _run(store.supersede(old_mid, new_mid, reason=reason_entry_id))
+        store.supersede(old_mid, new_mid, reason=reason_entry_id)
         with db.read_cursor() as cur:
             cur.execute(
                 "SELECT valid_to, superseded_by FROM memories WHERE memory_id = ?", (old_mid,)
@@ -168,7 +164,7 @@ def test_supersede_grounding_invariant_property(
             assert row[1] == new_mid
     else:
         with pytest.raises(ProvenanceRejected, match="grounding-eligible"):
-            _run(store.supersede(old_mid, new_mid, reason=reason_entry_id))
+            store.supersede(old_mid, new_mid, reason=reason_entry_id)
 
         # Invariant: old memory remains untouched and active
         with db.read_cursor() as cur:
@@ -240,7 +236,7 @@ def test_supersession_chain_integrity_hypothesis(
             nonce=uuid.uuid4().hex,
             confidence=0.9,
         )
-        mid = _run(store.commit(utt_signer.sign(payload)))
+        mid = store.commit(utt_signer.sign(payload))
         chain_mids.append(mid)
 
     # Perform sequential supersessions
@@ -255,14 +251,12 @@ def test_supersession_chain_integrity_hypothesis(
             confidence=1.0,
         )
         signed_reason = user_signer.sign(reason_p)
-        _run(store.commit(signed_reason))
-        _run(
-            store.supersede(
-                chain_mids[i],
-                chain_mids[i + 1],
-                reason=signed_reason.entry_id,
-                now=now + i * 10 + 6,
-            )
+        store.commit(signed_reason)
+        store.supersede(
+            chain_mids[i],
+            chain_mids[i + 1],
+            reason=signed_reason.entry_id,
+            now=now + i * 10 + 6,
         )
 
     # Verify invariants
@@ -384,7 +378,7 @@ def test_five_flag_decision_table_hypothesis(
         nonce=uuid.uuid4().hex,
         confidence=0.85,
     )
-    old_mid = _run(store.commit(utt_signer.sign(old_p)))
+    old_mid = store.commit(utt_signer.sign(old_p))
 
     # Explicit DB override for test temporal precision
     conn = db.get_writer()
@@ -404,7 +398,7 @@ def test_five_flag_decision_table_hypothesis(
         confidence=1.0,
     )
     signed_reason = user_signer.sign(reason_p)
-    _run(store.commit(signed_reason))
+    store.commit(signed_reason)
 
     # Independent flag calculation
     flag_user_model = kind == "user_model"
@@ -418,16 +412,14 @@ def test_five_flag_decision_table_hypothesis(
         [flag_user_model, flag_high_importance, flag_conflict_top, flag_oscillation, flag_topic]
     )
 
-    is_queued, res_str = _run(
-        refl.detect_and_handle_contradiction(
-            old_belief_id=old_mid,
-            new_content="Updated belief statement",
-            reason_entry_id=signed_reason.entry_id,
-            proposed_confidence=0.9,
-            is_conflict_top=is_conflict_top,
-            topic=topic_name,
-            now=current_time,
-        )
+    is_queued, res_str = refl.detect_and_handle_contradiction(
+        old_belief_id=old_mid,
+        new_content="Updated belief statement",
+        reason_entry_id=signed_reason.entry_id,
+        proposed_confidence=0.9,
+        is_conflict_top=is_conflict_top,
+        topic=topic_name,
+        now=current_time,
     )
 
     assert is_queued == expected_queued, (
@@ -509,7 +501,7 @@ def test_review_queue_state_machine_hypothesis(
         nonce=uuid.uuid4().hex,
         confidence=0.9,
     )
-    old_mid = _run(store.commit(utt_signer.sign(old_p)))
+    old_mid = store.commit(utt_signer.sign(old_p))
 
     reason_p = UnsignedPayload(
         provenance=Provenance.USER_EXPLICIT,
@@ -521,15 +513,13 @@ def test_review_queue_state_machine_hypothesis(
         confidence=1.0,
     )
     signed_reason = user_signer.sign(reason_p)
-    _run(store.commit(signed_reason))
+    store.commit(signed_reason)
 
-    is_queued, review_id = _run(
-        refl.detect_and_handle_contradiction(
-            old_belief_id=old_mid,
-            new_content="Revised belief content",
-            reason_entry_id=signed_reason.entry_id,
-            now=now + 2,
-        )
+    is_queued, review_id = refl.detect_and_handle_contradiction(
+        old_belief_id=old_mid,
+        new_content="Revised belief content",
+        reason_entry_id=signed_reason.entry_id,
+        now=now + 2,
     )
     assert is_queued
     assert review_id.startswith("rev-")
@@ -545,19 +535,19 @@ def test_review_queue_state_machine_hypothesis(
             nonce=uuid.uuid4().hex,
             confidence=0.9,
         )
-        indep_mid = _run(store.commit(utt_signer.sign(indep_p)))
-        _run(store.supersede(old_mid, indep_mid, reason=signed_reason.entry_id, now=now + 4))
+        indep_mid = store.commit(utt_signer.sign(indep_p))
+        store.supersede(old_mid, indep_mid, reason=signed_reason.entry_id, now=now + 4)
 
         if first_action == "approve":
             with pytest.raises(ValueError, match="already superseded"):
-                _run(refl.approve_review(review_id))
+                refl.approve_review(review_id)
         else:
             refl.reject_review(review_id)
             with pytest.raises(ValueError, match="not PENDING"):
                 refl.reject_review(review_id)
     else:
         if first_action == "approve":
-            new_mid = _run(refl.approve_review(review_id, decided_by="operator_test"))
+            new_mid = refl.approve_review(review_id, decided_by="operator_test")
             assert new_mid is not None
             with db.read_cursor() as cur:
                 cur.execute(
@@ -574,11 +564,11 @@ def test_review_queue_state_machine_hypothesis(
                 )
                 r = cur.fetchone()
                 assert r[0] is None
-                assert r[1] is None
+                assert r[1] == None
 
         with pytest.raises(ValueError, match="not PENDING"):
             if second_action == "approve":
-                _run(refl.approve_review(review_id))
+                refl.approve_review(review_id)
             else:
                 refl.reject_review(review_id)
 
@@ -636,7 +626,7 @@ def test_substrate_7_belnap_isolation_hypothesis(
             nonce=uuid.uuid4().hex,
             confidence=0.9,
         )
-        _run(store.commit(utt_signer.sign(p)))
+        store.commit(utt_signer.sign(p))
 
     # Query without grounded evidence
     query_text = f"Is the {topic_token} operational?"
@@ -657,7 +647,7 @@ def test_substrate_7_belnap_isolation_hypothesis(
             nonce=uuid.uuid4().hex,
             confidence=1.0,
         )
-        _run(store.commit(user_signer.sign(ev_p)))
+        store.commit(user_signer.sign(ev_p))
 
         res_with_evidence = cascade.query(query_text)
         assert res_with_evidence.belnap_status == BelnapValue.TRUE
@@ -718,7 +708,7 @@ def test_nightly_rollup_boundary_and_retention_invariants(tmp_path: Path) -> Non
         nonce=uuid.uuid4().hex,
         confidence=1.0,
     )
-    m1 = _run(store.commit(utt_signer.sign(p1)))
+    m1 = store.commit(utt_signer.sign(p1))
 
     # Row 2: Boundary importance (== 0.2, > 30 d) -> MUST BE RETAINED
     p2 = UnsignedPayload(
@@ -731,7 +721,7 @@ def test_nightly_rollup_boundary_and_retention_invariants(tmp_path: Path) -> Non
         nonce=uuid.uuid4().hex,
         confidence=1.0,
     )
-    m2 = _run(store.commit(utt_signer.sign(p2)))
+    m2 = store.commit(utt_signer.sign(p2))
 
     # Row 3: Boundary age (< 0.2, == 30 d) -> MUST BE RETAINED
     p3 = UnsignedPayload(
@@ -744,7 +734,7 @@ def test_nightly_rollup_boundary_and_retention_invariants(tmp_path: Path) -> Non
         nonce=uuid.uuid4().hex,
         confidence=1.0,
     )
-    m3 = _run(store.commit(utt_signer.sign(p3)))
+    m3 = store.commit(utt_signer.sign(p3))
 
     conn = db.get_writer()
     conn.execute(
@@ -760,7 +750,7 @@ def test_nightly_rollup_boundary_and_retention_invariants(tmp_path: Path) -> Non
         (now - thirty_days + 1000.0, m3),
     )
 
-    compressed_count = _run(refl.rollup_nightly(now=now))
+    compressed_count = refl.rollup_nightly(now=now)
     assert compressed_count == 1
 
     with db.read_cursor() as cur:

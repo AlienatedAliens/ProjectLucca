@@ -270,11 +270,11 @@ class FakeMemoryStore:
         self.commits: list[SignedPayload] = []
         self.queries: list[RetrievalQuery] = []
 
-    async def search(self, q: RetrievalQuery) -> list[MemoryHit]:
+    def search(self, q: RetrievalQuery) -> list[MemoryHit]:
         self.queries.append(q)
         return self.search_results
 
-    async def commit(self, payload: SignedPayload, now: float | None = None) -> int:
+    def commit(self, payload: SignedPayload, now: float | None = None) -> int:
         self.commits.append(payload)
         return len(self.commits)
 

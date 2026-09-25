@@ -3,9 +3,9 @@ Project Lucca — SQLite-backed Memory Store & Graph Engine
 Spec 04 §1-§8, ADR-002, ADR-006
 """
 
-import asyncio
 import datetime
 import json
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -66,10 +66,10 @@ class MemoryStore:
 
         self.read_only: bool = False
         self.vec_backfill: list[int] = []
-        self._write_lock: asyncio.Lock = asyncio.Lock()
+        self._write_lock: threading.Lock = threading.Lock()
         self._fault_hook_before_commit: Callable[[], None] | None = None
 
-    async def commit(
+    def commit(
         self,
         payload: SignedPayload | Admitted,
         now: float | None = None,
@@ -96,13 +96,13 @@ class MemoryStore:
         embedding: list[float] | None = None
         if self.embedding_port is not None:
             try:
-                vecs = await self.embedding_port.embed([signed_payload.content])
+                vecs = self.embedding_port.embed([signed_payload.content])
                 if vecs and len(vecs[0]) == 384:
                     embedding = vecs[0]
             except Exception as exc:  # noqa: BLE001
                 logger.warning("embedding_failed_enqueuing_backfill", error=str(exc))
 
-        async with self._write_lock:
+        with self._write_lock:
             conn = self.db.get_writer()
             cursor = conn.cursor()
             conn.execute("BEGIN IMMEDIATE")
@@ -307,11 +307,11 @@ class MemoryStore:
                     raise
                 raise MemoryCommitFailed(f"Memory commit transaction failed: {exc}") from exc
 
-    async def search(self, q: RetrievalQuery) -> list[MemoryHit]:
+    def search(self, q: RetrievalQuery) -> list[MemoryHit]:
         """Hybrid retrieval query."""
-        return await self.retriever.search(q)
+        return self.retriever.search(q)
 
-    async def supersede(
+    def supersede(
         self,
         old: MemoryId,
         new: MemoryId,
@@ -323,7 +323,7 @@ class MemoryStore:
             raise MemoryStoreReadOnly("MemoryStore is in read-only mode")
 
         current_time = now if now is not None else time.time()
-        async with self._write_lock:
+        with self._write_lock:
             conn = self.db.get_writer()
             conn.execute("BEGIN IMMEDIATE")
             try:
@@ -375,7 +375,7 @@ class MemoryStore:
                 conn.execute("ROLLBACK")
                 raise
 
-    async def forget(
+    def forget(
         self,
         ids: list[MemoryId],
         *,
@@ -395,7 +395,7 @@ class MemoryStore:
         current_time = now if now is not None else time.time()
         int_ids = [int(mid) for mid in ids]
 
-        async with self._write_lock:
+        with self._write_lock:
             conn = self.db.get_writer()
             conn.execute("BEGIN IMMEDIATE")
             try:
@@ -437,7 +437,7 @@ class MemoryStore:
                 conn.execute("ROLLBACK")
                 raise
 
-    async def graph_neighbors(self, entity: str, hops: int = 1) -> list[Edge]:
+    def graph_neighbors(self, entity: str, hops: int = 1) -> list[Edge]:
         """Find valid knowledge graph neighbors for entity (Spec 04 §6)."""
         edges: list[Edge] = []
         with self.db.read_cursor() as cur:

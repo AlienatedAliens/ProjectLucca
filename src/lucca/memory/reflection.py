@@ -75,7 +75,7 @@ class ReflectionEngine:
             cur.execute("SELECT topic FROM review_required_topics ORDER BY topic ASC")
             return [str(row[0]) for row in cur.fetchall()]
 
-    async def detect_and_handle_contradiction(
+    def detect_and_handle_contradiction(
         self,
         old_belief_id: int,
         new_content: str,
@@ -210,8 +210,8 @@ class ReflectionEngine:
             confidence=proposed_confidence,
         )
         signed = self.signer.sign(unsigned)
-        new_memory_id = await self.store.commit(signed, now=current_time)
-        await self.store.supersede(
+        new_memory_id = self.store.commit(signed, now=current_time)
+        self.store.supersede(
             old_belief_id, new_memory_id, reason=reason_entry_id, now=current_time
         )
 
@@ -259,7 +259,7 @@ class ReflectionEngine:
                 for r in rows
             ]
 
-    async def approve_review(
+    def approve_review(
         self,
         review_id: str,
         decided_by: str = "operator",
@@ -298,8 +298,8 @@ class ReflectionEngine:
             confidence=proposed_confidence,
         )
         signed = self.signer.sign(unsigned)
-        new_mid = await self.store.commit(signed, now=current_time)
-        await self.store.supersede(old_belief_id, new_mid, reason=reason_entry_id, now=current_time)
+        new_mid = self.store.commit(signed, now=current_time)
+        self.store.supersede(old_belief_id, new_mid, reason=reason_entry_id, now=current_time)
 
         conn = self.db.get_writer()
         conn.execute(
@@ -334,7 +334,7 @@ class ReflectionEngine:
         )
         logger.info("review_rejected", review_id=review_id, decided_by=decided_by)
 
-    async def rollup_nightly(self, now: float | None = None) -> int:
+    def rollup_nightly(self, now: float | None = None) -> int:
         """
         Rolls up low-importance autobiographical rows (< 0.2 and > 30 days) into
         session summaries (kind="session_summary"), marking originals forgotten_at.
@@ -389,7 +389,7 @@ class ReflectionEngine:
                 confidence=1.0,
             )
             signed = self.signer.sign(unsigned)
-            await self.store.commit(signed, now=current_time)
+            self.store.commit(signed, now=current_time)
 
             # Mark original items forgotten_at
             ph = ",".join("?" for _ in mids)
@@ -425,9 +425,9 @@ class ReflectionEngine:
         logger.info("autobiographical_nightly_rollup_completed", compressed_count=total_compressed)
         return total_compressed
 
-    async def nightly_rollup(self, now: float | None = None) -> int:
+    def nightly_rollup(self, now: float | None = None) -> int:
         """Alias for rollup_nightly per Work Order #8."""
-        return await self.rollup_nightly(now=now)
+        return self.rollup_nightly(now=now)
 
     def get_last_rollup_at(self) -> float | None:
         """Retrieves persistent timestamp of the last executed roll-up."""

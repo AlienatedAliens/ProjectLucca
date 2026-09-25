@@ -67,8 +67,7 @@ def fact_signer() -> DerivedFactSigner:
 # ============================================================================
 # T-MEM-01 & T-MEM-02: Benchmark on identifiers.jsonl
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_01_and_02_identifier_benchmarks(
+def test_t_mem_01_and_02_identifier_benchmarks(
     store: MemoryStore, temp_db: DatabaseManager
 ) -> None:
     """
@@ -93,7 +92,7 @@ async def test_t_mem_01_and_02_identifier_benchmarks(
 
     # Commit all targets and distractors
     for i, item in enumerate(items):
-        t_mid = await store.commit(
+        t_mid = store.commit(
             signer.sign(
                 UnsignedPayload(
                     provenance=Provenance.USER_EXPLICIT,
@@ -107,7 +106,7 @@ async def test_t_mem_01_and_02_identifier_benchmarks(
         )
         target_map[item["id"]] = t_mid
 
-        await store.commit(
+        store.commit(
             signer.sign(
                 UnsignedPayload(
                     provenance=Provenance.USER_EXPLICIT,
@@ -129,7 +128,7 @@ async def test_t_mem_01_and_02_identifier_benchmarks(
         q = item["query"]
 
         # 1. Hybrid Search
-        h_res = await store.search(RetrievalQuery(query_text=q, k=10))
+        h_res = store.search(RetrievalQuery(query_text=q, k=10))
         h_ids = [r.memory_id for r in h_res]
         h_rank = h_ids.index(t_mid) + 1 if t_mid in h_ids else 99
         if h_rank == 1:
@@ -137,7 +136,7 @@ async def test_t_mem_01_and_02_identifier_benchmarks(
         h_ranks.append(1.0 / h_rank if h_rank <= 10 else 0.0)
 
         # 2. Dense Search
-        qvec = (await embedder.embed([q]))[0]
+        qvec = (embedder.embed([q]))[0]
         with temp_db.read_cursor() as cur:
             cur.execute(
                 "SELECT memory_id FROM vec_memories WHERE embedding MATCH ? ORDER BY distance LIMIT 10",
@@ -166,8 +165,7 @@ async def test_t_mem_01_and_02_identifier_benchmarks(
 # ============================================================================
 # T-MEM-03 & T-MEM-04: Benchmark on paraphrase20.jsonl
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_03_and_04_paraphrase_benchmarks(store: MemoryStore) -> None:
+def test_t_mem_03_and_04_paraphrase_benchmarks(store: MemoryStore) -> None:
     """
     T-MEM-03: Recall@3 >= 0.90 on paraphrase20.jsonl.
     T-MEM-04: Precision@1 >= 0.85 on paraphrase20.jsonl.
@@ -188,7 +186,7 @@ async def test_t_mem_03_and_04_paraphrase_benchmarks(store: MemoryStore) -> None
     now = time.time()
 
     for i, item in enumerate(items):
-        mid = await store.commit(
+        mid = store.commit(
             signer.sign(
                 UnsignedPayload(
                     provenance=Provenance.USER_EXPLICIT,
@@ -210,7 +208,7 @@ async def test_t_mem_03_and_04_paraphrase_benchmarks(store: MemoryStore) -> None
         target_mid = fact_map[item["id"]]
         for query_text in item["paraphrases"]:
             total_queries += 1
-            res = await store.search(RetrievalQuery(query_text=query_text, k=3))
+            res = store.search(RetrievalQuery(query_text=query_text, k=3))
             retrieved_mids = [r.memory_id for r in res]
 
             if target_mid in retrieved_mids:
@@ -301,8 +299,7 @@ def test_t_mem_05_50k_synthetic_search_latency() -> None:
 # ============================================================================
 # T-MEM-06: Supersession
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_06_supersession(
+def test_t_mem_06_supersession(
     store: MemoryStore,
     fact_signer: DerivedFactSigner,
     user_signer: UserSpeechSigner,
@@ -317,7 +314,7 @@ async def test_t_mem_06_supersession(
     now = time.time()
 
     # Commit source transcripts
-    t1_mid = await store.commit(
+    t1_mid = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -333,7 +330,7 @@ async def test_t_mem_06_supersession(
         cur.execute("SELECT entry_id FROM memories WHERE memory_id = ?", (t1_mid,))
         t1_entry_id = cur.fetchone()[0]
 
-    t2_mid = await store.commit(
+    t2_mid = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -362,10 +359,10 @@ async def test_t_mem_06_supersession(
             trace_id="tr_seattle_fact",
         )
     )
-    mid1 = await store.commit(fact1)
+    mid1 = store.commit(fact1)
 
     # Verify Fact 1 is active
-    edges1 = await store.graph_neighbors("user")
+    edges1 = store.graph_neighbors("user")
     assert any(e.relation == "lives_in" and e.target == "seattle" for e in edges1)
 
     # Fact 2: Berlin (functional predicate lives_in supersedes Seattle)
@@ -381,10 +378,10 @@ async def test_t_mem_06_supersession(
             trace_id="tr_berlin_fact",
         )
     )
-    mid2 = await store.commit(fact2)
+    mid2 = store.commit(fact2)
 
     # Current facts: only Berlin
-    edges2 = await store.graph_neighbors("user")
+    edges2 = store.graph_neighbors("user")
     active_places = [e.target for e in edges2 if e.relation == "lives_in"]
     assert "berlin" in active_places
     assert "seattle" not in active_places
@@ -402,13 +399,13 @@ async def test_t_mem_06_supersession(
         assert row2[1] is None
 
     # Normal search: only Berlin returned
-    res_default = await store.search(RetrievalQuery(query_text="Where does the user live?", k=5))
+    res_default = store.search(RetrievalQuery(query_text="Where does the user live?", k=5))
     res_mids = [r.memory_id for r in res_default]
     assert mid2 in res_mids
     assert mid1 not in res_mids
 
     # Search with include_superseded=True: both returned
-    res_all = await store.search(
+    res_all = store.search(
         RetrievalQuery(query_text="Where does the user live?", k=5, include_superseded=True)
     )
     res_all_mids = [r.memory_id for r in res_all]
@@ -419,8 +416,7 @@ async def test_t_mem_06_supersession(
 # ============================================================================
 # T-MEM-07: Forgetting
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_07_forgetting(
+def test_t_mem_07_forgetting(
     store: MemoryStore,
     fact_signer: DerivedFactSigner,
     user_signer: UserSpeechSigner,
@@ -431,7 +427,7 @@ async def test_t_mem_07_forgetting(
     memory forgotten_at set, edge valid_to set, FTS/vec rows removed, audit forget.
     """
     now = time.time()
-    t_mid = await store.commit(
+    t_mid = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -459,7 +455,7 @@ async def test_t_mem_07_forgetting(
             trace_id="tr_forget_01",
         )
     )
-    mid = await store.commit(fact)
+    mid = store.commit(fact)
 
     # Verify committed
     with temp_db.read_cursor() as cur:
@@ -469,7 +465,7 @@ async def test_t_mem_07_forgetting(
         assert cur.fetchone()[0] >= 1
 
     # Call forget
-    await store.forget([mid], user_confirmed=True)
+    store.forget([mid], user_confirmed=True)
 
     # Verify forgotten_at set
     with temp_db.read_cursor() as cur:
@@ -493,15 +489,14 @@ async def test_t_mem_07_forgetting(
         assert cur.fetchone()[0] >= 1
 
     # Never retrievable
-    res = await store.search(RetrievalQuery(query_text="Berlin", k=5, include_superseded=True))
+    res = store.search(RetrievalQuery(query_text="Berlin", k=5, include_superseded=True))
     assert mid not in [r.memory_id for r in res]
 
 
 # ============================================================================
 # T-MEM-08: FTS injection
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_08_fts_injection(store: MemoryStore) -> None:
+def test_t_mem_08_fts_injection(store: MemoryStore) -> None:
     """
     T-MEM-08: FTS injection query treated as literal tokens; no error.
     """
@@ -516,7 +511,7 @@ async def test_t_mem_08_fts_injection(store: MemoryStore) -> None:
     ]
 
     for q in malicious_queries:
-        res = await store.search(RetrievalQuery(query_text=q, k=5))
+        res = store.search(RetrievalQuery(query_text=q, k=5))
         assert isinstance(res, list)
 
 
@@ -590,8 +585,7 @@ def test_t_mem_09_concurrency(temp_db: DatabaseManager) -> None:
 # ============================================================================
 # T-MEM-10: Crash mid-commit atomicity
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_10_crash_mid_commit_atomicity(
+def test_t_mem_10_crash_mid_commit_atomicity(
     store: MemoryStore, temp_db: DatabaseManager, user_signer: UserSpeechSigner
 ) -> None:
     """
@@ -616,7 +610,7 @@ async def test_t_mem_10_crash_mid_commit_atomicity(
     store._fault_hook_before_commit = fault_hook
 
     with pytest.raises((RuntimeError, MemoryCommitFailed)):
-        await store.commit(payload)
+        store.commit(payload)
 
     # Verify atomic rollback: 0 partial rows in any table
     with temp_db.read_cursor() as cur:
@@ -661,8 +655,7 @@ def test_t_mem_11_migrations(tmp_path: Path) -> None:
 # ============================================================================
 # T-MEM-12: Retrieval Filters
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_12_retrieval_filters(
+def test_t_mem_12_retrieval_filters(
     store: MemoryStore, user_signer: UserSpeechSigner, temp_db: DatabaseManager
 ) -> None:
     """
@@ -672,7 +665,7 @@ async def test_t_mem_12_retrieval_filters(
     now = time.time()
 
     # 1. Normal active memory
-    m_active = await store.commit(
+    m_active = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -686,7 +679,7 @@ async def test_t_mem_12_retrieval_filters(
     )
 
     # 2. Superseded memory
-    m_super = await store.commit(
+    m_super = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -702,7 +695,7 @@ async def test_t_mem_12_retrieval_filters(
         conn.execute("UPDATE memories SET valid_to = ? WHERE memory_id = ?", (now - 10.0, m_super))
 
     # 3. Forgotten memory
-    m_forgot = await store.commit(
+    m_forgot = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -714,17 +707,17 @@ async def test_t_mem_12_retrieval_filters(
             )
         )
     )
-    await store.forget([m_forgot], user_confirmed=True)
+    store.forget([m_forgot], user_confirmed=True)
 
     # Default search: only active
-    res_def = await store.search(RetrievalQuery(query_text="prefers theme", k=10))
+    res_def = store.search(RetrievalQuery(query_text="prefers theme", k=10))
     def_mids = [r.memory_id for r in res_def]
     assert m_active in def_mids
     assert m_super not in def_mids
     assert m_forgot not in def_mids
 
     # Search with include_superseded=True: active and superseded, never forgotten
-    res_all = await store.search(
+    res_all = store.search(
         RetrievalQuery(query_text="prefers theme", k=10, include_superseded=True)
     )
     all_mids = [r.memory_id for r in res_all]
@@ -736,8 +729,7 @@ async def test_t_mem_12_retrieval_filters(
 # ============================================================================
 # T-MEM-13: Backups & Integrity
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_13_backups_and_integrity(
+def test_t_mem_13_backups_and_integrity(
     store: MemoryStore, temp_db: DatabaseManager, tmp_path: Path, user_signer: UserSpeechSigner
 ) -> None:
     """
@@ -745,7 +737,7 @@ async def test_t_mem_13_backups_and_integrity(
     integrity check failure sets store read-only.
     """
     now = time.time()
-    await store.commit(
+    store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,
@@ -769,7 +761,7 @@ async def test_t_mem_13_backups_and_integrity(
     # Test read-only enforcement when store integrity fails
     store.read_only = True
     with pytest.raises(MemoryStoreReadOnly, match="read-only mode"):
-        await store.commit(
+        store.commit(
             user_signer.sign(
                 UnsignedPayload(
                     provenance=Provenance.USER_EXPLICIT,
@@ -786,8 +778,7 @@ async def test_t_mem_13_backups_and_integrity(
 # ============================================================================
 # T-MEM-14: Working memory 8-step discard & positive control
 # ============================================================================
-@pytest.mark.asyncio
-async def test_t_mem_14_working_memory_discard(
+def test_t_mem_14_working_memory_discard(
     store: MemoryStore, temp_db: DatabaseManager, user_signer: UserSpeechSigner
 ) -> None:
     """
@@ -814,7 +805,7 @@ async def test_t_mem_14_working_memory_discard(
         assert cur.fetchone()[0] == 0
 
     # Positive control: An explicit fact committed to store persists
-    mid = await store.commit(
+    mid = store.commit(
         user_signer.sign(
             UnsignedPayload(
                 provenance=Provenance.USER_EXPLICIT,

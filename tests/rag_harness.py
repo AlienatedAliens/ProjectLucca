@@ -54,9 +54,7 @@ ABSTENTION_PHRASES: Final[frozenset[str]] = frozenset(
 )
 
 
-def run_coro[T](coro: Coroutine[object, object, T]) -> T:
-    """Run an async coroutine to completion from sync test code."""
-    return asyncio.run(coro)
+
 
 
 def _load_jsonl(path: Path) -> list[dict[str, object]]:
@@ -126,7 +124,7 @@ def seed_rag_corpus(store: MemoryStore, now: float) -> dict[str, int]:
             confidence=0.95 if is_recollection else 1.0,
         )
         signed = utt_signer.sign(payload) if is_recollection else user_signer.sign(payload)
-        memory_id = run_coro(store.commit(signed, now=ts))
+        memory_id = store.commit(signed, now=ts)
         memory_ids[row_id] = int(memory_id)
 
     return memory_ids

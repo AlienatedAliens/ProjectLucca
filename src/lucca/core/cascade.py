@@ -7,13 +7,11 @@ acoustic floor-holding reflex cues, and calibrated honest abstention.
 
 from __future__ import annotations
 
-import asyncio
 import enum
 import json
 import re
 import time
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Final
 
@@ -949,20 +947,7 @@ class EpistemicSearchCascade:
         try:
             q = RetrievalQuery(query_text=query_text.strip(), k=8, include_superseded=True)
             res = self.memory_store.search(q)
-            raw_hits: list[MemoryHit] = []
-
-            if asyncio.iscoroutine(res):
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-                if loop and loop.is_running():
-                    with ThreadPoolExecutor(max_workers=1) as pool:
-                        raw_hits = pool.submit(asyncio.run, res).result()
-                else:
-                    raw_hits = asyncio.run(res)
-            elif isinstance(res, list):
-                raw_hits = res
+            raw_hits: list[MemoryHit] = res if isinstance(res, list) else []
 
             for hit in raw_hits:
                 # Invariant D-MEM-04: Non-grounding rows MUST NOT enter Belnap evidence fusion!

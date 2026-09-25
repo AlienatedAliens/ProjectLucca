@@ -4,7 +4,6 @@ Spec 11 §7 (`lucca-admin`), F-CORE-026, F-CORE-027, F-DRIFT-003
 """
 
 import argparse
-import asyncio
 import json
 import sys
 from pathlib import Path
@@ -674,7 +673,7 @@ def run_memory_cli(
         store = MemoryStore(db=db, master_key=mk)
         reflection = ReflectionEngine(db=db, store=store, master_key=mk)
         try:
-            count = asyncio.run(reflection.rollup_nightly())
+            count = reflection.rollup_nightly()
             console.print(
                 f"[bold green]SUCCESS: Nightly roll-up complete.[/bold green] "
                 f"Compressed {count} low-importance autobiographical memories into "

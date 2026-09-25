@@ -5,6 +5,7 @@ Spec 04 §3, Spec 11 §4
 
 import threading
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -155,7 +156,7 @@ class LocalEmbeddingPort:
     def __init__(self, worker: EmbedWorker | None = None) -> None:
         self.worker = worker or EmbedWorker()
 
-    async def embed(self, texts: list[str]) -> list[list[float]]:
+    def embed(self, texts: Sequence[str]) -> list[list[float]]:
         vectors, _, _ = self.worker.embed_text(list(texts))
         return vectors
 

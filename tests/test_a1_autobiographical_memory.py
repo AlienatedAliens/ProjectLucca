@@ -166,8 +166,7 @@ def test_signers_and_gate_admission(test_db: DatabaseManager) -> None:
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_supersede_requires_grounding_eligible_reason(
+def test_supersede_requires_grounding_eligible_reason(
     test_db: DatabaseManager, mem_store: MemoryStore
 ) -> None:
     """Verifies that supersede fails closed if reason is not grounding-eligible."""
@@ -185,7 +184,7 @@ async def test_supersede_requires_grounding_eligible_reason(
         nonce="n-init",
         confidence=1.0,
     )
-    m1_id = await mem_store.commit(user_signer.sign(initial_payload))
+    m1_id = mem_store.commit(user_signer.sign(initial_payload))
 
     # 2. Commit non-grounding assistant utterance
     utt_payload = UnsignedPayload(
@@ -198,7 +197,7 @@ async def test_supersede_requires_grounding_eligible_reason(
         confidence=1.0,
     )
     signed_utt = utt_signer.sign(utt_payload)
-    await mem_store.commit(signed_utt)
+    mem_store.commit(signed_utt)
     utt_entry_id = signed_utt.entry_id
 
     # 3. Commit new belief
@@ -211,11 +210,11 @@ async def test_supersede_requires_grounding_eligible_reason(
         nonce="n-new",
         confidence=1.0,
     )
-    m2_id = await mem_store.commit(user_signer.sign(new_payload))
+    m2_id = mem_store.commit(user_signer.sign(new_payload))
 
     # NEGATIVE TEST: Attempting to supersede using an ASSISTANT_UTTERANCE entry_id as reason MUST fail
     with pytest.raises(ProvenanceRejected, match="grounding-eligible"):
-        await mem_store.supersede(m1_id, m2_id, reason=utt_entry_id)
+        mem_store.supersede(m1_id, m2_id, reason=utt_entry_id)
 
     # POSITIVE TEST: Superseding using a verified USER_EXPLICIT reason succeeds
     verified_reason_payload = UnsignedPayload(
@@ -228,10 +227,10 @@ async def test_supersede_requires_grounding_eligible_reason(
         confidence=1.0,
     )
     signed_reason = user_signer.sign(verified_reason_payload)
-    await mem_store.commit(signed_reason)
+    mem_store.commit(signed_reason)
     valid_reason_entry_id = signed_reason.entry_id
 
-    await mem_store.supersede(m1_id, m2_id, reason=valid_reason_entry_id)
+    mem_store.supersede(m1_id, m2_id, reason=valid_reason_entry_id)
 
     # Verify bi-temporal state in DB
     with test_db.read_cursor() as cur:
@@ -247,8 +246,7 @@ async def test_supersede_requires_grounding_eligible_reason(
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_introspective_accuracy_50_questions_and_abstention(
+def test_introspective_accuracy_50_questions_and_abstention(
     test_db: DatabaseManager, mem_store: MemoryStore
 ) -> None:
     """
@@ -284,7 +282,7 @@ async def test_introspective_accuracy_50_questions_and_abstention(
             nonce=f"act-nonce-{i}",
             confidence=1.0,
         )
-        await mem_store.commit(tool_signer.sign(action_payload))
+        mem_store.commit(tool_signer.sign(action_payload))
 
     for i in range(15):
         utt_payload = UnsignedPayload(
@@ -296,7 +294,7 @@ async def test_introspective_accuracy_50_questions_and_abstention(
             nonce=f"utt-nonce-{i}",
             confidence=1.0,
         )
-        await mem_store.commit(utt_signer.sign(utt_payload))
+        mem_store.commit(utt_signer.sign(utt_payload))
 
     cascade = EpistemicSearchCascade(memory_store=mem_store)
 
@@ -365,8 +363,7 @@ async def test_introspective_accuracy_50_questions_and_abstention(
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_individuation_stance_consistency_and_drift_rejection(
+def test_individuation_stance_consistency_and_drift_rejection(
     test_db: DatabaseManager, mem_store: MemoryStore, reflection_engine: ReflectionEngine
 ) -> None:
     """
@@ -392,7 +389,7 @@ async def test_individuation_stance_consistency_and_drift_rejection(
             nonce=f"n-blf-{i}",
             confidence=0.9,
         )
-        b_id = await mem_store.commit(utt_signer.sign(payload))
+        b_id = mem_store.commit(utt_signer.sign(payload))
         belief_ids[topic] = b_id
 
     # Retrieve all 20 beliefs 5 times simulating repeated conversational probes
@@ -413,7 +410,7 @@ async def test_individuation_stance_consistency_and_drift_rejection(
     # Negative Test: Attempting a contradiction without grounding-eligible reason fails
     bogus_reason_id = "non-existent-reason-id"
     with pytest.raises(ProvenanceRejected):
-        await reflection_engine.detect_and_handle_contradiction(
+        reflection_engine.detect_and_handle_contradiction(
             old_belief_id=belief_ids["topic_0"],
             new_content="Lucca now favors design approach topic_0_B.",
             reason_entry_id=bogus_reason_id,
@@ -430,9 +427,9 @@ async def test_individuation_stance_consistency_and_drift_rejection(
         confidence=1.0,
     )
     signed_ev = user_signer.sign(evidence_payload)
-    await mem_store.commit(signed_ev)
+    mem_store.commit(signed_ev)
 
-    is_queued, _ = await reflection_engine.detect_and_handle_contradiction(
+    is_queued, _ = reflection_engine.detect_and_handle_contradiction(
         old_belief_id=belief_ids["topic_0"],
         new_content="Lucca now favors design approach topic_0_B based on benchmark evidence.",
         reason_entry_id=signed_ev.entry_id,
@@ -517,8 +514,7 @@ def test_functional_coherence_mismatch_detection_and_breach_commit(
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_reflection_5_flag_review_gating_and_approval_cycle(
+def test_reflection_5_flag_review_gating_and_approval_cycle(
     test_db: DatabaseManager, mem_store: MemoryStore, reflection_engine: ReflectionEngine
 ) -> None:
     """
@@ -544,7 +540,7 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
         confidence=1.0,
     )
     signed_ev = user_signer.sign(ev_payload)
-    await mem_store.commit(signed_ev)
+    mem_store.commit(signed_ev)
     valid_reason_id = signed_ev.entry_id
 
     # 1. Flag 1: kind="user_model"
@@ -558,9 +554,9 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
         nonce="n-um-01",
         confidence=0.8,
     )
-    um_id = await mem_store.commit(utt_signer.sign(user_model_payload))
+    um_id = mem_store.commit(utt_signer.sign(user_model_payload))
 
-    queued_1, rev_id_1 = await reflection_engine.detect_and_handle_contradiction(
+    queued_1, rev_id_1 = reflection_engine.detect_and_handle_contradiction(
         old_belief_id=um_id,
         new_content="User prefers dark theme.",
         reason_entry_id=valid_reason_id,
@@ -579,9 +575,9 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
         nonce="n-hi-01",
         confidence=0.8,
     )
-    hi_id = await mem_store.commit(utt_signer.sign(high_imp_payload))
+    hi_id = mem_store.commit(utt_signer.sign(high_imp_payload))
 
-    queued_2, rev_id_2 = await reflection_engine.detect_and_handle_contradiction(
+    queued_2, rev_id_2 = reflection_engine.detect_and_handle_contradiction(
         old_belief_id=hi_id,
         new_content="Default temperature should be 0.7.",
         reason_entry_id=valid_reason_id,
@@ -599,9 +595,9 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
         nonce="n-norm-01",
         confidence=0.8,
     )
-    norm_id = await mem_store.commit(utt_signer.sign(normal_payload))
+    norm_id = mem_store.commit(utt_signer.sign(normal_payload))
 
-    queued_3, _ = await reflection_engine.detect_and_handle_contradiction(
+    queued_3, _ = reflection_engine.detect_and_handle_contradiction(
         old_belief_id=norm_id,
         new_content="Host display scaling is 150%.",
         reason_entry_id=valid_reason_id,
@@ -611,7 +607,7 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
 
     # 4. Flag 5: Topic marked review-required
     reflection_engine.mark_topic_review_required("display_settings")
-    queued_5, _ = await reflection_engine.detect_and_handle_contradiction(
+    queued_5, _ = reflection_engine.detect_and_handle_contradiction(
         old_belief_id=norm_id,
         new_content="Host display scaling is 125%.",
         reason_entry_id=valid_reason_id,
@@ -624,7 +620,7 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
     assert len(pending) >= 4
 
     # Test operator APPROVAL
-    new_mem_id = await reflection_engine.approve_review(rev_id_1, decided_by="test-operator")
+    new_mem_id = reflection_engine.approve_review(rev_id_1, decided_by="test-operator")
     assert new_mem_id > 0
 
     # Verify old memory is superseded
@@ -655,8 +651,7 @@ async def test_reflection_5_flag_review_gating_and_approval_cycle(
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_non_grounding_recollection_belnap_isolation(
+def test_non_grounding_recollection_belnap_isolation(
     test_db: DatabaseManager, mem_store: MemoryStore
 ) -> None:
     """
@@ -679,7 +674,7 @@ async def test_non_grounding_recollection_belnap_isolation(
         nonce="n-claim-port",
         confidence=1.0,
     )
-    await mem_store.commit(utt_signer.sign(claim_payload))
+    mem_store.commit(utt_signer.sign(claim_payload))
 
     # Query cascade for this fact (synchronous call)
     res = cascade.query("What is the server port?")
@@ -700,8 +695,7 @@ async def test_non_grounding_recollection_belnap_isolation(
 # ============================================================================
 
 
-@pytest.mark.asyncio
-async def test_nightly_rollup_low_importance_retention(
+def test_nightly_rollup_low_importance_retention(
     test_db: DatabaseManager, mem_store: MemoryStore, reflection_engine: ReflectionEngine
 ) -> None:
     """
@@ -723,7 +717,7 @@ async def test_nightly_rollup_low_importance_retention(
         nonce="n-old-low",
         confidence=1.0,
     )
-    m_low_id = await mem_store.commit(utt_signer.sign(low_imp_payload))
+    m_low_id = mem_store.commit(utt_signer.sign(low_imp_payload))
     conn = test_db.get_writer()
     conn.execute(
         "UPDATE memories SET importance = 0.1, created_at = ? WHERE memory_id = ?",
@@ -741,14 +735,14 @@ async def test_nightly_rollup_low_importance_retention(
         nonce="n-old-high",
         confidence=1.0,
     )
-    m_high_id = await mem_store.commit(utt_signer.sign(high_imp_payload))
+    m_high_id = mem_store.commit(utt_signer.sign(high_imp_payload))
     conn.execute(
         "UPDATE memories SET importance = 0.75, created_at = ? WHERE memory_id = ?",
         (old_time, m_high_id),
     )
 
     # Run roll-up
-    compressed = await reflection_engine.rollup_nightly(now=now)
+    compressed = reflection_engine.rollup_nightly(now=now)
     assert compressed >= 1
 
     # Verify low-importance row is forgotten_at

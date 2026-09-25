@@ -334,7 +334,7 @@ def test_soak_memory_growth_and_rollup_stability(tmp_path: Path) -> None:
         if turn_idx % 500 == 0:
             rollup_cycle = turn_idx // 500
             simulated_now = base_time + (rollup_cycle * 31 * 86400.0)
-            compressed = asyncio.run(refl.nightly_rollup(now=simulated_now))
+            compressed = refl.nightly_rollup(now=simulated_now)
             rollup_counts.append(compressed)
 
         # Retrieval latency benchmark at turn 2000

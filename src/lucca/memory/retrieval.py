@@ -103,7 +103,7 @@ class HybridRetriever:
         self.db = db
         self.embedder = embedder
 
-    async def search(self, q: RetrievalQuery, now: float | None = None) -> list[MemoryHit]:
+    def search(self, q: RetrievalQuery, now: float | None = None) -> list[MemoryHit]:
         current_time = now if now is not None else time.time()
 
         # 1. Dense search (KNN via sqlite-vec)
@@ -111,7 +111,7 @@ class HybridRetriever:
         query_vec = q.query_vector
         if query_vec is None and self.embedder is not None:
             try:
-                vecs = await self.embedder.embed([q.query_text])
+                vecs = self.embedder.embed([q.query_text])
                 if vecs and len(vecs[0]) == 384:
                     query_vec = vecs[0]
             except (RuntimeError, ValueError, OSError) as e:

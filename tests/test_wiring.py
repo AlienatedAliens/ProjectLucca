@@ -211,7 +211,7 @@ def test_phase6_memory_and_rules_promotion_wiring(tmp_path: Path) -> None:
         trace_id="init-fact-turn",
     )
     signed_fact = user_signer.sign(unsigned_fact)
-    asyncio.run(store.commit(signed_fact))
+    store.commit(signed_fact)
 
     tools = {
         "launch_app": ToolSchema(

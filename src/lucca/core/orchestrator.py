@@ -3,7 +3,6 @@ Project Lucca — Central Orchestrator & State Machine
 Spec 01 §3, §4, §6, Spec 10, ADR-008
 """
 
-import asyncio
 import base64
 import io
 import json
@@ -16,7 +15,6 @@ import time
 import wave
 from collections import deque
 from collections.abc import Sequence
-from concurrent.futures import ThreadPoolExecutor
 from typing import Final, Literal
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -505,7 +503,6 @@ class Orchestrator:
             daemon=True,
         )
         self._tts_thread.start()
-        self._commit_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="core-mem")
 
         # ASR
         if asr is not None:
@@ -1198,24 +1195,12 @@ class Orchestrator:
             mode=mode,
         )
 
-    def _run_async_commit(self, coro: object) -> object:
-        """Execute an async memory commit coroutine on the dedicated core-mem thread."""
-        if not asyncio.iscoroutine(coro):
-            return coro
-        executor = getattr(self, "_commit_executor", None)
-        if executor is None:
-            executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="core-mem")
-            self._commit_executor = executor
-        return executor.submit(asyncio.run, coro).result()  # type: ignore[arg-type]
-
     def _search_memories(self, text: str) -> list[MemoryHit]:
         if not self.memory_store or not text.strip():
             return []
         try:
             q = RetrievalQuery(query_text=text.strip(), k=8)
             res = self.memory_store.search(q)
-            if asyncio.iscoroutine(res):
-                res = self._run_async_commit(res)
             if isinstance(res, list):
                 return res
             return []
@@ -1249,9 +1234,7 @@ class Orchestrator:
             # grounded memory_commit in this turn can reference it as the
             # USER_EXPLICIT source for FactExtractor quote grounding.
             self._last_transcript_signed = signed
-            res = self.memory_store.commit(signed, now=ts)
-            if asyncio.iscoroutine(res):
-                self._run_async_commit(res)
+            self.memory_store.commit(signed, now=ts)
             self._publish_mem_event("USER_EXPLICIT", text)
             return signed.entry_id
         except Exception as exc:  # noqa: BLE001
@@ -1314,9 +1297,7 @@ class Orchestrator:
                     },
                 )
                 signed = action_signer.sign(unsigned)
-                res = self.memory_store.commit(signed, now=now)
-                if asyncio.iscoroutine(res):
-                    self._run_async_commit(res)
+                self.memory_store.commit(signed, now=now)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("assistant_action_commit_failed", error=str(exc))
         receipts.clear()
@@ -1409,9 +1390,7 @@ class Orchestrator:
         now = getattr(self, "_current_simulated_time", None) or time.time()
         for signed_fact in signed_facts:
             try:
-                res = self.memory_store.commit(signed_fact, now=now)
-                if asyncio.iscoroutine(res):
-                    self._run_async_commit(res)
+                self.memory_store.commit(signed_fact, now=now)
                 logger.info("passive_fact_extracted", content=str(signed_fact.content))
             except Exception as exc:  # noqa: BLE001
                 logger.warning("passive_fact_commit_failed", error=str(exc))
@@ -1442,9 +1421,7 @@ class Orchestrator:
                 structured=structured,
             )
             signed = self.assistant_signer.sign(unsigned)
-            res = self.memory_store.commit(signed, now=ts)
-            if asyncio.iscoroutine(res):
-                self._run_async_commit(res)
+            self.memory_store.commit(signed, now=ts)
         except Exception as exc:  # noqa: BLE001
             logger.warning("assistant_utterance_commit_failed", error=str(exc))
 
@@ -1532,9 +1509,7 @@ class Orchestrator:
                 trace_id=trace_id,
             )
             signed = self.breach_signer.sign(unsigned)
-            res = self.memory_store.commit(signed, now=ts)
-            if asyncio.iscoroutine(res):
-                self._run_async_commit(res)
+            self.memory_store.commit(signed, now=ts)
         except Exception as exc:  # noqa: BLE001
             logger.warning("coherence_breach_commit_failed", error=str(exc))
 
@@ -1719,9 +1694,7 @@ class Orchestrator:
                 structured={"importance": 0.3, "topic": topic, "valid_from": now},
             )
             signed = self.assistant_signer.sign(unsigned)
-            res = self.memory_store.commit(signed, now=now)
-            if asyncio.iscoroutine(res):
-                self._run_async_commit(res)
+            self.memory_store.commit(signed, now=now)
             logger.info("assistant_belief_formed", topic=topic, trace_id=trace.trace_id)
             self._publish_mem_event("ASSISTANT_BELIEF", reply_text)
         except Exception as exc:  # noqa: BLE001
@@ -1804,7 +1777,7 @@ class Orchestrator:
                 break
 
             try:
-                coro = self.reflection_engine.detect_and_handle_contradiction(
+                is_queued, res_str = self.reflection_engine.detect_and_handle_contradiction(
                     old_belief_id=belief_id,
                     new_content=new_content,
                     reason_entry_id=new_entry_id,
@@ -1813,15 +1786,6 @@ class Orchestrator:
                     topic=None,
                     now=getattr(self, "_current_simulated_time", None) or time.time(),
                 )
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-                if loop and loop.is_running():
-                    with ThreadPoolExecutor(max_workers=1) as pool:
-                        is_queued, res_str = pool.submit(asyncio.run, coro).result()
-                else:
-                    is_queued, res_str = asyncio.run(coro)
 
                 if is_queued:
                     logger.info(
@@ -1858,16 +1822,7 @@ class Orchestrator:
         rollup_hour = getattr(self.config.memory, "rollup_hour_local", 3)
         if is_rollup_due(last_rollup, current_time, rollup_hour):
             try:
-                coro = self.reflection_engine.nightly_rollup(now=current_time)
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-                if loop and loop.is_running():
-                    with ThreadPoolExecutor(max_workers=1) as pool:
-                        compressed = pool.submit(asyncio.run, coro).result()
-                else:
-                    compressed = asyncio.run(coro)
+                compressed = self.reflection_engine.nightly_rollup(now=current_time)
                 self.reflection_engine.record_last_rollup_at(current_time)
                 logger.info("nightly_rollup_completed", compressed=compressed, ts=current_time)
                 return int(compressed)
@@ -2957,9 +2912,7 @@ class Orchestrator:
         now = getattr(self, "_current_simulated_time", None) or time.time()
         saved_contents: list[str] = []
         for signed_fact in signed_facts:
-            res = self.memory_store.commit(signed_fact, now=now)
-            if asyncio.iscoroutine(res):
-                self._run_async_commit(res)
+            self.memory_store.commit(signed_fact, now=now)
             saved_contents.append(str(signed_fact.content))
 
         saved_str = "; ".join(saved_contents)
@@ -3436,8 +3389,6 @@ class Orchestrator:
         self.running = False
         self._tts_running = False
         self._confirm_event.set()
-        if hasattr(self, "_commit_executor"):
-            self._commit_executor.shutdown(wait=False, cancel_futures=True)
         while not self._tts_queue.empty():
             try:
                 self._tts_queue.get_nowait()

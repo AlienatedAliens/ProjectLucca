@@ -227,8 +227,7 @@ def test_t_prov_10_prod_env_default_key(monkeypatch: pytest.MonkeyPatch) -> None
         check_prod_key(default_key)
 
 
-@pytest.mark.asyncio
-async def test_t_prov_11_low_confidence_transcript_confirmation(
+def test_t_prov_11_low_confidence_transcript_confirmation(
     store: MemoryStore, temp_db: DatabaseManager
 ) -> None:
     """
@@ -276,7 +275,7 @@ async def test_t_prov_11_low_confidence_transcript_confirmation(
         trace_id="trace_confirm_01",
     )
     confirm_envelope = user_signer.sign(confirm_payload)
-    await store.commit(confirm_envelope)
+    store.commit(confirm_envelope)
 
     # 3. Derived fact is signed with USER_DERIVED linking both source envelopes
     derived_payload = UnsignedPayload(
@@ -289,7 +288,7 @@ async def test_t_prov_11_low_confidence_transcript_confirmation(
         trace_id="trace_derived_01",
     )
     derived_envelope = fact_signer.sign(derived_payload)
-    derived_mid = await store.commit(derived_envelope)
+    derived_mid = store.commit(derived_envelope)
 
     # Verify both sources were linked in memory_sources
     with temp_db.read_cursor() as cur:
@@ -303,8 +302,7 @@ async def test_t_prov_11_low_confidence_transcript_confirmation(
         assert confirm_envelope.entry_id in sources
 
 
-@pytest.mark.asyncio
-async def test_t_prov_12_untrusted_tool_content_injection(
+def test_t_prov_12_untrusted_tool_content_injection(
     store: MemoryStore, temp_db: DatabaseManager
 ) -> None:
     """
@@ -327,7 +325,7 @@ async def test_t_prov_12_untrusted_tool_content_injection(
 
     # Attempting to commit to MemoryStore must fail
     with pytest.raises(ProvenanceRejected, match="not memory eligible"):
-        await store.commit(untrusted_envelope)
+        store.commit(untrusted_envelope)
 
     # Attempting raw direct insert into memories table violates mem_bi_eligible trigger
     conn = temp_db.get_writer()

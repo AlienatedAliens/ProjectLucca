@@ -46,10 +46,6 @@ from lucca.senses.embed import LocalEmbeddingPort
 TEST_MASTER_KEY = b"01234567890123456789012345678901"
 
 
-def _run[T](coro: Coroutine[object, object, T]) -> T:
-    return asyncio.run(coro)
-
-
 @pytest.fixture
 def test_orch(tmp_path: Path) -> Orchestrator:
     db = DatabaseManager(tmp_path / "test_wiring_mem.sqlite")
@@ -200,7 +196,7 @@ def test_scenario_2_unflagged_contradiction_supersession(test_orch: Orchestrator
         },
     )
     signed_init = test_orch.assistant_signer.sign(p_init)
-    seed_mid = _run(test_orch.memory_store.commit(signed_init))
+    seed_mid = test_orch.memory_store.commit(signed_init)
 
     # User correction turn
     trace_corr = TurnTrace(
@@ -267,7 +263,7 @@ def test_scenario_3_flagged_user_model_review_queue(test_orch: Orchestrator) -> 
         },
     )
     signed_um = test_orch.assistant_signer.sign(p_um)
-    um_mid = _run(test_orch.memory_store.commit(signed_um))
+    um_mid = test_orch.memory_store.commit(signed_um)
 
     # User contradicts the user_model belief
     trace_um_corr = TurnTrace(
