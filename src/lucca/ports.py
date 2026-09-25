@@ -4,45 +4,44 @@ Spec 02 (`lucca.ports`)
 All external boundaries are accessed strictly through these Protocols.
 """
 
-from collections.abc import AsyncIterator, Sequence
-from typing import Literal, Protocol
+from collections.abc import Iterator, Sequence
+from typing import Protocol
 
 import numpy as np
 import numpy.typing as npt
+from pydantic import BaseModel, JsonValue
 
 from lucca.core.ipc_schemas import ASRResultPayload, TTSDonePayload
 from lucca.core.schemas import (
-    CandidateRule,
     Edge,
     LLMEvent,
-    LLMHealth,
-    LLMRequest,
     MemoryHit,
     MemoryId,
-    PromotionResult,
-    RegressionReport,
     RetrievalQuery,
     Risk,
-    RouteDecision,
-    RouteFeatures,
-    RuleId,
-    RuleOutcome,
-    RuleState,
     SignedPayload,
-    ToolCall,
     ToolResult,
-    ToolSchema,
     TracePoint,
     TurnTrace,
 )
 
 
 class SpeechLLMPort(Protocol):
-    """Interacts with llama-server on Windows (ADR-001)."""
+    """Interacts with llama-server on Windows (ADR-001, D-PORT-01)."""
 
-    async def stream(self, req: LLMRequest) -> AsyncIterator[LLMEvent]: ...
-    async def abort(self, trace_id: str) -> None: ...
-    async def health(self) -> LLMHealth: ...
+    def stream_turn(
+        self,
+        current_audio_b64: str | None = None,
+        current_text: str | None = None,
+        memories: list[MemoryHit] | None = None,
+        history: list[dict[str, str]] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        trace_id: str | None = None,
+        **kwargs: object,
+    ) -> Iterator[LLMEvent]: ...
+
+    def abort(self, trace_id: str | None = None) -> None: ...
 
 
 class STTPort(Protocol):
@@ -88,34 +87,20 @@ class MemoryStorePort(Protocol):
     def graph_neighbors(self, entity: str, hops: int = 1) -> list[Edge]: ...
 
 
-class RuleEnginePort(Protocol):
-    """Pure symbolic MicroScheme rule evaluation and promotion."""
-
-    def evaluate(
-        self, state: RuleState, *, mode: Literal["shadow", "active"]
-    ) -> list[RuleOutcome]: ...
-    def register_candidate(self, cand: CandidateRule) -> RuleId: ...
-    def record_shadow(
-        self, rule_id: RuleId, *, matched: bool, cluster_id: str, indeterminate: bool
-    ) -> None: ...
-    def promote_if_eligible(self, rule_id: RuleId) -> PromotionResult: ...
-    def approve_rule(self, rule_id: RuleId, approver: str = "human") -> PromotionResult: ...
-    def verify_regression_suite(self) -> RegressionReport: ...
-
-
-class RouterPort(Protocol):
-    """Executive decision router (heuristic Phase 4, learned Phase 6)."""
-
-    def route(self, feats: RouteFeatures) -> RouteDecision: ...
-
-
 class SandboxPort(Protocol):
-    """Tool execution inside containerized WSL2 sandboxes."""
+    """Tool execution inside containerized WSL2 sandboxes or local fallback (D-PORT-01)."""
 
-    async def run(self, call: ToolCall, *, trace_id: str) -> ToolResult: ...
-    async def reset_workspace(self) -> None: ...
-    def tool_schemas(self) -> list[ToolSchema]: ...
-    def risk_of(self, tool: str) -> Risk: ...
+    def execute_tool(
+        self,
+        call_id: str,
+        tool_name: str,
+        args: dict[str, JsonValue] | BaseModel,
+        confirmed: bool = False,
+        human_confirmed: bool = False,
+    ) -> ToolResult: ...
+
+    def check_confirmation_needed(self, tool_name: str) -> bool: ...
+    def get_tool_risk(self, tool_name: str) -> Risk: ...
 
 
 class ClockPort(Protocol):
@@ -124,12 +109,6 @@ class ClockPort(Protocol):
     def now_utc(self) -> float: ...
     def monotonic_ns(self) -> int: ...
     def now_ns(self) -> int: ...
-
-
-class RandomPort(Protocol):
-    """Injected randomness interface for deterministic session replay."""
-
-    def random(self) -> float: ...
 
 
 class TracePort(Protocol):

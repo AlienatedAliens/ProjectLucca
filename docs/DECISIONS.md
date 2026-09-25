@@ -293,5 +293,19 @@
   2. **Self-History Substrate Isolation:** Session meta-inquiries querying previous actions or tools (*"which websites have you searched"*, *"what did you look up"*) are barred from the `WEB` substrate and routed to `SELF_HISTORY` and live execution receipts.
 - **Status:** Ratified & Enforced (`src/lucca/core/cascade.py`, `tests/test_epistemic_cascade.py`).
 
+### D-PORT-01 — Port Boundary Ratification & Pruning (F-ARCH-102)
+- **Decision:** Resolves half-realized hexagonal architecture ports:
+  1. **Ratification:** `SpeechLLMPort` and `SandboxPort` are ratified as formal external boundary protocols with amended signatures matching runtime execution (`stream_turn`/`abort` for LLM; `execute_tool`/`check_confirmation_needed` for Sandbox).
+  2. **Pruning:** Dead protocol definitions without multiple implementations or external boundaries (`RuleEnginePort`, `RouterPort`, `RandomPort`) are pruned from `src/lucca/ports.py`.
+  3. **Clock Inversion:** `ClockPort` is implemented via `SystemClock` (default in production) and `FixedClock` (injected in tests), completely eliminating ad-hoc `_current_simulated_time` attributes across `src/` and `tests/`.
+- **Status:** Ratified & Enforced (`src/lucca/ports.py`, `src/lucca/core/clock.py`, `src/lucca/core/orchestrator.py`).
+
+### D-MEM-06 — Architectural Blessing of brain → memory.retrieval Edge (F-ARCH-106 / F-MEM-017)
+- **Decision:** Resolves import linter dependency analysis regarding `prompt_builder.py` importing `format_memory_context` from `lucca.memory.retrieval`:
+  1. **Context Assembly Boundary:** As established in F-MEM-017 remediation, `format_memory_context` provides pure domain formatting converting `MemoryHit` records into structured contextual prompts for LLM injection.
+  2. **Architectural Blessing:** The edge `brain → memory.retrieval` is explicitly blessed by ADR as a legitimate read-only presentation/formatting dependency, avoiding premature abstraction or artificial intermediate formatting modules.
+- **Status:** Ratified & Enforced (`src/lucca/brain/prompt_builder.py`, `.importlinter`).
+
+
 
 

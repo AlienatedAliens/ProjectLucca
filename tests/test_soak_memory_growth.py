@@ -39,6 +39,7 @@ import pytest
 from lucca.core.affect import AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.cascade import EpistemicSearchCascade
+from lucca.core.clock import FixedClock
 from lucca.core.config import get_config
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import (
@@ -117,6 +118,7 @@ def _make_soak_orchestrator(
 
     orch: Orchestrator = Orchestrator.__new__(Orchestrator)
     orch.config = get_config()
+    orch.clock = FixedClock()
     orch.execute_tools = True
     orch.state = "idle"
     orch.running = True
@@ -268,7 +270,7 @@ def test_soak_memory_growth_and_rollup_stability(tmp_path: Path) -> None:
         turn_type = turn_idx % 4
 
         cycle = (turn_idx - 1) // 500
-        orch._current_simulated_time = base_time + (cycle * 31 * 86400.0)
+        orch.clock.set_time(base_time + (cycle * 31 * 86400.0))
         orch._turn_importance = 0.1 if turn_type != 0 else 0.5
 
         trace = TurnTrace(

@@ -9,7 +9,6 @@ import pytest
 
 from lucca.core.schemas import Plan, Risk, RuleState, ToolCall, ToolParameter, ToolSchema
 from lucca.memory.db import DatabaseManager
-from lucca.ports import RuleEnginePort
 from lucca.reasoning.lifecycle import RuleLifecycleManager, compute_cluster_id, plans_match
 
 SAMPLE_RULE = """
@@ -210,10 +209,7 @@ def test_evaluate_shadow_records_clusters(tools):
     assert len(manager.rules["open-calc-v1"].success_clusters) == 1
 
 
-def test_rule_lifecycle_manager_satisfies_rule_engine_port(tools):
-    """F-REAS-003: RuleLifecycleManager implements RuleEnginePort."""
-    manager = RuleLifecycleManager(registered_tools=tools)
-    _: RuleEnginePort = manager
+
 
 
 @pytest.fixture

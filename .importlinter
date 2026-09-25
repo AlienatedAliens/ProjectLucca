@@ -49,3 +49,11 @@ source_modules =
     lucca.reasoning
 forbidden_modules =
     lucca.ui
+
+[importlinter:contract:7]
+name = Brain must not import Memory Signers
+type = forbidden
+source_modules =
+    lucca.brain
+forbidden_modules =
+    lucca.memory.signers

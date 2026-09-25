@@ -96,7 +96,15 @@ from lucca.memory.signers import (
     create_tool_result_signer,
     create_user_speech_signer,
 )
-from lucca.ports import MemoryStorePort, STTPort, TTSPort
+from lucca.core.clock import SystemClock
+from lucca.ports import (
+    ClockPort,
+    MemoryStorePort,
+    SandboxPort,
+    SpeechLLMPort,
+    STTPort,
+    TTSPort,
+)
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_plan, evaluate_rule
 from lucca.router.calibration import fit_guard_from_db
@@ -445,13 +453,22 @@ def _sentence_containing(text: str, pos: int) -> str:
 
 class Orchestrator:
     quit_requested: bool = False
+    _default_clock: ClockPort = SystemClock()
+
+    @property
+    def clock(self) -> ClockPort:
+        return getattr(self, "_clock", None) or self._default_clock
+
+    @clock.setter
+    def clock(self, val: ClockPort) -> None:
+        self._clock = val
 
     def __init__(
         self,
-        llm: LLMClient | None = None,
+        llm: SpeechLLMPort | None = None,
         tts: TTSPort | type[TTSPort] | None = None,
         asr: STTPort | type[STTPort] | None = None,
-        sandbox: SandboxService | None = None,
+        sandbox: SandboxPort | None = None,
         execute_tools: bool = True,
         router: HeuristicRouter | None = None,
         db: DatabaseManager | None = None,
@@ -462,8 +479,10 @@ class Orchestrator:
         cascade: EpistemicSearchCascade | None = None,
         affect_tracker: AffectTracker | None = None,
         reflection_engine: ReflectionEngine | None = None,
+        clock: ClockPort | None = None,
     ) -> None:
         self.config = get_config()
+        self._clock = clock if clock is not None else self._default_clock
         self.execute_tools = execute_tools
         self.state: TurnState = "idle"
         self.running = False
@@ -1220,7 +1239,7 @@ class Orchestrator:
                     dev_key = b"01234567890123456789012345678901"
                     self.user_signer = create_user_speech_signer(master_key=dev_key)
 
-            ts = getattr(self, "_current_simulated_time", None) or time.time()
+            ts = self.clock.now_utc()
             unsigned = UnsignedPayload(
                 content=text.strip(),
                 provenance=Provenance.USER_EXPLICIT,
@@ -1264,7 +1283,7 @@ class Orchestrator:
             action_signer = create_tool_result_signer(master_key=dev_key)
             self.action_signer = action_signer
 
-        now = getattr(self, "_current_simulated_time", None) or time.time()
+        now = self.clock.now_utc()
         for receipt in receipts:
             try:
                 args_summary = ", ".join(
@@ -1387,7 +1406,7 @@ class Orchestrator:
             logger.warning("passive_fact_extraction_failed", error=str(exc))
             return
 
-        now = getattr(self, "_current_simulated_time", None) or time.time()
+        now = self.clock.now_utc()
         for signed_fact in signed_facts:
             try:
                 self.memory_store.commit(signed_fact, now=now)
@@ -1408,7 +1427,7 @@ class Orchestrator:
                     dev_key = b"01234567890123456789012345678901"
                     self.assistant_signer = create_assistant_utterance_signer(master_key=dev_key)
 
-            ts = getattr(self, "_current_simulated_time", None) or time.time()
+            ts = self.clock.now_utc()
             imp = getattr(self, "_turn_importance", None)
             structured = {"importance": imp} if imp is not None else None
             unsigned = UnsignedPayload(
@@ -1499,7 +1518,7 @@ class Orchestrator:
                 self.breach_signer = CoherenceBreachSigner(master_key=dev_key)
 
             trace_id = trace.trace_id if trace is not None else f"breach-{ulid.ULID()}"
-            ts = getattr(self, "_current_simulated_time", None) or time.time()
+            ts = self.clock.now_utc()
             unsigned = UnsignedPayload(
                 content=claim.strip(),
                 provenance=Provenance.COHERENCE_BREACH,
@@ -1672,7 +1691,7 @@ class Orchestrator:
             return
 
         topic = _extract_stance_topic(reply_text)
-        now = getattr(self, "_current_simulated_time", None) or time.time()
+        now = self.clock.now_utc()
         try:
             if not hasattr(self, "assistant_signer") or self.assistant_signer is None:
                 key = getattr(self.memory_store, "master_key", None)
@@ -1784,7 +1803,7 @@ class Orchestrator:
                     proposed_confidence=1.0,
                     is_conflict_top=False,
                     topic=None,
-                    now=getattr(self, "_current_simulated_time", None) or time.time(),
+                    now=self.clock.now_utc(),
                 )
 
                 if is_queued:
@@ -2909,7 +2928,7 @@ class Orchestrator:
                 elapsed_ms=0.0,
             )
 
-        now = getattr(self, "_current_simulated_time", None) or time.time()
+        now = self.clock.now_utc()
         saved_contents: list[str] = []
         for signed_fact in signed_facts:
             self.memory_store.commit(signed_fact, now=now)

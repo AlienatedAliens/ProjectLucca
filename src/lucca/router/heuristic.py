@@ -23,8 +23,8 @@ from lucca.core.schemas import (
     ToolCall,
 )
 from lucca.memory.db import DatabaseManager
+from lucca.ports import EmbeddingPort
 from lucca.router.conformal import ConformalGuard
-from lucca.senses.embed import EmbedWorker
 
 logger = structlog.get_logger(__name__)
 
@@ -164,7 +164,7 @@ class HeuristicRouter:
         config_path: Path | str | None = None,
         conformal_guard: ConformalGuard | None = None,
         confidence_threshold: float = 0.60,
-        embed_worker: EmbedWorker | None = None,
+        embed_worker: EmbeddingPort | None = None,
     ) -> None:
         self.log_path = Path(log_path) if log_path is not None else None
         if self.log_path:
