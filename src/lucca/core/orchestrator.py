@@ -629,6 +629,12 @@ class Orchestrator:
                 embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
             )
 
+        if hasattr(self, "router") and hasattr(self.router, "embed_worker"):
+            if self.router.embed_worker is None and hasattr(self.memory_store, "embedding_port"):
+                self.router.embed_worker = getattr(
+                    self.memory_store.embedding_port, "worker", None
+                )
+
         if user_signer is not None:
             self.user_signer: UserSpeechSigner | None = user_signer
         elif key is not None and len(key) >= 32:
@@ -1172,7 +1178,10 @@ class Orchestrator:
         self, transcript: str, mode: Literal["audio", "transcript"] = "transcript"
     ) -> RuleState:
         local_now = time.localtime()
-        intent, auto_conf, entities = self.router.classify_intent(transcript)
+        last_tool_val = self.executed_tools[-1][0] if self.executed_tools else None
+        intent, auto_conf, entities = self.router.classify_intent(
+            transcript, last_tool=last_tool_val
+        )
         return RuleState(
             schema_version=1,
             transcript=transcript,
@@ -2295,9 +2304,10 @@ class Orchestrator:
                             ChatMessage(
                                 role="user",
                                 content=(
-                                    "[Autonomous Research Directive: Do not ask rhetorical "
-                                    "permission questions or request clarification. "
-                                    "Execute search_web or fetch_url immediately "
+                                    "[Autonomous Research Directive: Do not output "
+                                    "conversational filler, cheerleading, or empty promises. "
+                                    "Do not ask rhetorical permission questions or request "
+                                    "clarification. Execute search_web or fetch_url immediately "
                                     "to retrieve and present the verified facts.]"
                                 ),
                             )

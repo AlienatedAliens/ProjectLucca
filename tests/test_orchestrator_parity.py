@@ -83,7 +83,7 @@ def test_act_then_narrate_identical_narration_both_paths(orchestrator):
     orchestrator.rule_engine = RuleLifecycleManager(registered_tools=tools)
     managed = orchestrator.rule_engine.register_rule(rule_src)
     managed.status = "ACTIVE"
-    orchestrator.router.classify_intent = lambda _: ("launch_app", 0.95, {"app": ["calc"]})
+    orchestrator.router.classify_intent = lambda _, **_kw: ("launch_app", 0.95, {"app": ["calc"]})
 
     # 1. Voice turn
     fake_llm_voice = FakeLLM(
@@ -150,7 +150,7 @@ def test_f11_multi_action_narrated_in_text_path(orchestrator):
     orchestrator.rule_engine = RuleLifecycleManager(registered_tools=tools)
     managed = orchestrator.rule_engine.register_rule(rule_src)
     managed.status = "ACTIVE"
-    orchestrator.router.classify_intent = lambda _: ("launch_app", 0.95, {"app": ["editor"]})
+    orchestrator.router.classify_intent = lambda _, **_kw: ("launch_app", 0.95, {"app": ["editor"]})
 
     fake_llm = FakeLLM(
         script=[
@@ -184,7 +184,7 @@ def test_reflex_triple_emitted_both_paths(orchestrator):
     orchestrator.rule_engine = RuleLifecycleManager()
     managed = orchestrator.rule_engine.register_rule(rule_src)
     managed.status = "ACTIVE"
-    orchestrator.router.classify_intent = lambda _: ("emergency_stop", 0.95, {})
+    orchestrator.router.classify_intent = lambda _, **_kw: ("emergency_stop", 0.95, {})
 
     emitted_triples: list[dict[str, object]] = []
 
@@ -262,7 +262,7 @@ def test_f20_follow_up_patterns_config_in_voice_path(orchestrator):
     )
     orchestrator.llm = fake_llm
     orchestrator.execute_tools = True
-    orchestrator.router.classify_intent = lambda _: ("chit_chat", 0.95, {})
+    orchestrator.router.classify_intent = lambda _, **_kw: ("chit_chat", 0.95, {})
 
     # 1. Non-followup chit-chat: tools ARE suppressed to []
     orchestrator.asr = FakeASR(transcript="hello")

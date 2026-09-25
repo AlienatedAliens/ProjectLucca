@@ -84,11 +84,22 @@ ATTRIBUTION_REGEX = re.compile(
 )
 
 STALLING_RESEARCH_PATTERN = re.compile(
-    r"\b(?:would you like me to\s+(?:look|search|check|find|dig|explore|investigate|focus)|"
+    r"\b(?:"
+    r"would you like me to\s+(?:look|search|check|find|dig|explore|investigate|focus)|"
     r"shall I\s+(?:look|search|check|find|dig|focus|see)|"
     r"should I\s+(?:look|search|check|find|dig|see)|"
     r"do you want me to\s+(?:look|search|check|find|dig|see)|"
-    r"shall we focus on\s+these|which aspect would you like)\b",
+    r"shall we focus on\s+these|which aspect would you like|"
+    r"let me\s+(?:dive|jump|dig|track|scour|sift|comb|switch)|"
+    r"dive\s+(?:back\s+)?into\s+(?:the\s+)?(?:deep end|records|sources|articles|news)|"
+    r"track\s+down\s+(?:some\s+)?(?:other\s+|more\s+)?(?:official\s+|records|news|mentions)|"
+    r"switching\s+over\s+to\s+that|"
+    r"jump\s+(?:back\s+)?into\s+the\s+records|"
+    r"hang\s+tight|"
+    r"give\s+this\s+my\s+all|"
+    r"love\s+the\s+hustle|"
+    r"scour\s+(?:everything|the web|sources)"
+    r")\b",
     re.IGNORECASE,
 )
 

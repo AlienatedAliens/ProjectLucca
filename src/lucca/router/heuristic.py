@@ -24,8 +24,47 @@ from lucca.core.schemas import (
 )
 from lucca.memory.db import DatabaseManager
 from lucca.router.conformal import ConformalGuard
+from lucca.senses.embed import EmbedWorker
 
 logger = structlog.get_logger(__name__)
+
+SEMANTIC_INTENT_ANCHORS: Final[dict[str, tuple[str, ...]]] = {
+    "web_fetch": (
+        "why don't you look for alternative sources",
+        "can you look up more information on her for me",
+        "search other records and news articles",
+        "could you search online for this topic",
+        "find more details and information on the web",
+        "check other websites and sources for me",
+        "look into different places or databases",
+        "search the web for news articles about this",
+        "look up details online",
+        "try alternative sources",
+        "dig deeper into the sources",
+    ),
+    "context_query": (
+        "which websites have you searched",
+        "what sites did you check",
+        "what sources did you look at",
+        "what tools did you just execute",
+        "what did you say earlier",
+        "what did we just talk about",
+        "where did you look",
+    ),
+    "chit_chat": (
+        "hello how are you doing today",
+        "good morning lucca",
+        "thanks so much for your help",
+        "nice talking with you",
+        "what's going on",
+    ),
+    "memory_query": (
+        "do you remember what my favorite thing is",
+        "what is my address or where do i live",
+        "do you recall what i told you last week",
+        "what did i tell you earlier",
+    ),
+}
 
 EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"^(?:(?:please|lucca|hey\s+lucca)\s+)?"
@@ -35,8 +74,15 @@ EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile(
 )
 
 RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(what did (?:i|you) (?:just|last) (?:say|tell|ask|do)|"
-    r"repeat (?:that|what)|what was that)\b",
+    r"\b("
+    r"what did (?:i|you) (?:just|last) (?:say|tell|ask|do|search|look\s*up|find)|"
+    r"repeat (?:that|what)|what was that|"
+    r"which (?:sites?|websites?|sources?|urls?|pages?|links?) "
+    r"(?:did|have) you (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
+    r"what (?:sites?|websites?|sources?|urls?|pages?|links?) "
+    r"(?:did you|have you) (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
+    r"where did you (?:search|look|check)"
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -118,6 +164,7 @@ class HeuristicRouter:
         config_path: Path | str | None = None,
         conformal_guard: ConformalGuard | None = None,
         confidence_threshold: float = 0.60,
+        embed_worker: EmbedWorker | None = None,
     ) -> None:
         self.log_path = Path(log_path) if log_path is not None else None
         if self.log_path:
@@ -131,7 +178,21 @@ class HeuristicRouter:
         self.stop_words_after_start = set(DEFAULT_STOP_WORDS_AFTER_START)
         self.last_decision_record: DecisionRecord | None = None
         self.db_write_failures: int = 0
+        self.embed_worker = embed_worker
+        self._anchor_embeddings: dict[str, list[list[float]]] | None = None
         self._load_intents_config(config_path)
+
+    def _get_anchor_embeddings(self) -> dict[str, list[list[float]]]:
+        if self._anchor_embeddings is not None:
+            return self._anchor_embeddings
+        if self.embed_worker is None or getattr(self.embed_worker, "compiled", None) is None:
+            return {}
+        res: dict[str, list[list[float]]] = {}
+        for intent, phrases in SEMANTIC_INTENT_ANCHORS.items():
+            vecs, _, _ = self.embed_worker.embed_text(list(phrases))
+            res[intent] = vecs
+        self._anchor_embeddings = res
+        return res
 
     def _load_intents_config(self, config_path: Path | str | None) -> None:
         path = (
@@ -164,10 +225,16 @@ class HeuristicRouter:
         except (OSError, tomllib.TOMLDecodeError, ValueError) as exc:
             logger.debug("intents_config_load_failed", path=str(path), error=str(exc))
 
-    def classify_intent(self, transcript: str) -> tuple[str, float, dict[str, list[str]]]:
+    def classify_intent(
+        self,
+        transcript: str,
+        last_tool: str | None = None,
+    ) -> tuple[str, float, dict[str, list[str]]]:
         """
         Classifies intent and extracts entities using word-boundary regexes per Spec 06 §2.
         Returns (intent, confidence, entities).
+        ``last_tool`` is the most-recently-executed tool name for the current session;
+        it is used to promote short corrections issued mid-search to ``web_fetch`` intent.
         """
         text = transcript.strip().lower()
         entities: dict[str, list[str]] = {
@@ -269,14 +336,50 @@ class HeuristicRouter:
             r"find\s+(?:out|information|online)|headlines|wikipedia|"
             r"tell\s+me\s+about|facts\s+about|who\s+(?:is|was)|"
             r"what\s+(?:is|are|can\s+you\s+tell)|where\s+(?:is|are|was|does)|"
-            r"when\s+(?:was|is)|how\s+about)\b"
+            r"when\s+(?:was|is)|how\s+about|"
+            # Meta-search directives — user redirecting an ongoing web-search turn
+            r"try\s+(?:alternative|other|different|more|another)\s+"
+            r"(?:source|sources|website|websites|site|sites|approach|approaches)|"
+            r"look\s+(?:elsewhere|further|deeper|more|harder)|"
+            r"dig\s+(?:deeper|further|more)|"
+            r"search\s+(?:again|more|harder|further)|"
+            r"find\s+(?:more|other|different)\s+(?:sources?|results?|information|info)|"
+            r"check\s+(?:other|more|different)\s+(?:sources?|sites?|places?)|"
+            r"look\s+for\s+(?:more|other|alternative|different)\s+(?:sources?|info|information)"
+            r")\b"
         )
         if re.search(web_pattern, text) or entities["url"]:
             return "web_fetch", 0.90, entities
 
-        # 7. Clarify: very short utterance
+        # 7. Clarify: very short utterance — but promote to web_fetch if mid-search-session.
+        # A bare name correction or a single follow-up word while last_tool was a web tool
+        # is almost certainly a search refinement, not an ambiguous mumble.
+        _WEB_TOOLS: frozenset[str] = frozenset({"search_web", "fetch_url", "web_fetch"})
+        if last_tool in _WEB_TOOLS and len(text.split()) <= 6 and text:
+            return "web_fetch", 0.75, entities
         if len(text.split()) <= 1 and text:
             return "clarify", 0.40, entities
+
+        # 8. Semantic Embedding Classification (Anchor Similarity)
+        # Evaluates cosine similarity against intent anchors when regex yields unknown
+        anchors = self._get_anchor_embeddings()
+        if anchors and self.embed_worker is not None:
+            try:
+                q_vecs, _, _ = self.embed_worker.embed_text([text])
+                if q_vecs and any(abs(v) > 1e-6 for v in q_vecs[0]):
+                    qv = np.array(q_vecs[0], dtype=np.float64)
+                    best_sim = -1.0
+                    best_intent: str | None = None
+                    for intent_name, anchor_vecs in anchors.items():
+                        for av in anchor_vecs:
+                            sim = float(np.dot(qv, np.array(av, dtype=np.float64)))
+                            if sim > best_sim:
+                                best_sim = sim
+                                best_intent = intent_name
+                    if best_intent and best_sim >= 0.65:
+                        return best_intent, float(min(best_sim, 0.95)), entities
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("semantic_intent_classification_failed", error=str(exc))
 
         return "unknown", 0.20, entities
 
@@ -323,7 +426,7 @@ class HeuristicRouter:
         else:
             transcript_text = transcript if isinstance(transcript, str) else ""
 
-        intent, auto_conf, entities = self.classify_intent(transcript_text)
+        intent, auto_conf, entities = self.classify_intent(transcript_text, last_tool=last_tool)
         conf = intent_conf if (intent_conf is not None and intent_conf > 0.0) else auto_conf
         text_lower = transcript_text.strip().lower()
 

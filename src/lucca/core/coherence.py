@@ -379,15 +379,22 @@ def detect_ungrounded_action_claims(
 # grounded by receipts (the action has not happened), so they are handled by
 # the turn loop's re-prompt directive rather than the breach path.
 PROMISE_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:i(?:'ll| will| am going to|'m going to| am doing|'m doing)|"
+    r"\b(?:"
+    r"i(?:'ll| will| am going to|'m going to| am doing|'m doing)|"
     r"let me|one second while i|working on (?:that|it) now|doing it right now|"
-    r"right this second)\b",
+    r"right this second|hang tight|give this my all|switching over|"
+    r"jumping back|diving into|diving back"
+    r")\b",
     re.IGNORECASE,
 )
 
 ACTION_VERB_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:save|saved|commit|launch|open|start|write|create|delete|remove|"
-    r"fetch|search|look up|read|run|execute|note|remember|store|fix|get that)\b",
+    r"\b(?:"
+    r"save|saved|commit|launch|open|start|write|create|delete|remove|"
+    r"fetch|search|look up|read|run|execute|note|remember|store|fix|get that|"
+    r"track down|scour|comb through|sift through|check around|dive into|jump into|"
+    r"switch over|dive back"
+    r")\b",
     re.IGNORECASE,
 )
 

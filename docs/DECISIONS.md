@@ -170,7 +170,7 @@
 - **Status:** Ratified & Enforced (Commit `d5fe8cc`).
 
 ### D-CASC-01 — 8-Substrate Epistemic Search Cascade & Belnap Evidential Bilattice
-- **Decision:** Epistemic gap queries execute across an 8-substrate prioritized cascade (`TELEMETRY=0`, `WORKSPACE=1`, `MEMORY=2`, `REASONING=3`, `SENSES=4`, `SYSTEM=5`, `WEB_FLOOR=6`, `SELF_HISTORY=7` per `cascade.py:EpistemicSubstrate`). Grounding is modeled in the Belnap $\mathcal{FOUR}$ bilattice ($\mathbf{T}, \mathbf{F}, \mathbf{B}, \mathbf{\bot}$). Unverified knowledge gaps resolve strictly to $\mathbf{\bot}$, triggering calibrated epistemic abstention (*"I checked my records, but have no verified record of that. I don't know the answer and won't guess."*) which achieved 0/25 hallucinations (100% adherence) in live testing. Floor cues write pre-rendered PCM directly into shared audio memory ($3.1\,\mu\text{s}$ IPC write).
+- **Decision:** Epistemic gap queries execute across an 8-substrate prioritized cascade (`TELEMETRY=0`, `WORKSPACE=1`, `MEMORY=2`, `WEB=3`, `ABSTENTION=4`, `SELF=5`, `CAPABILITIES=6`, `SELF_HISTORY=7` per `cascade.py:EpistemicSubstrate`; names corrected 2026-09-25 per `docs/audit/findings/USER_GUIDE_TRUTH_AUDIT_2026-09.md` X1). Grounding is modeled in the Belnap $\mathcal{FOUR}$ bilattice ($\mathbf{T}, \mathbf{F}, \mathbf{B}, \mathbf{\bot}$). Unverified knowledge gaps resolve strictly to $\mathbf{\bot}$, triggering calibrated epistemic abstention (*"I checked my records, but have no verified record of that. I don't know the answer and won't guess."*) which achieved 0/25 hallucinations (100% adherence) in live testing. Floor cues write pre-rendered PCM directly into shared audio memory ($3.1\,\mu\text{s}$ IPC write).
 - **Status:** Ratified & Enforced (Commit `b7a66d8`, expanded to 8 substrates with Rung A1 `SELF_HISTORY` in WO-12).
 
 ### D-ARB-01 — Speculative BDI Invariant Jailing & Cognitive Bus Arbitration
@@ -262,5 +262,36 @@
   1. **Fuzzy Token Matching:** Upgrades confirmation response parsing with token-set matching (`CONFIRM_TOKENS` / `CANCEL_TOKENS`) with hesitation stripping ("uh", "um"), ensuring natural spoken answers ("yeah, please do", "confirm that") parse reliably while preserving fail-closed (`unknown` $\rightarrow$ cancel) safety.
   2. **Token Binding Divergence Ratification:** Ratifies live regex/token matching on user transcripts and UI clicks in place of Milestone 2 §2.7 HMAC `ConfirmationTokenManager` nonce binding for voice turns, recognizing that spontaneous voice interactions cannot articulate cryptographically bound nonces. Safety is preserved through single-turn pending confirmation state locks and 10-second timeouts.
 - **Status:** Ratified & Enforced (WO-17 Phase 3, `tests/test_confirmation.py`).
+
+---
+
+## 5. Live Hardening & Post-WO-17 Architectural Amendments
+
+### D-ROUT-01 — Hybrid Semantic Intent Routing (Embedding Centroid Fallback)
+- **Decision:** When regex heuristics return `unknown` or fall below confidence thresholds, intent is not discarded to unguided LLM defaults or misrouted to clarification.
+  1. **Centroid Embedding Fallback:** Utterances with indeterminate regex matches are projected into embedding space via OpenVINO `EmbedWorker` and compared against calibrated intent anchor clusters (`SEMANTIC_INTENT_ANCHORS`) using cosine similarity.
+  2. **Microsecond Latency:** Embedding classification runs locally via OpenVINO on NPU/CPU in $\le 5\text{ ms}$, preserving the sub-20 ms routing latency budget ($S_1$) without incurring language model TTFT.
+  3. **Search Refinement Parity:** When `last_tool` is an active search and the current input is a short follow-up or entity correction (e.g. "Factoriza"), the router preserves the search intent and enriches the query rather than misrouting to generic clarification.
+- **Status:** Ratified & Enforced (`src/lucca/router/heuristic.py`, `tests/test_router.py`).
+
+### D-SUPER-01 — Supervisor Stalling Promise Interception & Proactive Research Directives
+- **Decision:** Solves the conversational evasion and hallucination cycle during multi-round research turns:
+  1. **Proactive System Directives:** Prompts inject strict directives forbidding conversational filler promises (*"Let me look that up for you..."*, *"Switching to that spelling..."*) without immediate tool calls.
+  2. **Streaming Stalling Interceptor:** `STALLING_RESEARCH_PATTERN` in `OutputSupervisor` screens LLM token emission in real time. If the model emits verbal promises without invoking tools, the supervisor suppresses audio emission to Kokoro TTS, flags `turn_has_stalled = True`, and aborts the evasive completion.
+  3. **Autonomous Recovery Loop:** The orchestrator intercepts stalled turns, injects an autonomous research directive commanding immediate tool execution, and re-prompts the model, converting empty conversational banter into grounded factual research.
+- **Status:** Ratified & Enforced (`src/lucca/sandbox/output_supervisor.py`, `src/lucca/core/orchestrator.py`, `tests/test_output_supervisor.py`).
+
+### D-SENSE-01 — OpenVINO Thread Concurrency Protection (Infer Lock Invariant)
+- **Decision:** Resolves OpenVINO runtime collisions (`RuntimeError: Infer Request is busy`):
+  1. **Serialized Inference:** A process-wide `threading.Lock` (`_infer_lock`) guards all OpenVINO `infer()` calls inside `EmbedWorker`.
+  2. **Thread Safety:** Background memory indexing, asynchronous fact extraction, and foreground turn routing share the compiled model without thread collisions or separate uncoordinated device allocations.
+- **Status:** Ratified & Enforced (`src/lucca/senses/embed.py`).
+
+### D-CASC-01 — Epistemic Cascade Self-History Substrate Isolation & Topic Normalization
+- **Decision:** Prevents meta-session reflection queries from triggering external web lookups and normalizes spoken grammar:
+  1. **Auxiliary Pronoun Inversion:** `extract_clean_topic` correctly maps auxiliary question pronouns (`"have you"` $\to$ `"have I"`, `"did you"` $\to$ `"did I"`), eliminating ungrammatical phrases such as *"have me searched"*.
+  2. **Self-History Substrate Isolation:** Session meta-inquiries querying previous actions or tools (*"which websites have you searched"*, *"what did you look up"*) are barred from the `WEB` substrate and routed to `SELF_HISTORY` and live execution receipts.
+- **Status:** Ratified & Enforced (`src/lucca/core/cascade.py`, `tests/test_epistemic_cascade.py`).
+
 
 

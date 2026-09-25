@@ -34,7 +34,7 @@ Every shared resource in the audio path has exactly one primary owner and strict
 | **`play_ring` (Data)** | `lucca-core` | `lucca-core` (TTS worker) | `lucca-audio` (output callback) | Lock-free circular int16 buffer. Drain on `FLAG_ABORT`. | Non-blocking. |
 | **`ingest_sock` & `_turn_lock`** | `lucca-core` (ingest thread) | `lucca-core` (ingest loop) | `lucca-core` (ingest loop) | Ingest loop holds `_turn_lock` for routing/dispatch only. | Max 5 ms. Heavy I/O or model inference strictly forbidden. |
 | **`active_turn_thread`** | `lucca-core` (`Orchestrator`) | Turn worker thread | `Orchestrator` lifecycle | Single active worker thread per turn. Previous worker joined on barge-in. | Bounded join: `timeout=0.5s`. |
-| **`_tts_queue`** | `lucca-core` | Turn worker thread | TTS worker thread (`core-tts`) | `queue.Queue(maxsize=8)`. Drained on abort. | Bounded put (`timeout=2.0s`). Worker blocks on queue get. |
+| **`_tts_queue`** | `lucca-core` | Turn worker thread | TTS worker thread (`core-tts`) | `queue.Queue(maxsize=32)` (expanded from 8 by WO-17 Phase 7). Drained on abort. | Bounded put (`timeout=2.0s`). Worker blocks on queue get. |
 | **`LLMClient` Streams** | `lucca-brain` (`LLMClient`) | Turn worker threads | Turn worker threads | Per-stream registry `_StreamState` keyed by `trace_id` guarded by lock. | Thread-safe HTTP streaming. Targeted abort by `trace_id`. |
 | **`StreamingChunker`** | Turn Worker | Current turn thread | Current turn thread | Per-turn instance created in `_run_turn`. No cross-turn sharing. | Single-threaded per instance. |
 
@@ -68,7 +68,7 @@ When a barge-in event occurs (`_on_ptt_pressed` in `speaking`, `thinking`, or `c
 6. State ownership in worker `finally`: Worker `finally` blocks ONLY set state to `idle` if `self.active_trace is trace and not trace.interrupted`. A superseded worker never overwrites state.
 
 ### Invariant 5: Decoupled TTS Synthesis Queue
-Speech LLM token streaming and Kokoro TTS synthesis are separated by a bounded queue (`_tts_queue: queue.Queue(maxsize=8)`):
+Speech LLM token streaming and Kokoro TTS synthesis are separated by a bounded queue (`_tts_queue: queue.Queue(maxsize=32)`):
 - The turn worker streams tokens from the LLM, feeds the per-turn chunker, and enqueues chunks without waiting for Kokoro (~330 ms per clause).
 - A dedicated background thread (`core-tts`) drains the queue and executes synthesis.
 - On turn completion, an EOS sentinel (`None`) is enqueued and awaited.

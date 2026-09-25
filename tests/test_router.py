@@ -583,7 +583,7 @@ def test_conformal_branch_respects_rule_conf_gate(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(
         router,
         "classify_intent",
-        lambda _t: (
+        lambda _t, **_kw: (
             "launch_app",
             0.61,
             {"app": ["calculator"], "file": [], "url": [], "quoted": []},
@@ -617,7 +617,7 @@ def test_conformal_branch_routes_rule_at_high_conf(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(
         router,
         "classify_intent",
-        lambda _t: (
+        lambda _t, **_kw: (
             "launch_app",
             0.95,
             {"app": ["calculator"], "file": [], "url": [], "quoted": []},
@@ -719,3 +719,193 @@ def test_conversational_context_queries_route_to_full_loop_and_bypass_cascade() 
         assert substrates == []
         assert topic is None
 
+
+# ============================================================================
+# WO-17 Bug Fix 1: Meta-search directives → web_fetch (not unknown/LLM-noop)
+# ============================================================================
+def test_meta_search_directives_route_to_web_fetch() -> None:
+    """
+    WO-17 Bug Fix 1: Phrases redirecting an ongoing web-search ("try alternative
+    sources", "look elsewhere", "dig deeper") must classify as web_fetch (0.90)
+    and route to FULL_LOOP so a tool call is actually made — not silently dropped.
+    Previously these fell through to unknown (0.20) → LLM responded verbally
+    with a promise-without-action, then hallucinated having searched on the
+    follow-up turn.
+    """
+    router = HeuristicRouter()
+    meta_search_phrases = [
+        "why don't you look for alternative sources",
+        "try alternative sources",
+        "try other websites",
+        "look elsewhere",
+        "look further",
+        "look deeper",
+        "dig deeper",
+        "dig further",
+        "search again",
+        "search harder",
+        "find more sources",
+        "find other information",
+        "check other sites",
+        "look for more information",
+        "look for alternative sources",
+    ]
+    for phrase in meta_search_phrases:
+        intent, conf, _ = router.classify_intent(phrase)
+        assert intent == "web_fetch", (
+            f"Expected web_fetch for meta-search directive, got {intent!r}: {phrase!r}"
+        )
+        assert conf >= 0.85, f"Expected conf >= 0.85 for {phrase!r}, got {conf}"
+
+        decision = router.route(phrase)
+        assert decision.action == RouteAction.LLM, f"Expected LLM action for {phrase!r}"
+        assert decision.tier == ExecutionTier.FULL_LOOP, f"Expected FULL_LOOP for {phrase!r}"
+
+
+# ============================================================================
+# WO-17 Bug Fix 2: Tool-meta questions bypass epistemic cascade
+# ============================================================================
+def test_tool_meta_questions_route_to_context_query_and_bypass_cascade() -> None:
+    """
+    WO-17 Bug Fix 2: Questions about which URLs / sites Lucca searched
+    ("which websites have you searched?", "what sites did you check?") must
+    classify as context_query, route FULL_LOOP, and never trigger Substrate 2
+    memory search — which previously produced the garbled cascade template
+    "I checked my external web sources, but have no verified record of which
+    websites have me searched."
+    """
+    router = HeuristicRouter()
+    tool_meta_phrases = [
+        "which websites have you searched",
+        "which sites did you search",
+        "which sources did you check",
+        "what websites did you search",
+        "what sites have you checked",
+        "what sources have you used",
+        "what pages did you visit",
+        "where did you search",
+        "where did you look",
+        "what did you last search",
+        "what did you just look up",
+    ]
+    for phrase in tool_meta_phrases:
+        intent, conf, _ = router.classify_intent(phrase)
+        assert intent == "context_query", (
+            f"Expected context_query for tool-meta question, got {intent!r}: {phrase!r}"
+        )
+        assert conf >= 0.90, f"Expected conf >= 0.90 for {phrase!r}, got {conf}"
+
+        decision = router.route(phrase)
+        assert decision.action == RouteAction.LLM
+        assert decision.tier == ExecutionTier.FULL_LOOP
+
+        # Must not trigger Substrate 2 memory search
+        is_epistemic, substrates, topic = classify_epistemic_intent(phrase)
+        assert is_epistemic is False, (
+            f"Cascade flagged epistemic for tool-meta question: {phrase!r}"
+        )
+        assert substrates == []
+        assert topic is None
+
+
+# ============================================================================
+# WO-17 Bug Fix 3: State-aware short-utterance routing during active web search
+# ============================================================================
+def test_state_aware_short_utterance_promotes_to_web_fetch_during_search() -> None:
+    """
+    WO-17 Bug Fix 3: A short bare-name correction (e.g. "Factoriza") or a
+    short follow-up issued while last_tool is a web tool must be promoted to
+    web_fetch (0.75) rather than mis-classified as clarify (0.40).
+    This eliminates the pattern where the user had to explicitly say "look it
+    up then" after every spelling correction during an ongoing search turn.
+    """
+    router = HeuristicRouter()
+    web_tools = ["search_web", "fetch_url", "web_fetch"]
+    short_corrections = [
+        "Factoriza",
+        "Quintos",
+        "Beverly Ann Factoriza Quintos",
+        "Philippines",
+        "okay look it up",
+    ]
+
+    for tool in web_tools:
+        for phrase in short_corrections:
+            # With last_tool set to a web tool → web_fetch
+            intent, conf, _ = router.classify_intent(phrase, last_tool=tool)
+            assert intent == "web_fetch", (
+                f"Expected web_fetch for {phrase!r} with last_tool={tool!r}, got {intent!r}"
+            )
+            assert conf >= 0.70, f"Expected conf >= 0.70 for {phrase!r}, got {conf}"
+
+    # Without last_tool (or non-web last_tool) → original behaviour preserved
+    single_word_no_ctx = router.classify_intent("Factoriza")
+    assert single_word_no_ctx[0] == "clarify", (
+        "Single-word utterance without web context should still be clarify"
+    )
+
+    single_word_non_web = router.classify_intent("Factoriza", last_tool="launch_app")
+    assert single_word_non_web[0] == "clarify", (
+        "Single-word utterance with non-web last_tool should still be clarify"
+    )
+
+
+def test_semantic_anchor_routing_fallback():
+    """
+    Verifies that when regex confidence is low/unknown, HeuristicRouter
+    leverages EmbedWorker to compute semantic similarity against intent anchors.
+    """
+    from unittest.mock import MagicMock
+
+    from lucca.senses.embed import EmbedWorker
+
+    mock_worker = MagicMock(spec=EmbedWorker)
+    mock_worker.compiled = object()
+
+    # Synthetic 4-dimensional normalized embeddings for testing
+    # Dim 0: web/search, Dim 1: context, Dim 2: chat, Dim 3: memory
+    def fake_embed(texts: list[str]) -> tuple[list[list[float]], int, float]:
+        vecs: list[list[float]] = []
+        for t in texts:
+            tl = t.lower()
+            if any(w in tl for w in ("search", "information", "web", "online", "sources", "databases")):
+                vecs.append([0.95, 0.05, 0.0, 0.0])
+            elif any(w in tl for w in ("websites", "sites", "tools", "say", "talked", "look")):
+                vecs.append([0.05, 0.95, 0.0, 0.0])
+            elif any(w in tl for w in ("hello", "morning", "thanks", "talking")):
+                vecs.append([0.0, 0.0, 0.95, 0.05])
+            else:
+                vecs.append([0.0, 0.0, 0.05, 0.95])
+        return vecs, 4, 1.0
+
+    mock_worker.embed_text = fake_embed
+
+    router = HeuristicRouter(embed_worker=mock_worker)
+
+    # Colloquial search request
+    intent, conf, _ = router.classify_intent("could you check online databases for me")
+    assert intent == "web_fetch"
+    assert conf >= 0.70
+
+    # Introspection query
+    intent_ctx, conf_ctx, _ = router.classify_intent("where did you look earlier")
+    assert intent_ctx in ("context_query", "web_fetch")
+    assert conf_ctx >= 0.70
+
+
+def test_cascade_pronoun_alignment_and_self_history():
+    """
+    Verifies that extract_clean_topic properly aligns 'have you' -> 'have I',
+    and classify_epistemic_intent treats self-history tool queries without misrouting to WEB.
+    """
+    from lucca.core.cascade import classify_epistemic_intent, extract_clean_topic
+
+    # Test pronoun alignment: 'have you searched' -> 'have I searched', NOT 'have me searched'
+    topic = extract_clean_topic("which websites have you searched")
+    assert "have I searched" in topic or "I searched" in topic
+    assert "have me searched" not in topic
+
+    # Test that self-history query does not get sent to WEB substrate
+    is_epistemic, substrates, _ = classify_epistemic_intent("what tools have you executed")
+    from lucca.core.cascade import EpistemicSubstrate
+    assert EpistemicSubstrate.WEB not in substrates

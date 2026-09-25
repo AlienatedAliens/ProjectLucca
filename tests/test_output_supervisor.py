@@ -386,3 +386,41 @@ def test_enqueue_tts_chunk_drop_oldest_and_emit_overflow() -> None:
     assert published_env.type == "tts_queue_overflow"
     assert published_env.payload["chunk_id"] == 3
     assert published_env.payload["status"] == "dropped_oldest"
+
+
+def test_stalling_research_pattern_detects_verbal_promises_and_filler():
+    """
+    Verifies that STALLING_RESEARCH_PATTERN intercepts empty verbal promises
+    and cheerleading filler ('Let me dive back into the deep end', 'Switching over
+    to that spelling right now', 'Hang tight, I'm going to give this my all'),
+    suppressing them from being spoken aloud via TTS and setting turn_has_stalled.
+    """
+    from lucca.sandbox.output_supervisor import (
+        STALLING_RESEARCH_PATTERN,
+        OutputSupervisorSession,
+    )
+
+    stalling_phrases = [
+        "Let me dive back into the deep end and see if I can track down some other records",
+        "Switching over to that spelling right now!",
+        "Let me jump back into the records right now and check",
+        "Hang tight, I'm going to give this my all!",
+        "I love the hustle! Let me dive into that for you",
+        "Hang tight while I scour everything!",
+        "Let me track down more news articles",
+        "Would you like me to look into that?",
+        "Shall I search for more details?",
+    ]
+
+    for phrase in stalling_phrases:
+        assert STALLING_RESEARCH_PATTERN.search(phrase) is not None, (
+            f"Expected STALLING_RESEARCH_PATTERN to match: {phrase!r}"
+        )
+        session = OutputSupervisorSession()
+        emitted, should_abort = session.feed_chunk(1, phrase)
+        assert should_abort is False
+        assert len(emitted) == 0, f"Expected audio chunk suppressed for stall: {phrase!r}"
+        assert session.turn_has_stalled is True, (
+            f"Expected turn_has_stalled to be True for: {phrase!r}"
+        )
+

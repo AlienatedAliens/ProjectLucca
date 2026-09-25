@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.5] — 2026-09-25
+
+### Added
+- **Hybrid Semantic Intent Routing (`HeuristicRouter` & `EmbedWorker`, D-ROUT-01):**
+  - Integrated OpenVINO embedding centroid projection in `heuristic.py`. When regex pattern matching returns `unknown` or low confidence, the router projects user utterances into embedding space and computes cosine similarity against semantic intent anchors (`SEMANTIC_INTENT_ANCHORS`).
+  - Wired `EmbedWorker` into `Orchestrator` startup to power zero-latency semantic classification without LLM overhead.
+- **OpenVINO Inference Concurrency Protection (`_infer_lock`, D-SENSE-01):**
+  - Added thread synchronization (`threading.Lock()`) around OpenVINO `infer()` calls in `senses/embed.py`, resolving the `RuntimeError: Infer Request is busy` crash caused by simultaneous execution across background memory tasks and foreground turn routing.
+- **Stalling Research Promise Interceptor & Prompt Mandates (`OutputSupervisor` & `PromptBuilder`, D-SUPER-01):**
+  - Expanded `STALLING_RESEARCH_PATTERN` in `sandbox/output_supervisor.py` to intercept conversational filler promises (*"Let me dive back into the deep end..."*, *"Switching over to that spelling..."*), suppressing audio emission to Kokoro TTS and flagging `turn_has_stalled`.
+  - Added autonomous recovery re-prompt in `orchestrator.py` commanding immediate tool execution when stalling occurs.
+  - Injected strict `[PROACTIVE FACTUAL RESEARCH DIRECTIVES]` in `prompt_builder.py` forbidding verbal promises without tool calls.
+- **Turn State & History Forwarding in Turn Pipeline (`TurnPipeline` & `Orchestrator`):**
+  - Fixed parameter dropping in `turn_pipeline.py` by forwarding `last_tool` and `last_tool_ok` into `router.route()` kwargs.
+  - Forwarded `last_tool` in `_build_rule_state`, enabling single-word entity follow-ups (*"Factoriza"*) to refine active searches rather than misrouting to `clarify`.
+- **Epistemic Cascade Grammar & Substrate Isolation (`EpistemicSearchCascade`, D-CASC-01):**
+  - Corrected pronoun shift in `cascade.extract_clean_topic` (`"have you"` $\to$ `"have I"`, eliminating ungrammatical phrases like *"have me searched"*).
+  - Filtered self-history queries (*"which websites have you searched"*) from triggering external web searches, routing them to session history introspection.
+- **Live Flow Verification & Interactive Testing Harness (`scripts/test_session_flow.py`):**
+  - Created dedicated testing script with `--interactive` terminal REPL and `--auto` 4-turn replay against the live `llama-server`.
+
+---
+
+## [0.2.4] — 2026-09-24
+
+### Added
+- **Work Order 17: System Remediation & Modernization:**
+  - **Open-Predicate Knowledge Graph (Solution B, D-MEM-02):** Superseded closed 23-item predicate list with validated snake_case slugs (`PREDICATE_SLUG_REGEX`), automatic synonym canonicalization, ~200-demonym lexicon for `nationality_is`, and strict negation/attribution extraction guards.
+  - **Runtime Memory Wiring:** Embedded CPU fallback `EmbedWorker` in `senses/embed.py`, auto-initialized `DatabaseManager` + `MemoryStore` in `Orchestrator` and `main.py`, and introduced a single persistent `_commit_executor` thread pool.
+  - **Frictionless Memory Commits:** Stripped voice confirmation for clean memory commits; required confirmation only when memory input is tainted with `UNTRUSTED_WEB`. Enhanced `parse_confirmation_response` with token matching and fail-closed safety (D-SEC-03).
+  - **Deterministic Math Tool (`calc_math`) & Confirmation Provenance Split (D-SEC-02):** Added AST-based `calc_math` tool (19th native tool in registry) under `Risk.READ`. Separated internal component confirmation (`confirmed`) from explicit human voice/UI grants (`human_confirmed`) in `SandboxService` and `SequenceGuard`.
+  - **Timezone-Aware System Telemetry:** Included `timestamp`, `utc_offset`, `utc_offset_hours`, and `timezone_name` in `get_system_metrics()`.
+  - **Audio Queue Stability & Coherence:** Expanded `_tts_queue` maxsize from 8 to 32 with drop-oldest overflow policy and telemetry logging; added drain-and-retry sentinel protection for `FLAG_EOS`; excluded analytical idioms from `coherence.py`.
+
+---
+
 ## [0.2.3] — 2026-09-21
 
 ### Added

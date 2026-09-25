@@ -587,6 +587,8 @@ class TurnPipeline:
                 session_turns=rule_state.session_turns,
                 mode=inp.mode,
                 has_registered_rule=has_registered_rule,
+                last_tool=rule_state.last_tool,
+                last_tool_ok=rule_state.last_tool_ok,
             )
             decision_id = (
                 self.orch.router.last_decision_record.decision_id

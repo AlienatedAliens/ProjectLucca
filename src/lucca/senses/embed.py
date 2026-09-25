@@ -3,6 +3,7 @@ Project Lucca — Embedding Subsystem (MiniLM on Intel NPU)
 Spec 04 §3, Spec 11 §4
 """
 
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,7 @@ class EmbedWorker:
     def __init__(self, device: str | None = None) -> None:
         self.device = "CPU"
         self._requested_device = device
+        self._infer_lock = threading.Lock()
         self.compiled: Any = None
         self.infer_request: Any = None
         self.tokenizer: Any = None
@@ -90,57 +92,58 @@ class EmbedWorker:
             return [[0.0] * 384 for _ in texts], 384, 0.0
 
         vectors: list[list[float]] = []
-        infer_req = self.infer_request or self.compiled.create_infer_request()
+        with self._infer_lock:
+            infer_req = self.infer_request or self.compiled.create_infer_request()
 
-        for t in texts:
-            if self.tokenizer and self._is_fast_tokenizer:
-                enc = self.tokenizer.encode(t)
-                inp = {
-                    "input_ids": np.array([enc.ids], dtype=np.int64),
-                    "attention_mask": np.array([enc.attention_mask], dtype=np.int64),
-                    "token_type_ids": np.array([enc.type_ids], dtype=np.int64),
-                }
-                mask = np.array(enc.attention_mask, dtype=np.float32)[:, None]
-            elif self.tokenizer:
-                enc = self.tokenizer(
-                    t,
-                    max_length=128,
-                    padding="max_length",
-                    truncation=True,
-                    return_tensors="np",
-                )
-                default_type_ids = np.zeros((1, 128), dtype=np.int64)
-                token_type_ids = enc.get("token_type_ids", default_type_ids).astype(np.int64)
-                inp = {
-                    "input_ids": enc["input_ids"].astype(np.int64),
-                    "attention_mask": enc["attention_mask"].astype(np.int64),
-                    "token_type_ids": token_type_ids,
-                }
-                mask = enc["attention_mask"][0].astype(np.float32)[:, None]
-            else:
-                # Basic token length dummy for testing without tokenizer
-                inp = {
-                    "input_ids": np.ones((1, 128), dtype=np.int64),
-                    "attention_mask": np.ones((1, 128), dtype=np.int64),
-                    "token_type_ids": np.zeros((1, 128), dtype=np.int64),
-                }
-                mask = np.ones((128, 1), dtype=np.float32)
+            for t in texts:
+                if self.tokenizer and self._is_fast_tokenizer:
+                    enc = self.tokenizer.encode(t)
+                    inp = {
+                        "input_ids": np.array([enc.ids], dtype=np.int64),
+                        "attention_mask": np.array([enc.attention_mask], dtype=np.int64),
+                        "token_type_ids": np.array([enc.type_ids], dtype=np.int64),
+                    }
+                    mask = np.array(enc.attention_mask, dtype=np.float32)[:, None]
+                elif self.tokenizer:
+                    enc = self.tokenizer(
+                        t,
+                        max_length=128,
+                        padding="max_length",
+                        truncation=True,
+                        return_tensors="np",
+                    )
+                    default_type_ids = np.zeros((1, 128), dtype=np.int64)
+                    token_type_ids = enc.get("token_type_ids", default_type_ids).astype(np.int64)
+                    inp = {
+                        "input_ids": enc["input_ids"].astype(np.int64),
+                        "attention_mask": enc["attention_mask"].astype(np.int64),
+                        "token_type_ids": token_type_ids,
+                    }
+                    mask = enc["attention_mask"][0].astype(np.float32)[:, None]
+                else:
+                    # Basic token length dummy for testing without tokenizer
+                    inp = {
+                        "input_ids": np.ones((1, 128), dtype=np.int64),
+                        "attention_mask": np.ones((1, 128), dtype=np.int64),
+                        "token_type_ids": np.zeros((1, 128), dtype=np.int64),
+                    }
+                    mask = np.ones((128, 1), dtype=np.float32)
 
-            out = infer_req.infer(inp)
-            out_tensor = list(out.values())[0]
-            if len(out_tensor.shape) == 3:
-                # Attention-mask weighted mean pooling
-                sum_emb = np.sum(out_tensor[0] * mask, axis=0)
-                sum_mask = max(float(np.sum(mask)), 1e-9)
-                vec = sum_emb / sum_mask
-            else:
-                vec = out_tensor[0]
+                out = infer_req.infer(inp)
+                out_tensor = list(out.values())[0]
+                if len(out_tensor.shape) == 3:
+                    # Attention-mask weighted mean pooling
+                    sum_emb = np.sum(out_tensor[0] * mask, axis=0)
+                    sum_mask = max(float(np.sum(mask)), 1e-9)
+                    vec = sum_emb / sum_mask
+                else:
+                    vec = out_tensor[0]
 
-            # L2 normalize
-            norm = np.linalg.norm(vec)
-            if norm > 0:
-                vec = vec / norm
-            vectors.append(vec.tolist())
+                # L2 normalize
+                norm = np.linalg.norm(vec)
+                if norm > 0:
+                    vec = vec / norm
+                vectors.append(vec.tolist())
 
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return vectors, 384, elapsed_ms

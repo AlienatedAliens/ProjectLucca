@@ -365,12 +365,33 @@ def extract_clean_topic(query_text: str) -> str:
     # 3. Pronoun alignment for assistant voice
     tokens = stripped.split()
     shifted: list[str] = []
-    for t in tokens:
+    subject_preceders = frozenset(
+        {
+            "have",
+            "has",
+            "had",
+            "did",
+            "do",
+            "does",
+            "can",
+            "could",
+            "will",
+            "would",
+            "should",
+            "if",
+        }
+    )
+    for i, t in enumerate(tokens):
         tl = t.lower()
         if tl == "your":
             shifted.append("my")
         elif tl == "you":
-            shifted.append("me")
+            if i > 0 and tokens[i - 1].lower() in subject_preceders:
+                shifted.append("I")
+            elif i == 0 and len(tokens) > 1:
+                shifted.append("I")
+            else:
+                shifted.append("me")
         elif tl == "my":
             shifted.append("your")
         elif tl == "me":
@@ -385,8 +406,15 @@ def extract_clean_topic(query_text: str) -> str:
 
 
 RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b(what did (?:i|you) (?:just|last) (?:say|tell|ask|do)|"
-    r"repeat (?:that|what)|what was that)\b",
+    r"\b("
+    r"what did (?:i|you) (?:just|last) (?:say|tell|ask|do|search|look\s*up|find)|"
+    r"repeat (?:that|what)|what was that|"
+    r"which (?:sites?|websites?|sources?|urls?|pages?|links?) "
+    r"(?:did|have) you (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
+    r"what (?:sites?|websites?|sources?|urls?|pages?|links?) "
+    r"(?:did you|have you) (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
+    r"where did you (?:search|look|check)"
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -607,7 +635,7 @@ def classify_epistemic_intent(
         substrates.append(EpistemicSubstrate.SELF_HISTORY)
     if any(w in lower for w in memory_words) or is_private_memory:
         substrates.append(EpistemicSubstrate.MEMORY)
-    if any(w in lower for w in web_words):
+    if any(w in lower for w in web_words) and not any(w in lower for w in self_history_words):
         substrates.append(EpistemicSubstrate.WEB)
 
     is_epistemic = len(substrates) > 0

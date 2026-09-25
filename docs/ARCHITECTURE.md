@@ -30,6 +30,9 @@
    - [3.8 Verified Source Priority Invariant (D-HON-01)](#38-verified-source-priority-invariant-d-hon-01)
    - [3.9 Proactive Calibrated Meta-Cognition & Dynamic Thinking (D-META-01)](#39-proactive-calibrated-meta-cognition--dynamic-thinking-d-meta-01)
    - [3.10 Unified Turn Pipeline Architecture & Shared Dispatch Methods (WO-11 / WO-13)](#310-unified-turn-pipeline-architecture--shared-dispatch-methods-wo-11--wo-13)
+   - [3.11 Hybrid Semantic Intent Routing (D-ROUT-01)](#311-hybrid-semantic-intent-routing-d-rout-01)
+   - [3.12 Autonomous Research Loop & Stalling Promise Interception (D-SUPER-01)](#312-autonomous-research-loop--stalling-promise-interception-d-super-01)
+   - [3.13 OpenVINO Neural Inference Concurrency Model (D-SENSE-01)](#313-openvino-neural-inference-concurrency-model-d-sense-01)
 4. [MicroScheme Rule Engine: Symbolic Procedural Execution](#4-microscheme-rule-engine-symbolic-procedural-execution)
    - [4.1 Why LISP/Scheme?](#41-why-lispscheme)
    - [4.2 Language Constraints & Evaluation Gas Model](#42-language-constraints--evaluation-gas-model)
@@ -54,6 +57,7 @@
    - [6.3 Long Asynchronous Task Protocol (D-SAND-03)](#63-long-asynchronous-task-protocol-d-sand-03)
    - [6.4 Network Egress Filtering (`lucca-egress.sh`)](#64-network-egress-filtering-lucca-egresssh)
    - [6.5 Application Launcher Whitelist & Absolute Shell Ban](#65-application-launcher-whitelist--absolute-shell-ban)
+   - [6.6 Arithmetic Tool Gating & Exfiltration Sequence Policy (D-SEC-02)](#66-arithmetic-tool-gating--exfiltration-sequence-policy-d-sec-02)
 7. [Audio Pipeline, Speech Synthesis & Barge-in Contract](#7-audio-pipeline-speech-synthesis--barge-in-contract)
    - [7.1 Ingest & VAD Trimming](#71-ingest--vad-trimming)
    - [7.2 Asynchronous Kokoro TTS Synthesis Worker](#72-asynchronous-kokoro-tts-synthesis-worker)
@@ -265,6 +269,23 @@ Unified execution is grounded in five core shared dispatch methods:
 4. `_detect_follow_up_and_gate_tools`: Enforces config-driven tool suppression based on intent and conversational context (withholding tools during pure chit-chat or dangerous requests).
 5. `_reset_turn_state`: Cleanses per-turn transient buffers, resets epistemic state markers, and ensures clean boundaries between consecutive conversational turns.
 
+### 3.11 Hybrid Semantic Intent Routing (D-ROUT-01)
+Intent classification uses a two-tier hybrid architecture:
+1. **Deterministic Heuristic Pre-Filter:** Fast regex evaluators (`src/lucca/router/heuristic.py`) match high-confidence syntactical patterns (`launch_app`, `calc_math`, `note_write`, `memory_search`, `sys_info`) in $<1\text{ ms}$.
+2. **OpenVINO Embedding Centroid Fallback:** If regex matching yields `unknown` or low confidence, the utterance is embedded via OpenVINO (`bge-small-en-v1.5` / `EmbedWorker`) and classified via cosine similarity against pre-computed semantic intent anchors (`SEMANTIC_INTENT_ANCHORS`). This eliminates brittle keyword heuristics for conversational phrasing while running locally in $\le 5\text{ ms}$ on NPU/CPU.
+3. **Turn State & History Awareness:** The router receives `last_tool` and `last_tool_ok` from `TurnPipeline`. Short utterances following an active search (e.g., spelling fixes, entity refinements like *"Factoriza"*) inherit the search intent, refining queries rather than falling through to clarification.
+
+### 3.12 Autonomous Research Loop & Stalling Promise Interception (D-SUPER-01)
+During multi-round factual investigation (e.g. web search, document inspection):
+1. **Proactive Fact Directives:** Prompt templates mandate immediate tool execution and forbid empty verbal promises (*"I will look that up"*, *"Switching to that spelling"*).
+2. **Real-Time Streaming Supervisor:** `OutputSupervisorSession` monitors model tokens prior to Kokoro TTS. If `STALLING_RESEARCH_PATTERN` detects conversational filler without an accompanying tool call, the supervisor suppresses audio emission and sets `turn_has_stalled = True`.
+3. **Autonomous Recovery Re-Prompt:** The orchestrator intercepts stalled completions, injects an explicit recovery command (`[AUTONOMOUS RESEARCH DIRECTIVE: You previously promised an action without invoking tools...]`), and forces an immediate tool invocation round, ensuring factual queries are backed by verified evidence.
+
+### 3.13 OpenVINO Neural Inference Concurrency Model (D-SENSE-01)
+To prevent device contention across asynchronous background memory indexing and foreground turn routing:
+1. **Thread Synchronization:** All OpenVINO `infer()` executions within `EmbedWorker` (`src/lucca/senses/embed.py`) are serialized by a process-wide `threading.Lock` (`_infer_lock`).
+2. **Collision Invariant:** Eliminates `RuntimeError: Infer Request is busy` errors when the background commit worker indexes long-term memories while the foreground turn pipeline routes an inbound utterance.
+
 ---
 
 ## 4. MicroScheme Rule Engine: Symbolic Procedural Execution
@@ -424,6 +445,11 @@ Long background jobs (downloads, builds, scans) are managed by `AsyncTaskManager
 - **Allowed Applications**: `calc` (Calculator), `notepad` (Notepad), `msedge` (Microsoft Edge), `wt.exe` (Windows Terminal), `taskmgr` (Task Manager).
 - **Absolute Shell Ban (D-AUD-10)**: `cmd.exe` and `powershell.exe` are strictly blacklisted.
 
+### 6.6 Arithmetic Tool Gating & Exfiltration Sequence Policy (D-SEC-02)
+- **Deterministic AST Math Evaluation (`calc_math`)**: Evaluates mathematical and arithmetic expressions using safe Python AST node parsing (`lucca.sandbox.system_tools.evaluate_math_expr`) without container invocation overhead, zero `Any`, and classified strictly as `Risk.READ`.
+- **SequenceGuard Policy**: To prevent exfiltration, executing `search_web` or `fetch_url` places a sequence block on subsequent `Risk.WRITE` tools (e.g. `run_python`, `write_file`). Because `calc_math` is classified under `Risk.READ`, users can freely perform calculations on web search results without triggering sequence blocks.
+- **Confirmation Provenance Split**: Internal tool dispatch confirmations (`confirmed: bool`) cannot override sequence blocks. Only explicit human voice or UI grants (`human_confirmed: bool`) can override a single-turn sequence block, while egress blocks (blocking data exfiltration) remain absolute and cannot be overridden by anyone.
+
 ---
 
 ## 7. Audio Pipeline, Speech Synthesis & Barge-in Contract
@@ -435,7 +461,7 @@ Long background jobs (downloads, builds, scans) are managed by `AsyncTaskManager
 
 ### 7.2 Asynchronous Kokoro TTS Synthesis Worker
 - **Streaming Chunker (`StreamingChunker`)**: Splits streaming LLM tokens on punctuation boundaries.
-- **Decoupled Queue**: Chunks pushed to an asynchronous synthesis queue (`_tts_queue`, capacity 8).
+- **Decoupled Queue**: Chunks pushed to an asynchronous synthesis queue (`_tts_queue`, capacity 32 with drop-oldest overflow policy and telemetry logging per WO-17 Phase 7).
 - First audio delivered to speaker in **~150ms** ($S_4$).
 
 ### 7.3 The Barge-In Contract (ADR-0009)
