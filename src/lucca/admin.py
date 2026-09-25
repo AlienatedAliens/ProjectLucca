@@ -5,9 +5,13 @@ Spec 11 §7 (`lucca-admin`), F-CORE-026, F-CORE-027, F-DRIFT-003
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Literal
+
+logger = logging.getLogger(__name__)
+
 
 from pydantic import JsonValue
 from rich.console import Console
@@ -61,9 +65,11 @@ def load_trace_records(
                             if origin != "all" and data.get("origin", "ptt") != origin:
                                 continue
                             records.append(data)
-                    except Exception:  # noqa: BLE001, S110, S112
+                    except Exception as exc:  # noqa: BLE001, S110, S112
+                        logger.debug("load_trace_line_failed: %s", exc)
                         continue
-        except Exception:  # noqa: BLE001, S110, S112
+        except Exception as exc:  # noqa: BLE001, S110, S112
+            logger.debug("load_trace_file_failed: %s", exc)
             continue
 
     if last > 0 and len(records) > last:
@@ -213,6 +219,7 @@ def run_rules_cli(
             )
             return 0
         except Exception as err:  # noqa: BLE001
+            logger.debug("register_rule_failed: %s", err)
             console.print(f"[bold red]FAILED:[/bold red] Failed to register rule: {err}")
             return 1
 
@@ -427,6 +434,7 @@ def run_skills_cli(
             )
             return 0
         except Exception as err:  # noqa: BLE001
+            logger.debug("register_skill_failed: %s", err)
             console.print(f"[bold red]FAILED:[/bold red] Could not register skill package: {err}")
             return 1
 
@@ -483,6 +491,7 @@ def run_skills_cli(
             )
             return 0
         except Exception as err:  # noqa: BLE001
+            logger.debug("retire_skill_failed: %s", err)
             console.print(
                 f"[bold red]FAILED:[/bold red] Could not retire skill '{skill_id}': {err}"
             )
@@ -602,6 +611,7 @@ def run_memory_cli(
             )
             return 0
         except Exception as err:  # noqa: BLE001
+            logger.debug("approve_review_failed: %s", err)
             console.print(
                 f"[bold red]FAILED: Could not approve review '{review_id}': {err}[/bold red]"
             )
@@ -624,6 +634,7 @@ def run_memory_cli(
             )
             return 0
         except Exception as err:  # noqa: BLE001
+            logger.debug("reject_review_failed: %s", err)
             console.print(
                 f"[bold red]FAILED: Could not reject review '{review_id}': {err}[/bold red]"
             )
@@ -681,6 +692,7 @@ def run_memory_cli(
             )
             return 0
         except Exception as err:  # noqa: BLE001
+            logger.debug("rollup_nightly_failed: %s", err)
             console.print(f"[bold red]FAILED: Roll-up failed: {err}[/bold red]")
             return 1
 

@@ -24,10 +24,13 @@ import re
 from collections.abc import Sequence
 from typing import Final
 
+import structlog
 from pydantic import BaseModel, Field, model_validator
 
 from lucca.core.capabilities import get_capability_registry
 from lucca.core.schemas import JsonValue
+
+logger = structlog.get_logger(__name__)
 
 
 def get_tool_family_map() -> dict[str, frozenset[str]]:
@@ -38,7 +41,8 @@ def get_tool_family_map() -> dict[str, frozenset[str]]:
     try:
         reg = get_capability_registry()
         reg_tools = set(reg.tools.keys())
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("get_capability_registry_failed", error=str(exc))
         reg_tools = {
             "write_file",
             "launch_app",

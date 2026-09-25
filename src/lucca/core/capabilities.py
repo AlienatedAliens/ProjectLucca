@@ -441,7 +441,8 @@ class CapabilityRegistry:
         else:
             try:
                 cfg_file = get_resource_path("config/tool_whitelist.toml")
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("get_resource_path_failed", error=str(exc))
                 cfg = get_config()
                 cfg_file = cfg.resolve_path("config") / "tool_whitelist.toml"
 

@@ -58,7 +58,8 @@ def resolve_skills_dir(custom_path: Path | str | None = None) -> Path:
         resolved = get_resource_path("config/skills").resolve()
         resolved.mkdir(parents=True, exist_ok=True)
         return resolved
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("resolve_skills_dir_failed", error=str(exc))
         fallback = Path("config/skills").resolve()
         fallback.mkdir(parents=True, exist_ok=True)
         return fallback
@@ -292,8 +293,8 @@ class SkillManager:
                         meta = SkillMeta.model_validate_json(meta_file.read_text(encoding="utf-8"))
                         if meta.status == "ACTIVE":
                             active_ids.add(meta.id)
-                    except Exception:  # noqa: BLE001, S110
-                        pass
+                    except Exception as exc:  # noqa: BLE001, S110
+                        logger.debug("count_active_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
 
         if self.rule_engine is not None:
             for r in self.rule_engine.rules.values():
@@ -329,8 +330,8 @@ class SkillManager:
                 curr_meta = SkillMeta.model_validate_json(dest_meta.read_text(encoding="utf-8"))
                 if curr_meta.status == "ACTIVE":
                     is_already_active = True
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc:  # noqa: BLE001, S110
+                logger.debug("dest_meta_parse_failed", path=str(dest_meta), error=str(exc))
         if self.rule_engine and pkg.meta.id in self.rule_engine.rules:
             if self.rule_engine.rules[pkg.meta.id].status == "ACTIVE":
                 is_already_active = True
@@ -449,8 +450,8 @@ class SkillManager:
                             "clusters": "0 / 5",
                             "failures": 0,
                         }
-                    except Exception:  # noqa: BLE001, S110
-                        pass
+                    except Exception as exc:  # noqa: BLE001, S110
+                        logger.debug("list_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
 
         # 2. Retired packages
         if self.retired_dir.exists() and self.retired_dir.is_dir():
@@ -469,8 +470,8 @@ class SkillManager:
                             "clusters": "-",
                             "failures": 0,
                         }
-                    except Exception:  # noqa: BLE001, S110
-                        pass
+                    except Exception as exc:  # noqa: BLE001, S110
+                        logger.debug("list_retired_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
 
         # 3. Merge telemetry from rule engine
         if self.rule_engine is not None:

@@ -12,6 +12,9 @@ from typing import Final
 
 import numpy as np
 import numpy.typing as npt
+import structlog
+
+logger = structlog.get_logger(__name__)
 
 # Header layout (64 bytes):
 # magic (u32: 0x4C554341, "LUCA")
@@ -54,7 +57,8 @@ class NamedRingMutex:
                     self._fallback_lock = threading.RLock()
                 else:
                     self._handle = handle
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("named_ring_mutex_create_failed", error=str(exc))
                 self._fallback_lock = threading.RLock()
         else:
             self._fallback_lock = threading.RLock()
@@ -323,8 +327,8 @@ class SharedAudioRing:
     def unlink(self) -> None:
         try:
             self.shm.close()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("ring_buffer_shm_close_failed", error=str(exc))
         self._lock.close()
         try:
             self.shm.unlink()

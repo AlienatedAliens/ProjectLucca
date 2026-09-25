@@ -1,6 +1,10 @@
 import json
+import logging
 import math
 from collections.abc import Callable
+
+logger = logging.getLogger(__name__)
+
 
 from PyQt6.QtCore import QPoint, QRectF, Qt, QTimer
 from PyQt6.QtGui import (
@@ -88,7 +92,8 @@ class CompanionSprite(QWidget):
                             pms.append(pm)
                 if pms:
                     self.pixmaps[state_name] = pms
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("load_sprites_failed: %s", exc)
             self.pixmaps = {}
 
     def set_state(self, state: str) -> None:

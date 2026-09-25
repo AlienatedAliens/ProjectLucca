@@ -169,7 +169,7 @@ Land with each phase: promote `scratch/audit_*.py` → `scripts/` with positive 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
 | 1 (WO-18a sync cascade) | `b7625b7` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-25 |
-| 2 (WO-18d ports/clock) | | | | | |
+| 2 (WO-18d ports/clock) | `dfd6e06` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-25 |
 | 3 (WO-18c exceptions) | | | | | |
 | 4 (WO-18b decomposition) | | | | | |
 | 5 (WO-18e facade) | | | | | |

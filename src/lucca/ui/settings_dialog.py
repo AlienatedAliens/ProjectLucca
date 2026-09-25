@@ -138,6 +138,7 @@ class ServerRestartWorker(QThread):
                 f"Server failed to report healthy within {self.timeout_s:.0f}s. Check model path and logs.",
             )
         except Exception as exc:
+            _LOG.debug("server_restart_failed: %s", exc)
             self.finished_signal.emit(False, f"Server restart failed: {exc}")
 
 
@@ -204,6 +205,7 @@ class ModelDownloadWorker(QThread):
                 True, f"Model successfully downloaded and verified: {self.dest_path.name}"
             )
         except Exception as exc:
+            _LOG.debug("model_download_failed: %s", exc)
             self.finished_signal.emit(False, f"Download failed: {exc}")
 
 
@@ -258,8 +260,8 @@ def load_whitelist_apps(config_path: Path | None = None) -> list[dict[str, str]]
                             "status": status,
                         }
                     )
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            _LOG.debug("load_whitelist_apps_failed: %s", exc)
 
     if not apps:
         apps = [
@@ -411,7 +413,8 @@ class SettingsDialog(QDialog):
             elif cfg.env.mode == "dev":
                 mk = b"01234567890123456789012345678901"
             self.memory_manager: MemoryManager | None = MemoryManager(master_key=mk)
-        except Exception:
+        except Exception as exc:
+            _LOG.debug("init_memory_manager_failed: %s", exc)
             self.memory_manager = None
 
         try:
@@ -419,7 +422,8 @@ class SettingsDialog(QDialog):
             self.db: DatabaseManager | None = DatabaseManager(db_path=db_path)
             self.db.migrate()
             self.rule_lifecycle: RuleLifecycleManager | None = RuleLifecycleManager(db=self.db)
-        except Exception:
+        except Exception as exc:
+            _LOG.debug("init_db_or_rule_lifecycle_failed: %s", exc)
             self.db = None
             self.rule_lifecycle = None
 
@@ -428,7 +432,8 @@ class SettingsDialog(QDialog):
             try:
                 store = MemoryStore(db=self.db, master_key=mk)
                 self.reflection_engine = ReflectionEngine(db=self.db, store=store, master_key=mk)
-            except Exception:
+            except Exception as exc:
+                _LOG.debug("init_reflection_engine_failed: %s", exc)
                 self.reflection_engine = None
 
         # Canonical MicroScheme rules (seed demo) + live skill registry
@@ -1164,6 +1169,7 @@ class SettingsDialog(QDialog):
                 sd.wait()
                 self.lbl_voice_status.setText("✓ Audio playback successful.")
             except Exception as exc:
+                _LOG.debug("speech_test_failed: %s", exc)
                 self.lbl_voice_status.setText(f"Error: {exc}")
             finally:
                 self.btn_test_speech.setEnabled(True)
@@ -1807,11 +1813,13 @@ class SettingsDialog(QDialog):
         """
         try:
             self._skill_manager = SkillManager()
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            _LOG.debug("load_lisp_registry_skill_manager_failed: %s", exc)
             return
         try:
             engine = RuleLifecycleManager(db=self.db) if self.db is not None else None
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            _LOG.debug("load_lisp_registry_rule_engine_failed: %s", exc)
             engine = None
 
         skills_root = self._skill_manager.skills_dir
@@ -1965,6 +1973,7 @@ class SettingsDialog(QDialog):
                 f"✓ Syntax valid! Parsed rule '{rule_obj.rule_id}' (Priority: {rule_obj.priority})."
             )
         except Exception as exc:
+            _LOG.debug("parse_rule_failed: %s", exc)
             self.lbl_rule_status.setText(f"Syntax error: {exc}")
 
     def _test_eval_rule(self) -> None:
@@ -1991,6 +2000,7 @@ class SettingsDialog(QDialog):
                     f"✓ Evaluated rule '{rule_obj.rule_id}': Evaluation executed cleanly (preconditions did not match sample state)."
                 )
         except Exception as exc:
+            _LOG.debug("evaluate_rule_failed: %s", exc)
             self.lbl_rule_status.setText(f"Evaluation error: {exc}")
 
     def _save_selected_rule(self) -> None:
@@ -2045,6 +2055,7 @@ class SettingsDialog(QDialog):
                         try:
                             self._skill_manager.retire_skill(rule_id)
                         except Exception as exc:  # noqa: BLE001
+                            _LOG.debug("retire_skill_failed: %s", exc)
                             self.lbl_rule_status.setText(f"✗ Retire failed: {exc}")
                             return
                     del self.lisp_rules[rule_id]
@@ -2286,6 +2297,7 @@ class SettingsDialog(QDialog):
                 sd.wait()
                 self.lbl_dsp_status.setText("✓ DSP playback complete.")
             except Exception as exc:
+                _LOG.debug("dsp_playback_failed: %s", exc)
                 self.lbl_dsp_status.setText(f"DSP error: {exc}")
             finally:
                 self.btn_test_dsp.setEnabled(True)
@@ -2494,8 +2506,8 @@ class SettingsDialog(QDialog):
             self.lbl_mem_stat_active.setText(f"Active Memories: {st.get('active_memories', 0)}")
             self.lbl_mem_stat_total.setText(f"Total Records: {st.get('total_memories', 0)}")
             self.lbl_mem_stat_size.setText(f"DB Size: {st.get('db_size_kb', 0)} KB")
-        except Exception:
-            pass
+        except Exception as exc:
+            _LOG.debug("get_memory_stats_failed: %s", exc)
 
         # Populate table
         search = self.line_mem_search.text().strip()
@@ -2527,6 +2539,7 @@ class SettingsDialog(QDialog):
                 self.table_mem.setItem(row, 4, QTableWidgetItem(prov))
                 self.table_mem.setItem(row, 5, QTableWidgetItem(ts))
         except Exception as exc:
+            _LOG.debug("refresh_memories_failed: %s", exc)
             print(f"[UI] Memory refresh error: {exc}")
 
     def _on_memory_selected(self, row: int, col: int) -> None:
@@ -2549,8 +2562,8 @@ class SettingsDialog(QDialog):
             if imp_item:
                 val = int(float(imp_item.text()) * 100)
                 self.slider_inspect_imp.setValue(val)
-        except Exception:
-            pass
+        except Exception as exc:
+            _LOG.debug("select_memory_failed: %s", exc)
 
     def _save_memory_changes(self) -> None:
         if self._current_selected_mid is None or self.memory_manager is None:
@@ -2564,6 +2577,7 @@ class SettingsDialog(QDialog):
                 self, "Memory Updated", f"Memory #{self._current_selected_mid} saved successfully."
             )
         except Exception as exc:
+            _LOG.debug("save_memory_failed: %s", exc)
             QMessageBox.critical(self, "Error", f"Failed to save memory: {exc}")
 
     def _delete_selected_memory(self) -> None:
@@ -2579,6 +2593,7 @@ class SettingsDialog(QDialog):
                 self.txt_inspect_content.clear()
                 self._refresh_memories()
             except Exception as exc:
+                _LOG.debug("delete_memory_failed: %s", exc)
                 QMessageBox.critical(self, "Error", f"Failed to delete memory: {exc}")
 
     def _add_new_fact_dialog(self) -> None:
@@ -2600,6 +2615,7 @@ class SettingsDialog(QDialog):
                     self, "Knowledge Stored", f"Stored fact as memory #{mid} with vector embedding."
                 )
             except Exception as exc:
+                _LOG.debug("add_memory_fact_failed: %s", exc)
                 QMessageBox.critical(self, "Error", f"Failed to add fact: {exc}")
 
     def _vacuum_memory_db(self) -> None:
@@ -2614,6 +2630,7 @@ class SettingsDialog(QDialog):
                 self, "Vacuum Complete", "SQLite database and vector indices optimized."
             )
         except Exception as exc:
+            _LOG.debug("vacuum_memory_db_failed: %s", exc)
             QMessageBox.critical(self, "Error", f"Vacuum failed: {exc}")
 
     def _refresh_review_queue(self) -> None:
@@ -2651,6 +2668,7 @@ class SettingsDialog(QDialog):
             for t in topics:
                 self.combo_rev_topics.addItem(t)
         except Exception as exc:
+            _LOG.debug("refresh_review_queue_failed: %s", exc)
             print(f"[UI] Review queue refresh error: {exc}")
 
     def _approve_selected_review(self) -> None:
@@ -2679,6 +2697,7 @@ class SettingsDialog(QDialog):
             )
             self._refresh_memories()
         except Exception as exc:
+            _LOG.debug("approve_review_failed: %s", exc)
             QMessageBox.critical(self, "Error", f"Failed to approve review: {exc}")
 
     def _reject_selected_review(self) -> None:
@@ -2703,6 +2722,7 @@ class SettingsDialog(QDialog):
             )
             self._refresh_review_queue()
         except Exception as exc:
+            _LOG.debug("reject_review_failed: %s", exc)
             QMessageBox.critical(self, "Error", f"Failed to reject review: {exc}")
 
     def _add_review_topic(self) -> None:
@@ -2841,8 +2861,8 @@ class SettingsDialog(QDialog):
                 f"CPU: {cpu['system_percent']:.1f}% (Lucca {cpu['lucca_percent']:.1f}%)"
             )
             self.lbl_snap_npu.setText(f"NPU: {npu['status'].split(' ')[0]}")
-        except Exception:
-            pass
+        except Exception as exc:
+            _LOG.debug("refresh_diag_snapshot_failed: %s", exc)
 
     def _scan_and_reload_logs(self) -> None:
         log_dir = Path("C:/ProjectLucca/logs/resource_sessions")
@@ -2926,11 +2946,12 @@ class SettingsDialog(QDialog):
                     self.table_logs.setItem(
                         row, 5, QTableWidgetItem(str(npu.get("status", "Active")))
                     )
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _LOG.debug("parse_log_line_failed: %s", exc)
 
             self.table_logs.scrollToBottom()
         except Exception as exc:
+            _LOG.debug("load_selected_log_file_failed: %s", exc)
             self.txt_raw_log.setPlainText(f"Error loading log file: {exc}")
 
     def _on_log_tail_tick(self) -> None:

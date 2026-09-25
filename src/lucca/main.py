@@ -5,6 +5,7 @@ Spec 01 §1, §7, ADR-008
 
 import argparse
 import ctypes
+import logging
 import multiprocessing as mp
 import os
 import signal
@@ -13,19 +14,21 @@ import sys
 import time
 from collections.abc import Callable
 
+logger = logging.getLogger("lucca.boot")
+
 
 def _setup_stdio() -> None:
     if sys.stdout is None:
         try:
             sys.stdout = open(1, "w", encoding="utf-8", errors="replace", closefd=False)
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("setup_stdout_fd1_failed: %s", exc)
 
     if sys.stderr is None:
         try:
             sys.stderr = open(2, "w", encoding="utf-8", errors="replace", closefd=False)
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("setup_stderr_fd2_failed: %s", exc)
 
     if sys.stdout is None:
         try:
@@ -33,24 +36,24 @@ def _setup_stdio() -> None:
                 sys.stdout = open("CONOUT$", "w", encoding="utf-8", errors="replace")
                 if sys.stderr is None:
                     sys.stderr = open("CONOUT$", "w", encoding="utf-8", errors="replace")
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("attach_console_failed: %s", exc)
 
     if sys.stdout is None:
         sys.stdout = open(os.devnull, "w", encoding="utf-8")
     elif hasattr(sys.stdout, "reconfigure"):
         try:
             sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("reconfigure_stdout_failed: %s", exc)
 
     if sys.stderr is None:
         sys.stderr = open(os.devnull, "w", encoding="utf-8")
     elif hasattr(sys.stderr, "reconfigure"):
         try:
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("reconfigure_stderr_failed: %s", exc)
 
 
 _setup_stdio()
@@ -186,6 +189,7 @@ class Supervisor:
         try:
             db.migrate()
         except Exception as exc:  # noqa: BLE001
+            logger.debug("db_migrate_failed: %s", exc)
             sys.stderr.write(f"WARNING: Database migration failed: {exc}\n")
 
         master_key = (
@@ -239,6 +243,7 @@ class Supervisor:
             print(f"  Starting llama-server.exe on {h}:{p}...")
             self.llama_proc = start_server(self.config.llm, self.config.home_dir)
         except Exception as exc:  # noqa: BLE001
+            logger.debug("start_server_failed: %s", exc)
             sys.stderr.write(f"WARNING: Could not launch llama-server: {exc}\n")
             return
 
@@ -370,12 +375,12 @@ class Supervisor:
             # (e) Unlink shared memory rings
             try:
                 self.orchestrator.cap_ring.unlink()
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc:  # noqa: BLE001, S110
+                logger.debug("unlink_cap_ring_failed: %s", exc)
             try:
                 self.orchestrator.play_ring.unlink()
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc:  # noqa: BLE001, S110
+                logger.debug("unlink_play_ring_failed: %s", exc)
 
         # (f) Terminate llama-server
         if self.llama_proc and self.llama_proc.poll() is None:
@@ -395,8 +400,8 @@ def main() -> None:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
             "ProjectLucca.DesktopCompanion.0.2"
         )
-    except Exception:  # noqa: BLE001, S110
-        pass
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("set_app_user_model_id_failed: %s", exc)
 
     parser = argparse.ArgumentParser(
         prog="Lucca",

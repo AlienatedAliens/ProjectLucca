@@ -15,6 +15,8 @@ from typing import Final, Literal
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+logger = logging.getLogger(__name__)
+
 _QUANT_TOKEN = re.compile(r"^(?:IQ|PQ|TQ|Q)\d[\w]*$", re.IGNORECASE)
 
 
@@ -328,7 +330,7 @@ def load_heuristics(name: str) -> tuple[str, ...]:
             if isinstance(values, list) and values:
                 loaded = tuple(str(v) for v in values)
     except Exception as exc:  # noqa: BLE001
-        logging.getLogger(__name__).debug("heuristics_load_failed", extra={"error": str(exc)})
+        logger.debug("heuristics_load_failed", extra={"error": str(exc)})
     _HEURISTICS_CACHE[name] = loaded
     return loaded
 

@@ -5,6 +5,7 @@ Spec 11 §7, Phase Plan v2 §Phase 0 Spike 0.1 (`lucca-admin env-check`)
 
 import hashlib
 import json
+import logging
 import os
 import shutil
 import sqlite3
@@ -15,6 +16,8 @@ from pathlib import Path
 import httpx
 
 from lucca.core.config import get_config
+
+logger = logging.getLogger(__name__)
 
 
 def check_system_ram() -> tuple[bool, str]:
@@ -40,6 +43,7 @@ def check_system_ram() -> tuple[bool, str]:
             )
         return True, f"System RAM available: {avail_mb:.0f} MB (boot budget 3500 MB)"
     except Exception as e:
+        logger.debug("check_system_ram_failed: %s", e)
         return False, f"Failed querying system RAM: {e}"
 
 
@@ -66,7 +70,8 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             r = httpx.get(f"http://{cfg.llm.host}:{cfg.llm.port}/health", timeout=0.5)
             if r.status_code == 200:
                 llama_active = True
-        except Exception:
+        except Exception as exc:
+            logger.debug("check_llama_health_failed: %s", exc)
             llama_active = False
 
         if llama_active:
@@ -88,6 +93,7 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             return False, msg
         return True, f"dGPU VRAM used: {used_mb:.1f} MB"
     except Exception as e:
+        logger.debug("check_mshybrid_vram_failed: %s", e)
         return False, f"Failed querying nvidia-smi: {e}"
 
 
@@ -104,6 +110,7 @@ def check_openvino_npu() -> tuple[bool, str]:
     except ImportError:
         return False, "OpenVINO python package not installed."
     except Exception as e:
+        logger.debug("check_openvino_npu_failed: %s", e)
         return False, f"OpenVINO runtime error: {e}"
 
 
@@ -121,6 +128,7 @@ def check_sqlite_vec() -> tuple[bool, str]:
         conn.close()
         return True, f"sqlite-vec loaded successfully (version: {version})"
     except Exception as e:
+        logger.debug("check_sqlite_vec_failed: %s", e)
         return False, f"sqlite-vec failed to load: {e}"
 
 
@@ -165,6 +173,7 @@ def check_docker_wsl() -> tuple[bool, str]:
     except subprocess.TimeoutExpired:
         return False, "WSL2 docker info command timed out."
     except Exception as e:
+        logger.debug("check_docker_wsl_failed: %s", e)
         return False, f"Failed checking WSL2 Docker: {e}"
 
 
@@ -181,6 +190,7 @@ def check_lucca_home() -> tuple[bool, str]:
                 p.mkdir(parents=True, exist_ok=True)
                 created.append(s)
             except Exception as e:
+                logger.debug("check_lucca_home_failed: %s", e)
                 return False, f"Failed creating '{p}': {e}"
     msg = f"LUCCA_HOME verified at '{home}'"
     if created:
@@ -218,6 +228,7 @@ def check_models_manifest() -> tuple[bool, str]:
         with open(manifest_path, encoding="utf-8") as f:
             data = json.load(f)
     except Exception as e:
+        logger.debug("check_models_manifest_failed: %s", e)
         return False, f"Failed to parse manifest at '{manifest_path}': {e}"
 
     files_map = data.get("files", {})

@@ -14,9 +14,13 @@ from datetime import datetime
 from pathlib import Path
 
 import psutil
+import structlog
 from pydantic import JsonValue
 
 from lucca.core.config import get_config
+
+logger = structlog.get_logger(__name__)
+
 
 # Cache detected hardware to avoid repeated WMI / subprocess overhead
 _GPU_CACHE: dict[str, JsonValue] = {}
@@ -60,8 +64,8 @@ def query_nvidia_gpu_metrics() -> dict[str, JsonValue]:
                 }
                 _LAST_GPU_QUERY = now
                 return _GPU_CACHE
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("nvidia_smi_query_failed", error=str(exc))
 
     # Fallback default if nvidia-smi unavailable
     _GPU_CACHE = {
@@ -115,8 +119,8 @@ def get_lucca_process_footprint() -> dict[str, JsonValue]:
                 process_count += 1
             except (psutil.NoSuchProcess, psutil.AccessDenied, PermissionError, OSError):
                 continue
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("get_lucca_process_footprint_failed", error=str(exc))
 
     rss_mb = round(total_rss_bytes / (1024.0 * 1024.0), 1)
     rss_gb = round(total_rss_bytes / (1024.0 * 1024.0 * 1024.0), 2)
@@ -268,8 +272,8 @@ class SessionTelemetryLogger:
         try:
             with open(self.session_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(metrics) + "\n")
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("log_snapshot_failed", error=str(exc))
         return metrics
 
     def _log_loop(self, interval_s: float) -> None:

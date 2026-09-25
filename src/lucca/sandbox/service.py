@@ -214,7 +214,8 @@ class SandboxService:
                 mk = b"01234567890123456789012345678901"
             try:
                 self._memory_manager = MemoryManager(master_key=mk)
-            except Exception:
+            except Exception as exc:
+                logger.debug("init_memory_manager_failed", error=str(exc))
                 self._memory_manager = MemoryManager(master_key=None)
         return self._memory_manager
 
@@ -334,6 +335,7 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("fetch_url_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -369,6 +371,7 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("browse_page_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -403,6 +406,7 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("search_web_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -434,6 +438,7 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("calc_math_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -497,6 +502,7 @@ class SandboxService:
                     elapsed_ms=elapsed_ms,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("memory_search_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -582,6 +588,7 @@ class SandboxService:
                     elapsed_ms=elapsed_ms,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("note_write_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -615,6 +622,7 @@ class SandboxService:
                     elapsed_ms=elapsed_ms,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("note_read_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -639,6 +647,7 @@ class SandboxService:
                     elapsed_ms=elapsed_ms,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("self_metrics_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
@@ -700,6 +709,7 @@ class SandboxService:
                     elapsed_ms=elapsed_ms,
                 )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("sys_info_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,

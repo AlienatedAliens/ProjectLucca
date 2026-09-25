@@ -5,6 +5,7 @@ Spec 10 §1, §2
 
 import datetime
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Literal
@@ -14,6 +15,9 @@ from pydantic import BaseModel, JsonValue
 
 from lucca import __version__
 from lucca.core.config import get_config
+
+logger = logging.getLogger(__name__)
+
 
 
 def now_ns() -> int:
@@ -101,8 +105,8 @@ def cleanup_old_traces(logs_dir: Path, retention_days: int) -> None:
                     continue
             if (time.time() - p.stat().st_mtime) > cutoff_seconds:
                 p.unlink(missing_ok=True)
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("cleanup_trace_file_failed: %s", exc)
 
 
 def log_turn_trace(trace: TurnTrace) -> None:
@@ -160,8 +164,8 @@ try:
     _init_logs = get_config().resolve_path("logs")
     if _init_logs.exists():
         cleanup_old_traces(_init_logs, get_config().log.retention_days)
-except Exception:  # noqa: BLE001, S110
-    pass
+except Exception as exc:  # noqa: BLE001, S110
+    logger.debug("init_trace_cleanup_failed: %s", exc)
 
 
 class StageStat(BaseModel):

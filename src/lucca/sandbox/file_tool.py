@@ -16,7 +16,10 @@ try:
 except ImportError:
     resource = None  # type: ignore[assignment]
 
+import structlog
 from lucca.core.exceptions import SandboxPathError
+
+logger = structlog.get_logger(__name__)
 
 MAX_PATH_LEN: Final = 1024
 MAX_FILE_BYTES: Final = 262144  # 256 KiB
@@ -354,6 +357,7 @@ class SafeFileTool:
                 "error": "timeout",
             }, f"Execution timed out after {timeout} seconds"
         except Exception as exc:  # noqa: BLE001
+            logger.debug("python_exec_failed", error=str(exc))
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             return {
                 "exit_code": -2,

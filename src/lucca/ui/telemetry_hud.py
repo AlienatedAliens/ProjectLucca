@@ -5,10 +5,14 @@ Spec 01 §1, Spec 16 §3, ADR-005
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 from pydantic import JsonValue
 from PyQt6.QtCore import QPoint, QRectF, Qt, QThread, QTimer, pyqtSignal
@@ -53,8 +57,8 @@ class TelemetryWorker(QThread):
         try:
             m = get_system_metrics()
             self.metrics_ready.emit(m)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("telemetry_sample_failed: %s", exc)
 
 
 class TelemetryHUD(QWidget):
@@ -332,8 +336,8 @@ class TelemetryHUD(QWidget):
             npu = m["npu"]
             self.npu_label.setText(f"🧠 NPU: {npu['name']} · {npu['status']}")
 
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("update_metrics_ui_failed: %s", exc)
 
     def showEvent(self, event: QShowEvent | None) -> None:
         if event is not None:

@@ -4,6 +4,7 @@ Spec 01 §1, ADR-005
 """
 
 import ctypes
+import logging
 import os
 import subprocess
 import sys
@@ -11,6 +12,9 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
 
 from pydantic import JsonValue
 
@@ -119,8 +123,8 @@ class UIApplication:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
                 "ProjectLucca.DesktopCompanion.0.2"
             )
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("set_app_user_model_id_failed: %s", exc)
 
         self.config = get_config()
         existing_app = QApplication.instance()
@@ -601,8 +605,8 @@ class UIApplication:
                 self.bubble.close()
             if hasattr(self, "sprite"):
                 self.sprite.close()
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("close_widgets_failed: %s", exc)
 
         try:
             env_offline = Envelope(
@@ -614,8 +618,8 @@ class UIApplication:
             )
             self._send_ingest(env_offline)
             self.bus_pub_sock.send(encode_envelope(env_offline), zmq.NOBLOCK)
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("send_offline_state_failed: %s", exc)
 
         try:
             env_quit = Envelope(
@@ -626,16 +630,16 @@ class UIApplication:
                 payload=UIQuitPayload(reason="user").model_dump(),
             )
             self._send_ingest(env_quit)
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("send_quit_envelope_failed: %s", exc)
 
         time.sleep(0.05)
         try:
             self.ingest_sock.close(linger=100)
             self.bus_pub_sock.close(linger=100)
             self.ctx.destroy(linger=100)
-        except Exception:  # noqa: BLE001, S110
-            pass
+        except Exception as exc:  # noqa: BLE001, S110
+            logger.debug("zmq_cleanup_failed: %s", exc)
 
         self.app.quit()
 

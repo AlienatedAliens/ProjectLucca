@@ -109,7 +109,8 @@ class HeadlessBrowserTool:
                                 blocked_subresources.append(req_url)
                                 route.abort("blockedbyclient")
                                 return
-                        except Exception:  # noqa: BLE001 — fail closed: any validator error blocks
+                        except Exception as exc:  # noqa: BLE001 — fail closed: any validator error blocks
+                            logger.debug("browser_ssrf_validation_error", error=str(exc))
                             blocked_subresources.append(req_url)
                             route.abort("blockedbyclient")
                             return

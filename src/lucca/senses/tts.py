@@ -11,11 +11,14 @@ from typing import Final, Literal
 import kokoro_onnx
 import numpy as np
 import numpy.typing as npt
+import structlog
 
 from lucca.core.config import get_config
 from lucca.core.ipc_schemas import TTSDonePayload
 from lucca.senses.dsp_chain import AnimeDSPChain, AnimeDSPConfig
 from lucca.senses.ring_buffer import FLAG_ABORT, SharedAudioRing
+
+logger = structlog.get_logger(__name__)
 
 # Canonical Anime English Voice Blend Recipes
 VOICE_RECIPES: Final[dict[str, str]] = {
@@ -66,8 +69,8 @@ def get_available_voices() -> list[str]:
         try:
             data = np.load(str(voices_path))
             return sorted(list(data.files) + list(VOICE_RECIPES.keys()))
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("voices_bin_load_failed", error=str(exc))
     # Full canonical list of 54 Kokoro-82M voices
     all_kokoro = [
         "af_alloy",
@@ -238,7 +241,8 @@ class TTSWorker:
         # Kokoro produces 24000 Hz float32 audio
         try:
             samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("tts_create_voice_failed_fallback", error=str(exc))
             # Fallback to default voice if custom/blended voice encounters issues
             fallback_voice = self.resolve_voice_style("af_sarah")
             samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
@@ -247,8 +251,8 @@ class TTSWorker:
         if self.dsp_chain and self.dsp_chain.config.enabled:
             try:
                 samples_f32, sr = self.dsp_chain.apply_anime_dsp_chain(samples_f32, sr)
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("tts_dsp_chain_failed", error=str(exc))
 
         dur_ms = (time.perf_counter() - t0) * 1000.0
 

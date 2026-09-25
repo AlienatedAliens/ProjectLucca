@@ -26,7 +26,8 @@ def get_local_lan_ip() -> str:
         # Connect to public DNS to find the outgoing interface IP
         s.connect(("1.1.1.1", 80))
         ip = s.getsockname()[0]
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("get_local_lan_ip_failed", error=str(exc))
         ip = "127.0.0.1"
     finally:
         s.close()
@@ -54,6 +55,7 @@ class EgressVerifier:
                 return True, res.stdout
             return False, res.stderr
         except Exception as exc:  # noqa: BLE001
+            logger.debug("apply_egress_rules_failed", error=str(exc))
             return False, str(exc)
 
     def verify_all(self) -> dict[str, JsonValue]:

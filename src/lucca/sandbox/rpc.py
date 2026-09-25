@@ -139,18 +139,18 @@ class PersistentDockerWorker:
         if self._proc is not None:
             try:
                 self._proc.kill()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("kill_proc_failed", error=str(exc))
             try:
                 self._proc.wait(timeout=1.0)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("wait_proc_failed", error=str(exc))
             self._proc = None
         # Discard executor thread to prevent any head-of-line blocking on aborted reads
         try:
             self._executor.shutdown(wait=False, cancel_futures=True)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("shutdown_executor_failed", error=str(exc))
         if not self._closed:
             self._executor = concurrent.futures.ThreadPoolExecutor(
                 max_workers=1, thread_name_prefix="persistent-rpc"
@@ -165,20 +165,21 @@ class PersistentDockerWorker:
                     if self._proc.stdin:
                         self._proc.stdin.close()
                     self._proc.wait(timeout=2.0)
-                except Exception:
+                except Exception as exc:
+                    logger.debug("close_proc_failed", error=str(exc))
                     self._kill_proc()
                 finally:
                     self._proc = None
             try:
                 self._executor.shutdown(wait=False, cancel_futures=True)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("shutdown_executor_failed", error=str(exc))
 
     def __del__(self) -> None:
         try:
             self.close()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("del_close_failed", error=str(exc))
 
     def execute(
         self,
@@ -527,6 +528,7 @@ class DockerRPCTransport:
                 elapsed_ms=elapsed_ms,
             )
         except Exception as exc:  # noqa: BLE001
+            logger.debug("persistent_worker_transport_error", error=str(exc))
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             return ToolResult(
                 call_id=call_id,
@@ -744,6 +746,7 @@ class DockerRPCTransport:
                 elapsed_ms=(time.perf_counter() - t0) * 1000.0,
             )
         except Exception as exc:  # noqa: BLE001
+            logger.debug("rpc_execute_error", error=str(exc))
             return ToolResult(
                 call_id=call_id,
                 ok=False,

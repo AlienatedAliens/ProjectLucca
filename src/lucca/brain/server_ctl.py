@@ -8,6 +8,7 @@ and GGUF binary header metadata inspection.
 import hashlib
 import io
 import json
+import logging
 import struct
 import subprocess
 import time
@@ -21,6 +22,9 @@ import psutil
 
 from lucca.core.config import LLMSettings
 from lucca.core.schemas import ModelRegistryEntry
+
+logger = logging.getLogger(__name__)
+
 
 
 @dataclass
@@ -128,7 +132,8 @@ def parse_gguf_file(path: Path) -> GGUFMetadata:
                             f.seek(arr_len * 8, io.SEEK_CUR)
                     else:
                         break
-                except Exception:  # noqa: BLE001
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("parse_gguf_kv_failed: %s", exc)
                     break
 
             arch = metadata.get("general.architecture", "llama")
@@ -148,7 +153,8 @@ def parse_gguf_file(path: Path) -> GGUFMetadata:
                 file_size_bytes=file_size,
                 is_valid_gguf=True,
             )
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("parse_gguf_file_failed: %s", exc)
         return GGUFMetadata(
             magic="GGUF",
             version=0,
@@ -462,11 +468,12 @@ def stop_server(
         try:
             proc.terminate()
             proc.wait(timeout=3.0)
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("proc_terminate_failed: %s", exc)
             try:
                 proc.kill()
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc2:  # noqa: BLE001, S110
+                logger.debug("proc_kill_failed: %s", exc2)
 
     # Terminate any lingering llama-server process on Windows
     try:
@@ -481,8 +488,8 @@ def stop_server(
                         p.kill()
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-    except Exception:  # noqa: BLE001, S110
-        pass
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("psutil_process_iter_failed: %s", exc)
 
 
 def restart_server(

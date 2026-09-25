@@ -82,7 +82,8 @@ def classify_link_followability(url: str) -> tuple[str, bool, str]:
         parsed = urllib.parse.urlsplit(url)
         netloc = parsed.netloc.lower().split(":")[0]
         path = parsed.path.lower()
-    except Exception:
+    except Exception as exc:
+        logger.debug("classify_link_url_parse_failed", url=url, error=str(exc))
         return "invalid", False, "Malformed URL"
 
     for d in LOGIN_WALL_DOMAINS:

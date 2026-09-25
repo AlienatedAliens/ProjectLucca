@@ -15,6 +15,9 @@ import structlog
 import ulid
 from pydantic import JsonValue
 
+logger = structlog.get_logger(__name__)
+
+
 from lucca.core.capabilities import get_default_native_tools
 from lucca.core.config import get_resource_path
 from lucca.core.exceptions import SchemeSyntaxError
@@ -988,7 +991,8 @@ class RuleLifecycleManager:
         else:
             try:
                 target_dir = get_resource_path("config/skills")
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("get_skills_dir_failed", error=str(exc))
                 target_dir = Path("config/skills")
 
         if target_dir is None or not target_dir.exists() or not target_dir.is_dir():

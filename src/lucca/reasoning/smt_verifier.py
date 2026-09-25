@@ -175,6 +175,7 @@ class SMTVerifier:
         try:
             rule_def = parse_rule(source)
         except Exception as exc:  # noqa: BLE001
+            logger.debug("smt_parse_rule_failed", error=str(exc))
             return SMTVerificationResult(
                 verified=False,
                 status="SYNTAX_ERROR",
@@ -201,6 +202,7 @@ class SMTVerifier:
             if not isinstance(when_z3, z3.BoolRef):
                 when_z3 = z3.BoolVal(bool(when_z3))
         except Exception as exc:  # noqa: BLE001
+            logger.debug("smt_translate_expr_failed", error=str(exc))
             return SMTVerificationResult(
                 verified=False,
                 status="UNMODELED_PREDICATE",

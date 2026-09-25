@@ -14,16 +14,16 @@ import httpx
 import structlog
 from pydantic import JsonValue
 
+logger = structlog.get_logger(__name__)
+
 try:
     import truststore
 
     truststore.inject_into_ssl()
-except Exception:
-    pass
+except Exception as exc:
+    logger.debug("truststore_injection_failed", error=str(exc))
 
 from lucca.core.exceptions import SandboxPathError
-
-logger = structlog.get_logger(__name__)
 
 MAX_URL_LEN: int = 2048
 MAX_QUERY_LEN: int = 1024

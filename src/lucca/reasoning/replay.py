@@ -135,6 +135,7 @@ class ReplayEngine:
                             f"Episode #{idx}: rule fired on dangerous intent '{ep.intent}'"
                         )
             except Exception as exc:  # noqa: BLE001
+                logger.debug("replay_episode_eval_failed", episode_idx=idx, error=str(exc))
                 errors += 1
                 error_details.append(f"Episode #{idx} unhandled exception: {exc}")
 

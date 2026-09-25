@@ -18,7 +18,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
+import structlog
 from pydantic import JsonValue
+
+logger = structlog.get_logger(__name__)
+
 
 # --- 1. Severity Tiers ---
 
@@ -480,7 +484,8 @@ def canonicalize_citation_url(raw_url: str) -> str:
         netloc = parsed.netloc.lower().split(":")[0]
         path = parsed.path.rstrip("/")
         return f"{parsed.scheme.lower()}://{netloc}{path}"
-    except Exception:
+    except Exception as exc:
+        logger.debug("canonicalize_citation_url_failed", error=str(exc))
         return cleaned.lower().rstrip("/")
 
 
@@ -514,8 +519,8 @@ class CitationProvenanceMatcher:
                     p = urllib.parse.urlsplit(c)
                     if p.netloc:
                         allowed_domains.add(p.netloc.lower())
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.debug("extract_domain_failed", error=str(exc))
 
         # Find candidate citations in clause
         matches = URL_EXTRACTION_REGEX.findall(clean)
@@ -531,7 +536,8 @@ class CitationProvenanceMatcher:
             try:
                 parsed = urllib.parse.urlsplit(canon)
                 netloc = parsed.netloc.lower()
-            except Exception:
+            except Exception as exc:
+                logger.debug("parse_canon_url_failed", error=str(exc))
                 netloc = ""
 
             # Check whitelist exemptions (docs, standard educational/dev domains)

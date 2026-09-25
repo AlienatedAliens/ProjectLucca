@@ -473,3 +473,65 @@ def test_package_version_matches_release_baseline() -> None:
         f"pyproject.toml version {pkg_version} does not match the release baseline "
         f"v{baseline_version} cited in docs/README.md. Bump one or the other."
     )
+
+
+def _find_silent_broad_excepts(source: str, filename: str) -> list[str]:
+    violations: list[str] = []
+    tree = ast.parse(source, filename=filename)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ExceptHandler):
+            continue
+        t = node.type
+        is_broad = (
+            t is not None and isinstance(t, ast.Name) and t.id == "Exception"
+        ) or (
+            t is not None and isinstance(t, ast.Attribute) and t.attr == "Exception"
+        )
+        if not is_broad:
+            continue
+        body_src = ast.dump(node)
+        has_log = "id='logger'" in body_src or "id='_LOG'" in body_src
+        has_raise = any(isinstance(n, ast.Raise) for n in ast.walk(node))
+        if has_log or has_raise:
+            continue
+        violations.append(f"{filename}:{node.lineno}")
+    return violations
+
+
+def test_no_silent_broad_excepts() -> None:
+    """F-ARCH-105 gate: every 'except Exception' handler across src/lucca/
+    must either log (logger.* / _LOG.*) or re-raise. No silent swallowing.
+    Includes positive controls for detection and acceptance."""
+    # Positive control 1: verify that synthetic silent broad except is detected
+    bad_sample = "try:\n    x = 1\nexcept Exception:\n    pass\n"
+    silent_violations = _find_silent_broad_excepts(bad_sample, "bad_sample.py")
+    assert len(silent_violations) == 1, (
+        f"Positive control failed: expected 1 violation for silent except, got {len(silent_violations)}"
+    )
+
+    # Positive control 2: verify that synthetic logged broad except is permitted
+    good_sample = "try:\n    x = 1\nexcept Exception as exc:\n    logger.debug('failed', error=str(exc))\n"
+    logged_violations = _find_silent_broad_excepts(good_sample, "good_sample.py")
+    assert len(logged_violations) == 0, (
+        f"Positive control failed: expected 0 violations for logged except, got {len(logged_violations)}"
+    )
+
+    # Positive control 3: verify that synthetic re-raising broad except is permitted
+    reraise_sample = "try:\n    x = 1\nexcept Exception:\n    raise\n"
+    reraise_violations = _find_silent_broad_excepts(reraise_sample, "reraise_sample.py")
+    assert len(reraise_violations) == 0, (
+        f"Positive control failed: expected 0 violations for re-raised except, got {len(reraise_violations)}"
+    )
+
+    # Tree-wide check over all src/lucca/*.py
+    root = Path(__file__).parent.parent / "src" / "lucca"
+    all_violations: list[str] = []
+    for py_path in sorted(root.rglob("*.py")):
+        rel = py_path.relative_to(root)
+        source = py_path.read_text(encoding="utf-8")
+        all_violations.extend(_find_silent_broad_excepts(source, str(rel)))
+
+    assert not all_violations, (
+        f"Found {len(all_violations)} silent broad except handler(s) in src/lucca:\n"
+        + "\n".join(all_violations)
+    )

@@ -17,18 +17,21 @@ from collections import deque
 from collections.abc import Sequence
 from typing import Final, Literal
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:  # noqa: BLE001, S110
-        pass
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("reconfigure_stdout_failed", error=str(exc))
 if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     try:
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception:  # noqa: BLE001, S110
-        pass
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("reconfigure_stderr_failed", error=str(exc))
 
-import structlog
 import ulid
 import zmq
 from pydantic import JsonValue
@@ -1766,7 +1769,8 @@ class Orchestrator:
                         (fts_query,),
                     )
                     candidate_beliefs = [(int(r[0]), str(r[1]), str(r[2])) for r in cur.fetchall()]
-                except Exception:  # noqa: BLE001
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("fts_match_failed_fallback_plain", error=str(exc))
                     cur.execute(
                         """
                         SELECT m.memory_id, m.content, m.kind
@@ -2758,6 +2762,7 @@ class Orchestrator:
         try:
             items = cascade.query_substrate_self_history(query)
         except Exception as exc:  # noqa: BLE001
+            logger.debug("self_history_search_failed", error=str(exc))
             return ToolResult(
                 call_id=call_id,
                 ok=False,
@@ -2895,6 +2900,7 @@ class Orchestrator:
                 [{"s": parsed.s, "p": parsed.p, "o": parsed.o, "quote": parsed.quote}],
             )
         except Exception as exc:  # noqa: BLE001
+            logger.debug("extract_and_sign_failed", error=str(exc))
             self._record_tool_receipt(
                 name=name, call_id=call_id, args=args, ok=False, output=None, error=str(exc)
             )

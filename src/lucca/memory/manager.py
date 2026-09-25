@@ -6,6 +6,7 @@ Provides administrative CRUD and search capabilities over SQLite-vec memory tabl
 from __future__ import annotations
 
 import json
+import logging
 import re
 import sqlite3
 import time
@@ -18,6 +19,9 @@ from lucca.core.schemas import GROUNDING_ELIGIBLE, Provenance, UnsignedPayload
 from lucca.memory.db import DatabaseManager
 from lucca.memory.gate import ProvenanceGate
 from lucca.memory.signers import BaseProvenanceSigner, UserSpeechSigner
+
+logger = logging.getLogger(__name__)
+
 
 _DEFAULT_KEY = b"__DEFAULT_UNSET_KEY__"
 
@@ -219,8 +223,8 @@ class MemoryManager:
                     "INSERT INTO fts_memories(rowid, content) VALUES (?, ?)",
                     (mem_id, content),
                 )
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc:  # noqa: BLE001, S110
+                logger.debug("fts_insert_failed: %s", exc)
 
             conn.execute("COMMIT")
             return mem_id
@@ -321,8 +325,8 @@ class MemoryManager:
                     "INSERT INTO fts_memories(rowid, content) VALUES (?, ?)",
                     (new_memory_id, new_content),
                 )
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc:  # noqa: BLE001, S110
+                logger.debug("fts_update_failed: %s", exc)
 
             # 6. Mark old memory as superseded
             conn.execute(
@@ -378,8 +382,8 @@ class MemoryManager:
             # Clean up vector search index and close active KG edges
             try:
                 conn.execute("DELETE FROM vec_memories WHERE memory_id = ?", (memory_id,))
-            except Exception:  # noqa: BLE001, S110
-                pass
+            except Exception as exc:  # noqa: BLE001, S110
+                logger.debug("vec_delete_failed: %s", exc)
             conn.execute(
                 "UPDATE kg_edges SET valid_to = ? WHERE memory_id = ? AND valid_to IS NULL",
                 (now, memory_id),
