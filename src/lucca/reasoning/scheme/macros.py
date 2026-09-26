@@ -44,9 +44,6 @@ class MacroRegistry:
     def __contains__(self, name: str) -> bool:
         return name in self._macros
 
-    def all_macros(self) -> dict[str, MacroDefinition]:
-        return dict(self._macros)
-
 
 def parse_defmacro(node: SchemeNode) -> MacroDefinition:
     """

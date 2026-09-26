@@ -16,7 +16,6 @@ from lucca.core.exceptions import SandboxPathError
 logger = structlog.get_logger(__name__)
 
 MAX_WORKSPACE_BYTES: int = 1024 * 1024 * 1024  # 1 GiB
-MAX_INBOX_IMPORT_BYTES: int = 200 * 1024 * 1024  # 200 MB
 
 
 class WorkspaceManager:
@@ -77,33 +76,6 @@ class WorkspaceManager:
             logger.error("workspace_reset_incomplete", remaining=[p.name for p in remaining])
         return is_clean
 
-    def import_from_inbox(self, filename: str) -> Path:
-        """
-        Copies a user-named file from inbox/ into workspace/.
-        Enforces 200 MB limit and safe filename check.
-        """
-        clean_name = Path(filename).name
-        if not clean_name or clean_name != filename:
-            raise SandboxPathError(
-                "invalid_chars", f"Filename '{filename}' is not a plain filename"
-            )
-
-        src = self.inbox_root / clean_name
-        if not src.exists() or not src.is_file():
-            raise SandboxPathError("not_found", f"File '{clean_name}' not found in inbox")
-
-        file_size = src.stat().st_size
-        if file_size > MAX_INBOX_IMPORT_BYTES:
-            raise SandboxPathError(
-                "too_large",
-                f"Inbox file '{clean_name}' size {file_size} exceeds {MAX_INBOX_IMPORT_BYTES} B",
-            )
-
-        dst = self.workspace_root / clean_name
-        shutil.copy2(src, dst)
-        logger.info("inbox_file_imported", file=clean_name, size=file_size)
-        return dst
-
     def get_total_size(self) -> int:
         """Calculates total size of all files under workspace in bytes."""
         total = 0
@@ -114,8 +86,3 @@ class WorkspaceManager:
                 except (OSError, ValueError):
                     pass
         return total
-
-    def check_size_limit(self) -> tuple[bool, int]:
-        """Checks if total size is within 1 GiB limit."""
-        size = self.get_total_size()
-        return (size <= MAX_WORKSPACE_BYTES), size

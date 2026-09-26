@@ -784,11 +784,5 @@ class OutputSupervisorSession[ChunkT]:
         self.pending_tier1_chunk = None
         self.turn_has_stalled = False
 
-    def reset_session(self) -> None:
-        """Resets full session state including allowed_urls and hysteresis."""
-        self.reset_turn()
-        self.session_tier2_security_hits = 0
-        self.allowed_urls.clear()
-
     def _record_tier2_hit(self) -> None:
         self.session_tier2_security_hits += 1

@@ -16,12 +16,6 @@ class ConfigError(LuccaError):
     pass
 
 
-class BootError(LuccaError):
-    """Raised when system supervisor or child processes fail during boot."""
-
-    pass
-
-
 class IPCError(LuccaError):
     """Raised on socket timeout, frame corruption, or connection drops."""
 
@@ -41,33 +35,9 @@ class LLMUnavailable(LLMError):
     pass
 
 
-class LLMTimeout(LLMError):
-    """LLM request timed out before first token or total duration."""
-
-    pass
-
-
-class LLMProtocolError(LLMError):
-    """Malformed response, grammar violation, or unexpected HTTP payload."""
-
-    pass
-
-
 # ASR & TTS Errors
-class ASRError(LuccaError):
-    """Whisper transcription failure or device error."""
-
-    pass
-
-
 class TTSError(LuccaError):
     """Base exception for TTS failure."""
-
-    pass
-
-
-class TTSFailed(TTSError):
-    """Kokoro synthesis failure on target device ladder."""
 
     pass
 
@@ -85,18 +55,6 @@ class MemoryCommitFailed(MemoryError_):
     pass
 
 
-class MemoryLocked(MemoryError_):
-    """SQLite database is locked after retry attempts."""
-
-    pass
-
-
-class MemoryIntegrity(MemoryError_):
-    """PRAGMA integrity_check failed or corrupt memory row detected."""
-
-    pass
-
-
 class MemoryStoreReadOnly(MemoryError_):
     """MemoryStore is in read-only mode (e.g. after integrity failure)."""
 
@@ -105,12 +63,6 @@ class MemoryStoreReadOnly(MemoryError_):
 
 class ProvenanceRejected(MemoryError_):
     """Memory write attempt lacks valid provenance signer or is LLM_NARRATION."""
-
-    pass
-
-
-class GroundingError(MemoryError_):
-    """USER_DERIVED memory extraction lacks verbatim quote grounding."""
 
     pass
 
@@ -192,12 +144,6 @@ class RuleError(LuccaError):
     pass
 
 
-class RuleConflict(RuleError):
-    """Candidate rule conflicts with existing active rule invariant."""
-
-    pass
-
-
 class RuleValidationError(RuleError):
     """Candidate rule fails static AST validation or schema."""
 
@@ -238,27 +184,9 @@ class SandboxRPCDesyncError(SandboxProtocolError):
     pass
 
 
-class SandboxEgressError(SandboxError):
-    """Sandbox network egress rule violation detected."""
-
-    pass
-
-
 # Launcher Errors
 class LauncherError(LuccaError):
     """Base exception for host-mediated application launcher."""
-
-    pass
-
-
-class LauncherNotWhitelisted(LauncherError):
-    """Application identifier is not in the immutable whitelist."""
-
-    pass
-
-
-class LauncherRateLimited(LauncherError):
-    """Too many application launch requests in time window."""
 
     pass
 

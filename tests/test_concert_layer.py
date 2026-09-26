@@ -1515,6 +1515,27 @@ def test_phase5_live_acceptance_where_am_i_from_chain(
     assert "[asserts]" in cascade_text
 
 
+def test_build_deduction_messages_prompt_contract():
+    """Validates build_deduction_messages constructs deduction messages with verified facts and receipts."""
+    from lucca.brain.prompt_builder import build_deduction_messages
+
+    msgs = build_deduction_messages(
+        goal="Where was user born?",
+        verified_facts=["user partner_is judge_in_philippines"],
+        attributed_receipts=["fetch_web: user born in Sydney"],
+        error_feedback="Step 1 was invalid",
+    )
+    assert len(msgs) >= 2
+    system_msg = msgs[0].content
+    assert "[Verified Signed Facts Context]" in system_msg
+    assert "user partner_is judge_in_philippines" in system_msg
+    assert "[Verified Tool Receipts Context]" in system_msg
+    assert "fetch_web: user born in Sydney" in system_msg
+    user_msg = msgs[-1].content
+    assert "Where was user born?" in user_msg
+    assert "Step 1 was invalid" in user_msg
+
+
 
 
 

@@ -227,10 +227,6 @@ class SequenceGuard:
         """Resets the turn tool list for a new turn (persistent taint is kept separately)."""
         self.turn_tools.clear()
 
-    def add_taint(self, flag: TaintFlags) -> None:
-        """Sets taint flag on active session."""
-        self.active_taint |= flag
-
     def register_sensitive_content(self, text: str) -> None:
         """Registers high-entropy or sensitive substrings from private files/memory."""
         self.active_taint |= TaintFlags.SENSITIVE_MEMORY

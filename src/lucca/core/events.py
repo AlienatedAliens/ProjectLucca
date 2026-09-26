@@ -27,12 +27,32 @@ class EventName(StrEnum):
     ASR_RESULT = "asr.result"
     ASR_FAIL = "asr.fail"
 
+    # Audio & Hardware wire events
+    AUDIO_FIRST_SAMPLE_PLAYED = "audio.first_sample_played"
+    AUDIO_RMS = "audio.rms"
+    AUDIO_PLAYBACK_DONE = "audio.playback_done"
+    AUDIO_UNDERRUN = "audio.underrun"
+
+    # Audio playback ctl events
+    PLAY_BEGIN = "play.begin"
+    PLAY_ABORT = "play.abort"
+
+    # PTT wire events
+    PTT_PRESSED = "ptt.pressed"
+    PTT_RELEASED = "ptt.released"
+
     # TTS events
     TTS_CHUNK_START = "tts.chunk_start"
     TTS_CHUNK_DONE = "tts.chunk_done"
+    TTS_DONE = "tts.done"
     TTS_ABORT = "tts.abort"
+    TTS_ABORTED = "tts.aborted"
     TTS_FAIL = "tts.fail"
     TTS_QUEUE_OVERFLOW = "tts_queue_overflow"
+
+    # NPU / Inference events
+    EMBED_RESULT = "embed.result"
+    INTENT_RESULT = "intent.result"
 
     # LLM events
     LLM_REQUEST = "llm.request"
@@ -70,9 +90,52 @@ class EventName(StrEnum):
     UI_CONFIRM = "ui.confirm"
     UI_CONFIRM_RESULT = "ui.confirm_result"
     UI_CAPTION = "ui.caption"
+    UI_USER_TEXT = "ui.user_text"
+    UI_CONFIG_UPDATE = "ui.config_update"
+    UI_TALK_PRESS = "ui.talk_press"
+    UI_TALK_RELEASE = "ui.talk_release"
+    UI_QUIT = "ui.quit"
 
     # System events
     SYS_PING = "sys.ping"
     SYS_PONG = "sys.pong"
     SYS_DEGRADED = "sys.degraded"
     SYS_RESTART = "sys.restart"
+    SYS_SHUTDOWN = "sys.shutdown"
+    SYS_SELFTEST_RESULT = "sys.selftest_result"
+
+
+VALID_EVENT_PREFIXES: frozenset[str] = frozenset({
+    "boot",
+    "turn",
+    "asr",
+    "audio",
+    "play",
+    "ptt",
+    "tts",
+    "embed",
+    "intent",
+    "llm",
+    "mem",
+    "rule",
+    "router",
+    "sbx",
+    "ui",
+    "sys",
+    "test",
+})
+
+
+def is_valid_event_name(name: str) -> bool:
+    """Checks whether an event name belongs to EventName enum or has a valid taxonomy prefix."""
+    try:
+        EventName(name)
+        return True
+    except ValueError:
+        prefix = name.split(".")[0] if "." in name else name
+        return prefix in VALID_EVENT_PREFIXES
+
+
+def validate_event_name(name: str) -> EventName:
+    """Validates and coerces string to an EventName enum member."""
+    return EventName(name)

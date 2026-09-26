@@ -420,13 +420,6 @@ class CapabilityRegistry:
     def tools(self) -> dict[str, ToolSchema]:
         return self._tools
 
-    def get_tool(self, name: str) -> ToolSchema | None:
-        return self._tools.get(name)
-
-    def get_tools(self) -> list[ToolSchema]:
-        """Returns registered native tools sorted alphabetically by name."""
-        return [self._tools[k] for k in sorted(self._tools.keys())]
-
     def get_tool_definitions(self) -> list[ToolDefinition]:
         """Returns OpenAI ToolDefinitions sorted alphabetically by name."""
         return [tool_schema_to_definition(self._tools[k]) for k in sorted(self._tools.keys())]

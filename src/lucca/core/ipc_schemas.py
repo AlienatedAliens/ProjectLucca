@@ -8,6 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, JsonValue
 
+from lucca.core.events import EventName
 from lucca.core.exceptions import IPCError
 from lucca.core.schemas import Segment
 
@@ -18,7 +19,7 @@ from lucca.core.schemas import Segment
 
 class Envelope(BaseModel):
     v: Literal[1] = 1
-    type: str  # Dotted type, e.g. "ptt.released"
+    type: EventName | str  # Dotted type from EventName taxonomy, e.g. "ptt.released"
     trace_id: str  # ULID identifying user turn
     ts_ns: int  # Monotonic timestamp of sender
     src: Literal["core", "audio", "npu", "ui"]
@@ -97,10 +98,6 @@ class TTSDonePayload(BaseModel):
     device: Literal["NPU", "GPU", "CPU"]
 
 
-class TTSAbortPayload(BaseModel):
-    trace_id: str
-
-
 class TTSAbortedPayload(BaseModel):
     trace_id: str
 
@@ -124,10 +121,6 @@ class IntentResultPayload(BaseModel):
     elapsed_ms: float
 
 
-class SysSelfTestPayload(BaseModel):
-    pass
-
-
 class SysSelfTestResultPayload(BaseModel):
     asr_device: str
     tts_device: str
@@ -145,10 +138,6 @@ class PlayBeginPayload(BaseModel):
 
 
 class PlayAbortPayload(BaseModel):
-    trace_id: str
-
-
-class CaptureMarkPayload(BaseModel):
     trace_id: str
 
 
@@ -202,10 +191,6 @@ class UIQuitPayload(BaseModel):
 # ============================================================================
 # System Heartbeat (`ctl`)
 # ============================================================================
-
-
-class SysPingPayload(BaseModel):
-    pass
 
 
 class SysPongPayload(BaseModel):

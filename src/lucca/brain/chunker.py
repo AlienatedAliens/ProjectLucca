@@ -130,10 +130,6 @@ class StreamingChunker:
         self._spoken_chunks: list[str] = []
         self._paren_depth = 0
 
-    @property
-    def spoken_prefix(self) -> str:
-        return " ".join(self._spoken_chunks)
-
     def reset(self) -> None:
         """Called on barge-in to cancel pending chunks and reset stream state."""
         self.buffer = ""

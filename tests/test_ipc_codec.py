@@ -136,3 +136,24 @@ def test_ui_schemas_codec_round_trip():
     assert dec_cfg.payload["voice"] == "af_bella"
     assert dec_cfg.payload["speed"] == 1.05
     assert dec_cfg.payload["ptt_key"] == "alt-gr"
+
+
+def test_envelope_event_name_taxonomy():
+    """Spec 11 §2 / WO-19b: Validates EventName taxonomy integration with Envelope."""
+    from lucca.core.events import EventName, is_valid_event_name, validate_event_name
+
+    env = Envelope(
+        type=EventName.SYS_PING,
+        trace_id="test-trace",
+        ts_ns=1000,
+        src="core",
+        payload={},
+    )
+    assert env.type == EventName.SYS_PING
+    assert is_valid_event_name(env.type)
+    assert validate_event_name(env.type) == EventName.SYS_PING
+
+    wire_bytes = encode_envelope(env)
+    decoded = decode_envelope(wire_bytes)
+    assert decoded.type == EventName.SYS_PING
+    assert is_valid_event_name(decoded.type)

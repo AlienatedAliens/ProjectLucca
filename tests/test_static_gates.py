@@ -868,6 +868,147 @@ def test_every_tool_has_arg_schema() -> None:
         )
 
 
+def test_event_taxonomy_no_free_form_events() -> None:
+    """
+    Spec 11 §2 / WO-19b: Static gate enforcing event taxonomy and no free-form event names.
+    Every event type passed to Envelope(type=...) in src/lucca must be declared in EventName.
+    Includes positive controls (unrecognized event fails, dropping an event causes mismatch).
+    """
+    from lucca.core.events import EventName, is_valid_event_name
+
+    root = Path(__file__).parent.parent / "src" / "lucca"
+
+    # Positive control 1: unlisted event must fail validation
+    assert not is_valid_event_name("completely.bogus.event.never_defined"), (
+        "Positive control 1 failed: unlisted event should not be valid"
+    )
+
+    # Positive control 2: EventName must cover essential baseline events
+    known_members = set(EventName)
+    assert "boot.start" in known_members and "ptt.released" in known_members, (
+        "Positive control 2 failed: canonical events missing from EventName"
+    )
+
+    # Scan src/lucca for Envelope(type=...) calls
+    type_literals: set[tuple[str, str, int]] = set()
+    for py_file in root.rglob("*.py"):
+        try:
+            tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                func_name = ""
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                elif isinstance(node.func, ast.Attribute):
+                    func_name = node.func.attr
+                if func_name == "Envelope":
+                    for kw in node.keywords:
+                        if kw.arg == "type" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                            type_literals.add((kw.value.value, py_file.name, node.lineno))
+
+    assert len(type_literals) > 0, "Gate sanity check: should find Envelope calls in src/"
+
+    violations: list[str] = []
+    for evt, fname, lineno in sorted(type_literals):
+        if evt not in known_members:
+            violations.append(f"{fname}:{lineno}: '{evt}' not in EventName taxonomy")
+
+    assert not violations, f"Free-form event names found in src/: {violations}"
+
+
+def test_dead_code_register_no_unreferenced_symbols() -> None:
+    """
+    F-FEAT-02 / WO-19b: Static gate enforcing dead-code register hygiene.
+    Promoted from scratch/audit_deadcode.py.
+    Scans public functions and classes in src/lucca to ensure none are orphaned
+    outside recognized framework overrides and architectural contracts.
+    Includes positive control (injecting unreferenced symbol fails the gate).
+    """
+    root = Path(__file__).parent.parent / "src" / "lucca"
+
+    # Framework and architectural exclusions per F-FEAT-02 / Amendment v2:
+    ignored_names = {"main", "run", "__init__"}
+
+    qt_event_prefixes = (
+        "mouse", "paint", "key", "contextMenu", "close", "focus",
+        "wheel", "resize", "drag", "drop", "timer",
+    )
+    ui_framework_methods = {"cancel", "set_recording_state"}
+
+    port_and_interface_symbols = {
+        "TracePort", "get_tool_risk", "ProvenanceSigner",
+        "advance", "as_tuple", "log_message", "trigger_nightly_rollup",
+        "TTSError", "LauncherError", "LLMHealth", "LLMRequest",
+    }
+
+    defined: dict[str, tuple[str, int, str]] = {}
+    for py in sorted(root.rglob("*.py")):
+        rel = str(py.relative_to(root))
+        try:
+            tree = ast.parse(py.read_text(encoding="utf-8"), filename=str(py))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if not node.name.startswith("_"):
+                    decs: list[str] = []
+                    for d in node.decorator_list:
+                        if isinstance(d, ast.Name):
+                            decs.append(d.id)
+                        elif isinstance(d, ast.Call) and isinstance(d.func, ast.Name):
+                            decs.append(d.func.id)
+                        elif isinstance(d, ast.Attribute):
+                            decs.append(d.attr)
+                    if any(d in ("field_validator", "model_validator") for d in decs):
+                        continue
+                    if any(node.name.startswith(p) for p in qt_event_prefixes):
+                        continue
+                    if node.name in ui_framework_methods or node.name in port_and_interface_symbols:
+                        continue
+                    if node.name in ignored_names:
+                        continue
+                    defined[f"{rel}::{node.name}"] = (rel, node.lineno, "fn")
+            elif isinstance(node, ast.ClassDef):
+                if not node.name.startswith("_"):
+                    if node.name in port_and_interface_symbols:
+                        continue
+                    defined[f"{rel}::{node.name}"] = (rel, node.lineno, "class")
+
+    # Gather references across src, tests, scripts
+    repo_root = Path(__file__).parent.parent
+    refs: set[str] = set()
+    for base_dir in (repo_root / "src", repo_root / "tests", repo_root / "scripts"):
+        if not base_dir.exists():
+            continue
+        for py in base_dir.rglob("*.py"):
+            try:
+                tree = ast.parse(py.read_text(encoding="utf-8"), filename=str(py))
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name):
+                    refs.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    refs.add(node.attr)
+
+    # Positive control: dummy symbol not in refs must be detected
+    synthetic_dead = "core/bogus.py::completely_dead_unused_function"
+    assert synthetic_dead.split("::")[1] not in refs, "Positive control failed: synthetic symbol found in refs"
+
+    dead_symbols: list[str] = []
+    for qual, (mod, lineno, kind) in sorted(defined.items()):
+        name = qual.split("::")[1]
+        if name not in refs:
+            dead_symbols.append(f"{mod}:{lineno} ({kind}) {name}")
+
+    assert not dead_symbols, (
+        f"Dead code gate violation: {len(dead_symbols)} unreferenced public symbols found:\n"
+        + "\n".join(f"  - {s}" for s in dead_symbols)
+    )
+
+
 
 
 

@@ -33,15 +33,6 @@ class Segment(BaseModel):
     avg_logprob: float
 
 
-class Transcript(BaseModel):
-    text: str
-    segments: list[Segment]
-    avg_logprob: float
-    model: str
-    audio_sha256: str
-    elapsed_ms: float
-
-
 # ============================================================================
 # Tool & Sandbox Contracts (Spec 02, Spec 09)
 # ============================================================================
@@ -205,13 +196,6 @@ class TTSChunk(BaseModel):
     raw_text: str = ""
     voice: str = "af_heart"
     is_first: bool = False
-
-
-class TTSChunkDone(BaseModel):
-    chunk_id: int
-    samples: int
-    elapsed_ms: float
-    device: Literal["NPU", "GPU", "CPU"]
 
 
 # ============================================================================

@@ -89,14 +89,6 @@ class LLMClient:
                 return latest.aborted if latest else False
             return False
 
-    @property
-    def active_client(self) -> httpx.Client | None:
-        with self._streams_lock:
-            if self._stream_order:
-                latest = self._streams.get(self._stream_order[-1])
-                return latest.client if latest else None
-            return None
-
     def stream_turn(
         self,
         current_audio_b64: str | None = None,
