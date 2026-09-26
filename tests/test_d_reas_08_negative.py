@@ -1,51 +1,22 @@
 """
-Negative Regression Test Fixture for D-REAS-08 (Production-Row Check & Naming Test).
+Negative Regression Tests for D-REAS-08 (Babble/Stitch E-Graph Macro Synthesis).
 
-Enforces that Babble/Stitch E-Graph Macro Synthesis cannot claim *live* verification while
-production decision telemetry is below the induction floor. Rule induction requires
-``min_frequency = 3`` recurrences per cluster (D-REAS-06); below that floor no cluster can
-form, so no macro or rule can have been induced from real usage.
-
-Design note: an earlier version asserted ``count == 0`` against the live production DB — a
-snapshot that broke as soon as Lucca recorded her first decisions. The durable invariant is
-the induction floor. When production genuinely crosses it, retire this fixture together with
-the "no live induction evidence" caveat it guards in the docs.
+History: this file previously carried the production-row tripwire
+(``test_d_reas_08_production_data_below_induction_floor``), which failed by design
+once production crossed the N>=3 induction floor. Provenance check 2026-09-26
+(``scratch/check_decisions_provenance.py``) confirmed 21 genuine usage decisions
+(6 sessions, 2026-09-21..25, real operator transcripts via the terminal harness),
+so the tripwire was retired per its own instructions. The empty-data negative
+guard below remains: induction from an empty decisions table must yield nothing.
 """
 
-import sqlite3
 from pathlib import Path
-
-import pytest
 
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.induction import RuleInducer
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 
-PROD_DB_PATH = Path(r"C:\ProjectLucca\data\memory.sqlite")
 INDUCTION_MIN_FREQUENCY = 3
-
-
-def _production_decision_count() -> int:
-    con = sqlite3.connect(str(PROD_DB_PATH))
-    try:
-        cur = con.cursor()
-        cur.execute("SELECT COUNT(*) FROM decisions")
-        row = cur.fetchone()
-    finally:
-        con.close()
-    return int(row[0]) if row is not None else 0
-
-
-def test_d_reas_08_production_data_below_induction_floor() -> None:
-    """Production decision telemetry must still be below the N>=3 induction floor."""
-    if not PROD_DB_PATH.exists():
-        pytest.skip(f"Production database file does not exist at {PROD_DB_PATH}")
-
-    count = _production_decision_count()
-    assert count < INDUCTION_MIN_FREQUENCY, (
-        f"Production has {count} decisions (>= induction floor {INDUCTION_MIN_FREQUENCY}). "
-        "Live induction is now possible: retire this fixture and re-audit D-REAS-08 claims."
-    )
 
 
 def test_d_reas_08_macro_synthesis_refuses_empty_production_data(tmp_path: Path) -> None:
