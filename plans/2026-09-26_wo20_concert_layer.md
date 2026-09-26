@@ -78,20 +78,34 @@
 **Manifest:**
 | File | Action |
 |---|---|
-| `src/lucca/core/schemas.py` | `InferenceStep(BaseModel)`: `premises: list[str]`, `conclusion: str`, `confidence: float = Field(ge=0.0, le=1.0)`. |
-| `src/lucca/brain/prompt_builder.py` | Deduction-mode prompt section: emit JSON steps, not prose; premises must reference facts from the provided signed context; confidence required. (Copy the grounded-narration contract's shape.) |
-| `src/lucca/core/orchestrator.py` | Deduction loop: parse `InferenceStep`; validate each premise exists in the signed store or the `ReasoningContext`; valid → sign as `LISP_ASSERTION` and add to context; invalid → reject with `{"error": "unverified_premise", "premise": ...}` fed back to the model for one revision, then abstain. |
+| `src/lucca/core/schemas.py` | `InferenceStep(BaseModel)`: `premises: list[str]`, `s: str`, `p: str`, `o: str`, `confidence: float = Field(ge=0.0, le=1.0)`, `rationale: str = Field(default="", max_length=500)`. The `p` field is validated by `is_valid_predicate` (same validator as `AssertFact`). **RATIFIED 2026-09-26:** the conclusion is a structured triple, NOT a freeform string — the whole point is that LISP validates predicates and `assert` takes triples. **No `rule_id` field** — LLM-proposed steps are abductive hypotheses, not authored rules; they are distinguished by `step_kind="llm_abductive"` in the `ReasoningContext`. |
+| `src/lucca/brain/prompt_builder.py` | Deduction-mode prompt section: emit JSON steps, not prose; premises must reference facts from the provided signed context (as `"s p o"` conclusion strings or envelope IDs); confidence required. (Copy the grounded-narration contract's shape.) |
+| `src/lucca/core/orchestrator.py` | Deduction loop: parse `InferenceStep`; validate each premise exists in the signed store or the `ReasoningContext`; valid → sign as `LISP_ASSERTION` and add to context with `step_kind="llm_abductive"`; invalid → run the **gather ladder** (below). |
+
+**Gather ladder (RATIFIED 2026-09-26 — replaces "one revision, then abstain"):**
+
+On `unverified_premise`, run these in order, bounded to **one pass per deduction turn** (max 1 revision + 1 memory_search + 1 user question):
+
+1. **Revise once.** Feed `{"error": "unverified_premise", "premise": ...}` back to the model for one corrected step.
+2. **Memory retry.** If still unverified, run `memory_search` for the premise content — a retrieval miss is not absence. If a grounding-eligible hit exists, feed it back as verified context and continue the chain.
+3. **Ask the user (named-gap question).** If the premise is a personal fact the user would know, end the turn with a targeted clarifying question naming the exact gap: *"I know she's a judge in the Philippines, but I don't have anything verified about where you live — where do you live?"* The user's answer commits as `USER_EXPLICIT` (grounding-eligible) and the deduction retries on the next turn. This is the companion-natural move: she leads instead of being led.
+4. **Named-gap abstention.** Only if 1–3 fail or are inapplicable: abstain honestly, naming the specific missing premise (*"I can't verify X, so I can't deduce Y yet."*) — never a generic "I don't know", never a commit.
+
+**Explicitly out of scope:** web search for premise verification. `TOOL_CONTENT_UNTRUSTED` is never grounding-eligible (D-HON-01), so web content cannot verify a premise to grounding standard. Do not build it.
 
 **Functional acceptance:**
-- With a `FakeLLM` emitting a valid 2-step chain (premises present), both steps are signed and land in the context in order.
-- With a `FakeLLM` emitting a step whose premise is absent, the step is rejected, the model gets the machine-readable reason, and a second (corrected) step is accepted. A second invalid step → honest abstention, no commit.
-- A step with `confidence > 1.0` fails schema validation.
+- With a `FakeLLM` emitting a valid 2-step chain (premises present), both steps are signed and land in the context in order with `step_kind="llm_abductive"`.
+- With a `FakeLLM` emitting a step whose premise is absent, the step is rejected, the model gets the machine-readable reason, and a second (corrected) step is accepted.
+- A second invalid step whose premise IS retrievable via `memory_search` (seed the store, exclude it from turn context) → the memory retry recovers it and the chain completes.
+- A second invalid step whose premise is NOT in the store → the turn ends with a named-gap user question or named-gap abstention; no commit occurs; the missing premise is named in the spoken output.
+- A step with `confidence > 1.0` fails schema validation. A step with an invalid `p` fails schema validation.
 
 **Traps:**
 - **TRAP 1:** the LLM never signs. Signing happens only in the orchestrator after validation.
 - **TRAP 2:** premise validation must check the *signed store*, not the model's claims about the store.
+- **TRAP 3:** the gather ladder is bounded — one pass, no loops. A user question ends the turn; it does not block waiting for an answer mid-turn.
 
-**STOP gate:** the exact `InferenceStep` JSON shape is owner-visible — if you believe a field is missing (e.g., `rule_id` for authored inference rules), STOP and ask before adding it.
+**STOP gate:** RATIFIED 2026-09-26 (owner). Shape and gather ladder above are final; proceed without further stops on this phase.
 
 ---
 
@@ -103,7 +117,7 @@
 | File | Action |
 |---|---|
 | `src/lucca/core/schemas.py` | Add `Provenance.INFERRED`; add it to the grounding-eligible set at the tier below `USER_DERIVED` (grep `MEMORY_ELIGIBLE` / the Belnap tier mapping in `cascade.py`). |
-| `src/lucca/memory/signers.py` | `DeducedFactSigner` + `create_deduced_fact_signer` (HKDF per ADR-006). Register in `SignerFactory`. |
+| `src/lucca/memory/signers.py` | `InferredFactSigner` + `create_inferred_fact_signer` (HKDF per ADR-006). Register in `SignerFactory`. (Naming follows the DEDUCED→INFERRED rename, commit `b4ddd49`.) |
 | `src/lucca/memory/gate.py` | Admit `INFERRED` only with a non-empty `structured["proof_trace"]` whose every premise resolves to an existing envelope. |
 | `src/lucca/core/orchestrator.py` | Chain finalizer: on fixpoint, commit the conclusion as `INFERRED` with `proof_trace = context.proof_trace()` and `confidence = min(step confidences)`. |
 | `src/lucca/memory/store.py` | `INFERRED` facts are superseded by `USER_EXPLICIT`/`USER_DERIVED` facts on the same predicate. |
