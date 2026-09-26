@@ -147,6 +147,7 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
 |---|---|---|---|---|---|
 | 0 (interrogative-guard fix) | `bef2fbf` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 1 (assert + fact predicates) | `a50e5d7` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
+| 2 (reasoning context) | `a948b89` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 2 (reasoning context) | | | | | |
 | 3 (LLM abductive protocol) | | | | | |
 | 4 (INFERRED commit path) | | | | | |
