@@ -153,7 +153,7 @@ class RouterSettings(BaseModel):
 
 class RulesSettings(BaseModel):
     gas_limit: int = 1000
-    timeout_ms: int = 20
+    timeout_ms: int = 25
     promote_min_clusters: int = 5
 
 

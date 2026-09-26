@@ -32,7 +32,7 @@ from lucca.reasoning.scheme.parser import (
 from lucca.reasoning.scheme.prims import PURE_PRIMITIVES, make_state_primitives
 
 DEFAULT_GAS_LIMIT = 1000
-DEFAULT_TIMEOUT_MS = 20.0
+DEFAULT_TIMEOUT_MS = 25.0
 
 
 class SchemeEvaluator:
