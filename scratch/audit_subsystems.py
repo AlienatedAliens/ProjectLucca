@@ -34,10 +34,14 @@ for tf in TESTS.rglob("test_*.py"):
                     parts = mod.split(".")
                     if len(parts) >= 3:
                         test_coverage[f"{parts[1]}/{parts[2].replace('.py','')}"].add(tf.name)
+                        test_coverage[f"{parts[1]}/{parts[-1].replace('.py','')}"].add(tf.name)
         elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("lucca."):
             parts = node.module.split(".")
             if len(parts) >= 3:
                 test_coverage[f"{parts[1]}/{parts[2]}"].add(tf.name)
+                test_coverage[f"{parts[1]}/{parts[-1]}"].add(tf.name)
+                for a in node.names:
+                    test_coverage[f"{parts[1]}/{a.name}"].add(tf.name)
 
 print(f"{'module':42s} {'lines':>6} {'fns':>4} {'async':>5} {'exc':>4} {'sil':>4} {'geta':>4}  tests")
 print("-" * 100)
