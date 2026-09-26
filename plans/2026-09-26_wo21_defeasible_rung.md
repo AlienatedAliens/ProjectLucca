@@ -175,7 +175,7 @@ Every phase returns the R.1 package: one commit hash, verbatim full-suite output
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
 | 0 (baseline + cosmetics) | `b81bf3c` | Gemini | Owner/Reviewer | PASS | 2026-09-27 |
-| 1 (standards of proof) | | | | | |
+| 1 (standards of proof) | `afb1fe7` | Gemini | Owner/Reviewer | PASS | 2026-09-27 |
 | 2 (corroboration) | | | | | |
 | 3 (ratification) | | | | | |
 | 4 (ToM/CBR stubs) | | | | | |

@@ -91,6 +91,7 @@ from lucca.core.schemas import (
     is_valid_predicate,
     standard_for_confidence,
 )
+from lucca.core.corroboration import Scheme, adjust_confidence, critical_questions, CriticalQuestionResult
 from lucca.core.proof_policy import meets_standard, required_standard, required_threshold
 from lucca.brain.prompt_builder import build_deduction_messages
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
@@ -1318,6 +1319,33 @@ class Orchestrator:
 
         return steps
 
+    def _evaluate_step_corroboration(
+        self, step: InferenceStep
+    ) -> list[CriticalQuestionResult]:
+        """Evaluates Walton argumentation scheme critical questions for attributed premises (WO-21 Phase 2)."""
+        has_attributed = any(
+            re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE)
+            for p in step.premises
+        )
+        if not has_attributed:
+            return []
+        receipts = list(getattr(self, "current_turn_receipts", []) or []) + list(
+            getattr(self, "executed_tools", []) or []
+        )
+        try:
+            q_results = critical_questions(
+                Scheme.AUTHORITY, step, store=self.memory_store, receipts=receipts
+            )
+            eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
+            step.confidence = eff_conf
+            for cond in new_conditions:
+                if cond not in step.conditions and len(step.conditions) < 8:
+                    step.conditions.append(cond)
+            return q_results
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("critical_questions_failed", error=str(exc))
+            return []
+
     def run_deduction_step(
         self,
         goal: str,
@@ -1406,21 +1434,22 @@ class Orchestrator:
                     unverified.append(prem)
 
             if not unverified:
+                q_results = self._evaluate_step_corroboration(step)
                 # Valid step: Sign and commit as LISP_ASSERTION (TRAP 1: Orchestrator signs!)
                 action = AssertFact(s=step.s, p=step.p, o=step.o)
                 signed = self._commit_lisp_assertion(action, trace)
                 env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                conf = step.confidence if signed and signed.confidence is not None else step.confidence
                 ctx.add_intermediate(
                     envelope_id=env_id,
                     s=step.s,
                     p=step.p,
                     o=step.o,
-                    confidence=conf,
+                    confidence=step.confidence,
                     step_kind="llm_abductive",
                     rule_id="llm",
                     premises=list(step.premises),
                     conditions=list(step.conditions),
+                    critical_questions=[q.to_dict() for q in q_results],
                 )
                 accepted_steps.append(step)
                 continue
@@ -1460,6 +1489,7 @@ class Orchestrator:
 
                 if not still_unverified:
                     # Revised step accepted!
+                    q_results = self._evaluate_step_corroboration(step_to_evaluate)
                     action = AssertFact(s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o)
                     signed = self._commit_lisp_assertion(action, trace)
                     env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
@@ -1473,6 +1503,7 @@ class Orchestrator:
                         rule_id="llm",
                         premises=list(step_to_evaluate.premises),
                         conditions=list(step_to_evaluate.conditions),
+                        critical_questions=[q.to_dict() for q in q_results],
                     )
                     accepted_steps.append(step_to_evaluate)
                     continue
@@ -1482,6 +1513,7 @@ class Orchestrator:
             recovered = self._search_memory_for_premise(retry_premise)
             if recovered:
                 target = step_to_evaluate if step_to_evaluate is not None else step
+                q_results = self._evaluate_step_corroboration(target)
                 action = AssertFact(s=target.s, p=target.p, o=target.o)
                 signed = self._commit_lisp_assertion(action, trace)
                 env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
@@ -1495,6 +1527,7 @@ class Orchestrator:
                     rule_id="llm",
                     premises=list(target.premises),
                     conditions=list(target.conditions),
+                    critical_questions=[q.to_dict() for q in q_results],
                 )
                 accepted_steps.append(target)
                 continue

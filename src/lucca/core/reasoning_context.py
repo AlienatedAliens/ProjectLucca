@@ -28,6 +28,7 @@ class ReasoningEntry:
     rule_id: str | None = None
     premises: list[str] = field(default_factory=list)
     conditions: list[str] = field(default_factory=list)
+    critical_questions: list[dict[str, object]] = field(default_factory=list)
 
     @property
     def conclusion(self) -> str:
@@ -77,6 +78,7 @@ class ReasoningEntry:
             "premises": list(self.premises),
             "conclusion": self.conclusion,
             "conditions": list(self.conditions),
+            "critical_questions": list(self.critical_questions),
         }
 
 
@@ -89,6 +91,7 @@ class ProofTraceStep:
     envelope_id: str
     confidence: float = 1.0
     conditions: list[str] = field(default_factory=list)
+    critical_questions: list[dict[str, object]] = field(default_factory=list)
 
     def as_tuple(self) -> tuple[str, str, list[str], str, str]:
         return (self.step_kind, self.rule_id, self.premises, self.conclusion, self.envelope_id)
@@ -144,6 +147,7 @@ class ProofTraceStep:
             "envelope_id": self.envelope_id,
             "confidence": self.confidence,
             "conditions": list(self.conditions),
+            "critical_questions": list(self.critical_questions),
         }
 
 
@@ -186,6 +190,7 @@ class ReasoningContext:
         rule_id: str | None = None,
         premises: list[str] | None = None,
         conditions: list[str] | None = None,
+        critical_questions: list[dict[str, object]] | None = None,
     ) -> ReasoningEntry:
         if len(self._intermediates) >= self.capacity:
             logger.warning(
@@ -216,6 +221,7 @@ class ReasoningContext:
             rule_id=rule_id,
             premises=resolved_premises,
             conditions=list(conditions) if conditions is not None else [],
+            critical_questions=list(critical_questions) if critical_questions is not None else [],
         )
         self._intermediates.append(entry)
         return entry
@@ -276,6 +282,7 @@ class ReasoningContext:
                     envelope_id=entry.envelope_id,
                     confidence=entry.confidence,
                     conditions=list(entry.conditions),
+                    critical_questions=list(getattr(entry, "critical_questions", [])),
                 )
             )
         return trace
