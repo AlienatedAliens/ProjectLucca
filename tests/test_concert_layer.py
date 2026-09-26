@@ -1234,4 +1234,140 @@ def test_cascade_and_renderer_frame_inferred_fact_as_deduced_confidence(
     assert "deduced, confidence 0.82" in cascade_text
 
 
+def test_migration_0007_upgrades_pre_inferred_database(tmp_path: Path) -> None:
+    """WO-20 Phase 4 Blocker F-P4-1 Verification:
+    Existing databases that ran migrations 1-6 prior to Phase 4 (without INFERRED in CHECK constraint)
+    are successfully upgraded by migration 0007 and can commit INFERRED facts.
+    """
+    import sqlite3
+    import subprocess
+
+    db_path = tmp_path / "legacy_memory.sqlite"
+
+    mig_dir = Path("src/lucca/memory/migrations")
+    try:
+        p0001 = subprocess.check_output(
+            ["git", "show", "061a10d:src/lucca/memory/migrations/0001_init.sql"], text=True
+        )
+        p0006 = subprocess.check_output(
+            ["git", "show", "061a10d:src/lucca/memory/migrations/0006_autobiographical.sql"],
+            text=True,
+        )
+    except Exception:
+        raw_0001 = (mig_dir / "0001_init.sql").read_text(encoding="utf-8")
+        raw_0006 = (mig_dir / "0006_autobiographical.sql").read_text(encoding="utf-8")
+        p0001 = raw_0001.replace(",'INFERRED'", "")
+        p0006 = raw_0006.replace("                        'INFERRED',\n", "").replace(
+            "          'INFERRED',\n", ""
+        )
+
+    sql_0002 = (mig_dir / "0002_decisions.sql").read_text(encoding="utf-8")
+    sql_0003 = (mig_dir / "0003_rules.sql").read_text(encoding="utf-8")
+    sql_0004 = (mig_dir / "0004_execution_triples.sql").read_text(encoding="utf-8")
+    sql_0005 = (mig_dir / "0005_contrastive_shadow.sql").read_text(encoding="utf-8")
+
+    db = DatabaseManager(db_path)
+    conn = db.get_connection()
+    conn.execute(
+        "CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY, applied_at REAL NOT NULL)"
+    )
+    conn.executescript(p0001)
+    conn.execute("INSERT INTO schema_migrations VALUES (1, 1000.0)")
+    conn.executescript(sql_0002)
+    conn.execute("INSERT INTO schema_migrations VALUES (2, 1000.0)")
+    conn.executescript(sql_0003)
+    conn.execute("INSERT INTO schema_migrations VALUES (3, 1000.0)")
+    conn.executescript(sql_0004)
+    conn.execute("INSERT INTO schema_migrations VALUES (4, 1000.0)")
+    conn.executescript(sql_0005)
+    conn.execute("INSERT INTO schema_migrations VALUES (5, 1000.0)")
+    conn.executescript(p0006)
+    conn.execute("INSERT INTO schema_migrations VALUES (6, 1000.0)")
+    conn.commit()
+
+    # Seed an existing envelope
+    conn.execute(
+        """
+        INSERT INTO provenance_envelopes(
+            entry_id, provenance, kind, signer_id, signature, content_sha256, nonce, created_at,
+            trace_id, session_id, confidence, payload_json, grounding_eligible
+        ) VALUES (
+            'legacy-env-1', 'USER_EXPLICIT', 'transcript', 'user', 'sig1', 'sha1', 'n1', 100.0,
+            'tr-1', 's-1', 1.0, '{}', 1
+        )
+        """
+    )
+    conn.commit()
+
+    # Verify that inserting an INFERRED envelope on the pre-edit DB fails with IntegrityError
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute(
+            """
+            INSERT INTO provenance_envelopes(
+                entry_id, provenance, kind, signer_id, signature, content_sha256, nonce, created_at,
+                trace_id, session_id, confidence, payload_json, grounding_eligible
+            ) VALUES (
+                'inferred-env-fail', 'INFERRED', 'fact', 'orch', 'sig2', 'sha2', 'n2', 101.0,
+                'tr-2', 's-2', 0.85, '{}', 1
+            )
+            """
+        )
+        conn.commit()
+    conn.close()
+
+    # 2. Run migrate() to apply migration 0007
+    applied = db.migrate()
+    assert 7 in applied
+
+    # 3. Verify that INFERRED facts can now be committed via MemoryStore and finalize_chain
+    master_key = b"01234567890123456789012345678901"
+    store = MemoryStore(db=db, master_key=master_key)
+    signer_factory = SignerFactory(master_key=master_key)
+
+    orch = Orchestrator.__new__(Orchestrator)
+    orch.db = db
+    orch.memory_store = store
+    orch.signer_factory = signer_factory
+    orch.rule_engine = RuleLifecycleManager(db=db)
+
+    trace = _trace("tr-mig-upgrade")
+    signed_prem = orch._commit_lisp_assertion(AssertFact(s="user", p="job", o="engineer"), trace)
+    assert signed_prem is not None
+    ctx = ReasoningContext()
+    ctx.add_intermediate(
+        envelope_id=signed_prem.entry_id,
+        s="user",
+        p="job",
+        o="engineer",
+        confidence=1.0,
+        step_kind="lisp_rule",
+    )
+    signed_step = orch._commit_lisp_assertion(
+        AssertFact(s="user", p="skill_level", o="senior"), trace
+    )
+    assert signed_step is not None
+    ctx.add_intermediate(
+        envelope_id=signed_step.entry_id,
+        s="user",
+        p="skill_level",
+        o="senior",
+        confidence=0.82,
+        step_kind="llm_abductive",
+        premises=["user job engineer"],
+    )
+
+    inferred_signed = orch.finalize_chain(ctx, trace)
+    assert inferred_signed is not None
+    assert inferred_signed.provenance == Provenance.INFERRED
+
+    with db.read_cursor() as cur:
+        row = cur.execute(
+            "SELECT provenance FROM provenance_envelopes WHERE entry_id = ?",
+            (inferred_signed.entry_id,),
+        ).fetchone()
+    assert row[0] == "INFERRED"
+    assert db.check_integrity()
+
+
+
 

@@ -125,15 +125,17 @@ On `unverified_premise`, run these in order, bounded to **one pass per deduction
 | `src/lucca/memory/store.py` | `INFERRED` facts are superseded by `USER_EXPLICIT`/`USER_DERIVED` facts on the same predicate. |
 | `src/lucca/core/cascade.py` | Belnap tier placement: direct user evidence (`USER_EXPLICIT`/`USER_DERIVED`) strictly supersedes `INFERRED` facts in intra-substrate conflict resolution. |
 | `src/lucca/memory/retrieval.py` | Memory-context renderer: format `INFERRED` facts as `[deduced, confidence c]`; tier hierarchy ranks `INFERRED` below `USER_DERIVED`. |
-| `src/lucca/memory/migrations/0001_init.sql` | Add `INFERRED` to `provenance_envelopes` CHECK and `mem_bi_eligible` trigger. |
-| `src/lucca/memory/migrations/0006_autobiographical.sql` | Add `INFERRED` to `provenance_envelopes` CHECK and `mem_bi_eligible` trigger. |
-| `tests/test_concert_layer.py` | Functional acceptance tests for `INFERRED` commit, gate replay, fabricated rejection, supersession, and framing. |
+| `src/lucca/memory/migrations/0001_init.sql` | Add `INFERRED` to `provenance_envelopes` CHECK and `mem_bi_eligible` trigger (consistency for fresh DBs). |
+| `src/lucca/memory/migrations/0006_autobiographical.sql` | Add `INFERRED` to `provenance_envelopes` CHECK and `mem_bi_eligible` trigger (consistency for fresh DBs). |
+| `src/lucca/memory/migrations/0007_inferred_provenance.sql` (new) | Widen `provenance_envelopes` CHECK and `mem_bi_eligible` trigger on existing databases. |
+| `tests/test_concert_layer.py` | Functional acceptance tests for `INFERRED` commit, gate replay, fabricated rejection, supersession, framing, and migration 0007 upgrade. |
 
 **Functional acceptance:**
 - A completed chain commits a `INFERRED` fact; the gate verifies it; `proof_trace` replays (every premise resolves).
 - A trace with a fabricated premise is rejected at the gate (`ProvenanceRejected`).
 - A later `USER_DERIVED` fact on the same predicate supersedes the `INFERRED` one; the cascade prefers the direct evidence.
 - The cascade frames the fact as "deduced, confidence c" in prompt context (grep the memory-context renderer).
+- Migration 0007 successfully upgrades pre-Phase-4 databases without integrity error.
 
 **STOP gate:** the `INFERRED` Belnap tier placement (below `USER_DERIVED`, above `LISP_ASSERTION`) is an owner decision — present it, do not choose alone.
 
@@ -171,7 +173,7 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
 | 2 (reasoning context) | `a948b89` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 3 (LLM abductive protocol) | `e118936` | implementing agent | reviewer (Gemini) | **BOUNCE** | 2026-09-26 |
 | 3 (LLM abductive protocol) [resubmission] | `b1a7f90` | implementing agent | reviewer (Gemini) | **PASS** | 2026-09-26 |
-| 4 (INFERRED commit path) | | | | | |
+| 4 (INFERRED commit path) | `5cb6661` | implementing agent | reviewer (Zoo) | **BOUNCE→re-review after 0007** | 2026-09-26 |
 | 5 (live acceptance) | | | | | |
 
 #### Phase 3 Review Notes (commit `e118936` & fix `b1a7f90`)
@@ -185,4 +187,11 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
   - **Scope audit:** 2 files (`src/lucca/core/orchestrator.py`, `tests/test_concert_layer.py`), +23/−3, strictly fixing F1 and test spy assertion.
   - **Diff read:** Clean drop-in fix. Attributed premises bypass fact-store search per ratified amendment; `RetrievalQuery(query_text=clean, k=5)` properly instantiated and filtered.
   - **Independent verification:** Targeted: 39 passed (18 concert + 21 gates); Full suite: 727 passed, 46 deselected (baseline 727 preserved).
+
+#### Phase 4 Review Notes (commit `5cb6661`)
+- **Verdict on `5cb6661`: BOUNCE**
+  - **Finding 1 (F-P4-1 — Blocker):** `0001_init.sql` and `0006_autobiographical.sql` were edited in place. Existing databases (tracked at version 6 in `schema_migrations`) would never re-run them, leaving `CHECK(provenance IN (...))` without `'INFERRED'` and causing integrity errors on live `finalize_chain()`.
+  - **Fix:** Added `src/lucca/memory/migrations/0007_inferred_provenance.sql` rebuilding `provenance_envelopes` with the widened constraint and updating `mem_bi_eligible`. Added `test_migration_0007_upgrades_pre_inferred_database` testing upgrade against pre-edit schema.
+  - **Finding 2 (F-P4-2 — Protocol breach, non-blocking):** Tier placement `USER_EXPLICIT (0) > USER_DERIVED (1) > INFERRED (2) > LISP_ASSERTION (3)` implemented before explicit owner ratification. Owner ratification requested before Phase 5.
+
 
