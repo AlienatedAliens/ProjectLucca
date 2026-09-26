@@ -95,26 +95,26 @@
 
 ---
 
-## Phase 4 — WO-20d: DEDUCED Commit Path & Proof Trace
+## Phase 4 — WO-20d: INFERRED Commit Path & Proof Trace
 
 **Goal:** conclusions commit with their full signed derivation.
 
 **Manifest:**
 | File | Action |
 |---|---|
-| `src/lucca/core/schemas.py` | Add `Provenance.DEDUCED`; add it to the grounding-eligible set at the tier below `USER_DERIVED` (grep `MEMORY_ELIGIBLE` / the Belnap tier mapping in `cascade.py`). |
+| `src/lucca/core/schemas.py` | Add `Provenance.INFERRED`; add it to the grounding-eligible set at the tier below `USER_DERIVED` (grep `MEMORY_ELIGIBLE` / the Belnap tier mapping in `cascade.py`). |
 | `src/lucca/memory/signers.py` | `DeducedFactSigner` + `create_deduced_fact_signer` (HKDF per ADR-006). Register in `SignerFactory`. |
-| `src/lucca/memory/gate.py` | Admit `DEDUCED` only with a non-empty `structured["proof_trace"]` whose every premise resolves to an existing envelope. |
-| `src/lucca/core/orchestrator.py` | Chain finalizer: on fixpoint, commit the conclusion as `DEDUCED` with `proof_trace = context.proof_trace()` and `confidence = min(step confidences)`. |
-| `src/lucca/memory/store.py` | `DEDUCED` facts are superseded by `USER_EXPLICIT`/`USER_DERIVED` facts on the same predicate. |
+| `src/lucca/memory/gate.py` | Admit `INFERRED` only with a non-empty `structured["proof_trace"]` whose every premise resolves to an existing envelope. |
+| `src/lucca/core/orchestrator.py` | Chain finalizer: on fixpoint, commit the conclusion as `INFERRED` with `proof_trace = context.proof_trace()` and `confidence = min(step confidences)`. |
+| `src/lucca/memory/store.py` | `INFERRED` facts are superseded by `USER_EXPLICIT`/`USER_DERIVED` facts on the same predicate. |
 
 **Functional acceptance:**
-- A completed chain commits a `DEDUCED` fact; the gate verifies it; `proof_trace` replays (every premise resolves).
+- A completed chain commits a `INFERRED` fact; the gate verifies it; `proof_trace` replays (every premise resolves).
 - A trace with a fabricated premise is rejected at the gate (`ProvenanceRejected`).
-- A later `USER_DERIVED` fact on the same predicate supersedes the `DEDUCED` one; the cascade prefers the direct evidence.
+- A later `USER_DERIVED` fact on the same predicate supersedes the `INFERRED` one; the cascade prefers the direct evidence.
 - The cascade frames the fact as "deduced, confidence c" in prompt context (grep the memory-context renderer).
 
-**STOP gate:** the `DEDUCED` Belnap tier placement (below `USER_DERIVED`, above `LISP_ASSERTION`) is an owner decision — present it, do not choose alone.
+**STOP gate:** the `INFERRED` Belnap tier placement (below `USER_DERIVED`, above `LISP_ASSERTION`) is an owner decision — present it, do not choose alone.
 
 ---
 
@@ -123,7 +123,7 @@
 **Goal:** the live-test scenario passes cold, with a proof trace, no leading.
 
 **Functional acceptance (the only test that matters for this phase):**
-- Scripted scenario (FakeLLM + seeded store): store contains `partner_is judge_in_philippines` and `tz = UTC+8`. User asks the deduction question. The system produces `user_likely_location Philippines` (step 1), then with `drop_bears → australian_folklore` produces `origin_likely Australia` (step 2), and commits `nationality_is Australian` as `DEDUCED` with a 2-step proof trace — **without any operator leading**.
+- Scripted scenario (FakeLLM + seeded store): store contains `partner_is judge_in_philippines` and `tz = UTC+8`. User asks the deduction question. The system produces `user_likely_location Philippines` (step 1), then with `drop_bears → australian_folklore` produces `origin_likely Australia` (step 2), and commits `nationality_is Australian` as `INFERRED` with a 2-step proof trace — **without any operator leading**.
 - The committed fact is superseded when the user then says "I'm Australian" (direct evidence wins).
 - Full suite green at the 707 baseline + new tests.
 
@@ -140,3 +140,14 @@ Phase 0 (bug fix) → Phase 1 (assert+facts) → Phase 2 (context) → Phase 3 (
 ```
 
 Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no LLM). Phase 3 is the design-heavy one — expect the most review attention there.
+
+## R.4 Phase sign-off log
+
+| Phase | Commit | Implementer | Reviewer | Verdict | Date |
+|---|---|---|---|---|---|
+| 0 (interrogative-guard fix) | `bef2fbf` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
+| 1 (assert + fact predicates) | | | | | |
+| 2 (reasoning context) | | | | | |
+| 3 (LLM abductive protocol) | | | | | |
+| 4 (INFERRED commit path) | | | | | |
+| 5 (live acceptance) | | | | | |

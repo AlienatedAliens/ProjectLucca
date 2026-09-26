@@ -23,18 +23,30 @@ Four mechanisms:
 
 ## 2. The Commit Path (solving the live-test refusal)
 
-A conclusion of a completed chain commits as a **new provenance class `DEDUCED`**:
+A conclusion of a completed chain commits as a **new provenance class `INFERRED`**:
 
 - Signed by a new `DeducedFactSigner` (constructed only in the orchestrator's chain finalizer — never LLM-reachable, per ADR-006 discipline).
 - The envelope's `structured` field carries the **proof trace**: the ordered list of `(step_kind, rule_id | "llm", premises, conclusion, envelope_id)`.
-- `grounding_eligible = 1`, but at a **Belnap trust tier strictly below** `USER_EXPLICIT` and `TOOL_VERIFIED`, and below `USER_DERIVED` (verbatim-grounded). The cascade fuses `DEDUCED` facts with an explicit "deduced, confidence c" frame.
+- `grounding_eligible = 1`, but at a **Belnap trust tier strictly below** `USER_EXPLICIT` and `TOOL_VERIFIED`, and below `USER_DERIVED` (verbatim-grounded). The cascade fuses `INFERRED` facts with an explicit "deduced, confidence c" frame.
 - `confidence < 1.0` mandatory; set to the minimum step confidence in the chain.
-- A `DEDUCED` fact can be **superseded** by a `USER_EXPLICIT`/`USER_DERIVED` fact on the same predicate (direct evidence outranks deduction — the "Australian" case: a later direct statement supersedes the deduced value).
+- A `INFERRED` fact can be **superseded** by a `USER_EXPLICIT`/`USER_DERIVED` fact on the same predicate (direct evidence outranks deduction — the "Australian" case: a later direct statement supersedes the deduced value).
+
+## 2.5 The Riskiest Box: What Z3 Does and Does Not Verify
+
+A candid scoping note, prompted by external review: the concert loop's "premises real? rule Z3-verified?" box compresses two very different checks, and conflating them is the single biggest design risk.
+
+- **Z3 verifies *authored rules* only.** MicroScheme rules written by the operator or promoted from quarantine are formally verified (SAT, non-tautology, deontic invariants) before they may fire. This is tractable because rules are already in a formal language.
+- **Abductive steps are *existence-checked*, not proven.** When the LLM proposes an `InferenceStep`, the orchestrator checks that each premise *exists as a signed fact in the store* — a lookup, not a proof. The *inference itself* (does the conclusion follow?) is **not** Z3-verified for abductive steps; it is marked `INFERRED` with the step's confidence, and superseded by direct evidence later.
+- **Out of scope for v1:** translating natural-language premises into Z3-checkable form (whole-problem autoformalization). External work (Logic-LM, LINC) shows this fails badly on real benchmarks; step-level existence-checking is the narrow, honest v1 answer. Formalizing NL premises is a research problem, not an engineering formality, and it is explicitly deferred.
+
+## 2.6 Threat Model for "Cryptographically Signed"
+
+The signatures are for **integrity, provenance, and tamper-evidence of her own reasoning trail** — so she can trust her past derivations and the operator can audit them — not defense against an external adversary. This is a local, single-user companion; "cryptographic" here means *accountability* (a conclusion can't be silently altered or forged after the fact), not confidentiality or access control.
 
 ## 3. Honesty Invariants (non-negotiable)
 
-1. Intermediates (`LISP_ASSERTION`) are **working memory**: memory-eligible, grounding-eligible *only within the chain's reasoning context*, and rolled up with the session summary unless promoted into a `DEDUCED` conclusion.
-2. No `DEDUCED` fact may be created without a complete proof trace; a trace with an unverified premise is rejected at the gate.
+1. Intermediates (`LISP_ASSERTION`) are **working memory**: memory-eligible, grounding-eligible *only within the chain's reasoning context*, and rolled up with the session summary unless promoted into a `INFERRED` conclusion.
+2. No `INFERRED` fact may be created without a complete proof trace; a trace with an unverified premise is rejected at the gate.
 3. The LLM never signs anything. It proposes; LISP validates and signs; the gate admits.
 4. Deduced facts are always *marked* — the cascade and the prompt builder must frame them as deductions with confidence, never as direct knowledge.
 
