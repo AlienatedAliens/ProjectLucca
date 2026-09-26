@@ -139,6 +139,13 @@ class DerivedFactSigner(BaseProvenanceSigner):
         super().__init__(master_key, signer_id)
 
 
+def create_derived_fact_signer(
+    master_key: bytes, signer_id: str = "ratification@lucca-core"
+) -> DerivedFactSigner:
+    """Authorized factory for constructing DerivedFactSigner (WO-21 Phase 3)."""
+    return DerivedFactSigner(master_key=master_key, signer_id=signer_id)
+
+
 class ToolResultSigner(BaseProvenanceSigner):
     """Constructed ONLY in lucca.sandbox.client (host side)."""
 

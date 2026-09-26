@@ -291,6 +291,17 @@ def standard_for_confidence(c: float) -> ProofStandard:
     return ProofStandard.SPECULATION
 
 
+class PendingRatification(BaseModel):
+    """State of an offered web-fact ratification awaiting user confirmation (WO-21 Phase 3)."""
+
+    call_id: str
+    domain: str
+    claim: str
+    source_url: str
+    fetch_receipt_entry_id: str = ""
+    created_at: float = Field(default_factory=time.time)
+
+
 # WO-17 Phase 2 (ADR-010 supersession): open-predicate vocabulary.
 # Standard common predicates retained for schema guidance and manifest menus.
 FACT_PREDICATES: Final[frozenset[str]] = frozenset(

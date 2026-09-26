@@ -1,0 +1,15 @@
+# Project Lucca — Domain Whitelist for Proactive Web-Fact Ratification
+# WO-21 Phase 3 (The Defeasible Rung)
+#
+# Domains listed here are permitted for proactive ratification offers.
+# Lucca may ask: "I found on {domain} that {claim} — want me to remember that?"
+# Your explicit confirmation ("yes") is the trust root; web facts never auto-commit.
+# This list is owner-curated friction control.
+
+ratification_domains = [
+    "docs.python.org",
+    "en.wikipedia.org",
+    "github.com",
+    "ars-technica.com",
+    "arstechnica.com",
+]

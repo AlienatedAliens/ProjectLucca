@@ -123,6 +123,30 @@ class ProvenanceGate:
                         raise ProvenanceRejected(
                             f"Predicate '{pred}' is not a valid predicate slug"
                         )
+            # WO-21 Phase 3: Ratified web-fact receipt validation
+            if payload.structured is not None and payload.structured.get("confirmed_by_user"):
+                receipt_id = payload.structured.get("fetch_receipt_entry_id")
+                if not receipt_id or not str(receipt_id).strip():
+                    raise ProvenanceRejected(
+                        "Ratified USER_DERIVED payload requires valid fetch_receipt_entry_id"
+                    )
+                effective_db = db if db is not None else getattr(self, "db", None)
+                found = False
+                if effective_db is not None and hasattr(effective_db, "read_cursor"):
+                    try:
+                        with effective_db.read_cursor() as cur:
+                            cur.execute(
+                                "SELECT entry_id FROM provenance_envelopes WHERE entry_id = ?",
+                                (str(receipt_id),),
+                            )
+                            if cur.fetchone():
+                                found = True
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("gate_ratification_receipt_lookup_error", error=str(exc))
+                if not found:
+                    raise ProvenanceRejected(
+                        f"Ratified fetch receipt envelope '{receipt_id}' does not exist in store"
+                    )
 
         if payload.provenance == Provenance.ASSISTANT_BELIEF:
             if payload.confidence is None or not (0.60 <= payload.confidence <= 1.0):

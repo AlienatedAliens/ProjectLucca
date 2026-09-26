@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 import wave
+import urllib.parse
 from collections import deque
 from collections.abc import Sequence
 from typing import Final, Literal
@@ -90,9 +91,25 @@ from lucca.core.schemas import (
     canonicalize_predicate,
     is_valid_predicate,
     standard_for_confidence,
+    PendingRatification,
 )
-from lucca.core.corroboration import Scheme, adjust_confidence, critical_questions, CriticalQuestionResult
-from lucca.core.proof_policy import meets_standard, required_standard, required_threshold
+from lucca.core.corroboration import (
+    CQAnswer,
+    CriticalQuestionResult,
+    Scheme,
+    adjust_confidence,
+    critical_questions,
+    extract_receipt_source,
+)
+from lucca.core.proof_policy import (
+    Hazard,
+    classify_hazard,
+    is_cross_reference_command,
+    load_ratification_domains,
+    meets_standard,
+    required_standard,
+    required_threshold,
+)
 from lucca.brain.prompt_builder import build_deduction_messages
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
@@ -422,6 +439,13 @@ class Orchestrator:
             orchestrator=self,
         )
         self.current_reasoning_context: ReasoningContext | None = None
+
+        # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
+        self.ratification_domains: set[str] = load_ratification_domains()
+        self._pending_ratification: PendingRatification | None = None
+        self._ratification_offered_this_turn: bool = False
+        self._last_ratified_claim: str | None = None
+        self.cross_reference_search_fn: object = None
 
     @property
     def signer_factory(self) -> SignerFactory:
@@ -2333,6 +2357,11 @@ class Orchestrator:
                 )
                 self.play_ring.set_flag(FLAG_EOS)
 
+            # WO-21 Phase 3: Proactive Web-Fact Ratification Flow
+            ratification_offer = (
+                self._check_and_offer_ratification(trace) if not trace.interrupted else None
+            )
+
             # Record turn in history
             if not trace.interrupted:
                 reply_parts: list[str] = []
@@ -2340,12 +2369,14 @@ class Orchestrator:
                     reply_parts.append("".join(full_response_text))
                 if self.current_turn_tool_spoken:
                     reply_parts.extend(self.current_turn_tool_spoken)
+                if ratification_offer:
+                    reply_parts.append(ratification_offer)
                 if reply_parts:
                     reply_str = " ".join(reply_parts)
                     self.history.append({"role": "user", "content": user_msg})
                     self.history.append({"role": "assistant", "content": reply_str})
                     self.current_turn_assistant_reply = reply_str
-                    if full_response_text:
+                    if full_response_text or ratification_offer:
                         self._publish_caption(reply_str, source="assistant", is_final=True)
 
         except Exception as exc:  # noqa: BLE001
@@ -2811,6 +2842,306 @@ class Orchestrator:
             structured={"saved": saved_contents, "provenance": "USER_DERIVED"},
             elapsed_ms=0.0,
         )
+
+    # ------------------------------------------------------------------------
+    # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
+    # ------------------------------------------------------------------------
+
+    def _extract_receipt_domain(self, r: ToolReceipt) -> str:
+        args = getattr(r, "args", {}) or {}
+        if isinstance(args, dict):
+            domain_val = args.get("domain", "")
+            if domain_val and isinstance(domain_val, str):
+                return domain_val.strip().lower()
+            url_val = args.get("url", "")
+            if url_val and isinstance(url_val, str):
+                try:
+                    parsed = urllib.parse.urlsplit(url_val)
+                    if parsed.netloc:
+                        return parsed.netloc.lower().split(":")[0]
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("extract_receipt_domain_urlsplit_failed", error=str(exc))
+        src = extract_receipt_source(r)
+        if "." in src and not src.startswith("tool"):
+            return src.lower()
+        return ""
+
+    def _is_domain_whitelisted(self, domain: str) -> bool:
+        if not domain:
+            return False
+        d_clean = domain.strip().lower()
+        whitelist = getattr(self, "ratification_domains", None) or set()
+        if d_clean in whitelist:
+            return True
+        return any(d_clean == w or d_clean.endswith("." + w) for w in whitelist)
+
+    def _extract_durable_claim(self, r: ToolReceipt) -> str | None:
+        args = getattr(r, "args", {}) or {}
+        if isinstance(args, dict) and "claim" in args and isinstance(args["claim"], str):
+            c = args["claim"].strip()
+            if c:
+                return c
+
+        text = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
+        return self._extract_durable_claim_from_text(text)
+
+    def _extract_durable_claim_from_text(self, text: str) -> str | None:
+        cleaned = text.strip()
+        if not cleaned or len(cleaned) < 5:
+            return None
+        lower = cleaned.lower()
+        if any(
+            err in lower
+            for err in ("error:", "404 not found", "access denied", "failed to fetch")
+        ):
+            return None
+
+        sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+        copula_pattern = re.compile(
+            r"\b(?:is|was|are|were|has|have|had|features|released|announced|supports|became|born|won|contains)\b",
+            re.IGNORECASE,
+        )
+        for s in sentences:
+            s_clean = s.strip()
+            s_clean = re.sub(r"^#+\s*", "", s_clean)
+            s_clean = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", s_clean)
+            if 10 <= len(s_clean) <= 150 and not s_clean.endswith("?"):
+                if copula_pattern.search(s_clean):
+                    return s_clean.rstrip(".! ")
+
+        if 10 <= len(cleaned) <= 120 and not cleaned.endswith("?"):
+            return cleaned.rstrip(".! ")
+        return None
+
+    def _check_and_offer_ratification(self, trace: TurnTrace) -> str | None:
+        if getattr(self, "_ratification_offered_this_turn", False):
+            return None
+        receipts = getattr(self, "current_turn_receipts", []) or []
+        for r in receipts:
+            tool_name = getattr(r, "tool", "") or getattr(r, "tool_name", "")
+            if tool_name not in ("fetch_url", "search_web", "web_search", "browse_page"):
+                continue
+            if not getattr(r, "ok", True):
+                continue
+            domain = self._extract_receipt_domain(r)
+            if not domain or not self._is_domain_whitelisted(domain):
+                continue
+            claim = self._extract_durable_claim(r)
+            if not claim:
+                continue
+
+            args = getattr(r, "args", {}) or {}
+            url = ""
+            if isinstance(args, dict):
+                url = str(args.get("url", "") or args.get("domain", "") or domain)
+
+            offer_text = f"I found on {domain} that {claim} \u2014 want me to remember that?"
+            self._ratification_offered_this_turn = True
+
+            self._pending_ratification = PendingRatification(
+                call_id=getattr(r, "call_id", ""),
+                domain=domain,
+                claim=claim,
+                source_url=url,
+                fetch_receipt_entry_id=getattr(r, "entry_id", "") or getattr(r, "call_id", ""),
+            )
+            self._speak_text(trace, offer_text)
+            self._publish_caption(offer_text, source="assistant", is_final=True)
+            return offer_text
+        return None
+
+    def _commit_ratified_fact(
+        self, pending: PendingRatification, trace: TurnTrace
+    ) -> str | None:
+        if not self.memory_store:
+            return None
+        signer = self.signer_factory.derived_fact()
+        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
+        source_id = pending.fetch_receipt_entry_id or f"fetch-{pending.call_id}"
+        unsigned = UnsignedPayload(
+            content=pending.claim,
+            provenance=Provenance.USER_DERIVED,
+            kind="fact",
+            nonce=os.urandom(16).hex(),
+            created_at=now,
+            trace_id=trace.trace_id,
+            confidence=1.0,
+            source_entry_ids=[source_id],
+            structured={
+                "source_url": pending.source_url,
+                "fetch_receipt_entry_id": source_id,
+                "confirmed_by_user": True,
+            },
+        )
+        signed = signer.sign(unsigned)
+        self.memory_store.commit(signed, now=now)
+        self._last_ratified_claim = pending.claim
+        return signed.entry_id
+
+    def _is_cross_reference_command(self, text: str) -> bool:
+        return is_cross_reference_command(text)
+
+    def _resolve_cross_reference_claim(self, user_text: str) -> str | None:
+        cross_ref_pat = (
+            r"(?:cross[\s-]?reference|find more sources on|check more sources on|verify)"
+            r"\s+(?:that\s+)?(.+)"
+        )
+        m = re.search(cross_ref_pat, user_text, re.IGNORECASE)
+        if m:
+            explicit_claim = m.group(1).strip().rstrip(".!?")
+            if explicit_claim.lower() not in ("that", "this", "it"):
+                return explicit_claim
+
+        if getattr(self, "_pending_ratification", None) is not None:
+            return self._pending_ratification.claim
+
+        if getattr(self, "_last_ratified_claim", None):
+            return self._last_ratified_claim
+
+        for msg in reversed(self.history):
+            if msg.get("role") == "assistant":
+                content = str(msg.get("content", ""))
+                offer_match = re.search(
+                    r"I found on .+? that (.+?) [—\-] want me to remember that\?",
+                    content,
+                )
+                if offer_match:
+                    return offer_match.group(1).strip()
+                c = self._extract_durable_claim_from_text(content)
+                if c:
+                    return c
+        return None
+
+    def _execute_cross_reference_searches(
+        self, claim: str, max_searches: int = 3
+    ) -> list[ToolReceipt]:
+        custom_search = getattr(self, "cross_reference_search_fn", None)
+        if custom_search is not None and callable(custom_search):
+            res_list = custom_search(claim, max_searches)
+            if isinstance(res_list, list):
+                return [r for r in res_list if isinstance(r, ToolReceipt)]
+
+        receipts: list[ToolReceipt] = []
+        if self.sandbox:
+            call_id = str(ulid.ULID())
+            res = self.sandbox.execute_tool(
+                call_id=call_id,
+                tool_name="search_web",
+                args={"query": claim, "max_results": max_searches},
+                confirmed=True,
+            )
+            if (
+                res.structured
+                and "results" in res.structured
+                and isinstance(res.structured["results"], list)
+            ):
+                for item in res.structured["results"][:max_searches]:
+                    url = item.get("url", "")
+                    domain = ""
+                    if url:
+                        try:
+                            domain = urllib.parse.urlsplit(url).netloc.lower()
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("search_receipt_domain_urlsplit_error", error=str(exc))
+                    content = f"{item.get('title', '')} {item.get('snippet', '')}".strip()
+                    rcpt = ToolReceipt(
+                        tool="search_web",
+                        tool_name="search_web",
+                        ok=True,
+                        call_id=str(ulid.ULID()),
+                        args={"url": url, "domain": domain, "query": claim},
+                        output=content,
+                        timestamp=time.time(),
+                    )
+                    receipts.append(rcpt)
+                    self.current_turn_receipts.append(rcpt)
+            elif res.content:
+                rcpt = ToolReceipt(
+                    tool="search_web",
+                    tool_name="search_web",
+                    ok=res.ok,
+                    call_id=call_id,
+                    args={"query": claim},
+                    output=str(res.content),
+                    timestamp=time.time(),
+                )
+                receipts.append(rcpt)
+                self.current_turn_receipts.append(rcpt)
+        return receipts
+
+    def _handle_cross_reference(self, trace: TurnTrace, user_text: str) -> None:
+        claim = self._resolve_cross_reference_claim(user_text)
+        if not claim:
+            msg = "I don't have a recent claim to cross-reference."
+            self._speak_text(trace, msg)
+            self._publish_caption(msg, source="assistant", is_final=True)
+            self.history.append({"role": "user", "content": user_text})
+            self.history.append({"role": "assistant", "content": msg})
+            self.play_ring.set_flag(FLAG_EOS)
+            self._finalize_turn(trace, None)
+            return
+
+        if getattr(self, "_pending_ratification", None) is not None:
+            self._pending_ratification = None
+
+        receipts = self._execute_cross_reference_searches(claim, max_searches=3)
+        step = InferenceStep(
+            s=claim,
+            p="is",
+            o="true",
+            premises=[f"web asserts {claim}"],
+            conclusion=claim,
+            confidence=0.70,
+            rule_id="cross_reference",
+        )
+        q_results = critical_questions(
+            scheme=Scheme.AUTHORITY,
+            step=step,
+            store=self.memory_store,
+            receipts=receipts,
+        )
+        initial_conf = 0.70
+        new_conf, conditions = adjust_confidence(initial_conf, q_results)
+        std = standard_for_confidence(new_conf)
+
+        q2 = next(
+            (
+                q
+                for q in q_results
+                if "corroborated" in q.question.lower() and q.answer == CQAnswer.SATISFIED
+            ),
+            None,
+        )
+        corrob_count = q2.count if q2 else 0
+        disputes = [
+            q
+            for q in q_results
+            if "disputed" in q.question.lower() and q.answer == CQAnswer.SATISFIED
+        ]
+
+        if disputes:
+            report = (
+                f"Cross-reference found disputing evidence. "
+                f"Confidence docked to {new_conf:.2f} \u2014 {std.value}."
+            )
+        elif corrob_count > 0:
+            sources_str = f"{corrob_count} independent source{'s' if corrob_count != 1 else ''}"
+            report = (
+                f"Cross-referenced across {sources_str}: "
+                f"confidence {new_conf:.2f} \u2014 {std.value}."
+            )
+        else:
+            report = (
+                f"Cross-reference found no independent corroboration. "
+                f"Confidence remains {new_conf:.2f} \u2014 {std.value}."
+            )
+
+        self._speak_text(trace, report)
+        self._publish_caption(report, source="assistant", is_final=True)
+        self.history.append({"role": "user", "content": user_text})
+        self.history.append({"role": "assistant", "content": report})
+        self.play_ring.set_flag(FLAG_EOS)
+        self._finalize_turn(trace, None)
 
     # delegate — kept for test/back-compat
     def _request_confirmation(

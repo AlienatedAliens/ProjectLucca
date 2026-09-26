@@ -90,12 +90,12 @@ def validate_rule_static(
     if registered_tools is not None:
         _validate_plan_tools(rule.plan_expr, registered_tools)
 
-    # Evaluate against 20 random RuleState fixtures
+    # Evaluate against 20 random RuleState fixtures (with generous offline timeout)
     test_fixtures = _generate_test_states(20)
     for idx, fixture in enumerate(test_fixtures):
         try:
-            evaluate_expr(rule.when_expr, fixture, rule_id=rule.rule_id)
-            evaluate_expr(rule.plan_expr, fixture, rule_id=rule.rule_id)
+            evaluate_expr(rule.when_expr, fixture, rule_id=rule.rule_id, timeout_ms=100.0)
+            evaluate_expr(rule.plan_expr, fixture, rule_id=rule.rule_id, timeout_ms=100.0)
         except (SchemeYieldSignal, SchemeInterruptSignal):
             pass
         except SchemeError as e:

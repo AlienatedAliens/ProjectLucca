@@ -469,6 +469,13 @@ class MemoryCommitService:
                 )
                 signed = action_signer.sign(unsigned)
                 self.memory_store.commit(signed, now=now)
+                if self._orchestrator is not None:
+                    pending_rat = getattr(self._orchestrator, "_pending_ratification", None)
+                    if (
+                        pending_rat is not None
+                        and getattr(pending_rat, "call_id", "") == receipt.call_id
+                    ):
+                        pending_rat.fetch_receipt_entry_id = signed.entry_id
             except Exception as exc:  # noqa: BLE001
                 logger.warning("assistant_action_commit_failed", error=str(exc))
         receipts.clear()

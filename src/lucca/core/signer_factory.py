@@ -16,11 +16,13 @@ from typing import Final
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
+    DerivedFactSigner,
     InferredFactSigner,
     LispAssertionSigner,
     ToolResultSigner,
     UserSpeechSigner,
     create_assistant_utterance_signer,
+    create_derived_fact_signer,
     create_inferred_fact_signer,
     create_lisp_assertion_signer,
     create_tool_result_signer,
@@ -77,4 +79,10 @@ class SignerFactory:
     ) -> InferredFactSigner:
         """Creates an authorized InferredFactSigner (WO-20 Phase 4)."""
         return create_inferred_fact_signer(master_key=self._master_key, signer_id=signer_id)
+
+    def derived_fact(
+        self, signer_id: str = "ratification@lucca-core"
+    ) -> DerivedFactSigner:
+        """Creates an authorized DerivedFactSigner (WO-21 Phase 3)."""
+        return create_derived_fact_signer(master_key=self._master_key, signer_id=signer_id)
 

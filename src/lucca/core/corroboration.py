@@ -282,7 +282,10 @@ def critical_questions(
         r_source = extract_receipt_source(r).lower()
         if r_source in seen_sources or r_source in ("fetch_url", "web_search", "search_web", "tool", ""):
             continue
-        if claim_lower in r_text:
+        is_dispute = any(
+            m in r_text for m in ("dispute", "disputed by", "refute", "refuted by", "contradict", "false claim", "debunk")
+        )
+        if claim_lower in r_text and not is_dispute:
             seen_sources.add(r_source)
             independent_sources.append(r_source)
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
@@ -383,6 +386,18 @@ def critical_questions(
             or f"refutes {claim_lower}" in r_text
             or f"not {claim_lower}" in r_text
             or f"does_not_{step.p}" in r_text
+            or any(
+                m in r_text
+                for m in (
+                    "dispute",
+                    "disputed by",
+                    "refute",
+                    "refuted by",
+                    "false claim",
+                    "debunked",
+                    "contradicts",
+                )
+            )
         ):
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             src = str(getattr(r, "source", "") or getattr(r, "tool", "") or "receipt")

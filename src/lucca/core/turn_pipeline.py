@@ -30,11 +30,13 @@ from lucca.brain.prompt_builder import build_narration_messages
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
+from lucca.core.proof_policy import is_cross_reference_command
 from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
     AssertFact,
     ExecutionTier,
     JsonValue,
+    PendingRatification,
     RouteAction,
     RouteDecision,
     RuleOutcome,
@@ -45,6 +47,7 @@ from lucca.core.schemas import (
 )
 from lucca.core.trace import TurnTrace, now_ns
 from lucca.router.labeler import derive_label, persist_decision_label
+from lucca.sandbox.policy import parse_confirmation_response
 from lucca.senses.ring_buffer import FLAG_ABORT, FLAG_EOS
 
 if TYPE_CHECKING:
@@ -200,6 +203,7 @@ class TurnPipeline:
         self.orch.current_turn_tool_spoken = []
         self.orch.current_turn_tool_ok = True
         self.orch._last_unspoken_tool_msg = None
+        self.orch._ratification_offered_this_turn = False
 
     # ------------------------------------------------------------------------
     # Phase 4 Helpers: REFLEX & ACT_THEN_NARRATE Dispatch
@@ -553,6 +557,40 @@ class TurnPipeline:
                 )
             except Exception as e:  # noqa: BLE001
                 logger.debug("prev_decision_label_error", error=str(e))
+
+        # Cross-Reference Intent Check (WO-21 Phase 3 Amendment B)
+        if eval_user_text and is_cross_reference_command(eval_user_text):
+            self.orch._handle_cross_reference(trace, eval_user_text)
+            return
+
+        # Ratification Confirmation Check (WO-21 Phase 3)
+        pending = getattr(self.orch, "_pending_ratification", None)
+        if isinstance(pending, PendingRatification) and eval_user_text:
+            decision = parse_confirmation_response(eval_user_text)
+            if decision == "confirm":
+                self.orch._pending_ratification = None
+                self.orch._commit_ratified_fact(pending, trace)
+                ack_msg = f"Remembered that {pending.claim}."
+                self.orch._speak_text(trace, ack_msg)
+                self.orch._publish_caption(ack_msg, source="assistant", is_final=True)
+                self.orch.history.append({"role": "user", "content": user_text})
+                self.orch.history.append({"role": "assistant", "content": ack_msg})
+                self.orch.play_ring.set_flag(FLAG_EOS)
+                self.orch._finalize_turn(trace, None)
+                return
+            elif decision == "cancel":
+                self.orch._pending_ratification = None
+                ack_msg = "Okay, I won't remember that."
+                self.orch._speak_text(trace, ack_msg)
+                self.orch._publish_caption(ack_msg, source="assistant", is_final=True)
+                self.orch.history.append({"role": "user", "content": user_text})
+                self.orch.history.append({"role": "assistant", "content": ack_msg})
+                self.orch.play_ring.set_flag(FLAG_EOS)
+                self.orch._finalize_turn(trace, None)
+                return
+            else:
+                # User said something else: clear pending offer (Trap 1: max 1 offer/turn)
+                self.orch._pending_ratification = None
 
         # Phase 3: Rule State & Route Decision
         rule_state = self.orch._build_rule_state(eval_user_text, mode=inp.mode)
