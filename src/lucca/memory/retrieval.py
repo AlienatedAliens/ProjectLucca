@@ -10,7 +10,7 @@ from typing import Final
 import sqlite_vec
 import structlog
 
-from lucca.core.schemas import MemoryHit, Provenance, RetrievalQuery
+from lucca.core.schemas import MemoryHit, Provenance, RetrievalQuery, standard_for_confidence
 from lucca.memory.db import DatabaseManager
 from lucca.memory.tokens import build_fts_query, subtokens
 from lucca.ports import EmbeddingPort
@@ -87,7 +87,8 @@ def format_memory_context(
             prov_val = hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
             if prov_val == "INFERRED":
                 conf_val = getattr(hit, "confidence", 1.0)
-                line = f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} {age}] {content_clean}"
+                std_label = standard_for_confidence(conf_val).value
+                line = f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} — {std_label} {age}] {content_clean}"
             else:
                 conf_str = (
                     f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""

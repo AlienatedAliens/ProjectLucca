@@ -89,7 +89,9 @@ from lucca.core.schemas import (
     UnsignedPayload,
     canonicalize_predicate,
     is_valid_predicate,
+    standard_for_confidence,
 )
+from lucca.core.proof_policy import meets_standard, required_standard, required_threshold
 from lucca.brain.prompt_builder import build_deduction_messages
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
@@ -1116,6 +1118,17 @@ class Orchestrator:
         proof_trace = [s.to_dict() for s in proof_trace_steps]
         confidence = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
 
+        # WO-21 Phase 1: Check standard of proof for memory_commit_inferred (CLEAR_AND_CONVINCING = 0.75)
+        if not meets_standard(confidence, "memory_commit_inferred"):
+            logger.info(
+                "finalize_chain_refused_below_standard",
+                confidence=confidence,
+                required=required_threshold("memory_commit_inferred"),
+                standard=required_standard("memory_commit_inferred").value,
+                conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
+            )
+            return None
+
         all_conditions: list[str] = []
         for s in proof_trace_steps:
             for cond in s.conditions:
@@ -1141,6 +1154,7 @@ class Orchestrator:
                 "confidence": confidence,
                 "proof_trace": proof_trace,
                 "conditions": all_conditions,
+                "proof_standard": standard_for_confidence(confidence).value,
             },
         )
         signed = signer.sign(unsigned)
@@ -1498,7 +1512,24 @@ class Orchestrator:
             return (accepted_steps, spoken)
 
         if accepted_steps and len(ctx) > 0:
-            self.finalize_chain(ctx, trace)
+            committed = self.finalize_chain(ctx, trace)
+            if committed is None:
+                final_entry = ctx[-1]
+                proof_trace_steps = ctx.proof_trace()
+                conf = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
+                if conf < 0.50:
+                    spoken = f"I'm guessing {final_entry.s} {final_entry.p} {final_entry.o}, but that's just speculation."
+                else:
+                    spoken = f"I think {final_entry.s} {final_entry.p} {final_entry.o}, but I'm not sure enough to keep it."
+                logger.info(
+                    "chain_concluded_speculation",
+                    confidence=conf,
+                    spoken=spoken,
+                    conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
+                )
+                if hasattr(self, "_speak_text") and trace:
+                    self._speak_text(trace, spoken)
+                return (accepted_steps, spoken)
         return (accepted_steps, None)
 
     run_deduction_loop = run_deduction_step

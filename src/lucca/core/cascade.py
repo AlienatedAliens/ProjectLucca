@@ -19,7 +19,7 @@ import structlog
 import ulid
 from pydantic import BaseModel, Field, JsonValue
 
-from lucca.core.schemas import MemoryHit, RetrievalQuery, ToolResult
+from lucca.core.schemas import MemoryHit, RetrievalQuery, ToolResult, standard_for_confidence
 from lucca.core.trace import now_ns
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
 from lucca.ports import MemoryStorePort
@@ -1367,7 +1367,8 @@ class EpistemicSearchCascade:
             elif item.metadata.get("provenance") == "INFERRED":
                 meta_conf = item.metadata.get("confidence")
                 conf_val = float(meta_conf) if meta_conf is not None else float(item.confidence)
-                polarity_tag = f"[inferred, confidence {conf_val:.2f}]"
+                std_label = standard_for_confidence(conf_val).value
+                polarity_tag = f"[inferred, confidence {conf_val:.2f} — {std_label}]"
             else:
                 polarity_tag = (
                     "[asserts]"

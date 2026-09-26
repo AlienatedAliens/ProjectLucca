@@ -249,6 +249,48 @@ GROUNDING_ELIGIBLE: frozenset[Provenance] = frozenset(
 )
 
 
+# ============================================================================
+# Standards of Proof (Spec D-REAS-09, WO-21 Phase 1)
+# ============================================================================
+
+
+class ProofStandard(StrEnum):
+    """Four-rung legal-analogous standards of proof for defeasible reasoning (WO-21)."""
+
+    SPECULATION = "speculation"
+    BALANCE_OF_PROBABILITIES = "balance of probabilities"
+    CLEAR_AND_CONVINCING = "clear and convincing"
+    BEYOND_REASONABLE_DOUBT = "beyond reasonable doubt"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "ProofStandard | None":
+        if isinstance(value, str):
+            norm = value.strip().lower().replace("_", " ")
+            for member in cls:
+                if member.value == norm or member.name.lower() == norm.replace(" ", "_"):
+                    return member
+        return None
+
+
+PROOF_STANDARDS: Final[dict[ProofStandard, float]] = {
+    ProofStandard.SPECULATION: 0.0,
+    ProofStandard.BALANCE_OF_PROBABILITIES: 0.5,
+    ProofStandard.CLEAR_AND_CONVINCING: 0.75,
+    ProofStandard.BEYOND_REASONABLE_DOUBT: 0.95,
+}
+
+
+def standard_for_confidence(c: float) -> ProofStandard:
+    """Returns the legal-analogous standard of proof satisfied by a confidence score."""
+    if c >= 0.95:
+        return ProofStandard.BEYOND_REASONABLE_DOUBT
+    if c >= 0.75:
+        return ProofStandard.CLEAR_AND_CONVINCING
+    if c >= 0.5:
+        return ProofStandard.BALANCE_OF_PROBABILITIES
+    return ProofStandard.SPECULATION
+
+
 # WO-17 Phase 2 (ADR-010 supersession): open-predicate vocabulary.
 # Standard common predicates retained for schema guidance and manifest menus.
 FACT_PREDICATES: Final[frozenset[str]] = frozenset(
