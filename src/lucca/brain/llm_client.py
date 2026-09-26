@@ -104,6 +104,8 @@ class LLMClient:
         epistemic_context: str | None = None,
         stance_tag: str | None = None,
         enable_thinking: bool | None = None,
+        user_model_directive: str | None = None,
+        episode_hints: list[str] | str | None = None,
     ) -> Generator[LLMEvent, None, None]:
         eff_trace_id = trace_id or f"anon-{now_ns()}"
         eff_temp = (
@@ -125,6 +127,8 @@ class LLMClient:
                 tool_messages=tool_messages,
                 epistemic_context=epistemic_context,
                 stance_tag=stance_tag,
+                user_model_directive=user_model_directive,
+                episode_hints=episode_hints,
             )
 
         eff_tools = tools if tools is not None else TOOL_DEFINITIONS

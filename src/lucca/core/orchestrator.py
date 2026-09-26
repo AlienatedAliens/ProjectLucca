@@ -114,6 +114,8 @@ from lucca.brain.prompt_builder import build_deduction_messages
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
+from lucca.core.user_model import UserModel
+from lucca.core.episode_recall import EpisodeRecall
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.core.memory_commit_service import (
@@ -446,6 +448,10 @@ class Orchestrator:
         self._ratification_offered_this_turn: bool = False
         self._last_ratified_claim: str | None = None
         self.cross_reference_search_fn: object = None
+
+        # WO-21 Phase 4: Theory of Mind User Model & CBR Episode Recall
+        self.user_model = UserModel(db=self.db)
+        self.episode_recall = EpisodeRecall(db=self.db)
 
     @property
     def signer_factory(self) -> SignerFactory:
@@ -1863,6 +1869,8 @@ class Orchestrator:
         max_rounds: int = 8,
         epistemic_context: str | None = None,
         enable_thinking: bool | None = None,
+        user_model_directive: str | None = None,
+        episode_hints: list[str] | str | None = None,
     ) -> None:
         """
         Executes streaming LLM response generation with multi-step tool re-prompting
@@ -1988,6 +1996,8 @@ class Orchestrator:
                     epistemic_context=epistemic_context,
                     stance_tag=current_stance,
                     enable_thinking=enable_thinking,
+                    user_model_directive=user_model_directive,
+                    episode_hints=episode_hints,
                 ):
                     if trace.interrupted:
                         break

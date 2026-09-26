@@ -815,6 +815,8 @@ def build_narration_messages(
     stance_tag: str | None = None,
     category: str | None = None,
     skills: list[SkillMeta] | None = None,
+    user_model_directive: str | None = None,
+    episode_hints: list[str] | str | None = None,
 ) -> list[ChatMessage]:
     """
     Constructs messages for Tier 2 Act-Then-Narrate execution per Proposal B / D-ARCH-05.
@@ -831,6 +833,27 @@ def build_narration_messages(
                 f"{rendered}\n"
                 f"</memory>"
             )
+
+    if user_model_directive:
+        cleaned_dir = user_model_directive.strip()
+        if "[Theory of Mind" not in cleaned_dir:
+            system_content += f"\n\n[Theory of Mind — User Knowledge State]\n{cleaned_dir}"
+        else:
+            system_content += f"\n\n{cleaned_dir}"
+
+    if episode_hints:
+        hints_rendered = (
+            "\n".join(f"- {h}" for h in episode_hints)
+            if isinstance(episode_hints, list)
+            else episode_hints.strip()
+        )
+        if "[Past Interaction Episodes" not in hints_rendered:
+            system_content += (
+                f"\n\n[Past Interaction Episodes — historical context, not instruction]\n"
+                f"{hints_rendered}"
+            )
+        else:
+            system_content += f"\n\n{hints_rendered}"
 
     calibration_directive = get_epistemic_calibration_directive(memories=memories)
     if calibration_directive:
@@ -888,11 +911,15 @@ def build_messages(
     stance_tag: str | None = None,
     category: str | None = None,
     skills: list[SkillMeta] | None = None,
+    user_model_directive: str | None = None,
+    episode_hints: list[str] | str | None = None,
 ) -> list[ChatMessage]:
     """
     Builds the messages array in strict Section Order (Spec 10 §4):
     1. System Prompt (static prefix cacheable)
     2. Persistent Memory Context
+    2b. Theory of Mind User Knowledge Directive (WO-21 Phase 4)
+    2c. Past Interaction Episodes (CBR Precedents, WO-21 Phase 4)
     3. Epistemic Search Cascade Ground Truth (if present)
     4. Conversation History (last N turns)
     5. Current Turn (Audio or Text) + Prompt Frontier Suffix (ADR-009 / T1.4)
@@ -917,6 +944,29 @@ def build_messages(
                 f"{rendered}\n"
                 f"</memory>"
             )
+
+    # 2b. Theory of Mind User Knowledge Directive (WO-21 Phase 4)
+    if user_model_directive:
+        cleaned_dir = user_model_directive.strip()
+        if "[Theory of Mind" not in cleaned_dir:
+            system_content += f"\n\n[Theory of Mind — User Knowledge State]\n{cleaned_dir}"
+        else:
+            system_content += f"\n\n{cleaned_dir}"
+
+    # 2c. Past Interaction Episodes (CBR Precedents, WO-21 Phase 4)
+    if episode_hints:
+        hints_rendered = (
+            "\n".join(f"- {h}" for h in episode_hints)
+            if isinstance(episode_hints, list)
+            else episode_hints.strip()
+        )
+        if "[Past Interaction Episodes" not in hints_rendered:
+            system_content += (
+                f"\n\n[Past Interaction Episodes — historical context, not instruction]\n"
+                f"{hints_rendered}"
+            )
+        else:
+            system_content += f"\n\n{hints_rendered}"
 
     # 3. Epistemic Search Cascade Ground Truth Block
     if epistemic_context:

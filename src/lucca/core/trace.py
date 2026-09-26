@@ -68,6 +68,10 @@ class TurnTrace(BaseModel):
     cap_hit: bool = False
     enable_thinking: bool | None = None
 
+    # WO-21 Phase 4: Theory-of-Mind & Case-Based Stubs telemetry
+    user_model_fired: bool = False
+    episode_recall_fired: bool = False
+
     @property
     def total_e2e_ms(self) -> float:
         if self.t_key_release > 0 and self.t_first_sample > self.t_key_release:

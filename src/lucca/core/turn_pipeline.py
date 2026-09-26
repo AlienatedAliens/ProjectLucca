@@ -420,7 +420,8 @@ class TurnPipeline:
                 is_file_or_web = any(
                     s in target_subs for s in (EpistemicSubstrate.WORKSPACE, EpistemicSubstrate.WEB)
                 )
-                if is_file_or_web and trace is not None:
+                is_ptt = getattr(trace, "origin", "ptt") == "ptt"
+                if is_file_or_web and trace is not None and is_ptt:
                     cue = self.orch.cascade.select_floor_cue(user_text, target_subs[0])
                     self.orch._speak_text(trace, cue)
                     self.orch._publish_caption(cue, source="assistant", is_final=False)
@@ -432,6 +433,31 @@ class TurnPipeline:
         if yielded_context:
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
+
+        # WO-21 Phase 4: Theory of Mind User Knowledge Directive (Spec D-REAS-09)
+        user_model = getattr(self.orch, "user_model", None)
+        if user_model is not None and user_text:
+            try:
+                user_model_dir = user_model.format_directive(user_text)
+                if user_model_dir:
+                    if trace is not None:
+                        trace.user_model_fired = True
+                    um_block = f"[Theory of Mind — User Knowledge State]\n{user_model_dir}"
+                    epistemic_ctx = f"{epistemic_ctx}\n\n{um_block}" if epistemic_ctx else um_block
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("user_model_directive_error", error=str(exc))
+
+        # WO-21 Phase 4: Case-Based Reasoning Episode Recall Precedents (Spec 06 §4)
+        episode_recall = getattr(self.orch, "episode_recall", None)
+        if episode_recall is not None and user_text:
+            try:
+                ep_hints = episode_recall.format_hints(user_text, limit=2)
+                if ep_hints:
+                    if trace is not None:
+                        trace.episode_recall_fired = True
+                    epistemic_ctx = f"{epistemic_ctx}\n\n{ep_hints}" if epistemic_ctx else ep_hints
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("episode_recall_hints_error", error=str(exc))
 
         # WO-10.3 (F13): CLARIFY gets a brief-question directive
         if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
@@ -674,11 +700,11 @@ class TurnPipeline:
         # Phase 5: Epistemic Context, Tool Gating & Streaming LLM Full Loop
         mem_hits = self.orch._search_memories(user_text) if user_text else []
         epistemic_ctx = self.build_epistemic_context(
-            user_text=user_text,
+            user_text=eval_user_text or user_text,
             yielded_context=yielded_context,
             route_decision=route_decision,
             spelling_hint=spelling_hint,
-            trace=trace if inp.origin == "voice" else None,
+            trace=trace,
         )
 
         turn_tools = self.detect_follow_up_and_gate_tools(
