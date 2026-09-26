@@ -510,6 +510,7 @@ def run_memory_cli(
     review_id: str | None = None,
     approver: str = "operator",
     topic: str | None = None,
+    entry_id: str | None = None,
 ) -> int:
     """Manages autobiographical memory, belief revisions, and review queue (D-MEM-04, Rung A1)."""
     if db_path is None:
@@ -696,6 +697,53 @@ def run_memory_cli(
             console.print(f"[bold red]FAILED: Roll-up failed: {err}[/bold red]")
             return 1
 
+    if action == "forget":
+        if not entry_id:
+            console.print("[red]Error: memory_id or entry_id is required to forget.[/red]")
+            return 1
+        if mk is None:
+            console.print("[red]Error: master_key required to initialize MemoryStore.[/red]")
+            return 1
+
+        target_id: int | None = None
+        try:
+            mid = int(entry_id)
+            conn = db.get_connection()
+            try:
+                cur = conn.execute("SELECT memory_id FROM memories WHERE memory_id = ?", (mid,))
+                if cur.fetchone():
+                    target_id = mid
+            finally:
+                conn.close()
+        except ValueError as exc:
+            logger.debug("entry_id_not_integer: %s", exc)
+
+        if target_id is None:
+            conn = db.get_connection()
+            try:
+                cur = conn.execute("SELECT memory_id FROM memories WHERE entry_id = ?", (entry_id,))
+                row = cur.fetchone()
+                if row:
+                    target_id = int(row[0])
+            finally:
+                conn.close()
+
+        if target_id is None:
+            console.print(f"[bold red]FAILED: Memory '{entry_id}' not found.[/bold red]")
+            return 1
+
+        store = MemoryStore(db=db, master_key=mk)
+        try:
+            store.forget([target_id], user_confirmed=True)
+            console.print(
+                f"[bold green]SUCCESS: Memory '{target_id}' soft-deleted and audited.[/bold green]"
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            logger.debug("forget_memory_failed: %s", err)
+            console.print(f"[bold red]FAILED: Could not forget memory '{target_id}': {err}[/bold red]")
+            return 1
+
     console.print(f"[red]Unknown memory action: {action}[/red]")
     return 1
 
@@ -863,6 +911,11 @@ def create_parser() -> argparse.ArgumentParser:
 
     mem_sub.add_parser("rollup", help="Run nightly roll-up of low-importance memories")
 
+    p_mforget = mem_sub.add_parser(
+        "forget", help="Soft-delete a memory by memory_id or entry_id (user confirmation required)"
+    )
+    p_mforget.add_argument("entry_id", help="Memory ID or Entry ID to forget")
+
     # Stubs per F-CORE-027
     for stub in ["metrics", "router", "replay"]:
         sub = subparsers.add_parser(
@@ -960,6 +1013,7 @@ def main(argv: list[str] | None = None) -> None:
         review_id = getattr(args, "review_id", None)
         approver = getattr(args, "approver", "operator")
         topic = getattr(args, "topic", None)
+        entry_id = getattr(args, "entry_id", None)
         db_arg = getattr(args, "db", None)
         db_path = Path(db_arg) if db_arg else None
         sys.exit(
@@ -972,6 +1026,7 @@ def main(argv: list[str] | None = None) -> None:
                 review_id=review_id,
                 approver=approver,
                 topic=topic,
+                entry_id=entry_id,
             )
         )
     elif args.cmd in ("metrics", "router", "replay"):

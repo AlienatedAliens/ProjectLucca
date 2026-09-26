@@ -276,3 +276,85 @@ def test_admin_memory_cli(
     assert exc_info.value.code == 0
     captured = capsys.readouterr()
     assert "Nightly roll-up complete" in captured.out
+
+
+def test_admin_memory_forget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """WO-19f / F-FEAT-07: lucca-admin memory forget soft-deletes, audits, preserves envelope."""
+    from lucca.memory.db import DatabaseManager
+
+    db_path = tmp_path / "memory_forget_test.sqlite"
+    monkeypatch.setattr("lucca.memory.db.DEFAULT_DB_PATH", db_path)
+
+    db = DatabaseManager(db_path)
+    db.migrate()
+
+    # Seed 2 test memories with provenance envelopes
+    conn = db.get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO provenance_envelopes (
+                entry_id, provenance, kind, signer_id, signature, content_sha256,
+                nonce, created_at, trace_id, session_id, confidence, payload_json
+            ) VALUES
+            ('entry-01', 'USER_EXPLICIT', 'transcript', 'signer-01', 'sig-01', 'h1', 'n1', 1000.0, 't1', 's1', 1.0, '{}'),
+            ('entry-02', 'USER_EXPLICIT', 'transcript', 'signer-01', 'sig-02', 'h2', 'n2', 1000.0, 't2', 's2', 1.0, '{}')
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO memories (
+                memory_id, entry_id, content, tokens_aux, kind, created_at, valid_from
+            ) VALUES
+            (1, 'entry-01', 'Remember user likes tea.', '', 'transcript', 1000.0, 1000.0),
+            (2, 'entry-02', 'Remember user dislikes coffee.', '', 'transcript', 1000.0, 1000.0)
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    # 1. Forget memory 1 by numeric ID
+    with pytest.raises(SystemExit) as exc_info:
+        main(["memory", "--db", str(db_path), "forget", "1"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "SUCCESS: Memory '1' soft-deleted and audited" in captured.out
+
+    # Verify soft-delete, audit row, and envelope preservation
+    conn = db.get_connection()
+    try:
+        # Soft-deleted (not hard-deleted)
+        cur = conn.execute("SELECT memory_id, forgotten_at FROM memories WHERE memory_id = 1")
+        row = cur.fetchone()
+        assert row is not None
+        assert row[1] is not None
+
+        # memory_audit row written
+        cur = conn.execute("SELECT kind, reason FROM memory_audit WHERE kind = 'forget'")
+        audit_rows = cur.fetchall()
+        assert len(audit_rows) >= 1
+        assert "User confirmed forget for memory 1" in audit_rows[0][1]
+
+        # Provenance envelope preserved intact
+        cur = conn.execute("SELECT entry_id FROM provenance_envelopes WHERE entry_id = 'entry-01'")
+        assert cur.fetchone() is not None
+    finally:
+        conn.close()
+
+    # 2. Forget memory 2 by string entry_id
+    with pytest.raises(SystemExit) as exc_info2:
+        main(["memory", "--db", str(db_path), "forget", "entry-02"])
+    assert exc_info2.value.code == 0
+    captured2 = capsys.readouterr()
+    assert "SUCCESS: Memory '2' soft-deleted and audited" in captured2.out
+
+    # 3. Forget non-existent memory exits with code 1
+    with pytest.raises(SystemExit) as exc_info3:
+        main(["memory", "--db", str(db_path), "forget", "nonexistent-999"])
+    assert exc_info3.value.code == 1
+    captured3 = capsys.readouterr()
+    assert "FAILED: Memory 'nonexistent-999' not found" in captured3.out
+
