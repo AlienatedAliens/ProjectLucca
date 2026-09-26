@@ -35,11 +35,17 @@ def calculate_age_str(created_at: float, now: float) -> str:
 
 def _provenance_tier(prov: object) -> int:
     val = prov.value.upper() if hasattr(prov, "value") else str(prov).upper()
-    if "USER" in val:
+    if "USER_EXPLICIT" in val:
         return 0
-    if "VERIFIED" in val:
+    if "USER_DERIVED" in val:
         return 1
-    return 2
+    if "INFERRED" in val:
+        return 2
+    if "LISP" in val or "ASSERTION" in val:
+        return 3
+    if "VERIFIED" in val:
+        return 4
+    return 5
 
 
 def format_memory_context(
@@ -78,10 +84,15 @@ def format_memory_context(
             line = f"- {content_clean}"
         else:
             age = calculate_age_str(hit.created_at, current_time)
-            conf_str = (
-                f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
-            )
-            line = f"- [{hit.kind}/{hit.provenance.value}{conf_str} {age}] {content_clean}"
+            prov_val = hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
+            if prov_val == "INFERRED":
+                conf_val = getattr(hit, "confidence", 1.0)
+                line = f"- [{hit.kind}/INFERRED deduced, confidence {conf_val:.2f} {age}] {content_clean}"
+            else:
+                conf_str = (
+                    f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
+                )
+                line = f"- [{hit.kind}/{prov_val}{conf_str} {age}] {content_clean}"
 
         line_len = len(line) + 1
         if current_len + line_len > char_budget:
@@ -275,16 +286,27 @@ class HybridRetriever:
                         )
                         graph_hits.append(graph_hit)
 
-        # 6. Dedupe & combine
+        # 6. Dedupe & combine: prefer direct hits over graph expansions, active over superseded, higher provenance tier, then score, recency
+        hits_to_dedupe = sorted(
+            hits + graph_hits,
+            key=lambda h: (
+                1 if h.kind == "graph" else 0,
+                1 if h.valid_to is not None else 0,
+                _provenance_tier(h.provenance),
+                -h.score,
+                -h.created_at,
+            ),
+        )
         seen_contents: set[str] = set()
         deduped: list[MemoryHit] = []
 
-        for h in hits + graph_hits:
+        for h in hits_to_dedupe:
             key = h.content.strip().lower()
             if key not in seen_contents:
                 seen_contents.add(key)
                 deduped.append(h)
 
+        deduped.sort(key=lambda h: -h.score)
         result = deduped[: q.k]
 
         # 7. Batched access count and last_access update

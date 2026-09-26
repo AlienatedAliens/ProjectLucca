@@ -228,6 +228,7 @@ class Provenance(StrEnum):
     TOOL_VERIFIED = "TOOL_VERIFIED"
     TOOL_CONTENT_UNTRUSTED = "TOOL_CONTENT_UNTRUSTED"
     LISP_ASSERTION = "LISP_ASSERTION"
+    INFERRED = "INFERRED"
     LLM_NARRATION = "LLM_NARRATION"
     ASSISTANT_UTTERANCE = "ASSISTANT_UTTERANCE"
     ASSISTANT_ACTION = "ASSISTANT_ACTION"
@@ -241,6 +242,7 @@ MEMORY_ELIGIBLE: frozenset[Provenance] = frozenset(
     {
         Provenance.USER_EXPLICIT,
         Provenance.USER_DERIVED,
+        Provenance.INFERRED,
         Provenance.TOOL_VERIFIED,
         Provenance.LISP_ASSERTION,
         Provenance.ASSISTANT_UTTERANCE,
@@ -254,6 +256,7 @@ GROUNDING_ELIGIBLE: frozenset[Provenance] = frozenset(
     {
         Provenance.USER_EXPLICIT,
         Provenance.USER_DERIVED,
+        Provenance.INFERRED,
         Provenance.TOOL_VERIFIED,
         Provenance.LISP_ASSERTION,
         Provenance.ASSISTANT_ACTION,

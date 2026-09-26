@@ -977,6 +977,7 @@ class EpistemicSearchCascade:
                             "valid_to": getattr(hit, "valid_to", None),
                             "superseded_by": getattr(hit, "superseded_by", None),
                             "is_superseded": is_sup,
+                            "confidence": getattr(hit, "confidence", None),
                         },
                     )
                 )
@@ -1188,10 +1189,25 @@ class EpistemicSearchCascade:
                         pred_groups.setdefault((s, p), []).append((item, vf, o))
                         break
 
+        def _entry_precedence(e: tuple[EvidenceItem, float, str]) -> tuple[int, float]:
+            item, vf, _ = e
+            prov = str(item.metadata.get("provenance", "")).upper()
+            if "USER_EXPLICIT" in prov:
+                p_rank = 4
+            elif "USER_DERIVED" in prov:
+                p_rank = 3
+            elif "INFERRED" in prov:
+                p_rank = 2
+            elif "LISP" in prov or "ASSERTION" in prov:
+                p_rank = 1
+            else:
+                p_rank = 0
+            return (p_rank, vf)
+
         for (_s, _p), entries in pred_groups.items():
             if len(entries) < 2:
                 continue
-            entries.sort(key=lambda x: x[1], reverse=True)
+            entries.sort(key=_entry_precedence, reverse=True)
             best_item, best_vf, best_val = entries[0]
             for stale_item, _stale_vf, stale_val in entries[1:]:
                 if stale_val.lower() != best_val.lower():
@@ -1348,6 +1364,10 @@ class EpistemicSearchCascade:
                 lines.append(f"\n[Trust Tier {current_tier.value}: {current_tier.name}]")
             if bool(item.metadata.get("is_superseded")):
                 polarity_tag = "[superseded]"
+            elif item.metadata.get("provenance") == "INFERRED":
+                meta_conf = item.metadata.get("confidence")
+                conf_val = float(meta_conf) if meta_conf is not None else float(item.confidence)
+                polarity_tag = f"[deduced, confidence {conf_val:.2f}]"
             else:
                 polarity_tag = (
                     "[asserts]"

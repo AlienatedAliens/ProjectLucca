@@ -6,8 +6,11 @@ Spec 03 §4, Spec 04 §3, ADR-006
 import base64
 import hashlib
 import hmac
+import re
 import time
 from typing import Final
+
+import structlog
 
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import (
@@ -22,6 +25,8 @@ from lucca.core.schemas import (
 )
 from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
 
+logger = structlog.get_logger(__name__)
+
 # Baseline predicate set; open predicates validated via is_valid_predicate (WO-17 Phase 2).
 PREDICATES: Final[frozenset[str]] = FACT_PREDICATES
 
@@ -34,10 +39,11 @@ class ProvenanceGate:
     and structurally valid payloads into persistent memory.
     """
 
-    def __init__(self, master_key: bytes) -> None:
+    def __init__(self, master_key: bytes, db: object = None) -> None:
         if len(master_key) < 32:
             raise ProvenanceRejected(f"Master key must be at least 32 bytes, got {len(master_key)}")
         self.master_key = master_key
+        self.db = db
         # Verification keys derived via HKDF
         self._keys: dict[Provenance, bytes] = {
             p: derive_provenance_key(master_key, p) for p in Provenance
@@ -51,7 +57,12 @@ class ProvenanceGate:
         for k in to_delete:
             del self._seen_nonces[k]
 
-    def admit(self, payload: SignedPayload | LLMNarration, now: float | None = None) -> Admitted:
+    def admit(
+        self,
+        payload: SignedPayload | LLMNarration,
+        now: float | None = None,
+        db: object = None,
+    ) -> Admitted:
         current_time = now if now is not None else time.time()
 
         # 1. Type check: LLMNarration is unconditionally forbidden
@@ -118,5 +129,112 @@ class ProvenanceGate:
                 raise ProvenanceRejected(
                     f"ASSISTANT_BELIEF requires confidence in [0.60, 1.0], got {payload.confidence}"
                 )
+
+        if payload.provenance == Provenance.INFERRED:
+            if not payload.structured or "proof_trace" not in payload.structured:
+                raise ProvenanceRejected("INFERRED payload requires non-empty structured['proof_trace']")
+            proof_trace = payload.structured["proof_trace"]
+            if not isinstance(proof_trace, list) or len(proof_trace) == 0:
+                raise ProvenanceRejected("INFERRED payload requires non-empty structured['proof_trace']")
+
+            effective_db = db if db is not None else getattr(self, "db", None)
+
+            produced_envelopes: set[str] = set()
+            produced_conclusions: set[str] = set()
+
+            for step in proof_trace:
+                if isinstance(step, dict):
+                    premises = step.get("premises", [])
+                    step_env_id = step.get("envelope_id")
+                    conclusion = step.get("conclusion")
+                elif hasattr(step, "premises") and hasattr(step, "envelope_id") and hasattr(step, "conclusion"):
+                    premises = step.premises
+                    step_env_id = step.envelope_id
+                    conclusion = step.conclusion
+                elif isinstance(step, (list, tuple)) and len(step) >= 5:
+                    premises = step[2]
+                    conclusion = step[3]
+                    step_env_id = step[4]
+                else:
+                    raise ProvenanceRejected(f"Invalid proof trace step format: {step}")
+
+                for prem in premises:
+                    prem_str = str(prem).strip()
+                    if not prem_str:
+                        continue
+                    # Check 0: Attributed premise ("<source> asserts <claim>") carried as condition
+                    if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem_str, re.IGNORECASE):
+                        continue
+
+                    # Check 1: Resolved by earlier step in this proof trace
+                    if prem_str in produced_envelopes or prem_str.lower() in produced_conclusions:
+                        continue
+                    parts = prem_str.split()
+                    if len(parts) >= 2 and any(
+                        parts[0].lower() in c and parts[-1].lower() in c for c in produced_conclusions
+                    ):
+                        continue
+
+                    # Check 2: Resolved in persistent store
+                    resolved = False
+                    if effective_db is not None and hasattr(effective_db, "read_cursor"):
+                        try:
+                            with effective_db.read_cursor() as cur:
+                                cur.execute(
+                                    """
+                                    SELECT e.entry_id
+                                    FROM provenance_envelopes e
+                                    LEFT JOIN memories m ON e.entry_id = m.entry_id
+                                    WHERE e.grounding_eligible = 1
+                                      AND (e.entry_id = ? OR m.content = ? OR m.content = ? OR m.content LIKE ?)
+                                    """,
+                                    (prem_str, prem_str, prem_str.lower(), f"%{prem_str}%"),
+                                )
+                                if cur.fetchone():
+                                    resolved = True
+                                else:
+                                    if len(parts) >= 2:
+                                        s_target = parts[0]
+                                        o_target = parts[-1]
+                                        cur.execute(
+                                            """
+                                            SELECT e.entry_id
+                                            FROM provenance_envelopes e
+                                            JOIN memories m ON e.entry_id = m.entry_id
+                                            WHERE e.grounding_eligible = 1
+                                              AND m.content LIKE ? AND m.content LIKE ?
+                                            """,
+                                            (f"%{s_target}%", f"%{o_target}%"),
+                                        )
+                                        if cur.fetchone():
+                                            resolved = True
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("gate_proof_trace_verification_db_error", error=str(exc))
+
+                    if not resolved:
+                        raise ProvenanceRejected(
+                            f"Proof trace premise '{prem_str}' does not resolve to an existing envelope"
+                        )
+
+                if step_env_id and effective_db is not None and hasattr(effective_db, "read_cursor"):
+                    try:
+                        with effective_db.read_cursor() as cur:
+                            cur.execute(
+                                "SELECT entry_id FROM provenance_envelopes WHERE entry_id = ?",
+                                (str(step_env_id),),
+                            )
+                            if not cur.fetchone():
+                                raise ProvenanceRejected(
+                                    f"Proof trace step envelope '{step_env_id}' does not exist in store"
+                                )
+                    except ProvenanceRejected:
+                        raise
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("gate_step_envelope_lookup_error", error=str(exc))
+
+                if step_env_id:
+                    produced_envelopes.add(str(step_env_id))
+                if conclusion:
+                    produced_conclusions.add(str(conclusion).strip().lower())
 
         return Admitted(payload=payload)

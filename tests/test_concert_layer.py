@@ -12,15 +12,18 @@ Functional acceptance tests for:
 
 import json
 import logging
+import time
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import ulid
 from pydantic import ValidationError
 
+from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.coherence import ToolReceipt
 from lucca.core.config import get_config
-from lucca.core.exceptions import SchemeRuntimeError, SchemeSyntaxError
+from lucca.core.exceptions import ProvenanceRejected, SchemeRuntimeError, SchemeSyntaxError
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.reasoning_context import (
     DEFAULT_CAPACITY,
@@ -47,6 +50,8 @@ from lucca.core.signer_factory import SignerFactory
 from lucca.core.trace import TurnTrace
 from lucca.memory.db import DatabaseManager
 from lucca.memory.gate import ProvenanceGate
+from lucca.memory.retrieval import format_memory_context
+from lucca.memory.signers import DerivedFactSigner
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import MAX_CHAIN_DEPTH, RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_expr, evaluate_rule
@@ -964,5 +969,269 @@ def test_attributed_premise_acceptance_and_rejection(orch: Orchestrator) -> None
     assert len(accepted_empty) == 0
     assert spoken_empty is not None
     assert "driver-582.11 fixes wsl-crash" in spoken_empty or "can't verify" in spoken_empty.lower()
+
+
+# ============================================================================
+# Phase 4 Functional Acceptance Tests (WO-20d / D-REAS-09)
+# ============================================================================
+
+
+def test_completed_chain_commits_inferred_fact_and_gate_verifies(orch: Orchestrator) -> None:
+    """WO-20 Phase 4 Functional Acceptance 1:
+    A completed chain commits an INFERRED fact; the gate verifies it; proof_trace replays (every premise resolves).
+    """
+    trace = _trace("tr-inferred-commit")
+    orch._commit_lisp_assertion(AssertFact(s="user", p="likes", o="gelato"), trace)
+
+    ctx = ReasoningContext()
+    orch.current_reasoning_context = ctx
+
+    step_json = json.dumps([
+        {
+            "premises": ["user likes gelato"],
+            "s": "user",
+            "p": "trait_is",
+            "o": "dessert_lover",
+            "confidence": 0.9,
+        },
+        {
+            "premises": ["user trait_is dessert_lover"],
+            "s": "user",
+            "p": "interest_is",
+            "o": "culinary",
+            "confidence": 0.85,
+        },
+    ])
+    fake_llm = FakeLLM(script=[
+        TokenDelta(delta=step_json),
+        Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=30)),
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="infer interest",
+        trace=trace,
+        llm=fake_llm,
+    )
+    assert len(accepted) == 2
+
+    # Check that INFERRED fact was committed
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT m.content, e.provenance, e.confidence, e.payload_json
+            FROM memories m
+            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+            WHERE e.provenance = 'INFERRED'
+            """
+        )
+        rows = cur.fetchall()
+    assert len(rows) == 1
+    content, prov, conf, payload_json_str = rows[0]
+    assert content == "user interest_is culinary"
+    assert prov == "INFERRED"
+    assert conf == 0.85
+
+    payload_dict = json.loads(payload_json_str)
+    assert "proof_trace" in payload_dict["structured"]
+    pt = payload_dict["structured"]["proof_trace"]
+    assert len(pt) == 2
+    assert pt[0]["conclusion"] == "user trait_is dessert_lover"
+    assert pt[1]["conclusion"] == "user interest_is culinary"
+
+
+def test_trace_with_fabricated_premise_rejected_at_gate(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-20 Phase 4 Functional Acceptance 2:
+    A trace with a fabricated premise is rejected at the gate (ProvenanceRejected).
+    """
+    trace = _trace("tr-fab-gate")
+    signer = signer_factory.inferred_fact()
+    gate = ProvenanceGate(master_key=signer_factory.master_key, db=orch.db)
+
+    # Fabricate a proof trace where step 1 references an unverified premise that does not exist in store
+    fabricated_trace = [
+        {
+            "step_kind": "llm_abductive",
+            "rule_id": "llm",
+            "premises": ["user born_in Mars"],
+            "conclusion": "user origin_is Martian",
+            "envelope_id": f"lisp-{ulid.ULID()}",
+            "confidence": 0.8,
+            "conditions": [],
+        }
+    ]
+
+    unsigned = UnsignedPayload(
+        content="user origin_is Martian",
+        provenance=Provenance.INFERRED,
+        kind="fact",
+        confidence=0.8,
+        nonce="fabrication0011223344",
+        created_at=time.time(),
+        trace_id=trace.trace_id,
+        structured={
+            "s": "user",
+            "p": "origin_is",
+            "o": "Martian",
+            "proof_trace": fabricated_trace,
+        },
+    )
+    signed = signer.sign(unsigned)
+
+    with pytest.raises(ProvenanceRejected, match="does not resolve"):
+        gate.admit(signed)
+
+
+def test_user_derived_supersedes_inferred_fact(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-20 Phase 4 Functional Acceptance 3:
+    A later USER_DERIVED fact on the same predicate supersedes the INFERRED one;
+    the cascade prefers the direct evidence.
+    """
+    trace = _trace("tr-supersede-inferred")
+
+    # 1. Commit an INFERRED fact: user lives_in Melbourne
+    signed_prem = orch._commit_lisp_assertion(AssertFact(s="user", p="likes", o="coffee"), trace)
+    assert signed_prem is not None
+    ctx = ReasoningContext()
+    ctx.add_intermediate(
+        envelope_id=signed_prem.entry_id,
+        s="user",
+        p="likes",
+        o="coffee",
+        confidence=1.0,
+        step_kind="lisp_rule",
+    )
+    signed_inter = orch._commit_lisp_assertion(
+        AssertFact(s="user", p="lives_in", o="Melbourne"), trace
+    )
+    assert signed_inter is not None
+    ctx.add_intermediate(
+        envelope_id=signed_inter.entry_id,
+        s="user",
+        p="lives_in",
+        o="Melbourne",
+        confidence=0.8,
+        step_kind="llm_abductive",
+        premises=["user likes coffee"],
+    )
+    inferred_signed = orch.finalize_chain(ctx, trace)
+    assert inferred_signed is not None
+
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT m.memory_id, m.content, m.valid_to, e.provenance
+            FROM memories m
+            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+            WHERE e.provenance = 'INFERRED'
+            """
+        )
+        inferred_rows = cur.fetchall()
+    assert len(inferred_rows) == 1
+    inferred_mid, inferred_content, inferred_vt, _ = inferred_rows[0]
+    assert inferred_vt is None
+
+    # 2. Later, direct evidence arrives: USER_DERIVED fact: user lives_in Sydney
+    derived_signer = DerivedFactSigner(master_key=signer_factory.master_key)
+    user_speech_signer = signer_factory.user_speech()
+
+    transcript_signed = user_speech_signer.sign(
+        UnsignedPayload(
+            content="I actually live in Sydney now",
+            provenance=Provenance.USER_EXPLICIT,
+            kind="transcript",
+            confidence=1.0,
+            nonce="userturn000111222",
+            created_at=time.time() + 10,
+            trace_id=trace.trace_id,
+        )
+    )
+    orch.memory_store.commit(transcript_signed)
+
+    derived_unsigned = UnsignedPayload(
+        content="user lives_in Sydney",
+        provenance=Provenance.USER_DERIVED,
+        kind="fact",
+        confidence=0.95,
+        source_entry_ids=[transcript_signed.entry_id],
+        nonce="derivedturn000111222",
+        created_at=time.time() + 15,
+        trace_id=trace.trace_id,
+        structured={"s": "user", "p": "lives_in", "o": "Sydney"},
+    )
+    derived_signed = derived_signer.sign(derived_unsigned)
+    orch.memory_store.commit(derived_signed)
+
+    # 3. Verify in DB: the INFERRED memory is now superseded!
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            "SELECT valid_to, superseded_by FROM memories WHERE memory_id = ?",
+            (inferred_mid,),
+        )
+        row = cur.fetchone()
+    assert row[0] is not None
+    assert row[1] is not None
+
+    # 4. Verify cascade prefers direct evidence
+    cascade = EpistemicSearchCascade(memory_store=orch.memory_store)
+    evidence = cascade.query_substrate_2_memory("lives_in")
+    belnap, text, _ = cascade.synthesize("where does user live?", evidence)
+    assert "Sydney" in text
+    assert "[superseded]" in text or "supersedes" in text
+
+
+def test_cascade_and_renderer_frame_inferred_fact_as_deduced_confidence(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-20 Phase 4 Functional Acceptance 4:
+    The cascade and memory context renderer frame the fact as 'deduced, confidence c' in prompt context.
+    """
+    trace = _trace("tr-frame-inferred")
+    signed_prem = orch._commit_lisp_assertion(AssertFact(s="user", p="job", o="engineer"), trace)
+    assert signed_prem is not None
+    ctx = ReasoningContext()
+    ctx.add_intermediate(
+        envelope_id=signed_prem.entry_id,
+        s="user",
+        p="job",
+        o="engineer",
+        confidence=1.0,
+        step_kind="lisp_rule",
+    )
+    signed_step = orch._commit_lisp_assertion(
+        AssertFact(s="user", p="skill_level", o="senior"), trace
+    )
+    assert signed_step is not None
+    ctx.add_intermediate(
+        envelope_id=signed_step.entry_id,
+        s="user",
+        p="skill_level",
+        o="senior",
+        confidence=0.82,
+        step_kind="llm_abductive",
+        premises=["user job engineer"],
+    )
+    inferred_signed = orch.finalize_chain(ctx, trace)
+    assert inferred_signed is not None
+
+    # Test format_memory_context (renderer)
+    q = RetrievalQuery(query_text="skill_level", k=5)
+    hits = orch.memory_store.search(q)
+    inferred_hits = [
+        h for h in hits if h.provenance == Provenance.INFERRED or str(h.provenance) == "INFERRED"
+    ]
+    assert len(inferred_hits) >= 1
+    rendered = format_memory_context(inferred_hits)
+    assert "deduced, confidence 0.82" in rendered
+
+    # Test cascade formatting
+    cascade = EpistemicSearchCascade(memory_store=orch.memory_store)
+    evidence = cascade.query_substrate_2_memory("skill_level")
+    _, cascade_text, _ = cascade.synthesize("skill_level", evidence)
+    assert "deduced, confidence 0.82" in cascade_text
+
 
 

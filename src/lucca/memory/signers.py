@@ -183,6 +183,26 @@ def create_lisp_assertion_signer(
     return LispAssertionSigner(master_key=master_key, signer_id=signer_id)
 
 
+class InferredFactSigner(BaseProvenanceSigner):
+    """Constructed ONLY in lucca.core.orchestrator to attest deduced facts (WO-20 Phase 4)."""
+
+    allowed_provenances: frozenset[Provenance] = frozenset(
+        {
+            Provenance.INFERRED,
+        }
+    )
+
+    def __init__(self, master_key: bytes, signer_id: str = "orchestrator@lucca-core") -> None:
+        super().__init__(master_key, signer_id)
+
+
+def create_inferred_fact_signer(
+    master_key: bytes, signer_id: str = "orchestrator@lucca-core"
+) -> InferredFactSigner:
+    """Authorized factory for constructing InferredFactSigner (WO-20 Phase 4)."""
+    return InferredFactSigner(master_key=master_key, signer_id=signer_id)
+
+
 class AssistantUtteranceSigner(BaseProvenanceSigner):
     """Constructed ONLY in lucca.core.orchestrator (narration finaliser) or test factory."""
 

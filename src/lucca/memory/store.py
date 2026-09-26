@@ -61,7 +61,7 @@ class MemoryStore:
         self.embedding_port = embedding_port
         self.backup_dir = Path(backup_dir) if isinstance(backup_dir, str) else backup_dir
 
-        self.gate = ProvenanceGate(master_key=master_key)
+        self.gate = ProvenanceGate(master_key=master_key, db=db)
         self.retriever = HybridRetriever(db=db, embedder=embedding_port)
 
         self.read_only: bool = False
@@ -214,15 +214,59 @@ class MemoryStore:
                     s_id, _ = resolve_entity(conn, s_surface, now=signed_payload.created_at)
                     o_id, _ = resolve_entity(conn, o_surface, now=signed_payload.created_at)
 
-                    # Functional predicate supersession
-                    if p_pred in FUNCTIONAL_PREDICATES:
+                    # Direct evidence (USER_EXPLICIT / USER_DERIVED) supersedes INFERRED facts on the same predicate
+                    if signed_payload.provenance in (Provenance.USER_EXPLICIT, Provenance.USER_DERIVED):
                         cursor.execute(
                             """
-                            SELECT edge_id, memory_id FROM kg_edges
-                            WHERE s = ? AND p = ? AND valid_to IS NULL AND o <> ?
+                            SELECT k.edge_id, k.memory_id
+                            FROM kg_edges k
+                            JOIN memories m ON k.memory_id = m.memory_id
+                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                            WHERE k.s = ? AND k.p = ? AND k.valid_to IS NULL
+                              AND e.provenance = 'INFERRED'
                             """,
-                            (s_id, p_pred, o_id),
+                            (s_id, p_pred),
                         )
+                        for old_edge_id, old_mid in cursor.fetchall():
+                            cursor.execute(
+                                "UPDATE kg_edges SET valid_to = ? WHERE edge_id = ?",
+                                (signed_payload.created_at, old_edge_id),
+                            )
+                            cursor.execute(
+                                """
+                                UPDATE memories SET valid_to = ?, superseded_by = ?
+                                WHERE memory_id = ?
+                                """,
+                                (signed_payload.created_at, memory_id, old_mid),
+                            )
+                            cursor.execute(
+                                """
+                                INSERT INTO memory_audit(
+                                    ts, kind, reason, provenance, trace_id, entry_id
+                                )
+                                VALUES (?, 'supersede', ?, ?, ?, ?)
+                                """,
+                                (
+                                    current_time,
+                                    f"Direct evidence ({signed_payload.provenance.value}) supersedes INFERRED fact on {p_pred}",
+                                    signed_payload.provenance.value,
+                                    signed_payload.trace_id,
+                                    signed_payload.entry_id,
+                                ),
+                            )
+
+                    # Functional predicate supersession
+                    if p_pred in FUNCTIONAL_PREDICATES:
+                        query = """
+                            SELECT k.edge_id, k.memory_id
+                            FROM kg_edges k
+                            JOIN memories m ON k.memory_id = m.memory_id
+                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                            WHERE k.s = ? AND k.p = ? AND k.valid_to IS NULL AND k.o <> ?
+                        """
+                        if signed_payload.provenance == Provenance.INFERRED:
+                            query += " AND e.provenance NOT IN ('USER_EXPLICIT', 'USER_DERIVED')"
+                        cursor.execute(query, (s_id, p_pred, o_id))
                         old_edges = cursor.fetchall()
                         for old_edge_id, old_mid in old_edges:
                             cursor.execute(

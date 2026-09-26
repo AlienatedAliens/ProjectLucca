@@ -1092,9 +1092,60 @@ class Orchestrator:
                 update={"asserted_facts": st.asserted_facts | {(action.s, action.p, action.o)}}
             )
 
-        return self.rule_engine.evaluate_chain(
+        outcomes, final_state = self.rule_engine.evaluate_chain(
             state, execute_assert=_exec_assert, max_depth=max_depth, context=ctx
         )
+        if len(ctx) > 0:
+            self.finalize_chain(ctx, trace)
+        return outcomes, final_state
+
+    def finalize_chain(
+        self,
+        context: ReasoningContext | None = None,
+        trace: TurnTrace | None = None,
+    ) -> SignedPayload | None:
+        """Commits the conclusion of a completed chain as INFERRED with its proof trace (WO-20 Phase 4)."""
+        ctx = context if context is not None else getattr(self, "current_reasoning_context", None)
+        if ctx is None or len(ctx) == 0:
+            return None
+        if not self.memory_store:
+            return None
+
+        final_entry = ctx[-1]
+        proof_trace_steps = ctx.proof_trace()
+        proof_trace = [s.to_dict() for s in proof_trace_steps]
+        confidence = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
+
+        all_conditions: list[str] = []
+        for s in proof_trace_steps:
+            for cond in s.conditions:
+                if cond not in all_conditions:
+                    all_conditions.append(cond)
+
+        signer = self.signer_factory.inferred_fact()
+        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
+        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
+
+        unsigned = UnsignedPayload(
+            content=f"{final_entry.s} {final_entry.p} {final_entry.o}",
+            provenance=Provenance.INFERRED,
+            kind="fact",
+            confidence=confidence,
+            nonce=os.urandom(16).hex(),
+            created_at=now,
+            trace_id=trace_id,
+            structured={
+                "s": final_entry.s,
+                "p": final_entry.p,
+                "o": final_entry.o,
+                "confidence": confidence,
+                "proof_trace": proof_trace,
+                "conditions": all_conditions,
+            },
+        )
+        signed = signer.sign(unsigned)
+        self.memory_store.commit(signed, now=now)
+        return signed
 
     def proof_trace(self) -> list[ProofTraceStep]:
         """Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4)."""
@@ -1446,6 +1497,8 @@ class Orchestrator:
                 self._speak_text(trace, spoken)
             return (accepted_steps, spoken)
 
+        if accepted_steps and len(ctx) > 0:
+            self.finalize_chain(ctx, trace)
         return (accepted_steps, None)
 
     run_deduction_loop = run_deduction_step

@@ -118,10 +118,16 @@ On `unverified_premise`, run these in order, bounded to **one pass per deduction
 | File | Action |
 |---|---|
 | `src/lucca/core/schemas.py` | Add `Provenance.INFERRED`; add it to the grounding-eligible set at the tier below `USER_DERIVED` (grep `MEMORY_ELIGIBLE` / the Belnap tier mapping in `cascade.py`). |
-| `src/lucca/memory/signers.py` | `InferredFactSigner` + `create_inferred_fact_signer` (HKDF per ADR-006). Register in `SignerFactory`. (Naming follows the DEDUCED→INFERRED rename, commit `b4ddd49`.) |
+| `src/lucca/memory/signers.py` | `InferredFactSigner` + `create_inferred_fact_signer` (HKDF per ADR-006). |
+| `src/lucca/core/signer_factory.py` | Register `inferred_fact` in `SignerFactory`. |
 | `src/lucca/memory/gate.py` | Admit `INFERRED` only with a non-empty `structured["proof_trace"]` whose every premise resolves to an existing envelope. |
 | `src/lucca/core/orchestrator.py` | Chain finalizer: on fixpoint, commit the conclusion as `INFERRED` with `proof_trace = context.proof_trace()` and `confidence = min(step confidences)`. |
 | `src/lucca/memory/store.py` | `INFERRED` facts are superseded by `USER_EXPLICIT`/`USER_DERIVED` facts on the same predicate. |
+| `src/lucca/core/cascade.py` | Belnap tier placement: direct user evidence (`USER_EXPLICIT`/`USER_DERIVED`) strictly supersedes `INFERRED` facts in intra-substrate conflict resolution. |
+| `src/lucca/memory/retrieval.py` | Memory-context renderer: format `INFERRED` facts as `[deduced, confidence c]`; tier hierarchy ranks `INFERRED` below `USER_DERIVED`. |
+| `src/lucca/memory/migrations/0001_init.sql` | Add `INFERRED` to `provenance_envelopes` CHECK and `mem_bi_eligible` trigger. |
+| `src/lucca/memory/migrations/0006_autobiographical.sql` | Add `INFERRED` to `provenance_envelopes` CHECK and `mem_bi_eligible` trigger. |
+| `tests/test_concert_layer.py` | Functional acceptance tests for `INFERRED` commit, gate replay, fabricated rejection, supersession, and framing. |
 
 **Functional acceptance:**
 - A completed chain commits a `INFERRED` fact; the gate verifies it; `proof_trace` replays (every premise resolves).
