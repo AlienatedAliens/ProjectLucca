@@ -176,6 +176,13 @@ class LispAssertionSigner(BaseProvenanceSigner):
         super().__init__(master_key, signer_id)
 
 
+def create_lisp_assertion_signer(
+    master_key: bytes, signer_id: str = "rules@lucca-core"
+) -> LispAssertionSigner:
+    """Authorized factory for constructing LispAssertionSigner (WO-20 Phase 1)."""
+    return LispAssertionSigner(master_key=master_key, signer_id=signer_id)
+
+
 class AssistantUtteranceSigner(BaseProvenanceSigner):
     """Constructed ONLY in lucca.core.orchestrator (narration finaliser) or test factory."""
 

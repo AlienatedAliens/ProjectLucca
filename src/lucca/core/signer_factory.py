@@ -16,9 +16,11 @@ from typing import Final
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
+    LispAssertionSigner,
     ToolResultSigner,
     UserSpeechSigner,
     create_assistant_utterance_signer,
+    create_lisp_assertion_signer,
     create_tool_result_signer,
     create_user_speech_signer,
 )
@@ -63,3 +65,8 @@ class SignerFactory:
     def coherence_breach(self, signer_id: str = "supervisor@lucca-core") -> CoherenceBreachSigner:
         """Creates an authorized CoherenceBreachSigner."""
         return CoherenceBreachSigner(master_key=self._master_key, signer_id=signer_id)
+
+    def lisp_assertion(self, signer_id: str = "rules@lucca-core") -> LispAssertionSigner:
+        """Creates an authorized LispAssertionSigner (WO-20 Phase 1)."""
+        return create_lisp_assertion_signer(master_key=self._master_key, signer_id=signer_id)
+

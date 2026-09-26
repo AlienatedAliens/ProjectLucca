@@ -32,6 +32,7 @@ from lucca.core.config import load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
+    AssertFact,
     ExecutionTier,
     JsonValue,
     RouteAction,
@@ -233,6 +234,9 @@ class TurnPipeline:
                         )
                         args_str = ", ".join(f"{k}={v!r}" for k, v in action.args.items())
                         tool_executions.append(f"[Executed {action.tool}({args_str}) -> {status}]")
+                    elif isinstance(action, AssertFact):
+                        self.orch._commit_lisp_assertion(action, trace)
+                        tool_executions.append(f"[Asserted {action.s} {action.p} {action.o}]")
 
                 self.orch.rule_engine.emit_execution_triple(
                     rule_id=winning_outcome.rule_id,
@@ -315,6 +319,9 @@ class TurnPipeline:
                         exec_lines.append(
                             f"{action.tool}({args_str}) -> {status_str}: {raw_detail}"
                         )
+                    elif isinstance(action, AssertFact):
+                        self.orch._commit_lisp_assertion(action, trace)
+                        exec_lines.append(f"assert({action.s} {action.p} {action.o}) -> ok")
             if exec_lines:
                 combined = "\n".join(exec_lines)
                 last_tool_res = ToolResult(

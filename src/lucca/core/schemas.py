@@ -434,12 +434,25 @@ class Say(BaseModel):
     text: str
 
 
+class AssertFact(BaseModel):
+    s: str
+    p: str
+    o: str
+
+    @field_validator("p")
+    @classmethod
+    def validate_predicate(cls, v: str) -> str:
+        if not is_valid_predicate(v):
+            raise ValueError(f"Invalid predicate format: '{v}'")
+        return v
+
+
 class Plan(BaseModel):
-    actions: list[ToolCall | Say]
+    actions: list[ToolCall | Say | AssertFact]
     rationale: str = ""
 
 
-RuleAction = ToolCall | Say
+RuleAction = ToolCall | Say | AssertFact
 
 
 class RuleState(BaseModel, frozen=True):
@@ -457,6 +470,7 @@ class RuleState(BaseModel, frozen=True):
     session_turns: int = 0
     mode: Literal["audio", "transcript"] = "transcript"
     interrupted: bool = False
+    asserted_facts: frozenset[tuple[str, str, str]] = frozenset()
 
 
 class RuleOutcome(BaseModel):

@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 
 from lucca.core.exceptions import SchemeSyntaxError
-from lucca.core.schemas import Say, ToolCall
+from lucca.core.schemas import AssertFact, Say, ToolCall, is_valid_predicate
 from lucca.reasoning.scheme.lexer import Token, tokenize
 
 
@@ -28,7 +28,7 @@ class Keyword:
 
 SchemeAtom = int | float | bool | str | Symbol | Keyword
 SchemeNode = SchemeAtom | list["SchemeNode"]
-type SchemeValue = SchemeAtom | list["SchemeValue"] | Say | ToolCall
+type SchemeValue = SchemeAtom | list["SchemeValue"] | Say | ToolCall | AssertFact
 
 ALLOWED_OPS = frozenset(
     {
@@ -36,6 +36,9 @@ ALLOWED_OPS = frozenset(
         "list",
         "tool",
         "say",
+        "assert",
+        "fact-exists?",
+        "fact-value",
         "yield-to-core",
         "interrupt-core",
         "and",
@@ -92,6 +95,8 @@ STATE_PREDICATES = frozenset(
         "last-tool=",
         "session-turns>=",
         "interrupted?",
+        "fact-exists?",
+        "fact-value",
     }
 )
 
@@ -116,6 +121,7 @@ class Parser:
         self.depth = 0
         self.macro_registry = macro_registry
         self._in_macro_body = False
+        self._in_fact_pattern = False
 
     def parse_all(self) -> SchemeNode:
         if not self.tokens:
@@ -270,20 +276,32 @@ class Parser:
         ):
             return self._parse_defmacro_form(lparen)
 
+        is_fact_op = (
+            self.pos < len(self.tokens)
+            and self.tokens[self.pos].type == "SYMBOL"
+            and self.tokens[self.pos].value in ("assert", "fact-exists?", "fact-value")
+        )
+        was_in_fact_pattern = self._in_fact_pattern
+        if is_fact_op:
+            self._in_fact_pattern = True
+
         items: list[SchemeNode] = []
-        while True:
-            if self.pos >= len(self.tokens):
-                raise SchemeSyntaxError(
-                    "Unclosed parenthesis: expected ')' before EOF", lparen.line, lparen.col
-                )
+        try:
+            while True:
+                if self.pos >= len(self.tokens):
+                    raise SchemeSyntaxError(
+                        "Unclosed parenthesis: expected ')' before EOF", lparen.line, lparen.col
+                    )
 
-            cur = self.tokens[self.pos]
-            if cur.type == "RPAREN":
-                self.pos += 1  # consume ')'
-                self.depth -= 1
-                break
+                cur = self.tokens[self.pos]
+                if cur.type == "RPAREN":
+                    self.pos += 1  # consume ')'
+                    self.depth -= 1
+                    break
 
-            items.append(self._parse_expr())
+                items.append(self._parse_expr())
+        finally:
+            self._in_fact_pattern = was_in_fact_pattern
 
         # Validate operator if list represents an invocation
         if items and isinstance(items[0], Symbol):
@@ -292,7 +310,7 @@ class Parser:
                 raise SchemeSyntaxError(
                     "Primitive shadowing or 'define' is forbidden", items[0].line, items[0].col
                 )
-            if not self._in_macro_body and op not in ALLOWED_OPS:
+            if not self._in_macro_body and not was_in_fact_pattern and op not in ALLOWED_OPS:
                 has_macro = False
                 if self.macro_registry is not None and hasattr(self.macro_registry, "has"):
                     has_macro = self.macro_registry.has(op)
@@ -393,6 +411,8 @@ def _validate_operators(node: SchemeNode) -> None:
                 raise SchemeSyntaxError(
                     f"Disallowed operator '{op}' after macro expansion", head.line, head.col
                 )
+            if op in ("assert", "fact-exists?", "fact-value"):
+                return
         for child in node:
             _validate_operators(child)
 
@@ -401,7 +421,7 @@ def _validate_action_node(action: SchemeNode) -> None:
     if not isinstance(action, list) or not action or not isinstance(action[0], Symbol):
         raise SchemeSyntaxError(
             "Plan action must be a list starting with 'tool', 'say', "
-            f"'yield-to-core', or 'interrupt-core', got {action}"
+            f"'yield-to-core', 'interrupt-core', or 'assert', got {action}"
         )
     action_name = action[0].name
     if action_name == "tool":
@@ -419,6 +439,24 @@ def _validate_action_node(action: SchemeNode) -> None:
             raise SchemeSyntaxError(
                 f"Say action requires exactly one string argument, got {action}"
             )
+    elif action_name == "assert":
+        if len(action) == 2 and isinstance(action[1], list) and len(action[1]) == 3:
+            s_node, p_node, o_node = action[1]
+        elif len(action) == 4:
+            s_node, p_node, o_node = action[1], action[2], action[3]
+        else:
+            raise SchemeSyntaxError(
+                f"Assert action requires a triple (s p o), got {action}"
+            )
+        p_str = (
+            p_node.name
+            if isinstance(p_node, Symbol)
+            else str(p_node)
+            if isinstance(p_node, str)
+            else None
+        )
+        if p_str is None or not is_valid_predicate(p_str):
+            raise SchemeSyntaxError(f"Assert action has invalid predicate '{p_str}'")
     elif action_name == "yield-to-core":
         if len(action) < 2 or not isinstance(action[1], str):
             raise SchemeSyntaxError(
@@ -441,7 +479,7 @@ def _validate_action_node(action: SchemeNode) -> None:
     else:
         raise SchemeSyntaxError(
             f"Unknown plan action '{action_name}'; must be 'tool', 'say', "
-            "'yield-to-core', or 'interrupt-core'"
+            "'yield-to-core', 'interrupt-core', or 'assert'"
         )
 
 
@@ -461,9 +499,11 @@ def _validate_plan_structure(plan_node: SchemeNode) -> None:
     elif head == "list":
         for action in plan_node[1:]:
             _validate_action_node(action)
+    elif head == "assert":
+        _validate_action_node(plan_node)
     else:
         raise SchemeSyntaxError(
-            f"Rule :plan clause must be of form (list ...) or (if ...), got ({head} ...)"
+            f"Rule :plan clause must be of form (list ...), (if ...), or (assert ...), got ({head} ...)"
         )
 
 

@@ -7,9 +7,10 @@ import hashlib
 import json
 import math
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
+from typing import Final, Literal
 
 import structlog
 import ulid
@@ -22,6 +23,7 @@ from lucca.core.capabilities import get_default_native_tools
 from lucca.core.config import get_resource_path
 from lucca.core.exceptions import SchemeSyntaxError
 from lucca.core.schemas import (
+    AssertFact,
     CandidateRule,
     Decision,
     ExecutionTriple,
@@ -50,6 +52,8 @@ from lucca.reasoning.stats import mcnemar_test, wilson_score_interval
 logger = structlog.get_logger(__name__)
 
 RuleStatus = Literal["PROPOSED", "QUARANTINE", "PENDING_APPROVAL", "ACTIVE", "DEMOTED", "RETIRED"]
+
+MAX_CHAIN_DEPTH: Final[int] = 8
 
 
 def get_default_tool_schemas() -> dict[str, ToolSchema]:
@@ -266,6 +270,73 @@ class RuleLifecycleManager:
                 outcomes.append(outcome)
 
         return outcomes
+
+    def evaluate_chain(
+        self,
+        state: RuleState,
+        *,
+        execute_assert: Callable[[AssertFact, RuleState], RuleState] | None = None,
+        max_depth: int = MAX_CHAIN_DEPTH,
+    ) -> tuple[list[RuleOutcome], RuleState]:
+        """Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1).
+
+        After a plan containing AssertFact executes, rebuilds state and re-evaluates,
+        bounded by MAX_CHAIN_DEPTH = 8 and gas limit. Halts on fixpoint (no new assertions).
+        """
+        current_state = state
+        all_outcomes: list[RuleOutcome] = []
+        fired_rule_ids: set[str] = set()
+        depth = 0
+
+        while True:
+            if depth >= max_depth:
+                logger.warning(
+                    "chain_depth_exceeded",
+                    depth=depth,
+                    max_depth=max_depth,
+                )
+                break
+
+            active_rules = sorted(
+                [
+                    r
+                    for r in self.rules.values()
+                    if r.status == "ACTIVE" and r.rule_id not in fired_rule_ids
+                ],
+                key=lambda r: r.definition.priority,
+                reverse=True,
+            )
+            step_fired = False
+            step_assert_actions: list[AssertFact] = []
+
+            for r in active_rules:
+                outcome = evaluate_rule(r.definition, current_state)
+                all_outcomes.append(outcome)
+                if outcome.fired and not outcome.errored and outcome.plan is not None:
+                    step_fired = True
+                    fired_rule_ids.add(r.rule_id)
+                    for action in outcome.plan.actions:
+                        if isinstance(action, AssertFact):
+                            step_assert_actions.append(action)
+
+            if not step_fired or not step_assert_actions:
+                # Fixpoint fast-path: no rules fired or no assertions in this step
+                break
+
+            # Execute assertions and rebuild state (TRAP 3: never mutate state in place)
+            for act in step_assert_actions:
+                if execute_assert is not None:
+                    current_state = execute_assert(act, current_state)
+                else:
+                    new_facts = set(current_state.asserted_facts)
+                    new_facts.add((act.s, act.p, act.o))
+                    current_state = current_state.model_copy(
+                        update={"asserted_facts": frozenset(new_facts)}
+                    )
+
+            depth += 1
+
+        return all_outcomes, current_state
 
     def emit_shadow_triple(
         self,

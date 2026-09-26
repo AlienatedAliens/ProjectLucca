@@ -15,7 +15,7 @@ from lucca.core.exceptions import (
     SchemeRuntimeError,
     SchemeYieldSignal,
 )
-from lucca.core.schemas import RuleState, Say, ToolCall
+from lucca.core.schemas import AssertFact, RuleState, Say, ToolCall, is_valid_predicate
 from lucca.reasoning.scheme.parser import Keyword, SchemeValue
 
 INT_MAX = 2**63 - 1
@@ -360,6 +360,63 @@ def make_state_primitives(
             raise SchemeRuntimeError("'interrupted?' takes no arguments", cause_type="ValueError")
         return bool(state.interrupted)
 
+    def prim_fact_exists(args: list[SchemeValue]) -> bool:
+        """(fact-exists? (s p o)) or (fact-exists? (s p)) or 2/3 args.
+
+        Tests presence in state.asserted_facts.
+        """
+        if len(args) == 1 and isinstance(args[0], list):
+            items = args[0]
+            if len(items) == 3:
+                s, p, o = str(items[0]).strip(), str(items[1]).strip().lower(), str(items[2]).strip()
+                return (s, p, o) in state.asserted_facts
+            elif len(items) == 2:
+                s, p = str(items[0]).strip(), str(items[1]).strip().lower()
+                return any(fs == s and fp == p for fs, fp, _ in state.asserted_facts)
+            else:
+                raise SchemeRuntimeError(
+                    f"'fact-exists?' expects 2 or 3 pattern elements, got {len(items)}",
+                    cause_type="ValueError",
+                )
+        elif len(args) == 3:
+            s, p, o = str(args[0]).strip(), str(args[1]).strip().lower(), str(args[2]).strip()
+            return (s, p, o) in state.asserted_facts
+        elif len(args) == 2:
+            s, p = str(args[0]).strip(), str(args[1]).strip().lower()
+            return any(fs == s and fp == p for fs, fp, _ in state.asserted_facts)
+        else:
+            raise SchemeRuntimeError(
+                f"'fact-exists?' requires pattern (s p o) or (s p), got {len(args)} args",
+                cause_type="ValueError",
+            )
+
+    def prim_fact_value(args: list[SchemeValue]) -> SchemeValue:
+        """(fact-value (s p)) or (fact-value s p).
+
+        Returns object 'o' from matching asserted_fact, or False if not found.
+        """
+        if len(args) == 1 and isinstance(args[0], list):
+            items = args[0]
+            if len(items) >= 2:
+                s, p = str(items[0]).strip(), str(items[1]).strip().lower()
+            else:
+                raise SchemeRuntimeError(
+                    f"'fact-value' requires at least subject and predicate, got {len(items)}",
+                    cause_type="ValueError",
+                )
+        elif len(args) >= 2:
+            s, p = str(args[0]).strip(), str(args[1]).strip().lower()
+        else:
+            raise SchemeRuntimeError(
+                f"'fact-value' requires (s p) or 2 arguments, got {len(args)}",
+                cause_type="ValueError",
+            )
+
+        for fs, fp, fo in state.asserted_facts:
+            if fs == s and fp == p:
+                return fo
+        return False
+
     return {
         "intent=": prim_intent_eq,
         "entity-has?": prim_entity_has,
@@ -376,6 +433,8 @@ def make_state_primitives(
         "last-tool=": prim_last_tool_eq,
         "session-turns>=": prim_session_turns_gte,
         "interrupted?": prim_interrupted,
+        "fact-exists?": prim_fact_exists,
+        "fact-value": prim_fact_value,
     }
 
 
@@ -479,6 +538,36 @@ def prim_interrupt_core(args: list[SchemeValue]) -> SchemeValue:
     raise SchemeInterruptSignal(reason=reason)
 
 
+def prim_assert(args: list[SchemeValue]) -> AssertFact:
+    """(assert (s p o)) or (assert s p o) -> AssertFact.
+
+    Pure plan action construction per D-REAS-05 / D-REAS-09 (Trap 1).
+    No side effects or store writes occur in the primitive.
+    """
+    if len(args) == 1 and isinstance(args[0], list):
+        items = args[0]
+        if len(items) != 3:
+            raise SchemeRuntimeError(
+                f"'assert' requires a triple (s p o), got list of length {len(items)}",
+                cause_type="ValueError",
+            )
+        s, p, o = str(items[0]), str(items[1]), str(items[2])
+    elif len(args) == 3:
+        s, p, o = str(args[0]), str(args[1]), str(args[2])
+    else:
+        raise SchemeRuntimeError(
+            f"'assert' requires a triple (s p o) or 3 arguments, got {len(args)}",
+            cause_type="ValueError",
+        )
+
+    clean_p = p.strip().lower()
+    if not is_valid_predicate(clean_p):
+        raise SchemeRuntimeError(
+            f"Invalid predicate '{p}' in assert action", cause_type="ValueError"
+        )
+    return AssertFact(s=s.strip(), p=clean_p, o=o.strip())
+
+
 # Frozen static primitives table
 PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "+": prim_add,
@@ -499,6 +588,7 @@ PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "list": prim_list,
     "say": prim_say,
     "tool": prim_tool,
+    "assert": prim_assert,
     "yield-to-core": prim_yield_to_core,
     "interrupt-core": prim_interrupt_core,
 }

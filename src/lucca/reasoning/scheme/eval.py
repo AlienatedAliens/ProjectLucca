@@ -13,7 +13,14 @@ from lucca.core.exceptions import (
     SchemeRuntimeError,
     SchemeTimeout,
 )
-from lucca.core.schemas import Plan, RuleOutcome, RuleState, Say, ToolCall
+from lucca.core.schemas import (
+    AssertFact,
+    Plan,
+    RuleOutcome,
+    RuleState,
+    Say,
+    ToolCall,
+)
 from lucca.reasoning.scheme.parser import (
     Keyword,
     RuleDefinition,
@@ -67,15 +74,17 @@ class SchemeEvaluator:
                 return []
 
             head = node[0]
-            if not isinstance(head, Symbol):
+            if isinstance(head, Symbol):
+                op = head.name
+            elif isinstance(head, str):
+                op = head
+            else:
                 raise SchemeRuntimeError(
                     f"First element of call must be an operator symbol, got {type(head).__name__}",
                     rule_id=self.rule_id,
                     form=to_canonical(node),
                     cause_type="TypeError",
                 )
-
-            op = head.name
 
             # Special forms: and, or, if
             if op == "and":
@@ -111,12 +120,33 @@ class SchemeEvaluator:
 
             fn = env[op]
             args: list[SchemeValue] = []
-            for arg in node[1:]:
-                # If argument is a Keyword, preserve it directly without evaluating as symbol
-                if isinstance(arg, Keyword):
-                    args.append(arg)
-                else:
-                    args.append(self.eval(arg, env))
+            if op in ("assert", "fact-exists?", "fact-value"):
+                for arg in node[1:]:
+                    if isinstance(arg, list):
+                        triple_items: list[SchemeValue] = []
+                        for item in arg:
+                            if isinstance(item, Symbol):
+                                triple_items.append(item.name)
+                            elif isinstance(item, Keyword):
+                                triple_items.append(item.name.lstrip(":"))
+                            elif isinstance(item, (str, int, float, bool)):
+                                triple_items.append(item)
+                            else:
+                                triple_items.append(self.eval(item, env))
+                        args.append(triple_items)
+                    elif isinstance(arg, Symbol):
+                        args.append(arg.name)
+                    elif isinstance(arg, Keyword):
+                        args.append(arg.name.lstrip(":"))
+                    else:
+                        args.append(self.eval(arg, env))
+            else:
+                for arg in node[1:]:
+                    # If argument is a Keyword, preserve it directly without evaluating as symbol
+                    if isinstance(arg, Keyword):
+                        args.append(arg)
+                    else:
+                        args.append(self.eval(arg, env))
 
             try:
                 return fn(args)
@@ -199,16 +229,18 @@ def evaluate_rule(
     if fired:
         try:
             raw_plan = evaluator.eval(rule.plan_expr, env)
-            if not isinstance(raw_plan, list):
+            if isinstance(raw_plan, (ToolCall, Say, AssertFact)):
+                raw_plan = [raw_plan]
+            elif not isinstance(raw_plan, list):
                 raise SchemeRuntimeError(
                     f"Expected :plan to evaluate to list of actions, got {type(raw_plan).__name__}",
                     rule_id=rule.rule_id,
                     form=to_canonical(rule.plan_expr),
                     cause_type="TypeError",
                 )
-            actions: list[ToolCall | Say] = []
+            actions: list[ToolCall | Say | AssertFact] = []
             for item in raw_plan:
-                if isinstance(item, (ToolCall, Say)):
+                if isinstance(item, (ToolCall, Say, AssertFact)):
                     actions.append(item)
                 else:
                     raise SchemeRuntimeError(
@@ -256,16 +288,18 @@ def evaluate_plan(
 
     try:
         raw_plan = evaluator.eval(rule.plan_expr, env)
-        if not isinstance(raw_plan, list):
+        if isinstance(raw_plan, (ToolCall, Say, AssertFact)):
+            raw_plan = [raw_plan]
+        elif not isinstance(raw_plan, list):
             raise SchemeRuntimeError(
                 f"Expected :plan to evaluate to list of actions, got {type(raw_plan).__name__}",
                 rule_id=rule.rule_id,
                 form=to_canonical(rule.plan_expr),
                 cause_type="TypeError",
             )
-        actions: list[ToolCall | Say] = []
+        actions: list[ToolCall | Say | AssertFact] = []
         for item in raw_plan:
-            if isinstance(item, (ToolCall, Say)):
+            if isinstance(item, (ToolCall, Say, AssertFact)):
                 actions.append(item)
             else:
                 raise SchemeRuntimeError(

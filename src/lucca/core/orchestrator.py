@@ -67,6 +67,7 @@ from lucca.core.ipc_schemas import (
     encode_envelope,
 )
 from lucca.core.schemas import (
+    AssertFact,
     ChatMessage,
     DecisionRecord,
     ExecutionTier,
@@ -83,6 +84,7 @@ from lucca.core.schemas import (
     ToolCallEnd,
     ToolResult,
     TTSChunk,
+    SignedPayload,
     UnsignedPayload,
     canonicalize_predicate,
     is_valid_predicate,
@@ -1032,6 +1034,43 @@ class Orchestrator:
     # delegate — kept for test/back-compat
     def _commit_assistant_utterance(self, text: str, trace: TurnTrace) -> None:
         self.commits.commit_assistant_utterance(text, trace)
+
+    def _commit_lisp_assertion(
+        self, action: AssertFact, trace: TurnTrace | None = None
+    ) -> SignedPayload | None:
+        """Commits an AssertFact action as a signed LISP_ASSERTION envelope (WO-20 Phase 1)."""
+        if not self.memory_store:
+            return None
+        signer = self.signer_factory.lisp_assertion()
+        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
+        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
+        unsigned = UnsignedPayload(
+            content=f"{action.s} {action.p} {action.o}",
+            provenance=Provenance.LISP_ASSERTION,
+            kind="fact",
+            nonce=os.urandom(16).hex(),
+            created_at=now,
+            trace_id=trace_id,
+            structured={"s": action.s, "p": action.p, "o": action.o},
+        )
+        signed = signer.sign(unsigned)
+        self.memory_store.commit(signed, now=now)
+        return signed
+
+    def evaluate_rules_chain(
+        self, state: RuleState, trace: TurnTrace | None = None, max_depth: int = 8
+    ) -> tuple[list[RuleOutcome], RuleState]:
+        """Evaluates active rules with bounded re-evaluation loop (WO-20 Phase 1)."""
+
+        def _exec_assert(action: AssertFact, st: RuleState) -> RuleState:
+            self._commit_lisp_assertion(action, trace)
+            return st.model_copy(
+                update={"asserted_facts": st.asserted_facts | {(action.s, action.p, action.o)}}
+            )
+
+        return self.rule_engine.evaluate_chain(
+            state, execute_assert=_exec_assert, max_depth=max_depth
+        )
 
 
     def _check_functional_coherence(
@@ -2418,6 +2457,9 @@ class Orchestrator:
                         sub_results.append(f"{sub_action.tool}->{sub_status}")
                     elif isinstance(sub_action, Say) and speak:
                         self._speak_text(trace, sub_action.text)
+                    elif isinstance(sub_action, AssertFact):
+                        self._commit_lisp_assertion(sub_action, trace)
+                        sub_results.append(f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok")
                 has_failures = any("->failed" in s for s in sub_results)
                 skill_signal: Literal["tool_exit_zero", "pydantic_valid"] = (
                     "pydantic_valid" if has_failures else "tool_exit_zero"
@@ -2491,6 +2533,9 @@ class Orchestrator:
                         sub_results.append(f"{sub_action.tool}->{sub_status}")
                     elif isinstance(sub_action, Say) and speak:
                         self._speak_text(trace, sub_action.text)
+                    elif isinstance(sub_action, AssertFact):
+                        self._commit_lisp_assertion(sub_action, trace)
+                        sub_results.append(f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok")
                 res = ToolResult(
                     call_id=call_id,
                     ok=True,
