@@ -19,6 +19,12 @@ import pytest
 from lucca.core.config import get_config
 from lucca.core.exceptions import SchemeRuntimeError, SchemeSyntaxError
 from lucca.core.orchestrator import Orchestrator
+from lucca.core.reasoning_context import (
+    DEFAULT_CAPACITY,
+    ProofTraceStep,
+    ReasoningContext,
+    ReasoningEntry,
+)
 from lucca.core.schemas import (
     AssertFact,
     ExecutionTier,
@@ -310,3 +316,257 @@ def test_rule_state_frozen_rebuild_discipline() -> None:
     state2 = state1.model_copy(update={"asserted_facts": state1.asserted_facts | {("x", "y", "z")}})
     assert ("x", "y", "z") in state2.asserted_facts
     assert ("x", "y", "z") not in state1.asserted_facts
+
+
+# =============================================================================
+# WO-20 Phase 2: Reasoning Context (Working Memory) Tests
+# =============================================================================
+
+
+def test_three_rule_chain_produces_three_intermediates_in_order(orch: Orchestrator) -> None:
+    """WO-20 Phase 2 Functional Acceptance 1:
+
+    A 3-rule chain produces exactly 3 intermediates in order, each with a
+    distinct envelope_id and the correct step_kind.
+    """
+    rule_0 = """
+    (rule "r0-chain-v1"
+      :when (intent= "start_chain")
+      :plan (list (assert (user step "s1")))
+      :priority 30)
+    """
+    rule_1 = """
+    (rule "r1-chain-v1"
+      :when (fact-exists? (user step "s1"))
+      :plan (list (assert (user step "s2")))
+      :priority 20)
+    """
+    rule_2 = """
+    (rule "r2-chain-v1"
+      :when (fact-exists? (user step "s2"))
+      :plan (list (assert (user step "s3")))
+      :priority 10)
+    """
+    for src in (rule_0, rule_1, rule_2):
+        m = orch.rule_engine.register_rule(src)
+        m.status = "ACTIVE"
+
+    initial_state = RuleState(
+        intent="start_chain",
+        transcript="start chain test",
+        transcript_lower="start chain test",
+        asserted_facts=frozenset(),
+    )
+    trace = _trace("tr-chain-3step")
+
+    outcomes, final_state = orch.evaluate_rules_chain(initial_state, trace=trace)
+
+    context = orch.current_reasoning_context
+    assert context is not None, "ReasoningContext must be created during evaluation"
+    assert len(context) == 3, "Exactly 3 intermediates produced"
+
+    # Check intermediates in order
+    step_triples = [
+        ("user", "step", "s1"),
+        ("user", "step", "s2"),
+        ("user", "step", "s3"),
+    ]
+    seen_envelope_ids: set[str] = set()
+
+    for idx, (expected_s, expected_p, expected_o) in enumerate(step_triples):
+        entry = context[idx]
+        assert entry.s == expected_s
+        assert entry.p == expected_p
+        assert entry.o == expected_o
+        assert entry.step_kind == "lisp_rule"
+        assert entry.envelope_id, "Each intermediate must have an envelope_id"
+        assert entry.envelope_id not in seen_envelope_ids, "Envelope IDs must be distinct"
+        seen_envelope_ids.add(entry.envelope_id)
+
+        # Verify tuple unpacking (envelope_id, s, p, o, confidence, step_kind)
+        env_id, s, p, o, conf, kind = entry
+        assert env_id == entry.envelope_id
+        assert (s, p, o) == (expected_s, expected_p, expected_o)
+        assert kind == "lisp_rule"
+        assert 0.0 <= conf <= 1.0
+
+
+def test_proof_trace_returns_intermediates_with_resolvable_premises(orch: Orchestrator) -> None:
+    """WO-20 Phase 2 Functional Acceptance 2:
+
+    proof_trace() returns the intermediates in firing order with premises
+    resolvable to earlier entries.
+    """
+    rule_0 = """
+    (rule "prem-0-v1"
+      :when (intent= "deduce")
+      :plan (list (assert (user step "s1")))
+      :priority 30)
+    """
+    rule_1 = """
+    (rule "prem-1-v1"
+      :when (fact-exists? (user step "s1"))
+      :plan (list (assert (user step "s2")))
+      :priority 20)
+    """
+    rule_2 = """
+    (rule "prem-2-v1"
+      :when (fact-exists? (user step "s2"))
+      :plan (list (assert (user step "s3")))
+      :priority 10)
+    """
+    for src in (rule_0, rule_1, rule_2):
+        m = orch.rule_engine.register_rule(src)
+        m.status = "ACTIVE"
+
+    initial_state = RuleState(
+        intent="deduce",
+        transcript="deduce step",
+        transcript_lower="deduce step",
+        asserted_facts=frozenset(),
+    )
+    trace = _trace("tr-proof-trace")
+
+    outcomes, final_state = orch.evaluate_rules_chain(initial_state, trace=trace)
+
+    proof = orch.proof_trace()
+    assert len(proof) == 3, "proof_trace must contain 3 steps"
+
+    # Firing order verification
+    assert proof[0].conclusion == "user step s1"
+    assert proof[0].rule_id == "prem-0-v1"
+    assert proof[0].premises == []
+
+    assert proof[1].conclusion == "user step s2"
+    assert proof[1].rule_id == "prem-1-v1"
+    assert proof[1].premises == ["user step s1"]
+
+    assert proof[2].conclusion == "user step s3"
+    assert proof[2].rule_id == "prem-2-v1"
+    assert proof[2].premises == ["user step s2"]
+
+    # Verify premise resolution via premises_for
+    context = orch.current_reasoning_context
+    assert context is not None
+
+    premises_for_s2 = context.premises_for("user step s2")
+    assert len(premises_for_s2) == 1
+    assert premises_for_s2[0].conclusion == "user step s1"
+    assert premises_for_s2[0].envelope_id == proof[0].envelope_id
+
+    premises_for_s3 = context.premises_for("user step s3")
+    assert len(premises_for_s3) == 1
+    assert premises_for_s3[0].conclusion == "user step s2"
+    assert premises_for_s3[0].envelope_id == proof[1].envelope_id
+
+    # Verify tuple unpacking for proof trace steps (step_kind, rule_id, premises, conclusion, envelope_id)
+    kind, rid, prems, concl, eid = proof[1]
+    assert kind == "lisp_rule"
+    assert rid == "prem-1-v1"
+    assert prems == ["user step s1"]
+    assert concl == "user step s2"
+    assert eid == proof[1].envelope_id
+
+
+def test_second_turn_gets_fresh_context_no_leakage(orch: Orchestrator) -> None:
+    """WO-20 Phase 2 Functional Acceptance 3:
+
+    A second turn gets a fresh context (no leakage between turns).
+    """
+    rule_t1 = """
+    (rule "turn-1-rule-v1"
+      :when (intent= "turn_1")
+      :plan (list (assert (user turn "turn1_done")))
+      :priority 10)
+    """
+    rule_t2 = """
+    (rule "turn-2-rule-v1"
+      :when (intent= "turn_2")
+      :plan (list (assert (user turn "turn2_done")))
+      :priority 10)
+    """
+    for src in (rule_t1, rule_t2):
+        m = orch.rule_engine.register_rule(src)
+        m.status = "ACTIVE"
+
+    # Turn 1
+    state_turn1 = RuleState(
+        intent="turn_1",
+        transcript="run turn 1",
+        transcript_lower="run turn 1",
+        asserted_facts=frozenset(),
+    )
+    orch.evaluate_rules_chain(state_turn1, trace=_trace("tr-t1"))
+
+    context_1 = orch.current_reasoning_context
+    assert context_1 is not None
+    assert len(context_1) == 1
+    assert context_1[0].conclusion == "user turn turn1_done"
+
+    # Turn 2: fresh turn
+    state_turn2 = RuleState(
+        intent="turn_2",
+        transcript="run turn 2",
+        transcript_lower="run turn 2",
+        asserted_facts=frozenset(),
+    )
+    orch.evaluate_rules_chain(state_turn2, trace=_trace("tr-t2"))
+
+    context_2 = orch.current_reasoning_context
+    assert context_2 is not None
+    assert context_2 is not context_1, "Turn 2 must receive a new ReasoningContext instance"
+    assert len(context_2) == 1
+    assert context_2[0].conclusion == "user turn turn2_done"
+    # Ensure no leakage from Turn 1 in context 2
+    assert all(e.conclusion != "user turn turn1_done" for e in context_2)
+
+
+def test_reasoning_context_capacity_bound(capsys: pytest.CaptureFixture[str]) -> None:
+    """ReasoningContext is bounded at MAX_CHAIN_DEPTH * 4 (32 entries)."""
+    import structlog.testing
+
+    ctx = ReasoningContext(capacity=4)
+    for i in range(4):
+        ctx.add_intermediate(
+            envelope_id=f"env-{i}",
+            s="user",
+            p="step",
+            o=f"s{i}",
+        )
+    assert len(ctx) == 4
+
+    with structlog.testing.capture_logs() as captured:
+        with pytest.raises(RuntimeError, match="ReasoningContext capacity exceeded"):
+            ctx.add_intermediate(
+                envelope_id="env-5",
+                s="user",
+                p="step",
+                o="s5",
+            )
+
+    out = capsys.readouterr()
+    has_event = any(e.get("event") == "reasoning_context_capacity_exceeded" for e in captured)
+    has_stdout = "reasoning_context_capacity_exceeded" in out.out or "reasoning_context_capacity_exceeded" in out.err
+    assert has_event or has_stdout, "Capacity exhaustion must be logged"
+
+
+def test_reasoning_context_not_persisted_to_db(orch: Orchestrator) -> None:
+    """Trap: ReasoningContext is per-turn working memory state, not persisted to DB."""
+    rule = """
+    (rule "trap-check-v1"
+      :when (intent= "trap_intent")
+      :plan (list (assert (user memory "working_only")))
+      :priority 10)
+    """
+    m = orch.rule_engine.register_rule(rule)
+    m.status = "ACTIVE"
+
+    state = RuleState(intent="trap_intent", transcript="test", transcript_lower="test")
+    orch.evaluate_rules_chain(state, trace=_trace("tr-trap"))
+
+    # Check DB tables: no reasoning_context table exists
+    with orch.db.read_cursor() as cur:
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%reasoning%'")
+        tables = cur.fetchall()
+    assert len(tables) == 0, "Reasoning context must never be persisted to a DB table"
+

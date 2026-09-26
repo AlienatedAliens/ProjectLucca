@@ -275,10 +275,11 @@ class RuleLifecycleManager:
         self,
         state: RuleState,
         *,
-        execute_assert: Callable[[AssertFact, RuleState], RuleState] | None = None,
+        execute_assert: Callable[..., RuleState] | None = None,
         max_depth: int = MAX_CHAIN_DEPTH,
+        context: object | None = None,
     ) -> tuple[list[RuleOutcome], RuleState]:
-        """Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1).
+        """Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1 & 2).
 
         After a plan containing AssertFact executes, rebuilds state and re-evaluates,
         bounded by MAX_CHAIN_DEPTH = 8 and gas limit. Halts on fixpoint (no new assertions).
@@ -307,7 +308,7 @@ class RuleLifecycleManager:
                 reverse=True,
             )
             step_fired = False
-            step_assert_actions: list[AssertFact] = []
+            step_assert_actions: list[tuple[AssertFact, str]] = []
 
             for r in active_rules:
                 outcome = evaluate_rule(r.definition, current_state)
@@ -317,16 +318,19 @@ class RuleLifecycleManager:
                     fired_rule_ids.add(r.rule_id)
                     for action in outcome.plan.actions:
                         if isinstance(action, AssertFact):
-                            step_assert_actions.append(action)
+                            step_assert_actions.append((action, r.rule_id))
 
             if not step_fired or not step_assert_actions:
                 # Fixpoint fast-path: no rules fired or no assertions in this step
                 break
 
             # Execute assertions and rebuild state (TRAP 3: never mutate state in place)
-            for act in step_assert_actions:
+            for act, rule_id in step_assert_actions:
                 if execute_assert is not None:
-                    current_state = execute_assert(act, current_state)
+                    try:
+                        current_state = execute_assert(act, current_state, rule_id=rule_id)
+                    except TypeError:
+                        current_state = execute_assert(act, current_state)
                 else:
                     new_facts = set(current_state.asserted_facts)
                     new_facts.add((act.s, act.p, act.o))

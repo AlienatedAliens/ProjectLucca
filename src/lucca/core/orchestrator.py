@@ -89,6 +89,7 @@ from lucca.core.schemas import (
     canonicalize_predicate,
     is_valid_predicate,
 )
+from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
 from lucca.memory.db import DatabaseManager
@@ -415,6 +416,7 @@ class Orchestrator:
             clock=self.clock,
             orchestrator=self,
         )
+        self.current_reasoning_context: ReasoningContext | None = None
 
     @property
     def signer_factory(self) -> SignerFactory:
@@ -1058,19 +1060,46 @@ class Orchestrator:
         return signed
 
     def evaluate_rules_chain(
-        self, state: RuleState, trace: TurnTrace | None = None, max_depth: int = 8
+        self,
+        state: RuleState,
+        trace: TurnTrace | None = None,
+        max_depth: int = 8,
+        context: ReasoningContext | None = None,
     ) -> tuple[list[RuleOutcome], RuleState]:
-        """Evaluates active rules with bounded re-evaluation loop (WO-20 Phase 1)."""
+        """Evaluates active rules with bounded re-evaluation loop (WO-20 Phase 1 & 2)."""
+        ctx = context if context is not None else ReasoningContext()
+        self.current_reasoning_context = ctx
 
-        def _exec_assert(action: AssertFact, st: RuleState) -> RuleState:
-            self._commit_lisp_assertion(action, trace)
+        def _exec_assert(
+            action: AssertFact, st: RuleState, rule_id: str | None = None
+        ) -> RuleState:
+            signed = self._commit_lisp_assertion(action, trace)
+            env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
+            conf = signed.confidence if signed and signed.confidence is not None else 1.0
+
+            ctx.add_intermediate(
+                envelope_id=env_id,
+                s=action.s,
+                p=action.p,
+                o=action.o,
+                confidence=conf,
+                step_kind="lisp_rule",
+                rule_id=rule_id,
+            )
             return st.model_copy(
                 update={"asserted_facts": st.asserted_facts | {(action.s, action.p, action.o)}}
             )
 
         return self.rule_engine.evaluate_chain(
-            state, execute_assert=_exec_assert, max_depth=max_depth
+            state, execute_assert=_exec_assert, max_depth=max_depth, context=ctx
         )
+
+    def proof_trace(self) -> list[ProofTraceStep]:
+        """Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4)."""
+        ctx = getattr(self, "current_reasoning_context", None)
+        if ctx is None:
+            return []
+        return ctx.proof_trace()
 
 
     def _check_functional_coherence(
