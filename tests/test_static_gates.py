@@ -767,5 +767,63 @@ def test_ui_no_direct_domain_imports() -> None:
     )
 
 
+def test_speech_output_manager_decomposition() -> None:
+    """WO-18b.5 (F-ARCH-103) static parity gate: ensures speech synthesis queuing,
+    overflow handling, caption publishing, worker thread, and playback wait operations
+    are encapsulated in SpeechOutputManager.
+    Canonical method definitions must appear in SpeechOutputManager and not in
+    orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).parent.parent
+    som_path = repo_root / "src" / "lucca" / "core" / "speech_output_manager.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert som_path.exists(), f"speech_output_manager.py does not exist at {som_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    som_text = som_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    som_tree = ast.parse(som_text, filename=str(som_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    som_methods = {
+        n.name
+        for n in ast.walk(som_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    target_methods = [
+        "emit_tts_overflow",
+        "enqueue_tts_chunk",
+        "publish_caption",
+        "synthesize_chunk",
+        "tts_worker",
+        "speak_text",
+        "wait_for_playback",
+        "clear_queue",
+    ]
+
+    for m in target_methods:
+        assert m in som_methods, f"Expected '{m}' to be defined in SpeechOutputManager"
+        assert m not in orch_methods, f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+
+    for m in target_methods:
+        def_marker = f"def {m}("
+        assert som_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear exactly once in speech_output_manager.py, "
+            f"got {som_text.count(def_marker)}"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py, "
+            f"got {orch_text.count(def_marker)}"
+        )
+
+
 
 

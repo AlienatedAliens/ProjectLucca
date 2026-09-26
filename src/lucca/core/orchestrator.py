@@ -104,6 +104,7 @@ from lucca.core.memory_commit_service import (
 )
 from lucca.core.belief_service import BeliefService
 from lucca.core.confirmation_manager import ConfirmationManager
+from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.signer_factory import SignerFactory
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
@@ -231,17 +232,12 @@ class Orchestrator:
             self.tts = TTSWorker(self.play_ring)
         self.chunker = StreamingChunker()
 
-        # TTS synthesis queue & worker thread (F-CORE-017, WO-17 Phase 7: maxsize 32)
-        self._tts_queue: queue.Queue[
-            tuple[TurnTrace, int, str] | tuple[TurnTrace, int, str, threading.Event | None] | None
-        ] = queue.Queue(maxsize=32)
-        self._tts_running = True
-        self._tts_thread = threading.Thread(
-            target=self._tts_worker,
-            name="core-tts",
-            daemon=True,
+        # Speech Output Manager (WO-18b.5 / F-ARCH-103)
+        self.speech_output = SpeechOutputManager(
+            orchestrator=self,
+            start_worker=True,
+            maxsize=32,
         )
-        self._tts_thread.start()
 
         # ASR
         if asr is not None:
@@ -529,6 +525,55 @@ class Orchestrator:
     def _confirm_lock(self, val: threading.Lock) -> None:
         self.confirmations.confirm_lock = val
 
+    @property
+    def speech_output(self) -> SpeechOutputManager:
+        mgr = getattr(self, "_speech_output", None)
+        if mgr is None:
+            mgr = SpeechOutputManager(orchestrator=self)
+            self._speech_output = mgr
+        return mgr
+
+    @speech_output.setter
+    def speech_output(self, value: SpeechOutputManager) -> None:
+        self._speech_output = value
+
+    @property
+    def _tts_queue(
+        self,
+    ) -> queue.Queue[
+        tuple[TurnTrace, int, str]
+        | tuple[TurnTrace, int, str, threading.Event | None]
+        | None
+    ]:
+        return self.speech_output.tts_queue
+
+    @_tts_queue.setter
+    def _tts_queue(
+        self,
+        val: queue.Queue[
+            tuple[TurnTrace, int, str]
+            | tuple[TurnTrace, int, str, threading.Event | None]
+            | None
+        ],
+    ) -> None:
+        self.speech_output.tts_queue = val
+
+    @property
+    def _tts_running(self) -> bool:
+        return self.speech_output.tts_running
+
+    @_tts_running.setter
+    def _tts_running(self, val: bool) -> None:
+        self.speech_output.tts_running = val
+
+    @property
+    def _tts_thread(self) -> threading.Thread | None:
+        return self.speech_output.tts_thread
+
+    @_tts_thread.setter
+    def _tts_thread(self, val: threading.Thread | None) -> None:
+        self.speech_output.tts_thread = val
+
     def _neutralize_context_attractors(self, target_word: str) -> list[str]:
         """
         In-place history token neutralization: Replaces corrupt phonetic/orthographic
@@ -637,46 +682,11 @@ class Orchestrator:
 
     def _emit_tts_overflow(self, trace_id: str = "", chunk_id: int = -1) -> None:
         """WO-17 Phase 7: emit a tts_queue_overflow telemetry event on the bus."""
-        try:
-            env = Envelope(
-                type="tts_queue_overflow",
-                trace_id=trace_id,
-                ts_ns=now_ns(),
-                src="core",
-                payload={
-                    "chunk_id": chunk_id,
-                    "status": "dropped_oldest",
-                },
-            )
-            self._publish_bus(env)
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("tts_overflow_event_publish_failed", error=str(exc))
+        self.speech_output.emit_tts_overflow(trace_id=trace_id, chunk_id=chunk_id)
 
     def _enqueue_tts_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         """Enqueues a synthesized voice chunk with drop-oldest overflow policy (WO-17 Phase 7)."""
-        item = (trace, chunk_id, text, None)
-        try:
-            self._tts_queue.put(item, timeout=0.05)
-        except queue.Full:
-            dropped_id = -1
-            try:
-                dropped = self._tts_queue.get_nowait()
-                if dropped is not None and len(dropped) >= 2 and isinstance(dropped[1], int):
-                    dropped_id = dropped[1]
-            except (queue.Empty, AttributeError):
-                pass
-
-            logger.warning(
-                "tts_queue_overflow",
-                chunk_id=chunk_id,
-                dropped_chunk_id=dropped_id,
-            )
-            self._emit_tts_overflow(trace_id=trace.trace_id, chunk_id=chunk_id)
-
-            try:
-                self._tts_queue.put_nowait(item)
-            except (queue.Full, AttributeError):
-                logger.warning("tts_queue_full_drop_chunk", chunk_id=chunk_id)
+        self.speech_output.enqueue_tts_chunk(trace=trace, chunk_id=chunk_id, text=text)
 
     def _publish_bus(self, env: Envelope) -> None:
         try:
@@ -711,15 +721,7 @@ class Orchestrator:
         source: Literal["assistant", "user", "status"] = "assistant",
         is_final: bool = False,
     ) -> None:
-        trace_id = self.active_trace.trace_id if self.active_trace else ""
-        env = Envelope(
-            type="ui.caption",
-            trace_id=trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=UICaptionPayload(text=text, is_final=is_final, source=source).model_dump(),
-        )
-        self._publish_bus(env)
+        self.speech_output.publish_caption(text=text, source=source, is_final=is_final)
 
     def _ingest_loop(self) -> None:
         while self.running:
@@ -862,13 +864,7 @@ class Orchestrator:
         self.chunker.reset()
 
         # F-CORE-017: drain TTS synthesis queue before setting FLAG_ABORT
-        while not self._tts_queue.empty():
-            try:
-                item = self._tts_queue.get_nowait()
-                if item is not None and len(item) == 4 and item[3] is not None:
-                    item[3].set()
-            except queue.Empty:
-                break
+        self.speech_output.clear_queue()
 
         self.play_ring.set_flag(FLAG_ABORT)
 
@@ -1370,11 +1366,7 @@ class Orchestrator:
             trace.interrupted = True
             self.play_ring.set_flag(FLAG_ABORT)
             # Drain queued TTS chunks
-            while not self._tts_queue.empty():
-                try:
-                    self._tts_queue.get_nowait()
-                except queue.Empty:
-                    break
+            self.speech_output.clear_queue()
             is_citation_breach = (
                 breach_type == "ungrounded_citation"
                 or "ungrounded" in reason_msg.lower()
@@ -1789,44 +1781,7 @@ class Orchestrator:
                             chunk_index += 1
 
                 if chunk_index > 0 and not trace.interrupted:
-                    done_event = threading.Event()
-                    sentinel_enqueued = False
-                    for retry in range(5):
-                        try:
-                            self._tts_queue.put((trace, -1, "", done_event), timeout=2.0)
-                            sentinel_enqueued = True
-                            break
-                        except queue.Full:
-                            logger.warning("tts_queue_full_sentinel_retry", retry=retry)
-                            try:
-                                self._tts_queue.get_nowait()
-                            except (queue.Empty, AttributeError):
-                                pass
-
-                    if sentinel_enqueued:
-                        if not done_event.wait(timeout=15.0):
-                            logger.warning("tts_sentinel_wait_timeout")
-                    else:
-                        logger.warning("tts_queue_full_sentinel_failed")
-
-                    # Drain backlog check: never set FLAG_EOS while unsynthesized chunks remain
-                    try:
-                        t_drain_start = time.perf_counter()
-                        while (
-                            hasattr(self._tts_queue, "empty")
-                            and not self._tts_queue.empty()
-                            and not trace.interrupted
-                        ):
-                            if hasattr(self._tts_queue, "_mock_name") or hasattr(
-                                self._tts_queue, "_mock_methods"
-                            ):
-                                break
-                            if time.perf_counter() - t_drain_start > 10.0:
-                                logger.warning("tts_backlog_drain_timeout")
-                                break
-                            time.sleep(0.05)
-                    except Exception as drain_err:  # noqa: BLE001
-                        logger.debug("tts_drain_check_failed", error=str(drain_err))
+                    self.speech_output.wait_for_playback(trace)
 
                 if not trace.interrupted:
                     self.play_ring.set_flag(FLAG_EOS)
@@ -2041,88 +1996,14 @@ class Orchestrator:
         self.turn_pipeline.run(turn_input)
 
     def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
-        if chunk_id == 0:
-            trace.t_tts_first_sent = now_ns()
-
-        speed_mult = self.affect_tracker.get_tts_speed_multiplier()
-        try:
-            _done = self.tts.synthesize(
-                chunk_id=chunk_id,
-                text=text,
-                speed=speed_mult,
-                is_first=(chunk_id == 0),
-            )
-        except TypeError:
-            _done = self.tts.synthesize(
-                chunk_id=chunk_id,
-                text=text,
-                is_first=(chunk_id == 0),
-            )
-
-        if chunk_id == 0:
-            trace.t_tts_first_done = now_ns()
-        trace.t_tts_last_done = now_ns()
-        trace.chunks += 1
+        self.speech_output.synthesize_chunk(trace, chunk_id, text)
 
     def _tts_worker(self) -> None:
-        """Background worker thread (core-tts) consuming chunks from _tts_queue."""
-        while self._tts_running:
-            try:
-                item = self._tts_queue.get(timeout=0.2)
-            except queue.Empty:
-                continue
-
-            if item is None:
-                break
-
-            try:
-                if len(item) == 3:
-                    trace, chunk_id, text = item
-                    done_event = None
-                else:
-                    trace, chunk_id, text, done_event = item
-
-                if trace.interrupted:
-                    if done_event is not None:
-                        done_event.set()
-                    continue
-
-                if chunk_id is not None and chunk_id >= 0 and text:
-                    self._synthesize_chunk(trace, chunk_id, text)
-
-                if done_event is not None:
-                    done_event.set()
-            except Exception as exc:  # noqa: BLE001
-                logger.error("tts_worker_chunk_error", error=str(exc))
-                if len(item) >= 4 and item[3] is not None:
-                    item[3].set()
+        """Background worker thread (core-tts) consuming chunks from speech_output."""
+        self.speech_output.tts_worker()
 
     def _speak_text(self, trace: TurnTrace, text: str) -> None:
-        clean_text = sanitize_for_voice(text)
-        if not clean_text:
-            return
-        self.play_ring.clear_flag(FLAG_ABORT)
-        self.play_ring.clear_flag(FLAG_EOS)
-        begin_env = Envelope(
-            type="play.begin",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
-        )
-        self._publish_bus(begin_env)
-        self._set_state("speaking")
-        self._publish_caption(clean_text, source="assistant", is_final=True)
-        trace.t_tts_first_sent = now_ns()
-        speed_mult = self.affect_tracker.get_tts_speed_multiplier()
-        try:
-            self.tts.synthesize(chunk_id=0, text=clean_text, speed=speed_mult, is_first=True)
-        except TypeError:
-            self.tts.synthesize(chunk_id=0, text=clean_text, is_first=True)
-        trace.t_tts_first_done = now_ns()
-        trace.t_tts_last_done = trace.t_tts_first_done
-        trace.chunks += 1
-        self.play_ring.set_flag(FLAG_EOS)
+        self.speech_output.speak_text(trace, text)
 
     def _describe_tool_action(self, name: str, args: dict[str, JsonValue]) -> str:
         if name == "launch_app":
@@ -2763,19 +2644,8 @@ class Orchestrator:
 
     def stop(self) -> None:
         self.running = False
-        self._tts_running = False
         self._confirm_event.set()
-        while not self._tts_queue.empty():
-            try:
-                self._tts_queue.get_nowait()
-            except queue.Empty:
-                break
-        try:
-            self._tts_queue.put_nowait(None)
-        except queue.Full:
-            logger.debug("orchestrator_tts_queue_full_on_stop")
-        if hasattr(self, "_tts_thread") and self._tts_thread.is_alive():
-            self._tts_thread.join(timeout=1.0)
+        self.speech_output.stop()
         if self.active_turn_thread and self.active_turn_thread.is_alive():
             t = self.active_turn_thread
             self._abort_turn()

@@ -60,7 +60,9 @@ class ConfirmationManager:
         confirm worker must stay alive to receive the spoken answer.
         """
         orch = self._orchestrator
-        if orch is not None and hasattr(orch, "_tts_queue"):
+        if orch is not None and hasattr(orch, "speech_output"):
+            orch.speech_output.clear_queue()
+        elif orch is not None and hasattr(orch, "_tts_queue"):
             while not orch._tts_queue.empty():
                 try:
                     item = orch._tts_queue.get_nowait()
