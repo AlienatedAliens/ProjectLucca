@@ -372,6 +372,16 @@ All candidate rules (whether mined from execution traces or generated via macro 
 4. **Deontic Path & Tool Invariants**: Proves that plan arguments cannot intersect forbidden path patterns (traversal `..`, system directories `C:\Windows`, `System32`, `Program Files`, `/etc`, `/bin`, sensitive files `.git`, `.ssh`, `.env`) and mutation tools cannot target dangerous executable extensions (`.exe`, `.dll`, `.bat`, `.cmd`, `.ps1`, `.vbs`, `.sh`, `.sys`).
 5. **Bounded Timeout**: Solver queries enforce a hard $500\,\text{ms}$ timeout. Unverified or unsafe rules are flagged as `VERIFICATION_FAILED` and strictly barred from entering `QUARANTINE`.
 
+### 4.11 The Concert Layer: Bounded Forward-Chaining with Signed Proof Traces (D-REAS-09)
+The MicroScheme engine (deductive skeleton) and the LLM (abductive engine) operate **in concert** over the signed fact store (ADR [`0010`](./adr/0010_d_reas_09_concert_layer.md)):
+1. **Assertion Primitive**: Rules emit `(assert (s p o))` plan actions — pure constructors (D-REAS-05 purity preserved) validated against the predicate vocabulary. The orchestrator executes them as signed `LISP_ASSERTION` envelopes via `SignerFactory.lisp_assertion()`; the LLM never signs.
+2. **Fact Predicates**: `(fact-exists? ...)` / `(fact-value ...)` read-only primitives query `RuleState.asserted_facts`, enabling rules to fire on the conclusions of earlier rules.
+3. **Bounded Re-Evaluation**: `RuleLifecycleManager.evaluate_chain` forward-chains with `MAX_CHAIN_DEPTH = 8`, per-chain fired-rule tracking, and fixpoint fast-path termination; `RuleState` is rebuilt frozen (`model_copy`), never mutated.
+4. **Reasoning Context**: a per-turn, capacity-bounded (32) in-memory `ReasoningContext` (`src/lucca/core/reasoning_context.py`) holds ordered intermediates linked to their signed envelope IDs and exposes `proof_trace()`. It is working memory only — never persisted.
+5. **LLM Abductive Steps**: in deduction mode the LLM emits structured `InferenceStep`s (triple conclusion, confidence, rationale, `conditions`) instead of prose. Premises are existence-checked against the signed store or context; attributed premises (`"<source> asserts <claim>"`) verify against current-turn signed tool receipts and are carried as `conditions` — chains degrade gracefully rather than breaking. Unverified premises run the bounded **gather ladder**: revise once → `memory_search` retry → named-gap user question → named-gap abstention.
+6. **INFERRED Commit Path (in flight)**: completed chains commit as `Provenance.INFERRED` (Belnap tier below `USER_DERIVED`, above `LISP_ASSERTION`) only with a complete proof trace whose every premise resolves to an existing envelope; direct evidence supersedes them.
+- **Scope limits (ADR §2.5–2.6):** Z3 verifies *authored rules* only; abductive steps are existence-checked, not proven. The layer provides integrity/provenance, not adversary defense.
+
 ---
 
 ## 5. Memory Subsystem with Cryptographic Provenance

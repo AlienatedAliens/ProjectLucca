@@ -1,8 +1,8 @@
 # Project Lucca — Canonical Decisions Log (Post-Audit Baseline)
 
 **Status:** Authoritative Post-Audit Record (Milestones 1–7 Complete & Ratified)  
-**Version:** 1.3.0  
-**Updated:** September 20, 2026  
+**Version:** 1.4.0
+**Updated:** September 26, 2026
 **Charter Reference:** Ratified per D-AUD-19 through D-PKG-01.
 
 ---
@@ -201,7 +201,17 @@
      Requiring $\Delta \text{size} \ge 1$ for abstraction.
   3. Synthesizes canonical `(defmacro <name> (<params>...) <body>)` definitions registered into `MacroRegistry` with compile-time expansion bounds (`MAX_MACRO_DEPTH = 8`, `MAX_MACRO_STEPS = 64`).
   4. Preserves Single-Strike Demotion and the Human Promotion Gate (`D-REAS-06`): all rules utilizing synthesized macros are staged exclusively in `QUARANTINE` for shadow execution and cannot be automatically promoted to `ACTIVE`.
-### D-PKG-01 — Standalone Frozen PyInstaller Packaging & System Tray Invariants
+
+### D-REAS-09 — The Concert Layer: Bounded Forward-Chaining Deduction with Signed Proof Traces
+- **Decision:** The MicroScheme engine (deductive skeleton) and the LLM (abductive engine) operate in concert over the signed fact store, producing conclusions that carry a cryptographically signed proof trace (ADR [`0010`](./adr/0010_d_reas_09_concert_layer.md)).
+ 1. **Assertion Primitive:** MicroScheme rules emit `(assert (s p o))` plan actions — pure constructors validated against the predicate vocabulary (`is_valid_predicate`), executed by the orchestrator as signed `LISP_ASSERTION` envelopes via `SignerFactory.lisp_assertion()`. The LLM never signs anything.
+ 2. **Fact Predicates:** `(fact-exists? ...)` and `(fact-value ...)` read-only state primitives query `RuleState.asserted_facts` (frozen rebuild discipline — never mutated in place).
+ 3. **Bounded Re-Evaluation:** `RuleLifecycleManager.evaluate_chain` forward-chains with `MAX_CHAIN_DEPTH = 8`, per-chain fired-rule tracking, and fixpoint fast-path termination.
+ 4. **Reasoning Context (Working Memory):** per-turn `ReasoningContext` (capacity 32 = `MAX_CHAIN_DEPTH × 4`) holds ordered intermediates with envelope IDs, rule IDs, and premises; never persisted to the database; exposes `proof_trace()` for the commit path.
+ 5. **LLM Abductive Steps (ratified shape):** `InferenceStep(premises, s, p, o, confidence ∈ [0,1], rationale, conditions)` — structured triple conclusions, no `rule_id`. Premises are existence-checked against the signed store or reasoning context; attributed premises (`"<source> asserts <claim>"`) verify against current-turn signed tool receipts and are carried as `conditions` (Toulmin rebuttal slot) — chains degrade gracefully instead of breaking.
+ 6. **Gather Ladder:** on `unverified_premise` — revise once → `memory_search` retry → named-gap user question → named-gap abstention. Bounded to one pass per turn. Web content is never a premise verifier (`TOOL_CONTENT_UNTRUSTED`, D-HON-01).
+ 7. **INFERRED Commit Path (in flight):** conclusions commit as `Provenance.INFERRED` (below `USER_DERIVED`, above `LISP_ASSERTION`) only with a complete proof trace whose every premise resolves to an existing envelope; superseded by direct evidence (`USER_EXPLICIT`/`USER_DERIVED`) on the same predicate.
+- **Status:** Ratified; Phases 0–2 enforced (commits `bef2fbf`, `a50e5d7`, `a948b89`; `tests/test_concert_layer.py`, 12 tests). Phases 3–5 in flight (WO-20c–e). Z3 scope: authored rules only; abductive steps are existence-checked, not proven (ADR §2.5). Threat model: integrity/provenance, not adversary defense (ADR §2.6).
 - **Decision:** Bundles Project Lucca into a standalone Windows desktop executable distribution (`dist/Lucca/Lucca.exe`) via PyInstaller (`Lucca.spec`, `packaging/build_exe.py`).
   1. **Zero External Runtime Dependency:** Bundles embedded Python 3.12 runtime, PyQt6 graphical framework, Z3 SMT solver C-libraries (`libz3.dll`), ONNX Runtime, OpenVINO dynamic plugins (`openvino_intel_npu_plugin.dll`, `openvino_intel_cpu_plugin.dll`, `openvino_intel_gpu_plugin.dll`), Kokoro ONNX voice models, SQLite vector extensions (`vec0.dll`), MicroScheme engine, Jinja chat templates (`mistral_nemo.jinja`), default configurations (`persona.toml`), schema migrations (`0001_init.sql`), and sprite assets.
   2. **Dual-Mode Console & GUI Lifecycle:** Uses Windows GUI subsystem (`console=False`) to ensure zero console window flicker when launched from Explorer or desktop shortcuts, while dynamically binding stdio handles (`AttachConsole(-1)` / OS pipe file descriptors) when invoked from CLI shells (`cmd.exe`, `powershell.exe`).
