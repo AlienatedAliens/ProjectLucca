@@ -697,4 +697,75 @@ def test_confirmation_manager_decomposition() -> None:
         )
 
 
+def _find_ui_domain_import_violations(source: str, filename: str) -> list[str]:
+    """Scans Python source code for forbidden direct domain imports from UI."""
+    tree = ast.parse(source, filename=filename)
+    forbidden_prefixes = ("lucca.memory", "lucca.reasoning", "lucca.sandbox")
+    violations: list[str] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                for prefix in forbidden_prefixes:
+                    if alias.name == prefix or alias.name.startswith(f"{prefix}."):
+                        violations.append(
+                            f"{filename}:{node.lineno}: direct domain import '{alias.name}'"
+                        )
+        elif isinstance(node, ast.ImportFrom):
+            if node.module:
+                for prefix in forbidden_prefixes:
+                    if node.module == prefix or node.module.startswith(f"{prefix}."):
+                        violations.append(
+                            f"{filename}:{node.lineno}: direct domain import 'from {node.module}'"
+                        )
+    return violations
+
+
+def test_ui_no_direct_domain_imports() -> None:
+    """WO-18e (F-ARCH-104) static architecture gate: ensures src/lucca/ui/
+    has zero direct imports into lucca.memory, lucca.reasoning, or lucca.sandbox.
+    All domain access must route through StudioFacade in lucca.core.
+    Includes positive controls for detection and acceptance.
+    """
+    # Positive control 1: memory import detected
+    mem_sample = "from lucca.memory.store import MemoryStore\n"
+    mem_v = _find_ui_domain_import_violations(mem_sample, "test_mem.py")
+    assert len(mem_v) == 1, f"Positive control failed for memory import: {mem_v}"
+
+    # Positive control 2: reasoning import detected
+    reas_sample = "from lucca.reasoning.scheme import parse_rule\n"
+    reas_v = _find_ui_domain_import_violations(reas_sample, "test_reas.py")
+    assert len(reas_v) == 1, f"Positive control failed for reasoning import: {reas_v}"
+
+    # Positive control 3: sandbox import detected
+    sbx_sample = "import lucca.sandbox.system_tools as st\n"
+    sbx_v = _find_ui_domain_import_violations(sbx_sample, "test_sbx.py")
+    assert len(sbx_v) == 1, f"Positive control failed for sandbox import: {sbx_v}"
+
+    # Positive control 4: studio_facade import accepted
+    facade_sample = "from lucca.core.studio_facade import StudioFacade\n"
+    facade_v = _find_ui_domain_import_violations(facade_sample, "test_facade.py")
+    assert len(facade_v) == 0, f"Positive control failed for facade import: {facade_v}"
+
+    # Real UI codebase scan
+    ui_root = Path(__file__).parent.parent / "src" / "lucca" / "ui"
+    assert ui_root.exists(), f"UI root does not exist at {ui_root}"
+
+    ALLOWLIST: set[str] = set()
+
+    all_violations: list[str] = []
+    for py_file in sorted(ui_root.rglob("*.py")):
+        rel = py_file.relative_to(ui_root).as_posix()
+        if rel in ALLOWLIST:
+            continue
+        source = py_file.read_text(encoding="utf-8")
+        all_violations.extend(_find_ui_domain_import_violations(source, f"ui/{rel}"))
+
+    assert not all_violations, (
+        f"Found {len(all_violations)} direct domain import(s) in src/lucca/ui:\n"
+        + "\n".join(all_violations)
+    )
+
+
+
 

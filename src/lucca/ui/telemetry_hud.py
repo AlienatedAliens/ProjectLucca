@@ -38,7 +38,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from lucca.sandbox.system_tools import get_system_metrics
+from lucca.core.studio_facade import StudioFacade
 from lucca.ui.theme import (
     CT_BLUE_BOT,
     CT_BLUE_MID,
@@ -55,7 +55,7 @@ class TelemetryWorker(QThread):
 
     def run(self) -> None:
         try:
-            m = get_system_metrics()
+            m = StudioFacade.get_system_metrics()
             self.metrics_ready.emit(m)
         except Exception as exc:
             logger.debug("telemetry_sample_failed: %s", exc)
