@@ -163,7 +163,14 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
 | 0 (interrogative-guard fix) | `bef2fbf` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 1 (assert + fact predicates) | `a50e5d7` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 2 (reasoning context) | `a948b89` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
-| 2 (reasoning context) | | | | | |
-| 3 (LLM abductive protocol) | | | | | |
+| 3 (LLM abductive protocol) | `e118936` | implementing agent | reviewer (Gemini) | **BOUNCE** | 2026-09-26 |
 | 4 (INFERRED commit path) | | | | | |
 | 5 (live acceptance) | | | | | |
+
+#### Phase 3 Review Notes (commit `e118936`)
+- **Verdict: BOUNCE**
+- **Independent verification:** Targeted: 39 passed (18 concert + 21 gates); Full suite: 727 passed, 46 deselected.
+- **Finding 1 (F1 — confirmed):** `src/lucca/core/orchestrator.py:1189` constructs `RetrievalQuery(text=clean, limit=5)`. `RetrievalQuery` requires `query_text: str` and `k: int` (no `text` or `limit` parameters). At runtime this raised `pydantic.ValidationError`, swallowed by `except Exception`, silently skipping `MemoryStore.search` and falling back to SQL LIKE search.
+- **Finding 2 (F2 — cleared):** `_validate_premise` broad `except Exception` contains `logger.debug` and passed `test_static_gates.py` without warning.
+- **Finding 3 (F3 — non-blocking):** Hardcoded gap question wording logged for WO-21 polish.
+- **Required Fix:** Update `_search_memory_for_premise` to construct `RetrievalQuery(query_text=clean, k=5)`.
