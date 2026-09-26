@@ -180,7 +180,7 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
 | 3 (LLM abductive protocol) [resubmission] | `b1a7f90` | implementing agent | reviewer (Gemini) | **PASS** | 2026-09-26 |
 | 4 (INFERRED commit path) | `5cb6661` | implementing agent | reviewer (Zoo) | **BOUNCE→re-review after 0007** | 2026-09-26 |
 | 4 (INFERRED commit path) [resubmission] | `70d38c0` | implementing agent | reviewer (Zoo) / owner | **PASS** | 2026-09-26 |
-| 5 (live acceptance) | | | | | |
+| 5 (live acceptance) | `cad5ca2` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 
 #### Phase 3 Review Notes (commit `e118936` & fix `b1a7f90`)
 - **Verdict on `e118936`: BOUNCE**
