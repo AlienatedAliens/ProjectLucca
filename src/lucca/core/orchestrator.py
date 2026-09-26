@@ -1183,21 +1183,28 @@ class Orchestrator:
         clean = premise.strip()
         hits: list[str] = []
 
+        # Attributed premises ("<source> asserts <claim>") verify against current-turn tool receipts,
+        # NOT against the fact store (AMENDMENT 2026-09-26).
+        if re.match(r"^(.+?)\s+asserts\s+(.+)$", clean, re.IGNORECASE):
+            return []
+
         # 1. Use MemoryStore search if available
         if self.memory_store is not None and hasattr(self.memory_store, "search"):
             try:
-                q = RetrievalQuery(text=clean, limit=5)
+                q = RetrievalQuery(query_text=clean, k=5)
                 res = self.memory_store.search(q)
                 for h in res:
                     if getattr(h, "grounding_eligible", False):
-                        hits.append(h.content)
+                        words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
+                        if clean.lower() in h.content.lower() or (words and all(w in h.content.lower() for w in words)):
+                            hits.append(h.content)
             except Exception as exc:  # noqa: BLE001
                 logger.debug("gather_ladder_search_error", error=str(exc))
 
         # 2. Database search fallback
         if not hits and self.db is not None:
             try:
-                words = [w for w in clean.split() if len(w) > 2]
+                words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
                 if words:
                     clauses = " AND ".join(["m.content LIKE ?" for _ in words])
                     params = [f"%{w}%" for w in words]

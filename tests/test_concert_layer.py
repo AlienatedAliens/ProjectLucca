@@ -36,6 +36,7 @@ from lucca.core.schemas import (
     LLMUsage,
     Plan,
     Provenance,
+    RetrievalQuery,
     RuleState,
     Say,
     SignedPayload,
@@ -821,6 +822,15 @@ def test_gather_ladder_memory_retry_recovers_unseeded_context(orch: Orchestrator
         [TokenDelta(delta=round_2_json), Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=20))],
     ])
 
+    search_calls: list[RetrievalQuery] = []
+    original_search = orch.memory_store.search
+
+    def spy_search(q: RetrievalQuery):
+        search_calls.append(q)
+        return original_search(q)
+
+    orch.memory_store.search = spy_search
+
     accepted, spoken = orch.run_deduction_step(
         goal="find likely location",
         trace=trace,
@@ -830,6 +840,9 @@ def test_gather_ladder_memory_retry_recovers_unseeded_context(orch: Orchestrator
     # Memory retry recovers the judge_in_philippines fact from the store
     assert len(accepted) == 1
     assert accepted[0].conclusion == "user likely_location_is Philippines"
+    assert len(search_calls) >= 1
+    assert search_calls[0].query_text == "judge_in_philippines"
+    assert search_calls[0].k == 5
 
 
 def test_gather_ladder_named_gap_abstention_or_user_question(orch: Orchestrator) -> None:
