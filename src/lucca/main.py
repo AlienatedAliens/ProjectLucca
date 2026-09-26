@@ -211,6 +211,7 @@ class Supervisor:
                 embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
             )
         except (MemoryError, RuntimeError) as exc:
+            logger.error("Embedding model initialization failed: %s", exc)
             sys.stderr.write(
                 "FATAL [BOOT]: Embedding model initialization failed — almost always "
                 "insufficient system RAM. Close applications (browsers, Discord) and "
@@ -387,7 +388,8 @@ class Supervisor:
             self.llama_proc.terminate()
             try:
                 self.llama_proc.wait(timeout=3.0)
-            except (subprocess.TimeoutExpired, OSError):
+            except (subprocess.TimeoutExpired, OSError) as exc:
+                logger.debug("llama_proc_wait_timeout_or_error: %s", exc)
                 self.llama_proc.kill()
 
         print("Shutdown complete.")
@@ -429,8 +431,8 @@ def main() -> None:
     # Set multiprocessing start method to spawn for Windows clean subprocesses
     try:
         mp.set_start_method("spawn", force=True)
-    except RuntimeError:
-        pass
+    except RuntimeError as exc:
+        logger.debug("set_start_method_failed: %s", exc)
     supervisor = Supervisor()
 
     def _on_signal(signum: int, frame: object) -> None:

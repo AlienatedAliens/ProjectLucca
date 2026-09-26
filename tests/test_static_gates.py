@@ -1009,6 +1009,49 @@ def test_dead_code_register_no_unreferenced_symbols() -> None:
     )
 
 
+def test_boot_path_no_unlogged_excepts() -> None:
+    """WO-19d static gate: every except handler across boot-path modules
+    (main.py, admin.py, core/env_check.py) must log via logger/sys.stderr or re-raise.
+    Excludes intentional CLI KeyboardInterrupt exits.
+    Includes positive control for detection."""
+    # Positive control: synthetic unlogged handler detected
+    bad_sample = "try:\n    x = 1\nexcept RuntimeError:\n    pass\n"
+    tree_bad = ast.parse(bad_sample)
+    unlogged_bad = []
+    for node in ast.walk(tree_bad):
+        if isinstance(node, ast.ExceptHandler):
+            body = ast.dump(node)
+            has_log = "id='logger'" in body or "id='_LOG'" in body or "attr='stderr'" in body
+            has_raise = any(isinstance(n, ast.Raise) for n in ast.walk(node))
+            if not has_log and not has_raise:
+                unlogged_bad.append(node.lineno)
+    assert len(unlogged_bad) == 1, "Positive control failed: expected 1 unlogged handler"
+
+    repo_root = Path(__file__).parent.parent
+    boot_files = [
+        repo_root / "src" / "lucca" / "main.py",
+        repo_root / "src" / "lucca" / "admin.py",
+        repo_root / "src" / "lucca" / "core" / "env_check.py",
+    ]
+    unlogged: list[str] = []
+    for f in boot_files:
+        tree = ast.parse(f.read_text(encoding="utf-8"), filename=str(f))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ExceptHandler):
+                t = node.type
+                # Allow explicit CLI KeyboardInterrupt exits (sys.exit(0) or pass in main loop shutdown)
+                if t is not None and isinstance(t, ast.Name) and t.id == "KeyboardInterrupt":
+                    continue
+                body = ast.dump(node)
+                has_log = "id='logger'" in body or "id='_LOG'" in body or "attr='stderr'" in body
+                has_raise = any(isinstance(n, ast.Raise) for n in ast.walk(node))
+                if not has_log and not has_raise:
+                    unlogged.append(f"{f.name}:{node.lineno} ({ast.unparse(t) if t else 'bare'})")
+
+    assert not unlogged, f"Found unlogged except handlers in boot-path modules: {unlogged}"
+
+
+
 
 
 

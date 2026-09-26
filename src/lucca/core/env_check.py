@@ -107,7 +107,8 @@ def check_openvino_npu() -> tuple[bool, str]:
         if "NPU" in devices:
             return True, f"Intel NPU detected by OpenVINO (devices: {devices})"
         return False, f"Intel NPU not detected. Available devices: {devices}"
-    except ImportError:
+    except ImportError as e:
+        logger.debug("check_openvino_npu_import_error: %s", e)
         return False, "OpenVINO python package not installed."
     except Exception as e:
         logger.debug("check_openvino_npu_failed: %s", e)
@@ -170,7 +171,8 @@ def check_docker_wsl() -> tuple[bool, str]:
         if res.returncode == 0:
             return True, "Docker CE is running inside Ubuntu WSL2."
         return False, f"Docker not responding in Ubuntu WSL2: {res.stderr.strip()[:100]}"
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
+        logger.debug("check_docker_wsl_timeout: %s", e)
         return False, "WSL2 docker info command timed out."
     except Exception as e:
         logger.debug("check_docker_wsl_failed: %s", e)
