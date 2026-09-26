@@ -159,7 +159,7 @@ Current green baseline is **696 passed** (not 680), 20 static gates, 7/7 import 
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 1 (WO-19a validation registry) | pending | implementing agent | pending | READY FOR REVIEW | 2026-09-26 |
+| 1 (WO-19a validation registry) | `4efea24` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 2 (WO-19b dead-code purge) | | | | | |
 | 3 (WO-19c scheme tests) | | | | | |
 | 4 (WO-19d boot logging) | | | | | |
