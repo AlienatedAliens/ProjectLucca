@@ -163,7 +163,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 | Layer | Kind of "intelligence" | Talks to |
 |---|---|---|
 | Reflex (regex, <150 ms per `src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`) | pattern match on emergency words | short-circuits everything |
-| Rule engine (MicroScheme, µs) | deterministic, formally verified condition→plan | → model via `yield-to-core`; ← model via `invoke_skill` |
+| Rule engine (MicroScheme, µs) | deterministic, formally verified condition→plan; **bounded forward-chaining**: rules can `(assert ...)` signed facts and fire on each other's conclusions in-turn (D-REAS-09, `tests/test_concert_layer.py`) | → model via `yield-to-core`; ← model via `invoke_skill` |
 | Epistemic cascade (8 substrates per `src/lucca/core/cascade.py:EpistemicSubstrate`) | evidence fusion (Belnap FOUR), tiered trust, honest abstention | → model as grounded context + directives |
 | Language model (Gemma 4 12B per `models/MANIFEST.json`, `docs/MODEL_STRATEGY.md`) | open-ended language, planning, tool selection, **the face** | → tools; ← rule yields, cascade context, memory hits, affect stance |
 | Sandbox & policy (Docker, Z3, BDI, taint) | deontic: what may happen at all | ← model/rule tool calls; → results back to model for narration |
@@ -174,6 +174,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 **How true is "bidirectional"?** True in 4 concrete directions you can observe (`docs/ARCHITECTURE.md`): rule→model (`yield-to-core`), model→rule (`invoke_skill`), model→tool→model (`ACT_THEN_NARRATE` narration of results), cascade→model (grounding). **Where the metaphor overstates today:**
 - A rule **cannot read a tool's result** inside the same plan (rules are pure `State → Plan`); it sees `last_tool`/`last_tool_ok` on the *next* turn. L4 adds orchestrator-side intermediate validation, not rule-side result reading — deliberately (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`).
 - "Each with its own kind of intelligence": the rule layer is deterministic pattern-matching until induction produces rules *from you*. The "learned" intelligence of that layer is, today, 0 rules deep. That is the honest state; L2/L3 exist to change it.
+- The **concert layer** (D-REAS-09) is half-wired: the LISP half shipped — rules assert signed facts, chain deductions with proof traces, bounded at depth 8. The LLM half (she proposes deduction steps in conversation, LISP validates and signs them) is in flight (WO-20 Phases 3–5). You cannot have a deduction *conversation* yet; the machinery it will run on is tested and green.
 - Most tool-call skills yield on voice (see §2.5), so on a raw voice turn the layer often *annotates* rather than *acts*.
 
 **Test it yourself (Claim B). Each step names the layer it exercises and what you should observe.**
@@ -201,7 +202,9 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 
 | Capability | Status | Arrives |
 |---|---|---|
-| Learning a habit from you and proposing a shortcut | Machinery present, never completed on real data | L2 (replay/statistics) → L3 (viewer + your approval). Needs real turns. |
+| Learning a habit from you and proposing a shortcut | Machinery present, never completed on real data | L2 (replay/statistics) → L3 (viewer + your approval). Needs real turns. First live induction ran 2026-09-26: 0 clusters (exact-match clustering vs. near-duplicate phrasing — fuzzy clustering needed). |
+| Multi-step deductive conversations ("she's a judge in the Philippines" + "judges there are usually Filipino" → "your girlfriend is probably Filipino", with receipts) | LISP half shipped (assert, chaining, signed proof traces); LLM abductive half in flight | WO-20 Phases 3–5 (`plans/2026-09-26_wo20_concert_layer.md`). |
+| Source-conditioned beliefs ("true *if* the source is right"), corroboration checking, standards of proof ("probably" vs "clear and convincing" vs "beyond reasonable doubt"), web-fact ratification | Designed; research-grounded (`docs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`) | WO-21. |
 | Storing facts *she* infers about you | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
 | Apologising correctly after you barge in | Retired | After orchestrator wiring + a rule that answers barge-ins with content (`docs/V2_BACKLOG.md`). |
 | Arbitrary host OS automation / unwhitelisted app execution | Excluded by doctrine | Not planned. Host action is strictly confined to whitelisted `launch_app` with user confirmation. |
