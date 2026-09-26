@@ -437,6 +437,12 @@ def test_native_pdf_extraction_in_fetch_url(monkeypatch: pytest.MonkeyPatch):
             return FakeResponse()
 
     monkeypatch.setattr("httpx.Client", FakeClient)
+    # Fake DNS (public IPv4 only) so the SSRF pre-check is network-independent:
+    # hosts whose DNS returns AAAA for example.com otherwise trip the (correct)
+    # IPv6 block. See F-FEAT review 2026-09-26.
+    monkeypatch.setattr(
+        "socket.getaddrinfo", lambda host, port, *a, **k: [(2, 1, 6, "", ("93.184.216.34", 443))]
+    )
 
     struct, text = fetch_url("https://example.com/document.pdf")
     assert struct["status_code"] == 200

@@ -195,8 +195,15 @@ def test_t_sbx_13_ssrf_blocking():
     with pytest.raises((SandboxPathError, ValueError)):
         validate_url_ssrf(long_query)
 
-    # Allowed public URL
-    normalized, _ip = validate_url_ssrf("https://example.com/valid?query=test")
+    # Allowed public URL — fake DNS resolver (public IPv4) so the test is
+    # network-independent: hosts whose DNS returns AAAA for example.com
+    # otherwise trip the (correct) IPv6 block. See F-FEAT review 2026-09-26.
+    def fake_resolver(host: str) -> list[tuple[object, ...]]:
+        return [(2, 1, 6, "", ("93.184.216.34", 443))]
+
+    normalized, _ip = validate_url_ssrf(
+        "https://example.com/valid?query=test", dns_resolver=fake_resolver
+    )
     assert normalized.startswith("https://example.com/valid")
 
 
