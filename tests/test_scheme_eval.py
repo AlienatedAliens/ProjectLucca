@@ -55,8 +55,13 @@ def test_scheme_evaluator_gas_metering() -> None:
 
 
 def test_scheme_evaluator_gas_exhaustion_at_default_limit() -> None:
-    """Default gas limit (1,000) aborts infinite or deeply unrolled evaluation deterministically."""
-    evaluator = SchemeEvaluator(gas_limit=DEFAULT_GAS_LIMIT)
+    """Default gas limit (1,000) aborts infinite or deeply unrolled evaluation deterministically.
+
+    The wall-clock timeout is disabled (raised far above any plausible runtime) so this
+    test isolates gas exhaustion deterministically — otherwise a loaded machine can hit
+    the 25 ms timeout before 1,000 gas is consumed and raise SchemeTimeout instead.
+    """
+    evaluator = SchemeEvaluator(gas_limit=DEFAULT_GAS_LIMIT, timeout_ms=600_000.0)
     evaluator.start_time = time.perf_counter()
     env = build_env()
 

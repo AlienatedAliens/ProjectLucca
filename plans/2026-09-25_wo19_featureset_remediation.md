@@ -161,7 +161,7 @@ Current green baseline is **696 passed** (not 680), 20 static gates, 7/7 import 
 |---|---|---|---|---|---|
 | 1 (WO-19a validation registry) | `4efea24` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-26 |
 | 2 (WO-19b dead-code purge) | `757a6da` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-27 |
-| 3 (WO-19c scheme tests) | `48edc9d` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-27 |
+| 3 (WO-19c scheme tests) | `48edc9d` | implementing agent | reviewer (Zoo) | **PASS** (reviewer patch: `test_scheme_eval.py` gas-vs-timeout race — timeout disabled in gas-exhaustion test for determinism) | 2026-09-27 |
 | 4 (WO-19d boot logging) | `62d3ce3` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-27 |
 | 5 (WO-19e coverage) | `239f731` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-27 |
-| 6 (WO-19f forget CLI) | pending | implementing agent | | READY FOR REVIEW | 2026-09-27 |
+| 6 (WO-19f forget CLI) | `2550632` | implementing agent | reviewer (Zoo) | **PASS** | 2026-09-27 |
