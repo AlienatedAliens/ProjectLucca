@@ -10,13 +10,14 @@ registers candidates exclusively into QUARANTINE.
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Final
 
 import structlog
 
-from lucca.core.exceptions import RuleValidationError, SchemeSyntaxError
+from lucca.core.exceptions import RuleError, RuleValidationError, SchemeSyntaxError
 from lucca.core.schemas import CandidateRule
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.egraph import synthesize_macro_from_patterns
@@ -31,6 +32,150 @@ logger = structlog.get_logger(__name__)
 MIN_FREQUENCY_THRESHOLD: Final[int] = 3
 
 
+DEFAULT_SIMILARITY_THRESHOLD: Final[float] = 0.6
+
+LIGHT_STOP_WORDS: Final[frozenset[str]] = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "is",
+        "are",
+        "tell",
+        "me",
+        "please",
+        "can",
+        "you",
+        "what",
+        "whats",
+        "how",
+        "give",
+        "show",
+    }
+)
+
+
+def normalize_tokens(text: str) -> set[str]:
+    """
+    Tokenizes text into lowercase tokens, stripping punctuation and light stop words.
+    """
+    clean_text = text.strip()
+    if not clean_text:
+        return set()
+    words = re.findall(r"\b[a-zA-Z0-9_\-.]+\b", clean_text.lower())
+    clean_tokens: set[str] = set()
+    for w in words:
+        clean = w.strip(".-_")
+        if len(clean) >= 2 and clean not in LIGHT_STOP_WORDS:
+            clean_tokens.add(clean)
+    if not clean_tokens:
+        for w in words:
+            clean = w.strip(".-_")
+            if clean:
+                clean_tokens.add(clean)
+    return clean_tokens
+
+
+def jaccard_similarity(text1: str, text2: str) -> float:
+    """
+    Calculates token-set Jaccard similarity between two texts: |A ∩ B| / |A ∪ B|.
+    Returns 1.0 for exact string matches (case-insensitive).
+    """
+    s1 = text1.strip().lower()
+    s2 = text2.strip().lower()
+    if s1 == s2:
+        return 1.0
+    t1 = normalize_tokens(s1)
+    t2 = normalize_tokens(s2)
+    if not t1 or not t2:
+        return 1.0 if s1 == s2 else 0.0
+    union_len = len(t1 | t2)
+    if union_len == 0:
+        return 1.0 if s1 == s2 else 0.0
+    return len(t1 & t2) / union_len
+
+
+def cluster_phrasings(
+    values: list[str],
+    threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+) -> list[tuple[str, int, list[str]]]:
+    """
+    Deterministically clusters a list of string values into near-duplicate groups
+    using token-set Jaccard similarity >= threshold.
+
+    Bounded and model-free: operates strictly in-process with deterministic sorting.
+    Returns list of (representative_value, total_occurrences, member_phrasings).
+    """
+    if not values:
+        return []
+
+    raw_counts: dict[str, int] = defaultdict(int)
+    for v in values:
+        raw_counts[v] += 1
+
+    sorted_uniques = sorted(
+        raw_counts.keys(),
+        key=lambda s: (-raw_counts[s], -len(s), s.lower()),
+    )
+
+    clusters: list[dict[str, object]] = []
+
+    for item in sorted_uniques:
+        count = raw_counts[item]
+        best_cluster_idx: int | None = None
+        best_sim = -1.0
+
+        for idx, cl in enumerate(clusters):
+            leader = str(cl["leader"])
+            sim = jaccard_similarity(item, leader)
+            if sim >= threshold and sim > best_sim:
+                best_sim = sim
+                best_cluster_idx = idx
+
+        if best_cluster_idx is not None:
+            cl = clusters[best_cluster_idx]
+            cl["count"] = int(cl["count"]) + count
+            cast_members = cl["members"]
+            if isinstance(cast_members, list):
+                cast_members.extend([item] * count)
+        else:
+            clusters.append(
+                {
+                    "leader": item,
+                    "count": count,
+                    "members": [item] * count,
+                }
+            )
+
+    result: list[tuple[str, int, list[str]]] = []
+    for cl in clusters:
+        members_list = cl["members"]
+        if not isinstance(members_list, list) or not members_list:
+            continue
+        unique_members = sorted(set(members_list))
+        if len(unique_members) == 1:
+            representative = unique_members[0]
+        else:
+            def _score_member(
+                m: str,
+                members: list[str] = unique_members,
+                counts: dict[str, int] = raw_counts,
+            ) -> tuple[int, int, float, int, str]:
+                has_trailing_punct = 1 if m and m[-1] in "?!." else 0
+                cnt = counts[m]
+                avg_sim = (
+                    sum(jaccard_similarity(m, other) for other in members)
+                    / len(members)
+                )
+                return (-has_trailing_punct, cnt, avg_sim, -len(m), m)
+
+            representative = max(unique_members, key=_score_member)
+
+        result.append((representative, int(cl["count"]), sorted(unique_members)))
+
+    return result
+
+
 @dataclass(frozen=True)
 class InductionCluster:
     intent: str
@@ -38,6 +183,7 @@ class InductionCluster:
     arg_key: str
     arg_val: str
     occurrences: int
+    phrasings: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -60,6 +206,8 @@ class RuleInducer:
        non-tautology, and deontic path checks before entering QUARANTINE.
     3. Structural Generalization: Recurring patterns sharing topology are
        abstracted into bounded compile-time macros.
+    4. WO-21 Phase 5: Near-duplicate clustering merges near-identical argument
+       phrasings using token-set Jaccard similarity >= 0.6.
     """
 
     def __init__(
@@ -67,17 +215,19 @@ class RuleInducer:
         db: DatabaseManager,
         rule_engine: RuleLifecycleManager,
         min_frequency: int = MIN_FREQUENCY_THRESHOLD,
+        similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         smt_verifier: SMTVerifier | None = None,
     ) -> None:
         self.db = db
         self.rule_engine = rule_engine
         self.min_frequency = min_frequency
+        self.similarity_threshold = similarity_threshold
         self.smt_verifier = smt_verifier or SMTVerifier(timeout_ms=500)
 
     def mine_patterns(self) -> list[InductionCluster]:
         """
         Scans SQLite decisions table for successful turns with tool calls
-        and clusters recurring patterns.
+        and clusters recurring patterns using near-duplicate fuzzy clustering.
         """
         with self.db.read_cursor() as cur:
             cur.execute(
@@ -90,7 +240,7 @@ class RuleInducer:
             )
             rows = cur.fetchall()
 
-        cluster_counts: dict[tuple[str, str, str, str], int] = defaultdict(int)
+        group_values: dict[tuple[str, str, str], list[str]] = defaultdict(list)
 
         for _did, feat_raw, tool_calls_raw, _tok in rows:
             if not feat_raw or not tool_calls_raw:
@@ -106,9 +256,6 @@ class RuleInducer:
                 continue
 
             intent = str(features.get("intent") or "unknown")
-            entities = features.get("entities", {})
-            if not isinstance(entities, dict):
-                entities = {}
 
             for tc in tool_calls:
                 if not isinstance(tc, dict):
@@ -121,22 +268,25 @@ class RuleInducer:
                 # Inspect key argument pairs
                 for k, v in args.items():
                     if isinstance(v, (str, int, float, bool)):
-                        val_str = str(v).strip().lower()
+                        val_str = str(v).strip()
                         if val_str:
-                            cluster_counts[(intent, tool_name, str(k), val_str)] += 1
+                            group_values[(intent, tool_name, str(k))].append(val_str)
 
         clusters: list[InductionCluster] = []
-        for (intent, tool, arg_key, arg_val), count in cluster_counts.items():
-            if count >= self.min_frequency:
-                clusters.append(
-                    InductionCluster(
-                        intent=intent,
-                        tool=tool,
-                        arg_key=arg_key,
-                        arg_val=arg_val,
-                        occurrences=count,
+        for (intent, tool, arg_key), vals in group_values.items():
+            clustered = cluster_phrasings(vals, threshold=self.similarity_threshold)
+            for rep, count, phrasings in clustered:
+                if count >= self.min_frequency:
+                    clusters.append(
+                        InductionCluster(
+                            intent=intent,
+                            tool=tool,
+                            arg_key=arg_key,
+                            arg_val=rep,
+                            occurrences=count,
+                            phrasings=tuple(phrasings),
+                        )
                     )
-                )
 
         return clusters
 
@@ -145,29 +295,31 @@ class RuleInducer:
         Synthesizes a safe, canonical MicroScheme rule for an induced pattern cluster.
         Formally verifies the rule using Z3 SMT solver prior to candidate return.
         """
-        clean_val = cluster.arg_val.replace(" ", "-").replace(".", "-").replace("_", "-")
-        clean_tool = cluster.tool.replace("_", "-")
+        clean_val = re.sub(r"[^a-zA-Z0-9_\-]", "-", cluster.arg_val.lower()).strip("-")
+        clean_val = re.sub(r"-+", "-", clean_val)
+        clean_tool = cluster.tool.lower().replace("_", "-")
         rule_id = f"induced-{clean_tool}-{clean_val}-v{version}"
+        escaped_arg_val = cluster.arg_val.replace("\\", "\\\\").replace('"', '\\"')
 
         # Generate condition expression based on intent and argument
         if cluster.intent == "launch_app" and cluster.tool == "launch_app":
             when_part = (
                 f'(and (intent= "launch_app")\n'
-                f'     (entity-has? "app" "{cluster.arg_val}")\n'
-                f'     (not (app-running? "{cluster.arg_val}")))'
+                f'     (entity-has? "app" "{escaped_arg_val}")\n'
+                f'     (not (app-running? "{escaped_arg_val}")))'
             )
-            plan_part = f'(list (tool "launch_app" :app "{cluster.arg_val}"))'
+            plan_part = f'(list (tool "launch_app" :app "{escaped_arg_val}"))'
         elif cluster.intent == "file_read" and cluster.tool == "read_file":
             when_part = (
-                f'(and (intent= "file_read")\n     (entity-has? "file" "{cluster.arg_val}"))'
+                f'(and (intent= "file_read")\n     (entity-has? "file" "{escaped_arg_val}"))'
             )
-            plan_part = f'(list (tool "read_file" :path "{cluster.arg_val}"))'
+            plan_part = f'(list (tool "read_file" :path "{escaped_arg_val}"))'
         else:
             when_part = (
                 f'(and (intent= "{cluster.intent}")\n'
-                f'     (entity-has? "{cluster.arg_key}" "{cluster.arg_val}"))'
+                f'     (entity-has? "{cluster.arg_key}" "{escaped_arg_val}"))'
             )
-            plan_part = f'(list (tool "{cluster.tool}" :{cluster.arg_key} "{cluster.arg_val}"))'
+            plan_part = f'(list (tool "{cluster.tool}" :{cluster.arg_key} "{escaped_arg_val}"))'
 
         sexpr = f'(rule "{rule_id}"\n  :when {when_part}\n  :plan {plan_part}\n  :priority 5)'
 
@@ -178,7 +330,7 @@ class RuleInducer:
                 registered_tools=self.rule_engine.registered_tools,
                 existing_rule_ids=set(self.rule_engine.rules.keys()),
             )
-        except (RuleValidationError, SchemeSyntaxError) as exc:
+        except (RuleValidationError, RuleError, SchemeSyntaxError) as exc:
             logger.warning("rule_induction_validation_failed", rule_id=rule_id, error=str(exc))
             return None
 
@@ -273,8 +425,14 @@ class RuleInducer:
         candidates: list[CandidateRule] = []
 
         for cluster in clusters:
+            clean_val = re.sub(r"[^a-zA-Z0-9_\-]", "-", cluster.arg_val.lower()).strip("-")
+            clean_val = re.sub(r"-+", "-", clean_val)
             # Check if this rule or equivalent already exists
-            existing = [r for r in self.rule_engine.rules.values() if cluster.arg_val in r.rule_id]
+            existing = [
+                r
+                for r in self.rule_engine.rules.values()
+                if (clean_val and clean_val in r.rule_id) or cluster.arg_val.lower() in r.rule_id.lower()
+            ]
             if existing:
                 continue
 

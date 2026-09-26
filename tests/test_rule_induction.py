@@ -15,7 +15,7 @@ from lucca.reasoning.egraph import (
     anti_unify,
     synthesize_macro_from_patterns,
 )
-from lucca.reasoning.induction import InductionCluster, RuleInducer
+from lucca.reasoning.induction import InductionCluster, RuleInducer, jaccard_similarity
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.parser import Symbol, parse_rule, to_canonical
 from lucca.reasoning.smt_verifier import SMTVerifier
@@ -490,3 +490,129 @@ def test_inducer_macro_synthesis_across_clusters(test_db, rule_engine):
     assert macro.name == "when-launch-app-app"
     assert "defmacro when-launch-app-app" in macro.s_expression
     assert len(macro.supporting_clusters) == 2
+
+
+def test_fuzzy_clustering_four_phrasings_same_request_merge(test_db, rule_engine):
+    """
+    WO-21 Phase 5 Acceptance Test:
+    4 phrasings of the same request ("what's my IP", "whats my ip",
+    "tell me my ip address", "my ip?") merge into 1 cluster with occurrences=4.
+    Distinct requests stay separate and below induction threshold.
+    """
+    phrasings = ["what's my IP", "whats my ip", "tell me my ip address", "my ip?"]
+    for i, phrasing in enumerate(phrasings):
+        insert_decision(
+            test_db,
+            decision_id=f"dec-ip-{i}",
+            intent="network_query",
+            tool_name="get_network_info",
+            args={"query": phrasing},
+            tool_ok=1,
+        )
+
+    # Distinct requests (each occurring once, below threshold of 3)
+    distinct_requests = ["what is the weather", "open calculator", "check disk space"]
+    for i, req in enumerate(distinct_requests):
+        insert_decision(
+            test_db,
+            decision_id=f"dec-distinct-{i}",
+            intent="network_query",
+            tool_name="get_network_info",
+            args={"query": req},
+            tool_ok=1,
+        )
+
+    inducer = RuleInducer(test_db, rule_engine, min_frequency=3)
+    clusters = inducer.mine_patterns()
+
+    # Positive Control 1: Exactly 1 cluster discovered above min_frequency=3
+    assert len(clusters) == 1
+    cluster = clusters[0]
+    assert cluster.intent == "network_query"
+    assert cluster.tool == "get_network_info"
+    assert cluster.arg_key == "query"
+
+    # Positive Control 2: All 4 phrasings merged into the single cluster
+    assert cluster.occurrences == 4
+    for p in phrasings:
+        assert p in cluster.phrasings
+
+    # Positive Control 3: None of the distinct requests merged into the cluster
+    for d in distinct_requests:
+        assert d not in cluster.phrasings
+
+    # Positive Control 4: Direct Jaccard threshold assertions
+    for i in range(len(phrasings)):
+        for j in range(i + 1, len(phrasings)):
+            assert (
+                jaccard_similarity(phrasings[i], phrasings[j]) >= 0.6
+            ), f"Pair ({phrasings[i]}, {phrasings[j]}) must meet Jaccard >= 0.6"
+
+    for d in distinct_requests:
+        for p in phrasings:
+            assert (
+                jaccard_similarity(d, p) < 0.6
+            ), f"Pair ({d}, {p}) must not meet Jaccard threshold"
+
+
+def test_fuzzy_clustering_distinct_requests_stay_separate(test_db, rule_engine):
+    """Verify distinct recurring requests form separate independent clusters."""
+    # 3 occurrences of request A
+    for i in range(3):
+        insert_decision(
+            test_db,
+            decision_id=f"dec-mem-{i}",
+            intent="system_info",
+            tool_name="sys_info",
+            args={"metric": "system memory status"},
+            tool_ok=1,
+        )
+
+    # 3 occurrences of request B
+    for i in range(3):
+        insert_decision(
+            test_db,
+            decision_id=f"dec-joke-{i}",
+            intent="entertainment",
+            tool_name="tell_joke",
+            args={"topic": "funny computer programming joke"},
+            tool_ok=1,
+        )
+
+    inducer = RuleInducer(test_db, rule_engine, min_frequency=3)
+    clusters = inducer.mine_patterns()
+
+    assert len(clusters) == 2
+    intents = {c.intent for c in clusters}
+    assert intents == {"system_info", "entertainment"}
+    for c in clusters:
+        assert c.occurrences == 3
+
+
+def test_live_induction_production_log_clusters_gt_zero():
+    """
+    WO-21 Phase 5 Functional Acceptance:
+    Re-run the live induction path against the production SQLite database log:
+    clusters > 0.
+    """
+    prod_db_path = Path(r"C:\ProjectLucca\data\memory.sqlite")
+    if not prod_db_path.exists():
+        pytest.skip(f"Production database not present at {prod_db_path}")
+
+    db = DatabaseManager(prod_db_path)
+    db.migrate()
+    lifecycle = RuleLifecycleManager(registered_tools=None, db=db)
+    lifecycle.load()
+
+    inducer = RuleInducer(db, lifecycle, min_frequency=3)
+    clusters = inducer.mine_patterns()
+
+    assert len(clusters) > 0, "Live production log must yield > 0 clusters"
+    # Verify the cluster found is non-trivial and properly populated
+    first_cluster = clusters[0]
+    assert first_cluster.occurrences >= 3
+    assert len(first_cluster.phrasings) >= 2
+    assert first_cluster.tool in ("search_web", "fetch_url", "memory_search")
+
+    db.close()
+
