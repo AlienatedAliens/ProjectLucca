@@ -87,7 +87,7 @@ def format_memory_context(
             prov_val = hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
             if prov_val == "INFERRED":
                 conf_val = getattr(hit, "confidence", 1.0)
-                line = f"- [{hit.kind}/INFERRED deduced, confidence {conf_val:.2f} {age}] {content_clean}"
+                line = f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} {age}] {content_clean}"
             else:
                 conf_str = (
                     f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""

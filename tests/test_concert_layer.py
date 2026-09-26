@@ -895,7 +895,8 @@ def test_gather_ladder_named_gap_abstention_or_user_question(orch: Orchestrator)
     assert len(accepted) == 0
     assert spoken is not None
     # Missing premise must be explicitly named in spoken output
-    assert "birthplace_is Canberra" in spoken or "birthplace" in spoken
+    assert "birthplace_is Canberra" in spoken
+    assert "can you tell me about it?" in spoken
 
     # Store must NOT have committed the nationality conclusion
     with orch.db.read_cursor() as cur:
@@ -1183,11 +1184,11 @@ def test_user_derived_supersedes_inferred_fact(
     assert "[superseded]" in text or "supersedes" in text
 
 
-def test_cascade_and_renderer_frame_inferred_fact_as_deduced_confidence(
+def test_cascade_and_renderer_frame_inferred_fact_as_inferred_confidence(
     orch: Orchestrator, signer_factory: SignerFactory
 ) -> None:
-    """WO-20 Phase 4 Functional Acceptance 4:
-    The cascade and memory context renderer frame the fact as 'deduced, confidence c' in prompt context.
+    """WO-20 Phase 4 / WO-21 Phase 0 Functional Acceptance:
+    The cascade and memory context renderer frame the fact as 'inferred, confidence c' in prompt context.
     """
     trace = _trace("tr-frame-inferred")
     signed_prem = orch._commit_lisp_assertion(AssertFact(s="user", p="job", o="engineer"), trace)
@@ -1225,13 +1226,15 @@ def test_cascade_and_renderer_frame_inferred_fact_as_deduced_confidence(
     ]
     assert len(inferred_hits) >= 1
     rendered = format_memory_context(inferred_hits)
-    assert "deduced, confidence 0.82" in rendered
+    assert "inferred, confidence 0.82" in rendered
+    assert "deduced, confidence" not in rendered
 
     # Test cascade formatting
     cascade = EpistemicSearchCascade(memory_store=orch.memory_store)
     evidence = cascade.query_substrate_2_memory("skill_level")
     _, cascade_text, _ = cascade.synthesize("skill_level", evidence)
-    assert "deduced, confidence 0.82" in cascade_text
+    assert "inferred, confidence 0.82" in cascade_text
+    assert "deduced, confidence" not in cascade_text
 
 
 def test_migration_0007_upgrades_pre_inferred_database(tmp_path: Path) -> None:

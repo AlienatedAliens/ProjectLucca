@@ -1367,7 +1367,7 @@ class EpistemicSearchCascade:
             elif item.metadata.get("provenance") == "INFERRED":
                 meta_conf = item.metadata.get("confidence")
                 conf_val = float(meta_conf) if meta_conf is not None else float(item.confidence)
-                polarity_tag = f"[deduced, confidence {conf_val:.2f}]"
+                polarity_tag = f"[inferred, confidence {conf_val:.2f}]"
             else:
                 polarity_tag = (
                     "[asserts]"

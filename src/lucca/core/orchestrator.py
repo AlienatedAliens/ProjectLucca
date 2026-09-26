@@ -1488,7 +1488,7 @@ class Orchestrator:
             # 3. Ask the user (named-gap question) vs 4. Named-gap abstention
             is_personal = any(k in retry_premise.lower() for k in ("user", "you", "live", "from", "born", "home", "partner"))
             if is_personal:
-                spoken = f"I don't have anything verified about {retry_premise} — where do you live or what is the background here?"
+                spoken = f"I don't have anything verified about {retry_premise} — can you tell me about it?"
             else:
                 spoken = f"I can't verify {retry_premise}, so I can't deduce that yet."
 
