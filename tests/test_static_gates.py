@@ -825,5 +825,49 @@ def test_speech_output_manager_decomposition() -> None:
         )
 
 
+def test_every_tool_has_arg_schema() -> None:
+    """
+    F-FEAT-01: Static gate enforcing central tool-arg validation registry.
+    Ensures every advertised native tool has an explicit Pydantic argument schema
+    registered in TOOL_ARG_SCHEMAS with exact set equality.
+    Includes positive controls (delete-a-key fails, add-a-key fails).
+    """
+    from pydantic import BaseModel
+
+    from lucca.core.capabilities import get_default_native_tools
+    from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS
+
+    native_tools = get_default_native_tools()
+    native_names = set(native_tools.keys())
+    registered_names = set(TOOL_ARG_SCHEMAS.keys())
+
+    # Positive control 1: deleting a key must fail set equality
+    mutated_missing = set(registered_names)
+    removed_tool = mutated_missing.pop()
+    assert mutated_missing != native_names, (
+        f"Positive control 1 failed: dropping '{removed_tool}' should cause set mismatch"
+    )
+
+    # Positive control 2: adding an extra dummy key must fail set equality
+    mutated_extra = set(registered_names) | {"__bogus_dummy_tool__"}
+    assert mutated_extra != native_names, (
+        "Positive control 2 failed: adding dummy tool should cause set mismatch"
+    )
+
+    # Invariant: exact set equality between advertised native tools and registry
+    missing_schemas = native_names - registered_names
+    extra_schemas = registered_names - native_names
+    assert registered_names == native_names, (
+        f"TOOL_ARG_SCHEMAS mismatch: missing={missing_schemas}, extra={extra_schemas}"
+    )
+
+    # Invariant: every registered schema must be a BaseModel subclass
+    for tool_name, schema_cls in TOOL_ARG_SCHEMAS.items():
+        assert isinstance(schema_cls, type) and issubclass(schema_cls, BaseModel), (
+            f"Tool '{tool_name}' schema {schema_cls} must be a BaseModel subclass"
+        )
+
+
+
 
 

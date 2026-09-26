@@ -97,6 +97,36 @@ WO-19a (now) ──> WO-18a ──> WO-19b (after WO-18c) ──> WO-19c ──>
 
 ---
 
+## Amendment v2 (2026-09-26) — Post-WO-18 Landscape Corrections
+
+**Read this before executing any phase.** WO-18 changed the ground this plan was written on. The phases and traps are unchanged; the *locations and some contents* are corrected here. Where this amendment conflicts with the phase text above, **this amendment wins.**
+
+### A2.1 — Locate by grep, never by line number
+The orchestrator was decomposed (3,471 → 2,437 lines). Every `:LINE` citation in this plan is stale. Use these locators instead:
+- `memory_commit` orchestrator-side dispatch: `grep -rn '"memory_commit"' src/lucca/core/orchestrator.py` (handler: `def _handle_memory_commit` — still on `Orchestrator`, was NOT extracted).
+- `invoke_skill` dispatch: `grep -rn 'invoke_skill' src/lucca/core/orchestrator.py src/lucca/core/capabilities.py`.
+- ValidationError refusal shape to copy: `grep -n 'ValidationError' src/lucca/sandbox/service.py` (first branch).
+
+### A2.2 — WO-19a: SandboxPort now exists
+WO-18d ratified `SandboxPort` ([`src/lucca/ports.py`](../src/lucca/ports.py)) with `execute_tool(call_id, tool_name, args, confirmed, human_confirmed)`. The `TOOL_ARG_SCHEMAS` registry must be consistent with that signature. When the registry lands, consider declaring it adjacent to the port (same module or `sandbox/schemas.py`) so the contract and the validation map can't drift — note which you chose in the review package.
+
+### A2.3 — WO-19b batch 1 corrections
+- **Remove `get_tool_risk` from the purge list.** It is now a declared method on the ratified `SandboxPort` — deleting it breaks the contract. (Flagged in the WO-18d review; the plan was not updated at the time.)
+- **All 12 unraised exception classes are purgeable.** WO-18c is complete and claimed none of them for typed-exception conversion (it added logging only). No STOP needed for batch 2 beyond the standard suite-green check.
+
+### A2.4 — WO-19f is 80% done already
+WO-18e delivered `StudioFacade.forget_memory(memory_id, user_confirmed=True)` ([`src/lucca/core/studio_facade.py`](../src/lucca/core/studio_facade.py)) routing through `MemoryStore.forget(user_confirmed=True)` — exactly the prescribed path. WO-19f shrinks to: (1) add `admin memory forget <entry_id>` in `src/lucca/admin.py` calling the same `MemoryStore.forget` path (NOT `MemoryManager.delete_memory`); (2) the `tests/test_admin.py` test (soft-delete + audit row + envelope preserved); (3) update the user guide §2.4 note. Copy the facade's call pattern; do not design a new one.
+
+### A2.5 — New gate/test patterns to copy (post-WO-18)
+- New static gates: follow `test_speech_output_manager_decomposition` / `test_ui_no_direct_domain_imports` in `tests/test_static_gates.py` (AST presence/absence + exact-once markers + positive controls).
+- New test files: follow `tests/test_studio_facade.py` / `tests/test_speech_output_manager.py` (construction with fakes, `__new__`-resilience case).
+- The silent-except gate (`test_no_silent_broad_excepts`) is live — any handler you touch must log or re-raise.
+
+### A2.6 — Suite baseline for reviews
+Current green baseline is **696 passed** (not 680), 20 static gates, 7/7 import contracts, 3 known environmental failures (D-REAS-08 tripwire, 2 IPv6 SSRF). R.2 suite-state checks compare against *this* baseline.
+
+---
+
 ## Review Protocol — every phase comes back for review before the next begins
 
 **No phase is "done" when the implementer says it is.** Each phase ends with a review gate executed by a different agent (or the owner) than the one that implemented it.
@@ -129,7 +159,7 @@ WO-19a (now) ──> WO-18a ──> WO-19b (after WO-18c) ──> WO-19c ──>
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 1 (WO-19a validation registry) | | | | | |
+| 1 (WO-19a validation registry) | pending | implementing agent | pending | READY FOR REVIEW | 2026-09-26 |
 | 2 (WO-19b dead-code purge) | | | | | |
 | 3 (WO-19c scheme tests) | | | | | |
 | 4 (WO-19d boot logging) | | | | | |

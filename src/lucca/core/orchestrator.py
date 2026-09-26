@@ -2046,15 +2046,33 @@ class Orchestrator:
         ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH ∪
         ASSISTANT_BELIEF). Depends on A9 for content worth querying.
         """
-        query = str(args.get("query", "")).strip()
-        if not query:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr="invalid_arguments: query is required",
-                elapsed_ms=0.0,
-            )
+        from pydantic import ValidationError  # noqa: PLC0415
+
+        from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS  # noqa: PLC0415
+
+        schema_cls = TOOL_ARG_SCHEMAS.get("self_history_search")
+        if schema_cls is not None:
+            try:
+                parsed_sh = schema_cls.model_validate(args)
+                query = str(getattr(parsed_sh, "query", "")).strip()
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+        else:
+            query = str(args.get("query", "")).strip()
+            if not query:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr="invalid_arguments: query is required",
+                    elapsed_ms=0.0,
+                )
         cascade = getattr(self, "cascade", None)
         if cascade is None:
             return ToolResult(
@@ -2114,7 +2132,7 @@ class Orchestrator:
         from pydantic import ValidationError  # noqa: PLC0415
 
         from lucca.memory.extraction import FactExtractor  # noqa: PLC0415
-        from lucca.sandbox.schemas import MemoryCommitArgs  # noqa: PLC0415
+        from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS, MemoryCommitArgs  # noqa: PLC0415
 
         if not self.memory_store:
             return ToolResult(
@@ -2125,7 +2143,10 @@ class Orchestrator:
                 elapsed_ms=0.0,
             )
         try:
-            parsed = MemoryCommitArgs.model_validate(args)
+            schema_cls = TOOL_ARG_SCHEMAS.get("memory_commit", MemoryCommitArgs)
+            parsed = schema_cls.model_validate(args)
+            if not isinstance(parsed, MemoryCommitArgs):
+                parsed = MemoryCommitArgs.model_validate(args)
         except ValidationError as exc:
             return ToolResult(
                 call_id=call_id,
@@ -2319,11 +2340,36 @@ class Orchestrator:
 
         # invoke_skill dispatch tool (T1.2)
         if name == "invoke_skill":
-            skill_id = str(args.get("skill_id", ""))
-            raw_skill_args = args.get("args")
-            skill_args: dict[str, JsonValue] = (
-                dict(raw_skill_args) if isinstance(raw_skill_args, dict) else {}
-            )
+            from pydantic import ValidationError  # noqa: PLC0415
+
+            from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS, InvokeSkillArgs  # noqa: PLC0415
+
+            schema_cls = TOOL_ARG_SCHEMAS.get("invoke_skill", InvokeSkillArgs)
+            try:
+                parsed_is = schema_cls.model_validate(args)
+                skill_id = str(getattr(parsed_is, "skill_id", ""))
+                raw_skill_args = getattr(parsed_is, "args", {})
+                skill_args: dict[str, JsonValue] = (
+                    dict(raw_skill_args) if isinstance(raw_skill_args, dict) else {}
+                )
+            except ValidationError as exc:
+                self.current_turn_tool_ok = False
+                self._record_tool_receipt(
+                    name=name,
+                    call_id=call_id,
+                    args=args,
+                    ok=False,
+                    output=None,
+                    error=f"invalid_arguments: {exc}",
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+
             manifest_ids = getattr(self, "current_manifest_skill_ids", None)
             ok, reason, payload = dispatch_invoke_skill(
                 skill_id=skill_id,

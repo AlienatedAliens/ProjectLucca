@@ -16,7 +16,7 @@ from pathlib import Path
 
 import psutil
 import structlog
-from pydantic import JsonValue, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from lucca.core.capabilities import get_capability_registry
 from lucca.core.config import get_config
@@ -28,6 +28,8 @@ from lucca.sandbox.note_tool import SafeNoteTool
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.rpc import DockerRPCTransport
 from lucca.sandbox.schemas import (
+    EXTRA_TOOL_SCHEMAS,
+    TOOL_ARG_SCHEMAS,
     CalcMathArgs,
     FetchUrlArgs,
     LaunchAppArgs,
@@ -244,7 +246,7 @@ class SandboxService:
         self,
         call_id: str,
         tool_name: str,
-        args: dict[str, JsonValue],
+        args: dict[str, JsonValue] | BaseModel,
         confirmed: bool = False,
         human_confirmed: bool = False,
     ) -> ToolResult:
@@ -275,6 +277,30 @@ class SandboxService:
                 ok=False,
                 exit_code=-3,
                 stderr="confirmation_required",
+                elapsed_ms=0.0,
+            )
+
+        # 2.5 Central Tool-Arg Validation Registry (WO-19a / F-FEAT-01)
+        schema_cls = TOOL_ARG_SCHEMAS.get(tool_name) or EXTRA_TOOL_SCHEMAS.get(tool_name)
+        if schema_cls is None:
+            logger.warning("tool_schema_not_registered", tool=tool_name, call_id=call_id)
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-1,
+                stderr="schema_not_registered",
+                elapsed_ms=0.0,
+            )
+
+        try:
+            schema_cls.model_validate(args)
+        except ValidationError as exc:
+            logger.warning("tool_arg_validation_failed", tool=tool_name, error=str(exc))
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=-1,
+                stderr=f"invalid_arguments: {exc}",
                 elapsed_ms=0.0,
             )
 
