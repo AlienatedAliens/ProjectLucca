@@ -329,6 +329,26 @@ _INTERROGATIVE_PATTERN: Final[re.Pattern[str]] = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
+_INTERROGATIVE_OPENER_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"^\s*(?:who|what|when|where|why|how|which|whose|whom|can|could|should|"
+    r"would|will|do|does|did|is|are|was|were|have|has|had|may|might|must|so)\b",
+    re.IGNORECASE,
+)
+
+_LOCATION_STOPWORDS: Final[frozenset[str]] = frozenset(
+    {
+        "though",
+        "not",
+        "no",
+        "never",
+        "nobody",
+        "none",
+        "really",
+        "actually",
+        "just",
+    }
+)
+
 class MemoryCommitService:
     """Encapsulates memory commit operations for Orchestrator (F-ARCH-103, WO-18b)."""
 
@@ -478,7 +498,8 @@ class MemoryCommitService:
         ):
             return
         text = str(transcript_payload.content)
-        if _INTERROGATIVE_PATTERN.match(text.strip()):
+        stripped = text.strip()
+        if _INTERROGATIVE_PATTERN.match(stripped) or _INTERROGATIVE_OPENER_PATTERN.match(stripped):
             return
         lower = text.lower()
         if any(marker in lower for marker in _HYPOTHETICAL_MARKERS):
@@ -506,6 +527,10 @@ class MemoryCommitService:
                     "nobody",
                     "none",
                 ):
+                    continue
+
+                # Location stopword guard (WO-20 Phase 0)
+                if pred in ("origin_is", "lives_in") and value.lower() in _LOCATION_STOPWORDS:
                     continue
 
                 # Demonym lexicon post-filter for nationality_is

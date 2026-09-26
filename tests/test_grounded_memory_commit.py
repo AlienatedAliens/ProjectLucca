@@ -259,6 +259,46 @@ def test_passive_extraction_skips_questions(orch: Orchestrator) -> None:
     assert _user_derived_rows(orch.db) == []
 
 
+def test_passive_extraction_skips_structural_questions_without_question_mark(
+    orch: Orchestrator,
+) -> None:
+    """WO-20 Phase 0 (live-test Finding 1): structural questions without '?' produce zero candidates."""
+    # "Do you know where I am from though" (no ?) produces zero candidates
+    t1 = _trace("tr-p0-q1")
+    orch._commit_transcript("Do you know where I am from though", t1)
+    orch._maybe_extract_facts(t1)
+    assert _user_derived_rows(orch.db) == []
+
+    # "So does that mean you remember that I'm Australian" produces zero candidates
+    t2 = _trace("tr-p0-q2")
+    orch._commit_transcript("So does that mean you remember that I'm Australian", t2)
+    orch._maybe_extract_facts(t2)
+    assert _user_derived_rows(orch.db) == []
+
+    # Positive control: "I'm from Melbourne" still produces origin_is Melbourne
+    t3 = _trace("tr-p0-pos")
+    orch._commit_transcript("I'm from Melbourne", t3)
+    orch._maybe_extract_facts(t3)
+    rows = _user_derived_rows(orch.db)
+    assert len(rows) == 1
+    assert "origin_is Melbourne" in rows[0]["content"]
+
+
+def test_passive_extraction_location_stopwords_sanitized(orch: Orchestrator) -> None:
+    """WO-20 Phase 0: single stopwords rejected for origin_is and lives_in."""
+    stopwords = ("though", "not", "no", "never", "nobody", "none", "really", "actually", "just")
+    for word in stopwords:
+        t_orig = _trace(f"tr-stop-orig-{word}")
+        orch._commit_transcript(f"I am from {word}", t_orig)
+        orch._maybe_extract_facts(t_orig)
+        assert _user_derived_rows(orch.db) == []
+
+        t_live = _trace(f"tr-stop-live-{word}")
+        orch._commit_transcript(f"I live in {word}", t_live)
+        orch._maybe_extract_facts(t_live)
+        assert _user_derived_rows(orch.db) == []
+
+
 def test_name_update_supersedes_previous(orch: Orchestrator) -> None:
     """A3: is_named is a functional predicate — a new name supersedes the old."""
     t1 = _trace("tr-passive-4a")
