@@ -71,6 +71,7 @@ from lucca.core.schemas import (
     ChatMessage,
     DecisionRecord,
     ExecutionTier,
+    InferenceStep,
     MemoryHit,
     Provenance,
     RetrievalQuery,
@@ -89,6 +90,7 @@ from lucca.core.schemas import (
     canonicalize_predicate,
     is_valid_predicate,
 )
+from lucca.brain.prompt_builder import build_deduction_messages
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
@@ -1100,6 +1102,346 @@ class Orchestrator:
         if ctx is None:
             return []
         return ctx.proof_trace()
+
+    def _validate_premise(
+        self, premise: str, context: ReasoningContext
+    ) -> tuple[bool, str | None]:
+        """Validates a premise against signed tool receipts, reasoning context, or the signed store.
+
+        (Spec D-REAS-09, WO-20 Phase 3 / Amendment 2026-09-26).
+        """
+        clean = premise.strip()
+
+        # 1. Attributed premise: "<source> asserts <claim>"
+        attr_match = re.match(r"^(.+?)\s+asserts\s+(.+)$", clean, re.IGNORECASE)
+        if attr_match:
+            claim = attr_match.group(2).strip().lower()
+            # Validates against current turn's signed tool receipts
+            receipts = getattr(self, "current_turn_receipts", []) or []
+            executed = getattr(self, "executed_tools", []) or []
+            for r in list(receipts) + list(executed):
+                ok = getattr(r, "ok", True)
+                if not ok:
+                    continue
+                out = (
+                    str(getattr(r, "output", "") or "")
+                    or str(getattr(r, "content", "") or "")
+                    or str(getattr(r, "structured", "") or "")
+                ).lower()
+                if claim in out or all(word in out for word in claim.split() if len(word) > 2):
+                    return (True, None)
+            return (False, "unverified_premise")
+
+        # 2. Reasoning context check (intermediate facts in current chain)
+        if context.resolve_premise(clean) is not None:
+            return (True, None)
+        for intermediate in context.intermediates:
+            if intermediate.conclusion.lower() == clean.lower() or intermediate.envelope_id == clean:
+                return (True, None)
+
+        # 3. Signed memory store check
+        if self.db is not None:
+            try:
+                with self.db.read_cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT m.content, e.entry_id, e.provenance
+                        FROM memories m
+                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                        WHERE e.grounding_eligible = 1
+                          AND (m.content = ? OR e.entry_id = ? OR m.content = ?)
+                        """,
+                        (clean, clean, clean.lower()),
+                    )
+                    if cur.fetchall():
+                        return (True, None)
+
+                    # Normalized triple check
+                    parts = clean.split()
+                    if len(parts) >= 2:
+                        s_target = parts[0]
+                        o_target = parts[-1]
+                        cur.execute(
+                            """
+                            SELECT m.content
+                            FROM memories m
+                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                            WHERE e.grounding_eligible = 1
+                              AND m.content LIKE ? AND m.content LIKE ?
+                            """,
+                            (f"%{s_target}%", f"%{o_target}%"),
+                        )
+                        if cur.fetchall():
+                            return (True, None)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("premise_validation_db_error", error=str(exc))
+
+        return (False, "unverified_premise")
+
+    def _search_memory_for_premise(self, premise: str) -> list[str]:
+        """Runs memory_search for unverified premise (Gather Ladder Step 2)."""
+        clean = premise.strip()
+        hits: list[str] = []
+
+        # 1. Use MemoryStore search if available
+        if self.memory_store is not None and hasattr(self.memory_store, "search"):
+            try:
+                q = RetrievalQuery(text=clean, limit=5)
+                res = self.memory_store.search(q)
+                for h in res:
+                    if getattr(h, "grounding_eligible", False):
+                        hits.append(h.content)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("gather_ladder_search_error", error=str(exc))
+
+        # 2. Database search fallback
+        if not hits and self.db is not None:
+            try:
+                words = [w for w in clean.split() if len(w) > 2]
+                if words:
+                    clauses = " AND ".join(["m.content LIKE ?" for _ in words])
+                    params = [f"%{w}%" for w in words]
+                    with self.db.read_cursor() as cur:
+                        cur.execute(
+                            f"""
+                            SELECT m.content
+                            FROM memories m
+                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                            WHERE e.grounding_eligible = 1 AND {clauses}
+                            """,
+                            tuple(params),
+                        )
+                        for r in cur.fetchall():
+                            hits.append(r[0])
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("gather_ladder_db_search_error", error=str(exc))
+
+        return hits
+
+    def _parse_inference_steps(self, text: str) -> list[InferenceStep]:
+        """Extracts and validates InferenceStep models from LLM JSON response."""
+        clean_text = text.strip()
+        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text)
+        if fence_match:
+            clean_text = fence_match.group(1).strip()
+
+        array_match = re.search(r"\[[\s\S]*\]", clean_text)
+        obj_match = re.search(r"\{[\s\S]*\}", clean_text)
+
+        raw_data: object = None
+        if array_match:
+            raw_data = json.loads(array_match.group(0))
+        elif obj_match:
+            raw_data = json.loads(obj_match.group(0))
+        else:
+            raw_data = json.loads(clean_text)
+
+        steps: list[InferenceStep] = []
+        if isinstance(raw_data, list):
+            for item in raw_data:
+                if isinstance(item, dict):
+                    steps.append(InferenceStep.model_validate(item))
+        elif isinstance(raw_data, dict):
+            steps.append(InferenceStep.model_validate(raw_data))
+
+        return steps
+
+    def run_deduction_step(
+        self,
+        goal: str,
+        trace: TurnTrace | None = None,
+        context: ReasoningContext | None = None,
+        llm: object | None = None,
+    ) -> tuple[list[InferenceStep], str | None]:
+        """Runs the abductive deduction loop with bounded gather ladder (Spec D-REAS-09, WO-20 Phase 3).
+
+        Proposes InferenceSteps via LLM, validates premises against signed store/receipts,
+        signs valid steps via SignerFactory as LISP_ASSERTION, and executes the Gather Ladder
+        on unverified premises (Revise -> Memory Retry -> User Question -> Abstention).
+        """
+        effective_llm = llm if llm is not None else getattr(self, "llm", None)
+        if effective_llm is None:
+            logger.warning("no_llm_available_for_deduction")
+            return ([], "No language model available for deduction.")
+
+        ctx = context if context is not None else (
+            getattr(self, "current_reasoning_context", None) or ReasoningContext()
+        )
+        self.current_reasoning_context = ctx
+        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
+
+        # Collect verified fact context
+        verified_facts: list[str] = [entry.conclusion for entry in ctx.intermediates]
+        if self.db is not None:
+            try:
+                with self.db.read_cursor() as cur:
+                    cur.execute(
+                        """
+                        SELECT m.content
+                        FROM memories m
+                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                        WHERE e.grounding_eligible = 1
+                        ORDER BY m.created_at DESC
+                        LIMIT 20
+                        """
+                    )
+                    for row in cur.fetchall():
+                        if row[0] not in verified_facts:
+                            verified_facts.append(row[0])
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("deduction_context_gather_error", error=str(exc))
+
+        # Collect verified tool receipts
+        attributed_receipts: list[str] = []
+        for r in (getattr(self, "current_turn_receipts", []) or []):
+            out = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
+            if out:
+                attributed_receipts.append(f"{getattr(r, 'tool', 'tool')}: {out}")
+
+        # Stream initial LLM turn
+        full_text = ""
+        for event in effective_llm.stream_turn(
+            current_text=goal,
+            memories=[],
+            history=getattr(self, "history", []),
+            trace_id=trace_id,
+        ):
+            if isinstance(event, TokenDelta):
+                full_text += event.delta
+
+        proposed_steps: list[InferenceStep] = []
+        try:
+            proposed_steps = self._parse_inference_steps(full_text)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("deduction_llm_parse_error", error=str(exc), raw=full_text)
+            return ([], f"Failed to parse deduction steps: {exc}")
+
+        accepted_steps: list[InferenceStep] = []
+
+        for step in proposed_steps:
+            # Check attributed premises and ensure presence in conditions
+            for prem in step.premises:
+                if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
+                    if prem not in step.conditions:
+                        if len(step.conditions) < 8:
+                            step.conditions.append(prem)
+
+            # Validate all premises
+            unverified: list[str] = []
+            for prem in step.premises:
+                ok, _ = self._validate_premise(prem, ctx)
+                if not ok:
+                    unverified.append(prem)
+
+            if not unverified:
+                # Valid step: Sign and commit as LISP_ASSERTION (TRAP 1: Orchestrator signs!)
+                action = AssertFact(s=step.s, p=step.p, o=step.o)
+                signed = self._commit_lisp_assertion(action, trace)
+                env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
+                conf = step.confidence if signed and signed.confidence is not None else step.confidence
+                ctx.add_intermediate(
+                    envelope_id=env_id,
+                    s=step.s,
+                    p=step.p,
+                    o=step.o,
+                    confidence=conf,
+                    step_kind="llm_abductive",
+                    rule_id="llm",
+                    premises=list(step.premises),
+                    conditions=list(step.conditions),
+                )
+                accepted_steps.append(step)
+                continue
+
+            # Gather Ladder (bounded to 1 pass per deduction turn)
+            missing_premise = unverified[0]
+            logger.info("gather_ladder_started", missing_premise=missing_premise)
+
+            # 1. Revise once
+            error_payload = json.dumps({"error": "unverified_premise", "premise": missing_premise})
+            revised_text = ""
+            for event in effective_llm.stream_turn(
+                current_text=f"Revise inference step: {error_payload}",
+                trace_id=trace_id,
+            ):
+                if isinstance(event, TokenDelta):
+                    revised_text += event.delta
+
+            revised_step: InferenceStep | None = None
+            try:
+                r_steps = self._parse_inference_steps(revised_text)
+                if r_steps:
+                    revised_step = r_steps[0]
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("gather_ladder_revise_parse_failed", error=str(exc))
+
+            step_to_evaluate = revised_step
+            still_unverified: list[str] = []
+            if step_to_evaluate is not None:
+                for prem in step_to_evaluate.premises:
+                    if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
+                        if prem not in step_to_evaluate.conditions and len(step_to_evaluate.conditions) < 8:
+                            step_to_evaluate.conditions.append(prem)
+                    ok, _ = self._validate_premise(prem, ctx)
+                    if not ok:
+                        still_unverified.append(prem)
+
+                if not still_unverified:
+                    # Revised step accepted!
+                    action = AssertFact(s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o)
+                    signed = self._commit_lisp_assertion(action, trace)
+                    env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
+                    ctx.add_intermediate(
+                        envelope_id=env_id,
+                        s=step_to_evaluate.s,
+                        p=step_to_evaluate.p,
+                        o=step_to_evaluate.o,
+                        confidence=step_to_evaluate.confidence,
+                        step_kind="llm_abductive",
+                        rule_id="llm",
+                        premises=list(step_to_evaluate.premises),
+                        conditions=list(step_to_evaluate.conditions),
+                    )
+                    accepted_steps.append(step_to_evaluate)
+                    continue
+
+            # 2. Memory retry
+            retry_premise = still_unverified[0] if still_unverified else missing_premise
+            recovered = self._search_memory_for_premise(retry_premise)
+            if recovered:
+                target = step_to_evaluate if step_to_evaluate is not None else step
+                action = AssertFact(s=target.s, p=target.p, o=target.o)
+                signed = self._commit_lisp_assertion(action, trace)
+                env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
+                ctx.add_intermediate(
+                    envelope_id=env_id,
+                    s=target.s,
+                    p=target.p,
+                    o=target.o,
+                    confidence=target.confidence,
+                    step_kind="llm_abductive",
+                    rule_id="llm",
+                    premises=list(target.premises),
+                    conditions=list(target.conditions),
+                )
+                accepted_steps.append(target)
+                continue
+
+            # 3. Ask the user (named-gap question) vs 4. Named-gap abstention
+            is_personal = any(k in retry_premise.lower() for k in ("user", "you", "live", "from", "born", "home", "partner"))
+            if is_personal:
+                spoken = f"I don't have anything verified about {retry_premise} — where do you live or what is the background here?"
+            else:
+                spoken = f"I can't verify {retry_premise}, so I can't deduce that yet."
+
+            logger.info("gather_ladder_terminated", outcome=spoken, missing_premise=retry_premise)
+            if hasattr(self, "_speak_text") and trace:
+                self._speak_text(trace, spoken)
+            return (accepted_steps, spoken)
+
+        return (accepted_steps, None)
+
+    run_deduction_loop = run_deduction_step
 
 
     def _check_functional_coherence(

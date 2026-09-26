@@ -970,3 +970,57 @@ def build_messages(
 
 
 build_prompt = build_messages
+
+
+DEDUCTION_CONTRACT_SECTION: Final[str] = (
+    "\n\n[Deduction Mode — Structured Abductive Inference Contract]\n"
+    "You are operating as the abductive deduction engine over verified facts.\n"
+    "CRITICAL RULES:\n"
+    "1. Emit ONLY a JSON array of InferenceStep objects. Do NOT include conversational prose or explanation.\n"
+    "2. Each InferenceStep must have:\n"
+    '   - "premises": list of factual strings from verified context or "<source> asserts <claim>".\n'
+    '   - "s": subject slug/name.\n'
+    '   - "p": valid predicate slug (e.g. "likes", "lives_in", "nationality_is", "origin_is", "located_in").\n'
+    '   - "o": object value.\n'
+    '   - "confidence": float in [0.0, 1.0].\n'
+    '   - "rationale": optional brief rationale (<= 500 characters).\n'
+    '   - "conditions": list of attributed premises this step depends on (<= 8 items).\n'
+    "3. Never invent unverified premises. Only use facts present in verified context or tool receipts.\n"
+)
+
+
+def build_deduction_messages(
+    goal: str,
+    verified_facts: list[str],
+    attributed_receipts: list[str] | None = None,
+    error_feedback: str | None = None,
+    history: list[dict[str, str]] | None = None,
+) -> list[ChatMessage]:
+    """
+    Constructs messages for deduction mode abductive step generation (Spec D-REAS-09, WO-20 Phase 3).
+    """
+    system_content = get_system_prompt() + DEDUCTION_CONTRACT_SECTION
+
+    if verified_facts:
+        facts_block = "\n".join(f"- {f}" for f in verified_facts)
+        system_content += f"\n\n[Verified Signed Facts Context]\n<facts>\n{facts_block}\n</facts>"
+
+    if attributed_receipts:
+        receipts_block = "\n".join(f"- {r}" for r in attributed_receipts)
+        system_content += f"\n\n[Verified Tool Receipts Context]\n<receipts>\n{receipts_block}\n</receipts>"
+
+    messages: list[ChatMessage] = [ChatMessage(role="system", content=system_content)]
+
+    if history:
+        for turn in history[-4:]:
+            messages.append(ChatMessage(role=turn["role"], content=turn["content"]))
+
+    user_prompt = f"Goal: {goal}"
+    if error_feedback:
+        user_prompt += (
+            f"\n\nPrevious attempt failed with error:\n{error_feedback}\n"
+            "Please revise your inference step to use only verified premises, or adjust your hypothesis."
+        )
+
+    messages.append(ChatMessage(role="user", content=user_prompt))
+    return messages

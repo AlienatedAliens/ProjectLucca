@@ -10,12 +10,15 @@ Functional acceptance tests for:
 - Fixpoint fast-path: rule with no assertions causes 0 re-evaluations
 """
 
+import json
 import logging
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import ValidationError
 
+from lucca.core.coherence import ToolReceipt
 from lucca.core.config import get_config
 from lucca.core.exceptions import SchemeRuntimeError, SchemeSyntaxError
 from lucca.core.orchestrator import Orchestrator
@@ -27,12 +30,17 @@ from lucca.core.reasoning_context import (
 )
 from lucca.core.schemas import (
     AssertFact,
+    Done,
     ExecutionTier,
+    InferenceStep,
+    LLMUsage,
     Plan,
     Provenance,
     RuleState,
     Say,
     SignedPayload,
+    TokenDelta,
+    UnsignedPayload,
 )
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.trace import TurnTrace
@@ -43,6 +51,7 @@ from lucca.reasoning.lifecycle import MAX_CHAIN_DEPTH, RuleLifecycleManager
 from lucca.reasoning.scheme.eval import evaluate_expr, evaluate_rule
 from lucca.reasoning.scheme.parser import parse_rule
 from lucca.senses.embed import LocalEmbeddingPort
+from tests.fakes.fake_llm import FakeLLM
 
 TEST_MASTER_KEY = b"01234567890123456789012345678901"
 
@@ -569,4 +578,378 @@ def test_reasoning_context_not_persisted_to_db(orch: Orchestrator) -> None:
         cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '%reasoning%'")
         tables = cur.fetchall()
     assert len(tables) == 0, "Reasoning context must never be persisted to a DB table"
+
+
+# =============================================================================
+# WO-20 Phase 3: LLM Abductive Protocol & Gather Ladder Tests
+# =============================================================================
+
+
+def test_inference_step_schema_validation() -> None:
+    """WO-20 Phase 3 Acceptance: InferenceStep schema validation checks."""
+    # 1. Valid step passes
+    valid_step = InferenceStep(
+        premises=["user lives_in Melbourne"],
+        s="user",
+        p="state_is",
+        o="Victoria",
+        confidence=0.9,
+        rationale="Melbourne is in Victoria",
+        conditions=["ars asserts fact"],
+    )
+    assert valid_step.conclusion == "user state_is Victoria"
+
+    # 2. Confidence > 1.0 fails
+    with pytest.raises(ValidationError, match="less than or equal to 1"):
+        InferenceStep(
+            premises=["p1"],
+            s="user",
+            p="state_is",
+            o="Victoria",
+            confidence=1.5,
+        )
+
+    # 3. Confidence < 0.0 fails
+    with pytest.raises(ValidationError, match="greater than or equal to 0"):
+        InferenceStep(
+            premises=["p1"],
+            s="user",
+            p="state_is",
+            o="Victoria",
+            confidence=-0.1,
+        )
+
+    # 4. Invalid predicate slug fails
+    with pytest.raises(ValidationError, match="Invalid predicate"):
+        InferenceStep(
+            premises=["p1"],
+            s="user",
+            p="INVALID PREDICATE!!",
+            o="Victoria",
+            confidence=0.8,
+        )
+
+    # 5. Conditions > 8 fails
+    with pytest.raises(ValidationError, match="at most 8 items"):
+        InferenceStep(
+            premises=["p1"],
+            s="user",
+            p="state_is",
+            o="Victoria",
+            confidence=0.8,
+            conditions=[f"source{i} asserts claim{i}" for i in range(9)],
+        )
+
+    # 6. Rationale > 500 chars fails
+    with pytest.raises(ValidationError, match="at most 500 characters"):
+        InferenceStep(
+            premises=["p1"],
+            s="user",
+            p="state_is",
+            o="Victoria",
+            confidence=0.8,
+            rationale="x" * 501,
+        )
+
+
+def test_fake_llm_valid_two_step_chain(orch: Orchestrator) -> None:
+    """WO-20 Phase 3 Functional Acceptance 1:
+
+    With a FakeLLM emitting a valid 2-step chain (premises present), both steps
+    are signed and land in the context in order with step_kind='llm_abductive'.
+    """
+    trace = _trace("tr-abductive-2step")
+
+    # Seed the store with initial verified premise
+    orch._commit_lisp_assertion(AssertFact(s="user", p="lives_in", o="Melbourne"), trace)
+
+    chain_json = json.dumps([
+        {
+            "premises": ["user lives_in Melbourne"],
+            "s": "user",
+            "p": "state_is",
+            "o": "Victoria",
+            "confidence": 0.95,
+            "rationale": "Melbourne is the capital of Victoria.",
+            "conditions": [],
+        },
+        {
+            "premises": ["user state_is Victoria"],
+            "s": "user",
+            "p": "origin_is",
+            "o": "Australia",
+            "confidence": 0.90,
+            "rationale": "Victoria is an Australian state.",
+            "conditions": [],
+        },
+    ])
+
+    fake_llm = FakeLLM(script=[
+        TokenDelta(delta=chain_json),
+        Done(usage=LLMUsage(prompt_tokens=15, completion_tokens=40)),
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="determine user origin from residence",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    assert len(accepted) == 2, "Both inference steps must be accepted"
+    assert spoken is None
+
+    context = orch.current_reasoning_context
+    assert context is not None
+    # Intermediates: 1 seeded + 2 abductive steps = 3 entries
+    assert len(context) >= 2
+
+    # Check the two abductive steps in reasoning context
+    step1_entry = context.resolve_premise("user state_is Victoria")
+    assert step1_entry is not None
+    assert step1_entry.step_kind == "llm_abductive"
+    assert step1_entry.rule_id == "llm"
+    assert step1_entry.confidence == 0.95
+
+    step2_entry = context.resolve_premise("user origin_is Australia")
+    assert step2_entry is not None
+    assert step2_entry.step_kind == "llm_abductive"
+    assert step2_entry.rule_id == "llm"
+    assert step2_entry.confidence == 0.90
+
+    # Verify store contains LISP_ASSERTION signed envelopes for both
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT content FROM memories
+            WHERE content IN ('user state_is Victoria', 'user origin_is Australia')
+            """
+        )
+        stored_contents = [r[0] for r in cur.fetchall()]
+    assert "user state_is Victoria" in stored_contents
+    assert "user origin_is Australia" in stored_contents
+
+
+def test_fake_llm_step_rejected_revised_and_accepted(orch: Orchestrator) -> None:
+    """WO-20 Phase 3 Functional Acceptance 2:
+
+    With a FakeLLM emitting a step whose premise is absent, the step is rejected,
+    the model gets the machine-readable reason, and a second (corrected) step is accepted.
+    """
+    trace = _trace("tr-revise-step")
+
+    # Seed verified fact
+    orch._commit_lisp_assertion(AssertFact(s="user", p="likes", o="gelato"), trace)
+
+    # Round 1: Model emits unverified premise "user likes pizza"
+    round_1_json = json.dumps([
+        {
+            "premises": ["user likes pizza"],
+            "s": "user",
+            "p": "diet_is",
+            "o": "italian_food_lover",
+            "confidence": 0.8,
+        }
+    ])
+    # Round 2: Model revises against verified premise "user likes gelato"
+    round_2_json = json.dumps([
+        {
+            "premises": ["user likes gelato"],
+            "s": "user",
+            "p": "diet_is",
+            "o": "dessert_enthusiast",
+            "confidence": 0.85,
+        }
+    ])
+
+    fake_llm = FakeLLM(rounds=[
+        [TokenDelta(delta=round_1_json), Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20))],
+        [TokenDelta(delta=round_2_json), Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=20))],
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="deduce user diet",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    assert len(accepted) == 1
+    assert accepted[0].conclusion == "user diet_is dessert_enthusiast"
+    assert accepted[0].premises == ["user likes gelato"]
+
+    context = orch.current_reasoning_context
+    assert context is not None
+    entry = context.resolve_premise("user diet_is dessert_enthusiast")
+    assert entry is not None
+    assert entry.step_kind == "llm_abductive"
+
+
+def test_gather_ladder_memory_retry_recovers_unseeded_context(orch: Orchestrator) -> None:
+    """WO-20 Phase 3 Functional Acceptance 3:
+
+    A second invalid step whose premise IS retrievable via memory_search
+    (seed the store, exclude from turn context) -> memory retry recovers it
+    and the chain completes.
+    """
+    trace = _trace("tr-mem-retry")
+
+    # Seed the store with a memory, but clear reasoning context so it's not in initial turn context
+    orch._commit_lisp_assertion(AssertFact(s="user", p="partner_is", o="judge_in_philippines"), trace)
+    orch.current_reasoning_context = ReasoningContext()
+
+    # Model emits a premise: Round 1 fails on invented fact, Round 2 emits the seeded fact
+    round_1_json = json.dumps([
+        {
+            "premises": ["user lives_in Manila"],
+            "s": "user",
+            "p": "region_is",
+            "o": "Southeast_Asia",
+            "confidence": 0.8,
+        }
+    ])
+    round_2_json = json.dumps([
+        {
+            "premises": ["judge_in_philippines"],
+            "s": "user",
+            "p": "likely_location_is",
+            "o": "Philippines",
+            "confidence": 0.75,
+        }
+    ])
+
+    fake_llm = FakeLLM(rounds=[
+        [TokenDelta(delta=round_1_json), Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20))],
+        [TokenDelta(delta=round_2_json), Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=20))],
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="find likely location",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    # Memory retry recovers the judge_in_philippines fact from the store
+    assert len(accepted) == 1
+    assert accepted[0].conclusion == "user likely_location_is Philippines"
+
+
+def test_gather_ladder_named_gap_abstention_or_user_question(orch: Orchestrator) -> None:
+    """WO-20 Phase 3 Functional Acceptance 4:
+
+    A step whose premise is NOT in the store -> turn ends with named-gap
+    user question or named-gap abstention; no commit occurs; missing premise
+    is named in spoken output.
+    """
+    trace = _trace("tr-gap-question")
+    orch.current_reasoning_context = ReasoningContext()
+
+    # Emits an unverified personal premise that cannot be verified anywhere
+    round_1_json = json.dumps([
+        {
+            "premises": ["user birthplace_is Canberra"],
+            "s": "user",
+            "p": "nationality_is",
+            "o": "Australian",
+            "confidence": 0.9,
+        }
+    ])
+    round_2_json = json.dumps([
+        {
+            "premises": ["user birthplace_is Canberra"],
+            "s": "user",
+            "p": "nationality_is",
+            "o": "Australian",
+            "confidence": 0.9,
+        }
+    ])
+
+    fake_llm = FakeLLM(rounds=[
+        [TokenDelta(delta=round_1_json), Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20))],
+        [TokenDelta(delta=round_2_json), Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=20))],
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="deduce nationality",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    # Must NOT commit or accept the step
+    assert len(accepted) == 0
+    assert spoken is not None
+    # Missing premise must be explicitly named in spoken output
+    assert "birthplace_is Canberra" in spoken or "birthplace" in spoken
+
+    # Store must NOT have committed the nationality conclusion
+    with orch.db.read_cursor() as cur:
+        cur.execute("SELECT content FROM memories WHERE content = 'user nationality_is Australian'")
+        assert cur.fetchall() == []
+
+
+def test_attributed_premise_acceptance_and_rejection(orch: Orchestrator) -> None:
+    """WO-20 Phase 3 Amendment Acceptance:
+
+    Attributed premise '<source> asserts <claim>' backed by a current-turn signed
+    fetch receipt is accepted and lands in conditions.
+    Attributed premise without signed receipt is rejected as unverified_premise.
+    """
+    trace = _trace("tr-attributed-premise")
+
+    # Scenario A: Tool receipt present in current turn
+    orch.current_turn_receipts = [
+        ToolReceipt(
+            tool="fetch_url",
+            call_id="call-fetch-1",
+            output="Report from ars-technica: confirmed that driver-582.11 fixes wsl-crash on Windows 11.",
+        )
+    ]
+
+    step_json = json.dumps([
+        {
+            "premises": ["ars-technica asserts driver-582.11 fixes wsl-crash"],
+            "s": "driver-582.11",
+            "p": "fixes_issue",
+            "o": "wsl-crash",
+            "confidence": 0.85,
+            "conditions": ["ars-technica asserts driver-582.11 fixes wsl-crash"],
+        }
+    ])
+
+    fake_llm = FakeLLM(script=[
+        TokenDelta(delta=step_json),
+        Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=30)),
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="check driver fix",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    assert len(accepted) == 1
+    assert "ars-technica asserts driver-582.11 fixes wsl-crash" in accepted[0].conditions
+
+    context = orch.current_reasoning_context
+    assert context is not None
+    entry = context.resolve_premise("driver-582.11 fixes_issue wsl-crash")
+    assert entry is not None
+    assert "ars-technica asserts driver-582.11 fixes wsl-crash" in entry.conditions
+
+    # Scenario B: No tool receipt present in current turn
+    orch.current_turn_receipts = []
+    fake_llm_unverified = FakeLLM(script=[
+        TokenDelta(delta=step_json),
+        Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=30)),
+    ])
+
+    accepted_empty, spoken_empty = orch.run_deduction_step(
+        goal="check driver fix again",
+        trace=trace,
+        llm=fake_llm_unverified,
+    )
+
+    # Without tool receipt, must be rejected!
+    assert len(accepted_empty) == 0
+    assert spoken_empty is not None
+    assert "driver-582.11 fixes wsl-crash" in spoken_empty or "can't verify" in spoken_empty.lower()
+
 

@@ -447,6 +447,40 @@ class AssertFact(BaseModel):
         return v
 
 
+class InferenceStep(BaseModel):
+    """Structured abductive inference step proposed by LLM (Spec D-REAS-09, WO-20 Phase 3).
+
+    Ratified 2026-09-26: conclusion is a structured triple (s, p, o) with valid predicate.
+    Conditions carry Toulmin defeaters / attributed premises without blocking deduction.
+    """
+
+    premises: list[str] = Field(
+        ...,
+        description="List of premise statements resolving to signed facts or '<source> asserts <claim>'.",
+    )
+    s: str = Field(..., description="Subject identifier or slug.")
+    p: str = Field(..., description="Predicate slug conforming to is_valid_predicate.")
+    o: str = Field(..., description="Object value.")
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Step confidence in [0.0, 1.0].")
+    rationale: str = Field(default="", max_length=500, description="Optional brief rationale (<= 500 chars).")
+    conditions: list[str] = Field(
+        default_factory=list,
+        max_length=8,
+        description="Carried conditions / Toulmin defeaters (<= 8).",
+    )
+
+    @field_validator("p")
+    @classmethod
+    def validate_predicate(cls, v: str) -> str:
+        if not is_valid_predicate(v):
+            raise ValueError(f"Invalid predicate format: '{v}'")
+        return v
+
+    @property
+    def conclusion(self) -> str:
+        return f"{self.s} {self.p} {self.o}"
+
+
 class Plan(BaseModel):
     actions: list[ToolCall | Say | AssertFact]
     rationale: str = ""

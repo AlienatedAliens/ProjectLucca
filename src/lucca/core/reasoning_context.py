@@ -27,6 +27,7 @@ class ReasoningEntry:
     step_kind: str = "lisp_rule"
     rule_id: str | None = None
     premises: list[str] = field(default_factory=list)
+    conditions: list[str] = field(default_factory=list)
 
     @property
     def conclusion(self) -> str:
@@ -75,6 +76,7 @@ class ReasoningEntry:
             "rule_id": self.rule_id,
             "premises": list(self.premises),
             "conclusion": self.conclusion,
+            "conditions": list(self.conditions),
         }
 
 
@@ -86,6 +88,7 @@ class ProofTraceStep:
     conclusion: str
     envelope_id: str
     confidence: float = 1.0
+    conditions: list[str] = field(default_factory=list)
 
     def as_tuple(self) -> tuple[str, str, list[str], str, str]:
         return (self.step_kind, self.rule_id, self.premises, self.conclusion, self.envelope_id)
@@ -140,6 +143,7 @@ class ProofTraceStep:
             "conclusion": self.conclusion,
             "envelope_id": self.envelope_id,
             "confidence": self.confidence,
+            "conditions": list(self.conditions),
         }
 
 
@@ -181,6 +185,7 @@ class ReasoningContext:
         step_kind: str = "lisp_rule",
         rule_id: str | None = None,
         premises: list[str] | None = None,
+        conditions: list[str] | None = None,
     ) -> ReasoningEntry:
         if len(self._intermediates) >= self.capacity:
             logger.warning(
@@ -210,6 +215,7 @@ class ReasoningContext:
             step_kind=step_kind,
             rule_id=rule_id,
             premises=resolved_premises,
+            conditions=list(conditions) if conditions is not None else [],
         )
         self._intermediates.append(entry)
         return entry
@@ -269,6 +275,7 @@ class ReasoningContext:
                     conclusion=entry.conclusion,
                     envelope_id=entry.envelope_id,
                     confidence=entry.confidence,
+                    conditions=list(entry.conditions),
                 )
             )
         return trace
