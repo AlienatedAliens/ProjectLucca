@@ -178,6 +178,6 @@ Every phase returns the R.1 package: one commit hash, verbatim full-suite output
 | 1 (standards of proof) | `afb1fe7` | Gemini | Owner/Reviewer | PASS | 2026-09-27 |
 | 2 (corroboration) | `823cc7e` | Gemini | Owner/Reviewer | PASS | 2026-09-27 |
 | 3 (ratification) | `b451360` | Gemini | Owner/Reviewer | PASS | 2026-09-27 |
-| 4 (ToM/CBR stubs) | | | | | |
+| 4 (ToM/CBR stubs) | `276cd99` | Gemini | Owner/Reviewer | PENDING | 2026-09-27 |
 | 5 (fuzzy clustering) | | | | | |
 | 6 (live acceptance) | | | | | |
