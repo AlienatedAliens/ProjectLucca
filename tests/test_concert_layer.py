@@ -1369,5 +1369,152 @@ def test_migration_0007_upgrades_pre_inferred_database(tmp_path: Path) -> None:
     assert db.check_integrity()
 
 
+# =============================================================================
+# WO-20 Phase 5: Live Acceptance — The "Where Am I From" Chain
+# =============================================================================
+
+
+def test_phase5_live_acceptance_where_am_i_from_chain(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-20 Phase 5 Functional Acceptance:
+    - Scripted scenario (FakeLLM + seeded store): store contains partner_is judge_in_philippines
+      and tz_is UTC+8. User asks the deduction question. The system produces
+      user likely_location Philippines (step 1), then with drop_bears origin_is australian_folklore
+      produces nationality_is Australian (step 2), and commits nationality_is Australian as INFERRED
+      with a 2-step proof trace — without any operator leading.
+    - The committed fact is superseded when the user then says "I'm Australian" (direct evidence wins).
+    """
+    trace = _trace("tr-p5-acceptance")
+
+    # 1. Seed store with prior facts
+    p1 = orch._commit_lisp_assertion(
+        AssertFact(s="user", p="partner_is", o="judge_in_philippines"), trace
+    )
+    assert p1 is not None
+    p2 = orch._commit_lisp_assertion(AssertFact(s="user", p="tz_is", o="UTC+8"), trace)
+    assert p2 is not None
+    p3 = orch._commit_lisp_assertion(
+        AssertFact(s="drop_bears", p="origin_is", o="australian_folklore"), trace
+    )
+    assert p3 is not None
+
+    # 2. Scripted LLM proposing cold 2-step deduction without operator leading
+    step_json = json.dumps([
+        {
+            "premises": ["user partner_is judge_in_philippines", "user tz_is UTC+8"],
+            "s": "user",
+            "p": "likely_location",
+            "o": "Philippines",
+            "confidence": 0.85,
+            "rationale": "Partner is in Philippines and timezone is UTC+8.",
+        },
+        {
+            "premises": [
+                "user likely_location Philippines",
+                "drop_bears origin_is australian_folklore",
+            ],
+            "s": "user",
+            "p": "nationality_is",
+            "o": "Australian",
+            "confidence": 0.80,
+            "rationale": "Drop bears folklore indicates Australian nationality despite likely current location in Philippines.",
+        },
+    ])
+    fake_llm = FakeLLM(script=[
+        TokenDelta(delta=step_json),
+        Done(usage=LLMUsage(prompt_tokens=15, completion_tokens=40)),
+    ])
+
+    # 3. User asks the deduction question
+    accepted, spoken = orch.run_deduction_step(
+        goal="Where am I from?",
+        trace=trace,
+        llm=fake_llm,
+    )
+    assert len(accepted) == 2
+
+    # 4. Verify INFERRED commit and 2-step proof trace
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT m.memory_id, m.content, e.provenance, e.confidence, e.payload_json
+            FROM memories m
+            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+            WHERE e.provenance = 'INFERRED'
+            """
+        )
+        rows = cur.fetchall()
+    assert len(rows) == 1
+    inferred_mid, content, prov, conf, payload_json_str = rows[0]
+    assert content == "user nationality_is Australian"
+    assert prov == "INFERRED"
+    assert conf == 0.80  # min(0.85, 0.80)
+
+    payload_dict = json.loads(payload_json_str)
+    pt = payload_dict["structured"]["proof_trace"]
+    assert len(pt) == 2
+    assert pt[0]["conclusion"] == "user likely_location Philippines"
+    assert "user partner_is judge_in_philippines" in pt[0]["premises"]
+    assert pt[1]["conclusion"] == "user nationality_is Australian"
+    assert "user likely_location Philippines" in pt[1]["premises"]
+    assert "drop_bears origin_is australian_folklore" in pt[1]["premises"]
+
+    # 5. Gate admission verification (proof trace replays successfully)
+    inferred_payload = SignedPayload.model_validate_json(payload_json_str)
+    gate = ProvenanceGate(master_key=signer_factory.master_key, db=orch.db)
+    admitted = gate.admit(inferred_payload)
+    assert admitted.payload.entry_id == inferred_payload.entry_id
+
+    # 6. Direct evidence arrives: user says "I'm Australian"
+    user_speech_signer = signer_factory.user_speech()
+    derived_signer = DerivedFactSigner(master_key=signer_factory.master_key)
+
+    transcript = user_speech_signer.sign(
+        UnsignedPayload(
+            content="I'm Australian",
+            provenance=Provenance.USER_EXPLICIT,
+            kind="transcript",
+            confidence=1.0,
+            nonce="direct_user_transcript_nonce_p5",
+            created_at=time.time() + 10,
+            trace_id=trace.trace_id,
+        )
+    )
+    orch.memory_store.commit(transcript)
+
+    derived = derived_signer.sign(
+        UnsignedPayload(
+            content="user nationality_is Australian",
+            provenance=Provenance.USER_DERIVED,
+            kind="fact",
+            confidence=0.99,
+            source_entry_ids=[transcript.entry_id],
+            nonce="direct_user_derived_nonce_p5",
+            created_at=time.time() + 15,
+            trace_id=trace.trace_id,
+            structured={"s": "user", "p": "nationality_is", "o": "Australian"},
+        )
+    )
+    orch.memory_store.commit(derived)
+
+    # 7. Inferred fact is superseded by direct evidence
+    with orch.db.read_cursor() as cur:
+        row = cur.execute(
+            "SELECT valid_to, superseded_by FROM memories WHERE memory_id = ?",
+            (inferred_mid,),
+        ).fetchone()
+    assert row[0] is not None, "Inferred fact must be marked superseded (valid_to is set)"
+    assert row[1] is not None, "Inferred fact superseded_by must reference the direct evidence"
+
+    # 8. Cascade query confirms direct evidence wins over deduction
+    cascade = EpistemicSearchCascade(memory_store=orch.memory_store)
+    evidence = cascade.query_substrate_2_memory("nationality_is")
+    belnap, cascade_text, _ = cascade.synthesize("Where am I from?", evidence)
+    assert "Australian" in cascade_text
+    assert "[asserts]" in cascade_text
+
+
+
 
 

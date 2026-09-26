@@ -145,6 +145,11 @@ On `unverified_premise`, run these in order, bounded to **one pass per deduction
 
 **Goal:** the live-test scenario passes cold, with a proof trace, no leading.
 
+**Manifest:**
+| File | Action |
+|---|---|
+| `tests/test_concert_layer.py` | Add `test_phase5_live_acceptance_where_am_i_from_chain` validating the cold, unled 2-step deduction chain, proof trace replay, and subsequent direct evidence supersession. |
+
 **Functional acceptance (the only test that matters for this phase):**
 - Scripted scenario (FakeLLM + seeded store): store contains `partner_is judge_in_philippines` and `tz = UTC+8`. User asks the deduction question. The system produces `user_likely_location Philippines` (step 1), then with `drop_bears → australian_folklore` produces `origin_likely Australia` (step 2), and commits `nationality_is Australian` as `INFERRED` with a 2-step proof trace — **without any operator leading**.
 - The committed fact is superseded when the user then says "I'm Australian" (direct evidence wins).
@@ -174,6 +179,7 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
 | 3 (LLM abductive protocol) | `e118936` | implementing agent | reviewer (Gemini) | **BOUNCE** | 2026-09-26 |
 | 3 (LLM abductive protocol) [resubmission] | `b1a7f90` | implementing agent | reviewer (Gemini) | **PASS** | 2026-09-26 |
 | 4 (INFERRED commit path) | `5cb6661` | implementing agent | reviewer (Zoo) | **BOUNCE→re-review after 0007** | 2026-09-26 |
+| 4 (INFERRED commit path) [resubmission] | `70d38c0` | implementing agent | reviewer (Zoo) / owner | **PASS** | 2026-09-26 |
 | 5 (live acceptance) | | | | | |
 
 #### Phase 3 Review Notes (commit `e118936` & fix `b1a7f90`)
@@ -188,10 +194,15 @@ Phase 0 is independent and can land immediately. Phases 1–2 are pure LISP (no 
   - **Diff read:** Clean drop-in fix. Attributed premises bypass fact-store search per ratified amendment; `RetrievalQuery(query_text=clean, k=5)` properly instantiated and filtered.
   - **Independent verification:** Targeted: 39 passed (18 concert + 21 gates); Full suite: 727 passed, 46 deselected (baseline 727 preserved).
 
-#### Phase 4 Review Notes (commit `5cb6661`)
+#### Phase 4 Review Notes (commit `5cb6661` & fix `70d38c0`)
 - **Verdict on `5cb6661`: BOUNCE**
   - **Finding 1 (F-P4-1 — Blocker):** `0001_init.sql` and `0006_autobiographical.sql` were edited in place. Existing databases (tracked at version 6 in `schema_migrations`) would never re-run them, leaving `CHECK(provenance IN (...))` without `'INFERRED'` and causing integrity errors on live `finalize_chain()`.
-  - **Fix:** Added `src/lucca/memory/migrations/0007_inferred_provenance.sql` rebuilding `provenance_envelopes` with the widened constraint and updating `mem_bi_eligible`. Added `test_migration_0007_upgrades_pre_inferred_database` testing upgrade against pre-edit schema.
-  - **Finding 2 (F-P4-2 — Protocol breach, non-blocking):** Tier placement `USER_EXPLICIT (0) > USER_DERIVED (1) > INFERRED (2) > LISP_ASSERTION (3)` implemented before explicit owner ratification. Owner ratification requested before Phase 5.
+  - **Fix:** Added `src/lucca/memory/migrations/0007_inferred_provenance.sql` rebuilding `provenance_envelopes` with the widened constraint and updating `mem_bi_eligible`. Added `test_migration_0007_upgrades_pre_inferred_database` testing upgrade against pre-edit schema. Updated `test_memory_db.py` migration count.
+  - **Finding 2 (F-P4-2 — Ratified):** Owner explicitly replied "yes" ratifying the tier placement `USER_EXPLICIT (0) > USER_DERIVED (1) > INFERRED (2) > LISP_ASSERTION (3)`.
+- **Verdict on `70d38c0` (resubmission): PASS**
+  - **Scope audit:** 4 files (`src/lucca/memory/migrations/0007_inferred_provenance.sql`, `tests/test_concert_layer.py`, `tests/test_memory_db.py`, `plans/2026-09-26_wo20_concert_layer.md`).
+  - **Diff read:** Clean migration rebuild and pre-edit schema upgrade test.
+  - **Independent verification:** Targeted: 44 passed (23 concert + 21 gates); Full suite: 732 passed, 46 deselected.
+
 
 
