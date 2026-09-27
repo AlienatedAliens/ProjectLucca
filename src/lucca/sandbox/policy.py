@@ -58,6 +58,10 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "sys_info": Risk.READ,
     "invoke_skill": Risk.READ,
     "calc_math": Risk.READ,
+    "schedule_event": Risk.READ,
+    "artifact_verify": Risk.READ,
+    "clipboard_read": Risk.READ,
+    "inbox_handoff": Risk.WRITE,
 }
 
 
@@ -155,6 +159,9 @@ def requires_confirmation(tool_name: str, taint: TaintFlags = TaintFlags.CLEAN) 
     `memory_commit` requires confirmation only if tainted by UNTRUSTED_WEB (WO-17 Phase 3).
     Grounded user-speech commits run frictionlessly without confirmation prompts.
     """
+    # Class C shared-boundary sensory tools require user confirmation
+    if tool_name in ("clipboard_read", "inbox_handoff"):
+        return True
     risk = classify_risk(tool_name)
     if tool_name in ("note_write", "memory_commit"):
         return bool(taint & TaintFlags.UNTRUSTED_WEB)

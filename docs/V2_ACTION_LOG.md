@@ -283,7 +283,7 @@
 - **Code Location:** `src/lucca/main.py`, `src/lucca/core/orchestrator.py`
 - **User-Visible Impact:** No — voice pipeline functions with sub-second latency as built.
 - **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.7 (process topology clean-up).
-- **Status:** DEFERRED
+- **Status:** DEFERRED (Note: `clipboard_read` and `inbox_handoff` registered in WO-24 Phase 0; Class C confirmation enforced via existing ConfirmationManager reuse).
 
 ### [ITEM-025] SSRF DNS-Rebinding TOCTOU Hardening
 - **Source:** `docs/audit/findings/sbx.md`, Finding `F-SBX-003`
@@ -294,7 +294,7 @@
 - **Code Location:** `src/lucca/sandbox/service.py`
 - **User-Visible Impact:** Low in offline desktop setting; security hardening for web tool.
 - **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.6 (pinned IP socket fetch).
-- **Status:** DEFERRED
+- **Status:** DEFERRED (Note: `schedule_event` and `artifact_verify` registered in WO-24 Phase 0 under workspace sandbox security).
 
 ### [ITEM-026] EnergyVAD Hysteresis for Continuous Voice Streaming
 - **Source:** `docs/audit/findings/sens.md`, Finding `F-SENS-016`

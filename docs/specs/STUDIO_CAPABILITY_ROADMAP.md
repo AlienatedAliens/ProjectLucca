@@ -70,12 +70,12 @@ Acts only on Lucca's sandbox and her own substrate. Ships enabled. No confirmati
 | `note_write` / `note_read` | 🆕 NEW | Scratchpad, distinct from user-facing workspace. |
 | `self_metrics` | 🆕 NEW | Her own latency / VRAM / gas usage / tool success rates. |
 | `invoke_skill` | 🆕 NEW | Single native dispatch for deliberately-invokable skills (`skill_id`, `args`). The per-turn category manifest in the suffix tells the model what is available; dispatched plan actions inherit their own class gates at the dispatcher. Replaces per-skill native tool definitions (see §2.4). |
-| ~~`schedule_event`~~ | ⏸ deferred | Her sense of time. Deferred to keep the factory registry ≤19. |
-| ~~`artifact_verify`~~ | ⏸ deferred | SHA256 + manifest check. Deferred with the `artifact-check` skill. |
+| `schedule_event` | ✅ in registry (WO-24 Phase 0) | Her sense of time. Stub implementation: validates ISO 8601 datetime and issues ULID event ID. |
+| `artifact_verify` | ✅ in registry (WO-24 Phase 0) | SHA256 + byte size computation within workspace boundary with path traversal guards. |
 
 **Latency contract:** Class A tools < 50 ms (local) / < 2,000 ms (network). Synchronous tools exceeding 500 ms must be preceded by a `D-BRAIN-03` verbal thinking cue so the voice loop never goes silent (F-Q5-4).
 
-**Count: 14 Class A tools at factory (including `invoke_skill` and `calc_math`).**
+**Count: 18 Class A tools in registry after WO-24 Phase 0 (including `schedule_event` and `artifact_verify`).**
 
 ### 2.2 Class B — Read-Only Host Perception (`target: host_readonly`)
 
@@ -92,13 +92,14 @@ Acts only on Lucca's sandbox and her own substrate. Ships enabled. No confirmati
 
 | Tool | Status | Description |
 |---|---|---|
-| `clipboard_read` | 🆕 NEW | She reads what the user copied, to reason about it. |
-| `inbox_handoff` | 🆕 deferred (**v1.1.0–v1.1.2 wrongly marked this "exists"** — only `WorkspaceManager.import_from_inbox()` at [`workspace.py:80`](../src/lucca/sandbox/workspace.py) exists, a Python method, not a tool) | File drop-in for her workspace. Ships with T3 alongside `clipboard_read`. |
-| ~~`screenshot_capture`~~ | ⏸ deferred | Screen perception. Deferred to the vision-lobe trigger (§8). |
+| `launch_app` | ✅ in registry | Host desktop application launcher (whitelisted apps, requires confirmation). |
+| `clipboard_read` | ✅ in registry (WO-24 Phase 0) | She reads what the user copied, to reason about it. Requires confirmation; output stamped `TOOL_CONTENT_UNTRUSTED`. |
+| `inbox_handoff` | ✅ in registry (WO-24 Phase 0) | File drop-in for her workspace via `WorkspaceManager.import_from_inbox()`. Requires confirmation. |
+| ~~`screenshot_capture`~~ | ⏸ deferred | Screen perception. Deferred to WO-24 Phase 1. |
 
 **Enforcement:** deontic confirmation enforced **at the tool dispatcher layer** (`capabilities.py`), never as a prompt instruction — LLMs treat negative prompt rules as obstacles to circumvent (F-Q7-1/F-Q7-3). Any memory commit derived from Class C context is stamped `TOOL_CONTENT_UNTRUSTED` (ADR-006).
 
-**Count: 0 Class C tools at T1 gate; 2 after T3. Registry at T1 gate: 9 tools** (`read_file`, `write_file`, `search_web`, `fetch_url`, `query_capabilities`, `list_dir`, `search_text`, `run_python`, `invoke_skill`). **Full factory after T2+T3+WO-9+WO-17: 19** (at cap; further native tools require retirement or the L5 refinement).
+**Count: 3 Class C tools in registry (`launch_app`, `clipboard_read`, `inbox_handoff`). Full registry after WO-24 Phase 0: 23 native tools (18 Class A + 2 Class B + 3 Class C; cap raised 19 -> 25).**
 
 ### 2.4 T1 Schema Presentation — Frozen Prefix + Category Suffix (reviewer design, adopted)
 

@@ -86,3 +86,22 @@ class WorkspaceManager:
                 except (OSError, ValueError):
                     pass
         return total
+
+    def import_from_inbox(self, filename: str) -> Path:
+        """
+        Moves a file from the inbox directory into the workspace root.
+        Requires basename only (no path traversal).
+        Returns destination Path in workspace.
+        """
+        p = Path(filename)
+        if p.name != filename or ".." in p.parts or p.is_absolute():
+            raise SandboxPathError("INVALID_FILENAME", f"Filename must be a simple basename, got: {filename}")
+
+        src = self.inbox_root / p.name
+        if not src.is_file():
+            raise FileNotFoundError(f"File '{p.name}' not found in inbox: {self.inbox_root}")
+
+        dest = self.workspace_root / p.name
+        shutil.move(str(src), str(dest))
+        logger.info("imported_from_inbox", filename=p.name, dest=str(dest))
+        return dest

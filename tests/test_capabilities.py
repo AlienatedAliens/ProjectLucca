@@ -42,10 +42,10 @@ def test_tool_taxonomy_and_registry_count() -> None:
     tool_defs = registry.get_tool_definitions()
     def_names = [t.function.name for t in tool_defs]
 
-    # Assert count == 19 and <= cap
-    assert len(tools) == 19
+    # Assert count == 23 and <= cap
+    assert len(tools) == 23
     assert len(tools) <= MAX_REGISTRY_TOOLS
-    assert len(tool_defs) == 19
+    assert len(tool_defs) == 23
 
     # launch_app is now advertised, confirmation-gated (WO-9 A13)
     assert "launch_app" in tools
@@ -72,6 +72,10 @@ def test_tool_taxonomy_and_registry_count() -> None:
         "self_history_search",
         "run_python_async",
         "calc_math",
+        "schedule_event",
+        "artifact_verify",
+        "clipboard_read",
+        "inbox_handoff",
     }
     assert set(tools.keys()) == expected_tools
     assert set(def_names) == expected_tools
@@ -95,6 +99,10 @@ def test_tool_taxonomy_and_registry_count() -> None:
     assert tools["note_read"].target == "self"
     assert tools["self_metrics"].target == "self"
     assert tools["run_python_async"].target == "self"
+    assert tools["schedule_event"].target == "self"
+    assert tools["artifact_verify"].target == "self"
+    assert tools["clipboard_read"].target == "shared"
+    assert tools["inbox_handoff"].target == "shared"
 
 
 def test_manifest_matches_registry_tools() -> None:

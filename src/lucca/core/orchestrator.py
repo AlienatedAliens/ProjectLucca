@@ -3072,8 +3072,74 @@ class Orchestrator:
                     "timezone_is": f"your timezone is {o}",
                 }.get(p, f"{str(args.get('s', 'you')).strip()} {p.replace('_', ' ')} {o}")
                 return f"save that {natural}"
-            return "save a fact to memory"
+        if name == "clipboard_read":
+            return "read your clipboard"
+        if name == "inbox_handoff":
+            fname = str(args.get("filename", "the file"))
+            return f"move {fname} into my workspace from your inbox"
+        if name == "schedule_event":
+            ev = str(args.get("event_name", "the event"))
+            return f"schedule reminder for {ev}"
+        if name == "artifact_verify":
+            path = str(args.get("path", "the file"))
+            return f"verify {path}"
         return f"execute {name}"
+
+    def _handle_schedule_event(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
+        res = self.sandbox.execute_tool(
+            call_id=call_id, tool_name="schedule_event", args=args, confirmed=True
+        )
+        self._record_tool_receipt(
+            name="schedule_event",
+            call_id=call_id,
+            args=args,
+            ok=res.ok,
+            output=res.content,
+            error=res.stderr,
+        )
+        return res
+
+    def _handle_artifact_verify(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
+        res = self.sandbox.execute_tool(
+            call_id=call_id, tool_name="artifact_verify", args=args, confirmed=True
+        )
+        self._record_tool_receipt(
+            name="artifact_verify",
+            call_id=call_id,
+            args=args,
+            ok=res.ok,
+            output=res.content,
+            error=res.stderr,
+        )
+        return res
+
+    def _handle_clipboard_read(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
+        res = self.sandbox.execute_tool(
+            call_id=call_id, tool_name="clipboard_read", args=args, confirmed=True
+        )
+        self._record_tool_receipt(
+            name="clipboard_read",
+            call_id=call_id,
+            args=args,
+            ok=res.ok,
+            output=res.content,
+            error=res.stderr,
+        )
+        return res
+
+    def _handle_inbox_handoff(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
+        res = self.sandbox.execute_tool(
+            call_id=call_id, tool_name="inbox_handoff", args=args, confirmed=True
+        )
+        self._record_tool_receipt(
+            name="inbox_handoff",
+            call_id=call_id,
+            args=args,
+            ok=res.ok,
+            output=res.content,
+            error=res.stderr,
+        )
+        return res
 
     def _handle_self_history_search(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
         """WO-9 A14 (F18): expose the SELF_HISTORY substrate as a READ tool.
@@ -3902,6 +3968,66 @@ class Orchestrator:
         # answered from persisted records, never confabulated.
         if name == "self_history_search":
             return self._handle_self_history_search(call_id, args)
+
+        if name == "schedule_event":
+            res = self._handle_schedule_event(call_id, args)
+            if speak and res.ok:
+                ev = str(args.get("event_name", "the event"))
+                spoken_msg = f"I've noted that reminder for {ev}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            elif speak and not res.ok:
+                spoken_msg = f"Error: {res.stderr or 'action failed'}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            return res
+
+        if name == "artifact_verify":
+            res = self._handle_artifact_verify(call_id, args)
+            if speak and res.ok:
+                path = str(args.get("path", "file"))
+                sha = str((res.structured or {}).get("sha256", ""))[:8]
+                spoken_msg = f"Verified {path}: checksum is {sha}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            elif speak and not res.ok:
+                spoken_msg = f"Error: {res.stderr or 'action failed'}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            return res
+
+        if name == "clipboard_read":
+            res = self._handle_clipboard_read(call_id, args)
+            if speak and res.ok:
+                spoken_msg = "I read your clipboard."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            elif speak and not res.ok:
+                spoken_msg = f"Error: {res.stderr or 'action failed'}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            return res
+
+        if name == "inbox_handoff":
+            res = self._handle_inbox_handoff(call_id, args)
+            if speak and res.ok:
+                fname = str(args.get("filename", "file"))
+                spoken_msg = f"Imported {fname} from inbox into workspace."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            elif speak and not res.ok:
+                spoken_msg = f"Error: {res.stderr or 'action failed'}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            return res
 
         # Corrective Search Query Injection & Category Grounding
         if name == "search_web" and "query" in args and isinstance(args["query"], str):

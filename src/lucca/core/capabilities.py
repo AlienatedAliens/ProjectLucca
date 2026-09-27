@@ -30,7 +30,8 @@ logger = structlog.get_logger(__name__)
 
 # Native Tool Registry Cap (Spec 1.1.2 §2.4, T1.6: expect exactly 9 at T1).
 # Raised 16 -> 18 by WO-9 A13/A14, 18 -> 19 by WO-17 (calc_math).
-MAX_REGISTRY_TOOLS: Final[int] = 19
+# Raised 19 -> 23 by WO-24 (schedule_event, artifact_verify, clipboard_read, inbox_handoff).
+MAX_REGISTRY_TOOLS: Final[int] = 23
 
 
 def _predicate_menu() -> str:
@@ -362,6 +363,62 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             },
             risk=Risk.READ,
             target="self",
+        ),
+        "schedule_event": ToolSchema(
+            name="schedule_event",
+            description="Schedule a reminder or future event by name and datetime.",
+            parameters={
+                "event_name": ToolParameter(
+                    type="string",
+                    description="Human-readable label, e.g. 'call mum'",
+                    required=True,
+                ),
+                "iso_datetime": ToolParameter(
+                    type="string",
+                    description="ISO 8601 datetime with offset, e.g. '2026-10-01T09:00:00+08:00'",
+                    required=True,
+                ),
+                "message": ToolParameter(
+                    type="string",
+                    description="Optional note or reminder text",
+                    required=False,
+                ),
+            },
+            risk=Risk.READ,
+            target="self",
+        ),
+        "artifact_verify": ToolSchema(
+            name="artifact_verify",
+            description="Compute the SHA-256 checksum and byte size of a file in the workspace.",
+            parameters={
+                "path": ToolParameter(
+                    type="string",
+                    description="Relative path under the workspace (no traversal)",
+                    required=True,
+                ),
+            },
+            risk=Risk.READ,
+            target="self",
+        ),
+        "clipboard_read": ToolSchema(
+            name="clipboard_read",
+            description="Read the current text content of the system clipboard.",
+            parameters={},
+            risk=Risk.READ,
+            target="shared",
+        ),
+        "inbox_handoff": ToolSchema(
+            name="inbox_handoff",
+            description="Move a file from the inbox drop folder into the workspace.",
+            parameters={
+                "filename": ToolParameter(
+                    type="string",
+                    description="Filename in inbox/ to import (basename only, no path)",
+                    required=True,
+                ),
+            },
+            risk=Risk.WRITE,
+            target="shared",
         ),
     }
 

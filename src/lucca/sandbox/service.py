@@ -30,16 +30,23 @@ from lucca.sandbox.rpc import DockerRPCTransport
 from lucca.sandbox.schemas import (
     EXTRA_TOOL_SCHEMAS,
     TOOL_ARG_SCHEMAS,
+    ArtifactVerifyArgs,
     CalcMathArgs,
+    ClipboardReadArgs,
     FetchUrlArgs,
+    InboxHandoffArgs,
     LaunchAppArgs,
     MemoryCommitArgs,
     MemorySearchArgs,
     NoteReadArgs,
     NoteWriteArgs,
+    ScheduleEventArgs,
     SearchWebArgs,
     SysInfoArgs,
 )
+from lucca.sandbox.artifact_tool import verify_artifact
+from lucca.sandbox.clipboard_tool import read_clipboard_text
+from lucca.sandbox.schedule_tool import schedule_event
 from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.system_tools import get_system_metrics, list_running_processes
 from lucca.sandbox.tasks import AsyncTaskInfo, AsyncTaskManager, TaskStatus
@@ -184,13 +191,14 @@ class SandboxService:
     def __init__(
         self,
         workspace_root: Path | str | None = None,
+        inbox_root: Path | str | None = None,
         use_direct_fallback: bool = False,
         execute_apps: bool = True,
         tasks: AsyncTaskManager | None = None,
         notes_dir: Path | str | None = None,
         memory_manager: MemoryManager | None = None,
     ) -> None:
-        self.workspace_mgr = WorkspaceManager(workspace_root=workspace_root)
+        self.workspace_mgr = WorkspaceManager(workspace_root=workspace_root, inbox_root=inbox_root)
         self.file_tool = SafeFileTool(workspace_root=self.workspace_mgr.workspace_root)
         self.rpc = DockerRPCTransport(
             container_name="lucca-file-sandbox",
@@ -867,9 +875,133 @@ class SandboxService:
                     content=content,
                     elapsed_ms=0.0,
                 )
-            return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
+        # 8. New Native Tools (WO-24 Phase 0)
+        if tool_name == "schedule_event":
+            try:
+                parsed_ev = ScheduleEventArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                ev_id = schedule_event(parsed_ev.event_name, parsed_ev.iso_datetime, parsed_ev.message)
+                content = f"Event '{parsed_ev.event_name}' scheduled for {parsed_ev.iso_datetime} (ID: {ev_id})"
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    content=content,
+                    structured={
+                        "event_id": ev_id,
+                        "event_name": parsed_ev.event_name,
+                        "iso_datetime": parsed_ev.iso_datetime,
+                        "message": parsed_ev.message,
+                    },
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("schedule_event_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
 
-        # 8. File Tools via RPC
+        if tool_name == "artifact_verify":
+            try:
+                parsed_av = ArtifactVerifyArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                sha, size = verify_artifact(self.workspace_mgr.workspace_root, parsed_av.path)
+                content = f"Verified {parsed_av.path}: SHA-256 {sha}, size {size} bytes"
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    content=content,
+                    structured={"sha256": sha, "size_bytes": size, "path": parsed_av.path},
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("artifact_verify_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        if tool_name == "clipboard_read":
+            try:
+                text, truncated = read_clipboard_text(max_chars=2000)
+                content = text if text else "Clipboard is empty."
+                # TRAP 2: structured MUST be None so output is stamped TOOL_CONTENT_UNTRUSTED
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    content=content,
+                    structured=None,
+                    content_truncated=truncated,
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("clipboard_read_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        if tool_name == "inbox_handoff":
+            try:
+                parsed_inbox = InboxHandoffArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                dest = self.workspace_mgr.import_from_inbox(parsed_inbox.filename)
+                content = f"Imported '{parsed_inbox.filename}' into workspace."
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    content=content,
+                    structured={"filename": parsed_inbox.filename, "dest_path": str(dest)},
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("inbox_handoff_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        # 9. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
 
     def close(self) -> None:

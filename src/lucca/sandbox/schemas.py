@@ -204,6 +204,24 @@ class CalcMathArgs(BaseModel):
     expr: str = Field(min_length=1, description="Mathematical expression to evaluate")
 
 
+class ScheduleEventArgs(BaseModel):
+    event_name: str = Field(min_length=1, description="Human-readable label, e.g. 'call mum'")
+    iso_datetime: str = Field(min_length=1, description="ISO 8601 datetime with offset")
+    message: str | None = Field(default=None, description="Optional note or reminder text")
+
+
+class ArtifactVerifyArgs(BaseModel):
+    path: str = Field(min_length=1, description="Relative path under workspace")
+
+
+class ClipboardReadArgs(BaseModel):
+    pass
+
+
+class InboxHandoffArgs(BaseModel):
+    filename: str = Field(min_length=1, description="Filename in inbox/ to import")
+
+
 # Unadvertised/internal tool argument schemas
 class GetTaskStatusArgs(BaseModel):
     task_id: str = Field(min_length=1)
@@ -237,6 +255,10 @@ TOOL_ARG_SCHEMAS: dict[str, type[BaseModel]] = {
     "launch_app": LaunchAppArgs,
     "sys_info": SysInfoArgs,
     "calc_math": CalcMathArgs,
+    "schedule_event": ScheduleEventArgs,
+    "artifact_verify": ArtifactVerifyArgs,
+    "clipboard_read": ClipboardReadArgs,
+    "inbox_handoff": InboxHandoffArgs,
 }
 
 EXTRA_TOOL_SCHEMAS: dict[str, type[BaseModel]] = {
@@ -247,12 +269,15 @@ EXTRA_TOOL_SCHEMAS: dict[str, type[BaseModel]] = {
 }
 
 __all__ = [
+    "ArtifactVerifyArgs",
     "CalcMathArgs",
     "CancelTaskArgs",
+    "ClipboardReadArgs",
     "DeleteFileArgs",
     "EXTRA_TOOL_SCHEMAS",
     "FetchUrlArgs",
     "GetTaskStatusArgs",
+    "InboxHandoffArgs",
     "InvokeSkillArgs",
     "LaunchAppArgs",
     "ListDirArgs",
@@ -264,6 +289,7 @@ __all__ = [
     "QueryCapabilitiesArgs",
     "ReadFileArgs",
     "RunPythonArgs",
+    "ScheduleEventArgs",
     "SearchTextArgs",
     "SearchWebArgs",
     "SelfHistorySearchArgs",
