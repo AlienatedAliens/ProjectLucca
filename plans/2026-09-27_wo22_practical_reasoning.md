@@ -113,7 +113,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
 | 0 (cleanups) | `2d7b8cc` | Gemini | Zoo (independent re-run: 891 passed / 0 failed; trap audit + positive controls verified) | PASS | 2026-09-27 |
-| 1 (means-ends planner) | | | | | |
+| 1 (means-ends planner) | `d7a352a` | Gemini | Pending review | | 2026-09-27 |
 | 2 (diagnostic self-reasoning) | | | | | |
 | 3 (live acceptance) | | | | | |
 
