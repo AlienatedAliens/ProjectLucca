@@ -36,11 +36,13 @@
 | `src/lucca/core/schemas.py` | `PlanStep(BaseModel)`: `tool: str`, `args: dict[str, JsonValue]`, `purpose: str (max 200)`, `order: int (ge=1)`. `GoalPlan(BaseModel)`: `goal: str`, `steps: list[PlanStep] (max 8)`, `rationale: str (max 500)`, `plan_id: str`. |
 | `src/lucca/brain/prompt_builder.py` | Planning-mode contract section (mirror the deduction contract's shape): emit a JSON `GoalPlan`, not prose; each step names its tool, args, and *why*; max 8 steps. |
 | `src/lucca/core/orchestrator.py` | `run_planning_step(goal, trace, llm) -> GoalPlan | None`: parse the plan; validate every step's tool exists in the registry and args pass the central `TOOL_ARG_SCHEMAS` schema (WO-19a); deontic pre-check each step via `SpeculativeBDIValidator`; invalid plan → one revision with machine-readable error → then honest refusal ("I can't plan that safely because…"). Valid plan → stored on the turn, executed step-by-step through the **existing** dispatch path (confirmations, sequence guard, taint all apply per-step), each step's receipt appended to the plan record. |
+| `src/lucca/core/turn_pipeline.py` | **ITEM-017 pull-forward** (V2_ACTION_LOG F11, reassessed 2026-09-27): multi-action narration aggregation — when a GoalPlan (or compound rule) executes multiple steps, the narration generator must verbalize the *whole executed sequence* aggregated from the per-step receipts, not only the final step's result. A 3-step plan that narrates "I wrote that down" without mentioning the search and fetch that preceded it is dishonest narration (D-HON-01 register). |
 | `src/lucca/core/reasoning_context.py` | Plans may reference the current `ReasoningContext` — a plan step's `purpose` may cite intermediates. |
-| `tests/test_planning.py` (new) | Valid 3-step plan executes in order with per-step receipts; invalid tool → revision → refusal; step args failing schema → revision; >8 steps → schema failure; plan step requiring confirmation still asks (per-step gates honored); plan referencing a deduction intermediate works. |
+| `tests/test_planning.py` (new) | Valid 3-step plan executes in order with per-step receipts; invalid tool → revision → refusal; step args failing schema → revision; >8 steps → schema failure; plan step requiring confirmation still asks (per-step gates honored); plan referencing a deduction intermediate works; **ITEM-017**: narration for an executed 3-step plan cites every executed step (search + fetch + write), not just the last; a partially-failed plan's narration names the failed step and the cancelled remainder. |
 
 **Functional acceptance:**
 - "Research X and save a summary to notes" → she emits a plan (search_web → fetch_url → note_write), executes it step-by-step with confirmations where required, and each step's receipt is recorded — the plan is inspectable, not improvised.
+- **ITEM-017:** the spoken summary of that plan mentions the search and the fetch, not only the note write — intermediate actions are verbally described.
 - A plan with a deontically-unsafe step is refused with the named step and reason.
 
 **Traps:**
@@ -61,11 +63,13 @@
 |---|---|
 | `config/fault_model.toml` (new) | Owner-curated fault model v1, authored from the documented incidents: (1) boot MemoryError / OpenVINO alloc failure → cause: system RAM below 3.5 GB budget → check `check_system_ram`; (2) `run_python` returns `policy_violation` → cause: Docker CE not running in WSL2 → check `check_docker_wsl`; (3) ASR latency spike with normal NPU load → cause: audio ring contention → check ring-buffer underruns; (4) `llama-server` unhealthy → cause: VRAM over-budget or model file missing → check `check_mshybrid_vram` + manifest hashes; (5) frozen-binary `--check` timeout → cause: WSL unresponsive → check `wsl --status`. Each entry: `symptoms` (observable signals), `cause`, `checks` (env_check function names), `severity`. |
 | `src/lucca/core/self_diagnosis.py` (new) | `DiagnosisEngine`: `diagnose(observations: dict) -> list[Diagnosis]` — matches observed symptoms against the fault model, runs the listed checks (env_check functions), returns ranked diagnoses `{cause, confidence, evidence, suggested_remedy}`. Diagnoses are **hypotheses** (`INFERRED`-style, hedged speech), never asserted as fact. |
+| `src/lucca/memory/retrieval.py` | **ITEM-021 pull-forward** (V2_ACTION_LOG F19, reassessed 2026-09-27): index `DecisionRecord` / `TurnTrace` rows into the in-session FTS5 retrieval cascade so the `DiagnosisEngine` can query her own decision history ("what did I route last time ASR latency spiked?"), not just `env_check` outputs. Decision records and turn traces are where the rich diagnostic signal lives. |
 | `src/lucca/core/orchestrator.py` | Wire into the self-diagnostics path: when `self_metrics` reveals anomaly signals (or the user asks "why are you slow / what's wrong with you"), run the engine and speak the top diagnosis with hedge: *"My ASR is slow and the NPU looks fine — my best guess is audio ring contention; I'd check the ring buffer."* |
-| `tests/test_self_diagnosis.py` (new) | Each fault-model entry matches its seeded symptoms; no-match → honest "no known fault pattern matches"; checks actually invoked; hedged (never unhedged) speech. |
+| `tests/test_self_diagnosis.py` (new) | Each fault-model entry matches its seeded symptoms; no-match → honest "no known fault pattern matches"; checks actually invoked; hedged (never unhedged) speech; **ITEM-021**: a seeded decision record matching the symptom is retrievable in-session and citable as diagnosis evidence; absence of matching records → diagnosis proceeds on checks alone without fabrication. |
 
 **Functional acceptance:**
 - Seed Docker-down symptoms → she names the cause and the check, hedged.
+- **ITEM-021:** when asked to reason about a recurring fault, she can retrieve and cite her own past decision records about it in-session.
 - Unknown symptom combination → honest no-match abstention (named-gap style).
 - The fault model is data (TOML), not code — adding an entry requires no deploy.
 
@@ -118,3 +122,9 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 - **Curiosity loop** (proactive background exploration) — backlog §1.1 trigger governs.
 - **Counterfactual reasoning** — research watch item.
 - **Full argumentation semantics (Dung/ASPIC+)** — trigger: recurring multi-source conflict clusters.
+- **ITEM-019 (dedicated CLARIFY reflex)** — conditional: pull into WO-23 only if gather-ladder clarification latency is observed as user-noticeable during WO-22 dogfooding.
+- **Full user model / full CBR cycle / plan library** — WO-21 stubs are live (`src/lucca/core/user_model.py`, `src/lucca/core/episode_recall.py`); full versions stay gated on production volume (≥500 turns / ≥200 episodes / same plan shape ≥3×). Re-evaluate after WO-22 ships and accumulates volume.
+
+### Deferred-item reassessment record
+
+The 2026-09-27 reassessment of all deferred/can't-do items against WO-15–WO-21 shipments pulled exactly two items forward: **ITEM-017** (multi-action narration → Phase 1, dependency of honest multi-step narration) and **ITEM-021** (decision-record retrieval → Phase 2, direct input to `DiagnosisEngine`). All other items remain correctly deferred behind production data, hardware research, or volume thresholds. This gate is enforced by [`tests/test_wo22_reassessment_gates.py`](../tests/test_wo22_reassessment_gates.py).

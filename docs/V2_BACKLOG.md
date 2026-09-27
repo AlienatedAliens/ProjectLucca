@@ -1,7 +1,7 @@
 # Project Lucca — v2.0 Capability Backlog & Deferred Capabilities
 
 **Status:** Locked Backlog  
-**Date:** 2026-09-24 (amended 2026-09-26: reasoning rungs §1.9–1.15)
+**Date:** 2026-09-24 (amended 2026-09-26: reasoning rungs §1.9–1.15; amended 2026-09-27: WO-22 pull-forward reassessment — §1.11/§1.12 stubs-live notes, §1.13 trigger override)
 **Release Target:** v2.0 Planning (Post-v1.0.0 Feature Freeze)  
 
 ---
@@ -69,17 +69,17 @@ This backlog explicitly documents all architectural proposals, speculative resea
 ### 1.11 Theory of Mind / User Modeling
 - **Scope:** Model what the user knows, has been told, and has confirmed — so she neither re-explains the known nor assumes the unknown. Companion-critical.
 - **v1.0 Baseline:** SELF_HISTORY substrate already records what she said and did; no user-knowledge model consumes it.
-- **Trigger to Revisit:** WO-21 ships the stub; full user model when SELF_HISTORY volume supports per-topic tracking.
+- **Trigger to Revisit:** WO-21 ships the stub; full user model when SELF_HISTORY volume supports per-topic tracking. *(2026-09-27 reassessment: first gate OPEN — stub shipped in WO-21 Phase 4, `src/lucca/core/user_model.py`; second gate still HOLDS — full model needs ≥ ~500 turns of SELF_HISTORY volume.)*
 
 ### 1.12 Case-Based Reasoning Cycle
 - **Scope:** retrieve → reuse → revise → retain over past episodes ("last time X happened I did Y and it worked").
 - **v1.0 Baseline:** SELF_HISTORY + `execution_triples` are a case base; the CBR cycle itself is unbuilt.
-- **Trigger to Revisit:** WO-21 stub lands; full cycle when episode volume ≥ ~200 turns.
+- **Trigger to Revisit:** WO-21 stub lands; full cycle when episode volume ≥ ~200 turns. *(2026-09-27 reassessment: first gate OPEN — `EpisodeRecall` stub shipped in WO-21 Phase 4, `src/lucca/core/episode_recall.py`; second gate still HOLDS — reuse/revise/retain needs episode volume.)*
 
 ### 1.13 Diagnostic Self-Reasoning
 - **Scope:** Symptom→cause reasoning about her own stack ("high ASR latency + normal NPU load → ring underrun, not model slowness") over `self_metrics` and traces.
 - **v1.0 Baseline:** Telemetry exists (`self_metrics`, `logs/traces.jsonl`); no fault model exists.
-- **Trigger to Revisit:** ≥ 3 months of operational incident history to author the initial fault model from real failure signatures (WO-22+).
+- **Trigger to Revisit:** ~~≥ 3 months of operational incident history~~ **Owner override 2026-09-27:** 5 real incidents are already documented (boot MemoryError/OpenVINO alloc, Docker-CE-down `policy_violation`, ASR ring contention, llama-server VRAM/manifest, frozen-binary WSL timeout) — trigger satisfied; fault model v1 is being built in **WO-22 Phase 2** (see [`plans/2026-09-27_wo22_practical_reasoning.md`](../plans/2026-09-27_wo22_practical_reasoning.md)). The original 3-month trigger is stale and superseded.
 
 ### 1.14 Full Argumentation Semantics (Dung / ASPIC+)
 - **Scope:** Formal attack-graph acceptability semantics for multi-argument conflict resolution.
