@@ -131,6 +131,48 @@ class LLMClient:
                 episode_hints=episode_hints,
             )
 
+        # WO-24 Phase 1 — Multimodal image injection (TRAP 2: variable suffix position only).
+        # If any message in eff_messages carries image_b64, inject it into the last user message
+        # content array in OpenAI multimodal format.  The image is consumed here and cleared from
+        # the message object so it cannot leak into a subsequent LLM call.
+        #
+        # Injection rules:
+        #   1. Only the last user message in eff_messages receives the image.
+        #   2. If that message already has a list content (e.g. audio turn), append the image block.
+        #   3. If that message has a plain string content, promote it to a list, append the image.
+        #   4. image_b64 is cleared (set to None) unconditionally — including error paths — because
+        #      clearing happens before the HTTP stream is opened.
+        # Text-only path is completely unchanged when no message carries image_b64.
+        _image_b64_to_inject: str | None = None
+        for _msg in eff_messages:
+            if getattr(_msg, "image_b64", None):
+                _image_b64_to_inject = _msg.image_b64
+                _msg.image_b64 = None  # consume; cleared before any stream open
+        if _image_b64_to_inject is not None:
+            # Find the last user message
+            for _idx in range(len(eff_messages) - 1, -1, -1):
+                if eff_messages[_idx].role == "user":
+                    _frontier = eff_messages[_idx]
+                    _img_block: dict[str, JsonValue] = {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{_image_b64_to_inject}"},
+                    }
+                    if isinstance(_frontier.content, list):
+                        _frontier.content = list(_frontier.content) + [_img_block]
+                    else:
+                        _text = str(_frontier.content) if _frontier.content else ""
+                        _frontier.content = (
+                            [{"type": "text", "text": _text}, _img_block]
+                            if _text
+                            else [_img_block]
+                        )
+                    logger.debug(
+                        "multimodal_image_injected",
+                        trace_id=eff_trace_id,
+                        image_bytes=len(_image_b64_to_inject) * 3 // 4,
+                    )
+                    break
+
         eff_tools = tools if tools is not None else TOOL_DEFINITIONS
         payload: dict[str, object] = {
             "messages": [m.model_dump(exclude_none=True) for m in eff_messages],
@@ -146,6 +188,7 @@ class LLMClient:
             "stop": ["</s>", "[INST]", "[/INST]", "<|im_end|>", "\nUser:"],
             "stream": True,
         }
+
 
         demux = ToolCallDemux()
         client = httpx.Client(timeout=httpx.Timeout(90.0, connect=15.0))

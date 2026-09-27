@@ -42,10 +42,10 @@ def test_tool_taxonomy_and_registry_count() -> None:
     tool_defs = registry.get_tool_definitions()
     def_names = [t.function.name for t in tool_defs]
 
-    # Assert count == 23 and <= cap
-    assert len(tools) == 23
+    # Assert count == 24 and <= cap (WO-24 Phase 1: screenshot_capture added)
+    assert len(tools) == 24
     assert len(tools) <= MAX_REGISTRY_TOOLS
-    assert len(tool_defs) == 23
+    assert len(tool_defs) == 24
 
     # launch_app is now advertised, confirmation-gated (WO-9 A13)
     assert "launch_app" in tools
@@ -76,6 +76,7 @@ def test_tool_taxonomy_and_registry_count() -> None:
         "artifact_verify",
         "clipboard_read",
         "inbox_handoff",
+        "screenshot_capture",
     }
     assert set(tools.keys()) == expected_tools
     assert set(def_names) == expected_tools
@@ -103,6 +104,8 @@ def test_tool_taxonomy_and_registry_count() -> None:
     assert tools["artifact_verify"].target == "self"
     assert tools["clipboard_read"].target == "shared"
     assert tools["inbox_handoff"].target == "shared"
+    assert tools["screenshot_capture"].target == "shared"
+    assert tools["screenshot_capture"].risk == Risk.READ
 
 
 def test_manifest_matches_registry_tools() -> None:

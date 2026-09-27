@@ -3083,6 +3083,8 @@ class Orchestrator:
         if name == "artifact_verify":
             path = str(args.get("path", "the file"))
             return f"verify {path}"
+        if name == "screenshot_capture":
+            return "take a screenshot"
         return f"execute {name}"
 
     def _handle_schedule_event(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
@@ -3140,6 +3142,61 @@ class Orchestrator:
             error=res.stderr,
         )
         return res
+
+    def _handle_screenshot_capture(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
+        """WO-24 Phase 1: capture primary display and stage for multimodal injection.
+
+        The base64 JPEG is stored on self._pending_image_b64.  It is injected into the
+        frontier user message of the NEXT LLM call by llm_client.stream_turn() and cleared
+        there unconditionally (including error paths) — so it cannot leak to subsequent turns.
+
+        Policy: this handler is reached only AFTER confirmation gate (Class C, target='shared').
+        Output is stamped TOOL_CONTENT_UNTRUSTED (content= not structured=) per TRAP 2.
+        """
+        try:
+            from lucca.sandbox.screenshot_tool import capture_screenshot  # noqa: PLC0415
+
+            b64, width, height = capture_screenshot()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("screenshot_capture_failed", error=str(exc))
+            self._record_tool_receipt(
+                name="screenshot_capture",
+                call_id=call_id,
+                args=args,
+                ok=False,
+                output=None,
+                error=str(exc),
+            )
+            return ToolResult(
+                call_id=call_id,
+                ok=False,
+                exit_code=1,
+                content=None,
+                stderr=f"screenshot_capture failed: {exc}",
+                elapsed_ms=0.0,
+            )
+
+        size_kb = round(len(b64) * 3 / 4 / 1024, 1)
+        # Stage the image for the next LLM narration call.
+        # TRAP 3: _pending_image_b64 is read-and-cleared by llm_client on every call.
+        self._pending_image_b64: str | None = b64
+
+        self._record_tool_receipt(
+            name="screenshot_capture",
+            call_id=call_id,
+            args=args,
+            ok=True,
+            output=f"[screenshot captured: {width}x{height}, {size_kb}KB]",
+            error=None,
+        )
+        # content= (not structured=) guarantees TOOL_CONTENT_UNTRUSTED provenance
+        return ToolResult(
+            call_id=call_id,
+            ok=True,
+            content="[screenshot captured]",
+            structured={"width": width, "height": height, "size_kb": size_kb},
+            elapsed_ms=0.0,
+        )
 
     def _handle_self_history_search(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
         """WO-9 A14 (F18): expose the SELF_HISTORY substrate as a READ tool.
@@ -4022,6 +4079,39 @@ class Orchestrator:
                 print(f"[Lucca] {spoken_msg}", flush=True)
                 self._speak_text(trace, spoken_msg)
                 self.current_turn_tool_spoken.append(spoken_msg)
+            elif speak and not res.ok:
+                spoken_msg = f"Error: {res.stderr or 'action failed'}."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+            return res
+
+        if name == "screenshot_capture":
+            res = self._handle_screenshot_capture(call_id, args)
+            if speak and res.ok:
+                spoken_msg = "I took a screenshot."
+                print(f"[Lucca] {spoken_msg}", flush=True)
+                self._speak_text(trace, spoken_msg)
+                self.current_turn_tool_spoken.append(spoken_msg)
+                # Inject the pending image into the narration tool_messages list so the
+                # next LLM call (narration or full-loop) receives the image token.
+                # _pending_image_b64 is consumed-and-cleared by llm_client.stream_turn()
+                # on the first LLM call after this — TRAP 3 guarantee.
+                pending_img = getattr(self, "_pending_image_b64", None)
+                if pending_img is not None:
+                    img_msg = ChatMessage(
+                        role="user",
+                        content="[Screenshot attached — describe what you see in spoken prose, no markdown.]",
+                        image_b64=pending_img,
+                    )
+                    current_tool_messages = getattr(self, "_current_tool_messages", None)
+                    if current_tool_messages is not None:
+                        current_tool_messages.append(img_msg)
+                    else:
+                        # Fallback: store on the turn context for the caller to pick up
+                        if not hasattr(self, "_screenshot_pending_msgs"):
+                            self._screenshot_pending_msgs = []
+                        self._screenshot_pending_msgs.append(img_msg)
             elif speak and not res.ok:
                 spoken_msg = f"Error: {res.stderr or 'action failed'}."
                 print(f"[Lucca] {spoken_msg}", flush=True)

@@ -91,6 +91,11 @@ This backlog explicitly documents all architectural proposals, speculative resea
 - **v1.0 Baseline:** Causal *claims* tracked as attributed claims; WO-21 reasons over them conditionally.
 - **Trigger to Revisit:** Research watch item — requires causal graphs (no reliable auto-construction) or interventional data (a companion cannot gather). 2026 legal-BN literature confirms hand-authored structure is the state of the art.
 
+### 1.16 Vision Perception (Screen Perception Spike)
+- **Scope:** Screen capture tool (`screenshot_capture`) enabling multimodal reasoning about active display state.
+- **v1.0 Baseline:** Class C tool deferred pending hardware/model vision-lobe support.
+- **Trigger to Revisit:** **SATISFIED in WO-24 Phase 1**. Gemma 4 12B native multimodal support + existing `--mmproj` projector in llama-server unlocked direct base64 JPEG injection into the frontier user message. Tool shipped as 24th native tool (`target="shared"`, Class C confirmation gated, JPEG ≤200KB ≤1280px). §1.7 open-mic VAD remains independently deferred.
+
 ---
 
 ## 2. Governance

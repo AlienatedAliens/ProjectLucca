@@ -62,6 +62,7 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "artifact_verify": Risk.READ,
     "clipboard_read": Risk.READ,
     "inbox_handoff": Risk.WRITE,
+    "screenshot_capture": Risk.READ,
 }
 
 
@@ -160,7 +161,7 @@ def requires_confirmation(tool_name: str, taint: TaintFlags = TaintFlags.CLEAN) 
     Grounded user-speech commits run frictionlessly without confirmation prompts.
     """
     # Class C shared-boundary sensory tools require user confirmation
-    if tool_name in ("clipboard_read", "inbox_handoff"):
+    if tool_name in ("clipboard_read", "inbox_handoff", "screenshot_capture"):
         return True
     risk = classify_risk(tool_name)
     if tool_name in ("note_write", "memory_commit"):

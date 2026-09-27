@@ -840,6 +840,13 @@ class ChatMessage(BaseModel):
     tool_call_id: str | None = None
     name: str | None = None
     tool_calls: list[dict[str, JsonValue]] | None = None
+    # WO-24 Phase 1: optional base64 JPEG image for multimodal turns (screenshot_capture).
+    # When set on the frontier user message, llm_client injects it as an OpenAI-format
+    # image_url content block. Cleared by llm_client after injection on every LLM call
+    # (including error paths) so it cannot leak into subsequent turns.
+    # This field is excluded from model_dump() by default when None (exclude_none=True
+    # is already applied at the llm_client call site).
+    image_b64: str | None = None
 
     def __getitem__(self, item: str) -> object:
         return getattr(self, item)

@@ -222,6 +222,10 @@ class InboxHandoffArgs(BaseModel):
     filename: str = Field(min_length=1, description="Filename in inbox/ to import")
 
 
+class ScreenshotCaptureArgs(BaseModel):
+    """WO-24 Phase 1: screenshot_capture takes no parameters."""
+
+
 # Unadvertised/internal tool argument schemas
 class GetTaskStatusArgs(BaseModel):
     task_id: str = Field(min_length=1)
@@ -259,6 +263,7 @@ TOOL_ARG_SCHEMAS: dict[str, type[BaseModel]] = {
     "artifact_verify": ArtifactVerifyArgs,
     "clipboard_read": ClipboardReadArgs,
     "inbox_handoff": InboxHandoffArgs,
+    "screenshot_capture": ScreenshotCaptureArgs,
 }
 
 EXTRA_TOOL_SCHEMAS: dict[str, type[BaseModel]] = {
@@ -290,6 +295,7 @@ __all__ = [
     "ReadFileArgs",
     "RunPythonArgs",
     "ScheduleEventArgs",
+    "ScreenshotCaptureArgs",
     "SearchTextArgs",
     "SearchWebArgs",
     "SelfHistorySearchArgs",

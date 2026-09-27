@@ -95,11 +95,11 @@ Acts only on Lucca's sandbox and her own substrate. Ships enabled. No confirmati
 | `launch_app` | ✅ in registry | Host desktop application launcher (whitelisted apps, requires confirmation). |
 | `clipboard_read` | ✅ in registry (WO-24 Phase 0) | She reads what the user copied, to reason about it. Requires confirmation; output stamped `TOOL_CONTENT_UNTRUSTED`. |
 | `inbox_handoff` | ✅ in registry (WO-24 Phase 0) | File drop-in for her workspace via `WorkspaceManager.import_from_inbox()`. Requires confirmation. |
-| ~~`screenshot_capture`~~ | ⏸ deferred | Screen perception. Deferred to WO-24 Phase 1. |
+| `screenshot_capture` | ✅ in registry (WO-24 Phase 1) | Primary display capture (mss, JPEG ≤200KB ≤1280px). Requires confirmation; image injected as multimodal token into narration LLM call; output stamped `TOOL_CONTENT_UNTRUSTED`. Vision trigger satisfied by Gemma 4 12B native multimodal + existing mmproj projector. |
 
 **Enforcement:** deontic confirmation enforced **at the tool dispatcher layer** (`capabilities.py`), never as a prompt instruction — LLMs treat negative prompt rules as obstacles to circumvent (F-Q7-1/F-Q7-3). Any memory commit derived from Class C context is stamped `TOOL_CONTENT_UNTRUSTED` (ADR-006).
 
-**Count: 3 Class C tools in registry (`launch_app`, `clipboard_read`, `inbox_handoff`). Full registry after WO-24 Phase 0: 23 native tools (18 Class A + 2 Class B + 3 Class C; cap raised 19 -> 25).**
+**Count: 4 Class C tools in registry (`launch_app`, `clipboard_read`, `inbox_handoff`, `screenshot_capture`). Full registry after WO-24 Phase 1: 24 native tools (18 Class A + 2 Class B + 4 Class C; cap raised 19→23 Phase 0, 23→24 Phase 1).**
 
 ### 2.4 T1 Schema Presentation — Frozen Prefix + Category Suffix (reviewer design, adopted)
 

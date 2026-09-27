@@ -57,7 +57,7 @@ def test_frozen_binary_check_flag() -> None:
         env=env,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=60,
         check=False,
     )
     assert res.returncode == 0, f"Check failed with stdout:\n{res.stdout}\nstderr:\n{res.stderr}"

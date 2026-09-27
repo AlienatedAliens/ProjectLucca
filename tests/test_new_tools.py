@@ -23,19 +23,19 @@ from lucca.sandbox.service import SandboxService
 
 
 def test_static_tool_count_and_cap_gates():
-    """Static gate: registry has exactly 23 tools and MAX_REGISTRY_TOOLS is 23."""
+    """Static gate: registry has exactly 24 tools and MAX_REGISTRY_TOOLS is 24 (WO-24 Phase 1)."""
     tools = get_default_native_tools()
-    assert len(tools) == 23, f"Expected exactly 23 native tools in Phase 0, found {len(tools)}"
-    assert MAX_REGISTRY_TOOLS == 23, f"Expected MAX_REGISTRY_TOOLS to be 23, got {MAX_REGISTRY_TOOLS}"
+    assert len(tools) == 24, f"Expected exactly 24 native tools after Phase 1, found {len(tools)}"
+    assert MAX_REGISTRY_TOOLS == 24, f"Expected MAX_REGISTRY_TOOLS to be 24, got {MAX_REGISTRY_TOOLS}"
 
     # CapabilityRegistry must construct cleanly without raising
     registry = CapabilityRegistry(tools=tools)
-    assert len(registry.tools) == 23
+    assert len(registry.tools) == 24
 
-    # Adding a 24th tool must trip the cap gate
+    # Adding a 25th tool must trip the cap gate
     oversized = dict(tools)
-    oversized["extra_tool_24"] = ToolSchema(
-        name="extra_tool_24",
+    oversized["extra_tool_25"] = ToolSchema(
+        name="extra_tool_25",
         description="extra",
         parameters={},
         risk=Risk.READ,

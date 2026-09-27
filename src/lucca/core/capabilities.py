@@ -31,7 +31,8 @@ logger = structlog.get_logger(__name__)
 # Native Tool Registry Cap (Spec 1.1.2 §2.4, T1.6: expect exactly 9 at T1).
 # Raised 16 -> 18 by WO-9 A13/A14, 18 -> 19 by WO-17 (calc_math).
 # Raised 19 -> 23 by WO-24 (schedule_event, artifact_verify, clipboard_read, inbox_handoff).
-MAX_REGISTRY_TOOLS: Final[int] = 23
+# Raised 23 -> 24 by WO-24 Phase 1 (screenshot_capture).
+MAX_REGISTRY_TOOLS: Final[int] = 24
 
 
 def _predicate_menu() -> str:
@@ -418,6 +419,13 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
                 ),
             },
             risk=Risk.WRITE,
+            target="shared",
+        ),
+        "screenshot_capture": ToolSchema(
+            name="screenshot_capture",
+            description="Capture the primary display as a JPEG image to reason about what is on screen.",
+            parameters={},
+            risk=Risk.READ,
             target="shared",
         ),
     }
