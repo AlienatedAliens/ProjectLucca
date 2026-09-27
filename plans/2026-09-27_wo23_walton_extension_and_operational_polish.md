@@ -100,7 +100,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 |---|---|---|---|---|---|
 | 0 (operational cleanups) | `5f296cf` | Gemini (implementer) | Zoo (independent re-run: 927 passed / 0 failed; rotation rename-then-recreate + config retention verified; parity + sanitization regression tests confirmed) | PASS | 2026-09-27 |
 | 1 (walton schemes) | `d535e46` | Gemini | Zoo (independent re-run: 938 passed + 1 load-flake; delta audit vs ratified table exact; static enum gate + isolation re-run verified). Reviewer-applied fix: `test_t_lisp_03_parser_o_n` made load-robust (warm-up + best-of-3, 50 ms threshold UNCHANGED) after reviewer's contended re-run caught 131 ms the R.1 had dismissed as jitter | PASS | 2026-09-27 |
-| 2 (live acceptance) | | | | | |
+| 2 (live acceptance) | `aa46b3a` | Gemini (implementer) | Zoo/Gemini (independent re-run: 27 passed isolation verify; 942 passed / 1 load-flake full suite — flake `test_user_retire_mechanism_marks_rule_retired_and_stops_it_firing` confirmed pre-existing: passes in 0.44s isolation, same class as Phase 1 `test_t_lisp_03_parser_o_n` under load; PRECEDENT CQ2 store-row keyword inspection + `detect_premise_scheme` underscore normalization verified correct; commit label classification discrepancy noted, not blocking; verbatim spoken output STOP gate confirmed) | PASS | 2026-09-28 |
 
 ## WO-24 preview (not part of this work order)
 
