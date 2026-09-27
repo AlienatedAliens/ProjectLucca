@@ -94,7 +94,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 0 (operational cleanups) | | | | | |
+| 0 (operational cleanups) | `5f296cf` | Gemini (implementer) | | pending | 2026-09-27 |
 | 1 (walton schemes) | | | | | |
 | 2 (live acceptance) | | | | | |
 
