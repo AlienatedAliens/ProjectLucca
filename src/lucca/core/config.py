@@ -187,6 +187,7 @@ class LogSettings(BaseModel):
     level: str = "INFO"
     json_format: bool = Field(default=True, alias="json")
     retention_days: int = 30
+    decision_retention_files: int = 14
 
 
 class LuccaConfig(BaseSettings):

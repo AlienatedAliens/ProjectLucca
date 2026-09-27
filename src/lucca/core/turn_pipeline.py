@@ -48,6 +48,7 @@ from lucca.core.schemas import (
     ToolResult,
 )
 from lucca.core.self_diagnosis import is_self_diagnosis_query
+from lucca.core.text_utils import normalize_spelled_words, normalize_transcript
 from lucca.core.trace import TurnTrace, now_ns
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
@@ -57,57 +58,6 @@ if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
 
 logger = structlog.get_logger(__name__)
-
-
-def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
-    """
-    Detects single-letter spelling sequences (hyphenated 'F-A-W-K-N-E-R', period-separated
-    'F. A. W. K. N. E. R.', or space-separated single letters 'F A W K N E R') from ASR output,
-    assembles them into title-cased words, and returns (normalized_transcript, detected_words).
-    """
-    detected_words: list[str] = []
-
-    # 1. Period-separated letters (e.g. F. A. W. K. N. E. R. or F.A.W.K.N.E.R.)
-    def replace_period(m: re.Match[str]) -> str:
-        raw = str(m.group(0))
-        letters = re.findall(r"[a-zA-Z]", raw)
-        if len(letters) >= 3:
-            w = str("".join(letters).capitalize())
-            detected_words.append(w)
-            return w
-        return raw
-
-    text = re.sub(r"\b[a-zA-Z]\.(?:\s*[a-zA-Z]\.){2,}", replace_period, transcript)
-
-    # 2. Hyphen-separated letters (e.g. F-A-W-K-N-E-R or F - A - W - K - N - E - R)
-    def replace_hyphen(m: re.Match[str]) -> str:
-        raw = str(m.group(0))
-        letters = re.findall(r"[a-zA-Z]", raw)
-        if len(letters) >= 3:
-            w = str("".join(letters).capitalize())
-            detected_words.append(w)
-            return w
-        return raw
-
-    text = re.sub(r"\b[a-zA-Z](?:\s*-\s*[a-zA-Z]){2,}\b", replace_hyphen, text)
-
-    # 3. Space-separated single letters (e.g. F A W K N E R or W K N E R)
-    def replace_spaces(m: re.Match[str]) -> str:
-        raw = str(m.group(1))
-        tokens = raw.split()
-        if len(tokens) >= 3 and all(len(t) == 1 and t.isalpha() for t in tokens):
-            w = str("".join(tokens).capitalize())
-            detected_words.append(w)
-            return w
-        return raw
-
-    text = re.sub(
-        r"(?:^|(?<=\s))([a-zA-Z](?:\s+[a-zA-Z]){2,})(?=\s|[.,!?]|$)",
-        replace_spaces,
-        text,
-    )
-
-    return text, list(dict.fromkeys(detected_words))
 
 
 def aggregate_plan_narration_summary(
@@ -642,7 +592,8 @@ class TurnPipeline:
             return
 
         # Phase 1: Input Normalization & Spelled-Word Attractor Neutralization
-        normalized_text, detected_words = normalize_spelled_words(user_text)
+        normalized_text = normalize_transcript(user_text)
+        _, detected_words = normalize_spelled_words(user_text)
         self.orch.active_detected_words = detected_words
         eff_user_text = normalized_text
         spelling_hint: str | None = None

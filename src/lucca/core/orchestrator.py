@@ -12,11 +12,11 @@ import re
 import sys
 import threading
 import time
-import wave
 import urllib.parse
+import wave
 from collections import deque
 from collections.abc import Sequence
-from typing import Final, Literal
+from typing import Literal
 
 import structlog
 
@@ -46,28 +46,49 @@ from lucca.brain.prompt_builder import (
 )
 from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
+from lucca.core.belief_service import BeliefService
 from lucca.core.capabilities import dispatch_invoke_skill
 from lucca.core.cascade import EpistemicSearchCascade
+from lucca.core.clock import SystemClock
 from lucca.core.coherence import (
     ToolReceipt,
     detect_promised_action_claims,
     detect_ungrounded_action_claims,
 )
 from lucca.core.config import get_config, load_heuristics
+from lucca.core.confirmation_manager import ConfirmationManager
+from lucca.core.corroboration import (
+    CQAnswer,
+    CriticalQuestionResult,
+    Scheme,
+    adjust_confidence,
+    critical_questions,
+    extract_receipt_source,
+)
+from lucca.core.episode_recall import EpisodeRecall
 from lucca.core.ipc_schemas import (
     Envelope,
     PlayAbortPayload,
     PlayBeginPayload,
     PTTReleasedPayload,
-    UICaptionPayload,
     UIConfigUpdatePayload,
-    UIConfirmPayload,
     UIConfirmResultPayload,
     UIStatePayload,
     UIUserTextPayload,
     decode_envelope,
     encode_envelope,
 )
+from lucca.core.memory_commit_service import (
+    MemoryCommitService,
+)
+from lucca.core.proof_policy import (
+    is_cross_reference_command,
+    load_ratification_domains,
+    meets_standard,
+    required_standard,
+    required_threshold,
+)
+from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext, ReasoningEntry
 from lucca.core.schemas import (
     AssertFact,
     ChatMessage,
@@ -77,7 +98,6 @@ from lucca.core.schemas import (
     InferenceStep,
     MemoryHit,
     PendingRatification,
-    PlanStep,
     Provenance,
     RetrievalQuery,
     RouteAction,
@@ -85,35 +105,21 @@ from lucca.core.schemas import (
     RuleOutcome,
     RuleState,
     Say,
+    SignedPayload,
     TokenDelta,
     ToolCall,
     ToolCallEnd,
     ToolResult,
     TTSChunk,
-    SignedPayload,
     UnsignedPayload,
     canonicalize_predicate,
     is_valid_predicate,
     standard_for_confidence,
 )
-from lucca.core.corroboration import (
-    CQAnswer,
-    CriticalQuestionResult,
-    Scheme,
-    adjust_confidence,
-    critical_questions,
-    extract_receipt_source,
-)
-from lucca.core.proof_policy import (
-    Hazard,
-    classify_hazard,
-    is_cross_reference_command,
-    load_ratification_domains,
-    meets_standard,
-    required_standard,
-    required_threshold,
-)
-from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext, ReasoningEntry
+from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
+from lucca.core.signer_factory import SignerFactory
+from lucca.core.speech_output_manager import SpeechOutputManager
+from lucca.core.text_utils import normalize_transcript
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
     TurnInput,
@@ -121,34 +127,15 @@ from lucca.core.turn_pipeline import (
     normalize_spelled_words,
     synthesize_plan_narration,
 )
-from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
 from lucca.core.user_model import UserModel
-from lucca.core.episode_recall import EpisodeRecall
-from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
-from lucca.core.memory_commit_service import (
-    MemoryCommitService,
-    STANCE_MARKERS,
-    _DEMONYMS,
-    _HYPOTHETICAL_MARKERS,
-    _NEGATION_PATTERN,
-    _PASSIVE_FACT_PATTERNS,
-    _REPORTED_SPEECH_PATTERN,
-    _extract_stance_topic,
-    _sentence_containing,
-)
-from lucca.core.belief_service import BeliefService
-from lucca.core.confirmation_manager import ConfirmationManager
-from lucca.core.speech_output_manager import SpeechOutputManager
-from lucca.core.signer_factory import SignerFactory
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
     ToolResultSigner,
     UserSpeechSigner,
 )
-from lucca.core.clock import SystemClock
 from lucca.ports import (
     ClockPort,
     MemoryStorePort,
@@ -164,6 +151,7 @@ from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.output_supervisor import OutputSupervisorSession
 from lucca.sandbox.policy import parse_confirmation_response
+from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
 from lucca.senses.ring_buffer import (
@@ -186,6 +174,7 @@ __all__ = [
     "TurnPipeline",
     "TurnState",
     "normalize_spelled_words",
+    "normalize_transcript",
 ]
 
 
@@ -1043,15 +1032,16 @@ class Orchestrator:
     def _build_rule_state(
         self, transcript: str, mode: Literal["audio", "transcript"] = "transcript"
     ) -> RuleState:
+        norm_transcript = normalize_transcript(transcript)
         local_now = time.localtime()
         last_tool_val = self.executed_tools[-1][0] if self.executed_tools else None
         intent, auto_conf, entities = self.router.classify_intent(
-            transcript, last_tool=last_tool_val
+            norm_transcript, last_tool=last_tool_val
         )
         return RuleState(
             schema_version=1,
-            transcript=transcript,
-            transcript_lower=transcript.strip().lower(),
+            transcript=norm_transcript,
+            transcript_lower=norm_transcript.strip().lower(),
             intent=intent,
             intent_conf=auto_conf,
             entities=entities,

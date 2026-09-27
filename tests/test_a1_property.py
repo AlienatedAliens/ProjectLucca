@@ -783,7 +783,6 @@ def test_nightly_rollup_boundary_and_retention_invariants(tmp_path: Path) -> Non
 
 # ============================================================================
 # Section 6: Coherence Checker Adversarial Corpus & Fuzz (§3.6)
-# Marked xfail(strict=True) until WP-2 lands receipt-aware checker
 # ============================================================================
 
 
@@ -806,9 +805,8 @@ _shared_orch.current_turn_receipts = []
 
 def test_coherence_corpus_narration_breach_detection() -> None:
     """
-    Tests the 120+ row adversarial narration corpus.
-    In WP-1, this targets orchestrator._check_functional_coherence and was marked
-    xfail(strict=True). In WP-2, the receipt-aware checker flips this test to pass.
+    Tests the 120+ row adversarial narration corpus with the receipt-aware
+    coherence checker (shipped in WO-20).
     """
     mismatches: list[str] = []
     for case in CORPUS_ROWS:

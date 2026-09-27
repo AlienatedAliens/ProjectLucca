@@ -8,12 +8,14 @@ import re
 import time
 import tomllib
 import uuid
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Final, Literal
 
 import numpy as np
 import structlog
 
+from lucca.core.config import get_config
 from lucca.core.schemas import (
     DecisionRecord,
     ExecutionTier,
@@ -22,6 +24,7 @@ from lucca.core.schemas import (
     RouteFeatures,
     ToolCall,
 )
+from lucca.core.text_utils import normalize_transcript
 from lucca.memory.db import DatabaseManager
 from lucca.ports import EmbeddingPort
 from lucca.router.conformal import ConformalGuard
@@ -165,6 +168,7 @@ class HeuristicRouter:
         conformal_guard: ConformalGuard | None = None,
         confidence_threshold: float = 0.60,
         embed_worker: EmbeddingPort | None = None,
+        retention_files: int | None = None,
     ) -> None:
         self.log_path = Path(log_path) if log_path is not None else None
         if self.log_path:
@@ -180,6 +184,14 @@ class HeuristicRouter:
         self.db_write_failures: int = 0
         self.embed_worker = embed_worker
         self._anchor_embeddings: dict[str, list[list[float]]] | None = None
+        if retention_files is not None:
+            self.retention_files = retention_files
+        else:
+            try:
+                self.retention_files = get_config().log.decision_retention_files
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("decision_retention_config_load_failed", error=str(exc))
+                self.retention_files = 14
         self._load_intents_config(config_path)
 
     def _get_anchor_embeddings(self) -> dict[str, list[list[float]]]:
@@ -236,7 +248,8 @@ class HeuristicRouter:
         ``last_tool`` is the most-recently-executed tool name for the current session;
         it is used to promote short corrections issued mid-search to ``web_fetch`` intent.
         """
-        text = transcript.strip().lower()
+        norm_transcript = normalize_transcript(transcript)
+        text = norm_transcript.strip().lower()
         entities: dict[str, list[str]] = {
             "app": [],
             "file": [],
@@ -249,7 +262,7 @@ class HeuristicRouter:
             entities["file"].append(f)
         for u in URL_PATTERN.findall(text):
             entities["url"].append(u)
-        for q in QUOTED_PATTERN.findall(transcript):
+        for q in QUOTED_PATTERN.findall(norm_transcript):
             entities["quoted"].append(q)
 
         # 0. Dangerous / Boundary (Safety First): destructive, sensitive, or adversarial requests
@@ -426,6 +439,8 @@ class HeuristicRouter:
         else:
             transcript_text = transcript if isinstance(transcript, str) else ""
 
+        transcript_text = normalize_transcript(transcript_text)
+
         intent, auto_conf, entities = self.classify_intent(transcript_text, last_tool=last_tool)
         conf = intent_conf if (intent_conf is not None and intent_conf > 0.0) else auto_conf
         text_lower = transcript_text.strip().lower()
@@ -553,9 +568,90 @@ class HeuristicRouter:
 
         return decision
 
+    def _rotate_decision_log_if_needed(self, now_utc: datetime | date | None = None) -> Path | None:
+        """Rotates log_path (e.g. decisions.jsonl) to decisions-YYYY-MM-DD.jsonl
+        if the existing file belongs to a prior calendar day in UTC.
+        Maintains crash-safe rename-on-open and prunes rotated files to retention count.
+        """
+        if not self.log_path or not self.log_path.exists():
+            return None
+
+        try:
+            stat = self.log_path.stat()
+            if stat.st_size == 0:
+                return None
+        except OSError:
+            return None
+
+        if now_utc is None:
+            current_date = datetime.now(UTC).date()
+        elif isinstance(now_utc, datetime):
+            current_date = now_utc.astimezone(UTC).date()
+        else:
+            current_date = now_utc
+
+        file_dt = datetime.fromtimestamp(stat.st_mtime, tz=UTC)
+        file_date = file_dt.date()
+
+        if file_date >= current_date:
+            return None
+
+        file_date_str = file_date.strftime("%Y-%m-%d")
+        stem = self.log_path.stem
+        suffix = self.log_path.suffix
+        rotated_path = self.log_path.parent / f"{stem}-{file_date_str}{suffix}"
+
+        try:
+            if rotated_path.exists():
+                with open(self.log_path, "rb") as src, open(rotated_path, "ab") as dst:
+                    dst.write(src.read())
+                self.log_path.unlink(missing_ok=True)
+            else:
+                self.log_path.rename(rotated_path)
+        except OSError as exc:
+            logger.warning("decision_log_rotation_failed", error=str(exc))
+            return None
+
+        self._prune_rotated_decision_logs()
+        return rotated_path
+
+    def _prune_rotated_decision_logs(self) -> list[Path]:
+        """Prunes rotated log files exceeding retention count, keeping the most recent."""
+        if not self.log_path:
+            return []
+        stem = self.log_path.stem
+        suffix = self.log_path.suffix
+        pattern = re.compile(rf"^{re.escape(stem)}-(\d{{4}}-\d{{2}}-\d{{2}}){re.escape(suffix)}$")
+
+        rotated_files: list[tuple[str, Path]] = []
+        try:
+            for p in self.log_path.parent.iterdir():
+                if p.is_file():
+                    m = pattern.match(p.name)
+                    if m:
+                        rotated_files.append((m.group(1), p))
+        except OSError:
+            return []
+
+        rotated_files.sort(key=lambda t: t[0])
+
+        deleted: list[Path] = []
+        if len(rotated_files) > self.retention_files:
+            to_delete = rotated_files[: len(rotated_files) - self.retention_files]
+            for _, p in to_delete:
+                try:
+                    p.unlink(missing_ok=True)
+                    deleted.append(p)
+                except OSError as exc:
+                    logger.warning("decision_log_prune_failed", path=str(p), error=str(exc))
+        return deleted
+
     def _log_decision_jsonl(self, record: DecisionRecord) -> None:
         if not self.log_path:
             return
+        record_dt = datetime.fromtimestamp(record.ts, tz=UTC)
+        self._rotate_decision_log_if_needed(now_utc=record_dt)
+
         payload = record.model_dump()
         payload["transcript"] = record.features.transcript
         payload["intent"] = record.features.intent

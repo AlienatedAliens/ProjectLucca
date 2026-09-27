@@ -205,8 +205,8 @@
 - **Description:** When an induced or procedural MicroScheme rule produces a multi-action plan (e.g. 2 tool calls), the narration generator currently only verbalizes the final tool result.
 - **Code Location:** `src/lucca/core/turn_pipeline.py`
 - **User-Visible Impact:** Intermediate tool actions in a compound rule are not verbally described to the user.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.6 (multi-action verbalization).
-- **Status:** DEFERRED
+- **Resolution Path:** Resolved in WO-22 Phase 1 (`d7a352a`): aggregated narration over per-step receipts via `aggregate_plan_narration_summary` and `synthesize_plan_narration` in `src/lucca/core/turn_pipeline.py`.
+- **Status:** RESOLVED
 
 ### [ITEM-018] Transcript Normalization Divergence (Router vs Rule Engine)
 - **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F12`
@@ -216,8 +216,8 @@
 - **Description:** The HeuristicRouter evaluates the raw ASR transcript string, while the MicroScheme rule evaluator receives a normalized transcript token sequence.
 - **Code Location:** `src/lucca/core/orchestrator.py`
 - **User-Visible Impact:** Subtle boundary cases where punctuation or casing affects routing but not rule matching.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.2 (unified transcript tokenizer).
-- **Status:** DEFERRED
+- **Resolution Path:** Resolved in WO-23 Phase 0: extracted canonical `normalize_transcript` into `src/lucca/core/text_utils.py` and applied once at ASR boundary (`turn_pipeline.py`, `orchestrator.py`, `heuristic.py`). Parity verified in `tests/test_operational_cleanups.py`.
+- **Status:** IN WO-23
 
 ### [ITEM-019] Dedicated CLARIFY Action Handler
 - **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F13`
@@ -249,8 +249,8 @@
 - **Description:** Decision records and turn traces are written to SQLite and JSONL, but are not indexed into the in-session vector or FTS5 memory search cascade for live meta-cognitive querying.
 - **Code Location:** `src/lucca/memory/retrieval.py`
 - **User-Visible Impact:** Lucca cannot inspect her own low-level decision routing records during live conversation.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.1 (decision trace memory indexing).
-- **Status:** DEFERRED
+- **Resolution Path:** Resolved in WO-22 Phase 2 (`f366704`): indexed `DecisionRecord` and `TurnTrace` into FTS5 virtual table `decisions_fts` (`0008_decision_fts.sql`) and added `search_decisions()` cascade in `src/lucca/memory/retrieval.py`.
+- **Status:** RESOLVED
 
 ### [ITEM-022] Configuration-Driven Behavioral Heuristics
 - **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F20`
@@ -260,7 +260,7 @@
 - **Description:** Keyword patterns for follow-up detection, entity extraction, and celebration filtering are partly defined in Python code constants rather than loaded from `heuristics.toml`.
 - **Code Location:** `src/lucca/core/orchestrator.py`, `src/lucca/core/cascade.py`
 - **User-Visible Impact:** Modifying heuristic thresholds requires code edits rather than configuration changes.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.2 (externalize all heuristics to TOML).
+- **Resolution Path:** Owner decision 2026-09-27: stays deferred until a recurring tuning task actually needs it — do not externalize heuristics speculatively.
 - **Status:** DEFERRED
 
 ### [ITEM-023] Decision Records JSONL Rotation & Pruning
@@ -271,8 +271,8 @@
 - **Description:** Decision records JSONL log appends indefinitely without file rotation or disk size bounding.
 - **Code Location:** `src/lucca/router/heuristic.py`
 - **User-Visible Impact:** Disk usage grows continuously over months of heavy local usage.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.1 (JSONL log rotation).
-- **Status:** DEFERRED
+- **Resolution Path:** Resolved in WO-23 Phase 0: calendar-day rotation for `logs/decisions.jsonl` to `decisions-YYYY-MM-DD.jsonl` on UTC date boundary with configurable retention pruning (`config.log.decision_retention_files`) and crash-safe rename-on-open. Verified in `tests/test_operational_cleanups.py`.
+- **Status:** IN WO-23
 
 ### [ITEM-024] Process Topology Refactor (In-Process vs Independent NPU)
 - **Source:** `docs/audit/findings/core.md`, Finding `F-CORE-002`
@@ -326,8 +326,8 @@
 - **Description:** Occasional markdown formatting (bullet points, asterisks) can slip into raw text before TTS synthesis when the model outputs lists.
 - **Code Location:** `src/lucca/brain/chunker.py`
 - **User-Visible Impact:** TTS reads punctuation or bullet characters literally.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.7 (streaming voice text regex sanitization filter).
-- **Status:** DEFERRED
+- **Resolution Path:** Resolved: verified existing `sanitize_for_voice` in `src/lucca/brain/chunker.py` wraps `normalise_text` and is active across all TTS choke points (`orchestrator.py` ×3, `speech_output_manager.py:270`). Regression test added in `tests/test_operational_cleanups.py`.
+- **Status:** RESOLVED
 
 ### [ITEM-029] T-MEM-05 50k Synthetic Search Latency Assertion Calibration
 - **Source:** Phase 3 Baseline Test Suite, `tests/test_memory_db.py:298`
