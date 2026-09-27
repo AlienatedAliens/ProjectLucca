@@ -121,7 +121,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 | 0 (cleanups) | `2d7b8cc` | Gemini | Zoo (independent re-run: 891 passed / 0 failed; trap audit + positive controls verified) | PASS | 2026-09-27 |
 | 1 (means-ends planner) | `d7a352a` | Gemini | Zoo (independent re-run: 903 passed / 0 failed; Trap 1 dispatch-path audit + validator + ITEM-017 verified) | PASS | 2026-09-27 |
 | 2 (diagnostic self-reasoning) | `f366704` | Gemini | Zoo (independent re-run: 917 passed / 0 failed; STOP gate, Traps 1 & 2, ITEM-021 verified) | PASS | 2026-09-27 |
-| 3 (live acceptance) | | | | | |
+| 3 (live acceptance) | `a3dbee5` | Gemini | Pending review | | 2026-09-27 |
 
 ## Deferred (WO-23 candidates)
 
