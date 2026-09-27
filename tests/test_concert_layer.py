@@ -1539,6 +1539,342 @@ def test_build_deduction_messages_prompt_contract():
     assert "Step 1 was invalid" in user_msg
 
 
+def test_phase6_live_acceptance_source_conditioned_chain(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-21 Phase 6 Functional Acceptance (WO-21g):
+    - Scripted (FakeLLM + seeded store + seeded receipts):
+      Store has `user partner_is judge_in_philippines`, `user tz_is UTC+8`.
+      Whitelisted fetch receipt asserts "driver-582.11 fixes wsl-crash".
+      The chain produces:
+      1) user likely_location Philippines (corroborated by independent store facts, boosted).
+      2) driver-582.11 likely_fixes user's wsl-crash (source-conditioned conclusion),
+         committed as INFERRED with the attributed premise in conditions.
+    - Spoken output names the condition: "…if ars-technica is right about the driver fix."
+    - Traps: Runs in ONE turn with no operator leading; every intermediate signed;
+      the final commit passes the gate replay.
+    - Standard-labeled in prompt context (format_memory_context and cascade.synthesize).
+    - Superseded when direct user evidence arrives.
+    """
+    trace = _trace("tr-p6-acceptance")
+
+    # 1. Seed store with prior facts
+    p1 = orch._commit_lisp_assertion(
+        AssertFact(s="user", p="partner_is", o="judge_in_philippines"), trace
+    )
+    assert p1 is not None
+    p2 = orch._commit_lisp_assertion(AssertFact(s="user", p="tz_is", o="UTC+8"), trace)
+    assert p2 is not None
+
+    # 2. Seed whitelisted fetch receipt asserting the driver fix
+    orch.current_turn_receipts = [
+        ToolReceipt(
+            tool="fetch_url",
+            call_id="call-fetch-ars",
+            source="arstechnica.com",
+            args={"url": "https://arstechnica.com/gadgets/2026/wsl-driver-fix"},
+            output="arstechnica.com asserts driver-582.11 fixes wsl-crash on Windows 11 updates.",
+        )
+    ]
+
+    # Track spoken calls via spy
+    spoken_history: list[str] = []
+    original_speak = getattr(orch, "_speak_text", None)
+
+    def spy_speak(t: TurnTrace, text: str) -> None:
+        spoken_history.append(text)
+        if original_speak:
+            original_speak(t, text)
+
+    orch._speak_text = spy_speak
+
+    # 3. Scripted LLM proposing cold 2-step deduction without operator leading (ONE turn)
+    step_json = json.dumps([
+        {
+            "premises": [
+                "user partner_is judge_in_philippines",
+                "user tz_is UTC+8",
+            ],
+            "s": "user",
+            "p": "likely_location",
+            "o": "Philippines",
+            "confidence": 0.80,
+            "rationale": "Partner is in Philippines and timezone is UTC+8.",
+        },
+        {
+            "premises": [
+                "user likely_location Philippines",
+                "ars-technica asserts driver-582.11 fixes wsl-crash",
+            ],
+            "s": "driver-582.11",
+            "p": "likely_fixes",
+            "o": "user's wsl-crash",
+            "confidence": 0.85,
+            "conditions": ["if ars-technica is right about the driver fix"],
+            "rationale": "Ars Technica reports driver 582.11 fixes WSL crashes.",
+        },
+    ])
+    fake_llm = FakeLLM(script=[
+        TokenDelta(delta=step_json),
+        Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=50)),
+    ])
+
+    # 4. Execute deduction step in ONE turn
+    accepted, spoken = orch.run_deduction_step(
+        goal="Can driver 582.11 fix my WSL crash?",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    # Both steps accepted in ONE turn
+    assert len(accepted) == 2
+
+    # Step 1: corroborated by independent store facts, boosted from 0.80 -> 0.90!
+    assert accepted[0].confidence == 0.90
+    assert accepted[0].conclusion == "user likely_location Philippines"
+
+    # Step 2: source-conditioned conclusion with attributed premise in conditions
+    assert accepted[1].confidence == 0.85
+    assert accepted[1].conclusion == "driver-582.11 likely_fixes user's wsl-crash"
+    assert any("asserts" in c for c in accepted[1].conditions)
+    assert any("driver fix" in c for c in accepted[1].conditions)
+
+    # 5. Spoken output names the condition
+    expected_condition_speech = "…if ars-technica is right about the driver fix."
+    assert spoken == expected_condition_speech
+    assert expected_condition_speech in spoken_history
+
+    # 6. Intermediates signed as LISP_ASSERTION in store (Trap 2)
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT entry_id, signature, payload_json, provenance
+            FROM provenance_envelopes
+            WHERE provenance = 'LISP_ASSERTION'
+            ORDER BY created_at ASC
+            """
+        )
+        lisp_rows = cur.fetchall()
+    # At least p1, p2, step1, step2 exist
+    assert len(lisp_rows) >= 4
+    contents = [json.loads(r[2])["content"] for r in lisp_rows]
+    assert "user likely_location Philippines" in contents
+    assert "driver-582.11 likely_fixes user's wsl-crash" in contents
+
+    # 7. Final commit as INFERRED with proof trace and standard label
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT m.memory_id, m.content, e.provenance, e.confidence, e.payload_json
+            FROM memories m
+            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+            WHERE e.provenance = 'INFERRED'
+            """
+        )
+        inferred_rows = cur.fetchall()
+    assert len(inferred_rows) == 1
+    inferred_mid, content, prov, conf, payload_json_str = inferred_rows[0]
+    assert content == "driver-582.11 likely_fixes user's wsl-crash"
+    assert prov == "INFERRED"
+    assert conf == 0.85  # min(0.90, 0.85)
+
+    payload_dict = json.loads(payload_json_str)
+    structured = payload_dict["structured"]
+    assert structured["proof_standard"] == "clear and convincing"
+    assert any("asserts" in c for c in structured["conditions"])
+    assert any("driver fix" in c for c in structured["conditions"])
+    pt = structured["proof_trace"]
+    assert len(pt) == 2
+    assert pt[0]["conclusion"] == "user likely_location Philippines"
+    assert pt[1]["conclusion"] == "driver-582.11 likely_fixes user's wsl-crash"
+
+    # 8. Gate admission replay check (Trap 3)
+    inferred_payload = SignedPayload.model_validate_json(payload_json_str)
+    gate = ProvenanceGate(master_key=signer_factory.master_key, db=orch.db)
+    admitted = gate.admit(inferred_payload)
+    assert admitted.payload.entry_id == inferred_payload.entry_id
+
+    # 9. Prompt context shows standard label (format_memory_context and cascade.synthesize)
+    q = RetrievalQuery(query_text="driver-582.11", k=5)
+    hits = orch.memory_store.search(q)
+    inferred_hits = [
+        h for h in hits if getattr(h, "provenance", "") in (Provenance.INFERRED, "INFERRED")
+    ]
+    assert len(inferred_hits) >= 1
+
+    # format_memory_context check
+    rendered = format_memory_context(inferred_hits)
+    assert "inferred, confidence 0.85 — clear and convincing" in rendered
+
+    # cascade.synthesize check
+    cascade = EpistemicSearchCascade(memory_store=orch.memory_store)
+    evidence = cascade.query_substrate_2_memory("driver-582.11")
+    _, cascade_text, _ = cascade.synthesize("driver-582.11", evidence)
+    assert "[inferred, confidence 0.85 — clear and convincing]" in cascade_text
+
+    # 10. Direct user evidence arrives and supersedes INFERRED fact
+    user_speech_signer = signer_factory.user_speech()
+    derived_signer = DerivedFactSigner(master_key=signer_factory.master_key)
+
+    transcript = user_speech_signer.sign(
+        UnsignedPayload(
+            content="Actually, driver-582.11 didn't fix my WSL crash at all.",
+            provenance=Provenance.USER_EXPLICIT,
+            kind="transcript",
+            confidence=1.0,
+            nonce="user-direct-speech-001",
+            created_at=time.time() + 10,
+            trace_id=trace.trace_id,
+        )
+    )
+    orch.memory_store.commit(transcript)
+
+    derived = derived_signer.sign(
+        UnsignedPayload(
+            content="driver-582.11 likely_fixes did_not_fix_wsl_crash",
+            provenance=Provenance.USER_DERIVED,
+            kind="fact",
+            confidence=0.98,
+            source_entry_ids=[transcript.entry_id],
+            nonce="derived-direct-fix-001",
+            created_at=time.time() + 15,
+            trace_id=trace.trace_id,
+            structured={
+                "s": "driver-582.11",
+                "p": "likely_fixes",
+                "o": "did_not_fix_wsl_crash",
+            },
+        )
+    )
+    orch.memory_store.commit(derived)
+
+    # Verify INFERRED memory is now superseded (valid_to and superseded_by populated)
+    with orch.db.read_cursor() as cur:
+        row = cur.execute(
+            "SELECT valid_to, superseded_by FROM memories WHERE memory_id = ?",
+            (inferred_mid,),
+        ).fetchone()
+    assert row is not None
+    assert row[0] is not None, "Inferred fact must be marked superseded (valid_to is set)"
+    assert row[1] is not None, "Inferred fact superseded_by must reference the direct evidence"
 
 
+def test_phase6_live_acceptance_dispute_docking(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-21 Phase 6 Acceptance (Dispute Seeding Variant):
+    When a disputing fact is seeded in the store, Walton authority Q3 triggers,
+    docking confidence (-0.30) and adding the dispute condition.
+    Because the resulting confidence is below standard (0.85 - 0.30 = 0.55 < 0.75),
+    finalize_chain refuses the commit, speaking the speculation hedge.
+    """
+    trace = _trace("tr-p6-dispute")
 
+    # 1. Seed store with prior facts
+    orch._commit_lisp_assertion(
+        AssertFact(s="user", p="partner_is", o="judge_in_philippines"), trace
+    )
+    orch._commit_lisp_assertion(AssertFact(s="user", p="tz_is", o="UTC+8"), trace)
+
+    # 2. Seed disputing fact in store
+    derived_signer = DerivedFactSigner(master_key=signer_factory.master_key)
+    user_signer = signer_factory.user_speech()
+    t_signed = user_signer.sign(
+        UnsignedPayload(
+            content="nvidia disputes that driver-582.11 fixes wsl-crash",
+            provenance=Provenance.USER_EXPLICIT,
+            kind="transcript",
+            confidence=1.0,
+            nonce="user-dispute-seed-001",
+            created_at=time.time() - 20,
+            trace_id=trace.trace_id,
+        )
+    )
+    orch.memory_store.commit(t_signed)
+
+    dispute_fact = derived_signer.sign(
+        UnsignedPayload(
+            content="nvidia disputes driver-582.11 fixes wsl-crash",
+            provenance=Provenance.USER_DERIVED,
+            kind="fact",
+            confidence=0.95,
+            source_entry_ids=[t_signed.entry_id],
+            nonce="dispute-seed-001",
+            created_at=time.time() - 10,
+            trace_id=trace.trace_id,
+            structured={
+                "s": "driver-582.11",
+                "p": "disputes",
+                "o": "driver-582.11 fixes wsl-crash",
+            },
+        )
+    )
+    orch.memory_store.commit(dispute_fact)
+
+    # 3. Seed receipt
+    orch.current_turn_receipts = [
+        ToolReceipt(
+            tool="fetch_url",
+            call_id="call-fetch-ars",
+            source="arstechnica.com",
+            args={"url": "https://arstechnica.com/gadgets/2026/wsl-driver-fix"},
+            output="arstechnica.com asserts driver-582.11 fixes wsl-crash on Windows 11 updates.",
+        )
+    ]
+
+    step_json = json.dumps([
+        {
+            "premises": [
+                "user partner_is judge_in_philippines",
+                "user tz_is UTC+8",
+            ],
+            "s": "user",
+            "p": "likely_location",
+            "o": "Philippines",
+            "confidence": 0.80,
+        },
+        {
+            "premises": [
+                "user likely_location Philippines",
+                "ars-technica asserts driver-582.11 fixes wsl-crash",
+            ],
+            "s": "driver-582.11",
+            "p": "likely_fixes",
+            "o": "user's wsl-crash",
+            "confidence": 0.85,
+            "conditions": ["if ars-technica is right about the driver fix"],
+        },
+    ])
+    fake_llm = FakeLLM(script=[
+        TokenDelta(delta=step_json),
+        Done(usage=LLMUsage(prompt_tokens=20, completion_tokens=50)),
+    ])
+
+    accepted, spoken = orch.run_deduction_step(
+        goal="Can driver 582.11 fix my WSL crash?",
+        trace=trace,
+        llm=fake_llm,
+    )
+
+    # Step 1 boosted: 0.80 + 0.10 = 0.90
+    # Step 2 docked: 0.85 - 0.30 = 0.55
+    assert len(accepted) == 2
+    assert accepted[0].confidence == 0.90
+    assert accepted[1].confidence == 0.55
+    assert any("dispute" in c.lower() or "nvidia" in c.lower() for c in accepted[1].conditions)
+
+    # Below standard (< 0.75 CLEAR_AND_CONVINCING): refused commit, speaks speculation hedge
+    assert spoken is not None
+    assert "I think" in spoken
+    assert "not sure enough to keep it" in spoken
+
+    # Store must NOT have committed the conclusion as INFERRED
+    with orch.db.read_cursor() as cur:
+        cur.execute(
+            """
+            SELECT m.content FROM memories m
+            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+            WHERE e.provenance = 'INFERRED'
+            """
+        )
+        assert cur.fetchall() == []

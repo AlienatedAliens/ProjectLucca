@@ -110,8 +110,7 @@ from lucca.core.proof_policy import (
     required_standard,
     required_threshold,
 )
-from lucca.brain.prompt_builder import build_deduction_messages
-from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext
+from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext, ReasoningEntry
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
 from lucca.core.user_model import UserModel
@@ -1350,31 +1349,132 @@ class Orchestrator:
         return steps
 
     def _evaluate_step_corroboration(
-        self, step: InferenceStep
+        self, step: InferenceStep, context: ReasoningContext | None = None
     ) -> list[CriticalQuestionResult]:
-        """Evaluates Walton argumentation scheme critical questions for attributed premises (WO-21 Phase 2)."""
+        """Evaluates Walton critical questions for attributed or grounding premises (WO-21)."""
         has_attributed = any(
             re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE)
             for p in step.premises
         )
-        if not has_attributed:
-            return []
         receipts = list(getattr(self, "current_turn_receipts", []) or []) + list(
             getattr(self, "executed_tools", []) or []
         )
-        try:
-            q_results = critical_questions(
-                Scheme.AUTHORITY, step, store=self.memory_store, receipts=receipts
-            )
-            eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
-            step.confidence = eff_conf
-            for cond in new_conditions:
-                if cond not in step.conditions and len(step.conditions) < 8:
-                    step.conditions.append(cond)
-            return q_results
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("critical_questions_failed", error=str(exc))
-            return []
+        if has_attributed:
+            try:
+                q_results = critical_questions(
+                    Scheme.AUTHORITY, step, store=self.memory_store, receipts=receipts
+                )
+                eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
+                step.confidence = eff_conf
+                for cond in new_conditions:
+                    if cond not in step.conditions and len(step.conditions) < 8:
+                        step.conditions.append(cond)
+                return q_results
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("critical_questions_failed", error=str(exc))
+                return []
+
+        # Check if supported by >= 2 independent grounding premises (WO-21 Phase 6)
+        effective_ctx = context or getattr(self, "current_reasoning_context", None)
+        ctx_conclusions = {
+            e.conclusion.lower() for e in (effective_ctx.intermediates if effective_ctx else [])
+        }
+        ctx_env_ids = {
+            e.envelope_id for e in (effective_ctx.intermediates if effective_ctx else [])
+        }
+        if len(step.premises) >= 2 and self.db is not None:
+            try:
+                premise_eids: list[str] = []
+                with self.db.read_cursor() as cur:
+                    for prem in step.premises:
+                        clean_prem = prem.strip()
+                        if clean_prem.lower() in ctx_conclusions or clean_prem in ctx_env_ids:
+                            continue
+                        cur.execute(
+                            """
+                            SELECT m.entry_id
+                            FROM memories m
+                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                            WHERE e.grounding_eligible = 1
+                              AND m.valid_to IS NULL
+                              AND (m.content = ? OR m.content = ? OR m.content LIKE ?)
+                            """,
+                            (clean_prem, clean_prem.lower(), f"%{clean_prem}%"),
+                        )
+                        for r in cur.fetchall():
+                            if str(r[0]) not in premise_eids and str(r[0]) not in ctx_env_ids:
+                                premise_eids.append(str(r[0]))
+                                break
+
+                if len(premise_eids) >= 2:
+                    q_corrob = CriticalQuestionResult(
+                        question=(
+                            "Is the claim corroborated by an independent grounding-eligible fact?"
+                        ),
+                        answer=CQAnswer.SATISFIED,
+                        count=len(premise_eids),
+                        evidence_entry_ids=premise_eids,
+                        sources=["store"],
+                        detail=(
+                            f"Corroborated by {len(premise_eids)} independent "
+                            "grounding premises in store"
+                        ),
+                    )
+                    # Check for conflicting facts in store
+                    dispute_eids: list[str] = []
+                    dispute_details: list[str] = []
+                    if step.s and step.p:
+                        with self.db.read_cursor() as cur:
+                            cur.execute(
+                                """
+                                SELECT m.entry_id, m.content, e.signer_id
+                                FROM memories m
+                                JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                                WHERE e.grounding_eligible = 1
+                                  AND m.valid_to IS NULL
+                                  AND m.content LIKE ?
+                                """,
+                                (f"{step.s} {step.p} %",),
+                            )
+                            for row in cur.fetchall():
+                                eid, content, signer = row
+                                parts = content.strip().split()
+                                if len(parts) >= 3 and parts[2].lower() != step.o.lower():
+                                    dispute_eids.append(str(eid))
+                                    dispute_details.append(
+                                        f"{content} contradicts {step.s} {step.p} {step.o}"
+                                    )
+
+                    if dispute_eids:
+                        q_dispute = CriticalQuestionResult(
+                            question="Is the claim disputed by any grounding-eligible fact?",
+                            answer=CQAnswer.SATISFIED,
+                            count=len(dispute_eids),
+                            evidence_entry_ids=dispute_eids,
+                            sources=["store"],
+                            detail=dispute_details[0],
+                        )
+                    else:
+                        q_dispute = CriticalQuestionResult(
+                            question="Is the claim disputed by any grounding-eligible fact?",
+                            answer=CQAnswer.UNKNOWN,
+                            count=0,
+                            evidence_entry_ids=[],
+                            sources=[],
+                            detail="No disputes found",
+                        )
+
+                    q_results = [q_corrob, q_dispute]
+                    eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
+                    step.confidence = eff_conf
+                    for cond in new_conditions:
+                        if cond not in step.conditions and len(step.conditions) < 8:
+                            step.conditions.append(cond)
+                    return q_results
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("premise_corroboration_failed", error=str(exc))
+
+        return []
 
     def run_deduction_step(
         self,
@@ -1593,7 +1693,69 @@ class Orchestrator:
                 if hasattr(self, "_speak_text") and trace:
                     self._speak_text(trace, spoken)
                 return (accepted_steps, spoken)
+            else:
+                final_entry = ctx[-1]
+                conditions = list(final_entry.conditions or [])
+                if conditions:
+                    spoken = self._format_conditioned_speech(final_entry, conditions)
+                    if spoken:
+                        logger.info(
+                            "chain_concluded_conditioned",
+                            confidence=final_entry.confidence,
+                            spoken=spoken,
+                            conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
+                        )
+                        if hasattr(self, "_speak_text") and trace:
+                            self._speak_text(trace, spoken)
+                        return (accepted_steps, spoken)
         return (accepted_steps, None)
+
+    def _format_conditioned_speech(
+        self, final_entry: ReasoningEntry, conditions: list[str]
+    ) -> str | None:
+        """Formats spoken output for a committed chain with carried conditions (WO-21 Phase 6)."""
+        if not conditions:
+            return None
+
+        # Prioritize explicit 'if ...' condition
+        if_cond = next(
+            (
+                c.strip()
+                for c in conditions
+                if re.match(r"^(?:…|\.\.\.)?\s*if\b", c.strip(), re.IGNORECASE)
+            ),
+            None,
+        )
+        if if_cond:
+            clean = if_cond
+            if not clean.startswith("…") and not clean.startswith("..."):
+                clean = f"…{clean}"
+            if not clean.endswith("."):
+                clean = f"{clean}."
+            return clean
+
+        # Otherwise format from attributed premise condition '<source> asserts <claim>'
+        attr_cond = next(
+            (
+                c.strip()
+                for c in conditions
+                if re.match(r"^(.+?)\s+asserts\s+(.+)$", c.strip(), re.IGNORECASE)
+            ),
+            None,
+        )
+        if attr_cond:
+            m = re.match(r"^(.+?)\s+asserts\s+(.+)$", attr_cond, re.IGNORECASE)
+            if m:
+                src, claim = m.group(1).strip(), m.group(2).strip()
+                return f"…if {src} is right about {claim}."
+
+        # Fallback to general condition
+        cond_text = conditions[0].strip()
+        if not cond_text.startswith("…") and not cond_text.startswith("..."):
+            cond_text = f"…{cond_text}"
+        if not cond_text.endswith("."):
+            cond_text = f"{cond_text}."
+        return cond_text
 
     run_deduction_loop = run_deduction_step
 

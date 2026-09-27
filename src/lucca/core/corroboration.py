@@ -233,7 +233,14 @@ def critical_questions(
     independent_sources: list[str] = []
     seen_sources: set[str] = {source_lower} if source_lower != "unspecified" else set()
     if source_lower and source_lower != "unspecified":
+        stripped = (
+            source_lower.replace(".com", "")
+            .replace(".org", "")
+            .replace(".net", "")
+            .replace("-", "")
+        )
         seen_sources.add(source_lower.replace(".com", "").replace(".org", "").replace(".net", ""))
+        seen_sources.add(stripped)
 
     # Check store for independent grounding-eligible memories
     if store is not None:
@@ -280,7 +287,17 @@ def critical_questions(
             + str(getattr(r, "structured", "") or "")
         ).lower()
         r_source = extract_receipt_source(r).lower()
-        if r_source in seen_sources or r_source in ("fetch_url", "web_search", "search_web", "tool", ""):
+        r_source_stripped = (
+            r_source.replace(".com", "")
+            .replace(".org", "")
+            .replace(".net", "")
+            .replace("-", "")
+        )
+        if (
+            r_source in seen_sources
+            or r_source_stripped in seen_sources
+            or r_source in ("fetch_url", "web_search", "search_web", "tool", "")
+        ):
             continue
         is_dispute = any(
             m in r_text for m in ("dispute", "disputed by", "refute", "refuted by", "contradict", "false claim", "debunk")
