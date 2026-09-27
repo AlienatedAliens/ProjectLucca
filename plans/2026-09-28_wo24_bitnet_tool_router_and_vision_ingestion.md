@@ -276,7 +276,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 0 (4 deferred tools + cap raise 19→23) | `8c11783` | Gemini | Pending Review | PASS (953 passed) | 2026-09-28 |
-| 1 (screenshot_capture + vision ingestion + cap 23→24) | `cb3a12d` | Gemini | Pending Review | PASS (946 passed, 18 skipped, 46 deselected) | 2026-09-28 |
+| 0 (4 deferred tools + cap raise 19→23) | `8c11783` | Gemini | Gemini | PASS (953 passed) | 2026-09-28 |
+| 1 (screenshot_capture + vision ingestion + cap 23→24) | `cb3a12d` | Gemini | Gemini | PASS (964 collected, 946 passed) | 2026-09-28 |
 | 2 (deterministic tool shortlister) | | | | | |
 | 3 (live acceptance) | | | | | |
