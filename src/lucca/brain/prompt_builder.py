@@ -719,9 +719,19 @@ SYSTEM_PROMPT: str = get_system_prompt()
 TOOL_DEFINITIONS: list[ToolDefinition] = get_capability_registry().get_tool_definitions()
 
 
-def get_all_tool_definitions(active_rules: list[object] | None = None) -> list[ToolDefinition]:
-    """Returns dynamic tool definitions synchronized with CapabilityRegistry (T1.5)."""
-    return get_capability_registry().get_tool_definitions()
+def get_all_tool_definitions(
+    active_rules: list[object] | None = None,
+    shortlisted_tools: list[str] | None = None,
+) -> list[ToolDefinition]:
+    """Returns dynamic tool definitions synchronized with CapabilityRegistry (T1.5).
+    If shortlisted_tools is provided, filters the definitions to only include those tools.
+    If None, returns all tools from the registry (existing behavior unchanged).
+    """
+    defs = get_capability_registry().get_tool_definitions()
+    if shortlisted_tools is not None:
+        allowed = set(shortlisted_tools)
+        defs = [d for d in defs if d.function.name in allowed]
+    return defs
 
 
 def format_category_manifest(category: str | None, skills: list[SkillMeta] | None) -> str:
