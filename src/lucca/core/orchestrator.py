@@ -124,6 +124,7 @@ from lucca.core.turn_pipeline import (
 from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
 from lucca.core.user_model import UserModel
 from lucca.core.episode_recall import EpisodeRecall
+from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.core.memory_commit_service import (
@@ -461,6 +462,9 @@ class Orchestrator:
         self.user_model = UserModel(db=self.db)
         self.episode_recall = EpisodeRecall(db=self.db)
 
+        # WO-22 Phase 2: Diagnostic Self-Reasoning Engine (Fault Model v1)
+        self.diagnosis_engine = DiagnosisEngine(db=self.db)
+
     @property
     def signer_factory(self) -> SignerFactory:
         factory = getattr(self, "_signer_factory", None)
@@ -523,6 +527,18 @@ class Orchestrator:
     @confirmations.setter
     def confirmations(self, value: ConfirmationManager) -> None:
         self._confirmations = value
+
+    @property
+    def diagnosis_engine(self) -> DiagnosisEngine:
+        engine = getattr(self, "_diagnosis_engine", None)
+        if engine is None:
+            engine = DiagnosisEngine(db=getattr(self, "db", None))
+            self._diagnosis_engine = engine
+        return engine
+
+    @diagnosis_engine.setter
+    def diagnosis_engine(self, value: DiagnosisEngine) -> None:
+        self._diagnosis_engine = value
 
     @property
     def _confirm_event(self) -> threading.Event:
@@ -1981,6 +1997,44 @@ class Orchestrator:
         self.current_turn_tool_spoken.append(narration)
 
         return plan
+
+    def run_self_diagnosis(
+        self,
+        observations: dict[str, object] | list[str] | str,
+        trace: TurnTrace,
+    ) -> list[Diagnosis]:
+        """Runs the self-diagnosis engine over observed symptoms/telemetry and speaks
+        the top diagnosis with hedged natural language (WO-22 Phase 2, Trap 1)."""
+        diagnoses = self.diagnosis_engine.diagnose(observations)
+        if diagnoses:
+            top = diagnoses[0]
+            spoken_text = self.diagnosis_engine.format_diagnosis_speech(top)
+            self._speak_text(trace, spoken_text)
+            self._publish_caption(spoken_text, source="assistant", is_final=True)
+
+            # Record diagnosis as a hedged intermediate in reasoning context (not a committed fact)
+            ctx = getattr(self, "current_reasoning_context", None)
+            if ctx is None:
+                ctx = ReasoningContext()
+                self.current_reasoning_context = ctx
+            try:
+                ctx.add_intermediate(
+                    envelope_id=f"diag-{ulid.ULID()}",
+                    s="lucca",
+                    p="diagnosed_fault",
+                    o=top.fault_id,
+                    confidence=top.confidence,
+                    step_kind="diagnosis",
+                    conditions=[f"cause:{top.cause}", f"remedy:{top.suggested_remedy}"],
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("record_diagnosis_intermediate_failed", error=str(exc))
+        else:
+            spoken_text = self.diagnosis_engine.format_diagnosis_speech(None)
+            self._speak_text(trace, spoken_text)
+            self._publish_caption(spoken_text, source="assistant", is_final=True)
+
+        return diagnoses
 
     def _check_functional_coherence(
         self,

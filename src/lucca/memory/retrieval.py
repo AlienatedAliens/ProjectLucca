@@ -3,6 +3,7 @@ Project Lucca — Hybrid Memory Retrieval (sqlite-vec KNN + FTS5 BM25 + RRF)
 Spec 04 §6, Spec 10
 """
 
+import json
 import sqlite3
 import time
 from typing import Final
@@ -10,7 +11,16 @@ from typing import Final
 import sqlite_vec
 import structlog
 
-from lucca.core.schemas import MemoryHit, Provenance, RetrievalQuery, standard_for_confidence
+from lucca.core.schemas import (
+    DecisionRecord,
+    MemoryHit,
+    Provenance,
+    RetrievalQuery,
+    RouteDecision,
+    RouteFeatures,
+    ToolCall,
+    standard_for_confidence,
+)
 from lucca.memory.db import DatabaseManager
 from lucca.memory.tokens import build_fts_query, subtokens
 from lucca.ports import EmbeddingPort
@@ -84,11 +94,17 @@ def format_memory_context(
             line = f"- {content_clean}"
         else:
             age = calculate_age_str(hit.created_at, current_time)
-            prov_val = hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
+            prov_val = (
+                hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
+            )
             if prov_val == "INFERRED":
                 conf_val = getattr(hit, "confidence", 1.0)
                 std_label = standard_for_confidence(conf_val).value
-                line = f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} — {std_label} {age}] {content_clean}"
+                prefix = (
+                    f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} "
+                    f"— {std_label} {age}]"
+                )
+                line = f"{prefix} {content_clean}"
             else:
                 conf_str = (
                     f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
@@ -287,7 +303,8 @@ class HybridRetriever:
                         )
                         graph_hits.append(graph_hit)
 
-        # 6. Dedupe & combine: prefer direct hits over graph expansions, active over superseded, higher provenance tier, then score, recency
+        # 6. Dedupe & combine: prefer direct hits over graph expansions,
+        # active over superseded, higher provenance tier, then score, recency
         hits_to_dedupe = sorted(
             hits + graph_hits,
             key=lambda h: (
@@ -325,3 +342,258 @@ class HybridRetriever:
                 logger.warning("access_update_failed", error=str(e))
 
         return result
+
+    def index_decision(self, record: DecisionRecord, error: str = "") -> None:
+        """Indexes a DecisionRecord into in-session FTS5 retrieval cascade (ITEM-021)."""
+        index_decision_record(self.db, record, error=error)
+
+    def search_decisions(self, query: str, limit: int = 5) -> list[DecisionRecord]:
+        """Queries past DecisionRecord rows via FTS5 search (ITEM-021)."""
+        return search_decision_records(self.db, query, limit=limit)
+
+
+def ensure_decision_fts(conn: sqlite3.Connection) -> None:
+    """Ensures fts_decisions virtual table exists (ITEM-021)."""
+    try:
+        conn.execute(
+            """
+            CREATE VIRTUAL TABLE IF NOT EXISTS fts_decisions USING fts5(
+                decision_id UNINDEXED,
+                trace_id,
+                transcript,
+                intent,
+                action,
+                executed_path,
+                tool_calls,
+                error,
+                tokenize="unicode61 remove_diacritics 2 tokenchars '_'"
+            );
+            """
+        )
+    except sqlite3.Error as e:
+        logger.debug("ensure_decision_fts_failed", error=str(e))
+
+
+def index_decision_record(db: DatabaseManager, record: DecisionRecord, error: str = "") -> None:
+    """Indexes a DecisionRecord into SQLite decisions and fts_decisions table (ITEM-021)."""
+    try:
+        writer = db.get_writer()
+        ensure_decision_fts(writer)
+
+        cur = writer.cursor()
+        cur.execute("SELECT 1 FROM decisions WHERE decision_id = ?", (record.decision_id,))
+        if not cur.fetchone():
+            action_val = (
+                record.decision.action.value
+                if hasattr(record.decision.action, "value")
+                else str(record.decision.action)
+            )
+            probs_json = json.dumps(
+                record.decision.probabilities if record.decision.probabilities is not None else {}
+            )
+            preds_json = json.dumps(
+                [a.value if hasattr(a, "value") else str(a) for a in record.decision.prediction_set]
+                if record.decision.prediction_set is not None
+                else []
+            )
+            tool_calls_json = (
+                json.dumps([tc.model_dump() for tc in record.tool_calls])
+                if record.tool_calls
+                else None
+            )
+            tool_ok_val = 1 if record.tool_ok else (0 if record.tool_ok is False else None)
+
+            writer.execute(
+                """
+                INSERT INTO decisions(
+                    decision_id, trace_id, session_id, ts, features_json, action,
+                    probabilities_json, prediction_set_json, fallback_applied, elapsed_us,
+                    router_version, executed_path, tool_calls_json, tool_ok, llm_first_token_ms,
+                    user_interrupted, interrupted_after_ms, counterfactual_rule_fired
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    record.decision_id,
+                    record.trace_id,
+                    record.session_id,
+                    record.ts,
+                    json.dumps(record.features.model_dump(), ensure_ascii=False),
+                    action_val,
+                    probs_json,
+                    preds_json,
+                    1 if record.decision.fallback_applied else 0,
+                    record.decision.elapsed_us,
+                    record.router_version,
+                    record.executed_path,
+                    tool_calls_json,
+                    tool_ok_val,
+                    record.llm_first_token_ms,
+                    1 if record.user_interrupted else 0,
+                    record.interrupted_after_ms,
+                    1 if record.counterfactual_rule_fired else 0,
+                ),
+            )
+
+        # Upsert into fts_decisions
+        writer.execute("DELETE FROM fts_decisions WHERE decision_id = ?", (record.decision_id,))
+        tool_calls_str = " ".join(tc.tool for tc in record.tool_calls) if record.tool_calls else ""
+        action_str = (
+            record.decision.action.value
+            if hasattr(record.decision.action, "value")
+            else str(record.decision.action)
+        )
+        writer.execute(
+            """
+            INSERT INTO fts_decisions(
+                decision_id, trace_id, transcript, intent, action, executed_path, tool_calls, error
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.decision_id,
+                record.trace_id,
+                record.features.transcript,
+                record.features.intent,
+                action_str,
+                record.executed_path,
+                tool_calls_str,
+                error,
+            ),
+        )
+    except sqlite3.Error as e:
+        logger.warning("index_decision_record_failed", error=str(e), decision_id=record.decision_id)
+
+
+def search_decision_records(
+    db: DatabaseManager,
+    query: str,
+    limit: int = 5,
+) -> list[DecisionRecord]:
+    """Retrieves DecisionRecord rows matching the query via FTS5 with fallback
+    to LIKE search (ITEM-021)."""
+    if not query.strip():
+        return []
+
+    results: list[DecisionRecord] = []
+    with db.read_cursor() as cur:
+        ensure_decision_fts(cur.connection)
+        matched_ids: list[str] = []
+
+        try:
+            expanded_q = f"{query} {subtokens(query)}"
+            fts_q = build_fts_query(expanded_q)
+            cur.execute(
+                """
+                SELECT decision_id FROM fts_decisions
+                WHERE fts_decisions MATCH ?
+                ORDER BY rank
+                LIMIT ?
+                """,
+                (fts_q, limit),
+            )
+            matched_ids = [str(r[0]) for r in cur.fetchall()]
+        except sqlite3.Error as e:
+            logger.debug("fts_decisions_query_failed", error=str(e))
+
+        if not matched_ids:
+            tokens = [t.lower() for t in query.split() if len(t) >= 3]
+            if tokens:
+                clauses = " OR ".join(
+                    "("
+                    "features_json LIKE ? OR executed_path LIKE ? "
+                    "OR action LIKE ? OR tool_calls_json LIKE ?"
+                    ")"
+                    for _ in tokens
+                )
+                params: list[object] = []
+                for t in tokens:
+                    pat = f"%{t}%"
+                    params.extend([pat, pat, pat, pat])
+                params.append(limit)
+                try:
+                    cur.execute(
+                        f"""
+                        SELECT decision_id FROM decisions
+                        WHERE {clauses}
+                        ORDER BY ts DESC
+                        LIMIT ?
+                        """,  # noqa: S608
+                        params,
+                    )
+                    matched_ids = [str(r[0]) for r in cur.fetchall()]
+                except sqlite3.Error as fallback_e:
+                    logger.debug("decisions_like_fallback_failed", error=str(fallback_e))
+
+        if not matched_ids:
+            return []
+
+        ph = ",".join("?" for _ in matched_ids)
+        try:
+            cur.execute(
+                f"""
+                SELECT decision_id, trace_id, session_id, ts, features_json, action,
+                       probabilities_json, prediction_set_json, fallback_applied, elapsed_us,
+                       router_version, executed_path, tool_calls_json, tool_ok, llm_first_token_ms,
+                       user_interrupted, interrupted_after_ms, counterfactual_rule_fired
+                FROM decisions
+                WHERE decision_id IN ({ph})
+                """,  # noqa: S608
+                matched_ids,
+            )
+            row_map = {str(r["decision_id"]): r for r in cur.fetchall()}
+            for did in matched_ids:
+                if did not in row_map:
+                    continue
+                r = row_map[did]
+                feat_dict = (
+                    json.loads(r["features_json"])
+                    if isinstance(r["features_json"], str)
+                    else r["features_json"]
+                )
+                features = RouteFeatures.model_validate(feat_dict)
+                probs = json.loads(r["probabilities_json"]) if r["probabilities_json"] else None
+                preds = (
+                    json.loads(r["prediction_set_json"])
+                    if r["prediction_set_json"]
+                    else [r["action"]]
+                )
+                tc_raw = json.loads(r["tool_calls_json"]) if r["tool_calls_json"] else []
+                tool_calls = [ToolCall.model_validate(tc) for tc in tc_raw] if tc_raw else []
+
+                decision = RouteDecision(
+                    action=r["action"],
+                    tier=features.tier,
+                    probabilities=probs,
+                    prediction_set=preds,
+                    fallback_applied=bool(r["fallback_applied"]),
+                    elapsed_us=int(r["elapsed_us"]),
+                )
+
+                rec = DecisionRecord(
+                    decision_id=str(r["decision_id"]),
+                    trace_id=str(r["trace_id"]),
+                    session_id=str(r["session_id"]),
+                    ts=float(r["ts"]),
+                    features=features,
+                    decision=decision,
+                    router_version=str(r["router_version"]),
+                    executed_path=str(r["executed_path"]),
+                    tool_calls=tool_calls,
+                    tool_ok=bool(r["tool_ok"]) if r["tool_ok"] is not None else None,
+                    llm_first_token_ms=(
+                        float(r["llm_first_token_ms"])
+                        if r["llm_first_token_ms"] is not None
+                        else None
+                    ),
+                    user_interrupted=bool(r["user_interrupted"]),
+                    interrupted_after_ms=(
+                        float(r["interrupted_after_ms"])
+                        if r["interrupted_after_ms"] is not None
+                        else None
+                    ),
+                    counterfactual_rule_fired=bool(r["counterfactual_rule_fired"]),
+                )
+                results.append(rec)
+        except Exception as parse_e:  # noqa: BLE001
+            logger.debug("decision_records_fetch_failed", error=str(parse_e))
+
+    return results

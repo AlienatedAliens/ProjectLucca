@@ -1,0 +1,86 @@
+# Project Lucca — Diagnostic Fault Model v1
+# Spec 11 §7, WO-22 Phase 2 (Fault Model v1)
+# Ratified 2026-09-27 by system owner
+
+[[fault]]
+id = "boot_memory_error"
+name = "Boot Memory Allocation Failure"
+symptoms = [
+    "boot MemoryError",
+    "OpenVINO alloc failure",
+    "cannot allocate memory",
+    "boot crash",
+    "memory allocation failed",
+    "system RAM below budget",
+]
+cause = "system RAM below 3.5 GB budget"
+checks = ["check_system_ram"]
+severity = "critical"
+suggested_remedy = "Close background applications (browsers, Discord, IDEs) to free system RAM and retry boot."
+
+[[fault]]
+id = "docker_wsl_down"
+name = "Docker CE Down in WSL2"
+symptoms = [
+    "run_python returns policy_violation",
+    "policy_violation",
+    "Docker CE not running in WSL2",
+    "docker not responding",
+    "docker daemon inactive",
+    "docker container failed",
+]
+cause = "Docker CE not running in WSL2"
+checks = ["check_docker_wsl"]
+severity = "high"
+suggested_remedy = "Start Docker CE inside Ubuntu WSL2 (e.g. 'sudo service docker start') or verify WSL2 status."
+
+[[fault]]
+id = "audio_ring_contention"
+name = "Audio Ring Buffer Contention"
+symptoms = [
+    "ASR latency spike",
+    "ASR latency spike with normal NPU load",
+    "audio ring contention",
+    "ring buffer underruns",
+    "audio buffer overrun",
+    "slow ASR normal NPU",
+    "slow ASR",
+    "audio underrun",
+]
+cause = "audio ring contention"
+checks = ["check_audio_ring"]
+severity = "medium"
+suggested_remedy = "Inspect audio ring buffer underruns and check for audio driver or process contention."
+
+[[fault]]
+id = "llama_server_unhealthy"
+name = "LLM Inference Server Unhealthy"
+symptoms = [
+    "llama-server unhealthy",
+    "llama-server down",
+    "VRAM over-budget",
+    "model file missing",
+    "model weights missing",
+    "inference server connection refused",
+    "dGPU VRAM exceeded",
+]
+cause = "VRAM over-budget or model file missing"
+checks = ["check_mshybrid_vram", "check_models_manifest"]
+severity = "high"
+suggested_remedy = "Verify dGPU VRAM allocation via nvidia-smi and check model weights against MANIFEST.json."
+
+[[fault]]
+id = "frozen_binary_timeout"
+name = "Frozen Binary Execution Timeout"
+symptoms = [
+    "frozen-binary --check timeout",
+    "frozen binary timeout",
+    "WSL unresponsive",
+    "WSL timeout",
+    "wsl command timed out",
+    "wsl status check failed",
+]
+cause = "WSL unresponsive"
+checks = ["check_wsl_status"]
+severity = "high"
+suggested_remedy = "Check WSL status ('wsl --status') or restart the WSL service with 'wsl --shutdown'."

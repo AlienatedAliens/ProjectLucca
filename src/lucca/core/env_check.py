@@ -279,6 +279,96 @@ def check_models_manifest() -> tuple[bool, str]:
     return True, f"Models manifest verified ({verified_count} required weights matched SHA256)"
 
 
+def check_audio_ring() -> tuple[bool, str]:
+    """Reads ring-buffer underrun/overrun counters from recent traces/telemetry.
+
+    WO-22 Phase 2 (Fault Model v1, ratified 2026-09-27).
+    Deterministic, no network.
+    """
+    try:
+        cfg = get_config()
+        logs_dir = cfg.resolve_path("logs")
+        canonical_trace_file = logs_dir / "traces.jsonl"
+
+        total_underruns = 0
+        turns_checked = 0
+        if canonical_trace_file.exists():
+            try:
+                with open(canonical_trace_file, encoding="utf-8") as f:
+                    lines = f.readlines()
+                for raw_line in lines[-20:]:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        underruns = int(entry.get("underruns", 0))
+                        total_underruns += underruns
+                        turns_checked += 1
+                    except (json.JSONDecodeError, ValueError, TypeError) as parse_exc:
+                        logger.debug("check_audio_ring_line_parse_failed: %s", parse_exc)
+                        continue
+            except Exception as read_exc:
+                logger.debug("check_audio_ring_trace_read_failed: %s", read_exc)
+
+        # Also inspect shared memory capture ring if present
+        try:
+            from multiprocessing import shared_memory
+
+            shm = shared_memory.SharedMemory(name="lucca_cap_ring", create=False)
+            shm.close()
+        except FileNotFoundError as shm_missing:
+            logger.debug("check_audio_ring_shm_absent: %s", shm_missing)
+        except Exception as shm_exc:
+            logger.debug("check_audio_ring_shm_failed: %s", shm_exc)
+
+        if total_underruns > 0:
+            return (
+                False,
+                f"Audio ring buffer contention: {total_underruns} underruns detected across "
+                f"{turns_checked} recent turns.",
+            )
+        return True, "Audio ring buffer healthy: zero underruns recorded."
+    except Exception as e:
+        logger.debug("check_audio_ring_failed: %s", e)
+        return False, f"Failed checking audio ring: {e}"
+
+
+def check_wsl_status() -> tuple[bool, str]:
+    """Runs `wsl --status` with a bounded timeout and returns (ok, detail).
+
+    WO-22 Phase 2 (Fault Model v1, ratified 2026-09-27).
+    Deterministic, no network.
+    """
+    wsl_bin = shutil.which("wsl")
+    if not wsl_bin:
+        return False, "wsl.exe not found in PATH."
+    try:
+        res = subprocess.run(
+            ["wsl", "--status"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if res.returncode == 0:
+            out_preview = res.stdout.strip().replace("\r\n", " ").replace("\n", " ")[:120]
+            msg = (
+                f"WSL is responsive: {out_preview}"
+                if out_preview
+                else "WSL is responsive (returncode 0)."
+            )
+            return True, msg
+        err_msg = res.stderr.strip() or res.stdout.strip()
+        return False, f"WSL status check failed (exit {res.returncode}): {err_msg[:100]}"
+    except subprocess.TimeoutExpired as e:
+        logger.debug("check_wsl_status_timeout: %s", e)
+        return False, "WSL status command timed out (subsystem unresponsive)."
+    except Exception as e:
+        logger.debug("check_wsl_status_failed: %s", e)
+        return False, f"Failed querying WSL status: {e}"
+
+
 def run_env_check() -> int:
     """Executes all system environment checks and reports status."""
     if os.environ.get("LUCCA_TEST_FAKES") == "1":
@@ -296,6 +386,8 @@ def run_env_check() -> int:
         ("Docker CE in WSL2", check_docker_wsl),
         ("LUCCA_HOME Layout", check_lucca_home),
         ("Models Manifest & Weights", check_models_manifest),
+        ("Audio Ring Buffer", check_audio_ring),
+        ("WSL Subsystem Status", check_wsl_status),
     ]
 
     all_passed = True

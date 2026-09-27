@@ -28,7 +28,6 @@ import structlog
 
 from lucca.brain.prompt_builder import (
     build_narration_messages,
-    build_plan_narration_messages,
 )
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import load_heuristics
@@ -48,6 +47,7 @@ from lucca.core.schemas import (
     ToolCall,
     ToolResult,
 )
+from lucca.core.self_diagnosis import is_self_diagnosis_query
 from lucca.core.trace import TurnTrace, now_ns
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
@@ -723,6 +723,20 @@ class TurnPipeline:
             else:
                 # User said something else: clear pending offer (Trap 1: max 1 offer/turn)
                 self.orch._pending_ratification = None
+
+        # Diagnostic Self-Reasoning Check (WO-22 Phase 2)
+        if eval_user_text and is_self_diagnosis_query(eval_user_text):
+            diagnoses = self.orch.run_self_diagnosis(eval_user_text, trace)
+            diag_speech = (
+                self.orch.diagnosis_engine.format_diagnosis_speech(diagnoses[0])
+                if diagnoses
+                else self.orch.diagnosis_engine.format_diagnosis_speech(None)
+            )
+            self.orch.history.append({"role": "user", "content": user_text})
+            self.orch.history.append({"role": "assistant", "content": diag_speech})
+            self.orch.play_ring.set_flag(FLAG_EOS)
+            self.orch._finalize_turn(trace, None)
+            return
 
         # Phase 3: Rule State & Route Decision
         rule_state = self.orch._build_rule_state(eval_user_text, mode=inp.mode)
