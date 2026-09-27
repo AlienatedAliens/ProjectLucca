@@ -29,6 +29,7 @@ from lucca.core.corroboration import (
     Scheme,
     adjust_confidence,
     critical_questions,
+    detect_premise_scheme,
     extract_etld_plus_one,
     is_same_source,
     normalize_source_identity,
@@ -111,8 +112,11 @@ def orch(
 # ============================================================================
 
 
-def test_scheme_dispatch_unsupported_schemes_raise() -> None:
-    """Non-AUTHORITY schemes raise NotImplementedError with typed reason."""
+def test_every_scheme_enum_value_dispatchable() -> None:
+    """Static Gate (WO-23 Phase 1):
+    Asserts every value of the Scheme enum dispatches through critical_questions
+    without raising NotImplementedError. A future 6th scheme stub fails this test loudly.
+    """
     step = InferenceStep(
         premises=["source asserts claim"],
         s="source",
@@ -120,10 +124,27 @@ def test_scheme_dispatch_unsupported_schemes_raise() -> None:
         o="claim",
         confidence=0.8,
     )
-    for scheme in (Scheme.SIGN, Scheme.ANALOGY, Scheme.CONSEQUENCE, Scheme.PRECEDENT):
-        with pytest.raises(NotImplementedError) as exc_info:
-            critical_questions(scheme, step)
-        assert f"Scheme '{scheme}' not implemented in v1" in str(exc_info.value)
+    for scheme in Scheme:
+        results = critical_questions(scheme, step)
+        assert isinstance(results, list)
+        assert len(results) > 0
+        for r in results:
+            assert isinstance(r, CriticalQuestionResult)
+            assert r.scheme == scheme.value
+
+
+def test_scheme_dispatch_unsupported_schemes_raise() -> None:
+    """Unsupported string scheme raises NotImplementedError with typed reason."""
+    step = InferenceStep(
+        premises=["source asserts claim"],
+        s="source",
+        p="asserts",
+        o="claim",
+        confidence=0.8,
+    )
+    with pytest.raises(NotImplementedError) as exc_info:
+        critical_questions("unsupported_scheme_xyz", step)
+    assert "not implemented" in str(exc_info.value)
 
 
 def test_adjust_confidence_single_seam_arithmetic_and_cap() -> None:
@@ -617,3 +638,796 @@ def test_corroboration_subdomain_same_domain_dedupes_unknown(memory_store: Memor
     )
     assert q_results[1].answer == CQAnswer.UNKNOWN
     assert q_results[1].count == 0
+
+
+# ============================================================================
+# WO-23 Phase 1: Walton Scheme Extension Tests (SIGN, ANALOGY, CONSEQUENCE, PRECEDENT)
+# ============================================================================
+
+
+def test_adjust_confidence_sign_arithmetic_and_bounds() -> None:
+    """WO-23 Phase 1: Sign scheme confidence adjustment rules:
+    - Positive: CQ1 SAT + CQ2 SAT -> +0.15 boost, capped at 0.95.
+    - Moderate: CQ1 SAT + CQ2 UNK -> +0.05 boost.
+    - Negative: CQ3 SAT (dispute) -> -0.25 dock, floored at 0.00, condition added.
+    - Negative: CQ1 FAILED -> -0.25 dock, condition added.
+    """
+    # 1. Full positive boost: 0.70 + 0.15 = 0.85
+    q_results = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="observed",
+            scheme="sign",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="corroborated",
+            scheme="sign",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="sign",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.70, q_results, scheme=Scheme.SIGN)
+    assert eff_conf == pytest.approx(0.85)
+    assert conds == []
+
+    # 2. Ceiling at 0.95: 0.90 + 0.15 = 0.95 (not 1.05)
+    eff_conf, _ = adjust_confidence(0.90, q_results, scheme=Scheme.SIGN)
+    assert eff_conf == 0.95
+
+    # 3. Moderate boost: CQ1 SAT + CQ2 UNK -> +0.05
+    q_results_mod = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="observed",
+            scheme="sign",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="sign",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="sign",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.70, q_results_mod, scheme=Scheme.SIGN)
+    assert eff_conf == pytest.approx(0.75)
+
+    # 4. Dispute dock: CQ3 SAT -> -0.25 dock + defeater condition
+    q_results_dispute = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="observed",
+            scheme="sign",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="corroborated",
+            scheme="sign",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e3"],
+            sources=["s3"],
+            detail="alternative explanation exists",
+            scheme="sign",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.80, q_results_dispute, scheme=Scheme.SIGN)
+    assert eff_conf == pytest.approx(0.55)
+    assert any("alternative explanation" in c for c in conds)
+
+    # 5. Floor at 0.00
+    eff_conf, _ = adjust_confidence(0.10, q_results_dispute, scheme=Scheme.SIGN)
+    assert eff_conf == 0.00
+
+
+def test_adjust_confidence_analogy_arithmetic_and_bounds() -> None:
+    """WO-23 Phase 1: Analogy scheme confidence adjustment rules:
+    - Positive: CQ1 SAT + CQ3 SAT -> +0.12 boost, capped at 0.95.
+    - Moderate: CQ1 SAT + CQ3 UNK -> +0.05 boost.
+    - Negative: CQ2 SAT (defeating difference) -> -0.30 dock, floored at 0.00, condition added.
+    """
+    # 1. Full positive boost: 0.70 + 0.12 = 0.82
+    q_results = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="similar",
+            scheme="analogy",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="analogy",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e3"],
+            sources=["s3"],
+            detail="source verified",
+            scheme="analogy",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.70, q_results, scheme=Scheme.ANALOGY)
+    assert eff_conf == pytest.approx(0.82)
+    assert conds == []
+
+    # 2. Cap at 0.95
+    eff_conf, _ = adjust_confidence(0.90, q_results, scheme=Scheme.ANALOGY)
+    assert eff_conf == 0.95
+
+    # 3. Defeating difference dock: CQ2 SAT -> -0.30
+    q_results_diff = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="similar",
+            scheme="analogy",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="critical difference found",
+            scheme="analogy",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e3"],
+            sources=["s3"],
+            detail="source verified",
+            scheme="analogy",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.80, q_results_diff, scheme=Scheme.ANALOGY)
+    assert eff_conf == pytest.approx(0.50)
+    assert any("critical difference" in c for c in conds)
+
+
+def test_adjust_confidence_consequence_arithmetic_and_bounds() -> None:
+    """WO-23 Phase 1: Consequence scheme confidence adjustment rules:
+    - Positive: CQ1 SAT + CQ3 SAT -> +0.15 boost, capped at 0.95.
+    - Negative: CQ2 SAT (countervailing) -> -0.30 dock, floored at 0.00, condition added.
+    """
+    # 1. Full positive boost: 0.75 + 0.15 = 0.90
+    q_results = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="plausible",
+            scheme="consequence",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="consequence",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e3"],
+            sources=["s3"],
+            detail="confirmed",
+            scheme="consequence",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.75, q_results, scheme=Scheme.CONSEQUENCE)
+    assert eff_conf == pytest.approx(0.90)
+
+    # 2. Countervailing dock: CQ2 SAT -> -0.30
+    q_results_counter = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="plausible",
+            scheme="consequence",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="countervailing side effect",
+            scheme="consequence",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="consequence",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.75, q_results_counter, scheme=Scheme.CONSEQUENCE)
+    assert eff_conf == pytest.approx(0.45)
+    assert any("countervailing" in c for c in conds)
+
+
+def test_adjust_confidence_precedent_arithmetic_and_bounds() -> None:
+    """WO-23 Phase 1: Precedent scheme confidence adjustment rules:
+    - Positive: CQ1 SAT + CQ2 SAT -> +0.15 boost, capped at 0.95.
+    - Negative: CQ2 FAILED (unratified/superseded) -> -0.25 dock.
+    - Negative: CQ3 SAT (competing precedent) -> -0.20 dock.
+    """
+    # 1. Full positive boost: 0.70 + 0.15 = 0.85
+    q_results = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="congruent",
+            scheme="precedent",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="ratified binding",
+            scheme="precedent",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="precedent",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.70, q_results, scheme=Scheme.PRECEDENT)
+    assert eff_conf == pytest.approx(0.85)
+
+    # 2. Superseded dock: CQ2 FAILED -> -0.25
+    q_results_superseded = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="congruent",
+            scheme="precedent",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.FAILED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="precedent overturned",
+            scheme="precedent",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.UNKNOWN,
+            count=0,
+            evidence_entry_ids=[],
+            sources=[],
+            detail="none",
+            scheme="precedent",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.80, q_results_superseded, scheme=Scheme.PRECEDENT)
+    assert eff_conf == pytest.approx(0.55)
+    assert any("overturned" in c for c in conds)
+
+    # 3. Competing precedent dock: CQ3 SAT -> -0.20
+    q_results_competing = [
+        CriticalQuestionResult(
+            question="q1",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e1"],
+            sources=["s1"],
+            detail="congruent",
+            scheme="precedent",
+        ),
+        CriticalQuestionResult(
+            question="q2",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e2"],
+            sources=["s2"],
+            detail="ratified",
+            scheme="precedent",
+        ),
+        CriticalQuestionResult(
+            question="q3",
+            answer=CQAnswer.SATISFIED,
+            count=1,
+            evidence_entry_ids=["e3"],
+            sources=["s3"],
+            detail="competing precedent on record",
+            scheme="precedent",
+        ),
+    ]
+    eff_conf, conds = adjust_confidence(0.80, q_results_competing, scheme=Scheme.PRECEDENT)
+    assert eff_conf == pytest.approx(0.60)
+    assert any("competing" in c for c in conds)
+
+
+def test_detect_premise_scheme_mappings_and_fallback() -> None:
+    """WO-23 Phase 1 Unit Tests:
+    - Observable indicator / symptom -> Scheme.SIGN
+    - Case comparison / similarity -> Scheme.ANALOGY
+    - Causal claim / action -> outcome -> Scheme.CONSEQUENCE
+    - Prior ruling / precedent -> Scheme.PRECEDENT
+    - Expert citation / authority -> Scheme.AUTHORITY
+    - Multiple conflicting cues -> Scheme.AUTHORITY fallback with condition note
+    - Zero cues / unclassified -> Scheme.AUTHORITY fallback with condition note
+    """
+    # 1. Sign
+    s1 = InferenceStep(
+        premises=["NPU load is zero but TTS is slow"],
+        s="npu",
+        p="load_status",
+        o="zero",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s1)
+    assert scheme == Scheme.SIGN
+    assert note is None
+
+    # 2. Analogy
+    s2 = InferenceStep(
+        premises=["benchmark asserts system-a is analogous to system-b"],
+        s="system-a",
+        p="similar_to",
+        o="system-b",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s2)
+    assert scheme == Scheme.ANALOGY
+    assert note is None
+
+    # 3. Consequence
+    s3 = InferenceStep(
+        premises=["deploying update causes service outage"],
+        s="update",
+        p="causes",
+        o="service_outage",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s3)
+    assert scheme == Scheme.CONSEQUENCE
+    assert note is None
+
+    # 4. Precedent
+    s4 = InferenceStep(
+        premises=["prior ruling in case-101 is binding precedent"],
+        s="case-101",
+        p="precedent_for",
+        o="caching",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s4)
+    assert scheme == Scheme.PRECEDENT
+    assert note is None
+
+    # 5. Authority
+    s5 = InferenceStep(
+        premises=["expert testifies hardware is operational"],
+        s="hardware",
+        p="status",
+        o="operational",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s5)
+    assert scheme == Scheme.AUTHORITY
+    assert note is None
+
+    # 6. Ambiguous: conflicting multiple cues (precedent + symptom + causes)
+    s6 = InferenceStep(
+        premises=["precedent indicates high latency causes memory leak"],
+        s="precedent",
+        p="relates_to",
+        o="latency",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s6)
+    assert scheme == Scheme.AUTHORITY
+    assert note is not None
+    assert "ambiguous premise shape (multiple cues:" in note
+    assert "defaulting to authority" in note
+
+    # 7. Ambiguous: zero cues
+    s7 = InferenceStep(
+        premises=["uncalibrated payload 42"],
+        s="payload",
+        p="has_val",
+        o="42",
+        confidence=0.8,
+    )
+    scheme, note = detect_premise_scheme(s7)
+    assert scheme == Scheme.AUTHORITY
+    assert note is not None
+    assert "ambiguous premise shape (no distinct scheme cues)" in note
+    assert "defaulting to authority" in note
+
+
+def test_sign_scheme_satisfied_and_violated_controls(memory_store: MemoryStore) -> None:
+    """WO-23 Phase 1 Acceptance: Sign scheme positive and negative controls."""
+    step = InferenceStep(
+        premises=["monitor asserts NPU load is zero indicates TTS engine bottleneck"],
+        s="npu",
+        p="indicates_issue",
+        o="tts_bottleneck",
+        confidence=0.70,
+    )
+
+    # Positive control: observation and independent corroboration present
+    sat_receipts = [
+        ToolReceipt(
+            tool="sys_diag",
+            call_id="call-diag-1",
+            source="sysmonitor.internal",
+            output="Observation confirms NPU load is zero while audio synthesis buffer fills.",
+        ),
+        ToolReceipt(
+            tool="metrics_fetch",
+            call_id="call-diag-2",
+            source="telemetry.org",
+            output="Independent sensor confirms NPU load is zero under active synthesis.",
+        ),
+    ]
+    results_sat = critical_questions(Scheme.SIGN, step, store=memory_store, receipts=sat_receipts)
+    assert len(results_sat) == 3
+    assert results_sat[0].answer == CQAnswer.SATISFIED  # CQ1: correlation / observation
+    assert results_sat[1].answer == CQAnswer.SATISFIED  # CQ2: independent corroboration
+    assert results_sat[2].answer == CQAnswer.UNKNOWN  # CQ3: no dispute
+
+    new_conf, _ = adjust_confidence(step.confidence, results_sat, scheme=Scheme.SIGN)
+    assert new_conf == pytest.approx(0.85)
+
+    # Negative control: dispute / alternative explanation present
+    violated_receipts = [
+        ToolReceipt(
+            tool="sys_diag",
+            call_id="call-diag-1",
+            source="sysmonitor.internal",
+            output="Observation confirms NPU load is zero.",
+        ),
+        ToolReceipt(
+            tool="sys_diag",
+            call_id="call-diag-3",
+            source="nvidia-errata.com",
+            output="Alternative explanation: zero NPU load is normal behavior under fallback.",
+        ),
+    ]
+    results_viol = critical_questions(
+        Scheme.SIGN, step, store=memory_store, receipts=violated_receipts
+    )
+    assert results_viol[2].answer == CQAnswer.SATISFIED  # CQ3: alternative explanation
+    new_conf_viol, conds_viol = adjust_confidence(step.confidence, results_viol, scheme=Scheme.SIGN)
+    assert new_conf_viol == pytest.approx(0.45)
+    assert any("alternative explanation" in c for c in conds_viol)
+
+
+def test_analogy_scheme_satisfied_and_violated_controls(memory_store: MemoryStore) -> None:
+    """WO-23 Phase 1 Acceptance: Analogy scheme positive and negative controls."""
+    step = InferenceStep(
+        premises=["benchmark asserts system-a is analogous to system-b"],
+        s="system-a",
+        p="shares_performance",
+        o="system-b",
+        confidence=0.70,
+    )
+
+    # Positive control: relevant similarity verified and source corroborated
+    sat_receipts = [
+        ToolReceipt(
+            tool="fetch_bench",
+            call_id="call-bench-1",
+            source="anandtech.com",
+            output="Architecture of system-a is similar to system-b in memory pipeline.",
+        ),
+    ]
+    results_sat = critical_questions(
+        Scheme.ANALOGY, step, store=memory_store, receipts=sat_receipts
+    )
+    assert results_sat[0].answer == CQAnswer.SATISFIED  # CQ1: similarity
+    assert results_sat[1].answer == CQAnswer.UNKNOWN  # CQ2: no defeating difference
+    assert results_sat[2].answer == CQAnswer.SATISFIED  # CQ3: source verified
+    eff_conf, _ = adjust_confidence(step.confidence, results_sat, scheme=Scheme.ANALOGY)
+    assert eff_conf == pytest.approx(0.82)
+
+    # Negative control: defeating difference present
+    viol_receipts = [
+        ToolReceipt(
+            tool="fetch_bench",
+            call_id="call-bench-1",
+            source="anandtech.com",
+            output="Architecture of system-a is similar to system-b.",
+        ),
+        ToolReceipt(
+            tool="fetch_bench",
+            call_id="call-bench-2",
+            source="tomshardware.com",
+            output="Critical difference defeating analogy: unified memory architecture disparity.",
+        ),
+    ]
+    results_viol = critical_questions(
+        Scheme.ANALOGY, step, store=memory_store, receipts=viol_receipts
+    )
+    assert results_viol[1].answer == CQAnswer.SATISFIED  # CQ2: defeating difference
+    eff_viol, conds_viol = adjust_confidence(step.confidence, results_viol, scheme=Scheme.ANALOGY)
+    assert eff_viol == pytest.approx(0.40)
+    assert any("defeating analogy" in c for c in conds_viol)
+
+
+def test_consequence_scheme_satisfied_and_violated_controls(
+    memory_store: MemoryStore,
+) -> None:
+    """WO-23 Phase 1 Acceptance: Consequence scheme positive and negative controls."""
+    step = InferenceStep(
+        premises=["eng asserts disabling cache leads to buffer underrun"],
+        s="disabling_cache",
+        p="causes",
+        o="buffer_underrun",
+        confidence=0.70,
+    )
+
+    # Positive control: consequence confirmed
+    sat_receipts = [
+        ToolReceipt(
+            tool="load_test",
+            call_id="call-load-1",
+            source="stress-tester.internal",
+            output="Empirical test confirms disabling cache leads to buffer underrun in audio.",
+        ),
+    ]
+    results_sat = critical_questions(
+        Scheme.CONSEQUENCE, step, store=memory_store, receipts=sat_receipts
+    )
+    assert results_sat[0].answer == CQAnswer.SATISFIED  # CQ1: plausible consequence
+    assert results_sat[1].answer == CQAnswer.UNKNOWN  # CQ2: no countervailing outcome
+    assert results_sat[2].answer == CQAnswer.SATISFIED  # CQ3: empirical confirmation
+    eff_conf, _ = adjust_confidence(step.confidence, results_sat, scheme=Scheme.CONSEQUENCE)
+    assert eff_conf == pytest.approx(0.85)
+
+    # Negative control: countervailing outcome
+    viol_receipts = [
+        ToolReceipt(
+            tool="load_test",
+            call_id="call-load-1",
+            source="stress-tester.internal",
+            output="Test reports disabling cache leads to buffer underrun.",
+        ),
+        ToolReceipt(
+            tool="load_test",
+            call_id="call-load-2",
+            source="safety-monitor.internal",
+            output="Countervailing outcome: watchdog throttles rate, preventing underrun.",
+        ),
+    ]
+    results_viol = critical_questions(
+        Scheme.CONSEQUENCE, step, store=memory_store, receipts=viol_receipts
+    )
+    assert results_viol[1].answer == CQAnswer.SATISFIED  # CQ2: countervailing outcome
+    eff_viol, conds_viol = adjust_confidence(
+        step.confidence, results_viol, scheme=Scheme.CONSEQUENCE
+    )
+    assert eff_viol == pytest.approx(0.40)
+    assert any("countervailing" in c for c in conds_viol)
+
+
+def test_precedent_scheme_satisfied_and_violated_controls(
+    orch: Orchestrator, signer_factory: SignerFactory
+) -> None:
+    """WO-23 Phase 1 Acceptance: Precedent scheme positive and negative controls."""
+    trace = _trace("tr-precedent-test")
+
+    # Seed grounding store with ratified precedent
+    user_signer = signer_factory.user_speech()
+    precedent_fact = user_signer.sign(
+        UnsignedPayload(
+            content="prior decision for audio-routing was ratified as binding ruling",
+            provenance=Provenance.USER_EXPLICIT,
+            kind="fact",
+            confidence=1.0,
+            nonce="prec-ratified-nonce-001",
+            created_at=time.time() - 200,
+            trace_id=trace.trace_id,
+        )
+    )
+    orch.memory_store.commit(precedent_fact)
+
+    step = InferenceStep(
+        premises=["prior decision for audio-routing is binding precedent"],
+        s="audio-routing",
+        p="applies_to",
+        o="speaker-output",
+        confidence=0.70,
+    )
+
+    # Positive control: store confirms ratification
+    sat_receipts = [
+        ToolReceipt(
+            tool="audit_log",
+            call_id="call-prec-1",
+            source="audit.internal",
+            output="Audit confirms factual congruence for audio-routing precedent.",
+        ),
+    ]
+    results_sat = critical_questions(
+        Scheme.PRECEDENT, step, store=orch.memory_store, receipts=sat_receipts
+    )
+    assert results_sat[0].answer == CQAnswer.SATISFIED  # CQ1: congruence
+    assert results_sat[1].answer == CQAnswer.SATISFIED  # CQ2: ratified in store
+    assert results_sat[2].answer == CQAnswer.UNKNOWN  # CQ3: no competing precedent
+    eff_conf, _ = adjust_confidence(step.confidence, results_sat, scheme=Scheme.PRECEDENT)
+    assert eff_conf == pytest.approx(0.85)
+
+    # Negative control 1: precedent overturned/superseded
+    superseded_receipts = [
+        ToolReceipt(
+            tool="audit_log",
+            call_id="call-prec-1",
+            source="audit.internal",
+            output="Audit confirms factual congruence for audio-routing.",
+        ),
+        ToolReceipt(
+            tool="audit_log",
+            call_id="call-prec-2",
+            source="compliance.internal",
+            output="Precedent for audio-routing was overturned and rendered unratified in WO-22.",
+        ),
+    ]
+    results_super = critical_questions(
+        Scheme.PRECEDENT, step, store=orch.memory_store, receipts=superseded_receipts
+    )
+    assert results_super[1].answer == CQAnswer.FAILED  # CQ2: superseded
+    eff_super, conds_super = adjust_confidence(
+        step.confidence, results_super, scheme=Scheme.PRECEDENT
+    )
+    assert eff_super == pytest.approx(0.45)
+    assert any("overturned" in c for c in conds_super)
+
+    # Negative control 2: competing precedent on record
+    competing_receipts = [
+        ToolReceipt(
+            tool="audit_log",
+            call_id="call-prec-1",
+            source="audit.internal",
+            output="Audit confirms factual congruence for audio-routing.",
+        ),
+        ToolReceipt(
+            tool="audit_log",
+            call_id="call-prec-3",
+            source="review-board.internal",
+            output="Competing precedent on record: split decision indicates audio-routing inapplicable.",
+        ),
+    ]
+    results_comp = critical_questions(
+        Scheme.PRECEDENT, step, store=orch.memory_store, receipts=competing_receipts
+    )
+    assert results_comp[2].answer == CQAnswer.SATISFIED  # CQ3: competing precedent
+    eff_comp, conds_comp = adjust_confidence(step.confidence, results_comp, scheme=Scheme.PRECEDENT)
+    assert eff_comp == pytest.approx(0.50)
+    assert any("competing precedent" in c for c in conds_comp)
+
+
+def test_corroboration_degrades_honestly_on_malformed_sources(
+    memory_store: MemoryStore,
+) -> None:
+    """WO-23 Phase 1: Unknown TLDs and malformed source strings degrade honestly without crash."""
+    step = InferenceStep(
+        premises=["source asserts claim"],
+        s="source",
+        p="asserts",
+        o="claim",
+        confidence=0.70,
+    )
+    malformed_receipts = [
+        ToolReceipt(tool="fetch", call_id="c1", source="", output="empty source"),
+        ToolReceipt(tool="fetch", call_id="c2", source="unknown-tld-xyz", output="unknown tld"),
+        ToolReceipt(tool="fetch", call_id="c3", source="http://:::invalid-url", output="bad url"),
+        ToolReceipt(tool="fetch", call_id="c4", source="127.0.0.1", output="ip address"),
+    ]
+    for scheme in Scheme:
+        results = critical_questions(scheme, step, store=memory_store, receipts=malformed_receipts)
+        assert isinstance(results, list)
+        assert all(isinstance(r, CriticalQuestionResult) for r in results)
+
+
+def test_orchestrator_routes_symptom_claim_to_sign_scheme(orch: Orchestrator) -> None:
+    """WO-23 Phase 1 Functional Acceptance:
+    A claim supported by a symptom ("NPU load is zero but TTS is slow") routes to SIGN
+    and evaluates its critical questions without raising NotImplementedError.
+    """
+    orch.current_turn_receipts = [
+        ToolReceipt(
+            tool="telemetry",
+            call_id="call-npu-1",
+            source="sys.telemetry",
+            output="Observation: NPU load is zero but TTS synthesis latency is slow.",
+        )
+    ]
+    step = InferenceStep(
+        premises=["sys.telemetry asserts NPU load is zero but TTS is slow"],
+        s="npu",
+        p="load_is",
+        o="zero",
+        confidence=0.70,
+    )
+
+    results = orch._evaluate_step_corroboration(step)
+    assert len(results) == 3
+    assert all(r.scheme == "sign" for r in results)
+    assert results[0].answer == CQAnswer.SATISFIED

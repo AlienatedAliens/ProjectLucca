@@ -63,6 +63,7 @@ from lucca.core.corroboration import (
     Scheme,
     adjust_confidence,
     critical_questions,
+    detect_premise_scheme,
     extract_receipt_source,
 )
 from lucca.core.episode_recall import EpisodeRecall
@@ -1237,7 +1238,25 @@ class Orchestrator:
                     return (True, None)
             return (False, "unverified_premise")
 
-        # 2. Reasoning context check (intermediate facts in current chain)
+        # 2. Direct signed tool receipt check
+        receipts = getattr(self, "current_turn_receipts", []) or []
+        executed = getattr(self, "executed_tools", []) or []
+        clean_lower = clean.lower()
+        for r in list(receipts) + list(executed):
+            ok = getattr(r, "ok", True)
+            if not ok:
+                continue
+            out = (
+                str(getattr(r, "output", "") or "")
+                or str(getattr(r, "content", "") or "")
+                or str(getattr(r, "structured", "") or "")
+            ).lower()
+            if clean_lower in out or all(
+                word in out for word in clean_lower.split() if len(word) > 2
+            ):
+                return (True, None)
+
+        # 3. Reasoning context check (intermediate facts in current chain)
         if context.resolve_premise(clean) is not None:
             return (True, None)
         for intermediate in context.intermediates:
@@ -1366,26 +1385,34 @@ class Orchestrator:
     def _evaluate_step_corroboration(
         self, step: InferenceStep, context: ReasoningContext | None = None
     ) -> list[CriticalQuestionResult]:
-        """Evaluates Walton critical questions for attributed or grounding premises (WO-21)."""
+        """Evaluates Walton critical questions for attributed or grounding premises (WO-21/23)."""
         has_attributed = any(
             re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE) for p in step.premises
         )
         receipts = list(getattr(self, "current_turn_receipts", []) or []) + list(
             getattr(self, "executed_tools", []) or []
         )
-        if has_attributed:
+        scheme, ambig_note = detect_premise_scheme(step)
+
+        if has_attributed or scheme != Scheme.AUTHORITY:
+            if ambig_note and ambig_note not in step.conditions and len(step.conditions) < 8:
+                step.conditions.append(ambig_note)
             try:
                 q_results = critical_questions(
-                    Scheme.AUTHORITY, step, store=self.memory_store, receipts=receipts
+                    scheme, step, store=self.memory_store, receipts=receipts
                 )
-                eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
+                eff_conf, new_conditions = adjust_confidence(
+                    step.confidence, q_results, scheme=scheme
+                )
                 step.confidence = eff_conf
                 for cond in new_conditions:
                     if cond not in step.conditions and len(step.conditions) < 8:
                         step.conditions.append(cond)
                 return q_results
             except Exception as exc:  # noqa: BLE001
-                logger.warning("critical_questions_failed", error=str(exc))
+                logger.warning(
+                    "critical_questions_failed", scheme=str(scheme), error=str(exc)
+                )
                 return []
 
         # Check if supported by >= 2 independent grounding premises (WO-21 Phase 6)
