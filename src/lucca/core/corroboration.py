@@ -1920,11 +1920,37 @@ def _evaluate_precedent_questions(
                     )
                     rows = cur.fetchall()
                     if rows:
-                        is_ratified = True
                         for row in rows:
-                            q2_eids.append(str(row[0]))
-                            q2_sources.append(str(row[2] or "store"))
-                        q2_detail = f"Prior decision '{ruling}' found ratified in grounding store"
+                            row_content = str(row[1] or "").lower()
+                            if any(
+                                bad in row_content
+                                for bad in (
+                                    "overturned",
+                                    "superseded",
+                                    "vacated",
+                                    "unratified",
+                                    "non-binding",
+                                    "abrogated",
+                                    "invalidated",
+                                    "reversed",
+                                )
+                            ):
+                                is_superseded = True
+                                q2_eids.append(str(row[0]))
+                                q2_sources.append(str(row[2] or "store"))
+                                q2_detail = (
+                                    f"Prior decision '{ruling}' was overturned or "
+                                    f"superseded: {row[1]}"
+                                )
+                                break
+                            else:
+                                is_ratified = True
+                                q2_eids.append(str(row[0]))
+                                q2_sources.append(str(row[2] or "store"))
+                        if is_ratified and not is_superseded:
+                            q2_detail = (
+                                f"Prior decision '{ruling}' found ratified in grounding store"
+                            )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("precedent_q2_db_error", error=str(exc))
 
@@ -2191,15 +2217,16 @@ def detect_premise_scheme(step: InferenceStep) -> tuple[Scheme, str | None]:
     texts_to_inspect.append(step.conclusion.strip())
 
     combined_text = " ".join(texts_to_inspect)
+    search_text = f"{combined_text} {combined_text.replace('_', ' ')}"
 
     candidates: list[Scheme] = []
-    if _RE_SIGN.search(combined_text):
+    if _RE_SIGN.search(search_text):
         candidates.append(Scheme.SIGN)
-    if _RE_ANALOGY.search(combined_text):
+    if _RE_ANALOGY.search(search_text):
         candidates.append(Scheme.ANALOGY)
-    if _RE_CONSEQUENCE.search(combined_text):
+    if _RE_CONSEQUENCE.search(search_text):
         candidates.append(Scheme.CONSEQUENCE)
-    if _RE_PRECEDENT.search(combined_text):
+    if _RE_PRECEDENT.search(search_text):
         candidates.append(Scheme.PRECEDENT)
 
     if len(candidates) == 1:
@@ -2211,7 +2238,7 @@ def detect_premise_scheme(step: InferenceStep) -> tuple[Scheme, str | None]:
         return (Scheme.AUTHORITY, note)
 
     # If no other scheme cues, check if it's cleanly an expert authority or attributed claim
-    if has_attr or _RE_EXPERT_AUTHORITY.search(combined_text):
+    if has_attr or _RE_EXPERT_AUTHORITY.search(search_text):
         return (Scheme.AUTHORITY, None)
 
     # Zero cues and not attributed: ambiguous fallback
