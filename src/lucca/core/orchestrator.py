@@ -35,11 +35,12 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
 
 import ulid
 import zmq
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
 from lucca.brain.llm_client import LLMClient
 from lucca.brain.prompt_builder import (
+    build_planning_messages,
     get_all_tool_definitions,
     set_persona,
 )
@@ -72,8 +73,11 @@ from lucca.core.schemas import (
     ChatMessage,
     DecisionRecord,
     ExecutionTier,
+    GoalPlan,
     InferenceStep,
     MemoryHit,
+    PendingRatification,
+    PlanStep,
     Provenance,
     RetrievalQuery,
     RouteAction,
@@ -91,7 +95,6 @@ from lucca.core.schemas import (
     canonicalize_predicate,
     is_valid_predicate,
     standard_for_confidence,
-    PendingRatification,
 )
 from lucca.core.corroboration import (
     CQAnswer,
@@ -112,7 +115,13 @@ from lucca.core.proof_policy import (
 )
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext, ReasoningEntry
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
-from lucca.core.turn_pipeline import TurnInput, TurnPipeline, normalize_spelled_words
+from lucca.core.turn_pipeline import (
+    TurnInput,
+    TurnPipeline,
+    normalize_spelled_words,
+    synthesize_plan_narration,
+)
+from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
 from lucca.core.user_model import UserModel
 from lucca.core.episode_recall import EpisodeRecall
 from lucca.memory.db import DatabaseManager
@@ -195,7 +204,6 @@ def _levenshtein_distance(s1: str, s2: str) -> int:
             curr.append(min(ins, dels, subs))
         prev = curr
     return prev[-1]
-
 
 
 class Orchestrator:
@@ -294,6 +302,7 @@ class Orchestrator:
             self.db = db
         else:
             from lucca.memory.db import DatabaseManager  # noqa: PLC0415
+
             db_path = self.config.home_dir / "data" / "memory.sqlite"
             db_path.parent.mkdir(parents=True, exist_ok=True)
             self.db = DatabaseManager(db_path=db_path)
@@ -328,6 +337,8 @@ class Orchestrator:
         self.current_turn_tool_ok: bool = True
         self.current_turn_shadow_outcomes: list[RuleOutcome] = []
         self.current_turn_receipts: list[ToolReceipt] = []
+        self.current_turn_plan: GoalPlan | None = None
+        self.last_spoken_plan_narration: str | None = None
         self.pending_spoken_updates: deque[str] = deque()
         self.current_turn_tier: ExecutionTier = ExecutionTier.FULL_LOOP
 
@@ -374,9 +385,7 @@ class Orchestrator:
 
         if hasattr(self, "router") and hasattr(self.router, "embed_worker"):
             if self.router.embed_worker is None and hasattr(self.memory_store, "embedding_port"):
-                self.router.embed_worker = getattr(
-                    self.memory_store.embedding_port, "worker", None
-                )
+                self.router.embed_worker = getattr(self.memory_store.embedding_port, "worker", None)
 
         if user_signer is not None:
             self.user_signer: UserSpeechSigner | None = user_signer
@@ -579,9 +588,7 @@ class Orchestrator:
     def _tts_queue(
         self,
     ) -> queue.Queue[
-        tuple[TurnTrace, int, str]
-        | tuple[TurnTrace, int, str, threading.Event | None]
-        | None
+        tuple[TurnTrace, int, str] | tuple[TurnTrace, int, str, threading.Event | None] | None
     ]:
         return self.speech_output.tts_queue
 
@@ -589,9 +596,7 @@ class Orchestrator:
     def _tts_queue(
         self,
         val: queue.Queue[
-            tuple[TurnTrace, int, str]
-            | tuple[TurnTrace, int, str, threading.Event | None]
-            | None
+            tuple[TurnTrace, int, str] | tuple[TurnTrace, int, str, threading.Event | None] | None
         ],
     ) -> None:
         self.speech_output.tts_queue = val
@@ -1198,9 +1203,7 @@ class Orchestrator:
             return []
         return ctx.proof_trace()
 
-    def _validate_premise(
-        self, premise: str, context: ReasoningContext
-    ) -> tuple[bool, str | None]:
+    def _validate_premise(self, premise: str, context: ReasoningContext) -> tuple[bool, str | None]:
         """Validates a premise against signed tool receipts, reasoning context, or the signed store.
 
         (Spec D-REAS-09, WO-20 Phase 3 / Amendment 2026-09-26).
@@ -1231,7 +1234,10 @@ class Orchestrator:
         if context.resolve_premise(clean) is not None:
             return (True, None)
         for intermediate in context.intermediates:
-            if intermediate.conclusion.lower() == clean.lower() or intermediate.envelope_id == clean:
+            if (
+                intermediate.conclusion.lower() == clean.lower()
+                or intermediate.envelope_id == clean
+            ):
                 return (True, None)
 
         # 3. Signed memory store check
@@ -1291,7 +1297,9 @@ class Orchestrator:
                 for h in res:
                     if getattr(h, "grounding_eligible", False):
                         words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
-                        if clean.lower() in h.content.lower() or (words and all(w in h.content.lower() for w in words)):
+                        if clean.lower() in h.content.lower() or (
+                            words and all(w in h.content.lower() for w in words)
+                        ):
                             hits.append(h.content)
             except Exception as exc:  # noqa: BLE001
                 logger.debug("gather_ladder_search_error", error=str(exc))
@@ -1353,8 +1361,7 @@ class Orchestrator:
     ) -> list[CriticalQuestionResult]:
         """Evaluates Walton critical questions for attributed or grounding premises (WO-21)."""
         has_attributed = any(
-            re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE)
-            for p in step.premises
+            re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE) for p in step.premises
         )
         receipts = list(getattr(self, "current_turn_receipts", []) or []) + list(
             getattr(self, "executed_tools", []) or []
@@ -1494,8 +1501,10 @@ class Orchestrator:
             logger.warning("no_llm_available_for_deduction")
             return ([], "No language model available for deduction.")
 
-        ctx = context if context is not None else (
-            getattr(self, "current_reasoning_context", None) or ReasoningContext()
+        ctx = (
+            context
+            if context is not None
+            else (getattr(self, "current_reasoning_context", None) or ReasoningContext())
         )
         self.current_reasoning_context = ctx
         trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
@@ -1523,7 +1532,7 @@ class Orchestrator:
 
         # Collect verified tool receipts
         attributed_receipts: list[str] = []
-        for r in (getattr(self, "current_turn_receipts", []) or []):
+        for r in getattr(self, "current_turn_receipts", []) or []:
             out = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
             if out:
                 attributed_receipts.append(f"{getattr(r, 'tool', 'tool')}: {out}")
@@ -1611,7 +1620,10 @@ class Orchestrator:
             if step_to_evaluate is not None:
                 for prem in step_to_evaluate.premises:
                     if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
-                        if prem not in step_to_evaluate.conditions and len(step_to_evaluate.conditions) < 8:
+                        if (
+                            prem not in step_to_evaluate.conditions
+                            and len(step_to_evaluate.conditions) < 8
+                        ):
                             step_to_evaluate.conditions.append(prem)
                     ok, _ = self._validate_premise(prem, ctx)
                     if not ok:
@@ -1620,7 +1632,9 @@ class Orchestrator:
                 if not still_unverified:
                     # Revised step accepted!
                     q_results = self._evaluate_step_corroboration(step_to_evaluate)
-                    action = AssertFact(s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o)
+                    action = AssertFact(
+                        s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o
+                    )
                     signed = self._commit_lisp_assertion(action, trace)
                     env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
                     ctx.add_intermediate(
@@ -1663,7 +1677,10 @@ class Orchestrator:
                 continue
 
             # 3. Ask the user (named-gap question) vs 4. Named-gap abstention
-            is_personal = any(k in retry_premise.lower() for k in ("user", "you", "live", "from", "born", "home", "partner"))
+            is_personal = any(
+                k in retry_premise.lower()
+                for k in ("user", "you", "live", "from", "born", "home", "partner")
+            )
             if is_personal:
                 spoken = f"I don't have anything verified about {retry_premise} — can you tell me about it?"
             else:
@@ -1759,6 +1776,211 @@ class Orchestrator:
 
     run_deduction_loop = run_deduction_step
 
+    def _parse_and_validate_plan(
+        self, text: str, default_goal: str
+    ) -> tuple[GoalPlan | None, str | None]:
+        """Parses and validates a GoalPlan from LLM response text (WO-22 Phase 1).
+
+        Enforces:
+        - JSON extraction and Pydantic GoalPlan schema (order contiguity 1..N, max 8 steps).
+        - Registered tool check against TOOL_ARG_SCHEMAS / EXTRA_TOOL_SCHEMAS.
+        - Tool argument schema validation.
+        - Deontic pre-check via SpeculativeBDIValidator.
+        """
+        clean_text = text.strip()
+        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text)
+        if fence_match:
+            clean_text = fence_match.group(1).strip()
+
+        obj_match = re.search(r"\{[\s\S]*\}", clean_text)
+        if not obj_match:
+            return None, f"No JSON object found in response: {text[:100]}"
+
+        try:
+            raw_data = json.loads(obj_match.group(0))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("plan_json_parse_failed", error=str(exc))
+            return None, f"Malformed JSON in plan: {exc}"
+
+        if not isinstance(raw_data, dict):
+            return None, "Expected a JSON object for GoalPlan, got list or scalar."
+
+        if not raw_data.get("plan_id"):
+            raw_data["plan_id"] = f"plan-{ulid.ULID()}"
+        if not raw_data.get("goal"):
+            raw_data["goal"] = default_goal
+
+        try:
+            plan = GoalPlan.model_validate(raw_data)
+        except ValidationError as exc:
+            return None, f"GoalPlan schema validation failed: {exc}"
+
+        # Central Tool-Arg Validation Registry (WO-19a)
+        for step in plan.steps:
+            schema_cls = TOOL_ARG_SCHEMAS.get(step.tool) or EXTRA_TOOL_SCHEMAS.get(step.tool)
+            if schema_cls is None:
+                return None, f"Step {step.order}: Tool '{step.tool}' is not registered."
+            try:
+                schema_cls.model_validate(step.args)
+            except ValidationError as exc:
+                return (
+                    None,
+                    f"Step {step.order} ({step.tool}) argument schema validation failed: {exc}",
+                )
+
+        # Speculative BDI Invariant Pre-check (Milestone 4 / WO-22 Phase 1)
+        bdi_validator = getattr(self, "bdi_validator", None)
+        if bdi_validator is not None:
+            taint = getattr(self.sandbox, "taint_flags", 0)
+            for step in plan.steps:
+                bdi_res = bdi_validator.validate_tool_call(step.tool, step.args, taint_flags=taint)
+                if not bdi_res.is_valid:
+                    reason = bdi_res.reason or "Action prohibited"
+                    return (
+                        None,
+                        f"Step {step.order} ({step.tool}) deontic violation: {reason}",
+                    )
+
+        return plan, None
+
+    def run_planning_step(
+        self,
+        goal: str,
+        trace: TurnTrace | None = None,
+        llm: object | None = None,
+        context: ReasoningContext | None = None,
+    ) -> GoalPlan | None:
+        """Executes a bounded, validated means-ends plan for a goal (WO-22 Phase 1).
+
+        1. Proposes a GoalPlan via LLM using the planning contract.
+        2. Validates plan schema, tool registry, argument schema, and deontic invariants.
+        3. On failure: allows one machine-readable revision attempt; if still invalid,
+           issues an honest refusal and speaks it.
+        4. On success: sets current_turn_plan and disposes steps through existing
+           sandbox dispatch path (confirmations, sequence guard, taint tracking).
+        5. Aggregates multi-action receipts into honest spoken narration (ITEM-017).
+        """
+        effective_llm = llm if llm is not None else getattr(self, "llm", None)
+        if effective_llm is None:
+            logger.warning("no_llm_available_for_planning")
+            return None
+
+        ctx = (
+            context
+            if context is not None
+            else (getattr(self, "current_reasoning_context", None) or ReasoningContext())
+        )
+        self.current_reasoning_context = ctx
+
+        if trace is None:
+            trace = getattr(self, "active_trace", None) or TurnTrace(
+                trace_id=f"plan-{ulid.ULID()}",
+                session_id=getattr(self, "session_id", "session-plan"),
+                origin="text",
+            )
+        trace_id = trace.trace_id
+
+        available_tools = list(TOOL_ARG_SCHEMAS.keys())
+        verified_facts: list[str] = [entry.conclusion for entry in ctx.intermediates]
+
+        planning_msgs = build_planning_messages(
+            goal=goal,
+            available_tools=available_tools,
+            verified_facts=verified_facts,
+            history=getattr(self, "history", []),
+        )
+
+        full_text = ""
+        for event in effective_llm.stream_turn(
+            current_text=goal,
+            memories=[],
+            history=getattr(self, "history", []),
+            trace_id=trace_id,
+            messages=planning_msgs,
+        ):
+            if isinstance(event, TokenDelta):
+                full_text += event.delta
+
+        plan, err = self._parse_and_validate_plan(full_text, default_goal=goal)
+        if plan is None:
+            logger.warning("planning_initial_validation_failed", error=err, raw=full_text)
+            revision_msgs = build_planning_messages(
+                goal=goal,
+                available_tools=available_tools,
+                verified_facts=verified_facts,
+                error_feedback=err,
+                history=getattr(self, "history", []),
+            )
+            revised_text = ""
+            for event in effective_llm.stream_turn(
+                current_text=f"Revise plan to fix error: {err}",
+                memories=[],
+                history=getattr(self, "history", []),
+                trace_id=trace_id,
+                messages=revision_msgs,
+            ):
+                if isinstance(event, TokenDelta):
+                    revised_text += event.delta
+
+            plan, err = self._parse_and_validate_plan(revised_text, default_goal=goal)
+            if plan is None:
+                logger.warning("planning_revision_validation_failed", error=err, raw=revised_text)
+                refusal_msg = f"I can't plan that safely because: {err}"
+                self._speak_text(trace, refusal_msg)
+                self.current_turn_tool_spoken.append(refusal_msg)
+                return None
+
+        # Plan ratified & validated — store on turn
+        self.current_turn_plan = plan
+        executed_tuples: list[tuple[str, dict[str, JsonValue], bool, str]] = []
+        cancelled_tuples: list[tuple[str, dict[str, JsonValue]]] = []
+        failed_step_order: int | None = None
+
+        for i, step in enumerate(plan.steps):
+            resolved_intermediates: list[str] = []
+            if ctx is not None and step.purpose:
+                resolved_entries = ctx.resolve_purpose_intermediates(step.purpose)
+                resolved_intermediates = [e.envelope_id for e in resolved_entries]
+
+            res = self._handle_tool_call(trace, step.tool, dict(step.args), speak=False)
+            ok = (res is None) or getattr(res, "ok", True)
+            raw_out = ""
+            if res is not None:
+                raw_out = str(
+                    getattr(res, "content", "")
+                    or getattr(res, "structured", "")
+                    or getattr(res, "stderr", "")
+                )
+
+            receipt_entry: dict[str, JsonValue] = {
+                "order": step.order,
+                "tool": step.tool,
+                "args": step.args,
+                "ok": ok,
+                "result": raw_out,
+                "resolved_intermediates": resolved_intermediates,
+            }
+            plan.receipts.append(receipt_entry)
+            executed_tuples.append((step.tool, dict(step.args), ok, raw_out))
+
+            if not ok:
+                failed_step_order = step.order
+                for rem_step in plan.steps[i + 1 :]:
+                    cancelled_tuples.append((rem_step.tool, dict(rem_step.args)))
+                break
+
+        # Multi-Action Narration Aggregation (ITEM-017 / D-HON-01)
+        narration = synthesize_plan_narration(
+            executed_steps=executed_tuples,
+            cancelled_steps=cancelled_tuples if failed_step_order is not None else None,
+            failed_step_order=failed_step_order,
+        )
+        plan.narration = narration
+        self.last_spoken_plan_narration = narration
+        self._speak_text(trace, narration)
+        self.current_turn_tool_spoken.append(narration)
+
+        return plan
 
     def _check_functional_coherence(
         self,
@@ -3063,8 +3285,7 @@ class Orchestrator:
             return None
         lower = cleaned.lower()
         if any(
-            err in lower
-            for err in ("error:", "404 not found", "access denied", "failed to fetch")
+            err in lower for err in ("error:", "404 not found", "access denied", "failed to fetch")
         ):
             return None
 
@@ -3122,9 +3343,7 @@ class Orchestrator:
             return offer_text
         return None
 
-    def _commit_ratified_fact(
-        self, pending: PendingRatification, trace: TurnTrace
-    ) -> str | None:
+    def _commit_ratified_fact(self, pending: PendingRatification, trace: TurnTrace) -> str | None:
         if not self.memory_store:
             return None
         signer = self.signer_factory.derived_fact()
@@ -3457,7 +3676,9 @@ class Orchestrator:
                         self._speak_text(trace, sub_action.text)
                     elif isinstance(sub_action, AssertFact):
                         self._commit_lisp_assertion(sub_action, trace)
-                        sub_results.append(f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok")
+                        sub_results.append(
+                            f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok"
+                        )
                 has_failures = any("->failed" in s for s in sub_results)
                 skill_signal: Literal["tool_exit_zero", "pydantic_valid"] = (
                     "pydantic_valid" if has_failures else "tool_exit_zero"
@@ -3533,7 +3754,9 @@ class Orchestrator:
                         self._speak_text(trace, sub_action.text)
                     elif isinstance(sub_action, AssertFact):
                         self._commit_lisp_assertion(sub_action, trace)
-                        sub_results.append(f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok")
+                        sub_results.append(
+                            f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok"
+                        )
                 res = ToolResult(
                     call_id=call_id,
                     ok=True,

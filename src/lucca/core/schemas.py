@@ -502,7 +502,9 @@ class InferenceStep(BaseModel):
     p: str = Field(..., description="Predicate slug conforming to is_valid_predicate.")
     o: str = Field(..., description="Object value.")
     confidence: float = Field(..., ge=0.0, le=1.0, description="Step confidence in [0.0, 1.0].")
-    rationale: str = Field(default="", max_length=500, description="Optional brief rationale (<= 500 chars).")
+    rationale: str = Field(
+        default="", max_length=500, description="Optional brief rationale (<= 500 chars)."
+    )
     conditions: list[str] = Field(
         default_factory=list,
         max_length=8,
@@ -524,6 +526,59 @@ class InferenceStep(BaseModel):
 class Plan(BaseModel):
     actions: list[ToolCall | Say | AssertFact]
     rationale: str = ""
+
+
+class PlanStep(BaseModel):
+    """Single step within a means-ends GoalPlan (WO-22 Phase 1).
+
+    Ratified 2026-09-27 by owner.
+    """
+
+    order: int = Field(..., ge=1, description="1-indexed execution sequence number.")
+    tool: str = Field(..., min_length=1, description="Tool name to execute.")
+    args: dict[str, JsonValue] = Field(
+        default_factory=dict, description="Arguments conforming to tool schema."
+    )
+    purpose: str = Field(
+        ...,
+        max_length=200,
+        description="Why this step is needed; may cite ReasoningContext intermediates.",
+    )
+
+
+class GoalPlan(BaseModel):
+    """Bounded, validated means-ends plan produced by the planner (WO-22 Phase 1).
+
+    Ratified 2026-09-27 by owner:
+    - 8-step cap (inherits ratified M=8 FULL_LOOP bound).
+    - Order values must form the contiguous sequence 1..N.
+    """
+
+    plan_id: str = Field(..., description="Unique plan identifier (ULID or plan-*).")
+    goal: str = Field(..., min_length=1, max_length=500, description="The goal being achieved.")
+    rationale: str = Field(
+        default="", max_length=500, description="Summary rationale explaining the plan structure."
+    )
+    steps: list[PlanStep] = Field(
+        ..., min_length=1, max_length=8, description="Ordered steps, max 8."
+    )
+    receipts: list[dict[str, JsonValue]] = Field(
+        default_factory=list, description="Per-step receipts recorded during execution."
+    )
+    narration: str = Field(
+        default="", description="Spoken narration describing the whole executed plan."
+    )
+
+    @field_validator("steps")
+    @classmethod
+    def validate_steps_order_contiguous(cls, steps: list[PlanStep]) -> list[PlanStep]:
+        expected = list(range(1, len(steps) + 1))
+        actual = [s.order for s in steps]
+        if actual != expected:
+            raise ValueError(
+                f"Plan step orders must be contiguous sequence 1..{len(steps)}, got {actual}"
+            )
+        return steps
 
 
 RuleAction = ToolCall | Say | AssertFact
@@ -578,8 +633,6 @@ class RegressionReport(BaseModel):
 # ============================================================================
 # S1 Typed Execution Triple Models (Spec §5, Handover #4 S1.1)
 # ============================================================================
-
-PlanStep = ToolCall | Say
 
 
 class Proposal(BaseModel):

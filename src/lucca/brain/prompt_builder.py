@@ -901,6 +901,63 @@ def build_narration_messages(
     return messages
 
 
+def build_plan_narration_messages(
+    goal: str,
+    plan_id: str,
+    step_summaries: list[tuple[str, dict[str, JsonValue], bool, str]],
+    cancelled_steps: list[tuple[str, dict[str, JsonValue]]] | None = None,
+    failed_step_order: int | None = None,
+) -> list[ChatMessage]:
+    """
+    Constructs messages for multi-step plan narration (ITEM-017, WO-22 Phase 1).
+    Grounds speech strictly in the aggregated executed receipts.
+    """
+    messages: list[ChatMessage] = []
+    system_content = get_system_prompt()
+    messages.append(ChatMessage(role="system", content=system_content))
+
+    trace_lines: list[str] = []
+    for i, (tool, args, ok, detail) in enumerate(step_summaries, 1):
+        status = "ok" if ok else "failed"
+        detail_snip = f": {detail}" if detail else ""
+        trace_lines.append(f"Step {i}: {tool}({args}) -> {status}{detail_snip}")
+
+    cancelled_info = ""
+    if failed_step_order is not None and cancelled_steps:
+        c_names = ", ".join(t for t, _ in cancelled_steps)
+        cancelled_info = (
+            f"\nPlan encountered failure at Step {failed_step_order}. "
+            f"Subsequent planned steps were cancelled: {c_names}."
+        )
+
+    trace_block = "\n".join(trace_lines)
+    full_trace = (
+        f"[System Executed Multi-Step Plan Trace: {plan_id}]\n{trace_block}{cancelled_info}"
+    )
+
+    if failed_step_order is not None:
+        directive = (
+            "Directive: A multi-step plan encountered a partial failure. "
+            f"Step {failed_step_order} failed. Ground your response strictly in the trace above, "
+            "explaining which step failed and stating that remaining steps were cancelled. "
+            "Do not use bullet points, asterisks, or markdown formatting."
+        )
+    else:
+        directive = (
+            "Directive: The multi-step plan above has completed. "
+            "You MUST verbally describe the whole executed sequence in your response, mentioning "
+            "each action that took place (e.g. what was searched, retrieved, written/saved), "
+            "not just the final action. Ground your response strictly in the tool execution output "
+            "above without fabricating metrics or unverified facts. "
+            "Do NOT use markdown formatting, bullet points, asterisks, or backticks; "
+            "speak in natural, clean spoken prose."
+        )
+
+    messages.append(ChatMessage(role="user", content=f"Goal: {goal}"))
+    messages.append(ChatMessage(role="assistant", content=f"{full_trace}\n{directive}"))
+    return messages
+
+
 def build_messages(
     memories: list[MemoryHit] | None = None,
     history: list[dict[str, str]] | None = None,
@@ -1057,7 +1114,9 @@ def build_deduction_messages(
 
     if attributed_receipts:
         receipts_block = "\n".join(f"- {r}" for r in attributed_receipts)
-        system_content += f"\n\n[Verified Tool Receipts Context]\n<receipts>\n{receipts_block}\n</receipts>"
+        system_content += (
+            f"\n\n[Verified Tool Receipts Context]\n<receipts>\n{receipts_block}\n</receipts>"
+        )
 
     messages: list[ChatMessage] = [ChatMessage(role="system", content=system_content)]
 
@@ -1070,6 +1129,66 @@ def build_deduction_messages(
         user_prompt += (
             f"\n\nPrevious attempt failed with error:\n{error_feedback}\n"
             "Please revise your inference step to use only verified premises, or adjust your hypothesis."
+        )
+
+    messages.append(ChatMessage(role="user", content=user_prompt))
+    return messages
+
+
+PLANNING_CONTRACT_SECTION: Final[str] = (
+    "\n\n[Planning Mode — Means-Ends Planning Contract]\n"
+    "You are operating as the means-ends planning engine.\n"
+    "CRITICAL RULES:\n"
+    "1. Emit ONLY a valid JSON object matching the GoalPlan schema. "
+    "Do NOT include conversational prose or explanation outside the JSON.\n"
+    "2. The GoalPlan object must contain:\n"
+    '   - "plan_id": unique identifier (e.g. "plan-<id>").\n'
+    '   - "goal": the concise goal string (<= 500 characters).\n'
+    '   - "rationale": brief rationale explaining how steps achieve goal (<= 500 chars).\n'
+    '   - "steps": ordered list of 1 to 8 PlanStep objects.\n'
+    "3. Each PlanStep must contain:\n"
+    '   - "order": 1-indexed contiguous integer (1, 2, 3, ...).\n'
+    '   - "tool": registered tool name (e.g. "search_web", "fetch_url", "note_write").\n'
+    '   - "args": dictionary of tool arguments matching the schema.\n'
+    '   - "purpose": concise explanation of why this step is needed (<= 200 characters); '
+    "may cite intermediate facts.\n"
+    "4. Maximum 8 steps. Orders must be exactly 1..N contiguous. "
+    "No recursive plan-within-plan execution.\n"
+    "5. Every step must be safe and valid.\n"
+)
+
+
+def build_planning_messages(
+    goal: str,
+    available_tools: list[str] | None = None,
+    verified_facts: list[str] | None = None,
+    error_feedback: str | None = None,
+    history: list[dict[str, str]] | None = None,
+) -> list[ChatMessage]:
+    """
+    Constructs messages for planning mode GoalPlan generation (WO-22 Phase 1).
+    """
+    system_content = get_system_prompt() + PLANNING_CONTRACT_SECTION
+
+    if available_tools:
+        tools_block = ", ".join(sorted(available_tools))
+        system_content += f"\n\n[Available Tools]\n{tools_block}\n"
+
+    if verified_facts:
+        facts_block = "\n".join(f"- {f}" for f in verified_facts)
+        system_content += f"\n\n[Verified Signed Facts Context]\n<facts>\n{facts_block}\n</facts>"
+
+    messages: list[ChatMessage] = [ChatMessage(role="system", content=system_content)]
+
+    if history:
+        for turn in history[-4:]:
+            messages.append(ChatMessage(role=turn["role"], content=turn["content"]))
+
+    user_prompt = f"Goal: {goal}"
+    if error_feedback:
+        user_prompt += (
+            f"\n\nPrevious attempt failed with error:\n{error_feedback}\n"
+            "Please revise your plan to fix the validation error."
         )
 
     messages.append(ChatMessage(role="user", content=user_prompt))

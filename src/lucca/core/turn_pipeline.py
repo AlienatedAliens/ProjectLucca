@@ -26,7 +26,10 @@ from typing import TYPE_CHECKING, Literal
 
 import structlog
 
-from lucca.brain.prompt_builder import build_narration_messages
+from lucca.brain.prompt_builder import (
+    build_narration_messages,
+    build_plan_narration_messages,
+)
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
@@ -105,6 +108,98 @@ def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
     )
 
     return text, list(dict.fromkeys(detected_words))
+
+
+def aggregate_plan_narration_summary(
+    executed_steps: list[tuple[str, dict[str, JsonValue], bool, str]],
+    cancelled_steps: list[tuple[str, dict[str, JsonValue]]] | None = None,
+    failed_step_order: int | None = None,
+) -> str:
+    """Aggregates multi-action plan execution into a unified narration trace (ITEM-017).
+
+    Ensures that spoken narration verbalizes the *whole executed sequence* aggregated
+    from per-step receipts, rather than only the final step's result.
+    If a partial failure occurred, explicitly identifies the failed step and cancelled remainder.
+    """
+    lines: list[str] = []
+    for i, (tool, args, ok, detail) in enumerate(executed_steps, 1):
+        args_str = ", ".join(f"{k}={v!r}" for k, v in args.items()) if args else ""
+        status = "ok" if ok else "failed"
+        detail_snip = f": {detail}" if detail else ""
+        lines.append(f"Step {i}: {tool}({args_str}) -> {status}{detail_snip}")
+
+    if failed_step_order is not None and cancelled_steps:
+        cancelled_tools = ", ".join(tool for tool, _ in cancelled_steps)
+        lines.append(
+            f"Remaining steps cancelled due to Step {failed_step_order} failure: {cancelled_tools}"
+        )
+
+    return "\n".join(lines)
+
+
+def synthesize_plan_narration(
+    executed_steps: list[tuple[str, dict[str, JsonValue], bool, str]],
+    cancelled_steps: list[tuple[str, dict[str, JsonValue]]] | None = None,
+    failed_step_order: int | None = None,
+) -> str:
+    """Produces honest, deterministic multi-step spoken summary (ITEM-017 / D-HON-01).
+
+    Generates natural language citing every executed step in sequence,
+    and naming any failed step and cancelled remainder.
+    """
+    if not executed_steps:
+        return "No plan steps were executed."
+
+    if failed_step_order is not None and failed_step_order <= len(executed_steps):
+        failed_tool, _, _ok, fail_msg = executed_steps[failed_step_order - 1]
+        cancelled_str = ""
+        if cancelled_steps:
+            tools_list = ", ".join(t for t, _ in cancelled_steps)
+            cancelled_str = f" I cancelled the remaining steps ({tools_list})."
+        err_detail = f" with error: {fail_msg}" if fail_msg else ""
+        prior_steps = executed_steps[: failed_step_order - 1]
+        prior_str = ""
+        if prior_steps:
+            prior_tools = ", ".join(t for t, _, _, _ in prior_steps)
+            prior_str = f"After running {prior_tools}, "
+        fail_part = f"Step {failed_step_order} ({failed_tool}) failed{err_detail}."
+        res = f"{prior_str}{fail_part}{cancelled_str}"
+        return res.strip()
+
+    step_descriptions: list[str] = []
+    for tool, args, _ok, _detail in executed_steps:
+        if tool == "search_web":
+            q = str(args.get("query", "") or args.get("q", ""))
+            step_descriptions.append(f"searched the web for '{q}'" if q else "searched the web")
+        elif tool == "fetch_url":
+            u = str(args.get("url", ""))
+            step_descriptions.append(f"fetched {u}" if u else "fetched the page")
+        elif tool in ("note_write", "write_note"):
+            t = str(args.get("name", "") or args.get("topic", "") or args.get("title", ""))
+            step_descriptions.append(f"wrote note '{t}'" if t else "wrote to notes")
+        elif tool in ("note_read", "read_note"):
+            t = str(args.get("name", "") or args.get("topic", "") or args.get("query", ""))
+            step_descriptions.append(f"read note '{t}'" if t else "read notes")
+        elif tool == "read_file":
+            p = str(args.get("path", ""))
+            step_descriptions.append(f"read file '{p}'" if p else "read file")
+        elif tool == "write_file":
+            p = str(args.get("path", ""))
+            step_descriptions.append(f"wrote file '{p}'" if p else "wrote file")
+        elif tool == "launch_app":
+            a = str(args.get("app", ""))
+            step_descriptions.append(f"launched {a}" if a else "launched application")
+        elif tool == "calc_math":
+            step_descriptions.append("calculated result")
+        else:
+            step_descriptions.append(f"executed {tool}")
+
+    if len(step_descriptions) == 1:
+        return f"I {step_descriptions[0]}."
+    if len(step_descriptions) == 2:
+        return f"I {step_descriptions[0]} and {step_descriptions[1]}."
+    all_but_last = ", ".join(step_descriptions[:-1])
+    return f"I {all_but_last}, and {step_descriptions[-1]}."
 
 
 class DifficultyEstimator:
@@ -204,6 +299,7 @@ class TurnPipeline:
         self.orch.current_turn_tool_ok = True
         self.orch._last_unspoken_tool_msg = None
         self.orch._ratification_offered_this_turn = False
+        self.orch.current_turn_plan = None
 
     # ------------------------------------------------------------------------
     # Phase 4 Helpers: REFLEX & ACT_THEN_NARRATE Dispatch
@@ -302,8 +398,9 @@ class TurnPipeline:
             last_tool_res: ToolResult | None = None
             last_tool_name: str = ""
             last_tool_args: dict[str, JsonValue] = {}
-            # WO-10.4 (F11): narrate ALL plan actions, not just the last.
+            # WO-10.4 (F11) & WO-22 Phase 1 (ITEM-017): narrate ALL plan actions, not just the last.
             exec_lines: list[str] = []
+            step_tuples: list[tuple[str, dict[str, JsonValue], bool, str]] = []
             if winning_outcome.plan:
                 for action in winning_outcome.plan.actions:
                     if isinstance(action, ToolCall):
@@ -323,9 +420,18 @@ class TurnPipeline:
                         exec_lines.append(
                             f"{action.tool}({args_str}) -> {status_str}: {raw_detail}"
                         )
+                        step_tuples.append((action.tool, dict(action.args), ok, raw_detail))
                     elif isinstance(action, AssertFact):
                         self.orch._commit_lisp_assertion(action, trace)
                         exec_lines.append(f"assert({action.s} {action.p} {action.o}) -> ok")
+                        step_tuples.append(
+                            (
+                                "assert_fact",
+                                {"s": action.s, "p": action.p, "o": action.o},
+                                True,
+                                "ok",
+                            )
+                        )
             if exec_lines:
                 combined = "\n".join(exec_lines)
                 last_tool_res = ToolResult(

@@ -287,5 +287,30 @@ class ReasoningContext:
             )
         return trace
 
+    def resolve_purpose_intermediates(self, purpose: str) -> list[ReasoningEntry]:
+        """Resolves intermediates cited in a plan step purpose (WO-22 Phase 1).
+
+        Inspects the purpose string for mentions of envelope IDs, conclusions,
+        or triple terms (s, p, o) from active intermediates in this context.
+        """
+        if not purpose:
+            return []
+        cited: list[ReasoningEntry] = []
+        p_clean = purpose.strip()
+        p_lower = p_clean.lower()
+        for item in self._intermediates:
+            if item.envelope_id in p_clean or item.conclusion.lower() in p_lower:
+                if item not in cited:
+                    cited.append(item)
+            elif (
+                len(item.s) > 2
+                and item.s.lower() in p_lower
+                and len(item.o) > 2
+                and item.o.lower() in p_lower
+            ):
+                if item not in cited:
+                    cited.append(item)
+        return cited
+
     def clear(self) -> None:
         self._intermediates.clear()
