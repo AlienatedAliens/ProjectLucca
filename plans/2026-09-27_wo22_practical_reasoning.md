@@ -112,7 +112,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 0 (cleanups) | | | | | |
+| 0 (cleanups) | `2d7b8cc` | Gemini | Reviewer | PENDING | 2026-09-27 |
 | 1 (means-ends planner) | | | | | |
 | 2 (diagnostic self-reasoning) | | | | | |
 | 3 (live acceptance) | | | | | |
