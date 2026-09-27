@@ -77,7 +77,11 @@
 - **TRAP 1:** diagnoses are hypotheses with confidence — never committed as facts, never spoken unhedged (standards-of-proof applies: diagnosis speech is SPECULATION-band unless a check *confirms*).
 - **TRAP 2:** the engine reads only her own telemetry/registers — no host introspection beyond existing env_check functions.
 
-**STOP gate:** the fault-model v1 contents (the 5 entries) are owner-visible — present before implementing.
+**STOP gate:** ~~the fault-model v1 contents (the 5 entries) are owner-visible — present before implementing.~~ **Reviewer audit 2026-09-27 — BOUNCE on the proposed contents:** 3 of the proposed `checks` reference env_check functions that do not exist (`check_audio_ring`, `check_manifest_hashes`, `check_wsl_status`). Real env_check functions: `check_system_ram`, `check_mshybrid_vram`, `check_openvino_npu`, `check_sqlite_vec`, `check_wslconfig`, `check_docker_wsl`, `check_lucca_home`, `check_models_manifest`. Corrected contents pending owner ratification:
+- `llama_server_unhealthy`: `checks = ["check_mshybrid_vram", "check_models_manifest"]` (rename only).
+- `audio_ring_contention`: ring-underrun signal lives in `self_metrics`/traces, not env_check — Phase 2 manifest adds a new `check_audio_ring` env_check function (reads ring-buffer underrun counters) OR the entry ships with `checks = []` and diagnoses from observed symptoms alone. Owner to pick.
+- `frozen_binary_timeout`: Phase 2 manifest adds a new `check_wsl_status` env_check function (runs `wsl --status` with a timeout) per the original incident note, OR reuses `check_docker_wsl`. Owner to pick.
+- `boot_memory_error` (`check_system_ram`) and `docker_wsl_down` (`check_docker_wsl`) are correct as proposed.
 
 ---
 
@@ -113,7 +117,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
 | 0 (cleanups) | `2d7b8cc` | Gemini | Zoo (independent re-run: 891 passed / 0 failed; trap audit + positive controls verified) | PASS | 2026-09-27 |
-| 1 (means-ends planner) | `d7a352a` | Gemini | Pending review | | 2026-09-27 |
+| 1 (means-ends planner) | `d7a352a` | Gemini | Zoo (independent re-run: 903 passed / 0 failed; Trap 1 dispatch-path audit + validator + ITEM-017 verified) | PASS | 2026-09-27 |
 | 2 (diagnostic self-reasoning) | | | | | |
 | 3 (live acceptance) | | | | | |
 
