@@ -726,12 +726,7 @@ class TurnPipeline:
 
         # Diagnostic Self-Reasoning Check (WO-22 Phase 2)
         if eval_user_text and is_self_diagnosis_query(eval_user_text):
-            diagnoses = self.orch.run_self_diagnosis(eval_user_text, trace)
-            diag_speech = (
-                self.orch.diagnosis_engine.format_diagnosis_speech(diagnoses[0])
-                if diagnoses
-                else self.orch.diagnosis_engine.format_diagnosis_speech(None)
-            )
+            _diagnoses, diag_speech = self.orch.run_self_diagnosis(eval_user_text, trace)
             self.orch.history.append({"role": "user", "content": user_text})
             self.orch.history.append({"role": "assistant", "content": diag_speech})
             self.orch.play_ring.set_flag(FLAG_EOS)

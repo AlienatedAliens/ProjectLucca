@@ -340,6 +340,7 @@ class Orchestrator:
         self.current_turn_receipts: list[ToolReceipt] = []
         self.current_turn_plan: GoalPlan | None = None
         self.last_spoken_plan_narration: str | None = None
+        self.last_spoken_diagnosis: str | None = None
         self.pending_spoken_updates: deque[str] = deque()
         self.current_turn_tier: ExecutionTier = ExecutionTier.FULL_LOOP
 
@@ -2002,9 +2003,13 @@ class Orchestrator:
         self,
         observations: dict[str, object] | list[str] | str,
         trace: TurnTrace,
-    ) -> list[Diagnosis]:
+    ) -> tuple[list[Diagnosis], str]:
         """Runs the self-diagnosis engine over observed symptoms/telemetry and speaks
-        the top diagnosis with hedged natural language (WO-22 Phase 2, Trap 1)."""
+        the top diagnosis with hedged natural language (WO-22 Phase 2, Trap 1).
+
+        Returns (diagnoses, spoken_text) so callers can reuse the formatted speech
+        without re-invoking format_diagnosis_speech.
+        """
         diagnoses = self.diagnosis_engine.diagnose(observations)
         if diagnoses:
             top = diagnoses[0]
@@ -2034,7 +2039,8 @@ class Orchestrator:
             self._speak_text(trace, spoken_text)
             self._publish_caption(spoken_text, source="assistant", is_final=True)
 
-        return diagnoses
+        self.last_spoken_diagnosis = spoken_text
+        return diagnoses, spoken_text
 
     def _check_functional_coherence(
         self,

@@ -335,11 +335,12 @@ def test_orchestrator_run_self_diagnosis_records_hedged_intermediate(
     orch._publish_caption = lambda *a, **kw: None
 
     trace = TurnTrace(trace_id="test-trace-diag")
-    diagnoses = orch.run_self_diagnosis("what's wrong with your tools?", trace)
+    diagnoses, returned_speech = orch.run_self_diagnosis("what's wrong with your tools?", trace)
 
     assert len(diagnoses) > 0
     assert len(spoken_messages) == 1
     assert "my best guess is" in spoken_messages[0].lower()
+    assert returned_speech == spoken_messages[0]  # no double-format: same object
 
     # Assert recorded as hedged intermediate in reasoning context
     intermediates = orch.current_reasoning_context.intermediates
