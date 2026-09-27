@@ -20,7 +20,6 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-import ulid
 
 from lucca.core.coherence import ToolReceipt
 from lucca.core.config import get_config
@@ -30,17 +29,17 @@ from lucca.core.corroboration import (
     Scheme,
     adjust_confidence,
     critical_questions,
+    extract_etld_plus_one,
+    is_same_source,
+    normalize_source_identity,
 )
 from lucca.core.orchestrator import Orchestrator
-from lucca.core.reasoning_context import ReasoningContext
 from lucca.core.schemas import (
-    AssertFact,
     Done,
     ExecutionTier,
     InferenceStep,
     LLMUsage,
     Provenance,
-    SignedPayload,
     TokenDelta,
     UnsignedPayload,
 )
@@ -84,7 +83,9 @@ def signer_factory() -> SignerFactory:
 
 
 @pytest.fixture
-def orch(test_db: DatabaseManager, memory_store: MemoryStore, signer_factory: SignerFactory) -> Orchestrator:
+def orch(
+    test_db: DatabaseManager, memory_store: MemoryStore, signer_factory: SignerFactory
+) -> Orchestrator:
     orchestrator = Orchestrator.__new__(Orchestrator)
     orchestrator.config = get_config()
     orchestrator.execute_tools = True
@@ -252,7 +253,10 @@ def test_corroboration_dedupes_same_domain_source(memory_store: MemoryStore) -> 
     assert q_results[0].count == 2
 
     # Q2: Independent corroboration -> UNKNOWN (same domain does NOT count as independent)
-    assert q_results[1].question == "Is the claim corroborated by an independent grounding-eligible fact?"
+    assert (
+        q_results[1].question
+        == "Is the claim corroborated by an independent grounding-eligible fact?"
+    )
     assert q_results[1].answer == CQAnswer.UNKNOWN
     assert q_results[1].count == 0
 
@@ -292,19 +296,23 @@ def test_corroboration_boosts_confidence_with_independent_store_fact(
     ]
 
     # 3. LLM proposes inference step with attributed premise (proposed confidence 0.80)
-    step_json = json.dumps([
-        {
-            "premises": ["ars-technica asserts driver-582.11 fixes wsl-crash"],
-            "s": "driver-582.11",
-            "p": "fixes_issue",
-            "o": "wsl-crash",
-            "confidence": 0.80,
-        }
-    ])
-    fake_llm = FakeLLM(script=[
-        TokenDelta(delta=step_json),
-        Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20)),
-    ])
+    step_json = json.dumps(
+        [
+            {
+                "premises": ["ars-technica asserts driver-582.11 fixes wsl-crash"],
+                "s": "driver-582.11",
+                "p": "fixes_issue",
+                "o": "wsl-crash",
+                "confidence": 0.80,
+            }
+        ]
+    )
+    fake_llm = FakeLLM(
+        script=[
+            TokenDelta(delta=step_json),
+            Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20)),
+        ]
+    )
 
     accepted, spoken = orch.run_deduction_step(
         goal="Can driver 582.11 fix my WSL crash?",
@@ -402,19 +410,23 @@ def test_corroboration_docks_confidence_and_adds_condition_when_disputed(
     ]
 
     # 3. LLM proposes step with proposed confidence 0.90 (docked by -0.30 -> 0.60)
-    step_json = json.dumps([
-        {
-            "premises": ["nvidia-forum asserts driver-582.11 fixes wsl-crash"],
-            "s": "driver-582.11",
-            "p": "fixes_issue",
-            "o": "wsl-crash",
-            "confidence": 0.90,
-        }
-    ])
-    fake_llm = FakeLLM(script=[
-        TokenDelta(delta=step_json),
-        Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20)),
-    ])
+    step_json = json.dumps(
+        [
+            {
+                "premises": ["nvidia-forum asserts driver-582.11 fixes wsl-crash"],
+                "s": "driver-582.11",
+                "p": "fixes_issue",
+                "o": "wsl-crash",
+                "confidence": 0.90,
+            }
+        ]
+    )
+    fake_llm = FakeLLM(
+        script=[
+            TokenDelta(delta=step_json),
+            Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=20)),
+        ]
+    )
 
     accepted, spoken = orch.run_deduction_step(
         goal="Does driver 582.11 fix the crash?",
@@ -427,7 +439,9 @@ def test_corroboration_docks_confidence_and_adds_condition_when_disputed(
     assert accepted[0].confidence == 0.60
 
     # Dispute condition is added to conditions
-    assert any("contradicts" in c or "dispute" in c or "does_not" in c for c in accepted[0].conditions)
+    assert any(
+        "contradicts" in c or "dispute" in c or "does_not" in c for c in accepted[0].conditions
+    )
 
     # Because confidence 0.60 < 0.75 (CLEAR_AND_CONVINCING), finalize_chain refuses commit!
     assert spoken is not None
@@ -443,3 +457,163 @@ def test_corroboration_docks_confidence_and_adds_condition_when_disputed(
             """
         )
         assert cur.fetchall() == []
+
+
+def test_etld_plus_one_extraction_and_alias_dedupe() -> None:
+    """WO-22 Phase 0 Unit Tests:
+    - Extracts eTLD+1 using embedded public suffix list.
+    - Strips leading www., extracts host from URL, strips hyphens from registrable label.
+    - Multi-part public suffixes (e.g. github.io, co.uk) properly respected.
+    """
+    assert extract_etld_plus_one("example.com") == ("example", "com")
+    assert extract_etld_plus_one("example.org") == ("example", "org")
+    assert extract_etld_plus_one("ars-technica.com") == ("arstechnica", "com")
+    assert extract_etld_plus_one("arstechnica.com") == ("arstechnica", "com")
+    assert extract_etld_plus_one("www.ars-technica.com") == ("arstechnica", "com")
+    assert extract_etld_plus_one("https://sub.ars-technica.com/articles/123") == (
+        "arstechnica",
+        "com",
+    )
+    assert extract_etld_plus_one("alice.github.io") == ("alice", "github.io")
+    assert extract_etld_plus_one("bob.github.io") == ("bob", "github.io")
+    assert extract_etld_plus_one("news.bbc.co.uk") == ("bbc", "co.uk")
+    assert extract_etld_plus_one("the-verge") == ("theverge", None)
+
+    assert normalize_source_identity("example.com") == "example.com"
+    assert normalize_source_identity("example.org") == "example.org"
+    assert normalize_source_identity("ars-technica.com") == "arstechnica.com"
+    assert normalize_source_identity("arstechnica.com") == "arstechnica.com"
+
+
+def test_is_same_source_invariants() -> None:
+    """WO-22 Phase 0 Invariants:
+    1. Two different registrable domains must NEVER dedupe.
+    2. Alias forms of the same domain ALWAYS dedupe.
+    """
+    # 1. Distinct registrable domains NEVER dedupe
+    assert not is_same_source("example.com", "example.org")
+    assert not is_same_source("sub.example.com", "sub.example.org")
+    assert not is_same_source("alice.github.io", "bob.github.io")
+    assert not is_same_source("reuters.com", "bloomberg.com")
+    assert not is_same_source("theverge.com", "wired.com")
+
+    # 2. Alias forms of the same domain ALWAYS dedupe
+    assert is_same_source("ars-technica.com", "arstechnica.com")
+    assert is_same_source("www.ars-technica.com", "arstechnica.com")
+    assert is_same_source("https://arstechnica.com/gadgets", "ars-technica.com")
+    assert is_same_source("news.arstechnica.com", "ars-technica.com")
+    assert is_same_source("ars-technica", "arstechnica.com")
+    assert is_same_source("the-verge", "theverge")
+    assert is_same_source("example.com", "sub.example.com")
+
+
+def test_corroboration_distinct_domains_never_dedupe_boosts(memory_store: MemoryStore) -> None:
+    """WO-22 Phase 0 Functional Acceptance:
+    Two distinct registrable domains (example.com vs example.org) do NOT dedupe;
+    example.org provides independent corroboration to example.com claim -> Q2 SATISFIED.
+    """
+    step = InferenceStep(
+        premises=["example.com asserts driver-582.11 fixes wsl-crash"],
+        s="driver-582.11",
+        p="fixes_issue",
+        o="wsl-crash",
+        confidence=0.80,
+    )
+    receipts = [
+        ToolReceipt(
+            tool="fetch_url",
+            call_id="call-fetch-ex-org",
+            source="example.org",
+            output="Report from example.org: confirmed that driver-582.11 fixes wsl-crash.",
+        ),
+    ]
+
+    q_results = critical_questions(Scheme.AUTHORITY, step, store=memory_store, receipts=receipts)
+    assert len(q_results) == 3
+
+    # Q2: Independent corroboration MUST be SATISFIED (example.org != example.com)
+    assert (
+        q_results[1].question
+        == "Is the claim corroborated by an independent grounding-eligible fact?"
+    )
+    assert q_results[1].answer == CQAnswer.SATISFIED
+    assert q_results[1].count == 1
+    assert "example.org" in q_results[1].sources
+
+    # Confidence must be boosted (+0.10)
+    eff_conf, conds = adjust_confidence(step.confidence, q_results)
+    assert eff_conf == 0.90
+
+
+def test_corroboration_alias_domains_dedupe_unknown(memory_store: MemoryStore) -> None:
+    """WO-22 Phase 0 Functional Acceptance:
+    Alias forms of the same domain (ars-technica.com vs arstechnica.com) DO dedupe;
+    arstechnica.com receipt does NOT count as independent corroboration -> Q2 UNKNOWN.
+    """
+    step = InferenceStep(
+        premises=["ars-technica.com asserts driver-582.11 fixes wsl-crash"],
+        s="driver-582.11",
+        p="fixes_issue",
+        o="wsl-crash",
+        confidence=0.80,
+    )
+    receipts = [
+        ToolReceipt(
+            tool="fetch_url",
+            call_id="call-fetch-ars-alias",
+            source="arstechnica.com",
+            output="Report from arstechnica.com: driver-582.11 fixes wsl-crash.",
+        ),
+    ]
+
+    q_results = critical_questions(Scheme.AUTHORITY, step, store=memory_store, receipts=receipts)
+    assert len(q_results) == 3
+
+    # Q1: Matched via alias
+    assert q_results[0].question == "Does a signed receipt prove the source asserted the claim?"
+    assert q_results[0].answer == CQAnswer.SATISFIED
+
+    # Q2: Deduped as same domain -> UNKNOWN
+    assert (
+        q_results[1].question
+        == "Is the claim corroborated by an independent grounding-eligible fact?"
+    )
+    assert q_results[1].answer == CQAnswer.UNKNOWN
+    assert q_results[1].count == 0
+
+    # Confidence remains unadjusted
+    eff_conf, conds = adjust_confidence(step.confidence, q_results)
+    assert eff_conf == 0.80
+
+
+def test_corroboration_subdomain_same_domain_dedupes_unknown(memory_store: MemoryStore) -> None:
+    """WO-22 Phase 0 Functional Acceptance:
+    Subdomains of the same registrable domain (sub.example.com vs example.com) DO dedupe;
+    sub.example.com receipt does NOT count as independent corroboration -> Q2 UNKNOWN.
+    """
+    step = InferenceStep(
+        premises=["example.com asserts driver-582.11 fixes wsl-crash"],
+        s="driver-582.11",
+        p="fixes_issue",
+        o="wsl-crash",
+        confidence=0.80,
+    )
+    receipts = [
+        ToolReceipt(
+            tool="fetch_url",
+            call_id="call-fetch-sub",
+            source="sub.example.com",
+            output="Report from sub.example.com: driver-582.11 fixes wsl-crash.",
+        ),
+    ]
+
+    q_results = critical_questions(Scheme.AUTHORITY, step, store=memory_store, receipts=receipts)
+    assert len(q_results) == 3
+
+    # Q2: Deduped -> UNKNOWN
+    assert (
+        q_results[1].question
+        == "Is the claim corroborated by an independent grounding-eligible fact?"
+    )
+    assert q_results[1].answer == CQAnswer.UNKNOWN
+    assert q_results[1].count == 0

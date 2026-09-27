@@ -15,18 +15,19 @@ Implements evidence-derived confidence adjustment via Walton argumentation schem
 - All Q-results record count + envelope IDs for empirical calibration and future opinion fusion.
 """
 
-from collections.abc import Sequence
-from enum import StrEnum
 import json
 import re
+from collections.abc import Sequence
+from enum import StrEnum
 from typing import Final
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
-from lucca.core.schemas import InferenceStep, MemoryHit, RetrievalQuery
+from lucca.core.schemas import InferenceStep
 
 logger = structlog.get_logger(__name__)
+
 
 # Argumentation Scheme Enums
 class Scheme(StrEnum):
@@ -92,18 +93,14 @@ def adjust_confidence(
     if disputes:
         effective = max(0.0, effective - 0.30)
         for d in disputes:
-            cond = (
-                d.detail
-                if d.detail
-                else f"disputed by {', '.join(d.sources) if d.sources else 'prior grounding evidence'}"
-            )
+            dispute_str = ", ".join(d.sources) if d.sources else "prior grounding evidence"
+            cond = d.detail if d.detail else f"disputed by {dispute_str}"
             conditions_to_add.append(cond)
     else:
         corroborations = [
             q
             for q in q_results
-            if q.question
-            == "Is the claim corroborated by an independent grounding-eligible fact?"
+            if q.question == "Is the claim corroborated by an independent grounding-eligible fact?"
             and q.answer == CQAnswer.SATISFIED
         ]
         if corroborations:
@@ -112,11 +109,166 @@ def adjust_confidence(
     return (round(effective, 4), conditions_to_add)
 
 
+# Small embedded public-suffix list (WO-22 Phase 0)
+# Lookup table, zero network calls, deterministic.
+PUBLIC_SUFFIXES: Final[tuple[str, ...]] = (
+    # Multi-level public suffixes first (e.g. github.io, co.uk)
+    "github.io",
+    "gitlab.io",
+    "co.uk",
+    "org.uk",
+    "gov.uk",
+    "ac.uk",
+    "me.uk",
+    "ltd.uk",
+    "plc.uk",
+    "com.au",
+    "net.au",
+    "org.au",
+    "edu.au",
+    "gov.au",
+    "co.nz",
+    "org.nz",
+    "net.nz",
+    "co.jp",
+    "ne.jp",
+    "ac.jp",
+    "go.jp",
+    "com.br",
+    "org.br",
+    "co.in",
+    "org.in",
+    "net.in",
+    # Single-level generic and country-code TLDs
+    "com",
+    "org",
+    "net",
+    "edu",
+    "gov",
+    "mil",
+    "int",
+    "io",
+    "dev",
+    "ai",
+    "app",
+    "tech",
+    "info",
+    "biz",
+    "me",
+    "tv",
+    "co",
+    "uk",
+    "us",
+    "ca",
+    "de",
+    "fr",
+    "jp",
+    "au",
+    "eu",
+    "nl",
+    "ch",
+    "se",
+    "no",
+    "es",
+    "it",
+    "ru",
+    "cn",
+    "br",
+    "in",
+    "nz",
+    "cc",
+    "to",
+)
+
+_SORTED_SUFFIXES: Final[tuple[str, ...]] = tuple(
+    sorted(PUBLIC_SUFFIXES, key=lambda s: (s.count("."), len(s)), reverse=True)
+)
+
+
+def extract_etld_plus_one(source: str) -> tuple[str, str | None]:
+    """Extracts (normalized_label, public_suffix) from a source or domain string (WO-22 Phase 0).
+
+    Normalizes case, strips leading 'www.', strips hyphens from the registrable label,
+    and matches against the embedded public suffix list.
+
+    Returns:
+        (clean_label, public_suffix) if a domain/suffix is recognized,
+        (clean_source, None) if no domain suffix is present (bare source).
+    """
+    raw = source.strip().lower()
+    if "://" in raw:
+        raw = raw.split("://", 1)[1]
+    raw = raw.split("/", 1)[0].split("?", 1)[0].split("#", 1)[0].split(":", 1)[0].strip()
+    raw = raw.rstrip(".")
+
+    while raw.startswith("www."):
+        raw = raw[4:]
+
+    if not raw:
+        return ("", None)
+
+    for suffix in _SORTED_SUFFIXES:
+        if raw == suffix:
+            return (raw.replace("-", ""), suffix)
+        if raw.endswith("." + suffix):
+            prefix = raw[: -len(suffix) - 1]
+            label = prefix.split(".")[-1]
+            return (label.replace("-", ""), suffix)
+
+    if "." in raw:
+        parts = raw.split(".")
+        suffix = parts[-1]
+        label = parts[-2]
+        return (label.replace("-", ""), suffix)
+
+    return (raw.replace("-", ""), None)
+
+
+def normalize_source_identity(source: str) -> str:
+    """Returns canonical source identity for deduplication (WO-22 Phase 0).
+
+    - For domain sources, returns '{clean_label}.{suffix}'.
+    - For bare sources, returns '{clean_source}'.
+    """
+    label, suffix = extract_etld_plus_one(source)
+    if suffix is not None:
+        return f"{label}.{suffix}"
+    return label
+
+
+def is_same_source(source_a: str, source_b: str) -> bool:
+    """Checks if two source representations refer to the same publisher/domain.
+
+    Invariants (WO-22 Phase 0 / Trap 1):
+    1. Two different registrable domains (e.g. 'example.com' vs 'example.org') NEVER match.
+    2. Alias forms of the same domain ('ars-technica.com' vs 'arstechnica.com',
+       'www.ars-technica.com' vs 'arstechnica.com') ALWAYS match.
+    3. If at least one source has no domain suffix (bare source like 'ars-technica'),
+       they match if their normalized labels match.
+    """
+    sa = source_a.strip().lower()
+    sb = source_b.strip().lower()
+    if not sa or not sb:
+        return False
+    if sa == sb:
+        return True
+
+    label_a, suffix_a = extract_etld_plus_one(sa)
+    label_b, suffix_b = extract_etld_plus_one(sb)
+
+    if suffix_a is not None and suffix_b is not None:
+        # Both have domain suffixes -> must match both label and suffix
+        return label_a == label_b and suffix_a == suffix_b
+
+    # At least one is bare -> match on label
+    return label_a == label_b
+
+
 def extract_receipt_source(r: object) -> str:
     """Extracts publisher/domain/source identity from a receipt (WO-21 Phase 2 Trap 1)."""
     # 1. Direct source attribute
-    if hasattr(r, "source") and getattr(r, "source"):
-        return str(getattr(r, "source")).strip()
+    if hasattr(r, "source") and r.source:
+        return str(r.source).strip()
     # 2. URL argument in args
     args = getattr(r, "args", {}) or {}
     if isinstance(args, dict):
@@ -199,7 +351,12 @@ def critical_questions(
 
         # Check if text contains the claim and matches the asserting source
         if claim_lower in text:
-            if source_lower in text or source_lower in r_source or asserting_source == "unspecified":
+            if (
+                source_lower in text
+                or source_lower in r_source
+                or is_same_source(asserting_source, r_source)
+                or asserting_source == "unspecified"
+            ):
                 cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
                 q1_matches.append(cid)
 
@@ -231,16 +388,9 @@ def critical_questions(
     # -------------------------------------------------------------------------
     corrob_entry_ids: list[str] = []
     independent_sources: list[str] = []
-    seen_sources: set[str] = {source_lower} if source_lower != "unspecified" else set()
-    if source_lower and source_lower != "unspecified":
-        stripped = (
-            source_lower.replace(".com", "")
-            .replace(".org", "")
-            .replace(".net", "")
-            .replace("-", "")
-        )
-        seen_sources.add(source_lower.replace(".com", "").replace(".org", "").replace(".net", ""))
-        seen_sources.add(stripped)
+    seen_sources: list[str] = (
+        [asserting_source] if (asserting_source and asserting_source != "unspecified") else []
+    )
 
     # Check store for independent grounding-eligible memories
     if store is not None:
@@ -266,12 +416,16 @@ def critical_questions(
                         if payload_json_str:
                             try:
                                 pj = json.loads(payload_json_str)
-                                src = pj.get("structured", {}).get("source") or pj.get("signer_id") or src
-                            except Exception as exc:
+                                src = (
+                                    pj.get("structured", {}).get("source")
+                                    or pj.get("signer_id")
+                                    or src
+                                )
+                            except Exception as exc:  # noqa: BLE001
                                 logger.debug("payload_json_parse_error", error=str(exc))
                         src_str = str(src).strip()
-                        if src_str.lower() not in seen_sources:
-                            seen_sources.add(src_str.lower())
+                        if src_str and not any(is_same_source(src_str, s) for s in seen_sources):
+                            seen_sources.append(src_str)
                             independent_sources.append(src_str)
                             corrob_entry_ids.append(str(eid))
             except Exception as exc:  # noqa: BLE001
@@ -286,29 +440,36 @@ def critical_questions(
             + " "
             + str(getattr(r, "structured", "") or "")
         ).lower()
-        r_source = extract_receipt_source(r).lower()
-        r_source_stripped = (
-            r_source.replace(".com", "")
-            .replace(".org", "")
-            .replace(".net", "")
-            .replace("-", "")
-        )
+        r_source = extract_receipt_source(r).strip()
         if (
-            r_source in seen_sources
-            or r_source_stripped in seen_sources
-            or r_source in ("fetch_url", "web_search", "search_web", "tool", "")
+            not r_source
+            or r_source.lower() in ("fetch_url", "web_search", "search_web", "tool")
+            or any(is_same_source(r_source, s) for s in seen_sources)
         ):
             continue
         is_dispute = any(
-            m in r_text for m in ("dispute", "disputed by", "refute", "refuted by", "contradict", "false claim", "debunk")
+            m in r_text
+            for m in (
+                "dispute",
+                "disputed by",
+                "refute",
+                "refuted by",
+                "contradict",
+                "false claim",
+                "debunk",
+            )
         )
         if claim_lower in r_text and not is_dispute:
-            seen_sources.add(r_source)
+            seen_sources.append(r_source)
             independent_sources.append(r_source)
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             corrob_entry_ids.append(cid)
 
     if independent_sources:
+        sources_str = ", ".join(independent_sources)
+        detail_msg = (
+            f"Corroborated by {len(independent_sources)} independent sources: {sources_str}"
+        )
         results.append(
             CriticalQuestionResult(
                 question="Is the claim corroborated by an independent grounding-eligible fact?",
@@ -316,7 +477,7 @@ def critical_questions(
                 count=len(independent_sources),
                 evidence_entry_ids=corrob_entry_ids,
                 sources=independent_sources,
-                detail=f"Corroborated by {len(independent_sources)} independent sources: {', '.join(independent_sources)}",
+                detail=detail_msg,
             )
         )
     else:
@@ -345,7 +506,8 @@ def critical_questions(
             try:
                 with db.read_cursor() as cur:
                     # Look for explicit dispute or contrary predicate/object
-                    # 1. Opposite triple / conflicting assertion: same subject and predicate with different object
+                    # 1. Opposite triple / conflicting assertion: same subject/predicate,
+                    # different object
                     if step.s and step.p:
                         cur.execute(
                             """
