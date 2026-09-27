@@ -56,7 +56,10 @@
 - **TRAP 2:** eTLD+1 source normalization (WO-22 Phase 0) applies to ALL schemes — alias dedupe and distinct-domain invariants must hold for every new scheme's Q2-style corroboration question.
 - **TRAP 3:** diagnoses/evaluations remain `INFERRED`-style hedged outputs — never asserted as facts (D-HON-01 register applies to scheme results too).
 
-**STOP gate:** the 4 scheme definitions (premise shapes + critical question sets + confidence deltas) are owner-visible — present before implementing.
+**STOP gate:** ~~the 4 scheme definitions (premise shapes + critical question sets + confidence deltas) are owner-visible — present before implementing.~~ **Reviewer audit 2026-09-27 of the proposed definitions — 2 corrections required before ratification:**
+1. **Threshold misstatement:** the proposal lists "BEYOND_A_REASONABLE_DOUBT (0.90)" and "PREPONDERANCE (0.51)". The ratified table ([`schemas.py`](../src/lucca/core/schemas.py) `PROOF_STANDARD_THRESHOLDS`) is BALANCE_OF_PROBABILITIES **0.50** / CLEAR_AND_CONVINCING **0.75** / BEYOND_REASONABLE_DOUBT **0.95** (fail-closed per [`proof_policy.py`](../src/lucca/core/proof_policy.py)). The enum is `BALANCE_OF_PROBABILITIES`, not "PREPONDERANCE". The new schemes must consume the existing table — no new thresholds, no renamed standards.
+2. **Delta-family consistency:** ratified AUTHORITY arithmetic is corroborated `min(0.95, conf + 0.10)` / disputed `max(0.00, conf - 0.30)`. Proposed deltas exceed this family in two places: PRECEDENT CQ1+CQ2 **+0.18** (largest positive of any scheme) and CONSEQUENCE CQ1 VIOLATED **−0.35** (larger than the ratified −0.30 dispute floor). Either justify the asymmetry explicitly (e.g., precedent is grounded in her own provenance-verified history) or normalize to the family (+0.10..+0.15 positive, −0.30 negative). Owner to pick.
+Otherwise the proposal is sound: premise-shape cues, CQ sets, eTLD+1 uniformity, 0.95 ceiling, and AUTHORITY-fallback-with-recorded-condition all match the plan's Phase 1 manifest and traps.
 
 ---
 
@@ -94,7 +97,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 0 (operational cleanups) | `5f296cf` | Gemini (implementer) | | pending | 2026-09-27 |
+| 0 (operational cleanups) | `5f296cf` | Gemini (implementer) | Zoo (independent re-run: 927 passed / 0 failed; rotation rename-then-recreate + config retention verified; parity + sanitization regression tests confirmed) | PASS | 2026-09-27 |
 | 1 (walton schemes) | | | | | |
 | 2 (live acceptance) | | | | | |
 
