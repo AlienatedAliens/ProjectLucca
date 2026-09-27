@@ -105,7 +105,7 @@ Acts only on Lucca's sandbox and her own substrate. Ships enabled. No confirmati
 
 The prompt has two parts with different stability contracts:
 
-- **Frozen prefix (byte-stable across turns):** system prompt + the ≤19 native tools in `tools=` (14 Class A incl. `invoke_skill` + `calc_math` + 1 Class B + 2 Class C) + a **static category menu** (7 categories: the four skill packs + the three tool targets). Changes only on explicit Studio edit; the resulting single cache miss is accepted.
+- **Frozen prefix (byte-stable across turns):** system prompt + the ≤24 native tools in `tools=` (18 Class A incl. `invoke_skill` + `calc_math` + 2 Class B + 4 Class C) + a **static category menu** (7 categories: the four skill packs + the three tool targets). Changes only on explicit Studio edit; the resulting single cache miss is accepted.
 - **Variable suffix (per-turn, cache-safe):** the chosen category's invokable-skill manifest (skill_id + one-line description + arg summary) injected at the **tail of the frontier user message** via the existing Prompt Frontier Suffix mechanism ([`prompt_builder.py:811`](../src/lucca/brain/prompt_builder.py) — "Appended exclusively at the tail of the frontier user message, preserving 100% prefix KV cache"), composing with the stance tag. Because the suffix sits after all static content, the prefix cache survives category changes.
 
 **Category selection (deterministic first):** the heuristic router's existing intent class + entities map to a category with no LLM call (microseconds). **LLM fallback:** if no deterministic mapping fires, the model may request a category from the static menu, limited to 1 request per turn; every fallback is logged to `failure_examples/` for the induction pipeline.
@@ -143,7 +143,7 @@ config/skills/<skill_id>/
 - **Categories:** every skill declares ≤2 categories in `meta_info.json` from the 7-category menu (Pack 1 Cognitive Core, Pack 2 Information, Pack 3 Host Perception, Pack 4 Companion, `self`, `host_readonly`, `shared`). Induced rules are assigned categories from the tool classes their plans use, confirmed by the operator at promotion. The category mechanism bounds what is *exposed to the LLM* per turn (§2.4); it does not relax the 30-cap on the rule library.
 - **L5 (pulled forward, re-scoped):** the deterministic category mechanism of §2.4 delivers Decision-1 Option B without neural infrastructure. The NPU-embedding variant (learned within-category ranking) is re-scoped as a post-C1 refinement (§8).
 
-**Separate budgets (reviewer item 7):** the 30-skill cap and the 19-tool cap are **independent**. Skills are matched by the MicroScheme engine against `RuleState` outside the LLM prompt; the LLM never sees the rule catalog. The 30-cap bounds rule-engine matching latency and retrieval precision. The 19-cap bounds the LLM's `tool_calls` catalog reliability (BFCL). A skill whose plan calls a tool does not consume a prompt-catalog slot.
+**Separate budgets (reviewer item 7):** the 30-skill cap and the 24-tool cap are **independent**. Skills are matched by the MicroScheme engine against `RuleState` outside the LLM prompt; the LLM never sees the rule catalog. The 30-cap bounds rule-engine matching latency and retrieval precision. The 24-cap bounds the LLM's `tool_calls` catalog reliability (BFCL). A skill whose plan calls a tool does not consume a prompt-catalog slot.
 
 **Registration:** `lucca-admin skills register <dir>`.
 
@@ -372,8 +372,8 @@ Reflect has no latency budget — it is a calibration pass, not a turn. The two-
 | Thinking-mode latency breaks voice budget | Difficulty gate; thinking only on hard turns; turn-alternation cache test (C2) |
 | Shadow telemetry mistaken for safety proof | Rule of Three correction documented in §6.1, Studio UI copy, and promotion prompts |
 | Post-promotion distribution shift | T4 circuit breaker: auto-demote at >10% failure over 10-turn window |
-| KV-cache invalidation from schema mutation | T1: one frozen sorted block, ≤19 tools, changes only on Studio edit; byte-identity asserted across mixed-intent turns |
-| Tool overload on 12B brain | Registry capped ≤19 native tools; skill exposure bounded per turn by the category manifest |
+| KV-cache invalidation from schema mutation | T1: one frozen sorted block, ≤24 tools, changes only on Studio edit; byte-identity asserted across mixed-intent turns |
+| Tool overload on 12B brain | Registry capped ≤24 native tools; skill exposure bounded per turn by the category manifest |
 | Wrong category hides the right skill | Shortlist-recall metric (Wilson LB ≥ 0.90) on the category-selection eval; LLM category fallback (rate-limited, logged to `failure_examples/`); dispatcher rejects out-of-manifest `skill_id`s |
 | Macro cascading errors | Orchestrator-side intermediate validation; abort + yield on violation; rules cannot read intermediate results by construction |
 | Skills assumed to do what rules can't express | §4.2 expressibility table; skills tagged tool-call+narrate / pure-say / yield-shortcut before authoring |

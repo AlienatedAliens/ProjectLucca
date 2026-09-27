@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.0] — 2026-09-28
+
+### Added
+- **Work Order 24: Native Tool Expansion, Multimodal Vision Spike, and Deterministic Shortlister:**
+  - Raised native tool registry cap (`MAX_REGISTRY_TOOLS`) from 19 to 24 (`src/lucca/core/capabilities.py`).
+  - Registered 4 deferred native tools under central Pydantic argument validation:
+    - `schedule_event`: system event and calendar scheduling with ISO-8601 validation (`src/lucca/sandbox/system_tools.py`).
+    - `artifact_verify`: SHA-256 cryptographic verification and byte-size checking of workspace files with path traversal guards (`src/lucca/sandbox/system_tools.py`).
+    - `clipboard_read`: safe clipboard text inspection via native Win32 CryptoAPI/User32 bindings (`src/lucca/sandbox/system_tools.py`).
+    - `inbox_handoff`: secure workspace file ingestion from external inbox drop directory via `WorkspaceManager.import_from_inbox()`.
+  - Implemented `screenshot_capture` (24th native tool): high-performance DXGI Desktop Duplication API capture with PIL fallback, JPEG encoding (`0xFFD8`), image downscaling ($\le 1920\times 1080$), and strict Class C confirmation gating (`exit_code=-3` upon cancellation).
+  - Multimodal frontier-suffix prompt injection in `src/lucca/brain/llm_client.py` for zero-penalty vision KV-cache reuse.
+  - Shipped deterministic tool shortlister (`src/lucca/core/tool_shortlister.py`): partitioned 24 native tools into 6 categories (`SYSTEM_STATUS`, `WORK_PRODUCT`, `COMMUNICATION`, `COGNITIVE_REASONING`, `EXTERNAL_RESEARCH`, `DESTRUCTIVE_EXECUTION`), bounding LLM exposure to $\le 12$ tools per turn with fail-closed full-catalog fallback (Wilson score lower bound 0.9286).
+  - Comprehensive live acceptance test suite (`tests/test_wo24_live_acceptance.py`) covering all 5 end-to-end scenarios.
+- **Work Order 23: Walton Argumentation Schemes Extension & Normalization:**
+  - Extended Walton argumentation scheme library (`src/lucca/reasoning/walton_schemes.py`) with 4 critical question schemes: Scheme from Sign (observational indicators), Scheme from Analogy (structural target-source mapping), Scheme from Consequences (pragmatic outcome utility), and Scheme from Precedent (historical case consistency).
+  - Normalized confidence weight deltas (positive contributions $\le +0.15$, negative counter-evidence $\ge -0.30$) preventing runaway confidence drift while preserving strict threshold consumption.
+  - Shipped unified transcript normalization (`src/lucca/core/transcript_normalizer.py`) ensuring bit-exact transcript representations across voice, text, and replay pathways.
+  - Shipped automatic decision log rotation (`rotate_decision_log`) in `src/lucca/core/decision_logger.py` with size clamping and atomic file rolling.
+  - Comprehensive live acceptance suite (`tests/test_wo23_live_acceptance.py`).
+- **Work Order 22: Practical Reasoning Rung — Means-Ends Planning & Diagnostic Self-Reasoning:**
+  - Shipped means-ends goal planner (`GoalPlan`, `src/lucca/reasoning/means_ends_planner.py`): multi-action sequence decomposition with 8-step cap, order-contiguity validation, and aggregated multi-action plan narration in `TurnPipeline`.
+  - Shipped diagnostic self-reasoning engine (`DiagnosticEngine`, `src/lucca/reasoning/diagnostic_engine.py`): executes `run_self_diagnosis()` against real hardware fault models (`check_audio_ring`, `check_wsl_status`, `check_models_manifest`) and decision record retrieval, returning spoken natural language assessments.
+  - Cleanups for rule induction test portability, eTLD+1 domain corroboration, and Substrate 2 memory forget.
+  - Live acceptance suite (`tests/test_wo22_live_acceptance.py`).
+- **Work Order 21: Defeasible Reasoning Rung, User Modeling, and Fuzzy Induction:**
+  - Shipped 4-tier standards-of-proof policy table (`PREPONDERANCE`, `CLEAR_AND_CONVINCING`, `BEYOND_REASONABLE_DOUBT`, `SPARK`) for belief commit gating.
+  - Implemented Toulmin defeasible argumentation structure with warrants, backing, rebuttal conditions, and Walton critical question evaluation.
+  - Added web-fact ratification flow with 2-D hazard policy and cross-reference domain verification (`eTLD+1`).
+  - Implemented Theory-of-Mind (ToM) user model (`UserModel`) tracking user beliefs, preferences, and expertise levels, coupled with Case-Based Reasoning (`EpisodeRecall`) for autobiographical episode recall.
+  - Shipped semantic fuzzy clustering in `src/lucca/reasoning/induction.py` using embedding cosine similarity to cluster near-duplicate phrasings for autonomous rule induction.
+  - Source-conditioned inference live acceptance suite (`tests/test_wo21_live_acceptance.py`).
+- **Work Order 20: The Concert Layer & Abductive Neurosymbolic Reasoning (D-REAS-09):**
+  - Shipped the Concert Layer: bidirectional bridge between LLM abductive hypothesis generation and MicroScheme deductive invariant verification.
+  - Implemented `(assert! ...)` primitive and fact predicates in MicroScheme with bounded forward-chaining re-evaluation (`MAX_CHAIN_DEPTH = 8`).
+  - Added working memory reasoning context and cryptographic `ProofTrace` signing for verifiable inferences.
+  - Shipped LLM abductive step protocol (`InferenceStep` schema) and multi-tier gather ladder with premise matching and condition checking.
+  - Implemented `INFERRED` provenance commit path with proof trace verification gate, Substrate 2.5 Belnap epistemic cascade tier, and SQLite database migration `0007`.
+  - End-to-end live acceptance chain ("Where Am I From", `tests/test_wo20_live_acceptance.py`).
+- **Work Order 19: Central Validation Registries, Event Taxonomy, and Formal Verification:**
+  - Shipped central Pydantic tool argument validation registry (`TOOL_ARG_SCHEMAS`, `BaseToolArgs`) enforcing strict schema validation for all native tools (D-SEC-04).
+  - Implemented closed event taxonomy (`EventName` enum) barring free-form event strings across the IPC and turn event bus.
+  - Direct unit testing and Hypothesis property-based fuzz testing for MicroScheme LISP parser and AST evaluator.
+  - Shipped fail-closed boot-path exception logging gate and dead-code registry audit.
+  - Added `lucca-admin memory forget` CLI subcommand for granular Substrate 2 memory redaction.
+- **Work Order 18: Subsystem Decomposition & Architectural Refactoring:**
+  - Decomposed monolithic `Orchestrator` into decoupled, single-responsibility services:
+    - `TurnPipeline`: encapsulates unified turn execution across voice and text paths.
+    - `SpeechOutputManager`: handles TTS chunk synthesis, queuing, overflow policy, and caption publishing.
+    - `MemoryCommitService`: encapsulates transcript, action receipt, and fact commit pipelines.
+    - `BeliefService`: manages belief contradictions and spoken belief update cues.
+    - `ConfirmationManager`: governs temporal spoken and UI confirmation state lifecycles.
+    - `StudioFacade`: strictly isolates UI layer from direct imports into memory, reasoning, or sandbox domains.
+  - Synchronous memory-layer cascade (`MemoryFacade`) eliminating async event-loop starvation.
+  - Fail-closed static architecture gate prohibiting silent broad `except Exception:` handlers (`F-ARCH-105`).
+  - Ports and Adapters architecture with `ClockPort` isolating system time for deterministic testing.
+
+### Changed
+- **Release Baseline Promotion:** Advanced package baseline to `v1.0.0` Production Release across all specs, user guides, and package manifests.
+- **Dynamic Tool Shortlisting:** Replaced flat tool presentation with 6 functional shortlisting categories, reducing LLM context window pressure to $\le 12$ tools per turn while retaining 100% prefix KV-cache reuse.
+- **Test Suite Harness Hardening:** Scaled concurrency timeouts and retry budgets in packaging, sanity guard, and turn loop test fixtures without relaxing any functional thresholds or assertion gates.
+
+### Verified
+- **24 Static Architectural Gates:** 24 / 24 gates PASSED (`tests/test_static_gates.py`, code 0).
+- **Full Regression Test Suite:** 973 / 973 non-hardware tests PASSED (100% green, ~281s).
+- **Master Claims & Provenance Integrity:** 0 regressions, 0 unmodeled predicates, 0 undocumented drift across all active documentation and code citations.
+
+---
+
 ## [0.2.5] — 2026-09-25
 
 ### Added
