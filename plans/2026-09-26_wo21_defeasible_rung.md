@@ -180,4 +180,4 @@ Every phase returns the R.1 package: one commit hash, verbatim full-suite output
 | 3 (ratification) | `b451360` | Gemini | Owner/Reviewer | PASS | 2026-09-27 |
 | 4 (ToM/CBR stubs) | `276cd99` | Gemini | Reviewer (Zoo) | **PASS** | 2026-09-27 |
 | 5 (fuzzy clustering) | `1e6fe6f` | Gemini | Reviewer (Zoo) | **PASS** | 2026-09-27 |
-| 6 (live acceptance) | | | | | |
+| 6 (live acceptance) | `36f04ff` | Gemini | Reviewer | PENDING | 2026-09-27 |
