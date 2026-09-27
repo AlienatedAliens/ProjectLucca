@@ -276,7 +276,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 0 (4 deferred tools + cap raise 19→25) | | | | | |
-| 1 (screenshot_capture + vision ingestion + cap 25→26) | | | | | |
+| 0 (4 deferred tools + cap raise 19→23) | `8c11783` | Gemini | Pending Review | PASS (953 passed) | 2026-09-28 |
+| 1 (screenshot_capture + vision ingestion + cap 23→24) | | | | | |
 | 2 (deterministic tool shortlister) | | | | | |
 | 3 (live acceptance) | | | | | |
