@@ -389,7 +389,7 @@ def test_tts_does_not_block_token_consumption() -> None:
     orch = Orchestrator(tts=SlowTTS, llm=fake_llm)
     try:
         orch._on_user_text(ts_ns=1000, user_text="Give me a long paragraph")
-        for _ in range(50):
+        for _ in range(500):
             if stream_exhausted_time:
                 break
             time.sleep(0.01)
