@@ -33,12 +33,12 @@
 **Manifest:**
 | File | Action |
 |---|---|
-| `src/lucca/core/schemas.py` | `PlanStep(BaseModel)`: `tool: str`, `args: dict[str, JsonValue]`, `purpose: str (max 200)`, `order: int (ge=1)`. `GoalPlan(BaseModel)`: `goal: str`, `steps: list[PlanStep] (max 8)`, `rationale: str (max 500)`, `plan_id: str`. |
+| `src/lucca/core/schemas.py` | **RATIFIED 2026-09-27 (owner):** `PlanStep(BaseModel)`: `tool: str (min_length=1)`, `args: dict[str, JsonValue] (default {})`, `purpose: str (max 200)`, `order: int (ge=1)`. `GoalPlan(BaseModel)`: `goal: str (min_length=1, max 500)`, `steps: list[PlanStep] (min_length=1, max 8)`, `rationale: str (max 500)`, `plan_id: str` (ULID, generated at orchestrator level). Plus a `field_validator` on `steps` enforcing `order` values are exactly the contiguous sequence `1..N` — a plan with orders `[2,2,1]` or `[1,3]` is a schema failure (machine-readable → planner revision → honest refusal), not an orchestrator ordering policy. |
 | `src/lucca/brain/prompt_builder.py` | Planning-mode contract section (mirror the deduction contract's shape): emit a JSON `GoalPlan`, not prose; each step names its tool, args, and *why*; max 8 steps. |
 | `src/lucca/core/orchestrator.py` | `run_planning_step(goal, trace, llm) -> GoalPlan | None`: parse the plan; validate every step's tool exists in the registry and args pass the central `TOOL_ARG_SCHEMAS` schema (WO-19a); deontic pre-check each step via `SpeculativeBDIValidator`; invalid plan → one revision with machine-readable error → then honest refusal ("I can't plan that safely because…"). Valid plan → stored on the turn, executed step-by-step through the **existing** dispatch path (confirmations, sequence guard, taint all apply per-step), each step's receipt appended to the plan record. |
 | `src/lucca/core/turn_pipeline.py` | **ITEM-017 pull-forward** (V2_ACTION_LOG F11, reassessed 2026-09-27): multi-action narration aggregation — when a GoalPlan (or compound rule) executes multiple steps, the narration generator must verbalize the *whole executed sequence* aggregated from the per-step receipts, not only the final step's result. A 3-step plan that narrates "I wrote that down" without mentioning the search and fetch that preceded it is dishonest narration (D-HON-01 register). |
 | `src/lucca/core/reasoning_context.py` | Plans may reference the current `ReasoningContext` — a plan step's `purpose` may cite intermediates. |
-| `tests/test_planning.py` (new) | Valid 3-step plan executes in order with per-step receipts; invalid tool → revision → refusal; step args failing schema → revision; >8 steps → schema failure; plan step requiring confirmation still asks (per-step gates honored); plan referencing a deduction intermediate works; **ITEM-017**: narration for an executed 3-step plan cites every executed step (search + fetch + write), not just the last; a partially-failed plan's narration names the failed step and the cancelled remainder. |
+| `tests/test_planning.py` (new) | Valid 3-step plan executes in order with per-step receipts; invalid tool → revision → refusal; step args failing schema → revision; >8 steps → schema failure; non-contiguous step orders (`[2,2,1]`, `[1,3]`) → schema failure (ratified validator, negative control); plan step requiring confirmation still asks (per-step gates honored); plan referencing a deduction intermediate works; **ITEM-017**: narration for an executed 3-step plan cites every executed step (search + fetch + write), not just the last; a partially-failed plan's narration names the failed step and the cancelled remainder. |
 
 **Functional acceptance:**
 - "Research X and save a summary to notes" → she emits a plan (search_web → fetch_url → note_write), executes it step-by-step with confirmations where required, and each step's receipt is recorded — the plan is inspectable, not improvised.
@@ -50,7 +50,7 @@
 - **TRAP 2:** bounded at 8 steps; no plan-within-plan recursion.
 - **TRAP 3:** a failed step does NOT silently abort the plan — the failure is spoken, remaining steps are cancelled, and the partial plan + receipts are recorded (partial-failure honesty, D-HON-01 register).
 
-**STOP gate:** the `GoalPlan` JSON shape and the max-8-steps bound are owner-visible — present before implementing.
+**STOP gate:** ~~the `GoalPlan` JSON shape and the max-8-steps bound are owner-visible — present before implementing.~~ **RATIFIED 2026-09-27 by owner:** 8-step cap confirmed (inherits the ratified M=8 FULL_LOOP tool-loop bound), `goal` max 500 chars, `steps` min_length 1, and the order-contiguity validator amendment all approved. Phase 1 implementation may proceed.
 
 ---
 
@@ -112,7 +112,7 @@ R.1 package per phase: one commit hash, verbatim full-suite output, verbatim pha
 
 | Phase | Commit | Implementer | Reviewer | Verdict | Date |
 |---|---|---|---|---|---|
-| 0 (cleanups) | `2d7b8cc` | Gemini | Reviewer | PENDING | 2026-09-27 |
+| 0 (cleanups) | `2d7b8cc` | Gemini | Zoo (independent re-run: 891 passed / 0 failed; trap audit + positive controls verified) | PASS | 2026-09-27 |
 | 1 (means-ends planner) | | | | | |
 | 2 (diagnostic self-reasoning) | | | | | |
 | 3 (live acceptance) | | | | | |
