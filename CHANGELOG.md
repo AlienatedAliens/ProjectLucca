@@ -65,6 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ports and Adapters architecture with `ClockPort` isolating system time for deterministic testing.
 
 ### Changed
+- **Memory UI Multi-Selection & Factory Reset:** Fixed memory pruning ergonomics in `MemoryTab` by adding full row multi-selection (Shift+click, Ctrl+click, drag), "Select All Visible" (Ctrl+A), batch pruning with dynamic count indicator (`btn_del_selected`), `Delete`/`Backspace` key shortcuts, table right-click context menu, and a dedicated one-click "Factory Reset (0 Memories)" button with confirmation modal. Protected user selection state against disruption from the 5-second live refresh timer.
+- **UI Settings Suite & Persona Synchronization:** Updated `AboutTab` version baseline to 1.0.0 and added cognitive rungs; aligned `ManualTab` chapter tab indices and documented memory batch deletion and factory reset; added the 24 Native Tool Registry and shortlisting taxonomy display to `ToolsTab`; and updated `prompt_builder` persona architectural self-awareness with WO14–WO24 reasoning and tool capabilities.
 - **Release Baseline Promotion:** Advanced package baseline to `v1.0.0` Production Release across all specs, user guides, and package manifests.
 - **Dynamic Tool Shortlisting:** Replaced flat tool presentation with 6 functional shortlisting categories, reducing LLM context window pressure to $\le 12$ tools per turn while retaining 100% prefix KV-cache reuse.
 - **Test Suite Harness Hardening:** Scaled concurrency timeouts and retry budgets in packaging, sanity guard, and turn loop test fixtures without relaxing any functional thresholds or assertion gates.

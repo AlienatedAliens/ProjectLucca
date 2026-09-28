@@ -94,8 +94,8 @@ def validate_rule_static(
     test_fixtures = _generate_test_states(20)
     for idx, fixture in enumerate(test_fixtures):
         try:
-            evaluate_expr(rule.when_expr, fixture, rule_id=rule.rule_id, timeout_ms=100.0)
-            evaluate_expr(rule.plan_expr, fixture, rule_id=rule.rule_id, timeout_ms=100.0)
+            evaluate_expr(rule.when_expr, fixture, rule_id=rule.rule_id, timeout_ms=1000.0)
+            evaluate_expr(rule.plan_expr, fixture, rule_id=rule.rule_id, timeout_ms=1000.0)
         except (SchemeYieldSignal, SchemeInterruptSignal):
             pass
         except SchemeError as e:

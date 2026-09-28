@@ -259,3 +259,21 @@ def test_p_04_chunker_invariants(deltas: list[str]):
 
     for c in chunks:
         assert len(c.text) <= 260
+
+
+def test_normalise_text_strips_system_tool_traces_and_directives():
+    """Verify leaked system tool trace and directive tokens are stripped from spoken text."""
+    leaked = (
+        "[System Executed Tool Trace: time-greeting-v1({}) -> Status: ok.]\n"
+        "Directive: The action above has completed. Grounding your response strictly in the "
+        "tool execution output above without fabricating metrics or unverified facts, speak to "
+        "the user in your natural companion voice to summarize what happened and what was found. "
+        "Do NOT use markdown formatting, bullet points, asterisks, or backticks; "
+        "speak in natural, clean spoken prose.\n\n"
+        "Yahoo! It is so awesome to see you again!"
+    )
+    cleaned = normalise_text(leaked)
+    assert "[System Executed" not in cleaned
+    assert "Directive:" not in cleaned
+    assert "Yahoo! It is so awesome to see you again!" in cleaned
+

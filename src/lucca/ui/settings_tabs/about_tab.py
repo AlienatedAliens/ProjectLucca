@@ -40,7 +40,7 @@ class AboutTab(QWidget):
         txt_about.setHtml("""
             <div style="text-align: center; margin-bottom: 12px;">
                 <h2 style="color: #ffd700; font-size: 20px; margin-bottom: 2px;">⏳ PROJECT LUCCA DESKTOP COMPANION</h2>
-                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 0.2.6</span>
+                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 1.0.0 Production Release</span>
             </div>
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px;">Companion Origin & Purpose</h4>
@@ -55,6 +55,14 @@ class AboutTab(QWidget):
                 <li><strong>lucca-audio:</strong> Sub-50ms real-time PortAudio ring buffers, Kokoro-82M TTS, and Faster-Whisper ASR.</li>
                 <li><strong>lucca-npu:</strong> OpenVINO GenAI neural execution pipeline pinned to the Intel AI Boost NPU.</li>
                 <li><strong>lucca-ui:</strong> Transparent, non-blocking PyQt6 desktop overlay, concentric Commorose, and SNES control suite.</li>
+            </ul>
+
+            <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px; margin-top: 14px;">Cognitive Reasoning & Native Capabilities</h4>
+            <ul style="color: #ffffff; line-height: 1.5;">
+                <li><strong>Concert Layer:</strong> Bidirectional bridge between abductive neural generation and MicroScheme deductive invariant verification.</li>
+                <li><strong>Defeasible Reasoning Rung:</strong> 4-tier standards of proof (Spark, Preponderance, Clear & Convincing, Beyond Reasonable Doubt) with Toulmin argumentation and Walton critical question schemes.</li>
+                <li><strong>Practical Reasoning & Diagnostics:</strong> 8-step means-ends goal planning and host diagnostic self-reasoning.</li>
+                <li><strong>24 Native Tools:</strong> Sandboxed workspace file operations, multimodal vision capture, safe clipboard text inspection, math computation, web research, and bi-temporal memory management.</li>
             </ul>
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px; margin-top: 14px;">Physical Hardware Topology Detected on Host</h4>

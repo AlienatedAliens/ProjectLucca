@@ -126,12 +126,13 @@ class ManualTab(QWidget):
                 <li><strong>Integrated Model Downloader:</strong> Directly download GGUF weights from HuggingFace with live progress.</li>
             </ul>""",
             # 5. MicroScheme LISP Studio
-            """<h2 style='color:#ffd700;'>6. MicroScheme LISP Reasoning Studio</h2>
-            <p>Combines probabilistic LLM generation with deterministic, compiled S-expression reasoning pathways.</p>
+            """<h2 style='color:#ffd700;'>6. MicroScheme LISP Reasoning Studio & The Concert Layer</h2>
+            <p>Combines probabilistic LLM generation with deterministic, compiled S-expression reasoning pathways and the Concert Layer.</p>
             <ul>
-                <li>Deterministic State -> Plan symbolic pathways that execute before neural inference.</li>
-                <li>In-place Scheme code editor provides syntax validation via the MicroScheme parser.</li>
-                <li>Custom rules can be authored, validated, and tested with isolated gas budgets.</li>
+                <li><strong>Concert Layer:</strong> Bidirectional bridge between abductive neural hypotheses and MicroScheme deductive invariant verification.</li>
+                <li><strong>Deterministic Rules:</strong> State -> Plan symbolic pathways that execute before neural inference.</li>
+                <li><strong>In-Place Code Editor:</strong> Provides real-time syntax validation via the MicroScheme parser.</li>
+                <li><strong>Dream-RSI Replay:</strong> Custom rules can be authored, validated, and offline replay tested with isolated gas budgets.</li>
             </ul>""",
             # 6. Episodic & Semantic Memory
             """<h2 style='color:#ffd700;'>7. Episodic & Semantic Memory Architecture</h2>
@@ -139,7 +140,9 @@ class ManualTab(QWidget):
             <ul>
                 <li><strong>Episodic Memories:</strong> Conversation turns and user interactions recorded in real time.</li>
                 <li><strong>Semantic Facts:</strong> Learned truths, project details, and technical preferences.</li>
-                <li><strong>Human-in-the-Loop Editor:</strong> Search, edit, or prune any memory record directly from the UI.</li>
+                <li><strong>Multi-Row Selection & Batch Pruning:</strong> Click rows, hold Shift/Ctrl, or use <code>☑️ Select All Visible</code> (Ctrl+A), then click <code>🗑️ Prune Selected</code> (or press Delete) to prune multiple memories in one click.</li>
+                <li><strong>💥 Factory Reset to Zero Memories:</strong> One-click reset to prune all active memories back to zero with explicit confirmation.</li>
+                <li><strong>Belief Revision Queue (Spec D-MEM-04, Rung A1):</strong> Review, approve, or reject proposed updates to autobiographical beliefs.</li>
                 <li><strong>Provenance Envelopes:</strong> Cryptographic SHA256 hashes and signer IDs guarantee memory integrity.</li>
             </ul>""",
             # 7. Hardware Substrates & Telemetry
@@ -153,19 +156,21 @@ class ManualTab(QWidget):
                 <li><strong>Telemetry Logs:</strong> Rolling JSONL logs stored in <code>logs/resource_sessions/</code>.</li>
             </ul>""",
             # 8. Whitelist & Workspace Security
-            """<h2 style='color:#ffd700;'>9. Application Whitelist & Workspace Security</h2>
+            """<h2 style='color:#ffd700;'>9. Application Whitelist & 24 Native Tools Security</h2>
             <p>Strict security controls govern all companion desktop tools:</p>
             <ul>
-                <li><strong>Approved Application Whitelist:</strong> Only applications explicitly authorized in Tab 4 can be launched.</li>
-                <li><strong>Workspace Isolation:</strong> File tools operate strictly within the sandboxed workspace directory.</li>
-                <li><strong>Sandbox Constraints:</strong> Prohibits unauthorized file access, egress, or system modifications.</li>
+                <li><strong>24 Native Tools Registry:</strong> Formal Pydantic argument validation and deterministic shortlisting (6 functional categories, max 12 tools per turn).</li>
+                <li><strong>Approved Application Whitelist:</strong> Only applications explicitly authorized in Tab 3 can be launched.</li>
+                <li><strong>Multimodal Vision & Clipboard:</strong> Safe screen capture via DXGI Desktop Duplication and Win32 CryptoAPI clipboard text inspection.</li>
+                <li><strong>Workspace Isolation:</strong> File and code execution tools operate strictly within the sandboxed workspace.</li>
             </ul>""",
             # 9. Troubleshooting & FAQ
             """<h2 style='color:#ffd700;'>10. Troubleshooting, Logs & Diagnostic FAQ</h2>
             <ul>
-                <li><strong>Audio device not capturing?</strong> Open Tab 6 (Hotkeys) and verify your microphone is selected. Check that Kaspersky or Windows Privacy permits audio device access.</li>
-                <li><strong>LLM server connection error?</strong> Go to Tab 3 and click <code>Restart LLM Server</code>. Check that port 8080 is not blocked.</li>
-                <li><strong>Inspect live logs:</strong> Go to Tab 9 (Telemetry & Logs) to inspect parsed session metrics or view raw JSONL entries.</li>
+                <li><strong>Audio device not capturing?</strong> Open Tab 5 (Hotkeys & Push-To-Talk) or check Windows Privacy permissions to verify microphone access.</li>
+                <li><strong>LLM server connection error?</strong> Go to Tab 2 (LLM Tuning) and click <code>Restart LLM Server</code>. Check that port 8080 is not blocked.</li>
+                <li><strong>Resetting companion memories to zero?</strong> Go to Tab 7 (Memory System) and click <code>💥 Factory Reset All Memories</code> to wipe all active memories with one confirmation.</li>
+                <li><strong>Inspect live logs:</strong> Go to Tab 8 (Telemetry & Logs) to inspect parsed session metrics or view raw JSONL entries.</li>
             </ul>""",
         ]
 

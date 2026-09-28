@@ -144,7 +144,7 @@ class LLMRequest(BaseModel):
     user_text: str | None = None
     tools: list[ToolSchema] = Field(default_factory=list)
     grammar: str | None = None
-    max_tokens: int = 512
+    max_tokens: int = 2048
 
 
 class TokenDelta(BaseModel):

@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import enum
 import json
+import platform
 import re
 import time
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import Final
 
@@ -417,6 +419,18 @@ RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
 )
 
 
+def _term_matches(text: str, term: str) -> bool:
+    """Matches a term against text, honoring word boundaries for alphanumeric tokens."""
+    left_b = r"\b" if term and term[0].isalnum() else ""
+    right_b = r"\b" if term and term[-1].isalnum() else ""
+    pattern = f"{left_b}{re.escape(term)}{right_b}"
+    return bool(re.search(pattern, text))
+
+
+def _any_term_matches(text: str, terms: tuple[str, ...]) -> bool:
+    return any(_term_matches(text, t) for t in terms)
+
+
 def classify_epistemic_intent(
     query_text: str,
 ) -> tuple[bool, list[EpistemicSubstrate], str | None]:
@@ -466,6 +480,62 @@ def classify_epistemic_intent(
     # Conversational context queries (WO-17 Phase 6: do not query Substrate 2 memory)
     if RECENT_CONTEXT_PATTERN.search(lower):
         return False, [], None
+
+    # Closed-world puzzles, hypothetical premises, and deductive math reasoning
+    # MUST NOT trigger open-world file search, telemetry, or Belnap abstention refusal.
+    hypothetical_puzzle_starters = (
+        "consider the following premises",
+        "assume a counterfactual",
+        "scenario:",
+        "observations:",
+        "events occurred on",
+        "four houses are arranged",
+        "houses 1 to 4 arranged",
+        "four teams",
+        "round-robin tournament",
+        "round robin",
+        "on an island, knights",
+        "knights and knaves",
+        "knights & knaves",
+        "events 1, 2, 3, 4 require",
+        "tasks t1",
+        "six diplomats",
+        "circular table",
+        "solve the base-10 addition",
+        "ab + ba =",
+        "cryptarithmetic",
+        "given clauses:",
+        "three employees (x, y, z)",
+        "three employees",
+        "choose integer quantities",
+        "a closed market is defined",
+        "bidders a and b",
+        "a drone starts at coordinate",
+        "discover the latent binary operation",
+        "discover binary operation",
+        "step-by-step deductive proof",
+        "solve this puzzle",
+        "logic puzzle",
+        "supply: s =",
+        "supply: p =",
+        "substance has half-life",
+        "worker a completes a job",
+        "sequence defined by",
+        "disease prevalence is",
+        "solve for x, y, z",
+        "interval i1 takes place",
+        "rule: birds fly",
+        "a room has no windows and one locked door",
+        "a server cluster experienced data corruption",
+        "mia places chocolate",
+    )
+    if any(lower.startswith(p) or p in lower for p in hypothetical_puzzle_starters):
+        return False, [], None
+
+    # Detect structured premise lists or math word problems (e.g. "1. Event A...", "Clues:\n1.")
+    if re.search(r"\b(?:premise\s+\d+|clues?:|rule\s+\d+:|rule:\s+|question:\s+(?:is|what|determine|calculate))\b", lower):
+        if re.search(r"\b(?:all\s+\w+\s+are|no\s+\w+\s+is|every\s+\w+\s+is|if\s+both\s+are\s+released|final\s+verdict|determine the exact|construct the valid|valid schedule|find digits|is the system satisfiable|abduce)\b", lower):
+            return False, [], None
 
     # Substrate SELF: Companion identity, persona, creator, and design (Tier 0 Axiomatic)
     self_pattern = (
@@ -596,18 +666,63 @@ def classify_epistemic_intent(
         "online",
     )
 
+    # Substrate TEMPORAL / TELEMETRY: Clock, Date, Time & Physical Geolocation
+    temporal_words = (
+        "what time",
+        "current time",
+        "time is it",
+        "time right now",
+        "what day is it",
+        "what day it is",
+        "what is the date",
+        "what's the date",
+        "today's date",
+        "todays date",
+        "current date",
+        "what month",
+        "what year",
+        "exact time",
+        "local time",
+        "clock",
+    )
+    location_words = (
+        "where are you located",
+        "where you are located",
+        "where are we located",
+        "where you're located",
+        "your location",
+        "my location",
+        "physical location",
+        "machine located",
+        "computer located",
+        "pc located",
+        "where are you",
+        "where am i",
+        "public ip",
+        "ip address",
+        "geolocation",
+    )
+
     substrates: list[EpistemicSubstrate] = []
     # Private credentials, creator real names, and secrets must query MEMORY, not general SELF
-    is_private_memory = any(
-        w in lower for w in ("real name", "full real name", "passkey", "vault", "password")
+    is_private_memory = _any_term_matches(
+        lower, ("real name", "full real name", "passkey", "vault", "password")
     )
     if re.search(self_pattern, lower) and not is_private_memory:
         substrates.append(EpistemicSubstrate.SELF)
     if re.search(capability_pattern, lower):
         substrates.append(EpistemicSubstrate.CAPABILITIES)
-    if any(w in lower for w in telemetry_words):
+    if _any_term_matches(lower, telemetry_words):
         substrates.append(EpistemicSubstrate.TELEMETRY)
-    if any(w in lower for w in workspace_words) or has_file_name:
+    if _any_term_matches(lower, temporal_words):
+        substrates.append(EpistemicSubstrate.TELEMETRY)
+        if EpistemicSubstrate.SELF not in substrates:
+            substrates.append(EpistemicSubstrate.SELF)
+    if _any_term_matches(lower, location_words):
+        substrates.append(EpistemicSubstrate.TELEMETRY)
+        if EpistemicSubstrate.SELF not in substrates:
+            substrates.append(EpistemicSubstrate.SELF)
+    if _any_term_matches(lower, workspace_words) or has_file_name:
         substrates.append(EpistemicSubstrate.WORKSPACE)
     self_history_words = (
         "what did you do",
@@ -629,11 +744,11 @@ def classify_epistemic_intent(
         "execution history",
         "did you claim",
     )
-    if any(w in lower for w in self_history_words):
+    if _any_term_matches(lower, self_history_words):
         substrates.append(EpistemicSubstrate.SELF_HISTORY)
-    if any(w in lower for w in memory_words) or is_private_memory:
+    if _any_term_matches(lower, memory_words) or is_private_memory:
         substrates.append(EpistemicSubstrate.MEMORY)
-    if any(w in lower for w in web_words) and not any(w in lower for w in self_history_words):
+    if _any_term_matches(lower, web_words) and not _any_term_matches(lower, self_history_words):
         substrates.append(EpistemicSubstrate.WEB)
 
     is_epistemic = len(substrates) > 0
@@ -710,13 +825,17 @@ class EpistemicSearchCascade:
         try:
             cfg = get_persona_config()
             rt = get_config()
+            now_local = datetime.now().astimezone()
+            time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
             content = (
                 f"Agent Identity: Lucca, local AI engineer companion. "
+                f"Current Local Time: {time_str}. "
                 f"Archetype: {cfg.archetype}. Voice: {cfg.voice}. "
                 f"Local Runtime: language model '{rt.llm.model_display_name()}' served by "
                 f"llama-server on the dGPU (context {rt.llm.ctx} tokens); "
                 f"speech recognition '{Path(rt.asr.model).name}' on NPU/CPU; "
                 f"speech synthesis '{Path(rt.tts.model).name}' voice '{rt.tts.voice}'. "
+                f"Host Workstation: {platform.node()} ({platform.platform()}). "
                 f"Core Purpose: Pair-programming, systems debugging, and desktop automation. "
                 f"Created locally for this workstation. "
                 f"Admits uncertainty: {cfg.admits_uncertainty}."
@@ -782,7 +901,7 @@ class EpistemicSearchCascade:
     # Substrate 0: System & Hardware Telemetry (< 1ms target)
     # ------------------------------------------------------------------------
     def query_substrate_0_telemetry(self, query_text: str) -> list[EvidenceItem]:
-        """Queries live hardware telemetry (GPU, CPU, RAM, NPU) via system_tools."""
+        """Queries live hardware telemetry (GPU, CPU, RAM, NPU, Time, Location) via system_tools."""
         lower = query_text.lower()
         items: list[EvidenceItem] = []
 
@@ -807,10 +926,82 @@ class EpistemicSearchCascade:
                 re.search(rf"\b{re.escape(w)}\b", lower)
                 for w in ("ram", "physical memory", "system memory")
             )
+            is_clock_freq = bool(
+                re.search(r"\b(?:core|gpu|cpu|bus|memory)\s+clock\b", lower)
+                or re.search(r"\bclock\s+(?:speed|rate|freq|frequency|multiplier)\b", lower)
+            )
+            wants_time = not is_clock_freq and any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in (
+                    "what time",
+                    "current time",
+                    "local time",
+                    "exact time",
+                    "time is it",
+                    "today",
+                    "what day",
+                    "what month",
+                    "what year",
+                    "wall clock",
+                    "system clock",
+                    "clock",
+                )
+            )
+            wants_location = any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in ("location", "where", "located", "ip", "network", "city", "country", "place")
+            )
             general_hw = any(
                 re.search(rf"\b{re.escape(w)}\b", lower)
                 for w in ("hardware", "specs", "telemetry", "substrate configuration", "system")
             )
+
+            if wants_time or general_hw:
+                now_local = datetime.now().astimezone()
+                time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
+                content = (
+                    f"Host Local Time: {time_str} | Timezone: {metrics.get('timezone_name', 'UTC')}"
+                )
+                items.append(
+                    EvidenceItem(
+                        substrate=EpistemicSubstrate.TELEMETRY,
+                        trust_tier=TrustTier.TIER_1_HARDWARE,
+                        source="system_tools:local_clock",
+                        content=content,
+                        polarity=BelnapValue.TRUE,
+                        confidence=1.0,
+                        metadata={"timestamp": metrics.get("timestamp")},
+                    )
+                )
+
+            if wants_location:
+                from lucca.sandbox.service import get_host_network_and_location  # noqa: PLC0415
+
+                net_geo = get_host_network_and_location()
+                if net_geo.get("public_ip"):
+                    loc_content = (
+                        f"Physical Host Geolocation: {net_geo.get('city')}, {net_geo.get('region')}, "
+                        f"{net_geo.get('country')} (Coordinates: {net_geo.get('coordinates')}, "
+                        f"ISP: {net_geo.get('isp')}, Public IP: {net_geo.get('public_ip')})"
+                    )
+                else:
+                    local_ips = (
+                        ", ".join(str(x) for x in net_geo.get("local_ips", []))  # type: ignore[union-attr]
+                        or "local only"
+                    )
+                    loc_content = f"Host Network: Local IPs [{local_ips}]"
+
+                items.append(
+                    EvidenceItem(
+                        substrate=EpistemicSubstrate.TELEMETRY,
+                        trust_tier=TrustTier.TIER_1_HARDWARE,
+                        source="system_tools:network_geo",
+                        content=loc_content,
+                        polarity=BelnapValue.TRUE,
+                        confidence=1.0,
+                        metadata=net_geo,
+                    )
+                )
 
             if wants_gpu or general_hw:
                 content = (

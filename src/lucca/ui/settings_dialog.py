@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import JsonValue
@@ -124,6 +123,19 @@ class SettingsDialog(QDialog):
 
         # Load persona configuration from persona.toml
         self.persona_cfg = get_persona_config()
+        if self.persona_cfg.voice:
+            self.current_voice = self.persona_cfg.voice
+        if self.persona_cfg.speed is not None:
+            self.current_speed = self.persona_cfg.speed
+        if self.persona_cfg.ptt_key:
+            self.current_ptt_key = self.persona_cfg.ptt_key
+        if self.persona_cfg.archetype:
+            self.current_archetype = self.persona_cfg.archetype
+        if self.persona_cfg.formality:
+            self.current_formality = self.persona_cfg.formality
+        if self.persona_cfg.custom_prompt is not None:
+            self.current_custom_prompt = self.persona_cfg.custom_prompt
+
         self.current_tech_depth = self.persona_cfg.traits.technical_depth
         self.current_warmth = self.persona_cfg.traits.warmth
         self.current_directness = self.persona_cfg.traits.directness
@@ -332,8 +344,12 @@ class SettingsDialog(QDialog):
         btn_cancel.clicked.connect(self.reject)
         btn_box.addWidget(btn_cancel)
 
-        btn_save = QPushButton("✓ Apply & Save All Changes", self)
-        btn_save.clicked.connect(self._handle_save)
+        btn_apply = QPushButton("Apply", self)
+        btn_apply.clicked.connect(lambda: self._handle_save(close_dialog=False))
+        btn_box.addWidget(btn_apply)
+
+        btn_save = QPushButton("✓ Save & Close", self)
+        btn_save.clicked.connect(lambda: self._handle_save(close_dialog=True))
         btn_box.addWidget(btn_save)
 
         main_layout.addLayout(btn_box)
@@ -375,7 +391,7 @@ class SettingsDialog(QDialog):
     # =========================================================================
     # Configuration Apply & Lossless Save
     # =========================================================================
-    def _handle_save(self) -> None:
+    def _handle_save(self, close_dialog: bool = True) -> None:
         # 1. Save Persona to persona.toml losslessly via prompt_builder
         arch = str(self.tab_persona.combo_archetype.currentData())
         form = str(self.tab_persona.combo_formality.currentData())
@@ -416,7 +432,7 @@ class SettingsDialog(QDialog):
             affect_enabled=affect_en,
             decay_tau_seconds=decay_tau,
             max_speed_delta=max_speed,
-            user_archetypes=self.tab_persona.user_archetypes,
+            user_archetypes=self.user_archetypes,
             dsp_pitch_semitones=selected_pitch,
             dsp_enabled=dsp_en,
         )
@@ -437,6 +453,8 @@ class SettingsDialog(QDialog):
             "pitch_semitones": selected_pitch,
             "dsp_enabled": dsp_en,
             "gain_db": self.tab_dsp.slider_gain.value() * 0.5,
+            "bass_db": self.tab_dsp.slider_bass.value() * 0.5,
+            "treble_db": self.tab_dsp.slider_treble.value() * 0.5,
             "reverb_pct": self.tab_dsp.slider_reverb.value(),
             "limiter_enabled": self.tab_dsp.chk_limiter.isChecked(),
             "rumble_filter_enabled": self.tab_dsp.chk_rumble.isChecked(),
@@ -445,4 +463,14 @@ class SettingsDialog(QDialog):
         if self.on_save_config is not None:
             self.on_save_config(cfg)
 
-        self.accept()
+        # Reload persona_cfg in dialog
+        self.persona_cfg = get_persona_config()
+        self.current_voice = selected_voice
+        self.current_speed = selected_speed
+        self.current_ptt_key = selected_ptt
+
+        if close_dialog:
+            self.accept()
+        else:
+            self.lbl_global_status.setText("✓ Configuration applied and saved successfully!")
+            self.lbl_global_status.setStyleSheet("color: #44dd44; font-weight: bold;")

@@ -57,6 +57,8 @@ def normalise_text(text: str, speak_urls: bool = False) -> str:
     # 0. Strip template markers and character prefixes that leak from LLM output
     s = re.sub(r"\[(?:SYSTEM[_ ]?PROMPT|INST|AVAILABLE[_ ]?TOOLS|CRITICAL VOICE)\]", "", text)
     s = re.sub(r"^\s*\[Lucca\]\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\[System Executed (?:Multi-Step Plan )?Tool Trace:[^\]]+\]", "", s)
+    s = re.sub(r"Directive:[^\n]+(?:\n|$)", "", s)
 
     # 1. Smart quotes, dashes, ellipses
     s = (

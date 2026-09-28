@@ -6,7 +6,7 @@ Runs headlessly under offscreen QPA platform.
 import os
 
 import pytest
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QPushButton
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -367,3 +367,84 @@ def test_settings_dialog_center_containment(qapp: QApplication) -> None:
         assert dlg.y() >= avail.top()
         assert dlg.x() + dlg.width() <= avail.right() + 20
         assert dlg.y() + dlg.height() <= avail.bottom() + 20
+
+
+def test_settings_dialog_handle_save(qapp: QApplication, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifies that _handle_save runs without AttributeError and passes user_archetypes."""
+    import lucca.ui.settings_dialog as sd_module
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    saved_kwargs: dict[str, object] = {}
+
+    def mock_save(**kwargs: object) -> None:
+        saved_kwargs.update(kwargs)
+
+    monkeypatch.setattr(sd_module, "save_persona_to_config", mock_save)
+
+    dlg = SettingsDialog()
+    assert hasattr(dlg.tab_persona, "user_archetypes")
+    assert dlg.tab_persona.user_archetypes == dlg.user_archetypes
+    dlg._handle_save()
+    assert "user_archetypes" in saved_kwargs
+
+
+def test_settings_dialog_apply_vs_save_and_close(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verifies that Apply keeps the dialog open and Save & Close closes it."""
+    import lucca.ui.settings_dialog as sd_module
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    saved_calls: list[bool] = []
+
+    def mock_save(**kwargs: object) -> None:
+        saved_calls.append(True)
+
+    monkeypatch.setattr(sd_module, "save_persona_to_config", mock_save)
+
+    dlg = SettingsDialog()
+    buttons = dlg.findChildren(QPushButton)
+    btn_texts = [b.text() for b in buttons]
+    assert "Apply" in btn_texts
+    assert "✓ Save & Close" in btn_texts
+
+    # Test Apply (does not accept/close dialog)
+    dlg._handle_save(close_dialog=False)
+    assert len(saved_calls) == 1
+    assert "Configuration applied" in dlg.lbl_global_status.text()
+
+    # Test Save & Close (accepts/closes dialog)
+    dlg._handle_save(close_dialog=True)
+    assert len(saved_calls) == 2
+
+
+def test_settings_dialog_dsp_pitch_preservation(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verifies that DSPTab initializes with current persona pitch and saves it."""
+    import lucca.ui.settings_dialog as sd_module
+    from lucca.brain.prompt_builder import PersonaConfig
+    from lucca.ui.settings_dialog import SettingsDialog
+
+    mock_persona = PersonaConfig(
+        dsp_pitch_semitones=3.0,
+        dsp_enabled=True,
+    )
+    monkeypatch.setattr(sd_module, "get_persona_config", lambda: mock_persona)
+
+    saved_kwargs: dict[str, object] = {}
+
+    def mock_save(**kwargs: object) -> None:
+        saved_kwargs.update(kwargs)
+
+    monkeypatch.setattr(sd_module, "save_persona_to_config", mock_save)
+
+    dlg = SettingsDialog()
+    assert dlg.tab_dsp.slider_pitch.value() == 3
+    assert "+3 semitones" in dlg.tab_dsp.lbl_pitch_val.text()
+
+    dlg._handle_save(close_dialog=False)
+    assert saved_kwargs.get("dsp_pitch_semitones") == 3.0
+    assert saved_kwargs.get("dsp_enabled") is True
+
+

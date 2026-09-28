@@ -70,12 +70,26 @@ class DSPTab(QWidget):
         grp_dsp = QGroupBox("Master Output Processing Chain", self)
         f_dsp = QFormLayout(grp_dsp)
 
+        # Load saved persona DSP preferences from dialog
+        persona_cfg = getattr(self.dialog, "persona_cfg", None)
+        saved_pitch = (
+            int(round(float(getattr(persona_cfg, "dsp_pitch_semitones", 0.0))))
+            if persona_cfg
+            else 0
+        )
+        saved_dsp_enabled = (
+            bool(getattr(persona_cfg, "dsp_enabled", True))
+            if persona_cfg
+            else True
+        )
+
         # 1. Voice Pitch Shifter (-12 to +12 semitones)
         h_pitch = QHBoxLayout()
         self.slider_pitch = QSlider(Qt.Orientation.Horizontal, grp_dsp)
         self.slider_pitch.setRange(-12, 12)
-        self.slider_pitch.setValue(0)
-        self.lbl_pitch_val = QLabel("0 semitones (Natural)", grp_dsp)
+        self.slider_pitch.setValue(saved_pitch)
+        pitch_txt = f"{saved_pitch:+d} semitones" if saved_pitch != 0 else "0 semitones (Natural)"
+        self.lbl_pitch_val = QLabel(pitch_txt, grp_dsp)
         self.lbl_pitch_val.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-weight: bold;")
         self.slider_pitch.valueChanged.connect(
             lambda val: self.lbl_pitch_val.setText(
@@ -144,7 +158,7 @@ class DSPTab(QWidget):
 
         # Checkbox toggles
         self.chk_limiter = QCheckBox("Soft-Knee Dynamic Limiter & Fast Compressor", grp_dsp)
-        self.chk_limiter.setChecked(True)
+        self.chk_limiter.setChecked(saved_dsp_enabled)
         f_dsp.addRow("Dynamic Protection:", self.chk_limiter)
 
         self.chk_rumble = QCheckBox(

@@ -333,10 +333,15 @@ class HeuristicRouter:
         if re.search(mem_pattern, text):
             return "memory_query", 0.90, entities
 
-        # 5. Chit Chat
+        # 5. Chit Chat & Persona / Companion Inquiries
         chit_pattern = (
             r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
-            r"good\s+morning|good\s+afternoon|good\s+night)\b"
+            r"good\s+morning|good\s+afternoon|good\s+night|"
+            r"who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
+            r"(?:what|can\s+you\s+tell\s+me\s+anything)\s+about\s+yourself|"
+            r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|"
+            r"what\s+can\s+you\s+do|your\s+name|introduce\s+yourself|"
+            r"test(?:ing)?\s+you|how\s+about\s+we\s+try\s+testing\s+you)\b"
         )
         if re.search(chit_pattern, text):
             return "chit_chat", 0.95, entities
@@ -349,7 +354,7 @@ class HeuristicRouter:
             r"find\s+(?:out|information|online)|headlines|wikipedia|"
             r"tell\s+me\s+about|facts\s+about|who\s+(?:is|was)|"
             r"what\s+(?:is|are|can\s+you\s+tell)|where\s+(?:is|are|was|does)|"
-            r"when\s+(?:was|is)|how\s+about|"
+            r"when\s+(?:was|is)|how\s+about\s+(?:the|a|an)\b|"
             # Meta-search directives — user redirecting an ongoing web-search turn
             r"try\s+(?:alternative|other|different|more|another)\s+"
             r"(?:source|sources|website|websites|site|sites|approach|approaches)|"

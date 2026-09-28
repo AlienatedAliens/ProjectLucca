@@ -318,17 +318,21 @@ class UIApplication:
         menu.exec(pos)
 
     def _open_settings(self) -> None:
-        if self.settings_dialog is None:
-            persona = get_persona()
-            self.settings_dialog = SettingsDialog(
-                current_voice=self.active_voice,
-                current_speed=self.active_speed,
-                current_ptt_key=self.active_ptt_key,
-                current_archetype=persona.archetype,
-                current_formality=persona.formality,
-                current_custom_prompt=persona.custom_prompt,
-                on_save_config=self._send_config_update,
-            )
+        if self.settings_dialog is not None and self.settings_dialog.isVisible():
+            self.settings_dialog.raise_()
+            self.settings_dialog.activateWindow()
+            return
+
+        persona = get_persona()
+        self.settings_dialog = SettingsDialog(
+            current_voice=self.active_voice,
+            current_speed=self.active_speed,
+            current_ptt_key=self.active_ptt_key,
+            current_archetype=persona.archetype,
+            current_formality=persona.formality,
+            current_custom_prompt=persona.custom_prompt,
+            on_save_config=self._send_config_update,
+        )
         self.settings_dialog.center_on_screen()
         self.settings_dialog.show()
         self.settings_dialog.raise_()

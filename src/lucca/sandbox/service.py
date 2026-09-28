@@ -82,6 +82,21 @@ _SAFE_MATH_FUNCTIONS: dict[str, Callable[..., int | float]] = {
 }
 
 
+def get_host_network_and_location() -> dict[str, JsonValue]:
+    """Retrieves local network IPs using local socket inspection (<5ms)."""
+    net_info: dict[str, JsonValue] = {"local_ips": []}
+    try:
+        import socket
+
+        hostname = socket.gethostname()
+        local_ips = socket.gethostbyname_ex(hostname)[2]
+        net_info["local_ips"] = [ip for ip in local_ips if not ip.startswith("127.")]
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("get_local_ips_failed", error=str(exc))
+
+    return net_info
+
+
 def _eval_ast_node(node: ast.AST) -> int | float | list[object] | tuple[object, ...]:
     if isinstance(node, ast.Expression):
         return _eval_ast_node(node.body)
@@ -689,7 +704,6 @@ class SandboxService:
                     stderr=str(exc),
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
-
         # 5g. Host System Info (Untrusted Host Readonly)
         if tool_name == "sys_info":
             t0 = time.perf_counter()
@@ -704,8 +718,14 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
+                from datetime import datetime
+
                 boot_time = psutil.boot_time()
                 uptime_s = max(0.0, time.time() - boot_time)
+                now_local = datetime.now().astimezone()
+                time_str = now_local.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
+                net_geo = get_host_network_and_location()
+
                 processes = list_running_processes(
                     filter_name=parsed_sys.filter_name,
                     limit=parsed_sys.limit,
@@ -716,6 +736,10 @@ class SandboxService:
                     "release": platform.release(),
                     "machine": platform.machine(),
                     "hostname": platform.node(),
+                    "current_local_time": time_str,
+                    "timezone": now_local.tzname() or "UTC",
+                    "utc_offset": now_local.strftime("%z"),
+                    "network": net_geo,
                     "uptime_seconds": round(uptime_s, 1),
                     "cpu_count": psutil.cpu_count(logical=True) or 1,
                     "process_count": len(processes),
@@ -726,10 +750,23 @@ class SandboxService:
                     f"(CPU {p.get('cpu_pct')}%, MEM {p.get('mem_pct')}%)"
                     for p in processes
                 )
+                geo_summary = ""
+                if net_geo.get("public_ip"):
+                    geo_summary = (
+                        f"Physical Geolocation: {net_geo.get('city')}, {net_geo.get('region')}, "
+                        f"{net_geo.get('country')} (IP: {net_geo.get('public_ip')}, ISP: {net_geo.get('isp')})\n"
+                    )
+                elif net_geo.get("local_ips"):
+                    geo_summary = (
+                        f"Local Network IPs: {', '.join(str(x) for x in net_geo['local_ips'])}\n"
+                    )
+
                 content = (
                     f"Host System Info (Untrusted Host Inspection):\n"
+                    f"Current Local Time: {time_str}\n"
                     f"OS: {platform.platform()} ({platform.machine()})\n"
                     f"Hostname: {platform.node()}\n"
+                    f"{geo_summary}"
                     f"Uptime: {uptime_s / 3600.0:.1f} hours\n"
                     f"Processes ({len(processes)}):\n{proc_lines}"
                 )

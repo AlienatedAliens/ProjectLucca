@@ -18,6 +18,7 @@ from lucca.core.affective_ode import (
     AffectSignal3D,
     DiscreteStance,
 )
+from lucca.core.config import get_resource_path
 
 
 class AffectConfig(BaseModel):
@@ -223,7 +224,7 @@ class AffectTracker:
         path = (
             Path(config_path)
             if config_path is not None
-            else Path(r"C:\ProjectLucca\config\persona.toml")
+            else get_resource_path("config/persona.toml")
         )
         if not path.exists():
             return

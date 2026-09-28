@@ -358,3 +358,59 @@ def test_admin_memory_forget(
     captured3 = capsys.readouterr()
     assert "FAILED: Memory 'nonexistent-999' not found" in captured3.out
 
+
+def test_admin_memory_reset(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    from lucca.memory.db import DatabaseManager
+
+    db_path = tmp_path / "memory_reset.sqlite"
+    db = DatabaseManager(db_path)
+    db.migrate()
+
+    # Seed 2 test memories
+    conn = db.get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO provenance_envelopes (
+                entry_id, provenance, kind, signer_id, signature, content_sha256,
+                nonce, created_at, trace_id, session_id, confidence, payload_json
+            ) VALUES
+            ('e-r1', 'USER_EXPLICIT', 'transcript', 's-r1', 'sig-r1', 'h1', 'n1', 1000.0, 't1', 's1', 1.0, '{}'),
+            ('e-r2', 'USER_EXPLICIT', 'transcript', 's-r2', 'sig-r2', 'h2', 'n2', 1000.0, 't2', 's2', 1.0, '{}')
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO memories (
+                memory_id, entry_id, content, tokens_aux, kind, created_at, valid_from
+            ) VALUES
+            (10, 'e-r1', 'Memory ten.', '', 'transcript', 1000.0, 1000.0),
+            (20, 'e-r2', 'Memory twenty.', '', 'transcript', 1000.0, 1000.0)
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    # Reset memories
+    with pytest.raises(SystemExit) as exc:
+        main(["memory", "--db", str(db_path), "reset"])
+    assert exc.value.code == 0
+    captured = capsys.readouterr()
+    assert "SUCCESS: Factory reset complete. Soft-deleted and audited 2 memories." in captured.out
+
+    # Verify both soft deleted
+    conn = db.get_connection()
+    try:
+        cur = conn.execute("SELECT COUNT(*) FROM memories WHERE forgotten_at IS NULL")
+        assert cur.fetchone()[0] == 0
+    finally:
+        conn.close()
+
+    # Reset again on empty store
+    with pytest.raises(SystemExit) as exc2:
+        main(["memory", "--db", str(db_path), "reset"])
+    assert exc2.value.code == 0
+    captured2 = capsys.readouterr()
+    assert "Memory store already has zero active memories." in captured2.out
+

@@ -2706,7 +2706,10 @@ class Orchestrator:
                                 "estimate, or fabricate the result the tool was supposed to "
                                 "produce — especially numbers. Do not use celebration, "
                                 "confidence, or success register when reporting failed or "
-                                "unverified results.]"
+                                "unverified results. If solving an analytical, logic, or "
+                                "mathematical problem, you may provide your step-by-step "
+                                "chain-of-thought derivation clearly labeled as an analytical "
+                                "derivation rather than claiming tool execution.]"
                             ),
                         )
                     )

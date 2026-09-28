@@ -5,6 +5,7 @@ Spec 02 (SpeechLLMPort), Spec 08, ADR-001
 
 import json
 import os
+import re
 import threading
 import uuid
 from collections.abc import Generator
@@ -56,6 +57,82 @@ def build_chat_template_kwargs(
     if eff_thinking is not None:
         kwargs["enable_thinking"] = eff_thinking
     return kwargs
+
+
+def _parse_and_repair_tool_args(raw: str, tool_name: str = "") -> dict[str, JsonValue]:
+    """
+    Parses tool arguments JSON with multi-stage recovery:
+    1. Standard json.loads
+    2. Non-strict json.loads(..., strict=False) to allow unescaped newlines/tabs
+    3. Structural repair for truncated strings, unclosed brackets/braces
+    4. Regex extraction for tools like run_python / calc_math
+    """
+    if not raw or not raw.strip():
+        return {}
+    s = raw.strip()
+
+    # 1. Standard json.loads
+    try:
+        res = json.loads(s)
+        if isinstance(res, dict):
+            return res
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Non-strict (allows unescaped control chars like \n, \t)
+    try:
+        res = json.loads(s, strict=False)
+        if isinstance(res, dict):
+            return res
+    except json.JSONDecodeError:
+        pass
+
+    # 3. Structural repair: close unclosed strings, square brackets, curly braces
+    repaired = s
+    quotes = len(re.findall(r'(?<!\\)"', repaired))
+    if quotes % 2 != 0:
+        repaired += '"'
+    open_square = repaired.count("[") - repaired.count("]")
+    if open_square > 0:
+        repaired += "]" * open_square
+    open_curly = repaired.count("{") - repaired.count("}")
+    if open_curly > 0:
+        repaired += "}" * open_curly
+
+    try:
+        res = json.loads(repaired, strict=False)
+        if isinstance(res, dict):
+            return res
+    except json.JSONDecodeError:
+        pass
+
+    # 4. Fallback extraction for run_python / code argument
+    if tool_name in ("run_python", "run_python_async") or '"code"' in s:
+        code_match = re.search(r'"code"\s*:\s*"', s)
+        if code_match:
+            code_part = s[code_match.end() :]
+            code_part = re.sub(r'"\s*}\s*$', "", code_part)
+            try:
+                code_unescaped = code_part.encode("utf-8").decode("unicode_escape")
+            except (UnicodeDecodeError, ValueError) as exc:
+                logger.debug("code_unicode_unescape_fallback", error=str(exc))
+                code_unescaped = (
+                    code_part.replace("\\n", "\n")
+                    .replace('\\"', '"')
+                    .replace("\\\\", "\\")
+                    .replace("\\t", "\t")
+                )
+            return {"code": code_unescaped}
+
+    # 5. Fallback extraction for calc_math / expr argument
+    if tool_name == "calc_math" or '"expr"' in s:
+        expr_match = re.search(r'"expr"\s*:\s*"([^"]*)', s)
+        if expr_match:
+            return {"expr": expr_match.group(1)}
+
+    logger.warning("invalid_tool_call_json", args=raw, tool=tool_name)
+    return {}
+
 
 
 class LLMClient:
@@ -174,8 +251,26 @@ class LLMClient:
                     break
 
         eff_tools = tools if tools is not None else TOOL_DEFINITIONS
+        prepared_messages: list[dict[str, JsonValue]] = []
+        for i, m in enumerate(eff_messages):
+            dumped = m.model_dump(exclude_none=True)
+            if i == len(eff_messages) - 1 and dumped.get("role") == "assistant":
+                content_str = str(dumped.get("content", ""))
+                if "Directive:" in content_str or "[System Executed" in content_str:
+                    if prepared_messages and prepared_messages[-1].get("role") == "user":
+                        prev_c = prepared_messages[-1].get("content")
+                        if isinstance(prev_c, list):
+                            prepared_messages[-1]["content"] = list(prev_c) + [
+                                {"type": "text", "text": f"\n\n{content_str}"}
+                            ]
+                        else:
+                            prepared_messages[-1]["content"] = f"{prev_c}\n\n{content_str}".strip()
+                        continue
+                    dumped["role"] = "user"
+            prepared_messages.append(dumped)
+
         payload: dict[str, object] = {
-            "messages": [m.model_dump(exclude_none=True) for m in eff_messages],
+            "messages": prepared_messages,
             "tools": [t.model_dump() for t in eff_tools],
             "tool_choice": "auto",
             "chat_template_kwargs": build_chat_template_kwargs(
@@ -248,16 +343,9 @@ class LLMClient:
                     if finish_reason == "tool_calls":
                         for idx in sorted(current_tool_calls.keys()):
                             tc_data = current_tool_calls[idx]
-                            args: dict[str, JsonValue] = {}
-                            if tc_data["arguments"]:
-                                try:
-                                    raw_parsed = json.loads(tc_data["arguments"])
-                                    if isinstance(raw_parsed, dict):
-                                        args = raw_parsed
-                                except json.JSONDecodeError:
-                                    logger.warning(
-                                        "invalid_tool_call_json", args=tc_data["arguments"]
-                                    )
+                            args = _parse_and_repair_tool_args(
+                                tc_data["arguments"], tc_data.get("name", "")
+                            )
                             if tc_data["name"]:
                                 yield ToolCallEnd(
                                     call=ToolCall(
@@ -277,14 +365,9 @@ class LLMClient:
             # Flush any remaining tool calls
             for idx in sorted(current_tool_calls.keys()):
                 tc_data = current_tool_calls[idx]
-                flush_args: dict[str, JsonValue] = {}
-                if tc_data["arguments"]:
-                    try:
-                        raw_flush = json.loads(tc_data["arguments"])
-                        if isinstance(raw_flush, dict):
-                            flush_args = raw_flush
-                    except json.JSONDecodeError:
-                        logger.warning("invalid_tool_call_json", args=tc_data["arguments"])
+                flush_args = _parse_and_repair_tool_args(
+                    tc_data["arguments"], tc_data.get("name", "")
+                )
                 if tc_data["name"]:
                     yield ToolCallEnd(
                         call=ToolCall(tool=tc_data["name"], args=flush_args, call_id=tc_data["id"])

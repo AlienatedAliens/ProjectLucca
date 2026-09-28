@@ -390,6 +390,20 @@ class TurnPipeline:
                     content=combined,
                     elapsed_ms=0.0,
                 )
+            else:
+                say_actions = [
+                    a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
+                ]
+                if say_actions:
+                    spoken = " ".join(say_actions)
+                    self.orch._speak_text(trace, spoken)
+                    self.orch._publish_caption(spoken, source="assistant", is_final=True)
+                    user_msg = user_text or "[Voice audio]"
+                    self.orch.history.append({"role": "user", "content": user_msg})
+                    self.orch.history.append({"role": "assistant", "content": spoken})
+                    self.orch.play_ring.set_flag(FLAG_EOS)
+                    self.orch._finalize_turn(trace, decision_id)
+                    return
 
             signal: Literal["tool_exit_zero", "pydantic_valid"] = (
                 "tool_exit_zero"
@@ -486,7 +500,7 @@ class TurnPipeline:
                 )
                 epistemic_ctx = cascade_res.synthesized_context or None
 
-        if yielded_context:
+        if yielded_context and yielded_context.get("reason") not in ("define: no term", "no term", ""):
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
@@ -705,9 +719,7 @@ class TurnPipeline:
 
         any_quarantine_fired = any(o.fired for o in shadow_outcomes)
         any_active_fired = any(o.fired for o in active_outcomes)
-        has_registered_rule = any(
-            r.status == "ACTIVE" for r in self.orch.rule_engine.rules.values()
-        )
+        has_registered_rule = any_active_fired
 
         route_decision = None
         try:
@@ -744,24 +756,53 @@ class TurnPipeline:
                     winning_outcome = outcome
                     break
 
-            tier = getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
-            self.orch.current_turn_tier = tier
-            if tier == ExecutionTier.REFLEX:
-                self.execute_reflex(
-                    trace=trace,
-                    winning_outcome=winning_outcome,
-                    user_text=user_text,
-                    decision_id=decision_id,
+            if winning_outcome is None:
+                lower_t = (user_text or "").lower()
+                from lucca.router.heuristic import EMERGENCY_REFLEX_PATTERN  # noqa: PLC0415
+
+                if EMERGENCY_REFLEX_PATTERN.search(lower_t):
+                    self.orch.current_turn_tier = ExecutionTier.REFLEX
+                    self.execute_reflex(
+                        trace=trace,
+                        winning_outcome=None,
+                        user_text=user_text,
+                        decision_id=decision_id,
+                    )
+                    return
+                # Router selected RULE, but no rule plan fired and utterance
+                # is not an emergency stop/pause. Fall through to Phase 5 LLM Full Loop.
+                logger.warning(
+                    "rule_route_no_plan_falling_back_to_llm",
+                    text=user_text,
+                    intent=getattr(route_decision, "intent", None),
                 )
-                return
-            elif winning_outcome and winning_outcome.plan:
-                self.execute_act_then_narrate(
-                    trace=trace,
-                    winning_outcome=winning_outcome,
-                    user_text=user_text,
-                    decision_id=decision_id,
+            else:
+                has_tool_calls = any(
+                    isinstance(a, ToolCall)
+                    for a in winning_outcome.plan.actions
                 )
-                return
+                tier = (
+                    getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
+                    if has_tool_calls
+                    else ExecutionTier.REFLEX
+                )
+                self.orch.current_turn_tier = tier
+                if tier == ExecutionTier.REFLEX:
+                    self.execute_reflex(
+                        trace=trace,
+                        winning_outcome=winning_outcome,
+                        user_text=user_text,
+                        decision_id=decision_id,
+                    )
+                    return
+                elif winning_outcome.plan:
+                    self.execute_act_then_narrate(
+                        trace=trace,
+                        winning_outcome=winning_outcome,
+                        user_text=user_text,
+                        decision_id=decision_id,
+                    )
+                    return
 
         # Phase 5: Epistemic Context, Tool Gating & Streaming LLM Full Loop
         mem_hits = self.orch._search_memories(user_text) if user_text else []

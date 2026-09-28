@@ -46,6 +46,10 @@ class PersonaTab(QWidget):
         self.facade = facade
         self._build_ui()
 
+    @property
+    def user_archetypes(self) -> dict[str, str]:
+        return getattr(self.dialog, "user_archetypes", {})
+
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setSpacing(10)

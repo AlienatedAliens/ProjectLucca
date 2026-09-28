@@ -52,7 +52,7 @@ class LLMSettings(BaseModel):
     # battery workload (60 distinct low-similarity prompts). Production turns
     # share one ~3.8K-token prefix, so 4 GiB is ample headroom.
     cache_ram_mib: int = 4096
-    max_tokens: int = 512
+    max_tokens: int = 2048
     temperature: float = 0.6
     # Reasoning-model control (reasoning-model templates honour
     # chat_template_kwargs.enable_thinking). None = omit the kwarg (template default).
@@ -344,7 +344,9 @@ def get_config() -> LuccaConfig:
 def get_resource_path(relative_path: str | Path) -> Path:
     """
     Resolves bundled resource path with support for PyInstaller frozen mode,
-    workstation installation (C:/ProjectLucca), repo root, and local working directory.
+    source repository root, workstation installation (C:/ProjectLucca), and local working directory.
+    When running from source, the development repository is authoritative to prevent
+    stale workstation installation files from shadowing active changes.
     Enforces strict zero-Any typing.
     """
     rel: Path = Path(relative_path)
@@ -356,17 +358,17 @@ def get_resource_path(relative_path: str | Path) -> Path:
             if meipass_p.exists():
                 return meipass_p
 
-    # 2. Workstation installation directory
-    cfg: LuccaConfig = get_config()
-    home_p: Path = cfg.home_dir / rel
-    if home_p.exists():
-        return home_p
-
-    # 3. Source repository root
+    # 2. Source repository root (authoritative when running in development)
     repo_root: Path = Path(__file__).resolve().parents[3]
     repo_p: Path = repo_root / rel
     if repo_p.exists():
         return repo_p
+
+    # 3. Workstation installation directory (C:/ProjectLucca)
+    cfg: LuccaConfig = get_config()
+    home_p: Path = cfg.home_dir / rel
+    if home_p.exists():
+        return home_p
 
     # 4. Current working directory fallback
     cwd_p: Path = Path.cwd() / rel
@@ -374,4 +376,4 @@ def get_resource_path(relative_path: str | Path) -> Path:
         return cwd_p
 
     # Fallback to repo or home
-    return home_p if home_p.parent.exists() else repo_p
+    return repo_p if repo_p.parent.exists() else home_p

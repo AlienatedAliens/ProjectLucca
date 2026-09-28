@@ -337,7 +337,10 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "sys_info": ToolSchema(
             name="sys_info",
-            description="Inspect host OS version, hostname, uptime, and running processes",
+            description=(
+                "Inspect host OS version, hostname, current local time, timezone, "
+                "network IPs, physical location, uptime, and running processes"
+            ),
             parameters={
                 "filter_name": ToolParameter(
                     type="string", description="Optional process name filter", required=False

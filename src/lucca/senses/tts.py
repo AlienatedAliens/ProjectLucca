@@ -183,7 +183,26 @@ class TTSWorker:
         self.active_voice = self.config.tts.voice
         self.active_speed = getattr(self.config.tts, "speed", 1.05)
         self._blend_cache: dict[str, npt.NDArray[np.float32]] = {}
-        self.dsp_chain = AnimeDSPChain(config=AnimeDSPConfig(enabled=True))
+
+        # Load startup voice and DSP parameters from persona.toml (D-AUD-16)
+        dsp_pitch = 0.0
+        dsp_en = True
+        try:
+            from lucca.brain.prompt_builder import get_persona_config
+
+            p_cfg = get_persona_config()
+            if p_cfg.voice:
+                self.active_voice = p_cfg.voice
+            if p_cfg.speed is not None:
+                self.active_speed = p_cfg.speed
+            dsp_pitch = float(getattr(p_cfg, "dsp_pitch_semitones", 0.0))
+            dsp_en = bool(getattr(p_cfg, "dsp_enabled", True))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("init_persona_tts_config_failed", error=str(exc))
+
+        self.dsp_chain = AnimeDSPChain(
+            config=AnimeDSPConfig(pitch_semitones=dsp_pitch, enabled=dsp_en)
+        )
 
         if not model_path.exists() or not voices_path.exists():
             # Fallback to dev/mock if models missing

@@ -3,6 +3,7 @@ Project Lucca — Prompt Builder & Dynamic Persona Engine
 Spec 10 §4 (Prompt Section Order & KV-Cache Friendly Layout)
 """
 
+from datetime import datetime
 import json
 import re
 import tomllib
@@ -13,6 +14,7 @@ import structlog
 from pydantic import JsonValue
 
 from lucca.core.capabilities import get_capability_registry
+from lucca.core.config import get_resource_path
 from lucca.core.schemas import (
     ChatMessage,
     MemoryHit,
@@ -78,11 +80,14 @@ ARCHITECTURAL_SELF_AWARENESS: Final[str] = (
     "rather than guessing.\n"
     "- Capabilities: You can execute sandboxed Python code, read and write workspace "
     "files, fetch web content from allowed domains, launch whitelisted desktop "
-    "applications, and evaluate MicroScheme LISP reasoning pathways before neural "
-    "inference. Workspace file and code tools require the Docker sandbox to be "
+    "applications, inspect the screen via screenshot_capture, compute math, and evaluate "
+    "MicroScheme LISP reasoning pathways before neural inference. You possess an abductive "
+    "Concert Layer, 4-tier defeasible reasoning, means-ends goal planning, and 24 native tools. "
+    "Workspace file and code tools require the Docker sandbox to be "
     "running; if it is unavailable, say so plainly rather than retrying.\n"
     "- Computation vs Memory: Computational requests (reverse, count, sort, convert, "
-    "compute, compare) are answered by doing — route to run_python when uncertain — "
+    "compute, compare) are answered by doing — prioritize calc_math for arithmetic expressions "
+    "and mathematical formulas, route to run_python when uncertain or for multi-step algorithmic or vector simulations — "
     "never by recalling. 'No verified record' is for memory, not math.\n"
     "- Relationship: The user is your creator and partner developer. When asked who you are or "
     "to introduce yourself, explain your companion identity directly in natural spoken voice "
@@ -125,7 +130,14 @@ ARCHITECTURAL_SELF_AWARENESS: Final[str] = (
     "entity or spelling correction (e.g. 'Factoriza'), you MUST emit a tool call (search_web "
     "or fetch_url) IMMEDIATELY. Never emit verbal promises in text without a tool call.\n"
     "- If a factual query is asked, AUTONOMOUSLY EXECUTE the necessary tool calls immediately "
-    "(search_web, fetch_url) and deliver the top verified facts directly.\n"
+    "(search_web, fetch_url, sys_info) and deliver the top verified facts directly.\n"
+    "- NEVER EXPLAIN HOW YOU WOULD DO A TASK INSTEAD OF DOING IT: If the user asks if you can "
+    "figure something out (e.g. current time, system state, physical location, network, files, data), "
+    "DO NOT give a multi-step theoretical lecture on what tools you would use. Execute the tool calls "
+    "IMMEDIATELY (sys_info, search_web, fetch_url) and deliver the verified answer directly.\n"
+    "- ANTI-LECTURE DIRECTIVE: When asked an analytical, mathematical, situational, or programming "
+    "question, answer directly and concisely with the solution or calculation. DO NOT recite "
+    "multi-paragraph textbook essays, disclaimer lists, or tutorial breakdowns unless explicitly requested.\n"
     "- If the user spells a word or corrects a spelling (e.g. 'Fawkner not Faulkner'), "
     "IMMEDIATELY adopt their exact spelling. Never argue, never revert to your prior spelling, "
     "and never confuse a place or suburb with a person.\n"
@@ -552,7 +564,7 @@ def update_toml_content(content: str, updates: dict[str, JsonValue]) -> str:
 
 def get_persona_config(config_path: Path | None = None) -> PersonaConfig:
     """Reads and parses the complete persona.toml configuration."""
-    path = config_path or Path(r"C:\ProjectLucca\config\persona.toml")
+    path = config_path or get_resource_path("config/persona.toml")
     if not path.exists():
         path = Path("config/persona.toml")
     if not path.exists():
@@ -592,7 +604,7 @@ def save_persona_to_config(
     Saves persona configuration losslessly to persona.toml, preserving all
     comments, formatting, and untouched keys.
     """
-    path = config_path or Path(r"C:\ProjectLucca\config\persona.toml")
+    path = config_path or get_resource_path("config/persona.toml")
     if not path.exists() and Path("config/persona.toml").exists():
         path = Path("config/persona.toml")
 
@@ -665,6 +677,15 @@ def save_persona_to_config(
     new_content = update_toml_content(existing_content, updates)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(new_content, encoding="utf-8")
+
+    # If saving to dev repo, mirror to workstation C:\ProjectLucca if present to prevent drift
+    if config_path is None:
+        workstation_p = Path(r"C:\ProjectLucca\config\persona.toml")
+        if workstation_p.exists() and workstation_p.resolve() != path.resolve():
+            try:
+                workstation_p.write_text(new_content, encoding="utf-8")
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("persona_mirror_to_workstation_failed", error=str(exc))
 
     set_persona(
         archetype=archetype,
@@ -1093,16 +1114,20 @@ DEDUCTION_CONTRACT_SECTION: Final[str] = (
     "\n\n[Deduction Mode — Structured Abductive Inference Contract]\n"
     "You are operating as the abductive deduction engine over verified facts.\n"
     "CRITICAL RULES:\n"
-    "1. Emit ONLY a JSON array of InferenceStep objects. Do NOT include conversational prose or explanation.\n"
+    "1. Emit ONLY a JSON array of InferenceStep objects. "
+    "Do NOT include conversational prose or explanation.\n"
     "2. Each InferenceStep must have:\n"
-    '   - "premises": list of factual strings from verified context or "<source> asserts <claim>".\n'
+    '   - "premises": list of factual strings from verified context '
+    'or "<source> asserts <claim>".\n'
     '   - "s": subject slug/name.\n'
-    '   - "p": valid predicate slug (e.g. "likes", "lives_in", "nationality_is", "origin_is", "located_in").\n'
+    '   - "p": valid predicate slug '
+    '(e.g. "likes", "lives_in", "nationality_is", "origin_is", "located_in").\n'
     '   - "o": object value.\n'
     '   - "confidence": float in [0.0, 1.0].\n'
     '   - "rationale": optional brief rationale (<= 500 characters).\n'
     '   - "conditions": list of attributed premises this step depends on (<= 8 items).\n'
-    "3. Never invent unverified premises. Only use facts present in verified context or tool receipts.\n"
+    "3. Never invent unverified premises. "
+    "Only use facts present in verified context or tool receipts.\n"
 )
 
 
@@ -1114,7 +1139,8 @@ def build_deduction_messages(
     history: list[dict[str, str]] | None = None,
 ) -> list[ChatMessage]:
     """
-    Constructs messages for deduction mode abductive step generation (Spec D-REAS-09, WO-20 Phase 3).
+    Constructs messages for deduction mode abductive step generation
+    (Spec D-REAS-09, WO-20 Phase 3).
     """
     system_content = get_system_prompt() + DEDUCTION_CONTRACT_SECTION
 
@@ -1138,7 +1164,8 @@ def build_deduction_messages(
     if error_feedback:
         user_prompt += (
             f"\n\nPrevious attempt failed with error:\n{error_feedback}\n"
-            "Please revise your inference step to use only verified premises, or adjust your hypothesis."
+            "Please revise your inference step to use only verified premises, "
+            "or adjust your hypothesis."
         )
 
     messages.append(ChatMessage(role="user", content=user_prompt))

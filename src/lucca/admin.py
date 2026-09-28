@@ -697,6 +697,33 @@ def run_memory_cli(
             console.print(f"[bold red]FAILED: Roll-up failed: {err}[/bold red]")
             return 1
 
+    if action == "reset":
+        if mk is None:
+            console.print("[red]Error: master_key required to initialize MemoryStore.[/red]")
+            return 1
+        conn = db.get_connection()
+        try:
+            cur = conn.execute("SELECT memory_id FROM memories WHERE forgotten_at IS NULL")
+            active_ids = [int(row[0]) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+        if not active_ids:
+            console.print("[yellow]Memory store already has zero active memories.[/yellow]")
+            return 0
+
+        store = MemoryStore(db=db, master_key=mk)
+        try:
+            store.forget(active_ids, user_confirmed=True)
+            console.print(
+                f"[bold green]SUCCESS: Factory reset complete. Soft-deleted and audited {len(active_ids)} memories.[/bold green]"
+            )
+            return 0
+        except Exception as err:  # noqa: BLE001
+            logger.debug("factory_reset_failed: %s", err)
+            console.print(f"[bold red]FAILED: Factory reset failed: {err}[/bold red]")
+            return 1
+
     if action == "forget":
         if not entry_id:
             console.print("[red]Error: memory_id or entry_id is required to forget.[/red]")
@@ -915,6 +942,10 @@ def create_parser() -> argparse.ArgumentParser:
         "forget", help="Soft-delete a memory by memory_id or entry_id (user confirmation required)"
     )
     p_mforget.add_argument("entry_id", help="Memory ID or Entry ID to forget")
+
+    mem_sub.add_parser(
+        "reset", help="Factory reset memory store to zero active memories (soft-delete and audit all)"
+    )
 
     # Stubs per F-CORE-027
     for stub in ["metrics", "router", "replay"]:
