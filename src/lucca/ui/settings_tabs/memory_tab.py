@@ -10,9 +10,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import structlog
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import QPoint, Qt, QTimer
+from PyQt6.QtGui import QFont, QKeyEvent
 from PyQt6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QGroupBox,
     QHBoxLayout,
@@ -20,6 +21,7 @@ from PyQt6.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -69,6 +71,21 @@ class MemoryTab(QWidget):
         btn_vacuum = QPushButton("🧹 Vacuum & Optimize DB", grp_stats)
         btn_vacuum.clicked.connect(self._vacuum_memory_db)
         h_stats.addWidget(btn_vacuum)
+
+        btn_factory_reset = QPushButton("💥 Factory Reset / Hard Purge (Clears All Stores)", grp_stats)
+        btn_factory_reset.setToolTip(
+            "Permanently eradicate all memories, knowledge graphs, decisions, and induced rules across all backing stores"
+        )
+        btn_factory_reset.setStyleSheet(
+            "QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #881337, stop:1 #4c0519); "
+            "border: 2px solid #f43f5e; color: #ffffff; font-weight: bold; padding: 5px 12px; } "
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #be123c, stop:1 #700b30); "
+            "border-color: #fda4af; } "
+            "QPushButton:pressed { background: #fda4af; color: #4c0519; }"
+        )
+        btn_factory_reset.clicked.connect(self._factory_reset_memories)
+        h_stats.addWidget(btn_factory_reset)
+
         layout.addWidget(grp_stats)
 
         # Filter & Search Toolbar
@@ -100,15 +117,90 @@ class MemoryTab(QWidget):
 
         v_filter.addLayout(h_toolbar)
 
-        # Memory Table
+        # Batch Selection & Management Bar
+        h_batch = QHBoxLayout()
+        self.lbl_selection_status = QLabel("Selected: 0 memories", grp_filter)
+        self.lbl_selection_status.setStyleSheet("color: #38bdf8; font-weight: bold; font-size: 11px;")
+        h_batch.addWidget(self.lbl_selection_status)
+        h_batch.addSpacing(10)
+
+        btn_select_all = QPushButton("☑️ Select All Visible", grp_filter)
+        btn_select_all.setToolTip("Select all visible memories in the table (Ctrl+A)")
+        btn_select_all.clicked.connect(self._select_all_memories)
+        h_batch.addWidget(btn_select_all)
+
+        btn_deselect_all = QPushButton("⬜ Deselect All", grp_filter)
+        btn_deselect_all.setToolTip("Clear current selection")
+        btn_deselect_all.clicked.connect(self._deselect_all_memories)
+        h_batch.addWidget(btn_deselect_all)
+
+        h_batch.addSpacing(10)
+
+        self.btn_del_selected = QPushButton("🗑️ Prune Selected (0)", grp_filter)
+        self.btn_del_selected.setToolTip("Permanently delete selected memories (Del)")
+        self.btn_del_selected.setStyleSheet(
+            "QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #7f1d1d, stop:1 #450a0a); "
+            "border: 1.5px solid #ef4444; color: #fca5a5; } "
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #991b1b, stop:1 #581c87); "
+            "color: #ffffff; border-color: #f87171; } "
+            "QPushButton:disabled { background: #1e2648; color: #64748b; border-color: #475569; }"
+        )
+        self.btn_del_selected.setEnabled(False)
+        self.btn_del_selected.clicked.connect(self._delete_selected_memories)
+        h_batch.addWidget(self.btn_del_selected)
+
+        h_batch.addStretch()
+
+        btn_batch_reset = QPushButton("💥 Factory Reset All Memories", grp_filter)
+        btn_batch_reset.setToolTip("Reset memory store to zero active memories")
+        btn_batch_reset.setStyleSheet(
+            "QPushButton { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #881337, stop:1 #4c0519); "
+            "border: 1.5px solid #f43f5e; color: #ffffff; font-weight: bold; } "
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #be123c, stop:1 #700b30); "
+            "border-color: #fda4af; color: #ffffff; }"
+        )
+        btn_batch_reset.clicked.connect(self._factory_reset_memories)
+        h_batch.addWidget(btn_batch_reset)
+
+        v_filter.addLayout(h_batch)
+
+        # Memory Table with multi-row selection
         self.table_mem = QTableWidget(0, 6, grp_filter)
         self.table_mem.setHorizontalHeaderLabels(
             ["ID", "Kind", "Content / Fact Statement", "Importance", "Provenance", "Created At"]
         )
+        self.table_mem.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table_mem.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.table_mem.setAlternatingRowColors(True)
+        self.table_mem.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         hdr_mem = self.table_mem.horizontalHeader()
         if hdr_mem is not None:
+            hdr_mem.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+            hdr_mem.setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
             hdr_mem.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        self.table_mem.cellClicked.connect(self._on_memory_selected)
+            hdr_mem.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+            hdr_mem.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+            hdr_mem.setSectionResizeMode(5, QHeaderView.ResizeMode.ResizeToContents)
+
+        self.table_mem.itemSelectionChanged.connect(self._on_memory_selection_changed)
+
+        # Context menu for quick pruning and selection
+        self.table_mem.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_mem.customContextMenuRequested.connect(self._show_table_context_menu)
+
+        # Delete & Backspace keyboard shortcuts
+        orig_key_press = self.table_mem.keyPressEvent
+
+        def _table_key_press(event: QKeyEvent) -> None:
+            if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
+                if self._get_selected_memory_ids():
+                    self._delete_selected_memories()
+                    event.accept()
+                    return
+            orig_key_press(event)
+
+        self.table_mem.keyPressEvent = _table_key_press
+
         v_filter.addWidget(self.table_mem)
 
         # Selected Memory Inspector & Editor
@@ -143,13 +235,13 @@ class MemoryTab(QWidget):
         h_edit_act.addWidget(self.slider_inspect_imp)
         h_edit_act.addWidget(self.lbl_inspect_imp_val)
 
-        btn_save_mem = QPushButton("💾 Save Changes", grp_inspect)
-        btn_save_mem.clicked.connect(self._save_memory_changes)
-        h_edit_act.addWidget(btn_save_mem)
+        self.btn_save_mem = QPushButton("💾 Save Changes", grp_inspect)
+        self.btn_save_mem.clicked.connect(self._save_memory_changes)
+        h_edit_act.addWidget(self.btn_save_mem)
 
-        btn_del_mem = QPushButton("🗑️ Prune Memory", grp_inspect)
-        btn_del_mem.clicked.connect(self._delete_selected_memory)
-        h_edit_act.addWidget(btn_del_mem)
+        self.btn_del_mem = QPushButton("🗑️ Prune Memory", grp_inspect)
+        self.btn_del_mem.clicked.connect(self._delete_selected_memories)
+        h_edit_act.addWidget(self.btn_del_mem)
 
         h_edit_act.addStretch()
         v_inspect.addLayout(h_edit_act)
@@ -235,6 +327,19 @@ class MemoryTab(QWidget):
         tabs = getattr(self.dialog, "tabs", None)
         if tabs is not None and tabs.currentIndex() != 7:
             return
+
+        # If user has an active selection or is typing in the inspector,
+        # update only stats labels to avoid wiping the table and interrupting them!
+        if self._get_selected_memory_ids() or self.txt_inspect_content.hasFocus():
+            try:
+                st = self.facade.get_memory_stats()
+                self.lbl_mem_stat_active.setText(f"Active Memories: {st.get('active_memories', 0)}")
+                self.lbl_mem_stat_total.setText(f"Total Records: {st.get('total_memories', 0)}")
+                self.lbl_mem_stat_size.setText(f"DB Size: {st.get('db_size_kb', 0)} KB")
+            except Exception as exc:
+                _LOG.debug("get_memory_stats_failed: %s", exc)
+            return
+
         self._refresh_memories()
 
     def _refresh_memories(self) -> None:
@@ -249,11 +354,14 @@ class MemoryTab(QWidget):
         search = self.line_mem_search.text().strip()
         kind_filter = str(self.combo_mem_kind.currentData())
 
+        prev_selected = set(self._get_selected_memory_ids())
+
         try:
             mems = self.facade.list_memories(search=search)
             if kind_filter:
                 mems = [m for m in mems if m.get("kind") == kind_filter]
 
+            self.table_mem.blockSignals(True)
             self.table_mem.setRowCount(0)
             for m in mems:
                 row = self.table_mem.rowCount()
@@ -274,32 +382,144 @@ class MemoryTab(QWidget):
                 self.table_mem.setItem(row, 3, QTableWidgetItem(imp))
                 self.table_mem.setItem(row, 4, QTableWidgetItem(prov))
                 self.table_mem.setItem(row, 5, QTableWidgetItem(ts))
+
+            # Re-apply selection if rows still exist
+            if prev_selected:
+                for r in range(self.table_mem.rowCount()):
+                    it = self.table_mem.item(r, 0)
+                    if it and it.text().isdigit() and int(it.text()) in prev_selected:
+                        self.table_mem.selectRow(r)
+
+            self.table_mem.blockSignals(False)
+            self._on_memory_selection_changed()
+
         except Exception as exc:
+            self.table_mem.blockSignals(False)
             _LOG.debug("refresh_memories_failed: %s", exc)
             print(f"[UI] Memory refresh error: {exc}")
 
-    def _on_memory_selected(self, row: int, col: int) -> None:
-        item = self.table_mem.item(row, 0)
-        if not item:
-            return
-        try:
-            mid = int(item.text())
-            self._current_selected_mid = mid
-            content_item = self.table_mem.item(row, 2)
-            imp_item = self.table_mem.item(row, 3)
-            prov_item = self.table_mem.item(row, 4)
+    def _get_selected_memory_ids(self) -> list[int]:
+        selected_rows = set()
+        for idx in self.table_mem.selectedIndexes():
+            selected_rows.add(idx.row())
+        ids: list[int] = []
+        for r in sorted(selected_rows):
+            item = self.table_mem.item(r, 0)
+            if item and item.text().isdigit():
+                ids.append(int(item.text()))
+        return ids
 
-            self.lbl_inspect_id.setText(f"Memory ID: #{mid}")
-            self.lbl_inspect_prov.setText(
-                f"Provenance: {prov_item.text() if prov_item else 'Unknown'}"
+    def _select_all_memories(self) -> None:
+        self.table_mem.selectAll()
+
+    def _deselect_all_memories(self) -> None:
+        self.table_mem.clearSelection()
+
+    def _show_table_context_menu(self, pos: QPoint) -> None:
+        selected_ids = self._get_selected_memory_ids()
+        menu = QMenu(self)
+        if selected_ids:
+            count = len(selected_ids)
+            del_text = (
+                f"🗑️ Prune Selected ({count})"
+                if count > 1
+                else f"🗑️ Prune Memory #{selected_ids[0]}"
             )
-            if content_item:
-                self.txt_inspect_content.setPlainText(content_item.text())
-            if imp_item:
-                val = int(float(imp_item.text()) * 100)
-                self.slider_inspect_imp.setValue(val)
-        except Exception as exc:
-            _LOG.debug("select_memory_failed: %s", exc)
+            act_del = menu.addAction(del_text)
+            act_del.triggered.connect(self._delete_selected_memories)
+            menu.addSeparator()
+            act_desel = menu.addAction("⬜ Deselect All")
+            act_desel.triggered.connect(self._deselect_all_memories)
+
+        act_sel_all = menu.addAction("☑️ Select All Visible")
+        act_sel_all.triggered.connect(self._select_all_memories)
+
+        menu.addSeparator()
+        act_reset = menu.addAction("💥 Factory Reset All Memories")
+        act_reset.triggered.connect(self._factory_reset_memories)
+
+        menu.exec(self.table_mem.viewport().mapToGlobal(pos))
+
+    def _on_memory_selection_changed(self) -> None:
+        selected_ids = self._get_selected_memory_ids()
+        count = len(selected_ids)
+
+        if count == 0:
+            self._current_selected_mid = None
+            self.lbl_selection_status.setText("Selected: 0 memories")
+            self.btn_del_selected.setText("🗑️ Prune Selected (0)")
+            self.btn_del_selected.setEnabled(False)
+
+            self.lbl_inspect_id.setText("Memory ID: None")
+            self.lbl_inspect_prov.setText("Provenance: None")
+            self.lbl_inspect_conf.setText("Confidence: 1.0")
+            self.txt_inspect_content.clear()
+            self.txt_inspect_content.setEnabled(False)
+            self.slider_inspect_imp.setEnabled(False)
+            self.btn_save_mem.setEnabled(False)
+            self.btn_del_mem.setText("🗑️ Prune Memory")
+            self.btn_del_mem.setEnabled(False)
+
+        elif count == 1:
+            mid = selected_ids[0]
+            self._current_selected_mid = mid
+            self.lbl_selection_status.setText(f"Selected: 1 memory (#{mid})")
+            self.btn_del_selected.setText("🗑️ Prune Selected (1)")
+            self.btn_del_selected.setEnabled(True)
+
+            self.txt_inspect_content.setEnabled(True)
+            self.slider_inspect_imp.setEnabled(True)
+            self.btn_save_mem.setEnabled(True)
+            self.btn_del_mem.setText(f"🗑️ Prune Memory #{mid}")
+            self.btn_del_mem.setEnabled(True)
+
+            # Populate inspector with the single memory's data
+            for r in range(self.table_mem.rowCount()):
+                it = self.table_mem.item(r, 0)
+                if it and it.text() == str(mid):
+                    content_item = self.table_mem.item(r, 2)
+                    imp_item = self.table_mem.item(r, 3)
+                    prov_item = self.table_mem.item(r, 4)
+                    self.lbl_inspect_id.setText(f"Memory ID: #{mid}")
+                    self.lbl_inspect_prov.setText(
+                        f"Provenance: {prov_item.text() if prov_item else 'Unknown'}"
+                    )
+                    self.lbl_inspect_conf.setText("Confidence: 1.0")
+                    if content_item:
+                        self.txt_inspect_content.setPlainText(content_item.text())
+                    if imp_item:
+                        try:
+                            val = int(float(imp_item.text()) * 100)
+                            self.slider_inspect_imp.setValue(val)
+                        except ValueError:
+                            pass
+                    break
+
+        else:  # count > 1
+            self._current_selected_mid = None
+            self.lbl_selection_status.setText(f"Selected: {count} memories")
+            self.btn_del_selected.setText(f"🗑️ Prune Selected ({count})")
+            self.btn_del_selected.setEnabled(True)
+
+            self.lbl_inspect_id.setText(f"{count} Memories Selected")
+            id_preview = ", ".join(f"#{m}" for m in selected_ids[:6])
+            if count > 6:
+                id_preview += f", ... (+{count - 6} more)"
+            self.lbl_inspect_prov.setText(f"IDs: {id_preview}")
+            self.lbl_inspect_conf.setText(f"Batch ({count} items)")
+            self.txt_inspect_content.setPlainText(
+                f"{count} memories selected for batch operations.\n"
+                f"Click 'Prune Selected ({count})' or press Delete to remove them all."
+            )
+            self.txt_inspect_content.setEnabled(False)
+            self.slider_inspect_imp.setEnabled(False)
+            self.btn_save_mem.setEnabled(False)
+            self.btn_del_mem.setText(f"🗑️ Prune Selected ({count})")
+            self.btn_del_mem.setEnabled(True)
+
+    def _on_memory_selected(self, row: int, col: int) -> None:
+        """Row clicked callback (kept for API compatibility)."""
+        self._on_memory_selection_changed()
 
     def _save_memory_changes(self) -> None:
         if self._current_selected_mid is None:
@@ -316,21 +536,82 @@ class MemoryTab(QWidget):
             _LOG.debug("save_memory_failed: %s", exc)
             QMessageBox.critical(self, "Error", f"Failed to save memory: {exc}")
 
-    def _delete_selected_memory(self) -> None:
-        if self._current_selected_mid is None:
+    def _delete_selected_memories(self) -> None:
+        """Prunes all currently selected memories with explicit user confirmation."""
+        selected_ids = self._get_selected_memory_ids()
+        if not selected_ids:
+            QMessageBox.information(
+                self, "No Selection", "Please select one or more memories to prune."
+            )
             return
+
+        count = len(selected_ids)
+        if count == 1:
+            msg = f"Permanently prune memory #{selected_ids[0]}?"
+        else:
+            id_preview = ", ".join(f"#{i}" for i in selected_ids[:8])
+            if count > 8:
+                id_preview += f", ... (+{count - 8} more)"
+            msg = (
+                f"Permanently prune {count} selected memories?\n\n"
+                f"Selected IDs: {id_preview}\n\n"
+                f"This will soft-delete and audit all {count} memories."
+            )
+
         res = QMessageBox.question(
-            self, "Confirm Deletion", f"Permanently prune memory #{self._current_selected_mid}?"
+            self,
+            "Confirm Pruning",
+            msg,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
         )
         if res == QMessageBox.StandardButton.Yes:
             try:
-                self.facade.forget_memory(self._current_selected_mid, user_confirmed=True)
+                self.facade.forget_memories(selected_ids, user_confirmed=True)
                 self._current_selected_mid = None
                 self.txt_inspect_content.clear()
                 self._refresh_memories()
+                QMessageBox.information(
+                    self,
+                    "Pruning Complete",
+                    f"Successfully pruned {count} {'memory' if count == 1 else 'memories'}.",
+                )
             except Exception as exc:
-                _LOG.debug("delete_memory_failed: %s", exc)
-                QMessageBox.critical(self, "Error", f"Failed to delete memory: {exc}")
+                _LOG.debug("delete_memories_failed: %s", exc)
+                QMessageBox.critical(self, "Error", f"Failed to prune memories: {exc}")
+
+    def _delete_selected_memory(self) -> None:
+        """Prunes currently selected memory or memories (backward compatibility)."""
+        self._delete_selected_memories()
+
+    def _factory_reset_memories(self) -> None:
+        """Permanently eradicates all memories, knowledge graphs, decisions, and rules across all stores."""
+        reply = QMessageBox.warning(
+            self,
+            "Factory Reset & Hard Purge Confirmation",
+            "⚠️ FACTORY RESET / HARD PURGE (CLEARS ALL STORES)\n\n"
+            "Are you sure you want to permanently erase ALL memories, knowledge graph entities and relations, "
+            "routing decisions, and induced rules across all backing stores?\n\n"
+            "This action executes an atomic hard purge and CANNOT be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                pruned_count = self.facade.factory_reset_memories(user_confirmed=True)
+                self._current_selected_mid = None
+                self.txt_inspect_content.clear()
+                self._refresh_memories()
+                self._refresh_review_queue()
+                QMessageBox.information(
+                    self,
+                    "Factory Reset Complete",
+                    f"Lucca's memory and knowledge stores have been completely eradicated.\n\n"
+                    f"Total purged records: {pruned_count}.",
+                )
+            except Exception as exc:
+                _LOG.debug("factory_reset_failed: %s", exc)
+                QMessageBox.critical(self, "Error", f"Failed to factory reset memories: {exc}")
 
     def _add_new_fact_dialog(self) -> None:
         text, ok = QInputDialog.getMultiLineText(

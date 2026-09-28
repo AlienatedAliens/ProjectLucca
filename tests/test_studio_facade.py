@@ -116,3 +116,40 @@ def test_facade_telemetry() -> None:
     assert "cpu" in metrics
     assert "dgpu" in metrics
     assert "npu" in metrics
+
+
+def test_facade_forget_memories_and_factory_reset(facade: StudioFacade) -> None:
+    # 1. Add multiple memories
+    m1 = facade.add_memory_fact("Fact 1: Lucca loves engineering", importance=0.8)
+    m2 = facade.add_memory_fact("Fact 2: Water boils at 100 degrees Celsius", importance=0.85)
+    m3 = facade.add_memory_fact("Fact 3: Python is expressive", importance=0.75)
+    assert m1 > 0 and m2 > 0 and m3 > 0
+
+    stats = facade.get_memory_stats()
+    assert stats["active_memories"] == 3
+
+    # 2. Batch forget 2 memories
+    count = facade.forget_memories([m1, m2], user_confirmed=True)
+    assert count == 2
+
+    stats = facade.get_memory_stats()
+    assert stats["active_memories"] == 1
+    remaining = facade.list_memories()
+    assert len(remaining) == 1
+    assert remaining[0]["memory_id"] == m3
+
+    # 3. Add more facts
+    m4 = facade.add_memory_fact("Fact 4: The earth orbits the sun", importance=0.9)
+    m5 = facade.add_memory_fact("Fact 5: Sound travels in waves", importance=0.8)
+    assert facade.get_memory_stats()["active_memories"] == 3
+
+    # 4. Factory reset memories to zero
+    reset_count = facade.factory_reset_memories(user_confirmed=True)
+    assert reset_count >= 3
+
+    stats_zero = facade.get_memory_stats()
+    assert stats_zero["active_memories"] == 0
+    assert len(facade.list_memories()) == 0
+
+    # 5. Factory reset on empty store returns 0
+    assert facade.factory_reset_memories(user_confirmed=True) == 0

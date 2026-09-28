@@ -5,6 +5,7 @@ Spec 04 §1-§8, ADR-002, ADR-006
 
 import datetime
 import json
+import sqlite3
 import threading
 import time
 from collections.abc import Callable
@@ -477,6 +478,90 @@ class MemoryStore:
                         (current_time, f"User confirmed forget for memory {mid}"),
                     )
                 conn.execute("COMMIT")
+            except Exception:
+                conn.execute("ROLLBACK")
+                raise
+
+    def hard_purge_all(self, user_confirmed: bool = False) -> dict[str, int]:
+        """
+        Permanently eradicates all records across all memory and reasoning stores:
+        memories, knowledge graph, vector indices, FTS tables, decisions, and induced rules.
+        Executes in a single atomic SQLite transaction with foreign-key-safe ordering.
+        Requires explicit user_confirmed=True.
+        """
+        if not user_confirmed:
+            raise ValueError("Hard purge requires explicit user confirmation")
+
+        if self.read_only:
+            raise MemoryStoreReadOnly("MemoryStore is in read-only mode")
+
+        deleted_counts: dict[str, int] = {}
+        with self._write_lock:
+            conn = self.db.get_writer()
+            conn.execute("BEGIN IMMEDIATE")
+            try:
+                # 0. Temporarily drop mem_ad trigger to prevent FTS5 shadow table mismatch
+                conn.execute("DROP TRIGGER IF EXISTS mem_ad")
+
+                def _del(tbl: str, is_virtual_fts: bool = False) -> int:
+                    try:
+                        cur = conn.execute(f'SELECT count(*) FROM "{tbl}"')
+                        cnt = int(cur.fetchone()[0])
+                        if is_virtual_fts:
+                            conn.execute(f"INSERT INTO {tbl}({tbl}) VALUES('delete-all')")
+                        else:
+                            conn.execute(f'DELETE FROM "{tbl}"')
+                        deleted_counts[tbl] = cnt
+                        return cnt
+                    except sqlite3.OperationalError:
+                        deleted_counts[tbl] = 0
+                        return 0
+
+                # 1. Break self-referencing foreign keys in memories
+                conn.execute("UPDATE memories SET superseded_by = NULL")
+
+                # 2. Knowledge Graph (edges before entities to satisfy foreign keys)
+                _del("kg_edges")
+                _del("kg_aliases")
+                _del("kg_entities")
+
+                # 3. Decisions and Heuristic Router telemetry
+                _del("decision_labels")
+                _del("fts_decisions")
+                _del("vec_decisions")
+                _del("decisions")
+
+                # 4. Rules and regression cases
+                _del("regression_cases")
+                _del("rule_states")
+
+                # 5. Reviews, sources, execution triples
+                _del("review_queue")
+                _del("memory_sources")
+                _del("tool_contents")
+                _del("contrastive_shadow_logs")
+                _del("execution_triples")
+
+                # 6. Memories & Vector store
+                _del("vec_memories")
+                _del("memories")
+                _del("fts_memories", is_virtual_fts=True)
+
+                # 7. Re-create mem_ad trigger
+                conn.execute("""
+                    CREATE TRIGGER IF NOT EXISTS mem_ad AFTER DELETE ON memories BEGIN
+                      INSERT INTO fts_memories(fts_memories, rowid, content, tokens_aux) VALUES ('delete', old.memory_id, old.content, old.tokens_aux);
+                    END;
+                """)
+
+                # 8. Provenance envelopes, gate nonces, and audit logs
+                _del("provenance_envelopes")
+                _del("gate_nonces")
+                _del("memory_audit")
+
+                conn.execute("COMMIT")
+                logger.info("memory_hard_purge_completed", deleted_counts=deleted_counts)
+                return deleted_counts
             except Exception:
                 conn.execute("ROLLBACK")
                 raise

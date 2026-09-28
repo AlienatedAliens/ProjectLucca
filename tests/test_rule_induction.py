@@ -601,6 +601,13 @@ def test_live_induction_production_log_clusters_gt_zero():
 
     db = DatabaseManager(prod_db_path)
     db.migrate()
+    with db.read_cursor() as cur:
+        decision_count = cur.execute("SELECT count(*) FROM decisions").fetchone()[0]
+    if decision_count < 3:
+        db.close()
+        pytest.skip(
+            f"Production database has been hard-purged or has insufficient decisions ({decision_count} < 3)"
+        )
     lifecycle = RuleLifecycleManager(registered_tools=None, db=db)
     lifecycle.load()
 

@@ -207,6 +207,29 @@ class StudioFacade:
             raise RuntimeError("MemoryStore is not initialized")
         self.store.forget([memory_id], user_confirmed=user_confirmed)
 
+    def forget_memories(self, memory_ids: list[int], user_confirmed: bool = True) -> int:
+        """Soft-deletes multiple memories through MemoryStore.forget with user confirmation."""
+        if self.store is None:
+            raise RuntimeError("MemoryStore is not initialized")
+        if not user_confirmed:
+            raise ValueError("Forgetting memories requires explicit user confirmation")
+        if not memory_ids:
+            return 0
+        self.store.forget(memory_ids, user_confirmed=True)
+        return len(memory_ids)
+
+    def factory_reset_memories(self, user_confirmed: bool = True) -> int:
+        """Permanently eradicates all memories, KG, decisions, rules, and provenance via hard purge. Returns total count pruned."""
+        if not user_confirmed:
+            raise ValueError("Factory reset requires user confirmation")
+        if self.store is None:
+            if self.master_key:
+                self.store = MemoryStore(db=self.db, master_key=self.master_key)
+            else:
+                self.store = MemoryStore(db=self.db, master_key=b"\x00" * 32)
+        deleted_counts = self.store.hard_purge_all(user_confirmed=True)
+        return sum(deleted_counts.values())
+
     def add_memory_fact(
         self,
         content: str,
