@@ -209,6 +209,16 @@ class Orchestrator:
     def clock(self, val: ClockPort) -> None:
         self._clock = val
 
+    @property
+    def _cancel_token(self) -> threading.Event:
+        if not hasattr(self, "_cancel_token_evt") or self._cancel_token_evt is None:
+            self._cancel_token_evt = threading.Event()
+        return self._cancel_token_evt
+
+    @_cancel_token.setter
+    def _cancel_token(self, val: threading.Event) -> None:
+        self._cancel_token_evt = val
+
     def __init__(
         self,
         llm: SpeechLLMPort | None = None,
@@ -341,6 +351,7 @@ class Orchestrator:
         # Turn context
         self.active_trace: TurnTrace | None = None
         self.active_turn_thread: threading.Thread | None = None
+        self._cancel_token: threading.Event = threading.Event()
         self.history: list[dict[str, str]] = []
         self.executed_tools: list[tuple[str, dict[str, JsonValue]]] = []
         self._turn_lock = threading.Lock()
@@ -885,8 +896,11 @@ class Orchestrator:
             # _on_ptt_released can stash the captured slice for the waiting
             # turn worker (F-CORE-015 voice-answer path).
             self._abort_confirmation_prompt_playback()
-        elif self.state in ("speaking", "thinking"):
-            # Instant barge-in: abort LLM and playback
+        elif (
+            self.state in ("speaking", "thinking")
+            or (self.active_turn_thread is not None and self.active_turn_thread.is_alive())
+        ):
+            # Instant cooperative barge-in / cancellation (WO-26 Phase 2)
             self._abort_turn()
 
         print("\n[PTT] 🎙️ Listening... (Hold Alt-Gr or Right-Ctrl to speak)", flush=True)
@@ -910,16 +924,21 @@ class Orchestrator:
             self._confirm_event.set()
             logger.info("confirmation_cancelled_by_barge_in")
 
+        # 1. Signal explicit cooperative cancellation token first (WO-26 Phase 2)
+        self._cancel_token.set()
+        if self.active_trace:
+            self.active_trace.interrupted = True
+
+        # 2. Terminate in-flight LLM streaming request (aborts socket/HTTP generator and releases slot)
         target_trace_id = self.active_trace.trace_id if self.active_trace else None
         self.llm.abort(trace_id=target_trace_id)
         self.chunker.reset()
 
-        # F-CORE-017: drain TTS synthesis queue before setting FLAG_ABORT
+        # 3. F-CORE-017: drain TTS synthesis queue before setting FLAG_ABORT
         self.speech_output.clear_queue()
-
         self.play_ring.set_flag(FLAG_ABORT)
 
-        # Notify audio to abort output immediately
+        # 4. Notify audio to abort output immediately
         trace_id = self.active_trace.trace_id if self.active_trace else ""
         abort_env = Envelope(
             type="play.abort",
@@ -930,14 +949,13 @@ class Orchestrator:
         )
         self._publish_bus(abort_env)
 
-        if self.active_trace:
-            self.active_trace.interrupted = True
-
-        # Bounded join on running turn thread (bounded to 5ms to preserve <=50ms barge-in budget)
+        # 5. Cooperative drain: cleanly join running turn worker within 500ms (WO-26 Phase 2)
         if self.active_turn_thread and self.active_turn_thread is not threading.current_thread():
-            self.active_turn_thread.join(timeout=0.005)
+            self.active_turn_thread.join(timeout=0.5)
             if self.active_turn_thread.is_alive():
-                logger.debug("turn_thread_join_timeout", thread=self.active_turn_thread.name)
+                logger.warning("turn_thread_drain_timeout", thread=self.active_turn_thread.name)
+            else:
+                logger.debug("turn_thread_drained_cleanly", thread=self.active_turn_thread.name)
             self.active_turn_thread = None
 
     def _on_ptt_released(self, ts_ns: int, p: PTTReleasedPayload) -> None:
@@ -2417,7 +2435,7 @@ class Orchestrator:
 
         try:
             for round_num in range(1, max_rounds + 1):
-                if trace.interrupted:
+                if trace.interrupted or self._cancel_token.is_set():
                     break
 
                 round_tool_called = False
@@ -2462,7 +2480,7 @@ class Orchestrator:
                     user_model_directive=user_model_directive,
                     episode_hints=episode_hints,
                 ):
-                    if trace.interrupted:
+                    if trace.interrupted or self._cancel_token.is_set():
                         break
 
                     if isinstance(event, TokenDelta) and event.delta:
@@ -2774,9 +2792,9 @@ class Orchestrator:
             trace.rounds_used = round_num
 
             # Flush remaining chunker text
-            if not trace.interrupted:
+            if not trace.interrupted and not self._cancel_token.is_set():
                 for chunk in chunker.flush():
-                    if trace.interrupted:
+                    if trace.interrupted or self._cancel_token.is_set():
                         break
                     eval_text = chunk.raw_text if getattr(chunk, "raw_text", None) else chunk.text
                     emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
@@ -2799,7 +2817,7 @@ class Orchestrator:
                         chunk_index += 1
 
                 # Final flush of output supervisor lookahead buffer
-                if not trace.interrupted:
+                if not trace.interrupted and not self._cancel_token.is_set():
                     emitted_final, should_abort = self.output_supervisor.flush()
                     if should_abort:
                         _trigger_supervisor_abort("Tier 1 Capitulation unrefuted end-of-stream", "")
@@ -2814,10 +2832,10 @@ class Orchestrator:
                             self._enqueue_tts_chunk(trace, em_chunk.chunk_id, clean_final_text)
                             chunk_index += 1
 
-                if chunk_index > 0 and not trace.interrupted:
+                if chunk_index > 0 and not trace.interrupted and not self._cancel_token.is_set():
                     self.speech_output.wait_for_playback(trace)
 
-                if not trace.interrupted:
+                if not trace.interrupted and not self._cancel_token.is_set():
                     self.play_ring.set_flag(FLAG_EOS)
 
             trace.t_llm_done = now_ns()
@@ -2825,7 +2843,12 @@ class Orchestrator:
 
             # If no streaming response was generated but a tool was executed without narration,
             # speak the tool result as fallback so the turn produces audio feedback and history
-            if not full_response_text and self._last_unspoken_tool_msg and not trace.interrupted:
+            if (
+                not full_response_text
+                and self._last_unspoken_tool_msg
+                and not trace.interrupted
+                and not self._cancel_token.is_set()
+            ):
                 self._speak_text(trace, self._last_unspoken_tool_msg)
                 self.current_turn_tool_spoken.append(self._last_unspoken_tool_msg)
                 self._publish_caption(
@@ -2835,11 +2858,13 @@ class Orchestrator:
 
             # WO-21 Phase 3: Proactive Web-Fact Ratification Flow
             ratification_offer = (
-                self._check_and_offer_ratification(trace) if not trace.interrupted else None
+                self._check_and_offer_ratification(trace)
+                if (not trace.interrupted and not self._cancel_token.is_set())
+                else None
             )
 
             # Record turn in history
-            if not trace.interrupted:
+            if not trace.interrupted and not self._cancel_token.is_set():
                 reply_parts: list[str] = []
                 if full_response_text:
                     reply_parts.append("".join(full_response_text))
@@ -2950,6 +2975,7 @@ class Orchestrator:
         and delegates to the unified TurnPipeline.
         """
         self._reset_turn_state()
+        self._cancel_token.clear()
 
         # Read audio slice from capture ring
         pcm_samples = self.cap_ring.read_slice(p.capture_seq_start, p.capture_seq_end)
@@ -2965,7 +2991,7 @@ class Orchestrator:
             self._set_state("idle")
             return
 
-        if trace.interrupted:
+        if trace.interrupted or self._cancel_token.is_set():
             return
 
         # Transcribe audio with ASR
@@ -2977,7 +3003,7 @@ class Orchestrator:
             transcribed_text = asr_res.text.strip()
             self.current_turn_transcript = transcribed_text
 
-        if trace.interrupted:
+        if trace.interrupted or self._cancel_token.is_set():
             return
 
         # Silence check: discard if low speech and no transcribed words
@@ -3010,6 +3036,9 @@ class Orchestrator:
         is_trans_mode = self.config.llm.mode == "transcript"
         llm_text = transcribed_text if (is_trans_mode or not llm_audio) else None
 
+        if trace.interrupted or self._cancel_token.is_set():
+            return
+
         turn_input = TurnInput(
             user_text=transcribed_text,
             trace=trace,
@@ -3026,6 +3055,10 @@ class Orchestrator:
         Text turn input adapter: normalizes text payload and delegates to the
         unified TurnPipeline.
         """
+        self._reset_turn_state()
+        self._cancel_token.clear()
+        if trace.interrupted or self._cancel_token.is_set():
+            return
         turn_input = TurnInput(
             user_text=user_text,
             trace=trace,
