@@ -220,6 +220,6 @@ Phase 0 (Recon & Pinned Audit) [DONE]
 | **Phase 1** | Mind-Mouth Interiority Barrier | 0eed39b | Antigravity | Owner | **PASS** | 2026-09-29 |
 | **Phase 2** | ASR Stutter & Acoustic Normalizer | fe6a1b7 | Antigravity | Owner | **PASS** | 2026-09-29 |
 | **Phase 3** | Epistemic Slang & Timezone Grounding | 0e223c3 | Antigravity | Owner | **PASS** | 2026-09-29 |
-| **Phase 4** | Docker Pre-Flight Loop & Batched Prompt | Pending Sign-Off | Antigravity | Owner | **VERIFIED** | 2026-09-29 |
-| **Phase 5** | Decoupled Scratchpad & Disambiguation | Pending | Antigravity | Owner | Pending | 2026-09-29 |
+| **Phase 4** | Docker Pre-Flight Loop & Batched Prompt | 70de7db | Antigravity | Owner | **PASS** | 2026-09-29 |
+| **Phase 5** | Decoupled Scratchpad & Disambiguation | Pending Sign-Off | Antigravity | Owner | **VERIFIED** | 2026-09-29 |
 | **Phase 6** | Acceptance Battery & Sign-Off | Pending | Antigravity | Owner | Pending | 2026-09-29 |

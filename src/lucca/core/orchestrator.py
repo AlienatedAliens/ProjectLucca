@@ -123,6 +123,7 @@ from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.text_utils import normalize_transcript
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
+    SubTurnScratchpadBuffer,
     TurnInput,
     TurnPipeline,
     normalize_spelled_words,
@@ -2373,7 +2374,7 @@ class Orchestrator:
         chunker = StreamingChunker()
         first_token_seen = False
         full_response_text: list[str] = []
-        tool_messages: list[ChatMessage] = []
+        scratchpad_buffer = SubTurnScratchpadBuffer()
         tool_receipts: list[dict[str, JsonValue]] = []
         # WO-9 A5: repeated-call guard state
         call_signatures: list[str] = []
@@ -2451,16 +2452,11 @@ class Orchestrator:
                 # The hard cap is a runaway guard only: on the final round tools
                 # are withdrawn and the model must summarise honestly.
                 if round_num == max_rounds and tools:
-                    tool_messages.append(
-                        ChatMessage(
-                            role="user",
-                            content=(
-                                "[Tool Budget Reached: You have used the maximum number "
-                                "of tool rounds. Do not call any more tools. Summarise "
-                                "what you found and what you could NOT verify; never "
-                                "fabricate missing facts.]"
-                            ),
-                        )
+                    scratchpad_buffer.add_user_directive(
+                        "[Tool Budget Reached: You have used the maximum number "
+                        "of tool rounds. Do not call any more tools. Summarise "
+                        "what you found and what you could NOT verify; never "
+                        "fabricate missing facts.]"
                     )
                     trace.cap_hit = True
                     logger.info("tool_round_cap_reached", max_rounds=max_rounds)
@@ -2473,7 +2469,7 @@ class Orchestrator:
                     memories=memories,
                     tools=round_tools,
                     messages=messages,
-                    tool_messages=tool_messages if tool_messages else None,
+                    tool_messages=scratchpad_buffer.messages if scratchpad_buffer.messages else None,
                     trace_id=trace.trace_id,
                     epistemic_context=epistemic_context,
                     stance_tag=current_stance,
@@ -2548,29 +2544,16 @@ class Orchestrator:
                                 f"Speculative Invariant Violation: {bdi_res.reason}. "
                                 "Action prohibited."
                             )
-                            tool_messages.append(
-                                ChatMessage(
-                                    role="assistant",
-                                    content="",
-                                    tool_calls=[
-                                        {
-                                            "id": call_id,
-                                            "type": "function",
-                                            "function": {
-                                                "name": tool_name,
-                                                "arguments": json.dumps(tool_args),
-                                            },
-                                        }
-                                    ],
-                                )
+                            scratchpad_buffer.add_assistant_tool_call(
+                                call_id=call_id,
+                                tool_name=tool_name,
+                                tool_args=tool_args,
                             )
-                            tool_messages.append(
-                                ChatMessage(
-                                    role="tool",
-                                    content=content_str,
-                                    tool_call_id=call_id,
-                                    name=tool_name,
-                                )
+                            scratchpad_buffer.add_tool_result(
+                                call_id=call_id,
+                                tool_name=tool_name,
+                                raw_output=content_str,
+                                is_error=True,
                             )
                             continue
 
@@ -2641,29 +2624,16 @@ class Orchestrator:
                         else:
                             content_str = "Action completed."
 
-                        tool_messages.append(
-                            ChatMessage(
-                                role="assistant",
-                                content="",
-                                tool_calls=[
-                                    {
-                                        "id": call_id,
-                                        "type": "function",
-                                        "function": {
-                                            "name": tool_name,
-                                            "arguments": json.dumps(tool_args),
-                                        },
-                                    }
-                                ],
-                            )
+                        scratchpad_buffer.add_assistant_tool_call(
+                            call_id=call_id,
+                            tool_name=tool_name,
+                            tool_args=tool_args,
                         )
-                        tool_messages.append(
-                            ChatMessage(
-                                role="tool",
-                                content=content_str,
-                                tool_call_id=call_id,
-                                name=tool_name,
-                            )
+                        scratchpad_buffer.add_tool_result(
+                            call_id=call_id,
+                            tool_name=tool_name,
+                            raw_output=content_str,
+                            is_error=not (tool_res is not None and tool_res.ok),
                         )
 
                         # WO-9 A5: repeated-call guard — an identical
@@ -2672,16 +2642,11 @@ class Orchestrator:
                         call_sig = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
                         call_signatures.append(call_sig)
                         if call_signatures.count(call_sig) >= 2:
-                            tool_messages.append(
-                                ChatMessage(
-                                    role="user",
-                                    content=(
-                                        "[Repeat Guard: You already issued this exact "
-                                        "call and it returned a result above. Use that "
-                                        "result, or try a different approach — do not "
-                                        "repeat it.]"
-                                    ),
-                                )
+                            scratchpad_buffer.add_user_directive(
+                                "[Repeat Guard: You already issued this exact "
+                                "call and it returned a result above. Use that "
+                                "result, or try a different approach — do not "
+                                "repeat it.]"
                             )
                         # WO-13.1: Pre-Narration Sanity-Check Guard (Fault Mode C)
                         if tool_res is not None and tool_res.ok and content_str:
@@ -2699,12 +2664,7 @@ class Orchestrator:
                                     violation=sanity_res.violation_type,
                                     reason=sanity_res.reason,
                                 )
-                                tool_messages.append(
-                                    ChatMessage(
-                                        role="user",
-                                        content=sanity_res.directive,
-                                    )
-                                )
+                                scratchpad_buffer.add_user_directive(sanity_res.directive)
 
                 # WO-11.2: G1+G6 unified honesty & register nudge (D-HON-01)
                 # If any tool failed in this round, inject honesty directive
@@ -2718,21 +2678,16 @@ class Orchestrator:
                         round_num=round_num,
                         failed_tools=failed_names,
                     )
-                    tool_messages.append(
-                        ChatMessage(
-                            role="user",
-                            content=(
-                                f"[Honesty Directive: A tool you called this turn failed "
-                                f"({failed_names}). State the failure plainly. Never guess, "
-                                "estimate, or fabricate the result the tool was supposed to "
-                                "produce — especially numbers. Do not use celebration, "
-                                "confidence, or success register when reporting failed or "
-                                "unverified results. If solving an analytical, logic, or "
-                                "mathematical problem, you may provide your step-by-step "
-                                "chain-of-thought derivation clearly labeled as an analytical "
-                                "derivation rather than claiming tool execution.]"
-                            ),
-                        )
+                    scratchpad_buffer.add_user_directive(
+                        f"[Honesty Directive: A tool you called this turn failed "
+                        f"({failed_names}). State the failure plainly. Never guess, "
+                        "estimate, or fabricate the result the tool was supposed to "
+                        "produce — especially numbers. Do not use celebration, "
+                        "confidence, or success register when reporting failed or "
+                        "unverified results. If solving an analytical, logic, or "
+                        "mathematical problem, you may provide your step-by-step "
+                        "chain-of-thought derivation clearly labeled as an analytical "
+                        "derivation rather than claiming tool execution.]"
                     )
 
                 if not round_tool_called:
@@ -2747,17 +2702,12 @@ class Orchestrator:
                             "stalling_research_question_intercepted_forcing_tool_execution",
                             round_num=round_num,
                         )
-                        tool_messages.append(
-                            ChatMessage(
-                                role="user",
-                                content=(
-                                    "[Autonomous Research Directive: Do not output "
-                                    "conversational filler, cheerleading, or empty promises. "
-                                    "Do not ask rhetorical permission questions or request "
-                                    "clarification. Execute search_web or fetch_url immediately "
-                                    "to retrieve and present the verified facts.]"
-                                ),
-                            )
+                        scratchpad_buffer.add_user_directive(
+                            "[Autonomous Research Directive: Do not output "
+                            "conversational filler, cheerleading, or empty promises. "
+                            "Do not ask rhetorical permission questions or request "
+                            "clarification. Execute search_web or fetch_url immediately "
+                            "to retrieve and present the verified facts.]"
                         )
                         self.output_supervisor.turn_has_stalled = False
                         continue
@@ -2774,17 +2724,12 @@ class Orchestrator:
                                 round_num=round_num,
                                 promises=promises[:2],
                             )
-                            tool_messages.append(
-                                ChatMessage(
-                                    role="user",
-                                    content=(
-                                        "[Honesty Directive: You stated you would perform "
-                                        f"an action ({' ; '.join(promises[:2])}) but issued "
-                                        "no tool call. Either call the appropriate tool "
-                                        "now, or state plainly that you have NOT done it "
-                                        "and will not pretend otherwise.]"
-                                    ),
-                                )
+                            scratchpad_buffer.add_user_directive(
+                                "[Honesty Directive: You stated you would perform "
+                                f"an action ({' ; '.join(promises[:2])}) but issued "
+                                "no tool call. Either call the appropriate tool "
+                                "now, or state plainly that you have NOT done it "
+                                "and will not pretend otherwise.]"
                             )
                             continue
                     break
@@ -2842,9 +2787,96 @@ class Orchestrator:
             trace.t_llm_done = now_ns()
             print("\n", flush=True)
 
-            # If no streaming response was generated but a tool was executed without narration,
-            # speak the tool result as fallback so the turn produces audio feedback and history
+            # WO-26 Phase 5: Non-Empty Synthesis Guardrail
+            # If tool execution succeeded but the assistant generation produced an empty
+            # or whitespace-only response, trigger a single fallback synthesis pass:
+            # "Summarize the tool output for the user."
+            has_successful_tool = any(r.get("action") for r in tool_receipts) or any(
+                not t.get("is_error", False) for t in scratchpad_buffer._intermediate_traces
+            )
+            synthesized_text = "".join(full_response_text).strip()
             if (
+                has_successful_tool
+                and not synthesized_text
+                and not trace.interrupted
+                and not self._cancel_token.is_set()
+            ):
+                logger.warning(
+                    "non_empty_synthesis_guardrail_triggered",
+                    trace_id=trace.trace_id,
+                    tools=[r.get("action") for r in tool_receipts],
+                )
+                scratchpad_buffer.add_user_directive(
+                    "[Non-Empty Synthesis Directive: Your tool execution succeeded. "
+                    "Summarize the tool output for the user now in clean spoken prose. "
+                    "Do not emit empty text or whitespace.]"
+                )
+                for event in self.llm.stream_turn(
+                    current_audio_b64=None,
+                    current_text="Summarize the tool output for the user.",
+                    history=self.history,
+                    memories=memories,
+                    tools=[],  # tools withdrawn for synthesis pass
+                    tool_messages=scratchpad_buffer.messages,
+                    trace_id=trace.trace_id,
+                    epistemic_context=epistemic_context,
+                    stance_tag=current_stance,
+                    enable_thinking=False,
+                ):
+                    if trace.interrupted or self._cancel_token.is_set():
+                        break
+                    if isinstance(event, TokenDelta) and event.delta:
+                        if not first_token_seen:
+                            first_token_seen = True
+                            trace.t_llm_first_token = now_ns()
+                        trace.tokens_out += 1
+                        full_response_text.append(event.delta)
+                        for chunk in chunker.feed(event.delta):
+                            if trace.interrupted:
+                                break
+                            clean_chunk_text = sanitize_for_voice(chunk.text)
+                            if not clean_chunk_text:
+                                continue
+                            if chunk_index == 0:
+                                trace.t_first_chunk = now_ns()
+                                self._set_state("speaking")
+                            self._enqueue_tts_chunk(trace, chunk.chunk_id, clean_chunk_text)
+                            chunk_index += 1
+
+                for chunk in chunker.flush():
+                    if trace.interrupted or self._cancel_token.is_set():
+                        break
+                    clean_chunk_text = sanitize_for_voice(chunk.text)
+                    if clean_chunk_text:
+                        if chunk_index == 0:
+                            trace.t_first_chunk = now_ns()
+                            self._set_state("speaking")
+                        self._enqueue_tts_chunk(trace, chunk.chunk_id, clean_chunk_text)
+                        chunk_index += 1
+
+                # Deterministic fallback if stream produced nothing
+                if not "".join(full_response_text).strip():
+                    tool_name_used = (
+                        str(tool_receipts[0].get("action", "the tool"))
+                        if tool_receipts
+                        else "the tool"
+                    )
+                    fallback_msg = (
+                        self._last_unspoken_tool_msg
+                        if isinstance(self._last_unspoken_tool_msg, str) and self._last_unspoken_tool_msg.strip()
+                        else f"I completed the operation using {tool_name_used}."
+                    )
+                    full_response_text.append(fallback_msg)
+                    self._speak_text(trace, fallback_msg)
+                    self._publish_caption(fallback_msg, source="assistant", is_final=True)
+
+                if chunk_index > 0 and not trace.interrupted and not self._cancel_token.is_set():
+                    self.speech_output.wait_for_playback(trace)
+
+                if not trace.interrupted and not self._cancel_token.is_set():
+                    self.play_ring.set_flag(FLAG_EOS)
+
+            elif (
                 not full_response_text
                 and self._last_unspoken_tool_msg
                 and not trace.interrupted

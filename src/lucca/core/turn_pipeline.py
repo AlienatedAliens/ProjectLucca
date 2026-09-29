@@ -19,6 +19,7 @@ Zero-Any invariant enforced.
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from dataclasses import dataclass
@@ -36,6 +37,7 @@ from lucca.core.proof_policy import is_cross_reference_command
 from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
     AssertFact,
+    ChatMessage,
     ExecutionTier,
     JsonValue,
     PendingRatification,
@@ -220,6 +222,156 @@ class DifficultyEstimator:
 
         # 3. Default to False: preserves llama-server prefix KV cache and sub-350ms TTFT
         return False
+
+
+class SubTurnScratchpadBuffer:
+    """Decoupled intermediate tool deliberation scratchpad (WO-26 Phase 5).
+
+    Executes intermediate tool calls, coordinate math, and multi-turn execution traces
+    in an isolated sub-turn buffer with an independent character/token budget.
+    Ensures that heavy intermediate traces never starve subsequent generation rounds
+    and never leak un-synthesized raw dumps into long-term conversational history.
+    """
+
+    def __init__(
+        self,
+        max_total_chars: int = 24000,
+        max_single_output_chars: int = 4000,
+        head_chars: int = 2000,
+        tail_chars: int = 1500,
+    ) -> None:
+        self.max_total_chars: int = max_total_chars
+        self.max_single_output_chars: int = max_single_output_chars
+        self.head_chars: int = head_chars
+        self.tail_chars: int = tail_chars
+        self._messages: list[ChatMessage] = []
+        self._intermediate_traces: list[dict[str, JsonValue]] = []
+        self.truncated_count: int = 0
+
+    @property
+    def messages(self) -> list[ChatMessage]:
+        return list(self._messages)
+
+    def append(self, msg: ChatMessage) -> None:
+        """Appends a ChatMessage directly to the scratchpad buffer."""
+        self._messages.append(msg)
+
+    def add_assistant_tool_call(
+        self,
+        call_id: str,
+        tool_name: str,
+        tool_args: dict[str, JsonValue],
+        thought: str = "",
+    ) -> None:
+        """Appends an assistant tool call to the isolated scratchpad buffer."""
+        self._messages.append(
+            ChatMessage(
+                role="assistant",
+                content=thought,
+                tool_calls=[
+                    {
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": tool_name,
+                            "arguments": json.dumps(tool_args),
+                        },
+                    }
+                ],
+            )
+        )
+
+    def add_tool_result(
+        self,
+        call_id: str,
+        tool_name: str,
+        raw_output: str,
+        is_error: bool = False,
+    ) -> None:
+        """Appends a tool execution result to the isolated scratchpad buffer with bounding."""
+        content = raw_output or ""
+        total_len = len(content)
+        if total_len > self.max_single_output_chars:
+            omitted = max(0, total_len - (self.head_chars + self.tail_chars))
+            head = content[: self.head_chars]
+            tail = content[-self.tail_chars :] if self.tail_chars > 0 else ""
+            bounded_output = (
+                f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters omitted to preserve synthesis budget ...]\n\n{tail}"
+            )
+            self.truncated_count += 1
+            logger.info(
+                "scratchpad_tool_output_bounded",
+                tool=tool_name,
+                original_len=total_len,
+                bounded_len=len(bounded_output),
+            )
+        else:
+            bounded_output = content
+
+        self._messages.append(
+            ChatMessage(
+                role="tool",
+                content=bounded_output,
+                tool_call_id=call_id,
+                name=tool_name,
+            )
+        )
+        self._intermediate_traces.append(
+            {
+                "call_id": call_id,
+                "tool": tool_name,
+                "raw_len": total_len,
+                "is_error": is_error,
+            }
+        )
+
+    def add_user_directive(self, directive_text: str) -> None:
+        """Appends an isolated mid-turn steering directive (e.g. repeat guard, honesty nudge)."""
+        self._messages.append(ChatMessage(role="user", content=directive_text))
+
+    def clear(self) -> None:
+        """Resets the scratchpad buffer."""
+        self._messages.clear()
+        self._intermediate_traces.clear()
+        self.truncated_count = 0
+
+
+def detect_operational_ambiguity(text: str) -> tuple[bool, str | None]:
+    """Detects open-ended business, financial, fee, or rounding ambiguities (WO-26 Phase 5).
+
+    Returns (is_ambiguous, reason). If ambiguous, Lucca states the operational assumption
+    on line 1 before calculation. Non-ambiguous queries return (False, None) to avoid
+    superfluous assumptions.
+    """
+    if not text or not text.strip():
+        return False, None
+    lower = text.lower()
+
+    # Fast check: exclude simple math or common non-financial questions
+    if re.search(r"^\s*(what is|\d+\s*[\+\-\*\/]|\d+\s+multiplied|\d+\s+divided)", lower):
+        if not any(k in lower for k in ("interest", "fee", "tax", "tip", "pallet", "round")):
+            return False, None
+
+    # 1. Financial interest without specifying simple vs compound
+    has_interest = bool(re.search(r"\b(interest|rate of interest|earns interest|accrues interest|loan)\b", lower))
+    has_explicit_convention = bool(re.search(r"\b(simple interest|compound(ed)?|compounding|apr|apy)\b", lower))
+    if has_interest and not has_explicit_convention:
+        return True, "Interest calculation without explicit simple vs compound convention specified"
+
+    # 2. Multi-tier fee/tip/tax where base is ambiguous (subtotal vs grand total)
+    has_fee = bool(re.search(r"\b(fee|service fee|delivery fee|convenience fee|vendor fee|tax|tip)\b", lower))
+    has_multiple_costs = bool(re.search(r"\b(delivery|shipping|travel|expenses|freight|tip|subtotal)\b", lower))
+    if has_fee and has_multiple_costs and "%" in text:
+        if not re.search(r"\b(applied (strictly )?to|on (the )?(subtotal|groceries|merchandise|work) only)\b", lower):
+            return True, "Percentage fee application ambiguous across subtotal vs grand total"
+
+    # 3. Discrete physical entity packing/rounding without explicit rounding direction
+    has_discrete_packing = bool(re.search(r"\b(how many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b", lower))
+    has_explicit_rounding = bool(re.search(r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at least|exact(ly)?)\b", lower))
+    if has_discrete_packing and not has_explicit_rounding:
+        return True, "Discrete physical unit allocation without explicit floor/ceil rounding direction"
+
+    return False, None
 
 
 @dataclass(frozen=True)
@@ -555,6 +707,17 @@ class TurnPipeline:
 
         if spelling_hint:
             epistemic_ctx = f"{epistemic_ctx}\n{spelling_hint}" if epistemic_ctx else spelling_hint
+
+        # WO-26 Phase 5: Defensive Disambiguation Directive (F-REAS-102)
+        if user_text:
+            is_ambiguous, ambig_reason = detect_operational_ambiguity(user_text)
+            if is_ambiguous:
+                disambig_hint = (
+                    f"[Defensive Disambiguation Directive: {ambig_reason}. "
+                    "State your operational assumption explicitly on line 1 before providing "
+                    "calculations or numerical conclusions (e.g. 'Assumption: ...').]"
+                )
+                epistemic_ctx = f"{epistemic_ctx}\n\n{disambig_hint}" if epistemic_ctx else disambig_hint
 
         return epistemic_ctx
 
