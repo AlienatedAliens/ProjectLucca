@@ -118,6 +118,7 @@ class SearchWebArgs(BaseModel):
     query: str = Field(default="", min_length=0)
     queries: list[str] | None = None
     max_results: int = Field(default=5, ge=1, le=20)
+    target_entity: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -198,6 +199,7 @@ class SelfHistorySearchArgs(BaseModel):
 class SysInfoArgs(BaseModel):
     filter_name: str | None = None
     limit: int = Field(default=25, ge=1, le=100)
+    timezone: str | None = None
 
 
 class CalcMathArgs(BaseModel):

@@ -24,6 +24,7 @@ except Exception as exc:
     logger.debug("truststore_injection_failed", error=str(exc))
 
 from lucca.core.exceptions import SandboxPathError
+from lucca.sandbox.search_tool import search_web
 
 MAX_URL_LEN: int = 2048
 MAX_QUERY_LEN: int = 1024
@@ -87,7 +88,9 @@ def validate_url_ssrf(
     except socket.gaierror as err:
         raise SandboxPathError("dns_failed", f"Failed to resolve host '{hostname}': {err}") from err
 
-    resolved_ip = ""
+    v4_ips: list[ipaddress.IPv4Address] = []
+    v6_ips: list[ipaddress.IPv6Address] = []
+
     for entry in addr_info:
         sockaddr = entry[4]
         ip_str = sockaddr[0]
@@ -97,27 +100,34 @@ def validate_url_ssrf(
         except ValueError as err:
             raise SandboxPathError("invalid_ip", f"Resolved invalid IP '{ip_str}': {err}") from err
 
-        # Reject IPv6 per Spec 09 & ADR-003
         if ip.version == 6:
-            raise SandboxPathError("ipv6_blocked", f"IPv6 address '{ip_str}' is blocked")
+            v6_ips.append(ip)
+        elif ip.version == 4:
+            v4_ips.append(ip)
 
-        # Reject RFC1918, Loopback, Link-local, CGNAT, Multicast, Reserved
+    # Reject IPv6-only hosts per Spec 09 & ADR-003
+    if not v4_ips and v6_ips:
+        raise SandboxPathError("ipv6_blocked", f"IPv6 address '{v6_ips[0]}' is blocked")
+
+    if not v4_ips:
+        raise SandboxPathError("dns_failed", f"No valid IP address resolved for host '{hostname}'")
+
+    # Reject RFC1918, Loopback, Link-local, CGNAT, Multicast, Reserved on all IPv4 addresses
+    for ip_v4 in v4_ips:
         if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip in CGNAT_NET
+            ip_v4.is_private
+            or ip_v4.is_loopback
+            or ip_v4.is_link_local
+            or ip_v4.is_multicast
+            or ip_v4.is_reserved
+            or ip_v4 in CGNAT_NET
         ):
             raise SandboxPathError(
                 "ssrf_blocked",
-                f"Host '{hostname}' resolved to blocked private/local IP '{ip_str}'",
+                f"Host '{hostname}' resolved to blocked private/local IP '{ip_v4}'",
             )
 
-        if not resolved_ip:
-            resolved_ip = str(ip)
-
+    resolved_ip = str(v4_ips[0])
     return url, resolved_ip
 
 

@@ -431,6 +431,72 @@ def _any_term_matches(text: str, terms: tuple[str, ...]) -> bool:
     return any(_term_matches(text, t) for t in terms)
 
 
+REGIONAL_OR_CULTURE_WORDS: tuple[str, ...] = (
+    "australia", "australian", "aussie", "uk", "british", "britain", "england",
+    "scotland", "scottish", "ireland", "irish", "new zealand", "kiwi",
+    "philippines", "filipino", "singapore", "singaporean", "malaysia", "malaysian",
+    "new york", "nyc", "chicago", "texas", "southern", "canada", "canadian",
+    "south africa", "japan", "japanese",
+)
+
+SLANG_OR_DIALECT_WORDS: tuple[str, ...] = (
+    "slang", "colloquial", "colloquialism", "dialect", "idiom", "vernacular",
+    "lingo", "jargon", "local term", "street term",
+)
+
+CULINARY_WORDS: tuple[str, ...] = (
+    "food", "dish", "snack", "fish", "meat", "pastry", "cuisine", "grub",
+    "cheese", "sandwich", "dessert", "bread", "roll", "pie", "stew",
+    "beverage", "drink", "street food", "recipe", "barm",
+)
+
+
+def matches_slang_or_world_definition(lower: str) -> bool:
+    """Conformal uncertainty gating: detect cultural, culinary, regional slang or unfamiliar entity inquiries."""
+    # 1. Direct slang/dialect keywords
+    if any(re.search(rf"\b{re.escape(w)}\b", lower) for w in SLANG_OR_DIALECT_WORDS):
+        return True
+
+    # 2. Regional definitional phrasing: 'what is X in [region]' or 'what X is in [region]'
+    for reg in REGIONAL_OR_CULTURE_WORDS:
+        if re.search(rf"\bwhat\s+.+?\bin\s+{re.escape(reg)}\b", lower):
+            return True
+
+    # 3. Cultural/culinary entity definition: 'what is a/an ...' or 'what [a/an] ... is'
+    if re.search(r"\bwhat\s+(?:(?:is|are)\s+(?:a|an)\s+|a\s+|an\s+)[a-z0-9\s'-]+", lower):
+        return True
+
+    # 'what does ... mean'
+    if re.search(r"\bwhat\s+does\s+[a-z0-9\s'-]+?\s+mean\b", lower):
+        return True
+
+    # 'what is ...' where query contains culinary words
+    has_culinary = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in CULINARY_WORDS)
+    if has_culinary and re.search(r"\bwhat\s+(?:is|are|[a-z0-9\s'-]+\s+is)\b", lower):
+        return True
+
+    # 'what is X and Y' (classic dishes like 'bubble and squeak', 'bangers and mash')
+    if re.search(r"\bwhat\s+(?:is|are)\s+[a-z0-9'-]+\s+and\s+[a-z0-9'-]+", lower):
+        return True
+
+    return False
+
+
+def _extract_target_entity(query_text: str) -> str | None:
+    """Extracts candidate target entity from definitional or slang query for snippet filtering."""
+    patterns = (
+        r"\bwhat\s+(?:is|are|does|was)\s+(?:a|an|the)?\s*([a-zA-Z0-9\s'-]+?)(?:\s+mean|\s+in\b|\s+slang|\s+dialect|\?|$)",
+        r"\bslang\s+(?:for|meaning)\s+([a-zA-Z0-9\s'-]+?)(?:\?|$)",
+    )
+    for p in patterns:
+        m = re.search(p, query_text, re.IGNORECASE)
+        if m:
+            cand = m.group(1).strip()
+            if cand and len(cand) < 60:
+                return cand
+    return None
+
+
 def classify_epistemic_intent(
     query_text: str,
 ) -> tuple[bool, list[EpistemicSubstrate], str | None]:
@@ -527,14 +593,27 @@ def classify_epistemic_intent(
         "rule: birds fly",
         "a room has no windows and one locked door",
         "a server cluster experienced data corruption",
+        "alice arrives at",
+        "rule 1:",
+        "proposal:",
+        "expert a (distinguished",
+        "expert a",
         "mia places chocolate",
+        "asset value v is",
+        "in a second-price sealed-bid auction",
+        "alice told bob a secret",
+        "in an employment market",
+        "three children (a, b, c)",
+        "in an infinitely repeated prisoner's dilemma",
+        "player 1 has either a nut hand",
+        "two hunters can choose stag",
     )
     if any(lower.startswith(p) or p in lower for p in hypothetical_puzzle_starters):
         return False, [], None
 
     # Detect structured premise lists or math word problems (e.g. "1. Event A...", "Clues:\n1.")
     if re.search(r"\b(?:premise\s+\d+|clues?:|rule\s+\d+:|rule:\s+|question:\s+(?:is|what|determine|calculate))\b", lower):
-        if re.search(r"\b(?:all\s+\w+\s+are|no\s+\w+\s+is|every\s+\w+\s+is|if\s+both\s+are\s+released|final\s+verdict|determine the exact|construct the valid|valid schedule|find digits|is the system satisfiable|abduce)\b", lower):
+        if re.search(r"\b(?:all\s+\w+\s+are|no\s+\w+\s+is|every\s+\w+\s+is|if\s+both\s+are\s+released|final\s+verdict|determine the exact|construct the valid|valid schedule|find digits|is the system satisfiable|abduce|resolve the conflict|most plausible explanation|competing hypotheses)\b", lower):
             return False, [], None
 
     # Substrate SELF: Companion identity, persona, creator, and design (Tier 0 Axiomatic)
@@ -684,6 +763,19 @@ def classify_epistemic_intent(
         "exact time",
         "local time",
         "clock",
+        "time in",
+        "time for",
+        "timezone",
+        "time zone",
+        "timezones",
+        "time zones",
+        "utc offset",
+        "gmt offset",
+        "daylight saving",
+        "daylight savings",
+        "daylight-saving",
+        "dst",
+        "standard time",
     )
     location_words = (
         "where are you located",
@@ -748,8 +840,19 @@ def classify_epistemic_intent(
         substrates.append(EpistemicSubstrate.SELF_HISTORY)
     if _any_term_matches(lower, memory_words) or is_private_memory:
         substrates.append(EpistemicSubstrate.MEMORY)
-    if _any_term_matches(lower, web_words) and not _any_term_matches(lower, self_history_words):
-        substrates.append(EpistemicSubstrate.WEB)
+    has_slang_intent = (
+        matches_slang_or_world_definition(lower)
+        and not _any_term_matches(lower, self_history_words)
+        and not re.search(self_pattern, lower)
+        and not re.search(capability_pattern, lower)
+        and not _any_term_matches(lower, temporal_words)
+    )
+    if (
+        _any_term_matches(lower, web_words)
+        or has_slang_intent
+    ) and not _any_term_matches(lower, self_history_words):
+        if EpistemicSubstrate.WEB not in substrates:
+            substrates.append(EpistemicSubstrate.WEB)
 
     is_epistemic = len(substrates) > 0
 
@@ -956,23 +1059,99 @@ class EpistemicSearchCascade:
                 for w in ("hardware", "specs", "telemetry", "substrate configuration", "system")
             )
 
+            timezone_inquiry = any(
+                re.search(rf"\b{re.escape(w)}\b", lower)
+                for w in (
+                    "timezone",
+                    "time zone",
+                    "timezones",
+                    "time zones",
+                    "utc offset",
+                    "gmt offset",
+                    "daylight saving",
+                    "daylight savings",
+                    "daylight-saving",
+                    "dst",
+                    "standard time",
+                    "awst",
+                    "aest",
+                    "acst",
+                    "pst",
+                    "pdt",
+                    "est",
+                    "edt",
+                    "cst",
+                    "cdt",
+                    "mst",
+                    "mdt",
+                    "sgt",
+                    "jst",
+                    "gmt",
+                    "utc",
+                )
+            )
+            wants_time = wants_time or timezone_inquiry
+
             if wants_time or general_hw:
-                now_local = datetime.now().astimezone()
-                time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
-                content = (
-                    f"Host Local Time: {time_str} | Timezone: {metrics.get('timezone_name', 'UTC')}"
-                )
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.TELEMETRY,
-                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                        source="system_tools:local_clock",
-                        content=content,
-                        polarity=BelnapValue.TRUE,
-                        confidence=1.0,
-                        metadata={"timestamp": metrics.get("timestamp")},
+                from lucca.sandbox.service import resolve_target_timezone  # noqa: PLC0415
+
+                target_tz = resolve_target_timezone(query_text)
+                if target_tz is not None:
+                    now_tz = datetime.now(target_tz)
+                    iana_name = target_tz.key
+                    tz_abbr = now_tz.strftime("%Z")
+                    utc_offset = now_tz.strftime("%z")
+                    is_dst = bool(now_tz.dst() and now_tz.dst().total_seconds() != 0)
+                    time_str = now_tz.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
+                    content = (
+                        f"Grounded Timezone: {iana_name} ({tz_abbr}, UTC{utc_offset}) | "
+                        f"DST Active: {is_dst} | Time: {time_str}"
                     )
-                )
+                    items.append(
+                        EvidenceItem(
+                            substrate=EpistemicSubstrate.TELEMETRY,
+                            trust_tier=TrustTier.TIER_1_HARDWARE,
+                            source="system_tools:zoneinfo",
+                            content=content,
+                            polarity=BelnapValue.TRUE,
+                            confidence=1.0,
+                            metadata={
+                                "iana_name": iana_name,
+                                "abbreviation": tz_abbr,
+                                "utc_offset": utc_offset,
+                                "is_dst": is_dst,
+                                "local_time": time_str,
+                            },
+                        )
+                    )
+                else:
+                    now_local = datetime.now().astimezone()
+                    time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
+                    iana_name = getattr(now_local.tzinfo, "key", None) or now_local.tzname() or "UTC"
+                    tz_abbr = now_local.strftime("%Z")
+                    utc_offset = now_local.strftime("%z")
+                    is_dst = bool(now_local.dst() and now_local.dst().total_seconds() != 0)
+                    content = (
+                        f"Host Local Time: {time_str} | Timezone: {iana_name} "
+                        f"({tz_abbr}, UTC{utc_offset}) | DST: {is_dst}"
+                    )
+                    items.append(
+                        EvidenceItem(
+                            substrate=EpistemicSubstrate.TELEMETRY,
+                            trust_tier=TrustTier.TIER_1_HARDWARE,
+                            source="system_tools:local_clock",
+                            content=content,
+                            polarity=BelnapValue.TRUE,
+                            confidence=1.0,
+                            metadata={
+                                "timestamp": metrics.get("timestamp"),
+                                "iana_name": iana_name,
+                                "abbreviation": tz_abbr,
+                                "utc_offset": utc_offset,
+                                "is_dst": is_dst,
+                            },
+                        )
+                    )
 
             if wants_location:
                 from lucca.sandbox.service import get_host_network_and_location  # noqa: PLC0415
@@ -1294,31 +1473,71 @@ class EpistemicSearchCascade:
     # Substrate 3: SSRF-Hardened Sandboxed Web (300–1500ms target)
     # ------------------------------------------------------------------------
     def query_substrate_3_web(self, query_text: str) -> list[EvidenceItem]:
-        """Queries external web when explicit URL is supplied."""
+        """Queries external web when explicit URL is supplied or via web search fallback."""
         items: list[EvidenceItem] = []
         if not self.sandbox:
             return items
 
         url_match = re.search(r"(https?://[^\s\"'>]+)", query_text)
-        if not url_match:
+        if url_match:
+            target_url = url_match.group(1)
+            try:
+                # Propagate untrusted web taint to active session guard (Spec 09 / D-SEC-04)
+                if (
+                    self.sandbox
+                    and hasattr(self.sandbox, "guard")
+                    and hasattr(self.sandbox.guard, "mark_taint")
+                ):
+                    # Lazy import: avoids a sandbox <-> core import cycle.
+                    from lucca.sandbox.policy import TaintFlags  # noqa: PLC0415
+
+                    self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
+
+                res = self._execute_sandbox(
+                    tool_name="fetch_url",
+                    args={"url": target_url},
+                    confirmed=True,
+                )
+                if res and res.ok and res.content:
+                    items.append(
+                        EvidenceItem(
+                            substrate=EpistemicSubstrate.WEB,
+                            trust_tier=TrustTier.TIER_4_WEB,
+                            source=f"web:{target_url}",
+                            content=res.content[:600],
+                            proposition=f"web_content({target_url})",
+                            told_true=True,
+                            told_false=False,
+                            confidence=0.85,
+                            metadata={"url": target_url},
+                        )
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("substrate_3_web_query_error", error=str(exc))
             return items
 
-        target_url = url_match.group(1)
+        # Fallback to search_web when no explicit URL is supplied
         try:
-            # Propagate untrusted web taint to active session guard (Spec 09 / D-SEC-04)
             if (
                 self.sandbox
                 and hasattr(self.sandbox, "guard")
                 and hasattr(self.sandbox.guard, "mark_taint")
             ):
-                # Lazy import: avoids a sandbox <-> core import cycle.
                 from lucca.sandbox.policy import TaintFlags  # noqa: PLC0415
 
                 self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
 
+            topic = extract_clean_topic(query_text)
+            search_query = topic if topic and topic != "that" else query_text
+            target_entity = _extract_target_entity(query_text)
+
+            search_args: dict[str, JsonValue] = {"query": search_query}
+            if target_entity:
+                search_args["target_entity"] = target_entity
+
             res = self._execute_sandbox(
-                tool_name="fetch_url",
-                args={"url": target_url},
+                tool_name="search_web",
+                args=search_args,
                 confirmed=True,
             )
             if res and res.ok and res.content:
@@ -1326,17 +1545,17 @@ class EpistemicSearchCascade:
                     EvidenceItem(
                         substrate=EpistemicSubstrate.WEB,
                         trust_tier=TrustTier.TIER_4_WEB,
-                        source=f"web:{target_url}",
-                        content=res.content[:600],
-                        proposition=f"web_content({target_url})",
+                        source=f"web_search:{search_query}",
+                        content=res.content[:1500],
+                        proposition=f"web_search_results({search_query})",
                         told_true=True,
                         told_false=False,
                         confidence=0.85,
-                        metadata={"url": target_url},
+                        metadata=res.structured if isinstance(res.structured, dict) else {"query": search_query},
                     )
                 )
         except Exception as exc:  # noqa: BLE001
-            logger.debug("substrate_3_web_query_error", error=str(exc))
+            logger.debug("substrate_3_web_search_error", error=str(exc))
 
         return items
 

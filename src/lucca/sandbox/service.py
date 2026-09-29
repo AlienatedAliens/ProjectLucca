@@ -8,11 +8,13 @@ import ast
 import json
 import math
 import platform
+import re
 import subprocess
 import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import psutil
 import structlog
@@ -97,15 +99,87 @@ def get_host_network_and_location() -> dict[str, JsonValue]:
     return net_info
 
 
-def _eval_ast_node(node: ast.AST) -> int | float | list[object] | tuple[object, ...]:
+COMMON_TZ_MAP: dict[str, str] = {
+    "perth": "Australia/Perth",
+    "awst": "Australia/Perth",
+    "melbourne": "Australia/Melbourne",
+    "aest": "Australia/Melbourne",
+    "sydney": "Australia/Sydney",
+    "brisbane": "Australia/Brisbane",
+    "adelaide": "Australia/Adelaide",
+    "darwin": "Australia/Darwin",
+    "manila": "Asia/Manila",
+    "philippines": "Asia/Manila",
+    "singapore": "Asia/Singapore",
+    "sgt": "Asia/Singapore",
+    "tokyo": "Asia/Tokyo",
+    "japan": "Asia/Tokyo",
+    "jst": "Asia/Tokyo",
+    "london": "Europe/London",
+    "uk": "Europe/London",
+    "gmt": "Etc/GMT",
+    "utc": "UTC",
+    "new york": "America/New_York",
+    "nyc": "America/New_York",
+    "est": "America/New_York",
+    "edt": "America/New_York",
+    "los angeles": "America/Los_Angeles",
+    "la": "America/Los_Angeles",
+    "california": "America/Los_Angeles",
+    "pst": "America/Los_Angeles",
+    "pdt": "America/Los_Angeles",
+    "chicago": "America/Chicago",
+    "cst": "America/Chicago",
+    "cdt": "America/Chicago",
+    "denver": "America/Denver",
+    "mst": "America/Denver",
+    "mdt": "America/Denver",
+    "paris": "Europe/Paris",
+    "berlin": "Europe/Berlin",
+    "auckland": "Pacific/Auckland",
+    "new zealand": "Pacific/Auckland",
+}
+
+
+def resolve_target_timezone(name_or_query: str) -> ZoneInfo | None:
+    """Offline local resolution of IANA timezone names and common regional aliases (<1ms)."""
+    cleaned = name_or_query.strip()
+    if not cleaned:
+        return None
+    # 1. Direct IANA timezone lookup if valid identifier format
+    if re.fullmatch(r"[A-Za-z0-9_+\-]+(?:/[A-Za-z0-9_+\-]+)*", cleaned):
+        try:
+            return ZoneInfo(cleaned)
+        except (ZoneInfoNotFoundError, ValueError, OSError):
+            pass
+    # 2. Check alias map directly
+    cleaned_lower = cleaned.lower()
+    if cleaned_lower in COMMON_TZ_MAP:
+        try:
+            return ZoneInfo(COMMON_TZ_MAP[cleaned_lower])
+        except (ZoneInfoNotFoundError, ValueError, OSError):
+            pass
+    # 3. Check for words in query matching alias map
+    for word, iana in COMMON_TZ_MAP.items():
+        if re.search(rf"\b{re.escape(word)}\b", cleaned_lower):
+            try:
+                return ZoneInfo(iana)
+            except (ZoneInfoNotFoundError, ValueError, OSError):
+                pass
+    return None
+
+
+def _eval_ast_node(node: ast.AST) -> int | float | bool | list[object] | tuple[object, ...]:
     if isinstance(node, ast.Expression):
         return _eval_ast_node(node.body)
     if isinstance(node, ast.Constant):
-        if isinstance(node.value, (int, float)):
+        if isinstance(node.value, (int, float, bool)):
             return node.value
         raise ValueError(f"Unsupported constant type: {type(node.value).__name__}")
     if isinstance(node, ast.UnaryOp):
         operand = _eval_ast_node(node.operand)
+        if isinstance(node.op, ast.Not):
+            return not bool(operand)
         if not isinstance(operand, (int, float)):
             raise ValueError("Unary operand must be numeric")
         if isinstance(node.op, ast.UAdd):
@@ -136,14 +210,63 @@ def _eval_ast_node(node: ast.AST) -> int | float | list[object] | tuple[object, 
             if right == 0:
                 raise ZeroDivisionError("modulo by zero")
             return left % right
-        if isinstance(node.op, ast.Pow):
+        if isinstance(node.op, (ast.Pow, ast.BitXor)):
             if abs(right) > 1000:
                 raise ValueError("Exponent too large (maximum allowed is 1000)")
             return left**right
         raise ValueError(f"Unsupported binary operator: {type(node.op).__name__}")
+    if isinstance(node, ast.BoolOp):
+        if isinstance(node.op, ast.And):
+            for v in node.values:
+                val = _eval_ast_node(v)
+                if not val:
+                    return val
+            return val
+        if isinstance(node.op, ast.Or):
+            for v in node.values:
+                val = _eval_ast_node(v)
+                if val:
+                    return val
+            return val
+        raise ValueError(f"Unsupported boolean operator: {type(node.op).__name__}")
+    if isinstance(node, ast.Compare):
+        left = _eval_ast_node(node.left)
+        for op, comparator in zip(node.ops, node.comparators):
+            right = _eval_ast_node(comparator)
+            matched = False
+            if isinstance(op, ast.Eq):
+                matched = (left == right)
+            elif isinstance(op, ast.NotEq):
+                matched = (left != right)
+            elif isinstance(op, ast.Lt):
+                matched = (left < right)
+            elif isinstance(op, ast.LtE):
+                matched = (left <= right)
+            elif isinstance(op, ast.Gt):
+                matched = (left > right)
+            elif isinstance(op, ast.GtE):
+                matched = (left >= right)
+            elif isinstance(op, ast.Is):
+                matched = (left is right)
+            elif isinstance(op, ast.IsNot):
+                matched = (left is not right)
+            elif isinstance(op, ast.In):
+                matched = (left in right)
+            elif isinstance(op, ast.NotIn):
+                matched = (left not in right)
+            else:
+                raise ValueError(f"Unsupported comparison operator: {type(op).__name__}")
+            if not matched:
+                return False
+            left = right
+        return True
     if isinstance(node, ast.Name):
         if node.id in _SAFE_MATH_CONSTANTS:
             return _SAFE_MATH_CONSTANTS[node.id]
+        if node.id == "True":
+            return True
+        if node.id == "False":
+            return False
         raise ValueError(f"Undefined variable or constant: {node.id}")
     if isinstance(node, ast.Attribute):
         if isinstance(node.value, ast.Name) and node.value.id == "math":
@@ -171,8 +294,8 @@ def _eval_ast_node(node: ast.AST) -> int | float | list[object] | tuple[object, 
         func = _SAFE_MATH_FUNCTIONS[func_name]
         raw_args = [_eval_ast_node(arg) for arg in node.args]
         call_res = func(*raw_args)
-        if not isinstance(call_res, (int, float)):
-            raise ValueError("Function did not return a numeric value")
+        if not isinstance(call_res, (int, float, bool)):
+            raise ValueError("Function did not return a numeric or boolean value")
         return call_res
     if isinstance(node, ast.Tuple):
         return tuple(_eval_ast_node(el) for el in node.elts)
@@ -181,15 +304,17 @@ def _eval_ast_node(node: ast.AST) -> int | float | list[object] | tuple[object, 
     raise ValueError(f"Disallowed expression node: {type(node).__name__}")
 
 
-def evaluate_math_expr(expr: str) -> int | float:
-    """Safely evaluates a mathematical expression using an AST allowlist."""
+def evaluate_math_expr(expr: str) -> int | float | bool:
+    """Safely evaluates a mathematical or logical expression using an AST allowlist."""
     cleaned = expr.strip()
     if not cleaned or len(cleaned) > 500:
         raise ValueError("Expression must be non-empty and under 500 characters")
+    # Normalize caret notation (e.g. 2^3 -> 2**3) to preserve mathematical exponentiation precedence
+    cleaned = cleaned.replace("^", "**")
     tree = ast.parse(cleaned, mode="eval")
     res = _eval_ast_node(tree.body)
-    if not isinstance(res, (int, float)):
-        raise ValueError("Expression did not evaluate to a numeric value")
+    if not isinstance(res, (int, float, bool)):
+        raise ValueError("Expression did not evaluate to a numeric or boolean value")
     return res
 
 
@@ -273,9 +398,27 @@ class SandboxService:
         confirmed: bool = False,
         human_confirmed: bool = False,
     ) -> ToolResult:
-        """
-        Validates and executes a tool call under sandbox security policy.
-        """
+        # Semantic argument repair & tool rerouting
+        if isinstance(args, dict):
+            if tool_name == "calc_math":
+                expr_val = args.get("expr")
+                code_val = args.get("code")
+                raw_content = str(code_val if code_val is not None else (expr_val or ""))
+                is_python_code = (
+                    "code" in args
+                    or "\n" in raw_content
+                    or "import " in raw_content
+                    or "def " in raw_content
+                    or "print(" in raw_content
+                    or len(raw_content) > 300
+                )
+                if is_python_code:
+                    tool_name = "run_python"
+                    args = {"code": raw_content}
+            elif tool_name == "run_python":
+                if "expr" in args and "code" not in args:
+                    args = {"code": str(args["expr"])}
+
         # 1. Sequence Guard Check
         allowed, reason = self.guard.check_and_record(tool_name, args)
         if not allowed:
@@ -442,10 +585,17 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
-                structured, content = search_web(
-                    query=parsed_search.query,
-                    max_results=parsed_search.max_results,
-                )
+                if parsed_search.target_entity is not None:
+                    structured, content = search_web(
+                        query=parsed_search.query,
+                        max_results=parsed_search.max_results,
+                        target_entity=parsed_search.target_entity,
+                    )
+                else:
+                    structured, content = search_web(
+                        query=parsed_search.query,
+                        max_results=parsed_search.max_results,
+                    )
                 return ToolResult(
                     call_id=call_id,
                     ok=bool(structured.get("ok", True)),
@@ -722,8 +872,28 @@ class SandboxService:
 
                 boot_time = psutil.boot_time()
                 uptime_s = max(0.0, time.time() - boot_time)
-                now_local = datetime.now().astimezone()
-                time_str = now_local.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
+
+                target_tz: ZoneInfo | None = None
+                if parsed_sys.timezone:
+                    target_tz = resolve_target_timezone(parsed_sys.timezone)
+
+                if target_tz is not None:
+                    now_tz = datetime.now(target_tz)
+                    iana_name = target_tz.key
+                    tz_abbr = now_tz.strftime("%Z")
+                    utc_offset = now_tz.strftime("%z")
+                    is_dst = bool(now_tz.dst() and now_tz.dst().total_seconds() != 0)
+                    local_time = now_tz.strftime("%Y-%m-%d %H:%M:%S")
+                    time_str = now_tz.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
+                else:
+                    now_tz = datetime.now().astimezone()
+                    iana_name = getattr(now_tz.tzinfo, "key", None) or now_tz.tzname() or "UTC"
+                    tz_abbr = now_tz.strftime("%Z")
+                    utc_offset = now_tz.strftime("%z")
+                    is_dst = bool(now_tz.dst() and now_tz.dst().total_seconds() != 0)
+                    local_time = now_tz.strftime("%Y-%m-%d %H:%M:%S")
+                    time_str = now_tz.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
+
                 net_geo = get_host_network_and_location()
 
                 processes = list_running_processes(
@@ -737,8 +907,12 @@ class SandboxService:
                     "machine": platform.machine(),
                     "hostname": platform.node(),
                     "current_local_time": time_str,
-                    "timezone": now_local.tzname() or "UTC",
-                    "utc_offset": now_local.strftime("%z"),
+                    "timezone": iana_name,
+                    "iana_name": iana_name,
+                    "abbreviation": tz_abbr,
+                    "utc_offset": utc_offset,
+                    "is_dst": is_dst,
+                    "local_time": local_time,
                     "network": net_geo,
                     "uptime_seconds": round(uptime_s, 1),
                     "cpu_count": psutil.cpu_count(logical=True) or 1,
@@ -763,6 +937,7 @@ class SandboxService:
 
                 content = (
                     f"Host System Info (Untrusted Host Inspection):\n"
+                    f"Timezone: {iana_name} ({tz_abbr}, UTC{utc_offset}) | DST: {is_dst}\n"
                     f"Current Local Time: {time_str}\n"
                     f"OS: {platform.platform()} ({platform.machine()})\n"
                     f"Hostname: {platform.node()}\n"
