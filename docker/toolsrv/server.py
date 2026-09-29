@@ -13,6 +13,13 @@ import time
 from pathlib import Path
 from typing import Any
 
+import structlog
+
+# Ensure all structlog logs inside container write to stderr to protect JSON-RPC stdout
+structlog.configure(
+    logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
+)
+
 from lucca.core.exceptions import SandboxPathError
 from lucca.sandbox.file_tool import SafeFileTool
 
@@ -99,6 +106,9 @@ def dispatch_request(req_dict: dict[str, Any], file_tool: SafeFileTool) -> dict[
             structured, content = file_tool.run_python(code=code, timeout=timeout)
             ok = bool(structured.get("ok", False))
             exit_code = int(structured.get("exit_code", -1))
+            err_msg = str(structured.get("stderr", "") or "")
+            if not ok and not err_msg and content:
+                err_msg = content
             return {
                 "call_id": call_id,
                 "ok": ok,
@@ -106,7 +116,7 @@ def dispatch_request(req_dict: dict[str, Any], file_tool: SafeFileTool) -> dict[
                 "structured": structured,
                 "content": content,
                 "content_truncated": False,
-                "stderr": "",
+                "stderr": err_msg,
                 "elapsed_ms": (time.perf_counter() - t0) * 1000.0,
             }
 

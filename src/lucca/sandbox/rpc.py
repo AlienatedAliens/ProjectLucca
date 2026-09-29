@@ -119,6 +119,8 @@ class PersistentDockerWorker:
             "-i",
             "-e",
             "LUCCA_SANDBOX_CONTAINER=1",
+            "-e",
+            "PYTHONPATH=/workspace:/opt:/opt/toolsrv:/opt/lucca/sandbox",
             self.container_name,
             "lucca-toolsrv",
             "--loop",
@@ -231,43 +233,50 @@ class PersistentDockerWorker:
                 self._kill_proc()
                 raise SandboxProtocolError(f"Worker stdin broken: {write_err}") from write_err
 
-            # Read exactly 1 line with hierarchical timeout
-            future = self._executor.submit(self._proc.stdout.readline)
-            try:
-                raw_line = future.result(timeout=timeout_s)
-            except concurrent.futures.TimeoutError as timeout_err:
-                logger.error(
-                    "persistent_worker_timeout",
-                    call_id=call_id,
-                    timeout_s=timeout_s,
-                )
-                self._kill_proc()
-                raise SandboxTimeout(
-                    f"Persistent worker timed out after {timeout_s}s"
-                ) from timeout_err
-            except Exception as read_err:
-                logger.error("persistent_worker_read_exception", error=str(read_err))
-                self._kill_proc()
-                raise SandboxProtocolError(f"Worker stdout read error: {read_err}") from read_err
+            # Read stdout line(s) with hierarchical timeout, skipping any stray non-JSON log lines
+            res_dict: dict[str, JsonValue] | None = None
+            t_deadline = time.monotonic() + timeout_s
+            while time.monotonic() < t_deadline:
+                remaining_t = max(0.05, t_deadline - time.monotonic())
+                future = self._executor.submit(self._proc.stdout.readline)
+                try:
+                    raw_line = future.result(timeout=remaining_t)
+                except concurrent.futures.TimeoutError as timeout_err:
+                    logger.error(
+                        "persistent_worker_timeout",
+                        call_id=call_id,
+                        timeout_s=timeout_s,
+                    )
+                    self._kill_proc()
+                    raise SandboxTimeout(
+                        f"Persistent worker timed out after {timeout_s}s"
+                    ) from timeout_err
+                except Exception as read_err:
+                    logger.error("persistent_worker_read_exception", error=str(read_err))
+                    self._kill_proc()
+                    raise SandboxProtocolError(f"Worker stdout read error: {read_err}") from read_err
 
-            if not raw_line or not raw_line.strip():
-                logger.error("persistent_worker_empty_eof", call_id=call_id)
-                self._kill_proc()
-                raise SandboxProtocolError("Persistent worker returned empty line / unexpected EOF")
+                if not raw_line or not raw_line.strip():
+                    logger.error("persistent_worker_empty_eof", call_id=call_id)
+                    self._kill_proc()
+                    raise SandboxProtocolError("Persistent worker returned empty line / unexpected EOF")
 
-            try:
-                res_dict: dict[str, JsonValue] = json.loads(raw_line.strip())
-            except json.JSONDecodeError as json_err:
-                logger.critical(
-                    "persistent_worker_corrupted_framing",
-                    call_id=call_id,
-                    raw_sample=raw_line[:200],
-                    err=str(json_err),
-                )
+                stripped = raw_line.strip()
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, dict) and ("call_id" in parsed or "ok" in parsed):
+                        res_dict = parsed
+                        break
+                except json.JSONDecodeError:
+                    logger.warning(
+                        "persistent_worker_stray_line_skipped",
+                        sample=stripped[:120],
+                    )
+                    continue
+
+            if res_dict is None:
                 self._kill_proc()
-                raise SandboxProtocolError(
-                    f"Corrupted JSON line framing from worker: {json_err}"
-                ) from json_err
+                raise SandboxTimeout(f"Persistent worker did not produce valid JSON response within {timeout_s}s")
 
             # Call-ID correlation & anti-desync guard
             returned_call_id = str(res_dict.get("call_id", ""))
@@ -337,7 +346,7 @@ class DockerRPCTransport:
             res = subprocess.run(  # noqa: S603
                 ["wsl", "-d", self.wsl_distro, "--", "docker", "version"],  # noqa: S607
                 capture_output=True,
-                timeout=5.0,
+                timeout=15.0,
                 check=False,
             )
             return res.returncode == 0
@@ -361,7 +370,7 @@ class DockerRPCTransport:
                 ],
                 capture_output=True,
                 text=True,
-                timeout=5.0,
+                timeout=10.0,
                 check=False,
             )
             return res.returncode == 0 and res.stdout.strip().lower() == "true"
@@ -442,7 +451,7 @@ class DockerRPCTransport:
             content=content,
             content_truncated=bool(res_dict.get("content_truncated", False)),
             elapsed_ms=elapsed_ms,
-            stderr=res_dict.get("stderr", ""),
+            stderr=str(res_dict.get("stderr") or ("" if ok else (structured.get("stderr") if isinstance(structured, dict) else content) or "execution_failed")),
         )
 
     def _execute_single_shot(
@@ -490,7 +499,20 @@ class DockerRPCTransport:
                 )
 
             try:
-                res_dict = json.loads(stdout.strip())
+                # Find the valid JSON response line (handling multi-line stdout or warnings)
+                res_dict = None
+                lines = [l.strip() for l in stdout.strip().splitlines() if l.strip()]
+                for line in reversed(lines):
+                    try:
+                        parsed = json.loads(line)
+                        if isinstance(parsed, dict) and ("call_id" in parsed or "ok" in parsed):
+                            res_dict = parsed
+                            break
+                    except json.JSONDecodeError:
+                        continue
+
+                if res_dict is None:
+                    res_dict = json.loads(stdout.strip())
                 return self._process_response_dict(call_id, tool, res_dict, elapsed_ms)
             except json.JSONDecodeError as json_err:
                 return ToolResult(

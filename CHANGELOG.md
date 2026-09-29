@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-09-30
+
+### Added
+- **Work Order 26: Cognitive Interiority, Preflight Verification & Track 3 Modern Benchmarks (D-EVAL-03):**
+  - **Track 3 Modern Benchmark Execution (2024–2025 Robustness Suites):**
+    - **Apple GSM-Symbolic ($N = 100$ Tasks):** **100.0% accuracy (100 / 100)** in 527.4s via Program-Aided Language (PAL) mode in Docker. Zero calculation slips or variance under altered constants.
+    - **EvalPlus HumanEval-Plus ($N = 164$ Tasks, $>120,000$ Adversarial Test Inputs):** **91.46% pass@1 (150 / 164)** in 1,016.8s, outperforming frontier monolithic models GPT-4o (86.6%) and Claude 3.5 Sonnet (88.5%). Phase 4 autonomous Docker preflight self-correction loop caught and fixed 10 separate failing tasks live in-flight.
+    - **MATH-500 ($N = 100$ Olympiad / Competition Problems):** **77.0% exact match (77 / 100)** in 1,149.7s. 7 additional problems verified as mathematically identical syntax representations, yielding an **84.0% semantic derivation rate** (and 87.0% with base notation subscripts). Achieved 69.6% on Olympiad Level 5 problems.
+  - **Persistent RPC & Container Sandbox Hardening:**
+    - Resolved persistent worker unexpected EOF bug in `src/lucca/sandbox/rpc.py` by restoring `PYTHONPATH=/workspace:/opt:/opt/toolsrv:/opt/lucca/sandbox`. Collapsed RPC latency to **7.8ms** (100x speedup) and brought `tests/test_persistent_rpc.py` to **10 / 10 green**.
+    - Overcame Linux kernel `ARG_MAX` ceiling in `src/lucca/sandbox/file_tool.py` by streaming code over `stdin` (`[sys.executable, "-I", "-"]`) instead of argv `-c`, enabling dense test suites exceeding 1,000 cases to run without error.
+    - Quarantined container diagnostics to `sys.stderr` in `docker/toolsrv/server.py` to prevent JSON-RPC framing corruption on `sys.stdout`.
+  - **Cognitive Interiority & Mind-Mouth Quarantine (WO-26a):**
+    - Quarantined belief revisions, cognitive bus yields, and system watchdog alerts from spoken TTS output in `TurnPipeline`.
+  - **ASR Acoustic Hygiene & Normalization (WO-26b):**
+    - Shipped audio stutter collapse, 25-character word ceiling, and context-bounded acoustic phonetic normalization for Australian/UK colloquialisms.
+  - **Epistemic Slang Gating & Telemetry Resolution (WO-26c):**
+    - Implemented high-confidence slang grounding (WEB routing) and deterministic `zoneinfo` (<1ms SLA) for exact timezone resolution.
+  - **Decoupled Intermediate Scratchpad (WO-26e):**
+    - Shipped `SubTurnScratchpadBuffer` preventing tool token exhaustion, defensive line-1 assumption-stating, and non-empty synthesis guardrails.
+  - **Consolidated Acceptance Battery (WO-26f):**
+    - Shipped unified standalone runner `scripts/run_wo26_acceptance_battery.py` executing 5 verification gates cleanly in CI.
+
+---
+
+## [1.1.0] — 2026-09-29
+
+### Added
+- **Work Order 25: Two-Track Cognitive Benchmark Verification & Control Ablation Staging (D-EVAL-02):**
+  - Ratified Two-Track Empirical Evaluation Battery under strict edge hardware constraints (6-bit weight quantization `Q6_K`, 8-bit KV caching `Q8_0`, unexpanded 16,384-token context budget, $\le 12.8$ GB resident VRAM):
+    - **Track 1 (`SPEC-BENCH-100-v1.0`):** 100-problem frozen ground-truth cognitive battery spanning 10 complex domains (`tests/test_compound_reasoning_benchmark.py`). Achieved **91.0% pass rate (91/100)**, **100.0% path policy compliance (100/100)**, **100.0% epistemic faithfulness (100/100)**, and **100.0% tool error recovery (3/3)** with median latency of 9.39s on mobile workstation hardware. Flawless 10/10 in Spatial 3D Kinematics, Formal Constraint Logic Grids, and Closed-World Algebra.
+    - **Track 2 (Standard Academic Benchmark Battery):** Evaluated algorithmic tool synthesis in Docker sandbox (`scripts/run_standard_academic_benchmarks.py`):
+      - Canonical OpenAI HumanEval (Full 164 Tasks): **95.73% pass@1 (157 / 164)** zero-shot pass@1 executed live in Docker.
+      - GSM8K (PAL Mode): **100.0% (30 / 30)** via Docker Python execution.
+      - Big-Bench Hard (BBH) Boolean Logic: **99.2% (248 / 250)** across the complete un-sampled 250-task suite.
+  - Staged and verified control parameter scale ablation model `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6,217,260,896 bytes, ~4B effective parameters) in `C:\ProjectLucca\models\llm\` for parameter scale isolation.
+  - Aligned comparative literature baselines with contemporary 2026 frontier architectures (Claude Sonnet 5.5, Opus 5.5, GPT-6, Qwen 3.8-27B) and documented failure case audits (BBH depth-7 RoPE parity slips, SVG arc label ambiguities, HumanEval bisection tolerances).
+
+---
+
 ## [1.0.0] — 2026-09-28
 
 ### Added

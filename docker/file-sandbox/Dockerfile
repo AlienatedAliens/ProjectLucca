@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+RUN pip install --no-cache-dir structlog numpy scipy sympy z3-solver
+
 RUN groupadd -g 1000 lucca && useradd -u 1000 -g lucca -m lucca
 RUN mkdir -p /workspace /tmp && chown -R lucca:lucca /workspace /tmp
 

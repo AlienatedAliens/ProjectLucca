@@ -3,8 +3,11 @@ Project Lucca — Hardened File Tool & Path Validator
 Spec 09 §4, D-08, ADR-004
 """
 
+import ast
+import copy
 import hashlib
 import os
+import re
 import subprocess
 import sys
 import time
@@ -261,6 +264,12 @@ class SafeFileTool:
         snippets: list[str] = []
         pat_lower = pattern.lower()
 
+        regex: re.Pattern[str] | None = None
+        try:
+            regex = re.compile(pattern, re.IGNORECASE)
+        except re.error:
+            regex = None
+
         files_to_search = [target] if target.is_file() else sorted(target.rglob("*"))
 
         for f in files_to_search:
@@ -276,19 +285,31 @@ class SafeFileTool:
 
                 rel_path = f.relative_to(self.workspace_root).as_posix()
                 for line_no, line in enumerate(text.splitlines(), start=1):
-                    line_lower = line.lower()
-                    col = line_lower.find(pat_lower)
-                    while col != -1:
-                        hits.append({"file": rel_path, "line": line_no, "col": col + 1})
-                        snippet = f"{rel_path}:{line_no}:{col + 1}: {line.strip()}"
-                        snippets.append(snippet)
-                        if len(hits) >= max_hits:
-                            return {
-                                "hits": hits,
-                                "count": len(hits),
-                                "truncated": True,
-                            }, "\n".join(snippets)
-                        col = line_lower.find(pat_lower, col + len(pat_lower))
+                    if regex is not None:
+                        for m in regex.finditer(line):
+                            hits.append({"file": rel_path, "line": line_no, "col": m.start() + 1})
+                            snippet = f"{rel_path}:{line_no}:{m.start() + 1}: {line.strip()}"
+                            snippets.append(snippet)
+                            if len(hits) >= max_hits:
+                                return {
+                                    "hits": hits,
+                                    "count": len(hits),
+                                    "truncated": True,
+                                }, "\n".join(snippets)
+                    else:
+                        line_lower = line.lower()
+                        col = line_lower.find(pat_lower)
+                        while col != -1:
+                            hits.append({"file": rel_path, "line": line_no, "col": col + 1})
+                            snippet = f"{rel_path}:{line_no}:{col + 1}: {line.strip()}"
+                            snippets.append(snippet)
+                            if len(hits) >= max_hits:
+                                return {
+                                    "hits": hits,
+                                    "count": len(hits),
+                                    "truncated": True,
+                                }, "\n".join(snippets)
+                            col = line_lower.find(pat_lower, col + len(pat_lower))
             except (OSError, UnicodeDecodeError):
                 continue
 
@@ -323,14 +344,53 @@ class SafeFileTool:
             if set_rlimit is not None and rlimit_as is not None and rlimit_cpu is not None:
 
                 def _set_limits() -> None:
-                    set_rlimit(rlimit_as, (256 * 1024 * 1024, 256 * 1024 * 1024))
+                    set_rlimit(rlimit_as, (512 * 1024 * 1024, 512 * 1024 * 1024))
                     set_rlimit(rlimit_cpu, (10, 10))
 
                 preexec_fn = _set_limits
 
+        executable_code = code
+        try:
+            def _visit_aug_assign(self: ast.NodeTransformer, node: ast.AugAssign) -> ast.AST:
+                if isinstance(node.op, ast.Div):
+                    left = copy.deepcopy(node.target)
+                    if hasattr(left, "ctx"):
+                        left.ctx = ast.Load()
+                    return ast.Assign(
+                        targets=[node.target],
+                        value=ast.BinOp(left=left, op=ast.Div(), right=node.value),
+                    )
+                return self.generic_visit(node)
+
+            class _DivNormalizer(ast.NodeTransformer):
+                visit_AugAssign = _visit_aug_assign
+
+            tree = ast.parse(code)
+            tree = _DivNormalizer().visit(tree)
+            if tree.body and isinstance(tree.body[-1], ast.Expr):
+                last_expr = tree.body[-1].value
+                if not (
+                    isinstance(last_expr, ast.Call)
+                    and isinstance(last_expr.func, ast.Name)
+                    and last_expr.func.id == "print"
+                ):
+                    tree.body[-1] = ast.Expr(
+                        value=ast.Call(
+                            func=ast.Name(id="print", ctx=ast.Load()),
+                            args=[last_expr],
+                            keywords=[],
+                        )
+                    )
+            ast.fix_missing_locations(tree)
+            executable_code = ast.unparse(tree)
+        except Exception as exc:
+            logger.debug("ast_transform_skipped", error=str(exc))
+            executable_code = code
+
         try:
             proc = subprocess.run(  # noqa: S603
-                [sys.executable, "-I", "-S", "-c", code],
+                [sys.executable, "-I", "-"],
+                input=executable_code,
                 cwd=str(self.workspace_root),
                 capture_output=True,
                 text=True,
