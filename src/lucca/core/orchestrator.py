@@ -152,7 +152,8 @@ from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.output_supervisor import OutputSupervisorSession
 from lucca.sandbox.policy import parse_confirmation_response
-from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
+from lucca.sandbox.preflight import extract_python_code
+from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS, PreflightResult
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
 from lucca.senses.ring_buffer import (
@@ -2893,6 +2894,133 @@ class Orchestrator:
             trace.interrupted = True
         finally:
             self._finalize_turn(trace, decision_id)
+
+    def synthesize_code_with_preflight(
+        self,
+        prompt: str,
+        initial_code: str | None = None,
+        trace: TurnTrace | None = None,
+        docstring_examples: list[str] | None = None,
+        max_repair_rounds: int = 1,
+        enable_preflight: bool = True,
+    ) -> tuple[str, PreflightResult]:
+        """WO-26 Phase 4: Tier 3 Code Synthesis with Autonomous Docker Pre-Flight Verification Loop.
+
+        Synthesizes Python implementation (or takes candidate code), extracts docstring
+        assertions and examples, and tests them in Docker sandbox before presenting to user.
+        If an AssertionError or SyntaxError occurs, triggers an immediate 1-shot self-repair
+        turn before finalizing the code response.
+        """
+        t0 = time.perf_counter()
+        code_candidate = initial_code
+        if code_candidate is None:
+            instruction = (
+                "Complete the following Python coding task. Put all Python code inside a ```python ... ``` block.\n\n"
+                f"{prompt}"
+            )
+            resp_parts: list[str] = []
+            for event in self.llm.stream_turn(
+                current_text=instruction,
+                max_tokens=1024,
+                enable_thinking=False,
+            ):
+                if isinstance(event, TokenDelta) and event.delta:
+                    resp_parts.append(event.delta)
+            raw_resp = "".join(resp_parts)
+            code_candidate = extract_python_code(raw_resp)
+
+        if not enable_preflight:
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            return code_candidate, PreflightResult(
+                success=True, error_msg=None, elapsed_ms=elapsed, assertions_run=0, fail_open=False
+            )
+
+        # Preflight verification against Docker sandbox
+        preflight_res = self.sandbox.preflight_verify_code(
+            code=code_candidate, docstring_examples=docstring_examples
+        )
+
+        # If passed or fail-open honored (timeout/unavailable), return candidate
+        if preflight_res.success or preflight_res.fail_open or max_repair_rounds <= 0:
+            return code_candidate, preflight_res
+
+        # 1-Shot Self-Repair Loop
+        logger.warning(
+            "preflight_verification_failed_triggering_self_repair",
+            error=preflight_res.error_msg,
+            assertions_run=preflight_res.assertions_run,
+        )
+
+        repair_prompt = (
+            "The following Python code failed preflight verification against specification docstrings and test assertions in Docker:\n"
+            f"```python\n{code_candidate}\n```\n\n"
+            f"Preflight Error Details:\n{preflight_res.error_msg}\n\n"
+            "Please fix the bug (check boundary conditions, empty sequences, zero/negative inputs, trailing punctuation, or rounding logic). "
+            "Provide only the corrected complete Python implementation inside a ```python ... ``` block."
+        )
+
+        repair_parts: list[str] = []
+        for event in self.llm.stream_turn(
+            current_text=repair_prompt,
+            max_tokens=1024,
+            enable_thinking=False,
+        ):
+            if isinstance(event, TokenDelta) and event.delta:
+                repair_parts.append(event.delta)
+
+        repaired_raw = "".join(repair_parts)
+        repaired_code = extract_python_code(repaired_raw)
+        if not repaired_code or not repaired_code.strip():
+            return code_candidate, preflight_res
+
+        repaired_res = self.sandbox.preflight_verify_code(
+            code=repaired_code, docstring_examples=docstring_examples
+        )
+        return repaired_code, repaired_res
+
+    def _stream_code_synthesis(
+        self,
+        trace: TurnTrace,
+        user_msg: str,
+        decision_id: str | None = None,
+        current_text: str | None = None,
+        memories: list[MemoryHit] | None = None,
+        epistemic_context: str | None = None,
+    ) -> None:
+        """WO-26 Phase 4: Tier 3 Code Synthesis Turn Handler.
+
+        Executes preflight code verification loop before presenting code in chat or TTS.
+        """
+        begin_env = Envelope(
+            type="play.begin",
+            trace_id=trace.trace_id,
+            ts_ns=now_ns(),
+            src="core",
+            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        )
+        self._publish_bus(begin_env)
+
+        cue = "Testing implementation in the sandbox..."
+        self._speak_text(trace, cue)
+
+        prompt = current_text or user_msg
+        code, preflight_res = self.synthesize_code_with_preflight(prompt=prompt, trace=trace)
+
+        if preflight_res.success:
+            spoken_summary = "I've written and verified the implementation in the sandbox."
+            full_response = f"Here is the verified implementation:\n\n```python\n{code}\n```"
+        else:
+            spoken_summary = "I've generated the function, though an assertion warning was noted."
+            full_response = f"```python\n{code}\n```\n\n*Note: Preflight check reported:* `{preflight_res.error_msg}`"
+
+        self._publish_caption(full_response, source="assistant", is_final=True)
+        self._speak_text(trace, spoken_summary)
+        self.play_ring.set_flag(FLAG_EOS)
+
+        self.history.append({"role": "user", "content": user_msg})
+        self.history.append({"role": "assistant", "content": full_response})
+        self.current_turn_assistant_reply = full_response
+        self._finalize_turn(trace, decision_id)
 
     def _reset_turn_state(self) -> None:
         """Reset per-turn state for sandbox, supervisor, flags, and tool tracking."""

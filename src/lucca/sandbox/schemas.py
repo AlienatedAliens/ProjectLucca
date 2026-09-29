@@ -275,6 +275,16 @@ EXTRA_TOOL_SCHEMAS: dict[str, type[BaseModel]] = {
     "cancel_task": CancelTaskArgs,
 }
 
+
+class PreflightResult(BaseModel):
+    """Result of an autonomous Docker preflight code assertion execution (WO-26 Phase 4)."""
+
+    success: bool
+    error_msg: str | None = None
+    elapsed_ms: float = 0.0
+    assertions_run: int = 0
+    fail_open: bool = False
+
 __all__ = [
     "ArtifactVerifyArgs",
     "CalcMathArgs",
@@ -293,6 +303,7 @@ __all__ = [
     "MemorySearchArgs",
     "NoteReadArgs",
     "NoteWriteArgs",
+    "PreflightResult",
     "QueryCapabilitiesArgs",
     "ReadFileArgs",
     "RunPythonArgs",

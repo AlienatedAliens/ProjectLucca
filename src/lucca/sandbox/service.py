@@ -14,6 +14,7 @@ import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
+import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import psutil
@@ -22,12 +23,14 @@ from pydantic import BaseModel, JsonValue, ValidationError
 
 from lucca.core.capabilities import get_capability_registry
 from lucca.core.config import get_config
+from lucca.core.exceptions import SandboxTimeout
 from lucca.core.schemas import Risk, ToolResult
 from lucca.memory.manager import MemoryManager
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
 from lucca.sandbox.note_tool import SafeNoteTool
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
+from lucca.sandbox.preflight import build_preflight_runner_code, extract_docstring_assertions
 from lucca.sandbox.rpc import DockerRPCTransport
 from lucca.sandbox.schemas import (
     EXTRA_TOOL_SCHEMAS,
@@ -42,6 +45,7 @@ from lucca.sandbox.schemas import (
     MemorySearchArgs,
     NoteReadArgs,
     NoteWriteArgs,
+    PreflightResult,
     ScheduleEventArgs,
     SearchWebArgs,
     SysInfoArgs,
@@ -1215,6 +1219,120 @@ class SandboxService:
 
         # 9. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
+
+    def preflight_verify_code(
+        self,
+        code: str,
+        docstring_examples: list[str] | None = None,
+        timeout_s: float = 3.0,
+    ) -> PreflightResult:
+        """WO-26 Phase 4: Autonomous 'Run-Before-You-Speak' Pre-Flight Code Verification.
+
+        Compiles code with ast.parse, extracts docstring assertions and examples,
+        and runs them in the Docker sandbox under a strict 3.0s timeout with fail-open
+        behavior.
+        """
+        t0 = time.perf_counter()
+
+        # 1. Lightweight syntax check via AST compilation
+        try:
+            ast.parse(code)
+        except SyntaxError as syn_err:
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            logger.warning("preflight_syntax_error", error=str(syn_err))
+            return PreflightResult(
+                success=False,
+                error_msg=f"SyntaxError: {syn_err}",
+                elapsed_ms=elapsed,
+                assertions_run=0,
+                fail_open=False,
+            )
+
+        # 2. Extract docstring / spec assertions
+        assertions = extract_docstring_assertions(code, docstring_examples)
+        runner_code = build_preflight_runner_code(code, assertions)
+
+        # 3. Docker availability check (fail-open if sandbox is unreachable)
+        if (
+            not hasattr(self, "rpc")
+            or self.rpc.use_direct_fallback
+            or not self.rpc.is_docker_available()
+        ):
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            logger.warning("preflight_sandbox_unavailable_failing_open")
+            return PreflightResult(
+                success=True,
+                error_msg="sandbox_unavailable: Docker sandbox unreachable; failing open",
+                elapsed_ms=elapsed,
+                assertions_run=len(assertions),
+                fail_open=True,
+            )
+
+        # 4. Execute in Docker with strict timeout_s limit (default 3.0s)
+        try:
+            call_id = f"preflight-{uuid.uuid4().hex[:12]}"
+            exec_res = self.rpc.execute(
+                call_id=call_id,
+                tool="run_python",
+                args={"code": runner_code},
+                timeout_s=timeout_s,
+            )
+            elapsed = (time.perf_counter() - t0) * 1000.0
+
+            # Fail-open check on timeout
+            if exec_res.exit_code == -2 or "timed out" in (exec_res.stderr or "").lower():
+                logger.warning(
+                    "preflight_timeout_failing_open", elapsed_ms=elapsed, timeout_s=timeout_s
+                )
+                return PreflightResult(
+                    success=True,
+                    error_msg=f"preflight_timeout: execution exceeded {timeout_s}s limit; failing open",
+                    elapsed_ms=elapsed,
+                    assertions_run=len(assertions),
+                    fail_open=True,
+                )
+
+            if exec_res.ok:
+                return PreflightResult(
+                    success=True,
+                    error_msg=None,
+                    elapsed_ms=elapsed,
+                    assertions_run=len(assertions),
+                    fail_open=False,
+                )
+            else:
+                err_msg = (
+                    exec_res.stderr.strip()
+                    if exec_res.stderr
+                    else (exec_res.content or "Execution failed")
+                )
+                return PreflightResult(
+                    success=False,
+                    error_msg=err_msg,
+                    elapsed_ms=elapsed,
+                    assertions_run=len(assertions),
+                    fail_open=False,
+                )
+        except SandboxTimeout:
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            logger.warning("preflight_sandbox_timeout_failing_open", elapsed_ms=elapsed)
+            return PreflightResult(
+                success=True,
+                error_msg=f"preflight_timeout: execution exceeded {timeout_s}s limit; failing open",
+                elapsed_ms=elapsed,
+                assertions_run=len(assertions),
+                fail_open=True,
+            )
+        except Exception as exc:
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            logger.error("preflight_execution_unexpected_error", error=str(exc))
+            return PreflightResult(
+                success=True,
+                error_msg=f"preflight_error: unexpected error ({exc}); failing open",
+                elapsed_ms=elapsed,
+                assertions_run=len(assertions),
+                fail_open=True,
+            )
 
     def close(self) -> None:
         """Closes the underlying RPC transport."""

@@ -152,6 +152,20 @@ def synthesize_plan_narration(
     return f"I {all_but_last}, and {step_descriptions[-1]}."
 
 
+def is_code_synthesis_request(user_text: str) -> bool:
+    """Detects whether an utterance is explicitly a programming/code synthesis request."""
+    if not user_text:
+        return False
+    lower = user_text.lower().strip()
+    if lower.startswith("def ") or (lower.startswith("import ") and "def " in lower):
+        return True
+    if lower.startswith("complete the following python function") or lower.startswith(
+        "write a python function"
+    ):
+        return True
+    return False
+
+
 class DifficultyEstimator:
     """
     Evaluates turn difficulty and reasoning demands to dynamically toggle
@@ -828,6 +842,18 @@ class TurnPipeline:
             intent=rule_state.intent if hasattr(rule_state, "intent") else None,
         )
         trace.enable_thinking = enable_thinking
+
+        # Tier 3 Code Synthesis with Autonomous Docker Preflight Loop (WO-26 Phase 4)
+        if is_code_synthesis_request(eval_user_text or user_text):
+            self.orch._stream_code_synthesis(
+                trace=trace,
+                user_msg=user_text or "[Code Synthesis]",
+                decision_id=decision_id,
+                current_text=current_text,
+                memories=mem_hits,
+                epistemic_context=epistemic_ctx,
+            )
+            return
 
         self.orch._stream_llm_speech(
             trace=trace,
