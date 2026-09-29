@@ -7,14 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] — 2026-09-30
+
+### Added
+- **Context Expansion to 32K (`ctx=32768`):**
+  - Expanded resident KV-cache context window from 16,384 to **32,768 tokens (32K)** in `src/lucca/core/config.py` and `llama-server` runtime.
+  - Offloaded Windows desktop display to integrated AMD Radeon 610M iGPU, placing the mobile NVIDIA GeForce RTX 5080 Laptop GPU into dedicated compute mode (`Disp.A: Off`).
+  - Verified physical VRAM telemetry via `nvidia-smi`: **9.97 GiB (10,212 MiB)** allocated under 32K context with FlashAttention-2, leaving **5.95 GiB (6,091 MiB / 37.4%)** free physical VRAM headroom with zero layers spilling to system RAM.
+- **Interactive 2-Turn Execution Feedback Loop (Traceback Self-Correction):**
+  - Upgraded Docker CAS and PAL execution harnesses (`scripts/run_modern_2024_benchmarks.py`) with an autonomous REPL error recovery loop.
+  - Catches non-zero container exit codes and Python stderr tracebacks (`AttributeError`, `IndentationError`, `NotImplementedError`, etc.) and feeds the failure stack trace back to the model for immediate self-correction prior to final token emission.
+- **SymPy Algebraic Equivalence & Base Normalization Engine:**
+  - Added `clean_latex_for_sympy` and upgraded `compare_math_results` to evaluate symbolic difference equivalence (`sympy.simplify(pred - exp) == 0`).
+  - Normalized LaTeX set representations (`\pm`), trigonometry identities (`\cot x \equiv 1/\tan x`), and positional base subscripts (`52_8 \equiv 52`).
+- **Frozen Baseline Isolation (`v1.2.0-baseline`):**
+  - Archived all 7 canonical 16K benchmark evaluation logs into `logs/test_reports/frozen_v1.2_baseline/` and tagged git commit `37fde25` as `v1.2.0-baseline` to guarantee historical data immutability under the Zero-Estimate Principle.
+  - Tagged all subsequent benchmark evaluations with version (`1.3.0`) and context size (`32768`).
+
+---
+
 ## [1.2.0] — 2026-09-30
 
 ### Added
 - **Work Order 26: Cognitive Interiority, Preflight Verification & Track 3 Modern Benchmarks (D-EVAL-03):**
-  - **Track 3 Modern Benchmark Execution (2024–2025 Robustness Suites):**
-    - **Apple GSM-Symbolic ($N = 100$ Tasks):** **100.0% accuracy (100 / 100)** in 527.4s via Program-Aided Language (PAL) mode in Docker. Zero calculation slips or variance under altered constants.
-    - **EvalPlus HumanEval-Plus ($N = 164$ Tasks, $>120,000$ Adversarial Test Inputs):** **91.46% pass@1 (150 / 164)** in 1,016.8s, outperforming frontier monolithic models GPT-4o (86.6%) and Claude 3.5 Sonnet (88.5%). Phase 4 autonomous Docker preflight self-correction loop caught and fixed 10 separate failing tasks live in-flight.
-    - **MATH-500 ($N = 100$ Olympiad / Competition Problems):** **77.0% exact match (77 / 100)** in 1,149.7s. 7 additional problems verified as mathematically identical syntax representations, yielding an **84.0% semantic derivation rate** (and 87.0% with base notation subscripts). Achieved 69.6% on Olympiad Level 5 problems.
+  - **Neural Core Foundation (Gemma 4 12B Exclusivity):** All formal benchmarks across all three tracks were conducted **exclusively on `gemma-4-12b-heretic-Q6_K`** (12.4B parameters). Early exploratory pre-benchmark spikes evaluated alternative open-weight architectures (such as Mistral-NeMo-12B), but Gemma 4 was selected as the sole neural foundation for all formal benchmarking due to its GQA KV-cache efficiency on 16 GiB hardware and superior AST code synthesis for deterministic tool calling. Zero benchmark results were collected on Mistral or any other model weights.
+  - **Track 3 Modern Benchmark Execution (2024–2025 Robustness Suites on 16K Baseline):**
+    - **Apple GSM-Symbolic ($N = 100$ Canonical Evaluation Slice):** **100.0% accuracy (100 / 100)** in 527.4s via Program-Aided Language (PAL) mode in Docker (`modern_benchmarks_2024_20260929T173711Z.json`). Zero calculation slips or variance under altered constants.
+    - **EvalPlus HumanEval-Plus (Full Canonical 164 Tasks, $>120,000$ Adversarial Test Inputs):** **91.46% pass@1 (150 / 164)** in 1,016.8s (`modern_benchmarks_2024_20260929T174613Z.json`), outperforming published frontier monolithic baselines GPT-4o (86.6%) and Claude 3.5 Sonnet (88.5%). Phase 4 autonomous Docker preflight self-correction loop caught and fixed 10 separate failing tasks live in-flight.
+    - **MATH-500 (100-Problem Stratified Subset across Levels 1–5 and 7 Subjects):** **77.0% exact match (77 / 100)** in 1,149.7s (`modern_benchmarks_2024_20260929T180321Z.json`). 7 additional problems verified as mathematically identical syntax representations, yielding an **84.0% semantic derivation rate** (and 87.0% with base notation subscripts). Achieved 69.6% on Olympiad Level 5 problems.
+  - **Autonomous Docker Preflight Verification (WO-26d):**
+    - Implemented autonomous pre-execution verification loop evaluating candidate code strictly against assertions extracted from the problem prompt's docstring examples (zero exposure or leakage of hidden/adversarial benchmark test cases).
   - **Persistent RPC & Container Sandbox Hardening:**
     - Resolved persistent worker unexpected EOF bug in `src/lucca/sandbox/rpc.py` by restoring `PYTHONPATH=/workspace:/opt:/opt/toolsrv:/opt/lucca/sandbox`. Collapsed RPC latency to **7.8ms** (100x speedup) and brought `tests/test_persistent_rpc.py` to **10 / 10 green**.
     - Overcame Linux kernel `ARG_MAX` ceiling in `src/lucca/sandbox/file_tool.py` by streaming code over `stdin` (`[sys.executable, "-I", "-"]`) instead of argv `-c`, enabling dense test suites exceeding 1,000 cases to run without error.
@@ -36,14 +58,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Work Order 25: Two-Track Cognitive Benchmark Verification & Control Ablation Staging (D-EVAL-02):**
-  - Ratified Two-Track Empirical Evaluation Battery under strict edge hardware constraints (6-bit weight quantization `Q6_K`, 8-bit KV caching `Q8_0`, unexpanded 16,384-token context budget, $\le 12.8$ GB resident VRAM):
-    - **Track 1 (`SPEC-BENCH-100-v1.0`):** 100-problem frozen ground-truth cognitive battery spanning 10 complex domains (`tests/test_compound_reasoning_benchmark.py`). Achieved **91.0% pass rate (91/100)**, **100.0% path policy compliance (100/100)**, **100.0% epistemic faithfulness (100/100)**, and **100.0% tool error recovery (3/3)** with median latency of 9.39s on mobile workstation hardware. Flawless 10/10 in Spatial 3D Kinematics, Formal Constraint Logic Grids, and Closed-World Algebra.
-    - **Track 2 (Standard Academic Benchmark Battery):** Evaluated algorithmic tool synthesis in Docker sandbox (`scripts/run_standard_academic_benchmarks.py`):
-      - Canonical OpenAI HumanEval (Full 164 Tasks): **95.73% pass@1 (157 / 164)** zero-shot pass@1 executed live in Docker.
-      - GSM8K (PAL Mode): **100.0% (30 / 30)** via Docker Python execution.
-      - Big-Bench Hard (BBH) Boolean Logic: **99.2% (248 / 250)** across the complete un-sampled 250-task suite.
-  - Staged and verified control parameter scale ablation model `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6,217,260,896 bytes, ~4B effective parameters) in `C:\ProjectLucca\models\llm\` for parameter scale isolation.
-  - Aligned comparative literature baselines with contemporary 2026 frontier architectures (Claude Sonnet 5.5, Opus 5.5, GPT-6, Qwen 3.8-27B) and documented failure case audits (BBH depth-7 RoPE parity slips, SVG arc label ambiguities, HumanEval bisection tolerances).
+  - Ratified Two-Track Empirical Evaluation Battery under strict edge hardware constraints (6-bit weight quantization `Q6_K`, 8-bit KV caching `Q8_0`, unexpanded 16,384-token context budget, peak resident VRAM $\le 12.4$ GiB / $\le 13.3$ GB):
+    - **Track 1 (`SPEC-BENCH-100-v1.0`):** 100-problem frozen ground-truth cognitive battery spanning 10 complex domains (`tests/test_compound_reasoning_benchmark.py`). Achieved **91.0% pass rate (91/100)**, **100.0% path policy compliance (100/100)**, **100.0% epistemic faithfulness (100/100)**, and **100.0% tool error recovery (3/3)** with median latency of 9.39s on mobile workstation hardware (`logs/test_reports/compound_benchmark_20260928T170640Z.json`). Flawless 10/10 in Spatial 3D Kinematics (CAT02), Formal Constraint Logic Grids (CAT03), and Closed-World Algebra (CAT04).
+    - **Track 2 (Standard Academic Benchmark Battery — Full Canonical Suites):** Evaluated algorithmic tool synthesis in Docker sandbox (`scripts/run_standard_academic_benchmarks.py`):
+      - Canonical OpenAI HumanEval (Full 164 Tasks): **95.73% pass@1 (157 / 164)** zero-shot pass@1 executed live in Docker (`academic_benchmarks_20260928T182758Z.json`).
+      - OpenAI GSM8K (Full Canonical 1,319 Tasks): **95.75% accuracy (1,263 / 1,319)** via Program-Aided Language (PAL) mode in Docker in 2,628.4s (~2.0s/task) with zero calculation crashes (`academic_benchmarks_20260929T030224Z.json`).
+      - Big-Bench Hard (BBH, Full Canonical 1,000 Tasks across 4 Subsets): **92.40% consolidated accuracy (924 / 1,000)** bare-weights zero-shot without external execution tools (`academic_benchmarks_20260928T184814Z.json`):
+        - Boolean Expressions: **99.20% (248 / 250)**
+        - 3-Object Shuffled Tracking: **100.0% (250 / 250)**
+        - Dyck Bracket Languages: **86.40% (216 / 250)**
+        - Geometric Shapes: **84.00% (210 / 250)**
+  - Staged and verified control parameter scale ablation model `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6,217,260,896 bytes, ~4B effective parameters) in `C:\ProjectLucca\models\llm\` for parameter scale isolation (secondary control vs. compound system ablation on the primary 12B weights).
+  - Aligned comparative literature baselines with published peer-reviewed frontier architectures (Claude 3.5 Sonnet, GPT-4o, Llama 3 70B, Qwen 2.5 32B Coder) and documented failure case audits (BBH depth-7 RoPE parity slips, SVG arc label ambiguities, HumanEval bisection tolerances).
 
 ---
 

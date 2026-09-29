@@ -45,7 +45,7 @@ class LLMSettings(BaseModel):
     mode: Literal["audio", "transcript"] = "transcript"
     host: str = "127.0.0.1"
     port: int = 8080
-    ctx: int = 16384
+    ctx: int = 32768
     kv_type: str = "q8_0"
     # RAM budget for the llama-server prompt prefix cache (--cache-ram, MiB).
     # Bounded to 4 GiB: the 8 GiB default thrashed and crashed under the WO-8

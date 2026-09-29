@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import copy
 import gzip
 import json
 import os
@@ -275,6 +276,64 @@ def normalize_math_str(s: str) -> str:
     return s
 
 
+def clean_latex_for_sympy(s: str) -> str:
+    """Convert LaTeX expressions into parseable SymPy syntax."""
+    if not s:
+        return ""
+    s = s.strip().replace("$", "").strip()
+    
+    # Recursively resolve \frac{num}{den}
+    while r"\frac" in s:
+        idx = s.find(r"\frac")
+        open1 = s.find("{", idx)
+        if open1 == -1:
+            break
+        depth = 1
+        i = open1 + 1
+        while i < len(s) and depth > 0:
+            if s[i] == "{":
+                depth += 1
+            elif s[i] == "}":
+                depth -= 1
+            i += 1
+        num = s[open1 + 1 : i - 1]
+        open2 = s.find("{", i - 1)
+        if open2 == -1:
+            break
+        depth = 1
+        j = open2 + 1
+        while j < len(s) and depth > 0:
+            if s[j] == "{":
+                depth += 1
+            elif s[j] == "}":
+                depth -= 1
+            j += 1
+        den = s[open2 + 1 : j - 1]
+        s = s[:idx] + f"(({num})/({den}))" + s[j:]
+
+    # \sqrt{x}
+    while r"\sqrt{" in s:
+        idx = s.find(r"\sqrt{")
+        depth = 1
+        i = idx + 6
+        while i < len(s) and depth > 0:
+            if s[i] == "{":
+                depth += 1
+            elif s[i] == "}":
+                depth -= 1
+            i += 1
+        inner = s[idx + 6 : i - 1]
+        s = s[:idx] + f"sqrt({inner})" + s[i:]
+
+    s = re.sub(r"\\sqrt(\d+)", r"sqrt(\1)", s)
+    s = re.sub(r"\\cot\s*\(?([a-zA-Z0-9]+)\)?", r"cot(\1)", s)
+    s = re.sub(r"\\tan\s*\(?([a-zA-Z0-9]+)\)?", r"tan(\1)", s)
+    s = re.sub(r"\\sin\s*\(?([a-zA-Z0-9]+)\)?", r"sin(\1)", s)
+    s = re.sub(r"\\cos\s*\(?([a-zA-Z0-9]+)\)?", r"cos(\1)", s)
+    s = s.replace(r"\pi", "pi").replace("^", "**").replace("\\", "")
+    return s.strip()
+
+
 def compare_math_results(pred_str: str, expected_ans: str) -> bool:
     """Check mathematical equivalence between predicted and expected solutions."""
     p_norm = normalize_math_str(pred_str)
@@ -284,14 +343,43 @@ def compare_math_results(pred_str: str, expected_ans: str) -> bool:
     if p_norm == e_norm:
         return True
 
-    # 1. Check comma-separated sets (e.g. roots '-2, 1' vs '1, -2')
+    # 1. Base subscript equivalence (e.g. '52' vs '52_8', '40' vs '40_9')
+    if re.sub(r"_\d+", "", e_norm) == p_norm or re.sub(r"_\d+", "", p_norm) == e_norm:
+        return True
+
+    # 2. Check comma-separated sets (e.g. roots '-2, 1' vs '1, -2')
     if "," in p_norm and "," in e_norm:
         p_set = {x.strip() for x in p_norm.split(",") if x.strip()}
         e_set = {x.strip() for x in e_norm.split(",") if x.strip()}
         if p_set == e_set:
             return True
 
-    # 2. Arithmetic and complex evaluation
+    # 3. Check \pm / plus-minus sets
+    if r"\pm" in expected_ans:
+        parts = expected_ans.split(r"\pm")
+        if len(parts) == 2:
+            base = parts[0].strip()
+            pm = parts[1].strip()
+            e_set = {f"{base} - {pm}", f"{base} + {pm}"}
+            p_parts = {x.strip() for x in pred_str.split(",") if x.strip()}
+            if len(p_parts) == 2 and all(any(compare_math_results(p_item, e_item) for e_item in e_set) for p_item in p_parts):
+                return True
+
+    # 4. SymPy Algebraic Equivalence
+    try:
+        import sympy
+        from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
+        transformations = standard_transformations + (implicit_multiplication_application,)
+        p_clean = clean_latex_for_sympy(pred_str)
+        e_clean = clean_latex_for_sympy(expected_ans)
+        p_sym = parse_expr(p_clean, transformations=transformations)
+        e_sym = parse_expr(e_clean, transformations=transformations)
+        if sympy.simplify(p_sym - e_sym) == 0:
+            return True
+    except Exception:
+        pass
+
+    # 5. Arithmetic and complex numerical evaluation fallback
     try:
         import math
         context = {"sqrt": math.sqrt, "pi": math.pi}
@@ -583,13 +671,22 @@ else:
     }
 
 
-def run_math500_pal(transport: DockerRPCTransport, samples: int = 50, offset: int = 0) -> dict:
+def run_math500_pal(transport: DockerRPCTransport, samples: int = 50, offset: int = 0, indices: list[int] | None = None) -> dict:
     """Evaluate MATH-500 competition math in PAL mode via Docker Python/SymPy."""
-    dataset = get_math500_dataset()
-    if offset > 0:
-        dataset = dataset[offset:]
-    if samples > 0 and samples < len(dataset):
-        dataset = dataset[:samples]
+    all_data = get_math500_dataset()
+    if indices:
+        dataset = []
+        for i in indices:
+            if 1 <= i <= len(all_data):
+                item = copy.deepcopy(all_data[i - 1])
+                item["_orig_idx"] = i
+                dataset.append(item)
+    else:
+        dataset = all_data
+        if offset > 0:
+            dataset = dataset[offset:]
+        if samples > 0 and samples < len(dataset):
+            dataset = dataset[:samples]
 
     print(f"\n=======================================================")
     print(f"Running MATH-500 in PAL Mode ({len(dataset)} competition math problems)")
@@ -601,6 +698,7 @@ def run_math500_pal(transport: DockerRPCTransport, samples: int = 50, offset: in
     t_start = time.perf_counter()
 
     for idx, item in enumerate(dataset, 1):
+        curr_idx = item.get("_orig_idx", idx)
         problem = item["problem"]
         solution = item["solution"]
         expected_ans = extract_math500_ground_truth(solution)
@@ -634,6 +732,35 @@ def run_math500_pal(transport: DockerRPCTransport, samples: int = 50, offset: in
                 lines = [l.strip() for l in math_out.strip().splitlines() if l.strip()]
                 if lines:
                     pred_str = lines[-1]
+            elif exec_res.exit_code != 0 and (exec_res_stderr or math_out):
+                # 2-Turn Interactive Execution Feedback (Self-Correction on Traceback)
+                err_trace = (exec_res_stderr or math_out).strip()
+                print(f"   [Execution Feedback Loop Triggered] Task {idx} produced error -> Retrying with traceback...", flush=True)
+                feedback_prompt = (
+                    f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem produced an execution error in the sandbox:\n\n"
+                    f"Problem: {problem}\n\n"
+                    f"Your Initial Script:\n```python\n{code}\n```\n\n"
+                    f"Execution Error / Traceback in Docker:\n{err_trace[:600]}\n\n"
+                    f"Please diagnose the error (e.g. fix syntax/import/attribute mistakes, or if SymPy's analytical solver fails, use numerical iteration or search). "
+                    f"Provide ONLY the corrected complete Python script in a ```python ... ``` block that computes and prints ONLY the final exact answer."
+                )
+                t_corr0 = time.perf_counter()
+                corr_resp = query_llm(prompt=feedback_prompt, max_tokens=2048, enable_thinking=False)
+                t_llm += (time.perf_counter() - t_corr0)
+                corr_code = extract_python_code(corr_resp)
+                if corr_code:
+                    exec_res2 = transport.execute(f"math500-{idx}-corr", "run_python", {"code": corr_code}, timeout_s=20)
+                    if exec_res2.exit_code == 0 and exec_res2.content:
+                        lines2 = [l.strip() for l in exec_res2.content.strip().splitlines() if l.strip()]
+                        if lines2:
+                            pred_str = lines2[-1]
+                            code = corr_code
+                            exec_res_exit = 0
+                            exec_res_stderr = ""
+                            print(f"   [Self-Correction Succeeded] Task {idx} recovered! Pred: {pred_str}", flush=True)
+                    else:
+                        exec_res_exit = exec_res2.exit_code
+                        exec_res_stderr = exec_res2.stderr or ""
 
         # Robust text fallback if code failed or no code was produced
         if not pred_str:
@@ -648,12 +775,12 @@ def run_math500_pal(transport: DockerRPCTransport, samples: int = 50, offset: in
         else:
             status_str = "FAIL"
 
-        print(f"[{idx:03d}/{len(dataset)}] {status_str} | Subj: {subject} (L{level}) | Pred: {pred_str[:30]} | Expected: {expected_ans[:30]} | Latency: {t_llm:.2f}s", flush=True)
+        print(f"[{curr_idx:03d}/{len(dataset)}] {status_str} | Subj: {subject} (L{level}) | Pred: {pred_str[:30]} | Expected: {expected_ans[:30]} | Latency: {t_llm:.2f}s", flush=True)
         if not is_pass and exec_res_stderr:
             print(f"   Stderr: {exec_res_stderr.strip()[:100]}", flush=True)
 
         results.append({
-            "idx": idx,
+            "idx": curr_idx,
             "subject": subject,
             "level": level,
             "problem": problem,
@@ -706,7 +833,15 @@ def main():
         default=0,
         help="Offset index in dataset to start from",
     )
+    parser.add_argument(
+        "--indices",
+        type=str,
+        default="",
+        help="Comma-separated list of 1-based problem indices to evaluate",
+    )
     args = parser.parse_args()
+
+    parsed_indices = [int(x.strip()) for x in args.indices.split(",") if x.strip().isdigit()] if args.indices else None
 
     print("Initializing DockerRPCTransport...")
     transport = DockerRPCTransport(container_name="lucca-file-sandbox")
@@ -715,6 +850,8 @@ def main():
     timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     final_report = {
         "timestamp": timestamp,
+        "version": "1.3.0",
+        "context_size": 32768,
         "model": "gemma-4-12b-heretic-Q6_K.gguf",
         "benchmarks": {},
     }
@@ -729,7 +866,7 @@ def main():
         final_report["benchmarks"]["humaneval_plus"] = run_humaneval_plus(transport, samples=args.samples, offset=args.offset)
 
     if args.benchmark in ("math500", "all"):
-        final_report["benchmarks"]["math500"] = run_math500_pal(transport, samples=args.samples, offset=args.offset)
+        final_report["benchmarks"]["math500"] = run_math500_pal(transport, samples=args.samples, offset=args.offset, indices=parsed_indices)
 
     report_file = REPORTS_DIR / f"modern_benchmarks_2024_{timestamp}.json"
     report_file.write_text(json.dumps(final_report, indent=2), encoding="utf-8")
