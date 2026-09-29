@@ -224,14 +224,15 @@ def test_scenario_2_unflagged_contradiction_supersession(test_orch: Orchestrator
     assert "java" in lower_su, f"Expected 'java' in spoken update: {spoken_update}"
     assert "python" in lower_su, f"Expected 'python' in spoken update: {spoken_update}"
 
-    # 3. On next turn, _maybe_speak_pending_updates speaks it and records it in history
+    # 3. On next turn, _maybe_speak_pending_updates processes it without speaking (WO-26 Phase 1 Interiority Barrier)
     trace_next = TurnTrace(
         trace_id="tr-turn-next", session_id="s1", origin="text", mode="transcript"
     )
     test_orch._maybe_speak_pending_updates(trace_next)
     assert len(test_orch.pending_spoken_updates) == 0
-    test_orch._speak_text.assert_called_with(trace_next, spoken_update)
-    assert any(m.get("content") == spoken_update for m in test_orch.history)
+    # WO-26 Phase 1: Mind-mouth interiority barrier guarantees _speak_text is NOT called for belief revisions
+    assert not test_orch._speak_text.called, "_speak_text must NOT be called for belief revisions"
+    assert not any(m.get("content") == spoken_update for m in test_orch.history), "Revision must not pollute history"
 
 
 # ============================================================================

@@ -328,6 +328,7 @@ class Orchestrator:
         self.current_turn_tool_ok: bool = True
         self.current_turn_shadow_outcomes: list[RuleOutcome] = []
         self.current_turn_receipts: list[ToolReceipt] = []
+        self.last_turn_receipts: list[ToolReceipt] = []
         self.current_turn_plan: GoalPlan | None = None
         self.last_spoken_plan_narration: str | None = None
         self.last_spoken_diagnosis: str | None = None
@@ -2158,6 +2159,7 @@ class Orchestrator:
         # WO-9 A9 (F8): persist ASSISTANT_ACTION receipts — including cancels,
         # timeouts, BDI rejections and provenance refusals — so "did you
         # actually do X?" is answerable from SELF_HISTORY instead of confabulated.
+        self.last_turn_receipts = list(getattr(self, "current_turn_receipts", []))
         self._commit_action_receipts(trace)
 
         # Contradiction detection on USER_EXPLICIT commit (Spec §7, WP-2)
@@ -3042,6 +3044,19 @@ class Orchestrator:
         self.speech_output.tts_worker()
 
     def _speak_text(self, trace: TurnTrace, text: str) -> None:
+        if not text or not text.strip():
+            return
+        # WO-26 Phase 1: Mind-Mouth Interiority Barrier
+        # Strictly quarantine internal system messages, revisions, or telemetry logs from TTS audio
+        if (
+            "[Lucca Revision]" in text
+            or text.startswith("[System")
+            or text.startswith("[Cognitive Bus")
+            or text.startswith("I've revised a belief")
+            or text.startswith("I had a belief")
+        ):
+            logger.info("tts_speech_quarantined_interiority", text=text[:100])
+            return
         self.speech_output.speak_text(trace, text)
 
     def _describe_tool_action(self, name: str, args: dict[str, JsonValue]) -> str:
@@ -3754,6 +3769,45 @@ class Orchestrator:
         args: dict[str, JsonValue],
         speak: bool = True,
     ) -> ToolResult | None:
+        # Semantic repair: if model invoked calc_math with Python code or equation solving, route to run_python
+        if name == "calc_math":
+            expr_val = args.get("expr")
+            code_val = args.get("code")
+            raw_content = str(code_val if code_val is not None else (expr_val or ""))
+            solve_match = re.search(r"^(.*?)=(.*?)(?:[;,]\s*|\s+)solve\s+for\s+([a-zA-Z_]\w*)$", raw_content.strip(), re.IGNORECASE)
+            if solve_match:
+                lhs = solve_match.group(1).strip().rstrip(";,")
+                rhs = solve_match.group(2).strip().rstrip(";,")
+                var = solve_match.group(3).strip()
+                sympy_code = (
+                    f"import sympy as sp\n"
+                    f"{var} = sp.Symbol('{var}')\n"
+                    f"eq = sp.Eq({lhs}, {rhs})\n"
+                    f"sol = sp.solve(eq, {var})\n"
+                    f"print(f'{var} = {{sol}}')\n"
+                )
+                logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python", fix="equation_to_sympy")
+                name = "run_python"
+                args = {"code": sympy_code}
+            else:
+                is_python_code = (
+                    "code" in args
+                    or "\n" in raw_content
+                    or ";" in raw_content
+                    or "import " in raw_content
+                    or "def " in raw_content
+                    or "print(" in raw_content
+                    or len(raw_content) > 300
+                )
+                if is_python_code:
+                    logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python")
+                    name = "run_python"
+                    args = {"code": raw_content}
+        elif name == "run_python":
+            if "expr" in args and "code" not in args:
+                logger.info("tool_semantic_reroute", from_tool="run_python", fix="expr_to_code")
+                args = {"code": str(args["expr"])}
+
         self.executed_tools.append((name, args))
         call_id = str(ulid.ULID())
         self.current_turn_tool_calls.append(ToolCall(tool=name, args=dict(args), call_id=call_id))
@@ -4166,13 +4220,14 @@ class Orchestrator:
             affect_tracker.record_signal(
                 AffectSignal.TASK_SUCCESS, custom_cause=f"{name} completed successfully"
             )
+        err_val = res.stderr if res.stderr else (res.content if not res.ok else None)
         self._record_tool_receipt(
             name=name,
             call_id=call_id,
             args=args,
             ok=res.ok,
             output=res.content,
-            error=res.stderr,
+            error=err_val,
         )
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
         spoken_msg: str | None = None
