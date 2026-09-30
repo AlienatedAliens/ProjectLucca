@@ -39,12 +39,35 @@ Gemma 4 12B     Phi-4-reasoning-15B       Gemma 4 31B (Dense)     Llama 4 Scout 
 
 ### Primary-Source Baseline Scores (September 2026 Verified Data)
 *   **Microsoft Phi-4 (14B)** *(Microsoft Tech Report, arXiv:2412.08905)*: MATH 80.4%, HumanEval 82.6%, GPQA Diamond 56.1%, MMLU 84.8%.
-*   **Google Gemma 4 31B Dense** *(Google DeepMind Tech Report, April 2026)*: GSM8K 91.2%, HumanEval 76.8%, MMLU 87.1%.
-*   **Google Gemma 4 26B MoE** *(Google DeepMind Tech Report, April 2026)*: HumanEval 73.2%, MMLU 82.7%.
+*   **Google Gemma 4 31B Dense** *(Google DeepMind Tech Report, April 2026)*: GSM8K 91.2%, HumanEval 76.8%, MMLU 87.1%, AIME 2026 89.2%, LiveCodeBench 80.0%, GPQA Diamond 84.3%.
+*   **Google Gemma 4 26B MoE** *(Google DeepMind Tech Report, April 2026)*: HumanEval 73.2%, MMLU 82.7%, AIME 2026 88.3%, LiveCodeBench 77.1%, GPQA Diamond 82.3%.
 *   **DeepSeek-V4.1-Flash (552B MoE, 8B/16B Active)** *(DeepSeek / BenchLM, Sept 2026)*: GPQA Diamond 90.9%, Terminal-Bench 2.1 90.6%, GSM8K 93.0%, SWE-bench Verified (DeepSWE v1.1) 74.2%, HumanEval 79.4%.
 *   **DeepSeek-V4-Pro (1.6T MoE)** *(DeepSeek Docs, April 2026)*: GPQA Diamond 90.1%, SWE-bench Verified 80.6%, GSM8K 92.6%, Terminal-Bench 2.1 67.9%, HumanEval 76.8%.
 *   **Claude Opus 5.5 & Fable 5.1** *(Anthropic / ArtificialWatch / Scale AI, Sept 2026)*: Opus 5.5 SimpleBench 88.4% (#1 ArtificialWatch Intelligence Index); Fable 5.1 Humanity's Last Exam (HLE) ~65% (#1 HLE rank).
 *   **OpenAI GPT-6 Astra** *(OpenAI Technical Report, Sept 2026)*: FrontierMath Tier 4 97.6%, ARC-AGI-3 99.9%.
+
+### 2.1 Official Google DeepMind Gemma 4 Family Baseline Matrix
+
+As reported in the official Google DeepMind Gemma 4 evaluation suite (June 2026), our core model (`Gemma 4 12B Unified`) exhibits the following published bare-weights performance against its architectural siblings:
+
+| Benchmark Metric | Gemma 4 31B Dense | Gemma 4 26B A4B (MoE) | Gemma 4 12B Unified<br>*(Project Lucca Core)* | Gemma 4 E4B (Edge) | Gemma 4 E2B | Gemma 3 27B (No Think) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **MMLU Pro** | 85.2% | 82.6% | **77.2%** | 69.4% | 60.0% | 67.6% |
+| **AIME 2026 (No Tools)** | 89.2% | 88.3% | **77.5%** | 42.5% | 37.5% | 20.8% |
+| **LiveCodeBench v6** | 80.0% | 77.1% | **72.0%** | 52.0% | 44.0% | 29.1% |
+| **Codeforces ELO** | 2150 | 1718 | **1659** | 940 | 633 | 110 |
+| **GPQA Diamond** | 84.3% | 82.3% | **78.8%** | 58.6% | 43.4% | 42.4% |
+| **Tau2 Agentic (Avg 3)**| 76.9% | 68.2% | **69.0%** | 42.2% | 24.5% | 16.2% |
+| **Humanity's Last Exam (HLE)**| 19.5% *(26.5% search)*| 8.7% *(17.2% search)*| **5.2%** | — | — | — |
+| **BigBench Extra Hard** | 74.4% | 64.8% | **53.0%** | 33.1% | 21.9% | 19.3% |
+| **MMMLU Multilingual** | 88.4% | 86.3% | **83.4%** | 76.6% | 67.4% | 70.7% |
+| **MMMU Pro (Vision)** | 76.9% | 73.8% | **69.1%** | 52.6% | 44.2% | 49.7% |
+| **OmniDocBench 1.5 (Edit Dist)**| 0.131 | 0.149 | **0.164** | 0.181 | 0.290 | 0.365 |
+| **MATH-Vision** | 85.6% | 82.4% | **79.7%** | 59.5% | 52.4% | 46.0% |
+| **MedXPertQA MM** | 61.3% | 58.1% | **48.7%** | 28.7% | 23.5% | — |
+| **CoVoST (Speech Translation)**| — | — | **38.5\*** | 35.54 | 33.47 | — |
+| **FLEURS (ASR Error)** | — | — | **0.069\*** | 0.08 | 0.09 | — |
+| **MRCR v2 (128K Context)**| 66.4% | 44.1% | **43.4%** | 25.4% | 19.1% | 13.5% |
 
 ---
 
