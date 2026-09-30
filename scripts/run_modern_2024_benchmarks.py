@@ -102,8 +102,15 @@ def get_humaneval_plus_dataset() -> list[dict]:
     return data
 
 
-def get_math500_dataset() -> list[dict]:
-    """Fetch HuggingFaceH4 MATH-500 test set."""
+def get_math500_dataset(dataset_path: str | Path | None = None) -> list[dict]:
+    """Fetch HuggingFaceH4 MATH-500 test set or load custom jsonl."""
+    if dataset_path:
+        target_path = Path(dataset_path)
+        if target_path.exists():
+            lines = target_path.read_text(encoding="utf-8").splitlines()
+            return [json.loads(line) for line in lines if line.strip()]
+        raise FileNotFoundError(f"Custom benchmark dataset not found: {dataset_path}")
+
     cache_file = DATA_DIR / "math500_test.jsonl"
     if not cache_file.exists():
         print("Downloading MATH-500 dataset from HuggingFace...")
@@ -772,9 +779,10 @@ def run_math500_pal(
     use_sympy: bool = False,
     config_label: str = "",
     resume: bool = False,
+    dataset_path: str = "",
 ) -> dict:
     """Evaluate MATH-500 competition math in PAL mode via Docker Python/SymPy with live tracing and progressive checkpointing."""
-    all_data = get_math500_dataset()
+    all_data = get_math500_dataset(dataset_path=dataset_path)
     if indices:
         dataset = []
         for i in indices:
@@ -1147,6 +1155,12 @@ def main():
         default=16384,
         help="Recorded context window size (e.g. 16384 or 32768)",
     )
+    parser.add_argument(
+        "--dataset-path",
+        type=str,
+        default="",
+        help="Path to custom benchmark dataset JSONL file (e.g. data/benchmarks/math_fresh_heldout_500.jsonl)",
+    )
     args = parser.parse_args()
 
     parsed_indices = [int(x.strip()) for x in args.indices.split(",") if x.strip().isdigit()] if args.indices else None
@@ -1163,6 +1177,7 @@ def main():
         "context_size": args.context_size,
         "feedback_enabled": args.feedback,
         "use_sympy_grader": args.use_sympy,
+        "dataset_path": args.dataset_path or "default",
         "model": "gemma-4-12b-heretic-Q6_K.gguf",
         "benchmarks": {},
     }
@@ -1186,6 +1201,7 @@ def main():
             use_sympy=args.use_sympy,
             config_label=args.config_label,
             resume=args.resume,
+            dataset_path=args.dataset_path,
         )
 
     label_part = f"_{args.config_label}" if args.config_label else ""
