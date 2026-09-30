@@ -210,7 +210,11 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
                     paired_mmproj = models_dir / cand_name
 
         is_audio_model = "ultravox" in path.name.lower() or "audio" in path.name.lower()
-        is_vision_model = "gemma-4" in path.name.lower() or "vision" in path.name.lower()
+        is_vision_model = (
+            "vision" in path.name.lower()
+            or "vl" in path.name.lower()
+            or (paired_mmproj is not None and "mmproj" in str(paired_mmproj).lower())
+        )
 
         if is_audio_model and paired_mmproj is not None and paired_mmproj.exists():
             badge = "🎙 Audio-Native"
@@ -338,7 +342,7 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
 
     # Multimodal projector matching:
     # Only attach --mmproj in audio or vision mode, and ensure architectural compatibility
-    # (e.g. Gemma 4 models n_embd=3840 must NEVER load LLaMA Ultravox n_embd=4096 mmproj)
+    # (e.g. multimodal models n_embd=3840 must NEVER load mismatched LLaMA n_embd=4096 mmproj)
     matched_mmproj: Path | None = None
     if cfg.mode in ("audio", "vision"):
         if "gemma" in model_gguf.name.lower():

@@ -113,6 +113,7 @@ class CosyVoice3Client:
         text: str,
         instruct: str = "",
         prompt_wav: str | None = None,
+        profile: str = "inventor",
         speed: float = 1.0,
         stream: bool = True,
         direct_ring: bool = True,
@@ -130,6 +131,7 @@ class CosyVoice3Client:
             "text": text,
             "instruct": instruct,
             "prompt_wav": prompt_wav,
+            "profile": profile,
             "speed": speed,
             "stream": stream,
             "direct_ring": direct_ring,
@@ -148,6 +150,7 @@ class CosyVoice3Client:
         text: str,
         instruct: str = "",
         prompt_wav: str | None = None,
+        profile: str = "inventor",
         speed: float = 1.0,
     ) -> tuple[np.ndarray | None, int]:
         """
@@ -163,6 +166,7 @@ class CosyVoice3Client:
             "text": text,
             "instruct": instruct,
             "prompt_wav": prompt_wav,
+            "profile": profile,
             "speed": speed,
             "stream": False,
             "direct_ring": False,
@@ -205,4 +209,4 @@ def format_cosyvoice_instruct(
 ) -> str:
     """Formats the instruction prompt for CosyVoice 3 conditioning header."""
     role_desc = VOICE_PROFILES.get(profile.lower(), VOICE_PROFILES["inventor"])
-    return f"You are {name}, {role_desc}. Speak with a {emotion_instruction} cadence.<|endofprompt|>"
+    return f"You are a helpful assistant. Please speak in English as {name} ({role_desc}) with a {emotion_instruction} cadence.<|endofprompt|>"

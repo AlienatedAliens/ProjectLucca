@@ -181,7 +181,7 @@ def test_no_hard_coded_brain_identifiers_in_src() -> None:
         if py.name == "config.py":
             # Only default field values may name a model; strip them before scanning.
             text = re.sub(
-                r"^\s*(model|text_model|chat_template_file):\s*str.*$", "", text, flags=re.M
+                r"^\s*(model|text_model|mmproj|chat_template_file):\s*str.*$", "", text, flags=re.M
             )
         for lit in FORBIDDEN_LITERALS:
             if lit.lower() in text.lower():

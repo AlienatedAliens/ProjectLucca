@@ -420,6 +420,7 @@ class VoiceTab(QWidget):
                     text=raw_text,
                     instruct=instruct,
                     prompt_wav=custom_wav,
+                    profile=profile_key,
                     speed=speed,
                 )
                 if samples is not None and len(samples) > 0:
@@ -477,6 +478,7 @@ class VoiceTab(QWidget):
                         text=text,
                         instruct=instruct,
                         prompt_wav=custom_wav,
+                        profile=profile_key,
                         speed=speed,
                     )
                     if samples is not None and len(samples) > 0:

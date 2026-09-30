@@ -289,6 +289,7 @@ class TTSWorker:
                     text=clean_text,
                     instruct=instruct,
                     prompt_wav=custom_wav,
+                    profile=profile_key,
                     speed=s,
                     stream=True,
                     direct_ring=True,

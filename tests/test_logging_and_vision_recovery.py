@@ -70,18 +70,21 @@ def test_cascade_self_substrate_reflects_vision_and_cosyvoice(monkeypatch: pytes
 
 def test_tts_worker_cosyvoice_fallback_to_kokoro() -> None:
     """Verify TTSWorker handles cosyvoice3 voice gracefully when service is unavailable."""
+    from unittest.mock import patch
     from lucca.senses.ring_buffer import get_playback_ring
 
-    ring = get_playback_ring()
+    ring = get_playback_ring(create=True)
     worker = TTSWorker(play_ring=ring)
 
     # Calling synthesize with cosyvoice3 when worker port is offline should fallback to Kokoro
     # without raising unhandled voice KeyError/ValueError
-    res = worker.synthesize(
-        chunk_id=1,
-        text="Testing resilient speech fallback.",
-        voice="cosyvoice3:inventor",
-        speed=1.0,
-    )
+    with patch("lucca.speech.cosyvoice_client.CosyVoice3Client.synthesize", return_value={"status": "error", "error": "offline"}):
+        res = worker.synthesize(
+            chunk_id=1,
+            text="Testing resilient speech fallback.",
+            voice="cosyvoice3:inventor",
+            speed=1.0,
+        )
     assert res is not None
     assert res.chunk_id == 1
+

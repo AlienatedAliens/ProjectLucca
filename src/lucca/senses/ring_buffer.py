@@ -107,13 +107,20 @@ class SharedAudioRing:
     def __init__(
         self,
         name: str,
-        rate: int,
-        capacity_seconds: int,
+        rate: int | None = None,
+        capacity_seconds: int | None = None,
         create: bool = False,
     ) -> None:
         self.name = name
-        self.rate = rate
-        self.capacity_samples = rate * capacity_seconds
+        if rate is None:
+            self.rate = CAP_RING_RATE if name == CAP_RING_NAME else PLAY_RING_RATE
+        else:
+            self.rate = rate
+        if capacity_seconds is None:
+            self.capacity_seconds = CAP_RING_SEC if name == CAP_RING_NAME else PLAY_RING_SEC
+        else:
+            self.capacity_seconds = capacity_seconds
+        self.capacity_samples = self.rate * self.capacity_seconds
         self.sample_bytes = 2  # int16
         self.data_size = self.capacity_samples * self.sample_bytes
         self.total_size = HEADER_SIZE + self.data_size

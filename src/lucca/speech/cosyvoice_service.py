@@ -47,7 +47,12 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("lucca.cosyvoice")
 
 MODEL_DIR: Final[Path] = Path(r"C:\ProjectLucca\app\CosyVoice\pretrained_models\Fun-CosyVoice3-0.5B-2512")
-DEFAULT_PROMPT_WAV: Final[Path] = Path(r"C:\ProjectLucca\app\CosyVoice\asset\zero_shot_prompt.wav")
+ENGLISH_VOICE_STEMS: Final[dict[str, Path]] = {
+    "inventor": Path(r"C:\ProjectLucca\models\tts\samples\sample_systems_check_base.wav"),
+    "companion": Path(r"C:\ProjectLucca\models\tts\samples\sample_intimate_reassurance_base.wav"),
+    "heroine": Path(r"C:\ProjectLucca\models\tts\samples\sample_anta_baka_base.wav"),
+}
+DEFAULT_PROMPT_WAV: Final[Path] = ENGLISH_VOICE_STEMS["inventor"]
 PORT: Final[int] = 47005
 
 
@@ -128,14 +133,15 @@ class CosyVoice3Service:
         # Format instruct prompt
         instruct = req.get("instruct", "")
         if not instruct:
-            instruct = "You are Lucca, a passionate systems engineer and companion with introspective self-awareness. Speak with a natural, clear cadence."
+            instruct = "You are a helpful assistant. Please speak in English with a natural, clear cadence.<|endofprompt|>"
         if not instruct.endswith("<|endofprompt|>"):
             instruct = f"{instruct.strip()}<|endofprompt|>"
 
         # Determine reference audio path
+        profile = str(req.get("profile", "inventor")).lower()
         prompt_wav = req.get("prompt_wav")
         if not prompt_wav or not Path(prompt_wav).exists():
-            prompt_wav = str(DEFAULT_PROMPT_WAV)
+            prompt_wav = str(ENGLISH_VOICE_STEMS.get(profile, DEFAULT_PROMPT_WAV))
 
         speed = float(req.get("speed", 1.0))
         stream = bool(req.get("stream", True))
