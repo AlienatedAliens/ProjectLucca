@@ -94,7 +94,9 @@ def run_latency_cli(
         print(f"No matching trace records found in '{logs_dir}' (mode={mode}, origin={origin}).")
         return 0
 
-    mode_literal: Literal["audio", "transcript"] = "transcript" if mode == "transcript" else "audio"
+    mode_literal: Literal["audio", "transcript", "vision"] = (
+        "vision" if mode == "vision" else ("transcript" if mode == "transcript" else "audio")
+    )
     stats: list[StageStat] = compute_latency_statistics(records, mode=mode_literal)
 
     if fmt == "json":

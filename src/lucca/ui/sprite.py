@@ -168,6 +168,7 @@ class CompanionSprite(QWidget):
                 draw_x = int(center_x - (scaled.width() / 2.0))
                 draw_y = int(center_y - (scaled.height() / 2.0)) + bob
                 painter.drawPixmap(draw_x, draw_y, scaled)
+                painter.end()
                 return
 
         # Fallback: Geometric vector companion orb
@@ -230,6 +231,7 @@ class CompanionSprite(QWidget):
             path.quadTo(center_x, mouth_y + 4.0, center_x + (mouth_w / 2), mouth_y)
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawPath(path)
+        painter.end()
 
     # Desktop interaction & mouse support
     def mousePressEvent(self, event: QMouseEvent | None) -> None:

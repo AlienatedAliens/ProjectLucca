@@ -84,6 +84,9 @@ def _fake_child_proc() -> None:
 
 
 def run_audio_process() -> None:
+    from lucca.core.logging_setup import setup_process_logging  # noqa: PLC0415
+
+    setup_process_logging("audio")
     proc = AudioProcess()
     try:
         proc.start()
@@ -94,14 +97,22 @@ def run_audio_process() -> None:
 
 
 def run_npu_process() -> None:
+    from lucca.core.logging_setup import setup_process_logging  # noqa: PLC0415
+
+    setup_process_logging("npu")
     proc = NPUProcess()
     try:
         proc.start()
+    except KeyboardInterrupt:
+        pass
     finally:
         proc.stop()
 
 
 def run_ui_process() -> None:
+    from lucca.core.logging_setup import setup_process_logging  # noqa: PLC0415
+
+    setup_process_logging("ui")
     ui = UIApplication()
     try:
         ui.run()
@@ -119,6 +130,7 @@ class Supervisor:
         self._shutdown_done: bool = False
         self._restart_attempts: dict[str, list[float]] = {}
         self._next_restart: dict[str, float] = {}
+        self._child_spawn_times: dict[str, float] = {}
         self.backoff_base: float = 1.0
         self.max_restart_backoff: float = 16.0
         self._last_rollup_check: float = 0.0
@@ -140,9 +152,15 @@ class Supervisor:
             raise ValueError(f"Unknown child target: {name}")
         p = mp.Process(target=target_fn, name=f"lucca-{name}", daemon=True)
         p.start()
+        self._child_spawn_times[name] = time.monotonic()
+        if self.orchestrator:
+            self.orchestrator.register_peer(name)
         return p
 
     def boot(self) -> None:
+        from lucca.core.logging_setup import setup_process_logging  # noqa: PLC0415
+
+        setup_process_logging("supervisor")
         print("=" * 65)
         print("  PROJECT LUCCA — SYSTEM BOOT (SUPERVISOR)")
         print("=" * 65)
@@ -333,6 +351,10 @@ class Supervisor:
                 # Consult orchestrator dead peers from heartbeat
                 if self.orchestrator:
                     for dead in self.orchestrator.dead_peers():
+                        spawn_t = self._child_spawn_times.get(dead, 0.0)
+                        if now - spawn_t < 15.0:
+                            # Startup grace period: child is booting / initializing models
+                            continue
                         if dead in self.children and self.children[dead].is_alive():
                             sys.stderr.write(
                                 f"WARNING: Peer '{dead}' missed 3 heartbeats. Terminating...\n"

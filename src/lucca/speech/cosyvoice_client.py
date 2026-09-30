@@ -49,8 +49,8 @@ class CosyVoice3Client:
     def _get_socket(self) -> zmq.Socket:
         if self.socket is None or self.socket.closed:
             self.socket = self.ctx.socket(zmq.REQ)
-            self.socket.setsockopt(zmq.RCVTIMEO, 15000)
-            self.socket.setsockopt(zmq.SNDTIMEO, 5000)
+            self.socket.setsockopt(zmq.RCVTIMEO, 45000)
+            self.socket.setsockopt(zmq.SNDTIMEO, 10000)
             self.socket.connect(f"tcp://127.0.0.1:{self.port}")
         return self.socket
 

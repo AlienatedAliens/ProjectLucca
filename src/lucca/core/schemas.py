@@ -180,7 +180,7 @@ LLMEvent = TokenDelta | ToolCallStart | ToolCallDelta | ToolCallEnd | Done
 class LLMHealth(BaseModel):
     ok: bool
     model: str
-    mode: Literal["audio", "transcript"]
+    mode: Literal["audio", "transcript", "vision"]
     slots_idle: int
 
 
@@ -597,7 +597,7 @@ class RuleState(BaseModel, frozen=True):
     last_tool: str | None = None
     last_tool_ok: bool | None = None
     session_turns: int = 0
-    mode: Literal["audio", "transcript"] = "transcript"
+    mode: Literal["audio", "transcript", "vision"] = "transcript"
     interrupted: bool = False
     asserted_facts: frozenset[tuple[str, str, str]] = frozenset()
 
@@ -712,7 +712,7 @@ class RouteFeatures(BaseModel):
     last_tool: str | None = None
     last_tool_ok: bool | None = None
     session_turns: int = 0
-    mode: Literal["audio", "transcript"] = "transcript"
+    mode: Literal["audio", "transcript", "vision"] = "transcript"
     # Router specific additions (Spec 06 §1)
     vad_speech_ms: int = 1000
     asr_avg_logprob: float = 0.0
@@ -808,7 +808,7 @@ class TurnTrace(BaseModel):
     trace_id: str
     points_ns: dict[str, int]
     e2e_latency_ms: float
-    mode: Literal["audio", "transcript"]
+    mode: Literal["audio", "transcript", "vision"]
 
 
 # ============================================================================

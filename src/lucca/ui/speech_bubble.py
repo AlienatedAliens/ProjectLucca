@@ -576,3 +576,4 @@ class SpeechBubble(QWidget):
         # Subtle gold accent line on top border
         painter.setPen(QPen(QColor("#ffd700"), 1.0))
         painter.drawLine(10, 7, int(w - 10), 7)
+        painter.end()

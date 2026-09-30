@@ -243,8 +243,17 @@ class DSPTab(QWidget):
                     echo = np.pad(processed, (delay_samples, 0)) * (reverb_pct * 0.5)
                     processed = ((padded + echo)[: len(processed)]).astype(np.float32)
 
-                sd.play(processed, play_sr)
-                sd.wait()
+                try:
+                    from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
+
+                    ring = SharedAudioRing(PLAY_RING_NAME)
+                    proc_i16 = (np.clip(processed, -1.0, 1.0) * 32767.0).astype(np.int16)
+                    ring.write(proc_i16)
+                except Exception as exc:
+                    _LOG.debug("ring_play_failed_falling_back_sd: %s", exc)
+                    sd.play(processed, play_sr)
+                    sd.wait()
+
                 self.lbl_dsp_status.setText("✓ DSP playback complete.")
             except Exception as exc:
                 _LOG.debug("dsp_playback_failed: %s", exc)

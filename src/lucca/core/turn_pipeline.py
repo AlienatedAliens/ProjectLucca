@@ -381,7 +381,7 @@ class TurnInput:
     user_text: str
     trace: TurnTrace
     origin: Literal["voice", "text"]
-    mode: Literal["audio", "transcript"] = "transcript"
+    mode: Literal["audio", "transcript", "vision"] = "transcript"
     vad_speech_ms: float = 1000.0
     current_audio_b64: str | None = None
     current_text: str | None = None

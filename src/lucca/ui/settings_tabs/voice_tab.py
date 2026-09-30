@@ -423,8 +423,7 @@ class VoiceTab(QWidget):
                     speed=speed,
                 )
                 if samples is not None and len(samples) > 0:
-                    sd.play(samples, sr)
-                    sd.wait()
+                    self._play_samples(samples, sr)
                     self.signals.audition_done.emit(True, f"✓ Audition '{stance_id}' successful.")
                 else:
                     self.signals.audition_done.emit(False, "CosyVoice 3 returned empty audio.")
@@ -433,6 +432,23 @@ class VoiceTab(QWidget):
                 self.signals.audition_done.emit(False, f"Error: {exc}")
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _play_samples(self, samples: np.ndarray, sr: int = 24000) -> None:
+        try:
+            from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
+
+            ring = SharedAudioRing(PLAY_RING_NAME)
+            samples_i16 = (np.clip(samples, -1.0, 1.0) * 32767.0).astype(np.int16)
+            ring.write(samples_i16)
+            return
+        except Exception as ring_exc:
+            _LOG.debug("ring_write_failed_fallback_sd: %s", ring_exc)
+
+        try:
+            sd.play(samples, sr)
+            sd.wait()
+        except Exception as exc:
+            _LOG.debug("sounddevice_play_failed: %s", exc)
 
     def _test_voice_sample(self) -> None:
         voice = self.get_selected_voice_spec()
@@ -464,8 +480,7 @@ class VoiceTab(QWidget):
                         speed=speed,
                     )
                     if samples is not None and len(samples) > 0:
-                        sd.play(samples, sr)
-                        sd.wait()
+                        self._play_samples(samples, sr)
                         self.signals.test_done.emit(True, "✓ CosyVoice 3 playback successful.")
                     else:
                         self.signals.test_done.emit(False, "CosyVoice 3 returned empty audio.")
@@ -483,8 +498,7 @@ class VoiceTab(QWidget):
                 resolved = parse_voice_blend(engine, clean_voice)
                 samples, sr = engine.create(text, voice=resolved, speed=speed)
 
-                sd.play(samples, sr)
-                sd.wait()
+                self._play_samples(samples, sr)
                 self.signals.test_done.emit(True, "✓ Kokoro playback successful.")
             except Exception as exc:
                 _LOG.debug("speech_test_failed: %s", exc)

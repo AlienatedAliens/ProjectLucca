@@ -306,6 +306,10 @@ class TTSWorker:
             except Exception as cv_exc:  # noqa: BLE001
                 logger.warning("cosyvoice_synthesis_failed_fallback_kokoro", error=str(cv_exc))
 
+        # If voice was CosyVoice, resolve a valid Kokoro fallback voice
+        if is_cosyvoice or not isinstance(resolved_voice, np.ndarray) and str(resolved_voice).startswith("cosyvoice"):
+            resolved_voice = self.resolve_voice_style("lucca_inventor")
+
         # Kokoro produces 24000 Hz float32 audio (native or fallback)
         try:
             samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)

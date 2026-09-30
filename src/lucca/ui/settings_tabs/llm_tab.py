@@ -564,8 +564,9 @@ class LLMTab(QWidget):
         if data and data.get("paired_mmproj"):
             mmproj_rel = f"llm/{data['paired_mmproj'].name}"
 
-        mode = str(self.combo_mode.currentData())
-        mode_val: Literal["audio", "transcript"] = "audio" if mode == "audio" else "transcript"
+        mode_val: Literal["audio", "transcript", "vision"] = (
+            "vision" if mode == "vision" else ("audio" if mode == "audio" else "transcript")
+        )
         kv_type = str(self.combo_kv_type.currentData())
         ctx = self.spin_context.value()
         temp = self.slider_temp.value() / 100.0

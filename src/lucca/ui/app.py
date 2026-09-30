@@ -124,6 +124,9 @@ class UIApplication:
         except Exception as exc:  # noqa: BLE001, S110
             logger.debug("set_app_user_model_id_failed: %s", exc)
 
+        from lucca.core.logging_setup import setup_process_logging  # noqa: PLC0415
+
+        setup_process_logging("ui")
         self.config = get_config()
         existing_app = QApplication.instance()
         if isinstance(existing_app, QApplication):
@@ -439,15 +442,26 @@ class UIApplication:
         self.bubble.anchor_to(geom, screen_geom)
 
     def _inspect_screen(self) -> None:
-        try:
-            from lucca.core.studio_facade import StudioFacade  # noqa: PLC0415
+        def _worker() -> None:
+            try:
+                from lucca.core.studio_facade import StudioFacade  # noqa: PLC0415
 
-            b64, _, _ = StudioFacade.capture_screenshot()
-            self._send_user_message("Describe what you see on my screen.", b64)
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("inspect_screen_failed", error=str(exc))
+                b64, _, _ = StudioFacade.capture_screenshot()
+                self._send_user_message("Describe what you see on my screen.", b64)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("inspect_screen_failed", error=str(exc))
+
+        threading.Thread(target=_worker, name="ui-screenshot", daemon=True).start()
 
     def _send_user_message(self, text: str, image_b64: str | None = None) -> None:
+        if threading.current_thread() is not threading.main_thread():
+            QMetaObject.invokeMethod(
+                self.bubble,
+                lambda: self._send_user_message(text, image_b64),
+                Qt.ConnectionType.QueuedConnection,
+            )
+            return
+
         geom = self.sprite.geometry()
         screen_geom = self._get_screen_geometry()
         caption_display = f"[🖼️ Screen] {text}" if image_b64 else text
@@ -548,7 +562,7 @@ class UIApplication:
         while self.running:
             try:
                 socks = dict(poller.poll(timeout=100))
-            except zmq.ZMQError:
+            except (zmq.ZMQError, KeyboardInterrupt):
                 if not self.running:
                     break
                 continue

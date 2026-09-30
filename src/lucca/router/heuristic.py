@@ -416,7 +416,7 @@ class HeuristicRouter:
         last_tool: str | None = None,
         last_tool_ok: bool | None = None,
         session_turns: int = 0,
-        mode: Literal["audio", "transcript"] = "transcript",
+        mode: Literal["audio", "transcript", "vision"] = "transcript",
         has_registered_rule: bool = False,
         feats: RouteFeatures | None = None,
     ) -> RouteDecision:

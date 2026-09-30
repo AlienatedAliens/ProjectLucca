@@ -930,14 +930,25 @@ class EpistemicSearchCascade:
             rt = get_config()
             now_local = datetime.now().astimezone()
             time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
+            active_voice = cfg.voice or rt.tts.voice
+            tts_info = (
+                f"speech synthesis 'CosyVoice 3 Frontier' (voice: '{active_voice}', 15 affective PAD stances) with Kokoro-82M fallback"
+                if "cosyvoice" in str(active_voice).lower()
+                else f"speech synthesis '{Path(rt.tts.model).name}' voice '{active_voice}'"
+            )
+            vision_info = (
+                f"; multimodal vision projector '{Path(rt.llm.mmproj).name}' active (mode: {rt.llm.mode})"
+                if (rt.llm.mode == "vision" or getattr(rt.llm, "mmproj", None))
+                else ""
+            )
             content = (
                 f"Agent Identity: Lucca, local AI engineer companion. "
                 f"Current Local Time: {time_str}. "
-                f"Archetype: {cfg.archetype}. Voice: {cfg.voice}. "
+                f"Archetype: {cfg.archetype}. Voice: {active_voice}. "
                 f"Local Runtime: language model '{rt.llm.model_display_name()}' served by "
-                f"llama-server on the dGPU (context {rt.llm.ctx} tokens); "
+                f"llama-server on the dGPU (context {rt.llm.ctx} tokens){vision_info}; "
                 f"speech recognition '{Path(rt.asr.model).name}' on NPU/CPU; "
-                f"speech synthesis '{Path(rt.tts.model).name}' voice '{rt.tts.voice}'. "
+                f"{tts_info}. "
                 f"Host Workstation: {platform.node()} ({platform.platform()}). "
                 f"Core Purpose: Pair-programming, systems debugging, and desktop automation. "
                 f"Created locally for this workstation. "

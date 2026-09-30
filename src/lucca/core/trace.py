@@ -34,7 +34,7 @@ class TurnTrace(BaseModel):
     session_id: str = ""
     version: str = __version__
     error: str = ""
-    mode: Literal["audio", "transcript"] = "audio"
+    mode: Literal["audio", "transcript", "vision"] = "audio"
     origin: Literal["ptt", "text"] = "ptt"
     route: str = "llm"
     tts_device: str = "CPU"
@@ -335,7 +335,7 @@ def _extract_stage_delta(rec: dict[str, JsonValue], stage_name: str) -> float | 
 
 def compute_latency_statistics(
     traces: list[dict[str, JsonValue]],
-    mode: Literal["audio", "transcript"] = "audio",
+    mode: Literal["audio", "transcript", "vision"] = "audio",
 ) -> list[StageStat]:
     """Computes median and p95 latency per Spec 10 stage."""
     stage_defs = AUDIO_STAGE_DEFS if mode == "audio" else TRANSCRIPT_STAGE_DEFS

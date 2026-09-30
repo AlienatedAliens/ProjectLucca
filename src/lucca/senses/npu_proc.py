@@ -97,10 +97,11 @@ class NPUProcess:
         while self.running:
             try:
                 socks = dict(poller.poll(timeout=100))
-            except zmq.ZMQError:
+            except (zmq.ZMQError, KeyboardInterrupt):
                 if not self.running:
                     break
-                continue
+                self.running = False
+                break
 
             if self.ctl_sock in socks:
                 try:

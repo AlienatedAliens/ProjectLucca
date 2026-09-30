@@ -1055,7 +1055,7 @@ class Orchestrator:
         t.start()
 
     def _build_rule_state(
-        self, transcript: str, mode: Literal["audio", "transcript"] = "transcript"
+        self, transcript: str, mode: Literal["audio", "transcript", "vision"] = "transcript"
     ) -> RuleState:
         norm_transcript = normalize_transcript(transcript)
         local_now = time.localtime()
