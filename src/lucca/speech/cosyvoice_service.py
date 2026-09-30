@@ -68,6 +68,21 @@ class CosyVoice3Service:
         init_ms = (time.perf_counter() - t0) * 1000.0
         logger.info(f"CosyVoice 3 initialized in {init_ms:.1f}ms")
 
+        # torch.compile the DiT estimator for fused CUDA kernel speedup (~1.5× on Blackwell SM120)
+        # reduce-overhead mode: persistent CUDA graphs, minimal Python overhead per call
+        # First inference call will trigger a ~90s tracing warmup; all subsequent calls are fast.
+        logger.info("Compiling DiT estimator with torch.compile (reduce-overhead)...")
+        try:
+            self.cv3.model.flow.decoder.estimator = torch.compile(
+                self.cv3.model.flow.decoder.estimator,
+                mode="reduce-overhead",
+                fullgraph=False,  # CausalConditionalCFM has data-dependent control flow
+            )
+            logger.info("DiT estimator compiled successfully.")
+        except Exception as compile_exc:
+            logger.warning("torch.compile failed, running uncompiled: %s", compile_exc)
+
+
         # Open shared memory audio playback ring buffer
         try:
             self.play_ring = SharedAudioRing(PLAY_RING_NAME)
