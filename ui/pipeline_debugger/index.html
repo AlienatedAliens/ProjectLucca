@@ -1135,15 +1135,20 @@ print(f"ANSWER: {sol[0]}")</pre>
 
     function updateRibbon() {
       let strictPass = 0, formatMiss = 0, crash = 0, derivation = 0;
-      let maxIdx = currentRibbonTotal;
-      allTraces.forEach(t => {
-        if (t.index && t.index > maxIdx) maxIdx = t.index;
-      });
-      ensureRibbonCapacity(maxIdx);
+      const grid = document.getElementById('ribbonGrid');
+      grid.innerHTML = '';
 
-      allTraces.forEach(t => {
-        const cell = document.getElementById(`rc_${t.index}`);
-        if (!cell) return;
+      allTraces.forEach((t, i) => {
+        const cell = document.createElement('div');
+        const traceKey = t.trace_id || t.index || (i + 1);
+        cell.id = `rc_${traceKey}`;
+        cell.onclick = () => loadTraceByKey(traceKey);
+
+        let label = t.index ? `#${t.index}` : `Turn ${i + 1}`;
+        if (t.subject) label += ` [${t.subject}]`;
+        if (t.predicted) label += ` -> ${t.predicted}`;
+        cell.title = label;
+
         if (t.passed) {
           cell.className = 'ribbon-cell pass';
           strictPass++;
@@ -1157,26 +1162,33 @@ print(f"ANSWER: {sol[0]}")</pre>
           cell.className = 'ribbon-cell fail';
           derivation++;
         }
+        if (activeTrace && (activeTrace.trace_id === traceKey || String(activeTrace.task_info?.index) === String(traceKey))) {
+          cell.classList.add('selected-cell');
+        }
+        grid.appendChild(cell);
       });
-      document.getElementById('ribbonStats').textContent = `${allTraces.length} / ${currentRibbonTotal} Evaluated (${strictPass} Passes, ${formatMiss} Format Misses, ${crash} Crashes)`;
+
+      document.getElementById('ribbonStats').textContent = `${allTraces.length} Evaluated (${strictPass} Passes, ${formatMiss} Format Misses, ${crash} Crashes)`;
       const titleElem = document.getElementById('ribbonTitle');
       if (titleElem) {
-        titleElem.textContent = `BENCHMARK RUN MATRIX (${currentRibbonTotal} Problems - Click any cell to load trace)`;
+        titleElem.textContent = `TRACE HORIZON (${allTraces.length} Executed Flows - Click any cell to inspect)`;
       }
     }
 
-    async function loadTraceByIndex(idx) {
+    async function loadTraceByKey(key) {
       document.querySelectorAll('.ribbon-cell').forEach(c => c.classList.remove('selected-cell'));
-      const c = document.getElementById(`rc_${idx}`);
+      const c = document.getElementById(`rc_${key}`);
       if (c) c.classList.add('selected-cell');
 
       try {
-        const res = await fetch(`/api/trace/${idx}`);
+        const res = await fetch(`/api/trace/${key}`);
         if (!res.ok) return;
         activeTrace = await res.json();
         renderActiveTrace(activeTrace);
       } catch (err) {}
     }
+
+    const loadTraceByIndex = loadTraceByKey;
 
     function renderActiveTrace(t) {
       const task = t.task_info || {};
@@ -1185,35 +1197,47 @@ print(f"ANSWER: {sol[0]}")</pre>
       const tank6 = tanks.find(x => x.tank_id === 'tank_6_sandbox_turbine') || {};
 
       // 1. Badges and Headers
-      document.getElementById('activeProbBadge').textContent = `#${task.index} ${task.subject} (L${task.level})`;
-      document.getElementById('liveProblemStatement').textContent = task.problem || '';
-      document.getElementById('liveExpected').textContent = t.expected_ans || '--';
+      const isMath = !!(task.problem && t.expected_ans);
+      const titleText = isMath 
+        ? `#${task.index || ''} ${task.subject || ''} (L${task.level || ''})` 
+        : `Turn #${task.turn_index || 1} [${task.mode || 'Companion'}]`;
+      document.getElementById('activeProbBadge').textContent = titleText;
+      document.getElementById('liveProblemStatement').textContent = task.problem || task.user_text || 'No question details available.';
+      document.getElementById('liveExpected').textContent = t.expected_ans || '(Conversational Flow)';
       document.getElementById('livePredicted').textContent = t.predicted_ans || '(None)';
       
       const v = document.getElementById('activeResultVerdict');
-      v.textContent = t.passed ? 'VERIFIED PASS' : (t.verdict ? t.verdict.failure_class.toUpperCase() : 'FAIL');
-      v.style.color = t.passed ? 'var(--green)' : 'var(--red)';
+      v.textContent = t.passed ? 'VERIFIED PASS' : (t.verdict ? t.verdict.failure_class.toUpperCase() : 'COMPLETED');
+      v.style.color = t.passed ? 'var(--green)' : 'var(--cyan)';
 
       // 2. L1 Story Deck Rendering
-      document.getElementById('storyDeckProblem').textContent = task.problem || 'No question details available.';
-      document.getElementById('storyDeckExpected').textContent = t.expected_ans || '--';
+      document.getElementById('storyDeckProblem').textContent = task.problem || task.user_text || 'No question details available.';
+      document.getElementById('storyDeckExpected').textContent = t.expected_ans || '(Conversational Flow)';
       document.getElementById('storyDeckPredicted').textContent = t.predicted_ans || '(None)';
 
       // Template-driven Level 1 story narrative
-      let caption = `Problem #${task.index}: Lucca formulated a Python solution, ran it safely inside Docker, and verified the exact mathematical result.`;
-      let storyDetail = `Lucca approached this ${task.subject} (Level ${task.level}) problem by writing a structured Python program using SymPy. The Docker sandbox executed the code cleanly, and the string normalizer verified that the computed value matched the official answer key.`;
+      let caption = "";
+      let storyDetail = "";
 
-      if (!t.passed) {
-        if (t.verdict && t.verdict.failure_class === 'runtime_crash') {
-          caption = `Problem #${task.index}: Lucca wrote Python code, but the Docker sandbox failed on a runtime syntax error or traceback.`;
-          storyDetail = `Lucca generated a Python script to compute the solution, but the execution was halted by an unhandled exception in Docker (${tank6.stderr ? tank6.stderr.slice(0, 100) : 'syntax error'}).`;
-        } else if (t.verdict && t.verdict.failure_class === 'equivalence_format_miss') {
-          caption = `Problem #${task.index}: Lucca calculated the mathematically correct answer, but the strict grader rejected the LaTeX formatting.`;
-          storyDetail = `Lucca derived the correct numeric value (${t.predicted_ans}), but the answer differed in LaTeX markup from the ground truth (${t.expected_ans}).`;
-        } else {
-          caption = `Problem #${task.index}: Lucca calculated a numeric result, but derived an answer that differed from ground truth.`;
-          storyDetail = `Lucca executed the calculation, producing '${t.predicted_ans}', which did not equal the expected '${t.expected_ans}'.`;
+      if (isMath) {
+        caption = `Problem #${task.index}: Lucca formulated a Python solution, ran it safely inside Docker, and verified the exact mathematical result.`;
+        storyDetail = `Lucca approached this ${task.subject} (Level ${task.level}) problem by writing a structured Python program using SymPy. The Docker sandbox executed the code cleanly, and the string normalizer verified that the computed value matched the official answer key.`;
+
+        if (!t.passed) {
+          if (t.verdict && t.verdict.failure_class === 'runtime_crash') {
+            caption = `Problem #${task.index}: Lucca wrote Python code, but the Docker sandbox failed on a runtime syntax error or traceback.`;
+            storyDetail = `Lucca generated a Python script to compute the solution, but the execution was halted by an unhandled exception in Docker (${tank6.stderr ? tank6.stderr.slice(0, 100) : 'syntax error'}).`;
+          } else if (t.verdict && t.verdict.failure_class === 'equivalence_format_miss') {
+            caption = `Problem #${task.index}: Lucca calculated the mathematically correct answer, but the strict grader rejected the LaTeX formatting.`;
+            storyDetail = `Lucca derived the correct numeric value (${t.predicted_ans}), but the answer differed in LaTeX markup from the ground truth (${t.expected_ans}).`;
+          } else {
+            caption = `Problem #${task.index}: Lucca calculated a numeric result, but derived an answer that differed from ground truth.`;
+            storyDetail = `Lucca executed the calculation, producing '${t.predicted_ans}', which did not equal the expected '${t.expected_ans}'.`;
+          }
         }
+      } else {
+        caption = `Turn #${task.turn_index || 1}: Interactive companion turn processed through cognitive cascade.`;
+        storyDetail = `User prompt '${(task.user_text || '').slice(0, 80)}' was ingested, routed via conformal intent, deliberated by Neural Boiler, and finalized to WAL.`;
       }
       document.getElementById('storyCaptionText').textContent = caption;
       document.getElementById('storyDeckNarrative').textContent = storyDetail;

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import ast
 import io
+import keyword
 from typing import Tuple
 import tokenize
 
@@ -72,14 +73,16 @@ def _normalize_tokens(code: str) -> str:
         for i, tok in enumerate(tokens):
             if i > 0:
                 prev = tokens[i - 1]
-                if prev.type == tokenize.NUMBER and tok.type == tokenize.NAME:
-                    new_tokens.append((tokenize.OP, "*"))
-                elif prev.type == tokenize.NUMBER and tok.type == tokenize.OP and tok.string == "(":
-                    new_tokens.append((tokenize.OP, "*"))
-                elif prev.type == tokenize.OP and prev.string == ")" and tok.type in (tokenize.NAME, tokenize.NUMBER):
-                    new_tokens.append((tokenize.OP, "*"))
-                elif prev.type == tokenize.OP and prev.string == ")" and tok.type == tokenize.OP and tok.string == "(":
-                    new_tokens.append((tokenize.OP, "*"))
+                is_kw = tok.type == tokenize.NAME and keyword.iskeyword(tok.string)
+                if not is_kw:
+                    if prev.type == tokenize.NUMBER and tok.type == tokenize.NAME:
+                        new_tokens.append((tokenize.OP, "*"))
+                    elif prev.type == tokenize.NUMBER and tok.type == tokenize.OP and tok.string == "(":
+                        new_tokens.append((tokenize.OP, "*"))
+                    elif prev.type == tokenize.OP and prev.string == ")" and tok.type in (tokenize.NAME, tokenize.NUMBER):
+                        new_tokens.append((tokenize.OP, "*"))
+                    elif prev.type == tokenize.OP and prev.string == ")" and tok.type == tokenize.OP and tok.string == "(":
+                        new_tokens.append((tokenize.OP, "*"))
 
             if tok.type == tokenize.OP and tok.string == "^":
                 new_tokens.append((tokenize.OP, "**"))
@@ -329,6 +332,11 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
                     idx = assigned_composite_exprs[var_arg.id]
                     parsed_node = ast.parse(f"{var_arg.id} = sp.symbols('{var_arg.id}', real=True, positive=True)").body[0]
                     tree.body[idx] = parsed_node
+                    modified_ast = True
+                elif isinstance(var_arg, (ast.BinOp, ast.UnaryOp)):
+                    var_name = "_diff_var_"
+                    tree.body.insert(0, ast.parse(f"{var_name} = sp.symbols('{var_name}', real=True, positive=True)").body[0])
+                    node.args[1] = ast.Name(id=var_name, ctx=ast.Load())
                     modified_ast = True
 
     if modified_ast:
