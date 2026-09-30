@@ -273,11 +273,22 @@ class TTSWorker:
                 except Exception as aff_exc:  # noqa: BLE001
                     logger.debug("affect_latents_query_failed", error=str(aff_exc))
 
-                instruct = format_cosyvoice_instruct("Lucca", emotion_inst)
+                profile_key = "inventor"
+                if "companion" in str(raw_spec):
+                    profile_key = "companion"
+                elif "heroine" in str(raw_spec):
+                    profile_key = "heroine"
+
+                custom_wav: str | None = None
+                if "custom:" in str(raw_spec):
+                    custom_wav = str(raw_spec).split("custom:", 1)[1].strip() or None
+
+                instruct = format_cosyvoice_instruct("Lucca", emotion_inst, profile=profile_key)
                 cv_client = CosyVoice3Client.get_instance()
                 cv_res = cv_client.synthesize(
                     text=clean_text,
                     instruct=instruct,
+                    prompt_wav=custom_wav,
                     speed=s,
                     stream=True,
                     direct_ring=True,

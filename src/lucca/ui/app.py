@@ -539,6 +539,9 @@ class UIApplication:
         bus_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.bus_port}")
         bus_sock.setsockopt_string(zmq.SUBSCRIBE, "")
 
+        ingest_sock = ctx.socket(zmq.PUSH)
+        ingest_sock.connect(f"tcp://127.0.0.1:{self.config.ipc.ingest_port}")
+
         poller = zmq.Poller()
         poller.register(bus_sock, zmq.POLLIN)
 
@@ -564,7 +567,7 @@ class UIApplication:
                             payload=SysPongPayload(rss_mb=rss_mb, queue_depth=0).model_dump(),
                         )
                         try:
-                            self.ingest_sock.send(encode_envelope(pong), zmq.NOBLOCK)
+                            ingest_sock.send(encode_envelope(pong), zmq.NOBLOCK)
                         except (IPCError, zmq.ZMQError):
                             pass
                     elif env.type == "ui.state":
@@ -592,6 +595,7 @@ class UIApplication:
                     pass
 
         bus_sock.close(linger=0)
+        ingest_sock.close(linger=0)
         ctx.destroy(linger=0)
 
     def run(self) -> int:

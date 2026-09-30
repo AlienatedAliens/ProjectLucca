@@ -48,41 +48,87 @@ def check_system_ram() -> tuple[bool, str]:
 
 
 def check_mshybrid_vram() -> tuple[bool, str]:
-    """Checks dGPU VRAM baseline.
+    """Checks dGPU VRAM baseline and resident workloads.
 
-    Limit is < 1500 MB idle, <= 12800 MB if llama-server is resident (D-BRAIN-05).
+    Dynamic budget based on resident model footprint:
+    - Idle baseline: < 1500 MB
+    - llama-server resident (LLM + Vision mmproj): <= 12800 MB
+    - Full companion stack (llama-server + CosyVoice 3): <= 15200 MB (within 16GB physical VRAM)
     """
     nvidia_smi = shutil.which("nvidia-smi")
     if not nvidia_smi:
         return False, "nvidia-smi not found in PATH."
     try:
         res = subprocess.run(
-            [nvidia_smi, "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+            [nvidia_smi, "--query-gpu=memory.total,memory.used", "--format=csv,noheader,nounits"],
             capture_output=True,
             text=True,
             check=True,
         )
-        used_mb = float(res.stdout.strip().splitlines()[0])
+        line = res.stdout.strip().splitlines()[0]
+        parts = [p.strip() for p in line.split(",")]
+        total_mb = float(parts[0]) if len(parts) > 1 else 16303.0
+        used_mb = float(parts[1]) if len(parts) > 1 else float(parts[0])
 
         cfg = get_config()
         llama_active = False
+        has_vision = False
         try:
             r = httpx.get(f"http://{cfg.llm.host}:{cfg.llm.port}/health", timeout=0.5)
             if r.status_code == 200:
                 llama_active = True
+                if getattr(cfg.llm, "mmproj", None):
+                    has_vision = True
         except Exception as exc:
             logger.debug("check_llama_health_failed: %s", exc)
             llama_active = False
 
-        if llama_active:
-            if used_mb > 12800:
+        cosy_active = False
+        try:
+            from lucca.speech.cosyvoice_client import CosyVoice3Client
+
+            cosy_active = CosyVoice3Client.get_instance().ping()
+        except Exception as exc:
+            logger.debug("check_cosyvoice_ping_failed: %s", exc)
+            cosy_active = False
+
+        # Compute dynamic budget based on active resident workloads
+        if llama_active and cosy_active:
+            budget_mb = min(15200.0, total_mb - 1000.0)
+            vision_tag = "+Vision" if has_vision else ""
+            workload_desc = f"llama-server [LLM{vision_tag}] + CosyVoice 3 resident"
+            if used_mb > budget_mb:
                 return (
                     False,
-                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of 12800 MB).",
+                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
                 )
             return (
                 True,
-                f"dGPU VRAM used: {used_mb:.1f} MB (llama-server resident, within 12800 MB budget)",
+                f"dGPU VRAM used: {used_mb:.1f} MB ({workload_desc}, within {budget_mb:.0f} MB budget)",
+            )
+        elif llama_active:
+            budget_mb = min(12800.0, total_mb - 2000.0)
+            vision_tag = "+Vision" if has_vision else ""
+            workload_desc = f"llama-server [LLM{vision_tag}] resident"
+            if used_mb > budget_mb:
+                return (
+                    False,
+                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
+                )
+            return (
+                True,
+                f"dGPU VRAM used: {used_mb:.1f} MB ({workload_desc}, within {budget_mb:.0f} MB budget)",
+            )
+        elif cosy_active:
+            budget_mb = min(6000.0, total_mb - 2000.0)
+            if used_mb > budget_mb:
+                return (
+                    False,
+                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
+                )
+            return (
+                True,
+                f"dGPU VRAM used: {used_mb:.1f} MB (CosyVoice 3 resident, within {budget_mb:.0f} MB budget)",
             )
 
         if used_mb > 1500:
@@ -358,7 +404,7 @@ def check_wsl_status() -> tuple[bool, str]:
             lines = [l.strip() for l in clean_text.splitlines() if l.strip()]
             summary_parts = [l for l in lines if "Default Distribution" in l or "Default Version" in l]
             summary = " | ".join(summary_parts) if summary_parts else "Ubuntu (WSL2)"
-            return True, f"WSL2 is responsive: {summary}"
+            return True, f"WSL is responsive: {summary}"
         raw_err = res.stderr if isinstance(res.stderr, str) else res.stderr.decode("utf-16", errors="replace")
         err_msg = (raw_err.strip() or "").replace("\x00", "")
         return False, f"WSL status check failed (exit {res.returncode}): {err_msg[:100]}"

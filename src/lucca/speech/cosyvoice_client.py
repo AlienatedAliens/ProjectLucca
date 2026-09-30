@@ -191,9 +191,18 @@ class CosyVoice3Client:
             self.socket = None
 
 
+VOICE_PROFILES: Final[dict[str, str]] = {
+    "inventor": "a passionate systems engineer and inventive companion with introspective self-awareness",
+    "companion": "a warm, gentle, and deeply empathetic companion who is patient, attentive, and caring",
+    "heroine": "a spirited, fiercely loyal anime heroine with boundless energy and lively enthusiasm",
+}
+
+
 def format_cosyvoice_instruct(
     name: str = "Lucca",
     emotion_instruction: str = "steady, neutral",
+    profile: str = "inventor",
 ) -> str:
     """Formats the instruction prompt for CosyVoice 3 conditioning header."""
-    return f"You are {name}, a passionate systems engineer and companion with introspective self-awareness. Speak with a {emotion_instruction} cadence.<|endofprompt|>"
+    role_desc = VOICE_PROFILES.get(profile.lower(), VOICE_PROFILES["inventor"])
+    return f"You are {name}, {role_desc}. Speak with a {emotion_instruction} cadence.<|endofprompt|>"

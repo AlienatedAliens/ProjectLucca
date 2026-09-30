@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Final
 
 import kokoro_onnx
 import sounddevice as sd
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -46,6 +46,15 @@ if TYPE_CHECKING:
 
 _LOG = logging.getLogger(__name__)
 
+
+class VoiceTabSignals(QObject):
+    """Thread-safe signal bridge marshaling background synthesis updates to the Qt main thread."""
+
+    status_updated = pyqtSignal(str)
+    audition_done = pyqtSignal(bool, str)
+    test_done = pyqtSignal(bool, str)
+
+
 # 15 Canonical PAD Stances mapped to descriptive UI labels and emotion tags
 STANCE_SPECS: Final[list[tuple[str, str, str]]] = [
     ("neutral_steady", "Steady & Balanced (Resting / Baseline)", "steady, balanced, neutral"),
@@ -73,6 +82,12 @@ class VoiceTab(QWidget):
         super().__init__()
         self.dialog = dialog
         self.facade = facade
+
+        self.signals = VoiceTabSignals()
+        self.signals.status_updated.connect(self._on_status_updated)
+        self.signals.audition_done.connect(self._on_audition_done)
+        self.signals.test_done.connect(self._on_test_done)
+
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -366,6 +381,17 @@ class VoiceTab(QWidget):
         else:
             return str(self.combo_single_voice.currentData())
 
+    def _on_status_updated(self, msg: str) -> None:
+        self.lbl_voice_status.setText(msg)
+
+    def _on_audition_done(self, success: bool, msg: str) -> None:
+        self.lbl_voice_status.setText(msg)
+        self.btn_audition_stance.setEnabled(True)
+
+    def _on_test_done(self, success: bool, msg: str) -> None:
+        self.lbl_voice_status.setText(msg)
+        self.btn_test_speech.setEnabled(True)
+
     def _audition_active_stance(self) -> None:
         """Auditions the selected 3D PAD emotional stance."""
         stance_data = self.combo_stance.currentData()
@@ -374,7 +400,15 @@ class VoiceTab(QWidget):
         stance_id, stance_tag = stance_data
         speed = self.slider_speed.value() / 100.0
         raw_text = self.line_test_text.text().strip() or "All systems operational!"
-        instruct = format_cosyvoice_instruct("Lucca", stance_tag)
+        preset_idx = self.combo_cosyvoice_preset.currentIndex()
+        profile_key = "inventor"
+        if preset_idx == 1:
+            profile_key = "companion"
+        elif preset_idx == 2:
+            profile_key = "heroine"
+
+        custom_wav = self.line_custom_wav.text().strip() if preset_idx == 3 else None
+        instruct = format_cosyvoice_instruct("Lucca", stance_tag, profile=profile_key)
 
         self.lbl_voice_status.setText(f"Auditioning stance '{stance_id}' ({stance_tag})...")
         self.btn_audition_stance.setEnabled(False)
@@ -382,7 +416,6 @@ class VoiceTab(QWidget):
         def worker() -> None:
             try:
                 cv_client = CosyVoice3Client.get_instance()
-                custom_wav = self.line_custom_wav.text().strip() if self.combo_cosyvoice_preset.currentIndex() == 3 else None
                 samples, sr = cv_client.test_audio(
                     text=raw_text,
                     instruct=instruct,
@@ -392,14 +425,12 @@ class VoiceTab(QWidget):
                 if samples is not None and len(samples) > 0:
                     sd.play(samples, sr)
                     sd.wait()
-                    self.lbl_voice_status.setText(f"✓ Audition '{stance_id}' successful.")
+                    self.signals.audition_done.emit(True, f"✓ Audition '{stance_id}' successful.")
                 else:
-                    self.lbl_voice_status.setText(f"CosyVoice 3 returned empty audio.")
+                    self.signals.audition_done.emit(False, "CosyVoice 3 returned empty audio.")
             except Exception as exc:
                 _LOG.debug("stance_audition_failed: %s", exc)
-                self.lbl_voice_status.setText(f"Error: {exc}")
-            finally:
-                self.btn_audition_stance.setEnabled(True)
+                self.signals.audition_done.emit(False, f"Error: {exc}")
 
         threading.Thread(target=worker, daemon=True).start()
 
@@ -408,6 +439,8 @@ class VoiceTab(QWidget):
         speed = self.slider_speed.value() / 100.0
         raw_text = self.line_test_text.text().strip() or "Testing voice synthesis!"
         text = enhance_anime_expressive_punctuation(raw_text)
+        preset_idx = self.combo_cosyvoice_preset.currentIndex()
+        custom_wav = self.line_custom_wav.text().strip() if (preset_idx == 3 or "custom:" in voice) else None
 
         self.lbl_voice_status.setText("Synthesizing voice sample...")
         self.btn_test_speech.setEnabled(False)
@@ -417,10 +450,13 @@ class VoiceTab(QWidget):
                 if "cosyvoice" in voice.lower():
                     # CosyVoice 3 Frontier Synthesis
                     cv_client = CosyVoice3Client.get_instance()
-                    custom_wav = None
-                    if "custom:" in voice:
-                        custom_wav = voice.split("custom:", 1)[1]
-                    instruct = format_cosyvoice_instruct("Lucca", "warm, energetic, encouraging")
+                    profile_key = "inventor"
+                    if "companion" in voice:
+                        profile_key = "companion"
+                    elif "heroine" in voice:
+                        profile_key = "heroine"
+
+                    instruct = format_cosyvoice_instruct("Lucca", "warm, energetic, encouraging", profile=profile_key)
                     samples, sr = cv_client.test_audio(
                         text=text,
                         instruct=instruct,
@@ -430,16 +466,16 @@ class VoiceTab(QWidget):
                     if samples is not None and len(samples) > 0:
                         sd.play(samples, sr)
                         sd.wait()
-                        self.lbl_voice_status.setText("✓ CosyVoice 3 playback successful.")
+                        self.signals.test_done.emit(True, "✓ CosyVoice 3 playback successful.")
                     else:
-                        self.lbl_voice_status.setText("CosyVoice 3 returned empty audio.")
+                        self.signals.test_done.emit(False, "CosyVoice 3 returned empty audio.")
                     return
 
                 # Kokoro ONNX Synthesis
                 model_p = Path("C:/ProjectLucca/models/tts/kokoro-v1.0.onnx")
                 voices_p = Path("C:/ProjectLucca/models/tts/voices-v1.0.bin")
                 if not model_p.exists() or not voices_p.exists():
-                    self.lbl_voice_status.setText("Models not found on disk.")
+                    self.signals.test_done.emit(False, "Models not found on disk.")
                     return
 
                 engine = kokoro_onnx.Kokoro(str(model_p), str(voices_p))
@@ -449,11 +485,9 @@ class VoiceTab(QWidget):
 
                 sd.play(samples, sr)
                 sd.wait()
-                self.lbl_voice_status.setText("✓ Kokoro playback successful.")
+                self.signals.test_done.emit(True, "✓ Kokoro playback successful.")
             except Exception as exc:
                 _LOG.debug("speech_test_failed: %s", exc)
-                self.lbl_voice_status.setText(f"Error: {exc}")
-            finally:
-                self.btn_test_speech.setEnabled(True)
+                self.signals.test_done.emit(False, f"Error: {exc}")
 
         threading.Thread(target=worker, daemon=True).start()
