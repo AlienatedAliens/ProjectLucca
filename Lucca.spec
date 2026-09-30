@@ -52,10 +52,16 @@ hidden_imports = [
     "rapidfuzz",
     "rich",
     "ulid",
+    "sympy",
+    "mpmath",
+    "mss",
+    "PIL",
+    "PIL.Image",
 ]
 hidden_imports += collect_submodules("lucca")
 hidden_imports += collect_submodules("z3")
 hidden_imports += collect_submodules("openvino")
+hidden_imports += collect_submodules("sympy")
 
 a = Analysis(
     [str(project_root / "src" / "lucca" / "main.py")],

@@ -107,3 +107,44 @@ def test_abort_targets_only_matching_stream() -> None:
         tokens_b = [ev.delta for ev in stream_b_events if isinstance(ev, TokenDelta)]
         assert "tokB1" in tokens_b
         assert "tokB2" in tokens_b
+
+
+def test_persistent_connection_pool_reuses_client() -> None:
+    """Verify that LLMClient retains its HTTP client pool across multiple turns."""
+    client = LLMClient(base_url="http://fake-llm:8080")
+    initial_http_client = client.http_client
+    assert initial_http_client is not None
+    assert not initial_http_client.is_closed
+
+    class SimpleFakeResponse:
+        status_code = 200
+
+        def iter_lines(self):
+            yield 'data: {"choices": [{"delta": {"content": "ok"}}]}'
+            yield "data: [DONE]"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    with (
+        patch.object(initial_http_client, "stream", return_value=SimpleFakeResponse()),
+        patch("httpx.Client.post", return_value=MagicMock(status_code=200)),
+    ):
+        events1 = list(client.stream_turn(current_text="turn 1"))
+        assert any(isinstance(e, TokenDelta) and e.delta == "ok" for e in events1)
+        # Client pool MUST remain open after turn 1
+        assert not initial_http_client.is_closed
+        assert client.http_client is initial_http_client
+
+        events2 = list(client.stream_turn(current_text="turn 2"))
+        assert any(isinstance(e, TokenDelta) and e.delta == "ok" for e in events2)
+        # Client pool MUST remain open after turn 2
+        assert not initial_http_client.is_closed
+        assert client.http_client is initial_http_client
+
+    client.close()
+    assert initial_http_client.is_closed
+    assert client._client is None

@@ -4521,6 +4521,11 @@ class Orchestrator:
             self._abort_turn()
             if t.is_alive():
                 t.join(timeout=1.0)
+        if hasattr(self.llm, "close"):
+            try:
+                self.llm.close()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("orchestrator_llm_close_error", error=str(exc))
         try:
             self.ctl_sock.close(linger=0)
             self.bus_sock.close(linger=0)

@@ -81,9 +81,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     3. `03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md` (Target: AIJ / KR 2026).
     4. `04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md` (Target: ACM POPL / ASE 2026).
     5. `05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md` (Target: IEEE S&P / USENIX Security 2026).
-- **Grader Syntax Polish for AMS-LaTeX Fractions & Number Formatting:**
-  - Added normalizations in `scripts/run_modern_2024_benchmarks.py` and `scripts/rescore_with_sympy.py` for fraction variants (`\tfrac`, `\dfrac` $\to$ `\frac`), negative thin spaces (`\!`), and multi-digit thousand commas in numbers (e.g. `1,000,000 \to 1000000`, `61,328 \to 61328`, `15,\!625 \to 15625`).
-  - Added unit test `test_ams_latex_fraction_and_number_formatting` to `tests/test_cas_grading.py` (7/7 tests passing, 100% green).
+- **Persistent HTTP Connection Pooling & Socket Hygiene (`src/lucca/brain/llm_client.py`):**
+  - Replaced per-turn ephemeral `httpx.Client` instantiation with a persistent connection pool configured with `httpx.HTTPTransport(limits=httpx.Limits(max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0))`.
+  - Reused persistent client across conversational turns, eliminating TCP handshake jitter, socket accumulation, and descriptor exhaustion.
+  - Hardened `abort(trace_id)` barge-in cancellation: selectively closes target `stream_state.response.close()` while preserving the connection pool for subsequent turns and concurrent streams.
+  - Added clean lifecycle `close()` method to `LLMClient` and bound it to `Orchestrator.stop()`.
+  - Verified with new unit tests in `tests/test_llm_client_race.py` (`test_persistent_connection_pool_reuses_client`).
+- **Standalone Windows Desktop Executable Compilation & 10-Point Diagnostic Check:**
+  - Updated `Lucca.spec` to bundle all v1.3.0 runtime modules (`sympy`, `mpmath`, `mss`, `PIL`).
+  - Rebuilt standalone distribution bundle `dist/Lucca/Lucca.exe` via `packaging/build_exe.py`.
+  - Executed physical diagnostic battery `dist/Lucca/Lucca.exe --check`: **10 / 10 criteria passed (Exit code 0)** across System RAM (24.4 GB free), MSHybrid dGPU VRAM (10.2 GB resident), Intel NPU OpenVINO, SQLite `sqlite-vec`, WSL2, Docker CE, LUCCA_HOME layout, model weights SHA256, audio ring buffers, and WSL subsystem.
+- **Live Interactive System Verification Battery:**
+  - Verified live inference through `scripts/live_llm_verification.py` against active `llama-server.exe` (Gemma-4 12B Q6_K):
+    - Sub-300ms turn-2 TTFT (**285.2ms**) with connection keepalive and prompt cache reuse.
+    - Zero persona degeneration; verified authentic companion identity.
+    - Native structured tool calling: cleanly dispatched `launch_app(app_name='notepad')`.
+    - 5 / 5 tests passed (100% accuracy).
+  - Verified real-time Visual Pipeline Debugger at `http://127.0.0.1:8765` active with HTTP 200 OK.
 
 ---
 

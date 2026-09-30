@@ -37,9 +37,10 @@ logger = structlog.get_logger(__name__)
 
 @dataclass
 class _StreamState:
-    client: httpx.Client
+    client: httpx.Client | None
     aborted: bool
     trace_id: str
+    response: httpx.Response | None = None
 
 
 def build_chat_template_kwargs(
@@ -157,6 +158,28 @@ class LLMClient:
         self._streams_lock = threading.Lock()
         self._streams: dict[str, _StreamState] = {}
         self._stream_order: list[str] = []
+        self._limits = httpx.Limits(
+            max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0
+        )
+        self._transport = httpx.HTTPTransport(limits=self._limits)
+        self._client: httpx.Client | None = httpx.Client(
+            transport=self._transport,
+            timeout=httpx.Timeout(90.0, connect=15.0),
+        )
+
+    @property
+    def http_client(self) -> httpx.Client:
+        with self._streams_lock:
+            if self._client is None or self._client.is_closed:
+                self._limits = httpx.Limits(
+                    max_keepalive_connections=10, max_connections=20, keepalive_expiry=60.0
+                )
+                self._transport = httpx.HTTPTransport(limits=self._limits)
+                self._client = httpx.Client(
+                    transport=self._transport,
+                    timeout=httpx.Timeout(90.0, connect=15.0),
+                )
+            return self._client
 
     @property
     def aborted(self) -> bool:
@@ -286,7 +309,7 @@ class LLMClient:
 
 
         demux = ToolCallDemux()
-        client = httpx.Client(timeout=httpx.Timeout(90.0, connect=15.0))
+        client = self.http_client
         stream_state = _StreamState(client=client, aborted=False, trace_id=eff_trace_id)
         with self._streams_lock:
             self._streams[eff_trace_id] = stream_state
@@ -298,6 +321,7 @@ class LLMClient:
             with client.stream(
                 "POST", f"{self.base_url}/v1/chat/completions", json=payload
             ) as resp:
+                stream_state.response = resp
                 if resp.status_code != 200:
                     err_body = resp.read().decode("utf-8")
                     raise LLMUnavailable(f"llama-server error {resp.status_code}: {err_body}")
@@ -390,7 +414,6 @@ class LLMClient:
                 self._streams.pop(eff_trace_id, None)
                 if eff_trace_id in self._stream_order:
                     self._stream_order.remove(eff_trace_id)
-            client.close()
 
     def abort(self, trace_id: str | None = None) -> None:
         """Immediately aborts targeted in-flight generation (Spec 10 barge-in gate <= 50ms)."""
@@ -406,10 +429,16 @@ class LLMClient:
                 target_state.aborted = True
 
         if target_state is not None:
-            try:
-                target_state.client.close()
-            except (httpx.HTTPError, OSError) as exc:
-                logger.debug("llm_abort_client_close_error", error=str(exc))
+            if target_state.response is not None and hasattr(target_state.response, "close"):
+                try:
+                    target_state.response.close()
+                except (httpx.HTTPError, OSError) as exc:
+                    logger.debug("llm_abort_response_close_error", error=str(exc))
+            elif target_state.client is not None and target_state.client is not self._client:
+                try:
+                    target_state.client.close()
+                except (httpx.HTTPError, OSError) as exc:
+                    logger.debug("llm_abort_client_close_error", error=str(exc))
 
         # Release active slot in llama-server
         try:
@@ -417,3 +446,31 @@ class LLMClient:
                 c.post(f"{self.base_url}/slots/0?action=release")
         except (httpx.HTTPError, OSError) as exc:
             logger.debug("llm_abort_slot_release_error", error=str(exc))
+
+    def close(self) -> None:
+        """Close persistent HTTP connection pool and abort all active streams."""
+        client_to_close: httpx.Client | None = None
+        with self._streams_lock:
+            for s in list(self._streams.values()):
+                s.aborted = True
+                if s.response is not None and hasattr(s.response, "close"):
+                    try:
+                        s.response.close()
+                    except (httpx.HTTPError, OSError) as exc:
+                        logger.debug("llm_stream_close_error", error=str(exc))
+            self._streams.clear()
+            self._stream_order.clear()
+            client_to_close = self._client
+            self._client = None
+
+        if client_to_close is not None and not client_to_close.is_closed:
+            try:
+                client_to_close.close()
+            except (httpx.HTTPError, OSError) as exc:
+                logger.debug("llm_client_close_pool_error", error=str(exc))
+
+    def __enter__(self) -> "LLMClient":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
