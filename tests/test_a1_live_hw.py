@@ -175,23 +175,10 @@ def _make_hw_orchestrator(
     Returns (orch, store, db).
     """
     if use_docker:
-        import subprocess
+        from lucca.sandbox.rpc import DockerRPCTransport  # noqa: PLC0415
 
-        try:
-            res = subprocess.run(
-                ["docker", "info"],  # noqa: S607
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=2.0,
-                check=False,
-            )
-            if res.returncode != 0:
-                pytest.skip(
-                    "Docker daemon not available (docker info returned non-zero); "
-                    "skipping Docker-in-Harness test"
-                )
-        except Exception as exc:
-            pytest.skip(f"Docker daemon not available ({exc}); skipping Docker-in-Harness test")
+        if not DockerRPCTransport().is_docker_available():
+            pytest.skip("Docker daemon not available in WSL2; skipping Docker-in-Harness test")
 
     db_path = tmp_path / "hw_memory.sqlite"
     db = DatabaseManager(db_path)

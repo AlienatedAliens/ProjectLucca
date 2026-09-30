@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Lucca — Inspectable Pipeline Debugger (Spec 32)</title>
+  <style>
+    :root {
+      --bg-base: #070b12;
+      --bg-surface: #0e1626;
+      --bg-card: #162032;
+      --bg-card-hover: #1e2c44;
+      --border-subtle: #2b3a50;
+      --border-accent: #0284c7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.35);
+      --green: #10b981;
+      --green-glow: rgba(16, 185, 129, 0.35);
+      --red: #f43f5e;
+      --red-glow: rgba(244, 63, 94, 0.35);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.35);
+      --purple: #a855f7;
+      --purple-glow: rgba(168, 85, 247, 0.35);
+      --mono-font: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      --sans-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--sans-font);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* TOP DEV HEADER */
+    header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand h1 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-main);
+    }
+    .config-strip {
+      font-size: 11px;
+      font-family: var(--mono-font);
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: var(--mono-font);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: #064e3b;
+      color: #6ee7b7;
+      border: 1px solid #059669;
+    }
+    .live-indicator.inactive {
+      background: #334155;
+      color: #94a3b8;
+      border-color: #475569;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 1.5s infinite;
+    }
+    .live-indicator.inactive .pulse-dot { background: #94a3b8; animation: none; }
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px #10b981; }
+      100% { transform: scale(0.9); opacity: 0.8; }
+    }
+
+    /* PHYSICAL HARDWARE GAUGES */
+    .hw-gauges {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 11px;
+      font-family: var(--mono-font);
+      background: rgba(15, 23, 42, 0.8);
+      padding: 4px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+    .hw-item { display: flex; align-items: center; gap: 5px; }
+    .hw-label { color: var(--text-dim); }
+    .hw-val { color: var(--cyan); font-weight: 600; }
+
+    /* CONTROLS STRIP */
+    .controls-strip {
+      background: #090e19;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: var(--mono-font);
+    }
+    .toggle-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--mono-font);
+      transition: all 0.15s ease;
+    }
+    .toggle-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .toggle-btn.active {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: 700;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+    }
+
+    /* STORY NARRATION CAPTION (LEVEL 1) */
+    .story-caption-bar {
+      background: rgba(30, 41, 59, 0.4);
+      border-left: 4px solid var(--cyan);
+      padding: 10px 16px;
+      font-size: 13px;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+    body.zoom-1 .story-caption-bar {
+      background: rgba(14, 165, 233, 0.08);
+      border-left: 4px solid #38bdf8;
+      padding: 12px 18px;
+      font-size: 14px;
+    }
+    .story-caption-text {
+      font-style: italic;
+      color: #cbd5e1;
+    }
+
+    /* 400-CELL HISTORY RIBBON */
+    .ribbon-bar {
+      background: #070c16;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 6px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .ribbon-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-family: var(--mono-font);
+      color: var(--text-dim);
+    }
+    .ribbon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(11px, 1fr));
+      gap: 2px;
+      max-height: 40px;
+      overflow-y: auto;
+    }
+    .ribbon-cell {
+      height: 11px;
+      border-radius: 2px;
+      background: #1e293b;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .ribbon-cell:hover { transform: scale(1.4); z-index: 10; }
+    .ribbon-cell.pass { background: var(--green); }
+    .ribbon-cell.format { background: var(--amber); }
+    .ribbon-cell.fail { background: var(--red); }
+    .ribbon-cell.selected-cell { outline: 2px solid #ffffff; z-index: 5; box-shadow: 0 0 6px #fff; }
+
+    /* MAIN VIEWPORT */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* SPLIT WORKSPACE */
+    .schematic-viewport {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 14px;
+      gap: 14px;
+    }
+    .probe-inspector-sidebar {
+      width: 440px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    /* CIRCUIT SCHEMATIC GRAPH (SVG) */
+    .schematic-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px;
+      position: relative;
+    }
+    .schematic-svg {
+      width: 100%;
+      height: 130px;
+      display: block;
+    }
+    .probe-wire {
+      cursor: pointer;
+      transition: stroke 0.2s ease, stroke-width 0.2s ease;
+    }
+    .probe-wire:hover {
+      stroke: var(--cyan) !important;
+      stroke-width: 3.5 !important;
+    }
+
+    /* WATERFALL BAR */
+    .waterfall-track {
+      height: 22px;
+      border-radius: 4px;
+      background: #090e18;
+      display: flex;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      font-family: var(--mono-font);
+      font-size: 11px;
+    }
+    .waterfall-seg {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 6px;
+    }
+    .seg-neural { background: #2563eb; }
+    .seg-docker { background: #7c3aed; }
+    .seg-other { background: #059669; }
+
+    /* WORK CONSOLES */
+    .work-console-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+    .console-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .console-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .code-editor {
+      background: #030712;
+      color: #e2e8f0;
+      font-family: var(--mono-font);
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 12px;
+      overflow-y: auto;
+      max-height: 320px;
+      flex: 1;
+    }
+    .stderr-box {
+      background: #180307;
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      line-height: 1.5;
+      padding: 10px;
+      max-height: 140px;
+      overflow-y: auto;
+    }
+
+    /* L1 STORY DECK STYLING */
+    .story-deck-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .story-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .story-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .story-card-body {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #e2e8f0;
+    }
+    .story-outcome-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .story-outcome-box {
+      background: #090e19;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    /* UNROLLED ATTEMPT DIFF VIEW */
+    .unrolled-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .unrolled-diff-banner {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #fde68a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .unrolled-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .attempt-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .attempt-card.fail {
+      border-color: rgba(244, 63, 94, 0.4);
+    }
+    .attempt-card.pass {
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+
+    /* LATENCY TABLE (L3) */
+    .nanotable {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono-font);
+      font-size: 11px;
+      margin-top: 8px;
+    }
+    .nanotable th, .nanotable td {
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: left;
+    }
+    .nanotable th {
+      color: var(--text-dim);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* PROBE INSPECTOR PANE */
+    .probe-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .probe-content {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .probe-section {
+      background: #090e19;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .probe-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+    .probe-val {
+      font-family: var(--mono-font);
+      font-size: 12px;
+      color: #e2e8f0;
+      word-break: break-all;
+    }
+
+    /* TRIAGE TAG BUTTONS */
+    .tag-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .tag-btn {
+      font-size: 10px;
+      font-family: var(--mono-font);
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tag-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .tag-btn.active { background: rgba(56, 189, 248, 0.2); border-color: var(--cyan); color: var(--cyan); }
+
+    /* DYNAMIC VISIBILITY RULES BASED ON ZOOM AND RETRY VIEW */
+    body.zoom-1 .l1-only { display: block !important; }
+    body.zoom-1 .l2-only, body.zoom-1 .l3-only { display: none !important; }
+    body.zoom-1 #foldedWorkConsole { display: none !important; }
+
+    body.zoom-2 .l1-only { display: none !important; }
+    body.zoom-2 .l2-only { display: block !important; }
+    body.zoom-2 .l3-only { display: none !important; }
+
+    body.zoom-3 .l1-only { display: none !important; }
+    body.zoom-3 .l2-only { display: none !important; }
+    body.zoom-3 .l3-only { display: block !important; }
+
+    body.view-folded #schematicSvgFolded { display: block !important; }
+    body.view-folded #schematicSvgUnrolled { display: none !important; }
+    body.view-folded #unrolledWorkConsole { display: none !important; }
+
+    body.view-unrolled #schematicSvgFolded { display: none !important; }
+    body.view-unrolled #schematicSvgUnrolled { display: block !important; }
+    body.view-unrolled #foldedWorkConsole { display: none !important; }
+    body.view-unrolled #storyDeckContainer { display: none !important; }
+    body.view-unrolled #unrolledWorkConsole { display: flex !important; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+  </style>
+</head>
+<body class="zoom-1 view-folded">
+
+  <!-- DEV HEADER -->
+  <header>
+    <div class="brand">
+      <h1>Project Lucca // Circuit Debugger</h1>
+      <div class="config-strip">
+        <span>Config: <strong>v1.2-baseline-heldout-400</strong></span>
+        <span>|</span>
+        <span>Git: <strong>37fde25</strong></span>
+        <span>|</span>
+        <span>Ctx: <strong>16K</strong></span>
+        <span>|</span>
+        <span>Model: <strong>gemma-4-12b-Q6_K</strong></span>
+        <span>|</span>
+        <span>Speed: <strong>50.23 tok/s</strong></span>
+      </div>
+      <div id="liveBadge" class="live-indicator inactive">
+        <span class="pulse-dot"></span>
+        <span id="liveStatusText">CONNECTING...</span>
+      </div>
+    </div>
+
+    <!-- PHYSICAL HARDWARE GAUGES -->
+    <div class="hw-gauges">
+      <div class="hw-item">
+        <span class="hw-label">VRAM:</span>
+        <span id="hwVram" class="hw-val">10,064 MiB (9.83 GiB / 15.92 GiB)</span>
+      </div>
+      <div class="hw-item">
+        <span class="hw-label">Power:</span>
+        <span id="hwPower" class="hw-val">156 W / 175 W</span>
+      </div>
+      <div class="hw-item">
+        <span class="hw-label">Temp:</span>
+        <span id="hwTemp" class="hw-val">68 °C</span>
+      </div>
+      <div class="hw-item">
+        <span class="hw-label">GPU:</span>
+        <span id="hwUtil" class="hw-val">92%</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTROLS STRIP (ZOOM & NOMENCLATURE & RETRY VIEW) -->
+  <div class="controls-strip">
+    <div class="toggle-group">
+      <span style="color:var(--text-dim); text-transform:uppercase;">Nomenclature:</span>
+      <button class="toggle-btn active" id="btnModePlain" onclick="setNomenclature('plain')">Plain English (Story)</button>
+      <button class="toggle-btn" id="btnModeTech" onclick="setNomenclature('tech')">Technical (Cascade)</button>
+    </div>
+
+    <div class="toggle-group">
+      <span style="color:var(--text-dim); text-transform:uppercase;">Zoom Level:</span>
+      <button class="toggle-btn active" id="btnZoom1" onclick="setZoom(1)">L1: Story</button>
+      <button class="toggle-btn" id="btnZoom2" onclick="setZoom(2)">L2: What Happened</button>
+      <button class="toggle-btn" id="btnZoom3" onclick="setZoom(3)">L3: Raw Expert</button>
+    </div>
+
+    <div class="toggle-group">
+      <span style="color:var(--text-dim); text-transform:uppercase;">Retry View:</span>
+      <button class="toggle-btn active" id="btnFolded" onclick="setLoopFolded(true)">Folded Graph</button>
+      <button class="toggle-btn" id="btnUnrolled" onclick="setLoopFolded(false)">Unrolled Attempt Diff</button>
+    </div>
+  </div>
+
+  <!-- STORY NARRATION CAPTION (LEVEL 1 HERO) -->
+  <div class="story-caption-bar" id="storyCaptionBar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span style="font-weight:700; color:var(--cyan); text-transform:uppercase; font-size:11px; font-family:var(--mono-font); background:rgba(56,189,248,0.15); padding:2px 6px; border-radius:3px;">
+        Narrative Story
+      </span>
+      <span id="storyCaptionText" class="story-caption-text">
+        She received a mathematical derivation question, thought it through in Python, ran the script in Docker, and verified the final result.
+      </span>
+    </div>
+    <div style="font-family:var(--mono-font); font-size:11px; color:var(--text-dim);" id="storyEta">
+      ETA: ~8m | 3.4 problems/min
+    </div>
+  </div>
+
+  <!-- 400-CELL HISTORY MATRIX RIBBON -->
+  <div class="ribbon-bar">
+    <div class="ribbon-header">
+      <span>HELD-OUT 400-PROBLEM MATRIX (Click any cell to load trace)</span>
+      <span id="ribbonStats">Loading completed cells...</span>
+    </div>
+    <div class="ribbon-grid" id="ribbonGrid"></div>
+  </div>
+
+  <!-- MAIN WORKSPACE: SCHEMATIC + PROBE INSPECTOR -->
+  <main>
+    <div class="schematic-viewport">
+
+      <!-- CIRCUIT SCHEMATIC WITH PROBES -->
+      <div class="schematic-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted);" id="schematicTitle">
+            Dataflow Circuit Schematic (Click any component card or wire to probe)
+          </span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span id="retryBadge" style="font-family:var(--mono-font); font-size:10px; background:#1e293b; color:#cbd5e1; padding:2px 8px; border-radius:4px; border:1px solid var(--border-subtle);">
+              Attempts: 1
+            </span>
+            <span id="activeElapsedStage" style="font-family:var(--mono-font); font-size:11px; color:var(--cyan);">
+              Active Stage Elapsed: 0.00s
+            </span>
+          </div>
+        </div>
+
+        <!-- 1. FOLDED SVG CIRCUIT DIAGRAM (CYCLIC GRAPH) -->
+        <svg class="schematic-svg" id="schematicSvgFolded" viewBox="0 0 1020 120">
+          <defs>
+            <marker id="mArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+            <marker id="mRetry" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
+            </marker>
+          </defs>
+
+          <!-- Wires -->
+          <line x1="95" y1="40" x2="135" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w1_ingest')" />
+          <line x1="225" y1="40" x2="265" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w2_conformal')" />
+          <line x1="355" y1="40" x2="395" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w3_scheme')" />
+          <line x1="485" y1="40" x2="525" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w4_context')" />
+          <line x1="635" y1="40" x2="675" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w5_neural')" />
+          <line x1="765" y1="40" x2="805" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w6_sandbox')" />
+          <line x1="895" y1="40" x2="935" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#mArrow)" class="probe-wire" onclick="probeWire('w7_purifier')" />
+
+          <!-- RETRY LOOP (6B -> 5) -->
+          <path id="svgRetryPath" d="M 720 65 C 720 108, 580 108, 580 68" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="4,4" marker-end="url(#mRetry)" onclick="probeWire('w_retry')" style="cursor:pointer;" />
+          <text x="650" y="104" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle">6b. Recirculation Loop (Self-Correction)</text>
+
+          <!-- Component 1: Ingestion -->
+          <g id="cmp_1" transform="translate(5, 15)" onclick="probeComponent('tank_1_ingestion')" style="cursor:pointer;">
+            <rect width="90" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="45" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t1">1. INGESTION</text>
+            <text x="45" y="38" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle">0.15ms</text>
+          </g>
+
+          <!-- Component 2: Conformal Gate -->
+          <g id="cmp_2" transform="translate(135, 15)" onclick="probeComponent('tank_2_conformal_gate')" style="cursor:pointer;">
+            <rect width="90" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="45" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t2">2. CONFORMAL</text>
+            <text x="45" y="38" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle">0.35ms</text>
+          </g>
+
+          <!-- Component 3: MicroScheme -->
+          <g id="cmp_3" transform="translate(265, 15)" onclick="probeComponent('tank_3_microscheme')" style="cursor:pointer;">
+            <rect width="90" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="45" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t3">3. SCHEME</text>
+            <text x="45" y="38" fill="#64748b" font-size="9" font-family="monospace" text-anchor="middle">BYPASS</text>
+          </g>
+
+          <!-- Component 4: Context Infusion -->
+          <g id="cmp_4" transform="translate(395, 15)" onclick="probeComponent('tank_4_context_infusion')" style="cursor:pointer;">
+            <rect width="90" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="45" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t4">4. CONTEXT</text>
+            <text x="45" y="38" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle">1.1ms</text>
+          </g>
+
+          <!-- Component 5: Neural Boiler (RTX 5080) -->
+          <g id="cmp_5" transform="translate(525, 10)" onclick="probeComponent('tank_5_neural_boiler')" style="cursor:pointer;">
+            <rect width="110" height="58" rx="5" fill="#1a273e" stroke="#0284c7" stroke-width="2" id="rect_cmp5" />
+            <text x="55" y="20" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t5">5. NEURAL BOILER</text>
+            <text x="55" y="34" fill="#94a3b8" font-size="8" text-anchor="middle">RTX 5080 (50.2 tok/s)</text>
+            <text x="55" y="48" fill="#38bdf8" font-size="9" font-family="monospace" font-weight="700" text-anchor="middle" id="val_dur5">--</text>
+          </g>
+
+          <!-- Component 6: Docker Sandbox -->
+          <g id="cmp_6" transform="translate(675, 15)" onclick="probeComponent('tank_6_sandbox_turbine')" style="cursor:pointer;">
+            <rect width="90" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" id="rect_cmp6" />
+            <text x="45" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t6">6. DOCKER RPC</text>
+            <text x="45" y="38" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle" id="val_dur6">--</text>
+          </g>
+
+          <!-- Component 7: Purifier & Grader -->
+          <g id="cmp_7" transform="translate(805, 15)" onclick="probeComponent('tank_7_purifier_grader')" style="cursor:pointer;">
+            <rect width="90" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="45" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t7">7. PURIFIER</text>
+            <text x="45" y="38" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle" id="val_dur7">--</text>
+          </g>
+
+          <!-- Component 9: WAL Basin -->
+          <g id="cmp_9" transform="translate(935, 15)" onclick="probeComponent('tank_9_wal_basin')" style="cursor:pointer;">
+            <rect width="80" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="40" y="22" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle" id="lbl_t9">9. WAL BASIN</text>
+            <text x="40" y="38" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle">PERSIST</text>
+          </g>
+        </svg>
+
+        <!-- 2. UNROLLED SVG CIRCUIT DIAGRAM (ATTEMPT 1 -> FEEDBACK -> ATTEMPT 2) -->
+        <svg class="schematic-svg" id="schematicSvgUnrolled" viewBox="0 0 1020 120" style="display:none;">
+          <defs>
+            <marker id="mArrowUnrolled" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+            </marker>
+          </defs>
+
+          <!-- Linear Unrolled Path -->
+          <line x1="85" y1="50" x2="120" y2="50" stroke="#334155" stroke-width="2" marker-end="url(#mArrowUnrolled)" />
+          <line x1="230" y1="50" x2="265" y2="50" stroke="#334155" stroke-width="2" marker-end="url(#mArrowUnrolled)" />
+          <line x1="375" y1="50" x2="410" y2="50" stroke="#f43f5e" stroke-width="2" marker-end="url(#mArrowUnrolled)" />
+          <line x1="520" y1="50" x2="555" y2="50" stroke="#f59e0b" stroke-width="2" marker-end="url(#mArrowUnrolled)" />
+          <line x1="665" y1="50" x2="700" y2="50" stroke="#334155" stroke-width="2" marker-end="url(#mArrowUnrolled)" />
+          <line x1="810" y1="50" x2="845" y2="50" stroke="#10b981" stroke-width="2" marker-end="url(#mArrowUnrolled)" />
+
+          <!-- Stage 1: Ingestion -->
+          <g transform="translate(5, 25)">
+            <rect width="80" height="50" rx="4" fill="#162032" stroke="#334155" stroke-width="1.5" />
+            <text x="40" y="24" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle">INGESTION</text>
+            <text x="40" y="38" fill="#38bdf8" font-size="8" font-family="monospace" text-anchor="middle">Pass</text>
+          </g>
+
+          <!-- Stage 2: Neural Attempt 1 -->
+          <g transform="translate(120, 20)">
+            <rect width="110" height="60" rx="5" fill="#1a273e" stroke="#38bdf8" stroke-width="1.5" />
+            <text x="55" y="22" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle">NEURAL (Att 1)</text>
+            <text x="55" y="38" fill="#94a3b8" font-size="8" text-anchor="middle">Initial Code Gen</text>
+            <text x="55" y="50" fill="#38bdf8" font-size="8" font-family="monospace" text-anchor="middle">18.4s</text>
+          </g>
+
+          <!-- Stage 3: Docker Sandbox Attempt 1 (Failed) -->
+          <g transform="translate(265, 20)">
+            <rect width="110" height="60" rx="5" fill="#2a1215" stroke="#f43f5e" stroke-width="2" />
+            <text x="55" y="22" fill="#f43f5e" font-size="9" font-weight="700" text-anchor="middle">DOCKER (Att 1)</text>
+            <text x="55" y="38" fill="#fda4af" font-size="8" text-anchor="middle">Syntax / Crash</text>
+            <text x="55" y="50" fill="#f43f5e" font-size="8" font-family="monospace" text-anchor="middle">ERROR (0.19s)</text>
+          </g>
+
+          <!-- Stage 4: Tank 6b Feedback Directive Injection -->
+          <g transform="translate(410, 20)">
+            <rect width="110" height="60" rx="5" fill="#261b0b" stroke="#f59e0b" stroke-width="2" />
+            <text x="55" y="22" fill="#f59e0b" font-size="9" font-weight="700" text-anchor="middle">FEEDBACK (6B)</text>
+            <text x="55" y="38" fill="#fde68a" font-size="8" text-anchor="middle">Traceback Injected</text>
+            <text x="55" y="50" fill="#f59e0b" font-size="8" font-family="monospace" text-anchor="middle">Autonomous</text>
+          </g>
+
+          <!-- Stage 5: Neural Attempt 2 (Correction) -->
+          <g transform="translate(555, 20)">
+            <rect width="110" height="60" rx="5" fill="#1a273e" stroke="#38bdf8" stroke-width="1.5" />
+            <text x="55" y="22" fill="#38bdf8" font-size="9" font-weight="700" text-anchor="middle">NEURAL (Att 2)</text>
+            <text x="55" y="38" fill="#94a3b8" font-size="8" text-anchor="middle">Fixed Code Gen</text>
+            <text x="55" y="50" fill="#38bdf8" font-size="8" font-family="monospace" text-anchor="middle">7.8s</text>
+          </g>
+
+          <!-- Stage 6: Docker Sandbox Attempt 2 (Success) -->
+          <g transform="translate(700, 20)">
+            <rect width="110" height="60" rx="5" fill="#0d281e" stroke="#10b981" stroke-width="2" />
+            <text x="55" y="22" fill="#10b981" font-size="9" font-weight="700" text-anchor="middle">DOCKER (Att 2)</text>
+            <text x="55" y="38" fill="#6ee7b7" font-size="8" text-anchor="middle">Clean Execution</text>
+            <text x="55" y="50" fill="#10b981" font-size="8" font-family="monospace" text-anchor="middle">PASS (0.21s)</text>
+          </g>
+
+          <!-- Stage 7: Purifier Final Answer -->
+          <g transform="translate(845, 25)">
+            <rect width="85" height="50" rx="4" fill="#162032" stroke="#10b981" stroke-width="1.5" />
+            <text x="42" y="24" fill="#10b981" font-size="9" font-weight="700" text-anchor="middle">PURIFIER</text>
+            <text x="42" y="38" fill="#6ee7b7" font-size="8" font-family="monospace" text-anchor="middle">Strict Pass</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- LIVE WATERFALL TIMELINE PROPORTION -->
+      <div class="waterfall-track">
+        <div id="wfNeural" class="waterfall-seg seg-neural" style="width: 98%;">Neural: 98% (18.4s)</div>
+        <div id="wfDocker" class="waterfall-seg seg-docker" style="width: 1.5%;">Docker: 0.19s</div>
+        <div id="wfGrader" class="waterfall-seg seg-other" style="width: 0.5%;">Grader: 1.4ms</div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 1: LEVEL 1 STORY DECK (RENDERED WHEN ZOOM LEVEL = 1) -->
+      <!-- =================================================================== -->
+      <div class="story-deck-container l1-only" id="storyDeckContainer">
+        <!-- Problem Card -->
+        <div class="story-card">
+          <div class="story-card-title">1. The Problem Lucca Was Asked To Solve</div>
+          <div class="story-card-body" id="storyDeckProblem">Loading problem statement...</div>
+        </div>
+
+        <!-- Strategy & Explanation Card -->
+        <div class="story-card">
+          <div class="story-card-title">2. How Lucca Solved It</div>
+          <div class="story-card-body" id="storyDeckNarrative">
+            Lucca formulated the derivation symbolically using SymPy, verified the logic inside the secure Docker container, and produced an exact analytical result.
+          </div>
+          <div class="story-outcome-grid">
+            <div class="story-outcome-box">
+              <div style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Official Ground Truth</div>
+              <div id="storyDeckExpected" style="font-size:16px; font-weight:700; color:var(--green); margin-top:4px; font-family:var(--mono-font);">--</div>
+            </div>
+            <div class="story-outcome-box">
+              <div style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Lucca's Verified Answer</div>
+              <div id="storyDeckPredicted" style="font-size:16px; font-weight:700; color:var(--cyan); margin-top:4px; font-family:var(--mono-font);">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 2: STANDARD FOLDED WORK CONSOLE (RENDERED IN L2 AND L3) -->
+      <!-- =================================================================== -->
+      <div class="work-console-grid" id="foldedWorkConsole">
+        <!-- LEFT PANEL: PYTHON CODE & STDERR -->
+        <div class="console-panel">
+          <div class="console-header">
+            <span>Generated Python Solution Code</span>
+            <span style="color:var(--cyan); font-family:var(--mono-font);" id="toksRateMeter">50.2 tok/s</span>
+          </div>
+          <pre id="liveCodeView" class="code-editor"><code># Streaming code generation on RTX 5080 Laptop GPU...</code></pre>
+          <div id="liveStderrPane" style="display:none; padding:8px; background:#020617;">
+            <div style="font-size:10px; font-weight:700; color:var(--red); text-transform:uppercase; margin-bottom:4px;">Docker Stderr Traceback</div>
+            <div id="liveStderrContent" class="stderr-box"></div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL: PROBLEM, RESULT DIFF & FORENSICS -->
+        <div class="console-panel">
+          <div class="console-header">
+            <span>Problem Statement & Output Comparison</span>
+            <span id="activeProbBadge" style="color:var(--cyan); font-family:var(--mono-font);">#355 Precalculus (L5)</span>
+          </div>
+          <div id="liveProblemStatement" class="code-editor" style="max-height:120px;">
+            Loading active problem statement...
+          </div>
+
+          <div class="console-header">
+            <span>Result Comparison (Predicted vs Expected)</span>
+            <span id="activeResultVerdict" style="color:var(--green); font-family:var(--mono-font);">PASS</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px; background:#020617;">
+            <div>
+              <div style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Ground Truth Expected</div>
+              <div id="liveExpected" style="font-family:var(--mono-font); font-size:13px; color:var(--green); word-break:break-all; margin-top:2px;">--</div>
+            </div>
+            <div>
+              <div style="font-size:10px; font-weight:700; color:var(--text-dim); text-transform:uppercase;">Model Predicted</div>
+              <div id="livePredicted" style="font-family:var(--mono-font); font-size:13px; color:var(--cyan); word-break:break-all; margin-top:2px;">--</div>
+            </div>
+          </div>
+
+          <!-- NANOSECOND LATENCY TABLE (L3 ONLY) -->
+          <div class="l3-only" style="padding:10px; background:#070c14; border-top:1px solid var(--border-subtle);">
+            <div style="font-size:10px; font-weight:700; color:var(--cyan); text-transform:uppercase; margin-bottom:4px;">
+              Sub-Stage Monotonic Latency Telemetry (L3 Raw)
+            </div>
+            <table class="nanotable">
+              <thead>
+                <tr>
+                  <th>Stage</th>
+                  <th>Subsystem</th>
+                  <th>Duration</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="latencyTableBody">
+                <tr><td>1. Ingestion</td><td>Belief Engine</td><td>0.15 ms</td><td style="color:var(--green);">PASS</td></tr>
+                <tr><td>2. Conformal</td><td>Uncertainty Gate</td><td>0.35 ms</td><td style="color:var(--green);">PASS</td></tr>
+                <tr><td>3. MicroScheme</td><td>CAS Solver</td><td>0.00 ms</td><td style="color:var(--text-dim);">BYPASS</td></tr>
+                <tr><td>4. Context</td><td>Infusion Buffer</td><td>1.12 ms</td><td style="color:var(--green);">PASS</td></tr>
+                <tr><td>5. Neural Boiler</td><td>Gemma-4-12B (RTX 5080)</td><td id="rowDur5">18.42 s</td><td style="color:var(--green);">PASS</td></tr>
+                <tr><td>6. Docker RPC</td><td>Isolated Container</td><td id="rowDur6">192 ms</td><td id="rowStatus6" style="color:var(--green);">PASS</td></tr>
+                <tr><td>7. Purifier</td><td>Grader & Normalizer</td><td>1.45 ms</td><td style="color:var(--green);">PASS</td></tr>
+                <tr><td>9. WAL Basin</td><td>Autobiographical Journal</td><td>2.10 ms</td><td style="color:var(--green);">PERSIST</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- VIEW 3: UNROLLED ATTEMPT DIFF CONSOLE (RENDERED IN UNROLLED VIEW) -->
+      <!-- =================================================================== -->
+      <div class="unrolled-container" id="unrolledWorkConsole" style="display:none;">
+        <div class="unrolled-diff-banner">
+          <span>
+            <strong>Self-Correction Recirculation Diff:</strong> Attempt 1 triggered a Docker execution traceback. Lucca diagnosed the runtime exception and generated the corrected Python code in Attempt 2.
+          </span>
+          <span style="font-family:var(--mono-font); font-weight:700;">+1 Fix Line | 0 Deletions</span>
+        </div>
+
+        <div class="unrolled-grid">
+          <!-- ATTEMPT 1: FAILING SCRIPT -->
+          <div class="attempt-card fail">
+            <div class="console-header" style="background:#2a1215; color:#fca5a5;">
+              <span>❌ Attempt 1: Initial Failing Script</span>
+              <span style="font-family:var(--mono-font);">Docker: RUNTIME CRASH (0.19s)</span>
+            </div>
+            <pre class="code-editor" style="background:#16070a; color:#fda4af;" id="unrolledAttempt1Code"># Attempt 1: Failed on syntax or undefined symbol
+import sympy as sp
+x, y = sp.symbols('x y')
+# Syntax typo: missing multiplication operator
+eq = 2y - 5*x + 10
+sol = sp.solve(eq, y)
+print(sol)</pre>
+            <div style="padding:8px; background:#100406; border-top:1px solid rgba(244,63,94,0.3);">
+              <div style="font-size:10px; font-weight:700; color:var(--red); text-transform:uppercase; margin-bottom:4px;">Attempt 1 Stderr Traceback</div>
+              <div class="stderr-box" id="unrolledAttempt1Stderr">Traceback (most recent call last):
+  File "<stdin>", line 4
+    eq = 2y - 5*x + 10
+          ^
+SyntaxError: invalid decimal literal</div>
+            </div>
+          </div>
+
+          <!-- ATTEMPT 2: CORRECTED SCRIPT -->
+          <div class="attempt-card pass">
+            <div class="console-header" style="background:#0d281e; color:#86efac;">
+              <span>✓ Attempt 2: Autonomous Feedback Correction</span>
+              <span style="font-family:var(--mono-font);">Docker: PASS (0.21s)</span>
+            </div>
+            <pre class="code-editor" style="background:#05140f; color:#a7f3d0;" id="unrolledAttempt2Code"># Attempt 2: Corrected by Feedback Loop 6b
+import sympy as sp
+x, y = sp.symbols('x y')
+# Corrected: 2*y explicitly multiplied
+eq = 2*y - 5*x + 10
+sol = sp.solve(eq, y)
+print(f"ANSWER: {sol[0]}")</pre>
+            <div style="padding:8px; background:#020a07; border-top:1px solid rgba(16,185,129,0.3);">
+              <div style="font-size:10px; font-weight:700; color:var(--green); text-transform:uppercase; margin-bottom:4px;">Attempt 2 Docker Stdout (Verified)</div>
+              <div style="font-family:var(--mono-font); font-size:11px; color:#6ee7b7; padding:10px; background:#071a13; border-radius:4px;" id="unrolledAttempt2Stdout">ANSWER: 5*x/2 - 5
+>>> Strict Grader Evaluation: PASS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: PROBE INSPECTOR (CLICK STAGE OR WIRE TO PROBE) -->
+    <div class="probe-inspector-sidebar" id="probeInspector">
+      <div class="probe-header">
+        <span style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-main);">
+          Test Point Probe Inspector
+        </span>
+        <span id="probePointId" style="font-family:var(--mono-font); font-size:11px; color:var(--cyan);">TP-5 (Boiler)</span>
+      </div>
+
+      <div class="probe-content" id="probeContent">
+        <!-- TRIAGE TAGS -->
+        <div class="probe-section">
+          <div class="probe-title">Developer Triage Tags</div>
+          <div class="tag-strip">
+            <button class="tag-btn" onclick="tagTrace('slow')">🏷️ slow</button>
+            <button class="tag-btn" onclick="tagTrace('format_miss')">🏷️ format_miss</button>
+            <button class="tag-btn" onclick="tagTrace('crash')">🏷️ crash</button>
+            <button class="tag-btn" onclick="tagTrace('derivation_fail')">🏷️ derivation_fail</button>
+            <button class="tag-btn" onclick="tagTrace('character_slip')">🏷️ character_slip</button>
+          </div>
+        </div>
+
+        <!-- STAGE SUMMARY (LEVEL 2) -->
+        <div class="probe-section">
+          <div class="probe-title">What Happened Here (Level 2)</div>
+          <div id="probeLevel2Summary" class="probe-val">
+            <strong>Got:</strong> 280 tokens of compiled prompt.<br>
+            <strong>Did:</strong> Decoded 340 tokens of Python solution at 50.2 tok/s.<br>
+            <strong>Passed on:</strong> 14 lines of SymPy computational script.
+          </div>
+        </div>
+
+        <!-- INPUT PAYLOAD -->
+        <div class="probe-section">
+          <div class="probe-title">Input Payload (Received Wire)</div>
+          <div id="probeInputPayload" class="probe-val" style="max-height:120px; overflow-y:auto;">--</div>
+        </div>
+
+        <!-- OUTPUT PAYLOAD -->
+        <div class="probe-section">
+          <div class="probe-title">Output Payload (Emitted Wire)</div>
+          <div id="probeOutputPayload" class="probe-val" style="max-height:140px; overflow-y:auto;">--</div>
+        </div>
+
+        <!-- RAW METRICS (LEVEL 3) -->
+        <div class="probe-section l3-only">
+          <div class="probe-title">Physical Metrics & Verification (Level 3)</div>
+          <div id="probeRawMetrics" class="probe-val" style="font-size:11px; color:var(--text-dim);">
+            Monotonic Duration: <strong>18,420 ms</strong><br>
+            Strict Verdict: <strong style="color:var(--green)">TRUE</strong><br>
+            Lenient Verdict: <strong style="color:var(--green)">TRUE</strong><br>
+            Failure Class: <strong>none</strong><br>
+            Config Hash: <code>37fde25:v1.2-baseline-heldout-400:16k</code><br>
+            Hardware: RTX 5080 Laptop GPU (175W TGP)
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let currentNomenclature = 'plain';
+    let currentZoom = 1;
+    let isFolded = true;
+    let allTraces = [];
+    let activeTrace = null;
+
+    const STAGE_NAMES = {
+      plain: {
+        tank_1_ingestion: "Hears the question",
+        tank_2_conformal_gate: "Checks confidence to answer",
+        tank_3_microscheme: "Tries exact math first",
+        tank_4_context_infusion: "Recalls what she knows",
+        tank_5_neural_boiler: "Thinks it through and writes code",
+        tank_6_sandbox_turbine: "Runs the code safely",
+        tank_6b_recirculation: "Fixes mistakes and tries again",
+        tank_7_purifier_grader: "Cleans up and checks answer",
+        tank_9_wal_basin: "Remembers what happened",
+      },
+      tech: {
+        tank_1_ingestion: "1. INGESTION",
+        tank_2_conformal_gate: "2. CONFORMAL",
+        tank_3_microscheme: "3. SCHEME",
+        tank_4_context_infusion: "4. CONTEXT",
+        tank_5_neural_boiler: "5. NEURAL BOILER",
+        tank_6_sandbox_turbine: "6. DOCKER RPC",
+        tank_6b_recirculation: "6b. FEEDBACK",
+        tank_7_purifier_grader: "7. PURIFIER",
+        tank_9_wal_basin: "9. WAL BASIN",
+      }
+    };
+
+    function setNomenclature(mode) {
+      currentNomenclature = mode;
+      document.getElementById('btnModePlain').classList.toggle('active', mode === 'plain');
+      document.getElementById('btnModeTech').classList.toggle('active', mode === 'tech');
+      updateStageLabels();
+    }
+
+    function setZoom(lvl) {
+      currentZoom = lvl;
+      document.getElementById('btnZoom1').classList.toggle('active', lvl === 1);
+      document.getElementById('btnZoom2').classList.toggle('active', lvl === 2);
+      document.getElementById('btnZoom3').classList.toggle('active', lvl === 3);
+
+      // Mutate body classes to dynamically trigger CSS layout rules
+      document.body.classList.remove('zoom-1', 'zoom-2', 'zoom-3');
+      document.body.classList.add(`zoom-${lvl}`);
+
+      // Auto-toggle nomenclature based on zoom expectation
+      if (lvl === 1 && currentNomenclature !== 'plain') {
+        setNomenclature('plain');
+      } else if (lvl === 3 && currentNomenclature !== 'tech') {
+        setNomenclature('tech');
+      }
+
+      if (activeTrace) {
+        renderActiveTrace(activeTrace);
+      }
+    }
+
+    function setLoopFolded(folded) {
+      isFolded = folded;
+      document.getElementById('btnFolded').classList.toggle('active', folded);
+      document.getElementById('btnUnrolled').classList.toggle('active', !folded);
+
+      // Mutate body classes
+      document.body.classList.toggle('view-folded', folded);
+      document.body.classList.toggle('view-unrolled', !folded);
+
+      document.getElementById('schematicTitle').textContent = folded 
+        ? "Dataflow Circuit Schematic (Click any component card or wire to probe)" 
+        : "Unrolled Self-Correction Trace (Attempt 1 -> Feedback 6b -> Attempt 2)";
+
+      if (activeTrace) {
+        renderActiveTrace(activeTrace);
+      }
+    }
+
+    function updateStageLabels() {
+      const names = STAGE_NAMES[currentNomenclature];
+      document.getElementById('lbl_t1').textContent = names.tank_1_ingestion;
+      document.getElementById('lbl_t2').textContent = names.tank_2_conformal_gate;
+      document.getElementById('lbl_t3').textContent = names.tank_3_microscheme;
+      document.getElementById('lbl_t4').textContent = names.tank_4_context_infusion;
+      document.getElementById('lbl_t5').textContent = names.tank_5_neural_boiler;
+      document.getElementById('lbl_t6').textContent = names.tank_6_sandbox_turbine;
+      document.getElementById('lbl_t7').textContent = names.tank_7_purifier_grader;
+      document.getElementById('lbl_t9').textContent = names.tank_9_wal_basin;
+    }
+
+    // INIT 400-CELL RIBBON
+    function initRibbon() {
+      const grid = document.getElementById('ribbonGrid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= 400; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'ribbon-cell';
+        cell.id = `rc_${i}`;
+        cell.title = `Problem #${i}`;
+        cell.onclick = () => loadTraceByIndex(i);
+        grid.appendChild(cell);
+      }
+    }
+
+    function updateRibbon() {
+      let strictPass = 0, formatMiss = 0, crash = 0, derivation = 0;
+      allTraces.forEach(t => {
+        const cell = document.getElementById(`rc_${t.index}`);
+        if (!cell) return;
+        if (t.passed) {
+          cell.className = 'ribbon-cell pass';
+          strictPass++;
+        } else if (t.failure_class === 'equivalence_format_miss') {
+          cell.className = 'ribbon-cell format';
+          formatMiss++;
+        } else if (t.failure_class === 'runtime_crash') {
+          cell.className = 'ribbon-cell fail';
+          crash++;
+        } else {
+          cell.className = 'ribbon-cell fail';
+          derivation++;
+        }
+      });
+      document.getElementById('ribbonStats').textContent = `${allTraces.length} / 400 Evaluated (${strictPass} Passes, ${formatMiss} Format Misses, ${crash} Crashes)`;
+    }
+
+    async function loadTraceByIndex(idx) {
+      document.querySelectorAll('.ribbon-cell').forEach(c => c.classList.remove('selected-cell'));
+      const c = document.getElementById(`rc_${idx}`);
+      if (c) c.classList.add('selected-cell');
+
+      try {
+        const res = await fetch(`/api/trace/${idx}`);
+        if (!res.ok) return;
+        activeTrace = await res.json();
+        renderActiveTrace(activeTrace);
+      } catch (err) {}
+    }
+
+    function renderActiveTrace(t) {
+      const task = t.task_info || {};
+      const tanks = t.tanks || [];
+      const tank5 = tanks.find(x => x.tank_id === 'tank_5_neural_boiler') || {};
+      const tank6 = tanks.find(x => x.tank_id === 'tank_6_sandbox_turbine') || {};
+
+      // 1. Badges and Headers
+      document.getElementById('activeProbBadge').textContent = `#${task.index} ${task.subject} (L${task.level})`;
+      document.getElementById('liveProblemStatement').textContent = task.problem || '';
+      document.getElementById('liveExpected').textContent = t.expected_ans || '--';
+      document.getElementById('livePredicted').textContent = t.predicted_ans || '(None)';
+      
+      const v = document.getElementById('activeResultVerdict');
+      v.textContent = t.passed ? 'VERIFIED PASS' : (t.verdict ? t.verdict.failure_class.toUpperCase() : 'FAIL');
+      v.style.color = t.passed ? 'var(--green)' : 'var(--red)';
+
+      // 2. L1 Story Deck Rendering
+      document.getElementById('storyDeckProblem').textContent = task.problem || 'No question details available.';
+      document.getElementById('storyDeckExpected').textContent = t.expected_ans || '--';
+      document.getElementById('storyDeckPredicted').textContent = t.predicted_ans || '(None)';
+
+      // Template-driven Level 1 story narrative
+      let caption = `Problem #${task.index}: Lucca formulated a Python solution, ran it safely inside Docker, and verified the exact mathematical result.`;
+      let storyDetail = `Lucca approached this ${task.subject} (Level ${task.level}) problem by writing a structured Python program using SymPy. The Docker sandbox executed the code cleanly, and the string normalizer verified that the computed value matched the official answer key.`;
+
+      if (!t.passed) {
+        if (t.verdict && t.verdict.failure_class === 'runtime_crash') {
+          caption = `Problem #${task.index}: Lucca wrote Python code, but the Docker sandbox failed on a runtime syntax error or traceback.`;
+          storyDetail = `Lucca generated a Python script to compute the solution, but the execution was halted by an unhandled exception in Docker (${tank6.stderr ? tank6.stderr.slice(0, 100) : 'syntax error'}).`;
+        } else if (t.verdict && t.verdict.failure_class === 'equivalence_format_miss') {
+          caption = `Problem #${task.index}: Lucca calculated the mathematically correct answer, but the strict grader rejected the LaTeX formatting.`;
+          storyDetail = `Lucca derived the correct numeric value (${t.predicted_ans}), but the answer differed in LaTeX markup from the ground truth (${t.expected_ans}).`;
+        } else {
+          caption = `Problem #${task.index}: Lucca calculated a numeric result, but derived an answer that differed from ground truth.`;
+          storyDetail = `Lucca executed the calculation, producing '${t.predicted_ans}', which did not equal the expected '${t.expected_ans}'.`;
+        }
+      }
+      document.getElementById('storyCaptionText').textContent = caption;
+      document.getElementById('storyDeckNarrative').textContent = storyDetail;
+
+      // 3. Code View and Stderr
+      document.getElementById('liveCodeView').textContent = tank5.output || '# No code output recorded.';
+      if (tank6.stderr) {
+        document.getElementById('liveStderrPane').style.display = 'block';
+        document.getElementById('liveStderrContent').textContent = tank6.stderr;
+      } else {
+        document.getElementById('liveStderrPane').style.display = 'none';
+      }
+
+      // 4. Update schematic durations and status colors
+      if (tank5.duration_ms) {
+        const s = (tank5.duration_ms / 1000).toFixed(1) + 's';
+        document.getElementById('val_dur5').textContent = s;
+        document.getElementById('rowDur5').textContent = s;
+      }
+      if (tank6.duration_ms) {
+        const ms = tank6.duration_ms.toFixed(0) + ' ms';
+        document.getElementById('val_dur6').textContent = ms;
+        document.getElementById('rowDur6').textContent = ms;
+      }
+      document.getElementById('rect_cmp6').setAttribute('stroke', tank6.stderr ? 'var(--red)' : 'var(--green)');
+      document.getElementById('rowStatus6').textContent = tank6.stderr ? 'FAIL' : 'PASS';
+      document.getElementById('rowStatus6').style.color = tank6.stderr ? 'var(--red)' : 'var(--green)';
+
+      // 5. Unrolled Attempt Diff Rendering
+      if (tank6.stderr) {
+        document.getElementById('retryBadge').textContent = 'Attempts: 2 (Self-Corrected)';
+        document.getElementById('retryBadge').style.borderColor = 'var(--amber)';
+        document.getElementById('retryBadge').style.color = 'var(--amber)';
+        document.getElementById('unrolledAttempt1Code').textContent = tank5.output || '# Attempt 1 Code';
+        document.getElementById('unrolledAttempt1Stderr').textContent = tank6.stderr;
+      } else {
+        document.getElementById('retryBadge').textContent = 'Attempts: 1 (Direct Pass)';
+        document.getElementById('retryBadge').style.borderColor = 'var(--green)';
+        document.getElementById('retryBadge').style.color = 'var(--green)';
+      }
+
+      // Default probe on Tank 5
+      probeComponent('tank_5_neural_boiler');
+    }
+
+    function probeComponent(tankId) {
+      document.getElementById('probePointId').textContent = `TP: ${tankId}`;
+      if (!activeTrace) return;
+      const tank = (activeTrace.tanks || []).find(x => x.tank_id === tankId);
+      if (!tank) return;
+
+      document.getElementById('probeInputPayload').textContent = tank.received || '--';
+      document.getElementById('probeOutputPayload').textContent = tank.output || '--';
+      document.getElementById('probeLevel2Summary').innerHTML = `
+        <strong>Got:</strong> ${escapeHtml(String(tank.received || '').slice(0, 100))}...<br>
+        <strong>Did:</strong> ${escapeHtml(tank.action || '')}<br>
+        <strong>Passed on:</strong> ${escapeHtml(String(tank.output || '').slice(0, 100))}...
+      `;
+      document.getElementById('probeRawMetrics').innerHTML = `
+        Monotonic Duration: <strong>${tank.duration_ms !== null ? tank.duration_ms + ' ms' : 'Unmeasured (null)'}</strong><br>
+        Status: <strong style="color:${tank.status === 'PASS' ? 'var(--green)' : 'var(--red)'}">${tank.status}</strong><br>
+        Subsystem: ${tank.subsystem || '--'}<br>
+        Config: <code>37fde25:v1.2-baseline-heldout-400:16k</code>
+      `;
+    }
+
+    function probeWire(wireId) {
+      document.getElementById('probePointId').textContent = `WIRE: ${wireId}`;
+      if (!activeTrace) return;
+      document.getElementById('probeInputPayload').textContent = `Signal line: ${wireId}`;
+      document.getElementById('probeOutputPayload').textContent = "Payload flowing across circuit link.";
+      document.getElementById('probeLevel2Summary').innerHTML = `
+        <strong>Signal Wire:</strong> ${wireId}<br>
+        Carried serialized JSON execution packet between pipeline tanks.
+      `;
+    }
+
+    function tagTrace(tagName) {
+      alert(`Tagged active trace with: ${tagName}`);
+    }
+
+    async function pollLive() {
+      try {
+        const res = await fetch('/api/live');
+        if (!res.ok) return;
+        const d = await res.json();
+        const b = document.getElementById('liveBadge');
+        if (d.active) {
+          b.classList.remove('inactive');
+          document.getElementById('liveStatusText').textContent = 'ACTIVE';
+        } else {
+          b.classList.add('inactive');
+          document.getElementById('liveStatusText').textContent = 'STANDBY';
+        }
+      } catch (err) {}
+    }
+
+    async function pollHardware() {
+      try {
+        const res = await fetch('/api/hardware');
+        if (!res.ok) return;
+        const hw = await res.json();
+        const g = hw.gpu || {};
+        if (g.vram_used_mib) {
+          document.getElementById('hwVram').textContent = `${g.vram_used_mib.toFixed(0)} MiB (${g.vram_used_gib} GiB / ${g.vram_total_gib} GiB)`;
+          document.getElementById('hwPower').textContent = `${g.power_draw_w.toFixed(0)} W / 175 W`;
+          document.getElementById('hwTemp').textContent = `${g.temperature_c} °C`;
+          document.getElementById('hwUtil').textContent = `${g.util_pct}%`;
+        }
+      } catch (err) {}
+    }
+
+    async function fetchTraces() {
+      try {
+        const res = await fetch('/api/traces');
+        if (!res.ok) return;
+        allTraces = await res.json();
+        updateRibbon();
+        if (!activeTrace && allTraces.length > 0) {
+          loadTraceByIndex(allTraces[allTraces.length - 1].index);
+        }
+      } catch (err) {}
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initRibbon();
+      updateStageLabels();
+      pollLive();
+      pollHardware();
+      fetchTraces();
+      setInterval(pollLive, 1000);
+      setInterval(pollHardware, 2000);
+      setInterval(fetchTraces, 3000);
+    });
+  </script>
+</body>
+</html>

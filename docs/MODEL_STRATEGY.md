@@ -58,10 +58,10 @@ In the original pre-audit design (Option B), audio was fed directly into `llama-
 ## 3. Hardware Budget & Resource Constraints
 
 All inference operations are strictly bounded to the physical constraints of the workstation:
-- **Host GPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7 VRAM, Blackwell `sm_120`).
-- **Resident VRAM Clamp (`D-BRAIN-05`)**: $\le 12.5\text{ GB}$ (12,800 MB) maximum resident footprint for `llama-server` (leaving $\ge 3.5\text{ GB}$ dedicated to Windows DWM, display rendering, browser hardware acceleration, and NPU offload).
-- **Observed Live Footprint**: **10,748 MiB** resident VRAM at steady-state with 16,384 context. Temperature stable at 42°C.
-- **KV Cache Budget**: `ctx-size = 16384` with `cache-type-k = q8_0` and `cache-type-v = q8_0` ($\approx 2.1\text{ GB}$ resident KV cache).
+- **Host dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7 VRAM, Blackwell `sm_120`, dedicated compute mode `Disp.A: Off`).
+- **Host iGPU**: Intel(R) Graphics (Arrow Lake-HX Xe-LPG architecture) dedicated to Windows Desktop Window Manager (DWM) and display rendering, completely isolating the RTX 5080 from display VRAM consumption.
+- **Resident VRAM Footprint**: **10,050 MiB** resident VRAM at steady-state with 16,384 context (~5,950 MiB free headroom). Expanding to 32,768 context consumes ~12.2 GB resident VRAM, operating with ~3.8 GB headroom.
+- **KV Cache Budget**: `ctx-size = 16384` baseline / `32768` v1.3.0 default with `cache-type-k = q8_0` and `cache-type-v = q8_0` (quantized 8-bit cache).
 - **Inference Server**: Native Windows `llama-server.exe` built with CUDA 12.8, Flash Attention enabled (`--flash-attn`), `--jinja`, and GGUF-embedded chat template.
 
 ---
@@ -70,7 +70,8 @@ All inference operations are strictly bounded to the physical constraints of the
 
 | Candidate | Architecture & Params | Quantization & Size | Context | Licensing | Strategic Role & Status |
 |---|---|---|---|---|---|
-| **Gemma-4-12B-Heretic (Abliterated)** | Dense 12B (Google DeepMind), Heretic norm-preserving directional ablation | Q6_K (~9.8 GB) | 16k (active) / 131k (measured under clamp) | Gemma Terms of Use | **Deployed Primary Brain (`D-BRAIN-05` v2, 2026-09-21)**. 24/24 tool routing, 0 % grounded confabulation / 100 % adherence, zero moralizing. 10.6 GB live VRAM; `enable_thinking=false` for companion tiers. |
+| **Gemma-4-12B-Heretic (Abliterated)** | Dense 12B (Google DeepMind), Heretic norm-preserving directional ablation | Q6_K (~9.8 GB) | 16k baseline / 32k active (up to 131k measured) | Gemma Terms of Use | **Deployed Primary Brain (`D-BRAIN-05` v2, 2026-09-21)**. 24/24 tool routing, 0 % grounded confabulation / 100 % adherence, zero moralizing. 10.05 GB live VRAM at 16K, ~12.2 GB at 32K; `enable_thinking=false` for companion tiers. Validated on Three-Track Battery: Track 1 SPEC-BENCH-100 (91.0%), Track 2 HumanEval (95.73%) / GSM8K PAL (100.0%) / BBH (92.4%), Track 3 GSM-Symbolic (100.0%) / HumanEval-Plus (91.46%) / MATH-500 (77.0% strict, 87.0% SymPy). |
+| **Gemma-4-E4B-it-uncensored-heretic (Q6_K)** | Dense ~4B effective params (Google DeepMind), uncensored directional ablation | Q6_K (~6.22 GB) | 16k | Gemma Terms of Use | **Staged Control Parameter Scale Ablation Model (2026-09-29)**. Verified byte-for-byte at `C:\ProjectLucca\models\llm\gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6,217,260,896 bytes). Dedicated to empirical isolation of compound architecture vs. parameter scale. |
 | **Ternary-Bonsai-2-27B (PQ2_0)** | Hybrid-attention 27.4B (Qwen3.5 backbone, ~75 % linear attention), ternary g128 | PQ2_0 (~7.2 GB, 2.13 bpw) | 131k (measured under clamp) | Apache 2.0 | **Slot-2 / batch-research candidate (deferred)**. 80/100 comprehensive, 40.8 tok/s, 8.2 GB VRAM. Requires PrismML llama.cpp fork (b10709) — separate ADR required. |
 | **Mistral NeMo 12B Instruct Abliterated** | Dense 12.2B (Mistral AI & NVIDIA), Tekken tokenizer | Q6_K (~10.1 GB) | 16k / 128k (native) | **Apache 2.0** | **Deprecated (2026-09-21)**. Server-side tool parser never engaged on llama.cpp b11026; 3 hallucinated tool calls on conversational prompts. Pinned for rollback. |
 | **Ultravox v0.5 8B** | Multimodal Llama-3.1-8B + Whisper-turbo projector | Q6_K (~6.6 GB) + mmproj (~0.74 GB) | 8k | Llama 3.1 Community | **Deprecated / Archived**. Suffers from pre-processing blindspot and moralizing prefill refusals. |

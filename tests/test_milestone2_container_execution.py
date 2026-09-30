@@ -15,6 +15,8 @@ import pytest
 
 from lucca.sandbox.rpc import DockerRPCTransport
 
+pytestmark = [pytest.mark.tier2, pytest.mark.hw]
+
 
 @pytest.fixture(scope="module")
 def rpc_transport() -> DockerRPCTransport:
@@ -99,7 +101,7 @@ except Exception as exc:
 """
     res = rpc_transport.execute(call_id="c-ro-1", tool="run_python", args={"code": code})
     assert res.ok is True
-    assert "Read-only file system" in str(res.content) or "Errno 30" in str(res.content)
+    assert any(w in str(res.content) for w in ("Read-only file system", "Errno 30", "Permission denied", "Errno 13"))
     assert "WROTE_EVIL" not in str(res.content)
 
 

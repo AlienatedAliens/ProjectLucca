@@ -5,19 +5,14 @@ Spec 01 §1, Spec 16 §3, ADR-005
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
-import threading
 import time
 from datetime import datetime
-from pathlib import Path
 
 import psutil
 import structlog
 from pydantic import JsonValue
-
-from lucca.core.config import get_config
 
 logger = structlog.get_logger(__name__)
 

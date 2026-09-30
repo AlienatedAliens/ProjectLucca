@@ -74,8 +74,8 @@ ignore = ["PLR0913", "PLR2004", "S105", "PLR0911", "PLR0912", "PLR0915", "PLR091
 "scripts/*" = ["S", "F", "PL", "ANN", "PLC0415", "BLE001", "E501", "E741"]
 "packaging/*" = ["S", "F", "PL", "ANN", "PLC0415", "BLE001", "E501"]
 "**/env_check.py" = ["BLE001", "PLC0415", "S603", "S607"]
-"**/ui/*" = ["E501", "S603", "S607", "BLE001", "ANN", "S110"]
-"**/sandbox/*" = ["PLW0603", "S603", "S110", "BLE001"]
+"**/ui/*" = ["E501", "S603", "S607", "BLE001", "ANN", "S110", "E402"]
+"**/sandbox/*" = ["PLW0603", "S603", "S110", "BLE001", "E402"]
 "**/senses/*" = ["PLC0415", "S110", "BLE001"]
 
 [tool.mypy]

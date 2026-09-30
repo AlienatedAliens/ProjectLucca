@@ -189,7 +189,7 @@ class LLMClient:
             temperature if temperature is not None else getattr(self.config.llm, "temperature", 0.6)
         )
         eff_tokens = (
-            max_tokens if max_tokens is not None else getattr(self.config.llm, "max_tokens", 512)
+            max_tokens if max_tokens is not None else getattr(self.config.llm, "max_tokens", 2048)
         )
         if messages is not None:
             eff_messages = list(messages)

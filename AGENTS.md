@@ -12,10 +12,11 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 
 2. **Strict Hardware Budget Discipline:**
-   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`). Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` (`D-BRAIN-05` v2; `enable_thinking=false` mandatory for companion tiers, thinking reserved for explicit deep reasoning) with 16K context default (up to 131K fits), Q8_0 KV cache, and Flash Attention. **Resident VRAM clamp: $\le 12.5\text{ GB}$ (12,800 MB)**, leaving $\ge 3.5\text{ GB}$ for host display and applications.
-   - **Intel NPU**: Exclusively accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`). **Never attempt to run NPU workloads inside WSL2 or Docker.**
-   - **System RAM**: 16 GB shared pool. WSL2 memory clamped to 4.5 GB (`4608MB`) via `.wslconfig`.
-   - **CPU**: Arrow Lake Core Ultra 9 275HX. Hosts Orchestrator, MicroScheme LISP engine, SQLite WAL + `sqlite-vec` + FTS5, and tree models (LightGBM/XGBoost on CPU, never on NPU).
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` (`D-BRAIN-05` v2; `enable_thinking=false` mandatory for companion tiers, thinking reserved for explicit deep reasoning) with 16K context baseline / 32K context v1.3.0 default (`src/lucca/core/config.py`), Q8_0 KV cache, and Flash Attention. Dedicated compute mode frees dGPU from desktop DWM allocations.
+   - **iGPU**: Intel(R) Graphics (Arrow Lake-HX Xe-LPG) driving Windows desktop display and UI, completely offloading display tasks from the RTX 5080.
+   - **Intel NPU**: Intel(R) AI Boost NPU (`PCI\VEN_8086&DEV_AD1D`) accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`). **Never attempt to run NPU workloads inside WSL2 or Docker.**
+   - **System RAM**: 64 GB DDR5-5600 shared pool. WSL2 memory clamped to 4.5 GB (`4608MB`) via `.wslconfig`.
+   - **CPU**: Intel Core Ultra 9 275HX (24 cores / 24 threads). Hosts Orchestrator, MicroScheme LISP engine, SQLite WAL + `sqlite-vec` + FTS5, and tree models (LightGBM/XGBoost on CPU, never on NPU).
 
 3. **Three-Tier Execution Architecture (`D-ARCH-05`):**
    - **`REFLEX`**: Strictly restricted to critical emergency/safety commands (`shutdown`, `pause`, `mute`, `stop`, `halt`) via `EMERGENCY_REFLEX_PATTERN`. Bypasses neural inference and speaks canned confirmation in $<150\text{ms}$.
@@ -48,6 +49,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 - **Master System Architecture**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (v2.0.0) — Process topology, IPC, cognitive tiers, memory, rules, and security.
 - **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v2.0.0) — Cascade pipeline, Gemma-4 12B deployment and prompt architecture.
 - **User Guide**: [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./docs/USER_GUIDE_WHAT_LUCCA_DOES.md) — Complete user guide and capabilities overview.
+- **Compound Reasoning Specification**: [`docs/specs/COMPOUND_REASONING_100_SPEC.md`](./docs/specs/COMPOUND_REASONING_100_SPEC.md) — 10-domain 100-probe cognitive benchmark battery (`SPEC-BENCH-100-v1.0`).
 - **Action Log & V2 Backlog**: [`docs/V2_ACTION_LOG.md`](./docs/V2_ACTION_LOG.md) and [`docs/V2_BACKLOG.md`](./docs/V2_BACKLOG.md).
 - **Capability Roadmap**: [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./docs/specs/STUDIO_CAPABILITY_ROADMAP.md) — Studio taxonomy and capability ladder.
 - **Release Audit**: [`docs/audit/findings/V1_RELEASE_AUDIT.md`](./docs/audit/findings/V1_RELEASE_AUDIT.md) — Release audit and verification evidence.
@@ -59,7 +61,11 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ---
 
 ## 4. Key Settled Facts Every Agent Must Know
-- **LLM**: Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` with stock llama.cpp (≥ b11026), `--jinja` and GGUF-embedded chat template, `enable_thinking=false` mandatory for companion tiers, 16,384 context default, Q8_0 KV cache, flash attention, and 12.5 GB (12,800 MB) resident VRAM clamp (`D-BRAIN-05` v2). (NeMo deprecated and pinned in `models/MANIFEST.json` for rollback only; Ternary-Bonsai-2-27B is designated slot-2 candidate gated behind rung C1b).
+- **LLM**: Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` with stock llama.cpp (≥ b11026), `--jinja` and GGUF-embedded chat template, `enable_thinking=false` mandatory for companion tiers, 16,384 context default, Q8_0 KV cache, flash attention, and 12.5 GB (12,800 MB) resident VRAM clamp (`D-BRAIN-05` v2). (Control parameter ablation model: `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` at ~4B effective params; NeMo deprecated and pinned for rollback).
+- **Cognitive & Academic Verification**: Validated under Three-Track Empirical Battery:
+  - Track 1 (`SPEC-BENCH-100-v1.0`): **91.0% pass rate**, 100.0% path policy compliance, 100.0% epistemic faithfulness.
+  - Track 2 (Standard Academic Battery): GSM8K PAL **100.0%**, Canonical HumanEval 164 tasks **95.73% pass@1**, Big-Bench Hard (Full 1,000 Tasks) **92.40% (924/1,000)**: Boolean **99.2%**, Geometry **84.0%**, Tracking **100.0%**, Dyck **86.4%**.
+  - Track 3 (Modern 2024-2025 Academic Benchmarks): GSM-Symbolic **100.0% (100/100)** in 527.4s, HumanEval-Plus **91.46% pass@1 (150/164)** in 1,016.8s (10 preflight rescues), MATH-500 PAL **77.0% strict / 87.0% SymPy** (69.6% L5, 1,149.7s).
 - **ASR**: Faster-Whisper on CPU/NPU runs on every turn to produce ground-truth text transcripts.
 - **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with 2,048-token quota and multi-factor prioritization (`D-MEM-03`). Fast-path context sync preserves multi-turn memory (`D-ARCH-06`). (Chroma retired).
 - **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`).

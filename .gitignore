@@ -27,6 +27,7 @@ wheels/
 # Virtual environments
 .env
 .venv
+.venv-voice/
 env/
 venv/
 ENV/
@@ -62,6 +63,7 @@ htmlcov/
 models/*.gguf
 models/*.bin
 models/*.safetensors
+models/tts/
 
 # Runtime state — production DB lives under LUCCA_HOME (C:\ProjectLucca\data)
 data/memory.sqlite

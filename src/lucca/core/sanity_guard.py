@@ -92,12 +92,17 @@ class SanityCheckGuard:
             "radius",
             "area",
         )
-        if any(kw in combined_context for kw in positivity_keywords):
+        is_financial = any(w in combined_context for w in ("payoff", "profit", "loss", "return", "pnl", "balance", "net", "margin", "auction"))
+        has_positivity_kw = not is_financial and any(
+            re.search(r"\b" + re.escape(kw) + r"\b", combined_context) for kw in positivity_keywords
+        )
+        if has_positivity_kw:
+            cleaned_output = re.sub(r"(?m)^\s*-\s+", "  ", tool_output)
             pattern = (
-                r"-\s*(\d+(?:\.\d+)?)\s*"
-                r"(?:km|miles?|meters?|seconds?|mins?|hours?|residents?|people|years)?"
+                r"(?<![a-zA-Z0-9_\-/:])-\s*(\d+(?:\.\d+)?)"
+                r"(?:\s*(?:km|miles?|meters?|seconds?|mins?|hours?|residents?|people|years)\b|\b(?![a-zA-Z]))"
             )
-            neg_match = re.search(pattern, tool_output)
+            neg_match = re.search(pattern, cleaned_output)
             if neg_match:
                 val = float(neg_match.group(1))
                 if val > 0.0:
@@ -286,99 +291,110 @@ class SanityCheckGuard:
         # ---------------------------------------------------------------------
         # Check 7: Fermi Order-of-Magnitude Bounds on Arithmetic
         # ---------------------------------------------------------------------
-        code_str = str(tool_args.get("code") or "")
-        calc_target = f"{user_query} {code_str}"
+        code_str = str(tool_args.get("code") or tool_args.get("expr") or "")
+        out_nums = re.findall(r"\b\d+(?:\.\d+)?\b", tool_output)
 
-        # 7a. Multiplication A * B:
-        mult_match = re.search(r"(\d+(?:\.\d+)?)\s*[\*x×]\s*(\d+(?:\.\d+)?)", calc_target)
-        if mult_match:
-            a_val = float(mult_match.group(1))
-            b_val = float(mult_match.group(2))
-            if a_val > 10.0 and b_val > 10.0:
-                expected_log = math.log10(a_val) + math.log10(b_val)
-                out_nums = re.findall(r"\b\d+(?:\.\d+)?\b", tool_output)
-                if out_nums:
-                    try:
-                        res_val = float(out_nums[0])
-                        if res_val > 0.0:
-                            res_log = math.log10(res_val)
-                            # Discrepancy >= 1.5 orders of magnitude (e.g. >= ~30x off)
-                            if abs(res_log - expected_log) >= 1.5:
+        # Check 7 applies strictly to single-scalar arithmetic evaluations (e.g. calc_math
+        # or simple 1-2 line scripts). Multi-number outputs (coordinates, vectors, timestamps)
+        # and multi-line scripts are exempted to prevent false-positive inversion warnings.
+        # Furthermore, compound expressions containing exponents (^, **) or multiple arithmetic
+        # operators are exempted because out_nums[0] does not reflect a simple A * B or A / B.
+        num_code_lines = len([line for line in code_str.strip().splitlines() if line.strip()])
+        is_scalar_calc = len(out_nums) == 1 and num_code_lines <= 2
+
+        if is_scalar_calc:
+            calc_target = f"{user_query} {code_str}"
+
+            # 7a. Multiplication A * B:
+            mult_match = re.search(r"(\d+(?:\.\d+)?)\s*[\*x×]\s*(\d+(?:\.\d+)?)", calc_target)
+            if mult_match:
+                # Do not Fermi-check multiplication if division or exponentiation dominates the expression
+                if not (any(op in code_str for op in ("^", "**", "/"))):
+                    a_val = float(mult_match.group(1))
+                    b_val = float(mult_match.group(2))
+                    if a_val > 10.0 and b_val > 10.0:
+                        expected_log = math.log10(a_val) + math.log10(b_val)
+                        try:
+                            res_val = float(out_nums[0])
+                            if res_val > 0.0:
+                                res_log = math.log10(res_val)
+                                # Discrepancy >= 1.5 orders of magnitude (e.g. >= ~30x off)
+                                if abs(res_log - expected_log) >= 1.5:
+                                    elapsed = (time.perf_counter_ns() - t0) / 1000.0
+                                    reason = (
+                                        f"Multiplication {a_val:,.0f} * {b_val:,.0f} has Fermi "
+                                        f"magnitude ~10^{expected_log:.1f}, but tool returned "
+                                        f"{res_val:,.0f} (~10^{res_log:.1f})"
+                                    )
+                                    return SanityCheckResult(
+                                        is_valid=False,
+                                        violation_type="ORDER_OF_MAGNITUDE_MISMATCH",
+                                        reason=reason,
+                                        directive=(
+                                            f"[Sanity Warning: Tool output exhibits an "
+                                            f"order-of-magnitude discrepancy ({reason}). Acknowledge "
+                                            "the execution but state transparently that the result "
+                                            "appears inconsistent with mathematical boundary checks.]"
+                                        ),
+                                        elapsed_us=elapsed,
+                                    )
+                        except (ValueError, OverflowError):
+                            pass
+
+            # 7b. Division A / B (e.g. 100 / 4 or one fourth of 100):
+            div_match = re.search(r"(\d+(?:\.\d+)?)\s*[\/÷]\s*(\d+(?:\.\d+)?)", calc_target)
+            if not div_match:
+                frac_pattern = r"(?:one\s+fourth|1/4|quarter)\s+of\s+(\d+(?:\.\d+)?)"
+                frac_match = re.search(frac_pattern, calc_target.lower())
+                if frac_match:
+                    div_match = re.search(
+                        r"(\d+(?:\.\d+)?)\s*[\/÷]\s*(\d+(?:\.\d+)?)",
+                        f"{frac_match.group(1)} / 4",
+                    )
+
+            if div_match:
+                # Only check division inversion if the expression is primarily a division
+                # (i.e. not nested inside exponential or compound formulas like A * B^(C/D))
+                is_nested_div = any(op in code_str for op in ("^", "**")) or code_str.count("*") > 0
+                if not is_nested_div:
+                    a_val = float(div_match.group(1))
+                    b_val = float(div_match.group(2))
+                    if a_val > b_val > 1.0:
+                        expected_div = a_val / b_val
+                        try:
+                            res_val = float(out_nums[0])
+                            # Multiplied instead (res_val >= a_val) or inverted (res_val < 1.0)
+                            if res_val >= a_val or (res_val < 1.0 and expected_div >= 1.0):
                                 elapsed = (time.perf_counter_ns() - t0) / 1000.0
                                 reason = (
-                                    f"Multiplication {a_val:,.0f} * {b_val:,.0f} has Fermi "
-                                    f"magnitude ~10^{expected_log:.1f}, but tool returned "
-                                    f"{res_val:,.0f} (~10^{res_log:.1f})"
+                                    f"Division of {a_val:,.0f} by {b_val:,.0f} expected "
+                                    f"~{expected_div:,.2f}, but tool returned {res_val:,.2f} "
+                                    "(multiplication or inversion slip)"
                                 )
                                 return SanityCheckResult(
                                     is_valid=False,
-                                    violation_type="ORDER_OF_MAGNITUDE_MISMATCH",
+                                    violation_type="ARITHMETIC_INVERSION_OR_MAGNITUDE",
                                     reason=reason,
                                     directive=(
-                                        f"[Sanity Warning: Tool output exhibits an "
-                                        f"order-of-magnitude discrepancy ({reason}). Acknowledge "
-                                        "the execution but state transparently that the result "
-                                        "appears inconsistent with mathematical boundary checks.]"
+                                        f"[Sanity Warning: Tool output exhibits an arithmetic "
+                                        f"division/inversion discrepancy ({reason}). Acknowledge "
+                                        "the execution but state transparently that the output "
+                                        "appears inverted or mathematically anomalous.]"
                                     ),
                                     elapsed_us=elapsed,
                                 )
-                    except (ValueError, OverflowError):
-                        pass
+                        except (ValueError, OverflowError):
+                            pass
 
-        # 7b. Division A / B (e.g. 100 / 4 or one fourth of 100):
-        div_match = re.search(r"(\d+(?:\.\d+)?)\s*[\/÷]\s*(\d+(?:\.\d+)?)", calc_target)
-        if not div_match:
-            frac_pattern = r"(?:one\s+fourth|1/4|quarter)\s+of\s+(\d+(?:\.\d+)?)"
-            frac_match = re.search(frac_pattern, calc_target.lower())
-            if frac_match:
-                div_match = re.search(
-                    r"(\d+(?:\.\d+)?)\s*[\/÷]\s*(\d+(?:\.\d+)?)",
-                    f"{frac_match.group(1)} / 4",
-                )
-
-        if div_match:
-            a_val = float(div_match.group(1))
-            b_val = float(div_match.group(2))
-            if a_val > b_val > 1.0:
-                expected_div = a_val / b_val
-                out_nums = re.findall(r"\b\d+(?:\.\d+)?\b", tool_output)
-                if out_nums:
-                    try:
-                        res_val = float(out_nums[0])
-                        # Multiplied instead (res_val >= a_val) or inverted (res_val < 1.0)
-                        if res_val >= a_val or (res_val < 1.0 and expected_div >= 1.0):
-                            elapsed = (time.perf_counter_ns() - t0) / 1000.0
-                            reason = (
-                                f"Division of {a_val:,.0f} by {b_val:,.0f} expected "
-                                f"~{expected_div:,.2f}, but tool returned {res_val:,.2f} "
-                                "(multiplication or inversion slip)"
-                            )
-                            return SanityCheckResult(
-                                is_valid=False,
-                                violation_type="ARITHMETIC_INVERSION_OR_MAGNITUDE",
-                                reason=reason,
-                                directive=(
-                                    f"[Sanity Warning: Tool output exhibits an arithmetic "
-                                    f"division/inversion discrepancy ({reason}). Acknowledge "
-                                    "the execution but state transparently that the output "
-                                    "appears inverted or mathematically anomalous.]"
-                                ),
-                                elapsed_us=elapsed,
-                            )
-                    except (ValueError, OverflowError):
-                        pass
-
-        # 7c. Circle area: pi * r^2
-        is_circle = "circle" in combined_context
-        has_r_or_area = "radius" in combined_context or "area" in combined_context
-        if is_circle and has_r_or_area:
-            r_match = re.search(r"radius\s*(?:of|=|is)?\s*(\d+(?:\.\d+)?)", combined_context)
-            if r_match:
-                r_val = float(r_match.group(1))
-                if r_val > 0.0:
-                    expected_area = math.pi * (r_val**2)
-                    out_nums = re.findall(r"\b\d+(?:\.\d+)?\b", tool_output)
-                    if out_nums:
+            # 7c. Circle area: pi * r^2
+            is_circle = "circle" in combined_context
+            has_r_or_area = "radius" in combined_context or "area" in combined_context
+            if is_circle and has_r_or_area:
+                r_match = re.search(r"radius\s*(?:of|=|is)?\s*(\d+(?:\.\d+)?)", combined_context)
+                if r_match:
+                    r_val = float(r_match.group(1))
+                    if r_val > 0.0:
+                        expected_area = math.pi * (r_val**2)
                         try:
                             res_val = float(out_nums[0])
                             # Off by >= factor of 3 (e.g. 31.4 vs 314)

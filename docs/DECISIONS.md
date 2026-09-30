@@ -125,10 +125,10 @@
 
 ### D-BRAIN-05 — Primary Brain Selection & 12.5 GB VRAM Clamp *(amended 2026-09-21)*
 - **Decision (v2, 2026-09-21):** Primary companion brain is **Gemma-4-12B-Heretic (Q6_K)** — an abliterated Gemma-4 12B served by stock llama.cpp (≥ b11026) with `--jinja` and the GGUF-embedded chat template. `enable_thinking=false` is mandatory for REFLEX/ACT_THEN_NARRATE/FULL_LOOP tiers (thinking-mode TTFT ≈ 1.9 s breaks the 650–850 ms FULL_LOOP budget); thinking mode is reserved for explicit deep-reasoning requests. Context window 16K default; measured 131k context fits the clamp (11,820 MiB peak) if needed. Brain selection is **config-driven only** (`LUCCA_LLM__*` / `lucca.toml [llm]`): model, server binary, chat template, and thinking default live in `LLMSettings`; no model/vendor literals in runtime code (enforced by `tests/test_brain_config_driven.py`).
-- **Evidence:** [`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`](audit/evidence/BRAIN_BAKEOFF_2026-09-21.md) — identical battery across three brains: tool routing 24/24 (Gemma) vs 17/18 (Bonsai) vs 9/12 with 3 hallucinated tool calls on conversational prompts (NeMo — disqualifying for a companion); grounded confabulation 0 % / 100 % adherence (Gemma) vs 16 % / 84 % (Bonsai); persona probe zero moralizing for both.
+- **Evidence:** [`docs/archive/2026-09_evidence/BRAIN_BAKEOFF_2026-09-21.md`](archive/2026-09_evidence/BRAIN_BAKEOFF_2026-09-21.md) — identical battery across three brains: tool routing 24/24 (Gemma) vs 17/18 (Bonsai) vs 9/12 with 3 hallucinated tool calls on conversational prompts (NeMo — disqualifying for a companion); grounded confabulation 0 % / 100 % adherence (Gemma) vs 16 % / 84 % (Bonsai); persona probe zero moralizing for both.
 - **Superseded:** Mistral NeMo 12B Instruct Abliterated Q6_K is **deprecated** (retained pinned in `models/MANIFEST.json` for rollback; note its server-side tool parser never engaged on llama.cpp b11026 — F-BRAIN finding).
 - **Deferred:** Ternary-Bonsai-2-27B PQ2_0 is the designated **slot-2 / batch-research brain candidate** (faster decode 41 vs 35 tok/s, 8.2 GB VRAM, 131k context) — requires a separate ADR for the PrismML llama.cpp fork dependency before any production use.
-- **Status:** **Fully Ratified** (2026-09-21) — live headless orchestrator ratification passed: 10/10 turns, 2/2 tool calls, 1/1 refusal, 0 hallucinated tool calls, TTFT p50 458.7 ms, VRAM 10,050 MiB peak, zero base-model identity leaks. Evidence: `logs/brain_eval/ratification_h1.json`, [`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`](audit/evidence/BRAIN_BAKEOFF_2026-09-21.md).
+- **Status:** **Fully Ratified** (2026-09-21) — live headless orchestrator ratification passed: 10/10 turns, 2/2 tool calls, 1/1 refusal, 0 hallucinated tool calls, TTFT p50 458.7 ms, VRAM 10,050 MiB peak, zero base-model identity leaks. Evidence: `logs/brain_eval/ratification_h1.json`, [`docs/archive/2026-09_evidence/BRAIN_BAKEOFF_2026-09-21.md`](archive/2026-09_evidence/BRAIN_BAKEOFF_2026-09-21.md).
 
 ### D-ARCH-05 — Three-Tier Execution Architecture (REFLEX, ACT_THEN_NARRATE, FULL_LOOP)
 - **Decision:** The runtime operates across three distinct execution tiers:
@@ -316,6 +316,24 @@
   2. **Architectural Blessing:** The edge `brain → memory.retrieval` is explicitly blessed by ADR as a legitimate read-only presentation/formatting dependency, avoiding premature abstraction or artificial intermediate formatting modules.
 - **Status:** Ratified & Enforced (`src/lucca/brain/prompt_builder.py`, `.importlinter`).
 
+### D-EVAL-02 — Two-Track Cognitive Benchmark Battery & Edge Quantization Standard
+- **Decision:** Establishes the authoritative empirical evaluation methodology for Project Lucca's compound AI architecture:
+  1. **Strict Edge Constraints Standard:** All official benchmark metrics must be evaluated under authentic local workstation constraints on an NVIDIA GeForce RTX 5080 Laptop GPU: 6-bit weight quantization (`Q6_K`), 8-bit KV caching (`Q8_0`), FlashAttention-2, and an unexpanded 16,384-token (16K) resident context window, clamping peak resident VRAM below 12.8 GiB.
+  2. **Track 1 (`SPEC-BENCH-100-v1.0`):** Evaluates multi-domain cognitive reasoning across 10 categories (100 frozen probes) through the live end-to-end `TurnPipeline`:
+     - Scoring criteria: task completion, path policy compliance (zero forbidden tools), epistemic faithfulness (zero fabricated receipts), and graceful tool error recovery.
+     - Official Run 3 result: 91.0% pass rate (91/100), 100% path compliance (100/100), 100% epistemic faithfulness (100/100), 100% tool recovery (3/3), median turn latency 9.39s. Flawless 10/10 in Spatial 3D Kinematics, Formal Constraint Logic Grids, and Closed-World Algebra.
+  3. **Track 2 (Standard Academic Benchmark Battery):** Evaluates code synthesis, arithmetic, and algorithmic logic against canonical standardized suites in Docker:
+     - Canonical OpenAI HumanEval (Full 164 Tasks): 95.73% pass@1 (157 / 164).
+     - GSM8K in PAL Mode: 100.0% (30 / 30) via Docker Python execution.
+     - Big-Bench Hard (BBH) Boolean Logic: 99.2% (248 / 250) on the full un-sampled 250-task suite.
+  4. **Control Parameter Scale Model:** Ratifies `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6.22 GB, ~4B effective parameters) as the dedicated ablation model to empirically isolate the contribution of the compound supervisor topology from neural core parameter scale.
+- **Status:** Ratified & Enforced (`tests/test_compound_reasoning_benchmark.py`, `scripts/run_standard_academic_benchmarks.py`).
 
-
-
+### D-EVAL-03 — Modern Academic Benchmark Battery (Track 3) & Phased Clawback Protocol
+- **Decision:** Formalizes the modern 2024–2025 academic benchmark battery (Track 3) and the Zero-Estimate phased clawback protocol:
+  1. **GSM-Symbolic (Apple, Oct 2024):** 100.0% pass rate (100/100) in 527.4s under symbolic parameter perturbation via Docker PAL.
+  2. **HumanEval-Plus (EvalPlus, 2024):** 91.46% pass@1 (150/164) in 1,016.8s under 80x adversarial differential testing, with 10 autonomous preflight docstring rescues in the Docker container.
+  3. **MATH-500 in PAL Mode (2024):** 77.0% strict exact-string baseline (77/100 in 1,149.7s); 87.0% under SymPy algebraic equivalence; 69.6% accuracy on Level 5 competition problems.
+  4. **Timeout Disproval & Miss Taxonomy:** Rigorous physical execution log audit verified 0 container timeouts (0.19s mean container execution time), disproving timeout speculation. The 23 baseline misses were formally categorized into SymPy runtime exceptions (7), notation/spacing formatting variations (7), base subscripts (3), prose extraction slips (3), and genuine CAS algebraic limits (3).
+  5. **Phased Clawback Methodology:** Mandates strict variable isolation: (A) frozen v1.2 baseline on 400 held-out problems, (B) 2-turn execution feedback loop alone at 16K, (C) 32K context scaling under dedicated compute mode (`Disp.A: Off`), and (D) paired McNemar contingency testing via uniform post-run SymPy rescorer (`scripts/rescore_with_sympy.py`).
+- **Status:** Ratified & Enforced (`scripts/run_modern_2024_benchmarks.py`, `scripts/rescore_with_sympy.py`).

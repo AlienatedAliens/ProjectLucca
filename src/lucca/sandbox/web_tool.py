@@ -24,7 +24,6 @@ except Exception as exc:
     logger.debug("truststore_injection_failed", error=str(exc))
 
 from lucca.core.exceptions import SandboxPathError
-from lucca.sandbox.search_tool import search_web
 
 MAX_URL_LEN: int = 2048
 MAX_QUERY_LEN: int = 1024

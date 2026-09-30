@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Context Expansion to 32K (`ctx=32768`):**
   - Expanded resident KV-cache context window from 16,384 to **32,768 tokens (32K)** in `src/lucca/core/config.py` and `llama-server` runtime.
-  - Offloaded Windows desktop display to integrated AMD Radeon 610M iGPU, placing the mobile NVIDIA GeForce RTX 5080 Laptop GPU into dedicated compute mode (`Disp.A: Off`).
+  - Offloaded Windows desktop display to integrated Intel(R) Graphics iGPU (Intel Core Ultra 9 275HX), placing the mobile NVIDIA GeForce RTX 5080 Laptop GPU into dedicated compute mode (`Disp.A: Off`).
   - Verified physical VRAM telemetry via `nvidia-smi`: **9.97 GiB (10,212 MiB)** allocated under 32K context with FlashAttention-2, leaving **5.95 GiB (6,091 MiB / 37.4%)** free physical VRAM headroom with zero layers spilling to system RAM.
 - **Interactive 2-Turn Execution Feedback Loop (Traceback Self-Correction):**
   - Upgraded Docker CAS and PAL execution harnesses (`scripts/run_modern_2024_benchmarks.py`) with an autonomous REPL error recovery loop.
@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SymPy Algebraic Equivalence & Base Normalization Engine:**
   - Added `clean_latex_for_sympy` and upgraded `compare_math_results` to evaluate symbolic difference equivalence (`sympy.simplify(pred - exp) == 0`).
   - Normalized LaTeX set representations (`\pm`), trigonometry identities (`\cot x \equiv 1/\tan x`), and positional base subscripts (`52_8 \equiv 52`).
+- **Visual Pipeline Debugger & Forensic Trace Architecture (`Spec 32`):**
+  - Built real-time, non-simulated cascade visual debugger (`ui/pipeline_debugger/index.html`) and HTTP telemetry server (`scripts/serve_pipeline_debugger.py` on port 8765).
+  - Implemented monotonic nanosecond span tracing across all 9 cascade tanks (`src/lucca/core/pipeline_tracer.py`).
+  - Added append-only forensic trace logging (`logs/telemetry/flow_traces.jsonl`) supporting instant visual bug triage, error line highlighting, and expected vs predicted diffs.
+  - Added progressive atomic JSON checkpointing (`checkpoint_math500_*.json`) and `--resume` support to benchmark runners.
 - **Frozen Baseline Isolation (`v1.2.0-baseline`):**
   - Archived all 7 canonical 16K benchmark evaluation logs into `logs/test_reports/frozen_v1.2_baseline/` and tagged git commit `37fde25` as `v1.2.0-baseline` to guarantee historical data immutability under the Zero-Estimate Principle.
   - Tagged all subsequent benchmark evaluations with version (`1.3.0`) and context size (`32768`).

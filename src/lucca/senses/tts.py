@@ -67,8 +67,8 @@ def get_available_voices() -> list[str]:
     voices_path = Path(r"C:\ProjectLucca\models\tts\voices-v1.0.bin")
     if voices_path.exists():
         try:
-            data = np.load(str(voices_path))
-            return sorted(list(data.files) + list(VOICE_RECIPES.keys()))
+            with np.load(str(voices_path)) as data:
+                return sorted(list(data.files) + list(VOICE_RECIPES.keys()))
         except Exception as exc:  # noqa: BLE001
             logger.debug("voices_bin_load_failed", error=str(exc))
     # Full canonical list of 54 Kokoro-82M voices

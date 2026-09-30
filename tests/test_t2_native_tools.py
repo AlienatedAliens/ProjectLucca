@@ -254,3 +254,35 @@ def test_sys_info_execution_latency_and_untrusted_stamp(sandbox_service: Sandbox
     with pytest.raises(ProvenanceRejected) as exc_info:
         gate.admit(signed)
     assert "not memory eligible" in str(exc_info.value).lower()
+
+
+def test_calc_math_arithmetic_and_boolean_logic(sandbox_service: SandboxService) -> None:
+    """calc_math evaluates scalar arithmetic, boolean expressions, and safe comparisons."""
+    # 1. Arithmetic
+    res = sandbox_service.execute_tool(call_id="c1", tool_name="calc_math", args={"expr": "1982 - 1917"})
+    assert res.ok is True
+    assert res.content == "65"
+    assert res.structured["result"] == 65
+
+    # 2. Boolean unary negation chain
+    res = sandbox_service.execute_tool(call_id="c2", tool_name="calc_math", args={"expr": "not not not not not not not False"})
+    assert res.ok is True
+    assert res.content == "True"
+    assert res.structured["result"] is True
+
+    # 3. Boolean compound operations
+    res = sandbox_service.execute_tool(call_id="c3", tool_name="calc_math", args={"expr": "True and not (False or False)"})
+    assert res.ok is True
+    assert res.content == "True"
+    assert res.structured["result"] is True
+
+    # 4. Comparisons
+    res = sandbox_service.execute_tool(call_id="c4", tool_name="calc_math", args={"expr": "5 * 10 >= 50"})
+    assert res.ok is True
+    assert res.content == "True"
+    assert res.structured["result"] is True
+
+    # 5. Unsafe node rejected
+    res = sandbox_service.execute_tool(call_id="c5", tool_name="calc_math", args={"expr": "__import__('os').system('ls')"})
+    assert res.ok is False
+

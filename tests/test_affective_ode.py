@@ -205,3 +205,76 @@ def test_tts_prosody_steering():
     assert speed_low == 0.94  # 1.0 - 0.6 * 0.10
     pitch_low = machine.get_tts_pitch_shift_semitones(now=2.0)
     assert pitch_low == -0.30  # 0.3 * -0.4 + 0.3 * -0.6 = -0.30
+
+
+def test_expanded_8_octant_stances_and_signals():
+    """Verifies that all new 8-octant stances and appraisal signals quantize accurately."""
+    machine = AffectiveODEMachine(now=0.0)
+
+    # Test new stance vector quantization
+    octant_vectors = [
+        (0.45, 0.50, 0.40, DiscreteStance.PLAYFUL_TEASING),
+        (0.65, 0.60, -0.15, DiscreteStance.EUREKA_WONDER),
+        (0.35, -0.45, -0.25, DiscreteStance.INTIMATE_WHISPER),
+        (-0.65, 0.70, 0.55, DiscreteStance.RIGHTEOUS_ANGER),
+        (-0.35, 0.40, 0.65, DiscreteStance.DEFIANT_STUBBORN),
+        (-0.50, 0.75, -0.50, DiscreteStance.SYSTEM_ALARM),
+        (-0.65, -0.10, 0.35, DiscreteStance.VISCERAL_DISGUST),
+        (-0.70, -0.55, -0.55, DiscreteStance.GRIEF_DEJECTION),
+    ]
+
+    for p, a, d, expected in octant_vectors:
+        st = AffectState3D(pleasure=p, arousal=a, dominance=d)
+        stance = machine.quantize_stance(st, current_stance=None)
+        assert stance == expected, f"Vector ({p}, {a}, {d}) expected {expected}, got {stance}"
+
+    # Test applying new appraisal signals
+    # 1. Prompt Injection -> negative pleasure, high arousal, high dominance (Righteous Anger / Disgust)
+    machine_inj = AffectiveODEMachine(now=0.0)
+    st_inj = machine_inj.apply_signal(AffectSignal3D.PROMPT_INJECTION, now=0.0)
+    assert st_inj.pleasure < -0.40
+    assert st_inj.arousal > 0.45
+    assert st_inj.dominance > 0.35
+
+    # 2. Hardware Alarm -> negative pleasure, extreme arousal, submissive (System Alarm)
+    machine_alarm = AffectiveODEMachine(now=0.0)
+    st_alarm = machine_alarm.apply_signal(AffectSignal3D.HARDWARE_ALARM, now=0.0)
+    assert st_alarm.arousal > 0.60
+    assert st_alarm.dominance < -0.40
+
+    # 3. Eureka Discovery -> high pleasure, high arousal (Eureka Wonder)
+    machine_eureka = AffectiveODEMachine(now=0.0)
+    st_eureka = machine_eureka.apply_signal(AffectSignal3D.EUREKA_DISCOVERY, now=0.0)
+    assert st_eureka.pleasure > 0.40
+    assert st_eureka.arousal > 0.40
+
+
+def test_vocal_acoustic_latents_mapping():
+    """Verifies continuous acoustic latents modulation across extreme affective states."""
+    machine = AffectiveODEMachine(now=0.0)
+
+    # 1. High dominance & high arousal (Righteous Anger / Tsundere indignation)
+    machine.state.pleasure = -0.65
+    machine.state.arousal = 0.70
+    machine.state.dominance = 0.60
+    machine.state.active_stance = DiscreteStance.RIGHTEOUS_ANGER
+    latents = machine.get_vocal_acoustic_latents(now=0.0)
+
+    assert latents["pitch_shift_semitones"] > 0.30
+    assert latents["speed_multiplier"] > 1.10
+    assert latents["energy_variance"] > 1.15
+    assert latents["breathiness"] <= 0.10
+    assert "indignant" in str(latents["emotion_instruction"])
+
+    # 2. Low dominance & low arousal (Intimate whisper)
+    machine.state.pleasure = 0.35
+    machine.state.arousal = -0.45
+    machine.state.dominance = -0.25
+    machine.state.active_stance = DiscreteStance.INTIMATE_WHISPER
+    latents_whisper = machine.get_vocal_acoustic_latents(now=0.0)
+
+    assert latents_whisper["pitch_shift_semitones"] < 0.0
+    assert latents_whisper["speed_multiplier"] < 1.0
+    assert latents_whisper["breathiness"] >= 0.10
+    assert "whisper" in str(latents_whisper["emotion_instruction"])
+

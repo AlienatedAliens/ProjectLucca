@@ -37,7 +37,6 @@ from lucca.sandbox.schemas import (
     TOOL_ARG_SCHEMAS,
     ArtifactVerifyArgs,
     CalcMathArgs,
-    ClipboardReadArgs,
     FetchUrlArgs,
     InboxHandoffArgs,
     LaunchAppArgs,

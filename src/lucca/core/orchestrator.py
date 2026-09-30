@@ -2667,10 +2667,10 @@ class Orchestrator:
                                 scratchpad_buffer.add_user_directive(sanity_res.directive)
 
                 # WO-11.2: G1+G6 unified honesty & register nudge (D-HON-01)
-                # If any tool failed in this round, inject honesty directive
-                # instructing the model to state the failure plainly, forbid
-                # guessing/fabrication (especially numbers), and bar celebration/confidence
-                # register.
+                # Tank 6b Self-Correction Loop: If a computational code tool failed
+                # with a traceback and rounds remain, inject an execution feedback directive
+                # allowing autonomous self-debug. On final round or non-code failure, inject
+                # the honesty directive barring fabrication.
                 if round_failed_tools:
                     failed_names = ", ".join(dict.fromkeys(round_failed_tools))
                     logger.info(
@@ -2678,7 +2678,7 @@ class Orchestrator:
                         round_num=round_num,
                         failed_tools=failed_names,
                     )
-                    scratchpad_buffer.add_user_directive(
+                    honesty_text = (
                         f"[Honesty Directive: A tool you called this turn failed "
                         f"({failed_names}). State the failure plainly. Never guess, "
                         "estimate, or fabricate the result the tool was supposed to "
@@ -2689,6 +2689,20 @@ class Orchestrator:
                         "chain-of-thought derivation clearly labeled as an analytical "
                         "derivation rather than claiming tool execution.]"
                     )
+                    if (
+                        round_num < max_rounds
+                        and any(t in ("run_python", "bash", "execute_code") for t in round_failed_tools)
+                    ):
+                        logger.info(
+                            "tool_failure_feedback_loop_injected",
+                            round_num=round_num,
+                            failed_tools=failed_names,
+                        )
+                        honesty_text += (
+                            f"\n[Execution Feedback Loop: Tool '{failed_names}' produced an execution error or traceback. "
+                            f"Diagnose the error, fix the syntax/logic/attribute mistake, and re-call the tool to verify the result.]"
+                        )
+                    scratchpad_buffer.add_user_directive(honesty_text)
 
                 if not round_tool_called:
                     # Anti-stalling check:

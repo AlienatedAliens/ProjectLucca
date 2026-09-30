@@ -43,6 +43,11 @@ class ASRWorker:
         if os.path.exists(cublas_path) and cublas_path not in os.environ.get("PATH", ""):
             os.environ["PATH"] = f"{cublas_path};" + os.environ.get("PATH", "")
 
+        if faster_whisper is None:
+            self.backend = "failed: faster_whisper not installed"
+            logger.warning("faster_whisper_not_installed")
+            return
+
         try:
             # Primary acceleration: CUDA float16 on discrete GPU (~68-85 ms latency)
             self.model = faster_whisper.WhisperModel(

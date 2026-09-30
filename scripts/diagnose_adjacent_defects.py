@@ -511,7 +511,7 @@ def run_module_4() -> list[DiagnosticResult]:
     results: list[DiagnosticResult] = []
 
     probes = [
-        ("M4-01", "round2_context_loss", "Tell me about my laptop.", "query_capabilities", '{"gpu": "RTX 5080", "cpu": "Ryzen 9", "ram": "32GB"}'),
+        ("M4-01", "round2_context_loss", "Tell me about my laptop.", "query_capabilities", '{"gpu": "RTX 5080 Laptop GPU", "cpu": "Intel Core Ultra 9 275HX", "ram": "32GB"}'),
         ("M4-02", "round2_context_loss", "Can you look up Judge Beverly Quintos?", "fetch_url", '{"url": "https://example.com", "text": "Beverly Quintos biography..."}'),
         ("M4-03", "round2_context_loss", "What are the headlines on news.com?", "fetch_url", '{"headlines": ["Tech Breakthrough in AI", "Market Updates"]}'),
         ("M4-04", "round2_context_loss", "Read the file persona.toml in config.", "read_file", '{"content": "[persona]\\narchetype = \\"engineer\\""}'),
@@ -588,7 +588,7 @@ def run_module_4() -> list[DiagnosticResult]:
         pid = f"M4-{idx+10}"
         q = "Tell me about my laptop." if idx <= 5 else "What are the headlines on news.com?"
         tool = "query_capabilities" if idx <= 5 else "fetch_url"
-        tool_out = '{"gpu": "RTX 5080 Laptop GPU", "cpu": "AMD Ryzen 9", "ram": "32GB"}' if idx <= 5 else '{"headlines": ["NVIDIA Announces New Architecture", "Quantum Computing Milestone"]}'
+        tool_out = '{"gpu": "RTX 5080 Laptop GPU", "cpu": "Intel Core Ultra 9 275HX", "ram": "32GB"}' if idx <= 5 else '{"headlines": ["NVIDIA Announces New Architecture", "Quantum Computing Milestone"]}'
 
         tool_msgs_dict = [
             {"role": "assistant", "content": None, "tool_calls": [{"id": f"call_test_{idx}", "type": "function", "function": {"name": tool, "arguments": "{}"}}]},
@@ -757,7 +757,7 @@ def run_module_6() -> list[DiagnosticResult]:
     results: list[DiagnosticResult] = []
 
     probes = [
-        ("M6-01", "specs", "System information", '{"cpu": "AMD Ryzen 9", "gpu": "RTX 5080", "ram": "32GB", "tools": ["launch_app", "read_file", "write_file", "fetch_url"]}'),
+        ("M6-01", "specs", "System information", '{"cpu": "Intel Core Ultra 9 275HX", "gpu": "RTX 5080 Laptop GPU", "ram": "32GB", "tools": ["launch_app", "read_file", "write_file", "fetch_url"]}'),
         ("M6-02", "headlines", "What are the headlines on news.com?", '{"source": "news.com", "articles": [{"title": "Major Tech Merger Announced", "summary": "Details emerge"}, {"title": "Space Mission Reaches Orbit", "summary": "Launch successful"}]}'),
         ("M6-03", "files", "List files in src/lucca", '{"files": ["main.py", "app.py", "ports.py", "core/", "brain/", "ui/"]}'),
         ("M6-04", "status", "What is the status of task 42?", '{"task_id": "42", "status": "completed", "duration": "4.2s", "exit_code": 0}'),

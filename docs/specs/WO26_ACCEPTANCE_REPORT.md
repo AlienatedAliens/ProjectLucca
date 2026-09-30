@@ -7,7 +7,7 @@
 **Seed:** 42  
 **Temperature:** 0.0  
 **Context Window:** 16,384 tokens (resident KV cache Q8_0)  
-**Host Environment:** Mobile Workstation (NVIDIA RTX 5080 Laptop GPU, 16.0 GB VRAM, AMD Ryzen 9 9945HX, Docker CE in WSL2)  
+**Host Environment:** Mobile Workstation (NVIDIA RTX 5080 Laptop GPU, 16.0 GB GDDR7 VRAM, Intel Core Ultra 9 275HX CPU, Intel AI Boost NPU, Intel Graphics iGPU, Docker CE in WSL2)  
 **CI Invariant Status:** 100% PASSED (Standalone runner `scripts/run_wo26_acceptance_battery.py` exit code 0)  
 
 ---

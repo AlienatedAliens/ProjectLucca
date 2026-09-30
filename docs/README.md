@@ -1,8 +1,8 @@
 # Project Lucca — Documentation Master Index & System Truth
 
 **Version:** 2.0.0  
-**Updated:** September 24, 2026  
-**Git Baseline:** Project Lucca v1.0.0 Production Release (`master`)
+**Updated:** September 30, 2026  
+**Git Baseline:** Project Lucca v1.3.0 Production Release (`master`)
 
 ---
 
@@ -44,6 +44,7 @@ The following documents form the **authoritative, active documentation corpus** 
 | [`docs/DECISIONS.md`](./DECISIONS.md) | **Canonical Decisions Register**: All 27 ratified decisions (`D-AUD-01` through `D-META-01`) with implementation statuses, code citations, and test links. |
 | [`docs/MODEL_STRATEGY.md`](./MODEL_STRATEGY.md) | **Model Strategy & Inference Specification**: Gemma-4-12B-Heretic Q6_K deployment on RTX 5080 Laptop GPU (12.5 GB resident VRAM clamp), Prompt Frontier Suffix KV-cache optimization ($8.58\times$ prefill speedup), and Dimension 7B output supervision. |
 | [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./USER_GUIDE_WHAT_LUCCA_DOES.md) | **End-to-End User Guide**: Capabilities overview, quickstart instructions, 24 native tools, 15 active rules, Rung A1 autobiographical memory, honest abstention procedures, and the 12-step verification battery. |
+| [`docs/specs/COMPOUND_REASONING_100_SPEC.md`](./specs/COMPOUND_REASONING_100_SPEC.md) | **Compound Reasoning 100-Problem Benchmark (`SPEC-BENCH-100-v1.0`)**: 10 cognitive domains (kinematics, logic grids, algebra, epistemics) evaluated end-to-end. |
 | [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) | **Studio Capability Roadmap**: Tool Studio & LISP Studio taxonomy, Class A/B/C safety gates, ≤24 tool registry cap, 30 active rule cap, and the capability progression ladder. |
 | [`docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](./specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) | **Autobiographical Memory Specification**: Recovered companion goals, Rung A1 self-model, `ASSISTANT_ACTION` vs `ASSISTANT_UTTERANCE` provenance split, and evidence-gated belief revisions. |
 | [`docs/adr/0009_audio_concurrency_contract.md`](./adr/0009_audio_concurrency_contract.md) | **Audio Concurrency Contract**: Shared-memory ring buffer concurrency, push-to-talk state transitions, and sub-50ms barge-in abort mechanics. |
@@ -96,3 +97,5 @@ Every active document aligns with the following ground-truth facts verified in c
    - 671 non-hardware regression tests passing (100% green).
    - C1 split-conformal abstention acceptance gate passing (Wilson LB $\ge 0.80$).
    - A1 live hardware introspective accuracy passing (50 self-questions battery).
+   - **Track 1 (`SPEC-BENCH-100-v1.0`)**: 91.0% pass rate, 100.0% path policy compliance, 100.0% epistemic faithfulness, 100.0% tool recovery.
+   - **Track 2 (Standard Academic Suite)**: GSM8K PAL 100.0%, Canonical HumanEval 164 tasks 95.73% pass@1, Big-Bench Hard (Full 1,000 Tasks) 92.40% (924/1,000): Boolean 99.2%, Geometry 84.0%, Tracking 100.0%, Dyck 86.4%.

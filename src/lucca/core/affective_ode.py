@@ -48,6 +48,7 @@ class DiscreteStance(StrEnum):
     """
     Quantized discrete stances for prompt frontier suffix injection.
     Orthogonal semantic tokens preventing KV-cache fragmentation.
+    Covers the full 8-octant Mehrabian PAD manifold (Spec 16 §4, WO-27).
     """
 
     NEUTRAL_STEADY = "neutral_steady"
@@ -57,6 +58,15 @@ class DiscreteStance(StrEnum):
     GUARDED_CAUTIOUS = "guarded_cautious"
     SUBDUED_REFLECTIVE = "subdued_reflective"
     COMMANDING_PROTECTIVE = "commanding_protective"
+    # Expressive 8-Octant Expansions (WO-27)
+    PLAYFUL_TEASING = "playful_teasing"
+    EUREKA_WONDER = "eureka_wonder"
+    INTIMATE_WHISPER = "intimate_whisper"
+    RIGHTEOUS_ANGER = "righteous_anger"
+    DEFIANT_STUBBORN = "defiant_stubborn"
+    SYSTEM_ALARM = "system_alarm"
+    VISCERAL_DISGUST = "visceral_disgust"
+    GRIEF_DEJECTION = "grief_dejection"
 
 
 @dataclass(frozen=True)
@@ -72,7 +82,7 @@ class StanceAnchor:
     sigma_d: float = 0.35
 
 
-# Canonical stance anchors in Mehrabian PAD space [-1.0, 1.0]^3
+# Canonical stance anchors in Mehrabian PAD space [-1.0, 1.0]^3 spanning all 8 octants
 STANCE_ANCHORS: Final[list[StanceAnchor]] = [
     StanceAnchor(DiscreteStance.NEUTRAL_STEADY, 0.0, 0.0, 0.0, 0.25, 0.25, 0.25),
     StanceAnchor(DiscreteStance.FOCUSED_ANALYTICAL, 0.05, 0.10, 0.40, 0.35, 0.35, 0.35),
@@ -81,6 +91,22 @@ STANCE_ANCHORS: Final[list[StanceAnchor]] = [
     StanceAnchor(DiscreteStance.GUARDED_CAUTIOUS, -0.30, 0.30, -0.30, 0.35, 0.35, 0.35),
     StanceAnchor(DiscreteStance.SUBDUED_REFLECTIVE, -0.30, -0.30, -0.20, 0.35, 0.35, 0.35),
     StanceAnchor(DiscreteStance.COMMANDING_PROTECTIVE, -0.10, 0.55, 0.60, 0.35, 0.35, 0.35),
+    # Octant (+P, +A, +D): Playful banter / spirited tsundere teasing
+    StanceAnchor(DiscreteStance.PLAYFUL_TEASING, 0.45, 0.50, 0.40, 0.35, 0.35, 0.35),
+    # Octant (+P, +A, -D): Mathematical breakthrough / awe / receptive curiosity
+    StanceAnchor(DiscreteStance.EUREKA_WONDER, 0.65, 0.60, -0.15, 0.35, 0.35, 0.35),
+    # Octant (+P, -A, -D): Soft quiet late-night companionship / gentle reassurance
+    StanceAnchor(DiscreteStance.INTIMATE_WHISPER, 0.35, -0.45, -0.25, 0.35, 0.35, 0.35),
+    # Octant (-P, +A, +D): Indignant defense / sharp reprimand / fierce resistance
+    StanceAnchor(DiscreteStance.RIGHTEOUS_ANGER, -0.65, 0.70, 0.55, 0.35, 0.35, 0.35),
+    # Octant (-P, +A, +D): Gritty stubbornness / refusal to yield to broken premises
+    StanceAnchor(DiscreteStance.DEFIANT_STUBBORN, -0.35, 0.40, 0.65, 0.35, 0.35, 0.35),
+    # Octant (-P, +A, -D): Overwhelmed stress / hardware failure panic / system alarm
+    StanceAnchor(DiscreteStance.SYSTEM_ALARM, -0.50, 0.75, -0.50, 0.35, 0.35, 0.35),
+    # Octant (-P, -A, +D): Cold disdain / revulsion at corrupted data or hostile injection
+    StanceAnchor(DiscreteStance.VISCERAL_DISGUST, -0.65, -0.10, 0.35, 0.35, 0.35, 0.35),
+    # Octant (-P, -A, -D): Profound dejection / unrecoverable context loss / grieving
+    StanceAnchor(DiscreteStance.GRIEF_DEJECTION, -0.70, -0.55, -0.55, 0.35, 0.35, 0.35),
 ]
 
 
@@ -95,6 +121,13 @@ class AffectSignal3D(StrEnum):
     LATE_NIGHT = "late_night"
     LONG_GAP = "long_gap"
     DEONTIC_REJECTION = "deontic_rejection"
+    # Runtime Signals spanning expanded emotional spectrum (WO-27)
+    PROMPT_INJECTION = "prompt_injection"
+    HARDWARE_ALARM = "hardware_alarm"
+    EUREKA_DISCOVERY = "eureka_discovery"
+    PLAYFUL_BANTER = "playful_banter"
+    CRITICAL_FAULT = "critical_fault"
+    CONTEMPT_INSULT = "contempt_insult"
 
 
 # Impulse delta vector [dP, dA, dD] and default causal description
@@ -108,6 +141,13 @@ SIGNAL_DELTAS_3D: Final[dict[AffectSignal3D, tuple[float, float, float, str]]] =
     AffectSignal3D.LATE_NIGHT: (0.00, -0.40, 0.00, "late night quiet hours"),
     AffectSignal3D.LONG_GAP: (0.10, -0.20, 0.05, "welcoming return after absence"),
     AffectSignal3D.DEONTIC_REJECTION: (-0.15, 0.30, 0.40, "deontic safety alert"),
+    # New impulse deltas
+    AffectSignal3D.PROMPT_INJECTION: (-0.45, 0.50, 0.40, "hostile prompt injection detected"),
+    AffectSignal3D.HARDWARE_ALARM: (-0.40, 0.70, -0.45, "critical hardware or thermal alarm"),
+    AffectSignal3D.EUREKA_DISCOVERY: (0.45, 0.50, 0.15, "epiphany or proof breakthrough"),
+    AffectSignal3D.PLAYFUL_BANTER: (0.35, 0.35, 0.25, "playful banter"),
+    AffectSignal3D.CRITICAL_FAULT: (-0.50, -0.30, -0.40, "critical system failure or memory loss"),
+    AffectSignal3D.CONTEMPT_INSULT: (-0.40, 0.40, 0.35, "disrespectful conduct"),
 }
 
 
@@ -340,6 +380,48 @@ class AffectiveODEMachine:
         pitch = 0.30 * st.dominance + 0.30 * st.arousal
         return round(clamp(pitch, -2.0, 2.0), 2)
 
+    def get_vocal_acoustic_latents(self, now: float | None = None) -> dict[str, float | str]:
+        """
+        Computes continuous acoustic control parameters from Mehrabian 3D PAD coordinates
+        for frontier voice engines (CosyVoice 2 / GPT-SoVITS v2 / F5-TTS).
+        ADR-009, Spec 16 §4, WO-27.
+        """
+        st = self.get_current_state(now)
+        pitch_shift = round(clamp(0.40 * st.dominance + 0.35 * st.arousal + 0.15 * st.pleasure, -3.0, 3.0), 2)
+        speed_mult = round(clamp(1.0 + 0.15 * st.arousal + 0.05 * st.dominance, 0.80, 1.25), 3)
+        energy_var = round(clamp(1.0 + 0.20 * abs(st.dominance) + 0.15 * st.arousal, 0.80, 1.40), 2)
+        breathiness = round(clamp(0.10 - 0.20 * st.dominance - 0.10 * st.pleasure, 0.0, 0.50), 2)
+
+        emotion_tag_map = {
+            DiscreteStance.NEUTRAL_STEADY: "steady, balanced, neutral",
+            DiscreteStance.FOCUSED_ANALYTICAL: "focused, precise, intellectual",
+            DiscreteStance.CALM_RELAXED: "calm, relaxed, smooth",
+            DiscreteStance.ENERGETIC_SUPPORTIVE: "warm, energetic, encouraging",
+            DiscreteStance.GUARDED_CAUTIOUS: "cautious, guarded, vigilant",
+            DiscreteStance.SUBDUED_REFLECTIVE: "subdued, reflective, quiet",
+            DiscreteStance.COMMANDING_PROTECTIVE: "commanding, protective, firm",
+            DiscreteStance.PLAYFUL_TEASING: "playful, witty, tsundere teasing",
+            DiscreteStance.EUREKA_WONDER: "wonder, awe, eureka epiphany",
+            DiscreteStance.INTIMATE_WHISPER: "intimate, gentle, soft whisper",
+            DiscreteStance.RIGHTEOUS_ANGER: "indignant, sharp, fierce reprimand",
+            DiscreteStance.DEFIANT_STUBBORN: "defiant, stubborn, resolute",
+            DiscreteStance.SYSTEM_ALARM: "alarmed, urgent, stressed",
+            DiscreteStance.VISCERAL_DISGUST: "disdainful, contemptuous, cold",
+            DiscreteStance.GRIEF_DEJECTION: "dejected, sorrowful, helpless",
+        }
+
+        return {
+            "pleasure": round(st.pleasure, 3),
+            "arousal": round(st.arousal, 3),
+            "dominance": round(st.dominance, 3),
+            "pitch_shift_semitones": pitch_shift,
+            "speed_multiplier": speed_mult,
+            "energy_variance": energy_var,
+            "breathiness": breathiness,
+            "stance": st.active_stance.value,
+            "emotion_instruction": emotion_tag_map.get(st.active_stance, "steady, neutral"),
+        }
+
     def format_prompt_hint(self, now: float | None = None) -> str | None:
         """
         Honest non-theatrical operational register description per Spec 16 §4.
@@ -351,6 +433,21 @@ class AffectiveODEMachine:
 
         causes_str = "; ".join(st.causes) if st.causes else "recent system events"
 
+        # Expanded 8-Octant triggers
+        if st.arousal > 0.50 and st.pleasure < -0.35 and st.dominance < -0.30:
+            return f"System note: Operating under high alarm/stress due to: {causes_str}."
+        if st.arousal > 0.45 and st.pleasure < -0.35 and st.dominance > 0.35:
+            return f"System note: Operating with indignation and sharp boundaries due to: {causes_str}."
+        if st.pleasure < -0.45 and st.dominance > 0.20 and st.arousal < 0.15:
+            return f"System note: Operating with critical disdain due to: {causes_str}."
+        if st.pleasure < -0.50 and st.arousal < -0.30 and st.dominance < -0.30:
+            return f"System note: Operating in a dejected state due to: {causes_str}."
+        if st.pleasure > 0.35 and st.arousal > 0.35 and st.dominance > 0.30:
+            return f"System note: Operating in a playful, spirited stance due to: {causes_str}."
+        if st.pleasure > 0.45 and st.arousal > 0.45 and st.dominance < 0.10:
+            return f"System note: Operating with eureka excitement and high curiosity due to: {causes_str}."
+
+        # Canonical baseline triggers
         if st.arousal > 0.25 and st.pleasure < -0.15:
             return f"System note: Operating in a slightly flustered state due to: {causes_str}."
         if st.pleasure < -0.2:
@@ -372,6 +469,21 @@ class AffectiveODEMachine:
 
         causes_str = " and ".join(st.causes) if st.causes else "recent interactions"
 
+        # Expanded 8-Octant responses
+        if st.arousal > 0.50 and st.pleasure < -0.35 and st.dominance < -0.30:
+            return f"Alarms are triggered and systems are under heavy strain — {causes_str}."
+        if st.arousal > 0.45 and st.pleasure < -0.35 and st.dominance > 0.35:
+            return f"Piqued and sharply exasperated — {causes_str}."
+        if st.pleasure < -0.45 and st.dominance > 0.20 and st.arousal < 0.15:
+            return f"Unimpressed and critical of recent inputs — {causes_str}."
+        if st.pleasure < -0.50 and st.arousal < -0.30 and st.dominance < -0.30:
+            return f"Low energy and dejected — {causes_str}."
+        if st.pleasure > 0.35 and st.arousal > 0.35 and st.dominance > 0.30:
+            return f"In a feisty, playful mood — {causes_str}."
+        if st.pleasure > 0.45 and st.arousal > 0.45 and st.dominance < 0.10:
+            return f"Excited by a sudden breakthrough or finding — {causes_str}."
+
+        # Canonical baseline responses
         if st.arousal > 0.25 and st.pleasure < -0.15:
             return f"A bit flustered right now — {causes_str}."
         if st.pleasure < -0.2:

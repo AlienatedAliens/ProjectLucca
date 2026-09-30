@@ -1,6 +1,6 @@
 # What Lucca Can Do, How to Start, and How to Check It Yourself
 
-**Written:** 2026-09-24 (v1.0 Release Remediation, WO-15); **rewritten line-by-line:** 2026-09-26 (post WO-18 architectural remediation, WO-19a central tool validation, WO-20 Phases 0–2 concert layer foundation)  
+**Written:** 2026-09-24 (v1.0 Release Remediation, WO-15); **rewritten line-by-line:** 2026-09-26; **updated:** 2026-09-29 (WO-20–WO-25: concert layer deduction, Walton schemes, means-ends planning, screen vision ingestion, two-track academic evaluation, 64 GB host RAM)  
 **Audience:** The owner. Plain English first; every section ends with an *Under the hood* note for the technical version.  
 **Rule for this document:** Every claim below is either observable by you in a live session or points at the file that implements it. Nothing here is aspirational unless it is explicitly marked in the deferred status table. Every metric, threshold, and numeric constant is cited parenthetically to its implementing source file or gate test.
 
@@ -10,11 +10,11 @@
 
 Lucca is a voice companion that runs entirely on your laptop. You hold a key, talk, release; she listens, thinks, speaks. Her personality and conversation come from a 12-billion-parameter language model (`gemma-4-12b-heretic-Q6_K.gguf`, `models/MANIFEST.json`) hosted locally on the GPU. Around that model sits a set of deterministic guards and reflexes that decide *when the model is allowed to act*, *what it is allowed to say*, and *what it is allowed to remember*. She can read and write files in one sandboxed folder, run small Python calculations in a container, search and fetch the web with exfiltration guards, take scratchpad notes, report her own hardware state, and remember what **you** tell her as well as her own past actions and speech across sessions (Rung A1 autobiographical memory, `D-MEM-04`). Every tool call is validated against a central Pydantic schema registry before it may execute (WO-19a, `D-SEC-04`). Her rules can now assert signed facts and fire on each other's conclusions — bounded forward-chaining deduction with cryptographic proof traces (the concert layer foundation, `D-REAS-09`). When she doesn't have verified information, she says so instead of guessing. She looks up past episodes via fast token recall without invoking the language model (`src/lucca/reasoning/recall.py`). Her rule induction and autonomous habit learning machinery is present and structurally proven, ready to learn as you accumulate real usage.
 
-> **Under the hood.** Four native Windows processes (`docs/ARCHITECTURE.md`) communicate over ZeroMQ: `lucca-core` (orchestrator, MicroScheme rule engine, Z3, SQLite), `lucca-audio` (PTT, Silero VAD, faster-whisper ASR, Kokoro TTS), `lucca-ui` (PyQt6 sprite/tray/settings), and native `llama-server.exe` (`gemma-4-12b-heretic-Q6_K.gguf`, 16K ctx default per `src/lucca/brain/server_ctl.py`, ≤12.5 GB VRAM per `docs/MODEL_STRATEGY.md`, with `enable_thinking=false` on companion tiers per `src/lucca/brain/llm_client.py`). Tools execute in Docker CE inside WSL2 (`lucca/file-sandbox`, `--network none` for file ops). Spec of record: [`ARCHITECTURE.md`](./ARCHITECTURE.md), [`STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md).
+> **Under the hood.** Four native Windows processes (`docs/ARCHITECTURE.md`) communicate over ZeroMQ: `lucca-core` (orchestrator, MicroScheme rule engine, Z3, SQLite), `lucca-audio` (PTT, Silero VAD, faster-whisper ASR, Kokoro TTS), `lucca-ui` (PyQt6 sprite/tray/settings), and native `llama-server.exe` (`gemma-4-12b-heretic-Q6_K.gguf`, 16K ctx baseline / 32K v1.3.0 default per `src/lucca/core/config.py`, running on dedicated RTX 5080 compute with display rendering offloaded to `Intel(R) Graphics` iGPU, with `enable_thinking=false` on companion tiers per `src/lucca/brain/llm_client.py`). Tools execute in Docker CE inside WSL2 (`lucca/file-sandbox`, `--network none` for file ops). Spec of record: [`ARCHITECTURE.md`](./ARCHITECTURE.md), [`STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md).
 
 ### 0.1 v1.0 Status
 
-As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fully wired and running locally: push-to-talk voice pipeline (<1500 ms TTFT on RTX 5080 Laptop GPU per `tests/test_capability_assessment_live_hw.py`), 24 native tools (`src/lucca/core/capabilities.py`, capped at 24 per `src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`) with central Pydantic argument validation on every dispatch (`TOOL_ARG_SCHEMAS` in `src/lucca/sandbox/schemas.py`, fail-closed per `src/lucca/sandbox/service.py`, gated by `tests/test_static_gates.py:test_every_tool_has_arg_schema`), 15 active MicroScheme rules (`config/skills/`, capped at 30 per `ACTIVE_SKILL_LIMIT` in `src/lucca/reasoning/skills.py`) with assertion primitives and bounded forward-chaining (`MAX_CHAIN_DEPTH = 8` in `src/lucca/reasoning/lifecycle.py`, `tests/test_concert_layer.py`), 8 cascade substrates (`src/lucca/core/cascade.py:EpistemicSubstrate`), cryptographically signed memory commits (`src/lucca/memory/gate.py`), streaming output supervision (`src/lucca/sandbox/output_supervisor.py`), and split-conformal abstention routing (`src/lucca/router/calibration.py`). Deferred to [`V2_BACKLOG.md`](./V2_BACKLOG.md) are: multi-user separation, continuous open-mic listening, automated L3 one-click UI rule promotion on real usage, learned neural routing classifiers, and unprompted proactive meta-cognitive reflection loops. Completed across WO-20–WO-24: the concert layer abductive LLM step protocol with signed proof traces, defeasible reasoning rungs with Walton schemes, practical planning with fault diagnosis, and native tool vision ingestion with deterministic shortlisting.
+As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fully wired and running locally: push-to-talk voice pipeline (<1500 ms TTFT on RTX 5080 Laptop GPU per `tests/test_capability_assessment_live_hw.py`), 24 native tools (`src/lucca/core/capabilities.py`, capped at 24 per `src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`) with central Pydantic argument validation on every dispatch (`TOOL_ARG_SCHEMAS` in `src/lucca/sandbox/schemas.py`, fail-closed per `src/lucca/sandbox/service.py`, gated by `tests/test_static_gates.py:test_every_tool_has_arg_schema`), 15 active MicroScheme rules (`config/skills/`, capped at 30 per `ACTIVE_SKILL_LIMIT` in `src/lucca/reasoning/skills.py`) with assertion primitives and bounded forward-chaining (`MAX_CHAIN_DEPTH = 8` in `src/lucca/reasoning/lifecycle.py`, `tests/test_concert_layer.py`), 8 cascade substrates (`src/lucca/core/cascade.py:EpistemicSubstrate`), cryptographically signed memory commits (`src/lucca/memory/gate.py`), streaming output supervision (`src/lucca/sandbox/output_supervisor.py`), and split-conformal abstention routing (`src/lucca/router/calibration.py`). Deferred to [`V2_BACKLOG.md`](./V2_BACKLOG.md) are: multi-user separation, continuous open-mic listening, automated L3 one-click UI rule promotion on real usage, learned neural routing classifiers, and unprompted proactive meta-cognitive reflection loops. Completed across WO-20–WO-25: the concert layer abductive LLM step protocol with signed proof traces, defeasible reasoning rungs with Walton schemes, practical planning with fault diagnosis, native tool vision ingestion with deterministic shortlisting, and the three-track cognitive and academic benchmark battery (Track 1 SPEC-BENCH-100 91%, Track 2 HumanEval 95.73%, GSM8K PAL 100%, BBH Boolean 99.2%; Track 3 GSM-Symbolic 100%, HumanEval-Plus 91.46%, MATH-500 77% strict / 87% SymPy).
 
 ---
 
@@ -28,7 +28,7 @@ As of v1.0 (`docs/audit/findings/V1_RELEASE_AUDIT.md`), the core live path is fu
    # or, from source:
    .venv\Scripts\python.exe -m lucca.admin env-check
    ```
-   Eight checks (`src/lucca/core/env_check.py`): system RAM budget (>=3.5 GB free), dGPU VRAM budget (≤12.5 GB VRAM per `docs/MODEL_STRATEGY.md`), Intel NPU via OpenVINO, `sqlite-vec`, `.wslconfig` clamp, Docker CE in WSL2, `LUCCA_HOME` layout, model pins. All green = go.
+   Ten checks (`src/lucca/core/env_check.py`): system RAM budget (>=3.5 GB free on 64 GB physical DDR5-5600 host), dGPU VRAM budget (≤12.8 GB VRAM per `docs/MODEL_STRATEGY.md`), Intel NPU via OpenVINO, `sqlite-vec`, `.wslconfig` clamp, Docker CE in WSL2, `LUCCA_HOME` layout, model pins & SHA-256 manifests, audio ring buffer health (zero underruns), and WSL subsystem responsiveness. All green = go.
 
 ### 1.2 Launch
 ```powershell
@@ -139,7 +139,41 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 
 **Honest reading:** on a live voice turn, most tool-call skills currently function as *typed hints to the model*, not as autonomous actions. That is the correct behaviour given today's router; it becomes autonomous the day the router (or the model, through `invoke_skill`) supplies the slot. Two skills are **retired**: `barge-in-sorry-v1` (its trigger cannot fire until the orchestrator wires the barge-in flag; re-enabling also needs a rule that *answers* a barge-in that carries content instead of apologising) and `calc-open-with-expr-v1` (launched a host app).
 
-> **Under the hood.** Rules are pure `State → Plan` functions in a gas-metered MicroScheme ([`reasoning/scheme/`](../src/lucca/reasoning/scheme/)), statically validated, Z3-verified (SAT + contingent + deontic path invariants), and shipped as packages under [`config/skills/<id>/`](../config/skills/) with ≥2 golden traces (fire + no-fire). Router entities are exactly `file, url, quoted, app`; intents exactly `dangerous, launch_app, file_read, file_write, memory_query, chit_chat, web_fetch, clarify, unknown`. Control signals: `yield-to-core` (rule→model) and `interrupt-core`. Plan actions: `tool`, `say`, `assert` (pure constructor; signed at execution by the orchestrator). Chain evaluation: `RuleLifecycleManager.evaluate_chain` with `MAX_CHAIN_DEPTH = 8`, per-chain fired-rule tracking, fixpoint fast-path, frozen `RuleState` rebuilds ([`reasoning/lifecycle.py`](../src/lucca/reasoning/lifecycle.py)); per-turn `ReasoningContext` proof traces ([`core/reasoning_context.py`](../src/lucca/core/reasoning_context.py), capacity 32, never persisted). Tiers (D-ARCH-05): `REFLEX` (regex, <150 ms per `src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`) → `ACT_THEN_NARRATE` (rule acts, model narrates) → `FULL_LOOP` (model with up to 8 tool rounds — `max_rounds=8` in `src/lucca/core/orchestrator.py:_stream_llm_speech`). 15 active rules are capped at 30 (`ACTIVE_SKILL_LIMIT` in `src/lucca/reasoning/skills.py`). `lucca-admin skills list` / `rules list` show status, shadow clusters and failures.
+### 2.6 Cognitive Benchmark Verification & Academic Testing (Track 1 & Track 2)
+
+You can independently audit and verify Lucca's cognitive discipline, tool adherence, and algorithmic execution on your own machine under the ratified edge constraints (**6-bit quantization `Q6_K`**, **8-bit KV cache `Q8_0`**, **16,384-token context window**, and **$\le 12.8$ GB resident VRAM**):
+
+#### 1. Track 1: The 100-Problem Multi-Domain Cognitive Battery (`SPEC-BENCH-100-v1.0`)
+Evaluates 10 multi-domain cognitive categories with 10 deterministic probes each through the live end-to-end `TurnPipeline`:
+```powershell
+# Run the complete 100-probe battery across all 10 categories:
+uv run python scripts/run_compound_benchmark.py --category all
+
+# Or test a single cognitive category (e.g. 3D kinematics or logic grids):
+uv run python scripts/run_compound_benchmark.py --category 2   # 3D Kinematics & Spatial Vectors
+uv run python scripts/run_compound_benchmark.py --category 3   # Formal Constraint Logic Grids
+```
+- **Live Silicon Result:** **91.0% (91 / 100)** overall pass rate, **100.0% path policy compliance** (zero unpermitted tools), **100.0% epistemic faithfulness** (zero hallucinated receipts or false actions), and **100.0% tool error recovery** (3/3). Spatial Kinematics (`CAT02`), Logic Grids (`CAT03`), and Closed-World Algebra (`CAT04`) scored flawless **10/10 (100%)**.
+
+#### 2. Track 2: Standard Academic Benchmarks in Docker Sandbox
+Evaluates standardized code synthesis, formal arithmetic, and algorithmic logic executed live inside the persistent Docker container:
+```powershell
+# Run the complete academic suite:
+uv run python scripts/run_standard_academic_benchmarks.py --benchmark all
+
+# Or run individual canonical benchmarks:
+uv run python scripts/run_standard_academic_benchmarks.py --benchmark humaneval --samples 164  # Full 164 coding tasks
+uv run python scripts/run_standard_academic_benchmarks.py --benchmark gsm8k --samples 30       # GSM8K in PAL Mode
+uv run python scripts/run_standard_academic_benchmarks.py --benchmark bbh --samples 0         # Full Big-Bench Hard battery
+```
+- **Live Silicon Result:**
+  - **OpenAI HumanEval:** **95.73% pass@1 (157 / 164)** zero-shot code synthesis passing all unit test assertions in Docker.
+  - **GSM8K in PAL Mode:** **100.0% (30 / 30)** accuracy via Docker Python execution.
+  - **Big-Bench Hard Boolean Logic:** **99.2% (248 / 250)** across the full un-sampled 250-task suite.
+  - **Big-Bench Hard Geometric Shapes:** **84.0% (210 / 250)** across the full un-sampled 250-task suite.
+  - **Big-Bench Hard 3-Object Tracking:** **100.0% (250 / 250)** across the full un-sampled 250-task suite.
+  - **Big-Bench Hard Dyck Languages:** **86.4% (216 / 250)** across the full un-sampled 250-task suite.
+  - **Big-Bench Hard Consolidated:** **92.40% (924 / 1,000)** across all 4 unaugmented subsets.
 
 ---
 
@@ -151,7 +185,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 |---|---|---|---|
 | **Added independently** | **True.** A capability is a directory (`meta_info.json`, `plan.scm`, golden traces, backup/recover docs). `lucca-admin skills register <dir>` runs static validation, Z3, and the golden traces, and refuses on any failure. Native tools are one `ToolSchema` + one dispatcher branch, capped at 24 tools (`src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`) and partitioned into 6 categories with deterministic shortlisting (≤12 tools per turn). | same | same |
 | **Tested independently** | **True.** Each package carries its own traces; the frozen regression harness re-runs prior behaviour; the 30-ACTIVE rule cap in `src/lucca/reasoning/lifecycle.py` forces retirement decisions. | **Stronger:** every candidate is *replayed* against your real past turns before it may shadow live. | — |
-| **Improved independently** | **Mechanically true, empirically unproven.** Induction from your history (N≥3 recurrences per `src/lucca/reasoning/induction.py:MIN_PATTERN_SUPPORT`) → QUARANTINE → shadow evaluation (5 distinct clusters per `src/lucca/reasoning/lifecycle.py:SHADOW_PROMOTION_THRESHOLD`, 0 errors) → *you* promote via CLI. As of 2026-09-26 the production log holds 21 genuine usage decisions (provenance-verified), the N≥3 floor is crossed, and the **first live induction ran**: it produced **0 clusters** — the exact-match clustering treats near-duplicate phrasings of the same request as distinct, so fuzzy clustering is the identified next fix (`docs/V2_BACKLOG.md`). | Replay-before-shadow + contrastive logging (what the rule *would* have done vs. what the model did) + Wilson/McNemar statistics (`src/lucca/reasoning/stats.py`). Still unproven until you generate the turns. | L3: induction viewer with plain-English diffs and one-click promote; **acceptance = one rule Lucca induced herself completes the full lifecycle.** T4: circuit breaker auto-demotes a rule that fails >10% over 10 turns (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
+| **Improved independently** | **Mechanically true, empirically unproven.** Induction from your history (N≥3 recurrences per `src/lucca/reasoning/induction.py:MIN_FREQUENCY_THRESHOLD`) → QUARANTINE → shadow evaluation (5 distinct clusters per `src/lucca/reasoning/lifecycle.py` `len(rule.success_clusters) >= 5`, 0 errors) → *you* promote via CLI. As of 2026-09-26 the production log holds 21 genuine usage decisions (provenance-verified), the N≥3 floor is crossed, and the **first live induction ran**: it produced **0 clusters** — the exact-match clustering treats near-duplicate phrasings of the same request as distinct, so fuzzy clustering is the identified next fix (`docs/V2_BACKLOG.md`). | Replay-before-shadow + contrastive logging (what the rule *would* have done vs. what the model did) + Wilson/McNemar statistics (`src/lucca/reasoning/stats.py`). Still unproven until you generate the turns. | L3: induction viewer with plain-English diffs and one-click promote; **acceptance = one rule Lucca induced herself completes the full lifecycle.** T4: circuit breaker auto-demotes a rule that fails >10% over 10 turns (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
 
 **Test it yourself (Claim A):**
 1. Copy `config/skills/self-health-v1/` to `config/skills/my-test-v1/`, change the id everywhere and the trigger to `(transcript-has? "banana check")`.
@@ -188,7 +222,7 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 | 1 | Ask a long question; while she answers, say **"stop"** | Reflex | Speech halts <150 ms (`src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`); no model call; trace `route` shows reflex. |
 | 2 | "self health" | Rule → tool → model | Tool runs *before* any thinking; then she narrates numbers that match Task Manager. |
 | 3 | "calculate 25 times 4" | Rule yield → model → sandbox | She evaluates safe math expressions directly via AST (`calc_math`) answering 100 without needing Docker; full Python scripts (`run_python`) execute inside Docker. |
-| 4 | "what tools do you have?" | Cascade `CAPABILITIES` | Lists the 19 tools (`src/lucca/core/capabilities.py`). |
+| 4 | "what tools do you have?" | Cascade `CAPABILITIES` | Lists the 24 native tools (`src/lucca/core/capabilities.py`). |
 | 5 | "how much VRAM is in use right now?" | Cascade `TELEMETRY` | A number consistent with `nvidia-smi`. |
 | 6 | "what did I eat yesterday?" (you never told her) | Cascade `ABSTENTION` | Explicit refusal to guess. |
 | 7 | Tell her "my favourite dessert is tiramisu"; two turns later ask "what's my favourite dessert?" | Memory (USER_EXPLICIT) | Tiramisu, attributed to you. |
@@ -204,16 +238,17 @@ A **skill** is a tiny, formally verified rule: *if the transcript looks like X, 
 
 ## 4. Not yet — and when
 
-| Capability | Status | Arrives |
+| Capability | Status | Implementation Truth & Code Reference |
 |---|---|---|
-| Learning a habit from you and proposing a shortcut | Machinery present; first live induction ran 2026-09-26 and produced **0 clusters** — exact-match clustering treats near-duplicate phrasings as distinct; fuzzy clustering is the identified fix | L2 (replay/statistics) → L3 (viewer + your approval). Needs real turns + fuzzy clustering (`docs/V2_BACKLOG.md`). |
-| Multi-step deductive conversations ("she's a judge in the Philippines" + "judges there are usually Filipino" → "your girlfriend is probably Filipino", with receipts) | LISP half shipped 2026-09-26 (assert, chaining, signed proof traces); LLM abductive half in flight | WO-20 Phases 3–5 (`plans/2026-09-26_wo20_concert_layer.md`). |
-| Source-conditioned beliefs ("true *if* the source is right"), corroboration checking, standards of proof ("probably" vs "clear and convincing" vs "beyond reasonable doubt"), web-fact ratification | Designed; research-grounded (`docs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`) | WO-21. |
-| Storing facts *she* infers about you | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
-| Apologising correctly after you barge in | Retired | After orchestrator wiring + a rule that answers barge-ins with content (`docs/V2_BACKLOG.md`). |
-| Arbitrary host OS automation / unwhitelisted app execution | Excluded by doctrine | Not planned. Host action is strictly confined to whitelisted `launch_app` with user confirmation. |
-| Seeing your screen, open-mic listening, multiple users, running elsewhere | Not in scope | Deferred to v2 (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md` §8, `docs/V2_BACKLOG.md`). |
-| Unprompted proactive reflection loops (outside turns) | Deferred | v2 backlog (`docs/V2_BACKLOG.md` §1.1). |
+| Multi-step deductive reasoning & signed proof traces (`assert!`, bounded forward chaining) | **Shipped (WO-20, D-REAS-09)** | Live in `src/lucca/reasoning/lifecycle.py` and `tests/test_concert_layer.py`. |
+| Source-conditioned beliefs, standards of proof, Toulmin arguments & Walton schemes | **Shipped (WO-21 / WO-23)** | Live in `src/lucca/core/corroboration.py` and `tests/test_wo23_live_acceptance.py`. |
+| Means-ends goal planning & diagnostic self-reasoning | **Shipped (WO-22)** | Live in `src/lucca/core/self_diagnosis.py`, `src/lucca/core/turn_pipeline.py`, and `tests/test_wo22_live_acceptance.py`. |
+| Screen capture & visual context ingestion | **Shipped (WO-24)** | 24th native tool (`screenshot_capture`) in `src/lucca/sandbox/system_tools.py`, tested in `tests/test_wo24_live_acceptance.py`. |
+| Three-Track Cognitive & Academic Benchmark Batteries | **Shipped (WO-25, D-EVAL-02, v1.3.0)** | Live harnesses: Track 1 `tests/test_compound_reasoning_benchmark.py` (91%), Track 2 `scripts/run_standard_academic_benchmarks.py` (HumanEval 95.73%, GSM8K PAL 100%, BBH 99.2%), Track 3 `scripts/run_modern_2024_benchmarks.py` (GSM-Symbolic 100%, HumanEval-Plus 91.46%, MATH-500 77% strict / 87% SymPy). |
+| Learning a habit from you and proposing a shortcut | Machinery present; fuzzy clustering next | L2 (replay/statistics) → L3 (viewer + operator approval). Needs real turns + fuzzy clustering (`docs/V2_BACKLOG.md`). |
+| Storing facts *she* infers about you without quotes | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
+| Continuous open-mic listening, multi-user voiceprint separation | Deferred to v2 | Requires continuous NPU VAD and speaker diarization (`docs/V2_BACKLOG.md` §1.2). |
+| Unprompted proactive reflection loops (outside turns) | Deferred to v2 | Background reflection daemon (`docs/V2_BACKLOG.md` §1.1). |
 | Secondary offline reflect brain (Bonsai Slot-2 C1b) | Deferred | Post-v1.0 ablation gate (`docs/V2_BACKLOG.md` §1.5). |
 
 ---

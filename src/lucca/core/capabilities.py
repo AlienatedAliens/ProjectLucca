@@ -152,7 +152,7 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "run_python": ToolSchema(
             name="run_python",
-            description="Execute deterministic Python code in an isolated sandbox",
+            description="Execute deterministic Python code in an isolated sandbox with numpy, scipy (scipy.spatial, scipy.integrate, scipy.optimize), sympy, and z3 installed. For 3D kinematics/navigation, use right-handed frames (North=+y, East=+x, Up=+z; 90° CW turn from North points East toward +x).",
             parameters={
                 "code": ToolParameter(
                     type="string", description="Python code to execute", required=True
@@ -357,8 +357,10 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         "calc_math": ToolSchema(
             name="calc_math",
             description=(
-                "Safely evaluate mathematical expressions and arithmetic "
-                "(e.g. '1982 - 1917', '53 * 72 / 4', 'abs(a - b)')."
+                "Safely evaluate basic mathematical expressions and scalar arithmetic "
+                "(e.g. '1982 - 1917', '53 * 72 / 4', 'sqrt(144)', 'abs(a - b)'). "
+                "Only standard scalar arithmetic is supported (no equations, variables, or 'solve for x'). "
+                "For equations, linear systems, intervals, algorithms, or custom logic, use run_python."
             ),
             parameters={
                 "expr": ToolParameter(

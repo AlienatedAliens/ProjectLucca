@@ -1,7 +1,7 @@
 # Lucca's Reasoning Capability — What We're Building and Why It's Different
 
-**Date:** 2026-09-27
-**Status:** WO-20, WO-21, WO-22 SHIPPED; WO-23 in flight
+**Date:** 2026-09-30  
+**Status:** WO-20 through WO-26 SHIPPED (Concert Layer, Walton Schemes, Practical Planning, Screen Vision Ingestion, Compound Reasoning 100 Benchmark, Cognitive Interiority)
 
 ---
 
@@ -51,12 +51,12 @@ flowchart LR
 | **Abduction** | Best explanation from evidence (judge + UTC+8 → Philippines) | **Live (WO-20)** | Committable as `INFERRED` with proof trace; direct evidence can supersede |
 | **Induction** | Specific → general; pattern learning (5 similar searches → a habit) | **Live (WO-21)** | Deterministic clustering & candidate rule generation |
 | **Epistemic** | Reasoning about what's known/unknown (Belnap T/F/B/⊥) | **Live** | The 8-substrate epistemic cascade |
-| **Defeasible** | Argument schemes & critical questions (Walton) | **Live (WO-21 / WO-23)** | Authority scheme live; extending to sign, analogy, consequence, precedent |
+| **Defeasible** | Argument schemes & critical questions (Walton) | **Live (WO-21 / WO-23)** | Authority, sign, analogy, consequence, precedent schemes live |
 | **Means-ends / planning** | Reasoning about action sequences to goals | **Live (WO-22)** | Bounded multi-step action planning with per-step receipts & aggregated narration |
 | **Diagnostic** | Self-reasoning over decision history & system faults | **Live (WO-22)** | Fault-model diagnosis over DecisionRecord FTS5 index |
 | **Counterfactual** | "What would have happened if…" | Partially | Shadow replay of rules |
 | **Common-sense** | Tacit world knowledge | LLM parametric | Unverified steps marked as inferred |
-| **Analogical** | Mapping structure across domains | WO-23 extending | Analogy scheme critical questions |
+| **Analogical** | Mapping structure across domains | **Live (WO-23)** | Analogy scheme critical questions |
 | **Causal** | X *causes* Y (vs correlation) | Interventional receipts only | Reasoning over own tool receipts |
 
 **The key distinction the concert layer draws:** deduction and abduction are both *enabled*, but they're treated differently by the honesty layer. Deductive conclusions (provable from verified rules) commit as facts. Abductive conclusions (best-guess explanations) commit as `INFERRED` — *marked* as deductions with confidence, never laundered into certainty, and always overruled by direct evidence later. She doesn't just reason; she *labels the kind of reasoning* every conclusion came from.

@@ -36,6 +36,13 @@ class AffectSignal(StrEnum):
     TASK_SUCCESS = "task_success"
     USER_CORRECTION = "user_correction"
     DEONTIC_REJECTION = "deontic_rejection"
+    # Expanded 8-Octant Signals (WO-27)
+    PROMPT_INJECTION = "prompt_injection"
+    HARDWARE_ALARM = "hardware_alarm"
+    EUREKA_DISCOVERY = "eureka_discovery"
+    PLAYFUL_BANTER = "playful_banter"
+    CRITICAL_FAULT = "critical_fault"
+    CONTEMPT_INSULT = "contempt_insult"
 
 
 SIGNAL_DELTAS: dict[AffectSignal, tuple[float, float, str]] = {
@@ -48,6 +55,12 @@ SIGNAL_DELTAS: dict[AffectSignal, tuple[float, float, str]] = {
     AffectSignal.TASK_SUCCESS: (0.2, 0.05, "task completed successfully"),
     AffectSignal.USER_CORRECTION: (-0.2, 0.1, "user correction"),
     AffectSignal.DEONTIC_REJECTION: (-0.15, 0.3, "deontic safety alert"),
+    AffectSignal.PROMPT_INJECTION: (-0.45, 0.50, "hostile prompt injection detected"),
+    AffectSignal.HARDWARE_ALARM: (-0.40, 0.70, "critical hardware or thermal alarm"),
+    AffectSignal.EUREKA_DISCOVERY: (0.45, 0.50, "epiphany or proof breakthrough"),
+    AffectSignal.PLAYFUL_BANTER: (0.35, 0.35, "playful banter"),
+    AffectSignal.CRITICAL_FAULT: (-0.50, -0.30, "critical system failure or memory loss"),
+    AffectSignal.CONTEMPT_INSULT: (-0.40, 0.40, "disrespectful conduct"),
 }
 
 SIGNAL_DELTAS_3D_EXT: dict[AffectSignal, tuple[float, float, float, str]] = {
@@ -59,6 +72,12 @@ SIGNAL_DELTAS_3D_EXT: dict[AffectSignal, tuple[float, float, float, str]] = {
     AffectSignal.TASK_SUCCESS: (0.20, 0.05, 0.20, "task completed successfully"),
     AffectSignal.USER_CORRECTION: (-0.20, 0.10, -0.15, "user correction"),
     AffectSignal.DEONTIC_REJECTION: (-0.15, 0.30, 0.40, "deontic safety alert"),
+    AffectSignal.PROMPT_INJECTION: (-0.45, 0.50, 0.40, "hostile prompt injection detected"),
+    AffectSignal.HARDWARE_ALARM: (-0.40, 0.70, -0.45, "critical hardware or thermal alarm"),
+    AffectSignal.EUREKA_DISCOVERY: (0.45, 0.50, 0.15, "epiphany or proof breakthrough"),
+    AffectSignal.PLAYFUL_BANTER: (0.35, 0.35, 0.25, "playful banter"),
+    AffectSignal.CRITICAL_FAULT: (-0.50, -0.30, -0.40, "critical system failure or memory loss"),
+    AffectSignal.CONTEMPT_INSULT: (-0.40, 0.40, 0.35, "disrespectful conduct"),
 }
 
 
@@ -293,6 +312,22 @@ class AffectTracker:
         if not self.enabled:
             return 0.0
         return self.ode_machine.get_tts_pitch_shift_semitones(now)
+
+    def get_vocal_acoustic_latents(self, now: float | None = None) -> dict[str, float | str]:
+        """Returns continuous acoustic control parameters for frontier voice engines (WO-27)."""
+        if not self.enabled:
+            return {
+                "pleasure": 0.0,
+                "arousal": 0.0,
+                "dominance": 0.0,
+                "pitch_shift_semitones": 0.0,
+                "speed_multiplier": 1.0,
+                "energy_variance": 1.0,
+                "breathiness": 0.10,
+                "stance": DiscreteStance.NEUTRAL_STEADY.value,
+                "emotion_instruction": "steady, balanced, neutral",
+            }
+        return self.ode_machine.get_vocal_acoustic_latents(now)
 
     def get_prompt_hint(self, now: float | None = None) -> str | None:
         if not self.enabled:

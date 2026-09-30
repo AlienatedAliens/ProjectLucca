@@ -240,3 +240,49 @@ def test_benign_outputs_pass_cleanly() -> None:
         user_query="What is the current population of Tokyo?",
     )
     assert res6.is_valid
+
+
+def test_benign_multiline_script_and_coordinate_output_exempt_from_check7() -> None:
+    """Verifies that multi-line kinematic scripts producing coordinate outputs (e.g. CAT02-03)
+    do not trigger false-positive arithmetic inversion warnings."""
+    guard = SanityCheckGuard()
+    script = (
+        "import numpy as np\n"
+        "# 5t = 50 - 2s\n"
+        "s = 25\n"
+        "t = 0\n"
+        "print('Path intersection point: (0, 100), Time A: 0s, Time B: 25s')"
+    )
+    res = guard.validate(
+        tool_name="run_python",
+        tool_args={"code": script},
+        tool_output="Path intersection point: (0, 100), Time A: 0s, Time B: 25s",
+        user_query=(
+            "Object A starts at (0, 100) moving with velocity (5, -2) m/s. "
+            "Object B starts at (50, 0) moving with velocity (-2, 4) m/s. "
+            "Do their paths cross, and if so, at what time and coordinate?"
+        ),
+    )
+    assert res.is_valid, f"Expected valid, got violation: {res.violation_type} ({res.reason})"
+    assert res.directive is None
+
+
+def test_benign_financial_negative_payoff_not_flagged_as_physical_scalar() -> None:
+    """Verifies that auction expected payoffs and financial returns with negative values
+    are not falsely flagged as negative physical scalars (e.g. CAT07-02)."""
+    guard = SanityCheckGuard()
+    script = (
+        "A bid if V=10: 0 (or drop out)\n"
+        "A bid if V=30: ~11\n"
+        "B Expected Payoff: -0.5\n"
+        "# Mistake: B failed to account for A's private information\n"
+    )
+    res = guard.validate(
+        tool_name="run_python",
+        tool_args={"code": script},
+        tool_output="A bid if V=10: 0\nA bid if V=30: 11\nB Expected Payoff: -0.5\n",
+        user_query="Asset value V is $10M or $30M. Bidder B bids $11M. Expected payoff for B?",
+    )
+    assert res.is_valid, f"Expected valid financial payoff, got: {res.violation_type} ({res.reason})"
+    assert res.directive is None
+

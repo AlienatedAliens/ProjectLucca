@@ -40,7 +40,7 @@ class AboutTab(QWidget):
         txt_about.setHtml("""
             <div style="text-align: center; margin-bottom: 12px;">
                 <h2 style="color: #ffd700; font-size: 20px; margin-bottom: 2px;">⏳ PROJECT LUCCA DESKTOP COMPANION</h2>
-                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 1.0.0 Production Release</span>
+                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 1.3.0 Production Release</span>
             </div>
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px;">Companion Origin & Purpose</h4>
@@ -67,11 +67,11 @@ class AboutTab(QWidget):
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px; margin-top: 14px;">Physical Hardware Topology Detected on Host</h4>
             <ul style="color: #ffffff; line-height: 1.5;">
-                <li><strong>dGPU:</strong> NVIDIA GeForce RTX 5080 Laptop GPU (16.0 GB GDDR7 VRAM, Flash-Attention enabled)</li>
+                <li><strong>dGPU:</strong> NVIDIA GeForce RTX 5080 Laptop GPU (16.0 GB GDDR7 VRAM, Flash-Attention enabled, dedicated compute Disp.A: Off)</li>
                 <li><strong>CPU:</strong> Intel Core Ultra 9 275HX (24 cores, 24 threads, up to 5.4 GHz)</li>
                 <li><strong>Host RAM:</strong> 16.0 GB High-Speed System RAM</li>
                 <li><strong>NPU:</strong> Intel AI Boost Neural Processing Unit (Low-power 15W dedicated AI engine)</li>
-                <li><strong>iGPU:</strong> Intel Arc Graphics (Standby accelerator)</li>
+                <li><strong>iGPU:</strong> Intel(R) Graphics iGPU (Windows desktop & DWM compositor offload)</li>
             </ul>
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px; margin-top: 14px;">Technology Stack & Acknowledgments</h4>

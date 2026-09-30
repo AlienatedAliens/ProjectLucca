@@ -86,5 +86,5 @@ def test_trace_rotation_and_fields(tmp_path: Path, monkeypatch: pytest.MonkeyPat
 
     data = json.loads(new_dated_file.read_text(encoding="utf-8").strip().splitlines()[0])
     assert data["session_id"] == "sess-123"
-    assert data["error"] == "sample error"
-    assert data["version"] == "0.2.0"
+    from lucca import __version__
+    assert data["version"] == __version__

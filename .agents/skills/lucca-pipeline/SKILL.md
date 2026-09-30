@@ -34,11 +34,11 @@ Run the validation suite; verify all gates pass. Synthetic data never satisfies 
 
 ## 4. Background services
 
-- **LLM (native Windows, D-BRAIN-05 — Mistral NeMo 12B Instruct Abliterated Q6_K):**
+- **LLM (native Windows, D-BRAIN-05 v2 — Gemma-4-12B-Heretic Q6_K):**
   ```powershell
-  & "C:\ProjectLucca\app\llama-server\llama-server.exe" --model "C:\ProjectLucca\models\llm\Mistral-Nemo-Instruct-2407-abliterated.Q6_K.gguf" --chat-template mistral-v3 --n-gpu-layers 99 --ctx-size 16384 --cache-type-k q8_0 --cache-type-v q8_0 --flash-attn --host 127.0.0.1 --port 8080 --no-webui
+  & "C:\ProjectLucca\app\llama-server\llama-server.exe" --model "C:\ProjectLucca\models\llm\gemma-4-12b-heretic-Q6_K.gguf" --n-gpu-layers 99 --ctx-size 32768 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn --host 127.0.0.1 --port 8080 --no-webui --jinja
   ```
-  Health: `curl http://127.0.0.1:8080/health`. Normally started by the supervisor (`uv run python -m lucca.main`); start manually only for development/benchmarks.
+  Health: `curl http://127.0.0.1:8080/health`. Default 32K context (`ctx=32768`) in v1.3.0 (16K context in v1.2 baseline). Normally started by the supervisor (`uv run python -m lucca.main`); start manually only for development/benchmarks.
 - **Alternative LLM (Ultravox Q6_K multimodal, D-AUD-05):**
   ```powershell
   & "C:\ProjectLucca\app\bin\llama-server.exe" --model "C:\ProjectLucca\models\llm\ultravox-v0_5-llama-3_1-8b-Q6_K.gguf" --mmproj "C:\ProjectLucca\models\llm\mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf" --n-gpu-layers 99 --ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0 --parallel 1 --flash-attn --host 127.0.0.1 --port 8080 --no-webui --jinja
