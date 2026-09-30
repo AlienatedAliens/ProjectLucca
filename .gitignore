@@ -80,6 +80,7 @@ docs/**/*.pdf
 
 # Local logs
 logs/*.log
+logs/*.wav
 
 # Ephemeral hardware test run reports
 logs/test_reports/rag_tier2_*.json

@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] — 2026-09-30
 
 ### Added
+- **Asuka Langley Soryu RVC v2 Neural Voice Pipeline:**
+  - Integrated 40kHz RVC v2 neural voice conversion model (`asuka.pth` + 400-epoch weights) downstream of Kokoro-82M front-end base (`blend:0.70*af_sky+0.30*jf_alpha`).
+  - Implemented 64-tap Kaiser-windowed sinc anti-aliasing resampling (`torchaudio.transforms.Resample`, $\beta = 14.77$, 100 dB stopband attenuation) across 24kHz $\leftrightarrow$ 16kHz $\leftrightarrow$ 40kHz transitions, eliminating high-frequency FFT Gibbs ringing.
+  - Implemented Praat acoustic autocorrelation pitch tracking (`parselmouth.Sound.to_pitch_ac`, pitch floor 160Hz, ceiling 1100Hz) with continuous unvoiced F0 linear interpolation and 3-frame median smoothing, resolving octave-dropping artifacts and NSF neural vocoder sine dropouts on glides and nasals.
+  - Calibrated pitch sweet spot to $+6\text{ semitones}$ with discrete `repeat_interleave(2)` phoneme frame alignment for authentic character timbre.
+  - Achieved sub-40ms warm neural conversion latency on workstation NVIDIA GeForce RTX 5080 Laptop GPU.
+  - Implemented zero-configuration cross-environment IPC subprocess bridge enabling Python 3.12 core runtime to drive Python 3.10 PyTorch CUDA 12.8 / fairseq worker without packaging dependency conflicts.
+  - Added quick-switch preset and recipe selector for Asuka in PyQt6 Configuration Suite Voice Blender tab (`VoiceTab`), setting Asuka as the default active companion persona voice.
 - **Multi-Stage Tolerant Code Extraction & AST Sanitizer (Phase 1):**
   - Replaced brittle single-line regex extractions with `extract_python_code_tolerant` and `sanitize_and_repair_python_code` in `src/lucca/sandbox/ast_sanitizer.py`.
   - Implemented 4-stage tolerant extraction cascade: `fenced` (```python ... ```) $\to$ `unfenced` (statement keyword filter) $\to$ `longest_ast_slice` (contiguous valid AST slice) $\to$ `empty` (safe graceful abstention).

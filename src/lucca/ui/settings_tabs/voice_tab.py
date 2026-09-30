@@ -59,13 +59,18 @@ class VoiceTab(QWidget):
         # Anime Preset Quick Bar
         grp_preset = QGroupBox("Quick-Switch Canonical Presets", self)
         h_pres = QHBoxLayout(grp_preset)
-        btn_anime_heroine = QPushButton("✨ Apply English Anime Heroine Preset", grp_preset)
+        btn_anime_heroine = QPushButton("✨ English Anime Heroine", grp_preset)
         btn_anime_heroine.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-weight: bold;")
         btn_anime_heroine.clicked.connect(self._apply_anime_heroine_preset)
         h_pres.addWidget(btn_anime_heroine)
 
+        btn_asuka = QPushButton("🔴 Asuka Langley Soryu (RVC v2)", grp_preset)
+        btn_asuka.setStyleSheet("color: #ff4d4f; font-weight: bold;")
+        btn_asuka.clicked.connect(self._apply_asuka_preset)
+        h_pres.addWidget(btn_asuka)
+
         lbl_pres_note = QLabel(
-            "Blends 70% af_bella + 30% af_sarah @ 1.20x speed with expressive punctuation.",
+            "Quick-switch between standard anime blend and Asuka RVC neural voice.",
             grp_preset,
         )
         lbl_pres_note.setStyleSheet("color: #a0aec0; font-size: 11px;")
@@ -103,7 +108,11 @@ class VoiceTab(QWidget):
         f_recipe = QFormLayout(self.panel_recipe)
         self.combo_recipe = QComboBox(self.panel_recipe)
         for r_name, r_formula in VOICE_RECIPES.items():
-            self.combo_recipe.addItem(f"{r_name.replace('_', ' ').title()} ({r_formula})", r_name)
+            if r_name == "asuka":
+                label = "🔴 Asuka Langley Soryu (RVC v2 Neural Voice @ +6st)"
+            else:
+                label = f"{r_name.replace('_', ' ').title()} ({r_formula})"
+            self.combo_recipe.addItem(label, r_name)
         f_recipe.addRow("Recipe Preset:", self.combo_recipe)
         layout.addWidget(self.panel_recipe)
 
@@ -229,6 +238,17 @@ class VoiceTab(QWidget):
             "Applied English Anime Heroine Preset (70% af_bella + 30% af_sarah @ 1.20x)."
         )
 
+    def _apply_asuka_preset(self) -> None:
+        self.rb_mode_recipe.setChecked(True)
+        idx_r = self.combo_recipe.findData("asuka")
+        if idx_r >= 0:
+            self.combo_recipe.setCurrentIndex(idx_r)
+        self.slider_speed.setValue(105)  # 1.05x speed
+        self.line_test_text.setText("Anta baka?! What took you so long to figure this out?")
+        self.lbl_voice_status.setText(
+            "Applied Asuka Langley Soryu Preset (RVC v2 + Kokoro 70% af_sky + 30% jf_alpha @ +6st)."
+        )
+
     def _sync_voice_mode_ui(self) -> None:
         self.panel_single.setVisible(self.rb_mode_single.isChecked())
         self.panel_recipe.setVisible(self.rb_mode_recipe.isChecked())
@@ -272,6 +292,17 @@ class VoiceTab(QWidget):
                 clean_voice = VOICE_ALIASES.get(voice, voice)
                 resolved = parse_voice_blend(engine, clean_voice)
                 samples, sr = engine.create(text, voice=resolved, speed=speed)
+
+                # If Asuka voice selected, run through Asuka RVC converter
+                if voice in ("asuka", "asuka_langley") or "asuka" in str(voice).lower():
+                    try:
+                        from lucca.speech.rvc.converter import get_asuka_converter
+
+                        conv = get_asuka_converter()
+                        samples = conv.convert(samples, orig_sr=sr, out_sr=sr)
+                    except Exception as rvc_exc:
+                        _LOG.debug("asuka_test_convert_failed: %s", rvc_exc)
+
                 sd.play(samples, sr)
                 sd.wait()
                 self.lbl_voice_status.setText("✓ Audio playback successful.")

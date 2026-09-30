@@ -22,6 +22,7 @@ logger = structlog.get_logger(__name__)
 
 # Canonical Anime English Voice Blend Recipes
 VOICE_RECIPES: Final[dict[str, str]] = {
+    "asuka": "blend:0.70*af_sky+0.30*jf_alpha",
     "genki_heroine": "blend:0.70*af_sky+0.30*jf_alpha",
     "anime_heroine_expressive": "blend:0.70*af_bella+0.30*af_sarah",
     "energetic_dub": "blend:0.60*af_bella+0.40*jf_gongitsune",
@@ -266,8 +267,20 @@ class TTSWorker:
             fallback_voice = self.resolve_voice_style("af_sarah")
             samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
 
+        # Apply Asuka RVC Neural Voice Conversion if active voice is asuka
+        is_asuka = raw_spec in ("asuka", "asuka_langley", "rvc:asuka") or "asuka" in str(raw_spec).lower()
+        if is_asuka:
+            try:
+                from lucca.speech.rvc.converter import get_asuka_converter
+
+                conv = get_asuka_converter()
+                samples_f32 = conv.convert(samples_f32, orig_sr=sr, out_sr=sr)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("asuka_rvc_convert_failed", error=str(exc))
+
         # Apply Anime Voice DSP Chain (D-AUD-16) post-engine.create, pre-int16
-        if self.dsp_chain and self.dsp_chain.config.enabled:
+        # Bypass DSP chain when Asuka RVC is active (preserves +6st calibrated timbre without double-pitching)
+        if not is_asuka and self.dsp_chain and self.dsp_chain.config.enabled:
             try:
                 samples_f32, sr = self.dsp_chain.apply_anime_dsp_chain(samples_f32, sr)
             except Exception as exc:  # noqa: BLE001
