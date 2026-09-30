@@ -352,14 +352,15 @@ def check_wsl_status() -> tuple[bool, str]:
             check=False,
         )
         if res.returncode == 0:
-            out_preview = res.stdout.strip().replace("\r\n", " ").replace("\n", " ")[:120]
-            msg = (
-                f"WSL is responsive: {out_preview}"
-                if out_preview
-                else "WSL is responsive (returncode 0)."
-            )
-            return True, msg
-        err_msg = res.stderr.strip() or res.stdout.strip()
+            raw_stdout = res.stdout if isinstance(res.stdout, str) else res.stdout.decode("utf-16", errors="replace")
+            # Filter null bytes if captured via text=True
+            clean_text = raw_stdout.replace("\x00", "")
+            lines = [l.strip() for l in clean_text.splitlines() if l.strip()]
+            summary_parts = [l for l in lines if "Default Distribution" in l or "Default Version" in l]
+            summary = " | ".join(summary_parts) if summary_parts else "Ubuntu (WSL2)"
+            return True, f"WSL2 is responsive: {summary}"
+        raw_err = res.stderr if isinstance(res.stderr, str) else res.stderr.decode("utf-16", errors="replace")
+        err_msg = (raw_err.strip() or "").replace("\x00", "")
         return False, f"WSL status check failed (exit {res.returncode}): {err_msg[:100]}"
     except subprocess.TimeoutExpired as e:
         logger.debug("check_wsl_status_timeout: %s", e)
