@@ -99,7 +99,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - 5 / 5 tests passed (100% accuracy).
   - Verified real-time Visual Pipeline Debugger at `http://127.0.0.1:8765` active with HTTP 200 OK.
 
+- **Full Big-Bench Hard (BBH) 27-Subset Evaluation Harness (`scripts/run_full_bbh.py`):**
+  - Built complete evaluation harness covering all 27 canonical BBH subsets (Suzgun et al., 2022), replacing the prior partial 4-subset run.
+  - Implemented per-subset answer extractors: BOOLEAN (true/false, yes/no, valid/invalid), OPTION_LETTER (`(X)` patterns), SEQUENCE (word sorting, case-insensitive normalized), NUMERIC (last integer in response).
+  - Annotated all 27 subsets into two evaluation tiers:
+    - **14 Algorithmic / Tool-Friendly:** `boolean_expressions`, `dyck_languages`, `logical_deduction_{3,5,7}`, `multistep_arithmetic_two`, `navigate`, `object_counting`, `temporal_sequences`, `tracking_shuffled_objects_{3,5,7}`, `web_of_lies`, `word_sorting`.
+    - **13 Language / Pure Semantic:** `causal_judgement`, `date_understanding`, `disambiguation_qa`, `formal_fallacies`, `geometric_shapes`, `hyperbaton`, `movie_recommendation`, `penguins_in_a_table`, `reasoning_about_colored_objects`, `ruin_names`, `salient_translation_error_detection`, `snarks`, `sports_understanding`.
+  - Checkpoint/resume per subset (`logs/test_reports/bbh_full_27_checkpoint.json`) for long-run safety.
+  - CLI flags: `--samples N`, `--mode algorithmic|language`, `--subsets <keys>`, `--no-resume`.
+  - Published external baseline anchored: Google DeepMind reported **53.0% BigBench Extra Hard** for Gemma 4 12B Unified (source: DeepMind tech report, June 2026).
+  - Downloaded all 23 missing BBH subset JSON files (6,481 total examples) into `data/benchmarks/`.
+
+- **Full GSM-Symbolic Evaluation Harness (`scripts/run_full_gsm_symbolic.py`):**
+  - Built full harness covering all 5 GSM-Symbolic variants with two evaluation modes each:
+    - **Variants:** `symbolic` (5,000), `p1` (5,000), `p2` (2,500), `noop` (945), `noop_filtered` (338).
+    - **Mode A — Bare CoT:** Apple's official 8-shot few-shot prompt template (`temperature=0.0`); documents the degradation curve on P1/P2 and the "symbolic slip" distractor-trap failure on NoOp variants.
+    - **Mode B — Compound PAL:** LLM writes Python, Docker sandbox executes; irrelevant NoOp clauses never assigned to variables → expected 0% distractor-trap degradation.
+  - Distractor-trap detection in CoT mode: flags responses that incorporate numbers from the injected irrelevant clause and produce a wrong answer.
+  - Checkpoint/resume per (variant × mode) combination.
+  - Final summary computes the NoOp immunity delta (PAL accuracy − CoT accuracy) — the paper's central empirical claim.
+  - Downloaded all GSM-Symbolic datasets: Apple `ml-gsm-symbolic` repo (symbolic/p1/p2) and `Experimental-Orange/gsm-noop-audited` on HuggingFace (noop/noop_filtered).
+
+- **Scientific Integrity Corrections (Research Papers):**
+  - Renamed "Big-Bench Hard (BBH) | 92.40% (924/1,000)" to "**BBH-4 Algorithmic Composite (4/27 subsets):** 92.40%" in both research papers to prevent reviewer misinterpretation of the partial result as a full 27-subset score.
+  - Added "BBH Full 27-Subset Suite (Pending)" row to comparative tables with DeepMind's published 53.0% BBEH baseline and `*(Run pending)*` for the Lucca compound score.
+  - Files corrected: `docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md` and `docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md`.
+
+### Changed
+- **Log Archive:** All 130+ ephemeral timestamped JSON benchmark run reports moved from `logs/test_reports/` root to `logs/test_reports/v1.3/`. Root now contains only permanent summary files and the baseline archive.
+- **Static Gates:** Test count expanded from 24 to **31** (added packaging tests in `tests/test_packaging.py`). All 31 pass in 21.53s as of commit `36f264d`.
+
 ---
+
 
 ## [1.2.0] — 2026-09-30
 
