@@ -1,0 +1,26 @@
+[
+  {
+    "index": 31,
+    "problem_idx": 31,
+    "predicted": "11*sqrt(2)",
+    "expected": "11\\sqrt2"
+  },
+  {
+    "index": 53,
+    "problem_idx": 53,
+    "predicted": "-pi/6",
+    "expected": "-\\frac{\\pi}{6}"
+  },
+  {
+    "index": 73,
+    "problem_idx": 73,
+    "predicted": "3*sqrt(3)/4",
+    "expected": "\\frac{3\\sqrt{3}}{4}"
+  },
+  {
+    "index": 74,
+    "problem_idx": 74,
+    "predicted": "1/tan(x)",
+    "expected": "\\cot x"
+  }
+]

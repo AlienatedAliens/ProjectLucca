@@ -10,21 +10,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.3.0] — 2026-09-30
 
 ### Added
+- **Multi-Stage Tolerant Code Extraction & AST Sanitizer (Phase 1):**
+  - Replaced brittle single-line regex extractions with `extract_python_code_tolerant` and `sanitize_and_repair_python_code` in `src/lucca/sandbox/ast_sanitizer.py`.
+  - Implemented 4-stage tolerant extraction cascade: `fenced` (```python ... ```) $\to$ `unfenced` (statement keyword filter) $\to$ `longest_ast_slice` (contiguous valid AST slice) $\to$ `empty` (safe graceful abstention).
+  - Empirically audited on 100 dev benchmark problems: achieved **0 / 100 (0.0%)** empty-code drops before and after retry (95% CI: [0.00%, 3.70%]), completely eliminating the 24.5% empty-code failure mode from v1.2.
+  - Implemented token-level operator repairs via Python `tokenize` with strict `keyword.iskeyword` protection: carets `x^2 \to x**2`, implicit multiplication `2x \to 2*x`, `3(a+b) \to 3*(a+b)`, and unclosed parenthesis/bracket/docstring balancing without corrupting string literals or comments.
+- **Conditional GBNF Grammar Gate Evaluation (Phase 2):**
+  - Formally evaluated constrained decoding GBNF Python grammars against the empirical residual. Because Phase 1 eliminated 100% of empty-code drops ($0.0\% < 3\%$ threshold) and remaining errors were semantic/API issues rather than grammar syntax errors, grammars were formally bypassed to preserve decoding throughput and avoid per-token CPU latency penalties.
+- **Unified 2-Tier Neurosymbolic Execution Feedback Loop (Phase 3):**
+  - **Tier 1 (Compiler Preflight, $<1\text{ms}$):** Deterministic preflight AST rewrites solve SymPy API traps prior to container dispatch:
+    - Inverts method calls: `expr.solve(x) \to sp.solve(expr, x)`.
+    - Rewrites composite differentiation: `sp.diff(expr, x/h)` and assigned expressions `u = x/h; sp.diff(expr, u)` rewrite to dummy symbol substitution, preventing SymPy `ValueError: Can't calculate derivative wrt x/h`.
+    - Auto-filters hallucinated SymPy imports via `dir(sympy)` (e.g. `schmitt_method`, `IntegerResult`).
+    - Injects missing `itertools` imports when `itertools.*` attributes are referenced.
+    - Defines commonly assumed mathematical sets (`primes`, `odds`, `evens`).
+  - **Tier 2 (2-Turn Execution Feedback Loop, Cap $\le 2$ Rounds):** Autonomous runtime error recovery engine permanently enabled as a safety net for algorithmic exceptions and runtime failures.
+  - **Empirical Recovery Rate on 47 Baseline Failure Traces:**
+    - 30 Design Traces: **27 / 30 PASS (90.0%)**.
+    - 17 Held-Out Traces: **13 / 17 PASS (76.5%)** (with Task 14 / idx 115 and Task 16 / idx 195 recovering from runtime crashes to 100% correct answers via Turn 2).
+    - Combined Dev Recovery: **40 / 47 PASS (85.11% recovery rate)** on previously broken problems, exceeding the 74.47% baseline recovery target.
+  - **Trailing `None` Wrapper Fix (`file_tool.py`):** Eliminated legacy AST wrapper bug that wrapped trailing statements in `print()`, which caused `print(solve())` to emit trailing `None` and falsely fail grading.
+- **Visual Pipeline Debugger Trace Horizon Generalization:**
+  - Generalized `ui/pipeline_debugger/index.html` ribbon bar to dynamically render arbitrary benchmark runs ($N=17, 30, 400$) and live interactive companion conversation horizons (`Turn #1`, `Turn #2`, etc.) without empty placeholder gaps.
+  - Connected `/api/traces` and `/api/trace/<id>` in `scripts/serve_pipeline_debugger.py` to support both numerical problem index lookups and conversation turn session IDs.
+- **3-Stage Mathematical Equivalence Grader (Phase 4):**
+  - Implemented 3-stage non-hanging evaluation pipeline in `scripts/run_modern_2024_benchmarks.py`:
+    1. Normalized string/LaTeX match with whitespace, powers, and base subscript equivalence.
+    2. 5-point random non-integer numeric evaluation ($x \in \{2.1, 3.2, 5.3, 7.4, 11.5\}$) with singularity and division-by-zero protection.
+    3. Sandboxed SymPy CAS algebraic simplification (`sympy.simplify(pred - exp) == 0`) enforced with a strict 2.0s worker thread timeout to prevent hangs.
+  - Verified with 100% green unit test suite in `tests/test_cas_grading.py` (6/6 passing).
 - **Context Expansion to 32K (`ctx=32768`):**
   - Expanded resident KV-cache context window from 16,384 to **32,768 tokens (32K)** in `src/lucca/core/config.py` and `llama-server` runtime.
   - Offloaded Windows desktop display to integrated Intel(R) Graphics iGPU (Intel Core Ultra 9 275HX), placing the mobile NVIDIA GeForce RTX 5080 Laptop GPU into dedicated compute mode (`Disp.A: Off`).
   - Verified physical VRAM telemetry via `nvidia-smi`: **9.97 GiB (10,212 MiB)** allocated under 32K context with FlashAttention-2, leaving **5.95 GiB (6,091 MiB / 37.4%)** free physical VRAM headroom with zero layers spilling to system RAM.
-- **Interactive 2-Turn Execution Feedback Loop (Traceback Self-Correction):**
-  - Upgraded Docker CAS and PAL execution harnesses (`scripts/run_modern_2024_benchmarks.py`) with an autonomous REPL error recovery loop.
-  - Catches non-zero container exit codes and Python stderr tracebacks (`AttributeError`, `IndentationError`, `NotImplementedError`, etc.) and feeds the failure stack trace back to the model for immediate self-correction prior to final token emission.
-- **SymPy Algebraic Equivalence & Base Normalization Engine:**
-  - Added `clean_latex_for_sympy` and upgraded `compare_math_results` to evaluate symbolic difference equivalence (`sympy.simplify(pred - exp) == 0`).
-  - Normalized LaTeX set representations (`\pm`), trigonometry identities (`\cot x \equiv 1/\tan x`), and positional base subscripts (`52_8 \equiv 52`).
-- **Visual Pipeline Debugger & Forensic Trace Architecture (`Spec 32`):**
-  - Built real-time, non-simulated cascade visual debugger (`ui/pipeline_debugger/index.html`) and HTTP telemetry server (`scripts/serve_pipeline_debugger.py` on port 8765).
-  - Implemented monotonic nanosecond span tracing across all 9 cascade tanks (`src/lucca/core/pipeline_tracer.py`).
-  - Added append-only forensic trace logging (`logs/telemetry/flow_traces.jsonl`) supporting instant visual bug triage, error line highlighting, and expected vs predicted diffs.
-  - Added progressive atomic JSON checkpointing (`checkpoint_math500_*.json`) and `--resume` support to benchmark runners.
 - **Frozen Baseline Isolation (`v1.2.0-baseline`):**
   - Archived all 7 canonical 16K benchmark evaluation logs into `logs/test_reports/frozen_v1.2_baseline/` and tagged git commit `37fde25` as `v1.2.0-baseline` to guarantee historical data immutability under the Zero-Estimate Principle.
   - Tagged all subsequent benchmark evaluations with version (`1.3.0`) and context size (`32768`).

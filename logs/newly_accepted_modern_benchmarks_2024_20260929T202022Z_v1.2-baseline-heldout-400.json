@@ -1,0 +1,68 @@
+[
+  {
+    "index": 46,
+    "problem_idx": 46,
+    "predicted": "sqrt(3)/3",
+    "expected": "\\frac{\\sqrt{3}}{3}"
+  },
+  {
+    "index": 64,
+    "problem_idx": 64,
+    "predicted": "-tan(4*pi/9) + 4*cos(pi/18)",
+    "expected": "-\\sqrt{3}"
+  },
+  {
+    "index": 81,
+    "problem_idx": 81,
+    "predicted": "sqrt(3)/3",
+    "expected": "\\frac{\\sqrt{3}}{3}"
+  },
+  {
+    "index": 145,
+    "problem_idx": 145,
+    "predicted": "3 - 13*x",
+    "expected": "-13x+3"
+  },
+  {
+    "index": 174,
+    "problem_idx": 174,
+    "predicted": "2*pi + 18",
+    "expected": "18+2\\pi"
+  },
+  {
+    "index": 218,
+    "problem_idx": 218,
+    "predicted": "9*a/20 + 11/20",
+    "expected": "\\frac{11+9a}{20}"
+  },
+  {
+    "index": 252,
+    "problem_idx": 252,
+    "predicted": "11 + 11*sqrt(5)",
+    "expected": "11 \\sqrt{5} + 11"
+  },
+  {
+    "index": 282,
+    "problem_idx": 282,
+    "predicted": "20000/pi",
+    "expected": "\\frac{20000}{\\pi}"
+  },
+  {
+    "index": 289,
+    "problem_idx": 289,
+    "predicted": "0.916515138991168",
+    "expected": "\\frac{\\sqrt{21}}{5}"
+  },
+  {
+    "index": 372,
+    "problem_idx": 372,
+    "predicted": "137 1/2",
+    "expected": "137 \\frac{1}{2}"
+  },
+  {
+    "index": 378,
+    "problem_idx": 378,
+    "predicted": "CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 0) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 1) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 2) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 3) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 4) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 5) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 6) + CRootOf(1005*x**8 - 2*x**7 - 10050*x**6 + 15*x**5 + 35175*x**4 - 35*x**3 - 50250*x**2 + 25*x + 24120, 7)",
+    "expected": "\\frac{2}{1005}"
+  }
+]

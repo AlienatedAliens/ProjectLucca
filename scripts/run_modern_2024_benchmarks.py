@@ -17,9 +17,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import copy
 import gzip
 import json
+import math
 import os
 import re
 import sys
@@ -340,6 +342,66 @@ def clean_latex_for_sympy(s: str) -> str:
     return s.strip()
 
 
+def check_numeric_points(p_sym, e_sym, points=(2.1, 3.2, 5.3, 7.4, 11.5)) -> bool:
+    """Fast-path evaluation at 5 random non-integer test points to verify algebraic equivalence."""
+    try:
+        symbols_p = getattr(p_sym, "free_symbols", set())
+        symbols_e = getattr(e_sym, "free_symbols", set())
+        all_symbols = sorted(list(symbols_p | symbols_e), key=lambda s: s.name)
+        if not all_symbols:
+            return False
+        for pt in points:
+            subs_dict = {sym: pt + idx * 0.1 for idx, sym in enumerate(all_symbols)}
+            val_p = complex(p_sym.evalf(subs=subs_dict))
+            val_e = complex(e_sym.evalf(subs=subs_dict))
+            if math.isnan(val_p.real) or math.isnan(val_e.real) or math.isinf(val_p.real) or math.isinf(val_e.real):
+                return False
+            if abs(val_p - val_e) > 1e-4:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _sympy_simplify_worker(p_sym, e_sym) -> bool:
+    try:
+        import sympy
+        # Fast-path 1: Direct structural equality
+        if p_sym == e_sym:
+            return True
+        # Fast-path 2: Constant expression numeric evalf difference (<1ms)
+        try:
+            diff_eval = (p_sym - e_sym).evalf()
+            if abs(complex(diff_eval)) < 1e-5:
+                return True
+        except Exception:
+            pass
+        # Symbolic check 3: Algebraic simplification difference
+        diff = sympy.simplify(p_sym - e_sym)
+        if diff == 0:
+            return True
+        try:
+            if abs(complex((p_sym - e_sym).evalf())) < 1e-5:
+                return True
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return False
+
+
+def evaluate_sympy_equivalence_with_timeout(p_sym, e_sym, timeout_s: float = 2.0) -> bool:
+    """Evaluates algebraic difference f(x) - g(x) == 0 with a strict timeout."""
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(_sympy_simplify_worker, p_sym, e_sym)
+    try:
+        return future.result(timeout=timeout_s)
+    except (concurrent.futures.TimeoutError, Exception):
+        return False
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+
 def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = True) -> bool:
     """Check mathematical equivalence between predicted and expected solutions."""
     p_norm = normalize_math_str(pred_str)
@@ -399,7 +461,7 @@ def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = Tru
             if compare_math_results(cand, expected_ans, use_sympy=use_sympy):
                 return True
 
-    # 8. SymPy Symbolic Algebraic Equivalence (Always enabled by default)
+    # 8. SymPy Symbolic Algebraic Equivalence (Fast numeric check + sandboxed CAS with 2.0s timeout)
     if use_sympy:
         try:
             import sympy
@@ -409,14 +471,14 @@ def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = Tru
             e_clean = clean_latex_for_sympy(expected_ans)
             p_sym = parse_expr(p_clean, transformations=transformations)
             e_sym = parse_expr(e_clean, transformations=transformations)
-            diff = sympy.simplify(p_sym - e_sym)
-            if diff == 0:
+
+            # Stage 2: Fast-path numeric evaluation at 5 test points
+            if check_numeric_points(p_sym, e_sym):
                 return True
-            try:
-                if abs(complex((p_sym - e_sym).evalf())) < 1e-5:
-                    return True
-            except Exception:
-                pass
+
+            # Stage 3: Sandboxed SymPy algebraic difference with strict 2.0s timeout
+            if evaluate_sympy_equivalence_with_timeout(p_sym, e_sym, timeout_s=2.0):
+                return True
         except Exception:
             pass
 

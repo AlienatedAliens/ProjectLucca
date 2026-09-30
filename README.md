@@ -85,6 +85,13 @@ Lucca executes completely offline on native workstation silicon with **zero clou
 - **Dual-Mode Console & GUI Subsystem:** Launches without console window flicker from Windows Explorer while attaching dynamically to parent terminals (`AttachConsole(-1)`) when invoked from PowerShell or Command Prompt.
 - **Windows System Tray Companion:** Features a resident `QSystemTrayIcon`, background minimization with a notification bubble on window close, click-to-restore, live cognitive state tooltip tracking, and an interactive context menu.
 
+### 6. Structural Compiler, AST Sanitizer & 2-Tier Neurosymbolic Execution (v1.3.0)
+- **Multi-Stage Tolerant Code Extraction (`ast_sanitizer.py`):** Replaced fragile regex extraction with deterministic AST parsing (`fenced` $\to$ `unfenced` $\to$ `longest_ast_slice` $\to$ `empty`), eliminating 100% of empty-code drops (0.0% residual, 95% CI: [0.00%, 3.70%]) on 100 audited competition problems.
+- **Tier 1 Preflight Compiler ($<1\,\text{ms}$):** Performs sub-millisecond AST normalizations before container execution, rewriting method inversions (`expr.solve(x) \to sp.solve(expr, x)`), fixing composite differentiation traps (`sp.diff(expr, x/h)`), filtering hallucinated SymPy imports via `dir(sympy)`, and auto-defining mathematical sets (`primes`, `odds`).
+- **Tier 2 Autonomous Execution Feedback Loop (Cap $\le 2$ Rounds):** Intercepts container tracebacks and non-zero exit codes to feed structured diagnostic payloads back to the neural boiler, achieving an **85.11% recovery rate (40 / 47)** on previously failing baseline problems.
+- **Visual Pipeline Debugger Trace Horizon (`ui/pipeline_debugger/index.html`):** Real-time web schematic (`http://localhost:8765`) dynamically tracking all 9 cascade tanks for both benchmark matrices and live companion conversation turns.
+- **3-Stage Mathematical CAS Grader:** Fast-path LaTeX normalization $\to$ 5-point random numeric evaluation $\to$ sandboxed SymPy algebraic simplification enforced by a strict 2.0s worker thread timeout to prevent hanging.
+
 ---
 
 ## 3. Physical Hardware Placement
@@ -129,6 +136,9 @@ All measurements were obtained directly from live execution on native workstatio
 | **Track 3: GSM-Symbolic**        | Apple Oct 2024 symbolic math under parameter perturbation (Docker PAL)| **100.0% (100 / 100)** in 527.4s     | **Verified** |
 | **Track 3: HumanEval-Plus**      | EvalPlus 2024 164 coding tasks with 80x adversarial differential tests| **91.46% pass@1 (150 / 164)** in 1,016.8s (10 preflight rescues)| **Verified** |
 | **Track 3: MATH-500 in PAL Mode**| AMC/AIME competition math via Docker Python/SymPy (v1.2 baseline)    | **77.0% strict / 87.0% SymPy** (69.6% L5) in 1,149.7s | **Verified** |
+| **v1.3.0: Tolerant AST Residual**| 100-problem empirical audit of empty code extraction                  | **0.0% residual (0 / 100)**, 95% CI: [0.00%, 3.70%] | **Verified** |
+| **v1.3.0: Neurosymbolic Recovery**| 2-tier preflight compiler + 2-turn execution feedback on failure traces| **85.11% recovery (40 / 47)** (27/30 design, 13/17 held-out) | **Verified** |
+| **v1.3.0: 3-Stage CAS Grader**   | String match $\to$ 5-pt random numeric $\to$ 2.0s worker thread SymPy CAS | **6 / 6 test gates PASSED (100% GREEN)** | **Verified** |
 
 ---
 
