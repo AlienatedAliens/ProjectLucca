@@ -1,0 +1,77 @@
+{
+  "timestamp": "20260928T150227Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 1,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 3.34,
+  "category_summary": {
+    "CAT09": {
+      "name": "Meta-Cognitive Self-Diagnosis",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 3.34
+    }
+  },
+  "results": [
+    {
+      "id": "CAT09-07",
+      "category": "CAT09",
+      "title": "Cognitive Bus Rule Audit",
+      "prompt": "Did any active or shadow heuristic rules fire during the last turn?",
+      "reply": "I checked my action history, and I don't have any records of specific heuristic rules firing in the last turn. My engagement register is steady as we move forward with our work!",
+      "extracted_answer": "I checked my action history, and I don't have any records of specific heuristic rules firing in the last turn. My engagement register is steady as we move forward with our work!",
+      "tools": [
+        "self_history_search"
+      ],
+      "tool_calls": [
+        {
+          "tool": "self_history_search",
+          "args": {
+            "query": "heuristic rule fire"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "self_history_search",
+          "name": "self_history_search",
+          "ok": true,
+          "output": "- [history:decisions:dec-4dd2d485f855] Historical turn 'Did any active or shadow heuristic rules fire during the last turn': routed LLM via LLM (unverified)",
+          "error": null,
+          "args": {
+            "query": "heuristic rule fire"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "domain_tool",
+      "path_ok": true,
+      "path_reason": "path 'domain_tool' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 3.339,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "heuristic rule audit reported",
+      "eval_reason": "heuristic rule audit reported",
+      "passed": true
+    }
+  ]
+}

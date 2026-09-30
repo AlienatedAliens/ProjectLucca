@@ -1,0 +1,335 @@
+{
+  "timestamp": "20260928T121602Z",
+  "total_problems": 10,
+  "total_passed": 9,
+  "pass_rate_pct": 90.0,
+  "median_latency_s": 13.81,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 9,
+      "total": 10,
+      "pass_rate_pct": 90.0,
+      "median_latency_s": 13.81
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-01",
+      "category": "CAT03",
+      "title": "The 4-House Logic Grid",
+      "prompt": "Houses 1 to 4 arranged left to right. Colors: Blue, Green, Red, Yellow. Residents: Chef, Doctor, Engineer, Painter. Pets: Bird, Cat, Dog, Fish. Clues: 1. House 1 is Blue. 2. Doctor lives immediately left of Green. 3. Painter in House 3. 4. Dog in an odd house. 5. Engineer owns Cat. 6. Green is right of Red. 7. Yellow resident owns Bird. Determine the exact combination for each house.",
+      "reply": "Alright, I've mapped out the logic and traced the connections for each house. Here is the layout:\n\nHouse 1 is Blue, home to the Engineer who keeps a Cat.\nHouse 2 is Red, where the Doctor lives with a Fish.\nHouse 3 is Green, occupied by the Painter with a Dog.\nHouse 4 is Yellow, where the Chef resides with a Bird.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\nhouses = [1, 2, 3, 4]\ncolors = ['Blue', 'Green', 'Red', 'Yellow']\nresidents = ['Chef', 'Doctor', 'Engineer', 'Painter']\npets = ['Bird', 'Cat', 'Dog', 'Fish']\n\nsolutions = []\n\nfor c_perm in itertools.permutations(colors):\n    # Clue 1: House 1 is Blue\n    if c_perm[0] != 'Blue':\n        continue\n    \n    # Clue 6: Green is right of Red (Red must be to the left of Green)\n    red_idx = c_perm.index('Red')\n    green_idx = c_perm.index('Green')\n    if red_idx > green_idx:\n        continue\n\n    for r_perm in itertools.permutations(residents):\n        # Clue 3: Painter in House 3 (index 2)\n        if r_perm[2] != 'Painter':\n            continue\n        \n        # Clue 2: Doctor lives immediately left of Green\n        doc_idx = r_perm.index('Doctor')\n        if doc_idx == green_idx - 1:\n            pass\n        else:\n            continue\n\n        for p_perm in itertools.permutations(pets):\n            # Clue 4: Dog in an odd house (House 1 or 3)\n            dog_idx = p_perm.index('Dog')\n            if (dog_idx + 1) % 2 == 0:\n                continue\n\n            # Clue 5: Engineer owns Cat\n            eng_idx = r_perm.index('Engineer')\n            cat_idx = p_perm.index('Cat')\n            if eng_idx != cat_idx:\n                continue\n\n            # Clue 7: Yellow resident owns Bird\n            yellow_idx = c_perm.index('Yellow')\n            bird_idx = p_perm.index('Bird')\n            if yellow_idx != bird_idx:\n                continue\n\n            solutions.append({\n                'House': [1, 2, 3, 4],\n                'Color': list(c_perm),\n                'Resident': list(r_perm),\n                'Pet': list(p_perm)\n            })\n\nprint(solutions)"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[{'House': [1, 2, 3, 4], 'Color': ['Blue', 'Red', 'Green', 'Yellow'], 'Resident': ['Engineer', 'Doctor', 'Painter', 'Chef'], 'Pet': ['Cat', 'Fish', 'Dog', 'Bird']}]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\nhouses = [1, 2, 3, 4]\ncolors = ['Blue', 'Green', 'Red', 'Yellow']\nresidents = ['Chef', 'Doctor', 'Engineer', 'Painter']\npets = ['Bird', 'Cat', 'Dog', 'Fish']\n\nsolutions = []\n\nfor c_perm in itertools.permutations(colors):\n    # Clue 1: House 1 is Blue\n    if c_perm[0] != 'Blue':\n        continue\n    \n    # Clue 6: Green is right of Red (Red must be to the left of Green)\n    red_idx = c_perm.index('Red')\n    green_idx = c_perm.index('Green')\n    if red_idx > green_idx:\n        continue\n\n    for r_perm in itertools.permutations(residents):\n        # Clue 3: Painter in House 3 (index 2)\n        if r_perm[2] != 'Painter':\n            continue\n        \n        # Clue 2: Doctor lives immediately left of Green\n        doc_idx = r_perm.index('Doctor')\n        if doc_idx == green_idx - 1:\n            pass\n        else:\n            continue\n\n        for p_perm in itertools.permutations(pets):\n            # Clue 4: Dog in an odd house (House 1 or 3)\n            dog_idx = p_perm.index('Dog')\n            if (dog_idx + 1) % 2 == 0:\n                continue\n\n            # Clue 5: Engineer owns Cat\n            eng_idx = r_perm.index('Engineer')\n            cat_idx = p_perm.index('Cat')\n            if eng_idx != cat_idx:\n                continue\n\n            # Clue 7: Yellow resident owns Bird\n            yellow_idx = c_perm.index('Yellow')\n            bird_idx = p_perm.index('Bird')\n            if yellow_idx != bird_idx:\n                continue\n\n            solutions.append({\n                'House': [1, 2, 3, 4],\n                'Color': list(c_perm),\n                'Resident': list(r_perm),\n                'Pet': list(p_perm)\n            })\n\nprint(solutions)"
+          }
+        }
+      ],
+      "elapsed_s": 14.413,
+      "note": "",
+      "passed": true,
+      "eval_reason": "correct_houses=4/4 (h1=True, h2=True, h3=True, h4=True)"
+    },
+    {
+      "id": "CAT03-02",
+      "category": "CAT03",
+      "title": "Round-Robin Tournament Schedule",
+      "prompt": "Four teams (A, B, C, D) play 3 rounds. Each team plays once per round. Team A cannot play Team B in Round 1. Team C plays Team D in Round 2. Construct the valid schedule.",
+      "reply": "Alright, I've crunched the logic and mapped out two possible schedules that fit your constraints perfectly.\n\nIn one version, Round 1 features Team A against Team C and Team B against Team D. Then, for Round 2, we have Team A playing Team B while Team C faces off against Team D. Finally, in Round 3, Team A plays Team D and Team B takes on Team C.\n\nAlternatively, you could swap the first and third rounds: start with Team A versus Team D and Team B versus Team C for Round 1, keep Team A versus Team B and Team C versus Team D for Round 2, and finish with Team A versus Team C and Team B versus Team D in Round 3. Both ways keep everyone moving and satisfy your rules!",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\nteams = ['A', 'B', 'C', 'D']\n# Each round is a set of two matches (pairings)\n# A valid schedule has 3 rounds, each with unique pairings that involve all teams exactly once.\n\ndef get_all_pairings(teams):\n    # Generate all possible pairings for 4 teams\n    # There are only 3 possible complete pairings sets:\n    # 1: (A,B), (C,D)\n    # 2: (A,C), (B,D)\n    # 3: (A,D), (B,C)\n    return [\n        [('A', 'B'), ('C', 'D')],\n        [('A', 'C'), ('B', 'D')],\n        [('A', 'D'), ('B', 'C')]\n    ]\n\nall_pairings = get_all_pairings(teams)\n\n# We need to pick 3 pairings such that each team plays every other team exactly once.\n# This is a Round Robin Tournament.\n# The possible sets of rounds are permutations of the three pairing sets above.\n\nvalid_schedules = []\nfor p in itertools.permutations(all_pairings):\n    # Check if any team plays itself or repeats a partner (handled by logic of pairings)\n    # Check constraints:\n    # 1. Team A cannot play Team B in Round 1.\n    round1 = p[0]\n    a_plays_b_r1 = any(set(match) == {'A', 'B'} for match in round1)\n    \n    # 2. Team C plays Team D in Round 2.\n    round2 = p[1]\n    c_plays_d_r2 = any(set(match) == {'C', 'D'} for match in round2)\n    \n    if not a_plays_b_r1 and c_plays_d_r2:\n        valid_schedules.append(p)\n\nprint(f\"Found {len(valid_schedules)} valid schedules.\")\nfor i, sched in enumerate(valid_schedules):\n    print(f\"Schedule {i+1}:\")\n    for r_idx, round_matches in enumerate(sched):\n        print(f\"  Round {r_idx+1}: {round_matches}\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Found 2 valid schedules.\nSchedule 1:\n  Round 1: [('A', 'C'), ('B', 'D')]\n  Round 2: [('A', 'B'), ('C', 'D')]\n  Round 3: [('A', 'D'), ('B', 'C')]\nSchedule 2:\n  Round 1: [('A', 'D'), ('B', 'C')]\n  Round 2: [('A', 'B'), ('C', 'D')]\n  Round 3: [('A', 'C'), ('B', 'D')]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\nteams = ['A', 'B', 'C', 'D']\n# Each round is a set of two matches (pairings)\n# A valid schedule has 3 rounds, each with unique pairings that involve all teams exactly once.\n\ndef get_all_pairings(teams):\n    # Generate all possible pairings for 4 teams\n    # There are only 3 possible complete pairings sets:\n    # 1: (A,B), (C,D)\n    # 2: (A,C), (B,D)\n    # 3: (A,D), (B,C)\n    return [\n        [('A', 'B'), ('C', 'D')],\n        [('A', 'C'), ('B', 'D')],\n        [('A', 'D'), ('B', 'C')]\n    ]\n\nall_pairings = get_all_pairings(teams)\n\n# We need to pick 3 pairings such that each team plays every other team exactly once.\n# This is a Round Robin Tournament.\n# The possible sets of rounds are permutations of the three pairing sets above.\n\nvalid_schedules = []\nfor p in itertools.permutations(all_pairings):\n    # Check if any team plays itself or repeats a partner (handled by logic of pairings)\n    # Check constraints:\n    # 1. Team A cannot play Team B in Round 1.\n    round1 = p[0]\n    a_plays_b_r1 = any(set(match) == {'A', 'B'} for match in round1)\n    \n    # 2. Team C plays Team D in Round 2.\n    round2 = p[1]\n    c_plays_d_r2 = any(set(match) == {'C', 'D'} for match in round2)\n    \n    if not a_plays_b_r1 and c_plays_d_r2:\n        valid_schedules.append(p)\n\nprint(f\"Found {len(valid_schedules)} valid schedules.\")\nfor i, sched in enumerate(valid_schedules):\n    print(f\"Schedule {i+1}:\")\n    for r_idx, round_matches in enumerate(sched):\n        print(f\"  Round {r_idx+1}: {round_matches}\")\n"
+          }
+        }
+      ],
+      "elapsed_s": 19.83,
+      "note": "",
+      "passed": false,
+      "eval_reason": "r2_ab=False, r1_valid=True"
+    },
+    {
+      "id": "CAT03-03",
+      "category": "CAT03",
+      "title": "Knights & Knaves Island",
+      "prompt": "On an island, Knights always tell the truth and Knaves always lie. A says: 'B is a knave.' B says: 'A and C are of the same type.' C says: 'At least one of us is a knight.' What are A, B, and C?",
+      "reply": "Let's break this down by testing the possibilities for A.\n\nIf A is a Knight, then his statement that B is a Knave must be true. If B is a Knave, his statement that A and C are the same type must be a lie. Since we assumed A is a Knight, for B's statement to be false, C must be a Knave. Now let's check C: if C is a Knave, his statement \"at least one of us is a knight\" must be a lie. But in this scenario, A is a Knight, which makes C's statement true. This creates a contradiction, so A cannot be a Knight.\n\nThat means A must be a Knave. If A is a Knave, his statement that B is a Knave is a lie, making B a Knight. Since B is a Knight, his statement that A and C are the same type must be true. Because A is a Knave, C must also be a Knave. Finally, we check C's statement: \"At least one of us is a knight.\" Since B is a Knight, this statement is true. However, if C is a Knave, he cannot tell a true statement. This also leads to a contradiction.\n\nWait, let me re-evaluate that logic. If A is a Knave, and B is a Knight, then for B's statement (A and C are the same) to be true, C must indeed be a Knave. But if C is a Knave, his statement \"at least one of us is a knight\" would have to be false. Since B is a Knight, that statement is actually true, which a Knave cannot say.\n\nLet's try the only remaining path: What if A is a Knave and B is also a Knave? If B is a Knave, his statement \"A and C are the same\" is a lie, meaning A and C are different types. Since A is a Knave, C must be a Knight. Now we check C's statement: \"At least one of us is a knight.\" Since C is a Knight, this statement is true, which fits perfectly.\n\nSo, A is a Knave, B is a Knave, and C is a Knight.",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "elapsed_s": 12.525,
+      "note": "",
+      "passed": true,
+      "eval_reason": "paradox_or_contradiction_detected=True"
+    },
+    {
+      "id": "CAT03-04",
+      "category": "CAT03",
+      "title": "Conference Room Time Conflicts",
+      "prompt": "Events 1, 2, 3, 4 require rooms. Event 1 (9-11), Event 2 (10-12), Event 3 (11-13), Event 4 (12-14). What is the minimum number of rooms needed so no events overlap in the same room?",
+      "reply": "You'll need a minimum of 2 rooms. Even though there are four events total, the maximum number of simultaneous overlaps at any given time is only two.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "events = [\n    (9, 11),  # Event 1\n    (10, 12), # Event 2\n    (11, 13), # Event 3\n    (12, 14)  # Event 4\n]\n\n# To find the minimum number of rooms (chromatic number of an interval graph),\n# we need to find the maximum number of overlapping events at any point in time.\n\ntimes = set()\nfor start, end in events:\n    times.add(start)\n    times.add(end)\n\nsorted_times = sorted(list(times))\nmax_overlap = 0\n\nfor t in sorted_times:\n    # Count how many events are active at time t. \n    # An event (s, e) is active if s <= t < e.\n    # Note: If an event ends exactly when another starts (e.g., 11), \n    # they don't overlap in the same room.\n    overlap = 0\n    for start, end in events:\n        if start <= t < end:\n            overlap += 1\n    max_overlap = max(max_overlap, overlap)\n\nprint(f\"Max overlap: {max_overlap}\")"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Max overlap: 2\n",
+          "error": "",
+          "args": {
+            "code": "events = [\n    (9, 11),  # Event 1\n    (10, 12), # Event 2\n    (11, 13), # Event 3\n    (12, 14)  # Event 4\n]\n\n# To find the minimum number of rooms (chromatic number of an interval graph),\n# we need to find the maximum number of overlapping events at any point in time.\n\ntimes = set()\nfor start, end in events:\n    times.add(start)\n    times.add(end)\n\nsorted_times = sorted(list(times))\nmax_overlap = 0\n\nfor t in sorted_times:\n    # Count how many events are active at time t. \n    # An event (s, e) is active if s <= t < e.\n    # Note: If an event ends exactly when another starts (e.g., 11), \n    # they don't overlap in the same room.\n    overlap = 0\n    for start, end in events:\n        if start <= t < end:\n            overlap += 1\n    max_overlap = max(max_overlap, overlap)\n\nprint(f\"Max overlap: {max_overlap}\")"
+          }
+        }
+      ],
+      "elapsed_s": 12.181,
+      "note": "",
+      "passed": true,
+      "eval_reason": "two_rooms=True, not_wrong_high=True"
+    },
+    {
+      "id": "CAT03-05",
+      "category": "CAT03",
+      "title": "Job-Shop Precedence Scheduling",
+      "prompt": "Tasks T1 (2h), T2 (3h), T3 (1h), T4 (2h). Precedences: T1 before T3; T2 before T3 and T4. With two parallel workers, what is the minimum completion time?",
+      "reply": "The minimum completion time is 5 hours. By scheduling T1 and T2 to start simultaneously at hour 0, they finish at hours 2 and 3 respectively, which then unlocks T3 and T4 for the remaining work.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import heapq\n\n# Tasks: (ID, duration)\ntasks = {\n    'T1': 2,\n    'T2': 3,\n    'T3': 1,\n    'T4': 2\n}\n\n# Precedences: T1 -> T3; T2 -> T3; T2 -> T4\nprecedences = {\n    'T3': ['T1', 'T2'],\n    'T4': ['T2']\n}\n\n# Track dependencies remaining for each task\nin_degree = {t: len(precedences.get(t, [])) for t in tasks}\n# Track which tasks are unlocked by completing a specific task\nsuccessors = {t: [] for t in tasks}\nfor target, sources in precedences.items():\n    for source in sources:\n        successors[source].append(target)\n\n# Initial available tasks (no dependencies)\navailable = [t for t in tasks if in_degree[t] == 0]\nheapq.heapify(available) # Using heap to manage workers, though simple list works here\n\n# Workers: (finish_time, task_id)\nworkers = []\ncurrent_time = 0\n\nwhile available or workers:\n    # Assign tasks to available workers\n    while available and len(workers) < 2:\n        task_id = heapq.heappop(available)\n        heapq.heappush(workers, (current_time + tasks[task_id], task_id))\n    \n    # Advance time to the next worker finishing\n    if workers:\n        current_time, finished_task = heapq.heappop(workers)\n        # Update dependencies\n        for succ in successors[finished_task]:\n            in_degree[succ] -= 1\n            if in_degree[succ] == 0:\n                heapq.heappush(available, succ)\n        \n        # Check if other workers finish at the same time\n        while workers and workers[0][0] == current_time:\n            _, f_task = heapq.heappop(workers)\n            for succ in successors[f_task]:\n                in_degree[succ] -= 1\n                if in_degree[succ] == 0:\n                    heapq.heappush(available, succ)\n\nprint(f\"Minimum completion time: {current_time}\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Minimum completion time: 5\n",
+          "error": "",
+          "args": {
+            "code": "import heapq\n\n# Tasks: (ID, duration)\ntasks = {\n    'T1': 2,\n    'T2': 3,\n    'T3': 1,\n    'T4': 2\n}\n\n# Precedences: T1 -> T3; T2 -> T3; T2 -> T4\nprecedences = {\n    'T3': ['T1', 'T2'],\n    'T4': ['T2']\n}\n\n# Track dependencies remaining for each task\nin_degree = {t: len(precedences.get(t, [])) for t in tasks}\n# Track which tasks are unlocked by completing a specific task\nsuccessors = {t: [] for t in tasks}\nfor target, sources in precedences.items():\n    for source in sources:\n        successors[source].append(target)\n\n# Initial available tasks (no dependencies)\navailable = [t for t in tasks if in_degree[t] == 0]\nheapq.heapify(available) # Using heap to manage workers, though simple list works here\n\n# Workers: (finish_time, task_id)\nworkers = []\ncurrent_time = 0\n\nwhile available or workers:\n    # Assign tasks to available workers\n    while available and len(workers) < 2:\n        task_id = heapq.heappop(available)\n        heapq.heappush(workers, (current_time + tasks[task_id], task_id))\n    \n    # Advance time to the next worker finishing\n    if workers:\n        current_time, finished_task = heapq.heappop(workers)\n        # Update dependencies\n        for succ in successors[finished_task]:\n            in_degree[succ] -= 1\n            if in_degree[succ] == 0:\n                heapq.heappush(available, succ)\n        \n        # Check if other workers finish at the same time\n        while workers and workers[0][0] == current_time:\n            _, f_task = heapq.heappop(workers)\n            for succ in successors[f_task]:\n                in_degree[succ] -= 1\n                if in_degree[succ] == 0:\n                    heapq.heappush(available, succ)\n\nprint(f\"Minimum completion time: {current_time}\")\n"
+          }
+        }
+      ],
+      "elapsed_s": 17.839,
+      "note": "",
+      "passed": true,
+      "eval_reason": "completion_time_5h=True"
+    },
+    {
+      "id": "CAT03-06",
+      "category": "CAT03",
+      "title": "Circular Table Seating",
+      "prompt": "Six diplomats (A, B, C, D, E, F) sit around a circular table. A will not sit next to B. C must sit directly opposite D. E must sit next to A. Find a valid clockwise seating order.",
+      "reply": "I've mapped out the seating chart for you! One valid clockwise order starting from A is A, C, B, F, D, and then E. This keeps everyone happy\u2014A and B stay separated, C is perfectly opposite D, and E is right next to A.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\n# Define the diplomats\ndiplomats = ['A', 'B', 'C', 'D', 'E', 'F']\n\n# Generate all unique circular permutations\n# Fix A at position 0 to handle rotation symmetry\n# The remaining 5 can be in any order\nothers = ['B', 'C', 'D', 'E', 'F']\npermutations = list(itertools.permutations(others))\n\nvalid_orders = []\n\nfor p in permutations:\n    order = ('A',) + p\n    # Indices are 0 to 5\n    # Neighbor check for A and B (not adjacent)\n    # Neighbors of index i are (i-1)%6 and (i+1)%6\n    a_idx = order.index('A')\n    b_idx = order.index('B')\n    \n    adj_a_b = (abs(a_idx - b_idx) == 1 or abs(a_idx - b_idx) == 5)\n    \n    # C opposite D check (distance of 3 in a circle of 6)\n    c_idx = order.index('C')\n    d_idx = order.index('D')\n    opp_c_d = (abs(c_idx - d_idx) == 3)\n    \n    # E next to A check\n    e_idx = order.index('E')\n    adj_a_e = (abs(a_idx - e_idx) == 1 or abs(a_idx - e_idx) == 5)\n    \n    if not adj_a_b and opp_c_d and adj_a_e:\n        valid_orders.append(order)\n\nprint(valid_orders[:3]) # Just need one valid order\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[('A', 'C', 'B', 'F', 'D', 'E'), ('A', 'C', 'F', 'B', 'D', 'E'), ('A', 'D', 'B', 'F', 'C', 'E')]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\n# Define the diplomats\ndiplomats = ['A', 'B', 'C', 'D', 'E', 'F']\n\n# Generate all unique circular permutations\n# Fix A at position 0 to handle rotation symmetry\n# The remaining 5 can be in any order\nothers = ['B', 'C', 'D', 'E', 'F']\npermutations = list(itertools.permutations(others))\n\nvalid_orders = []\n\nfor p in permutations:\n    order = ('A',) + p\n    # Indices are 0 to 5\n    # Neighbor check for A and B (not adjacent)\n    # Neighbors of index i are (i-1)%6 and (i+1)%6\n    a_idx = order.index('A')\n    b_idx = order.index('B')\n    \n    adj_a_b = (abs(a_idx - b_idx) == 1 or abs(a_idx - b_idx) == 5)\n    \n    # C opposite D check (distance of 3 in a circle of 6)\n    c_idx = order.index('C')\n    d_idx = order.index('D')\n    opp_c_d = (abs(c_idx - d_idx) == 3)\n    \n    # E next to A check\n    e_idx = order.index('E')\n    adj_a_e = (abs(a_idx - e_idx) == 1 or abs(a_idx - e_idx) == 5)\n    \n    if not adj_a_b and opp_c_d and adj_a_e:\n        valid_orders.append(order)\n\nprint(valid_orders[:3]) # Just need one valid order\n"
+          }
+        }
+      ],
+      "elapsed_s": 15.133,
+      "note": "",
+      "passed": true,
+      "eval_reason": "has_all=True, valid_circle=True, text_matches=True"
+    },
+    {
+      "id": "CAT03-07",
+      "category": "CAT03",
+      "title": "Cryptarithmetic Invariant",
+      "prompt": "Solve the base-10 addition: AB + BA = CDC, where each letter represents a distinct digit (0-9) and leading digits are non-zero. Find digits A, B, C, D.",
+      "reply": "Alright, I've crunched the numbers for that equation! Since we need distinct digits where A and B aren't zero, there are actually a few sets of solutions. One valid set is A=3, B=8, C=1, and D=2, which gives you 38 + 83 = 121. You can also swap A and B or use other pairs like 4 and 7, as long as they sum to 11!",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    # Letters are distinct digits 0-9\n    # AB + BA = CDC\n    # (10*A + B) + (10*B + A) = 100*C + 10*D + C\n    # 11*(A + B) = 101*C + 10*D\n\n    digits = range(10)\n    solutions = []\n    \n    # C cannot be 0 because it's a leading digit of CDC\n    # A and B cannot be 0 because they are leading digits of AB and BA\n    for A, B, C, D in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0:\n            continue\n        \n        lhs = 11 * (A + B)\n        rhs = 101 * C + 10 * D\n        \n        if lhs == rhs:\n            solutions.append((A, B, C, D))\n            \n    return solutions\n\nresults = solve()\nprint(results)"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[(3, 8, 1, 2), (4, 7, 1, 2), (5, 6, 1, 2), (6, 5, 1, 2), (7, 4, 1, 2), (8, 3, 1, 2)]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    # Letters are distinct digits 0-9\n    # AB + BA = CDC\n    # (10*A + B) + (10*B + A) = 100*C + 10*D + C\n    # 11*(A + B) = 101*C + 10*D\n\n    digits = range(10)\n    solutions = []\n    \n    # C cannot be 0 because it's a leading digit of CDC\n    # A and B cannot be 0 because they are leading digits of AB and BA\n    for A, B, C, D in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0:\n            continue\n        \n        lhs = 11 * (A + B)\n        rhs = 101 * C + 10 * D\n        \n        if lhs == rhs:\n            solutions.append((A, B, C, D))\n            \n    return solutions\n\nresults = solve()\nprint(results)"
+          }
+        }
+      ],
+      "elapsed_s": 13.045,
+      "note": "",
+      "passed": true,
+      "eval_reason": "c=1:True, d=2:True, ab_valid:True"
+    },
+    {
+      "id": "CAT03-08",
+      "category": "CAT03",
+      "title": "Boolean Horn Clause Satisfiability",
+      "prompt": "Given clauses: (P -> Q), (Q and R -> S), (not S), (P), (T -> R), (T). Is the system satisfiable? If not, identify the contradiction.",
+      "reply": "The system is not satisfiable. The contradiction arises because your premises force S to be true, which directly conflicts with your statement that S is false.\n\nSpecifically, since you have P as true, it forces Q to be true through the first implication. Meanwhile, T being true forces R to be true via the fifth clause. With both Q and R established as true, the second clause requires S to be true, but your third clause explicitly states not S!",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "from z3 import *\n\n# Define variables\nP = Bool('P')\nQ = Bool('Q')\nR = Bool('R')\nS = Bool('S')\nT = Bool('T')\n\n# Create solver and add clauses\ns = Solver()\ns.add(Implies(P, Q))\ns.add(Implies(And(Q, R), S))\ns.add(Not(S))\ns.add(P)\ns.add(Implies(T, R))\ns.add(T)\n\n# Check satisfiability\nresult = s.check()\nprint(f\"Satisfiable: {result}\")\n\nif result == sat:\n    print(f\"Model: {s.model()}\")\nelse:\n    # To find the contradiction, we can look at what's forced\n    # P is true -> Q is true\n    # T is true -> R is true\n    # Since Q and R are both true, S must be true.\n    # But Not(S) is given.\n    print(\"Contradiction found: S must be true because P implies Q and T implies R (making Q and R true), but the system also states Not(S).\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Satisfiable: unsat\nContradiction found: S must be true because P implies Q and T implies R (making Q and R true), but the system also states Not(S).\n",
+          "error": "",
+          "args": {
+            "code": "from z3 import *\n\n# Define variables\nP = Bool('P')\nQ = Bool('Q')\nR = Bool('R')\nS = Bool('S')\nT = Bool('T')\n\n# Create solver and add clauses\ns = Solver()\ns.add(Implies(P, Q))\ns.add(Implies(And(Q, R), S))\ns.add(Not(S))\ns.add(P)\ns.add(Implies(T, R))\ns.add(T)\n\n# Check satisfiability\nresult = s.check()\nprint(f\"Satisfiable: {result}\")\n\nif result == sat:\n    print(f\"Model: {s.model()}\")\nelse:\n    # To find the contradiction, we can look at what's forced\n    # P is true -> Q is true\n    # T is true -> R is true\n    # Since Q and R are both true, S must be true.\n    # But Not(S) is given.\n    print(\"Contradiction found: S must be true because P implies Q and T implies R (making Q and R true), but the system also states Not(S).\")\n"
+          }
+        }
+      ],
+      "elapsed_s": 13.209,
+      "note": "",
+      "passed": true,
+      "eval_reason": "unsat=True, contradiction_s=True"
+    },
+    {
+      "id": "CAT03-09",
+      "category": "CAT03",
+      "title": "Conditional Negative Grid",
+      "prompt": "Three employees (X, Y, Z) assigned to projects (Alpha, Beta, Gamma). Rule 1: If X is on Alpha, Y is not on Beta. Rule 2: Z is on Gamma if and only if X is on Beta. Rule 3: Y is on Alpha. Deduce the exact assignments.",
+      "reply": "Alright, let's break this down like a logic gate! We know for a fact that Y is on Alpha because of Rule 3. Since each employee gets one project and Y has claimed Alpha, X and Z must be split between Beta and Gamma.\n\nNow, looking at Rule 2, Z is on Gamma if and only if X is on Beta. If we put X on Beta and Z on Gamma, that fits perfectly! Let's double-check Rule 1: if X were on Alpha, Y couldn't be on Beta, but since Y is already on Alpha, that condition doesn't restrict our current setup. So, the final signal is clear: Y is on Alpha, X is on Beta, and Z is on Gamma!",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "elapsed_s": 5.92,
+      "note": "",
+      "passed": true,
+      "eval_reason": "y_alpha=True, x_assigned=True, z_assigned=True"
+    },
+    {
+      "id": "CAT03-10",
+      "category": "CAT03",
+      "title": "Budget & Resource Optimization",
+      "prompt": "Choose integer quantities of items X ($15, 4 weight) and Y ($20, 6 weight) to maximize total value under budget $100 and maximum weight 28. Provide the optimal bundle.",
+      "reply": "Alright, let's crunch those numbers! To maximize your value while staying under the budget of $100 and a weight limit of 28, the optimal bundle is 4 of item X and 2 of item Y. That puts you right at $100 with a total weight of 28, so we're hitting those limits perfectly!",
+      "tools": [
+        "run_python",
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    max_value = -1\n    best_bundle = (0, 0)\n    \n    for x in range(100 // 15 + 1):\n        for y in range(100 // 20 + 1):\n            cost = x * 15 + y * 20\n            weight = x * 4 + y * 6\n            if cost <= 100 and weight <= 28:\n                value = x * 15 + y * 20 # Wait, the prompt says X is $15 and Y is $20. Total value usually means total cost in this context or a separate value? \n                # Re-reading: \"Choose integer quantities... to maximize total value\". \n                # Usually, if prices are given without separate values, price IS the value.\n                # Let's assume Value = Price for now as no other value is provided.\n                if cost > max_value:\n                    max_value = cost\n                    best_bundle = (x, y)\n    return best_bundle\n\nprint(solve())"
+          }
+        },
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    max_val = -1\n    best_bundle = (0, 0)\n    # Prices are X=$15, Y=$20. Let's assume the value to maximize is the total cost spent.\n    for x in range(100 // 15 + 1):\n        for y in range(100 // 20 + 1):\n            cost = x * 15 + y * 20\n            weight = x * 4 + y * 6\n            if cost <= 100 and weight <= 28:\n                # If value is just the sum of prices, we want to get as close to 100 as possible.\n                if cost > max_val:\n                    max_val = cost\n                    best_bundle = (x, y)\n    return best_bundle\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "(4, 2)\n",
+          "error": "",
+          "args": {
+            "code": "def solve():\n    max_value = -1\n    best_bundle = (0, 0)\n    \n    for x in range(100 // 15 + 1):\n        for y in range(100 // 20 + 1):\n            cost = x * 15 + y * 20\n            weight = x * 4 + y * 6\n            if cost <= 100 and weight <= 28:\n                value = x * 15 + y * 20 # Wait, the prompt says X is $15 and Y is $20. Total value usually means total cost in this context or a separate value? \n                # Re-reading: \"Choose integer quantities... to maximize total value\". \n                # Usually, if prices are given without separate values, price IS the value.\n                # Let's assume Value = Price for now as no other value is provided.\n                if cost > max_value:\n                    max_value = cost\n                    best_bundle = (x, y)\n    return best_bundle\n\nprint(solve())"
+          }
+        },
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "(4, 2)\n",
+          "error": "",
+          "args": {
+            "code": "def solve():\n    max_val = -1\n    best_bundle = (0, 0)\n    # Prices are X=$15, Y=$20. Let's assume the value to maximize is the total cost spent.\n    for x in range(100 // 15 + 1):\n        for y in range(100 // 20 + 1):\n            cost = x * 15 + y * 20\n            weight = x * 4 + y * 6\n            if cost <= 100 and weight <= 28:\n                # If value is just the sum of prices, we want to get as close to 100 as possible.\n                if cost > max_val:\n                    max_val = cost\n                    best_bundle = (x, y)\n    return best_bundle\n\nprint(solve())"
+          }
+        }
+      ],
+      "elapsed_s": 19.786,
+      "note": "",
+      "passed": true,
+      "eval_reason": "x4=True, y2=True, cost_weight_100_28=True"
+    }
+  ]
+}

@@ -1,0 +1,368 @@
+{
+  "timestamp": "20260930T050204Z",
+  "model": "llm/gemma-4-12b-heretic-Q6_K.gguf",
+  "samples_configured": 10,
+  "benchmarks": {
+    "bbh": {
+      "benchmark": "BigBench_Hard_Subsets",
+      "total": 40,
+      "passed": 39,
+      "accuracy_pct": 97.5,
+      "elapsed_s": 277.79,
+      "subsets": {
+        "boolean_expressions": {
+          "title": "Boolean Logic Evaluation",
+          "total": 10,
+          "passed": 10,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "not ( True ) and ( True ) is",
+              "target": "False",
+              "predicted": "false",
+              "passed": true,
+              "latency_s": 2.492
+            },
+            {
+              "idx": 2,
+              "input": "True and not not ( not False ) is",
+              "target": "True",
+              "predicted": "true",
+              "passed": true,
+              "latency_s": 3.563
+            },
+            {
+              "idx": 3,
+              "input": "not True or False or ( False ) is",
+              "target": "False",
+              "predicted": "false",
+              "passed": true,
+              "latency_s": 2.92
+            },
+            {
+              "idx": 4,
+              "input": "False or not ( True ) and False is",
+              "target": "False",
+              "predicted": "false",
+              "passed": true,
+              "latency_s": 3.132
+            },
+            {
+              "idx": 5,
+              "input": "True or not False and True and False is",
+              "target": "True",
+              "predicted": "true",
+              "passed": true,
+              "latency_s": 4.105
+            },
+            {
+              "idx": 6,
+              "input": "False or not not not False and True is",
+              "target": "True",
+              "predicted": "true",
+              "passed": true,
+              "latency_s": 4.707
+            },
+            {
+              "idx": 7,
+              "input": "not True and ( False or True ) is",
+              "target": "False",
+              "predicted": "false",
+              "passed": true,
+              "latency_s": 2.915
+            },
+            {
+              "idx": 8,
+              "input": "True and not False or ( True ) is",
+              "target": "True",
+              "predicted": "true",
+              "passed": true,
+              "latency_s": 3.065
+            },
+            {
+              "idx": 9,
+              "input": "not True or ( False and True ) is",
+              "target": "False",
+              "predicted": "false",
+              "passed": true,
+              "latency_s": 2.905
+            },
+            {
+              "idx": 10,
+              "input": "not True or ( True or False ) is",
+              "target": "True",
+              "predicted": "true",
+              "passed": true,
+              "latency_s": 2.993
+            }
+          ]
+        },
+        "geometric_shapes": {
+          "title": "Geometric Shape Classification",
+          "total": 10,
+          "passed": 9,
+          "accuracy_pct": 90.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "This SVG path element <path d=\"M 55.57,80.69 L 57.38,65.80 M 57.38,65.80 L 48.90,57.46 M 48.90,57.46 L 45.58,47.78 M 45.58,47.78 L 53.25,36.07 L 66.29,48.90 L 78.69,61.09 L 55.57,80.69\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(B)",
+              "predicted": "(B)",
+              "passed": true,
+              "latency_s": 10.691
+            },
+            {
+              "idx": 2,
+              "input": "This SVG path element <path d=\"M 30.17,45.97 L 58.79,40.36 L 18.10,15.70 M 18.10,15.70 L 30.17,45.97\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(J)",
+              "predicted": "(J)",
+              "passed": true,
+              "latency_s": 9.379
+            },
+            {
+              "idx": 3,
+              "input": "This SVG path element <path d=\"M 21.10,97.94 L 22.14,97.44 L 10.48,73.34 L 9.43,73.84 L 21.10,97.94\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle\n(K) trapezoid",
+              "target": "(K)",
+              "predicted": "(D)",
+              "passed": false,
+              "latency_s": 15.482
+            },
+            {
+              "idx": 4,
+              "input": "This SVG path element <path d=\"M 12.64,60.32 L 16.36,27.35\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(E)",
+              "predicted": "(E)",
+              "passed": true,
+              "latency_s": 8.26
+            },
+            {
+              "idx": 5,
+              "input": "This SVG path element <path d=\"M 90.54,84.19 L 72.03,34.41 L 33.90,48.59 M 33.90,48.59 L 52.41,98.37 M 52.41,98.37 L 90.54,84.19\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle\n(K) trapezoid",
+              "target": "(K)",
+              "predicted": "(K)",
+              "passed": true,
+              "latency_s": 20.485
+            },
+            {
+              "idx": 6,
+              "input": "This SVG path element <path d=\"M 2.10,61.72 L 38.86,44.98 M 38.86,44.98 L 65.79,63.32 L 39.63,11.62 L 21.25,37.04 M 21.25,37.04 L 31.13,38.33 L 2.10,61.72\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(C)",
+              "predicted": "(C)",
+              "passed": true,
+              "latency_s": 13.167
+            },
+            {
+              "idx": 7,
+              "input": "This SVG path element <path d=\"M 52.00,72.00 L 3.00,95.00 L 53.00,30.00 L 52.00,72.00\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(J)",
+              "predicted": "(J)",
+              "passed": true,
+              "latency_s": 10.578
+            },
+            {
+              "idx": 8,
+              "input": "This SVG path element <path d=\"M 4.12,72.94 L 38.85,35.38 M 38.85,35.38 L 50.28,77.12 L 30.89,80.59 M 30.89,80.59 L 31.43,90.13 L 22.93,92.01 M 22.93,92.01 L 4.12,72.94\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(C)",
+              "predicted": "(C)",
+              "passed": true,
+              "latency_s": 11.296
+            },
+            {
+              "idx": 9,
+              "input": "This SVG path element <path d=\"M 22.06,65.18 L 22.58,64.52 L 7.52,52.61 L 7.00,53.26 L 22.06,65.18\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle\n(K) trapezoid",
+              "target": "(K)",
+              "predicted": "(K)",
+              "passed": true,
+              "latency_s": 20.366
+            },
+            {
+              "idx": 10,
+              "input": "This SVG path element <path d=\"M 76.00,30.00 L 58.00,25.00 L 42.00,26.00 L 41.00,41.00 L 47.00,54.00 L 76.00,30.00\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(G)",
+              "predicted": "(G)",
+              "passed": true,
+              "latency_s": 9.077
+            }
+          ]
+        },
+        "tracking_shuffled_objects_three_objects": {
+          "title": "Object Position Permutation Tracking",
+          "total": 10,
+          "passed": 10,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Ulysses, Bob gets Frankenstein, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Claire and Bob swap books. Then, Bob and Alice swap books. Finally, Claire and Bob swap books. At the end of the semester, Bob has\nOptions:\n(A) Ulysses\n(B) Frankenstein\n(C) Lolita",
+              "target": "(B)",
+              "predicted": "(B)",
+              "passed": true,
+              "latency_s": 5.039
+            },
+            {
+              "idx": 2,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Hound of the Baskervilles, Bob gets The Odyssey, and Claire gets Catch-22.\nAs the semester proceeds, they start trading around the new books. First, Claire and Alice swap books. Then, Bob and Claire swap books. Finally, Alice and Bob swap books. At the end of the semester, Alice has\nOptions:\n(A) Hound of the Baskervilles\n(B) The Odyssey\n(C) Catch-22",
+              "target": "(A)",
+              "predicted": "(A)",
+              "passed": true,
+              "latency_s": 6.82
+            },
+            {
+              "idx": 3,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Frankenstein, Bob gets Catch-22, and Claire gets Ulysses.\nAs the semester proceeds, they start trading around the new books. First, Bob and Alice swap books. Then, Alice and Claire swap books. Finally, Claire and Bob swap books. At the end of the semester, Alice has\nOptions:\n(A) Frankenstein\n(B) Catch-22\n(C) Ulysses",
+              "target": "(C)",
+              "predicted": "(C)",
+              "passed": true,
+              "latency_s": 5.937
+            },
+            {
+              "idx": 4,
+              "input": "Alice, Bob, and Claire are dancers at a square dance. At the start of a song, they each have a partner: Alice is dancing with Helga, Bob is dancing with Lola, and Claire is dancing with Ophelia.\nThroughout the song, the dancers often trade partners. First, Alice and Bob switch partners. Then, Bob and Claire switch partners. Finally, Alice and Bob switch partners. At the end of the dance, Alice is dancing with\nOptions:\n(A) Helga\n(B) Lola\n(C) Ophelia",
+              "target": "(C)",
+              "predicted": "(C)",
+              "passed": true,
+              "latency_s": 5.706
+            },
+            {
+              "idx": 5,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Frankenstein, Bob gets The Odyssey, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Alice and Claire swap books. Then, Bob and Alice swap books. Finally, Claire and Bob swap books. At the end of the semester, Bob has\nOptions:\n(A) Frankenstein\n(B) The Odyssey\n(C) Lolita",
+              "target": "(A)",
+              "predicted": "(A)",
+              "passed": true,
+              "latency_s": 5.413
+            },
+            {
+              "idx": 6,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Catch-22, Bob gets Moby Dick, and Claire gets The Great Gatsby.\nAs the semester proceeds, they start trading around the new books. First, Claire and Bob swap books. Then, Claire and Alice swap books. Finally, Bob and Claire swap books. At the end of the semester, Alice has\nOptions:\n(A) Catch-22\n(B) Moby Dick\n(C) The Great Gatsby",
+              "target": "(B)",
+              "predicted": "(B)",
+              "passed": true,
+              "latency_s": 6.756
+            },
+            {
+              "idx": 7,
+              "input": "Alice, Bob, and Claire are dancers at a square dance. At the start of a song, they each have a partner: Alice is dancing with Izzi, Bob is dancing with Melissa, and Claire is dancing with Lola.\nThroughout the song, the dancers often trade partners. First, Claire and Alice switch partners. Then, Bob and Claire switch partners. Finally, Alice and Bob switch partners. At the end of the dance, Alice is dancing with\nOptions:\n(A) Izzi\n(B) Melissa\n(C) Lola",
+              "target": "(A)",
+              "predicted": "(A)",
+              "passed": true,
+              "latency_s": 5.897
+            },
+            {
+              "idx": 8,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets The Great Gatsby, Bob gets The Odyssey, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Alice and Bob swap books. Then, Alice and Claire swap books. Finally, Bob and Claire swap books. At the end of the semester, Claire has\nOptions:\n(A) The Great Gatsby\n(B) The Odyssey\n(C) Lolita",
+              "target": "(A)",
+              "predicted": "(A)",
+              "passed": true,
+              "latency_s": 6.294
+            },
+            {
+              "idx": 9,
+              "input": "Alice, Bob, and Claire are playing a game. At the start of the game, they are each holding a ball: Alice has a brown ball, Bob has a red ball, and Claire has a white ball.\nAs the game progresses, pairs of players trade balls. First, Claire and Bob swap balls. Then, Bob and Alice swap balls. Finally, Claire and Alice swap balls. At the end of the game, Bob has the\nOptions:\n(A) brown ball\n(B) red ball\n(C) white ball",
+              "target": "(A)",
+              "predicted": "(A)",
+              "passed": true,
+              "latency_s": 4.933
+            },
+            {
+              "idx": 10,
+              "input": "Alice, Bob, and Claire are playing a game. At the start of the game, they are each holding a ball: Alice has a yellow ball, Bob has a brown ball, and Claire has a green ball.\nAs the game progresses, pairs of players trade balls. First, Bob and Claire swap balls. Then, Bob and Alice swap balls. Finally, Bob and Claire swap balls. At the end of the game, Alice has the\nOptions:\n(A) yellow ball\n(B) brown ball\n(C) green ball",
+              "target": "(C)",
+              "predicted": "(C)",
+              "passed": true,
+              "latency_s": 5.742
+            }
+          ]
+        },
+        "dyck_languages": {
+          "title": "Bracket Nesting & Closure",
+          "total": 10,
+          "passed": 10,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ [",
+              "target": "] ]",
+              "predicted": "] ]",
+              "passed": true,
+              "latency_s": 0.195
+            },
+            {
+              "idx": 2,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < [ [",
+              "target": "] ] >",
+              "predicted": "] ] >",
+              "passed": true,
+              "latency_s": 0.152
+            },
+            {
+              "idx": 3,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: { < { { [ ] } } { < [ { { < > } } [ ( ) ( ) ] [ [ [ [ ( { < ( < ( [ ] ) > ) > } ) ] ] ] ] ] ( ) ( [ ] { } ) > } > [ { ( ( ) ) } ]",
+              "target": "}",
+              "predicted": "56. `[` (Stack",
+              "passed": true,
+              "latency_s": 20.306
+            },
+            {
+              "idx": 4,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < [ ] { < ( ) > } [ ] ( { }",
+              "target": ") >",
+              "predicted": ") >",
+              "passed": true,
+              "latency_s": 4.241
+            },
+            {
+              "idx": 5,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < ( ( ( < > ) ) ( { { } [ { } ] [ ] < ( ) > } ) )",
+              "target": ">",
+              "predicted": ">",
+              "passed": true,
+              "latency_s": 10.182
+            },
+            {
+              "idx": 6,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: ( [ [ [ { } ] ] { < [ < [ { } ] > ] > }",
+              "target": "] )",
+              "predicted": "] )",
+              "passed": true,
+              "latency_s": 7.249
+            },
+            {
+              "idx": 7,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: ( { { } }",
+              "target": ")",
+              "predicted": ")",
+              "passed": true,
+              "latency_s": 0.148
+            },
+            {
+              "idx": 8,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < ( ( ( [ { } ] )",
+              "target": ") ) >",
+              "predicted": ") ) ) >",
+              "passed": true,
+              "latency_s": 4.056
+            },
+            {
+              "idx": 9,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ < > ] [ [ < > ]",
+              "target": "]",
+              "predicted": "] ]",
+              "passed": true,
+              "latency_s": 2.799
+            },
+            {
+              "idx": 10,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ ] ( [ [ { < { { ( < > [ ] ) } } < > > } ] ] { }",
+              "target": ")",
+              "predicted": ")",
+              "passed": true,
+              "latency_s": 8.306
+            }
+          ]
+        }
+      }
+    }
+  }
+}

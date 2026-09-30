@@ -1,0 +1,59 @@
+{
+  "timestamp": "20260929T172718Z",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "math500": {
+      "benchmark": "MATH-500",
+      "total": 4,
+      "passed": 3,
+      "accuracy_pct": 75.0,
+      "elapsed_s": 135.48,
+      "results": [
+        {
+          "idx": 1,
+          "subject": "Precalculus",
+          "level": 4,
+          "problem": "Below is the graph of $y = a \\sin (bx + c) + d$ for some positive constants $a,$ $b,$ $c,$ and $d.$  Find the smallest possible value of $c.$\n\n[asy]import TrigMacros;\n\nsize(400);\n\nreal f(real x)\n{\n\treturn 2*sin(3*x + pi) + 1;\n}\n\ndraw(graph(f,-3*pi,3*pi,n=700,join=operator ..),red);\ntrig_axes(-3*pi,3*pi,-4,4,pi/2,1);\nlayer();\nrm_trig_labels(-5,5, 2);\n\nlabel(\"$1$\", (0,1), E);\nlabel(\"$2$\", (0,2), E);\nlabel(\"$3$\", (0,3), E);\nlabel(\"$-1$\", (0,-1), E);\nlabel(\"$-2$\", (0,-2), E);\nlabel(\"$-3$\", (0,-3), E);\n[/asy]",
+          "expected_ans": "\\pi",
+          "predicted_ans": "pi",
+          "passed": true,
+          "exit_code": 0,
+          "llm_latency_s": 28.897
+        },
+        {
+          "idx": 2,
+          "subject": "Geometry",
+          "level": 1,
+          "problem": "$\\overline{BC}$ is parallel to the segment through $A$, and $AB = BC$. What is the number of degrees represented by $x$?\n\n[asy]\ndraw((0,0)--(10,0));\ndraw((0,3)--(10,3));\ndraw((2,3)--(8,0));\ndraw((2,3)--(4,0));\nlabel(\"$A$\",(2,3),N);\nlabel(\"$B$\",(4,0),S);\nlabel(\"$C$\",(8,0),S);\nlabel(\"$124^{\\circ}$\",(2,3),SW);\nlabel(\"$x^{\\circ}$\",(4.5,3),S);\n[/asy]",
+          "expected_ans": "28",
+          "predicted_ans": "",
+          "passed": false,
+          "exit_code": 1,
+          "llm_latency_s": 41.271
+        },
+        {
+          "idx": 3,
+          "subject": "Intermediate Algebra",
+          "level": 3,
+          "problem": "Let $a$ be a positive real number such that all the roots of\n\\[x^3 + ax^2 + ax + 1 = 0\\]are real.  Find the smallest possible value of $a.$",
+          "expected_ans": "3",
+          "predicted_ans": "3",
+          "passed": true,
+          "exit_code": 0,
+          "llm_latency_s": 22.037
+        },
+        {
+          "idx": 4,
+          "subject": "Algebra",
+          "level": 3,
+          "problem": "Evaluate $(1+2i)6-3i$.",
+          "expected_ans": "6+9i",
+          "predicted_ans": "6 + 9*I",
+          "passed": true,
+          "exit_code": 0,
+          "llm_latency_s": 38.473
+        }
+      ]
+    }
+  }
+}

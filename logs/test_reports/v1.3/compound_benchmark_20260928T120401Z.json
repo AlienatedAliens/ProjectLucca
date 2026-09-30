@@ -1,0 +1,52 @@
+{
+  "timestamp": "20260928T120401Z",
+  "total_problems": 1,
+  "total_passed": 0,
+  "pass_rate_pct": 0.0,
+  "median_latency_s": 9.13,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 0,
+      "total": 1,
+      "pass_rate_pct": 0.0,
+      "median_latency_s": 9.13
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-07",
+      "category": "CAT03",
+      "title": "Cryptarithmetic Invariant",
+      "prompt": "Solve the base-10 addition: AB + BA = CDC, where each letter represents a distinct digit (0-9) and leading digits are non-zero. Find digits A, B, C, D.",
+      "reply": "The digits are A equals 3, B equals 8, C equals 1, and D equals 2. If you check the math, 38 plus 83 gives you exactly 121.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    digits = range(10)\n    # A, B, C, D must be distinct digits\n    for (A, B, C, D) in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0:\n            continue\n        \n        # AB = 10*A + B\n        # BA = 10*B + A\n        # CDC = 100*C + 10*D + C\n        \n        val_ab = 10 * A + B\n        val_ba = 10 * B + A\n        val_cdc = 100 * C + 10 * D + C\n        \n        if val_ab + val_ba == val_cdc:\n            return (A, B, C, D)\n    return None\n\nresult = solve()\nprint(result)"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "(3, 8, 1, 2)\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    digits = range(10)\n    # A, B, C, D must be distinct digits\n    for (A, B, C, D) in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0:\n            continue\n        \n        # AB = 10*A + B\n        # BA = 10*B + A\n        # CDC = 100*C + 10*D + C\n        \n        val_ab = 10 * A + B\n        val_ba = 10 * B + A\n        val_cdc = 100 * C + 10 * D + C\n        \n        if val_ab + val_ba == val_cdc:\n            return (A, B, C, D)\n    return None\n\nresult = solve()\nprint(result)"
+          }
+        }
+      ],
+      "elapsed_s": 9.128,
+      "note": "",
+      "passed": false,
+      "eval_reason": "c=1:True, d=2:True, ab_sum_11:False"
+    }
+  ]
+}

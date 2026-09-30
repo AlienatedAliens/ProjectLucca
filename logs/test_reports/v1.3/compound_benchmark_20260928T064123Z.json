@@ -1,0 +1,48 @@
+{
+  "timestamp": "20260928T064123Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 8.32,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 8.32
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-06",
+      "category": "CAT02",
+      "title": "Orbital Period & Centripetal Acceleration",
+      "prompt": "A satellite orbits a planet at radius 8,000 km with constant speed 7 km/s. Calculate its orbital period in minutes and its centripetal acceleration in m/s\u00b2.",
+      "reply": "The calc_math tool failed to compute the centripetal acceleration because it misinterpreted the exponent symbol as a bitwise XOR operator. Here is the analytical derivation for both values:\n\nFor the orbital period, we use the formula circumference divided by speed. The radius is 8,000,000 meters and the speed is 7,000 meters per second. The distance of one orbit is approximately 50,265,482 meters. Dividing that by 7,000 meters per second gives roughly 7,180.78 seconds. Converting to minutes, the period is approximately 119.68 minutes.\n\nFor the centripetal acceleration, we use the formula v squared divided by radius. Squaring the velocity of 7,000 meters per second gives 49,000,000. Dividing that by the radius of 8,000,000 meters results in an acceleration of 6.125 m/s\u00b2.",
+      "tools": [
+        "calc_math",
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "(2 * 3.1415926535 * 8000000) / 7000 / 60"
+          }
+        },
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "(7000^2) / 8000000"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 8.325,
+      "note": "",
+      "passed": true,
+      "eval_reason": "period=True, accel=True"
+    }
+  ]
+}

@@ -1,0 +1,415 @@
+{
+  "timestamp": "20260929T170056Z",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "humaneval_plus": {
+      "benchmark": "HumanEvalPlus",
+      "total": 40,
+      "passed": 38,
+      "pass_at_1_pct": 95.0,
+      "elapsed_s": 210.09,
+      "results": [
+        {
+          "task_id": "HumanEval/0",
+          "entry_point": "has_close_elements",
+          "inputs_tested": 1006,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1006 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.106
+        },
+        {
+          "task_id": "HumanEval/1",
+          "entry_point": "separate_paren_groups",
+          "inputs_tested": 87,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 87 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.956
+        },
+        {
+          "task_id": "HumanEval/2",
+          "entry_point": "truncate_number",
+          "inputs_tested": 974,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 974 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.049
+        },
+        {
+          "task_id": "HumanEval/3",
+          "entry_point": "below_zero",
+          "inputs_tested": 904,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 904 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.309
+        },
+        {
+          "task_id": "HumanEval/4",
+          "entry_point": "mean_absolute_deviation",
+          "inputs_tested": 788,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 788 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.628
+        },
+        {
+          "task_id": "HumanEval/5",
+          "entry_point": "intersperse",
+          "inputs_tested": 156,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 156 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.499
+        },
+        {
+          "task_id": "HumanEval/6",
+          "entry_point": "parse_nested_parens",
+          "inputs_tested": 69,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 69 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.734
+        },
+        {
+          "task_id": "HumanEval/7",
+          "entry_point": "filter_by_substring",
+          "inputs_tested": 182,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 182 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.476
+        },
+        {
+          "task_id": "HumanEval/8",
+          "entry_point": "sum_product",
+          "inputs_tested": 1005,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1005 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.557
+        },
+        {
+          "task_id": "HumanEval/9",
+          "entry_point": "rolling_max",
+          "inputs_tested": 963,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 963 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.538
+        },
+        {
+          "task_id": "HumanEval/10",
+          "entry_point": "make_palindrome",
+          "inputs_tested": 785,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 785 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.085
+        },
+        {
+          "task_id": "HumanEval/11",
+          "entry_point": "string_xor",
+          "inputs_tested": 408,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 408 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.085
+        },
+        {
+          "task_id": "HumanEval/12",
+          "entry_point": "longest",
+          "inputs_tested": 936,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 936 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.781
+        },
+        {
+          "task_id": "HumanEval/13",
+          "entry_point": "greatest_common_divisor",
+          "inputs_tested": 991,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 991 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.071
+        },
+        {
+          "task_id": "HumanEval/14",
+          "entry_point": "all_prefixes",
+          "inputs_tested": 906,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 906 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.799
+        },
+        {
+          "task_id": "HumanEval/15",
+          "entry_point": "string_sequence",
+          "inputs_tested": 137,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 137 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.006
+        },
+        {
+          "task_id": "HumanEval/16",
+          "entry_point": "count_distinct_characters",
+          "inputs_tested": 1005,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1005 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.777
+        },
+        {
+          "task_id": "HumanEval/17",
+          "entry_point": "parse_music",
+          "inputs_tested": 220,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 220 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 5.163
+        },
+        {
+          "task_id": "HumanEval/18",
+          "entry_point": "how_many_times",
+          "inputs_tested": 1004,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1004 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.349
+        },
+        {
+          "task_id": "HumanEval/19",
+          "entry_point": "sort_numbers",
+          "inputs_tested": 133,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 133 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.876
+        },
+        {
+          "task_id": "HumanEval/20",
+          "entry_point": "find_closest_elements",
+          "inputs_tested": 1005,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1005 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 6.05
+        },
+        {
+          "task_id": "HumanEval/21",
+          "entry_point": "rescale_to_unit",
+          "inputs_tested": 1004,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1004 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.285
+        },
+        {
+          "task_id": "HumanEval/22",
+          "entry_point": "filter_integers",
+          "inputs_tested": 956,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 956 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 5.214
+        },
+        {
+          "task_id": "HumanEval/23",
+          "entry_point": "strlen",
+          "inputs_tested": 967,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 967 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.171
+        },
+        {
+          "task_id": "HumanEval/24",
+          "entry_point": "largest_divisor",
+          "inputs_tested": 173,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 173 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.796
+        },
+        {
+          "task_id": "HumanEval/25",
+          "entry_point": "factorize",
+          "inputs_tested": 146,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 146 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.351
+        },
+        {
+          "task_id": "HumanEval/26",
+          "entry_point": "remove_duplicates",
+          "inputs_tested": 865,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 865 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.016
+        },
+        {
+          "task_id": "HumanEval/27",
+          "entry_point": "flip_case",
+          "inputs_tested": 976,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 976 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.347
+        },
+        {
+          "task_id": "HumanEval/28",
+          "entry_point": "concatenate",
+          "inputs_tested": 864,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 864 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.499
+        },
+        {
+          "task_id": "HumanEval/29",
+          "entry_point": "filter_by_prefix",
+          "inputs_tested": 998,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 998 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.463
+        },
+        {
+          "task_id": "HumanEval/30",
+          "entry_point": "get_positive",
+          "inputs_tested": 1003,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1003 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.981
+        },
+        {
+          "task_id": "HumanEval/31",
+          "entry_point": "is_prime",
+          "inputs_tested": 167,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 167 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.629
+        },
+        {
+          "task_id": "HumanEval/32",
+          "entry_point": "find_zero",
+          "inputs_tested": 888,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "MISMATCH at input 28: expected 1.5114667361718894, got -1.164834421646305\n",
+          "stderr": "execution_failed",
+          "llm_latency_s": 9.266
+        },
+        {
+          "task_id": "HumanEval/33",
+          "entry_point": "sort_third",
+          "inputs_tested": 965,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 965 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 5.674
+        },
+        {
+          "task_id": "HumanEval/34",
+          "entry_point": "unique",
+          "inputs_tested": 904,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 904 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.922
+        },
+        {
+          "task_id": "HumanEval/35",
+          "entry_point": "max_element",
+          "inputs_tested": 940,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 940 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.253
+        },
+        {
+          "task_id": "HumanEval/36",
+          "entry_point": "fizz_buzz",
+          "inputs_tested": 156,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 156 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.829
+        },
+        {
+          "task_id": "HumanEval/37",
+          "entry_point": "sort_even",
+          "inputs_tested": 977,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 977 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.457
+        },
+        {
+          "task_id": "HumanEval/38",
+          "entry_point": "decode_cyclic",
+          "inputs_tested": 1099,
+          "passed": false,
+          "exit_code": -2,
+          "stdout": "[Errno 7] Argument list too long: '/usr/local/bin/python3'",
+          "stderr": "execution_failed",
+          "llm_latency_s": 3.15
+        },
+        {
+          "task_id": "HumanEval/39",
+          "entry_point": "prime_fib",
+          "inputs_tested": 12,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 12 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.566
+        }
+      ]
+    }
+  }
+}

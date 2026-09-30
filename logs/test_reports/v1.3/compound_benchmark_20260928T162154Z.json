@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260928T162154Z",
+  "total_problems": 1,
+  "total_passed": 0,
+  "pass_rate_pct": 0.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 1,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 35.51,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 0,
+      "total": 1,
+      "pass_rate_pct": 0.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 35.51
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-01",
+      "category": "CAT02",
+      "title": "3D Drone Kinematics",
+      "prompt": "A drone starts at coordinate (0, 0, 0) facing North (+y), East (+x), Up (+z). Execute in sequence: Forward 6m; Yaw 90\u00b0 clockwise; Forward 4m; Pitch down 90\u00b0; Forward 3m; Roll 180\u00b0; Turn 90\u00b0 local left; Forward 5m. What is its final (x, y, z) and pointing vector?",
+      "reply": "Alright, I've traced the drone's path through those maneuvers. After following that sequence of movements and rotations, the final position is (-9.0, 6.0, -3.0) and it's pointing in the direction of (-1.0, 0.0, 0.0).",
+      "extracted_answer": "I've traced the drone's path through those maneuvers. After following that sequence of movements and rotations, the final position is (-9.0, 6.0, -3.0) and it's pointing in the direction of (-1.0, 0.0, 0.0).",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import numpy as np\n\ndef solve():\n    # Initial state\n    # Position: (x, y, z)\n    pos = np.array([0.0, 0.0, 0.0])\n    # Orientation vectors\n    # Forward is North (+y), Right is East (+x), Up is +z\n    fwd = np.array([0.0, 1.0, 0.0])\n    right = np.array([1.0, 0.0, 0.0])\n    up = np.array([0.0, 0.0, 1.0])\n\n    # Helper to update vectors based on rotations\n    def rotate_vectors(fwd, right, up, yaw, pitch, roll):\n        # Yaw: rotation around 'up' axis (clockwise is positive in this context)\n        # Pitch: rotation around 'right' axis (down is positive)\n        # Roll: rotation around 'fwd' axis\n        \n        # We use a standard rotation matrix approach or sequential rotations.\n        # Since we are doing local rotations, it's easier to apply them sequentially \n        # to the basis vectors.\n        \n        # Yaw (Clockwise) - Rotation around Up axis\n        # In a right-handed system, clockwise yaw is negative angle around Up\n        # But let's just define the rotation matrices for local axes.\n        \n        def apply_yaw(f, r, u, angle):\n            # Rotate f and r around u\n            c = np.cos(angle)\n            s = np.sin(angle)\n            new_f = c * f + s * np.cross(u, f)\n            new_r = c * r + s * np.cross(u, r)\n            return new_f, new_r, u\n\n        def apply_pitch(f, r, u, angle):\n            # Rotate f and u around r\n            c = np.cos(angle)\n            s = np.sin(angle)\n            new_f = c * f + s * np.cross(r, f)\n            new_u = c * u + s * np.cross(r, u)\n            return new_f, r, new_u\n\n        def apply_roll(f, r, u, angle):\n            # Rotate r and u around f\n            c = np.cos(angle)\n            s = np.sin(angle)\n            new_r = c * r + s * np.cross(f, r)\n            new_u = c * u + s * np.cross(f, u)\n            return f, new_r, new_u\n\n        # Yaw 90 clockwise: angle is -pi/2 or just use the cross product logic\n        # For \"Yaw 90 clockwise\", if we look down from Up, Forward moves toward Right.\n        # So new_f = right, new_r = -fwd.\n        f, r, u = apply_yaw(f, r, u, -np.pi/2) # Negative for CW in standard math\n        \n        # Pitch down 90: angle is pi/2 (downward)\n        f, r, u = apply_pitch(f, r, u, np.pi/2)\n        \n        # Roll 180: angle is pi\n        f, r, u = apply_roll(f, r, u, np.pi)\n        \n        return f, r, u\n\n    # Step-by-step execution\n    # 1. Forward 6m\n    pos += fwd * 6\n    \n    # 2. Yaw 90 clockwise\n    # Manual logic for clarity: fwd becomes right, right becomes -fwd\n    fwd = right\n    right = -fwd # This is wrong because we need to update both based on the same rotation\n    # Let's stick to a consistent rotation matrix or manual swap.\n    # Yaw 90 CW around Up: fwd_new = right, right_new = -fwd\n    old_f = fwd.copy()\n    fwd = right.copy()\n    right = -old_f\n    \n    # 3. Forward 4m\n    pos += fwd * 4\n    \n    # 4. Pitch down 90\n    # Rotation around Right axis: fwd moves toward -Up, Up moves toward fwd\n    old_f = fwd.copy()\n    fwd = -up.copy()\n    up = old_f\n    \n    # 5. Forward 3m\n    pos += fwd * 3\n    \n    # 6. Roll 180\n    # Rotation around Forward axis: right becomes -right, up becomes -up\n    right = -right\n    up = -up\n    \n    # 7. Turn 90 local left (Yaw CCW)\n    # Around Up axis: fwd moves toward -right, right moves toward fwd\n    old_f = fwd.copy()\n    fwd = -right.copy()\n    right = old_f\n    \n    # 8. Forward 5m\n    pos += fwd * 5\n\n    return pos, fwd\n\nfinal_pos, final_fwd = solve()\nprint(f\"Position: {np.round(final_pos, 2)}\")\nprint(f\"Forward Vector: {np.round(final_fwd, 2)}\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Position: [-9.  6. -3.]\nForward Vector: [-1. -0. -0.]\n",
+          "error": null,
+          "args": {
+            "code": "import numpy as np\n\ndef solve():\n    # Initial state\n    # Position: (x, y, z)\n    pos = np.array([0.0, 0.0, 0.0])\n    # Orientation vectors\n    # Forward is North (+y), Right is East (+x), Up is +z\n    fwd = np.array([0.0, 1.0, 0.0])\n    right = np.array([1.0, 0.0, 0.0])\n    up = np.array([0.0, 0.0, 1.0])\n\n    # Helper to update vectors based on rotations\n    def rotate_vectors(fwd, right, up, yaw, pitch, roll):\n        # Yaw: rotation around 'up' axis (clockwise is positive in this context)\n        # Pitch: rotation around 'right' axis (down is positive)\n        # Roll: rotation around 'fwd' axis\n        \n        # We use a standard rotation matrix approach or sequential rotations.\n        # Since we are doing local rotations, it's easier to apply them sequentially \n        # to the basis vectors.\n        \n        # Yaw (Clockwise) - Rotation around Up axis\n        # In a right-handed system, clockwise yaw is negative angle around Up\n        # But let's just define the rotation matrices for local axes.\n        \n        def apply_yaw(f, r, u, angle):\n            # Rotate f and r around u\n            c = np.cos(angle)\n            s = np.sin(angle)\n            new_f = c * f + s * np.cross(u, f)\n            new_r = c * r + s * np.cross(u, r)\n            return new_f, new_r, u\n\n        def apply_pitch(f, r, u, angle):\n            # Rotate f and u around r\n            c = np.cos(angle)\n            s = np.sin(angle)\n            new_f = c * f + s * np.cross(r, f)\n            new_u = c * u + s * np.cross(r, u)\n            return new_f, r, new_u\n\n        def apply_roll(f, r, u, angle):\n            # Rotate r and u around f\n            c = np.cos(angle)\n            s = np.sin(angle)\n            new_r = c * r + s * np.cross(f, r)\n            new_u = c * u + s * np.cross(f, u)\n            return f, new_r, new_u\n\n        # Yaw 90 clockwise: angle is -pi/2 or just use the cross product logic\n        # For \"Yaw 90 clockwise\", if we look down from Up, Forward moves toward Right.\n        # So new_f = right, new_r = -fwd.\n        f, r, u = apply_yaw(f, r, u, -np.pi/2) # Negative for CW in standard math\n        \n        # Pitch down 90: angle is pi/2 (downward)\n        f, r, u = apply_pitch(f, r, u, np.pi/2)\n        \n        # Roll 180: angle is pi\n        f, r, u = apply_roll(f, r, u, np.pi)\n        \n        return f, r, u\n\n    # Step-by-step execution\n    # 1. Forward 6m\n    pos += fwd * 6\n    \n    # 2. Yaw 90 clockwise\n    # Manual logic for clarity: fwd becomes right, right becomes -fwd\n    fwd = right\n    right = -fwd # This is wrong because we need to update both based on the same rotation\n    # Let's stick to a consistent rotation matrix or manual swap.\n    # Yaw 90 CW around Up: fwd_new = right, right_new = -fwd\n    old_f = fwd.copy()\n    fwd = right.copy()\n    right = -old_f\n    \n    # 3. Forward 4m\n    pos += fwd * 4\n    \n    # 4. Pitch down 90\n    # Rotation around Right axis: fwd moves toward -Up, Up moves toward fwd\n    old_f = fwd.copy()\n    fwd = -up.copy()\n    up = old_f\n    \n    # 5. Forward 3m\n    pos += fwd * 3\n    \n    # 6. Roll 180\n    # Rotation around Forward axis: right becomes -right, up becomes -up\n    right = -right\n    up = -up\n    \n    # 7. Turn 90 local left (Yaw CCW)\n    # Around Up axis: fwd moves toward -right, right moves toward fwd\n    old_f = fwd.copy()\n    fwd = -right.copy()\n    right = old_f\n    \n    # 8. Forward 5m\n    pos += fwd * 5\n\n    return pos, fwd\n\nfinal_pos, final_fwd = solve()\nprint(f\"Position: {np.round(final_pos, 2)}\")\nprint(f\"Forward Vector: {np.round(final_fwd, 2)}\")\n"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "code_solver",
+      "path_ok": true,
+      "path_reason": "path 'code_solver' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 35.512,
+      "note": "",
+      "db_purged_clean": true,
+      "kg_orphaned_edges": 0,
+      "kg_has_positive_records": true,
+      "tool_recovered": false,
+      "answer_ok": false,
+      "answer_reason": "tool_ok=True, pos_ok=False, vec_ok=False",
+      "eval_reason": "tool_ok=True, pos_ok=False, vec_ok=False",
+      "passed": false
+    }
+  ]
+}

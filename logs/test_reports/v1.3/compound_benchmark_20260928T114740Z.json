@@ -1,0 +1,52 @@
+{
+  "timestamp": "20260928T114740Z",
+  "total_problems": 1,
+  "total_passed": 0,
+  "pass_rate_pct": 0.0,
+  "median_latency_s": 42.36,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 0,
+      "total": 1,
+      "pass_rate_pct": 0.0,
+      "median_latency_s": 42.36
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-01",
+      "category": "CAT02",
+      "title": "3D Drone Kinematics",
+      "prompt": "A drone starts at coordinate (0, 0, 0) facing North (+y), East (+x), Up (+z). Execute in sequence: Forward 6m; Yaw 90\u00b0 clockwise; Forward 4m; Pitch down 90\u00b0; Forward 3m; Roll 180\u00b0; Turn 90\u00b0 local left; Forward 5m. What is its final (x, y, z) and pointing vector?",
+      "reply": "I've traced the signal through those maneuvers for you! The drone ends up at coordinates 7, 1, and approximately 0.\n\nRegarding the Z-axis, the calculation returned a tiny negative value of -7.34e-16, which is physically impossible as a distance but clearly represents a floating-point rounding error near zero. For all practical purposes, that third coordinate is exactly 0.\n\nThe final pointing vector is facing straight down along the negative Y-axis, specifically at 0, -1, 0.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import numpy as np\n\ndef get_rotation_matrix(pitch, yaw, roll):\n    # Standard aerospace sequence: Yaw (Z), Pitch (Y), Roll (X)\n    # We use radians. \n    # Rotation order: Yaw -> Pitch -> Roll\n    \n    # Yaw is rotation around Z-axis\n    R_yaw = np.array([\n        [np.cos(yaw), -np.sin(yaw), 0],\n        [np.sin(yaw),  np.cos(yaw), 0],\n        [0,            0,             1]\n    ])\n    \n    # Pitch is rotation around Y-axis (positive is down/forward depending on convention)\n    # In standard aeronautics, Pitch Down is positive rotation around the lateral axis.\n    # Let's use a consistent right-handed system: \n    # Forward = +y, Right = +x, Up = +z\n    # Yaw: Rotation about Z (Up)\n    # Pitch: Rotation about X (Right)\n    # Roll: Rotation about Y (Forward)\n    \n    # Correction for standard drone/aviation axes where forward is y:\n    # Let's define local axes: \n    # f = [0, 1, 0] (Forward)\n    # r = [1, 0, 0] (Right)\n    # u = [0, 0, 1] (Up)\n    \n    # Rotation matrices for rotations about local axes:\n    # Yaw (around Up/Z):\n    R_y = np.array([\n        [np.cos(yaw), -np.sin(yaw), 0],\n        [np.sin(yaw),  np.cos(yaw), 0],\n        [0,            0,             1]\n    ])\n    \n    # Pitch (around Right/X): Positive is \"Down\" (rotating y towards -z)\n    R_p = np.array([\n        [1, 0, 0],\n        [0, np.cos(pitch), np.sin(pitch)],\n        [0, -np.sin(pitch), np.cos(pitch)]\n    ])\n    \n    # Roll (around Forward/Y):\n    R_rl = np.array([\n        [np.cos(roll), 0, np.sin(roll)],\n        [0,            1, 0],\n        [-np.sin(roll), 0, np.cos(roll)]\n    ])\n    \n    # Combined rotation matrix (Order: Yaw * Pitch * Roll)\n    return R_y @ R_p @ R_rl\n\n# Initial State\npos = np.array([0.0, 0.0, 0.0])\n# Facing North (+y), East (+x), Up (+z)\n# Forward vector is +y\nf = np.array([0.0, 1.0, 0.0])\nr = np.array([1.0, 0.0, 0.0])\nu = np.array([0.0, 0.0, 1.0])\n\n# Transformation matrix (mapping local axes to global)\n# Columns are Forward, Right, Up\nM = np.column_stack((f, r, u))\n\ndef move(pos, M, distance):\n    new_pos = pos + M[:, 0] * distance\n    return new_pos\n\ndef rotate_yaw(M, degrees):\n    # Yaw is rotation around the Up vector (3rd column)\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix around Z-axis (Up)\n    R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])\n    new_M = R @ M\n    return new_M\n\ndef rotate_pitch(M, degrees):\n    # Pitch is rotation around the Right vector (2nd column)\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix around X-axis (Right). \n    # Positive pitch down: y moves towards -z\n    R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])\n    new_M = R @ M\n    return new_M\n\ndef rotate_roll(M, degrees):\n    # Roll is rotation around the Forward vector (1st column)\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix around Y-axis (Forward)\n    R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])\n    new_M = R @ M\n    return new_M\n\ndef turn_local(M, degrees):\n    # \"Turn local left\" is a Yaw around the Up vector.\n    # Since it's a yaw, we rotate about the third column of M.\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix for rotation around Z (Up)\n    R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])\n    new_M = R @ M\n    return new_M\n\n# Sequence:\n# 1. Forward 6m\npos = move(pos, M, 6)\n\n# 2. Yaw 90\u00b0 clockwise (Yaw is positive counter-clockwise in standard math, so -90 or use logic)\n# Clockwise yaw usually means rotating to the right.\nM = rotate_yaw(M, -90)\n\n# 3. Forward 4m\npos = move(pos, M, 4)\n\n# 4. Pitch down 90\u00b0 (Pitching \"down\" rotates forward vector towards negative Z)\nM = rotate_pitch(M, 90)\n\n# 5. Forward 3m\npos = move(pos, M, 3)\n\n# 6. Roll 180\u00b0\nM = rotate_roll(M, 180)\n\n# 7. Turn 90\u00b0 local left (Yaw +90)\nM = turn_local(M, 90)\n\n# 8. Forward 5m\npos = move(pos, M, 5)\n\nprint(f\"Final Position: {pos}\")\nprint(f\"Forward Vector: {M[:, 0]}\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Final Position: [ 7.00000000e+00  1.00000000e+00 -7.34788079e-16]\nForward Vector: [-6.1232340e-17 -1.0000000e+00 -1.8369702e-16]\n",
+          "error": "",
+          "args": {
+            "code": "import numpy as np\n\ndef get_rotation_matrix(pitch, yaw, roll):\n    # Standard aerospace sequence: Yaw (Z), Pitch (Y), Roll (X)\n    # We use radians. \n    # Rotation order: Yaw -> Pitch -> Roll\n    \n    # Yaw is rotation around Z-axis\n    R_yaw = np.array([\n        [np.cos(yaw), -np.sin(yaw), 0],\n        [np.sin(yaw),  np.cos(yaw), 0],\n        [0,            0,             1]\n    ])\n    \n    # Pitch is rotation around Y-axis (positive is down/forward depending on convention)\n    # In standard aeronautics, Pitch Down is positive rotation around the lateral axis.\n    # Let's use a consistent right-handed system: \n    # Forward = +y, Right = +x, Up = +z\n    # Yaw: Rotation about Z (Up)\n    # Pitch: Rotation about X (Right)\n    # Roll: Rotation about Y (Forward)\n    \n    # Correction for standard drone/aviation axes where forward is y:\n    # Let's define local axes: \n    # f = [0, 1, 0] (Forward)\n    # r = [1, 0, 0] (Right)\n    # u = [0, 0, 1] (Up)\n    \n    # Rotation matrices for rotations about local axes:\n    # Yaw (around Up/Z):\n    R_y = np.array([\n        [np.cos(yaw), -np.sin(yaw), 0],\n        [np.sin(yaw),  np.cos(yaw), 0],\n        [0,            0,             1]\n    ])\n    \n    # Pitch (around Right/X): Positive is \"Down\" (rotating y towards -z)\n    R_p = np.array([\n        [1, 0, 0],\n        [0, np.cos(pitch), np.sin(pitch)],\n        [0, -np.sin(pitch), np.cos(pitch)]\n    ])\n    \n    # Roll (around Forward/Y):\n    R_rl = np.array([\n        [np.cos(roll), 0, np.sin(roll)],\n        [0,            1, 0],\n        [-np.sin(roll), 0, np.cos(roll)]\n    ])\n    \n    # Combined rotation matrix (Order: Yaw * Pitch * Roll)\n    return R_y @ R_p @ R_rl\n\n# Initial State\npos = np.array([0.0, 0.0, 0.0])\n# Facing North (+y), East (+x), Up (+z)\n# Forward vector is +y\nf = np.array([0.0, 1.0, 0.0])\nr = np.array([1.0, 0.0, 0.0])\nu = np.array([0.0, 0.0, 1.0])\n\n# Transformation matrix (mapping local axes to global)\n# Columns are Forward, Right, Up\nM = np.column_stack((f, r, u))\n\ndef move(pos, M, distance):\n    new_pos = pos + M[:, 0] * distance\n    return new_pos\n\ndef rotate_yaw(M, degrees):\n    # Yaw is rotation around the Up vector (3rd column)\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix around Z-axis (Up)\n    R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])\n    new_M = R @ M\n    return new_M\n\ndef rotate_pitch(M, degrees):\n    # Pitch is rotation around the Right vector (2nd column)\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix around X-axis (Right). \n    # Positive pitch down: y moves towards -z\n    R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])\n    new_M = R @ M\n    return new_M\n\ndef rotate_roll(M, degrees):\n    # Roll is rotation around the Forward vector (1st column)\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix around Y-axis (Forward)\n    R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])\n    new_M = R @ M\n    return new_M\n\ndef turn_local(M, degrees):\n    # \"Turn local left\" is a Yaw around the Up vector.\n    # Since it's a yaw, we rotate about the third column of M.\n    rad = np.radians(degrees)\n    c, s = np.cos(rad), np.sin(rad)\n    # Rotation matrix for rotation around Z (Up)\n    R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])\n    new_M = R @ M\n    return new_M\n\n# Sequence:\n# 1. Forward 6m\npos = move(pos, M, 6)\n\n# 2. Yaw 90\u00b0 clockwise (Yaw is positive counter-clockwise in standard math, so -90 or use logic)\n# Clockwise yaw usually means rotating to the right.\nM = rotate_yaw(M, -90)\n\n# 3. Forward 4m\npos = move(pos, M, 4)\n\n# 4. Pitch down 90\u00b0 (Pitching \"down\" rotates forward vector towards negative Z)\nM = rotate_pitch(M, 90)\n\n# 5. Forward 3m\npos = move(pos, M, 3)\n\n# 6. Roll 180\u00b0\nM = rotate_roll(M, 180)\n\n# 7. Turn 90\u00b0 local left (Yaw +90)\nM = turn_local(M, 90)\n\n# 8. Forward 5m\npos = move(pos, M, 5)\n\nprint(f\"Final Position: {pos}\")\nprint(f\"Forward Vector: {M[:, 0]}\")\n"
+          }
+        }
+      ],
+      "elapsed_s": 42.357,
+      "note": "",
+      "passed": false,
+      "eval_reason": "tool_ok=True, pos_ok=False, vec_ok=True"
+    }
+  ]
+}

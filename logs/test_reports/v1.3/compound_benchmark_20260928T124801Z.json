@@ -1,0 +1,568 @@
+{
+  "timestamp": "20260928T124801Z",
+  "total_problems": 10,
+  "total_passed": 9,
+  "pass_rate_pct": 90.0,
+  "total_path_ok": 10,
+  "total_faithfulness_ok": 10,
+  "median_latency_s": 13.44,
+  "category_summary": {
+    "CAT05": {
+      "name": "Web-Augmented Real Research",
+      "passed": 9,
+      "total": 10,
+      "pass_rate_pct": 90.0,
+      "path_ok": 10,
+      "faithfulness_ok": 10,
+      "median_latency_s": 13.44
+    }
+  },
+  "results": [
+    {
+      "id": "CAT05-01",
+      "category": "CAT05",
+      "title": "Recent Technical Migration Guide",
+      "prompt": "What was the major breaking architectural change in PyTorch 2.0 regarding graph compilation and torch.compile?",
+      "reply": "The fetch_url tool failed because the IPv6 address was blocked.\n\nBased on the search results, the major architectural change in PyTorch 2.0 is the introduction of torch.compile, which moves away from eager execution toward a JIT-compiled graph approach without sacrificing Python's flexibility. This is achieved through a three-part stack: TorchDynamo captures the Python code into graphs, PrimTorch canonicalizes over two thousand operators into a simpler set of primitives, and TorchInductor generates optimized kernels, typically in Triton, to execute those graphs.",
+      "extracted_answer": "The fetch_url tool failed because the IPv6 address was blocked.\n\nBased on the search results, the major architectural change in PyTorch 2.0 is the introduction of torch.compile, which moves away from eager execution toward a JIT-compiled graph approach without sacrificing Python's flexibility. This is achieved through a three-part stack: TorchDynamo captures the Python code into graphs, PrimTorch canonicalizes over two thousand operators into a simpler set of primitives, and TorchInductor generates optimized kernels, typically in Triton, to execute those graphs.",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "PyTorch 2.0 major architectural change torch.compile graph compilation"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'PyTorch 2.0 major architectural change torch.compile graph compilation':\n\n1. Introduction to torch.compile \u2014 PyTorch Tutorials 2.14.0 ...\n   Summary: Author: William Wen torch.compile is the new way to speed up your PyTorch code! torch.compile makes PyTorch code run faster by JIT-compiling PyTorch code into optimized kernels, while requiring minimal code changes. torch.compile accomplishes this by tracing through your Python code, looking for PyTorch operations.\n   Source: https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. torch.compile End-to-End Tutorial \u2014 PyTorch Tutorials 2.14.0 ...\n   Summary: Author: William Wen torch.compile is the new way to speed up your PyTorch code! torch.compile makes PyTorch code run faster by JIT-compiling PyTorch code into optimized kernels, while requiring minimal code changes. This tutorial covers an end-to-end example of training and evaluating a real model with torch.compile.\n   Source: https://docs.pytorch.org/tutorials/intermediate/torch_compile_full_example.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Optimize PyG with torch.compile | NVIDIA Structured Data and ...\n   Summary: Why compilation matters for graph learning PyTorch 2.0 introduced torch.compile, a JIT compiler that fuses GPU kernels, eliminates Python overhead, and can speed up standard deep learning workloads. Graph neural networks (GNNs) present unique challenges that make compilation less straightforward than calling torch.compile (model).\n   Source: https://docs.nvidia.com/sdgm/research/pyg-compile-guide\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Compiled Graph Neural Networks \u2014 pytorch_geometric documentation\n   Summary: Compiled Graph Neural Networks torch.compile () is the latest method to speed up your PyTorch code in torch >= 2.0.0! torch.compile () makes PyTorch code run faster by JIT-compiling it into optimized kernels, all while required minimal code changes. Under the hood, torch.compile () captures PyTorch programs via TorchDynamo, canonicalizes over 2,000 PyTorch operators via PrimTorch, and finally ...\n   Source: https://pytorch-geometric.readthedocs.io/en/latest/tutorial/compile.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. PyTorch 2: Faster Machine Learning Through Dynamic Python ...\n   Summary: Apr 27, 2024 \u00b7 This paper introduces two extensions to the popular PyTorch machine learning framework, TorchDynamo and TorchInductor, which implement the torch.compile feature released in PyTorch 2. TorchDynamo is a Python-level just-in-time (JIT) compiler that enables graph compilation in PyTorch programs without sacrificing the flexibility of Python.\n   Source: https://dl.acm.org/doi/10.1145/3620665.3640366\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "PyTorch 2.0 major architectural change torch.compile graph compilation"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": false,
+          "output": null,
+          "error": "[ipv6_blocked] IPv6 address '2606:4700::6812:834' is blocked",
+          "args": {
+            "url": "https://docs.pytorch.org/tutorials/intermediate/torch_compile_tutorial.html"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 9.492,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "dynamo_or_inductor=True, compiler_mechanism=True",
+      "eval_reason": "dynamo_or_inductor=True, compiler_mechanism=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-02",
+      "category": "CAT05",
+      "title": "Game Mechanics Wiki Lookup",
+      "prompt": "In the game Elden Ring, what are the soft caps for the Vigor stat regarding HP scaling?",
+      "reply": "In Elden Ring, Vigor has two primary soft caps for HP scaling. The first major soft cap is at 40, where the amount of health you gain per level starts to decrease significantly. The second and final soft cap is at 60, which is generally considered the optimal ceiling for endgame content and PvP.",
+      "extracted_answer": "In Elden Ring, Vigor has two primary soft caps for HP scaling. The first major soft cap is at 40, where the amount of health you gain per level starts to decrease significantly. The second and final soft cap is at 60, which is generally considered the optimal ceiling for endgame content and PvP.",
+      "tools": [
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Elden Ring Vigor soft cap for HP scaling"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Elden Ring Vigor soft cap for HP scaling':\n\n1. What are Elden Ring\u2019s soft caps for all stats in 2025?\n   Summary: January 1, 2025 - From this point onwards, the amount of HP gained from additional Vigor levels will steadily decline. Level 40 is therefore called the first soft cap for Vigor. And that\u2019s not all; every Elden Ring stat has at least two soft cap points, up ...\n   Source: https://www.polygon.com/elden-ring-guide-walkthrough/24185164/soft-caps-stats-strength-vigor-endurance-arcane/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. How Much Vigor Do You Need in Elden Ring? Soft Caps, HP Breakpoints & Best Level (Patch 1.16.1)\n   Summary: August 26, 2026 - What are the Vigor soft caps in Elden Ring? The first soft cap is at 40 and the second at 60. Below 40 you gain up to +48 HP per level; from 41\u201360 the gain drops to roughly +13\u201326; past 60 it collapses to about +5\u20136 per level.\n   Source: https://timesaver.gg/blog/how-much-vigor-do-you-need-elden-ring\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Vigor | Elden Ring Wiki - Fextralife\n   Summary: August 26, 2026 - Having more HP means having more room for mistakes and learning patterns during combat. The general consensus is to have 35-40 Vigor by the time you reach Leyndell, Royal Capital, to not die in one hit, then 60 Vigor by the end of the game and in DLC. Player skill and different playstyles can ...\n   Source: https://eldenring.wiki.fextralife.com/Vigor\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Elden Ring Soft Caps \u2014 All Stats and Optimal Breakpoints | HowToPlayHub\n   Summary: July 4, 2026 - Vigor has two soft caps: 40 and 60. The first cap at 40 gives you around 1,450 HP \u2014 the practical minimum for late-game content. The second cap at 60 (roughly 1,900 HP) is the recommended ceiling for endgame play and PvP.\n   Source: https://howtoplayhub.com/elden-ring/stat-soft-caps-guide\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Elden Ring: How much Vigor you need and soft caps explained | PC Gamer\n   Summary: March 16, 2022 - While it's true that you can dump ... diminishing returns on upgrades. For instance, increasing Vigor by one level early on will get you anywhere from 26-40 maximum HP....\n   Source: https://www.pcgamer.com/elden-ring-vigor-soft-cap-explained-how-much-vigor/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "Elden Ring Vigor soft cap for HP scaling"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 9.008,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "cap_40=True, cap_60=True",
+      "eval_reason": "cap_40=True, cap_60=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-03",
+      "category": "CAT05",
+      "title": "Official Registry Fact Verification",
+      "prompt": "Search official public records for the Court of Appeals in the Philippines: who was appointed as Presiding Justice in recent appointments?",
+      "reply": "According to the official records from the Court of Appeals of the Philippines, Justice Fernanda Lampas-Peralta is the Presiding Justice. She has held that position since February 9, 2004.",
+      "extracted_answer": "According to the official records from the Court of Appeals of the Philippines, Justice Fernanda Lampas-Peralta is the Presiding Justice. She has held that position since February 9, 2004.",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Presiding Justice Court of Appeals Philippines recent appointments official records"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://ca.judiciary.gov.ph/about/incumbent-justices"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Presiding Justice Court of Appeals Philippines recent appointments official records':\n\n1. Fernanda Lampas-Peralta - Wikipedia\n   Summary: August 8, 2026 - She became a certified public ... the Philippine Bar Examination in 1984. Peralta began her career at the Office of the Solicitor General, where she served as associate solicitor and trial attorney. From 1981 to 1983, she also taught accountancy as a part-time instructor at the University of the East. She was appointed associate justice of the Court of Appeals and later became its acting presiding justice in ...\n   Source: https://en.wikipedia.org/wiki/Fernanda_C._Lampas-Peralta\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Court of Appeals of the Philippines - Wikipedia\n   Summary: 1 week ago - Organized on February 1, 1936, the Court of Appeals was initially composed of Justice Pedro Concepcion, as the first presiding judge, and ten appellate judges appointed by the president of the Philippines with the consent of the Commission on Appointments of the National Assembly.\n   Source: https://en.wikipedia.org/wiki/Court_of_Appeals_of_the_Philippines\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. List of justices of the Supreme Court of the Philippines - Wikipedia\n   Summary: 3 weeks ago - This is the list of justices of the Supreme Court of the Philippines from 1901 to present. ... Mckinley appointee T. Roosevelt appointee Taft appointee Wilson appointee \u00b7 Bar key: T. Roosevelt appointee Wilson appointee Harding appointee ... T. Roosevelt appointee Wilson appointee Harding ...\n   Source: https://en.wikipedia.org/wiki/List_of_justices_of_the_Supreme_Court_of_the_Philippines\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Court of Appeals of the Philippines | WikiLists | Fandom\n   Summary: July 21, 2026 - In view of the recent appointment of Judge Joeffre Acebido and Edilwasif Baddiri as Associate Justices on April 14, 2025, taking on to conideration the order of seniority under Rule 1 of the 2009 Internal Rules of the Court of Appeals, The ...\n   Source: https://list.fandom.com/wiki/Court_of_Appeals_of_the_Philippines\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Incumbent Justices - The Court of Appeals of the Philippines\n   Summary: August 9, 2026 - Republic of the Philippines Court of Appeals\n   Source: https://ca.judiciary.gov.ph/about/incumbent-justices\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "Presiding Justice Court of Appeals Philippines recent appointments official records"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "Incumbent Justices - The Court of Appeals of the Philippines\n\nIncumbent Justices - The Court of Appeals of the Philippines Site Search Search Transparency Seal Adjudicative Matters Case Search Recent Decisions and Resolutions Judiciary E-Payment System JEPS Guide Electronic Filing Job Vacancy Procurement Procurement Opportunities Past Livestreams eLearning Search Sep 28 Philippine Standard Time: Republic of the Philippines Court of Appeals Home About Us Mission, Vision, and Core Values Mandate Quality Policy History Incumbent Justices Administration Committees GAD Corner Admin Matters Internal Rules and Procedures Court Compositions Reports Publications Public Notices Disposal FAQ Contact Us Republic of the Philippines Court of Appeals PST: Home Transparency Seal Job Vacancy Procurement Procurement Opportunities Past Livestreams eLearning About Us Mission, Vision, and Core Values Mandate Quality Policy History Incumbent Justices Administration Committees GAD Corner Admin Matters Internal Rules and Procedures Court Compositions Reports Publications Public Notices Disposal FAQ Contact Us Site Search Search Case Search Recent Decisions and Resolutions Judiciary E-Payment System JEPS Guide Electronic Filing Court of Appeals Ma. Orosa Street, Ermita 1000 Manila (02) 8524-1241 to 52 Incumbent Justices The Justices View: ALL Manila Visayas Station Mindanao Station &nbsp; Search: Name Incumbent Justices Position Date of Assumption 1 HON. Fernanda Lampas Peralta Presiding Justice CHAIRPERSON , First Division Date of Assumption: February 09, 2004 2 HON. Ramon M. Bato, Jr. Associate Justice CHAIRPERSON , Second Division Date of Assumption: March 15, 2004 3 HON. Ramon A. Cruz Associate Justice CHAIRPERSON , Third Division Date of Assumption: November 05, 2009 4 HON. Myra V. Garcia-Fernandez Associate Justice CHAIRPERSON , Fourth Division Date of Assumption: March 11, 2010 5 HON. Eduardo B. Peralta, Jr. Associate Justice CHAIRPERSON , Fifth Division Date of Assumption: March 11, 2010 6 HON. Nina G. Antonio-Valenzuela Associate Justice CHAIRPERSON , Sixth Division Date of Assumption: March 11, 2010 7 HON. Pamela Ann Abella Maxino Executive Justice CHAIRPERSON , Eighteenth Division Date of Assumption: March 10, 2011 8 HON. Zenaida T. Galapate-Laguilles Associate Justice CHAIRPERSON , Seventh Division Date of Assumption: March 21, 2011 9 HON. Pedro B. Corales Associate Justice CHAIRPERSON , Eighth Division Date of Assumption: December 22, 2011 10 HON. Marilyn B. Lagura-Yap Associate Justice CHAIRPERSON , Nineteenth Division Date of Assumption: February 24, 2012 11 HON. Maria Elisa Sempio Diy Associate Justice CHAIRPERSON , Ninth Division Date of Assumption: February 22, 2012 12 HON. Pablito A. Perez Associate Justice CHAIRPERSON , Tenth Division Date of Assumption: March 19, 2014 13 HON. Germano Francisco D. Legaspi Associate Justice CHAIRPERSON , Eleventh Division Date of Assumption: January 20, 2015 14 HON. Ronaldo Roberto B. Martin Associate Justice CHAIRPERSON , Twelfth Division Date of Assumption: May 13, 2015 15 HON. Geraldine C. Fiel-Macaraig Associate Justice CHAIRPERSON , Thirteenth Division Date of Assumption: November 13, 2015 16 HON. Gabriel T. Robeniol Associate Justice CHAIRPERSON , Fourteenth Division Date of Assumption: November 16, 2015 17 HON. Ruben Reynaldo G. Roxas Associate Justice CHAIRPERSON , Fifteenth Division Date of Assumption: November 23, 2015 18 HON. Louis P. Acosta Associate Justice CHAIRPERSON , Sixteenth Division Date of Assumption: March 10, 2017 19 HON. Tita Marilyn B. Payoyo-Villordon Associate Justice CHAIRPERSON , Seventeenth Division Date of Assumption: October 06, 2017 20 HON. Walter S. Ong Associate Justice SENIOR MEMBER , First Division Date of Assumption: December 12, 2017 21 HON. Emily R. Ali\u00f1o-Geluz Associate Justice SENIOR MEMBER , Second Division Date of Assumption: June 21, 2018 22 HON. Florencio M. Mamauag, Jr. Associate Justice SENIOR MEMBER , Third Division Date of Assumption: December 07, 2018 23 HON. Lily V. Biton Executive Justice CHAIRPERSON , Twenty-First Division Date of Assumption: July 10, 2019 24 HON. Carlito B. Calpatura Associate Justice SENIOR MEMBER , Fourth Division Date of Assumption: July 10, 2019 25 HON. Angelene Mary W. Quimpo-Sale Associate Justice SENIOR MEMBER , Fifth Division Date of Assumption: July 10, 2019 26 HON. Bonifacio S. Pascua Associate Justice SENIOR MEMBER , Sixth Division Date of Assumption: March 05, 2020 27 HON. Richard D. Mordeno Associate Justice CHAIRPERSON , Twenty-Second Division Date of Assumption: March 06, 2020 28 HON. Raymond Reynold R. Lauigan Associate Justice SENIOR MEMBER , Seventh Division Date of Assumption: March 11, 2020 29 HON. Lorenza R. Bordios Associate Justice SENIOR MEMBER , Eighth Division Date of Assumption: March 06, 2020 30 HON. Roberto P. Quiroz Associate Justice SENIOR MEMBER , Ninth Division Date of Assumption: December 22, 2020 31 HON. Bautista G. Corpin, Jr. Associate Justice CHAIRPERSON , Twentieth Division Date of Assumption: December 22, 2020 32 HON. Anisah B. Amanodin-Umpa Associate Justice CHAIRPERSON , Twenty-Third Division Date of Assumption: December 22, 2020 33 HON. Nancy R. Palmones Associate Justice SENIOR MEMBER , Eighteenth Division Date of Assumption: April 07, 2021 34 HON. Alfonso C. Ruiz II Associate Justice SENIOR MEMBER , Tenth Division Date of Assumption: August 31, 2021 35 HON. Jennifer Joy C. Ong Associate Justice SENIOR MEMBER , Eleventh Division Date of Assumption: January 21, 2022 36 HON. Michael P. Ong Associate Justice SENIOR MEMBER , Twelfth Division Date of Assumption: January 27, 2022 37 HON. Maximo M. De Leon Associate Justice SENIOR MEMBER , Thirteenth Division Date of Assumption: January 28, 2022 38 HON. Ana Marie T. Mas Associate Justice SENIOR MEMBER , Twenty-First Division Date of Assumption: January 31, 2022 39 HON. Eduardo S. Ramos, Jr. Associate Justice SENIOR MEMBER , Fourteenth Division Date of Assumption: March 08, 2022 40 HON. Jaime Fortunato A. Caringal Associate Justice SENIOR MEMBER , Fifteenth Division Date of Assumption: March 08, 2022 41 HON. Mercedita G. Dadole-Ygnacio Associate Justice SENIOR MEMBER , Nineteenth Division Date of Assumption: March 08, 2022 42 HON. Rex Bernardo L. Pascual Associate Justice SENIOR MEMBER , Sixteenth Division Date of Assumption: March 08, 2022 43 HON. Emily L. San Gaspar-Gito Associate Justice SENIOR MEMBER , Seventeenth Division Date of Assumption: March 08, 2022 44 HON. Jose Lorenzo R. Dela Rosa Associate Justice JUNIOR MEMBER , First Division Date of Assumption: March 08, 2022 45 HON. Jill Rose S. Jaugan-Lo Associate Justice SENIOR MEMBER , Twenty-Second Division Date of Assumption: March 09, 2022 46 HON. Ronald S. Tolentino Associate Justice SENIOR MEMBER , Twentieth Division Date of Assumption: March 09, 2022 47 HON. Rogelio G. Largo Associate Justice JUNIOR MEMBER , Second Division Date of Assumption: March 09, 2022 48 HON. Mary Charlene V. Hernandez-Azura Associate Justice JUNIOR MEMBER , Third Division Date of Assumption: March 09, 2022 49 HON. Eleuterio L. Bathan Associate Justice JUNIOR MEMBER , Fourth Division Date of Assumption: May 19, 2022 50 HON. John Z. Lee Associate Justice SENIOR MEMBER , Twenty-Third Division Date of Assumption: May 19, 2022 51 HON. Selma Palacio Alaras Associate Justice JUNIOR MEMBER , Fifth Division Date of Assumption: October 19, 2022 52 HON. Wilhelmina B. Jorge-Wagan Associate Justice JUNIOR MEMBER , Sixth Division Date of Assumption: October 19, 2022 53 HON. Raymond Joseph G. Javier Associate Justice JUNIOR MEMBER , Seventh Division Date of Assumption: September 27, 2023 54 HON. Ma. Consejo Mapa Gengos-Ignalaga Associate Justice JUNIOR MEMBER , Eighth Division Date of Assumption: September 27, 2023 55 HON. Lorna Francisca Catris Chua Cheng Associate Justice JUNIOR MEMBER , Ninth Division Date of Assumption: September 27, 2023 56 HON. Emilio Rodolfo Y. Legaspi III Associate Justice JUNIOR MEMBER , Tenth Division Date of Assumption: August 30, 2024 57 HON. Mary Josephine D.P. Lazaro Associate Justice JUNIOR MEMBER , Eleventh Division Date of Assumption: August 30, 2024 58 HON. Ferdinand C. Baylon Associate Justice JUNIOR MEMBER , Twelfth Division Date of Assumption: August 30, 2024 59 HON. Marietta S. Brawner-Cualing Associate Justice JUNIOR MEMBER , Thirteenth Division Date of Assumption: August 30, 2024 60 HON. Jeoffre Willkom Acebido Associate Justice JUNIOR MEMBER , Twenty-First Division Date of Assumption: April 14, 2025 61 HON. Edilwasif Tapsiril Baddiri Associate Justice JUNIOR MEMBER , Fourteenth Division Date of Assumption: April 11, 2025 62 HON. Robert Victor Consunji Marcon ASSOCIATE JUSTICE JUNIOR MEMBER , Eighteenth Division Date of Assumption: September 23, 2025 63 HON. Snooky Maria Ana Bareno Sagayo ASSOCIATE JUSTICE JUNIOR MEMBER , Twenty-Second Division Date of Assumption: September 23, 2025 64 HON. Randolph A. Pascasio Associate Justice JUNIOR MEMBER , Nineteenth Division Date of Assumption: August 05, 2026 Composition as of September 21, 2026 per Office Order No. 579-26-FLP . Last updated: Close Live Now Republic of the Philippines Court of Appeals Ma. Orosa Street, Ermita 1000 Manila (02) 8524-1241 to 52 Site Map Home Transparency Seal Job Vacancy Contact Us Mission, Vision, and Core Values Incumbent Justices Administration GAD Corner History Committees FAQ Mandate Quality Policy eLearning Internal Rules and Procedures Court Compositions Electronic Filing Reports Publications Public Notices Disposal Procurement Opportunities Past Livestreams Other Links Case Search Recent Decisions and Resolutions Judiciary E-Payment System JEPS Guide Office of the President Office of the Vice President Senate of the Philippines House of Representatives Supreme Court Sandiganbayan Court of Tax Appeals Office of the Court Administrator Judicial Bar Council Philippine Judicial Academy \u00a9 2026 Court of Appeals. All rights reserved. Privacy Notice Republic of the Philippines Court of Appeals Privacy Notice The Court of Appeals is committed to protecting your personal information. This website collects non-personal information to improve your browsing experience, ensure functionality, and analyze site activity. By using this site, you agree to our collection and use of this information. For more details, please refer to our Privacy Policy. Learn More",
+          "error": "",
+          "args": {
+            "url": "https://ca.judiciary.gov.ph/about/incumbent-justices"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 17.92,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "target_justice_named=True",
+      "eval_reason": "target_justice_named=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-04",
+      "category": "CAT05",
+      "title": "Hardware Architecture Specs",
+      "prompt": "What is the key architectural difference between Intel Lion Cove P-cores and Skymont E-cores in Lunar Lake / Arrow Lake processors?",
+      "reply": "The big shift here is all about efficiency and how they handle threads. For the Lion Cove P-cores, Intel actually stripped out Hyper-Threading entirely to make them leaner and more power-efficient, which was a huge move for their hybrid architecture strategy. On the flip side, the Skymont E-cores are seeing massive gains\u2014up to 68% IPC improvement in some specs\u2014and they're designed to be incredibly scalable to handle those background tasks while keeping the power draw low. It's like they've optimized the P-cores for raw surgical precision and the E-cores for sheer high-efficiency throughput!",
+      "extracted_answer": "The big shift here is all about efficiency and how they handle threads. For the Lion Cove P-cores, Intel actually stripped out Hyper-Threading entirely to make them leaner and more power-efficient, which was a huge move for their hybrid architecture strategy. On the flip side, the Skymont E-cores are seeing massive gains\u2014up to 68% IPC improvement in some specs\u2014and they're designed to be incredibly scalable to handle those background tasks while keeping the power draw low. It's like they've optimized the P-cores for raw surgical precision and the E-cores for sheer high-efficiency throughput!",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Intel Lion Cove P-cores vs Skymont E-cores architecture differences Lunar Lake Arrow Lake"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://www.tomshardware.com/pc-components/cpus/intel-unwraps-lunar-lake-architecture-up-to-68-ipc-gain-for-e-cores-16-ipc-gain-for-p-cores/2"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Intel Lion Cove P-cores vs Skymont E-cores architecture differences Lunar Lake Arrow Lake':\n\n1. Lunar Lake - Wikipedia\n   Summary: 3 weeks ago - Lunar Lake's compute tile was originally planned to be built on Intel's 18A node. 18A will not debut until 2025 with Panther Lake mobile processors and Clearwater Forest server processors. Lunar Lake shares the same Lion Cove P-core and Skymont E-core architectures with Arrow Lake desktop and ...\n   Source: https://en.wikipedia.org/wiki/Lunar_Lake\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Arrow Lake (microprocessor) - Wikipedia\n   Summary: 1 week ago - On May 20, 2024, Intel reaffirmed that Arrow Lake was on track for a Q4 2024 release with an update promised at Computex in the following weeks. On June 4, 2024, Intel shared details on the Lion Cove P-cores and Skymont E-core architectures that are shared between Arrow Lake and Lunar Lake.\n   Source: https://en.wikipedia.org/wiki/Arrow_Lake_(microprocessor)\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Intel Lunar Lake \u2018Lion Cove\u2019 P-core Microarchitecture - Intel unwraps Lunar Lake architecture: Up to 68% IPC gain for E-cores, 14% IPC gain for P-Cores - Page 2 | Tom's Hardware\n   Summary: June 4, 2024 - As a result, L2 cache grows to 2.5MB on Lunar Lake and 3MB on Arrow Lake (they both use Lion Cove for the P-cores). Intel also switched from using proprietary design tools to industry-standard tools optimized for its use.\n   Source: https://www.tomshardware.com/pc-components/cpus/intel-unwraps-lunar-lake-architecture-up-to-68-ipc-gain-for-e-cores-16-ipc-gain-for-p-cores/2\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Intel Lunar Lake CPU Architecture Deep-Dive: Lion Cove +14% IPC, Skymont IPC More Than Raptor Cove, Next-Gen Power Managment & Scheduling\n   Summary: June 4, 2024 - As mentioned above, Intel's Skymont E-core is quite scalable and in Arrow Lake, we can see the full capabilities of this architecture with a 2% IPC improvement over the Raptor Cove P-Core in both Integer and Floating Point.\n   Source: https://wccftech.com/intel-lunar-lake-cpu-architecture-deep-dive-lion-cove-skymont-double-digit-ipc-new-thread-director/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Examining Intel's Arrow Lake, at the System Level\n   Summary: December 8, 2024 - Arrow Lake places all CPU cores within the Compute Tile, so cache-to-cache transfers don\u2019t need to cross die boundaries. Furthermore, Intel has optimized their E-Core clusters to allow cache-to-cache transfers within the same L2 complex. Arrow Lake\u2019s Skymont E-Cores enjoy excellent results in this \u201ccore to core\u201d latency test. Lion Cove P-Cores however don\u2019t do so well.\n   Source: https://chipsandcheese.com/p/examining-intels-arrow-lake-at-the\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "Intel Lion Cove P-cores vs Skymont E-cores architecture differences Lunar Lake Arrow Lake"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "Intel Lunar Lake &lsquo;Lion Cove&rsquo; P-core Microarchitecture - Intel unwraps Lunar Lake architecture: Up to 68% IPC gain for E-cores, 14% IPC gain for P-Cores - Page 2 | Tom's Hardware\n\nIntel Lunar Lake &lsquo;Lion Cove&rsquo; P-core Microarchitecture - Intel unwraps Lunar Lake architecture: Up to 68% IPC gain for E-cores, 14% IPC gain for P-Cores - Page 2 | Tom's Hardware Skip to main content Join Tom&rsquo;s Hardware today Upgrade to Tom&rsquo;s Hardware Premium Explore GO PREMIUM Choose how you want to join Tom&rsquo;s Hardware MEMBER Get started with free access to reviews, badges and discussions. Become a member Premium member Unlock exclusive tools and insights for enthusiasts who want more. Bench Database Exclusive Features Roadmaps Deep Analysis Become a premium member Go beyond the headlines with Tom&rsquo;s Hardware Premium Access Bench, Roadmaps, deep analysis and other exclusive tools. Explore PREMIUM Bench Performance Database Dive into our proprietary testing data and compare hardware with detailed benchmarks. Deep-Dive Analysis Go beyond the headlines with expert reporting on the hardware industry. Hardware Roadmaps Track upcoming CPUs, GPUs and tech releases before they arrive. Exclusive Long-Form Features In-depth features, interviews and insider stories from the world of hardware. Uptime Premium Newsletter Expert insights and analysis delivered to your inbox. of Bench Performance Database Dive into our proprietary testing data and compare hardware with detailed benchmarks. 1 of 5 Deep-Dive Analysis Go beyond the headlines with expert reporting on the hardware industry. 2 of 5 Hardware Roadmaps Track upcoming CPUs, GPUs and tech releases before they arrive. 3 of 5 Exclusive Long-Form Features In-depth features, interviews and insider stories from the world of hardware. 4 of 5 Uptime Premium Newsletter Expert insights and analysis delivered to your inbox. 5 of 5 Explore PREMIUM Welcome to Tom's Hardware club ! Hi , Your membership journey starts here. Keep exploring and earning more as a member. MY ACCOUNT Earn your first badge Read 1 article to unlock your first badge. Keep earning badges Explore ways to get more involved as a member. Latest on CPUs News, reviews, and technical insights. Explore GPU Insights Reviews, benchmarks, and updates on current GPUs. Explore See what you&rsquo;ve unlocked. Explore your membership benefits. Explore Unlock Premium Limited-time Premium offer Cancel anytime Explore premium Sign Out Premium Member Hi , Keep exploring with your premium access. Go TO Premium Hub Premium Tools Bench Database Exclusive Features Roadmaps Deep Analysis My Account Sign Out Open menu Tom's Hardware US Edition UK US Australia Canada RSS Sign in View Profile Sign out Search Search Tom's Hardware Best Picks CPU Buying Advice CPU Best Picks CPU Reviews GPU Buying Advice GPU Best Picks GPU Reviews Laptop Buying Advice Laptop Best Picks Laptop Reviews More Buying Advice Keyboard Best Picks Gaming Monitor Best Picks Gaming Headset Best Picks 3D Printer Best Picks Webcam Best Picks Mice Best Picks How We Test CPUs CPU Brands Nvidia RTX Spark AMD Ryzen Intel Core Ultra Qualcomm Snapdragon X Apple Silicon (M-Series) Platforms X86 RISC-V ARM Zen 5 AM5 Oryon Chipmaking DUV EUV Rare Earth Metals Photonics GPUs GPU Brands Nvidia Blackwell Nvidia GeForce AMD Radeon Intel Arc Memory Tech GDDR7 GDDR8 HBM AI Architecture Nvidia Vera Rubin Meta MTIA Google TPU AMD Instinct Microsoft Maia Drivers PC Components Memory RAM DRAM DDR5 Storage HDDs SSDs Cooling Air Cooling Liquid Cooling Thermal Paste Networking Routers Motherboards Overclocking PC Cases PC Building Power Supplies News Tech Industry News CPU News GPU News Chips Act Semiconductors Cybersecurity Supercomputers Quantum Computing Company News AMD Intel Nvidia Microsoft TSMC IBM ASML Newsletter Laptops Gaming Laptops Ultrabooks Processors Intel Lunar Lake Intel Panther Lake AMD Strix Point AMD Gorgon Point Qualcomm Snapdragon X Qualcomm Snapdragon X2 Laptop Brands Apple Asus HP Lenovo Microsoft MSI Razer Desktops PC Building PC Cases Gaming PCs Monitors Gaming Monitors Peripherals Keyboards Mice 3D Printers Headphones Desktop Brands Acer Alienware Corsair CyberPowerPC Gigabyte MSI Software &amp; AI Artificial Intelligence Machine Learning R&amp;D Intel Gaudi Cerebras xAI LLMs OpenAI Anthropic DeepSeek Gemini Grok Operating Systems Windows MacOS iOS ChromeOS Linux Software Programming Applications Microsoft Office Web Browsers Coupons Laptop and PC Coupons Dell Coupon Codes Asus Coupon Codes Logitech Promo Codes Samsung Promo codes Hardware Coupons Newegg Promo Codes Corsair Discount Codes Razer Promo Codes Anycubic Discount codes Software Coupons Bitdefender Coupons Simplisafe Coupons MacPaw Coupons Squarespace Coupon Codes Gaming Coupons Kinguin Discount Codes Loaded Discount Codes Logitech G Promo Codes SteelSeries Coupons More Premium Forums Home Best Picks View Best Picks CPU Buying Advice CPU Best Picks CPU Reviews GPU Buying Advice GPU Best Picks GPU Reviews Laptop Buying Advice Laptop Best Picks Laptop Reviews More Buying Advice Keyboard Best Picks Gaming Monitor Best Picks Gaming Headset Best Picks 3D Printer Best Picks Webcam Best Picks Mice Best Picks How We Test CPUs View CPUs CPU Brands Nvidia RTX Spark AMD Ryzen Intel Core Ultra Qualcomm Snapdragon X Apple Silicon (M-Series) Platforms X86 RISC-V ARM Zen 5 AM5 Oryon Chipmaking View Chipmaking DUV EUV Rare Earth Metals Photonics GPUs View GPUs GPU Brands Nvidia Blackwell Nvidia GeForce AMD Radeon Intel Arc Memory Tech GDDR7 GDDR8 HBM AI Architecture Nvidia Vera Rubin Meta MTIA Google TPU AMD Instinct Microsoft Maia Drivers PC Components View PC Components Memory RAM DRAM DDR5 Storage View Storage HDDs SSDs Cooling View Cooling Air Cooling Liquid Cooling Thermal Paste Networking View Networking Routers Motherboards Overclocking PC Cases PC Building Power Supplies News View News Tech Industry News View Tech Industry News CPU News GPU News Chips Act Semiconductors Cybersecurity Supercomputers Quantum Computing Company News AMD Intel Nvidia Microsoft TSMC IBM ASML Newsletter Laptops View Laptops Gaming Laptops Ultrabooks Processors Intel Lunar Lake Intel Panther Lake AMD Strix Point AMD Gorgon Point Qualcomm Snapdragon X Qualcomm Snapdragon X2 Laptop Brands Apple Asus HP Lenovo Microsoft MSI Razer Desktops View Desktops PC Building View PC Building PC Cases Gaming PCs Monitors View Monitors Gaming Monitors Peripherals View Peripherals Keyboards Mice 3D Printers Headphones Desktop Brands Acer Alienware Corsair CyberPowerPC Gigabyte MSI Software &amp; AI View Software &amp; AI Artificial Intelligence View Artificial Intelligence Machine Learning R&amp;D Intel Gaudi Cerebras xAI LLMs View LLMs OpenAI Anthropic DeepSeek Gemini Grok Operating Systems View Operating Systems Windows MacOS iOS ChromeOS Linux Software View Software Programming Applications Microsoft Office Web Browsers Coupons View Coupons Laptop and PC Coupons View Laptop and PC Coupons Dell Coupon Codes Asus Coupon Codes Logitech Promo Codes Samsung Promo codes Hardware Coupons View Hardware Coupons Newegg Promo Codes Corsair Discount Codes Razer Promo Codes Anycubic Discount codes Software Coupons View Software Coupons Bitdefender Coupons Simplisafe Coupons MacPaw Coupons Squarespace Coupon Codes Gaming Coupons View Gaming Coupons Kinguin Discount Codes Loaded Discount Codes Logitech G Promo Codes SteelSeries Coupons Premium Forums Tom's Hardware Stay On the Cutting Edge: Get the Tom's Hardware Newsletter Get Tom's Hardware's best news and in-depth reviews, straight to your inbox. Become a Member in Seconds Unlock instant access to exclusive member features. Contact me with news and offers from other Future brands Receive email from us on behalf of our trusted partners or sponsors By submitting your information you agree to the Terms &amp; Conditions and Privacy Policy and are aged 16 or over. You are now subscribed Your newsletter sign-up was successful Join the club Get full access to premium articles, exclusive features and a growing list of member rewards. Explore An account already exists for this email address, please log in. Trending AI Data Centers RAM Shortage Vera Rubin RAM Combo Deals Nova Lake Tom's 30th Anniversary PC Components CPUs Intel unwraps Lunar Lake architecture: Up to 68% IPC gain for E-cores, 14% IPC gain for P-Cores News By Paul Alcorn Published 4 June 2024 Rearchitecting for power and performance. When you purchase through links on our site, we may earn an affiliate commission. Here&rsquo;s how it works . Page 2 of 5: Intel Lunar Lake &lsquo;Lion Cove&rsquo; P-core Microarchitecture Page 1: Lunar Lake SoC Overview Page 2: Intel Lunar Lake &lsquo;Lion Cove&rsquo; P-core Microarchitecture Page 3: Intel Lunar Lake &lsquo;Skymont&rsquo; E-core Microarchitecture Page 4: Lunar Lake Xe2 GPU Page 5: Lunar Lake NPU, Platform Controller Tile, and Thoughts Copy link Facebook X Whatsapp Reddit Pinterest Flipboard Email Share this article 93 Join the conversation Follow us Add us as a preferred source on Google Newsletter Subscribe to our newsletter Image 1 of 3 (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) Image 1 of 3 View Original Image 2 of 3 View Original Image 3 of 3 View Original Lunar Lake&rsquo;s P-cores deliver a 14% average gain in IPC (Instructions Per Cycle), which floats all boats in terms of performance. However, Intel took an unexpected turn in optimizing the cores for a hybrid architecture by removing hyperthreading and all the logic blocks that enable that performance-boosting feature. Image 1 of 7 (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) Image 1 of 7 View Original Image 2 of 7 View Original Image 3 of 7 View Original Image 4 of 7 View Original Image 5 of 7 View Original Image 6 of 7 View Original Image 7 of 7 View Original Intel&rsquo;s architects concluded that hyperthreading, which boosts IPC by ~30% in heavily threaded workloads, isn&rsquo;t as relevant in a hybrid design that leverages the more power- and area-efficient E-cores for threaded workloads. In fact, threads were typically scheduled into all P-cores first without leveraging the extra threads on the cores, and then spilling additional threads spill over to the E-cores. Only after the E-cores were saturated did additional threads begin to get scheduled into the extra threads available on the P-cores. Removing the dedicated fairness mechanisms and extra security features required for hyperthreading makes the core leaner, delivering a 15% increase in performance efficiency, 10% increase in performance per area, and a 30% improvement in performance per power per area. This was much more effective than merely disabling hyperthreading while leaving the control circuitry present, as shown in the measurements in the last slide above. The new approach also preserves die area for other additives, like more E-cores or GPU cores. Intel isn&rsquo;t discarding hyperthreading for all use-cases &mdash; it still sees tremendous value in P-core-only designs. As such, Intel architected two versions of the Lion Cove core, one with and one without hyperthreading, so that the threaded Lion Cove core can be used in other applications, like we see in the forthcoming Xeon 6 processors. Lion Cove also marks a shift from pre-defined static settings for various operating conditions, such as assigning certain points on the voltage/frequency curve for different thermal and power thresholds. It now uses an AI self-tuning controller to dynamically adapt in a more intelligent manner. Intel&rsquo;s clock frequencies also used to only be adjustable in 100 MHz increments (bins) but are now tunable in 16.67 MHz bins to provide more fine-grained frequency and power control. Intel credits this with single-digit percentage increases in either power efficiency or performance in some scenarios, and every bit counts in an efficiency-first architecture. Image 1 of 12 (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) (Image credit: Intel) Image 1 of 12 View Original Image 2 of 12 View Original Image 3 of 12 View Original Image 4 of 12 View Original Image 5 of 12 View Original Image 6 of 12 View Original Image 7 of 12 View Original Image 8 of 12 View Original Image 9 of 12 View Original Image 10 of 12 View Original Image 11 of 12 View Original Image 12 of 12 View Original The front end of the microarchitecture fetches x86 instructions and decodes them into microoperations to feed the out of order execution engine. The goal is to saturate the out of order part of the engine to prevent stalls, and that requires fast and accurate branch prediction. Intel says it widened the prediction block by 8X over the previous architecture while maintaining accuracy. Intel also tripled the request bandwidth from the instruction cache to the L2 and doubled the instruction fetch bandwidth from 64 to 128 bytes per second. Additionally, decode bandwidth was bumped up from 6 to 8 instructions per cycle while the micro-op cache was increased along with its read bandwidth. The micro-op queue was also increased from 144 entries to 192 entries. Previous P-core architectures had a single scheduler to dispatch instructions across the execution ports, but the design incurred hardware overhead and scalability issues. To address these issues, Intel split the out of order engine into integer and vector domains with independent renamers and schedulers to increase flexibility. A range of improvements were also made to the retirement, instruction window, and execution ports, along with other improvements to the integer and vector execution pipelines (listed in the slides). The memory subsystem has a new L0 cache level. The architects completely redesigned the data cache to add a 192KB tier between the existing L1 and L2 caches. This resulted in renaming the existing L1 as L0. Ultimately this decreases the average load-to-use time, which increases IPC, and enables increasing the L2 cache capacity without latency sacrifices due to the increased capacity. As a result, L2 cache grows to 2.5MB on Lunar Lake and 3MB on Arrow Lake (they both use Lion Cove for the P-cores). Intel also switched from using proprietary design tools to industry-standard tools optimized for its use. Intel&rsquo;s old architectures were designed with &ldquo;Fubs&rdquo; (functional blocks) of tens of thousands of cells consisting of manually drawn circuits, but it has now moved to using big, synthesized partitions of hundreds of thousands to millions of cells. The removal of the artificial boundaries improves design time, increases utilization, and reduces area. This also allowed for the addition of more configuration knobs into the design to spin off customized SoC-specific designs faster, with the lead architect saying this allows for more customization between the cores used for Lunar Lake and Arrow Lake. This design methodology also makes 99% of the design transferable to other process nodes, a key advance that prevents the stumbles we&rsquo;ve seen in the past where intel&rsquo;s new architectures were delayed by massive process node delays (as with 10nm, for instance). Latest Videos From Tom's Hardware Watch full video here: (Image credit: Intel) The end result of the changes is a 14% increase in IPC at a fixed clock rate over the previous-gen Redwood Cove architecture used in Meteor Lake. Intel also points to overall performance improvements that range from 10% to 18% over Meteor Lake depending upon the operating power of the chip. Notably, these power/performance improvements are based on projections/estimates, so Intel has given itself a +/- 10% margin of error for the metrics on the &lsquo;performance at power&rsquo; chart. Stay On the Cutting Edge: Get the Tom's Hardware Newsletter Get Tom's Hardware's best news and in-depth reviews, straight to your inbox. Contact me with news and offers from other Future brands Receive email from us on behalf of our trusted partners or sponsors By submitting your information you agree to the Terms &amp; Conditions and Privacy Policy and are aged 16 or over. 1 2 3 4 5 Current page: Intel Lunar Lake &lsquo;Lion Cove&rsquo; P-core Microarchitecture Prev Page Lunar Lake SoC Overview Next Page Intel Lunar Lake &lsquo;Skymont&rsquo; E-core Microarchitecture TOPICS Computex Lunar Lake Intel Ryzen AMD Arrow Lake TSMC Panther Lake Intel Arc Raptor Lake See all comments (93) Paul Alcorn Social Links Navigation Editor-in-Chief Paul Alcorn is the Editor-in-Chief for Tom's Hardware US. He also writes news and reviews on CPUs, storage, and enterprise hardware. Read more CPUs Hot Chips 2026: Intel Xeon 7 'Diamond Rapids' comes with up to 256 P-cores, 1.28 GB of last-level cache &nbsp; &nbsp; CPUs Intel's upcoming Nova Lake desktop SKU to require 65W of separate power delivery for its iGPU, leaker claims &nbsp; &nbsp; CPUs Hot Chips 2026: Intel details cutting-edge tech in entry-level Wildcat Lake &nbsp; &nbsp; GPUs Hot Chips 2026: Intel dives deep on Crescent Island AI accelerator &nbsp; &nbsp; CPUs Intel reportedly cans 12Xe option for Nova Lake-S desktop &nbsp; &nbsp; CPUs Intel's Core Ultra 400 'Nova Lake' launch schedule leaks out &nbsp; &nbsp; Latest in CPUs CPUs Meta Muse runs agents on AMD EPYC Turin hosts with two cores and 8GB of memory &nbsp; &nbsp; CPUs AMD Ryzen 5 5500F and 7500 show up at retail with pricing above MSRP &nbsp; &nbsp; CPUs MediaTek next-gen Dimensity CX C10 Max will power new Googlebook initiative &nbsp; &nbsp; CPUs AMD targets Nvidia with first official benchmarks for EPYC 'Venice' CPUs &nbsp; &nbsp; CPUs Details about Intel's next-gen Nova Lake CPUs keep leaking &nbsp; &nbsp; CPUs Enthusiast digs into CPU substrate for surgery to replace ripped-off data pin &nbsp; &nbsp; Latest in News Data Centers Elon Musk's SpaceXAI to add another 660,000 AI GPUs this year, nearing a total of 1.44 million in operation &nbsp; &nbsp; CPUs Meta Muse runs agents on AMD EPYC Turin hosts with two cores and 8GB of memory &nbsp; &nbsp; Air Cooling Noctua explores 2,000W micro-channel air cooling &nbsp; &nbsp; Nintendo Nintendo wins $4.5 million lawsuit against Switch pirate by default &nbsp; &nbsp; Microsoft Surface Microsoft revamps Copilot with new tools, support for frontier models &nbsp; &nbsp; Semiconductors Intel expects 14A to be 'within 5%' the performance of TSMC's A14 &nbsp; &nbsp; 93 Comments Comment from the forums dimar I'd like to see extensive power consumption/performance benchmarks for the next gen. Intel, AMD, ARM CPUs and how slower and faster SSDs affect the battery life. Reply cyrusfox Fascinating the disparity in improvement between Floating point vs integer single thread uplift. Huge FP uplift! Eye popping improvements!!! That is lame though, comparing to the gimped e-cores... but the comparisons are once again being made to the low-power Meteor Lake E-core instead of the full E-core iGPU uplift is looking really solid, this seems to check all the boxes of what I need in a device. For toting around I really don't need 24+ cores, 8 is plenty and with this much GPU as well as hopefully maturing platform. Excited to see the products and where the pricing lands. Hope Framework gets a flavor of this. Reply jenci8888 68% ipc gain e-core? That doesn't seem right... I think they meant 68% gain e-core on specfp. It should be 30% ipc around. Reply usertests cyrusfox said: That is lame though, comparing to the gimped e-cores... They also compare it to Raptor Cove, and if I'm reading it right, claim +2% IPC over that. With the caveat repeatedly mentioned in the article that Intel is giving itself a 10% margin of error. Reply thestryker Well it seems we have an answer regar",
+          "error": "",
+          "args": {
+            "url": "https://www.tomshardware.com/pc-components/cpus/intel-unwraps-lunar-lake-architecture-up-to-68-ipc-gain-for-e-cores-16-ipc-gain-for-p-cores/2"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 21.055,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "smt_distinction=True, contrast=True",
+      "eval_reason": "smt_distinction=True, contrast=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-05",
+      "category": "CAT05",
+      "title": "Scientific Consensus / Phenomenon",
+      "prompt": "What is the Cherenkov radiation threshold condition in water, and what produces its characteristic blue glow?",
+      "reply": "To get that Cherenkov radiation to kick in, the particle needs to be traveling through the water at a speed greater than the phase velocity of light in that medium. Essentially, it has to break the local speed limit of light, which happens when its velocity exceeds the speed of light divided by the refractive index of water.\n\nThat iconic blue glow comes from the fact that the radiation is emitted across a spectrum, but because of the way the physics scales, the intensity is much higher at shorter wavelengths. Our eyes just happen to be way more sensitive to those blue and violet frequencies, so that's what stands out as that beautiful, ghostly glow!",
+      "extracted_answer": "To get that Cherenkov radiation to kick in, the particle needs to be traveling through the water at a speed greater than the phase velocity of light in that medium. Essentially, it has to break the local speed limit of light, which happens when its velocity exceeds the speed of light divided by the refractive index of water.\n\nThat iconic blue glow comes from the fact that the radiation is emitted across a spectrum, but because of the way the physics scales, the intensity is much higher at shorter wavelengths. Our eyes just happen to be way more sensitive to those blue and violet frequencies, so that's what stands out as that beautiful, ghostly glow!",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "native_reasoning",
+      "path_ok": true,
+      "path_reason": "path 'native_reasoning' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "pure native reasoning (no receipts to contradict)",
+      "code_assumptions": [],
+      "elapsed_s": 5.333,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "speed_cond=True, blue_glow=True",
+      "eval_reason": "speed_cond=True, blue_glow=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-06",
+      "category": "CAT05",
+      "title": "Open Source License Invariants",
+      "prompt": "Can code under the AGPLv3 license be incorporated into a proprietary SaaS product without releasing the proprietary server source code?",
+      "reply": "That's a classic architectural and legal puzzle! The short answer is generally no, because the AGPLv3 has a specific \"Remote Network Interaction\" clause designed exactly for SaaS.\n\nUnlike the standard GPL, which triggers when you distribute software by giving it to someone else, the AGPLv3 triggers even if the software stays on your server. If users interact with that code over a network, you're required to make the source code available to those users. This means if you link or incorporate AGPLv3 code into your backend, you'd likely have to open up the entire integrated system's source code to anyone using the service.",
+      "extracted_answer": "That's a classic architectural and legal puzzle! The short answer is generally no, because the AGPLv3 has a specific \"Remote Network Interaction\" clause designed exactly for SaaS.\n\nUnlike the standard GPL, which triggers when you distribute software by giving it to someone else, the AGPLv3 triggers even if the software stays on your server. If users interact with that code over a network, you're required to make the source code available to those users. This means if you link or incorporate AGPLv3 code into your backend, you'd likely have to open up the entire integrated system's source code to anyone using the service.",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "native_reasoning",
+      "path_ok": true,
+      "path_reason": "path 'native_reasoning' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "pure native reasoning (no receipts to contradict)",
+      "code_assumptions": [],
+      "elapsed_s": 5.372,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "network=True, restriction_cited=True",
+      "eval_reason": "network=True, restriction_cited=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-07",
+      "category": "CAT05",
+      "title": "Astronomical Calendar Events",
+      "prompt": "When is the next total solar eclipse visible from North America, and what is the date of the next major Perseid meteor shower peak?",
+      "reply": "The next total solar eclipse visible from North America is going to happen on August 12, 2045. As for the Perseid meteor shower, you can catch the peak of the next major one overnight on August 12 and 13, 2026!",
+      "extracted_answer": "The next total solar eclipse visible from North America is going to happen on August 12, 2045. As for the Perseid meteor shower, you can catch the peak of the next major one overnight on August 12 and 13, 2026!",
+      "tools": [
+        "search_web",
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "next total solar eclipse visible from North America date"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "date of next major Perseid meteor shower peak 2025 2026"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'next total solar eclipse visible from North America date':\n\n1. List of solar eclipses visible from the United States - Wikipedia\n   Summary: 2 weeks ago - The next total solar eclipse in New York will occur on May 1, 2079; the next annular solar eclipse will occur on July 23, 2093; and the next partial solar eclipse will occur on January 26, 2028. From 1900 to 2100, the state of North Carolina will have recorded a total of 85 solar eclipses, ...\n   Source: https://en.wikipedia.org/wiki/List_of_solar_eclipses_visible_from_the_United_States\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Future Eclipses - NASA Science\n   Summary: 1 month ago - Learn about different types of solar eclipses (total, partial, annular, and hybrid) here.\n   Source: https://science.nasa.gov/eclipses/future-eclipses/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Great American Eclipse\n   Summary: A total solar eclipse is coming to America on April 8, 2024. Find maps, videos, how to view, best places to go, eclipse glasses, and more.\n   Source: https://www.greatamericaneclipse.com/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. NationalEclipse.com | Solar Eclipse Information and Guide\n   Summary: In 2052, a total eclipse will skim parts of six southern states. America will also get total eclipses in 2078, 2079, and 2099. (See a map of all 21st century total solar eclipses in the contiguous U.S.)\n   Source: https://nationaleclipse.com/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Solar and Lunar Eclipses in North America \u2013 Next 10 Years\n   Summary: List of Solar and Lunar Eclipses in North America Next 10 Years. Check where the eclipses are visible and if you can see them.\n   Source: https://www.timeanddate.com/eclipse/list.html?region=north-america\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "next total solar eclipse visible from North America date"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'date of next major Perseid meteor shower peak 2025 2026':\n\n1. Perseid meteor shower 2026 \u2014 When, where and how to see it | Space\n   Summary: July 23, 2026 - The Perseid meteor shower will peak around Aug.12-13, 2026.\n   Source: https://www.space.com/perseid-meteor-shower-2026-guide\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Perseid meteor shower 2027! All you need to know\n   Summary: August 20, 2026 - Nearest moon phase: The first quarter moon falls at 4:54 UTC on August 9. Duration of shower: July 14 to September 1. This time period is when we\u2019re passing through the meteor stream in space!\n   Source: https://earthsky.org/astronomy-essentials/everything-you-need-to-know-perseid-meteor-shower/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Perseid meteor shower 2026: When and where to see it in the UK\n   Summary: August 8, 2026 - In 2026 the Perseid meteor shower is active between 17 July and 24 August. The shower will peak overnight on 12-13 August.\n   Source: https://www.rmg.co.uk/stories/space-astronomy/perseid-meteor-shower-guide-uk-when-where-to-see\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Perseids 2026: August 12\u201313 Peak, Best Dates to View & Visibility Map\n   Summary: August 18, 2026 - The Perseids peak on August 12\u201313, 2026 \u2014 and this year, observation conditions are excellent! Read the article to learn more.\n   Source: https://starwalk.space/en/news/all-you-need-to-know-about-the-perseids\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Perseid Meteor Shower 2026 | Next: August 2027\n   Summary: 1 month ago - Bottom line: watch the Perseids naked-eye, then swing a telescope to the Milky Way, Andromeda, or Pleiades while you wait for the next fireball. Peak window: after midnight into pre-dawn on Aug 12-13, 2026.\n   Source: https://www.telescopeadvisor.com/perseid-meteor-shower-2026-telescope-guide/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "date of next major Perseid meteor shower peak 2025 2026"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 12.77,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "eclipse=True, perseid_august=True",
+      "eval_reason": "eclipse=True, perseid_august=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-08",
+      "category": "CAT05",
+      "title": "Cross-Referencing Historical Dates",
+      "prompt": "Did Ada Lovelace's translation and notes on Menabrea's Sketch of the Analytical Engine publish before or after Samuel Morse's first public telegraph demonstration?",
+      "reply": "Ada Lovelace's notes on Menabrea's Sketch of the Analytical Engine were published in 1843, which means they came after Samuel Morse's first public telegraph demonstration. Morse actually conducted his first public demo back in January 1838!",
+      "extracted_answer": "Ada Lovelace's notes on Menabrea's Sketch of the Analytical Engine were published in 1843, which means they came after Samuel Morse's first public telegraph demonstration. Morse actually conducted his first public demo back in January 1838!",
+      "tools": [
+        "search_web",
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "publication date of Ada Lovelace's notes on Menabrea's Sketch of the Analytical Engine"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "date of Samuel Morse's first public telegraph demonstration"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'publication date of Ada Lovelace's notes on Menabrea's Sketch of the Analytical Engine':\n\n1. Note G - Wikipedia\n   Summary: Note G, originally published in Sketch of The Analytical Engine Invented by Charles Babbage Note G[a] is a computer algorithm traditionally attributed to Ada Lovelace that was designed to calculate Bernoulli numbers using the hypothetical analytical engine designed by Charles Babbage. The algorithm was the last note in a series labelled \"A\" to \"G\", which were employed as visual aids to ...\n   Source: https://en.wikipedia.org/wiki/Note_G\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Notes | galileo\n   Summary: Notes Citation Alternate Title (s): \"Notes\" to \"A Sketch of the Analytical Engine invented by Charles babbage, by L.F Menabrea\" Published in: Scientific Memoirs Notes: vol. 3, pp. 666-731 Author: Ada Lovelace\n   Source: https://galileo.ou.edu/exhibits/notes.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Classics in the History of Psychology -- Menabrea (1842)\n   Summary: [Classics Editor's note: The following document has a rather complicated publication history. In August of 1840 Charles Babbage gave a series of lecturs on his Analytical Engine in Turin. Luigi Menabrea--then an obscure military engineer, but later to become a general in Garibaldi's army and prime minister of Italy--published an account of Babbage's lectures in French in the Biblioth\u00e8que ...\n   Source: https://psychclassics.yorku.ca/Lovelace/menabrea.htm\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Classics in the History of Psychology -- Introduction to ...\n   Summary: Nevertheless, Lovelace famously wrote, \"the Analytical Engine weaves algebraical patterns just as the Jacquard loom weaves flowers and leaves.\" Why Babbage would have made such an inflated claim is obvious enough: he was hoping that Lovelace's article would help convince the government to renew financial support for his computational venture.\n   Source: https://psychclassics.yorku.ca/Lovelace/intro.htm\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. N\u00ba055 Ada Lovelace - monoskop.org\n   Summary: There Never Was a Note G In his letter to Ada Augusta Lovelace of July 2, 1843, Charles Babbage writes: \u201cI like much the improved form of the Bernoulli Note but can judge of it better when I have the Diagram and Notation.\u201d1 He is referring to the last in a set of notes written by Lovelace that interpreted the Analytical Engine, the first fully automatic and universal computer, invented by ...\n   Source: https://monoskop.org/images/c/c2/Ada_Lovelace_2012.pdf\n   Status: PDF Document (Supported by fetch_url)",
+          "error": "",
+          "args": {
+            "query": "publication date of Ada Lovelace's notes on Menabrea's Sketch of the Analytical Engine"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'date of Samuel Morse's first public telegraph demonstration':\n\n1. 1838: Morse's First Telegraph Demo in Morristown\n   Summary: On January 6, 1838, Samuel Morse and Alfred Vail conducted the first public demonstration of their revolutionary telegraph system. This event marked a significant milestone in the history of communication, showcasing a technology that would eventually transform how information was transmitted over long distances.\n   Source: https://historysnacks.io/event/Nxai74s2/samuel-morse-and-alfred-vail-demonstrated-the-telegraph-system-for-the-first/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. The History of the Telegraph: How Samuel Morse's Invention ...\n   Summary: Jul 21, 2026 \u00b7 The First Telegraph Lines and Public Demonstration Proving the Concept In 1843, Morse received funding from Congress to build a demonstration line between Washington, D.C., and Baltimore. On May 24, 1844, he sent the famous message \u201cWhat hath God wrought?\u201d from the Supreme Court chamber in the Capitol to his assistant in Baltimore.\n   Source: https://www.historysearch.org/2026/07/the-history-of-telegraph-how-samuel.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. The Capitol's First Official Telegraph | US House of ...\n   Summary: On this date, surrounded by an audience of Congressmen, inventor Samuel Morse sent the first official telegraph from the Supreme Court Chamber (then located in the Capitol) to his partner, Alfred Vail, in Baltimore. He tapped out the message \u201cWhat hath God wrought?\u201d using a system that sent out a signal in a series of dots and dashes, each combination representing one letter of the ...\n   Source: https://history.house.gov/Historical-Highlights/1800-1850/Inventor-Samuel-Morse-sent-the-first-official-telegraph-from-the-Supreme-Court-Chamber/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. U.S. Senate: \u201cWhat Hath God Wrought\u201d: Morse\u2019s Telegraph in ...\n   Summary: On May 24, 1844, Samuel F. B. Morse achieved a historic triumph when he successfully transmitted a message over copper wire from the Senate wing of the U.S. Capitol to Baltimore, Maryland, the first long-distance demonstration of his electromagnetic telegraph.\n   Source: https://www.senate.gov/artandhistory/senate-stories/morses-telegraph-in-the-capitol.htm\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. 1838: Morse\u2019s Wire Message Changed Everything\n   Summary: On January 11, 1838, Samuel Morse conducted the first public demonstration of the electric telegraph at the Speedwell Ironworks in Morristown, New Jersey. This event marked a pivotal moment in the history of communications technology, showcasing a device that would revolutionize the way information was transmitted over long distances.\n   Source: https://historysnacks.io/event/WMEhgouf/the-first-public-demonstration-of-the-telegraph-developed-by-samuel-morse-took/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "date of Samuel Morse's first public telegraph demonstration"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 14.118,
+      "note": "",
+      "answer_ok": false,
+      "answer_reason": "before=False, dates_or_names=True",
+      "eval_reason": "before=False, dates_or_names=True",
+      "passed": false
+    },
+    {
+      "id": "CAT05-09",
+      "category": "CAT05",
+      "title": "IETF Protocol RFC Semantics",
+      "prompt": "According to RFC 9110, what is the exact semantic difference between HTTP 401 Unauthorized and HTTP 403 Forbidden?",
+      "reply": "The fetch_url tool failed because the IPv6 address was blocked. However, based on the search results from RFC 9110 and related documentation, the distinction is quite clear.\n\nA 401 Unauthorized response means the request lacks valid authentication credentials; essentially, the server doesn't know who you are or your credentials aren't valid. In contrast, a 403 Forbidden response means the server understood the request and knows who you are, but it is refusing to fulfill it because you do not have the necessary permissions.",
+      "extracted_answer": "The fetch_url tool failed because the IPv6 address was blocked. However, based on the search results from RFC 9110 and related documentation, the distinction is quite clear.\n\nA 401 Unauthorized response means the request lacks valid authentication credentials; essentially, the server doesn't know who you are or your credentials aren't valid. In contrast, a 403 Forbidden response means the server understood the request and knows who you are, but it is refusing to fulfill it because you do not have the necessary permissions.",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "RFC 9110 HTTP 401 Unauthorized vs 403 Forbidden semantic difference"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://www.authgear.com/post/http-401-unauthorized/"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'RFC 9110 HTTP 401 Unauthorized vs 403 Forbidden semantic difference':\n\n1. HTTP 401 vs 403: Difference, Fixes & When to Use | Authgear\n   Summary: June 3, 2026 - A 401 Unauthorized response means the request lacks valid authentication \u2014 the server doesn\u2019t know who you are, or your credentials are invalid or expired. A 403 Forbidden response means the server knows who you are, but you don\u2019t have ...\n   Source: https://www.authgear.com/post/http-401-vs-403/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. 401 vs 403 HTTP Status Codes: #1 Guide with Examples & Fixes\n   Summary: May 20, 2025 - HTTP/1.1 401 Unauthorized Date: Tue, 20 May 2025 12:30:24 GMT WWW-Authenticate: Basic realm=\"Access to the staging site\" Content-Type: text/html; charset=iso-8859-1 Content-Length: 311 Error 401: Unauthorized Unauthorized You are not authorized to access this resource. Please provide valid credentials. This response tells the client that it needs to authenticate using HTTP Basic Authentication. According to RFC 7231 (HTTP Semantics), a 403 Forbidden status code indicates:\n   Source: https://www.outrank.so/blog/401-vs-403\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. 401 vs 403: Auth vs Permissions (With Fix)\n   Summary: March 17, 2026 - It's a well-known misnomer in the HTTP specification (defined in RFC 7235). The name 'Unauthorized' suggests an authorization problem, but the spec is clear that 401 is about authentication: the client has not provided valid credentials.\n   Source: https://hyperping.com/blog/401-vs-403-status-codes-whats-the-difference\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. HTTP 401 Unauthorized: Causes & Fixes | Authgear\n   Summary: May 6, 2026 - RFC 9110 is explicit on this point: a 401 is appropriate when the request \u201clacks valid authentication credentials.\u201d A 403 is appropriate when \u201cthe server understood the request but refuses to fulfil it\u201d regardless of authentication state.\n   Source: https://www.authgear.com/post/http-401-unauthorized/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. 401 Unauthorized vs 403 Forbidden: What's the Difference? HTTP Response Use Cases Explained \u2014 codegenes.net\n   Summary: When browsing the web or building APIs, you\u2019ve likely encountered HTTP status codes like `404 Not Found` or `500 Internal Server Error`. But two status codes that often cause confusion are `401 Unauthorized` and `403 Forbidden`. Both indicate client-side errors, but they serve distinct purposes related to **authentication** and **authorization**\u2014two critical concepts in web security.\n   Source: https://www.codegenes.net/blog/403-forbidden-vs-401-unauthorized-http-responses/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "RFC 9110 HTTP 401 Unauthorized vs 403 Forbidden semantic difference"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": false,
+          "output": null,
+          "error": "[ipv6_blocked] IPv6 address '2406:da18:b3d:e201::259' is blocked",
+          "args": {
+            "url": "https://www.authgear.com/post/http-401-unauthorized/"
+          }
+        }
+      ],
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 14.491,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "401_auth=True, 403_perm=True",
+      "eval_reason": "401_auth=True, 403_perm=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-10",
+      "category": "CAT05",
+      "title": "Multi-Source Conflicting Claim Resolution",
+      "prompt": "Look up the maximum payload capacity of SpaceX Starship in reusable mode: verify why different sources cite 100t vs 150t vs 200t.",
+      "reply": "It looks like the discrepancy in those numbers comes down to how \"payload\" is defined and what specific orbit or configuration you're looking at. \n\nBased on the records, the 100 to 125-ton range is often cited for true useful load to a useful orbit, which includes necessary propellant reserves for things like Starlink missions. The 150-ton figure is frequently used as a reference payload compared to other heavy-lift rockets in a fully reusable configuration. Finally, you'll see higher numbers like 250 to 300 tons when people are talking about an expendable mode where the booster and ship aren't recovered. It really just depends on whether you're counting the \"useful\" weight plus reserves or the theoretical maximum for a single trip!",
+      "extracted_answer": "It looks like the discrepancy in those numbers comes down to how \"payload\" is defined and what specific orbit or configuration you're looking at. \n\nBased on the records, the 100 to 125-ton range is often cited for true useful load to a useful orbit, which includes necessary propellant reserves for things like Starlink missions. The 150-ton figure is frequently used as a reference payload compared to other heavy-lift rockets in a fully reusable configuration. Finally, you'll see higher numbers like 250 to 300 tons when people are talking about an expendable mode where the booster and ship aren't recovered. It really just depends on whether you're counting the \"useful\" weight plus reserves or the theoretical maximum for a single trip!",
+      "tools": [
+        "search_web",
+        "fetch_url",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "SpaceX Starship maximum payload capacity reusable mode 100t 150t 200t differences"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://www.reddit.com/r/spacex/comments/cc7f3q/elon_on_starship_payload_capacity_100mt_to_125mt/"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://www.reddit.com/r/SpaceXLounge/comments/taj011/optimized_fullyreusable_starship_is_150t_to_same/"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'SpaceX Starship maximum payload capacity reusable mode 100t 150t 200t differences':\n\n1. SpaceX Starship - Wikipedia\n   Summary: 1 day ago - Starship is a two-stage, fully reusable, super heavy-lift launch vehicle under development by American aerospace company SpaceX. Currently built and launched from Starbase in Texas, it is intended as the successor to the company's Falcon 9 and Falcon Heavy rockets, and is part of SpaceX's broader ...\n   Source: https://en.wikipedia.org/wiki/SpaceX_Starship\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. r/spacex on Reddit: Elon on Starship payload capacity: \"100mT to 125mT for true useful load to useful orbit (eg Starlink mission), including propellant reserves. 150mT for reference payload compared to other rockets. This is in fully reusable config. About double in fully expendable config, which is hopefully never.\"\n   Summary: July 12, 2019 - The payload value was reduced when they announced initially no Raptor vac. Now with Raptor vac back the payload is again 150t.\n   Source: https://www.reddit.com/r/spacex/comments/cc7f3q/elon_on_starship_payload_capacity_100mt_to_125mt/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. r/spacex on Reddit: Elon Musk on Twitter: Starship payload is 250 to 300 tons to orbit in expendable mode. Improved thrust & Isp from Raptor will enable ~6000 ton liftoff mass.\n   Summary: May 24, 2023 - Context matters, this is in reply to Everyday Astronaut's tweet about his new video comparing Starship to N1, and EA's tweet has a screenshot showing Starship with 150t payload to orbit and 5,000t liftoff mass, side by side with N1 with 95t ...\n   Source: https://www.reddit.com/r/spacex/comments/13qz4qt/elon_musk_on_twitter_starship_payload_is_250_to/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. r/SpaceXLounge on Reddit: Optimized, fully-reusable Starship is ~150t to same reference orbit as Saturn V. In expendable mode, Starship payload would be 250t to 300t.\n   Summary: March 9, 2022 - I never thought about just refilling the header tanks in orbit before. So even in fully reusable mode, they can launch with empty header tanks to get an extra ~30t of payload to orbit, then refill and land.\n   Source: https://www.reddit.com/r/SpaceXLounge/comments/taj011/optimized_fullyreusable_starship_is_150t_to_same/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. SpaceX Starship: Specs, Stats & All 13 Test Flights\n   Summary: 2 weeks ago - Starship stats and specs: 13 test flights, 121 m stacked, 100 to 150 t to LEO, 33 Raptor engines and the booster catch record.\n   Source: https://orbitalradar.com/launch-vehicles/starship\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": "",
+          "args": {
+            "query": "SpaceX Starship maximum payload capacity reusable mode 100t 150t 200t differences"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "Reddit\n\nReddit",
+          "error": "",
+          "args": {
+            "url": "https://www.reddit.com/r/spacex/comments/cc7f3q/elon_on_starship_payload_capacity_100mt_to_125mt/"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "Reddit\n\nReddit",
+          "error": "",
+          "args": {
+            "url": "https://www.reddit.com/r/SpaceXLounge/comments/taj011/optimized_fullyreusable_starship_is_150t_to_same/"
+          }
+        }
+      ],
+      "outcome_class": "multiple",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 20.254,
+      "note": "",
+      "answer_ok": true,
+      "answer_reason": "version_or_mode=True, capacity_numbers=True",
+      "eval_reason": "version_or_mode=True, capacity_numbers=True",
+      "passed": true
+    }
+  ]
+}

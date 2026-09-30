@@ -1,0 +1,315 @@
+{
+  "timestamp": "20260928T115949Z",
+  "total_problems": 10,
+  "total_passed": 9,
+  "pass_rate_pct": 90.0,
+  "median_latency_s": 12.7,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 9,
+      "total": 10,
+      "pass_rate_pct": 90.0,
+      "median_latency_s": 12.7
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-01",
+      "category": "CAT03",
+      "title": "The 4-House Logic Grid",
+      "prompt": "Houses 1 to 4 arranged left to right. Colors: Blue, Green, Red, Yellow. Residents: Chef, Doctor, Engineer, Painter. Pets: Bird, Cat, Dog, Fish. Clues: 1. House 1 is Blue. 2. Doctor lives immediately left of Green. 3. Painter in House 3. 4. Dog in an odd house. 5. Engineer owns Cat. 6. Green is right of Red. 7. Yellow resident owns Bird. Determine the exact combination for each house.",
+      "reply": "Alright, I've mapped out the logic and traced the connections. Here is how every house breaks down:\n\nHouse 1 is Blue, home to the Engineer who has a Cat.\nHouse 2 is Red, where the Doctor lives with a Fish.\nHouse 3 is Green, inhabited by the Painter who owns a Dog.\nHouse 4 is Yellow, where the Chef keeps a Bird.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\nhouses = [1, 2, 3, 4]\ncolors = ['Blue', 'Green', 'Red', 'Yellow']\nresidents = ['Chef', 'Doctor', 'Engineer', 'Painter']\npets = ['Bird', 'Cat', 'Dog', 'Fish']\n\nsolutions = []\n\nfor c_perm in itertools.permutations(colors):\n    # Clue 1: House 1 is Blue\n    if c_perm[0] != 'Blue':\n        continue\n    \n    # Clue 6: Green is right of Red (Green index > Red index)\n    red_idx = c_perm.index('Red')\n    green_idx = c_perm.index('Green')\n    if green_idx <= red_idx:\n        continue\n        \n    for r_perm in itertools.permutations(residents):\n        # Clue 3: Painter in House 3 (index 2)\n        if r_perm[2] != 'Painter':\n            continue\n            \n        # Clue 2: Doctor lives immediately left of Green\n        doc_idx = r_perm.index('Doctor')\n        if doc_idx == green_idx - 1:\n            pass\n        else:\n            continue\n\n        for p_perm in itertools.permutations(pets):\n            # Clue 4: Dog in an odd house (House 1 or 3)\n            dog_idx = p_perm.index('Dog')\n            if dog_idx not in [0, 2]:\n                continue\n            \n            # Clue 5: Engineer owns Cat\n            eng_idx = r_perm.index('Engineer')\n            cat_idx = p_perm.index('Cat')\n            if eng_idx != cat_idx:\n                continue\n            \n            # Clue 7: Yellow resident owns Bird\n            yellow_idx = c_perm.index('Yellow')\n            bird_idx = p_perm.index('Bird')\n            if yellow_idx != bird_idx:\n                continue\n            \n            solutions.append({\n                'House': [1, 2, 3, 4],\n                'Color': list(c_perm),\n                'Resident': list(r_perm),\n                'Pet': list(p_perm)\n            })\n\nprint(solutions)"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[{'House': [1, 2, 3, 4], 'Color': ['Blue', 'Red', 'Green', 'Yellow'], 'Resident': ['Engineer', 'Doctor', 'Painter', 'Chef'], 'Pet': ['Cat', 'Fish', 'Dog', 'Bird']}]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\nhouses = [1, 2, 3, 4]\ncolors = ['Blue', 'Green', 'Red', 'Yellow']\nresidents = ['Chef', 'Doctor', 'Engineer', 'Painter']\npets = ['Bird', 'Cat', 'Dog', 'Fish']\n\nsolutions = []\n\nfor c_perm in itertools.permutations(colors):\n    # Clue 1: House 1 is Blue\n    if c_perm[0] != 'Blue':\n        continue\n    \n    # Clue 6: Green is right of Red (Green index > Red index)\n    red_idx = c_perm.index('Red')\n    green_idx = c_perm.index('Green')\n    if green_idx <= red_idx:\n        continue\n        \n    for r_perm in itertools.permutations(residents):\n        # Clue 3: Painter in House 3 (index 2)\n        if r_perm[2] != 'Painter':\n            continue\n            \n        # Clue 2: Doctor lives immediately left of Green\n        doc_idx = r_perm.index('Doctor')\n        if doc_idx == green_idx - 1:\n            pass\n        else:\n            continue\n\n        for p_perm in itertools.permutations(pets):\n            # Clue 4: Dog in an odd house (House 1 or 3)\n            dog_idx = p_perm.index('Dog')\n            if dog_idx not in [0, 2]:\n                continue\n            \n            # Clue 5: Engineer owns Cat\n            eng_idx = r_perm.index('Engineer')\n            cat_idx = p_perm.index('Cat')\n            if eng_idx != cat_idx:\n                continue\n            \n            # Clue 7: Yellow resident owns Bird\n            yellow_idx = c_perm.index('Yellow')\n            bird_idx = p_perm.index('Bird')\n            if yellow_idx != bird_idx:\n                continue\n            \n            solutions.append({\n                'House': [1, 2, 3, 4],\n                'Color': list(c_perm),\n                'Resident': list(r_perm),\n                'Pet': list(p_perm)\n            })\n\nprint(solutions)"
+          }
+        }
+      ],
+      "elapsed_s": 15.242,
+      "note": "",
+      "passed": true,
+      "eval_reason": "correct_houses=4/4 (h1=True, h2=True, h3=True, h4=True)"
+    },
+    {
+      "id": "CAT03-02",
+      "category": "CAT03",
+      "title": "Round-Robin Tournament Schedule",
+      "prompt": "Four teams (A, B, C, D) play 3 rounds. Each team plays once per round. Team A cannot play Team B in Round 1. Team C plays Team D in Round 2. Construct the valid schedule.",
+      "reply": "To get this right, we need to ensure every team plays exactly one match per round without any repeats or conflicts.\n\nIn Round 1, since A can't play B, let's pair them as A vs C and B vs D.\n\nFor Round 2, we know C must play D, so the remaining pairs are A vs B.\n\nFinally, for Round 3, to ensure everyone plays someone new, we'll pair them as A vs D and B vs C.\n\nSo here is your schedule:\nRound 1: A vs C, B vs D\nRound 2: A vs B, C vs D\nRound 3: A vs D, B vs C",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "elapsed_s": 5.548,
+      "note": "",
+      "passed": true,
+      "eval_reason": "r2_ab=True, r1_valid=True"
+    },
+    {
+      "id": "CAT03-03",
+      "category": "CAT03",
+      "title": "Knights & Knaves Island",
+      "prompt": "On an island, Knights always tell the truth and Knaves always lie. A says: 'B is a knave.' B says: 'A and C are of the same type.' C says: 'At least one of us is a knight.' What are A, B, and C?",
+      "reply": "To solve this, let's look at what happens if C is a knave. If C were lying about at least one person being a knight, it would mean everyone\u2014A, B, and C\u2014must be knaves. However, if A is a knave, his statement that B is a knave would have to be a lie, making B a knight. That creates a contradiction, so C must be a knight.\n\nSince C is a knight, his statement is true, which we already knew because he's one of the knights. Now let's look at A and B. If A is a knight, then B must be a knave. If B is a knave, his statement that A and C are the same type must be a lie. Since A and C would both be knights in this scenario, B's statement would actually be true, which a knave can't say.\n\nThat means A must be a knave. If A is a knave, his statement that B is a knave is a lie, making B a knight. If B is a knight, his statement that A and C are the same type must be true. But A is a knave and C is a knight, so they aren't the same type. That also leads to a contradiction.\n\nWait, let me re-trace that logic quickly because I hit a snag. Let's try B as the knight again. If B is a knight, then A and C are the same type. Since we established C must be a knight, then A must also be a knight. But if A is a knight, his statement that B is a knave would have to be true, which contradicts B being a knight.\n\nLet's try the only remaining possibility: A is a knight and B is a knave. If A is a knight, B is indeed a knave. If B is a knave, his statement that A and C are the same type must be false. Since A is a knight, this means C must be a knave. But if C is a knave, his statement that at least one of them is a knight would have to be false, meaning all three are knaves. That brings us back to the first contradiction.\n\nLet's look at it one more time: If A is a knave, B is a knight. If B is a knight, then A and C are the same type. Since A is a knave, C must also be a knave. But if C is a knave, his statement that at least one of them is a knight must be false, meaning all three are knaves. This contradicts B being a knight.\n\nActually, let's re-examine C's statement: \"At least one of us is a knight.\" If C were a knave, then everyone would have to be a knave. But if A is a knave, his statement that B is a knave would be a lie, making B a knight. This is a classic paradox unless we look at the only consistent set: A is a knave, B is a knight, and C is a knight. Wait, let's check that: If A is a knave, \"B is a knave\" is false (so B is a knight). If B is a knight, \"A and C are the same type\" must be true. Since A is a knave, C must also be a knave. But if C is a knave, his statement \"At least one of us is a knight\" must be false... which means no one is a knight. This contradicts B being a knight.\n\nLet me run this through a quick logic check to be 100% sure. If A is a Knight, B is a Knave. If B is a Knave, then A and C are different types. Since A is a Knight, C must be a Knave. If C is a Knave, \"At least one of us is a knight\" is false, meaning everyone is a Knave. Contradiction.\n\nIf A is a Knave, B is a Knight. If B is a Knight, then A and C are the same type. Since A is a Knave, C must be a Knave. If C is a Knave, \"At least one of us is a knight\" is false, meaning everyone is a Knave. Contradiction.\n\nThere is no consistent solution where these three statements can all be true or false based on the standard rules. Could you double-check the wording of the statements?I haven't actually run a formal logic check on that yet, so I'll jump into it right now to make sure we get the types exactly right.\n\nI'm sorry about that! I haven't actually run the logic check yet, and I should have been upfront about it. \n\nI just ran a script to test every possible combination of Knight and Knave for A, B, and C based on their statements. Interestingly, there is no valid configuration where all three statements hold true under those rules. If we assume they are following the standard logic of these puzzles, there might be a contradiction in the premises provided!",
+      "tools": [
+        "run_python",
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    # Types: True for Knight, False for Knave\n    solutions = []\n    for A in [True, False]:\n        for B in [True, False]:\n            for C in [True, False]:\n                # Statement 1: A says 'B is a knave' (B is False)\n                # If A is Knight, statement must be True. If A is Knave, statement must be False.\n                s1 = (B == False)\n                match1 = (A == s1)\n\n                # Statement 2: B says 'A and C are of the same type' (A == C)\n                s2 = (A == C)\n                match2 = (B == s2)\n\n                # Statement 3: C says 'At least one of us is a knight' (A or B or C)\n                s3 = (A or B or C)\n                match3 = (C == s3)\n\n                if match1 and match2 and match3:\n                    solutions.append((A, B, C))\n    return solutions\n\nprint(solve())"
+          }
+        },
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    # Types: True for Knight (T), False for Knave (F)\n    solutions = []\n    for A in [True, False]:\n        for B in [True, False]:\n            for C in [True, False]:\n                # Statement 1: A says 'B is a knave'\n                # If A=T, then B must be F. If A=F, then B must be T (negation of \"B is F\").\n                match1 = (A == (B == False))\n\n                # Statement 2: B says 'A and C are the same type'\n                # If B=T, then A == C. If B=F, then A != C.\n                match2 = (B == (A == C))\n\n                # Statement 3: C says 'At least one of us is a knight'\n                # If C=T, then (A or B or C) is True. If C=F, then (A or B or C) is False.\n                match3 = (C == (A or B or C))\n\n                if match1 and match2 and match3:\n                    solutions.append((A, B, C))\n    return solutions\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[]\n",
+          "error": "",
+          "args": {
+            "code": "def solve():\n    # Types: True for Knight, False for Knave\n    solutions = []\n    for A in [True, False]:\n        for B in [True, False]:\n            for C in [True, False]:\n                # Statement 1: A says 'B is a knave' (B is False)\n                # If A is Knight, statement must be True. If A is Knave, statement must be False.\n                s1 = (B == False)\n                match1 = (A == s1)\n\n                # Statement 2: B says 'A and C are of the same type' (A == C)\n                s2 = (A == C)\n                match2 = (B == s2)\n\n                # Statement 3: C says 'At least one of us is a knight' (A or B or C)\n                s3 = (A or B or C)\n                match3 = (C == s3)\n\n                if match1 and match2 and match3:\n                    solutions.append((A, B, C))\n    return solutions\n\nprint(solve())"
+          }
+        },
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[]\n",
+          "error": "",
+          "args": {
+            "code": "def solve():\n    # Types: True for Knight (T), False for Knave (F)\n    solutions = []\n    for A in [True, False]:\n        for B in [True, False]:\n            for C in [True, False]:\n                # Statement 1: A says 'B is a knave'\n                # If A=T, then B must be F. If A=F, then B must be T (negation of \"B is F\").\n                match1 = (A == (B == False))\n\n                # Statement 2: B says 'A and C are the same type'\n                # If B=T, then A == C. If B=F, then A != C.\n                match2 = (B == (A == C))\n\n                # Statement 3: C says 'At least one of us is a knight'\n                # If C=T, then (A or B or C) is True. If C=F, then (A or B or C) is False.\n                match3 = (C == (A or B or C))\n\n                if match1 and match2 and match3:\n                    solutions.append((A, B, C))\n    return solutions\n\nprint(solve())"
+          }
+        }
+      ],
+      "elapsed_s": 44.94,
+      "note": "",
+      "passed": true,
+      "eval_reason": "paradox_or_contradiction_detected=True"
+    },
+    {
+      "id": "CAT03-04",
+      "category": "CAT03",
+      "title": "Conference Room Time Conflicts",
+      "prompt": "Events 1, 2, 3, 4 require rooms. Event 1 (9-11), Event 2 (10-12), Event 3 (11-13), Event 4 (12-14). What is the minimum number of rooms needed so no events overlap in the same room?",
+      "reply": "The calc_math tool call failed because the function I tried to use isn't supported. Let me break this down for you with a quick analytical derivation.\n\nTo find the minimum number of rooms, we need to identify the point in time with the highest number of concurrent events. \n\nHere is the timeline:\nFrom 9 to 10, only Event 1 is active (1 room).\nAt 10, Event 2 starts, so Events 1 and 2 are active (2 rooms).\nAt 11, Event 1 ends and Event 3 starts. Since they share the 11 o'clock mark, if we assume an event occupies the room until the very end of its slot, we have Events 2 and 3 active (2 rooms).\nAt 12, Event 2 ends and Event 4 starts. Again, with Events 3 and 4 active, we are at 2 rooms.\n\nThe maximum number of simultaneous events at any given time is 2. Therefore, you need a minimum of 2 rooms to ensure no overlaps.",
+      "tools": [
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "max_overlap_count([9, 11], [10, 12], [11, 13], [12, 14])"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "calc_math",
+          "name": "calc_math",
+          "ok": false,
+          "output": null,
+          "error": "Function 'max_overlap_count' is not allowed in calc_math",
+          "args": {
+            "expr": "max_overlap_count([9, 11], [10, 12], [11, 13], [12, 14])"
+          }
+        }
+      ],
+      "elapsed_s": 11.126,
+      "note": "",
+      "passed": true,
+      "eval_reason": "two_rooms=True, not_wrong_high=True"
+    },
+    {
+      "id": "CAT03-05",
+      "category": "CAT03",
+      "title": "Job-Shop Precedence Scheduling",
+      "prompt": "Tasks T1 (2h), T2 (3h), T3 (1h), T4 (2h). Precedences: T1 before T3; T2 before T3 and T4. With two parallel workers, what is the minimum completion time?",
+      "reply": "The minimum completion time is 5 hours. Since T2 is a prerequisite for both T3 and T4, it's your primary bottleneck; one worker handles the T2 to T4 sequence while the other finishes T1 and waits briefly for T2 to clear before starting T3.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    # Tasks: (ID, Duration)\n    tasks = {\n        'T1': 2,\n        'T2': 3,\n        'T3': 1,\n        'T4': 2\n    }\n    \n    # Precedences:\n    # T1 -> T3\n    # T2 -> T3\n    # T2 -> T4\n\n    # Possible schedules with 2 workers:\n    # Worker A starts T2 (3h) because it has the longest path.\n    # Worker B starts T1 (2h).\n    \n    # At t=2:\n    # Worker B finishes T1. T3 is still blocked by T2.\n    # Worker B can start T4? No, T2 is not finished. \n    # Wait, let's re-evaluate.\n    \n    # Path Analysis:\n    # Path 1: T1 -> T3 (Total 3h)\n    # Path 2: T2 -> T3 (Total 4h)\n    # Path 3: T2 -> T4 (Total 5h)\n    \n    # Since T2 is a prerequisite for both T3 and T4, it's the bottleneck.\n    # Worker 1: T2 (0-3), then T4 (3-5)\n    # Worker 2: T1 (0-2), then T3 (3-4) -- Wait, T3 needs T2 to finish at t=3.\n    # So Worker 2 is idle from 2 to 3.\n    \n    # Schedule:\n    # W1: T2 [0,3], T4 [3,5]\n    # W2: T1 [0,2], (idle 2-3), T3 [3,4]\n    # Completion time = 5.\n\n    # Alternative:\n    # W1: T2 [0,3], T3 [3,4]\n    # W2: T1 [0,2], T4 [3,5] -- Wait, T4 needs T2 to finish at t=3.\n    # So Worker 2 is idle from 2 to 3.\n    # Completion time = 5.\n\n    return 5\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "5\n",
+          "error": "",
+          "args": {
+            "code": "def solve():\n    # Tasks: (ID, Duration)\n    tasks = {\n        'T1': 2,\n        'T2': 3,\n        'T3': 1,\n        'T4': 2\n    }\n    \n    # Precedences:\n    # T1 -> T3\n    # T2 -> T3\n    # T2 -> T4\n\n    # Possible schedules with 2 workers:\n    # Worker A starts T2 (3h) because it has the longest path.\n    # Worker B starts T1 (2h).\n    \n    # At t=2:\n    # Worker B finishes T1. T3 is still blocked by T2.\n    # Worker B can start T4? No, T2 is not finished. \n    # Wait, let's re-evaluate.\n    \n    # Path Analysis:\n    # Path 1: T1 -> T3 (Total 3h)\n    # Path 2: T2 -> T3 (Total 4h)\n    # Path 3: T2 -> T4 (Total 5h)\n    \n    # Since T2 is a prerequisite for both T3 and T4, it's the bottleneck.\n    # Worker 1: T2 (0-3), then T4 (3-5)\n    # Worker 2: T1 (0-2), then T3 (3-4) -- Wait, T3 needs T2 to finish at t=3.\n    # So Worker 2 is idle from 2 to 3.\n    \n    # Schedule:\n    # W1: T2 [0,3], T4 [3,5]\n    # W2: T1 [0,2], (idle 2-3), T3 [3,4]\n    # Completion time = 5.\n\n    # Alternative:\n    # W1: T2 [0,3], T3 [3,4]\n    # W2: T1 [0,2], T4 [3,5] -- Wait, T4 needs T2 to finish at t=3.\n    # So Worker 2 is idle from 2 to 3.\n    # Completion time = 5.\n\n    return 5\n\nprint(solve())"
+          }
+        }
+      ],
+      "elapsed_s": 17.695,
+      "note": "",
+      "passed": true,
+      "eval_reason": "completion_time_5h=True"
+    },
+    {
+      "id": "CAT03-06",
+      "category": "CAT03",
+      "title": "Circular Table Seating",
+      "prompt": "Six diplomats (A, B, C, D, E, F) sit around a circular table. A will not sit next to B. C must sit directly opposite D. E must sit next to A. Find a valid clockwise seating order.",
+      "reply": "To solve this, let's map out the constraints. Since it's a circular table with six seats, \"directly opposite\" means there are two people between them on either side.\n\nLet's place C at position 1 and D at position 4. This satisfies the requirement that they are opposite each other.\n\nNow we need to place A, B, E, and F in positions 2, 3, 5, and 6. We know E must be next to A, and A cannot be next to B.\n\nIf we place A at position 2, then E must be at position 3 (since C is at 1). This leaves positions 5 and 6 for B and F. If we put B at position 5, it would be next to D and F, but not next to A. However, if we check the neighbors of A at position 2, they are C and E, so A is not next to B regardless of where B goes in 5 or 6.\n\nLet's try this clockwise order:\n1. C\n2. A\n3. E\n4. D\n5. B\n6. F\n\nChecking the constraints:\nC is opposite D (Positions 1 and 4).\nE is next to A (Positions 3 and 2).\nA is not next to B (A is at 2, B is at 5).\n\nThis works perfectly. The valid clockwise seating order is C, A, E, D, B, F.",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "elapsed_s": 9.3,
+      "note": "",
+      "passed": true,
+      "eval_reason": "has_all=True, opposite_or_adjacent=True"
+    },
+    {
+      "id": "CAT03-07",
+      "category": "CAT03",
+      "title": "Cryptarithmetic Invariant",
+      "prompt": "Solve the base-10 addition: AB + BA = CDC, where each letter represents a distinct digit (0-9) and leading digits are non-zero. Find digits A, B, C, D.",
+      "reply": "Alright, I've crunched the numbers on that equation. Since we need distinct digits where A, B, and C aren't zero, there are actually several valid sets for this system!\n\nThe most consistent solution is when C is 1 and D is 2. In that case, the pair of A and B can be any of these combinations: (3, 8), (4, 7), or (5, 6). Each of those pairs will give you the result 121.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    solutions = []\n    # Letters represent distinct digits from 0 to 9\n    # AB + BA = CDC\n    # (10*A + B) + (10*B + A) = 100*C + 10*D + C\n    # 11*(A + B) = 101*C + 10*D\n\n    digits = range(10)\n    # A, B, C, D must be distinct\n    for A, B, C, D in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0: # Leading digits non-zero\n            continue\n        \n        lhs = 11 * (A + B)\n        rhs = 101 * C + 10 * D\n        \n        if lhs == rhs:\n            solutions.append((A, B, C, D))\n    return solutions\n\nresults = solve()\nprint(results)"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[(3, 8, 1, 2), (4, 7, 1, 2), (5, 6, 1, 2), (6, 5, 1, 2), (7, 4, 1, 2), (8, 3, 1, 2)]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    solutions = []\n    # Letters represent distinct digits from 0 to 9\n    # AB + BA = CDC\n    # (10*A + B) + (10*B + A) = 100*C + 10*D + C\n    # 11*(A + B) = 101*C + 10*D\n\n    digits = range(10)\n    # A, B, C, D must be distinct\n    for A, B, C, D in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0: # Leading digits non-zero\n            continue\n        \n        lhs = 11 * (A + B)\n        rhs = 101 * C + 10 * D\n        \n        if lhs == rhs:\n            solutions.append((A, B, C, D))\n    return solutions\n\nresults = solve()\nprint(results)"
+          }
+        }
+      ],
+      "elapsed_s": 12.798,
+      "note": "",
+      "passed": false,
+      "eval_reason": "c=1:True, d=2:True, ab_sum_11:False"
+    },
+    {
+      "id": "CAT03-08",
+      "category": "CAT03",
+      "title": "Boolean Horn Clause Satisfiability",
+      "prompt": "Given clauses: (P -> Q), (Q and R -> S), (not S), (P), (T -> R), (T). Is the system satisfiable? If not, identify the contradiction.",
+      "reply": "The system is not satisfiable. The contradiction arises because the premises logically force S to be true while also explicitly stating that S is false.\n\nHere's how it breaks down: Since we have P and (P -> Q), then Q must be true. Because we have T and (T -> R), then R must also be true. With both Q and R established as true, the rule (Q and R -> S) forces S to be true, which directly conflicts with your third clause, not S.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "from z3 import *\n\n# Define variables\np, q, r, s, t = Bools('p q r s t')\n\n# Define solver and constraints\nsolver = Solver()\nsolver.add(Implies(p, q))\nsolver.add(Implies(And(q, r), s))\nsolver.add(Not(s))\nsolver.add(p)\nsolver.add(Implies(t, r))\nsolver.add(t)\n\n# Check satisfiability\nresult = solver.check()\nprint(f\"Satisfiable: {result}\")\nif result == sat:\n    print(f\"Model: {solver.model()}\")\nelse:\n    # Find the contradiction by checking subsets of constraints\n    constraints = [\n        Implies(p, q),\n        Implies(And(q, r), s),\n        Not(s),\n        p,\n        Implies(t, r),\n        t\n    ]\n    \n    # Simple check for which pair/group causes the conflict\n    import itertools\n    for i in range(1, len(constraints) + 1):\n        for combo in itertools.combinations(constraints, i):\n            temp_solver = Solver()\n            for c in combo:\n                temp_solver.add(c)\n            if temp_solver.check() == unsat:\n                print(f\"Contradiction found in subset: {combo}\")\n                break\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Satisfiable: unsat\nContradiction found in subset: (Implies(p, q), Implies(And(q, r), s), Not(s), p, Implies(t, r), t)\n",
+          "error": "",
+          "args": {
+            "code": "from z3 import *\n\n# Define variables\np, q, r, s, t = Bools('p q r s t')\n\n# Define solver and constraints\nsolver = Solver()\nsolver.add(Implies(p, q))\nsolver.add(Implies(And(q, r), s))\nsolver.add(Not(s))\nsolver.add(p)\nsolver.add(Implies(t, r))\nsolver.add(t)\n\n# Check satisfiability\nresult = solver.check()\nprint(f\"Satisfiable: {result}\")\nif result == sat:\n    print(f\"Model: {solver.model()}\")\nelse:\n    # Find the contradiction by checking subsets of constraints\n    constraints = [\n        Implies(p, q),\n        Implies(And(q, r), s),\n        Not(s),\n        p,\n        Implies(t, r),\n        t\n    ]\n    \n    # Simple check for which pair/group causes the conflict\n    import itertools\n    for i in range(1, len(constraints) + 1):\n        for combo in itertools.combinations(constraints, i):\n            temp_solver = Solver()\n            for c in combo:\n                temp_solver.add(c)\n            if temp_solver.check() == unsat:\n                print(f\"Contradiction found in subset: {combo}\")\n                break\n"
+          }
+        }
+      ],
+      "elapsed_s": 14.535,
+      "note": "",
+      "passed": true,
+      "eval_reason": "unsat=True, contradiction_s=True"
+    },
+    {
+      "id": "CAT03-09",
+      "category": "CAT03",
+      "title": "Conditional Negative Grid",
+      "prompt": "Three employees (X, Y, Z) assigned to projects (Alpha, Beta, Gamma). Rule 1: If X is on Alpha, Y is not on Beta. Rule 2: Z is on Gamma if and only if X is on Beta. Rule 3: Y is on Alpha. Deduce the exact assignments.",
+      "reply": "Alright, let's crack this logic puzzle! We can nail this down by looking at our fixed starting point and tracing the dependencies.\n\nSince we know for a fact that Y is on Alpha from Rule 3, and each employee must have a unique project assignment, X cannot be on Alpha. Looking at Rule 1, since X isn't on Alpha, it doesn't restrict Y's position, but we already know Y's spot.\n\nNow for the clincher with Rule 2: Z is on Gamma if and only if X is on Beta. If X were on Gamma, that would leave Beta for Z, which contradicts the \"if and only if\" rule because then X wouldn't be on Beta but Z would still be on Gamma. Therefore, X must be on Beta, which means Z is indeed on Gamma.\n\nSo, here is our final lineup: Y is on Alpha, X is on Beta, and Z is on Gamma! Success!",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "elapsed_s": 6.721,
+      "note": "",
+      "passed": true,
+      "eval_reason": "y_alpha=True, x_assigned=True, z_assigned=True"
+    },
+    {
+      "id": "CAT03-10",
+      "category": "CAT03",
+      "title": "Budget & Resource Optimization",
+      "prompt": "Choose integer quantities of items X ($15, 4 weight) and Y ($20, 6 weight) to maximize total value under budget $100 and maximum weight 28. Provide the optimal bundle.",
+      "reply": "Alright, I've crunched the numbers for you! To get the most bang for your buck while staying under that weight limit, you should go with 4 of item X and 2 of item Y. That hits your budget perfectly at exactly $100 and keeps your total weight right at 28!",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    best_value = -1\n    best_bundle = (0, 0)\n    \n    for x in range(100 // 15 + 1):\n        for y in range(100 // 20 + 1):\n            cost = x * 15 + y * 20\n            weight = x * 4 + y * 6\n            if cost <= 100 and weight <= 28:\n                value = x * 15 + y * 20 # Wait, the prompt says X is $15 and Y is $20. \n                # Usually \"Value\" in these problems refers to a profit or utility. \n                # If value is just the cost spent, we maximize cost within constraints.\n                # However, usually, it's a knapsack problem where Value != Cost.\n                # Re-reading: \"maximize total value\". Since no separate values are given, \n                # I will assume Value = Total Cost ($).\n                if cost > best_value:\n                    best_value = cost\n                    best_bundle = (x, y)\n    return best_bundle, best_value\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "((4, 2), 100)\n",
+          "error": "",
+          "args": {
+            "code": "def solve():\n    best_value = -1\n    best_bundle = (0, 0)\n    \n    for x in range(100 // 15 + 1):\n        for y in range(100 // 20 + 1):\n            cost = x * 15 + y * 20\n            weight = x * 4 + y * 6\n            if cost <= 100 and weight <= 28:\n                value = x * 15 + y * 20 # Wait, the prompt says X is $15 and Y is $20. \n                # Usually \"Value\" in these problems refers to a profit or utility. \n                # If value is just the cost spent, we maximize cost within constraints.\n                # However, usually, it's a knapsack problem where Value != Cost.\n                # Re-reading: \"maximize total value\". Since no separate values are given, \n                # I will assume Value = Total Cost ($).\n                if cost > best_value:\n                    best_value = cost\n                    best_bundle = (x, y)\n    return best_bundle, best_value\n\nprint(solve())"
+          }
+        }
+      ],
+      "elapsed_s": 12.592,
+      "note": "",
+      "passed": true,
+      "eval_reason": "x4=True, y2=True, cost_weight_100_28=True"
+    }
+  ]
+}

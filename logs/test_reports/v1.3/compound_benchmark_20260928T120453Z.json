@@ -1,0 +1,52 @@
+{
+  "timestamp": "20260928T120453Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 11.9,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 11.9
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-07",
+      "category": "CAT03",
+      "title": "Cryptarithmetic Invariant",
+      "prompt": "Solve the base-10 addition: AB + BA = CDC, where each letter represents a distinct digit (0-9) and leading digits are non-zero. Find digits A, B, C, D.",
+      "reply": "Alright, I've crunched the numbers. Since each letter must be a distinct digit and the leading digits can't be zero, we have several valid sets for A, B, C, and D. One such solution is A equals 3, B equals 8, C equals 1, and D equals 2. This works because 38 plus 83 equals 121, which fits the CDC pattern perfectly!",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    # Letters represent distinct digits 0-9\n    # AB + BA = CDC\n    # (10*A + B) + (10*B + A) = 100*C + 10*D + C\n    # 11*(A + B) = 101*C + 10*D\n    \n    digits = range(10)\n    solutions = []\n    \n    for A, B, C, D in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0: # Leading digits non-zero (AB and BA imply A,B != 0; CDC implies C != 0)\n            continue\n        \n        lhs = 11 * (A + B)\n        rhs = 101 * C + 10 * D\n        \n        if lhs == rhs:\n            solutions.append((A, B, C, D))\n            \n    return solutions\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "[(3, 8, 1, 2), (4, 7, 1, 2), (5, 6, 1, 2), (6, 5, 1, 2), (7, 4, 1, 2), (8, 3, 1, 2)]\n",
+          "error": "",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    # Letters represent distinct digits 0-9\n    # AB + BA = CDC\n    # (10*A + B) + (10*B + A) = 100*C + 10*D + C\n    # 11*(A + B) = 101*C + 10*D\n    \n    digits = range(10)\n    solutions = []\n    \n    for A, B, C, D in itertools.permutations(digits, 4):\n        if A == 0 or B == 0 or C == 0: # Leading digits non-zero (AB and BA imply A,B != 0; CDC implies C != 0)\n            continue\n        \n        lhs = 11 * (A + B)\n        rhs = 101 * C + 10 * D\n        \n        if lhs == rhs:\n            solutions.append((A, B, C, D))\n            \n    return solutions\n\nprint(solve())"
+          }
+        }
+      ],
+      "elapsed_s": 11.896,
+      "note": "",
+      "passed": true,
+      "eval_reason": "c=1:True, d=2:True, ab_valid:True"
+    }
+  ]
+}

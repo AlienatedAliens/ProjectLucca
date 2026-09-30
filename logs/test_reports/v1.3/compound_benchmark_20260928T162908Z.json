@@ -1,0 +1,114 @@
+{
+  "timestamp": "20260928T162908Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 3,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 17.4,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 3,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 17.4
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-09",
+      "category": "CAT02",
+      "title": "3D Bounding Box Packing",
+      "prompt": "Can 12 rectangular boxes of dimensions 2x3x4 be packed into a container of dimensions 6x6x8 without overlap? Provide the volume check and geometric proof.",
+      "reply": "Yes, you can pack all twelve boxes into the container. The total volume of the twelve 2x3x4 boxes is exactly 288 cubic units, which perfectly matches the 288 cubic unit volume of the 6x6x8 container.\n\nFor the geometric proof, imagine dividing the 6x6x8 container into two equal layers, each with a height of 4 and a base of 6x6. In each 6x6x4 layer, you can perfectly fit six boxes by orienting them so their 4-unit side is vertical. Since 6 divided by 2 is 3 and 6 divided by 3 is 2, you can arrange these six boxes in a 3x2 grid on the base of each layer. With two such layers, you get exactly twelve boxes filling the entire space without any overlap.",
+      "extracted_answer": "Yes, you can pack all twelve boxes into the container. The total volume of the twelve 2x3x4 boxes is exactly 288 cubic units, which perfectly matches the 288 cubic unit volume of the 6x6x8 container.\n\nFor the geometric proof, imagine dividing the 6x6x8 container into two equal layers, each with a height of 4 and a base of 6x6. In each 6x6x4 layer, you can perfectly fit six boxes by orienting them so their 4-unit side is vertical. Since 6 divided by 2 is 3 and 6 divided by 3 is 2, you can arrange these six boxes in a 3x2 grid on the base of each layer. With two such layers, you get exactly twelve boxes filling the entire space without any overlap.",
+      "tools": [
+        "calc_math",
+        "calc_math",
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "12 * (2 * 3 * 4)"
+          }
+        },
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "6 * 6 * 8"
+          }
+        },
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import numpy as np\n\ndef solve():\n    # Container dimensions\n    C = np.array([6, 6, 8])\n    # Box dimensions\n    B = np.array([2, 3, 4])\n    num_boxes = 12\n    \n    # Volume check\n    vol_container = np.prod(C)\n    vol_total_boxes = num_boxes * np.prod(B)\n    \n    # Geometric proof: Can we partition the container?\n    # Let's try a simple orientation: \n    # The container is 6x6x8.\n    # We can stack boxes of 2x3x4.\n    # Orientation A: (2, 3, 4)\n    # Along dimension 6: we can fit 6/2 = 3 boxes or 6/3 = 2 boxes.\n    # Along dimension 6: we can fit 6/3 = 2 boxes or 6/2 = 3 boxes.\n    # Along dimension 8: we can fit 8/4 = 2 boxes.\n    \n    # Strategy 1: All boxes oriented the same way (2x3x4)\n    # Layering along the 8-dimension:\n    # We have two layers of height 4. Each layer is 6x6x4.\n    # In a 6x6x4 space, can we fit 6 boxes of 2x3x4?\n    # Yes, because 6/2 = 3 and 6/3 = 2. 3 * 2 = 6.\n    # So, 6 boxes per layer * 2 layers = 12 boxes.\n    \n    return vol_container, vol_total_boxes, \"Yes\"\n\nvol_c, vol_b, possible = solve()\nprint(f\"Container Volume: {vol_c}\")\nprint(f\"Total Box Volume: {vol_b}\")\nprint(f\"Possible: {possible}\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "calc_math",
+          "name": "calc_math",
+          "ok": true,
+          "output": "288",
+          "error": null,
+          "args": {
+            "expr": "12 * (2 * 3 * 4)"
+          }
+        },
+        {
+          "tool": "calc_math",
+          "name": "calc_math",
+          "ok": true,
+          "output": "288",
+          "error": null,
+          "args": {
+            "expr": "6 * 6 * 8"
+          }
+        },
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Container Volume: 288\nTotal Box Volume: 288\nPossible: Yes\n",
+          "error": null,
+          "args": {
+            "code": "import numpy as np\n\ndef solve():\n    # Container dimensions\n    C = np.array([6, 6, 8])\n    # Box dimensions\n    B = np.array([2, 3, 4])\n    num_boxes = 12\n    \n    # Volume check\n    vol_container = np.prod(C)\n    vol_total_boxes = num_boxes * np.prod(B)\n    \n    # Geometric proof: Can we partition the container?\n    # Let's try a simple orientation: \n    # The container is 6x6x8.\n    # We can stack boxes of 2x3x4.\n    # Orientation A: (2, 3, 4)\n    # Along dimension 6: we can fit 6/2 = 3 boxes or 6/3 = 2 boxes.\n    # Along dimension 6: we can fit 6/3 = 2 boxes or 6/2 = 3 boxes.\n    # Along dimension 8: we can fit 8/4 = 2 boxes.\n    \n    # Strategy 1: All boxes oriented the same way (2x3x4)\n    # Layering along the 8-dimension:\n    # We have two layers of height 4. Each layer is 6x6x4.\n    # In a 6x6x4 space, can we fit 6 boxes of 2x3x4?\n    # Yes, because 6/2 = 3 and 6/3 = 2. 3 * 2 = 6.\n    # So, 6 boxes per layer * 2 layers = 12 boxes.\n    \n    return vol_container, vol_total_boxes, \"Yes\"\n\nvol_c, vol_b, possible = solve()\nprint(f\"Container Volume: {vol_c}\")\nprint(f\"Total Box Volume: {vol_b}\")\nprint(f\"Possible: {possible}\")\n"
+          }
+        }
+      ],
+      "tool_calls_count": 3,
+      "tool_failures_count": 0,
+      "tool_success_count": 3,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "code_solver",
+      "path_ok": true,
+      "path_reason": "path 'code_solver' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 17.4,
+      "note": "",
+      "db_purged_clean": true,
+      "kg_orphaned_edges": 0,
+      "kg_has_positive_records": true,
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "feasible=True, vol_288=True",
+      "eval_reason": "feasible=True, vol_288=True",
+      "passed": true
+    }
+  ]
+}

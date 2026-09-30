@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T063750Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 13.03,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 13.03
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-02",
+      "category": "CAT02",
+      "title": "2D Grid Obstacle Navigation",
+      "prompt": "A robot starts at (1, 1) facing East. Grid contains obstacles at (3, 3) and (2, 4). Execute: Forward 3; Turn left; Forward 2; Turn left; Forward 1. Does the robot hit an obstacle? What is its final coordinate?",
+      "reply": "The robot hits an obstacle at the very end of its path. It finishes at coordinate 3, 3.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve():\n    # Initial state\n    x, y = 1, 1\n    # Directions: North (0), East (1), South (2), West (3)\n    direction = 1 # East\n    obstacles = {(3, 3), (2, 4)}\n    path = []\n\n    # Movement logic\n    # Forward 3\n    for _ in range(3):\n        if direction == 1: x += 1\n        elif direction == 0: y += 1\n        elif direction == 2: y -= 1\n        elif direction == 3: x -= 1\n        path.append((x, y))\n\n    # Turn left (90 degrees counter-clockwise)\n    direction = (direction - 1) % 4\n    \n    # Forward 2\n    for _ in range(2):\n        if direction == 1: x += 1\n        elif direction == 0: y += 1\n        elif direction == 2: y -= 1\n        elif direction == 3: x -= 1\n        path.append((x, y))\n\n    # Turn left\n    direction = (direction - 1) % 4\n\n    # Forward 1\n    for _ in range(1):\n        if direction == 1: x += 1\n        elif direction == 0: y += 1\n        elif direction == 2: y -= 1\n        elif direction == 3: x -= 1\n        path.append((x, y))\n\n    hit = any(pos in obstacles for pos in path)\n    return hit, (x, y), path\n\nhit, final_pos, full_path = solve()\nprint(f\"Hit: {hit}\")\nprint(f\"Final Position: {final_pos}\")\nprint(f\"Path taken: {full_path}\")"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 13.028,
+      "note": "",
+      "passed": true,
+      "eval_reason": "hit=True, coord=True"
+    }
+  ]
+}

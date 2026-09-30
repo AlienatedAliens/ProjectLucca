@@ -1,0 +1,32 @@
+{
+  "timestamp": "20260928T121852Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 4.24,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 4.24
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-02",
+      "category": "CAT03",
+      "title": "Round-Robin Tournament Schedule",
+      "prompt": "Four teams (A, B, C, D) play 3 rounds. Each team plays once per round. Team A cannot play Team B in Round 1. Team C plays Team D in Round 2. Construct the valid schedule.",
+      "reply": "To build this out, we need to ensure every team has a unique opponent each round while respecting your constraints. Here is a valid schedule for the three rounds:\n\nRound 1: Team A plays Team C, Team B plays Team D.\nRound 2: Team C plays Team D, Team A plays Team B.\nRound 3: Team A plays Team D, Team B plays Team C.",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "elapsed_s": 4.242,
+      "note": "",
+      "passed": true,
+      "eval_reason": "r2_ab=True, r1_valid=True"
+    }
+  ]
+}

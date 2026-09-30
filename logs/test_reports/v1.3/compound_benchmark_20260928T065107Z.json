@@ -1,0 +1,48 @@
+{
+  "timestamp": "20260928T065107Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 68.41,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 68.41
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-06",
+      "category": "CAT02",
+      "title": "Orbital Period & Centripetal Acceleration",
+      "prompt": "A satellite orbits a planet at radius 8,000 km with constant speed 7 km/s. Calculate its orbital period in minutes and its centripetal acceleration in m/s\u00b2.",
+      "reply": "The orbital period of the satellite is approximately 119.68 minutes, and its centripetal acceleration is 6.125 meters per second squared.",
+      "tools": [
+        "calc_math",
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "(2 * 3.14159 * 8000000) / 7000 / 60"
+          }
+        },
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "(7000^2) / 8000000"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 68.409,
+      "note": "",
+      "passed": true,
+      "eval_reason": "period=True, accel=True"
+    }
+  ]
+}

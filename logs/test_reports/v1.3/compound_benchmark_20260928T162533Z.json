@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260928T162533Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 1,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 11.9,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 11.9
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-06",
+      "category": "CAT03",
+      "title": "Circular Table Seating",
+      "prompt": "Six diplomats (A, B, C, D, E, F) sit around a circular table. A will not sit next to B. C must sit directly opposite D. E must sit next to A. Find a valid clockwise seating order.",
+      "reply": "One valid clockwise seating order is A, C, B, F, D, and E.",
+      "extracted_answer": "One valid clockwise seating order is A, C, B, F, D, and E.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    # Seats are 0, 1, 2, 3, 4, 5 in clockwise order\n    # Diplomats A, B, C, D, E, F\n    diplomats = ['A', 'B', 'C', 'D', 'E', 'F']\n    \n    for p in itertools.permutations(diplomats):\n        # Check: C must sit directly opposite D\n        # In a circle of 6, opposite is index i and (i+3)%6\n        c_idx = p.index('C')\n        d_idx = p.index('D')\n        if abs(c_idx - d_idx) != 3:\n            continue\n            \n        # Check: A will not sit next to B\n        a_idx = p.index('A')\n        b_idx = p.index('B')\n        # Neighbors are (i-1)%6 and (i+1)%6\n        if abs(a_idx - b_idx) == 1 or abs(a_idx - b_idx) == 5:\n            continue\n            \n        # Check: E must sit next to A\n        e_idx = p.index('E')\n        if abs(a_idx - e_idx) != 1 and abs(a_idx - e_idx) != 5:\n            continue\n            \n        return list(p)\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "['A', 'C', 'B', 'F', 'D', 'E']\n",
+          "error": null,
+          "args": {
+            "code": "import itertools\n\ndef solve():\n    # Seats are 0, 1, 2, 3, 4, 5 in clockwise order\n    # Diplomats A, B, C, D, E, F\n    diplomats = ['A', 'B', 'C', 'D', 'E', 'F']\n    \n    for p in itertools.permutations(diplomats):\n        # Check: C must sit directly opposite D\n        # In a circle of 6, opposite is index i and (i+3)%6\n        c_idx = p.index('C')\n        d_idx = p.index('D')\n        if abs(c_idx - d_idx) != 3:\n            continue\n            \n        # Check: A will not sit next to B\n        a_idx = p.index('A')\n        b_idx = p.index('B')\n        # Neighbors are (i-1)%6 and (i+1)%6\n        if abs(a_idx - b_idx) == 1 or abs(a_idx - b_idx) == 5:\n            continue\n            \n        # Check: E must sit next to A\n        e_idx = p.index('E')\n        if abs(a_idx - e_idx) != 1 and abs(a_idx - e_idx) != 5:\n            continue\n            \n        return list(p)\n\nprint(solve())"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "multiple",
+      "tool_route_policy": "code_required",
+      "path_taken": "code_solver",
+      "path_ok": true,
+      "path_reason": "code route fulfilled (code_solver)",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 11.898,
+      "note": "",
+      "db_purged_clean": true,
+      "kg_orphaned_edges": 0,
+      "kg_has_positive_records": true,
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "has_all=True, valid_circle=True, text_matches=False",
+      "eval_reason": "has_all=True, valid_circle=True, text_matches=False",
+      "passed": true
+    }
+  ]
+}

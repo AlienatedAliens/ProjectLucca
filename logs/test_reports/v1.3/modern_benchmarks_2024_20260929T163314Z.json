@@ -1,0 +1,515 @@
+{
+  "timestamp": "20260929T163314Z",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "humaneval_plus": {
+      "benchmark": "HumanEvalPlus",
+      "total": 50,
+      "passed": 39,
+      "pass_at_1_pct": 78.0,
+      "elapsed_s": 221.01,
+      "results": [
+        {
+          "task_id": "HumanEval/0",
+          "entry_point": "has_close_elements",
+          "inputs_tested": 1006,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1006 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.02
+        },
+        {
+          "task_id": "HumanEval/1",
+          "entry_point": "separate_paren_groups",
+          "inputs_tested": 87,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 87 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.968
+        },
+        {
+          "task_id": "HumanEval/2",
+          "entry_point": "truncate_number",
+          "inputs_tested": 974,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 974 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.067
+        },
+        {
+          "task_id": "HumanEval/3",
+          "entry_point": "below_zero",
+          "inputs_tested": 904,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 904 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.317
+        },
+        {
+          "task_id": "HumanEval/4",
+          "entry_point": "mean_absolute_deviation",
+          "inputs_tested": 788,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 788 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.671
+        },
+        {
+          "task_id": "HumanEval/5",
+          "entry_point": "intersperse",
+          "inputs_tested": 156,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 156 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.482
+        },
+        {
+          "task_id": "HumanEval/6",
+          "entry_point": "parse_nested_parens",
+          "inputs_tested": 69,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 69 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.717
+        },
+        {
+          "task_id": "HumanEval/7",
+          "entry_point": "filter_by_substring",
+          "inputs_tested": 182,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 182 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.484
+        },
+        {
+          "task_id": "HumanEval/8",
+          "entry_point": "sum_product",
+          "inputs_tested": 1005,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 38, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 38, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "llm_latency_s": 3.574
+        },
+        {
+          "task_id": "HumanEval/9",
+          "entry_point": "rolling_max",
+          "inputs_tested": 963,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 963 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.559
+        },
+        {
+          "task_id": "HumanEval/10",
+          "entry_point": "make_palindrome",
+          "inputs_tested": 785,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 785 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.115
+        },
+        {
+          "task_id": "HumanEval/11",
+          "entry_point": "string_xor",
+          "inputs_tested": 408,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 408 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.101
+        },
+        {
+          "task_id": "HumanEval/12",
+          "entry_point": "longest",
+          "inputs_tested": 936,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 936 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.792
+        },
+        {
+          "task_id": "HumanEval/13",
+          "entry_point": "greatest_common_divisor",
+          "inputs_tested": 991,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 991 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.063
+        },
+        {
+          "task_id": "HumanEval/14",
+          "entry_point": "all_prefixes",
+          "inputs_tested": 906,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 906 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.81
+        },
+        {
+          "task_id": "HumanEval/15",
+          "entry_point": "string_sequence",
+          "inputs_tested": 137,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 137 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.011
+        },
+        {
+          "task_id": "HumanEval/16",
+          "entry_point": "count_distinct_characters",
+          "inputs_tested": 1005,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1005 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.79
+        },
+        {
+          "task_id": "HumanEval/17",
+          "entry_point": "parse_music",
+          "inputs_tested": 220,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 220 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 5.176
+        },
+        {
+          "task_id": "HumanEval/18",
+          "entry_point": "how_many_times",
+          "inputs_tested": 1004,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1004 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.312
+        },
+        {
+          "task_id": "HumanEval/19",
+          "entry_point": "sort_numbers",
+          "inputs_tested": 133,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 133 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.848
+        },
+        {
+          "task_id": "HumanEval/20",
+          "entry_point": "find_closest_elements",
+          "inputs_tested": 1005,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1005 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 6.062
+        },
+        {
+          "task_id": "HumanEval/21",
+          "entry_point": "rescale_to_unit",
+          "inputs_tested": 1004,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1004 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.262
+        },
+        {
+          "task_id": "HumanEval/22",
+          "entry_point": "filter_integers",
+          "inputs_tested": 956,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 27, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 27, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "llm_latency_s": 2.504
+        },
+        {
+          "task_id": "HumanEval/23",
+          "entry_point": "strlen",
+          "inputs_tested": 967,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 967 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.148
+        },
+        {
+          "task_id": "HumanEval/24",
+          "entry_point": "largest_divisor",
+          "inputs_tested": 173,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 173 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.797
+        },
+        {
+          "task_id": "HumanEval/25",
+          "entry_point": "factorize",
+          "inputs_tested": 146,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 146 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.341
+        },
+        {
+          "task_id": "HumanEval/26",
+          "entry_point": "remove_duplicates",
+          "inputs_tested": 865,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 865 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.996
+        },
+        {
+          "task_id": "HumanEval/27",
+          "entry_point": "flip_case",
+          "inputs_tested": 976,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 976 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.36
+        },
+        {
+          "task_id": "HumanEval/28",
+          "entry_point": "concatenate",
+          "inputs_tested": 864,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 864 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.504
+        },
+        {
+          "task_id": "HumanEval/29",
+          "entry_point": "filter_by_prefix",
+          "inputs_tested": 998,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 998 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.478
+        },
+        {
+          "task_id": "HumanEval/30",
+          "entry_point": "get_positive",
+          "inputs_tested": 1003,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 25, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 25, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "llm_latency_s": 2.987
+        },
+        {
+          "task_id": "HumanEval/31",
+          "entry_point": "is_prime",
+          "inputs_tested": 167,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 167 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.59
+        },
+        {
+          "task_id": "HumanEval/32",
+          "entry_point": "find_zero",
+          "inputs_tested": 888,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "MISMATCH at input 28: expected 1.5114667361718894, got -1.164834421646305\n",
+          "stderr": "execution_failed",
+          "llm_latency_s": 9.207
+        },
+        {
+          "task_id": "HumanEval/33",
+          "entry_point": "sort_third",
+          "inputs_tested": 965,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 36, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 36, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "llm_latency_s": 5.719
+        },
+        {
+          "task_id": "HumanEval/34",
+          "entry_point": "unique",
+          "inputs_tested": 904,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 21, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 21, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "llm_latency_s": 1.945
+        },
+        {
+          "task_id": "HumanEval/35",
+          "entry_point": "max_element",
+          "inputs_tested": 940,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 940 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.286
+        },
+        {
+          "task_id": "HumanEval/36",
+          "entry_point": "fizz_buzz",
+          "inputs_tested": 156,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 156 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.84
+        },
+        {
+          "task_id": "HumanEval/37",
+          "entry_point": "sort_even",
+          "inputs_tested": 977,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 977 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.414
+        },
+        {
+          "task_id": "HumanEval/38",
+          "entry_point": "decode_cyclic",
+          "inputs_tested": 1099,
+          "passed": false,
+          "exit_code": -2,
+          "stdout": null,
+          "stderr": "protocol: invalid JSON (Extra data: line 1 column 5 (char 4))",
+          "llm_latency_s": 3.153
+        },
+        {
+          "task_id": "HumanEval/39",
+          "entry_point": "prime_fib",
+          "inputs_tested": 12,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 12 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.584
+        },
+        {
+          "task_id": "HumanEval/40",
+          "entry_point": "triples_sum_to_zero",
+          "inputs_tested": 988,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 56, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 56, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "llm_latency_s": 5.498
+        },
+        {
+          "task_id": "HumanEval/41",
+          "entry_point": "car_race_collision",
+          "inputs_tested": 83,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 83 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.527
+        },
+        {
+          "task_id": "HumanEval/42",
+          "entry_point": "incr_list",
+          "inputs_tested": 1002,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 25, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 25, in <module>\nNameError: name 'false' is not defined. Did you mean: 'False'?\n",
+          "llm_latency_s": 2.829
+        },
+        {
+          "task_id": "HumanEval/43",
+          "entry_point": "pairs_sum_to_zero",
+          "inputs_tested": 983,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 52, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 52, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "llm_latency_s": 4.574
+        },
+        {
+          "task_id": "HumanEval/44",
+          "entry_point": "change_base",
+          "inputs_tested": 478,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 478 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.509
+        },
+        {
+          "task_id": "HumanEval/45",
+          "entry_point": "triangle_area",
+          "inputs_tested": 1003,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "\n[stderr]\nTraceback (most recent call last):\n  File \"<string>\", line 21, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 21, in <module>\nNameError: name 'true' is not defined. Did you mean: 'True'?\n",
+          "llm_latency_s": 1.344
+        },
+        {
+          "task_id": "HumanEval/46",
+          "entry_point": "fib4",
+          "inputs_tested": 136,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 136 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 6.596
+        },
+        {
+          "task_id": "HumanEval/47",
+          "entry_point": "median",
+          "inputs_tested": 1000,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1000 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.524
+        },
+        {
+          "task_id": "HumanEval/48",
+          "entry_point": "is_palindrome",
+          "inputs_tested": 996,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 996 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 1.818
+        },
+        {
+          "task_id": "HumanEval/49",
+          "entry_point": "modp",
+          "inputs_tested": 990,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 990 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.699
+        }
+      ]
+    }
+  }
+}

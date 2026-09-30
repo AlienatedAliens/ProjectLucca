@@ -1,0 +1,18 @@
+[
+  {
+    "idx": 110,
+    "subject": "Precalculus",
+    "level": 5,
+    "problem": "Find the degree measure of the least positive angle $\\theta$ for which\n\\[\\tan \\theta = \\frac{\\cos 5^\\circ \\cos 20^\\circ + \\cos 35^\\circ \\cos 50^\\circ - \\sin 5^\\circ \\sin 20^\\circ - \\sin 35^\\circ \\sin 50^\\circ}{\\sin 5^\\circ \\cos 20^\\circ - \\sin 35^\\circ \\cos 50^\\circ + \\cos 5^\\circ \\sin 20^\\circ - \\cos 35^\\circ \\sin 50^\\circ}.\\]",
+    "expected_ans": "120^\\circ",
+    "predicted_ans": "",
+    "passed": false,
+    "failure_class": "prose_slip",
+    "generated_code": "import sympy as sp\n\ndef solve():\n    x = sp.symbols('x')\n    # Use degrees for easier input\n    # Numerator: cos(5)*cos(20) + cos(35)*cos(50) - sin(5)*sin(20) - sin(35)*sin(50)\n    # Using cos(A)*cos(B) - sin(A)*sin(B) = cos(A+B)\n    # Numerator = cos(5+20) + cos(35+50) = cos(25) + cos(85)\n    \n    # Denominator: sin(5)*cos(20) - sin(35)*cos(50) + cos(5)*sin(20) - cos(35)*sin(50)\n    # Grouping: (sin(5)*cos(20) + cos(5)*sin(20)) - (sin(35)*cos(50) + cos(35)*sin(50))\n    # Denominator = sin(5+20) - sin(35+50) = sin(25) - sin(85)\n    \n    # tan(theta) = (cos(25) + cos(85)) / (sin(25) - sin(85))\n    \n    # Using sum-to-product:\n    # cos(25) + cos(85) = 2 * cos((25+85)/2) * cos((25-85)/2) = 2 * cos(55) * cos(-30)\n    # sin(25) - sin(85) = 2 * sin((25-85)/2) * cos((25+85)/2) = 2 * sin(-30) * cos(55)\n    \n    # tan(theta) = (2 * cos(55) * cos(30)) / (2 * sin(-30) * cos(55))\n    # tan(theta) = cos(30) / sin(-30) = cos(30) / -sin(30) = -cot(30)\n    \n    # -cot(30) = -sqrt(3)\n    # tan(theta) = -sqrt(3)\n    # theta = arctan(-sqrt(3))\n    # Since we need the least positive angle:\n    # tan(theta) = -sqrt(3) => theta = 120*degrees (or 300, etc.)\n    \n    # Let's compute it exactly using SymPy to be sure.\n    deg = sp.Degree\n    num = sp.cos(25*deg) + sp.cos(85*deg)\n    den = sp.sin(25*deg) - sp.sin(85*deg)\n    tan_theta = sp.simplify(num / den)\n    \n    # tan(theta) = -sqrt(3)\n    # theta = arctan(-sqrt(3))\n    # In degrees, arctan(-sqrt(3))*is -60. \n    # The least positive angle is -60 + 180 = 120.\n    \n    # Let's verify the simplification\n    print(sp.simplify(tan_theta))\n\n# Manual calculation check:\n\n_res = solve()\nif _res is not None:\n    print(_res)\n",
+    "exit_code": 0,
+    "stderr": "",
+    "feedback_triggered": true,
+    "feedback_succeeded": false,
+    "llm_latency_s": 31.095
+  }
+]

@@ -121,7 +121,8 @@ All Project Lucca metrics derive strictly from physical silicon execution under 
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **OpenAI GSM8K (Full Canonical)** | Program-Aided Language ($N=1,319$) | **95.75% (1,263 / 1,319)**| ~85.0% | 91.2% *(DeepMind)* | 93.0% *(DeepSeek)* | ~96%–98% *(Opus 5.5 / Astra)* |
 | **OpenAI HumanEval (Canonical)** | Pass@1 in Docker Sandbox ($N=164$) | **95.73% (157 / 164)** | 82.6% *(arXiv:2412.08905)* | 76.8% *(DeepMind)* | 79.4% *(DeepSeek)* | ~88%–92% *(Sonnet 5.5)* |
-| **Big-Bench Hard (BBH)** | Consolidated Algorithmic ($N=1,000$)| **92.40% (924 / 1,000)** | ~86.0% | ~88.5% | ~91.2% | ~93%–95% *(Opus 5.5)* |
+| **BBH-4 Algorithmic Composite** *(4/27 subsets — Boolean, Tracking, Dyck, Shapes)* | Bare Weights Zero-Shot ($N=1,000$) | **92.40% (924 / 1,000)** | ~86.0% | ~88.5% | ~91.2% | ~93%–95% *(Opus 5.5)* |
+| **BBH Full 27-Subset Suite** *(Pending — harness complete, awaiting GPU run)* | Bare Weights Zero-Shot (All 27 subsets) | *(Run pending — ETA next GPU session)* | *(Not Isolated)* | 53.0% bare *(DeepMind June 2026)* | *(Not Isolated)* | *(Not Isolated)* |
 | **Apple GSM-Symbolic** | Invariance under Perturbation ($N=100$)| **100.0% (100 / 100)** | ~70%–75% | ~80.0% | ~88.0% | ~93%–95% *(Calc Slips)* |
 | **EvalPlus HumanEval-Plus** | $\sim 80\times$ Adversarial Tests ($N=164$) | **91.46% (150 / 164)** | ~74.0% | ~69.0% | ~73.0% *(79.4% Base)* | ~85%–88% |
 | **MATH-500 Fresh Held-Out (v1.3)**| Uniform 3-Stage CAS ($N=500$ fresh)| **78.80% (394 / 500)** | 80.4% *(Overall MATH)* | ~72.0% | ~78.0% | ~85%–90% *(Astra 97.6% F-Math)*|

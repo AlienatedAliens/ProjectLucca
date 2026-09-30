@@ -1,0 +1,78 @@
+{
+  "timestamp": "20260929T030418Z",
+  "total": 7,
+  "passed": 5,
+  "accuracy_pct": 71.43,
+  "results": [
+    {
+      "id": "BBH-BOOL-35",
+      "name": "BBH idx 35 (Depth-7 Negation on False)",
+      "expr": "not not not not not not not False",
+      "expected": true,
+      "predicted": true,
+      "passed": true,
+      "latency_ms": 0.02,
+      "raw_model_note": "FAILED (predicted False)"
+    },
+    {
+      "id": "BBH-BOOL-72",
+      "name": "BBH idx 72 (Depth-7 Negation on True)",
+      "expr": "not not not not not not not True",
+      "expected": false,
+      "predicted": false,
+      "passed": true,
+      "latency_ms": 0.009,
+      "raw_model_note": "FAILED (predicted True)"
+    },
+    {
+      "id": "BBH-BOOL-COMPOUND-1",
+      "name": "Compound Boolean (De Morgan / Conjunction)",
+      "expr": "not (True and not (False or True))",
+      "expected": true,
+      "predicted": true,
+      "passed": true,
+      "latency_ms": 0.013,
+      "raw_model_note": "N/A"
+    },
+    {
+      "id": "BBH-BOOL-COMPOUND-2",
+      "name": "Compound Boolean (Multi-Operator Precedence)",
+      "expr": "True and not False or False and True",
+      "expected": true,
+      "predicted": true,
+      "passed": true,
+      "latency_ms": 0.008,
+      "raw_model_note": "N/A"
+    },
+    {
+      "id": "BBH-BOOL-COMPARE",
+      "name": "Comparison & Boolean Integration",
+      "expr": "100 * 5 > 450 and not (10 == 11)",
+      "expected": true,
+      "predicted": true,
+      "passed": true,
+      "latency_ms": 0.022,
+      "raw_model_note": "N/A"
+    },
+    {
+      "id": "BBH-DYCK-14",
+      "name": "BBH idx 14 (255 symbols)",
+      "input_len": 211,
+      "expected": ") >",
+      "predicted": "] ) } ) ) ) ) ) ) ) ) ) ) } ] ] > } ) ) > ) > ]",
+      "passed": false,
+      "latency_ms": 502.89,
+      "raw_model_note": "FAILED (Generation Timeout at 20.4s)"
+    },
+    {
+      "id": "BBH-DYCK-31",
+      "name": "BBH idx 31 (201 symbols)",
+      "input_len": 211,
+      "expected": "} ] >",
+      "predicted": ">",
+      "passed": false,
+      "latency_ms": 8.34,
+      "raw_model_note": "FAILED (Generation Timeout at 20.3s)"
+    }
+  ]
+}

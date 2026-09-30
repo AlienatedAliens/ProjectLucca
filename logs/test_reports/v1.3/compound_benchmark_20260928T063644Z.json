@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T063644Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 33.31,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 33.31
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-01",
+      "category": "CAT02",
+      "title": "3D Drone Kinematics",
+      "prompt": "A drone starts at coordinate (0, 0, 0) facing North (+y), East (+x), Up (+z). Execute in sequence: Forward 6m; Yaw 90\u00b0 clockwise; Forward 4m; Pitch down 90\u00b0; Forward 3m; Roll 180\u00b0; Turn 90\u00b0 local left; Forward 5m. What is its final (x, y, z) and pointing vector?",
+      "reply": "Alright, I've crunched the numbers and traced those movements through the coordinate system for you. After following that sequence of maneuvers, your drone ends up at a final position of 7.0 on x, 11.0 on y, and 0.0 on z. Its final pointing vector is facing straight North again, which is a forward vector of 0.0, 1.0, 0.0.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import numpy as np\n\ndef get_rotation_matrix(yaw, pitch, roll):\n    # Angles in radians\n    y = np.radians(yaw)\n    p = np.radians(pitch)\n    r = np.radians(roll)\n    \n    # Rotation matrices (intrinsic/local rotations: Yaw -> Pitch -> Roll)\n    R_yaw = np.array([\n        [np.cos(y), -np.sin(y), 0],\n        [np.sin(y),  np.cos(y), 0],\n        [0,          0,          1]\n    ])\n    \n    R_pitch = np.array([\n        [1, 0,           0],\n        [0, np.cos(p), -np.sin(p)],\n        [0, np.sin(p),  np.cos(p)]\n    ])\n    \n    R_roll = np.array([\n        [np.cos(r), -np.sin(r), 0],\n        [np.sin(r),  np.cos(r), 0],\n        [0,          0,          1]\n    ])\n    \n    # Combined rotation (Right-handed system)\n    return R_yaw @ R_pitch @ R_roll\n\n# Initial state\npos = np.array([0.0, 0.0, 0.0])\n# Orientation: Facing North (+y), East (+x), Up (+z)\n# Forward vector is +y\nfwd = np.array([0.0, 1.0, 0.0])\nright = np.array([1.0, 0.0, 0.0])\nup = np.array([0.0, 0.0, 1.0])\n\n# Sequence of operations:\n# 1. Forward 6m\npos += fwd * 6\n\n# 2. Yaw 90\u00b0 clockwise (around Up axis)\n# Clockwise yaw is negative in standard right-hand math for the 'up' vector\nyaw_angle = -90\nR_y = np.array([\n    [np.cos(np.radians(yaw_angle)), -np.sin(np.radians(yaw_angle)), 0],\n    [np.sin(np.radians(yaw_angle)),  np.cos(np.radians(yaw_angle)), 0],\n    [0,                                 0,                             1]\n])\n# Rotate fwd and right vectors around the current 'up' vector\nfwd = R_y @ fwd\nright = R_y @ right\n\n# 3. Forward 4m\npos += fwd * 4\n\n# 4. Pitch down 90\u00b0 (around Right axis)\n# Pitching \"down\" means the nose goes towards -Up\npitch_angle = -90\nR_p = np.array([\n    [1, 0,           0],\n    [0, np.cos(np.radians(pitch_angle)), -np.sin(np.radians(pitch_angle))],\n    [0, np.sin(np.radians(pitch_angle)),  np.cos(np.radians(pitch_angle))]\n])\n# Rotate fwd and up vectors around current 'right' vector\nfwd = R_p @ fwd\nup = R_p @ up\n\n# 5. Forward 3m\npos += fwd * 3\n\n# 6. Roll 180\u00b0 (around Forward axis)\nroll_angle = 180\nR_r = np.array([\n    [np.cos(np.radians(roll_angle)), -np.sin(np.radians(roll_angle)), 0],\n    [np.sin(np.radians(roll_angle)),  np.cos(np.radians(roll_angle)), 0],\n    [0,                                 0,                             1]\n])\n# Rotate right and up vectors around current 'fwd' vector\nright = R_r @ right\nup = R_r @ up\n\n# 7. Turn 90\u00b0 local left (Yaw)\n# Local left turn is a positive yaw around the current 'up' axis\nyaw_angle_l = 90\nR_yl = np.array([\n    [np.cos(np.radians(yaw_angle_l)), -np.sin(np.radians(yaw_angle_l)), 0],\n    [np.sin(np.radians(yaw_angle_l)),  np.cos(np.radians(yaw_angle_l)), 0],\n    [0,                                 0,                             1]\n])\nfwd = R_yl @ fwd\nright = R_yl @ right\n\n# 8. Forward 5m\npos += fwd * 5\n\nprint(f\"Position: {pos}\")\nprint(f\"Forward Vector: {fwd}\")\n"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 33.306,
+      "note": "",
+      "passed": true,
+      "eval_reason": "trajectory coordinates emitted"
+    }
+  ]
+}

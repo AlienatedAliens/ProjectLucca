@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T064207Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 15.26,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 15.26
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-08",
+      "category": "CAT02",
+      "title": "Counterfactual Gravity Acceleration",
+      "prompt": "In a universe where gravitational acceleration is g(h) = 10 / (1 + 0.1h), an object is dropped from height h = 20m. Formulate the equation of motion and compute impact velocity.",
+      "reply": "To find the impact velocity, we start with the equation of motion derived from Newton's second law, where acceleration is a function of height: dh/dt = v and dv/dt = -g(h). This gives us the differential equation dv/dt = -10 / (1 + 0.1h).\n\nSince we want velocity as a function of height rather than time, we use the chain rule to rewrite acceleration as v * dv/dh. This gives us v * dv/dh = -10 / (1 + 0.1h). Integrating both sides from the initial height of 20 meters to 0 meters, we get the integral of v dv equals the integral of -10 / (1 + 0.1h) dh.\n\nEvaluating this integral results in v^2 / 2 = -100 * ln(1 + 0.1h) evaluated from 20 to 0. Plugging in the values, we find that the impact velocity is approximately 14.82 meters per second.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import numpy as np\nfrom scipy.integrate import solve_ivp\n\n# Define the acceleration function g(h) = 10 / (1 + 0.1 * h)\ndef acceleration(t, y):\n    h = y[0]\n    v = y[1]\n    # Acceleration is downward, so a = -g(h)\n    a = -10 / (1 + 0.1 * h)\n    return [v, a]\n\n# Initial conditions: height h=20m, velocity v=0m/s\ny0 = [20.0, 0.0]\n\n# Define the event for hitting the ground (h=0)\ndef hit_ground(t, y):\n    return y[0]\nhit_ground.terminal = True\nhit_ground.direction = -1\n\n# Solve the ODE\nsol = solve_ivp(acceleration, [0, 10], y0, events=hit_ground, rtol=1e-9)\n\n# Get final velocity at impact\nfinal_v = sol.y[1][-1]\nprint(f\"Impact Velocity: {final_v}\")\n"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 15.257,
+      "note": "",
+      "passed": true,
+      "eval_reason": "impact velocity ~14.8 m/s"
+    }
+  ]
+}

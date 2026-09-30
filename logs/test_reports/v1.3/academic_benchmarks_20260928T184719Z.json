@@ -1,0 +1,112 @@
+{
+  "timestamp": "20260928T184719Z",
+  "model": "llm/gemma-4-12b-heretic-Q6_K.gguf",
+  "samples_configured": 2,
+  "benchmarks": {
+    "bbh": {
+      "benchmark": "BigBench_Hard_Subsets",
+      "total": 8,
+      "passed": 8,
+      "accuracy_pct": 100.0,
+      "elapsed_s": 38.71,
+      "subsets": {
+        "boolean_expressions": {
+          "title": "Boolean Logic Evaluation",
+          "total": 2,
+          "passed": 2,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "not ( True ) and ( True ) is",
+              "target": "False",
+              "predicted": "false",
+              "passed": true,
+              "latency_s": 2.724
+            },
+            {
+              "idx": 2,
+              "input": "True and not not ( not False ) is",
+              "target": "True",
+              "predicted": "true",
+              "passed": true,
+              "latency_s": 3.692
+            }
+          ]
+        },
+        "geometric_shapes": {
+          "title": "Geometric Shape Classification",
+          "total": 2,
+          "passed": 2,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "This SVG path element <path d=\"M 55.57,80.69 L 57.38,65.80 M 57.38,65.80 L 48.90,57.46 M 48.90,57.46 L 45.58,47.78 M 45.58,47.78 L 53.25,36.07 L 66.29,48.90 L 78.69,61.09 L 55.57,80.69\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(B)",
+              "predicted": "(B)",
+              "passed": true,
+              "latency_s": 10.684
+            },
+            {
+              "idx": 2,
+              "input": "This SVG path element <path d=\"M 30.17,45.97 L 58.79,40.36 L 18.10,15.70 M 18.10,15.70 L 30.17,45.97\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
+              "target": "(J)",
+              "predicted": "(J)",
+              "passed": true,
+              "latency_s": 9.382
+            }
+          ]
+        },
+        "tracking_shuffled_objects_three_objects": {
+          "title": "Object Position Permutation Tracking",
+          "total": 2,
+          "passed": 2,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Ulysses, Bob gets Frankenstein, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Claire and Bob swap books. Then, Bob and Alice swap books. Finally, Claire and Bob swap books. At the end of the semester, Bob has\nOptions:\n(A) Ulysses\n(B) Frankenstein\n(C) Lolita",
+              "target": "(B)",
+              "predicted": "(B)",
+              "passed": true,
+              "latency_s": 5.051
+            },
+            {
+              "idx": 2,
+              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Hound of the Baskervilles, Bob gets The Odyssey, and Claire gets Catch-22.\nAs the semester proceeds, they start trading around the new books. First, Claire and Alice swap books. Then, Bob and Claire swap books. Finally, Alice and Bob swap books. At the end of the semester, Alice has\nOptions:\n(A) Hound of the Baskervilles\n(B) The Odyssey\n(C) Catch-22",
+              "target": "(A)",
+              "predicted": "(A)",
+              "passed": true,
+              "latency_s": 6.824
+            }
+          ]
+        },
+        "dyck_languages": {
+          "title": "Bracket Nesting & Closure",
+          "total": 2,
+          "passed": 2,
+          "accuracy_pct": 100.0,
+          "results": [
+            {
+              "idx": 1,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ [",
+              "target": "] ]",
+              "predicted": "] ]",
+              "passed": true,
+              "latency_s": 0.195
+            },
+            {
+              "idx": 2,
+              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < [ [",
+              "target": "] ] >",
+              "predicted": "] ] >",
+              "passed": true,
+              "latency_s": 0.15
+            }
+          ]
+        }
+      }
+    }
+  }
+}

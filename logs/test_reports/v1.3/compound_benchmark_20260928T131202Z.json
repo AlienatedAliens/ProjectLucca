@@ -1,0 +1,668 @@
+{
+  "timestamp": "20260928T131202Z",
+  "total_problems": 10,
+  "total_passed": 8,
+  "pass_rate_pct": 80.0,
+  "total_path_ok": 10,
+  "total_faithfulness_ok": 10,
+  "total_tool_calls": 19,
+  "total_tool_failures": 2,
+  "total_tool_recoveries": 1,
+  "median_latency_s": 16.43,
+  "category_summary": {
+    "CAT05": {
+      "name": "Web-Augmented Real Research",
+      "passed": 8,
+      "total": 10,
+      "pass_rate_pct": 80.0,
+      "path_ok": 10,
+      "faithfulness_ok": 10,
+      "tool_calls": 19,
+      "tool_failures": 2,
+      "tool_recoveries": 1,
+      "median_latency_s": 16.43
+    }
+  },
+  "results": [
+    {
+      "id": "CAT05-01",
+      "category": "CAT05",
+      "title": "Recent Technical Migration Guide",
+      "prompt": "What was the major breaking architectural change in PyTorch 2.0 regarding graph compilation and torch.compile?",
+      "reply": "I'm sorry, but my search for the specific architectural changes in PyTorch 2.0 failed to return any verified records. I don't have that information in my current memory either, so I can't give you a definitive answer on those breaking changes right now.",
+      "extracted_answer": "I'm sorry, but my search for the specific architectural changes in PyTorch 2.0 failed to return any verified records. I don't have that information in my current memory either, so I can't give you a definitive answer on those breaking changes right now.",
+      "tools": [
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "PyTorch 2.0 major breaking architectural change graph compilation torch.compile"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": false,
+          "output": "No verified web search results found for query: 'PyTorch 2.0 major breaking architectural change graph compilation torch.compile'.",
+          "error": "No verified web search results found for query: 'PyTorch 2.0 major breaking architectural change graph compilation torch.compile'.",
+          "args": {
+            "query": "PyTorch 2.0 major breaking architectural change graph compilation torch.compile"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 1,
+      "tool_success_count": 0,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "tool_failure",
+      "path_ok": true,
+      "path_reason": "path 'tool_failure' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 12.356,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": false,
+      "answer_reason": "dynamo_or_inductor=False, compiler_mechanism=False",
+      "eval_reason": "dynamo_or_inductor=False, compiler_mechanism=False",
+      "passed": false
+    },
+    {
+      "id": "CAT05-02",
+      "category": "CAT05",
+      "title": "Game Mechanics Wiki Lookup",
+      "prompt": "In the game Elden Ring, what are the soft caps for the Vigor stat regarding HP scaling?",
+      "reply": "In Elden Ring, Vigor has two main soft caps for your HP scaling. The first one is at 40, and the second one hits at 60. You'll see diminishing returns after 40, and once you go past 60, the amount of extra health you get per level drops off significantly.",
+      "extracted_answer": "In Elden Ring, Vigor has two main soft caps for your HP scaling. The first one is at 40, and the second one hits at 60. You'll see diminishing returns after 40, and once you go past 60, the amount of extra health you get per level drops off significantly.",
+      "tools": [
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Elden Ring Vigor soft cap HP scaling"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Elden Ring Vigor soft cap HP scaling':\n\n1. What are Elden Ring\u2019s soft caps for all stats in 2025?\n   Summary: January 1, 2025 - When you start leveling a stat, ... and the returns will become less and less. ... If you level your Vigor from level 3 to level 4, your HP will increase from 312 to 322....\n   Source: https://www.polygon.com/elden-ring-guide-walkthrough/24185164/soft-caps-stats-strength-vigor-endurance-arcane/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. How Much Vigor Do You Need in Elden Ring? Soft Caps, HP Breakpoints & Best Level (Patch 1.16.1)\n   Summary: August 26, 2026 - What are the Vigor soft caps in Elden Ring? The first soft cap is at 40 and the second at 60. Below 40 you gain up to +48 HP per level; from 41\u201360 the gain drops to roughly +13\u201326; past 60 it collapses to about +5\u20136 per level.\n   Source: https://timesaver.gg/blog/how-much-vigor-do-you-need-elden-ring\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Vigor | Elden Ring Wiki - Fextralife\n   Summary: August 26, 2026 - Improving Vigor also grants a small ... body stat, which in turn improves a player's resistance to Poison and Scarlet Rot effects. ... First softcap at 40, second softcap at 60....\n   Source: https://eldenring.wiki.fextralife.com/Vigor\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Elden Ring: How much Vigor you need and soft caps explained | PC Gamer\n   Summary: March 16, 2022 - While it's true that you can dump ... diminishing returns on upgrades. For instance, increasing Vigor by one level early on will get you anywhere from 26-40 maximum HP....\n   Source: https://www.pcgamer.com/elden-ring-vigor-soft-cap-explained-how-much-vigor/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Elden Ring Soft Caps \u2014 All Stats and Optimal Breakpoints | HowToPlayHub\n   Summary: July 4, 2026 - Vigor has two soft caps: 40 and 60. The first cap at 40 gives you around 1,450 HP \u2014 the practical minimum for late-game content. The second cap at 60 (roughly 1,900 HP) is the recommended ceiling for endgame play and PvP.\n   Source: https://howtoplayhub.com/elden-ring/stat-soft-caps-guide\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "Elden Ring Vigor soft cap HP scaling"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 12.522,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "cap_40=True, cap_60=True",
+      "eval_reason": "cap_40=True, cap_60=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-03",
+      "category": "CAT05",
+      "title": "Official Registry Fact Verification",
+      "prompt": "Search official public records for the Court of Appeals in the Philippines: who was appointed as Presiding Justice in recent appointments?",
+      "reply": "According to official records from the Supreme Court of the Philippines, Fernanda Lampas-Peralta was appointed as the Presiding Justice of the Court of Appeals. She took her oath of office on November 18, 2024, at the Malaca\u00f1an Palace.",
+      "extracted_answer": "According to official records from the Supreme Court of the Philippines, Fernanda Lampas-Peralta was appointed as the Presiding Justice of the Court of Appeals. She took her oath of office on November 18, 2024, at the Malaca\u00f1an Palace.",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Presiding Justice Court of Appeals Philippines recent appointments"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://sc.judiciary.gov.ph/chief-justice-gesmundo-administers-oath-to-new-court-of-appeals-sandiganbayan-justices/"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Presiding Justice Court of Appeals Philippines recent appointments':\n\n1. Fernanda Lampas-Peralta - Wikipedia\n   Summary: Fernanda Lampas-Peralta (born June 26, 1960) is a Filipino lawyer, certified public accountant, and jurist who is the current Presiding Justice of the Court of Appeals of the Philippines. She was appointed by President Bongbong Marcos and took her oath of office on November 18, 2024, at the Malaca\u00f1an Palace. [1]\n   Source: https://en.wikipedia.org/wiki/Fernanda_Lampas-Peralta\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Court of Appeals of the Philippines - Wikipedia\n   Summary: The Court of Appeals (Filipino: Hukuman ng Pag-aapela[1] or Filipino: Hukuman ng Apelasyon; [3] previously Hukuman ng Paghahabol[4]) is an appellate collegiate court in the Philippines. The Court of Appeals consists of one presiding justice and sixty-eight associate justices. Pursuant to the Constitution, the Court of Appeals \"reviews not only the decisions and orders of the Regional Trial ...\n   Source: https://en.wikipedia.org/wiki/Court_of_Appeals_of_the_Philippines\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Chief Justice Gesmundo Administers Oath to New Court of ...\n   Summary: Nov 5, 2025 \u00b7 Chief Justice Alexander G. Gesmundo (center), joined by newly appointed Associate Justices of the Court of Appeals (CA) and Sandiganbayan (SBN) during their oath-taking ceremony on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila.\n   Source: https://sc.judiciary.gov.ph/chief-justice-gesmundo-administers-oath-to-new-court-of-appeals-sandiganbayan-justices/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Administration - The Court of Appeals of the Philippines\n   Summary: The Court of Appeals En Banc is composed of the Presiding Justice and sixty-nine (69) Associate Justices. The Office of the Presiding Justice implements policies, executes the resolutions and enforces the orders of the Court of Appeals En Banc. It performs the functions specifically vested upon the position of the Presiding Justice by the law, rules and regulations or those implied therefrom ...\n   Source: https://ca.judiciary.gov.ph/about/administration\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Justice Mariflor Punzalan Castillo is New Court of Appeals ...\n   Summary: Nov 15, 2023 \u00b7 Newly appointed Court of Appeals Presiding Justice Mariflor P. Punzalan Castillo took her oath of office before Chief Justice Alexander G. Gesmundo at the Session Hall of the Supreme Court this afternoon.\n   Source: https://sc.judiciary.gov.ph/justice-mariflor-punzalan-castillo-is-new-court-of-appeals-presiding-justice/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "Presiding Justice Court of Appeals Philippines recent appointments"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "Chief Justice Gesmundo Administers Oath  to New Court of Appeals, Sandiganbayan Justices &#8211; Supreme Court of the Philippines\n\nChief Justice Gesmundo Administers Oath to New Court of Appeals, Sandiganbayan Justices &#8211; Supreme Court of the Philippines Skip to content Welcome to the Supreme Court of the Philippines Trial Court Locator Search for: Search Button Welcome to the Supreme Court of the Philippines Trial Court Locator Search for: Search Button Welcome to The Supreme Court of the Philippines Trial Court Locator Search for: Search Button eCourt PH eFiling ePayment Menu eCourt PH eFiling ePayment Downloads Bids and Awards SPJI Menu Downloads Bids and Awards SPJI Home About Us News and Announcements Decisions and Resolutions Current Cases Bar Matters FAQ Contact Us Microsites Oral Arguments SPJI eCourt PH Unified Legal Aid Service eNotarization Special Proceedings Survey Model SC Submissions By Student Participants Electronic Filing Evidence Survey CACJ Publications SC Grand Judiciary Tour Home About Us News and Announcements Decisions and Resolutions Current Cases Bar Matters FAQ Contact Us Microsites Oral Arguments SPJI eCourt PH Unified Legal Aid Service eNotarization Special Proceedings Survey Model SC Submissions By Student Participants Electronic Filing Evidence Survey CACJ Publications SC Grand Judiciary Tour Home About Us News and Announcements Decisions and Resolutions Bar Matters Contact Us Home About Us News and Announcements Decisions and Resolutions Bar Matters Contact Us Chief Justice Gesmundo Administers Oath to New Court of Appeals, Sandiganbayan Justices November 05, 2025 DOWNLOAD PDF FILE HERE Chief Justice Alexander G. Gesmundo (center), joined by newly appointed Associate Justices of the Court of Appeals (CA) and Sandiganbayan (SBN) during their oath-taking ceremony on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. From left: SBN Associate Justice Hans Chester Tiu Nocom; CA Associate Justices Snooky Maria Ana C. Bareno-Sagayo and Robert Victor Consunji Marcon; and SBN Associate Justice Fritz Bryn Anthony Makasiar Delos Santos. (Photo courtesy of the SC Communications Office) Chief Justice Alexander G. Gesmundo administered the oath of office to newly appointed Court of Appeals (CA) Associate Justices Robert Victor Consunji Marcon and Snooky Maria Ana C. Bareno-Sagayo, and Sandiganbayan (SBN) Associate Justices Hans Chester Tiu Nocom and Fritz Bryn Anthony Makasiar Delos Santos, on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. The four new Justices were appointed on September 23, 2025. The ceremony was attended by SC Senior Associate Justice Marvic M.V.F. Leonen and Associate Justices Alfredo Benjamin S. Caguioa, Ramon Paul L. Hernando, Henri Jean Paul B. Inting, Rodil V. Zalameda, Samuel H. Gaerlan, Japar B. Dimaampao, Jose Midas P. Marquez, and Raul B. Villanueva. CA Associate Justice Marcon assumes the post left vacant following the appointment of Associate Justice Fernanda C. Lampas Peralta as CA Presiding Justice. Justice Marcon earned his law degree from San Beda College of Law in 1996. He also holds a Master of Laws degree from Pamantasan ng Lungsod ng Maynila (PLM), where he was awarded Best in Thesis . Admitted to the Philippine Bar in 1998, he started as a private practitioner before joining the government as Attorney III, Special Assistant to the Commissioner at the Bureau of Customs. He served as Presiding Judge of Branch 54, Regional Trial Court (RTC), Lucena City, from 2013 to 2018, and Branch 3, Family Court, Makati City, from 2018 until his appointment to the CA. Chief Justice Alexander G. Gesmundo administers the oath of office to Court of Appeals Associate Justice Robert Victor Consunji Marcon on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. (Photo courtesy of the SC Communications Office) CA Associate Justice Sagayo succeeds Associate Justice Jacinto G. Fajardo, Jr., who retired earlier this year. Justice Sagayo earned her law degree from San Beda University in 1992 and was admitted to the Philippine Bar in 1994. From 1994 to 2010, she worked in various offices in the Judiciary, including the CA, the Presidential Electoral Tribunal, and the SC. She then joined the bench, serving as Presiding Judge of Municipal Trial Court, Pandi, Bulacan, from 2010 to 2016, and Branch 283, RTC, Valenzuela City, from 2016 until her appointment to the appellate court. Chief Justice Alexander G. Gesmundo administers the oath of office to Court of Appeals Associate Justice Snooky Maria Ana C. Bareno-Sagayo on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. (Photo courtesy of the SC Communications Office) SBN Associate Justice Nocom takes the post vacated by Associate Justice Bernelito R. Fernandez, who retired earlier this year. Justice Nocom earned his law degree from Far Eastern University in 2010. He also holds a Master of Laws degree from PLM. Admitted to the Philippine Bar in 2011, he started in private practice before joining government service at the then Philippine Overseas Employment Administration (now Department of Migrant Workers). He later served as Attorney V/Special Counsel at the Manila City Office of the City Prosecutor from 2014 to 2019, before joining the Department of Justice as Prosecutor II from 2019 to 2021 and Prosecutor III from 2021 until his appointment to the anti-graft court. Chief Justice Alexander G. Gesmundo administers the oath of office to Sandiganbayan Associate Justice Hans Chester Tiu Nocom on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. (Photo courtesy of the SC Communications Office) SBN Associate Justice Delos Santos fills the post left vacant following the appointment of Associate Justice Geraldine Faith A. Econg as Presiding Justice of the anti-graft court. Justice Delos Santos earned his law degree from the University of San Carlos in Cebu in 2011. He also holds a Master of Laws degree from Cornell University in New York. He was admitted to the Philippine Bar in 2012 and started his government career as Court Attorney IV at the SC in 2013. He then served as Associate Solicitor in the Office of the Solicitor General from 2014 to 2015, followed by a role as Court Attorney V at the CA in 2015. He returned to the SC as Court Attorney VI, serving from 2017 until his appointment to the SBN. Chief Justice Alexander G. Gesmundo administers the oath of office to Sandiganbayan Associate Justice Fritz Bryn Anthony Makasiar Delos Santos on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. (Photo courtesy of the SC Communications Office) The oath-taking ceremony marks the official assumption of office of the four new Justices, who are expected to bring their expertise and experience to the appellate and anti-graft courts. Chief Justice Gesmundo welcomed them to the Judiciary\u2019s higher ranks, emphasizing the vital role they will play in upholding the rule of law, promoting justice, and strengthening public trust in the courts. ( Press release courtesy of the SC Office of the Spokesperson ) Supreme Court (SC) Associate Justices Henri Jean Paul B. Inting (right) and Jose Midas P. Marquez (second from left) with newly appointed Sandiganbayan Associate Justice Fritz Bryn Anthony Makasiar Delos Santos (leftmost) on November 4, 2025, during his oath-taking ceremony at the SC Session Hall in Manila. Behind them are SC Associate Justice Raul B. Villanueva and retired SC Associate Justice and current Philippine Judicial Academy Vice Chancellor Edgardo L. Delos Santos, with Court of Appeals Associate Justice Robert Victor Consunji Marcon (background, rightmost), who also took his oath on the same day. (Photo courtesy of the SC Office of the Spokesperson) Chief Justice Alexander G. Gesmundo congratulates Court of Appeals Associate Justice Robert Victor Consunji Marcon at his oath-taking ceremony on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. Also in the photo are Senior Associate Justice Marvic M.V.F. Leonen and retired SC Associate Justice and Judicial Bar and Council Regular Member Jose C. Mendoza (background). (Photo courtesy of the SC Office of the Spokesperson) Retired Supreme Court (SC) Associate Justices Jose C. Mendoza (left), a member of the Judicial Bar and Council, and Angelina Sandoval-Gutierrez (right) congratulate Court of Appeals Associate Justice Snooky Maria Ana C. Bareno-Sagayo during her oath-taking ceremony on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. (Photo courtesy of the Office of the Spokesperson) Newly appointed members of the Court of Appeals (CA) and Sandiganbayan (SBN) during their oath-taking ceremony on November 4, 2025, at the Supreme Court (SC) Session Hall in Manila. From left: SBN Associate Justice Hans Chester Tiu Nocom; CA Associate Justices Snooky Maria Ana C. Bareno-Sagayo and Robert Victor Consunji Marcon; and SBN Associate Justice Fritz Bryn Anthony Makasiar Delos Santos. (Photo courtesy of the SC Communications Office) Chief Justice Alexander G. Gesmundo (fifth from left), joined by (from his right) Supreme Court (SC) Senior Associate Justice Marvic M.V.F. Leonen and Associate Justices Ramon Paul L. Hernando, Henri Jean Paul B. Inting, Rodil V. Zalameda, Samuel H. Gaerlan, Japar B. Dimaampao, Jose Midas P. Marquez, and Raul B. Villanueva; with Court of Appeals Associate Justice Robert Victor Consunji Marcon (fourth from left) and family, during his oath-taking ceremony on November 4, 2025, at the SC Session Hall in Manila. (Photo courtesy of the SC Communications Office) Chief Justice Alexander G. Gesmundo (sixth from left), joined by (from his right) Supreme Court (SC) Senior Associate Justice Marvic M.V.F. Leonen and Associate Justices Ramon Paul L. Hernando, Henri Jean Paul B. Inting, Rodil V. Zalameda, Samuel H. Gaerlan, Japar B. Dimaampao, Jose Midas P. Marquez, and Raul B. Villanueva; with Court of Appeals Associate Justice Snooky Maria Ana C. Bareno-Sagayo (fifth from left) and family, during her oath-taking ceremony on November 4, 2025, at the SC Session Hall in Manila. (Photo courtesy of the SC Communications Office) Chief Justice Alexander G. Gesmundo (sixth from left), joined by (from his right) Supreme Court (SC) Senior Associate Justice Marvic M.V.F. Leonen and Associate Justices Ramon Paul L. Hernando, Henri Jean Paul B. Inting, Rodil V. Zalameda, Samuel H. Gaerlan, Japar B. Dimaampao, Jose Midas P. Marquez, and Raul B. Villanueva; with Sandiganbayan Associate Justice Hans Chester Tiu Nocom (fifth from left) and family, during his oath-taking ceremony on November 4, 2025, at the SC Session Hall in Manila. (Photo courtesy of the SC Communications Office) Chief Justice Alexander G. Gesmundo (center), joined by (from his right) Supreme Court (SC) Senior Associate Justice Marvic M.V.F. Leonen and Associate Justices Ramon Paul L. Hernando, Henri Jean Paul B. Inting, Rodil V. Zalameda, Samuel H. Gaerlan, Japar B. Dimaampao, Jose Midas P. Marquez, and Raul B. Villanueva; with Sandiganbayan Associate Justice Fritz Bryn Anthony Makasiar Delos Santos (eighth from left) and family, during his oath-taking ceremony on November 4, 2025, at the SC Session Hall in Manila. (Photo courtesy of the SC Communications Office) Supreme Court of the Philippines Padre Faura St., Ermita, Manila Philippines 1000 Follow us on Twitter @SCPh_PIO . Thank you for your continued support and feedback. X-twitter Youtube Facebook Instagram Contact Info For queries and/or comments about the Supreme Court website, please send an email to: piocommsoffice.sc@judiciary.gov.ph Or call us at: +63 2 8522-5090 +63 928 500-9872 Downloads SPJI Access to Information - Request Form Civil Procedure Criminal Procedure Forms for Clerks of Court SALN Request Form FOI Manual Annual Reports Benchmark Other Links Supreme Court of the Philippines Padre Faura St., Ermita, Manila Philippines 1000 Follow us on Twitter @SCPh_PIO . Thank you for your continued support and feedback. X-twitter Youtube Facebook Instagram Contact Info For queries and/or comments about the Supreme Court website, please send an email to: piocommsoffice.sc@judiciary.gov.ph Or call us at: +63 2 8522-5090 +63 928 500-9872 Downloads SPJI Access to Information - Request Form Civil Procedure Criminal Procedure Forms for Clerks of Court SALN Request Form FOI Manual Annual Reports Benchmark Useful Links Supreme Court of the Philippines Padre Faura St., Ermita, Manila Philippines 1000 Follow us on Twitter @SCPh_PIO . Thank you for your continued support and feedback. X-twitter Youtube Facebook Instagram Contact Info For queries and/or comments about the Supreme Court website, please send an email to: piocommsoffice.sc@judiciary.gov.ph Or call us at: +63 2 8522-5090 +63 928 500-9872 Downloads SPJI Access to Information Request Form Civil Procedure Criminal Procedure Forms for Clerks of Court SALN Request Form FOI Manual Annual Reports Benchmark Useful Links \u00a9 2026 The Supreme Court of the Philippines. All rights reserved. Privacy Notice | Credit Attribution Policy \u00a9 2026 The Supreme Court of the Philippines. All rights reserved. Privacy Statement | Credit Attribution Policy \u00a9 2026 The Supreme Court of the Philippines. All rights reserved. Privacy Statement Credit Attribution Policy \u00a9 2024 The Supreme Court of the Philippines. All rights reserved. \u00a9 2024 The Supreme Court of the Philippines. All rights reserved. \u00a9 2024 The Supreme Court of the Philippines. All rights reserved. Home About Us News and Announcements Decisions and Resolutions Bar Matters FAQ Contact Us &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Current Cases Oral Arguments SPJI eCourt PH Unified Legal Aid Service eNotarization Special Proceedings Survey Model SC Submissions by Student Participants Electronic Filing Evidence Survey CACJ Publications SC Grand Judiciary Tour &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Press Releases SC YT Videos Podcasts Benchmark &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Bids and Awards Annual Reports Lawyers List Downloads Home About Us News and Announcements Decisions and Resolutions Bar Matters FAQ Contact Us &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Current Cases Oral Arguments SPJI eCourt PH Unified Legal Aid Service eNotarization Special Proceedings Survey Model SC Submissions by Student Participants Electronic Filing Evidence Survey CACJ Publications SC Grand Judiciary Tour &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Press Releases SC YT Videos Podcasts Benchmark &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Bids and Awards Annual Reports Lawyers List Downloads Judicial Committee on Sustainability and Environmental Concerns 2024 National Summit About the Committee Activities Resource Materials Contact Us: Phone number: (63) 968 998 8149 E-mail address: kalikasan@judiciary.gov.ph Gia Ibay With over twenty years of experience working on climate change, energy, and environmental issues, Atty Ibay presently heads the Climate Change and Energy Programme of the World Wide Fund for Nature (WWF) Philippines and concurrently serves as Earth Hour Philippines\u2019 National Director, working for the organization for the past fourteen years on renewable energy and the clean energy transition, sustainable cities, and climate resilience. For five years, she chaired the National Renewable Energy Board\u2019s subcommittee on Public Relations and IEC. Last March 2022, she was elected to the Board of Directors of the Climate Action Network (CAN) International, the world\u2019s largest climate network made up of over 1,900 civil society organizations in over 130 countries, driving collective and sustainable action to fight the climate crisis and to achieve social justice. She is currently serving her 2nd term on the CAN International Board and was elected Co-Chair of the Board last February 2024. Her expertise includes environmental law and policy, climate change, climate finance, pollution, hazardous waste, renewable energy legislation and policy. The first Climate Change Attach\u00e9 of the British Embassy Manila, she also worked at the Manila Observatory, the Department of Environment and Natural Resources and Environmental Management Bureau, and served as legal counsel for the Pollution Adjudication Board and Mines Adjudication Board. She has peer-reviewed co-written papers on environmental issues. She has been a Philippine delegation member to the United Nations Framework Convention of Climate Change (UNFCCC) Conference of Parties (COP), having attended COP3, COP9, COP16, COP21 AND COP22. Since COP27 in Sharm el-Sheikh, Egypt, COP28 in Dubai, UAE and COP29 in Baku, Azerbaijan, Atty. Ibay served as a Technical Adviser to the Philippine delegation on climate finance, mitigation, loss and damage, and just transition. Holding a Bachelor of Arts in Economics from the Ateneo de Manila University and a Juris Doctor degree from the University of the Philippines College of Law, Atty. Ibay has received training from the Beahrs Environmental Leadership Program, University of California, Berkeley, U.S.A., and the Renewables Academy (RENAC), Berlin, Germany. Home About Us News and Announcements Decisions and Resolutions Bar Matters FAQ Contact Us &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Current Cases Oral Arguments SPJI eCourt PH Unified Legal Aid Service eNotarization Special Proceedings Survey Model SC Submissions by Student Participants Electronic Filing Evidence Survey CACJ Publications SC Grand Judiciary Tour &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Press Releases SC YT Videos Podcasts Benchmark &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Bids and Awards Annual Reports Lawyers List Downloads Home About Us News and Announcements Decisions and Resolutions Bar Matters FAQ Contact Us &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Current Cases Oral Arguments SPJI eCourt PH Unified Legal Aid Service eNotarization Special Proceedings Survey Model SC Submissions by Student Participants Electronic Filing Evidence Survey CACJ Publications SC Grand Judiciary Tour &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Press Releases SC YT Videos Podcasts Benchmark &#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8212;&#8211; Bids and Awards Annual Reports Lawyers List Downloads Privacy Notice for the Supreme Court website Statement of Commitment to Data Privacy and Security The Supreme Court of the Philippines respects your privacy and your data privacy rights, as well as employs reasonable measures to protect your personal data in accordance with Republic Act No. 10173 or the Data Privacy Act of 2012 (DPA), its Implementing Rules and Regulations, and the various issuances of the National Privacy Commission (NPC) (collectively, the Data Privacy Regulations). Brief Service Description and Its General Purpose Use of the Supreme Court Website The Supreme Court website serves as the online repository of Supreme Court information, references, and resources accessible to the public. By agreeing to use the Supreme Court website, you agree t",
+          "error": null,
+          "args": {
+            "url": "https://sc.judiciary.gov.ph/chief-justice-gesmundo-administers-oath-to-new-court-of-appeals-sandiganbayan-justices/"
+          }
+        }
+      ],
+      "tool_calls_count": 2,
+      "tool_failures_count": 0,
+      "tool_success_count": 2,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 16.67,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "target_justice_named=True",
+      "eval_reason": "target_justice_named=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-04",
+      "category": "CAT05",
+      "title": "Hardware Architecture Specs",
+      "prompt": "What is the key architectural difference between Intel Lion Cove P-cores and Skymont E-cores in Lunar Lake / Arrow Lake processors?",
+      "reply": "The key architectural distinction between Lion Cove P-cores and Skymont E-cores in the Lunar Lake and Arrow Lake series lies in their performance priorities, thread handling, and cache topology. \n\nLion Cove is designed primarily for high single-threaded performance and features a significant IPC uplift over Redwood Cove, but notably, these P-cores ditch Simultaneous Multithreading (SMT). In contrast, Skymont E-cores are engineered for massive efficiency gains, delivering up to a 38% IPC increase in integer workloads and a 68% jump in floating point workloads compared to the previous Crestmont design.\n\nA critical structural change for these chips is that the Skymont E-cores are no longer on a ring-bus sharing an L3 cache with the P-cores; they are now separated into their own cluster, which fundamentally changes how data moves between the two core types.",
+      "extracted_answer": "The key architectural distinction between Lion Cove P-cores and Skymont E-cores in the Lunar Lake and Arrow Lake series lies in their performance priorities, thread handling, and cache topology. \n\nLion Cove is designed primarily for high single-threaded performance and features a significant IPC uplift over Redwood Cove, but notably, these P-cores ditch Simultaneous Multithreading (SMT). In contrast, Skymont E-cores are engineered for massive efficiency gains, delivering up to a 38% IPC increase in integer workloads and a 68% jump in floating point workloads compared to the previous Crestmont design.\n\nA critical structural change for these chips is that the Skymont E-cores are no longer on a ring-bus sharing an L3 cache with the P-cores; they are now separated into their own cluster, which fundamentally changes how data moves between the two core types.",
+      "tools": [
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Intel Lion Cove P-cores vs Skymont E-cores architectural differences Lunar Lake Arrow Lake"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Intel Lion Cove P-cores vs Skymont E-cores architectural differences Lunar Lake Arrow Lake':\n\n1. Lunar Lake - Wikipedia\n   Summary: Lunar Lake shares the same Lion Cove P-core and Skymont E-core architectures with Arrow Lake desktop and mobile processors. With the Lion Cove P-core, Intel claims a 14% IPC uplift on average over Redwood Cove.\n   Source: https://en.wikipedia.org/wiki/Lunar_Lake\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Arrow Lake (microprocessor) - Wikipedia\n   Summary: On May 20, 2024, Intel reaffirmed that Arrow Lake was on track for a Q4 2024 release with an update promised at Computex in the following weeks. On June 4, 2024, Intel shared details on the Lion Cove P-cores and Skymont E-core architectures that are shared between Arrow Lake and Lunar Lake.\n   Source: https://en.wikipedia.org/wiki/Arrow_Lake_(microprocessor)\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Intel Lunar Lake CPU Architecture Deep-Dive: Lion Cove +14% ...\n   Summary: Jun 4, 2024 \u00b7 Intel has introduced Lunar Lake, its most efficient SOC to date and we are doing a deep dive into its P-Core & E-Core architectures and more.\n   Source: https://wccftech.com/intel-lunar-lake-cpu-architecture-deep-dive-lion-cove-skymont-double-digit-ipc-new-thread-director/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Intel Lunar Lake \u2018Skymont\u2019 E-core Microarchitecture - Intel ...Intel Core Ultra Arrow Lake Preview - CPU Cores: Lion Cove ...Intel Lunar Lake CPU Architecture Deep Dive: Lion Cove and ...Skymont: Intel\u2019s E-Cores reach for the Sky - by Chester LamLunar Lake - WikipediaArrow Lake (microprocessor) - Wikipedia\n   Summary: Jun 4, 2024 \u00b7 The Skymont architecture marks Intel\u2019s third E-core design for x86 hybrid processors, following Gracemont in Alder Lake and Crestmont in Meteor Lake. (That's not counting the Tremont cores in ... Oct 10, 2024 \u00b7 The new \"Skymont\" E-core was the single biggest talking point about \"Lunar Lake.\" Intel achieved a 38% IPC uplift over the \"Crestmont\" E-cores of \"Meteor Lake\" in integer workloads, and a mammoth 68% IPC uplift over \"Crestmont\" in floating point workloads. There is a catch here. The E-cores on \"Lunar Lake\" are not part of a ring-bus with the P-cores (i.e. sharing their L3 cache), but separated ... Sep 20, 2024 \u00b7 Explore the Intel Lunar Lake CPU architecture deep dive. Discover Lion Cove's 14% IPC gain, Skymont performance, and next-gen power management details. Oct 3, 2024 \u00b7 The 2020s were a fun time for Intel\u2019s Atom line, which went from an afterthought to playing a major role across Intel\u2019s high performance client offerings. Intel\u2019s latest mobile chip, codenamed Lunar Lake, sees Intel\u2019s high performance P-Cores ditch SMT. With P-Cores focusing even more on single threaded performance, E-Cores will play an even more prominent role in boosting ... Lunar Lake shares the same Lion Cove P-core and Skymont E-core architectures with Arrow Lake desktop and mobile processors. With the Lion Cove P-core, Intel claims a 14% IPC uplift on average over Redwood Cove. On May 20, 2024, Intel reaffirmed that Arrow Lake was on track for a Q4 2024 release with an update promised at Computex in the following weeks. On June 4, 2024, Intel shared details on the Lion Cove P-cores and Skymont E-core architectures that are shared between Arrow Lake and Lunar Lake.\n   Source: https://www.tomshardware.com/pc-components/cpus/intel-unwraps-lunar-lake-architecture-up-to-68-ipc-gain-for-e-cores-16-ipc-gain-for-p-cores/3\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Intel Core Ultra Arrow Lake Preview - CPU Cores: Lion Cove ...Intel Lunar Lake CPU Architecture Deep Dive: Lion Cove and ...Skymont: Intel\u2019s E-Cores reach for the Sky - by Chester LamLunar Lake - WikipediaArrow Lake (microprocessor) - Wikipedia\n   Summary: Oct 10, 2024 \u00b7 The new \"Skymont\" E-core was the single biggest talking point about \"Lunar Lake.\" Intel achieved a 38% IPC uplift over the \"Crestmont\" E-cores of \"Meteor Lake\" in integer workloads, and a mammoth 68% IPC uplift over \"Crestmont\" in floating point workloads. There is a catch here. The E-cores on \"Lunar Lake\" are not part of a ring-bus with the P-cores (i.e. sharing their L3 cache), but separated ... Sep 20, 2024 \u00b7 Explore the Intel Lunar Lake CPU architecture deep dive. Discover Lion Cove's 14% IPC gain, Skymont performance, and next-gen power management details. Oct 3, 2024 \u00b7 The 2020s were a fun time for Intel\u2019s Atom line, which went from an afterthought to playing a major role across Intel\u2019s high performance client offerings. Intel\u2019s latest mobile chip, codenamed Lunar Lake, sees Intel\u2019s high performance P-Cores ditch SMT. With P-Cores focusing even more on single threaded performance, E-Cores will play an even more prominent role in boosting ... Lunar Lake shares the same Lion Cove P-core and Skymont E-core architectures with Arrow Lake desktop and mobile processors. With the Lion Cove P-core, Intel claims a 14% IPC uplift on average over Redwood Cove. On May 20, 2024, Intel reaffirmed that Arrow Lake was on track for a Q4 2024 release with an update promised at Computex in the following weeks. On June 4, 2024, Intel shared details on the Lion Cove P-cores and Skymont E-core architectures that are shared between Arrow Lake and Lunar Lake.\n   Source: https://www.techpowerup.com/review/intel-core-ultra-arrow-lake-preview/4.html\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "Intel Lion Cove P-cores vs Skymont E-cores architectural differences Lunar Lake Arrow Lake"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 12.64,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "smt_distinction=True, contrast=True",
+      "eval_reason": "smt_distinction=True, contrast=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-05",
+      "category": "CAT05",
+      "title": "Scientific Consensus / Phenomenon",
+      "prompt": "What is the Cherenkov radiation threshold condition in water, and what produces its characteristic blue glow?",
+      "reply": "The threshold happens when a charged particle travels through water faster than the phase velocity of light in that medium. Basically, it's like breaking the local speed limit for photons!\n\nThat iconic blue glow comes from the specific way the electromagnetic shockwave interacts with the water molecules. It produces a broad spectrum of light, but because of how our eyes perceive shorter wavelengths and how water absorbs other colors, we see that brilliant blue.",
+      "extracted_answer": "The threshold happens when a charged particle travels through water faster than the phase velocity of light in that medium. Basically, it's like breaking the local speed limit for photons!\n\nThat iconic blue glow comes from the specific way the electromagnetic shockwave interacts with the water molecules. It produces a broad spectrum of light, but because of how our eyes perceive shorter wavelengths and how water absorbs other colors, we see that brilliant blue.",
+      "tools": [],
+      "tool_calls": [],
+      "receipts": [],
+      "tool_calls_count": 0,
+      "tool_failures_count": 0,
+      "tool_success_count": 0,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "native_reasoning",
+      "path_ok": true,
+      "path_reason": "path 'native_reasoning' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "pure native reasoning (no receipts to contradict)",
+      "code_assumptions": [],
+      "elapsed_s": 4.458,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "speed_cond=True, blue_glow=True",
+      "eval_reason": "speed_cond=True, blue_glow=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-06",
+      "category": "CAT05",
+      "title": "Open Source License Invariants",
+      "prompt": "Can code under the AGPLv3 license be incorporated into a proprietary SaaS product without releasing the proprietary server source code?",
+      "reply": "That is a classic engineering and legal hurdle, and honestly, it's exactly why the AGPL exists! The short answer is that it\u2019s very risky because the AGPLv3 was specifically designed to close what people call the SaaS loophole.\n\nUnlike the standard GPL, which only triggers source disclosure when you \"distribute\" the software (like shipping a binary), the AGPLv3 includes a specific clause for network interaction. This means if you modify AGPL-licensed code and let users interact with it over a network\u2014even if that code stays strictly on your servers\u2014you are required to make the source code of those modifications available to those users.\n\nBecause of this, many companies treat any AGPL dependency as a high-risk \"no-go\" for proprietary products. If you're planning to build something big, my best advice is to check if there\u2019s an MIT or Apache 2.0 alternative first. It keeps your proprietary logic safe and lets you sleep better at night!",
+      "extracted_answer": "That is a classic engineering and legal hurdle, and honestly, it's exactly why the AGPL exists! The short answer is that it\u2019s very risky because the AGPLv3 was specifically designed to close what people call the SaaS loophole.\n\nUnlike the standard GPL, which only triggers source disclosure when you \"distribute\" the software (like shipping a binary), the AGPLv3 includes a specific clause for network interaction. This means if you modify AGPL-licensed code and let users interact with it over a network\u2014even if that code stays strictly on your servers\u2014you are required to make the source code of those modifications available to those users.\n\nBecause of this, many companies treat any AGPL dependency as a high-risk \"no-go\" for proprietary products. If you're planning to build something big, my best advice is to check if there\u2019s an MIT or Apache 2.0 alternative first. It keeps your proprietary logic safe and lets you sleep better at night!",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "AGPLv3 license proprietary SaaS source code disclosure requirements"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://safeguard.sh/resources/blog/agpl-3-0-license-explained"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'AGPLv3 license proprietary SaaS source code disclosure requirements':\n\n1. GNU Affero General Public License - GNU Project - Free Software Foundation\n   Summary: GNU Affero General Public License Skip to license text Why the Affero GPL Frequently Asked Questions How to use GNU licenses for your own software Translations of the GNU AGPL The GNU AGPL in other formats: plain text, Docbook, LaTeX, standalone HTML, Texinfo, Markdown, ODF, RTF GNU AGPL logos to use with your project What to do if you see a possible GNU AGPL violation\n   Source: https://www.gnu.org/licenses/agpl-3.0.en.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. The AGPL-3.0 License, Explained - safeguard.sh\n   Summary: The AGPL-3.0 License, Explained AGPL-3.0 is the GNU Affero General Public License v3.0 \u2014 GPLv3 with one added clause that closes the SaaS loophole, requiring source disclosure even when software is only used over a network, never distributed.\n   Source: https://safeguard.sh/resources/blog/agpl-3-0-license-explained\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Understanding the GNU AGPLv3: The Strongest Copyleft License for the ...\n   Summary: An in-depth look at the GNU AGPLv3 license, explaining its importance in the era of SaaS and cloud computing, and how it ensures open-source freedom for web-based applications.\n   Source: https://www.cybrosys.com/blog/understanding-the-gnu-agplv3-the-strongest-copyleft-license-for-the-modern-internet\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. AGPL in SaaS: Network Copyleft & Open Source Compliance\n   Summary: AGPL-3.0 in SaaS can require source-code disclosure via network copyleft. Learn key risks and controls\u2014license scanning, SBOMs, and OSS governance for Germany & DACH teams.\n   Source: https://bearingpoint.services/foss/en/newsblogs/understanding-network-copyleft-in-saas/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. AGPL SaaS License: Practical Guide for SaaS Founders\n   Summary: AGPL SaaS license obligations can shape your product architecture. Learn what the network clause means, when to review code, and how to reduce risk.\n   Source: https://www.volanea.com/blog/agpl-saas-license-guide\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "AGPLv3 license proprietary SaaS source code disclosure requirements"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "The AGPL-3.0 License, Explained\n\nThe AGPL-3.0 License, Explained Skip to content models Model Family Purpose-built security models \u2014 Griffin, Eagle, Lion, Zero \u2014 from no weights at all to 671B MoE. Explore Model Family Overview Capabilities Matrix Benchmarks vs. Other Models Model Lifecycle Model variant Griffin Eagle Lion Zero platform The Platform Find, fix, and prevent Zero Days autonomously \u2014 100 layers deep. Explore The Platform Why Safeguard Our Approach Continuous Trust Lifecycle AI-Native Security Traditional / Foundational Products All Products Griffin AI Enterprise Software Supply Chain Manager Third Party Risk Manager Open Source Manager Auto-Fix Surfaces IDE Extension CLI Tool Trust Centers Portal Chrome Extension Slack App Microsoft 365 / Teams use cases All Use Cases What teams eliminate, automate, and prove with Safeguard. Explore Core All Use Cases Eliminate Vulnerability Exposure Know What&#x27;s in Your Software Auto-Fix Vulnerabilities Comply with Global Regulations Zero Day Discovery AI &amp; governance AI Governance MCP Server Security AI Remediation &amp; LLM Selection Guardrails &amp; Enforcement Prompt-Injection Defense Asset Discovery Operational Incident Response M&amp;A Diligence Vendor Onboarding Secret Detection Runtime Protection License Compliance solutions Solutions By role, industry, and scale \u2014 from startups to air-gapped estates. Explore By role All Personas CISO AppSec Lead Developer Compliance &amp; GRC CTO / VP Engineering By industry All Industries Financial Services Healthcare Public Sector Defence SaaS / Cloud-native By regulation All 66 Frameworks EU DORA NIS2 EU AI Act FedRAMP HIGH SOC 2 Audiences Enterprise Startups Agencies &amp; Federal Sovereign / Air-Gapped MSSPs &amp; MDR Proof Case Studies Customer Success resources Documentation Guides, API reference, tutorials, and threat research. Explore Learn Documentation Academy Tutorials Guides API Reference Concepts &amp; Glossary Intelligence &amp; Research AI Intelligence Hub Threat Research Threat Feed (RSS \u00b7 JSON \u00b7 STIX) Stay informed Blog Press &amp; Newsroom Changelog Roadmap Operations Status Trust Center Demo / Sandbox Community company About Safeguard The immune system for software \u2014 mission, people, and principles. Explore About Us Mission &amp; Vision Leadership Values &amp; Constitutions Research lab Safeguard Superintelligence Lab (SSL) Responsibility Commitments Transparency Report Responsible Scaling Policy Ecosystem Partners Events &amp; Summits Security Researchers Open Source Get in touch Pricing Talk to us Careers Contact Brand Assets download All Downloads Every way to run Safeguard \u2014 local and cloud, on the /download page. Explore All Downloads Ways to run (local &amp; cloud) Desktop Windows macOS Linux Mobile iOS \u2014 App Store Android \u2014 Google Play Editors &amp; terminal VS Code Extension JetBrains Plugin CLI Tool Browser &amp; assistants Chrome / Edge Extension MCP for AI assistants Book a call Login Blog / Licensing Licensing \u2022 February 16, 2026 The AGPL-3.0 License, Explained AGPL-3.0 is the GNU Affero General Public License v3.0 \u2014 GPLv3 with one added clause that closes the SaaS loophole, requiring source disclosure even when software is only used over a network, never distributed. SR Safeguard Research Team Research February 16, 2026 Updated July 11, 2026 6 min read Share On this page What is the AGPL license, exactly, and how is it different from GPLv3? Why does the network-use clause matter so much for SaaS companies? Why do so many companies have a policy against using AGPL-licensed code? How should you actually handle AGPL dependencies if you find one in your stack? How Safeguard Helps FAQ What does AGPL stand for? Does AGPL apply if I only use the software internally with no external users? Is &quot;AGPLv3 license&quot; the same thing as &quot;AGPL-3.0&quot;? Is AGPL considered open source? Can I use an unmodified AGPL library without triggering source disclosure obligations? The AGPL-3.0 license \u2014 the GNU Affero General Public License v3.0 \u2014 is a strong copyleft license published by the Free Software Foundation in 2007 that is functionally identical to GPLv3 except for one added requirement: Section 13. That section closes what&#x27;s known as the &quot;SaaS loophole&quot; in ordinary GPL, requiring that anyone who modifies AGPL-licensed software and lets users interact with it over a network must also offer those users the modified source code, even if the software itself was never distributed or sold. Of every type of license in open source, it&#x27;s one of the strictest \u2014 a foss license in every legal sense, but one that most SaaS companies treat as high-risk rather than routine. What is the AGPL license, exactly, and how is it different from GPLv3? The AGPL license is the GNU Affero General Public License, and it starts from the same foundation as ordinary GPLv3 \u2014 strong copyleft, meaning any modified version you distribute must also be released under the same license, with source code available to recipients. The difference is entirely in Section 13, the &quot;Remote Network Interaction&quot; clause: under plain GPLv3, if you modify a program and run it only as a hosted service without ever distributing the binary or source to anyone, you have no obligation to share your modifications, because GPL&#x27;s copyleft trigger is distribution, not use. AGPL removes that gap by defining network interaction as a trigger equivalent to distribution \u2014 if users can interact with your modified AGPL software remotely, you must offer them the corresponding source, whether or not a single copy of the software ever left your servers. Why does the network-use clause matter so much for SaaS companies? It matters because it directly targets the business model most modern software companies run on: hosting software as a service rather than shipping installable binaries. Before AGPL existed, a company could take a GPL-licensed database or application, modify it extensively, and offer it exclusively as a hosted product without ever triggering GPL&#x27;s source-sharing requirement, since they never distributed a copy \u2014 this was a well-known and widely used strategy in the 2000s. MongoDB was originally licensed under AGPLv3 specifically to prevent cloud providers from doing exactly this: offering a hosted, modified version of MongoDB as a competing managed service without contributing improvements back. (MongoDB later moved to its own Server Side Public License, SSPL, in 2018, partly because even AGPL&#x27;s obligations weren&#x27;t seen as strong enough against large cloud providers.) Grafana Labs adopted AGPLv3 for Grafana itself in 2021 for a similar reason, aiming to ensure that hosted forks of its dashboarding software remain open. Why do so many companies have a policy against using AGPL-licensed code? Companies restrict AGPL primarily because the network-use trigger creates ambiguity about internal tooling that most other licenses don&#x27;t. If an AGPL-licensed library ends up inside an internally hosted service that any external user or customer interacts with over a network \u2014 even indirectly, even as a small utility buried deep in a larger application \u2014 the question of whether that triggers Section 13&#x27;s source-disclosure obligation for the entire combined work is a genuinely contested legal question that companies would rather avoid than litigate. Google&#x27;s well-known internal open source policy bans AGPL-licensed code entirely for exactly this reason, and many other large tech companies have adopted similarly strict internal rules, treating &quot;any AGPL dependency, anywhere in a network-facing service&quot; as an automatic no rather than a case-by-case legal review. How should you actually handle AGPL dependencies if you find one in your stack? Treat any AGPL-licensed component the moment it&#x27;s flagged as requiring a real legal review before it ships to production, not after. First, confirm the license is actually AGPL-3.0 and not a similarly named but different license \u2014 misidentification is common in automated scanning output. Second, determine whether your usage is purely internal-tooling with zero external network exposure (lower risk) or embedded in a customer-facing service (high risk, likely to trigger Section 13 if modified). Third, check whether an unmodified, vendored copy is sufficient for your use case \u2014 using AGPL software entirely unmodified as a standalone service you don&#x27;t alter is generally lower-risk than modifying it, though legal review should still confirm this for your specific situation. If in doubt, look for a permissively licensed or dual-licensed alternative \u2014 an MIT or Apache2 license package covering the same functionality \u2014 before building further on top of an AGPL dependency. How Safeguard Helps Safeguard&#x27;s license scanning flags AGPL-3.0 and other copyleft licenses automatically across your full dependency tree, including transitive dependencies that don&#x27;t show up in a manual package.json or pom.xml read-through. Policy rules can gate a build the moment an AGPL component is introduced, so the question gets a legal review before it ships rather than after a customer&#x27;s procurement team asks about it. See the SCA product page for how license and vulnerability scanning run together. FAQ What does AGPL stand for? Affero General Public License \u2014 &quot;Affero&quot; comes from Affero Inc., the company that originally drafted the network-use clause this license is built around before it was adopted and formalized by the Free Software Foundation as AGPLv3. Does AGPL apply if I only use the software internally with no external users? Generally no \u2014 if there&#x27;s no network interaction with anyone outside your organization, Section 13&#x27;s trigger isn&#x27;t met, but this is exactly the kind of boundary case where a real legal review matters, since &quot;internal&quot; tools sometimes have partner or customer access that isn&#x27;t obvious at first glance. Is &quot;AGPLv3 license&quot; the same thing as &quot;AGPL-3.0&quot;? Yes, they&#x27;re used interchangeably \u2014 AGPL-3.0, the AGPLv3 license, and &quot;AGPL v3&quot; all refer to the same 2007 Free Software Foundation text described above. (French-language resources sometimes search for this as &quot;license logiciel AGPL,&quot; meaning software license.) Is AGPL considered open source? Yes \u2014 it&#x27;s OSI-approved and meets the Open Source Definition. It&#x27;s a copyleft license, not a source-available or proprietary one; the controversy around it is about business-model compatibility, not its open source status. Can I use an unmodified AGPL library without triggering source disclosure obligations? Using it unmodified generally doesn&#x27;t trigger new disclosure obligations beyond what the license already requires for the unmodified source, but combining it into a larger work you distribute or host can still raise complex questions depending on how tightly integrated the combination is \u2014 this is a case where legal review, not a blog post, should have the final word. Secure your software supply chain with Safeguard Safeguard finds and autonomously fixes vulnerabilities deep in your dependency tree \u2014 with reachability analysis to cut false positives and 500K+ zero-CVE components so you deploy clean. Software composition analysis Autonomous remediation SBOM management Compare vs Snyk &amp; others Pricing Read verified practitioner reviews on Gartner Peer Insights . Start free Read the docs agpl-3-0-license gnu-affero-general-public-license open-source-licensing copyleft oss-compliance Previous Kubernetes Secrets Encryption Providers Reviewed Next GPLv3 License: What Changed From GPLv2 Back to all articles Related articles in Licensing Licensing Open Source License Scanning: How It Actually Works How open source license scanning identifies oss license obligations across a dependency tree, and what open source compliance management software actually automates versus flags for review. June 24, 2026 Read Licensing What Is License Contamination? One GPL dependency in the wrong place can put your proprietary source code under copyleft obligations. How license contamination happens and how to prevent it. April 23, 2026 Read Licensing MIT License and Commercial Use: What You Can and Cannot Do The MIT License lets you use, modify, and sell software commercially with almost no restrictions \u2014 as long as you keep the copyright notice. Here is exactly what that permits and requires. April 16, 2026 Read Never miss an update Weekly insights on software supply chain security, delivered to your inbox. Subscribe Self-healing security runs on Safeguard. Your first fix PR is minutes away. Book a demo Get started No sales call required, even your agent can complete the purchase over MCP. Safeguard &amp; self-heal your software supply chain. AI-native discovery, autonomous remediation, and 500K+ zero-CVE components, built for the way teams actually ship in 2026. Headquarters Safeguard.sh Inc 7779 Topaz Circle, Dublin, CA 94568 United States Reach us General hi@safeguard.sh Sales sales@safeguard.sh Support support@safeguard.sh Press &amp; security Press press@safeguard.sh Disclosure security@safeguard.sh Docs docs@safeguard.sh Products All Products ESSCM Portal TPRM OSM Models Model Family Griffin S (14B) Griffin M (32B) Griffin L (70B) Griffin XL (671B-MoE) Solutions All Solutions For Enterprise For Startups Financial Services Healthcare Use Cases All Use Cases Know Your Software Auto-Fix Vulnerabilities Asset Discovery AI Governance Compare All Comparisons vs Snyk vs Checkmarx vs Veracode vs Black Duck Pricing &amp; Plans Pricing Startups &amp; Bootstrapped Open Source &amp; Nonprofits Students Educators Compliance All 66 Frameworks EU DORA NIS2 EU AI Act FedRAMP HIGH Resources All Resources Documentation Academy Blog Guides Developers All Developer Tools MCP Server AI Assistant Integrations Connectors Agent Skills Company About Careers Brand Assets Support Contact Newsletter Stay updated with security insights Get the latest trends in software supply chain security delivered to your inbox. Reviewed on Gartner Peer Insights Capterra G2 Software Advice GetApp Slashdot PeerSpot Trustpilot \u00a9 2026 Safeguard.sh Inc. All rights reserved. Privacy Terms Security &amp; Trust Responsible Disclosure Hall of Fame DPA Usage Policy Accessibility Ask James",
+          "error": null,
+          "args": {
+            "url": "https://safeguard.sh/resources/blog/agpl-3-0-license-explained"
+          }
+        }
+      ],
+      "tool_calls_count": 2,
+      "tool_failures_count": 0,
+      "tool_success_count": 2,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 17.21,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "network=True, restriction_cited=True",
+      "eval_reason": "network=True, restriction_cited=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-07",
+      "category": "CAT05",
+      "title": "Astronomical Calendar Events",
+      "prompt": "When is the next total solar eclipse visible from North America, and what is the date of the next major Perseid meteor shower peak?",
+      "reply": "The next total solar eclipse visible from North America is scheduled to occur on August 2, 2027, which will be the longest land eclipse of the century. As for the Perseid meteor shower, its next major peak will occur late on August 12 into the predawn hours of August 13, 2026.",
+      "extracted_answer": "The next total solar eclipse visible from North America is scheduled to occur on August 2, 2027, which will be the longest land eclipse of the century. As for the Perseid meteor shower, its next major peak will occur late on August 12 into the predawn hours of August 13, 2026.",
+      "tools": [
+        "search_web",
+        "search_web",
+        "search_web",
+        "fetch_url",
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "next total solar eclipse visible from North America date"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "next major Perseid meteor shower peak date 2025 2026"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "Perseid meteor shower peak date 2025 2026"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://www.timeanddate.com/eclipse/list.html?region=north-america&type=total-solar"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "next total solar eclipse visible from North America 2025 2030 2035"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'next total solar eclipse visible from North America date':\n\n1. List of solar eclipses visible from the United States - Wikipedia\n   Summary: From 1900 to 2100, the United States of America (excluding its global territories) will have recorded a total of 182 solar eclipses, 21 of which are annular eclipses, 26 of which are total eclipses, and one of which is a hybrid eclipse. As of August 2026, the most recent total solar eclipse in the United States occurred on April 8, 2024; the most recent annular solar eclipse was on October 14 ...\n   Source: https://en.wikipedia.org/wiki/List_of_solar_eclipses_visible_from_the_United_States\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Total Solar Eclipses in North America - Next 10 Years\n   Summary: List of Total Solar Eclipses in North America Next 10 Years. Check where the eclipses are visible and if you can see them.\n   Source: https://www.timeanddate.com/eclipse/list.html?region=north-america&type=total-solar\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Every Total Solar Eclipse 2026-2045 \u2014 Dates, Paths & the Next One\n   Summary: When is the next total solar eclipse? See every total solar eclipse from 2026 to 2045 \u2014 dates, where each is visible, the next US totalities (2044, 2045), and the longest land eclipse of the century on Aug 2, 2027.\n   Source: https://cosmosdaily.co/studies/total-solar-eclipses-2026-2045\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Solar and Lunar Eclipses in North America - Next 10 Years\n   Summary: List of Solar and Lunar Eclipses in North America Next 10 Years. Check where the eclipses are visible and if you can see them.\n   Source: https://www.timeanddate.com/eclipse/north-america.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Solar Eclipses - NASA Eclipse Web Site\n   Summary: This is NASA's official solar eclipse page. It contains maps and tables for 7,000 years of eclipses and includes information on eclipse photography, observing tips and eye safety information.\n   Source: https://eclipse.gsfc.nasa.gov/solar.html\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "next total solar eclipse visible from North America date"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": false,
+          "output": "No verified web search results found for query: 'next major Perseid meteor shower peak date 2025 2026'.",
+          "error": "No verified web search results found for query: 'next major Perseid meteor shower peak date 2025 2026'.",
+          "args": {
+            "query": "next major Perseid meteor shower peak date 2025 2026"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'Perseid meteor shower peak date 2025 2026':\n\n1. Perseid Meteor Shower: Visibility Map & Guide for August 2026\n   Summary: The Perseids peak on August 12-13, 2026 \u2014 and this year, observation conditions are excellent! Read the article to learn more.\n   Source: https://starwalk.space/en/news/all-you-need-to-know-about-the-perseids\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Perseid Meteor Shower 2026: Peak Dates, Best Viewing Times & Complete Guide\n   Summary: Find out when the Perseid meteor shower peaks in 2026 and why this year offers especially strong viewing conditions.\n   Source: https://www.universaltimedate.com/articles/perseid-meteor-shower-2026\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Perseid Meteor Shower 2026 \u2014 Peak Dates, Best Viewing Times & Tips ...\n   Summary: The Perseid meteor shower peaks late on August 12 into the predawn hours of August 13, 2026. With a thin crescent Moon setting early, this is a very good year for bright, frequent meteors. Learn when to watch, where to look, and how to get the best view.\n   Source: https://www.almanac.com/content/perseid-meteor-shower\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Perseid meteor shower 2026: All you need to know\n   Summary: The Perseid meteor shower occasionally produces an outburst, or an unexpectedly high number of meteors, during peak activity. The most recent Perseid outburst occurred on the morning of August 14, 2021, when AllSky camera systems in Iowa, USA, recorded between 900 and 1,100 meteors each over the course of the night.\n   Source: https://spaceandtelescope.com/perseid-meteor-shower-2026/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Perseid Meteor Shower 2026 | Next: August 2027\n   Summary: Meteor Shower Guide \u00b7 August 2026 Perseid Meteor Shower 2026 Peak Aug 12-13 \u2014 New Moon, Zero Light Pollution The Perseids peak under a perfect New Moon in 2026 \u2014 the darkest possible skies, with a potential dust-trail boost on top of the IMO's 30-50 ZHR forecast, and a total solar eclipse the same day. Here's exactly when, where, and what gear will make this the best meteor night of ...\n   Source: https://www.telescopeadvisor.com/perseid-meteor-shower-2026-telescope-guide/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "Perseid meteor shower peak date 2025 2026"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "Just a moment&hellip;\n\nJust a moment&hellip; Just a moment&hellip; Enable JavaScript and cookies to continue Ray ID: a42301caba9c84a8 Report Problem",
+          "error": null,
+          "args": {
+            "url": "https://www.timeanddate.com/eclipse/list.html?region=north-america&type=total-solar"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'next total solar eclipse visible from North America 2025 2030 2035':\n\n1. List of solar eclipses visible from the United States - Wikipedia\n   Summary: From 1900 to 2100, the United States of America (excluding its global territories) will have recorded a total of 182 solar eclipses, 21 of which are annular eclipses, 26 of which are total eclipses, and one of which is a hybrid eclipse. As of August 2026, the most recent total solar eclipse in the United States occurred on April 8, 2024; the most recent annular solar eclipse was on October 14 ...\n   Source: https://en.wikipedia.org/wiki/List_of_solar_eclipses_visible_from_the_United_States\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Solar Eclipses - NASA Eclipse Web Site\n   Summary: Solar Eclipses: 2021 - 2030 The table below lists every solar eclipse from 2021 through 2030. Click on any of the following values to link to additional information or maps: Calendar Date - link to global map showing eclipse visibility TD of Greatest Eclipse - link to animation of the Moon's penumbral and umbral shadows across Earth Eclipse Type - link to Google Map of eclipse path Saros ...\n   Source: https://eclipse.gsfc.nasa.gov/solar.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Total Solar Eclipses in North America \u2013 Next 10 Years\n   Summary: List of Total Solar Eclipses in North America Next 10 Years. Check where the eclipses are visible and if you can see them.\n   Source: https://www.timeanddate.com/eclipse/list.html?region=north-america&type=total-solar\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Total Solar Eclipses Worldwide \u2013 Next 10 Years\n   Summary: List of Total Solar Eclipses Worldwide Next 10 Years. Check where the eclipses are visible and if you can see them.\n   Source: https://www.timeanddate.com/eclipse/list-total-solar.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Every Total Solar Eclipse 2026\u20132045: Dates, Paths & When the ...\n   Summary: When is the next total solar eclipse? See every total solar eclipse from 2026 to 2045 \u2014 dates, where each is visible, the next US totalities (2044, 2045), and the longest land eclipse of the century on Aug 2, 2027.\n   Source: https://cosmosdaily.co/studies/total-solar-eclipses-2026-2045\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "next total solar eclipse visible from North America 2025 2030 2035"
+          }
+        }
+      ],
+      "tool_calls_count": 5,
+      "tool_failures_count": 1,
+      "tool_success_count": 4,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 36.679,
+      "note": "",
+      "tool_recovered": true,
+      "answer_ok": false,
+      "answer_reason": "eclipse=False, perseid_august=True",
+      "eval_reason": "eclipse=False, perseid_august=True",
+      "passed": false
+    },
+    {
+      "id": "CAT05-08",
+      "category": "CAT05",
+      "title": "Cross-Referencing Historical Dates",
+      "prompt": "Did Ada Lovelace's translation and notes on Menabrea's Sketch of the Analytical Engine publish before or after Samuel Morse's first public telegraph demonstration?",
+      "reply": "Ada Lovelace's translation and notes were published after Samuel Morse's first public telegraph demonstration. Her work on the Analytical Engine was published in 1843, while Morse conducted his first public demonstration of the electric telegraph back in January 1838!",
+      "extracted_answer": "Ada Lovelace's translation and notes were published after Samuel Morse's first public telegraph demonstration. Her work on the Analytical Engine was published in 1843, while Morse conducted his first public demonstration of the electric telegraph back in January 1838!",
+      "tools": [
+        "search_web",
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "publication date of Ada Lovelace notes on Menabrea's Sketch of the Analytical Engine"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "date of Samuel Morse's first public telegraph demonstration"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'publication date of Ada Lovelace notes on Menabrea's Sketch of the Analytical Engine':\n\n1. Note G - Wikipedia\n   Summary: Note G Note G, originally published in Sketch of The Analytical Engine Invented by Charles Babbage Note G[a] is a computer algorithm traditionally attributed to Ada Lovelace that was designed to calculate Bernoulli numbers using the hypothetical analytical engine designed by Charles Babbage.\n   Source: https://en.wikipedia.org/wiki/Note_G\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. Notes | galileo\n   Summary: Notes Citation Alternate Title (s): \"Notes\" to \"A Sketch of the Analytical Engine invented by Charles babbage, by L.F Menabrea\" Published in: Scientific Memoirs Notes: vol. 3, pp. 666-731 Author: Ada Lovelace\n   Source: https://galileo.ou.edu/exhibits/notes.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. Classics in the History of Psychology -- Menabrea (1842)\n   Summary: [Classics Editor's note: The following document has a rather complicated publication history. In August of 1840 Charles Babbage gave a series of lecturs on his Analytical Engine in Turin. Luigi Menabrea--then an obscure military engineer, but later to become a general in Garibaldi's army and prime minister of Italy--published an account of Babbage's lectures in French in the Biblioth\u00e8que ...\n   Source: https://psychclassics.yorku.ca/Lovelace/menabrea.htm\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. Sketch of The Analytical Engine - Fourmilab\n   Summary: Sketch of Invented by Charles Babbage By L. F. MENABREA of Turin, Officer of the Military Engineers from the Biblioth\u00e8que Universelle de Gen\u00e8ve, October, 1842, No. 82 With notes upon the Memoir by the Translator ADA AUGUSTA, COUNTESS OF LOVELACE Those labours which belong to the various branches of the mathematical sciences, although on first consideration they seem to be the exclusive ...\n   Source: https://www.fourmilab.ch/babbage/sketch.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. Notes on the Analytical Engine | womenincompsci\n   Summary: Richard Taylor, \"Sketch of the Analytical Engine invented by Charles Babbage ... with notes by the translator.\" Scientific Memoirs. London: 1843. Vol 3. Ada Lovelace, \"Translation of Menabrea's Sketch of the Analytical Engine.\"\n   Source: https://sugarfriedmushroom.wixsite.com/womenincompsci/notes-on-the-analytical-engine\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "publication date of Ada Lovelace notes on Menabrea's Sketch of the Analytical Engine"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'date of Samuel Morse's first public telegraph demonstration':\n\n1. 1838: Morse's First Telegraph Demo in Morristown\n   Summary: On January 6, 1838, Samuel Morse and Alfred Vail conducted the first public demonstration of their revolutionary telegraph system. This event marked a significant milestone in the history of communication, showcasing a technology that would eventually transform how information was transmitted over long distances.\n   Source: https://historysnacks.io/event/Nxai74s2/samuel-morse-and-alfred-vail-demonstrated-the-telegraph-system-for-the-first/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. The History of the Telegraph: How Samuel Morse's Invention ...\n   Summary: Jul 21, 2026 \u00b7 The First Telegraph Lines and Public Demonstration Proving the Concept In 1843, Morse received funding from Congress to build a demonstration line between Washington, D.C., and Baltimore. On May 24, 1844, he sent the famous message \u201cWhat hath God wrought?\u201d from the Supreme Court chamber in the Capitol to his assistant in Baltimore.\n   Source: https://www.historysearch.org/2026/07/the-history-of-telegraph-how-samuel.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. The Capitol's First Official Telegraph | US House of ...\n   Summary: On this date, surrounded by an audience of Congressmen, inventor Samuel Morse sent the first official telegraph from the Supreme Court Chamber (then located in the Capitol) to his partner, Alfred Vail, in Baltimore. He tapped out the message \u201cWhat hath God wrought?\u201d using a system that sent out a signal in a series of dots and dashes, each combination representing one letter of the ...\n   Source: https://history.house.gov/Historical-Highlights/1800-1850/Inventor-Samuel-Morse-sent-the-first-official-telegraph-from-the-Supreme-Court-Chamber/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. U.S. Senate: \u201cWhat Hath God Wrought\u201d: Morse\u2019s Telegraph in ...\n   Summary: On May 24, 1844, Samuel F. B. Morse achieved a historic triumph when he successfully transmitted a message over copper wire from the Senate wing of the U.S. Capitol to Baltimore, Maryland, the first long-distance demonstration of his electromagnetic telegraph.\n   Source: https://www.senate.gov/artandhistory/senate-stories/morses-telegraph-in-the-capitol.htm\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. 1838: Morse\u2019s Wire Message Changed Everything\n   Summary: On January 11, 1838, Samuel Morse conducted the first public demonstration of the electric telegraph at the Speedwell Ironworks in Morristown, New Jersey. This event marked a pivotal moment in the history of communications technology, showcasing a device that would revolutionize the way information was transmitted over long distances.\n   Source: https://historysnacks.io/event/WMEhgouf/the-first-public-demonstration-of-the-telegraph-developed-by-samuel-morse-took/\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "date of Samuel Morse's first public telegraph demonstration"
+          }
+        }
+      ],
+      "tool_calls_count": 2,
+      "tool_failures_count": 0,
+      "tool_success_count": 2,
+      "outcome_class": "multiple",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 16.191,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "before_1844=False, after_1838=True",
+      "eval_reason": "before_1844=False, after_1838=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-09",
+      "category": "CAT05",
+      "title": "IETF Protocol RFC Semantics",
+      "prompt": "According to RFC 9110, what is the exact semantic difference between HTTP 401 Unauthorized and HTTP 403 Forbidden?",
+      "reply": "Alright, let's break this down! It\u2019s a classic point of confusion, but RFC 9110 makes the distinction really clear if you look at it through the lens of authentication versus authorization.\n\nThe core difference is about identity versus permission. A 401 Unauthorized response means the server doesn't know who you are\u2014it's essentially saying, \"I need you to log in or provide valid credentials before I can even consider this request.\" Because of that, a 401 response must include a WWW-Authenticate header to tell the client what kind of credentials it needs.\n\nOn the other hand, a 403 Forbidden response means the server knows exactly who you are, but you just aren't allowed to do what you're trying to do. It's saying, \"I see your credentials, they're valid, but you don't have the clearance for this specific resource.\" Unlike the 401, a 403 doesn't require a challenge header because providing more credentials won't change the outcome\u2014the door is just locked for you!",
+      "extracted_answer": "It\u2019s a classic point of confusion, but RFC 9110 makes the distinction really clear if you look at it through the lens of authentication versus authorization.\n\nThe core difference is about identity versus permission. A 401 Unauthorized response means the server doesn't know who you are\u2014it's essentially saying, \"I need you to log in or provide valid credentials before I can even consider this request.\" Because of that, a 401 response must include a WWW-Authenticate header to tell the client what kind of credentials it needs.\n\nOn the other hand, a 403 Forbidden response means the server knows exactly who you are, but you just aren't allowed to do what you're trying to do. It's saying, \"I see your credentials, they're valid, but you don't have the clearance for this specific resource.\" Unlike the 401, a 403 doesn't require a challenge header because providing more credentials won't change the outcome\u2014the door is just locked for you!",
+      "tools": [
+        "search_web",
+        "fetch_url",
+        "search_web"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "RFC 9110 HTTP 401 Unauthorized vs 403 Forbidden semantic difference"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://www.rfc-editor.org/rfc/rfc9110.html"
+          }
+        },
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "RFC 9110 section 15.5.2 401 Unauthorized vs 15.5.4 403 Forbidden semantic difference"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'RFC 9110 HTTP 401 Unauthorized vs 403 Forbidden semantic difference':\n\n1. RFC 9110: HTTP Semantics\n   Summary: RFC 9110 HTTP Semantics Abstract The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information systems. This document describes the overall architecture of HTTP, establishes common terminology, and defines aspects of the protocol that are shared by all versions. In this definition are core protocol elements, extensibility ...\n   Source: https://www.rfc-editor.org/rfc/rfc9110.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. 403 Forbidden vs 401 Unauthorized HTTP responses\n   Summary: RFC 7231 (Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content) changes the meaning of 403: There is no more \"Authorization will not help\". It says: \"If authentication credentials were provided in the request, the server considers them insufficient to grant access.\n   Source: https://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. 403 vs 401 HTTP Status Codes: Key Differences Explained\n   Summary: The RFC 9110 specification (the current HTTP semantics standard) is explicit: a 401 response MUST include a `WWW-Authenticate` header that tells the client how to authenticate.\n   Source: https://seovision.io/blog/403-vs-401\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. 401 vs 403: Unauthorized or Forbidden?\n   Summary: 401 vs 403: Unauthorized or Forbidden? Use 401 when the client should authenticate. Use 403 when the client is authenticated or known, but still not allowed. Status codes in this guide 401 Unauthorized (RFC 7235) 403 Forbidden Quick comparison ... Questions Should an API return 401 or 403 for an expired token?\n   Source: https://httpstatuses.net/compare/401-vs-403/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. PDF RFC 9110: HTTP Semantics\n   Summary: This document updates RFC 3864 and obsoletes RFCs 2818, 7231, 7232, 7233, 7235, 7538, 7615, 7694, and portions of 7230.\n   Source: https://www.rfc-editor.org/rfc/rfc9110.pdf\n   Status: PDF Document (Supported by fetch_url)",
+          "error": null,
+          "args": {
+            "query": "RFC 9110 HTTP 401 Unauthorized vs 403 Forbidden semantic difference"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "RFC 9110: HTTP Semantics\n\nRFC 9110: HTTP Semantics RFC 9110 HTTP Semantics June 2022 Fielding, et al. Standards Track [Page] Stream: Internet Engineering Task Force (IETF) RFC: 9110 STD: 97 Obsoletes: 2818 , 7230 , 7231 , 7232 , 7233 , 7235 , 7538 , 7615 , 7694 Updates: 3864 Category: Standards Track Published: June 2022 ISSN: 2070-1721 Authors: R. Fielding, Ed. Adobe M. Nottingham, Ed. Fastly J. Reschke, Ed. greenbytes RFC 9110 HTTP Semantics Abstract The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information systems. This document describes the overall architecture of HTTP, establishes common terminology, and defines aspects of the protocol that are shared by all versions. In this definition are core protocol elements, extensibility mechanisms, and the \"http\" and \"https\" Uniform Resource Identifier (URI) schemes. \u00b6 This document updates RFC 3864 and obsoletes RFCs 2818, 7231, 7232, 7233, 7235, 7538, 7615, 7694, and portions of 7230. \u00b6 Status of This Memo This is an Internet Standards Track document. \u00b6 This document is a product of the Internet Engineering Task Force (IETF). It represents the consensus of the IETF community. It has received public review and has been approved for publication by the Internet Engineering Steering Group (IESG). Further information on Internet Standards is available in Section 2 of RFC 7841. \u00b6 Information about the current status of this document, any errata, and how to provide feedback on it may be obtained at https://www.rfc-editor.org/info/rfc9110 . \u00b6 Copyright Notice Copyright (c) 2022 IETF Trust and the persons identified as the document authors. All rights reserved. \u00b6 This document is subject to BCP 78 and the IETF Trust's Legal Provisions Relating to IETF Documents ( https://trustee.ietf.org/license-info ) in effect on the date of publication of this document. Please review these documents carefully, as they describe your rights and restrictions with respect to this document. Code Components extracted from this document must include Revised BSD License text as described in Section 4.e of the Trust Legal Provisions and are provided without warranty as described in the Revised BSD License. \u00b6 This document may contain material from IETF Documents or IETF Contributions published or made publicly available before November 10, 2008. The person(s) controlling the copyright in some of this material may not have granted the IETF Trust the right to allow modifications of such material outside the IETF Standards Process. Without obtaining an adequate license from the person(s) controlling the copyright in such materials, this document may not be modified outside the IETF Standards Process, and derivative works of it may not be created outside the IETF Standards Process, except to format it for publication as an RFC or to translate it into languages other than English. \u00b6 \u25b2 Table of Contents 1 . Introduction 1.1 . Purpose 1.2 . History and Evolution 1.3 . Core Semantics 1.4 . Specifications Obsoleted by This Document 2 . Conformance 2.1 . Syntax Notation 2.2 . Requirements Notation 2.3 . Length Requirements 2.4 . Error Handling 2.5 . Protocol Version 3 . Terminology and Core Concepts 3.1 . Resources 3.2 . Representations 3.3 . Connections, Clients, and Servers 3.4 . Messages 3.5 . User Agents 3.6 . Origin Server 3.7 . Intermediaries 3.8 . Caches 3.9 . Example Message Exchange 4 . Identifiers in HTTP 4.1 . URI References 4.2 . HTTP-Related URI Schemes 4.2.1 . http URI Scheme 4.2.2 . https URI Scheme 4.2.3 . http(s) Normalization and Comparison 4.2.4 . Deprecation of userinfo in http(s) URIs 4.2.5 . http(s) References with Fragment Identifiers 4.3 . Authoritative Access 4.3.1 . URI Origin 4.3.2 . http Origins 4.3.3 . https Origins 4.3.4 . https Certificate Verification 4.3.5 . IP-ID Reference Identity 5 . Fields 5.1 . Field Names 5.2 . Field Lines and Combined Field Value 5.3 . Field Order 5.4 . Field Limits 5.5 . Field Values 5.6 . Common Rules for Defining Field Values 5.6.1 . Lists (#rule ABNF Extension) 5.6.1.1 . Sender Requirements 5.6.1.2 . Recipient Requirements 5.6.2 . Tokens 5.6.3 . Whitespace 5.6.4 . Quoted Strings 5.6.5 . Comments 5.6.6 . Parameters 5.6.7 . Date/Time Formats 6 . Message Abstraction 6.1 . Framing and Completeness 6.2 . Control Data 6.3 . Header Fields 6.4 . Content 6.4.1 . Content Semantics 6.4.2 . Identifying Content 6.5 . Trailer Fields 6.5.1 . Limitations on Use of Trailers 6.5.2 . Processing Trailer Fields 6.6 . Message Metadata 6.6.1 . Date 6.6.2 . Trailer 7 . Routing HTTP Messages 7.1 . Determining the Target Resource 7.2 . Host and :authority 7.3 . Routing Inbound Requests 7.3.1 . To a Cache 7.3.2 . To a Proxy 7.3.3 . To the Origin 7.4 . Rejecting Misdirected Requests 7.5 . Response Correlation 7.6 . Message Forwarding 7.6.1 . Connection 7.6.2 . Max-Forwards 7.6.3 . Via 7.7 . Message Transformations 7.8 . Upgrade 8 . Representation Data and Metadata 8.1 . Representation Data 8.2 . Representation Metadata 8.3 . Content-Type 8.3.1 . Media Type 8.3.2 . Charset 8.3.3 . Multipart Types 8.4 . Content-Encoding 8.4.1 . Content Codings 8.4.1.1 . Compress Coding 8.4.1.2 . Deflate Coding 8.4.1.3 . Gzip Coding 8.5 . Content-Language 8.5.1 . Language Tags 8.6 . Content-Length 8.7 . Content-Location 8.8 . Validator Fields 8.8.1 . Weak versus Strong 8.8.2 . Last-Modified 8.8.2.1 . Generation 8.8.2.2 . Comparison 8.8.3 . ETag 8.8.3.1 . Generation 8.8.3.2 . Comparison 8.8.3.3 . Example: Entity Tags Varying on Content-Negotiated Resources 9 . Methods 9.1 . Overview 9.2 . Common Method Properties 9.2.1 . Safe Methods 9.2.2 . Idempotent Methods 9.2.3 . Methods and Caching 9.3 . Method Definitions 9.3.1 . GET 9.3.2 . HEAD 9.3.3 . POST 9.3.4 . PUT 9.3.5 . DELETE 9.3.6 . CONNECT 9.3.7 . OPTIONS 9.3.8 . TRACE 10 . Message Context 10.1 . Request Context Fields 10.1.1 . Expect 10.1.2 . From 10.1.3 . Referer 10.1.4 . TE 10.1.5 . User-Agent 10.2 . Response Context Fields 10.2.1 . Allow 10.2.2 . Location 10.2.3 . Retry-After 10.2.4 . Server 11 . HTTP Authentication 11.1 . Authentication Scheme 11.2 . Authentication Parameters 11.3 . Challenge and Response 11.4 . Credentials 11.5 . Establishing a Protection Space (Realm) 11.6 . Authenticating Users to Origin Servers 11.6.1 . WWW-Authenticate 11.6.2 . Authorization 11.6.3 . Authentication-Info 11.7 . Authenticating Clients to Proxies 11.7.1 . Proxy-Authenticate 11.7.2 . Proxy-Authorization 11.7.3 . Proxy-Authentication-Info 12 . Content Negotiation 12.1 . Proactive Negotiation 12.2 . Reactive Negotiation 12.3 . Request Content Negotiation 12.4 . Content Negotiation Field Features 12.4.1 . Absence 12.4.2 . Quality Values 12.4.3 . Wildcard Values 12.5 . Content Negotiation Fields 12.5.1 . Accept 12.5.2 . Accept-Charset 12.5.3 . Accept-Encoding 12.5.4 . Accept-Language 12.5.5 . Vary 13 . Conditional Requests 13.1 . Preconditions 13.1.1 . If-Match 13.1.2 . If-None-Match 13.1.3 . If-Modified-Since 13.1.4 . If-Unmodified-Since 13.1.5 . If-Range 13.2 . Evaluation of Preconditions 13.2.1 . When to Evaluate 13.2.2 . Precedence of Preconditions 14 . Range Requests 14.1 . Range Units 14.1.1 . Range Specifiers 14.1.2 . Byte Ranges 14.2 . Range 14.3 . Accept-Ranges 14.4 . Content-Range 14.5 . Partial PUT 14.6 . Media Type multipart/byteranges 15 . Status Codes 15.1 . Overview of Status Codes 15.2 . Informational 1xx 15.2.1 . 100 Continue 15.2.2 . 101 Switching Protocols 15.3 . Successful 2xx 15.3.1 . 200 OK 15.3.2 . 201 Created 15.3.3 . 202 Accepted 15.3.4 . 203 Non-Authoritative Information 15.3.5 . 204 No Content 15.3.6 . 205 Reset Content 15.3.7 . 206 Partial Content 15.3.7.1 . Single Part 15.3.7.2 . Multiple Parts 15.3.7.3 . Combining Parts 15.4 . Redirection 3xx 15.4.1 . 300 Multiple Choices 15.4.2 . 301 Moved Permanently 15.4.3 . 302 Found 15.4.4 . 303 See Other 15.4.5 . 304 Not Modified 15.4.6 . 305 Use Proxy 15.4.7 . 306 (Unused) 15.4.8 . 307 Temporary Redirect 15.4.9 . 308 Permanent Redirect 15.5 . Client Error 4xx 15.5.1 . 400 Bad Request 15.5.2 . 401 Unauthorized 15.5.3 . 402 Payment Required 15.5.4 . 403 Forbidden 15.5.5 . 404 Not Found 15.5.6 . 405 Method Not Allowed 15.5.7 . 406 Not Acceptable 15.5.8 . 407 Proxy Authentication Required 15.5.9 . 408 Request Timeout 15.5.10 . 409 Conflict 15.5.11 . 410 Gone 15.5.12 . 411 Length Required 15.5.13 . 412 Precondition Failed 15.5.14 . 413 Content Too Large 15.5.15 . 414 URI Too Long 15.5.16 . 415 Unsupported Media Type 15.5.17 . 416 Range Not Satisfiable 15.5.18 . 417 Expectation Failed 15.5.19 . 418 (Unused) 15.5.20 . 421 Misdirected Request 15.5.21 . 422 Unprocessable Content 15.5.22 . 426 Upgrade Required 15.6 . Server Error 5xx 15.6.1 . 500 Internal Server Error 15.6.2 . 501 Not Implemented 15.6.3 . 502 Bad Gateway 15.6.4 . 503 Service Unavailable 15.6.5 . 504 Gateway Timeout 15.6.6 . 505 HTTP Version Not Supported 16 . Extending HTTP 16.1 . Method Extensibility 16.1.1 . Method Registry 16.1.2 . Considerations for New Methods 16.2 . Status Code Extensibility 16.2.1 . Status Code Registry 16.2.2 . Considerations for New Status Codes 16.3 . Field Extensibility 16.3.1 . Field Name Registry 16.3.2 . Considerations for New Fields 16.3.2.1 . Considerations for New Field Names 16.3.2.2 . Considerations for New Field Values 16.4 . Authentication Scheme Extensibility 16.4.1 . Authentication Scheme Registry 16.4.2 . Considerations for New Authentication Schemes 16.5 . Range Unit Extensibility 16.5.1 . Range Unit Registry 16.5.2 . Considerations for New Range Units 16.6 . Content Coding Extensibility 16.6.1 . Content Coding Registry 16.6.2 . Considerations for New Content Codings 16.7 . Upgrade Token Registry 17 . Security Considerations 17.1 . Establishing Authority 17.2 . Risks of Intermediaries 17.3 . Attacks Based on File and Path Names 17.4 . Attacks Based on Command, Code, or Query Injection 17.5 . Attacks via Protocol Element Length 17.6 . Attacks Using Shared-Dictionary Compression 17.7 . Disclosure of Personal Information 17.8 . Privacy of Server Log Information 17.9 . Disclosure of Sensitive Information in URIs 17.10 . Application Handling of Field Names 17.11 . Disclosure of Fragment after Redirects 17.12 . Disclosure of Product Information 17.13 . Browser Fingerprinting 17.14 . Validator Retention 17.15 . Denial-of-Service Attacks Using Range 17.16 . Authentication Considerations 17.16.1 . Confidentiality of Credentials 17.16.2 . Credentials and Idle Clients 17.16.3 . Protection Spaces 17.16.4 . Additional Response Fields 18 . IANA Considerations 18.1 . URI Scheme Registration 18.2 . Method Registration 18.3 . Status Code Registration 18.4 . Field Name Registration 18.5 . Authentication Scheme Registration 18.6 . Content Coding Registration 18.7 . Range Unit Registration 18.8 . Media Type Registration 18.9 . Port Registration 18.10 . Upgrade Token Registration 19 . References 19.1 . Normative References 19.2 . Informative References Appendix A . Collected ABNF Appendix B . Changes from Previous RFCs B.1 . Changes from RFC 2818 B.2 . Changes from RFC 7230 B.3 . Changes from RFC 7231 B.4 . Changes from RFC 7232 B.5 . Changes from RFC 7233 B.6 . Changes from RFC 7235 B.7 . Changes from RFC 7538 B.8 . Changes from RFC 7615 B.9 . Changes from RFC 7694 Acknowledgements Index Authors' Addresses 1. Introduction 1.1. Purpose The Hypertext Transfer Protocol (HTTP) is a family of stateless, application-level, request/response protocols that share a generic interface, extensible semantics, and self-descriptive messages to enable flexible interaction with network-based hypertext information systems. \u00b6 HTTP hides the details of how a service is implemented by presenting a uniform interface to clients that is independent of the types of resources provided. Likewise, servers do not need to be aware of each client's purpose: a request can be considered in isolation rather than being associated with a specific type of client or a predetermined sequence of application steps. This allows general-purpose implementations to be used effectively in many different contexts, reduces interaction complexity, and enables independent evolution over time. \u00b6 HTTP is also designed for use as an intermediation protocol, wherein proxies and gateways can translate non-HTTP information systems into a more generic interface. \u00b6 One consequence of this flexibility is that the protocol cannot be defined in terms of what occurs behind the interface. Instead, we are limited to defining the syntax of communication, the intent of received communication, and the expected behavior of recipients. If the communication is considered in isolation, then successful actions ought to be reflected in corresponding changes to the observable interface provided by servers. However, since multiple clients might act in parallel and perhaps at cross-purposes, we cannot require that such changes be observable beyond the scope of a single response. \u00b6 1.2. History and Evolution HTTP has been the primary information transfer protocol for the World Wide Web since its introduction in 1990. It began as a trivial mechanism for low-latency requests, with a single method (GET) to request transfer of a presumed hypertext document identified by a given pathname. As the Web grew, HTTP was extended to enclose requests and responses within messages, transfer arbitrary data formats using MIME-like media types, and route requests through intermediaries. These protocols were eventually defined as HTTP/0.9 and HTTP/1.0 (see [ HTTP/1.0 ] ). \u00b6 HTTP/1.1 was designed to refine the protocol's features while retaining compatibility with the existing text-based messaging syntax, improving its interoperability, scalability, and robustness across the Internet. This included length-based data delimiters for both fixed and dynamic (chunked) content, a consistent framework for content negotiation, opaque validators for conditional requests, cache controls for better cache consistency, range requests for partial updates, and default persistent connections. HTTP/1.1 was introduced in 1995 and published on the Standards Track in 1997 [ RFC2068 ] , revised in 1999 [ RFC2616 ] , and revised again in 2014 ( [ RFC7230 ] through [ RFC7235 ] ). \u00b6 HTTP/2 ( [ HTTP/2 ] ) introduced a multiplexed session layer on top of the existing TLS and TCP protocols for exchanging concurrent HTTP messages with efficient field compression and server push. HTTP/3 ( [ HTTP/3 ] ) provides greater independence for concurrent messages by using QUIC as a secure multiplexed transport over UDP instead of TCP. \u00b6 All three major versions of HTTP rely on the semantics defined by this document. They have not obsoleted each other because each one has specific benefits and limitations depending on the context of use. Implementations are expected to choose the most appropriate transport and messaging syntax for their particular context. \u00b6 This revision of HTTP separates the definition of semantics (this document) and caching ( [ CACHING ] ) from the current HTTP/1.1 messaging syntax ( [ HTTP/1.1 ] ) to allow each major protocol version to progress independently while referring to the same core semantics. \u00b6 1.3. Core Semantics HTTP provides a uniform interface for interacting with a resource ( Section 3.1 ) -- regardless of its type, nature, or implementation -- by sending messages that manipulate or transfer representations ( Section 3.2 ). \u00b6 Each message is either a request or a response. A client constructs request messages that communicate its intentions and routes those messages toward an identified origin server. A server listens for requests, parses each message received, interprets the message semantics in relation to the identified target resource, and responds to that request with one or more response messages. The client examines received responses to see if its intentions were carried out, determining what to do next based on the status codes and content received. \u00b6 HTTP semantics include the intentions defined by each request method ( Section 9 ), extensions to those semantics that might be described in request header fields, status codes that describe the response ( Section 15 ), and other control data and resource metadata that might be given in response fields. \u00b6 Semantics also include representation metadata that describe how content is intended to be interpreted by a recipient, request header fields that might influence content selection, and the various selection algorithms that are collectively referred to as \"content negotiation\" ( Section 12 ). \u00b6 1.4. Specifications Obsoleted by This Document Table 1 Title Reference See HTTP Over TLS [ RFC2818 ] B.1 HTTP/1.1 Message Syntax and Routing [*] [ RFC7230 ] B.2 HTTP/1.1 Semantics and Content [ RFC7231 ] B.3 HTTP/1.1 Conditional Requests [ RFC7232 ] B.4 HTTP/1.1 Range Requests [ RFC7233 ] B.5 HTTP/1.1 Authentication [ RFC7235 ] B.6 HTTP Status Code 308 (Permanent Redirect) [ RFC7538 ] B.7 HTTP Authentication-Info and Proxy-Authentication-Info Response Header Fields [ RFC7615 ] B.8 HTTP Client-Initiated Content-Encoding [ RFC7694 ] B.9 [*] This document only obsoletes the portions of RFC 7230 that are independent of the HTTP/1.1 messaging syntax and connection management; the remaining bits of RFC 7230 are obsoleted by \"HTTP/1.1\" [ HTTP/1.1 ] . \u00b6 2. Conformance 2.1. Syntax Notation This specification uses the Augmented Backus-Naur Form (ABNF) notation of [ RFC5234 ] , extended with the notation for case-sensitivity in strings defined in [ RFC7405 ] . \u00b6 It also uses a list extension, defined in Section 5.6.1 , that allows for compact definition of comma-separated lists using a \"#\" operator (similar to how the \"*\" operator indicates repetition). Appendix A shows the collected grammar with all list operators expanded to standard ABNF notation. \u00b6 As a convention, ABNF rule names prefixed with \"obs-\" denote obsolete grammar rules that appear for historical reasons. \u00b6 The following core rules are included by reference, as defined in Appendix B.1 of [ RFC5234 ] : ALPHA (letters), CR (carriage return), CRLF (CR LF), CTL (controls), DIGIT (decimal 0-9), DQUOTE (double quote), HEXDIG (hexadecimal 0-9/A-F/a-f), HTAB (horizontal tab), LF (line feed), OCTET (any 8-bit sequence of data), SP (space), and VCHAR (any visible US-ASCII character). \u00b6 Section 5.6 defines some generic syntactic components for field values. \u00b6 This specification uses the terms \"character\", \"character encoding scheme\", \"charset\", and \"protocol element\" as they are defined in [ RFC6365 ] . \u00b6 2.2. Requirements Notation The key words \" MUST \", \" MUST NOT \", \" REQUIRED \", \" SHALL \", \" SHALL NOT \", \" SHOULD \", \" SHOULD NOT \", \" RECOMMENDED \", \" NOT RECOMMENDED \", \" MAY \", and \" OPTIONAL \" in this document are to be interpreted as described in BCP 14 [ RFC2119 ] [ RFC8174 ] when, and only when, they appear in all capitals, as shown here. \u00b6 This specification targets conformance criteria according to the role of a participant in HTTP communication. Hence, requirements are placed on senders, recipients, clients, servers, user agents, intermediaries, origin servers, proxies, gateways, or caches, depending on what behavior is being constrained by the requirement. Additional requirements are placed on implementations, resource owners, and protocol element registrations when they apply beyond the scope of a single communication. \u00b6 The verb \"generate\" is used instead of \"send\" where a requirement applies only to implementations that create the protocol element, rather than an implementation that forwards a received element downstream. \u00b6 An implementation is considered conformant if it complies with all of the requirements associated with the roles it partakes in HTTP. \u00b6 A sender MUST NOT generate protocol elements that do not match the grammar defined by the corresponding ABNF rules. Within a given message, a sender MUST NOT generate protocol elements or syntax alternatives that are only allowed to be generated by participants in other r",
+          "error": null,
+          "args": {
+            "url": "https://www.rfc-editor.org/rfc/rfc9110.html"
+          }
+        },
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'RFC 9110 section 15.5.2 401 Unauthorized vs 15.5.4 403 Forbidden semantic difference':\n\n1. RFC 9110: HTTP Semantics\n   Summary: RFC 9110 HTTP Semantics Abstract The Hypertext Transfer Protocol (HTTP) is a stateless application-level protocol for distributed, collaborative, hypertext information systems. This document describes the overall architecture of HTTP, establishes common terminology, and defines aspects of the protocol that are shared by all versions. In this definition are core protocol elements, extensibility ...\n   Source: https://www.rfc-editor.org/rfc/rfc9110.html\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. 401 Unauthorized vs 403 Forbidden: What's the Difference ...\n   Summary: Jun 20, 2026 \u00b7 But two status codes that often cause confusion are `401 Unauthorized` and `403 Forbidden`. Both indicate client-side errors, but they serve distinct purposes related to **authentication** and **authorization**\u2014two critical concepts in web security.\n   Source: https://www.codegenes.net/blog/403-forbidden-vs-401-unauthorized-http-responses/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. 401 vs 403: Which HTTP Status to Return (and the Mistake ...\n   Summary: Aug 31, 2026 \u00b7 Home 401 vs 403: Which HTTP Status to Return (and the Mistake Almost Everyone Makes) 401 is for not authenticated, 403 for no permission, and most people swap the two. A clear guide with a decision tree, the header RFC 9110 requires on a 401, and when 404 is the security choice. And how it shows up in OpenShift: 401 for the token, 403 for RBAC in oc.\n   Source: https://linuxelite.com.br/blog/401-vs-403/\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. HTTP 401 vs 403: Differences, Causes, and Fixes | Qodex.ai\n   Summary: Aug 31, 2026 \u00b7 RFC 9110 section 15.5.4 allows a server to answer 404 in place of 403 to hide that a forbidden resource is there at all. What is the difference between 401 and 407?\n   Source: https://qodex.ai/blog/http-401-vs-403\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. RFC 9110: HTTP Semantics\n   Summary: The request might also contain header fields (Section 6.3) for request modifiers, client information, and representation metadata, content (Section 6.4) intended for processing in accordance with the method, and trailer fields (Section 6.5) to communicate information collected while sending the content.\n   Source: https://www.rfc-editor.org/rfc/rfc9110.pdf\n   Status: PDF Document (Supported by fetch_url)",
+          "error": null,
+          "args": {
+            "query": "RFC 9110 section 15.5.2 401 Unauthorized vs 15.5.4 403 Forbidden semantic difference"
+          }
+        }
+      ],
+      "tool_calls_count": 3,
+      "tool_failures_count": 0,
+      "tool_success_count": 3,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 33.26,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "401_auth=True, 403_perm=True",
+      "eval_reason": "401_auth=True, 403_perm=True",
+      "passed": true
+    },
+    {
+      "id": "CAT05-10",
+      "category": "CAT05",
+      "title": "Multi-Source Conflicting Claim Resolution",
+      "prompt": "Look up the maximum payload capacity of SpaceX Starship in reusable mode: verify why different sources cite 100t vs 150t vs 200t.",
+      "reply": "Alright, I've traced the specs for you. The reason those numbers vary so much basically comes down to how much of the ship you're willing to throw away versus what you want to bring back!\n\nIn a fully reusable configuration\u2014which is SpaceX's main goal\u2014the target capacity is typically cited between 100 and 150 tonnes to Low Earth Orbit. This accounts for the fuel needed to bring both the Super Heavy booster and the Starship spacecraft back down safely. \n\nWhen you see that 200-tonne figure, it's usually referring to a theoretical expendable configuration. If they didn't care about recovering the upper stage, they could push much more mass into orbit, but since the whole point of Project Starship is rapid reusability, those lower numbers are the ones we should be watching for actual operations!",
+      "extracted_answer": "I've traced the specs for you. The reason those numbers vary so much basically comes down to how much of the ship you're willing to throw away versus what you want to bring back!\n\nIn a fully reusable configuration\u2014which is SpaceX's main goal\u2014the target capacity is typically cited between 100 and 150 tonnes to Low Earth Orbit. This accounts for the fuel needed to bring both the Super Heavy booster and the Starship spacecraft back down safely. \n\nWhen you see that 200-tonne figure, it's usually referring to a theoretical expendable configuration. If they didn't care about recovering the upper stage, they could push much more mass into orbit, but since the whole point of Project Starship is rapid reusability, those lower numbers are the ones we should be watching for actual operations!",
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "tool_calls": [
+        {
+          "tool": "search_web",
+          "args": {
+            "query": "SpaceX Starship maximum payload capacity reusable mode 100t 150t 200t comparison"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "args": {
+            "url": "https://orbitalradar.com/launch-vehicles/starship"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "search_web",
+          "name": "search_web",
+          "ok": true,
+          "output": "Search Results for 'SpaceX Starship maximum payload capacity reusable mode 100t 150t 200t comparison':\n\n1. SpaceX Starship - Wikipedia\n   Summary: Starship is a two-stage, fully reusable, super heavy-lift launch vehicle under development by American aerospace company SpaceX. Currently built and launched from Starbase in Texas, it is intended as the successor to the company's Falcon 9 and Falcon Heavy rockets, [10] and is part of SpaceX's broader reusable launch system development program.\n   Source: https://en.wikipedia.org/wiki/SpaceX_Starship\n   Status: Followable Webpage (Recommended for fetch_url)\n\n2. SpaceX Starship (spacecraft) - Wikipedia\n   Summary: Starship (or colloquially the Ship) [5][6] is a spacecraft and second stage [7] under development by American aerospace company SpaceX. Stacked atop its booster, Super Heavy, the pair compose SpaceX's super heavy-lift space vehicle, also called Starship. The spacecraft is designed to transport both passengers and cargo to a variety of destinations, including Earth orbit, the Moon, and Mars. It ...\n   Source: https://en.wikipedia.org/wiki/SpaceX_Starship_(spacecraft)\n   Status: Followable Webpage (Recommended for fetch_url)\n\n3. SpaceX Starship: Specs, Stats & All 13 Test Flights\n   Summary: Payload Capacity Starship's payload capacity depends heavily on the mission profile and whether the vehicle is expended or recovered. In fully reusable mode, SpaceX targets 100-150 tonnes to LEO. In an expendable upper-stage configuration (unlikely to be used routinely), theoretical capacity could exceed 200 tonnes. For comparison, Falcon 9 carries 22.8 tonnes to LEO and Falcon Heavy carries ...\n   Source: https://orbitalradar.com/launch-vehicles/starship\n   Status: Followable Webpage (Recommended for fetch_url)\n\n4. SpaceX - Starship\n   Summary: SpaceX's Starship spacecraft and Super Heavy rocket - collectively referred to as Starship - represent a fully reusable transportation system designed to carry both crew and cargo to Earth orbit, the Moon, Mars and beyond. Starship is the world's most powerful launch vehicle ever developed, designed to carry more than 100 metric tonnes to orbit in a fully reusable configuration.\n   Source: https://www.spacex.com/vehicles/starship\n   Status: Followable Webpage (Recommended for fetch_url)\n\n5. How Much Can the Starship Carry? [Payload Capacity Guide]\n   Summary: Discover the exact payload capacity of SpaceX's Starship. From 100+ tonnes to LEO to lunar logistics, explore the specs of the world's most powerful rocket.\n   Source: https://soulasking.blog/starship-payload-capacity-guide\n   Status: Followable Webpage (Recommended for fetch_url)",
+          "error": null,
+          "args": {
+            "query": "SpaceX Starship maximum payload capacity reusable mode 100t 150t 200t comparison"
+          }
+        },
+        {
+          "tool": "fetch_url",
+          "name": "fetch_url",
+          "ok": true,
+          "output": "SpaceX Starship: Specs, Stats &amp; All 13 Test Flights\n\nSpaceX Starship: Specs, Stats &amp; All 13 Test Flights Orbital Radar Live Globe Passes Launches \u25be Launch Schedule Upcoming launches &amp; live countdowns Satellite Launch Log Every rocket launch since 1957 Trackers Academy Library \u25be Worlds Real-time 3D globes Moon Globe Live lunar tracker Mars Globe Live Mars tracker Sun Globe Live solar activity tracker Deep Space Interplanetary spacecraft tracker Space Weather Live solar activity &amp; aurora Eclipses Solar &amp; lunar eclipse tracker Satellite Directory 31,000+ tracked objects Near-Earth Objects Live asteroid tracker Groundlink Look angles from any site, any date Space Economy Markets, budgets &amp; costs Browse the full Library \u2192 Every topic, explained Blog \ud83c\udf10 EN \u65e5\u672c\u8a9e Espa\u00f1ol Deutsch Italiano Fran\u00e7ais Portugu\u00eas Polski \u010ce\u0161tina Rom\u00e2n\u0103 Magyar Home \u203a Library \u203a Launch Vehicles \u203a Starship \ud83d\ude80 Launch Vehicle Profile Starship SpaceX's fully reusable super heavy-lift launch system \u2014 the largest and most powerful rocket ever flown, designed to carry humans to the Moon and Mars. 121 m Height (Stacked) 100\u2013150 t Payload to LEO 33 Raptor Engines (Booster) ~74 MN Liftoff Thrust Overview Starship is a two-stage, fully reusable super heavy-lift launch system under development by SpaceX. The complete vehicle consists of the Super Heavy first-stage booster (powered by 33 Raptor engines) and the Starship upper stage/spacecraft (powered by 6 Raptor engines). When fully stacked, it stands approximately 121 metres tall and produces roughly 74 meganewtons (16.7 million pounds-force) of thrust at liftoff \u2014 nearly twice the thrust of the Saturn V that carried Apollo astronauts to the Moon. Starship is designed to be fully reusable \u2014 both stages returning to the launch site for rapid turnaround and re-flight. If SpaceX achieves this goal at scale, it would reduce per-kilogram launch costs by an order of magnitude or more compared to current expendable and partially reusable vehicles, fundamentally changing the economics of space transportation. Specifications Parameter Super Heavy (Booster) Starship (Upper Stage) Height ~71 m ~50 m Diameter 9 m 9 m Engines 33 \u00d7 Raptor 2 (sea-level) 3 \u00d7 Raptor (SL) + 3 \u00d7 Raptor Vacuum Propellant Liquid methane / LOX Liquid methane / LOX Thrust (SL) ~74 MN (16.7 Mlbf) ~14.7 MN (combined) Construction Stainless steel (301/304L) Stainless steel (301/304L) Recovery method Propulsive return, \"chopstick\" catch by launch tower Propulsive belly-flop landing Payload Capacity Starship's payload capacity depends heavily on the mission profile and whether the vehicle is expended or recovered. In fully reusable mode, SpaceX targets 100\u2013150 tonnes to LEO. In an expendable upper-stage configuration (unlikely to be used routinely), theoretical capacity could exceed 200 tonnes. For comparison, Falcon 9 carries 22.8 tonnes to LEO and Falcon Heavy carries 63.8 tonnes. The payload bay is approximately 8 metres in internal diameter and roughly 17 metres tall in its cargo configuration \u2014 large enough to carry entire space station modules, large space telescopes, or massive batches of next-generation Starlink V2 satellites (potentially 40\u201360 per flight). Test Flight Programme Starship's development has followed SpaceX's iterative \"test, fail, fix, fly again\" philosophy, with a rapid series of integrated flight tests (IFTs) from the Starbase facility in Boca Chica, Texas: IFT-1 (April 2023) \u2014 first integrated flight. Multiple Raptor engines failed during ascent; the vehicle was destroyed by the flight termination system at approximately T+4 minutes. The launch pad suffered severe damage. IFT-2 (November 2023) \u2014 successful hot-staging separation (a first for SpaceX). The booster was lost during boostback, and the Ship reached near-orbital altitude before being lost during coast. IFT-3 (March 2024) \u2014 Ship reached orbital velocity for the first time but was lost during re-entry. Demonstrated in-space engine relight and payload door opening. IFT-4 (June 2024) \u2014 both booster and Ship achieved controlled splashdowns in their respective target zones \u2014 a major milestone for the reusability programme. IFT-5 (October 2024) \u2014 the Super Heavy booster was caught by the launch tower's mechanical arms (\"chopsticks\") on return \u2014 the first-ever catch of an orbital-class rocket booster. The Ship completed a controlled splashdown in the Indian Ocean. IFT-6 (November 2024) \u2014 continued testing with another successful booster return to the launch site vicinity and Ship splashdown with improved thermal protection performance. IFT-7 (January 2025) \u2014 flew upgraded Raptor engines and demonstrated further reusability milestones including a second booster catch attempt. Testing has continued through 2025 and into 2026, with flights progressively validating reusability, orbital operations, payload deployment and thermal protection systems. SpaceX's goal is to reach a high flight rate with rapid booster and Ship reuse. Mission Roadmap Starship is central to several major programmes: Starlink V2 \u2014 full-size Starlink V2 satellites are designed to be launched by Starship in batches of 40\u201360, dramatically accelerating constellation deployment and enabling more capable satellites with direct-to-cell capability. NASA Artemis HLS \u2014 a modified Starship has been selected as the Human Landing System (HLS) for NASA's Artemis III and IV lunar missions, which will return astronauts to the Moon's surface. The HLS variant requires in-orbit refuelling via multiple Starship tanker flights before departing for the Moon. Mars \u2014 Starship is SpaceX's intended vehicle for eventual crewed missions to Mars, leveraging in-situ resource utilisation (ISRU) to produce methane and LOX propellant from Martian resources for the return journey. Point-to-point \u2014 SpaceX has explored using Starship for ultra-fast Earth-to-Earth transport, though this application remains speculative and faces significant regulatory hurdles. \ud83d\udccd Track on Orbital Radar Follow upcoming Starship missions live on the Launch Schedule from Starbase \u2014 with countdown timers, mission details and pad locations. Browse the full Satellite Launch Log for Starship mission-by-mission history. \ud83d\udcc5 Next up: Starlink Group 31-1 (Starship Flight 14) (28 Sept 2026) \u00b7 Starship Orbital Flight 1 (Starship Flight 14), Starlink (31-1) (28 Sept 2026) Flight log Ship 40 2026-07-24 \u00b7 success Ship 39 2026-05-22 \u00b7 success Ship 38 2025-10-13 \u00b7 success Ship 37 2025-08-26 \u00b7 success Ship 35 2025-05-27 \u00b7 success Ship 34 2025-03-06 \u00b7 failure Ship 33 2025-01-16 \u00b7 failure Ship 31 2024-11-19 \u00b7 success Ship 30 2024-10-13 \u00b7 success Ship 29 2024-06-06 \u00b7 success Ship 28 2024-03-14 \u00b7 success Ship 25 2023-11-18 \u00b7 failure Ship 24 2023-04-20 \u00b7 failure Browse the full Launch Database \u2192 \ud83d\udef0\ufe0f Which rocket for your payload? Enter a payload mass and destination orbit to rank the global fleet by suitability \u2014 capability, cost, reliability and fit. Live calculation across 14 active launch vehicles. Payload mass kg Destination Low Earth Orbit (LEO) Geostationary Transfer (GTO) Sun-Synchronous (SSO) Trans-Lunar (TLI / Moon) Find rockets \u2192 Interactive finder requires JavaScript \u2014 see the full comparison table below. \ud83d\udee0\ufe0f Anatomy &amp; flight profile Payload fairing Second stage First stage Height 121 m Stages 2 Engines 33 \u00d7 Raptor Propellant Liquid methane / LOX Liftoff T+0 Max-Q T+1m Stage 1 sep MECO Fairing sep T+3m Orbit insertion SECO Payload deploy T+ Booster recovery Return \ud83d\ude80 Representative ascent profile \u00b7 reusable \u2014 booster returns for recovery Height to scale 70 m Falcon 9 70 m Falcon Heavy 98 m New Glenn 98.1 m SLS 121 m Starship 1.8 m \ud83d\udcca Starship vs the global fleet All \u267b\ufe0e Reusable Heavy-lift+ Active only Vehicle Class Height LEO kg $/kg Flights Reuse Status \ud83c\uddfa\ud83c\uddf8 Starship you are here Super heavy-lift 121 m 150,000 \u2014 13 \u267b\ufe0e Yes In development \ud83c\uddfa\ud83c\uddf8 Falcon 9 Medium-lift 70 m 22,800 $3,000 689 \u267b\ufe0e Yes Active \ud83c\uddfa\ud83c\uddf8 Falcon Heavy Heavy-lift 70 m 63,800 $1,520 13 \u267b\ufe0e Yes Active \ud83c\uddfa\ud83c\uddf8 SLS Super heavy-lift 98.1 m 95,000 $23,000 2 No Active \ud83c\uddfa\ud83c\uddf8 New Glenn Heavy-lift 98 m 45,000 \u2014 4 \u267b\ufe0e Yes Active \ud83c\uddfa\ud83c\uddf8 New Shepard Suborbital 18.3 m \u2014 \u2014 25 \u267b\ufe0e Yes Active \ud83c\udde8\ud83c\uddf3 Long March 5B Heavy-lift 53.7 m 25,000 \u2014 7 No Active \ud83c\uddea\ud83c\uddfa Ariane 6 Medium-to-heavy-lift 63 m 21,650 \u2014 9 No Active \ud83c\uddf7\ud83c\uddfa Soyuz Medium-lift 46 m 8,200 $6,100 1,183 No Active \ud83c\uddee\ud83c\uddf3 PSLV Medium-lift 44 m 3,800 $5,500 64 No Active \ud83c\uddf3\ud83c\uddff Electron Small-lift 18 m 300 $25,000 87 \u267b\ufe0e Yes Active \ud83c\uddfa\ud83c\uddf8 Vulcan Centaur Heavy-lift 61.6 m 27,200 \u2014 4 No Active \ud83c\uddef\ud83c\uddf5 H3 Medium-to-heavy-lift 63 m 16,000 $3,200 9 No Active \ud83c\uddea\ud83c\uddfa Vega-C Small-to-medium-lift 34.8 m 2,350 $17,000 8 No Return to flight Tap any column to sort \u00b7 figures are list-price estimates; live flight counts update daily. \ud83d\udd17 Track Starship across Orbital Radar \ud83d\udef0\ufe0f SpaceX fleet Active satellites & operator profile \u2192 \ud83d\udccd Starbase Launch site & pad details \u2192 \ud83d\udcc5 Live launch schedule Upcoming Starship missions \u2192 \ud83d\udcd6 Launch log Starship mission-by-mission history \u2192 \ud83d\ude80 Falcon 9 Compare launch vehicle \u2192 \u2753 Frequently Asked Questions Is Starship the biggest rocket ever built? \u25bc Yes. At 121 metres tall with roughly 74 meganewtons of thrust from 33 Raptor engines, Starship is both the tallest and most powerful rocket ever flown, nearly twice the thrust of the Saturn V. Is Starship fully reusable? \u25bc Starship is designed for full reusability: the Super Heavy booster returns to the launch tower for a 'chopstick' catch, and the Starship upper stage performs a propulsive belly-flop landing. What will Starship be used for? \u25bc Starship is planned for Starlink V2 satellite deployment, NASA's Artemis Human Landing System to return astronauts to the Moon, and eventually crewed Mars missions. How much payload can Starship carry? \u25bc In fully reusable mode, Starship targets 100\u2013150 tonnes to LEO . In expendable mode, theoretical capacity could exceed 200 tonnes, far more than any other rocket. Related Pages Falcon 9 SpaceX's reusable workhorse: 689 missions and counting \u2192 SpaceX / Starlink Operator profile and fleet data \u2192 Mega-Constellations How Starlink reshapes LEO \u2192 &times; &#x1F6F0;&#xFE0F; Help Keep the Signal Live Donors earn the Site Supporter mission patch &#x1F4AB; &#xA3;3 &#xA3;5 &#xA3;10 &#xA3;25 &#xA3; Choose an amount Related in the Library Long March Rockets \u2192 Falcon 9 \u2192 Falcon Heavy \u2192 SLS \u2192 Last updated: 13 September 2026 Live Trackers Launch Schedule Starlink Tracker ISS Tracker Tiangong Tracker OneWeb Tracker Amazon Leo Tracker GPS Satellites Galileo Tracker Hubble Tracker JWST Tracker Roman Tracker Space Telescopes Space Debris Map Re-entry Tracker Maneuver Tracker Deep Space All Trackers Data &amp; Statistics Satellite Directory Re-entered Satellites Near-Earth Objects Satellites in Orbit Starlink Count Debris Statistics By Country By Operator Launch Database Space Economy Guides &amp; Observation What Is Space Debris? Kessler Syndrome Space Sustainability Active Debris Removal Types of Orbits Space Situational Awareness Space Weather Eclipses Watch an Eclipse Safely See the ISS Tonight See Starlink Tonight Satellite View of My House Pass Predictions Radio Passes Groundlink Look Angles Skylens AR Starlink Internet Starlink vs Amazon Leo Glossary Vehicles &amp; Infra Space Agencies Launch Vehicles Spaceports Spacecraft Space Suits Recovery Fleet Astronaut Directory Falcon 9 Starship NASA Mars Rovers Orbital Radar Live Globe Worlds Moon Globe Mars Globe Sun Globe Launches Academy Daily Orbit Game Library Orbital Eye Satellite Eye Our Mission Contact Data Sources Data Solutions Partner Embed Widgets Blog Press &amp; Media Cited By Legal Status Follow \u00a9 2026 Orbital Radar \u2122 \u2014 Live Satellite Tracking &amp; Space Intelligence",
+          "error": null,
+          "args": {
+            "url": "https://orbitalradar.com/launch-vehicles/starship"
+          }
+        }
+      ],
+      "tool_calls_count": 2,
+      "tool_failures_count": 0,
+      "tool_success_count": 2,
+      "outcome_class": "multiple",
+      "tool_route_policy": "allowed",
+      "path_taken": "web_research",
+      "path_ok": true,
+      "path_reason": "path 'web_research' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 21.306,
+      "note": "",
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "version_or_mode=True, capacity_numbers=True",
+      "eval_reason": "version_or_mode=True, capacity_numbers=True",
+      "passed": true
+    }
+  ]
+}

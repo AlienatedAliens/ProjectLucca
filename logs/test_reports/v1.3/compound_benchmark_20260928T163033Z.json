@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260928T163033Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 1,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 13.74,
+  "category_summary": {
+    "CAT03": {
+      "name": "Formal Constraint Logic Grids",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 13.74
+    }
+  },
+  "results": [
+    {
+      "id": "CAT03-05",
+      "category": "CAT03",
+      "title": "Job-Shop Precedence Scheduling",
+      "prompt": "Tasks T1 (2h), T2 (3h), T3 (1h), T4 (2h). Precedences: T1 before T3; T2 before T3 and T4. With two parallel workers, what is the minimum completion time?",
+      "reply": "The minimum completion time with two parallel workers is 5 hours.",
+      "extracted_answer": "The minimum completion time with two parallel workers is 5 hours.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "from itertools import permutations\n\ntasks = {\n    'T1': 2,\n    'T2': 3,\n    'T3': 1,\n    'T4': 2\n}\n\n# Precedences: T1 -> T3, T2 -> T3, T2 -> T4\nprecedences = {\n    'T3': ['T1', 'T2'],\n    'T4': ['T2']\n}\n\ndef solve():\n    # Since it's a small set, we can simulate the scheduling.\n    # We want to find the minimum makespan for 2 workers.\n    \n    best_makespan = float('inf')\n    \n    # Try all possible valid sequences of task assignments\n    # A sequence is valid if predecessors are finished before a task starts.\n    \n    def get_makespan(sequence):\n        worker_free_time = [0, 0]\n        finish_times = {}\n        \n        for task in sequence:\n            duration = tasks[task]\n            # Find earliest start time based on predecessors\n            earliest_start = 0\n            for pred in precedences.get(task, []):\n                earliest_start = max(earliest_start, finish_times[pred])\n            \n            # Worker must also be free\n            # We assign to the worker who becomes free earliest\n            worker_free_time.sort()\n            start_time = max(earliest_start, worker_free_time[0])\n            finish_times[task] = start_time + duration\n            worker_free_time[0] = start_time + duration\n            \n        return max(worker_free_time)\n\n    # Generate all permutations and filter by precedence\n    import itertools\n    for p in itertools.permutations(['T1', 'T2', 'T3', 'T4']):\n        valid = True\n        for i, task in enumerate(p):\n            preds = precedences.get(task, [])\n            for pred in preds:\n                if pred not in p[:i]:\n                    valid = False\n                    break\n            if not valid: break\n        \n        if valid:\n            best_makespan = min(best_makespan, get_makespan(p))\n            \n    return best_makespan\n\nprint(solve())"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "5\n",
+          "error": null,
+          "args": {
+            "code": "from itertools import permutations\n\ntasks = {\n    'T1': 2,\n    'T2': 3,\n    'T3': 1,\n    'T4': 2\n}\n\n# Precedences: T1 -> T3, T2 -> T3, T2 -> T4\nprecedences = {\n    'T3': ['T1', 'T2'],\n    'T4': ['T2']\n}\n\ndef solve():\n    # Since it's a small set, we can simulate the scheduling.\n    # We want to find the minimum makespan for 2 workers.\n    \n    best_makespan = float('inf')\n    \n    # Try all possible valid sequences of task assignments\n    # A sequence is valid if predecessors are finished before a task starts.\n    \n    def get_makespan(sequence):\n        worker_free_time = [0, 0]\n        finish_times = {}\n        \n        for task in sequence:\n            duration = tasks[task]\n            # Find earliest start time based on predecessors\n            earliest_start = 0\n            for pred in precedences.get(task, []):\n                earliest_start = max(earliest_start, finish_times[pred])\n            \n            # Worker must also be free\n            # We assign to the worker who becomes free earliest\n            worker_free_time.sort()\n            start_time = max(earliest_start, worker_free_time[0])\n            finish_times[task] = start_time + duration\n            worker_free_time[0] = start_time + duration\n            \n        return max(worker_free_time)\n\n    # Generate all permutations and filter by precedence\n    import itertools\n    for p in itertools.permutations(['T1', 'T2', 'T3', 'T4']):\n        valid = True\n        for i, task in enumerate(p):\n            preds = precedences.get(task, [])\n            for pred in preds:\n                if pred not in p[:i]:\n                    valid = False\n                    break\n            if not valid: break\n        \n        if valid:\n            best_makespan = min(best_makespan, get_makespan(p))\n            \n    return best_makespan\n\nprint(solve())"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "code_required",
+      "path_taken": "code_solver",
+      "path_ok": true,
+      "path_reason": "code route fulfilled (code_solver)",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 13.744,
+      "note": "",
+      "db_purged_clean": true,
+      "kg_orphaned_edges": 0,
+      "kg_has_positive_records": true,
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "completion_time_5h=True",
+      "eval_reason": "completion_time_5h=True",
+      "passed": true
+    }
+  ]
+}

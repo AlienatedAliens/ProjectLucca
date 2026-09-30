@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T064036Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 14.48,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 14.48
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-05",
+      "category": "CAT02",
+      "title": "3D Ray-Sphere Intersection",
+      "prompt": "A ray starts at origin (0, 0, 0) in direction (1, 1, 1)/sqrt(3). A sphere of radius 2 is centered at (5, 5, 5). Does the ray intersect the sphere? If so, at what distance from origin?",
+      "reply": "The calc_math tool failed to process the expression because of a syntax error with the bitwise operator. I'll walk through the derivation for you manually.\n\nFirst, let's define our vectors. The ray starts at $P = (0, 0, 0)$ and has a unit direction vector $d = (\\frac{1}{\\sqrt{3}}, \\frac{1}{\\sqrt{3}}, \\frac{1}{\\sqrt{3}})$. The sphere is centered at $C = (5, 5, 5)$ with radius $r = 2$.\n\nTo find the intersection, we use the equation for a point on the ray: $P + t \\cdot d$, where $t$ is the distance from the origin. We set the distance from this point to the center of the sphere equal to the radius squared: $|(P + t \\cdot d) - C|^2 = r^2$.\n\nPlugging in our values, we get $(t \\cdot \\frac{1}{\\sqrt{3}} - 5)^2 + (t \\cdot \\frac{1}{\\sqrt{3}} - 5)^2 + (t \\cdot \\frac{1}{\\sqrt{3}} - 5)^2 = 4$.\nThis simplifies to $3 \\cdot (\\frac{t}{\\sqrt{3}} - 5)^2 = 4$.\n\nDividing by 3 gives $(\\frac{t}{\\sqrt{3}} - 5)^2 = \\frac{4}{3}$.\nTaking the square root of both sides, we get $\\frac{t}{\\sqrt{3}} - 5 = \\pm \\frac{2}{\\sqrt{3}}$.\n\nNow we solve for $t$:\n$\\frac{t}{\\sqrt{3}} = 5 \\pm \\frac{2}{\\sqrt{3}}$\n$t = 5\\sqrt{3} \\pm 2$.\n\nSince both values of $t$ are positive, the ray intersects the sphere twice. The first intersection occurs at a distance of $5\\sqrt{3} - 2$ from the origin. Using $\\sqrt{3} \\approx 1.732$, that's approximately $8.66 - 2$, which equals $6.66$.",
+      "tools": [
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "((5-0)*1 + (5-0)*1 + (5-0)*1) / (sqrt(3)*sqrt(1^2+1^2+1^2)) - sqrt(max(0, 4 - ((5-0)^2 + (5-0)^2 + (5-0)^2) / (1^2+1^2+1^2)))"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 14.482,
+      "note": "",
+      "passed": true,
+      "eval_reason": "intersects=True, distance=True"
+    }
+  ]
+}

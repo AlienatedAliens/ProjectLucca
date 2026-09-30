@@ -1,0 +1,38 @@
+{
+  "timestamp": "20260929T211351Z",
+  "version": "1.3.0",
+  "config_label": "test-ast-sanitizer-110-v2",
+  "context_size": 16384,
+  "feedback_enabled": true,
+  "use_sympy_grader": true,
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "math500": {
+      "benchmark": "MATH-500",
+      "total": 1,
+      "passed": 0,
+      "accuracy_pct": 0.0,
+      "elapsed_s": 26.32,
+      "feedback_enabled": true,
+      "use_sympy_grader": true,
+      "results": [
+        {
+          "idx": 110,
+          "subject": "Precalculus",
+          "level": 5,
+          "problem": "Find the degree measure of the least positive angle $\\theta$ for which\n\\[\\tan \\theta = \\frac{\\cos 5^\\circ \\cos 20^\\circ + \\cos 35^\\circ \\cos 50^\\circ - \\sin 5^\\circ \\sin 20^\\circ - \\sin 35^\\circ \\sin 50^\\circ}{\\sin 5^\\circ \\cos 20^\\circ - \\sin 35^\\circ \\cos 50^\\circ + \\cos 5^\\circ \\sin 20^\\circ - \\cos 35^\\circ \\sin 50^\\circ}.\\]",
+          "expected_ans": "120^\\circ",
+          "predicted_ans": "25",
+          "passed": false,
+          "failure_class": "equivalence_format_miss",
+          "generated_code": "import sympy as sp\n\ndef solve():\n    x = sp.symbols('x')\n    # Convert degrees to radians for SymPy's trigonometric functions\n    # However, it's easier to work with degrees directly using sp.cos(5*pi/180)\n    # Let's define the angles in degrees\n    a, b, c, d = 5, 20, 35, 50\n    \n    # Numerator: cos(a)*cos(b) + cos(c)*cos(d) - sin(a)*sin(b) - sin(c)*sin(d)\n    # Using cos(x+y) = cos x cos y - sin x sin y\n    # Numerator = cos(a+b) + cos(c+d)\n    # Denominator: sin(a)*cos(b) - sin(c)*cos(d) + cos(a)*sin(b) - cos(c)*sin(d)\n    # Denominator = sin(a+b) - sin(c+d)\n    \n    # Let's compute the values directly\n    # Note: tan(theta) = (cos(a+b) + cos(c+d)) / (sin(a+b) - sin(c+d))\n    \n    # Using the identity: cos A + cos B = 2*cos((A+B)/2)*cos((A-B)/2)\n    # Using the identity: sin A - sin B = 2*cos((A+B)/2)*sin((A-B)/2)\n    # tan(theta) = [2*cos((a+b+c+d)/2)*cos((a+b-c-d)/2)] / [2*cos((a+b+c+d)/2)*sin((a+b-c-d)/2)]\n    # tan(theta) = cot((a+b-c-d)/2)\n    \n    # Let's calculate the values to be sure\n    # a+b = 25, c+d = 85\n    # Numerator = cos(25) + cos(85)\n    # Denominator = sin(25) - sin(85)\n    \n    # tan(theta) = (cos(25) + cos(85)) / (sin(25) - sin(85))\n    # Using sum-to-product:\n    # cos(25) + cos(85) = 2*cos(55)*cos(-30) = 2*cos(55)*cos(30)\n    # sin(25) - sin(85) = 2*cos(55)*sin(-30) = -2*cos(55)*sin(30)\n    # tan(theta) = (2*cos(55)*cos(30)) / (-2*cos(55)*sin(30)) = -cot(30)\n    # tan(theta) = -tan(60) = tan(-60) = tan(120)\n    \n    # Let's verify with SymPy to avoid manual errors\n    deg = sp.symbols('deg')\n    rad = sp.pi / 180\n    \n    num = sp.cos(25*rad) + sp.cos(85*rad)\n    den = sp.sin(25*rad)\n\n_res = solve()\nif _res is not None:\n    print(_res)\n",
+          "exit_code": 0,
+          "stderr": "",
+          "feedback_triggered": false,
+          "feedback_succeeded": false,
+          "llm_latency_s": 22.312
+        }
+      ]
+    }
+  }
+}

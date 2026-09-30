@@ -1,0 +1,65 @@
+{
+  "timestamp": "20260929T162326Z",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "humaneval_plus": {
+      "benchmark": "HumanEvalPlus",
+      "total": 5,
+      "passed": 5,
+      "pass_at_1_pct": 100.0,
+      "elapsed_s": 21.7,
+      "results": [
+        {
+          "task_id": "HumanEval/0",
+          "entry_point": "has_close_elements",
+          "inputs_tested": 1006,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 1006 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.098
+        },
+        {
+          "task_id": "HumanEval/1",
+          "entry_point": "separate_paren_groups",
+          "inputs_tested": 87,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 87 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 4.963
+        },
+        {
+          "task_id": "HumanEval/2",
+          "entry_point": "truncate_number",
+          "inputs_tested": 974,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 974 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 2.042
+        },
+        {
+          "task_id": "HumanEval/3",
+          "entry_point": "below_zero",
+          "inputs_tested": 904,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 904 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.345
+        },
+        {
+          "task_id": "HumanEval/4",
+          "entry_point": "mean_absolute_deviation",
+          "inputs_tested": 788,
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "ALL 788 TESTS PASSED\n",
+          "stderr": "",
+          "llm_latency_s": 3.649
+        }
+      ]
+    }
+  }
+}

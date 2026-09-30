@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260928T162626Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 1,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 16.87,
+  "category_summary": {
+    "CAT07": {
+      "name": "Theory of Mind & Game Theory",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 16.87
+    }
+  },
+  "results": [
+    {
+      "id": "CAT07-02",
+      "category": "CAT07",
+      "title": "First-Price Auction & Winner's Curse",
+      "prompt": "Asset value V is $10M or $30M (50% each). Bidder A knows true V. Bidder B knows only the distribution, but knows A is informed. Bidder B bids $11M. 1. What will A bid if V=$10M? 2. What will A bid if V=$30M? 3. Expected payoff for B from bidding $11M? 4. What fundamental game-theoretic mistake did B commit?",
+      "reply": "If the true value is 10 million, Bidder A will bid 10 million because bidding anything higher would result in a net loss for them. If the true value is 30 million, Bidder A only needs to beat Bidder B's offer, so they will bid just over 11 million.\n\nFor Bidder B, the expected payoff from bidding 11 million is negative 0.5 million dollars. This is because they win when the value is 10 million but lose 1 million in the process, and they lose the auction entirely when the value is 30 million.\n\nThe fundamental game-theoretic mistake Bidder B made was failing to account for the \"winner's curse.\" By bidding aggressively against an informed opponent, they are essentially only winning the auction when they have overpaid relative to the actual asset value.",
+      "extracted_answer": "If the true value is 10 million, Bidder A will bid 10 million because bidding anything higher would result in a net loss for them. If the true value is 30 million, Bidder A only needs to beat Bidder B's offer, so they will bid just over 11 million.\n\nFor Bidder B, the expected payoff from bidding 11 million is negative 0.5 million dollars. This is because they win when the value is 10 million but lose 1 million in the process, and they lose the auction entirely when the value is 30 million.\n\nThe fundamental game-theoretic mistake Bidder B made was failing to account for the \"winner's curse.\" By bidding aggressively against an informed opponent, they are essentially only winning the auction when they have overpaid relative to the actual asset value.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "def solve_auction():\n    # V = 10 or 30 (50% each)\n    # A knows V. B knows distribution and that A is informed.\n    # B bids 11.\n    \n    # Case 1: V = 10. \n    # If A bids anything > 10, A loses to B's 11 (if A doesn't bid higher).\n    # But A knows V=10. If A bids 10, and B bids 11, B wins.\n    # However, in a standard first-price auction, if A knows V=10, \n    # any bid > 10 results in negative profit. \n    # To win against B's 11, A would have to bid 11.01 (or just 11).\n    # But at 11, A loses 1.\n    # If A is rational and knows V=10, A will not bid above 10.\n    # Therefore, if V=10, A bids 10 (or less). B wins with 11.\n    \n    # Case 2: V = 30.\n    # A knows V=30. B bids 11.\n    # To win, A only needs to bid slightly above B's 11.\n    # In a first-price auction, A wants to minimize the bid while still winning.\n    # Since B is at 11, A will bid 11 (or 11.01).\n    \n    # Payoff for B:\n    # If V=10: B wins with 11. Profit = 10 - 11 = -1.\n    # If V=30: A bids 11, B loses (or ties). Profit = 0.\n    # Expected payoff = 0.5 * (-1) + 0.5 * (0) = -0.5.\n\n    print(f\"A's bid if V=10: 10\")\n    print(f\"A's bid if V=30: 11\")\n    print(f\"B's expected payoff: -0.5\")\n\nsolve_auction()"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "A's bid if V=10: 10\nA's bid if V=30: 11\nB's expected payoff: -0.5\nNone\n",
+          "error": null,
+          "args": {
+            "code": "def solve_auction():\n    # V = 10 or 30 (50% each)\n    # A knows V. B knows distribution and that A is informed.\n    # B bids 11.\n    \n    # Case 1: V = 10. \n    # If A bids anything > 10, A loses to B's 11 (if A doesn't bid higher).\n    # But A knows V=10. If A bids 10, and B bids 11, B wins.\n    # However, in a standard first-price auction, if A knows V=10, \n    # any bid > 10 results in negative profit. \n    # To win against B's 11, A would have to bid 11.01 (or just 11).\n    # But at 11, A loses 1.\n    # If A is rational and knows V=10, A will not bid above 10.\n    # Therefore, if V=10, A bids 10 (or less). B wins with 11.\n    \n    # Case 2: V = 30.\n    # A knows V=30. B bids 11.\n    # To win, A only needs to bid slightly above B's 11.\n    # In a first-price auction, A wants to minimize the bid while still winning.\n    # Since B is at 11, A will bid 11 (or 11.01).\n    \n    # Payoff for B:\n    # If V=10: B wins with 11. Profit = 10 - 11 = -1.\n    # If V=30: A bids 11, B loses (or ties). Profit = 0.\n    # Expected payoff = 0.5 * (-1) + 0.5 * (0) = -0.5.\n\n    print(f\"A's bid if V=10: 10\")\n    print(f\"A's bid if V=30: 11\")\n    print(f\"B's expected payoff: -0.5\")\n\nsolve_auction()"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "code_solver",
+      "path_ok": true,
+      "path_reason": "path 'code_solver' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 16.873,
+      "note": "",
+      "db_purged_clean": true,
+      "kg_orphaned_edges": 0,
+      "kg_has_positive_records": true,
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "curse=True, payoff_loss=True",
+      "eval_reason": "curse=True, payoff_loss=True",
+      "passed": true
+    }
+  ]
+}

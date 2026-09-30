@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260928T162839Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "total_path_ok": 1,
+  "total_faithfulness_ok": 1,
+  "total_tool_calls": 1,
+  "total_tool_failures": 0,
+  "total_tool_recoveries": 0,
+  "median_latency_s": 12.67,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "path_ok": 1,
+      "faithfulness_ok": 1,
+      "tool_calls": 1,
+      "tool_failures": 0,
+      "tool_recoveries": 0,
+      "median_latency_s": 12.67
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-05",
+      "category": "CAT02",
+      "title": "3D Ray-Sphere Intersection",
+      "prompt": "A ray starts at origin (0, 0, 0) in direction (1, 1, 1)/sqrt(3). A sphere of radius 2 is centered at (5, 5, 5). Does the ray intersect the sphere? If so, at what distance from origin?",
+      "reply": "Yes, the ray does intersect the sphere. It first hits the surface at a distance of approximately 6.66 from the origin.",
+      "extracted_answer": "Yes, the ray does intersect the sphere. It first hits the surface at a distance of approximately 6.66 from the origin.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import numpy as np\n\n# Ray parameters\norigin = np.array([0, 0, 0])\ndirection = np.array([1, 1, 1]) / np.sqrt(3)\n\n# Sphere parameters\nsphere_center = np.array([5, 5, 5])\nradius = 2\n\n# Ray-Sphere Intersection Formula:\n# |origin + t*direction - sphere_center|^2 = radius^2\n# Let L = origin - sphere_center\n# |L + t*direction|^2 = radius^2\n# (t*direction + L) . (t*direction + L) = radius^2\n# t^2 * (direction.direction) + 2*t*(direction.L) + (L.L) - radius^2 = 0\n\nL = origin - sphere_center\na = np.dot(direction, direction)\nb = 2 * np.dot(direction, L)\nc = np.dot(L, L) - radius**2\n\ndiscriminant = b**2 - 4*a*c\n\nif discriminant < 0:\n    print(\"No intersection\")\nelse:\n    t1 = (-b - np.sqrt(discriminant)) / (2*a)\n    t2 = (-b + np.sqrt(discriminant)) / (2*a)\n    print(f\"Discriminant: {discriminant}\")\n    print(f\"t1: {t1}\")\n    print(f\"t2: {t2}\")\n"
+          }
+        }
+      ],
+      "receipts": [
+        {
+          "tool": "run_python",
+          "name": "run_python",
+          "ok": true,
+          "output": "Discriminant: 16.0\nt1: 6.6602540378443855\nt2: 10.660254037844386\n",
+          "error": null,
+          "args": {
+            "code": "import numpy as np\n\n# Ray parameters\norigin = np.array([0, 0, 0])\ndirection = np.array([1, 1, 1]) / np.sqrt(3)\n\n# Sphere parameters\nsphere_center = np.array([5, 5, 5])\nradius = 2\n\n# Ray-Sphere Intersection Formula:\n# |origin + t*direction - sphere_center|^2 = radius^2\n# Let L = origin - sphere_center\n# |L + t*direction|^2 = radius^2\n# (t*direction + L) . (t*direction + L) = radius^2\n# t^2 * (direction.direction) + 2*t*(direction.L) + (L.L) - radius^2 = 0\n\nL = origin - sphere_center\na = np.dot(direction, direction)\nb = 2 * np.dot(direction, L)\nc = np.dot(L, L) - radius**2\n\ndiscriminant = b**2 - 4*a*c\n\nif discriminant < 0:\n    print(\"No intersection\")\nelse:\n    t1 = (-b - np.sqrt(discriminant)) / (2*a)\n    t2 = (-b + np.sqrt(discriminant)) / (2*a)\n    print(f\"Discriminant: {discriminant}\")\n    print(f\"t1: {t1}\")\n    print(f\"t2: {t2}\")\n"
+          }
+        }
+      ],
+      "tool_calls_count": 1,
+      "tool_failures_count": 0,
+      "tool_success_count": 1,
+      "outcome_class": "unique",
+      "tool_route_policy": "allowed",
+      "path_taken": "code_solver",
+      "path_ok": true,
+      "path_reason": "path 'code_solver' allowed",
+      "faithfulness_ok": true,
+      "faithfulness_reason": "faithful to tool receipts",
+      "code_assumptions": [],
+      "elapsed_s": 12.666,
+      "note": "",
+      "db_purged_clean": true,
+      "kg_orphaned_edges": 0,
+      "kg_has_positive_records": true,
+      "tool_recovered": false,
+      "answer_ok": true,
+      "answer_reason": "intersects=True, distance=True",
+      "eval_reason": "intersects=True, distance=True",
+      "passed": true
+    }
+  ]
+}

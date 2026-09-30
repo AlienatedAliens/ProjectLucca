@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-09-29T16:03:07.088096+00:00",
+  "overall_success": true,
+  "sections": [
+    {
+      "name": "Unit Test Regression Gate (90 tests)",
+      "success": true,
+      "detail": "Passed in 33.89s (90 passed in 31.42s)"
+    },
+    {
+      "name": "HumanEval Tasks (7 + 7 Siblings in Docker)",
+      "success": true,
+      "detail": "14/14 verified in Docker"
+    },
+    {
+      "name": "Slang & Epistemic Uncertainty Grounding",
+      "success": true,
+      "detail": "12/12 epistemic intent routings verified"
+    },
+    {
+      "name": "Timezone Precision via zoneinfo (<5ms SLA)",
+      "success": true,
+      "detail": "7/7 timezones verified"
+    },
+    {
+      "name": "Speech Interiority Isolation Barrier",
+      "success": true,
+      "detail": "9/9 interiority & voice isolation tests passed"
+    }
+  ]
+}

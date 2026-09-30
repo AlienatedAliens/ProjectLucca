@@ -1,0 +1,80 @@
+{
+  "timestamp": "20260929T162245Z",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "gsm_symbolic": {
+      "benchmark": "GSM_Symbolic_symbolic",
+      "total": 5,
+      "passed": 5,
+      "accuracy_pct": 100.0,
+      "elapsed_s": 34.42,
+      "results": [
+        {
+          "idx": 1,
+          "id": 0,
+          "instance": 0,
+          "question": "Rania saw a 210-foot whale with 7 72-inch remoras attached to it. What percentage of the whale's body length is the combined length of the remoras?",
+          "generated_code": "# Given values\nwhale_length_feet = 210\nnum_remoras = 7\nremora_length_inches = 72\n\n# Conversion factor: 1 foot = 12 inches\ninches_per_foot = 12\n\n# Step 1: Convert whale length to inches\nwhale_length_inches = whale_length_feet * inches_per_foot\n\n# Step 2: Calculate total length of remoras\ntotal_remora_length = num_remoras * remora_length_inches\n\n# Step 3: Calculate the percentage\npercentage = (total_remora_length / whale_length_inches) * 100\n\n# Print the final numeric value\nprint(percentage)",
+          "stdout": "20.0\n",
+          "stderr": "",
+          "pred_val": 20.0,
+          "expected_val": 20.0,
+          "passed": true,
+          "llm_latency_s": 6.649
+        },
+        {
+          "idx": 2,
+          "id": 0,
+          "instance": 1,
+          "question": "Olivia saw a 10-foot dolphin with 8 3-inch remoras attached to it. What percentage of the dolphin's body length is the combined length of the remoras?",
+          "generated_code": "# Constants\ndolphin_feet = 10\nremora_count = 8\nremora_inch_length = 3\ninches_per_foot = 12\n\n# Calculations\ndolphin_inches = dolphin_feet * inches_per_foot\ntotal_remora_inches = remora_count * remora_inch_length\n\n# Percentage calculation\npercentage = (total_remora_inches / dolphin_inches) * 100\n\n# Print the final result\nprint(percentage)",
+          "stdout": "20.0\n",
+          "stderr": "",
+          "pred_val": 20.0,
+          "expected_val": 20.0,
+          "passed": true,
+          "llm_latency_s": 6.76
+        },
+        {
+          "idx": 3,
+          "id": 0,
+          "instance": 2,
+          "question": "Jamal saw a 380-foot whale with 8 57-inch remoras attached to it. What percentage of the whale's body length is the combined length of the remoras?",
+          "generated_code": "# Given values\nwhale_length_feet = 380\nnum_remoras = 8\nremora_length_inches = 57\n\n# Conversion factor: 1 foot = 12 inches\ninches_per_foot = 12\n\n# Step 1: Convert whale length to inches\nwhale_length_inches = whale_length_feet * inches_per_foot\n\n# Step 2: Calculate combined length of remoras\ntotal_remora_length = num_remoras * remora_length_inches\n\n# Step 3: Calculate the percentage\npercentage = (total_remora_length / whale_length_inches) * 100\n\n# Print the final numeric value\nprint(percentage)",
+          "stdout": "10.0\n",
+          "stderr": "",
+          "pred_val": 10.0,
+          "expected_val": 10.0,
+          "passed": true,
+          "llm_latency_s": 4.828
+        },
+        {
+          "idx": 4,
+          "id": 0,
+          "instance": 3,
+          "question": "Mia saw a 240-foot shark with 4 36-inch remoras attached to it. What percentage of the shark's body length is the combined length of the remoras?",
+          "generated_code": "# Shark length in feet\nshark_feet = 240\n# Conversion factor: 1 foot = 12 inches\ninches_per_foot = 12\n\n# Shark length in inches\nshark_inches = shark_feet * inches_per_foot\n\n# Remora details\nnum_remoras = 4\nremora_length_inches = 36\n\n# Combined length of remoras\ntotal_remora_inches = num_remoras * remora_length_inches\n\n# Calculate percentage\npercentage = (total_remora_inches / shark_inches) * 100\n\nprint(percentage)",
+          "stdout": "5.0\n",
+          "stderr": "",
+          "pred_val": 5.0,
+          "expected_val": 5.0,
+          "passed": true,
+          "llm_latency_s": 6.019
+        },
+        {
+          "idx": 5,
+          "id": 0,
+          "instance": 4,
+          "question": "Haruka saw a 450-foot shark with 4 27-inch remoras attached to it. What percentage of the shark's body length is the combined length of the remoras?",
+          "generated_code": "# Shark's length in feet\nshark_length_feet = 450\n\n# Remora details\nnum_remoras = 4\nremora_length_inches = 27\n\n# Calculate total remora length in inches\ntotal_remora_inches = num_remoras * remora_length_inches\n\n# Convert total remora length to feet\ntotal_remora_feet = total_remora_inches / 12\n\n# Calculate the percentage\npercentage = (total_remora_feet / shark_length_feet) * 100\n\n# Print the final numeric value\nprint(percentage)",
+          "stdout": "2.0\n",
+          "stderr": "",
+          "pred_val": 2.0,
+          "expected_val": 2.0,
+          "passed": true,
+          "llm_latency_s": 6.696
+        }
+      ]
+    }
+  }
+}

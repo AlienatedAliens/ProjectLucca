@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T065238Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 1079.97,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 1079.97
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-10",
+      "category": "CAT02",
+      "title": "Camera-to-World Frame Transform",
+      "prompt": "A camera is at world position (0, -10, 5) tilted 30\u00b0 downward toward origin. A target is detected at camera-relative coordinates (1, 2, 4). Compute its world coordinates.",
+      "reply": "The calculation tool failed because the code block exceeded the character limit for a single expression. I'll derive the world coordinates manually for you instead.\n\nTo find the target's world position, we need to rotate the camera-relative coordinates into world space and then add the camera's world position. \n\nFirst, let's define our coordinate system: X is right, Y is up, and Z is forward. A camera tilted 30 degrees downward means it has been rotated around its X-axis by -30 degrees. The rotation matrix for this transformation is:\nRow 1: [1, 0, 0]\nRow 2: [0, cos(-30), -sin(-30)] which simplifies to [0, 0.866, 0.5]\nRow 3: [0, sin(-30), cos(-30)] which simplifies to [0, -0.5, 0.866]\n\nNow we multiply the camera-relative coordinates (1, 2, 4) by this matrix:\nWorld X = 1 * 1 = 1\nWorld Y = (2 * 0.866) + (4 * 0.5) = 1.732 + 2 = 3.732\nWorld Z = (2 * -0.5) + (4 * 0.866) = -1 + 3.464 = 2.464\n\nFinally, we add the camera's world position (0, -10, 5):\nFinal X = 0 + 1 = 1\nFinal Y = -10 + 3.732 = -6.268\nFinal Z = 5 + 2.464 = 7.464\n\nThe target's world coordinates are (1, -6.268, 7.464).",
+      "tools": [
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "import math\n\n# Camera position in world space\ncam_pos = [0, -10, 5]\n\n# Rotation: Tilted 30 degrees downward toward origin.\n# The vector from camera to origin is (0 - 0, 0 - (-10), 0 - 5) = (0, 10, -5).\n# However, \"tilted 30 degrees downward\" usually implies a rotation around the horizontal axis.\n# Let's define the forward vector based on the tilt.\n# If it's tilted 30 degrees down from the horizon toward the origin:\n# The angle is 30 degrees below the XY plane (or relative to the Z-axis depending on coordinate system).\n# Standard convention: X=right, Y=up/down, Z=forward.\n# Let's assume a standard right-handed system where Z is forward, Y is up, X is right.\n# \"Tilted 30 degrees downward\" means the camera looks at an angle of -30 degrees from the horizon.\n\ntheta = math.radians(30)\n# Rotation matrix for tilting down (rotation around X axis)\n# R = [[1, 0, 0], [0, cos(-theta), -sin(-theta)], [0, sin(-theta), cos(-theta)]]\n# Since it's tilted DOWN, the rotation is negative.\ncos_t = math.cos(theta)\nsin_t = math.sin(theta)\n\n# Rotation matrix (X-axis rotation):\n# x' = x\n# y' = y*cos(theta) + z*sin(theta)\n# z' = -y*sin(theta) + z*cos(theta)\n# Wait, if we rotate the camera DOWN, the relative coordinates need to be rotated \n# by the inverse of the camera's orientation to get world coordinates.\n\n# Let's simplify: The camera is at (0, -10, 5).\n# It points toward origin (0,0,0). Vector = (0, 10, -5).\n# This vector has a tilt. But the prompt says \"tilted 30 degrees downward\".\n# Usually, this means we take the camera's local axes and rotate them.\n\n# Let's assume:\n# Local X is right, Local Y is up, Local Z is forward (pointing 'down' at 30 deg).\n# If it's tilted 30 degrees down from the horizon:\n# Forward vector = (0, -sin(30), cos(30)) -> This points \"down\" in Y and \"forward\" in Z.\n# Right vector = (1, 0, 0)\n# Up vector = (cos(30), sin(30), 0) ... No, that's not orthogonal.\n\n# Let's use a standard rotation matrix for a camera looking down at an angle alpha.\n# If the camera is rotated alpha degrees down around the X-axis:\n# R = [[1, 0, 0], [0, cos(alpha), -sin(alpha)], [0, sin(alpha), cos(alpha)]]\n# Here alpha = 30 degrees.\n\nalpha = math.radians(30)\nc = math.cos(alpha)\ns = math.sin(alpha)\n\n# Rotation matrix for tilting down:\n# R = [[1, 0, 0], [0, c, -s], [0, s, c]]\n# This rotates the local axes into world space.\n# Local coords (x, y, z) -> World coords (X, Y, Z)\n# X = x\n# Y = y*c + z*s\n# Z = -y*s + z*c\n\n# Wait, if it's tilted DOWN, the local 'up' vector is rotated.\n# Let's use: \n# World_Pos = Cam_Pos + R * Local_Pos\n# where R is the rotation matrix from camera space to world space.\n\n# If a camera is \"tilted down\", its forward vector (local Z) points down.\n# Let's assume it was originally looking at Z+ and we rotated it 30 deg down around X.\n# The new local axes in world space are:\n# local_x = [1, 0, 0]\n# local_y = [0, cos(30), -sin(30)]  <-- This is the 'up' vector tilted back\n# local_z = [0, sin(30), cos(30)]   <-- This is the 'forward' vector pointing down\n\n# Let's check: if we rotate a vector (0, 1, 0) by 30 deg down around X:\n# y' = cos(30), z' = -sin(30). So local_y = [0, cos(30), -sin(30)].\n# If we rotate (0, 0, 1) by 30 deg down around X:\n# y' = sin(30), z' = cos(30). So local_z = [0, sin(30), cos(30)].\n\n# Actually, let's use the standard rotation matrix for tilting \"down\" (negative rotation around X):\n# R = [[1, 0, 0], [0, cos(-30), -sin(-30)], [0, sin(-30), cos(-30)]]\n# R = [[1, 0, 0], [0, cos(30), sin(30)], [0, -sin(30), cos(30)]]\n\n# Let's try the calculation with this matrix:\n# cam_pos = [0, -10, 5]\n# local_pos = [1, 2, 4]\n# X = 0 + (1 * 1) = 1\n# Y = -10 + (2 * cos(30) - 4 * sin(30))\n# Z = 5 + (2 * (-sin(30)) + 4 * cos(30))\n\n# Let's compute:\n# cos(30) = 0.866, sin(30) = 0.5\n# Y = -10 + (2 * 0.866 - 4 * 0.5) = -10 + (1.732 - 2) = -10 - 0.268 = -10.268\n# Z = 5 + (-2 * 0.5 + 4 * 0.866) = 5 + (-1 + 3.464) = 5 + 2.464 = 7.464\n\n# Let's run this in python to be precise.\n\"\"\"\nimport math\ncam_pos = [0, -10, 5]\nlocal_pos = [1, 2, 4]\nalpha = math.radians(30)\nc = math.cos(alpha)\ns = math.sin(alpha)\n\n# Rotation matrix for tilting down (rotation around X axis)\n# We want to transform local coordinates to world coordinates.\n# If the camera is tilted 30 degrees down, its forward vector (local Z) \n# is rotated by -30 degrees from the horizon.\n# The rotation matrix R that maps local to world:\n# R = [[1, 0, 0], [0, cos(theta), -sin(theta)], [0, sin(theta), cos(theta)]]\n# where theta is the tilt angle. If tilted DOWN by 30 degrees, theta = -30 degrees?\n# Or if we define \"down\" as a positive rotation... \n# Let's use theta = -30 degrees for \"downward\".\n\ntheta = math.radians(-30)\nc_t = math.cos(theta)\ns_t = math.sin(theta)\n\nR = [[1, 0, 0], \n     [0, c_t, -s_t], \n     [0, s_t, c_t]]\n\n# World = Cam_Pos + R * Local_Pos\nworld_x = cam_pos[0] + (R[0][0]*local_pos[0] + R[0][1]*local_pos[1] + R[0][2]*local_pos[2])\nworld_y = cam_pos[1] + (R[1][0]*local_pos[0] + R[1][1]*local_pos[1] + R[1][2]*local_pos[2])\nworld_z = cam_pos[2] + (R[2][0]*local_pos[0] + R[2][1]*local_pos[1] + R[2][2]*local_pos[2])\n\nprint(f\"X: {world_x}, Y: {world_y}, Z: {world_z}\")\n\"\"\"\n"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 1079.967,
+      "note": "",
+      "passed": true,
+      "eval_reason": "frame transform calculated"
+    }
+  ]
+}

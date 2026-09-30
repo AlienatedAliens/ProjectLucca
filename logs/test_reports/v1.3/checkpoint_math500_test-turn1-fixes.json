@@ -1,0 +1,38 @@
+[
+  {
+    "idx": 11,
+    "subject": "Number Theory",
+    "level": 3,
+    "problem": "What is the least positive integer multiple of 30 that can be written with only the digits 0 and 2?",
+    "expected_ans": "2220",
+    "predicted_ans": "2220",
+    "passed": true,
+    "failure_class": "",
+    "generated_code": "from sympy import Integer \n\ndef solve ():\n# A multiple of 30 must end in 0.\n# Since it only uses digits 0 and 2, the last digit must be 0.\n# A multiple of 30 must be divisible by 3 and 10.\n# Divisibility by 10 is satisfied by ending in 0.\n# Divisibility by 3 means the sum of digits must be a multiple of 3.\n# The digits available are 0 and 2.\n# Let n be the number of 2s in the number.\n# The sum of digits is 2 * n.\n# For 2 * n to be a multiple of 3, n must be a multiple of 3.\n# To find the least positive integer, we want the smallest n > 0.\n# The smallest n is 3.\n# We need three 2s and at least one 0 at the end.\n# To minimize the number, we place the 2s in the lowest possible \n# positions (excluding the last digit which must be 0).\n# The smallest such number is 2220.\n\n# Verification:\n# 2220 / 30 = 74.\n# Digits are only 0 and 2.\n# It is a multiple of 30.\n\n# Let's check if there's anything smaller.\n# Numbers with one 2: sum=2 (no)\n# Numbers with two 2s: sum=4 (no)\n# Numbers with three 2s: sum=6 (yes)\n# Smallest number with three 2s and a 0 at the end is 2220.\n\n    print (2220 )\n\nsolve ()",
+    "extraction_stage": "fenced",
+    "extraction_retry_triggered": false,
+    "exit_code": 0,
+    "stderr": "",
+    "feedback_triggered": false,
+    "feedback_succeeded": false,
+    "llm_latency_s": 8.815
+  },
+  {
+    "idx": 252,
+    "subject": "Counting & Probability",
+    "level": 5,
+    "problem": "Six cars pull up to a red light, one at a time. At the light, there are three lanes, one left-turn lane, one straight-going lane, and one right-turn lane. How many ways can the cars stack up so that all three lanes are occupied?\n\nNote that if the first car turns left and the second goes straight, this is considered different from the first car going straight and the second car turning left. In other words, the cars are distinguishable, but pull up to the intersection in a fixed order.",
+    "expected_ans": "540",
+    "predicted_ans": "540",
+    "passed": true,
+    "failure_class": "",
+    "generated_code": "import sympy as sp\nfrom sympy import *\nimport math\n\nfrom itertools import product \n\n# The problem asks for the number of ways 6 distinguishable cars can \n# choose one of 3 lanes such that each lane is occupied by at least one car.\n# This is a classic inclusion-exclusion problem or a Stirling numbers of the second kind problem.\n# Let S be the set of all possible assignments of 6 cars to 3 lanes.\n# |S| = 3^6.\n# Let A, B, C be the properties that lane 1, 2, and 3 are empty, respectively.\n# We want to find the number of assignments where none of the lanes are empty.\n# By Inclusion-Exclusion:\n# Total = 3^6 - (3C1 * 2^6) + (3C2 * 1^6) - (3C3 * 0^6)\n\ndef solve ():\n    n_cars =6 \n    n_lanes =3 \n\n    total_ways =0 \n    for i in range (n_lanes +1 ):\n    # Inclusion-Exclusion Principle:\n    # Sum_{i=0}^{n_lanes} (-1)^i * (n_lanes choose i) * (n_lanes - i)^n_cars\n        import math \n        comb =math .comb (n_lanes ,i )\n        term =comb *((n_lanes -i )**n_cars )\n        if i %2 ==1 :\n            total_ways -=term \n        else :\n            total_ways +=term \n\n    print (total_ways )\n\nsolve ()",
+    "extraction_stage": "fenced",
+    "extraction_retry_triggered": false,
+    "exit_code": 0,
+    "stderr": "",
+    "feedback_triggered": false,
+    "feedback_succeeded": false,
+    "llm_latency_s": 7.367
+  }
+]

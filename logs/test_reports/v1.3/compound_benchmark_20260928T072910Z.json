@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T072910Z",
+  "total_problems": 1,
+  "total_passed": 0,
+  "pass_rate_pct": 0.0,
+  "median_latency_s": 101.42,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 0,
+      "total": 1,
+      "pass_rate_pct": 0.0,
+      "median_latency_s": 101.42
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-10",
+      "category": "CAT02",
+      "title": "Camera-to-World Frame Transform",
+      "prompt": "A camera is at world position (0, -10, 5) tilted 30\u00b0 downward toward origin. A target is detected at camera-relative coordinates (1, 2, 4). Compute its world coordinates.",
+      "reply": "Alright, let's break down the math on this one. Based on a camera position at (0, -10, 5) and applying a 30-degree downward pitch to those relative coordinates, the target lands at world coordinates of approximately 1, -6.27, and 7.46.",
+      "tools": [
+        "run_python"
+      ],
+      "tool_calls": [
+        {
+          "tool": "run_python",
+          "args": {
+            "code": "import math\n# Camera position\ncam_pos = [0, -10, 5]\n\n# Rotation calculation\n# The camera is tilted 30 degrees downward toward the origin.\n# Let's define the orientation. If it's looking at (0,0,0) from (0,-10,5),\n# the direction vector is (0 - 0, 0 - (-10), 0 - 5) = (0, 10, -5).\n# Normalized direction: d = sqrt(10^2 + (-5)^2) = sqrt(125) = 11.18\n# Direction vector v = (0, 0.8944, -0.4472)\n\n# However, the prompt says \"tilted 30 degrees downward toward origin\".\n# This implies a rotation around an axis or a specific pitch/yaw.\n# Let's assume standard coordinate system: x=right, y=up, z=forward (or similar).\n# If we treat 'downward' as a pitch on the Y-axis.\n\n# Let's simplify based on typical engineering problems of this type:\n# 1. Translate target to world space relative to camera position.\n# 2. Apply rotation matrix for the tilt.\n\n# Target in camera-relative coordinates: (1, 2, 4)\n# Assuming standard camera convention: x=right, y=up, z=forward\n# Let's rotate by -30 degrees (downward tilt).\ntheta = math.radians(-30)\n# Rotation matrix for pitch (rotation around X-axis):\n# [1    0       0     ]\n# [0  cos(th) -sin(th)]\n# [0  sin(th)  cos(th)]\n\nx_rel, y_rel, z_rel = 1, 2, 4\nx_rot = x_rel\ny_rot = y_rel * math.cos(theta) - z_rel * math.sin(theta)\nz_rot = y_rel * math.sin(theta) + z_rel * math.cos(theta)\n\n# World coordinates = Camera Position + Rotated Relative Coordinates\nx_world = cam_pos[0] + x_rot\ny_world = cam_pos[1] + y_rot\nz_world = cam_pos[2] + z_rot\n\nprint(f'World coords: ({x_world}, {y_world}, {z_world})')\n"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 101.423,
+      "note": "",
+      "passed": false,
+      "eval_reason": "tool_ok=False, coords_ok=True (x=True, y=True, z=True)"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T064304Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 62.57,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 62.57
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-10",
+      "category": "CAT02",
+      "title": "Camera-to-World Frame Transform",
+      "prompt": "A camera is at world position (0, -10, 5) tilted 30\u00b0 downward toward origin. A target is detected at camera-relative coordinates (1, 2, 4). Compute its world coordinates.",
+      "reply": "The calc_math tool call failed because I attempted to pass a complex Python script instead of a standard mathematical expression. Let me break this down for you using an analytical derivation.\n\nFirst, we need the camera's orientation. The camera is at (0, -10, 5) looking toward (0, 0, 0). The direction vector from the camera to the origin is (0, 10, -5). Normalizing this gives us the forward vector:\nForward = (0, 10, -5) / sqrt(0^2 + 10^2 + (-5)^2) = (0, 10, -5) / sqrt(125) \u2248 (0, 0.894, -0.447).\n\nHowever, the prompt specifies the camera is tilted 30 degrees downward toward the origin. In standard computer graphics, if the camera were looking perfectly level along the z-axis and then rotated, we would apply a rotation matrix. Since it's already oriented toward the origin at a specific tilt, we treat the \"camera-relative\" coordinates as being in a local coordinate system where Z is forward, X is right, and Y is up.\n\nTo find the world position, we transform the relative vector (1, 2, 4) into the world frame using the camera's rotation matrix and add it to the camera's world position. Given the complexity of defining a unique local coordinate system from just a \"tilt\" and a target point without a defined \"up\" vector for the camera, we typically assume the standard orientation where the forward axis is aligned with the look-at vector.\n\nIf we simplify this by treating the relative coordinates as an offset in the direction the camera is facing:\nThe unit forward vector is approximately (0, 0.894, -0.447).\nThe target's relative Z of 4 translates to a world displacement of 4 * (0, 0.894, -0.447) = (0, 3.576, -1.788).\nThe relative X of 1 and Y of 2 would be perpendicular to this.\n\nWithout the specific rotation matrix for the \"right\" and \"up\" vectors of the camera's local frame, a precise single coordinate is difficult to isolate perfectly, but the primary displacement from the camera position (0, -10, 5) along the look-axis alone puts the target near (0, -6.424, 3.212).",
+      "tools": [
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "code": "import numpy as np\n\ndef solve():\n    cam_pos = np.array([0, -10, 5])\n    target_rel = np.array([1, 2, 4])\n    \n    # Vector from camera to origin\n    v_to_origin = np.array([0, 10, -5])\n    f_base = v_to_origin / np.linalg.norm(v_to_origin)\n    \n    # Define a right vector (orthogonal to world up and f_base)\n    world_up = np.array([0,"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 62.572,
+      "note": "",
+      "passed": true,
+      "eval_reason": "frame transform calculated"
+    }
+  ]
+}

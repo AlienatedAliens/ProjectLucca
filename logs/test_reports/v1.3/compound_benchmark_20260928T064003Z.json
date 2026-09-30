@@ -1,0 +1,41 @@
+{
+  "timestamp": "20260928T064003Z",
+  "total_problems": 1,
+  "total_passed": 1,
+  "pass_rate_pct": 100.0,
+  "median_latency_s": 6.3,
+  "category_summary": {
+    "CAT02": {
+      "name": "Spatial, Kinematic & 3D Vectors",
+      "passed": 1,
+      "total": 1,
+      "pass_rate_pct": 100.0,
+      "median_latency_s": 6.3
+    }
+  },
+  "results": [
+    {
+      "id": "CAT02-04",
+      "category": "CAT02",
+      "title": "Die Rolling & Opposite Face Deduction",
+      "prompt": "A standard die has opposite faces summing to 7 (1 opposite 6, 2 opposite 5, 3 opposite 4). With 1 on top and 2 facing North, roll the die North once, then East once. What number is now on top?",
+      "reply": "To figure this out, let's map the die in 3D space. If 1 is on top and 2 is facing North, then since opposite faces sum to 7, 6 is on the bottom and 5 is facing South. That leaves 3 and 4 for East and West; if we assume a standard right-handed die layout where 3 is East and 4 is West, rolling it North means the face that was facing South moves to the top. So, after the first roll North, 5 is on top. Then, rolling it East means the face that was facing West moves to the top. Since 4 was facing West, 4 is now on top.",
+      "tools": [
+        "calc_math"
+      ],
+      "tool_calls": [
+        {
+          "tool": "calc_math",
+          "args": {
+            "expr": "1 + 0"
+          }
+        }
+      ],
+      "receipts": [],
+      "elapsed_s": 6.298,
+      "note": "",
+      "passed": true,
+      "eval_reason": "correct die face deduced (3 or 4)"
+    }
+  ]
+}

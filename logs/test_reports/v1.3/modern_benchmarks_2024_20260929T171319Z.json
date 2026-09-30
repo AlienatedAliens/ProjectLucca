@@ -1,0 +1,115 @@
+{
+  "timestamp": "20260929T171319Z",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "humaneval_plus": {
+      "benchmark": "HumanEvalPlus",
+      "total": 10,
+      "passed": 0,
+      "pass_at_1_pct": 0.0,
+      "elapsed_s": 43.97,
+      "results": [
+        {
+          "task_id": "HumanEval/30",
+          "entry_point": "get_positive",
+          "inputs_tested": 1003,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 3.342
+        },
+        {
+          "task_id": "HumanEval/31",
+          "entry_point": "is_prime",
+          "inputs_tested": 167,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 4.585
+        },
+        {
+          "task_id": "HumanEval/32",
+          "entry_point": "find_zero",
+          "inputs_tested": 888,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 9.227
+        },
+        {
+          "task_id": "HumanEval/33",
+          "entry_point": "sort_third",
+          "inputs_tested": 965,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 5.705
+        },
+        {
+          "task_id": "HumanEval/34",
+          "entry_point": "unique",
+          "inputs_tested": 904,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 1.947
+        },
+        {
+          "task_id": "HumanEval/35",
+          "entry_point": "max_element",
+          "inputs_tested": 940,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 2.28
+        },
+        {
+          "task_id": "HumanEval/36",
+          "entry_point": "fizz_buzz",
+          "inputs_tested": 156,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 2.852
+        },
+        {
+          "task_id": "HumanEval/37",
+          "entry_point": "sort_even",
+          "inputs_tested": 977,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 3.417
+        },
+        {
+          "task_id": "HumanEval/38",
+          "entry_point": "decode_cyclic",
+          "inputs_tested": 1099,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 3.142
+        },
+        {
+          "task_id": "HumanEval/39",
+          "entry_point": "prime_fib",
+          "inputs_tested": 12,
+          "passed": false,
+          "exit_code": 1,
+          "stdout": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "stderr": "EXCEPTION at input 0: name 'actual' is not defined\n",
+          "llm_latency_s": 4.593
+        }
+      ]
+    }
+  }
+}
