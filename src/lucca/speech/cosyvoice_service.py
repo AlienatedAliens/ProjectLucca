@@ -47,12 +47,25 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("lucca.cosyvoice")
 
 MODEL_DIR: Final[Path] = Path(r"C:\ProjectLucca\app\CosyVoice\pretrained_models\Fun-CosyVoice3-0.5B-2512")
+
+# Real Tiffany Grant (Asuka Soryu English VA) voice stems.
+# Source: Demucs htdemucs vocal isolation from:
+#   source_00: NGE ADV dub dialogue scenes
+#   source_01: Anime USA 2022 panel (clean stage mic)
+# All stems: 24kHz mono, 4.5–6.5s, F0 >= 240Hz verified, peak-normalized to -1 dBFS.
+_ASUKA_STEM_DIR: Final[Path] = Path(
+    r"C:\Projects\ProjectLucca\models\tts\references\asuka\harvested"
+)
 ENGLISH_VOICE_STEMS: Final[dict[str, Path]] = {
-    "inventor": Path(r"C:\ProjectLucca\models\tts\samples\sample_systems_check_base.wav"),
-    "companion": Path(r"C:\ProjectLucca\models\tts\samples\sample_intimate_reassurance_base.wav"),
-    "heroine": Path(r"C:\ProjectLucca\models\tts\samples\sample_anta_baka_base.wav"),
+    # F0=303Hz, RMS=0.118, 6.5s — focused, measured delivery (best for inventor/companion tones)
+    "inventor": _ASUKA_STEM_DIR / "asuka_023_focused_analytical_in_japanese_they_do_actually.wav",
+    # F0=297Hz, RMS=0.123, 6.0s — warm, energetic — good companion conditioning
+    "companion": _ASUKA_STEM_DIR / "asuka_079_focused_analytical_we_re_so_you_know_we_re_batt.wav",
+    # F0=440Hz, RMS=0.133, 4.5s — peak anger/arousal pitch — sharpest for heroine/assertive voice
+    "heroine": _ASUKA_STEM_DIR / "asuka_115_anger_arousal_so_it_didn_t_occur_to_them_l.wav",
 }
 DEFAULT_PROMPT_WAV: Final[Path] = ENGLISH_VOICE_STEMS["inventor"]
+
 PORT: Final[int] = 47005
 
 
