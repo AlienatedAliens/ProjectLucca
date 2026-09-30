@@ -165,6 +165,7 @@ class UICaptionPayload(BaseModel):
 
 class UIUserTextPayload(BaseModel):
     text: str
+    image_b64: str | None = None
 
 
 class UIConfigUpdatePayload(BaseModel):

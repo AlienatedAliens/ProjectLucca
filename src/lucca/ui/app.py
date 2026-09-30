@@ -66,6 +66,7 @@ def get_commorose_actions(
     open_settings_fn: Callable[[], None] | None = None,
     toggle_chat_fn: Callable[[], None] | None = None,
     open_tab_fn: Callable[[int], None] | None = None,
+    inspect_screen_fn: Callable[[], None] | None = None,
 ) -> list[CommoroseAction]:
     def _default_open_dir(path: str) -> None:
         subprocess.Popen(["explorer.exe", path])  # noqa: S603, S607
@@ -75,15 +76,12 @@ def get_commorose_actions(
     _open_settings: Callable[[], None] = open_settings_fn or (lambda: None)
     _toggle_chat: Callable[[], None] = toggle_chat_fn or (lambda: None)
     _open_tab: Callable[[int], None] = open_tab_fn or (lambda _idx: None)
+    _inspect_screen: Callable[[], None] = inspect_screen_fn or (lambda: None)
 
-    project_root = str(Path(__file__).resolve().parents[3])
     home_dir = str(get_config().home_dir)
 
     def _open_home() -> None:
         _open_dir(home_dir)
-
-    def _open_project() -> None:
-        _open_dir(project_root)
 
     def _tab_0() -> None:
         _open_tab(0)
@@ -108,10 +106,10 @@ def get_commorose_actions(
         CommoroseAction("VOICE", "🎙️", _tab_1, "Voice synthesis blender"),
         CommoroseAction("TOOLS", "🛠️", _tab_3, "Application whitelist studio"),
         CommoroseAction(
-            "PROJECT",
-            "💻",
-            _open_project,
-            "Open project directory in Explorer",
+            "VISION",
+            "👁️",
+            _inspect_screen,
+            "Capture active screen and ask Lucca to inspect",
         ),
     ]
 
@@ -166,6 +164,7 @@ class UIApplication:
         self.bubble = SpeechBubble(on_confirm=self._send_confirm_result)
         self.chat_bar = QuickChatBar(
             on_send_text=self._send_user_text,
+            on_send_message=self._send_user_message,
             on_ptt_press=self._send_mouse_ptt_press,
             on_ptt_release=self._send_mouse_ptt_release,
         )
@@ -181,6 +180,7 @@ class UIApplication:
             open_settings_fn=self._open_settings,
             toggle_chat_fn=self._toggle_dialogue_and_chat,
             open_tab_fn=self._open_settings_tab,
+            inspect_screen_fn=self._inspect_screen,
         )
         self.commorose = CommoroseRadialMenu(commorose_actions)
 
@@ -437,10 +437,20 @@ class UIApplication:
         self.bubble.show_confirmation(prompt, summary)
         self.bubble.anchor_to(geom, screen_geom)
 
-    def _send_user_text(self, text: str) -> None:
+    def _inspect_screen(self) -> None:
+        try:
+            from lucca.core.studio_facade import StudioFacade  # noqa: PLC0415
+
+            b64, _, _ = StudioFacade.capture_screenshot()
+            self._send_user_message("Describe what you see on my screen.", b64)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("inspect_screen_failed", error=str(exc))
+
+    def _send_user_message(self, text: str, image_b64: str | None = None) -> None:
         geom = self.sprite.geometry()
         screen_geom = self._get_screen_geometry()
-        self.bubble.show_caption(text, source="user", is_final=True)
+        caption_display = f"[🖼️ Screen] {text}" if image_b64 else text
+        self.bubble.show_caption(caption_display, source="user", is_final=True)
         self.bubble.anchor_to(geom, screen_geom)
 
         env = Envelope(
@@ -448,9 +458,12 @@ class UIApplication:
             trace_id="",
             ts_ns=now_ns(),
             src="ui",
-            payload=UIUserTextPayload(text=text).model_dump(),
+            payload=UIUserTextPayload(text=text, image_b64=image_b64).model_dump(),
         )
         self._send_ingest(env)
+
+    def _send_user_text(self, text: str) -> None:
+        self._send_user_message(text, None)
 
     def _send_confirm_result(self, accepted: bool) -> None:
         env = Envelope(

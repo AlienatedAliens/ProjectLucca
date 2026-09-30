@@ -188,7 +188,7 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
 
     for path in gguf_files:
         # Skip projectors from the primary model listing (they are paired)
-        if path.name.lower().startswith("mmproj"):
+        if "mmproj" in path.name.lower():
             continue
 
         meta = parse_gguf_file(path)
@@ -198,18 +198,32 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
         # Check if an mmproj file exists that matches this model
         paired_mmproj: Path | None = None
         for cand_name in all_names:
-            if cand_name.lower().startswith("mmproj"):
-                paired_mmproj = models_dir / cand_name
-                break
+            if "mmproj" in cand_name.lower():
+                # Prefer model-specific match
+                if "gemma" in path.name.lower() and "gemma" in cand_name.lower():
+                    paired_mmproj = models_dir / cand_name
+                    break
+                if "ultravox" in path.name.lower() and "ultravox" in cand_name.lower():
+                    paired_mmproj = models_dir / cand_name
+                    break
+                if paired_mmproj is None:
+                    paired_mmproj = models_dir / cand_name
 
         is_audio_model = "ultravox" in path.name.lower() or "audio" in path.name.lower()
+        is_vision_model = "gemma-4" in path.name.lower() or "vision" in path.name.lower()
 
         if is_audio_model and paired_mmproj is not None and paired_mmproj.exists():
             badge = "🎙 Audio-Native"
             badge_type = "audio"
+        elif is_vision_model and paired_mmproj is not None and paired_mmproj.exists():
+            badge = "👁️ Vision-Ready (mmproj)"
+            badge_type = "vision"
         elif is_audio_model:
             badge = "⚠ mmproj required"
             badge_type = "missing_mmproj"
+        elif is_vision_model:
+            badge = "👁️ Vision-Capable (mmproj optional)"
+            badge_type = "vision_optional"
         else:
             badge = "📄 Text via Whisper"
             badge_type = "transcript"
@@ -322,8 +336,15 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         cmd.extend(["--chat-template", cfg.chat_template])
     # else: rely on the template embedded in the GGUF (--jinja already set)
 
-    if cfg.mode == "audio" and mmproj_gguf.exists():
+    if mmproj_gguf.exists():
         cmd.extend(["--mmproj", str(mmproj_gguf)])
+    elif cfg.mode in ("audio", "vision") or "gemma" in model_gguf.name.lower():
+        models_dir = home_dir / "models" / "llm"
+        if models_dir.exists():
+            for p in models_dir.glob("*mmproj*.gguf"):
+                if "gemma" in model_gguf.name.lower() and "gemma" in p.name.lower():
+                    cmd.extend(["--mmproj", str(p)])
+                    break
 
     return cmd
 

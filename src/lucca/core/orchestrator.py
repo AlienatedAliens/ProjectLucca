@@ -810,7 +810,7 @@ class Orchestrator:
                 self._on_ptt_released(env.ts_ns, p)
             elif env.type == "ui.user_text":
                 p_text = UIUserTextPayload.model_validate(env.payload)
-                self._on_user_text(env.ts_ns, p_text.text)
+                self._on_user_text(env.ts_ns, p_text.text, p_text.image_b64)
             elif env.type == "ui.config_update":
                 p_cfg = UIConfigUpdatePayload.model_validate(env.payload)
                 if p_cfg.voice:
@@ -1011,7 +1011,7 @@ class Orchestrator:
         self.active_turn_thread = t
         t.start()
 
-    def _on_user_text(self, ts_ns: int, user_text: str) -> None:
+    def _on_user_text(self, ts_ns: int, user_text: str, image_b64: str | None = None) -> None:
         if self._pending_confirmation_active:
             # WO-9 A1 (F1): typed input during confirm_wait is a confirmation
             # answer, not a new turn. The turn worker is blocked in
@@ -1028,6 +1028,9 @@ class Orchestrator:
             self._abort_turn()
         elif self.state in ("speaking", "thinking", "confirm_wait"):
             self._abort_turn()
+
+        if image_b64:
+            self._pending_image_b64 = image_b64
 
         trace_id = str(ulid.ULID())
         trace = TurnTrace(

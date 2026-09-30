@@ -275,8 +275,9 @@ class LLMTab(QWidget):
         self.spin_max_tokens.setSuffix(" tokens")
         f_sampling.addRow("Max Tokens / Turn:", self.spin_max_tokens)
 
-        # Audio/Transcript Mode
+        # Audio/Transcript/Vision Mode
         self.combo_mode = QComboBox(grp_sampling)
+        self.combo_mode.addItem("Multi-Modal Vision (Screen Observation via mmproj)", "vision")
         self.combo_mode.addItem("Audio-Native (Raw input_audio via mmproj)", "audio")
         self.combo_mode.addItem("Transcript (Text via Faster-Whisper ASR)", "transcript")
         idx_m = self.combo_mode.findData(self.llm_cfg.mode)
@@ -292,6 +293,26 @@ class LLMTab(QWidget):
         f_sampling.addRow("GPU Offload Layers:", self.spin_gpu_layers)
 
         layout.addWidget(grp_sampling)
+
+        # 3b. Multi-Modal Vision Projector Card
+        grp_vision = QGroupBox("Multi-Modal Vision Adapter & Screen Observation", self)
+        f_vision = QFormLayout(grp_vision)
+
+        self.lbl_vision_projector = QLabel("Checking projector...", grp_vision)
+        self.lbl_vision_projector.setFont(QFont("Consolas", 9))
+        self.lbl_vision_projector.setStyleSheet(f"color: {CT_GOLD_TEXT}; font-weight: bold;")
+        f_vision.addRow("Projector Status:", self.lbl_vision_projector)
+
+        self.combo_vision_target = QComboBox(grp_vision)
+        self.combo_vision_target.addItem("Active Focused Window (Recommended - Privacy)", "window")
+        self.combo_vision_target.addItem("Primary Display (Full Monitor)", "monitor")
+        f_vision.addRow("Capture Scope:", self.combo_vision_target)
+
+        self.lbl_vision_res = QLabel("1280 px max width, ≤200 KB JPEG (Gemma-4 Patch Optimized)", grp_vision)
+        self.lbl_vision_res.setStyleSheet("color: #a0aec0; font-size: 11px;")
+        f_vision.addRow("Resolution Guard:", self.lbl_vision_res)
+
+        layout.addWidget(grp_vision)
 
         # 4. Honest Server Control Panel
         grp_srv = QGroupBox("Active LLM Inference Server Process Control", self)
@@ -313,7 +334,7 @@ class LLMTab(QWidget):
         grp_dl = QGroupBox("Curated Model Catalog & Verified GGUF Downloader", self)
         v_dl = QVBoxLayout(grp_dl)
 
-        self.table_curated = QTableWidget(3, 4, grp_dl)
+        self.table_curated = QTableWidget(4, 4, grp_dl)
         self.table_curated.setHorizontalHeaderLabels(
             ["Model Name", "Architecture", "Size", "Action"]
         )
@@ -321,9 +342,15 @@ class LLMTab(QWidget):
         if hdr_curated is not None:
             hdr_curated.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table_curated.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table_curated.setMaximumHeight(110)
+        self.table_curated.setMaximumHeight(140)
 
         curated_models = [
+            (
+                "Gemma-4 12B Vision Projector f16",
+                "Vision mmproj (116.4 MB)",
+                "~116 MB",
+                "https://huggingface.co/mradermacher/gemma-4-12B-it-uncensored-heretic-GGUF/resolve/main/gemma-4-12B-it-uncensored-heretic.mmproj-f16.gguf",
+            ),
             (
                 "Ultravox v0.5 Llama-3.1-8B Q6_K",
                 "Audio-Native (Paired mmproj)",
@@ -442,6 +469,20 @@ class LLMTab(QWidget):
             idx = self.combo_mode.findData("audio")
             if idx >= 0:
                 self.combo_mode.setCurrentIndex(idx)
+        elif badge_type == "vision":
+            self.lbl_model_badge.setText(f"{badge_text} (Vision Projector Linked & Ready)")
+            self.lbl_model_badge.setStyleSheet("color: #34d399; font-weight: bold;")
+            idx = self.combo_mode.findData("vision")
+            if idx >= 0:
+                self.combo_mode.setCurrentIndex(idx)
+        elif badge_type == "vision_optional":
+            self.lbl_model_badge.setText(
+                f"{badge_text} (Select mmproj below to enable real-time vision)"
+            )
+            self.lbl_model_badge.setStyleSheet("color: #38bdf8; font-weight: bold;")
+            idx = self.combo_mode.findData("vision")
+            if idx >= 0:
+                self.combo_mode.setCurrentIndex(idx)
         elif badge_type == "missing_mmproj":
             self.lbl_model_badge.setText(
                 f"{badge_text} (Download companion mmproj to enable direct audio)"
@@ -453,6 +494,18 @@ class LLMTab(QWidget):
             idx = self.combo_mode.findData("transcript")
             if idx >= 0:
                 self.combo_mode.setCurrentIndex(idx)
+
+        # Update Vision Projector Card Status
+        paired_mmproj = data.get("paired_mmproj")
+        if paired_mmproj and Path(paired_mmproj).exists():
+            sz_mb = Path(paired_mmproj).stat().st_size / (1024 * 1024)
+            self.lbl_vision_projector.setText(f"✓ {Path(paired_mmproj).name} ({sz_mb:.1f} MB)")
+            self.lbl_vision_projector.setStyleSheet("color: #34d399; font-weight: bold;")
+        else:
+            self.lbl_vision_projector.setText(
+                "Not Loaded — Select 'Gemma-4 Vision Projector' below to download (116 MB)"
+            )
+            self.lbl_vision_projector.setStyleSheet("color: #fbbf24; font-weight: bold;")
 
         arch = data.get("architecture", "llama")
         quant = data.get("quantization", "Q4_K_M")

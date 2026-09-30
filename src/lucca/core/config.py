@@ -42,7 +42,7 @@ class LLMSettings(BaseModel):
     Env override: LUCCA_LLM__<FIELD> (e.g. LUCCA_LLM__MODEL, LUCCA_LLM__CHAT_TEMPLATE_FILE=).
     """
 
-    mode: Literal["audio", "transcript"] = "transcript"
+    mode: Literal["audio", "transcript", "vision"] = "transcript"
     host: str = "127.0.0.1"
     port: int = 8080
     ctx: int = 32768

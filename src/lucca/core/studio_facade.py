@@ -494,3 +494,13 @@ class StudioFacade:
     def get_system_metrics() -> dict[str, JsonValue]:
         """Collects live workstation system telemetry (RAM, VRAM, CPU, latency)."""
         return _get_system_metrics()
+
+    @staticmethod
+    def capture_screenshot(
+        max_width: int = 1280,
+        quality: int = 75,
+    ) -> tuple[str, int, int]:
+        """Captures primary display/active screen via sandbox screenshot tool."""
+        from lucca.sandbox.screenshot_tool import capture_screenshot as _capture_screenshot
+
+        return _capture_screenshot(max_width=max_width, quality=quality)
