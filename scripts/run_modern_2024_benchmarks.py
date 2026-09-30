@@ -822,8 +822,10 @@ def run_math500_pal(
         resp = query_llm(prompt=prompt, max_tokens=768, enable_thinking=False)
         t_llm = time.perf_counter() - t0
 
+        extraction_retry_triggered = False
         code, stage = extract_python_code_with_stage(resp)
         if not code:
+            extraction_retry_triggered = True
             stats["extraction_empty_count"] = stats.get("extraction_empty_count", 0) + 1
             print(f"   [Extraction Empty] No code extracted on stage '{stage}'. Retrying generation...", flush=True)
             retry_prompt = (
@@ -971,6 +973,8 @@ def run_math500_pal(
             "passed": is_pass,
             "failure_class": failure_class,
             "generated_code": code,
+            "extraction_stage": stage,
+            "extraction_retry_triggered": extraction_retry_triggered,
             "exit_code": exec_res_exit,
             "stderr": exec_res_stderr,
             "feedback_triggered": feedback_triggered,
@@ -1036,9 +1040,16 @@ def main():
     )
     parser.add_argument(
         "--feedback",
+        dest="feedback",
         action="store_true",
-        default=False,
-        help="Enable 2-turn execution feedback loop on Docker traceback errors",
+        default=True,
+        help="Enable 2-turn execution feedback loop on Docker traceback errors (Default: True)",
+    )
+    parser.add_argument(
+        "--no-feedback",
+        dest="feedback",
+        action="store_false",
+        help="Disable 2-turn execution feedback loop (force 1-turn baseline)",
     )
     parser.add_argument(
         "--use-sympy",

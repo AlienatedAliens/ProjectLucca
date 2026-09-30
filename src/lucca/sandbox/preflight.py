@@ -23,38 +23,15 @@ _ARROW_OR_EQ_PATTERN: Final[re.Pattern[str]] = re.compile(
 
 
 def extract_python_code(text: str) -> str:
-    """Extracts executable Python code from markdown blocks or raw text."""
+    """Extracts executable Python code from markdown blocks or raw text using tolerant AST fallback."""
     if not text:
         return ""
-    m = re.search(r"```(?:python)?\s*(.*?)\s*```", text, re.DOTALL)
-    if m:
-        return m.group(1).strip()
-    lines = text.strip().splitlines()
-    code_lines: list[str] = []
-    for line in lines:
-        if any(
-            line.startswith(kw)
-            for kw in (
-                "import ",
-                "from ",
-                "def ",
-                "class ",
-                "    ",
-                "\t",
-                "#",
-                "print(",
-                "return ",
-                "if ",
-                "for ",
-                "while ",
-                "try:",
-                "except ",
-            )
-        ):
-            code_lines.append(line)
-    if code_lines:
-        return "\n".join(code_lines).strip()
-    return text.strip()
+    from lucca.sandbox.ast_sanitizer import extract_python_code_tolerant, sanitize_and_repair_python_code
+    code, stage = extract_python_code_tolerant(text)
+    if not code:
+        return ""
+    repaired, ok, _ = sanitize_and_repair_python_code(code)
+    return repaired if ok else code
 
 
 def extract_docstring_assertions(

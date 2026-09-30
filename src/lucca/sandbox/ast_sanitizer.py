@@ -278,29 +278,116 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     if not parsed or tree is None:
         return code, False, err
 
-    # Step 4: Inject missing common imports by inspecting AST nodes directly
+    # Step 4: Semantic AST validation, cleanup, and import injection
+    # 4a. Filter hallucinated imports in `from sympy import ...`
+    try:
+        import sympy as _sp_ref
+        _valid_sympy_names = set(dir(_sp_ref))
+    except Exception as exc:
+        logger.debug("sympy_dir_inspection_failed", error=str(exc))
+        _valid_sympy_names = set()
+
+    modified_ast = False
+    for stmt in tree.body:
+        if isinstance(stmt, ast.ImportFrom) and stmt.module == "sympy" and _valid_sympy_names:
+            filtered_aliases = [
+                alias for alias in stmt.names
+                if alias.name == "*" or alias.name in _valid_sympy_names
+            ]
+            if len(filtered_aliases) != len(stmt.names):
+                stmt.names = filtered_aliases if filtered_aliases else [ast.alias(name="*")]
+                modified_ast = True
+
+    # 4b. Pre-flight repair for differentiation wrt composite expression (e.g. sp.diff(expr, u) where u = x/h)
+    assigned_composite_exprs: dict[str, int] = {}
+    for i, node in enumerate(tree.body):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    if isinstance(node.value, (ast.BinOp, ast.UnaryOp)):
+                        assigned_composite_exprs[target.id] = i
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            is_diff = False
+            if isinstance(node.func, ast.Name) and node.func.id == "diff":
+                is_diff = True
+            elif isinstance(node.func, ast.Attribute) and node.func.attr == "diff":
+                is_diff = True
+            if is_diff and len(node.args) >= 2:
+                var_arg = node.args[1]
+                if isinstance(var_arg, ast.Name) and var_arg.id in assigned_composite_exprs:
+                    idx = assigned_composite_exprs[var_arg.id]
+                    parsed_node = ast.parse(f"{var_arg.id} = sp.symbols('{var_arg.id}', real=True, positive=True)").body[0]
+                    tree.body[idx] = parsed_node
+                    modified_ast = True
+
+    if modified_ast:
+        try:
+            ast.fix_missing_locations(tree)
+            code = ast.unparse(tree)
+            parsed, tree, err = _try_parse(code)
+            if not parsed or tree is None:
+                return code, False, err
+        except Exception as exc:
+            logger.debug("ast_unparse_failed", error=str(exc))
+
+    # 4c. Inspect all used names, attribute bases, and defined/imported symbols
     used_names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
     used_attr_bases = {node.value.id for node in ast.walk(tree) if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)}
+
+    imported_modules: set[str] = set()
+    imported_names: set[str] = set()
+    assigned_names: set[str] = set()
+
+    for stmt in tree.body:
+        if isinstance(stmt, ast.Import):
+            for alias in stmt.names:
+                imported_modules.add(alias.name)
+                imported_names.add(alias.asname or alias.name)
+        elif isinstance(stmt, ast.ImportFrom):
+            if stmt.module:
+                imported_modules.add(stmt.module)
+            for alias in stmt.names:
+                imported_names.add(alias.asname or alias.name)
+        elif isinstance(stmt, ast.Assign):
+            for target in stmt.targets:
+                if isinstance(target, ast.Name):
+                    assigned_names.add(target.id)
+        elif isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            assigned_names.add(stmt.name)
 
     imports_to_add: list[str] = []
 
     # Check if sympy is needed
     sympy_symbols = {"symbols", "Symbol", "solve", "solveset", "factor", "expand", "simplify", "Matrix", "Rational", "Eq", "diff", "integrate", "pi", "oo"}
-    if ("sp" in used_attr_bases or any(s in used_names for s in sympy_symbols)) and "sympy" not in used_names:
+    if ("sp" in used_attr_bases or any(s in used_names for s in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
         imports_to_add.append("import sympy as sp\nfrom sympy import *")
 
     # Check if math is needed
     math_symbols = {"sqrt", "factorial", "gcd", "lcm", "floor", "ceil", "comb", "perm"}
-    if ("math" in used_attr_bases or any(m in used_names for m in math_symbols)) and "math" not in used_names and "sympy" not in used_names:
+    if ("math" in used_attr_bases or any(m in used_names for m in math_symbols)) and "math" not in imported_modules and "sympy" not in imported_modules:
         imports_to_add.append("import math")
 
     # Check if itertools is needed
-    itertools_symbols = {"permutations", "combinations", "product", "accumulate"}
-    if ("itertools" in used_attr_bases or any(it in used_names for it in itertools_symbols)) and "itertools" not in used_names:
+    itertools_symbols = {"permutations", "combinations", "product", "accumulate", "count", "cycle", "repeat"}
+    if ("itertools" in used_attr_bases or any(it in used_names for it in itertools_symbols)) and "itertools" not in imported_modules:
         imports_to_add.append("import itertools")
 
-    if imports_to_add:
-        code = "\n".join(imports_to_add) + "\n\n" + code
+    # Pre-flight definitions for commonly assumed math sets
+    preflight_defs: list[str] = []
+    if "primes" in used_names and "primes" not in assigned_names and "primes" not in imported_names:
+        preflight_defs.append("primes = list(sp.primerange(2, 1000)) if 'sp' in globals() else []")
+        if "sympy" not in imported_modules and "sp" not in imported_names:
+            imports_to_add.insert(0, "import sympy as sp\nfrom sympy import *")
+    if "odds" in used_names and "odds" not in assigned_names and "odds" not in imported_names:
+        preflight_defs.append("odds = list(range(1, 1000, 2))")
+    if "evens" in used_names and "evens" not in assigned_names and "evens" not in imported_names:
+        preflight_defs.append("evens = list(range(0, 1000, 2))")
+
+    header_additions: list[str] = imports_to_add + preflight_defs
+    if header_additions:
+        code = "\n".join(header_additions) + "\n\n" + code
         parsed, tree, err = _try_parse(code)
         if not parsed or tree is None:
             return code, False, err

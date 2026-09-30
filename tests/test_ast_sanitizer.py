@@ -132,3 +132,47 @@ def test_empty_extraction_returns_empty_stage() -> None:
     code, stage = extract_python_code_tolerant(prose)
     assert stage == "empty"
     assert code == ""
+
+
+def test_filter_hallucinated_sympy_imports() -> None:
+    code = """from sympy import symbols, solve, schmitt_method, IntegerResult
+x = symbols('x')
+print(solve(x - 5, x))
+"""
+    repaired, ok, err = sanitize_and_repair_python_code(code)
+    assert ok, err
+    assert "schmitt_method" not in repaired
+    assert "IntegerResult" not in repaired
+    assert "symbols" in repaired
+    assert "solve" in repaired
+
+
+def test_itertools_attribute_import_injection() -> None:
+    code = """combos = list(itertools.combinations([1, 2, 3], 2))
+print(len(combos))
+"""
+    repaired, ok, err = sanitize_and_repair_python_code(code)
+    assert ok, err
+    assert "import itertools" in repaired
+
+
+def test_composite_diff_repair() -> None:
+    code = """x, h = sp.symbols('x h', real=True, positive=True)
+u = x / h
+expr = sp.atan(3 * u) - sp.atan(u)
+d_expr = sp.diff(expr, u)
+print(d_expr)
+"""
+    repaired, ok, err = sanitize_and_repair_python_code(code)
+    assert ok, err
+    assert "u = sp.symbols('u'" in repaired
+
+
+def test_hallucinated_primes_set_definition() -> None:
+    code = """intersection = set(primes).intersection(set(odds))
+print(len(intersection))
+"""
+    repaired, ok, err = sanitize_and_repair_python_code(code)
+    assert ok, err
+    assert "primes = list(sp.primerange" in repaired
+    assert "odds = list(range" in repaired

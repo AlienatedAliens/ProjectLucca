@@ -243,6 +243,7 @@ class PipelineTracer:
             "active": active,
             "updated_at": datetime.datetime.now(datetime.UTC).isoformat(),
             "trace_id": self.active_trace_id,
+            "config": self.config_metadata,
             "current_task": self.task_info,
             "current_stage": current_stage,
             "stage_name": stage_name,

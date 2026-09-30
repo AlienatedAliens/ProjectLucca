@@ -535,15 +535,15 @@
     <div class="brand">
       <h1>Project Lucca // Circuit Debugger</h1>
       <div class="config-strip">
-        <span>Config: <strong>v1.2-baseline-heldout-400</strong></span>
+        <span>Config: <strong id="hdrConfig">active-run</strong></span>
         <span>|</span>
-        <span>Git: <strong>37fde25</strong></span>
+        <span>Git: <strong id="hdrGit">HEAD</strong></span>
         <span>|</span>
-        <span>Ctx: <strong>16K</strong></span>
+        <span>Ctx: <strong id="hdrCtx">16K</strong></span>
         <span>|</span>
-        <span>Model: <strong>gemma-4-12b-Q6_K</strong></span>
+        <span>Model: <strong id="hdrModel">gemma-4-12b</strong></span>
         <span>|</span>
-        <span>Speed: <strong>50.23 tok/s</strong></span>
+        <span>Speed: <strong id="hdrSpeed">--</strong></span>
       </div>
       <div id="liveBadge" class="live-indicator inactive">
         <span class="pulse-dot"></span>
@@ -609,10 +609,10 @@
     </div>
   </div>
 
-  <!-- 400-CELL HISTORY MATRIX RIBBON -->
+  <!-- DYNAMIC HISTORY MATRIX RIBBON -->
   <div class="ribbon-bar">
     <div class="ribbon-header">
-      <span>HELD-OUT 400-PROBLEM MATRIX (Click any cell to load trace)</span>
+      <span id="ribbonTitle">PIPELINE EXECUTION MATRIX (Click any cell to load trace)</span>
       <span id="ribbonStats">Loading completed cells...</span>
     </div>
     <div class="ribbon-grid" id="ribbonGrid"></div>
@@ -1109,11 +1109,13 @@ print(f"ANSWER: {sol[0]}")</pre>
       document.getElementById('lbl_t9').textContent = names.tank_9_wal_basin;
     }
 
-    // INIT 400-CELL RIBBON
-    function initRibbon() {
+    // DYNAMIC RIBBON CAPACITY
+    let currentRibbonTotal = 0;
+
+    function ensureRibbonCapacity(total) {
+      if (total <= currentRibbonTotal) return;
       const grid = document.getElementById('ribbonGrid');
-      grid.innerHTML = '';
-      for (let i = 1; i <= 400; i++) {
+      for (let i = currentRibbonTotal + 1; i <= total; i++) {
         const cell = document.createElement('div');
         cell.className = 'ribbon-cell';
         cell.id = `rc_${i}`;
@@ -1121,10 +1123,24 @@ print(f"ANSWER: {sol[0]}")</pre>
         cell.onclick = () => loadTraceByIndex(i);
         grid.appendChild(cell);
       }
+      currentRibbonTotal = total;
+    }
+
+    function initRibbon() {
+      const grid = document.getElementById('ribbonGrid');
+      grid.innerHTML = '';
+      currentRibbonTotal = 0;
+      ensureRibbonCapacity(50);
     }
 
     function updateRibbon() {
       let strictPass = 0, formatMiss = 0, crash = 0, derivation = 0;
+      let maxIdx = currentRibbonTotal;
+      allTraces.forEach(t => {
+        if (t.index && t.index > maxIdx) maxIdx = t.index;
+      });
+      ensureRibbonCapacity(maxIdx);
+
       allTraces.forEach(t => {
         const cell = document.getElementById(`rc_${t.index}`);
         if (!cell) return;
@@ -1142,7 +1158,11 @@ print(f"ANSWER: {sol[0]}")</pre>
           derivation++;
         }
       });
-      document.getElementById('ribbonStats').textContent = `${allTraces.length} / 400 Evaluated (${strictPass} Passes, ${formatMiss} Format Misses, ${crash} Crashes)`;
+      document.getElementById('ribbonStats').textContent = `${allTraces.length} / ${currentRibbonTotal} Evaluated (${strictPass} Passes, ${formatMiss} Format Misses, ${crash} Crashes)`;
+      const titleElem = document.getElementById('ribbonTitle');
+      if (titleElem) {
+        titleElem.textContent = `BENCHMARK RUN MATRIX (${currentRibbonTotal} Problems - Click any cell to load trace)`;
+      }
     }
 
     async function loadTraceByIndex(idx) {
@@ -1252,11 +1272,14 @@ print(f"ANSWER: {sol[0]}")</pre>
         <strong>Did:</strong> ${escapeHtml(tank.action || '')}<br>
         <strong>Passed on:</strong> ${escapeHtml(String(tank.output || '').slice(0, 100))}...
       `;
+      const runConfigStr = (activeTrace.config && activeTrace.config.config_label) 
+        ? `${activeTrace.config.config_label}:${(activeTrace.config.context_size / 1024) || '16'}k` 
+        : 'active-run';
       document.getElementById('probeRawMetrics').innerHTML = `
         Monotonic Duration: <strong>${tank.duration_ms !== null ? tank.duration_ms + ' ms' : 'Unmeasured (null)'}</strong><br>
         Status: <strong style="color:${tank.status === 'PASS' ? 'var(--green)' : 'var(--red)'}">${tank.status}</strong><br>
         Subsystem: ${tank.subsystem || '--'}<br>
-        Config: <code>37fde25:v1.2-baseline-heldout-400:16k</code>
+        Config: <code>${runConfigStr}</code>
       `;
     }
 
@@ -1287,6 +1310,33 @@ print(f"ANSWER: {sol[0]}")</pre>
         } else {
           b.classList.add('inactive');
           document.getElementById('liveStatusText').textContent = 'STANDBY';
+        }
+
+        // Dynamically update config header
+        if (d.config) {
+          if (d.config.config_label) document.getElementById('hdrConfig').textContent = d.config.config_label;
+          if (d.config.git_sha) document.getElementById('hdrGit').textContent = d.config.git_sha;
+          if (d.config.context_size) document.getElementById('hdrCtx').textContent = (d.config.context_size / 1024) + 'K';
+          if (d.config.model) {
+            const m = d.config.model.split('.')[0].replace('-heretic', '').replace('models/llm/', '');
+            document.getElementById('hdrModel').textContent = m;
+          }
+        }
+
+        // Dynamically size ribbon if total known
+        if (d.current_task && d.current_task.total) {
+          ensureRibbonCapacity(d.current_task.total);
+        } else if (d.stats && d.stats.total) {
+          ensureRibbonCapacity(d.stats.total);
+        }
+
+        // Live ETA calculation
+        if (d.stats && d.stats.completed && d.current_task && d.current_task.total) {
+          const remaining = d.current_task.total - d.stats.completed;
+          const etaElem = document.getElementById('storyEta');
+          if (etaElem) {
+            etaElem.textContent = `${d.stats.completed}/${d.current_task.total} completed (${remaining} remaining)`;
+          }
         }
       } catch (err) {}
     }
