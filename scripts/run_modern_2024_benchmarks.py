@@ -46,7 +46,7 @@ if str(REPO_ROOT) not in sys.path:
 from lucca.sandbox.rpc import DockerRPCTransport
 from lucca.sandbox.service import SandboxService
 from lucca.core.pipeline_tracer import tracer
-from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code
+from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code, extract_python_code_tolerant
 
 DATA_DIR = REPO_ROOT / "data" / "benchmarks"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -152,54 +152,24 @@ def query_llm(prompt: str, max_tokens: int = 768, enable_thinking: bool = False,
     return ""
 
 
-def extract_python_code(text: str) -> str:
-    """Extract code from markdown blocks or bare python, then apply AST preflight sanitation (Zero Regex)."""
-    code = ""
-    # 1. Deterministic code block extraction
-    if "```python" in text:
-        parts = text.split("```python")
-        for part in reversed(parts[1:]):
-            block = part.split("```")[0].strip()
-            if block:
-                code = block
-                break
-    elif "```" in text:
-        parts = text.split("```")
-        if len(parts) >= 3:
-            for i in range(len(parts) - 2, 0, -2):
-                block = parts[i].strip()
-                if block.startswith("python\n") or block.startswith("py\n"):
-                    block = block.split("\n", 1)[1].strip()
-                if block:
-                    code = block
-                    break
-        elif len(parts) == 2:
-            code = parts[1].strip()
-            if code.startswith("python\n") or code.startswith("py\n"):
-                code = code.split("\n", 1)[1].strip()
-
+def extract_python_code_with_stage(text: str) -> tuple[str, str]:
+    """Extract code from markdown blocks, bare python, or longest AST slice with tolerant fallback.
+    Returns (sanitized_code, extraction_stage).
+    """
+    code, stage = extract_python_code_tolerant(text)
     if not code:
-        # 2. Bare python lines fallback
-        lines = text.strip().splitlines()
-        code_lines = []
-        for l in lines:
-            trimmed = l.strip()
-            if not trimmed:
-                continue
-            if any(trimmed.startswith(k) for k in ("import ", "from ", "def ", "class ", "print(", "return ", "if ", "elif ", "else:", "for ", "while ", "try:", "except")):
-                code_lines.append(l)
-        if len(code_lines) >= 2 or (len(code_lines) == 1 and any(code_lines[0].strip().startswith(k) for k in ("print(", "import "))):
-            code = "\n".join(code_lines).strip()
-        else:
-            return ""
-
-    if not code:
-        return ""
+        return "", "empty"
 
     # Spec 12 / Spec 32 AST Preflight Sanitizer & Automatic Code Repair
     repaired, ok, err = sanitize_and_repair_python_code(code)
     if ok:
-        return repaired
+        return repaired, stage
+    return code, stage
+
+
+def extract_python_code(text: str) -> str:
+    """Extract code from text and apply AST preflight sanitation (Zero Regex)."""
+    code, _ = extract_python_code_with_stage(text)
     return code
 
 
@@ -852,8 +822,27 @@ def run_math500_pal(
         resp = query_llm(prompt=prompt, max_tokens=768, enable_thinking=False)
         t_llm = time.perf_counter() - t0
 
-        code = extract_python_code(resp)
-        tracer.record_stage_result("tank_5_neural_boiler", "Neural Deliberation Boiler", "llama-server (Gemma 4 12B on RTX 5080)", "PASS", f"Decoded solution code in {t_llm:.2f}s", code or resp[:300], custom_duration_ms=round(t_llm * 1000, 2))
+        code, stage = extract_python_code_with_stage(resp)
+        if not code:
+            stats["extraction_empty_count"] = stats.get("extraction_empty_count", 0) + 1
+            print(f"   [Extraction Empty] No code extracted on stage '{stage}'. Retrying generation...", flush=True)
+            retry_prompt = (
+                prompt + "\n\nCRITICAL: Output ONLY valid, executable Python code in a ```python ... ``` block. "
+                "Do not include conversational preamble, derivations, or commentary outside the code block."
+            )
+            t_r0 = time.perf_counter()
+            retry_resp = query_llm(prompt=retry_prompt, max_tokens=768, enable_thinking=False)
+            t_llm += (time.perf_counter() - t_r0)
+            code, stage = extract_python_code_with_stage(retry_resp)
+            if code:
+                print(f"   [Extraction Recovered on Retry] Extracted code via stage '{stage}'.", flush=True)
+                stats["extraction_retry_recovered"] = stats.get("extraction_retry_recovered", 0) + 1
+                resp = retry_resp
+            else:
+                print(f"   [Extraction Failure] Still empty after retry. Skipping sandbox execution.", flush=True)
+                stats["extraction_unrecoverable_count"] = stats.get("extraction_unrecoverable_count", 0) + 1
+
+        tracer.record_stage_result("tank_5_neural_boiler", "Neural Deliberation Boiler", "llama-server (Gemma 4 12B on RTX 5080)", "PASS", f"Decoded solution code in {t_llm:.2f}s (stage={stage})", code or resp[:300], custom_duration_ms=round(t_llm * 1000, 2))
 
         pred_str = ""
         exec_res_exit = 0
@@ -895,7 +884,7 @@ def run_math500_pal(
                 corr_resp = query_llm(prompt=feedback_prompt, max_tokens=768, enable_thinking=False)
                 t_corr = time.perf_counter() - t_corr0
                 t_llm += t_corr
-                corr_code = extract_python_code(corr_resp)
+                corr_code, corr_stage = extract_python_code_with_stage(corr_resp)
                 if corr_code:
                     t_exec2_0 = time.perf_counter()
                     exec_res2 = transport.execute(f"math500-{idx}-corr", "run_python", {"code": corr_code}, timeout_s=20)
