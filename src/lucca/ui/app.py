@@ -23,7 +23,7 @@ os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 import psutil
 import zmq
 from PyQt6.QtCore import QMetaObject, QObject, QPoint, QRect, Qt, pyqtSignal
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction, QFont, QIcon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 from lucca.brain.prompt_builder import get_persona
@@ -130,6 +130,7 @@ class UIApplication:
             self.app = existing_app
         else:
             self.app = QApplication(sys.argv)
+        self.app.setFont(QFont("Segoe UI", 10))
         self.app.setQuitOnLastWindowClosed(False)
         self.app.setStyleSheet(CHRONO_TRIGGER_STYLE_SHEET)
 

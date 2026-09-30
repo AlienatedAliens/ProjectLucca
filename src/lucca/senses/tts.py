@@ -22,7 +22,7 @@ logger = structlog.get_logger(__name__)
 
 # Canonical Anime English Voice Blend Recipes
 VOICE_RECIPES: Final[dict[str, str]] = {
-    "asuka": "blend:0.70*af_sky+0.30*jf_alpha",
+    "lucca_inventor": "blend:0.70*af_sky+0.30*jf_alpha",
     "genki_heroine": "blend:0.70*af_sky+0.30*jf_alpha",
     "anime_heroine_expressive": "blend:0.70*af_bella+0.30*af_sarah",
     "energetic_dub": "blend:0.60*af_bella+0.40*jf_gongitsune",
@@ -258,7 +258,44 @@ class TTSWorker:
         s = speed if speed is not None else self.active_speed
         resolved_voice = self.resolve_voice_style(v_spec)
 
-        # Kokoro produces 24000 Hz float32 audio
+        # Dispatch to CosyVoice 3 Frontier Neural Engine if requested
+        is_cosyvoice = "cosyvoice" in str(raw_spec).lower() or raw_spec in ("inventor", "lucca_inventor")
+        if is_cosyvoice:
+            try:
+                from lucca.speech.cosyvoice_client import CosyVoice3Client, format_cosyvoice_instruct
+
+                emotion_inst = "steady, clear"
+                try:
+                    from lucca.core.affect import AffectTracker
+                    tracker = AffectTracker()
+                    latents = tracker.ode_machine.get_vocal_acoustic_latents()
+                    emotion_inst = str(latents.get("emotion_instruction", "steady, clear"))
+                except Exception as aff_exc:  # noqa: BLE001
+                    logger.debug("affect_latents_query_failed", error=str(aff_exc))
+
+                instruct = format_cosyvoice_instruct("Lucca", emotion_inst)
+                cv_client = CosyVoice3Client.get_instance()
+                cv_res = cv_client.synthesize(
+                    text=clean_text,
+                    instruct=instruct,
+                    speed=s,
+                    stream=True,
+                    direct_ring=True,
+                )
+
+                if cv_res.get("status") == "ok":
+                    samples_written = int(cv_res.get("samples", 0))
+                    dur_ms = float(cv_res.get("elapsed_ms", (time.perf_counter() - t0) * 1000.0))
+                    return TTSDonePayload(
+                        chunk_id=chunk_id,
+                        samples=samples_written,
+                        elapsed_ms=dur_ms,
+                        device="GPU",
+                    )
+            except Exception as cv_exc:  # noqa: BLE001
+                logger.warning("cosyvoice_synthesis_failed_fallback_kokoro", error=str(cv_exc))
+
+        # Kokoro produces 24000 Hz float32 audio (native or fallback)
         try:
             samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
         except Exception as exc:  # noqa: BLE001
@@ -267,20 +304,8 @@ class TTSWorker:
             fallback_voice = self.resolve_voice_style("af_sarah")
             samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
 
-        # Apply Asuka RVC Neural Voice Conversion if active voice is asuka
-        is_asuka = raw_spec in ("asuka", "asuka_langley", "rvc:asuka") or "asuka" in str(raw_spec).lower()
-        if is_asuka:
-            try:
-                from lucca.speech.rvc.converter import get_asuka_converter
-
-                conv = get_asuka_converter()
-                samples_f32 = conv.convert(samples_f32, orig_sr=sr, out_sr=sr)
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("asuka_rvc_convert_failed", error=str(exc))
-
         # Apply Anime Voice DSP Chain (D-AUD-16) post-engine.create, pre-int16
-        # Bypass DSP chain when Asuka RVC is active (preserves +6st calibrated timbre without double-pitching)
-        if not is_asuka and self.dsp_chain and self.dsp_chain.config.enabled:
+        if self.dsp_chain and self.dsp_chain.config.enabled:
             try:
                 samples_f32, sr = self.dsp_chain.apply_anime_dsp_chain(samples_f32, sr)
             except Exception as exc:  # noqa: BLE001

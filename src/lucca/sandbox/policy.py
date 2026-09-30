@@ -63,6 +63,7 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "clipboard_read": Risk.READ,
     "inbox_handoff": Risk.WRITE,
     "screenshot_capture": Risk.READ,
+    "self_history_search": Risk.READ,
 }
 
 

@@ -124,12 +124,15 @@ class SearchWebArgs(BaseModel):
     @classmethod
     def _coerce_queries(cls, data: object) -> object:
         if isinstance(data, dict):
-            if not data.get("query") and data.get("queries"):
-                qs = data["queries"]
-                if isinstance(qs, list) and qs:
+            qs = data.get("queries")
+            if isinstance(qs, str):
+                clean_q = qs.strip("[]'\" \t\r\n")
+                data["queries"] = [clean_q] if clean_q else []
+                if not data.get("query"):
+                    data["query"] = clean_q
+            elif isinstance(qs, list) and qs:
+                if not data.get("query"):
                     data["query"] = str(qs[0])
-                elif isinstance(qs, str):
-                    data["query"] = qs
         return data
 
 
