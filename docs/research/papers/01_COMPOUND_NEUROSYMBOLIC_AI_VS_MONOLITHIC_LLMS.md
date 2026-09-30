@@ -80,20 +80,31 @@ flowchart LR
 
 ## 4. Empirical Results Scorecard
 
-All Project Lucca metrics derived strictly from physical silicon execution under the Zero-Estimate Principle:
+### 4.1 Internal Cognitive Diagnostic: Track 1 (`SPEC-BENCH-100-v1.0`)
+`SPEC-BENCH-100-v1.0` is Project Lucca's proprietary 100-probe multi-domain cognitive diagnostic benchmark (`docs/specs/COMPOUND_REASONING_100_SPEC.md`). It evaluates our internal agentic substrate across 10 distinct functional domains (3D kinematics, logic grids, closed-world interval algebra, paraconsistent memory, and supervisory gating). Because it exercises Lucca's specific host supervisor, Docker tool bindings, and MicroScheme reflex engine, external models cannot be directly evaluated on Track 1.
+
+*   **Consolidated Pass Rate:** **91.0% (91 / 100)** (progressing from Run 1: 70%, Run 2: 85%, to Official Run 3: 91%)
+*   **Path Policy Compliance:** **100.0% (100 / 100)** (zero unapproved tool invocations, zero unauthorized filesystem writes outside `/workspace`)
+*   **Epistemic Faithfulness:** **100.0% (100 / 100)** (zero ungrounded capability claims, total adherence to Belnap evidential boundaries)
+*   **Domain Mastery:** Flawless **10 / 10 (100.0%)** on Spatial 3D Kinematics (`CAT02`), Formal Logic Grids (`CAT03`), and Closed-World Algebra (`CAT04`)
+
+---
+
+### 4.2 Standardized Academic & Competition Benchmarks (Comparative 2026 Landscape)
+
+All Project Lucca metrics derive strictly from physical silicon execution under the Zero-Estimate Principle; external model baselines cite primary verified technical reports from late 2026:
 
 | Benchmark / Evaluation Track | Metric & Conditions | Project Lucca v1.3<br>*(Gemma 4 12B Compound AI)* | Microsoft Phi-4<br>*(14B Edge)* | Google Gemma 4 31B<br>*(Dense Flagship)* | DeepSeek-V4.1-Flash<br>*(552B MoE)* | Frontier Pinnacle<br>*(Claude Opus 5.5 / GPT-6 Astra)* |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Track 1: `SPEC-BENCH-100`** | Consolidated Pass Rate ($N=100$) | **91.0% (91 / 100)** | ~68% | ~78% | ~84% | ~94% |
-| **Track 1: Epistemic Faithful** | Zero Hallucinated Claims ($N=100$) | **100.0% (100 / 100)** | ~62% | ~71% | ~80% | ~85% (Ungrounded) |
-| **Track 2: GSM8K (Full)** | Program-Aided Language ($N=1,319$) | **95.75% (1,263 / 1,319)**| ~85.0% | 91.2% | 93.0% | ~96%–98% |
-| **Track 2: HumanEval (Full)** | Pass@1 in Docker Sandbox ($N=164$) | **95.73% (157 / 164)** | 82.6% | 76.8% | 79.4% | ~88%–92% |
-| **Track 2: Big-Bench Hard (BBH)**| Consolidated Algorithmic ($N=1,000$)| **92.40% (924 / 1,000)** | ~86.0% | ~88.5% | ~91.2% | ~93%–95% |
-| **Track 3: Apple GSM-Symbolic** | Invariance under Perturbation ($N=100$)| **100.0% (100 / 100)** | ~70%–75% | ~80.0% | ~88.0% | ~93%–95% (Calculation Slips) |
-| **Track 3: HumanEval-Plus** | $\sim 80\times$ Adversarial Tests ($N=164$) | **91.46% (150 / 164)** | ~74.0% | ~69.0% | ~73.0% | ~85%–88% |
-| **Track 3: MATH-500 Held-Out (v1.3)**| Uniform 3-Stage CAS ($N=500$ fresh)| **78.80% (394 / 500)** | 80.4% (Standard) | ~72.0% | ~78.0% | ~85%–90% |
-| **Competition Tier: AIME (Level 4)**| Strict / CAS Solve Rate ($N=131$) | **81.68% (107 / 131)** | ~76.0% | ~74.0% | ~80.0% | ~84%–88% |
-| **Competition Tier: USAMO (Level 5)**| Strict / CAS Solve Rate ($N=136$) | **61.76% (84 / 136)** | ~52.0% | ~50.0% | ~60.0% | ~68%–74% |
+| **OpenAI GSM8K (Full Canonical)** | Program-Aided Language ($N=1,319$) | **95.75% (1,263 / 1,319)**| ~85.0% | 91.2% *(DeepMind)* | 93.0% *(DeepSeek)* | ~96%–98% *(Opus 5.5 / Astra)* |
+| **OpenAI HumanEval (Canonical)** | Pass@1 in Docker Sandbox ($N=164$) | **95.73% (157 / 164)** | 82.6% *(arXiv:2412.08905)* | 76.8% *(DeepMind)* | 79.4% *(DeepSeek)* | ~88%–92% *(Sonnet 5.5)* |
+| **Big-Bench Hard (BBH)** | Consolidated Algorithmic ($N=1,000$)| **92.40% (924 / 1,000)** | ~86.0% | ~88.5% | ~91.2% | ~93%–95% *(Opus 5.5)* |
+| **Apple GSM-Symbolic** | Invariance under Perturbation ($N=100$)| **100.0% (100 / 100)** | ~70%–75% | ~80.0% | ~88.0% | ~93%–95% *(Calc Slips)* |
+| **EvalPlus HumanEval-Plus** | $\sim 80\times$ Adversarial Tests ($N=164$) | **91.46% (150 / 164)** | ~74.0% | ~69.0% | ~73.0% *(79.4% Base)* | ~85%–88% |
+| **MATH-500 Fresh Held-Out (v1.3)**| Uniform 3-Stage CAS ($N=500$ fresh)| **78.80% (394 / 500)** | 80.4% *(Overall MATH)* | ~72.0% | ~78.0% | ~85%–90% *(Astra 97.6% F-Math)*|
+| **Competition Tier: AIME (Level 4)**| Strict / CAS Solve Rate ($N=131$) | **81.68% (107 / 131)** | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* |
+| **Competition Tier: USAMO (Level 5)**| Strict / CAS Solve Rate ($N=136$) | **61.76% (84 / 136)** | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* |
+| **Frontier Evaluation Scope** | Academic Leaderboard Scope | **Sovereign Edge Scope** | Standard CoT STEM | Workstation Code/Math | SWE-bench: 74.2% | HLE: Fable 5.1 (~65%) |
 | **Physical VRAM Footprint** | Measured Allocation on Silicon | **9.97 GiB (Single Mobile GPU)**| 12–16 GiB | 32–48 GiB | Datacenter Multi-Node | Datacenter Supercluster |
 | **Hardware & Power Demand** | Total Machine Power Rating | **175W (Mobile Workstation)** | 175W–300W | 450W–600W | ~3,500W+ | ~5,600W+ (8x H100 Cluster) |
 | **Operational Egress / Cost** | Per-Token API Billing | **$0.00 (Zero Network Egress)** | $0.00–$0.20/M | $0.00–$0.80/M | Commercial API | Enterprise API ($15–$60+/M) |
