@@ -139,7 +139,9 @@ All measurements were obtained directly from live execution on native workstatio
 | **v1.3.0: Tolerant AST Residual**| 100-problem empirical audit of empty code extraction                  | **0.0% residual (0 / 100)**, 95% CI: [0.00%, 3.70%] | **Verified** |
 | **v1.3.0: Neurosymbolic Recovery**| 2-tier preflight compiler + 2-turn execution feedback on failure traces| **85.11% recovery (40 / 47)** (27/30 design, 13/17 held-out) | **Verified** |
 | **v1.3.0: 3-Stage CAS Grader**   | String match $\to$ 5-pt random numeric $\to$ 2.0s worker thread SymPy CAS | **7 / 7 test gates PASSED (100% GREEN)** | **Verified** |
-| **v1.3.0: Fresh Held-Out 500**   | Unseen 500-problem competition suite (32K ctx + feedback loop)       | **74.20% strict / 78.80% SymPy CAS** (0.0% false accepts) | **Verified** |
+| **v1.3.0: Fresh Held-Out 500**   | Unseen 500-problem competition suite (32K ctx + feedback loop)       | **74.20% strict (371/500) / 78.80% CAS (394/500)** (0.0% false accepts, 81.7% L4 AIME) | **Verified** |
+| **v1.3.0: Persistent HTTP Pool** | Keepalive connection recycling (`max_keepalive_connections=10`)       | **285.2 ms** Turn-2 TTFT (0 socket leaks, 24/24 race tests pass) | **Verified** |
+| **v1.3.0: Closing BBH Regression**| Full 4-subset algorithmic regression test battery                    | **97.5% passed (39 / 40)** in 277.8s (10/10 Boolean, 10/10 Tracking, 10/10 Dyck) | **Verified** |
 
 ---
 
