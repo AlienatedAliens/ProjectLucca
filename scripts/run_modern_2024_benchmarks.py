@@ -868,6 +868,8 @@ def run_math500_pal(
                 lines = [l.strip() for l in math_out.strip().splitlines() if l.strip()]
                 if lines:
                     pred_str = lines[-1]
+                    if pred_str.lower() in ("none", "null") and len(lines) >= 2:
+                        pred_str = lines[-2]
             elif feedback and exec_res.exit_code != 0 and (exec_res_stderr or math_out):
                 # 2-Turn Interactive Execution Feedback (Self-Correction on Traceback)
                 feedback_triggered = True
@@ -895,6 +897,8 @@ def run_math500_pal(
                         lines2 = [l.strip() for l in exec_res2.content.strip().splitlines() if l.strip()]
                         if lines2:
                             pred_str = lines2[-1]
+                            if pred_str.lower() in ("none", "null") and len(lines2) >= 2:
+                                pred_str = lines2[-2]
                             code = corr_code
                             exec_res_exit = 0
                             exec_res_stderr = ""

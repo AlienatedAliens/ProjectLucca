@@ -309,6 +309,15 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
+            # 4b-1. Rewrite expr.solve(...) -> sp.solve(expr, ...)
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "solve":
+                if not (isinstance(node.func.value, ast.Name) and node.func.value.id in ("sp", "sympy")):
+                    caller_expr = node.func.value
+                    node.func = ast.Attribute(value=ast.Name(id="sp", ctx=ast.Load()), attr="solve", ctx=ast.Load())
+                    node.args.insert(0, caller_expr)
+                    modified_ast = True
+
+            # 4b-2. Pre-flight repair for diff wrt composite expressions
             is_diff = False
             if isinstance(node.func, ast.Name) and node.func.id == "diff":
                 is_diff = True

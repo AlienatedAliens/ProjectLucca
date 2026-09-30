@@ -374,13 +374,22 @@ class SafeFileTool:
                     and isinstance(last_expr.func, ast.Name)
                     and last_expr.func.id == "print"
                 ):
-                    tree.body[-1] = ast.Expr(
-                        value=ast.Call(
-                            func=ast.Name(id="print", ctx=ast.Load()),
-                            args=[last_expr],
-                            keywords=[],
+                    if isinstance(last_expr, ast.Call):
+                        wrapper = ast.parse(
+                            "_res = " + ast.unparse(last_expr) + "\n"
+                            "if _res is not None:\n"
+                            "    print(_res)\n"
+                        ).body
+                        tree.body.pop()
+                        tree.body.extend(wrapper)
+                    else:
+                        tree.body[-1] = ast.Expr(
+                            value=ast.Call(
+                                func=ast.Name(id="print", ctx=ast.Load()),
+                                args=[last_expr],
+                                keywords=[],
+                            )
                         )
-                    )
             ast.fix_missing_locations(tree)
             executable_code = ast.unparse(tree)
         except Exception as exc:
