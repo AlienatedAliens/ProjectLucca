@@ -42,7 +42,7 @@ class LLMSettings(BaseModel):
     Env override: LUCCA_LLM__<FIELD> (e.g. LUCCA_LLM__MODEL, LUCCA_LLM__CHAT_TEMPLATE_FILE=).
     """
 
-    mode: Literal["audio", "transcript", "vision"] = "transcript"
+    mode: Literal["audio", "transcript", "vision"] = "vision"
     host: str = "127.0.0.1"
     port: int = 8080
     ctx: int = 32768
@@ -64,7 +64,7 @@ class LLMSettings(BaseModel):
     # Canonical brain per D-BRAIN-05 v2 (GGUF-embedded chat template via
     # --jinja). The previous brain is deprecated and retained for rollback only.
     model: str = "llm/gemma-4-12b-heretic-Q6_K.gguf"
-    mmproj: str = "llm/mmproj-ultravox-v0_5-llama-3_1-8b-Q8_0.gguf"
+    mmproj: str = "llm/gemma-4-12b-heretic-mmproj-f16.gguf"
     text_model: str = "llm/gemma-4-12b-heretic-Q6_K.gguf"
     # llama-server binary, relative to LUCCA_HOME or absolute. Forked builds
     # (e.g. PrismML ternary kernels) are selected here, never by code.

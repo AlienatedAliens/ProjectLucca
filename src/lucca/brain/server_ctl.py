@@ -336,15 +336,32 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         cmd.extend(["--chat-template", cfg.chat_template])
     # else: rely on the template embedded in the GGUF (--jinja already set)
 
-    if mmproj_gguf.exists():
-        cmd.extend(["--mmproj", str(mmproj_gguf)])
-    elif cfg.mode in ("audio", "vision") or "gemma" in model_gguf.name.lower():
-        models_dir = home_dir / "models" / "llm"
-        if models_dir.exists():
-            for p in models_dir.glob("*mmproj*.gguf"):
-                if "gemma" in model_gguf.name.lower() and "gemma" in p.name.lower():
-                    cmd.extend(["--mmproj", str(p)])
-                    break
+    # Multimodal projector matching:
+    # Only attach --mmproj in audio or vision mode, and ensure architectural compatibility
+    # (e.g. Gemma 4 models n_embd=3840 must NEVER load LLaMA Ultravox n_embd=4096 mmproj)
+    matched_mmproj: Path | None = None
+    if cfg.mode in ("audio", "vision"):
+        if "gemma" in model_gguf.name.lower():
+            if mmproj_gguf.exists() and "gemma" in mmproj_gguf.name.lower():
+                matched_mmproj = mmproj_gguf
+            else:
+                models_dir = home_dir / "models" / "llm"
+                if models_dir.exists():
+                    for p in models_dir.glob("*gemma*mmproj*.gguf"):
+                        matched_mmproj = p
+                        break
+                    if not matched_mmproj:
+                        for p in models_dir.glob("*mmproj*gemma*.gguf"):
+                            matched_mmproj = p
+                            break
+        elif "ultravox" in model_gguf.name.lower() or "llama" in model_gguf.name.lower():
+            if mmproj_gguf.exists() and ("ultravox" in mmproj_gguf.name.lower() or "llama" in mmproj_gguf.name.lower()):
+                matched_mmproj = mmproj_gguf
+        elif mmproj_gguf.exists():
+            matched_mmproj = mmproj_gguf
+
+    if matched_mmproj is not None and matched_mmproj.exists():
+        cmd.extend(["--mmproj", str(matched_mmproj)])
 
     return cmd
 

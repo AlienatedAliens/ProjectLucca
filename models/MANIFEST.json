@@ -57,6 +57,13 @@
       "source_repo": "prism-ml/Ternary-Bonsai-2-27B-gguf",
       "source_filename": "Ternary-Bonsai-2-27B-PQ2_0.gguf",
       "status": "CANDIDATE — brain bake-off 2026-09-21; arch=qwen35; REQUIRES PrismML-Eng/llama.cpp fork (app/llama-server-prism, build 10709) — stock server rejects PQ2_0; not ratified (D-BRAIN-05 unchanged)"
+    },
+    "llm/gemma-4-12b-heretic-mmproj-f16.gguf": {
+      "sha256": "2e269f906eb15169ee9ce880ea649bd6d42d4964c21f8ede10d0d0efc738bcbb",
+      "size_bytes": 175115840,
+      "source_repo": "culturerevolt/gemma-4-12b-heretic-abliterated",
+      "source_filename": "gemma-4-12b-heretic-mmproj-f16.gguf",
+      "status": "PRIMARY — multimodal vision adapter for Gemma-4 12B (D-BRAIN-05, WO-24)"
     }
   }
 }
