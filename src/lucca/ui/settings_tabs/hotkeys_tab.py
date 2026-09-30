@@ -46,7 +46,10 @@ class HotkeysTab(QWidget):
         self.combo_ptt_key.addItem("Spacebar", "space")
 
         current_key = getattr(self.dialog, "current_ptt_key", "alt_gr")
-        idx = self.combo_ptt_key.findData(current_key)
+        norm_key = current_key.replace("-", "_").lower() if current_key else "alt_gr"
+        idx = self.combo_ptt_key.findData(norm_key)
+        if idx < 0:
+            idx = self.combo_ptt_key.findData(current_key)
         if idx >= 0:
             self.combo_ptt_key.setCurrentIndex(idx)
         f_ptt.addRow("Primary Push-to-Talk Key:", self.combo_ptt_key)

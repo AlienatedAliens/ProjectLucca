@@ -132,7 +132,7 @@ class AudioSettings(BaseModel):
 
 
 class PTTSettings(BaseModel):
-    key: str = "alt-gr"
+    key: str = "alt_gr"
     mode: Literal["hold", "toggle"] = "hold"
     max_seconds: float = 29.5
     swallow: bool = False

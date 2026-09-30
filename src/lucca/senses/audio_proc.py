@@ -77,11 +77,21 @@ class AudioProcess:
         self.output_stream: sd.OutputStream | None = None
 
         # PTT (Right-Ctrl or Alt-Gr)
+        # Canonical persona.toml takes precedence over default config.toml
+        try:
+            from lucca.brain.prompt_builder import get_persona  # noqa: PLC0415
+
+            persona_key = get_persona().ptt_key
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("audio_proc_read_persona_ptt_key_failed", error=str(exc))
+            persona_key = None
+        init_ptt_key = persona_key or self.config.ptt.key
+
         self.ptt = PTTListener(
             on_pressed=self._on_ptt_pressed,
             on_released=self._on_ptt_released,
             max_duration_s=self.config.ptt.max_seconds,
-            key_name=self.config.ptt.key,
+            key_name=init_ptt_key,
         )
 
     def _on_ptt_pressed(self, ts_ns: int) -> None:
