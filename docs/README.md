@@ -49,7 +49,28 @@ The following documents form the **authoritative, active documentation corpus** 
 | [`docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](./specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) | **Autobiographical Memory Specification**: Recovered companion goals, Rung A1 self-model, `ASSISTANT_ACTION` vs `ASSISTANT_UTTERANCE` provenance split, and evidence-gated belief revisions. |
 | [`docs/adr/0009_audio_concurrency_contract.md`](./adr/0009_audio_concurrency_contract.md) | **Audio Concurrency Contract**: Shared-memory ring buffer concurrency, push-to-talk state transitions, and sub-50ms barge-in abort mechanics. |
 
-### 2.2 Operational Logs & Release Verification
+### 2.2 Subsystem Reference Manuals (`docs/subsystems/`)
+| Document | Subsystem & Scope |
+| :--- | :--- |
+| [`docs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md`](./subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md) | **Core Orchestrator & Epistemic Cascade**: Three-tier execution, Belnap FOUR bilattice evaluator, speculative BDI validator (<35us), and 8-substrate search cascade. |
+| [`docs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md`](./subsystems/02_NEURAL_BRAIN_AND_STREAMING.md) | **Neural Brain & Streaming Demuxer**: Gemma-4 12B Heretic Q6_K on RTX 5080 Laptop GPU, Prompt Frontier Suffix (8.58x prefill speedup), and sub-50ms barge-in slot release. |
+| [`docs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md`](./subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md) | **Symbolic Reasoning & Formal Verification**: MicroScheme LISP engine (1,000 gas limit), Z3 SMT formal prover (SAT, contingency, path proofs), Babble/Stitch e-graph macro synthesis, and safe rule lifecycle. |
+| [`docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md`](./subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md) | **Deontic Sandbox & Structural Compiler**: Persistent Docker RPC daemon (6.87ms P50), stdin code streaming over Linux ARG_MAX, 4-stage tolerant AST code extractor (0.0% empty residual), Tier 1 preflight compiler, 2-turn feedback loop (85.11% recovery), and Dimension 7B output supervision. |
+| [`docs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md`](./subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md) | **Cryptographic Memory & Bi-Temporal Epistemology**: Hybrid SQLite WAL + sqlite-vec (Intel NPU) + FTS5 BM25, cryptographic provenance envelopes, grounding eligibility segregation (D-MEM-04), and bi-temporal supersession. |
+| [`docs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md`](./subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md) | **Voice Senses & Full-Duplex Audio Pipeline**: Zero-copy shared-memory ring buffers, faster-whisper ASR (CUDA float16), acoustic hygiene filters, Kokoro-82M ONNX TTS, anime formant filter DSP, and sub-50ms barge-in WASAPI abort. |
+| [`docs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md`](./subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md) | **Cognitive Routing & Split-Conformal Calibration**: Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage >= 0.95), and replay-protected HMAC confirmation nonces. |
+| [`docs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md`](./subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md) | **Desktop UI, Diagnostics & Visual Pipeline Debugger**: Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765. |
+
+### 2.3 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)
+| Document | Title & Academic Venue Focus |
+| :--- | :--- |
+| [`docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md`](./research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md) | **Paper 1 (JAIR / NeurIPS 2026)**: *Compound Neurosymbolic AI vs. Monolithic LLMs: Empirical Evaluation of a Sovereign 12B Edge Agent on Formal Multi-Domain Cognition and Competition Mathematics.* |
+| [`docs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md`](./research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md) | **Paper 2 (IEEE ICASSP / MMSys 2026)**: *Sub-50ms Barge-In and Zero-Copy Ring Buffers for Sovereign Full-Duplex Voice Agents on Consumer Edge Silicon.* |
+| [`docs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md`](./research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) | **Paper 3 (AIJ / KR 2026)**: *Bounded Epistemic Bilattices and Cryptographic Envelopes: Enforcing Non-Confabulation in Sovereign Local Memory.* |
+| [`docs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md`](./research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md) | **Paper 4 (ACM POPL / ASE 2026)**: *Compiled Muscle Memory: E-Graph Anti-Unification and SMT-Guarded Rule Induction in Autonomous Desktop Companions.* |
+| [`docs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md`](./research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md) | **Paper 5 (IEEE S&P / USENIX Security 2026)**: *Split-Conformal Abstention and Speculative BDI Validation for Hardened Local Tool Execution.* |
+
+### 2.4 Operational Logs & Release Verification
 | Document | Purpose |
 | :--- | :--- |
 | [`docs/V2_ACTION_LOG.md`](./V2_ACTION_LOG.md) | **v1.0 Action Log & Bug Tracker**: Consolidated catalog of all findings extracted from WO-8 through WO-15 audits, documenting 19 resolved items (8 BUG_V1, 6 DOC_DRIFT, 5 TEST_GAP) and 12 deferred items. |

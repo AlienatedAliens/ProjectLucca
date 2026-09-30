@@ -68,6 +68,17 @@
    - [8.2 Frozen Evaluation Regression Harness (D-EVAL-01)](#82-frozen-evaluation-regression-harness-d-eval-01)
    - [8.3 Diagnostic & Administrative CLI (`lucca-admin`)](#83-diagnostic--administrative-cli-lucca-admin)
    - [8.4 Complete Status Verification of Canonical Decisions](#84-complete-status-verification-of-canonical-decisions)
+9. [Standalone Desktop Packaging & System Tray Deployment Topology](#9-standalone-desktop-packaging--system-tray-deployment-topology)
+   - [9.1 Frozen Distribution Hierarchy (`dist/Lucca/`)](#91-frozen-distribution-hierarchy-distlucca)
+   - [9.2 Dual-Mode Console & GUI Lifecycle](#92-dual-mode-console--gui-lifecycle)
+   - [9.3 Command-Line Interface (CLI) Capabilities](#93-command-line-interface-cli-capabilities)
+   - [9.4 Windows System Tray Companion Lifecycle](#94-windows-system-tray-companion-lifecycle)
+10. [Master Subsystem Architecture Maps & Reference Corpus](#10-master-subsystem-architecture-maps--reference-corpus)
+    - [10.1 End-to-End System Dataflow & Subsystem Topology](#101-end-to-end-system-dataflow--subsystem-topology)
+    - [10.2 Two-Tier Neurosymbolic Execution & Compilation Lifecycle](#102-two-tier-neurosymbolic-execution--compilation-lifecycle)
+    - [10.3 Belnap Paraconsistent Epistemic Bilattice & Provenance Envelopes](#103-belnap-paraconsistent-epistemic-bilattice--provenance-envelopes)
+    - [10.4 Dedicated Subsystem Reference Manuals Corpus (`docs/subsystems/`)](#104-dedicated-subsystem-reference-manuals-corpus-docssubsystems)
+    - [10.5 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)](#105-frontier-research--engineering-papers-corpus-docsresearchpapers)
 
 ---
 
@@ -624,3 +635,166 @@ Project Lucca operates as a resident desktop companion integrated into the Windo
    - ✕ **Quit Lucca:** Initiates an orderly, non-blocking multi-process shutdown broadcasting `sys.shutdown`.
 2. **Background Minimization & Restoration:** Closing the floating companion sprite window intercepts `QCloseEvent` and hides the avatar to the background system tray with a non-intrusive notification bubble. Clicking or double-clicking the system tray icon immediately restores and focuses Lucca.
 3. **Dynamic Cognitive Tooltip:** Live cognitive state transitions (`idle`, `listening`, `thinking`, `speaking`, `offline`) update the system tray icon tooltip in real time (e.g., `Project Lucca — Desktop Companion (Thinking)`).
+
+---
+
+## 10. Master Subsystem Architecture Maps & Reference Corpus
+
+To maintain structural clarity and provide single sources of truth across Project Lucca's 8 core subsystems and 5 frontier research programs, this section maps out the comprehensive end-to-end dataflow, state machines, and dedicated documentation corpus.
+
+### 10.1 End-to-End System Dataflow & Subsystem Topology
+
+```mermaid
+flowchart TD
+    subgraph SENSES["Subsystem 06: Voice Senses & Full-Duplex Audio"]
+        MIC["Microphone WASAPI Ingest"] --> RING_IN["Capture Ring Buffer (16kHz PCM)"]
+        RING_IN --> VAD["Neural Silero VAD (CPU)"]
+        VAD --> ASR["Faster-Whisper (CUDA float16)"]
+        ASR --> NORM["Acoustic Hygiene & Slang Normalizer"]
+    end
+
+    subgraph ROUTER["Subsystem 07: Intent Routing & Conformal Calibration"]
+        NORM --> HEUR["Deterministic Heuristic Regex (<1ms)"]
+        HEUR --> EMBED["Intel NPU OpenVINO Embedding Centroid"]
+        EMBED --> CONF["Non-Parametric Split-Conformal Abstention"]
+        CONF --> TIERS{"Execution Tier Gating"}
+    end
+
+    subgraph ORCH["Subsystem 01: Core Orchestration & Cascade"]
+        TIERS -->|"Tier 1: Emergency (<150ms)"| REFLEX["Canned Reflex Dispatch"]
+        TIERS -->|"Tier 2 / 3 Deliberation"| TURN_PIPE["Unified Turn Pipeline"]
+        TURN_PIPE --> CASCADE["8-Substrate Epistemic Cascade"]
+        CASCADE --> BDI["Speculative BDI Invariant Gate (<35us)"]
+        BDI --> CONCERT["Concert Layer Arbitration"]
+    end
+
+    subgraph BRAIN["Subsystem 02: Neural Brain Deliberation"]
+        CONCERT --> SUFFIX["Prompt Frontier Suffix Injection"]
+        SUFFIX --> LLM["llama-server.exe (Gemma-4 12B Q6_K, 32K Ctx, Q8_0 KV)"]
+        LLM --> DEMUX["Streaming Demuxer & Token Supervisor (Dim 7B)"]
+    end
+
+    subgraph REAS["Subsystem 03: Symbolic Reasoning & Formal Proofs"]
+        CONCERT <--> SCHEME["MicroScheme LISP Interpreter (Gas Metered)"]
+        SCHEME --> Z3["Microsoft Z3 SMT Formal Theorem Prover"]
+        SCHEME --> EGRAPH["Babble/Stitch E-Graph Macro Synthesis"]
+    end
+
+    subgraph SANDBOX["Subsystem 04: Deontic Sandbox & Structural Compiler"]
+        DEMUX -->|"Synthesized Code"| AST_EXTRACT["4-Stage Tolerant AST Extractor"]
+        AST_EXTRACT --> PREFLIGHT["Tier 1 Compiler Preflight AST Normalizer"]
+        PREFLIGHT --> DOCKER_RPC["Persistent Docker RPC Worker (7.8ms P50)"]
+        DOCKER_RPC -->|"Traceback / Non-Zero Exit"| FEEDBACK["Tier 2 Execution Feedback Loop (Cap <= 2)"]
+        FEEDBACK -->|"Diagnostic Stderr Payload"| LLM
+        DOCKER_RPC -->|"Verified Output"| CAS_EVAL["3-Stage CAS Mathematical Grader"]
+    end
+
+    subgraph MEMORY["Subsystem 05: Cryptographic Memory & Epistemology"]
+        CAS_EVAL --> MEM_COMMIT["Memory Commit Service"]
+        MEM_COMMIT --> BILATTICE["Belnap FOUR Paraconsistent Bilattice"]
+        BILATTICE --> PROV["Cryptographic Provenance Envelope (HMAC/Ed25519)"]
+        PROV --> SQLITE["SQLite WAL + sqlite-vec (NPU) + FTS5 BM25"]
+    end
+
+    subgraph AUDIO_OUT["Speech Output & Barge-In"]
+        DEMUX -->|"Spoken Tokens"| KOKORO["Kokoro-82M ONNX TTS (CPU)"]
+        KOKORO --> FORMANT["Anime Formant Filter DSP Chain"]
+        FORMANT --> RING_OUT["Playback Ring Buffer (24kHz PCM)"]
+        RING_OUT --> SPEAKER["WASAPI Speaker Playback"]
+        VAD -.->|"Barge-In Interrupt (<50ms)"| RING_OUT
+    end
+
+    subgraph UI["Subsystem 08: Desktop UI & Visual Debugger"]
+        TURN_PIPE --> TELEMETRY["Chrono Trigger HUD & Telemetry Bus"]
+        TELEMETRY --> OVERLAY["PyQt6 Companion Avatar & Quick-Chat"]
+        TELEMETRY --> VIZ["Visual Pipeline Debugger (Port 8765, 9 Tanks)"]
+    end
+```
+
+### 10.2 Two-Tier Neurosymbolic Execution & Compilation Lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant LLM as Gemma 4 12B (Neural Boiler)
+    participant AST as Tolerant AST Extractor
+    participant PFL as Tier 1 Preflight Compiler
+    participant RPC as Docker Sandbox RPC
+    participant FDB as Tier 2 Feedback Governor
+
+    LLM->>AST: Raw Markdown Token Stream (Fenced / Unfenced / Trailing)
+    Note over AST: 4-Stage Extraction Cascade<br/>Token-level Caret/Docstring Repair
+    AST->>PFL: Syntactically Valid Python AST
+    Note over PFL: Sub-millisecond AST Rewrites:<br/>expr.solve(x) -> sp.solve(expr, x)<br/>sp.diff(expr, x/h) Dummy Symbol Sub<br/>Import dir(sympy) Filtering
+    PFL->>RPC: Optimized Script via Stdin Stream
+    alt Clean Execution (Exit Code 0)
+        RPC-->>FDB: Stdout: Clean Answer Output
+        FDB-->>LLM: Proceed to Answer Verification & Grounded Narration
+    else Runtime Error / Traceback (Non-Zero Exit)
+        RPC-->>FDB: Stderr: Traceback (e.g. KeyError, AttributeError)
+        Note over FDB: Format Diagnostic Feedback Prompt<br/>Cap <= 2 Rounds
+        FDB->>LLM: In-Flight Traceback Injection (Turn 2)
+        LLM->>AST: Corrected Script Synthesis
+        AST->>PFL: Re-Sanitize & Re-Compile
+        PFL->>RPC: Execute Corrected Script via Stdin
+        RPC-->>FDB: Stdout: Rescued Answer Output
+        FDB-->>LLM: Verified Answer Output (85.11% Recovery Rate)
+    end
+```
+
+### 10.3 Belnap Paraconsistent Epistemic Bilattice & Provenance Envelopes
+
+```mermaid
+stateDiagram-v2
+    [*] --> IngestUtterance: User Input Arrives
+    IngestUtterance --> SubstrateCascade: Query Knowledge Need
+
+    state SubstrateCascade {
+        [*] --> Sub0_Telemetry
+        Sub0_Telemetry --> Sub1_Workspace: Not In Telemetry
+        Sub1_Workspace --> Sub2_VectorMemory: Not In Codebase AST
+        Sub2_VectorMemory --> Sub3_WebFloor: Not In Local Memory
+        Sub3_WebFloor --> Sub4_Abstention: Web Inaccessible / Disabled
+        Sub4_Abstention --> [*]: Yield Epistemic Abstention (BOT)
+    }
+
+    state EvidentialBilattice {
+        BOT: Unknown (⊥) - Honest Abstention
+        TRUE: Grounded True (T) - Verified Tool / Fact
+        FALSE: Grounded False (F) - Falsified Assertion
+        BOTH: Contradiction (B) - Epistemic Conflict
+    }
+
+    SubstrateCascade --> EvidentialBilattice: Evidence Mapping
+    EvidentialBilattice --> ProvenanceEnvelope: Signed Verification
+    ProvenanceEnvelope --> SQLiteStore: Cryptographic Storage (Ed25519)
+    SQLiteStore --> [*]: Commit Completed
+```
+
+### 10.4 Dedicated Subsystem Reference Manuals Corpus (`docs/subsystems/`)
+
+The deep-dive internal mechanics, API schemas, error codes, and thread topologies of every subsystem are exhaustively detailed in dedicated reference manuals:
+
+| Manual | Subsystem | Core Architectural Focus | Key File Locations |
+| :--- | :--- | :--- | :--- |
+| [01 Reference](./subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md) | **Core Orchestrator & Cascade** | Three-tier routing, unified turn pipeline, speculative BDI validation (<35μs), Belnap $\mathcal{FOUR}$ bilattice, and 8-substrate search cascade. | `src/lucca/core/orchestrator.py`, `turn_pipeline.py`, `cascade.py` |
+| [02 Reference](./subsystems/02_NEURAL_BRAIN_AND_STREAMING.md) | **Neural Brain & Streaming Demuxer** | Gemma-4 12B Heretic Q6_K on RTX 5080 Laptop GPU, Prompt Frontier Suffix (8.58x KV speedup), 32K context allocation, and streaming demuxer. | `src/lucca/brain/llm_client.py`, `streaming_demuxer.py` |
+| [03 Reference](./subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md) | **Symbolic Reasoning & Formal Proofs** | MicroScheme LISP interpreter (1,000 gas limit), Microsoft Z3 SMT theorem prover (SAT/contingency/path proofs), and Babble/Stitch e-graph macro synthesis. | `src/lucca/reasoning/scheme/`, `smt_verifier.py`, `egraph.py` |
+| [04 Reference](./subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md) | **Deontic Sandbox & Structural Compiler** | Persistent Docker RPC daemon (7.8ms P50), stdin code streaming over `ARG_MAX`, 4-stage tolerant AST extractor (0.0% empty residual), Tier 1 preflight compiler, 2-turn feedback loop (85.11% recovery), and Dimension 7B output supervisor. | `src/lucca/sandbox/rpc.py`, `ast_sanitizer.py`, `code_preflight.py`, `output_supervisor.py` |
+| [05 Reference](./subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md) | **Cryptographic Memory & Epistemology** | SQLite WAL + `sqlite-vec` (Intel NPU) + FTS5 BM25, cryptographic provenance envelopes, grounding eligibility segregation (D-MEM-04), and bi-temporal supersession. | `src/lucca/memory/store.py`, `retrieval.py`, `provenance.py` |
+| [06 Reference](./subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md) | **Voice Senses & Full-Duplex Audio** | Zero-copy shared-memory ring buffers, faster-whisper ASR (CUDA float16), acoustic hygiene filters, Kokoro-82M ONNX TTS, anime formant filter DSP, and sub-50ms barge-in WASAPI abort. | `src/lucca/senses/audio.py`, `ring_buffer.py`, `asr.py`, `tts.py`, `vad.py` |
+| [07 Reference](./subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md) | **Routing & Conformal Calibration** | Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage $\ge 0.95$), and replay-protected HMAC confirmation nonces. | `src/lucca/router/heuristic.py`, `embed.py`, `calibration.py` |
+| [08 Reference](./subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md) | **Desktop UI & Visual Pipeline Debugger** | Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765. | `src/lucca/ui/companion_sprite.py`, `settings_dialog.py`, `scripts/serve_pipeline_debugger.py` |
+
+### 10.5 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)
+
+Project Lucca's theoretical advances, empirical benchmarks, and system innovations are formalized into five publication-ready research papers:
+
+| Paper ID | Target Venue | Paper Title & Theoretical Contribution |
+| :--- | :--- | :--- |
+| **Paper 1** | **JAIR / NeurIPS 2026** | [Compound Neurosymbolic AI vs. Monolithic LLMs](./research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md)<br>Empirical evaluation of a sovereign 12B edge agent on formal multi-domain cognition, Olympiad competition mathematics (MATH-500: 75.80%), and adversarial code synthesis (HumanEval-Plus: 91.46%). |
+| **Paper 2** | **IEEE ICASSP / MMSys 2026** | [Sub-50ms Barge-In and Zero-Copy Ring Buffers](./research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md)<br>Acoustic loopback optimization, zero-copy shared memory architecture, and sub-50ms WASAPI interruption cancellation on consumer edge silicon. |
+| **Paper 3** | **AIJ / KR 2026** | [Paraconsistent Bilattices and Cryptographic Envelopes](./research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md)<br>Bounded epistemic bilattices, Belnap $\mathcal{FOUR}$ paraconsistent truth tracking, cryptographic tamper-proofing, and autobiographical memory split. |
+| **Paper 4** | **ACM POPL / ASE 2026** | [E-Graph Equality Saturation and SMT-Guarded Rule Induction](./research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md)<br>Compiled muscle memory: syntactic anti-unification over SQLite execution traces into verified MicroScheme LISP macros guarded by Microsoft Z3 SMT proofs. |
+| **Paper 5** | **IEEE S&P / USENIX Security 2026** | [Split-Conformal Abstention and Speculative BDI Verification](./research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md)<br>Non-parametric split-conformal coverage bounds ($\ge 0.95$), sub-35μs speculative BDI deontic validation, and streaming token supervision against social engineering attacks. |
+

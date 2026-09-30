@@ -4,7 +4,6 @@ Spec 02 (ClockPort), F-ARCH-102, F-ARCH-107
 """
 
 import time
-from lucca.ports import ClockPort
 
 
 class SystemClock:

@@ -1,0 +1,140 @@
+[
+  {
+    "index": 30,
+    "problem_idx": 30,
+    "predicted": "-sqrt(3)/3",
+    "expected": "-\\frac{\\sqrt{3}}{3}"
+  },
+  {
+    "index": 35,
+    "problem_idx": 35,
+    "predicted": "-sqrt(3)/2",
+    "expected": "-\\frac{\\sqrt{3}}{2}"
+  },
+  {
+    "index": 41,
+    "problem_idx": 41,
+    "predicted": "10*sqrt(3)",
+    "expected": "10\\sqrt3"
+  },
+  {
+    "index": 57,
+    "problem_idx": 57,
+    "predicted": "sqrt(6)/3",
+    "expected": "\\frac{\\sqrt{6}}{3}"
+  },
+  {
+    "index": 91,
+    "problem_idx": 91,
+    "predicted": "3*pi/4",
+    "expected": "\\frac{3 \\pi}{4}"
+  },
+  {
+    "index": 93,
+    "problem_idx": 93,
+    "predicted": "4.08248290463863",
+    "expected": "\\frac{5 \\sqrt{6}}{3}"
+  },
+  {
+    "index": 137,
+    "problem_idx": 137,
+    "predicted": "3.141592653589793",
+    "expected": "\\pi"
+  },
+  {
+    "index": 139,
+    "problem_idx": 139,
+    "predicted": "5*sqrt(42)/27",
+    "expected": "\\frac{5\\sqrt{42}}{27}"
+  },
+  {
+    "index": 179,
+    "problem_idx": 179,
+    "predicted": "180*atan(tan(pi/9) + 2*tan(5*pi/18))/pi",
+    "expected": "70"
+  },
+  {
+    "index": 213,
+    "problem_idx": 213,
+    "predicted": "sqrt(3)/2",
+    "expected": "\\frac{\\sqrt{3}}{2}"
+  },
+  {
+    "index": 235,
+    "problem_idx": 235,
+    "predicted": "-2 + 2*sqrt(3)",
+    "expected": "2\\sqrt{3}-2"
+  },
+  {
+    "index": 236,
+    "problem_idx": 236,
+    "predicted": "96.0*sqrt(3)",
+    "expected": "96\\sqrt{3}"
+  },
+  {
+    "index": 314,
+    "problem_idx": 314,
+    "predicted": "32*pi/81",
+    "expected": "\\frac{32\\pi}{81}"
+  },
+  {
+    "index": 413,
+    "problem_idx": 413,
+    "predicted": "10*sqrt(2)",
+    "expected": "10\\sqrt 2"
+  },
+  {
+    "index": 435,
+    "problem_idx": 435,
+    "predicted": "-16*x**4 + x**2 + 2*x + 1",
+    "expected": "(-4x^2+x+1)(4x^2+x+1)"
+  },
+  {
+    "index": 442,
+    "problem_idx": 442,
+    "predicted": "sqrt(2)",
+    "expected": "\\sqrt2"
+  },
+  {
+    "index": 446,
+    "problem_idx": 446,
+    "predicted": "Poly(x**4 - 4*x**3 + 5*x**2 + 2*x - 1, x, domain='ZZ')",
+    "expected": "x^4 - 4x^3 + 5x^2 + 2x - 1"
+  },
+  {
+    "index": 449,
+    "problem_idx": 449,
+    "predicted": "6*sqrt(10)/7",
+    "expected": "\\frac{6\\sqrt{10}}{7}"
+  },
+  {
+    "index": 462,
+    "problem_idx": 462,
+    "predicted": "x/7 + 2/7",
+    "expected": "\\frac{x+2}{7}"
+  },
+  {
+    "index": 477,
+    "problem_idx": 477,
+    "predicted": "-pi/3",
+    "expected": "-\\frac{\\pi}{3}"
+  },
+  {
+    "index": 479,
+    "problem_idx": 479,
+    "predicted": "1.5*x**2",
+    "expected": "\\frac{3x^2}{2}"
+  },
+  {
+    "index": 486,
+    "problem_idx": 486,
+    "predicted": "3*pi/4",
+    "expected": "\\frac{3 \\pi}{4}"
+  },
+  {
+    "index": 497,
+    "problem_idx": 497,
+    "predicted": "2*sqrt(2) + 4",
+    "expected": "4+2\\sqrt{2}"
+  }
+]

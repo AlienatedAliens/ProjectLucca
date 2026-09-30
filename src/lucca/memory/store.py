@@ -4,7 +4,6 @@ Spec 04 §1-§8, ADR-002, ADR-006
 """
 
 import datetime
-import json
 import sqlite3
 import threading
 import time

@@ -138,7 +138,8 @@ All measurements were obtained directly from live execution on native workstatio
 | **Track 3: MATH-500 in PAL Mode**| AMC/AIME competition math via Docker Python/SymPy (v1.2 baseline)    | **77.0% strict / 87.0% SymPy** (69.6% L5) in 1,149.7s | **Verified** |
 | **v1.3.0: Tolerant AST Residual**| 100-problem empirical audit of empty code extraction                  | **0.0% residual (0 / 100)**, 95% CI: [0.00%, 3.70%] | **Verified** |
 | **v1.3.0: Neurosymbolic Recovery**| 2-tier preflight compiler + 2-turn execution feedback on failure traces| **85.11% recovery (40 / 47)** (27/30 design, 13/17 held-out) | **Verified** |
-| **v1.3.0: 3-Stage CAS Grader**   | String match $\to$ 5-pt random numeric $\to$ 2.0s worker thread SymPy CAS | **6 / 6 test gates PASSED (100% GREEN)** | **Verified** |
+| **v1.3.0: 3-Stage CAS Grader**   | String match $\to$ 5-pt random numeric $\to$ 2.0s worker thread SymPy CAS | **7 / 7 test gates PASSED (100% GREEN)** | **Verified** |
+| **v1.3.0: Fresh Held-Out 500**   | Unseen 500-problem competition suite (32K ctx + feedback loop)       | **74.20% strict / 78.80% SymPy CAS** (0.0% false accepts) | **Verified** |
 
 ---
 
@@ -200,6 +201,33 @@ The repository adheres to strict truth-in-documentation governance (`docs/README
 | [`docs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md`](./docs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"* (archived). |
 | [`docs/archive/2026-09_milestone_specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./docs/archive/2026-09_milestone_specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | **Capability Status Map**: Exhaustive classification of all system capabilities against verified reality (archived). |
 | [`docs/archive/`](./docs/archive/) | **Historical Archives**: Deprecated pre-audit specs, earlier exploratory notes, and legacy drafts. |
+
+### 6.1 Subsystem Reference Manuals Corpus (`docs/subsystems/`)
+
+Exhaustive deep-dive architectural specifications, Mermaid dataflow diagrams, state machines, and API contracts for all 8 subsystems in `src/lucca/`:
+
+| Manual | Subsystem | Core Technical Focus |
+| :--- | :--- | :--- |
+| [`docs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md`](./docs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md) | **Core Orchestrator & Cascade** | Three-tier execution, Belnap FOUR bilattice, speculative BDI validation (<35μs), and 8-substrate search cascade. |
+| [`docs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md`](./docs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md) | **Neural Brain & Streaming Demuxer** | Gemma-4 12B Heretic Q6_K on RTX 5080 Laptop GPU, Prompt Frontier Suffix (8.58x prefill speedup), 32K context allocation, and streaming demuxer. |
+| [`docs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md`](./docs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md) | **Symbolic Reasoning & Formal Proofs** | MicroScheme LISP interpreter (1,000 gas limit), Microsoft Z3 SMT prover (SAT/contingency/path proofs), and Babble/Stitch e-graph macro synthesis. |
+| [`docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md`](./docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md) | **Deontic Sandbox & Structural Compiler** | Persistent Docker RPC daemon (7.8ms P50), stdin code streaming over `ARG_MAX`, 4-stage tolerant AST extractor (0.0% empty residual), Tier 1 preflight compiler, 2-turn feedback loop (85.11% recovery), and Dimension 7B output supervisor. |
+| [`docs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md`](./docs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md) | **Cryptographic Memory & Epistemology** | SQLite WAL + `sqlite-vec` (Intel NPU) + FTS5 BM25, cryptographic provenance envelopes, grounding eligibility segregation (D-MEM-04), and bi-temporal supersession. |
+| [`docs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md`](./docs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md) | **Voice Senses & Full-Duplex Audio** | Zero-copy shared-memory ring buffers, faster-whisper ASR (CUDA float16), acoustic hygiene filters, Kokoro-82M ONNX TTS, anime formant filter DSP, and sub-50ms barge-in WASAPI abort. |
+| [`docs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md`](./docs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md) | **Routing & Conformal Calibration** | Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage $\ge 0.95$), and replay-protected HMAC confirmation nonces. |
+| [`docs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md`](./docs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md) | **Desktop UI & Visual Pipeline Debugger** | Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765. |
+
+### 6.2 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)
+
+Five standalone, peer-review caliber research papers formalizing Project Lucca's theoretical advances:
+
+| Paper ID | Target Venue | Paper Title & Scope |
+| :--- | :--- | :--- |
+| **Paper 1** | **JAIR / NeurIPS 2026** | [`docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md`](./docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md)<br>Empirical evaluation of a sovereign 12B edge agent on formal multi-domain cognition, competition math (MATH-500: 75.80%), and adversarial code synthesis (HumanEval-Plus: 91.46%). |
+| **Paper 2** | **IEEE ICASSP / MMSys 2026** | [`docs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md`](./docs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md)<br>Acoustic loopback optimization, zero-copy shared memory architecture, and sub-50ms WASAPI interruption cancellation on consumer edge silicon. |
+| **Paper 3** | **AIJ / KR 2026** | [`docs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md`](./docs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md)<br>Bounded epistemic bilattices, Belnap $\mathcal{FOUR}$ paraconsistent truth tracking, cryptographic tamper-proofing, and autobiographical memory split. |
+| **Paper 4** | **ACM POPL / ASE 2026** | [`docs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md`](./docs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md)<br>Compiled muscle memory: syntactic anti-unification over SQLite execution traces into verified MicroScheme LISP macros guarded by Microsoft Z3 SMT proofs. |
+| **Paper 5** | **IEEE S&P / USENIX Security 2026** | [`docs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md`](./docs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md)<br>Non-parametric split-conformal coverage bounds ($\ge 0.95$), sub-35μs speculative BDI deontic validation, and streaming token supervision against social engineering attacks. |
 
 ---
 

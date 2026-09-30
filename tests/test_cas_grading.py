@@ -62,3 +62,13 @@ def test_grader_timeout_enforcement() -> None:
     assert evaluate_sympy_equivalence_with_timeout(expr, expr, timeout_s=0.5) is True
     t_elapsed = time.perf_counter() - t0
     assert t_elapsed < 0.5
+
+
+def test_ams_latex_fraction_and_number_formatting() -> None:
+    """Verifies AMS-LaTeX fraction variants (tfrac, dfrac), negative thin spaces, and thousand commas."""
+    assert compare_math_results("3/2", r"\tfrac{3}{2}", use_sympy=True)
+    assert compare_math_results(r"\dfrac{5}{4}", r"\frac{5}{4}", use_sympy=True)
+    assert compare_math_results("61328", r"61,328", use_sympy=True)
+    assert compare_math_results("15625", r"15,\!625", use_sympy=True)
+    assert compare_math_results("1000000", r"1,000,000", use_sympy=True)
+

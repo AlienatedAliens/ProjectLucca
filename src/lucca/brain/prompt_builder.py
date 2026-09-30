@@ -3,7 +3,6 @@ Project Lucca — Prompt Builder & Dynamic Persona Engine
 Spec 10 §4 (Prompt Section Order & KV-Cache Friendly Layout)
 """
 
-from datetime import datetime
 import json
 import re
 import tomllib

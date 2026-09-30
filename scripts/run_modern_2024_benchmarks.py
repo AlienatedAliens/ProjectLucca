@@ -256,6 +256,12 @@ def normalize_math_str(s: str) -> str:
     if not s:
         return ""
     s = s.strip()
+    # Normalize fraction variants and negative thin spaces
+    s = re.sub(r"\\[td]frac", r"\\frac", s)
+    s = re.sub(r"\\!", "", s)
+    # Strip thousand separators between digits (e.g. 1,000,000 -> 1000000)
+    while re.search(r"(\d),(\d{3})", s):
+        s = re.sub(r"(\d),(\d{3})", r"\1\2", s)
     s = re.sub(r"\\text\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\mathrm\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\mbox\{([^}]*)\}", r"\1", s)
@@ -291,6 +297,10 @@ def clean_latex_for_sympy(s: str) -> str:
     if not s:
         return ""
     s = s.strip().replace("$", "").strip()
+    s = re.sub(r"\\[td]frac", r"\\frac", s)
+    s = re.sub(r"\\!", "", s)
+    while re.search(r"(\d),(\d{3})", s):
+        s = re.sub(r"(\d),(\d{3})", r"\1\2", s)
     s = re.sub(r"\^\{\s*\\circ\s*\}|\^\\circ|\\circ|\\degree", "", s)
     s = re.sub(r"\\mbox\{[^}]*\}|\\text\{[^}]*\}|\\mathrm\{[^}]*\}", "", s)
     

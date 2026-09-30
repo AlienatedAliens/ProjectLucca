@@ -11,8 +11,6 @@ import json
 import logging
 import struct
 import subprocess
-import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal

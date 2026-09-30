@@ -307,3 +307,23 @@ After ~50 turns (`tests/test_l2_replay_and_contrastive.py`) the L2 replay gate b
 - Every refusal is logged with a reason code (`policy_violation`, `provenance_violation`, `confirmation_required`, `skill_not_in_manifest`, `schema_not_registered`, `invalid_arguments`, …). The code tells you which layer said no.
 - `python -m lucca.admin rules list` / `skills list` show exactly which rules are ACTIVE and firing.
 - Findings go in [`docs/audit/findings/`](./audit/findings/) using the template; that is how the last three gates caught real defects.
+
+### 6.1 Deep-Dive Architecture & Subsystem Reference Manuals
+For exhaustive architectural specs, dataflow diagrams, API contracts, and formal research foundations:
+- **Master Architecture Specification:** [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) (includes Section 10 End-to-End System Diagrams).
+- **Subsystem Reference Manuals (`docs/subsystems/`):**
+  - [01 Core Orchestration & Cascade](./subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md)
+  - [02 Neural Brain & Streaming](./subsystems/02_NEURAL_BRAIN_AND_STREAMING.md)
+  - [03 Symbolic Reasoning & Verification](./subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md)
+  - [04 Deontic Sandbox & Compiler](./subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md)
+  - [05 Cryptographic Memory & Epistemology](./subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md)
+  - [06 Voice Senses & Audio Pipeline](./subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md)
+  - [07 Routing & Conformal Calibration](./subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md)
+  - [08 Desktop UI & Pipeline Debugger](./subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md)
+- **Frontier Research & Systems Papers (`docs/research/papers/`):**
+  - [Paper 1: Compound Neurosymbolic AI vs. Monolithic LLMs](./research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md) (JAIR / NeurIPS 2026)
+  - [Paper 2: Sub-50ms Barge-In and Zero-Copy Audio](./research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md) (IEEE ICASSP / MMSys 2026)
+  - [Paper 3: Paraconsistent Bilattices and Cryptographic Envelopes](./research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) (AIJ / KR 2026)
+  - [Paper 4: E-Graph Equality Saturation and SMT-Guarded Rule Induction](./research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md) (ACM POPL / ASE 2026)
+  - [Paper 5: Split-Conformal Abstention and Speculative BDI Verification](./research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md) (IEEE S&P / USENIX Security 2026)
+
