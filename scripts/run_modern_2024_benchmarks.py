@@ -799,6 +799,7 @@ def run_math500_pal(
     config_label: str = "",
     resume: bool = False,
     dataset_path: str = "",
+    reprompt_mode: str = "stub",
 ) -> dict:
     """Evaluate MATH-500 competition math in PAL mode via Docker Python/SymPy with live tracing and progressive checkpointing."""
     all_data = get_math500_dataset(dataset_path=dataset_path)
@@ -994,13 +995,43 @@ def run_math500_pal(
                 else:
                     tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Empty Output)", "2-Turn Feedback Governor", "Empty stdout", details="Script produced empty stdout (exit 0). Re-prompting to compute and print final answer...")
                     print(f"   [Execution Feedback Loop Triggered] Task {curr_idx} produced empty output (exit 0) -> Retrying with print instruction...", flush=True)
-                    feedback_prompt = (
-                        f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY or unprinted stdout:\n\n"
-                        f"Problem: {problem}\n\n"
-                        f"CRITICAL REQUIREMENT:\n"
-                        f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write rambling comments or derivations.\n"
-                        f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
-                    )
+                    if reprompt_mode == "clean":
+                        feedback_prompt = (
+                            f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY or unprinted stdout:\n\n"
+                            f"Problem: {problem}\n\n"
+                            f"CRITICAL REQUIREMENT:\n"
+                            f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write rambling comments or derivations.\n"
+                            f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
+                        )
+                    elif reprompt_mode == "stripped":
+                        clean_lines = [l for l in code.splitlines() if not l.lstrip().startswith("#")]
+                        stripped_code = "\n".join(clean_lines).strip()
+                        if stripped_code:
+                            feedback_prompt = (
+                                f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY stdout because it forgot to print the final answer:\n\n"
+                                f"Problem: {problem}\n\n"
+                                f"Your Initial Script:\n```python\n{stripped_code}\n```\n\n"
+                                f"CRITICAL REQUIREMENT:\n"
+                                f"The script must compute the final exact answer and explicitly print it on stdout. Do not write rambling comments or derivations.\n"
+                                f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
+                            )
+                        else:
+                            feedback_prompt = (
+                                f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY or unprinted stdout:\n\n"
+                                f"Problem: {problem}\n\n"
+                                f"CRITICAL REQUIREMENT:\n"
+                                f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write rambling comments or derivations.\n"
+                                f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
+                            )
+                    else:  # default "stub" (verified winner: 319/400 peak)
+                        feedback_prompt = (
+                            f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY stdout because it forgot to print the final answer:\n\n"
+                            f"Problem: {problem}\n\n"
+                            f"Your Initial Script:\n```python\n{code}\n```\n\n"
+                            f"CRITICAL REQUIREMENT:\n"
+                            f"The script must compute the final exact answer and explicitly print it on stdout. Do not write rambling comments or derivations.\n"
+                            f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
+                        )
                 t_corr0 = time.perf_counter()
                 corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=768, enable_thinking=False)
                 t_corr = time.perf_counter() - t_corr0
@@ -1213,6 +1244,12 @@ def main():
         default="",
         help="Path to custom benchmark dataset JSONL file (e.g. data/benchmarks/math_fresh_heldout_500.jsonl)",
     )
+    parser.add_argument(
+        "--reprompt-mode",
+        choices=["stub", "clean", "stripped"],
+        default="stub",
+        help="Turn 2 empty stdout re-prompt mode: 'stub' (default, passes initial script), 'clean' (no script), or 'stripped' (removes comment lines)",
+    )
     args = parser.parse_args()
 
     parsed_indices = [int(x.strip()) for x in args.indices.split(",") if x.strip().isdigit()] if args.indices else None
@@ -1229,6 +1266,7 @@ def main():
         "context_size": args.context_size,
         "feedback_enabled": args.feedback,
         "use_sympy_grader": args.use_sympy,
+        "reprompt_mode": args.reprompt_mode,
         "dataset_path": args.dataset_path or "default",
         "model": "gemma-4-12b-heretic-Q6_K.gguf",
         "benchmarks": {},
@@ -1254,6 +1292,7 @@ def main():
             config_label=args.config_label,
             resume=args.resume,
             dataset_path=args.dataset_path,
+            reprompt_mode=args.reprompt_mode,
         )
 
     label_part = f"_{args.config_label}" if args.config_label else ""
