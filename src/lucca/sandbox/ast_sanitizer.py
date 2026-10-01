@@ -107,7 +107,9 @@ def _normalize_tokens(code: str) -> str:
 
         return tokenize.untokenize(new_tokens)
     except Exception as exc:
-        logger.debug("tokenize_normalization_fallback", error=str(exc))
+        err_str = str(exc)
+        if "line continuation character" not in err_str and "unterminated string literal" not in err_str:
+            logger.debug("tokenize_normalization_fallback", error=err_str)
         return code
 
 
