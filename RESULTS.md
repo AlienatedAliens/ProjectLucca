@@ -1,6 +1,6 @@
 # Project Lucca: Experimental Results Ledger
 
-> **Honesty Note**: Historical v1.3 results were produced from a working tree that contained uncommitted changes. `v1.3-frozen` is the nearest reproducible snapshot. `v1.3-frozen` did not reproduce bit-for-bit (20 of 25 predictions matched). Run-to-run variance is being measured.
+> **Honesty Note**: Historical v1.3 results were produced from a working tree that contained uncommitted changes. `v1.3-frozen` is the nearest reproducible snapshot. `v1.3-frozen` did not reproduce bit-for-bit (20 of 25 predictions matched). Run-to-run variance is being measured. Determinism diagnostic confirmed prompt-cache reuse caused variance; `cache_prompt: false` produces bit-for-bit identical outputs (100/100 matches).
 
 | Run ID | Code Commit | Grader Version | Dataset File | Dataset SHA-256 | n | Passed | Strict Score | Lenient Score | Wilson 95% CI | Artifact Path |
 | :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -8,3 +8,7 @@
 | `math-v1.3-test-25-rep` | `55d1a1f` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 25 | 20 | 80.00% (20/25) | 80.00% (20/25) | [60.87%, 91.14%] | `logs/test_reports/checkpoint_math500_test-25-reproduce.json` |
 | `math-v1.3-test-25-rep-A` | `55d1a1f` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 25 | 21 | 84.00% (21/25) | 84.00% (21/25) | [65.35%, 93.60%] | `logs/test_reports/checkpoint_math500_rep-A.json` |
 | `math-v1.3-test-25-rep-B` | `55d1a1f` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 25 | 19 | 76.00% (19/25) | 76.00% (19/25) | [56.57%, 88.50%] | `logs/test_reports/checkpoint_math500_rep-B.json` |
+| `math-v1.3-det-C` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 82 | 82.00% (82/100) | 88.00% (88/100) | [73.33%, 88.30%] | `logs/test_reports/checkpoint_math500_det-C.json` |
+| `math-v1.3-det-D` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 82 | 82.00% (82/100) | 88.00% (88/100) | [73.33%, 88.30%] | `logs/test_reports/checkpoint_math500_det-D.json` |
+| `math-v1.3-cache-on-C` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 83 | 83.00% (83/100) | 89.00% (89/100) | [74.45%, 89.11%] | `logs/test_reports/checkpoint_math500_cache-on-C.json` |
+| `math-v1.3-cache-on-D` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 84 | 84.00% (84/100) | 90.00% (90/100) | [75.58%, 89.90%] | `logs/test_reports/checkpoint_math500_cache-on-D.json` |
