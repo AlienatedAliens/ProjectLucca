@@ -129,8 +129,8 @@ def get_math500_dataset(dataset_path: str | Path | None = None) -> list[dict]:
 # LLM Interface
 # ===========================================================================
 
-def query_llm(prompt: str, max_tokens: int = 768, enable_thinking: bool = False, retries: int = 2) -> str:
-    """Query the local llama-server OpenAI-compatible endpoint with retry."""
+def query_llm_with_meta(prompt: str, max_tokens: int = 768, enable_thinking: bool = False, retries: int = 2) -> tuple[str, str, int]:
+    """Query the local llama-server OpenAI-compatible endpoint with retry, returning (text, finish_reason, completion_tokens)."""
     payload = {
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
@@ -147,18 +147,27 @@ def query_llm(prompt: str, max_tokens: int = 768, enable_thinking: bool = False,
             )
             with urllib.request.urlopen(req, timeout=120) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                msg = data["choices"][0]["message"]
+                choice = data["choices"][0]
+                msg = choice["message"]
+                finish_reason = choice.get("finish_reason", "")
+                tokens = data.get("usage", {}).get("completion_tokens", 0)
                 content = (msg.get("content") or "").strip()
                 reasoning = (msg.get("reasoning_content") or "").strip()
                 # Return content if available; fallback to reasoning if content was empty/truncated
-                return content if content else reasoning
+                text = content if content else reasoning
+                return text, finish_reason, tokens
         except Exception as exc:
             if attempt < retries - 1:
                 time.sleep(2)
             else:
                 print(f"   [WARN] LLM query failed after {retries} attempts: {exc}")
-                return ""
-    return ""
+                return "", "error", 0
+    return "", "error", 0
+
+
+def query_llm(prompt: str, max_tokens: int = 768, enable_thinking: bool = False, retries: int = 2) -> str:
+    text, _, _ = query_llm_with_meta(prompt, max_tokens=max_tokens, enable_thinking=enable_thinking, retries=retries)
+    return text
 
 
 def extract_python_code_with_stage(text: str) -> tuple[str, str]:
@@ -885,7 +894,7 @@ def run_math500_pal(
         tracer.record_stage_result("tank_3_microscheme", "MicroScheme Symbolic Centrifuge", "MicroScheme Lisp AST Reducer", "BYPASS", "Requires computer algebra. Delegating to Neural Boiler.", "DELEGATED_TO_TANK_4", custom_duration_ms=0.2)
 
         is_baseline = "baseline" in label.lower() or "291" in label.lower()
-        t1_tokens = 768 if is_baseline else 400
+        t1_tokens = 768  # Restored to 768 per Part 1 instructions
 
         # Stage 4: Context Infusion
         rule_3 = (
@@ -908,7 +917,7 @@ def run_math500_pal(
         # Stage 5: Neural Deliberation Boiler
         tracer.transition_stage("tank_5_neural_boiler", "Neural Deliberation Boiler", "llama-server (Gemma 4 12B on RTX 5080)", prompt[:300], details="Generating computational code on RTX 5080 Laptop GPU...")
         t0 = time.perf_counter()
-        resp = query_llm(prompt=prompt, max_tokens=t1_tokens, enable_thinking=False)
+        resp, finish_reason, comp_tokens = query_llm_with_meta(prompt=prompt, max_tokens=t1_tokens, enable_thinking=False)
         t_llm = time.perf_counter() - t0
 
         extraction_retry_triggered = False
@@ -922,8 +931,10 @@ def run_math500_pal(
                 "Do not include conversational preamble, derivations, or commentary outside the code block."
             )
             t_r0 = time.perf_counter()
-            retry_resp = query_llm(prompt=retry_prompt, max_tokens=768, enable_thinking=False)
+            retry_resp, retry_finish, retry_tokens = query_llm_with_meta(prompt=retry_prompt, max_tokens=768, enable_thinking=False)
             t_llm += (time.perf_counter() - t_r0)
+            comp_tokens += retry_tokens
+            finish_reason = retry_finish
             code, stage = extract_python_code_with_stage(retry_resp)
             if code:
                 print(f"   [Extraction Recovered on Retry] Extracted code via stage '{stage}'.", flush=True)
@@ -991,9 +1002,11 @@ def run_math500_pal(
                         f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                     )
                 t_corr0 = time.perf_counter()
-                corr_resp = query_llm(prompt=feedback_prompt, max_tokens=768, enable_thinking=False)
+                corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=768, enable_thinking=False)
                 t_corr = time.perf_counter() - t_corr0
                 t_llm += t_corr
+                comp_tokens += corr_tokens
+                finish_reason = corr_finish
                 corr_code, corr_stage = extract_python_code_with_stage(corr_resp)
                 if corr_code:
                     t_exec2_0 = time.perf_counter()
@@ -1075,6 +1088,7 @@ def run_math500_pal(
 
         results.append({
             "idx": curr_idx,
+            "item_id": f"test-{curr_idx}" if offset == 0 else f"dev-{curr_idx}",
             "subject": subject,
             "level": level,
             "problem": problem,
@@ -1090,6 +1104,8 @@ def run_math500_pal(
             "feedback_triggered": feedback_triggered,
             "feedback_succeeded": feedback_succeeded,
             "llm_latency_s": round(t_llm, 3),
+            "completion_tokens": comp_tokens,
+            "finish_reason": finish_reason,
         })
 
         # Atomic progressive checkpoint save on every completed problem
