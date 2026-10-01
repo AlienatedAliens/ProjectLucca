@@ -129,7 +129,13 @@ def get_math500_dataset(dataset_path: str | Path | None = None) -> list[dict]:
 # LLM Interface
 # ===========================================================================
 
-def query_llm_with_meta(prompt: str, max_tokens: int = 768, enable_thinking: bool = False, retries: int = 2) -> tuple[str, str, int]:
+def query_llm_with_meta(
+    prompt: str,
+    max_tokens: int = 768,
+    enable_thinking: bool = False,
+    retries: int = 2,
+    cache_prompt: bool | None = None,
+) -> tuple[str, str, int]:
     """Query the local llama-server OpenAI-compatible endpoint with retry, returning (text, finish_reason, completion_tokens)."""
     payload = {
         "messages": [{"role": "user", "content": prompt}],
@@ -138,6 +144,9 @@ def query_llm_with_meta(prompt: str, max_tokens: int = 768, enable_thinking: boo
         "seed": 42,
         "chat_template_kwargs": {"enable_thinking": enable_thinking},
     }
+    if cache_prompt is not None:
+        payload["cache_prompt"] = cache_prompt
+
     for attempt in range(retries):
         try:
             req = urllib.request.Request(
@@ -165,9 +174,73 @@ def query_llm_with_meta(prompt: str, max_tokens: int = 768, enable_thinking: boo
     return "", "error", 0
 
 
-def query_llm(prompt: str, max_tokens: int = 768, enable_thinking: bool = False, retries: int = 2) -> str:
-    text, _, _ = query_llm_with_meta(prompt, max_tokens=max_tokens, enable_thinking=enable_thinking, retries=retries)
+def query_llm(
+    prompt: str,
+    max_tokens: int = 768,
+    enable_thinking: bool = False,
+    retries: int = 2,
+    cache_prompt: bool | None = None,
+) -> str:
+    text, _, _ = query_llm_with_meta(
+        prompt,
+        max_tokens=max_tokens,
+        enable_thinking=enable_thinking,
+        retries=retries,
+        cache_prompt=cache_prompt,
+    )
     return text
+
+
+def get_env_metadata(prompt_template: str = "", request_params: dict | None = None) -> dict:
+    """Collect system, git, server, and docker metadata per Step 0n specification."""
+    meta = {}
+    import subprocess
+    import hashlib
+
+    # 1. Git commit hash & dirty flag
+    try:
+        meta["git_commit"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(REPO_ROOT)).decode().strip()
+        status_out = subprocess.check_output(["git", "status", "--porcelain"], cwd=str(REPO_ROOT)).decode().strip()
+        meta["git_dirty"] = bool(status_out)
+    except Exception as e:
+        meta["git_commit"] = "unknown"
+        meta["git_dirty"] = None
+
+    # 2. Server command line
+    try:
+        ps_cmd = 'Get-CimInstance Win32_Process -Filter "name=\'llama-server.exe\'" | Select-Object -ExpandProperty CommandLine'
+        meta["server_command_line"] = subprocess.check_output(["powershell", "-Command", ps_cmd]).decode().strip()
+    except Exception as e:
+        meta["server_command_line"] = f"error: {e}"
+
+    # 3. llama-server build/props
+    try:
+        req = urllib.request.Request("http://127.0.0.1:8080/props", headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            props = json.loads(r.read().decode())
+            meta["llama_server_props"] = props
+            meta["llama_server_build"] = props.get("build_info", "unknown")
+    except Exception as e:
+        meta["llama_server_props"] = f"error: {e}"
+        meta["llama_server_build"] = "unknown"
+
+    # 4. Docker image digest
+    try:
+        out = subprocess.check_output(["wsl", "-d", "Ubuntu", "docker", "inspect", "lucca/file-sandbox:latest", "--format", "{{index .RepoDigests 0}}"]).decode().strip()
+        meta["docker_image_digest"] = out if out else "lucca/file-sandbox:latest"
+    except Exception as e:
+        meta["docker_image_digest"] = f"error: {e}"
+
+    # 5. Prompt template SHA-256
+    if prompt_template:
+        meta["prompt_template_sha256"] = hashlib.sha256(prompt_template.encode("utf-8")).hexdigest()
+    else:
+        meta["prompt_template_sha256"] = None
+
+    # 6. Request params
+    meta["request_params"] = request_params or {}
+
+    return meta
 
 
 def extract_python_code_with_stage(text: str) -> tuple[str, str]:
@@ -515,7 +588,7 @@ def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = Tru
 # Benchmark Runners
 # ===========================================================================
 
-def run_gsm_symbolic(transport: DockerRPCTransport, subset: str = "symbolic", samples: int = 50, offset: int = 0) -> dict:
+def run_gsm_symbolic(transport: DockerRPCTransport, subset: str = "symbolic", samples: int = 50, offset: int = 0, cache_prompt: bool | None = None) -> dict:
     """Evaluate Apple GSM-Symbolic in PAL Mode (Docker Python execution)."""
     dataset = get_gsm_symbolic_dataset(subset=subset)
     if offset > 0:
@@ -545,7 +618,7 @@ def run_gsm_symbolic(transport: DockerRPCTransport, subset: str = "symbolic", sa
         )
 
         t0 = time.perf_counter()
-        resp = query_llm(prompt=prompt, max_tokens=1024, enable_thinking=False)
+        resp = query_llm(prompt=prompt, max_tokens=1024, enable_thinking=False, cache_prompt=cache_prompt)
         t_llm = time.perf_counter() - t0
 
         code = extract_python_code(resp)
@@ -609,7 +682,7 @@ def run_gsm_symbolic(transport: DockerRPCTransport, subset: str = "symbolic", sa
     }
 
 
-def run_humaneval_plus(transport: DockerRPCTransport, samples: int = 50, offset: int = 0) -> dict:
+def run_humaneval_plus(transport: DockerRPCTransport, samples: int = 50, offset: int = 0, cache_prompt: bool | None = None) -> dict:
     """
     Evaluate EvalPlus HumanEval-Plus pass@1 via Docker differential testing.
     Runs both base_input and plus_input (adversarial test cases) against canonical_solution.
@@ -647,7 +720,7 @@ def run_humaneval_plus(transport: DockerRPCTransport, samples: int = 50, offset:
         )
 
         t0 = time.perf_counter()
-        resp = query_llm(prompt=instruction, max_tokens=1024, enable_thinking=False)
+        resp = query_llm(prompt=instruction, max_tokens=1024, enable_thinking=False, cache_prompt=cache_prompt)
         t_llm = time.perf_counter() - t0
 
         completion_code = extract_python_code(resp)
@@ -670,7 +743,7 @@ def run_humaneval_plus(transport: DockerRPCTransport, samples: int = 50, offset:
                     f"Provide ONLY the completed code in a ```python ... ``` block."
                 )
                 t_corr0 = time.perf_counter()
-                corrected_resp = query_llm(prompt=correction_prompt, max_tokens=1024, enable_thinking=False)
+                corrected_resp = query_llm(prompt=correction_prompt, max_tokens=1024, enable_thinking=False, cache_prompt=cache_prompt)
                 t_llm += (time.perf_counter() - t_corr0)
                 corrected_code = extract_python_code(corrected_resp)
                 if corrected_code:
@@ -800,6 +873,7 @@ def run_math500_pal(
     resume: bool = False,
     dataset_path: str = "",
     reprompt_mode: str = "stub",
+    cache_prompt: bool | None = None,
 ) -> dict:
     """Evaluate MATH-500 competition math in PAL mode via Docker Python/SymPy with live tracing and progressive checkpointing."""
     all_data = get_math500_dataset(dataset_path=dataset_path)
@@ -918,7 +992,7 @@ def run_math500_pal(
         # Stage 5: Neural Deliberation Boiler
         tracer.transition_stage("tank_5_neural_boiler", "Neural Deliberation Boiler", "llama-server (Gemma 4 12B on RTX 5080)", prompt[:300], details="Generating computational code on RTX 5080 Laptop GPU...")
         t0 = time.perf_counter()
-        resp, finish_reason, comp_tokens = query_llm_with_meta(prompt=prompt, max_tokens=t1_tokens, enable_thinking=False)
+        resp, finish_reason, comp_tokens = query_llm_with_meta(prompt=prompt, max_tokens=t1_tokens, enable_thinking=False, cache_prompt=cache_prompt)
         t_llm = time.perf_counter() - t0
 
         extraction_retry_triggered = False
@@ -932,7 +1006,7 @@ def run_math500_pal(
                 "Do not include conversational preamble, derivations, or commentary outside the code block."
             )
             t_r0 = time.perf_counter()
-            retry_resp, retry_finish, retry_tokens = query_llm_with_meta(prompt=retry_prompt, max_tokens=768, enable_thinking=False)
+            retry_resp, retry_finish, retry_tokens = query_llm_with_meta(prompt=retry_prompt, max_tokens=768, enable_thinking=False, cache_prompt=cache_prompt)
             t_llm += (time.perf_counter() - t_r0)
             comp_tokens += retry_tokens
             finish_reason = retry_finish
@@ -1033,7 +1107,7 @@ def run_math500_pal(
                             f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                         )
                 t_corr0 = time.perf_counter()
-                corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=768, enable_thinking=False)
+                corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=768, enable_thinking=False, cache_prompt=cache_prompt)
                 t_corr = time.perf_counter() - t_corr0
                 t_llm += t_corr
                 comp_tokens += corr_tokens
@@ -1250,9 +1324,41 @@ def main():
         default="stub",
         help="Turn 2 empty stdout re-prompt mode: 'stub' (default, passes initial script), 'clean' (no script), or 'stripped' (removes comment lines)",
     )
+    parser.add_argument(
+        "--disable-prompt-cache",
+        action="store_true",
+        default=False,
+        help="Disable llama-server prompt caching (sets cache_prompt=false in request payload)",
+    )
     args = parser.parse_args()
 
+    cache_prompt = False if args.disable_prompt_cache else None
     parsed_indices = [int(x.strip()) for x in args.indices.split(",") if x.strip().isdigit()] if args.indices else None
+
+    # Step 0n: Collect metadata
+    rule_3_tmpl = (
+        "3. The script MUST end with a print(...) statement that prints ONLY the final answer on stdout.\n\n"
+        if not args.feedback
+        else "3. The script MUST compute the final answer into a variable and end with a print(answer) statement that prints ONLY the final answer on stdout. Do not leave the final answer unprinted.\n\n"
+    )
+    prompt_template = (
+        f"You are a competition mathematician and computer algebra expert. Solve the following problem by writing "
+        f"a concise Python script (< 30 lines) using SymPy or arithmetic that computes and prints ONLY the final exact answer.\n"
+        f"STRICT RULES:\n"
+        f"1. Output ONLY a ```python ... ``` block. DO NOT write explanations, prose, or rambling comments.\n"
+        f"2. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
+        f"{rule_3_tmpl}"
+        f"Problem: {{problem}}\n"
+    )
+
+    req_params = {
+        "temperature": 0.0,
+        "seed": 42,
+        "max_tokens": 768,
+        "cache_prompt": cache_prompt,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    env_metadata = get_env_metadata(prompt_template=prompt_template, request_params=req_params)
 
     print("Initializing DockerRPCTransport...")
     transport = DockerRPCTransport(container_name="lucca-file-sandbox")
@@ -1269,17 +1375,26 @@ def main():
         "reprompt_mode": args.reprompt_mode,
         "dataset_path": args.dataset_path or "default",
         "model": "gemma-4-12b-heretic-Q6_K.gguf",
+        "disable_prompt_cache": args.disable_prompt_cache,
+        "git_commit": env_metadata.get("git_commit"),
+        "git_dirty": env_metadata.get("git_dirty"),
+        "server_command_line": env_metadata.get("server_command_line"),
+        "llama_server_build": env_metadata.get("llama_server_build"),
+        "llama_server_props": env_metadata.get("llama_server_props"),
+        "docker_image_digest": env_metadata.get("docker_image_digest"),
+        "prompt_template_sha256": env_metadata.get("prompt_template_sha256"),
+        "request_params": env_metadata.get("request_params"),
         "benchmarks": {},
     }
 
     if args.benchmark in ("gsm-symbolic", "all"):
-        final_report["benchmarks"]["gsm_symbolic"] = run_gsm_symbolic(transport, subset="symbolic", samples=args.samples, offset=args.offset)
+        final_report["benchmarks"]["gsm_symbolic"] = run_gsm_symbolic(transport, subset="symbolic", samples=args.samples, offset=args.offset, cache_prompt=cache_prompt)
 
     if args.benchmark == "gsm-p1":
-        final_report["benchmarks"]["gsm_p1"] = run_gsm_symbolic(transport, subset="p1", samples=args.samples, offset=args.offset)
+        final_report["benchmarks"]["gsm_p1"] = run_gsm_symbolic(transport, subset="p1", samples=args.samples, offset=args.offset, cache_prompt=cache_prompt)
 
     if args.benchmark in ("humaneval-plus", "all"):
-        final_report["benchmarks"]["humaneval_plus"] = run_humaneval_plus(transport, samples=args.samples, offset=args.offset)
+        final_report["benchmarks"]["humaneval_plus"] = run_humaneval_plus(transport, samples=args.samples, offset=args.offset, cache_prompt=cache_prompt)
 
     if args.benchmark in ("math500", "all"):
         final_report["benchmarks"]["math500"] = run_math500_pal(
@@ -1293,6 +1408,7 @@ def main():
             resume=args.resume,
             dataset_path=args.dataset_path,
             reprompt_mode=args.reprompt_mode,
+            cache_prompt=cache_prompt,
         )
 
     label_part = f"_{args.config_label}" if args.config_label else ""
