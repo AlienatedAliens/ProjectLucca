@@ -812,6 +812,7 @@ def run_math500_pal(
 
     results = []
     passed_count = 0
+    stats: dict[str, int] = {}
 
     if resume:
         if checkpoint_file.exists():

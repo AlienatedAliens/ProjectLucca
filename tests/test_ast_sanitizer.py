@@ -89,7 +89,6 @@ ans = expr.subs(x, 1) + prod.subs(x, 1)
     # Implicit multiplication must have * inserted
     assert "2 *x" in repaired or "2*x" in repaired or "2 * x" in repaired
     assert "3 *(" in repaired or "3*(" in repaired or "3 * (" in repaired
-    assert "print(ans)" in repaired
 
 
 def test_unclosed_parenthesis_and_brackets() -> None:
@@ -101,7 +100,6 @@ d = {"a": 1
 """
     repaired, ok, err = sanitize_and_repair_python_code(code)
     assert ok, err
-    assert "print(ans)" in repaired
 
 
 def test_missing_sympy_and_math_import() -> None:
@@ -117,14 +115,15 @@ print(res, root)
     assert "import math" in repaired
 
 
-def test_missing_print_injection() -> None:
+def test_no_entrypoint_injection() -> None:
+    """Confirms Step 5 entrypoint injection is removed and does not append print."""
     code = """
 def solve():
     return 42 * 2
 """
     repaired, ok, err = sanitize_and_repair_python_code(code)
     assert ok, err
-    assert "print(_res)" in repaired or "print(solve())" in repaired
+    assert "print" not in repaired
 
 
 def test_empty_extraction_returns_empty_stage() -> None:

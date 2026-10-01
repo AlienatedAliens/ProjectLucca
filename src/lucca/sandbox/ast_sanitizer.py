@@ -409,44 +409,4 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
         if not parsed or tree is None:
             return code, False, err
 
-    # Step 5: Check and guarantee execution (uncalled top-level functions or missing print)
-    called_functions: set[str] = set()
-    top_level_fns: list[str] = []
-    has_print = False
-    assigned_variables: list[str] = []
-
-    for stmt in tree.body:
-        if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            top_level_fns.append(stmt.name)
-        elif isinstance(stmt, ast.Assign):
-            for target in stmt.targets:
-                if isinstance(target, ast.Name):
-                    assigned_variables.append(target.id)
-
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-            if node.func.id == "print":
-                has_print = True
-            else:
-                called_functions.add(node.func.id)
-
-    # If top-level functions were defined but never invoked at top level:
-    uncalled = [fn for fn in top_level_fns if fn not in called_functions]
-    if uncalled:
-        candidate_fns = [fn for fn in uncalled if fn in ("solve", "solution", "main", "compute", "calc", "calculate", "find_answer")]
-        target_fn = candidate_fns[-1] if candidate_fns else uncalled[-1]
-        code += f"\n\n_res = {target_fn}()\nif _res is not None:\n    print(_res)\n"
-    elif not has_print:
-        if assigned_variables:
-            var_candidates = [v for v in assigned_variables if v in ("ans", "answer", "res", "result", "sol", "solution", "total")]
-            chosen_var = var_candidates[-1] if var_candidates else assigned_variables[-1]
-            code += f"\n\nprint({chosen_var})\n"
-        elif tree.body and isinstance(tree.body[-1], ast.Expr):
-            last_expr = tree.body[-1]
-            try:
-                expr_src = ast.unparse(last_expr.value)
-                code += f"\n\nprint({expr_src})\n"
-            except Exception as exc:
-                logger.debug("ast_unparse_failed", error=str(exc))
-
     return code, True, ""
