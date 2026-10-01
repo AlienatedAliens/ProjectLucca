@@ -1,0 +1,41 @@
+{
+  "timestamp": "20261001T120711Z",
+  "version": "1.3.0",
+  "config_label": "test-empty-feedback",
+  "context_size": 16384,
+  "feedback_enabled": true,
+  "use_sympy_grader": true,
+  "dataset_path": "default",
+  "model": "gemma-4-12b-heretic-Q6_K.gguf",
+  "benchmarks": {
+    "math500": {
+      "benchmark": "MATH-500",
+      "total": 1,
+      "passed": 1,
+      "accuracy_pct": 100.0,
+      "elapsed_s": 42.7,
+      "feedback_enabled": true,
+      "use_sympy_grader": true,
+      "results": [
+        {
+          "idx": 194,
+          "subject": "Intermediate Algebra",
+          "level": 3,
+          "problem": "A polynomial with integer coefficients is of the form\n\\[2x^4 + a_3 x^3 + a_2 x^2 + a_1 x + 1 = 0.\\]Find the number of different possible rational roots of this polynomial.",
+          "expected_ans": "4",
+          "predicted_ans": "4",
+          "passed": true,
+          "failure_class": "",
+          "generated_code": "from fractions import Fraction \n\n# Possible rational roots p/q where p|1 and q|2\npossible_roots =[Fraction (1 ,1 ),Fraction (-1 ,1 ),Fraction (1 ,2 ),Fraction (-1 ,2 )]\nvalid_roots =[]\n\nfor r in possible_roots :\n    p =r .numerator \n    q =r .denominator \n    # The condition derived: p must divide q^4 and q must divide 2p^4 + q^4\n    # Actually, from 2p^4 + a3*p^3*q + a2*p^2*q^2 + a1*p*q^3 + q^4 = 0:\n    # p must divide q^4. Since gcd(p,q)=1, p must be 1 or -1.\n    # Then q must divide 2p^4 + q^4, which means q must divide 2.\n    if p in [1 ,-1 ]and q in [1 ,2 ]:\n        valid_roots .append (r )\n\nprint (len (valid_roots ))",
+          "extraction_stage": "fenced",
+          "extraction_retry_triggered": false,
+          "exit_code": 0,
+          "stderr": "",
+          "feedback_triggered": true,
+          "feedback_succeeded": true,
+          "llm_latency_s": 37.249
+        }
+      ]
+    }
+  }
+}

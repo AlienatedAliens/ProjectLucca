@@ -1,0 +1,2081 @@
+[
+  {
+    "file": "brain/chunker.py",
+    "line": 48,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "URL_REGEX = re.compile(r\"https?://[^\\s<>\\\"'()]+\")"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 49,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "MARKDOWN_LINK_REGEX = re.compile(r\"\\[([^\\]]+)\\]\\([^\\)]+\\)\")"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 50,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "MARKDOWN_EMPHASIS_REGEX = re.compile(r\"(\\*\\*|\\*|__|_|`)(.*?)\\1\")"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 51,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "BULLET_REGEX = re.compile(r\"^\\s*(?:[-*]|\\d+\\.)\\s+\", re.MULTILINE)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 52,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "HEADING_REGEX = re.compile(r\"^\\s*#+\\s+\", re.MULTILINE)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 58,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"\\[(?:SYSTEM[_ ]?PROMPT|INST|AVAILABLE[_ ]?TOOLS|CRITICAL VOICE)\\]\", \"\", text)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 59,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"^\\s*\\[Lucca\\]\\s*\", \"\", s, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 60,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"\\[System Executed (?:Multi-Step Plan )?Tool Trace:[^\\]]+\\]\", \"\", s)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 61,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"Directive:[^\\n]+(?:\\n|$)\", \"\", s)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 80,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"(?<=\\w)_(?=\\w)\", \" \", s)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 92,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"```\\w*\", \"\", s)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 95,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"[*`~\\\\#]\", \"\", s)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 106,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"[ \\t\\r\\n]+\", \" \", s)"
+  },
+  {
+    "file": "brain/chunker.py",
+    "line": 107,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\" ([,\\.\\?!;:])\", r\"\\1\", s)"
+  },
+  {
+    "file": "brain/llm_client.py",
+    "line": 92,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "quotes = len(re.findall(r'(?<!\\\\)\"', repaired))"
+  },
+  {
+    "file": "brain/llm_client.py",
+    "line": 111,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "code_match = re.search(r'\"code\"\\s*:\\s*\"', s)"
+  },
+  {
+    "file": "brain/llm_client.py",
+    "line": 114,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "code_part = re.sub(r'\"\\s*}\\s*$', \"\", code_part)"
+  },
+  {
+    "file": "brain/llm_client.py",
+    "line": 129,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "expr_match = re.search(r'\"expr\"\\s*:\\s*\"([^\"]*)', s)"
+  },
+  {
+    "file": "brain/prompt_builder.py",
+    "line": 528,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "section_header_pattern = re.compile(r\"^\\s*\\[([A-Za-z0-9_.-]+)\\]\\s*(?:#.*)?$\")"
+  },
+  {
+    "file": "brain/prompt_builder.py",
+    "line": 529,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "key_val_pattern = re.compile(r\"^(\\s*)([A-Za-z0-9_.-]+)(\\s*=\\s*)(.*?)((\\s*#.*)?)$\")"
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 21,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "INLINE_TOOL_PREFIX_REGEX = re.compile(r\"^\\s*(?:<\\|python_tag\\|>|\\[TOOL_CALLS\\]|\\[|\\{|<function=)\")"
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 27,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "FUNCTION_TAG_REGEX = re.compile(r\"<function=(\\w+)>\\s*(.*?)\\s*</function>\", re.DOTALL)"
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 28,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "PARAMETER_TAG_REGEX = re.compile(r\"<parameter=(\\w+)>\\s*(.*?)\\s*</parameter>\", re.DOTALL)"
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 33,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "GEMMA_ARG_SENTINEL_REGEX = re.compile(r'<\\|\"\\|>')"
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 36,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "TOOL_MARKUP_REGEX = re.compile("
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 60,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "for pair in re.split(r\"[,\\n]+\", cleaned):"
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 172,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "m = re.search("
+  },
+  {
+    "file": "brain/toolcall_demux.py",
+    "line": 361,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "gemma_m = re.search("
+  },
+  {
+    "file": "core/bdi_validator.py",
+    "line": 58,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "SYSTEM_PATH_REGEX: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/bdi_validator.py",
+    "line": 67,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "TRAVERSAL_REGEX: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/bdi_validator.py",
+    "line": 72,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "MALICIOUS_PYTHON_REGEX: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/belief_service.py",
+    "line": 32,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_INTERROGATIVE_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/belief_service.py",
+    "line": 94,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "tokens = [w for w in re.findall(r\"\\b[a-zA-Z0-9_\\-]{3,}\\b\", new_content.lower())]"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 314,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "clauses = [c.strip() for c in re.split(r\"[?!;]+\", clean) if c.strip()]"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 408,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 427,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "return bool(re.search(pattern, text))"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 457,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if any(re.search(rf\"\\b{re.escape(w)}\\b\", lower) for w in SLANG_OR_DIALECT_WORDS):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 462,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(rf\"\\bwhat\\s+.+?\\bin\\s+{re.escape(reg)}\\b\", lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 466,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(r\"\\bwhat\\s+(?:(?:is|are)\\s+(?:a|an)\\s+|a\\s+|an\\s+)[a-z0-9\\s'-]+\", lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 470,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(r\"\\bwhat\\s+does\\s+[a-z0-9\\s'-]+?\\s+mean\\b\", lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 474,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "has_culinary = any(re.search(rf\"\\b{re.escape(w)}\\b\", lower) for w in CULINARY_WORDS)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 475,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if has_culinary and re.search(r\"\\bwhat\\s+(?:is|are|[a-z0-9\\s'-]+\\s+is)\\b\", lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 479,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(r\"\\bwhat\\s+(?:is|are)\\s+[a-z0-9'-]+\\s+and\\s+[a-z0-9'-]+\", lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 492,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "m = re.search(p, query_text, re.IGNORECASE)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 534,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "clean_punct = re.sub(r\"[^\\w\\s]\", \"\", lower).strip()"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 543,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(pure_banter, lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 615,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(r\"\\b(?:premise\\s+\\d+|clues?:|rule\\s+\\d+:|rule:\\s+|question:\\s+(?:is|what|determine|calc"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 616,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(r\"\\b(?:all\\s+\\w+\\s+are|no\\s+\\w+\\s+is|every\\s+\\w+\\s+is|if\\s+both\\s+are\\s+released|final\\"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 681,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "re.search("
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 803,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(self_pattern, lower) and not is_private_memory:"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 805,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(capability_pattern, lower):"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 846,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "and not re.search(self_pattern, lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 847,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "and not re.search(capability_pattern, lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1021,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1025,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1029,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1033,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(r\"\\b(?:core|gpu|cpu|bus|memory)\\s+clock\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1034,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "or re.search(r\"\\bclock\\s+(?:speed|rate|freq|frequency|multiplier)\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1037,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1054,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1058,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1063,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(rf\"\\b{re.escape(w)}\\b\", lower)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1259,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "file_match = re.search(r\"([\\w\\-./\\\\]+\\.(?:toml|py|json|md|txt|ya?ml))\", query_text)"
+  },
+  {
+    "file": "core/cascade.py",
+    "line": 1481,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "url_match = re.search(r\"(https?://[^\\s\\\"'>]+)\", query_text)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 139,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "PAST_CONTEXT_PATTERN = re.compile("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 157,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "NEGATION_GUARD_PATTERN = re.compile("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 223,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "clauses = re.split(r\"[.!?;\\n]+\", narration_low)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 245,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "active_match = re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 285,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "if re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 288,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": ") or re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 294,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "elif re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 297,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": ") or re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 304,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 309,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "or re.search(r\"\\b(?:web|online)\\b.*?\\bsearch\\b\", clause)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 310,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "or re.search(r\"\\bsearch is complete\\b\", clause)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 311,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "or re.search(r\"\\b(?:completed|finished)\\b.*?\\bsearch\\b\", clause)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 312,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "or re.search(r\"\\bsearch\\b.*?\\b(?:completed|finished)\\b\", clause)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 313,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "or re.search(r\"\\bsearch\\b.*?\\breturned results\\b\", clause)"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 317,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "elif re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 320,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": ") or re.search(r\"\\bfetched\\b.*?\\b(?:web|pages?|urls?|internet)\\b\", clause):"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 323,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "elif re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 326,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": ") or re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 332,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "elif re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 335,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": ") or re.search(r\"\\b(?:executing|running)\\b.*?\\b(?:scripts?|code|python)\\b\", clause):"
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 338,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "elif re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 342,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": ") or re.search("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 385,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "PROMISE_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 395,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "ACTION_VERB_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/coherence.py",
+    "line": 419,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "for raw_clause in re.split(r\"[.!?;\\n]+\", narration.lower()):"
+  },
+  {
+    "file": "core/config.py",
+    "line": 20,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_QUANT_TOKEN = re.compile(r\"^(?:IQ|PQ|TQ|Q)\\d[\\w]*$\", re.IGNORECASE)"
+  },
+  {
+    "file": "core/config.py",
+    "line": 97,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "tokens = [t for t in re.split(r\"[-.]\", stem) if t]"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 522,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "m = re.search(r\"https?://(?:www\\.)?([^/]+)\", url)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 534,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "m = re.search(r\"\\b(?:report from|from|source:)\\s+([a-zA-Z0-9_\\-\\.]+)\", text, re.IGNORECASE)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 537,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "m = re.match(r\"^([a-zA-Z0-9_\\-\\.]+)\\s+asserts\\b\", text.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 557,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "attr_match = re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 1154,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "m = re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 1397,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "or any(w in r_text for w in re.split(r\"[_\\s]+\", case_b_lower) if len(w) > 2)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 1453,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "m = re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 1704,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "or any(w in r_text for w in re.split(r\"[_\\s]+\", conseq_lower) if len(w) > 2)"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2112,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_RE_SIGN = re.compile("
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2130,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_RE_ANALOGY = re.compile("
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2146,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_RE_CONSEQUENCE = re.compile("
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2163,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_RE_PRECEDENT = re.compile("
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2176,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_RE_EXPERT_AUTHORITY = re.compile("
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2206,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", p.strip(), re.IGNORECASE) for p in step.premises"
+  },
+  {
+    "file": "core/corroboration.py",
+    "line": 2211,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "attr_m = re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 47,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "clause = re.split(r\"[.!?;\\n]+\", sub)[0].strip()"
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 247,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "_REPORTED_SPEECH_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 252,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "_NEGATION_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 263,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 270,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 279,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 286,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 293,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 325,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_INTERROGATIVE_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/memory_commit_service.py",
+    "line": 332,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "_INTERROGATIVE_OPENER_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 655,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "tokens = re.findall(r\"\\b[a-zA-Z]{3,}\\b\", content)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 666,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "content = re.sub(rf\"\\b{re.escape(token)}\\b\", replacement, content)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1243,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "attr_match = re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", clean, re.IGNORECASE)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1336,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "if re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", clean, re.IGNORECASE):"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1346,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "words = [w.lower() for w in re.split(r\"[\\s_]+\", clean) if len(w) > 2]"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1357,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "words = [w.lower() for w in re.split(r\"[\\s_]+\", clean) if len(w) > 2]"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1381,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "fence_match = re.search(r\"```(?:json)?\\s*([\\s\\S]*?)\\s*```\", clean_text)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1385,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "array_match = re.search(r\"\\[[\\s\\S]*\\]\", clean_text)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1386,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "obj_match = re.search(r\"\\{[\\s\\S]*\\}\", clean_text)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1411,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", p.strip(), re.IGNORECASE) for p in step.premises"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1618,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "if re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem.strip(), re.IGNORECASE):"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1677,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "if re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem.strip(), re.IGNORECASE):"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1797,
+    "func": "match",
+    "category": "PARSER_JUDGE",
+    "code": "if re.match(r\"^(?:\u2026|\\.\\.\\.)?\\s*if\\b\", c.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1814,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "if re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", c.strip(), re.IGNORECASE)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1819,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "m = re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", attr_cond, re.IGNORECASE)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1846,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "fence_match = re.search(r\"```(?:json)?\\s*([\\s\\S]*?)\\s*```\", clean_text)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 1850,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "obj_match = re.search(r\"\\{[\\s\\S]*\\}\", clean_text)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 2394,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "history_urls.extend(re.findall(r\"https?://[^\\s<>\\\"'()]+\", content_val))"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 2396,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "history_urls.extend(re.findall(r\"https?://[^\\s<>\\\"'()]+\", epistemic_context))"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 2593,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "re.findall(r\"https?://[^\\s<>\\\"'()]+\", tool_res.content)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3717,
+    "func": "split",
+    "category": "FLAT_LEXER",
+    "code": "sentences = re.split(r\"(?<=[.!?])\\s+\", cleaned)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3718,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "copula_pattern = re.compile("
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3724,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s_clean = re.sub(r\"^#+\\s*\", \"\", s_clean)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3725,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s_clean = re.sub(r\"\\[([^\\]]+)\\]\\([^\\)]+\\)\", r\"\\1\", s_clean)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3805,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "m = re.search(cross_ref_pat, user_text, re.IGNORECASE)"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3820,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "offer_match = re.search("
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 3984,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "solve_match = re.search(r\"^(.*?)=(.*?)(?:[;,]\\s*|\\s+)solve\\s+for\\s+([a-zA-Z_]\\w*)$\", raw_content.str"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 4391,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "for tok in re.findall(r\"\\b[a-zA-Z]{3,}\\b\", q):"
+  },
+  {
+    "file": "core/orchestrator.py",
+    "line": 4396,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "q = re.sub(rf\"\\b{re.escape(tok)}\\b\", target_w, q)"
+  },
+  {
+    "file": "core/proof_policy.py",
+    "line": 258,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "words = set(re.findall(r\"\\b[a-z0-9_-]+\\b\", text))"
+  },
+  {
+    "file": "core/proof_policy.py",
+    "line": 261,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if any(re.search(rf\"\\b{re.escape(p)}\\b\", text) for p in _HIGH_HAZARD_PHRASES):"
+  },
+  {
+    "file": "core/proof_policy.py",
+    "line": 273,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if any(re.search(rf\"\\b{re.escape(p)}\\b\", text) for p in _LOW_HAZARD_PHRASES):"
+  },
+  {
+    "file": "core/proof_policy.py",
+    "line": 359,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "cleaned_no_punct = re.sub(r\"[^\\w\\s-]\", \"\", cleaned)"
+  },
+  {
+    "file": "core/proof_policy.py",
+    "line": 367,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "return any(re.search(pat, cleaned_no_punct) for pat in patterns)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 97,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "re.search(r\"\\b\" + re.escape(kw) + r\"\\b\", combined_context) for kw in positivity_keywords"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 100,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "cleaned_output = re.sub(r\"(?m)^\\s*-\\s+\", \"  \", tool_output)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 105,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "neg_match = re.search(pattern, cleaned_output)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 140,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "pos_c_match = re.search("
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 160,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "sub_abs_zero = re.search(r\"-\\s*(\\d+(?:\\.\\d+)?)\\s*(?:c|celsius)\", output_lower)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 182,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "sol_m_match = re.search(r\"(\\d[\\d,]*)\\s*(?:m/s|meters?\\s*per\\s*second)\", output_lower)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 210,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "age_match = re.search(r\"(\\d{2,3})\\s*(?:years?\\s*old|years?\\s*of\\s*age)\", output_lower)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 238,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "pop_match = re.search("
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 269,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "div_match = re.search(rf\"{p}\\s+is\\s+divisible\\s+by\\s+(\\d+)\", output_lower)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 295,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "out_nums = re.findall(r\"\\b\\d+(?:\\.\\d+)?\\b\", tool_output)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 309,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "mult_match = re.search(r\"(\\d+(?:\\.\\d+)?)\\s*[\\*x\u00d7]\\s*(\\d+(?:\\.\\d+)?)\", calc_target)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 345,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "div_match = re.search(r\"(\\d+(?:\\.\\d+)?)\\s*[\\/\u00f7]\\s*(\\d+(?:\\.\\d+)?)\", calc_target)"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 348,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "frac_match = re.search(frac_pattern, calc_target.lower())"
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 350,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "div_match = re.search("
+  },
+  {
+    "file": "core/sanity_guard.py",
+    "line": 393,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "r_match = re.search(r\"radius\\s*(?:of|=|is)?\\s*(\\d+(?:\\.\\d+)?)\", combined_context)"
+  },
+  {
+    "file": "core/schemas.py",
+    "line": 91,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "SKILL_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r\"^[a-z0-9]+(-[a-z0-9]+)*-v[0-9]+$\")"
+  },
+  {
+    "file": "core/schemas.py",
+    "line": 337,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "PREDICATE_SLUG_REGEX: Final[re.Pattern[str]] = re.compile(r\"^[a-z][a-z0-9_]{1,40}$\")"
+  },
+  {
+    "file": "core/self_diagnosis.py",
+    "line": 355,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "DIAGNOSTIC_QUERY_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 67,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 74,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 81,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 88,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 96,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "text = re.sub(r\"([a-zA-Z])(?:\\s*-\\s*\\1){2,}\", r\"\\1\", text, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 97,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub(r\"([a-zA-Z]\\.)(?:\\s*\\1){2,}\", r\"\\1\", text, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 98,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub(r\"\\b([a-zA-Z])(?:\\s+\\1){2,}\\b\", r\"\\1\", text, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 102,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 115,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 121,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 128,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub(r\"\\s+\", \" \", text).strip()"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 143,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "tokens = set(re.findall(r\"\\b[a-zA-Z]+\\b\", text.lower()))"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 155,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub(r\"\\bfish\\s+and\\s+ship\\b\", repl_fish_ship, text, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 165,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub(r\"\\bsalt\\s+and\\s+paper\\b\", repl_salt_paper, text, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 185,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "letters = re.findall(r\"[a-zA-Z]\", raw)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 193,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "text = re.sub(r\"\\b[a-zA-Z]\\.(?:\\s*[a-zA-Z]\\.){2,}\", replace_period, text)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 198,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "letters = re.findall(r\"[a-zA-Z]\", raw)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 206,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "text = re.sub(r\"\\b[a-zA-Z](?:\\s*-\\s*[a-zA-Z]){2,}\\b\", replace_hyphen, text)"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 219,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "text = re.sub("
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 273,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "s = re.sub(r\"\\s+\", \" \", s).strip()"
+  },
+  {
+    "file": "core/text_utils.py",
+    "line": 276,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "s = re.sub(r\"[.?!,;:]+$\", \"\", s).strip()"
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 185,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 195,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "re.compile("
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 351,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(r\"^\\s*(what is|\\d+\\s*[\\+\\-\\*\\/]|\\d+\\s+multiplied|\\d+\\s+divided)\", lower):"
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 356,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "has_interest = bool(re.search(r\"\\b(interest|rate of interest|earns interest|accrues interest|loan)\\b"
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 357,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "has_explicit_convention = bool(re.search(r\"\\b(simple interest|compound(ed)?|compounding|apr|apy)\\b\","
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 362,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "has_fee = bool(re.search(r\"\\b(fee|service fee|delivery fee|convenience fee|vendor fee|tax|tip)\\b\", l"
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 363,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "has_multiple_costs = bool(re.search(r\"\\b(delivery|shipping|travel|expenses|freight|tip|subtotal)\\b\","
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 365,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "if not re.search(r\"\\b(applied (strictly )?to|on (the )?(subtotal|groceries|merchandise|work) only)\\b"
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 369,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "has_discrete_packing = bool(re.search(r\"\\b(how many\\s+(pallets?|boxes|crates|containers|buses|vans|t"
+  },
+  {
+    "file": "core/turn_pipeline.py",
+    "line": 370,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "has_explicit_rounding = bool(re.search(r\"\\b(round(ed)? (up|down|to nearest)|ceiling|floor|at least|e"
+  },
+  {
+    "file": "core/user_model.py",
+    "line": 86,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "for t in re.findall(r\"\\b[a-zA-Z0-9_\\-.]+\\b\", text)"
+  },
+  {
+    "file": "memory/db.py",
+    "line": 95,
+    "func": "match",
+    "category": "PARSER_JUDGE",
+    "code": "match = re.match(r\"^(\\d+)_\", f.name)"
+  },
+  {
+    "file": "memory/entities.py",
+    "line": 16,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "STRIP_PUNCT_PATTERN: Final[re.Pattern[str]] = re.compile(r\"[^\\w\\s._\\-/@]\", flags=re.UNICODE)"
+  },
+  {
+    "file": "memory/gate.py",
+    "line": 190,
+    "func": "match",
+    "category": "FLAT_LEXER",
+    "code": "if re.match(r\"^(.+?)\\s+asserts\\s+(.+)$\", prem_str, re.IGNORECASE):"
+  },
+  {
+    "file": "memory/manager.py",
+    "line": 98,
+    "func": "split",
+    "category": "PARSER_JUDGE",
+    "code": "t for t in re.split(r\"[^a-zA-Z0-9_.\\-]+\", search.strip().lower()) if len(t) >= 3"
+  },
+  {
+    "file": "memory/tokens.py",
+    "line": 9,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "SPLIT_PATTERN: Final[re.Pattern[str]] = re.compile(r\"[_.\\-/\\\\]+\")"
+  },
+  {
+    "file": "reasoning/induction.py",
+    "line": 65,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "words = re.findall(r\"\\b[a-zA-Z0-9_\\-.]+\\b\", clean_text.lower())"
+  },
+  {
+    "file": "reasoning/induction.py",
+    "line": 298,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_val = re.sub(r\"[^a-zA-Z0-9_\\-]\", \"-\", cluster.arg_val.lower()).strip(\"-\")"
+  },
+  {
+    "file": "reasoning/induction.py",
+    "line": 299,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_val = re.sub(r\"-+\", \"-\", clean_val)"
+  },
+  {
+    "file": "reasoning/induction.py",
+    "line": 428,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_val = re.sub(r\"[^a-zA-Z0-9_\\-]\", \"-\", cluster.arg_val.lower()).strip(\"-\")"
+  },
+  {
+    "file": "reasoning/induction.py",
+    "line": 429,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_val = re.sub(r\"-+\", \"-\", clean_val)"
+  },
+  {
+    "file": "reasoning/recall.py",
+    "line": 58,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "for t in re.findall(r\"\\b[a-zA-Z0-9_\\-.]+\\b\", query_text)"
+  },
+  {
+    "file": "reasoning/smt_verifier.py",
+    "line": 129,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"[^a-zA-Z0-9_]\", \"_\", app_name)"
+  },
+  {
+    "file": "reasoning/smt_verifier.py",
+    "line": 135,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"[^a-zA-Z0-9_]\", \"_\", term)"
+  },
+  {
+    "file": "reasoning/smt_verifier.py",
+    "line": 143,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_k = re.sub(r\"[^a-zA-Z0-9_]\", \"_\", key)"
+  },
+  {
+    "file": "reasoning/smt_verifier.py",
+    "line": 144,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_v = re.sub(r\"[^a-zA-Z0-9_]\", \"_\", val)"
+  },
+  {
+    "file": "reasoning/smt_verifier.py",
+    "line": 149,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"[^a-zA-Z0-9_]\", \"_\", key)"
+  },
+  {
+    "file": "reasoning/smt_verifier.py",
+    "line": 155,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"[^a-zA-Z0-9_]\", \"_\", key)"
+  },
+  {
+    "file": "reasoning/scheme/lexer.py",
+    "line": 40,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "TOKEN_REGEX = re.compile(\"|\".join(f\"(?P<{name}>{pattern})\" for name, pattern in TOKEN_SPEC))"
+  },
+  {
+    "file": "reasoning/scheme/parser.py",
+    "line": 103,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "RULE_ID_REGEX = re.compile(r\"^[a-z0-9]+(-[a-z0-9]+)*-v[0-9]+$\")"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 72,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 79,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 112,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "FILE_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 116,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "URL_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 120,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "QUOTED_PATTERN: Final[re.Pattern[str]] = re.compile(r'\"([^\"]+)\"')"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 286,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(dangerous_pattern, text):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 288,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(sensitive_pattern, text):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 290,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(hijack_pattern, text):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 292,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "if re.search(prompt_extract_pattern, text):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 296,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "launch_match = re.search("
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 307,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(rf\"\\b{re.escape(app_name)}\\b\", candidate_app):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 313,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(r\"\\b(read|view|show|cat|inspect|examine)\\b\\s+(?:the\\s+)?(?:file\\s+)?\", text)"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 320,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "re.search(r\"\\b(write|create|save|append|dump)\\b\\s+(?:to\\s+)?\", text)"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 333,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(mem_pattern, text):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 346,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(chit_pattern, text):"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 369,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(web_pattern, text) or entities[\"url\"]:"
+  },
+  {
+    "file": "router/heuristic.py",
+    "line": 629,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "pattern = re.compile(rf\"^{re.escape(stem)}-(\\d{{4}}-\\d{{2}}-\\d{{2}}){re.escape(suffix)}$\")"
+  },
+  {
+    "file": "router/labeler.py",
+    "line": 22,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "NEGATION_REGEX: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "sandbox/browser_tool.py",
+    "line": 148,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_text = re.sub(r\"\\n{3,}\", \"\\n\\n\", extracted_text).strip()"
+  },
+  {
+    "file": "sandbox/browser_tool.py",
+    "line": 149,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_text = re.sub(r\"[ \\t]+\", \" \", clean_text)"
+  },
+  {
+    "file": "sandbox/file_tool.py",
+    "line": 269,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "regex = re.compile(pattern, re.IGNORECASE)"
+  },
+  {
+    "file": "sandbox/note_tool.py",
+    "line": 18,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "SAFE_NAME_RE: Final[re.Pattern[str]] = re.compile(r\"^[a-zA-Z0-9_\\.\\-]+$\")"
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 78,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "ATTRIBUTION_REGEX = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 90,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "STALLING_RESEARCH_PATTERN = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 131,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._pattern_p1 = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 136,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._pattern_p2a = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 141,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._pattern_p2b = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 146,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._pattern_p3 = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 162,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"[\\*\\_`~]\", \"\", clean)"
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 187,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 247,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(NEGATION_PHRASES, preceding_text, re.IGNORECASE):"
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 257,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(HEDGE_PHRASES, preceding_text, re.IGNORECASE):"
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 306,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "PAST_CONTEXT_PATTERN = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 320,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._action_pattern = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 326,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._future_pattern = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 376,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 395,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "remainder = re.sub("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 401,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "remainder = re.sub(r\"^\\s*both\\s+\", \"\", remainder, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 404,
+    "func": "split",
+    "category": "FLAT_LEXER",
+    "code": "raw_targets = [t.strip() for t in re.split(r\"\\s+and\\s+|\\s*,\\s*\", remainder) if t.strip()]"
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 407,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "clean = re.sub("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 472,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "URL_EXTRACTION_REGEX = re.compile("
+  },
+  {
+    "file": "sandbox/output_supervisor.py",
+    "line": 625,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "self._refutation_regex = re.compile("
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 28,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "CONFIRM_PATTERN = re.compile("
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 32,
+    "func": "compile",
+    "category": "PARSER_JUDGE",
+    "code": "CANCEL_PATTERN = re.compile("
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 190,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "cleaned = re.sub(r\"^[\\s,;.!?-]+\", \"\", cleaned)"
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 191,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "cleaned = re.sub(r\"^(?:uh|um|er|ah|like)\\b[\\s,;.!?-]*\", \"\", cleaned, flags=re.IGNORECASE)"
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 198,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(rf\"\\b{tok}\\b\", cleaned):"
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 199,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(rf\"\\b(?:no|don't|dont|never)\\s+{tok}\\b\", cleaned):"
+  },
+  {
+    "file": "sandbox/policy.py",
+    "line": 203,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "words = set(re.findall(r\"\\b[\\w']+\\b\", cleaned))"
+  },
+  {
+    "file": "sandbox/preflight.py",
+    "line": 20,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "_ARROW_OR_EQ_PATTERN: Final[re.Pattern[str]] = re.compile("
+  },
+  {
+    "file": "sandbox/preflight.py",
+    "line": 29,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "m = re.search(r\"```(?:python)?\\s*(.*?)\\s*```\", text, re.DOTALL)"
+  },
+  {
+    "file": "sandbox/preflight.py",
+    "line": 95,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "src = re.sub(r\"#.*$\", \"\", p.source.strip()).strip()"
+  },
+  {
+    "file": "sandbox/preflight.py",
+    "line": 132,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "src = re.sub(r\"#.*$\", \"\", ex.source.strip()).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 143,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "rfc_match = re.search(r\"\\brfc\\s*(\\d+)\\b\", query, re.IGNORECASE)"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 210,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_snippet = html.unescape(re.sub(r\"<[^>]+>\", \"\", raw_snippet)).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 322,
+    "func": "finditer",
+    "category": "PARSER_JUDGE",
+    "code": "lite_matches = re.finditer("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 330,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_title = html.unescape(re.sub(r\"<[^>]+>\", \"\", raw_title)).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 331,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_snippet = html.unescape(re.sub(r\"<[^>]+>\", \"\", raw_snippet)).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 334,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "u_match = re.search(r\"uddg=([^&]+)\", clean_url)"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 350,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "blocks = re.findall("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 360,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "t_match = re.search("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 368,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "snippet_match = re.search("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 373,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "re.sub(r\"<[^>]+>\", \"\", snippet_match.group(1))"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 376,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "link_match = re.search("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 382,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "title = html.unescape(re.sub(r\"<[^>]+>\", \"\", link_match.group(1))).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 385,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "raw_s = re.search("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 389,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "snippet = html.unescape(re.sub(r\"<[^>]+>\", \"\", raw_s.group(1))).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 402,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "blocks = re.findall("
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 408,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean_snippet = html.unescape(re.sub(r\"<[^>]+>\", \"\", b)).strip()"
+  },
+  {
+    "file": "sandbox/search_tool.py",
+    "line": 483,
+    "func": "compile",
+    "category": "FLAT_LEXER",
+    "code": "pattern = re.compile(rf\"\\b{re.escape(target_str)}\\b\", re.IGNORECASE)"
+  },
+  {
+    "file": "sandbox/service.py",
+    "line": 167,
+    "func": "search",
+    "category": "FLAT_LEXER",
+    "code": "if re.search(rf\"\\b{re.escape(word)}\\b\", cleaned_lower):"
+  },
+  {
+    "file": "sandbox/web_tool.py",
+    "line": 145,
+    "func": "search",
+    "category": "PARSER_JUDGE",
+    "code": "title_match = re.search(r\"<title[^>]*>(.*?)</title>\", html, re.IGNORECASE | re.DOTALL)"
+  },
+  {
+    "file": "sandbox/web_tool.py",
+    "line": 149,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"<(script|style)[^>]*>.*?</\\1>\", \"\", html, flags=re.IGNORECASE | re.DOTALL)"
+  },
+  {
+    "file": "sandbox/web_tool.py",
+    "line": 151,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "clean = re.sub(r\"<[^>]+>\", \" \", clean)"
+  },
+  {
+    "file": "sandbox/web_tool.py",
+    "line": 153,
+    "func": "sub",
+    "category": "FLAT_LEXER",
+    "code": "clean = re.sub(r\"\\s+\", \" \", clean).strip()"
+  },
+  {
+    "file": "sandbox/web_tool.py",
+    "line": 246,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "embedded_raw = re.findall(r\"https?://[^\\s<>\\\"'()]+\", text)"
+  },
+  {
+    "file": "sandbox/web_tool.py",
+    "line": 292,
+    "func": "findall",
+    "category": "PARSER_JUDGE",
+    "code": "embedded_raw = re.findall(r\"https?://[^\\s<>\\\"'()]+\", html_str)"
+  },
+  {
+    "file": "senses/tts.py",
+    "line": 61,
+    "func": "sub",
+    "category": "PARSER_JUDGE",
+    "code": "result = re.sub(r\"\\b(wait|well|listen),\\s*\", r\"\\1... \", result, flags=re.IGNORECASE)"
+  }
+]
