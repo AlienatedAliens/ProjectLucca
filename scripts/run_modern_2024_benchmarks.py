@@ -891,7 +891,7 @@ def run_math500_pal(
             f"STRICT RULES:\n"
             f"1. Output ONLY a ```python ... ``` block. DO NOT write explanations, prose, or rambling comments.\n"
             f"2. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
-            f"3. The script MUST end with a print(...) statement that prints ONLY the final answer on stdout.\n\n"
+            f"3. The script MUST compute the final answer into a variable and end with a print(answer) statement that prints ONLY the final answer on stdout. Do not leave the final answer unprinted.\n\n"
             f"Problem: {problem}\n"
         )
         tracer.transition_stage("tank_4_context_infusion", "Epistemic Clarifier & Context Infusion", "PromptBuilder", prompt[:300], details="Assembling 5-layer prompt with Python/SymPy PAL rules...")
@@ -945,26 +945,38 @@ def run_math500_pal(
             status_tank6 = "PASS" if exec_res_exit == 0 else "ERROR"
             tracer.record_stage_result("tank_6_sandbox_turbine", "Sandbox Execution Turbine", "DockerRPCTransport (WSL2)", status_tank6, f"Docker execution returned exit code {exec_res_exit}", math_out, stderr=exec_res_stderr, custom_duration_ms=round(t_exec * 1000, 2))
 
-            if exec_res.exit_code == 0 and math_out:
+            if exec_res.exit_code == 0 and math_out and any(l.strip() for l in math_out.strip().splitlines()):
                 lines = [l.strip() for l in math_out.strip().splitlines() if l.strip()]
                 if lines:
                     pred_str = lines[-1]
                     if pred_str.lower() in ("none", "null") and len(lines) >= 2:
                         pred_str = lines[-2]
-            elif feedback and exec_res.exit_code != 0 and (exec_res_stderr or math_out):
-                # 2-Turn Interactive Execution Feedback (Self-Correction on Traceback)
+            elif feedback and (exec_res.exit_code != 0 or not math_out.strip()):
+                # 2-Turn Interactive Execution Feedback (Self-Correction on Traceback OR Empty Output)
                 feedback_triggered = True
-                err_trace = (exec_res_stderr or math_out).strip()
-                tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", err_trace, details="Injecting traceback into Neural Boiler for Turn 2 self-correction...")
-                print(f"   [Execution Feedback Loop Triggered] Task {idx} produced error -> Retrying with traceback...", flush=True)
-                feedback_prompt = (
-                    f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem produced an execution error in the sandbox:\n\n"
-                    f"Problem: {problem}\n\n"
-                    f"Your Initial Script:\n```python\n{code}\n```\n\n"
-                    f"Execution Error / Traceback in Docker:\n{err_trace[:600]}\n\n"
-                    f"Please diagnose the error (e.g. fix syntax/import/attribute mistakes, or if SymPy's analytical solver fails, use numerical iteration or search). "
-                    f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(...) printing ONLY the final answer."
-                )
+                if exec_res.exit_code != 0:
+                    err_trace = (exec_res_stderr or math_out).strip()
+                    tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", err_trace, details="Injecting traceback into Neural Boiler for Turn 2 self-correction...")
+                    print(f"   [Execution Feedback Loop Triggered] Task {curr_idx} produced error -> Retrying with traceback...", flush=True)
+                    feedback_prompt = (
+                        f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem produced an execution error in the sandbox:\n\n"
+                        f"Problem: {problem}\n\n"
+                        f"Your Initial Script:\n```python\n{code}\n```\n\n"
+                        f"Execution Error / Traceback in Docker:\n{err_trace[:600]}\n\n"
+                        f"Please diagnose the error (e.g. fix syntax/import/attribute mistakes, or if SymPy's analytical solver fails, use numerical iteration or search). "
+                        f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(...) printing ONLY the final answer."
+                    )
+                else:
+                    tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Empty Output)", "2-Turn Feedback Governor", "Empty stdout", details="Script produced empty stdout (exit 0). Re-prompting to compute and print final answer...")
+                    print(f"   [Execution Feedback Loop Triggered] Task {curr_idx} produced empty output (exit 0) -> Retrying with print instruction...", flush=True)
+                    feedback_prompt = (
+                        f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY stdout because it forgot to print the final answer:\n\n"
+                        f"Problem: {problem}\n\n"
+                        f"Your Initial Script:\n```python\n{code}\n```\n\n"
+                        f"CRITICAL REQUIREMENT:\n"
+                        f"The script must compute the final exact answer and explicitly print it on stdout. Do not write rambling comments or derivations.\n"
+                        f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
+                    )
                 t_corr0 = time.perf_counter()
                 corr_resp = query_llm(prompt=feedback_prompt, max_tokens=768, enable_thinking=False)
                 t_corr = time.perf_counter() - t_corr0
@@ -972,9 +984,9 @@ def run_math500_pal(
                 corr_code, corr_stage = extract_python_code_with_stage(corr_resp)
                 if corr_code:
                     t_exec2_0 = time.perf_counter()
-                    exec_res2 = transport.execute(f"math500-{idx}-corr", "run_python", {"code": corr_code}, timeout_s=20)
+                    exec_res2 = transport.execute(f"math500-{curr_idx}-corr", "run_python", {"code": corr_code}, timeout_s=20)
                     t_exec2 = time.perf_counter() - t_exec2_0
-                    if exec_res2.exit_code == 0 and exec_res2.content:
+                    if exec_res2.exit_code == 0 and exec_res2.content and exec_res2.content.strip():
                         lines2 = [l.strip() for l in exec_res2.content.strip().splitlines() if l.strip()]
                         if lines2:
                             pred_str = lines2[-1]
@@ -984,12 +996,12 @@ def run_math500_pal(
                             exec_res_exit = 0
                             exec_res_stderr = ""
                             feedback_succeeded = True
-                            print(f"   [Self-Correction Succeeded] Task {idx} recovered! Pred: {pred_str}", flush=True)
-                            tracer.record_stage_result("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", "SUCCEEDED", "Model diagnosed traceback and generated valid corrected code.", pred_str, custom_duration_ms=round((t_corr + t_exec2) * 1000, 2))
+                            print(f"   [Self-Correction Succeeded] Task {curr_idx} recovered! Pred: {pred_str}", flush=True)
+                            tracer.record_stage_result("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", "SUCCEEDED", "Model diagnosed issue and generated valid corrected code.", pred_str, custom_duration_ms=round((t_corr + t_exec2) * 1000, 2))
                     else:
                         exec_res_exit = exec_res2.exit_code
                         exec_res_stderr = exec_res2.stderr or ""
-                        tracer.record_stage_result("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", "FAILED", "Turn 2 execution failed.", exec_res2.content or "", stderr=exec_res_stderr, custom_duration_ms=round((t_corr + t_exec2) * 1000, 2))
+                        tracer.record_stage_result("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", "FAILED", "Turn 2 execution failed or output empty.", exec_res2.content or "", stderr=exec_res_stderr, custom_duration_ms=round((t_corr + t_exec2) * 1000, 2))
                 else:
                     tracer.record_stage_result("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", "FAILED", "Turn 2 produced no Python code block.", corr_resp[:300], custom_duration_ms=round(t_corr * 1000, 2))
             else:
