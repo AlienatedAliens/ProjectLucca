@@ -884,14 +884,22 @@ def run_math500_pal(
         tracer.transition_stage("tank_3_microscheme", "MicroScheme Symbolic Centrifuge", "MicroScheme Lisp AST Reducer", problem, details="Evaluating deterministic S-Expression...")
         tracer.record_stage_result("tank_3_microscheme", "MicroScheme Symbolic Centrifuge", "MicroScheme Lisp AST Reducer", "BYPASS", "Requires computer algebra. Delegating to Neural Boiler.", "DELEGATED_TO_TANK_4", custom_duration_ms=0.2)
 
+        is_baseline = "baseline" in label.lower() or "291" in label.lower()
+        t1_tokens = 768 if is_baseline else 400
+
         # Stage 4: Context Infusion
+        rule_3 = (
+            "3. The script MUST end with a print(...) statement that prints ONLY the final answer on stdout.\n\n"
+            if is_baseline
+            else "3. The script MUST compute the final answer into a variable and end with a print(answer) statement that prints ONLY the final answer on stdout. Do not leave the final answer unprinted.\n\n"
+        )
         prompt = (
             f"You are a competition mathematician and computer algebra expert. Solve the following problem by writing "
             f"a concise Python script (< 30 lines) using SymPy or arithmetic that computes and prints ONLY the final exact answer.\n"
             f"STRICT RULES:\n"
             f"1. Output ONLY a ```python ... ``` block. DO NOT write explanations, prose, or rambling comments.\n"
             f"2. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
-            f"3. The script MUST compute the final answer into a variable and end with a print(answer) statement that prints ONLY the final answer on stdout. Do not leave the final answer unprinted.\n\n"
+            f"{rule_3}"
             f"Problem: {problem}\n"
         )
         tracer.transition_stage("tank_4_context_infusion", "Epistemic Clarifier & Context Infusion", "PromptBuilder", prompt[:300], details="Assembling 5-layer prompt with Python/SymPy PAL rules...")
@@ -900,7 +908,7 @@ def run_math500_pal(
         # Stage 5: Neural Deliberation Boiler
         tracer.transition_stage("tank_5_neural_boiler", "Neural Deliberation Boiler", "llama-server (Gemma 4 12B on RTX 5080)", prompt[:300], details="Generating computational code on RTX 5080 Laptop GPU...")
         t0 = time.perf_counter()
-        resp = query_llm(prompt=prompt, max_tokens=768, enable_thinking=False)
+        resp = query_llm(prompt=prompt, max_tokens=t1_tokens, enable_thinking=False)
         t_llm = time.perf_counter() - t0
 
         extraction_retry_triggered = False
@@ -942,6 +950,12 @@ def run_math500_pal(
             exec_res_stderr = exec_res.stderr or ""
             math_out = exec_res.content or ""
             
+            # Idx 65 fix: Non-evaluable stdout filter
+            if not is_baseline and math_out:
+                UNUSABLE_STDOUT_PATTERNS = ("<built-in", "<function", "<class", "<module", "object at 0x")
+                if any(pat in math_out for pat in UNUSABLE_STDOUT_PATTERNS):
+                    math_out = ""
+
             status_tank6 = "PASS" if exec_res_exit == 0 else "ERROR"
             tracer.record_stage_result("tank_6_sandbox_turbine", "Sandbox Execution Turbine", "DockerRPCTransport (WSL2)", status_tank6, f"Docker execution returned exit code {exec_res_exit}", math_out, stderr=exec_res_stderr, custom_duration_ms=round(t_exec * 1000, 2))
 
@@ -951,8 +965,8 @@ def run_math500_pal(
                     pred_str = lines[-1]
                     if pred_str.lower() in ("none", "null") and len(lines) >= 2:
                         pred_str = lines[-2]
-            elif feedback and (exec_res.exit_code != 0 or not math_out.strip()):
-                # 2-Turn Interactive Execution Feedback (Self-Correction on Traceback OR Empty Output)
+            elif feedback and ((is_baseline and exec_res.exit_code != 0 and (exec_res_stderr or math_out)) or (not is_baseline and (exec_res.exit_code != 0 or not math_out.strip()))):
+                # 2-Turn Interactive Execution Feedback
                 feedback_triggered = True
                 if exec_res.exit_code != 0:
                     err_trace = (exec_res_stderr or math_out).strip()
@@ -970,11 +984,10 @@ def run_math500_pal(
                     tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Empty Output)", "2-Turn Feedback Governor", "Empty stdout", details="Script produced empty stdout (exit 0). Re-prompting to compute and print final answer...")
                     print(f"   [Execution Feedback Loop Triggered] Task {curr_idx} produced empty output (exit 0) -> Retrying with print instruction...", flush=True)
                     feedback_prompt = (
-                        f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY stdout because it forgot to print the final answer:\n\n"
+                        f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY or unprinted stdout:\n\n"
                         f"Problem: {problem}\n\n"
-                        f"Your Initial Script:\n```python\n{code}\n```\n\n"
                         f"CRITICAL REQUIREMENT:\n"
-                        f"The script must compute the final exact answer and explicitly print it on stdout. Do not write rambling comments or derivations.\n"
+                        f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write rambling comments or derivations.\n"
                         f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                     )
                 t_corr0 = time.perf_counter()
