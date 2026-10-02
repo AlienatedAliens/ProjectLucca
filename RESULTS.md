@@ -15,4 +15,7 @@
 | `gsm-symbolic-strat-100` | `bef28b5` | pal-docker-exact | `data/benchmarks/GSM_symbolic.jsonl` | `945055837b232bd9b56827b1e3a5aa019075f29e8ba4669d9a9df8b4439a291f` | 100 | 94 | 94.00% (94/100) | 94.00% (94/100) | [86.88%, 97.54%] | `logs/test_reports/gsm_symbolic_100_templates.json` |
 | `humaneval-canonical-raw-164` | `bef28b5` | canonical-unit-tests | `data/benchmarks/humaneval.jsonl` | `1d49078ba3e2b196b9344535bef34a43021f038fad9561d6ee7c53450609a6a2` | 164 | 155 | 94.51% (155/164) | 94.51% (155/164) | [89.52%, 97.30%] | `logs/test_reports/humaneval_canonical_raw_164.json` |
 | `humaneval-canonical-assisted-164` | `bef28b5` | canonical-unit-tests | `data/benchmarks/humaneval.jsonl` | `1d49078ba3e2b196b9344535bef34a43021f038fad9561d6ee7c53450609a6a2` | 164 | 154 | 93.90% (154/164) | 93.90% (154/164) | [88.76%, 96.87%] | `logs/test_reports/humaneval_canonical_assisted_164.json` |
+| `math-v1.3-regraded-strict-posthoc` | `25adb03` | v1.35-strict-posthoc | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 500 | 393 | 78.60% (393/500) | 78.60% (393/500) | [74.69%, 82.06%] | `logs/test_reports/checkpoint_math500_v1.3-fresh-500_strict_posthoc.json` |
+| `math-v1.3-regraded-lenient-posthoc` | `25adb03` | v1.35-lenient-posthoc | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 500 | 432 | 78.60% (393/500) | 86.40% (432/500) | [83.01%, 89.22%] | `logs/test_reports/checkpoint_math500_v1.3-fresh-500_lenient_posthoc.json` |
+
 
