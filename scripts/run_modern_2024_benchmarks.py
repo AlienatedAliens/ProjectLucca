@@ -501,14 +501,165 @@ def evaluate_sympy_equivalence_with_timeout(p_sym, e_sym, timeout_s: float = 2.0
         executor.shutdown(wait=False, cancel_futures=True)
 
 
-def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = True) -> bool:
-    """Check mathematical equivalence between predicted and expected solutions."""
+# ===========================================================================
+# Math Grader Modes: Normalizers, Strict, and Lenient Equivalence Graders
+# ===========================================================================
+
+def normalize_mc_letter(s: str) -> str:
+    """Normalize multiple-choice letters: E, \\text{(E)}, (E), \\mathbf{E} -> E."""
+    if not s:
+        return ""
+    s_clean = s.strip()
+    m = re.match(r"^(?:\\text\{\s*|\\mathrm\{\s*|\\mathbf\{\s*)?\(?([A-Ea-e])\)?(?:\s*\})?$", s_clean)
+    if m:
+        return m.group(1).upper()
+    return s_clean
+
+
+def strip_percent(s: str) -> str:
+    """Strip percent symbols: 33\\% or 33% -> 33."""
+    if not s:
+        return ""
+    return re.sub(r"\\?%", "", s).strip()
+
+
+def strip_unit_labels(s: str) -> str:
+    """Strip trailing text unit labels like \\;\\text{edges}, \\text{cm}, \\text{dollars}, etc."""
+    if not s:
+        return ""
+    cleaned = re.sub(r"\\;?\\text\{\s*(?:edges|units?|sq(?:uare)?\s*units?|cm|m|km|miles?|hours?|minutes?|seconds?|dollars?|cents?|degrees?)\s*\}", "", s, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\\;?\\mathrm\{\s*(?:edges|units?|sq(?:uare)?\s*units?|cm|m|km|miles?|hours?|minutes?|seconds?|dollars?|cents?|degrees?)\s*\}", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\^\{\s*\\circ\s*\}|\^\\circ|\\circ|\\degree", "", cleaned)
+    return cleaned.strip()
+
+
+def parse_matrix_clean(s: str) -> list[list[str]] | None:
+    """Parse matrix representations from LaTeX (pmatrix, bmatrix) or Python (nested lists, Matrix(...))."""
+    if not s:
+        return None
+    s = s.strip()
+
+    # 1. LaTeX pmatrix / bmatrix
+    if "pmatrix" in s or "bmatrix" in s:
+        m = re.search(r"\\begin\{[pb]matrix\}(.*?)\\end\{[pb]matrix\}", s, re.DOTALL)
+        if m:
+            body = m.group(1).strip()
+            raw_rows = [r.strip() for r in re.split(r"\\\\|\\cr", body) if r.strip()]
+            return [[c.strip().rstrip("\\") for c in r.split("&")] for r in raw_rows]
+
+    # 2. SymPy Matrix or Python nested list [[...], [...]]
+    if "Matrix(" in s or (s.startswith("[[") and s.endswith("]]")):
+        rows = re.findall(r"\[([^\[\]]+)\]", s)
+        if rows:
+            return [[c.strip() for c in r.split(",") if c.strip()] for r in rows]
+
+    return None
+
+
+def compare_intervals(p: str, e: str) -> bool:
+    """Compare interval notation e.g. Interval(-oo, -3) vs (-\\infty, -3)."""
+    m_p = re.match(r"Interval(?:\.(?:open|Lopen|Ropen))?\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)", p)
+    m_e = re.match(r"^[(\[]\s*([^,]+)\s*,\s*([^\])]+)\s*[)\]]$", e)
+    if m_p and m_e:
+        pl, pr = m_p.group(1).strip(), m_p.group(2).strip()
+        el, er = m_e.group(1).strip(), m_e.group(2).strip()
+        pl_clean = pl.replace("-oo", "-infty").replace("oo", "infty")
+        pr_clean = pr.replace("-oo", "-infty").replace("oo", "infty")
+        el_clean = el.replace(r"\infty", "infty").replace(r"-\infty", "-infty")
+        er_clean = er.replace(r"\infty", "infty").replace(r"-\infty", "-infty")
+        return (pl_clean == el_clean and pr_clean == er_clean)
+    return False
+
+
+def compare_matrices_elements(mat_p: list[list[str]], mat_e: list[list[str]], cell_comparator) -> bool:
+    """Compare two matrices element by element."""
+    if len(mat_p) != len(mat_e):
+        return False
+    for row_p, row_e in zip(mat_p, mat_e):
+        if len(row_p) != len(row_e):
+            return False
+        for cell_p, cell_e in zip(row_p, row_e):
+            if not cell_comparator(cell_p, cell_e):
+                return False
+    return True
+
+
+def compare_unordered_sets(p_str: str, e_str: str, elem_comparator) -> bool:
+    """Compare comma-separated sets, tuples, or lists where element order does not matter."""
+    p_inner = p_str.strip()
+    e_inner = e_str.strip()
+    for l_b, r_b in [("(", ")"), ("[", "]"), ("{", "}"), (r"\{", r"\}"), (r"\left(", r"\right)"), (r"\left\{", r"\right\}")]:
+        if p_inner.startswith(l_b) and p_inner.endswith(r_b):
+            p_inner = p_inner[len(l_b):-len(r_b)].strip()
+        if e_inner.startswith(l_b) and e_inner.endswith(r_b):
+            e_inner = e_inner[len(l_b):-len(r_b)].strip()
+
+    p_parts = [x.strip() for x in p_inner.split(",") if x.strip()]
+    e_parts = [x.strip() for x in e_inner.split(",") if x.strip()]
+
+    if len(p_parts) != len(e_parts) or len(p_parts) < 2:
+        return False
+
+    matched_e = set()
+    for p_elem in p_parts:
+        found = False
+        for idx, e_elem in enumerate(e_parts):
+            if idx not in matched_e and elem_comparator(p_elem, e_elem):
+                matched_e.add(idx)
+                found = True
+                break
+        if not found:
+            return False
+    return len(matched_e) == len(e_parts)
+
+
+def is_decimal_for_fraction_or_irrational(p_str: str, e_str: str) -> bool:
+    """Check if p_str is a floating-point decimal approximating an exact fraction/irrational in e_str."""
+    p_clean = p_str.strip()
+    e_clean = e_str.strip()
+
+    # Normalize integer floats like '277.000000000000' or '2.0' -> integer
+    p_clean = re.sub(r"(\d+)\.0+\b", r"\1", p_clean)
+    e_clean = re.sub(r"(\d+)\.0+\b", r"\1", e_clean)
+
+    # Normalize leading dot e.g. .38 -> 0.38
+    if p_clean.startswith("."):
+        p_clean = "0" + p_clean
+    if e_clean.startswith("."):
+        e_clean = "0" + e_clean
+
+    has_decimal_p = bool(re.search(r"\d+\.\d+", p_clean))
+    has_decimal_e = bool(re.search(r"\d+\.\d+", e_clean))
+
+    has_frac_or_irrat_e = bool(re.search(r"\\frac|/|\\sqrt|sqrt|\\pi|pi", e_clean))
+    has_frac_or_irrat_p = bool(re.search(r"\\frac|/|\\sqrt|sqrt|\\pi|pi", p_clean))
+
+    if has_decimal_p and not has_decimal_e and has_frac_or_irrat_e:
+        return True
+    if has_decimal_e and not has_decimal_p and has_frac_or_irrat_p:
+        return True
+    return False
+
+
+def compare_math_strict(pred_str: str, expected_ans: str) -> bool:
+    """Strict math comparison:
+    - Normalized string equality or exact symbolic equivalence only.
+    - Strictly NO decimal-for-fraction or decimal-for-irrational.
+    - No float-eval fallback.
+    - Strict ordered elements.
+    """
     p_norm = normalize_math_str(pred_str)
     e_norm = normalize_math_str(expected_ans)
     if not p_norm or not e_norm:
         return False
 
-    # 1. Exact string equivalence after normalization
+    # Normalize leading dot in decimals
+    if p_norm.startswith("."):
+        p_norm = "0" + p_norm
+    if e_norm.startswith("."):
+        e_norm = "0" + e_norm
+
+    # 1. Exact string equivalence after standard normalization
     if p_norm == e_norm:
         return True
 
@@ -518,16 +669,138 @@ def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = Tru
     if p_norm.replace("**", "^").replace("*", "") == e_norm.replace("**", "^").replace("*", ""):
         return True
 
-    # 3. Comma-separated sets (e.g. roots '-2, 1' vs '1, -2')
-    if "," in p_norm and "," in e_norm:
-        p_set = {x.strip() for x in p_norm.split(",") if x.strip()}
-        e_set = {x.strip() for x in e_norm.split(",") if x.strip()}
-        if p_set == e_set:
+    # 3. Base subscript equivalence (e.g. '4130' vs '4130_5')
+    clean_p_sub = re.sub(r"_{?(\d+)}?", "", p_norm)
+    clean_e_sub = re.sub(r"_{?(\d+)}?", "", e_norm)
+    if clean_e_sub == p_norm or clean_p_sub == e_norm or clean_e_sub == clean_p_sub:
+        return True
+
+    # 4. Strictly reject decimal-for-fraction or decimal-for-irrational
+    if is_decimal_for_fraction_or_irrational(pred_str, expected_ans):
+        return False
+
+    # 5. Exact SymPy algebraic equivalence (analytical simplify == 0)
+    try:
+        import sympy
+        from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
+        transformations = standard_transformations + (implicit_multiplication_application,)
+
+        p_clean = clean_latex_for_sympy(pred_str)
+        e_clean = clean_latex_for_sympy(expected_ans)
+
+        # Normalize trailing .0 in multipliers e.g. 9.0*pi -> 9*pi
+        p_clean = re.sub(r"(\d+)\.0+\b", r"\1", p_clean)
+        e_clean = re.sub(r"(\d+)\.0+\b", r"\1", e_clean)
+
+        p_sym = parse_expr(p_clean, transformations=transformations)
+        e_sym = parse_expr(e_clean, transformations=transformations)
+
+        # Check for presence of Float in one when the other has Rational/Symbol
+        p_has_float = any(isinstance(a, sympy.Float) for a in sympy.preorder_traversal(p_sym))
+        e_has_float = any(isinstance(a, sympy.Float) for a in sympy.preorder_traversal(e_sym))
+        if p_has_float != e_has_float:
+            return False
+
+        # Structural equality
+        if p_sym == e_sym:
             return True
 
-    # 4. Arithmetic and complex numerical evaluation fallback
+        # Exact algebraic simplification difference
+        diff = sympy.simplify(p_sym - e_sym)
+        if diff == 0:
+            return True
+    except Exception:
+        pass
+
+    return False
+
+
+def compare_math_lenient(pred_str: str, expected_ans: str) -> bool:
+    """Lenient math comparison:
+    - Current v1.3 rules (including float evaluation and SymPy equivalence).
+    - Plus new normalizations:
+      1. Multiple-choice letters: E vs \\text{(E)}
+      2. Stripped %: 33 vs 33\\%
+      3. Unit labels: 10 vs 10\\;\\text{edges}
+      4. Set/list order: -1/12, 1/2 vs 1/2, -1/12 and (-3/4, 3/4) vs 3/4, -3/4
+      5. Matrix rendering: [[1], [7]], Matrix([[-6], [9]]) vs \\begin{pmatrix} ... \\end{pmatrix}
+      6. Interval rendering: Interval(-oo, -3) vs (-\\infty, -3)
+    """
+    if not pred_str or not expected_ans:
+        return False
+
+    # Check Strict mode first
+    if compare_math_strict(pred_str, expected_ans):
+        return True
+
+    # 1. Multiple-choice letter normalization
+    mc_p = normalize_mc_letter(pred_str)
+    mc_e = normalize_mc_letter(expected_ans)
+    if mc_p and mc_e and mc_p in "ABCDE" and mc_e in "ABCDE":
+        if mc_p == mc_e:
+            return True
+
+    # 2. Stripped % normalization
+    pct_p = strip_percent(pred_str)
+    pct_e = strip_percent(expected_ans)
+    if pct_p != pred_str or pct_e != expected_ans:
+        if compare_math_lenient(pct_p, pct_e):
+            return True
+
+    # 3. Unit label stripping
+    unit_p = strip_unit_labels(pred_str)
+    unit_e = strip_unit_labels(expected_ans)
+    if unit_p != pred_str or unit_e != expected_ans:
+        if compare_math_lenient(unit_p, unit_e):
+            return True
+
+    # 4. Matrix rendering normalization
+    mat_p = parse_matrix_clean(pred_str)
+    mat_e = parse_matrix_clean(expected_ans)
+    if mat_p is not None and mat_e is not None:
+        if compare_matrices_elements(mat_p, mat_e, lambda a, b: compare_math_lenient(a, b)):
+            return True
+
+    # 5. Interval rendering normalization
+    if compare_intervals(pred_str, expected_ans):
+        return True
+
+    # 6. Set / list unordered element equality
+    if compare_unordered_sets(pred_str, expected_ans, lambda a, b: compare_math_lenient(a, b)):
+        return True
+
+    # 7. Fallback to v1.3 standard rules (eval float matching & SymPy CAS)
+    p_norm = normalize_math_str(pred_str)
+    e_norm = normalize_math_str(expected_ans)
+    if not p_norm or not e_norm:
+        return False
+
+    # Base subscript equivalence (e.g. '52' vs '52_8', '4210' vs '4210_{5}')
+    clean_p_sub = re.sub(r"_{?(\d+)}?", "", p_norm)
+    clean_e_sub = re.sub(r"_{?(\d+)}?", "", e_norm)
+    if clean_e_sub == p_norm or clean_p_sub == e_norm or clean_e_sub == clean_p_sub:
+        return True
+
+    # Comma-separated list of roots and expected is one of them
+    if "," in pred_str and "," not in expected_ans:
+        p_candidates = [x.strip() for x in pred_str.split(",") if x.strip()]
+        for cand in p_candidates:
+            if compare_math_lenient(cand, expected_ans):
+                return True
+
+    # \pm / plus-minus sets
+    if r"\pm" in expected_ans:
+        parts = expected_ans.split(r"\pm")
+        if len(parts) == 2:
+            base = parts[0].strip()
+            pm = parts[1].strip()
+            e_set = {f"{base} - {pm}", f"{base} + {pm}"}
+            p_parts = {x.strip() for x in pred_str.split(",") if x.strip()}
+            if len(p_parts) == 2 and all(any(compare_math_lenient(p_item, e_item) for e_item in e_set) for p_item in p_parts):
+                return True
+
+    # Arithmetic / complex float evaluation fallback
     try:
-        import math
         context = {"sqrt": math.sqrt, "pi": math.pi}
         p_val = eval(p_norm.replace("i", "*1j"), {"__builtins__": None}, context)
         e_val = eval(e_norm.replace("i", "*1j"), {"__builtins__": None}, context)
@@ -536,52 +809,45 @@ def compare_math_results(pred_str: str, expected_ans: str, use_sympy: bool = Tru
     except Exception:
         pass
 
-    # 5. Base subscript equivalence (e.g. '52' vs '52_8', '4210' vs '4210_{5}')
-    clean_p_sub = re.sub(r"_{?(\d+)}?", "", p_norm)
-    clean_e_sub = re.sub(r"_{?(\d+)}?", "", e_norm)
-    if clean_e_sub == p_norm or clean_p_sub == e_norm or clean_e_sub == clean_p_sub:
-        return True
+    # SymPy algebraic equivalence with timeout
+    try:
+        import sympy
+        from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
+        transformations = standard_transformations + (implicit_multiplication_application,)
+        p_clean = clean_latex_for_sympy(pred_str)
+        e_clean = clean_latex_for_sympy(expected_ans)
+        p_sym = parse_expr(p_clean, transformations=transformations)
+        e_sym = parse_expr(e_clean, transformations=transformations)
 
-    # 6. Check \pm / plus-minus sets
-    if r"\pm" in expected_ans:
-        parts = expected_ans.split(r"\pm")
-        if len(parts) == 2:
-            base = parts[0].strip()
-            pm = parts[1].strip()
-            e_set = {f"{base} - {pm}", f"{base} + {pm}"}
-            p_parts = {x.strip() for x in pred_str.split(",") if x.strip()}
-            if len(p_parts) == 2 and all(any(compare_math_results(p_item, e_item, use_sympy=True) for e_item in e_set) for p_item in p_parts):
-                return True
+        # Stage 2: Fast-path numeric evaluation at 5 test points
+        if check_numeric_points(p_sym, e_sym):
+            return True
 
-    # 7. Check if pred_str is a comma-separated list of roots and expected is one of them
-    if "," in pred_str and "," not in expected_ans:
-        p_candidates = [x.strip() for x in pred_str.split(",") if x.strip()]
-        for cand in p_candidates:
-            if compare_math_results(cand, expected_ans, use_sympy=use_sympy):
-                return True
-
-    # 8. SymPy Symbolic Algebraic Equivalence (Fast numeric check + sandboxed CAS with 2.0s timeout)
-    if use_sympy:
-        try:
-            import sympy
-            from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
-            transformations = standard_transformations + (implicit_multiplication_application,)
-            p_clean = clean_latex_for_sympy(pred_str)
-            e_clean = clean_latex_for_sympy(expected_ans)
-            p_sym = parse_expr(p_clean, transformations=transformations)
-            e_sym = parse_expr(e_clean, transformations=transformations)
-
-            # Stage 2: Fast-path numeric evaluation at 5 test points
-            if check_numeric_points(p_sym, e_sym):
-                return True
-
-            # Stage 3: Sandboxed SymPy algebraic difference with strict 2.0s timeout
-            if evaluate_sympy_equivalence_with_timeout(p_sym, e_sym, timeout_s=2.0):
-                return True
-        except Exception:
-            pass
+        # Stage 3: Sandboxed SymPy algebraic difference with strict 2.0s timeout
+        if evaluate_sympy_equivalence_with_timeout(p_sym, e_sym, timeout_s=2.0):
+            return True
+    except Exception:
+        pass
 
     return False
+
+
+def compare_math_results(
+    pred_str: str,
+    expected_ans: str,
+    mode: str | bool = "lenient",
+    use_sympy: bool = True,
+) -> bool:
+    """Check mathematical equivalence between predicted and expected solutions in strict or lenient mode."""
+    if isinstance(mode, bool):
+        use_sympy = mode
+        mode = "lenient"
+    if mode == "strict":
+        return compare_math_strict(pred_str, expected_ans)
+    elif mode in ("lenient", "both"):
+        return compare_math_lenient(pred_str, expected_ans)
+    else:
+        raise ValueError(f"Unknown grading mode: {mode}. Choose 'strict', 'lenient', or 'both'.")
 
 
 # ===========================================================================
@@ -874,6 +1140,7 @@ def run_math500_pal(
     dataset_path: str = "",
     reprompt_mode: str = "stub",
     cache_prompt: bool | None = None,
+    grading_mode: str = "both",
 ) -> dict:
     """Evaluate MATH-500 competition math in PAL mode via Docker Python/SymPy with live tracing and progressive checkpointing."""
     all_data = get_math500_dataset(dataset_path=dataset_path)
@@ -918,7 +1185,7 @@ def run_math500_pal(
     print(f"Running MATH-500 in PAL Mode ({len(dataset)} competition math problems)")
     print(f"Method: Program-Aided Language (Docker SymPy / Python Execution)")
     print(f"Feedback Loop: {'ENABLED (2-Turn)' if feedback else 'DISABLED (1-Turn v1.2 Baseline)'}")
-    print(f"Grader Mode: {'SymPy Algebraic Equivalence' if use_sympy else 'Exact / Float Eval (v1.2 Baseline)'}")
+    print(f"Grader Mode: {grading_mode.upper()} (Strict CAS / Lenient Normalizations)")
     print(f"Live Tracing: ENABLED (logs/telemetry/flow_traces.jsonl & live_pipeline_state.json)")
     print(f"Checkpoint File: {checkpoint_file.name} (Items completed: {len(results)})")
     print(f"=======================================================")
@@ -928,6 +1195,7 @@ def run_math500_pal(
         "context_size": 16384,
         "feedback_enabled": feedback,
         "use_sympy_grader": use_sympy,
+        "grading_mode": grading_mode,
         "model": "gemma-4-12b-heretic-Q6_K.gguf",
         "hardware": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB) + Intel Core Ultra 9 275HX",
     })
@@ -993,7 +1261,8 @@ def run_math500_pal(
         tracer.transition_stage("tank_5_neural_boiler", "Neural Deliberation Boiler", "llama-server (Gemma 4 12B on RTX 5080)", prompt[:300], details="Generating computational code on RTX 5080 Laptop GPU...")
         t0 = time.perf_counter()
         resp, finish_reason, comp_tokens = query_llm_with_meta(prompt=prompt, max_tokens=t1_tokens, enable_thinking=False, cache_prompt=cache_prompt)
-        t_llm = time.perf_counter() - t0
+        t_t1 = time.perf_counter() - t0
+        t_llm = t_t1
 
         extraction_retry_triggered = False
         code, stage = extract_python_code_with_stage(resp)
@@ -1007,7 +1276,9 @@ def run_math500_pal(
             )
             t_r0 = time.perf_counter()
             retry_resp, retry_finish, retry_tokens = query_llm_with_meta(prompt=retry_prompt, max_tokens=768, enable_thinking=False, cache_prompt=cache_prompt)
-            t_llm += (time.perf_counter() - t_r0)
+            t_retry = time.perf_counter() - t_r0
+            t_t1 += t_retry
+            t_llm += t_retry
             comp_tokens += retry_tokens
             finish_reason = retry_finish
             code, stage = extract_python_code_with_stage(retry_resp)
@@ -1026,6 +1297,8 @@ def run_math500_pal(
         exec_res_stderr = ""
         feedback_triggered = False
         feedback_succeeded = False
+        turn1_latency_s = round(t_t1, 3)
+        turn2_latency_s = 0.0
 
         if code:
             tracer.transition_stage("tank_6_sandbox_turbine", "Sandbox Execution Turbine", "DockerRPCTransport (WSL2)", code, details="Executing Python code in Docker container...")
@@ -1110,6 +1383,7 @@ def run_math500_pal(
                 corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=768, enable_thinking=False, cache_prompt=cache_prompt)
                 t_corr = time.perf_counter() - t_corr0
                 t_llm += t_corr
+                turn2_latency_s = round(t_corr, 3)
                 comp_tokens += corr_tokens
                 finish_reason = corr_finish
                 corr_code, corr_stage = extract_python_code_with_stage(corr_resp)
@@ -1145,9 +1419,17 @@ def run_math500_pal(
         if not pred_str:
             pred_str = extract_math_answer_from_text(resp)
 
-        # Stage 7: Purifier & Grader
+        # Stage 7: Purifier & Grader (Strict and Lenient Equivalence)
         tracer.transition_stage("tank_7_purifier_grader", "Mind-Mouth Purifier & Grader", "ResponseCleaner & Equivalence Grader", f"Pred: '{pred_str}' | Expected: '{expected_ans}'", details="Evaluating mathematical equivalence...")
-        is_pass = compare_math_results(pred_str, expected_ans, use_sympy=use_sympy)
+        strict_pass = compare_math_strict(pred_str, expected_ans)
+        lenient_pass = compare_math_lenient(pred_str, expected_ans)
+
+        if grading_mode == "strict":
+            is_pass = strict_pass
+        elif grading_mode == "lenient":
+            is_pass = lenient_pass
+        else:  # "both" (default, nominal score follows lenient)
+            is_pass = lenient_pass
 
         if is_pass:
             passed_count += 1
@@ -1155,7 +1437,7 @@ def run_math500_pal(
         else:
             status_str = "FAIL"
 
-        tracer.record_stage_result("tank_7_purifier_grader", "Mind-Mouth Purifier & Grader", "ResponseCleaner & Equivalence Grader", status_str, f"Evaluated equivalence: pred='{pred_str}' vs expected='{expected_ans}'", f"VERDICT: {status_str}", custom_duration_ms=4.2)
+        tracer.record_stage_result("tank_7_purifier_grader", "Mind-Mouth Purifier & Grader", "ResponseCleaner & Equivalence Grader", status_str, f"Evaluated equivalence: pred='{pred_str}' vs expected='{expected_ans}' (strict={strict_pass}, lenient={lenient_pass})", f"VERDICT: {status_str}", custom_duration_ms=4.2)
 
         # Stage 9: WAL Basin
         tracer.record_stage_result("tank_9_wal_basin", "Autobiographical WAL Basin", "SQLite WAL Engine", "COMMITTED", "Transaction recorded to persistent forensic ledger", "PERSISTED", custom_duration_ms=1.8)
@@ -1178,15 +1460,15 @@ def run_math500_pal(
             expected_ans,
             is_pass,
             total_latency_s=t_llm,
-            strict_pass=is_pass,
-            lenient_pass=is_pass or (failure_class == "equivalence_format_miss"),
+            strict_pass=strict_pass,
+            lenient_pass=lenient_pass,
             failure_class=failure_class,
             reconstructed=False,
         )
 
         safe_pred = pred_str[:30].encode("ascii", "replace").decode("ascii")
         safe_expected = expected_ans[:30].encode("ascii", "replace").decode("ascii")
-        print(f"[{curr_idx:03d}/{len(dataset)}] {status_str} | Subj: {subject} (L{level}) | Pred: {safe_pred} | Expected: {safe_expected} | Latency: {t_llm:.2f}s", flush=True)
+        print(f"[{curr_idx:03d}/{len(dataset)}] {status_str} (S:{'Y' if strict_pass else 'N'}/L:{'Y' if lenient_pass else 'N'}) | Subj: {subject} (L{level}) | Pred: {safe_pred} | Expected: {safe_expected} | Latency: {t_llm:.2f}s (T1:{turn1_latency_s}s, T2:{turn2_latency_s}s)", flush=True)
         if not is_pass and exec_res_stderr:
             safe_err = exec_res_stderr.strip()[:100].encode("ascii", "replace").decode("ascii")
             print(f"   Stderr: {safe_err}", flush=True)
@@ -1200,6 +1482,8 @@ def run_math500_pal(
             "expected_ans": expected_ans,
             "predicted_ans": pred_str,
             "passed": is_pass,
+            "strict_pass": strict_pass,
+            "lenient_pass": lenient_pass,
             "failure_class": failure_class,
             "generated_code": code,
             "extraction_stage": stage,
@@ -1209,6 +1493,8 @@ def run_math500_pal(
             "feedback_triggered": feedback_triggered,
             "feedback_succeeded": feedback_succeeded,
             "llm_latency_s": round(t_llm, 3),
+            "turn1_latency_s": turn1_latency_s,
+            "turn2_latency_s": turn2_latency_s,
             "completion_tokens": comp_tokens,
             "finish_reason": finish_reason,
         })
@@ -1224,8 +1510,11 @@ def run_math500_pal(
     elapsed = time.perf_counter() - t_start
     acc = (passed_count / len(dataset)) * 100.0 if dataset else 0.0
 
+    strict_passed_count = sum(1 for r in results if r.get("strict_pass"))
+    lenient_passed_count = sum(1 for r in results if r.get("lenient_pass"))
+
     print(f"\n--- MATH-500 PAL Summary ---")
-    print(f"Total: {len(dataset)} | Passed: {passed_count} | Accuracy: {acc:.1f}% | Elapsed: {elapsed:.1f}s\n")
+    print(f"Total: {len(dataset)} | Passed ({grading_mode}): {passed_count} ({acc:.1f}%) | Strict: {strict_passed_count} ({strict_passed_count/len(dataset)*100:.1f}%) | Lenient: {lenient_passed_count} ({lenient_passed_count/len(dataset)*100:.1f}%) | Elapsed: {elapsed:.1f}s\n")
 
     return {
         "benchmark": "MATH-500",
@@ -1235,6 +1524,9 @@ def run_math500_pal(
         "elapsed_s": round(elapsed, 2),
         "feedback_enabled": feedback,
         "use_sympy_grader": use_sympy,
+        "grading_mode": grading_mode,
+        "strict_passed": strict_passed_count,
+        "lenient_passed": lenient_passed_count,
         "results": results,
     }
 
@@ -1330,6 +1622,12 @@ def main():
         default=False,
         help="Disable llama-server prompt caching (sets cache_prompt=false in request payload)",
     )
+    parser.add_argument(
+        "--grading-mode",
+        choices=["strict", "lenient", "both"],
+        default="both",
+        help="Math equivalence grading mode: 'strict' (exact string/symbolic only), 'lenient' (all v1.3 rules + MC, units, %, matrices, sets, intervals), or 'both' (default, records both)",
+    )
     args = parser.parse_args()
 
     cache_prompt = False if args.disable_prompt_cache else None
@@ -1372,6 +1670,7 @@ def main():
         "context_size": args.context_size,
         "feedback_enabled": args.feedback,
         "use_sympy_grader": args.use_sympy,
+        "grading_mode": args.grading_mode,
         "reprompt_mode": args.reprompt_mode,
         "dataset_path": args.dataset_path or "default",
         "model": "gemma-4-12b-heretic-Q6_K.gguf",
@@ -1409,6 +1708,7 @@ def main():
             dataset_path=args.dataset_path,
             reprompt_mode=args.reprompt_mode,
             cache_prompt=cache_prompt,
+            grading_mode=args.grading_mode,
         )
 
     label_part = f"_{args.config_label}" if args.config_label else ""
