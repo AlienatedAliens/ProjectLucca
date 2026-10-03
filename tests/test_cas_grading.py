@@ -9,6 +9,7 @@ import time
 import pytest
 from scripts.run_modern_2024_benchmarks import (
     compare_math_results,
+    compare_math_strict,
     normalize_math_str,
     clean_latex_for_sympy,
     evaluate_sympy_equivalence_with_timeout,
@@ -71,4 +72,43 @@ def test_ams_latex_fraction_and_number_formatting() -> None:
     assert compare_math_results("61328", r"61,328", use_sympy=True)
     assert compare_math_results("15625", r"15,\!625", use_sympy=True)
     assert compare_math_results("1000000", r"1,000,000", use_sympy=True)
+
+
+def test_fix_c_strict_grader_cases() -> None:
+    """Verifies Fix C mathematical equivalence cases pass under strict CAS grading."""
+    # Choice letters
+    assert compare_math_strict("B", r"\text{(B)}")
+    assert compare_math_strict("C", r"\text{(C)}")
+    assert compare_math_strict("E", r"\text{(E)}")
+
+    # Matrices
+    assert compare_math_strict("Matrix([[-2], [-14], [-7]])", r"\begin{pmatrix} -2 \\ -14 \\ -7 \end{pmatrix}")
+    assert compare_math_strict("Matrix([[-1, 0], [0, -1]])", r"\begin{pmatrix} -1 & 0 \\ 0 & -1 \end{pmatrix}")
+    assert compare_math_strict("Matrix([[-18], [-49], [96]])", r"\begin{pmatrix} -18 \\ -49 \\ 96 \end{pmatrix}")
+    assert compare_math_strict("Matrix([[-7], [16], [5]])", r"\begin{pmatrix} -7 \\ 16 \\ 5 \end{pmatrix}")
+    assert compare_math_strict("(16/49, 48/49, 24/49)", r"\begin{pmatrix} 16/49 \\ 48/49 \\ 24/49 \end{pmatrix}")
+
+    # Spacing and formatting
+    assert compare_math_strict("11111111100", r"11,\! 111,\! 111,\! 100")
+    assert compare_math_strict("12th", "12")
+    assert compare_math_strict("275/2", r"137 \frac{1}{2}")
+
+    # Intervals and unions
+    assert compare_math_strict("Interval(5, oo)", r"(5,\infty)")
+    assert compare_math_strict("Interval(-sqrt(3), sqrt(3))", r"(-\sqrt{3}, \sqrt{3})")
+    assert compare_math_strict("Union(Interval(-oo, 2), Interval(3, oo))", r"(-\infty, 2) \cup (3, \infty)")
+
+    # Exact terminating decimals
+    assert compare_math_strict("1.20000000000000", r"\frac65")
+    assert compare_math_strict("(1.5, -13)", r"\left( \frac{3}{2}, -13 \right)")
+    assert compare_math_strict("998.5", r"\frac{1997}{2}")
+    assert compare_math_strict("3.50000000000000", r"\frac{7}{2}")
+
+    # Exact trigonometric identities
+    assert compare_math_strict("3*sin(pi/9)**2*sin(2*pi/9)**2*cos(pi/18)**2/4", r"\frac{9}{256}")
+    assert compare_math_strict("sin(4*pi/9)**(-2) + sin(2*pi/9)**(-2) + sin(pi/9)**(-2)", "12")
+
+    # Set of roots with \pm
+    assert compare_math_strict("[-2, -sqrt(2 - I)*sqrt(2 + I) + 1, 1 + sqrt(2 - I)*sqrt(2 + I)]", r"\{1\pm\sqrt{5},-2\}")
+
 

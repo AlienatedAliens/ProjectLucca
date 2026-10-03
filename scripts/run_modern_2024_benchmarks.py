@@ -342,9 +342,9 @@ def normalize_math_str(s: str) -> str:
     # Normalize fraction variants and negative thin spaces
     s = re.sub(r"\\[td]frac", r"\\frac", s)
     s = re.sub(r"\\!", "", s)
-    # Strip thousand separators between digits (e.g. 1,000,000 -> 1000000)
-    while re.search(r"(\d),(\d{3})", s):
-        s = re.sub(r"(\d),(\d{3})", r"\1\2", s)
+    # Strip thousand separators between digits (e.g. 1,000,000 -> 1000000, 11,\! 111 -> 11111)
+    while re.search(r"(\d),\s*(\d{3})", s):
+        s = re.sub(r"(\d),\s*(\d{3})", r"\1\2", s)
     s = re.sub(r"\\text\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\mathrm\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\mbox\{([^}]*)\}", r"\1", s)
@@ -357,6 +357,8 @@ def normalize_math_str(s: str) -> str:
     s = re.sub(r"\\right\\}", "}", s)
     s = re.sub(r"\\left\b", "", s)
     s = re.sub(r"\\right\b", "", s)
+    # Mixed fraction: 137 \frac{1}{2} -> ((137)+(1)/(2))
+    s = re.sub(r"(\d+)\s*\\frac\{(\d+)\}\{(\d+)\}", r"((\1)+(\2)/(\3))", s)
     # 1. Fractions with braces: \frac{a}{b} -> (a)/(b)
     s = re.sub(r"\\frac\{([^}]*)\}\{([^}]*)\}", r"(\1)/(\2)", s)
     # 2. Fractions without braces (standard LaTeX shorthand): \frac43 -> (4)/(3)
@@ -369,6 +371,7 @@ def normalize_math_str(s: str) -> str:
     s = re.sub(r"\bI\b", "i", s)
     s = re.sub(r"\*i\b", "i", s)
     s = re.sub(r"(\d+)\.0\b", r"\1", s)
+    s = re.sub(r"\b(\d+)(?:st|nd|rd|th)\b", r"\1", s)
     # Strip common physical and currency units
     s = re.sub(r"\b(cm|m|km|miles|hours|minutes|seconds|dollars|cents)\b\^?\d*", "", s)
     s = s.replace(" ", "").replace("$", "").replace("\\", "").rstrip(".")
@@ -382,10 +385,12 @@ def clean_latex_for_sympy(s: str) -> str:
     s = s.strip().replace("$", "").strip()
     s = re.sub(r"\\[td]frac", r"\\frac", s)
     s = re.sub(r"\\!", "", s)
-    while re.search(r"(\d),(\d{3})", s):
-        s = re.sub(r"(\d),(\d{3})", r"\1\2", s)
+    while re.search(r"(\d),\s*(\d{3})", s):
+        s = re.sub(r"(\d),\s*(\d{3})", r"\1\2", s)
     s = re.sub(r"\^\{\s*\\circ\s*\}|\^\\circ|\\circ|\\degree", "", s)
     s = re.sub(r"\\mbox\{[^}]*\}|\\text\{[^}]*\}|\\mathrm\{[^}]*\}", "", s)
+    # Mixed fraction: 137 \frac{1}{2} -> ((137)+(1)/(2))
+    s = re.sub(r"(\d+)\s*\\frac\{(\d+)\}\{(\d+)\}", r"((\1)+(\2)/(\3))", s)
     
     # 1. Single character fractions without braces: \frac43 -> ((4)/(3))
     s = re.sub(r"\\frac\s*([a-zA-Z0-9])\s*([a-zA-Z0-9])", r"((\1)/(\2))", s)
@@ -513,7 +518,11 @@ def _sympy_strict_simplify_worker(p_sym, e_sym) -> bool:
         if p_sym.has(sympy.CRootOf) or e_sym.has(sympy.CRootOf):
             return False
         diff = sympy.simplify(p_sym - e_sym)
-        return diff == 0
+        if diff == 0:
+            return True
+        if hasattr(diff, "equals") and diff.equals(0):
+            return True
+        return False
     except Exception:
         return False
 
@@ -585,10 +594,18 @@ def parse_matrix_clean(s: str) -> list[list[str]] | None:
     return None
 
 
-def compare_intervals(p: str, e: str) -> bool:
+def compare_intervals(p: str, e: str, endpoint_comparator=None) -> bool:
     """Compare interval notation e.g. Interval(-oo, -3) vs (-\\infty, -3)."""
-    m_p = re.match(r"Interval(?:\.(?:open|Lopen|Ropen))?\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)", p)
-    m_e = re.match(r"^[(\[]\s*([^,]+)\s*,\s*([^\])]+)\s*[)\]]$", e)
+    # Union of intervals e.g. Union(Interval(-oo, 2), Interval(3, oo)) vs (-\infty, 2) \cup (3, \infty)
+    m_u_p = re.findall(r"Interval(?:\.(?:open|Lopen|Ropen))?\s*\([^)]+\)", p)
+    if m_u_p and r"\cup" in e:
+        e_parts = [x.strip() for x in e.split(r"\cup") if x.strip()]
+        if len(m_u_p) == len(e_parts):
+            if all(compare_intervals(ip, ie, endpoint_comparator) for ip, ie in zip(m_u_p, e_parts)):
+                return True
+
+    m_p = re.match(r"^Interval(?:\.(?:open|Lopen|Ropen))?\s*\(\s*([^,]+)\s*,\s*(.+)\s*\)$", p.strip())
+    m_e = re.match(r"^[(\[]\s*([^,]+)\s*,\s*([^\])]+)\s*[)\]]$", e.strip())
     if m_p and m_e:
         pl, pr = m_p.group(1).strip(), m_p.group(2).strip()
         el, er = m_e.group(1).strip(), m_e.group(2).strip()
@@ -596,7 +613,11 @@ def compare_intervals(p: str, e: str) -> bool:
         pr_clean = pr.replace("-oo", "-infty").replace("oo", "infty")
         el_clean = el.replace(r"\infty", "infty").replace(r"-\infty", "-infty")
         er_clean = er.replace(r"\infty", "infty").replace(r"-\infty", "-infty")
-        return (pl_clean == el_clean and pr_clean == er_clean)
+        if pl_clean == el_clean and pr_clean == er_clean:
+            return True
+        if endpoint_comparator is not None:
+            return endpoint_comparator(pl_clean, el_clean) and endpoint_comparator(pr_clean, er_clean)
+        return False
     return False
 
 
@@ -692,6 +713,13 @@ def compare_math_strict(pred_str: str, expected_ans: str) -> bool:
     if p_norm == e_norm:
         return True
 
+    # 1b. Multiple-choice letter normalization: B vs \text{(B)}
+    mc_p = normalize_mc_letter(pred_str)
+    mc_e = normalize_mc_letter(expected_ans)
+    if mc_p and mc_e and mc_p in "ABCDE" and mc_e in "ABCDE":
+        if mc_p == mc_e:
+            return True
+
     # 2. Multiplication & power representation invariance: e.g. "(a+5)*(b+2)" vs "(a+5)(b+2)"
     if p_norm.replace("*", "") == e_norm.replace("*", ""):
         return True
@@ -704,8 +732,68 @@ def compare_math_strict(pred_str: str, expected_ans: str) -> bool:
     if clean_e_sub == p_norm or clean_p_sub == e_norm or clean_e_sub == clean_p_sub:
         return True
 
-    # 4. Strictly reject decimal-for-fraction or decimal-for-irrational
+    # 3b. Matrix rendering normalization
+    mat_p = parse_matrix_clean(pred_str)
+    mat_e = parse_matrix_clean(expected_ans)
+    if mat_p is not None and mat_e is not None:
+        if compare_matrices_elements(mat_p, mat_e, lambda a, b: compare_math_strict(a, b)):
+            return True
+
+    # 3c. Coordinate tuple vs coordinate column vector: (16/49, 48/49, 24/49) vs \begin{pmatrix} 16/49 \\ 48/49 \\ 24/49 \end{pmatrix}
+    t_p = re.match(r"^\((.+)\)$", p_norm)
+    t_e = re.match(r"^\((.+)\)$", e_norm)
+    if t_p and t_e:
+        parts_p = [x.strip() for x in t_p.group(1).split(",")]
+        parts_e = [x.strip() for x in t_e.group(1).split(",")]
+        if len(parts_p) == len(parts_e) and len(parts_p) > 1:
+            if all(compare_math_strict(pp, pe) for pp, pe in zip(parts_p, parts_e)):
+                return True
+    if mat_e is not None and len(mat_e) > 1 and len(mat_e[0]) == 1 and t_p:
+        parts_p = [x.strip() for x in t_p.group(1).split(",")]
+        if len(parts_p) == len(mat_e):
+            if all(compare_math_strict(pp, mat_e[i][0]) for i, pp in enumerate(parts_p)):
+                return True
+
+    # 3d. Interval rendering normalization
+    if compare_intervals(pred_str, expected_ans, compare_math_strict):
+        return True
+
+    # 3e. Set of roots with \pm (e.g. \pm root pairs)
+    if r"\pm" in expected_ans:
+        try:
+            parts = expected_ans.split(r"\pm")
+            if len(parts) == 2:
+                base = parts[0].strip().lstrip(r"\{").strip()
+                pm_part = parts[1].strip()
+                pm = pm_part.split(",")[0].strip() if "," in pm_part else pm_part.rstrip(r"\}").strip()
+                rem = [x.strip().rstrip(r"\}").strip() for x in pm_part.split(",")[1:] if x.strip()] if "," in pm_part else []
+                e_set = [f"{base} + {pm}", f"{base} - {pm}"] + rem
+                p_clean = pred_str.strip().strip("[]{}")
+                p_parts = [x.strip() for x in p_clean.split(",") if x.strip()]
+                if len(p_parts) == len(e_set):
+                    matched = set()
+                    for p_item in p_parts:
+                        for i, e_item in enumerate(e_set):
+                            if i not in matched and compare_math_strict(p_item, e_item):
+                                matched.add(i)
+                                break
+                    if len(matched) == len(e_set):
+                        return True
+        except Exception:
+            pass
+
+    # 4. Strictly reject decimal-for-fraction or decimal-for-irrational (unless exact terminating decimal equality)
     if is_decimal_for_fraction_or_irrational(pred_str, expected_ans):
+        try:
+            import sympy
+            p_c = clean_latex_for_sympy(pred_str)
+            e_c = clean_latex_for_sympy(expected_ans)
+            p_rat = sympy.Rational(p_c)
+            e_rat = sympy.sympify(e_c)
+            if p_rat == e_rat:
+                return True
+        except Exception:
+            pass
         return False
 
     # 5. Exact SymPy algebraic equivalence (analytical simplify == 0)

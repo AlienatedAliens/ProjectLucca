@@ -79,7 +79,7 @@ def regrade_checkpoint(
     print(f"=======================================================\n")
 
     items = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-    assert len(items) == 500, f"Expected 500 items, got {len(items)}"
+    assert len(items) > 0, f"Expected non-empty checkpoint, got {len(items)}"
 
     strict_passes = []
     lenient_passes = []
@@ -107,7 +107,7 @@ def regrade_checkpoint(
             })
 
         if idx % 100 == 0 or idx == len(items):
-            print(f"[{idx:03d}/500] Evaluated -> Strict Passes: {sum(strict_passes)}, Lenient Passes: {sum(lenient_passes)}", flush=True)
+            print(f"[{idx:03d}/{len(items)}] Evaluated -> Strict Passes: {sum(strict_passes)}, Lenient Passes: {sum(lenient_passes)}", flush=True)
 
     total = len(items)
     n_strict = sum(strict_passes)
@@ -122,12 +122,16 @@ def regrade_checkpoint(
     for item, s_p, l_p in zip(items, strict_passes, lenient_passes):
         item_strict = dict(item)
         item_strict["passed"] = s_p
+        item_strict["strict_pass"] = s_p
+        item_strict["lenient_pass"] = l_p
         item_strict["grader_mode"] = "strict"
         item_strict["grader_label"] = "v1.35-strict-posthoc"
         strict_items.append(item_strict)
 
         item_lenient = dict(item)
         item_lenient["passed"] = l_p
+        item_lenient["strict_pass"] = s_p
+        item_lenient["lenient_pass"] = l_p
         item_lenient["grader_mode"] = "lenient"
         item_lenient["grader_label"] = "v1.35-lenient-posthoc"
         lenient_items.append(item_lenient)
@@ -173,6 +177,12 @@ def main() -> int:
         default="logs/test_reports/checkpoint_math500_v1.3-final-fresh-500.json",
         help="Path to checkpoint JSON file to regrade",
     )
+    parser.add_argument(
+        "--label",
+        type=str,
+        default="v1.3-fresh-500",
+        help="Label for output artifacts",
+    )
     args = parser.parse_args()
 
     ckpt_path = REPO_ROOT / args.checkpoint
@@ -180,7 +190,7 @@ def main() -> int:
         print(f"Error: checkpoint file not found at {ckpt_path}")
         return 1
 
-    regrade_checkpoint(ckpt_path)
+    regrade_checkpoint(ckpt_path, label=args.label)
     return 0
 
 
