@@ -194,14 +194,14 @@ git tag v1.35-test-evaluated
 
 ## 9. Done criteria (tick all)
 
-- [ ] Latest dev-400 ledger: `finish_reason=length` strict failures ≤ 15 (was 42)
-- [ ] `infra` label count = 0
-- [ ] `grader` label count = 0 after Fix C
-- [ ] `runtime_crash` where turn 2 raised the identical exception ≤ 2
-- [ ] Every accepted fix had paired `losses = 0`
-- [ ] No prompt text edited (`git diff v1.35-frozen..v1.35.1-frozen` shows only token budget, feedback-content, grader, and docs changes)
-- [ ] `RESULTS.md` has the two final rows; tag `v1.35-test-evaluated` exists
-- [ ] `handover/HANDOVER.md` §4 item 4 reworded: "306/400, statistically indistinguishable from baseline 305/400; KeyError 9→2, crashes 20→14"
+- [x] Latest dev-400 ledger: `finish_reason=length` strict failures ≤ 15 (was 42)
+- [x] `infra` label count = 0
+- [x] `grader` label count = 0 after Fix C
+- [x] `runtime_crash` where turn 2 raised the identical exception ≤ 2
+- [x] Every accepted fix had paired `losses = 0`
+- [x] No prompt text edited (`git diff v1.35-frozen..v1.35.1-frozen` shows only token budget, feedback-content, grader, and docs changes)
+- [x] `RESULTS.md` has the two final rows; tag `v1.35-test-evaluated` exists
+- [x] `handover/HANDOVER.md` §4 item 4 reworded: "306/400, statistically indistinguishable from baseline 305/400; KeyError 9→2, crashes 20→14"
 
 ---
 

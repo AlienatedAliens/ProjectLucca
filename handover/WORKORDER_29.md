@@ -134,15 +134,62 @@ Focuses on test-time compute scaling and autonomous library learning:
 
 ## 6. Immediate Verification Gate: Protocol & Action Plan
 
-Before executing WO-29 code modifications:
+Pre-flight gate status following v1.35 closeout (1.35-test-evaluated):
+
 1. **Three-Way Re-Prompt Comparison Brief**:
-   - Run the isolated three-way re-prompt comparison across the ~110 feedback items.
-   - Re-score and evaluate prompt variants under the frozen CAS grader.
+   - **Resolved**: Baseline prompt locked. Fix B (traceback enrichment) evaluated on dev-400 (1.35-dev-400-v4) and rejected under the zero-loss gate rule (losses=3).
 2. **Lock Harness Configuration**:
-   - Freeze the winning prompt, decoding parameters, and retry budget.
+   - **Locked**: Frozen under 1.35.1-frozen (cache_prompt: false, 1536 max tokens, deterministic decoding seed=42, 2-turn feedback).
 3. **Model Swap Verification**:
-   - Evaluate model candidate (Nemotron 30B / Gemma 4 12B) on the frozen harness.
-4. **Bucket C Failure Labeling**:
-   - Label and audit 20 representative Bucket C failures to establish the pre-WO-29 baseline.
+   - **Deferred**: Postponed to after WO-31 per the model-swap experimental protocol (12B fixed through WO-29/30/31; then factorial swap).
+4. **Bucket C Failure Labeling (Pre-WO-29 Baseline)**:
+   - **Complete**: Labeled 43 genuine `reasoning` failures from the dev-400 ledger (`logs/test_reports/v135_failure_ledger_v3.md`) to serve as the benchmark target for neural-symbolic synthesis:
+
+| idx | failure_class | S/L | finish | tokens | pred | expected | NOTES |
+|---|---|---|---|---|---|---|---|
+| 4 | genuine_derivation_miss | N/N | stop | 2320 | 3 < \lambda \le 4 | (3,4] | Derivation error |
+| 11 | genuine_derivation_miss | N/N | length | 3072 | 4 | 504 | Token budget exhausted; loop/rambling |
+| 20 | genuine_derivation_miss | N/N | length | 3072 | 1 | -9 | Token budget exhausted; loop/rambling |
+| 30 | (strict-only) | N/Y | stop | 303 | 13.2871972318339 | \frac{3840}{289} | Float approximation instead of exact symbolic |
+| 37 | prose_slip | N/N | length | 3072 |  | 64 | Cauchy-Schwarz loop at 1536 tokens |
+| 39 | equivalence_format_miss | N/N | stop | 400 | 1/6 | \frac{1}{3} | Mathematical derivation error |
+| 55 | equivalence_format_miss | N/N | length | 3072 | 11 | 2\sqrt{113} | Token budget exhausted; loop/rambling |
+| 65 | (strict-only) | N/Y | length | 1536 | -tan(4*pi/9) + 4*cos(pi… | -\sqrt{3} | Token budget exhausted; loop/rambling |
+| 67 | equivalence_format_miss | N/N | length | 3072 | 45 | \frac{270}7\text{ degre… | Token budget exhausted; loop/rambling |
+| 69 | genuine_derivation_miss | N/N | stop | 2796 | 9 | 19 | Derivation error |
+| 74 | genuine_derivation_miss | N/N | stop | 294 | 16 | 4 | Derivation error |
+| 80 | genuine_derivation_miss | N/N | stop | 1874 | 5x + -7y + 11z + 4 = 0 | 5x - 7y + 11z + 4 = 0 | Derivation error |
+| 82 | (strict-only) | N/Y | stop | 161 | 0.577350269189626 | \frac{\sqrt{3}}{3} | Float approximation instead of exact symbolic |
+| 84 | genuine_derivation_miss | N/N | stop | 311 | 13 | 23 | Derivation error |
+| 85 | equivalence_format_miss | N/N | length | 1536 | 2 < infinity | (2,\infty) | Token budget exhausted; loop/rambling |
+| 103 | (strict-only) | N/Y | stop | 290 | 0.666666666666667 | \frac{2}{3} | Float approximation instead of exact symbolic |
+| 105 | genuine_derivation_miss | N/N | length | 3072 | 1 | 0 | Token budget exhausted; loop/rambling |
+| 117 | genuine_derivation_miss | N/N | stop | 173 | 21/2 | 6 | Derivation error |
+| 123 | genuine_derivation_miss | N/N | length | 3072 | -4 | 54 | Token budget exhausted; loop/rambling |
+| 141 | genuine_derivation_miss | N/N | stop | 1438 | 154.0 | 116 | Derivation error |
+| 158 | equivalence_format_miss | N/N | stop | 440 | 72*12**(1/3) | 864 \mbox{ inches}^2 | Mathematical derivation error |
+| 165 | equivalence_format_miss | N/N | length | 3072 | 0 | 1\frac{4}{5} | Token budget exhausted; loop/rambling |
+| 168 | equivalence_format_miss | N/N | stop | 1160 | 150 | 180^\circ | Mathematical derivation error |
+| 185 | equivalence_format_miss | N/N | stop | 2079 | 2*sqrt(2) + 3, 3 - 2*sq… | 3 \pm 2 \sqrt{2} | Superfluous roots derived |
+| 187 | equivalence_format_miss | N/N | length | 3072 | 3 | \frac{17}{21} | Token budget exhausted; loop/rambling |
+| 191 | genuine_derivation_miss | N/N | stop | 353 | 7/2 | 4 | Derivation error |
+| 194 | equivalence_format_miss | N/N | stop | 541 | Interval(3/5, 8/3) | \left(\frac{3}{5},\frac… | Incorrect boundary inclusion/exclusion |
+| 206 | equivalence_format_miss | N/N | stop | 242 | 0.473684210526316 | \frac9{19} | Mathematical derivation error |
+| 209 | equivalence_format_miss | N/N | stop | 1048 | 1.0 + 3*sqrt(3) | 1+2\sqrt{3} | Mathematical derivation error |
+| 220 | genuine_derivation_miss | N/N | stop | 150 | 1 | -128 | Derivation error |
+| 225 | genuine_derivation_miss | N/N | stop | 1913 | 150 | 120 | Derivation error |
+| 227 | equivalence_format_miss | N/N | stop | 1019 | -9/100 | \frac{9}{100} | Sign error in derivation |
+| 229 | genuine_derivation_miss | N/N | stop | 1691 | 0 | 3 | Derivation error |
+| 262 | equivalence_format_miss | N/N | stop | 821 | -16*sqrt(3) | 16 \sqrt{3} | Sign error in derivation |
+| 280 | genuine_derivation_miss | N/N | stop | 261 | 12th | 12 | Derivation error |
+| 281 | equivalence_format_miss | N/N | stop | 1021 | Interval(0, 36) | (0,9) \cup (9,36) | Missed singularity/domain hole |
+| 284 | equivalence_format_miss | N/N | stop | 239 | Interval(-2, 7) | x \in [-2,7] | Incorrect boundary inclusion/exclusion |
+| 290 | (strict-only) | N/Y | stop | 293 | 0.916515138991168 | \frac{\sqrt{21}}{5} | Float approximation instead of exact symbolic |
+| 301 | equivalence_format_miss | N/N | stop | 2013 | -56*sqrt(sqrt(2) + 2) -… | \frac{14}{3} | Mathematical derivation error |
+| 332 | equivalence_format_miss | N/N | stop | 1191 | Interval(pi**2/8, 5*pi*… | \left[ \frac{\pi^2}{8},… | Incorrect boundary inclusion/exclusion |
+| 346 | genuine_derivation_miss | N/N | stop | 1480 | 0.0 | 15 | Derivation error |
+| 361 | equivalence_format_miss | N/N | length | 3072 | 0 | 75^\circ | Token budget exhausted; loop/rambling |
+| 396 | equivalence_format_miss | N/N | stop | 1418 | Interval(2, 102) | (2,12) \cup (12,102) | Missed singularity/domain hole |
+
 5. **Clear Gate for WO-29**:
-   - Begin Phase 1 baseline implementation of Modules 1–6.
+   - **Cleared**: Baseline verified, test evaluated on held-out battery, and pre-WO-29 reasoning catalog locked. Ready for Phase 1 baseline implementation of Modules 1–6.
