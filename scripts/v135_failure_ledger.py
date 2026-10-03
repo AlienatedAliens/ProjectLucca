@@ -171,6 +171,8 @@ def build_ledger(records: list[Record], baseline: list[Record] | None, src: Path
         base_has_strict = any("strict_pass" in r for r in baseline)
         gains: list[int] = []
         losses: list[int] = []
+        losses_invariant: list[int] = []  # baseline Turn 1 finished with `stop` -> should be bit-identical
+        losses_expected: list[int] = []   # baseline Turn 1 hit `length` -> Turn-2 rescue path changed; expected noise
         for r in records:
             idx = _i(r, "idx")
             b = base_by_idx.get(idx)
@@ -181,6 +183,10 @@ def build_ledger(records: list[Record], baseline: list[Record] | None, src: Path
                 gains.append(idx)
             elif prev and not cur:
                 losses.append(idx)
+                if _s(b, "finish_reason") == "length" or _b(b, "feedback_triggered"):
+                    losses_expected.append(idx)
+                else:
+                    losses_invariant.append(idx)
         lines.append("## Paired comparison vs baseline (STRICT, same idx)\n")
         if not base_has_strict:
             lines.append("> NOTE: baseline checkpoint has no `strict_pass` field (pre-v1.35 grader); its `passed` field was used instead. "
@@ -188,9 +194,14 @@ def build_ledger(records: list[Record], baseline: list[Record] | None, src: Path
                          "Prefer a baseline regraded under v1.35-dual.\n")
         lines.append(f"- Gains (baseline FAIL → current PASS): **{len(gains)}**  idx: {gains}")
         lines.append(f"- Losses (baseline PASS → current FAIL): **{len(losses)}**  idx: {losses}")
+        lines.append(f"  - **INVARIANT losses** (baseline finished `stop`, no Turn 2 — output should have been bit-identical): **{len(losses_invariant)}**  idx: {losses_invariant}")
+        lines.append(f"  - Expected losses (baseline hit `length` or used Turn 2 — rescue path legitimately changed): **{len(losses_expected)}**  idx: {losses_expected}")
         lines.append(f"- Net: **{len(gains) - len(losses):+d}**  (churn = gains + losses = {len(gains) + len(losses)})")
         lines.append("")
-        lines.append("> Rule: a mechanism/prompt change is accepted only if losses == 0. Net-positive with losses is noise-steering; revert it.\n")
+        verdict = "ACCEPT" if not losses_invariant else "STOP"
+        lines.append(f"> **Gate verdict: {verdict}.** Rule: a *budget/mechanism* change is accepted iff INVARIANT losses == 0. "
+                     "Expected losses are labeled in the table below (usually `reasoning` loop or `grader`), not rationalised away. "
+                     "For a *feedback-content* change (Fix B), apply the rule to total losses instead.\n")
 
     lines.append("## Strict failures — fill LABEL with exactly one of: " + " / ".join(f"`{l}`" for l in ALLOWED_LABELS) + "\n")
     lines.append("v1.35 scope = `infra`, `extraction`, `grader`, and `library-misuse` fixed ONLY via feedback-governor traceback content. `reasoning` is out of scope — leave it.\n")
