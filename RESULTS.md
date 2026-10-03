@@ -19,6 +19,8 @@
 | `math-v1.3-regraded-lenient-posthoc` | `25adb03` | v1.35-lenient-posthoc | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 500 | 432 | 78.60% (393/500) | 86.40% (432/500) | [83.01%, 89.22%] | `logs/test_reports/checkpoint_math500_v1.3-fresh-500_lenient_posthoc.json` |
 | `math-v1.3-dev-400-baseline` | `e0a8fbf` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (101-500) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 400 | 319 | 76.25% (305/400) | 81.50% (326/400) | [71.84%, 80.16%] (S) / [77.40%, 85.00%] (L) | `logs/test_reports/checkpoint_math500_v1.3-empty-feedback-heldout-400.json` |
 | `math-v1.35-dev-400` | `deacabe` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (101-500) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 400 | 318 | 74.75% (299/400) | 79.50% (318/400) | [70.27%, 78.76%] (S) / [75.27%, 83.17%] (L) | `logs/test_reports/checkpoint_math500_v1.35-dev-400.json` |
+| `math-v1.35-dev-400-v2` | `9b6858e` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (101-500) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 400 | 322 | 76.50% (306/400) | 80.50% (322/400) | [72.10%, 80.39%] (S) / [76.33%, 84.08%] (L) | `logs/test_reports/checkpoint_math500_v1.35-dev-400-v2.json` |
+
 
 
 
