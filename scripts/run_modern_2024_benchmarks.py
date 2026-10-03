@@ -26,6 +26,7 @@ import os
 import re
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -468,6 +469,9 @@ def _sympy_simplify_worker(p_sym, e_sym) -> bool:
         # Fast-path 1: Direct structural equality
         if p_sym == e_sym:
             return True
+        # Skip slow root-finding / combinatorial explosion on algebraic RootOf
+        if p_sym.has(sympy.CRootOf) or e_sym.has(sympy.CRootOf):
+            return False
         # Fast-path 2: Constant expression numeric evalf difference (<1ms)
         try:
             diff_eval = (p_sym - e_sym).evalf()
@@ -490,15 +494,40 @@ def _sympy_simplify_worker(p_sym, e_sym) -> bool:
 
 
 def evaluate_sympy_equivalence_with_timeout(p_sym, e_sym, timeout_s: float = 2.0) -> bool:
-    """Evaluates algebraic difference f(x) - g(x) == 0 with a strict timeout."""
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(_sympy_simplify_worker, p_sym, e_sym)
+    """Evaluates algebraic difference f(x) - g(x) == 0 with a strict timeout using a daemon thread."""
+    result = False
+    def _worker():
+        nonlocal result
+        result = _sympy_simplify_worker(p_sym, e_sym)
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    t.join(timeout=timeout_s)
+    return result
+
+
+def _sympy_strict_simplify_worker(p_sym, e_sym) -> bool:
     try:
-        return future.result(timeout=timeout_s)
-    except (concurrent.futures.TimeoutError, Exception):
+        import sympy
+        if p_sym == e_sym:
+            return True
+        if p_sym.has(sympy.CRootOf) or e_sym.has(sympy.CRootOf):
+            return False
+        diff = sympy.simplify(p_sym - e_sym)
+        return diff == 0
+    except Exception:
         return False
-    finally:
-        executor.shutdown(wait=False, cancel_futures=True)
+
+
+def evaluate_sympy_strict_with_timeout(p_sym, e_sym, timeout_s: float = 2.0) -> bool:
+    """Evaluates exact symbolic difference f(x) - g(x) == 0 with strict timeout and no float fallback."""
+    result = False
+    def _worker():
+        nonlocal result
+        result = _sympy_strict_simplify_worker(p_sym, e_sym)
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    t.join(timeout=timeout_s)
+    return result
 
 
 # ===========================================================================
@@ -705,9 +734,8 @@ def compare_math_strict(pred_str: str, expected_ans: str) -> bool:
         if p_sym == e_sym:
             return True
 
-        # Exact algebraic simplification difference
-        diff = sympy.simplify(p_sym - e_sym)
-        if diff == 0:
+        # Exact algebraic simplification difference with timeout
+        if evaluate_sympy_strict_with_timeout(p_sym, e_sym, timeout_s=2.0):
             return True
     except Exception:
         pass
@@ -1249,8 +1277,8 @@ def run_math500_pal(
             f"You are a competition mathematician and computer algebra expert. Solve the following problem by writing "
             f"a concise Python script (< 30 lines) using SymPy or arithmetic that computes and prints ONLY the final exact answer.\n"
             f"STRICT RULES:\n"
-            f"1. Output ONLY a ```python ... ``` block. DO NOT write explanations, prose, or rambling comments.\n"
-            f"2. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
+            f"1. Output ONLY a ```python ... ``` block. DO NOT write scratchwork in comments (#), explanations, or derivations. Write only executable Python code so that print(answer) is always reached without token exhaustion.\n"
+            f"2. Use exact symbolic arithmetic (SymPy Rational, Integer, radicals) instead of float division (/). Never output decimal approximations for fractions or irrationals. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
             f"{rule_3}"
             f"Problem: {problem}\n"
         )
@@ -1337,7 +1365,8 @@ def run_math500_pal(
                         f"Your Initial Script:\n```python\n{code}\n```\n\n"
                         f"Execution Error / Traceback in Docker:\n{err_trace[:600]}\n\n"
                         f"Please diagnose the error (e.g. fix syntax/import/attribute mistakes, or if SymPy's analytical solver fails, use numerical iteration or search). "
-                        f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(...) printing ONLY the final answer."
+                        f"Use exact symbolic arithmetic (SymPy Rational) and avoid float division. Do not write scratchwork in comments (#). "
+                        f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                     )
                 else:
                     tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Empty Output)", "2-Turn Feedback Governor", "Empty stdout", details="Script produced empty stdout (exit 0). Re-prompting to compute and print final answer...")
@@ -1347,7 +1376,7 @@ def run_math500_pal(
                             f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY or unprinted stdout:\n\n"
                             f"Problem: {problem}\n\n"
                             f"CRITICAL REQUIREMENT:\n"
-                            f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write rambling comments or derivations.\n"
+                            f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write comments (#) or derivations. Use exact Rational/SymPy values instead of float division.\n"
                             f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                         )
                     elif reprompt_mode == "stripped":
@@ -1359,7 +1388,7 @@ def run_math500_pal(
                                 f"Problem: {problem}\n\n"
                                 f"Your Initial Script:\n```python\n{stripped_code}\n```\n\n"
                                 f"CRITICAL REQUIREMENT:\n"
-                                f"The script must compute the final exact answer and explicitly print it on stdout. Do not write rambling comments or derivations.\n"
+                                f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write comments (#) or derivations. Use exact Rational/SymPy values instead of float division.\n"
                                 f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                             )
                         else:
@@ -1367,7 +1396,7 @@ def run_math500_pal(
                                 f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem executed with exit code 0, but produced EMPTY or unprinted stdout:\n\n"
                                 f"Problem: {problem}\n\n"
                                 f"CRITICAL REQUIREMENT:\n"
-                                f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write rambling comments or derivations.\n"
+                                f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write comments (#) or derivations. Use exact Rational/SymPy values instead of float division.\n"
                                 f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                             )
                     else:  # default "stub" (verified winner: 319/400 peak)
@@ -1376,7 +1405,7 @@ def run_math500_pal(
                             f"Problem: {problem}\n\n"
                             f"Your Initial Script:\n```python\n{code}\n```\n\n"
                             f"CRITICAL REQUIREMENT:\n"
-                            f"The script must compute the final exact answer and explicitly print it on stdout. Do not write rambling comments or derivations.\n"
+                            f"The script must compute the final exact answer and explicitly print it on stdout using print(answer). Do not write comments (#) or derivations. Use exact Rational/SymPy values instead of float division.\n"
                             f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                         )
                 t_corr0 = time.perf_counter()
@@ -1643,8 +1672,8 @@ def main():
         f"You are a competition mathematician and computer algebra expert. Solve the following problem by writing "
         f"a concise Python script (< 30 lines) using SymPy or arithmetic that computes and prints ONLY the final exact answer.\n"
         f"STRICT RULES:\n"
-        f"1. Output ONLY a ```python ... ``` block. DO NOT write explanations, prose, or rambling comments.\n"
-        f"2. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
+        f"1. Output ONLY a ```python ... ``` block. DO NOT write scratchwork in comments (#), explanations, or derivations. Write only executable Python code so that print(answer) is always reached without token exhaustion.\n"
+        f"2. Use exact symbolic arithmetic (SymPy Rational, Integer, radicals) instead of float division (/). Never output decimal approximations for fractions or irrationals. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
         f"{rule_3_tmpl}"
         f"Problem: {{problem}}\n"
     )
