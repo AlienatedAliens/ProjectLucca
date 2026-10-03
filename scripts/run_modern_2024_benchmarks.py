@@ -1278,7 +1278,7 @@ def run_math500_pal(
             f"a concise Python script (< 30 lines) using SymPy or arithmetic that computes and prints ONLY the final exact answer.\n"
             f"STRICT RULES:\n"
             f"1. Output ONLY a ```python ... ``` block. DO NOT write scratchwork in comments (#), explanations, or derivations. Write only executable Python code so that print(answer) is always reached without token exhaustion.\n"
-            f"2. Use exact symbolic arithmetic (SymPy Rational, Integer, radicals) instead of float division (/). Never output decimal approximations for fractions or irrationals. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
+            f"2. Use exact symbolic arithmetic (SymPy Rational, Integer, radicals) instead of float division (/). Never output decimal approximations for fractions or irrationals. For linear systems, prefer direct arithmetic or substitution; if using SymPy solve(), pass `dict=True` (e.g. `sol = solve([eq1, eq2], [x, y], dict=True)`) to reliably obtain a list of dicts and access variables with `sol[0][x]`. Never index plain solve() as `sol[0]`. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
             f"{rule_3}"
             f"Problem: {problem}\n"
         )
@@ -1359,11 +1359,21 @@ def run_math500_pal(
                     err_trace = (exec_res_stderr or math_out).strip()
                     tracer.transition_stage("tank_6b_recirculation", "Recirculation Loop (Self-Debug)", "2-Turn Feedback Governor", err_trace, details="Injecting traceback into Neural Boiler for Turn 2 self-correction...")
                     print(f"   [Execution Feedback Loop Triggered] Task {curr_idx} produced error -> Retrying with traceback...", flush=True)
+                    hint = ""
+                    if "KeyError" in err_trace:
+                        hint = (
+                            "\nIMPORTANT DIAGNOSTIC HINT:\n"
+                            "In SymPy, solve([eqs], [vars]) returns a dictionary {symbol: value}, NOT a list. "
+                            "Accessing `sol[0]` fails with KeyError: 0. "
+                            "Pass `dict=True` (e.g. `sol = solve(..., dict=True)`) and access values with `sol[0][x]`, "
+                            "or access values by symbol key directly (`sol[x]`), or solve with direct integer arithmetic.\n\n"
+                        )
                     feedback_prompt = (
                         f"You are a competition mathematician and computer algebra expert. The Python script you wrote to solve the problem produced an execution error in the sandbox:\n\n"
                         f"Problem: {problem}\n\n"
                         f"Your Initial Script:\n```python\n{code}\n```\n\n"
                         f"Execution Error / Traceback in Docker:\n{err_trace[:600]}\n\n"
+                        f"{hint}"
                         f"Please diagnose the error (e.g. fix syntax/import/attribute mistakes, or if SymPy's analytical solver fails, use numerical iteration or search). "
                         f"Use exact symbolic arithmetic (SymPy Rational) and avoid float division. Do not write scratchwork in comments (#). "
                         f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
@@ -1673,7 +1683,7 @@ def main():
         f"a concise Python script (< 30 lines) using SymPy or arithmetic that computes and prints ONLY the final exact answer.\n"
         f"STRICT RULES:\n"
         f"1. Output ONLY a ```python ... ``` block. DO NOT write scratchwork in comments (#), explanations, or derivations. Write only executable Python code so that print(answer) is always reached without token exhaustion.\n"
-        f"2. Use exact symbolic arithmetic (SymPy Rational, Integer, radicals) instead of float division (/). Never output decimal approximations for fractions or irrationals. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
+        f"2. Use exact symbolic arithmetic (SymPy Rational, Integer, radicals) instead of float division (/). Never output decimal approximations for fractions or irrationals. For linear systems, prefer direct arithmetic or substitution; if using SymPy solve(), pass `dict=True` (e.g. `sol = solve([eq1, eq2], [x, y], dict=True)`) to reliably obtain a list of dicts and access variables with `sol[0][x]`. Never index plain solve() as `sol[0]`. Simplify all expressions completely before printing. Print only the exact mathematical value, without labels (e.g. print `5`, not `x = 5`).\n"
         f"{rule_3_tmpl}"
         f"Problem: {{problem}}\n"
     )
