@@ -1,0 +1,27 @@
+[
+  {
+    "idx": 102,
+    "item_id": "test-102",
+    "subject": "Intermediate Algebra",
+    "level": 5,
+    "problem": "The equation\n\\[x^{10}+(13x-1)^{10}=0\\,\\]has 10 complex roots $r_1,$ $\\overline{r}_1,$ $r_2,$ $\\overline{r}_2,$ $r_3,$ $\\overline{r}_3,$ $r_4,$ $\\overline{r}_4,$ $r_5,$ $\\overline{r}_5,$ where the bar denotes complex conjugation. Find the value of\n\\[\\frac 1{r_1\\overline{r}_1}+\\frac 1{r_2\\overline{r}_2}+\\frac 1{r_3\\overline{r}_3}+\\frac 1{r_4\\overline{r}_4}+\\frac 1{r_5\\overline{r}_5}.\\]",
+    "expected_ans": "850",
+    "predicted_ans": "1/(CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 4)*CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 5)) + 1/(CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 6)*CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 7)) + 170 + 1/(CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 2)*CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 3)) + 1/(CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 0)*CRootOf(810932305*x**8 - 499769140*x**7 + 134723250*x**6 - 20748520*x**5 + 1996736*x**4 - 122954*x**3 + 4731*x**2 - 104*x + 1, 1))",
+    "passed": false,
+    "strict_pass": false,
+    "lenient_pass": false,
+    "failure_class": "genuine_derivation_miss",
+    "generated_code": "from sympy import symbols, solve, simplify, I\n\nx = symbols('x')\n# The equation is x^10 + (13x - 1)^10 = 0\n# Let y = 13x - 1, then x = (y+1)/13.\n# Substituting: ((y+1)/13)^10 + y^10 = 0\n# (y+1)^10 + 13^10 * y^10 = 0\n# This is a polynomial in y of degree 10.\n# Let the roots of (y+1)^10 + 13^10 * y^10 = 0 be y_1, ..., y_10.\n# Since x_i = (y_i + 1)/13, we have r_i = (y_i + 1)/13.\n# The conjugate of r_i is \\bar{r}_i = (y_i + 1)/13 if y_i is real, \n# but here the coefficients are real, so roots come in conjugate pairs.\n# The product r_i * \\bar{r}_i is the squared modulus |r_i|^2.\n# Let's find the roots x_i of x^10 + (13x - 1)^10 = 0.\n# The sum we want is \\sum_{j=1}^5 1/|r_j|^2.\n# Since the roots come in 5 conjugate pairs, \\sum_{j=1}^5 1/|r_j|^2 \n# is exactly half of \\sum_{k=1}^{10} 1/|r_k|^2.\n# However, |r_k|^2 = r_k * \\bar{r}_k. \n# For a polynomial P(x) = \\sum a_n x^n, the sum of 1/r_k is -a_1/a_0.\n# Here we need \\sum 1/(r_k \\bar{r}_k).\n# Let's solve the equation directly.\n\neq = x**10 + (13*x - 1)**10\nroots = solve(eq, x)\n\n# The roots come in 5 conjugate pairs.\n# We need to sum 1/(r * conj(r)) for one representative of each pair.\n# Since the coefficients are real, if r is a root, conj(r) is a root.\n# The sum of 1/(r_k * conj(r_k)) over all 10 roots is 2 * \\sum_{j=1}^5 1/|r_j|^2.\n# Wait, the problem asks for \\sum_{j=1}^5 1/(r_j \\bar{r}_j).\n# Let's compute all |r_k|^2 and sum them, then divide by 2.\n\nmod_sq_sum = 0\nfor r in roots:\n    mod_sq_sum += 1 / (r * r.conjugate())\n\n# Since there are 10 roots forming 5 conjugate pairs, \n# the sum of 1/|r_k|^2 over all 10 roots is 2 * (sum of 1/|r_j|^2 for 5 pairs).\nanswer = mod_sq_sum / 2\nprint(simplify(answer))",
+    "extraction_stage": "fenced",
+    "extraction_retry_triggered": false,
+    "exit_code": 0,
+    "stderr": "",
+    "feedback_triggered": false,
+    "feedback_succeeded": false,
+    "llm_latency_s": 15.876,
+    "turn1_latency_s": 15.876,
+    "turn2_latency_s": 0.0,
+    "completion_tokens": 768,
+    "finish_reason": "length"
+  }
+]
