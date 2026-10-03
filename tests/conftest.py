@@ -26,6 +26,17 @@ def _isolated_lucca_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Ite
     get_config.cache_clear()
 
 
+@pytest.fixture(scope="session")
+def qapp() -> Iterator[object]:
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PyQt6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    yield app
+
+
 @pytest.fixture(autouse=True)
 def _check_tier_prerequisites(request: pytest.FixtureRequest) -> None:
     hw_marker = request.node.get_closest_marker("hw")

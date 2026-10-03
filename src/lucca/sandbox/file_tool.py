@@ -178,6 +178,45 @@ class SafeFileTool:
 
         return {"entries": entries, "truncated": truncated}
 
+    @staticmethod
+    def _resolve_url_shortcut(target: Path) -> Path | None:
+        """
+        Parses a Windows Internet Shortcut (.url) file and returns the resolved
+        local file path if the URL is a file:// reference, or None if the target
+        is not a local file path or the format is unrecognised.
+
+        Security: only resolves ``file://`` URIs; network URIs are rejected.
+        The caller must perform any further boundary checks on the returned path.
+        """
+        try:
+            raw = target.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return None
+
+        for line in raw.splitlines():
+            stripped = line.strip()
+            if not stripped.upper().startswith("URL="):
+                continue
+            url = stripped[4:].strip()
+            if not url.lower().startswith("file://"):
+                return None  # network URL — refuse
+
+            # Decode percent-encoded characters in the path portion
+            import urllib.parse
+
+            parsed = urllib.parse.urlparse(url)
+            local_path_str = urllib.parse.unquote(parsed.path)
+
+            # On Windows: file:///c:/path → path starts with /c:/...
+            if local_path_str.startswith("/") and len(local_path_str) > 2 and local_path_str[2] == ":":
+                local_path_str = local_path_str[1:]  # strip leading /
+
+            resolved = Path(local_path_str)
+            if resolved.is_absolute() and resolved.exists() and resolved.is_file():
+                return resolved
+            return None
+        return None
+
     def read_file(
         self, path: str, max_bytes: int = MAX_FILE_BYTES
     ) -> tuple[dict[str, object], str]:
@@ -186,6 +225,20 @@ class SafeFileTool:
             raise SandboxPathError("not_found", f"File not found: {path}")
         if target.is_dir():
             raise SandboxPathError("is_dir", f"Path is a directory, not a file: {path}")
+
+        # ── Windows Internet Shortcut redirect (.url) ──────────────────────
+        # If the caller points at a .url file, transparently resolve and read
+        # the local target file instead, so dropped playbook shortcuts work.
+        resolved_from_url: Path | None = None
+        if target.suffix.lower() == ".url":
+            resolved_from_url = self._resolve_url_shortcut(target)
+            if resolved_from_url is not None:
+                logger.debug(
+                    "read_file_url_redirect",
+                    shortcut=str(target),
+                    resolved=str(resolved_from_url),
+                )
+                target = resolved_from_url
 
         file_size = target.stat().st_size
 
@@ -209,6 +262,7 @@ class SafeFileTool:
             "size": file_size,
             "sha256": sha256,
             "truncated": truncated,
+            "resolved_from_shortcut": str(resolved_from_url) if resolved_from_url else None,
         }
         return structured, content
 

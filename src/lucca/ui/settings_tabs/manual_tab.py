@@ -94,15 +94,15 @@ class ManualTab(QWidget):
                 <li><strong>🛠️ TOOLS (West):</strong> Application whitelist and execution security permissions.</li>
                 <li><strong>💻 PROJECT (North-West):</strong> Opens the project directory in Explorer.</li>
             </ul>""",
-            # 2. Voice Blender & Mixing
-            """<h2 style='color:#ffd700;'>3. Voice Synthesis & Dual-Vector Mixing</h2>
-            <p>Kokoro-82M uses 512-dimensional style embedding vectors. You can select from all <strong>54 installed voices</strong> or mix them in arbitrary ratios.</p>
-            <h3 style='color:#38bdf8;'>Dual-Vector Tensor Blender:</h3>
+            # 2. Voice Architecture & Engines
+            """<h2 style='color:#ffd700;'>3. Voice Synthesis & Architecture Engines</h2>
+            <p>Project Lucca supports 5 ratified, specialized on-device voice engines:</p>
             <ul>
-                <li>Select <strong>Voice A</strong> and <strong>Voice B</strong> from the dropdowns.</li>
-                <li>Move the blend slider to adjust the linear combination ratio (e.g. 70% A / 30% B).</li>
-                <li>The engine calculates the weighted vector sum <code>wA * StyleA + wB * StyleB</code> in real time.</li>
-                <li>Pacing slider allows fine-tuning speech tempo from 0.60x to 1.80x without pitch distortion.</li>
+                <li><strong>✨ Kokoro-82M (Vector Blender):</strong> Bedrock 82M diffusion model with 54 voices, canonical anime recipes, and continuous dual-vector linear combination.</li>
+                <li><strong>🐱 KittenTTS (KittenML CPU ONNX):</strong> Ultra-compact 15M (Nano) to 80M (Mini) parameters (25-80 MB disk, INT8 quantized). Built from scratch for ONNX CPU runtime with superior built-in text-normalization (currencies, dates, numbers, abbreviations) without pronunciation glitches.</li>
+                <li><strong>⚡ Pocket TTS (Kyutai Labs):</strong> Lightweight edge-streaming model with native zero-shot voice cloning and low latency streaming delivery for on-device agents.</li>
+                <li><strong>🌐 Supertonic 3:</strong> Multilingual synthesis with exceptional automatic language detection and inline code-switching, eliminating harsh phoneme stumbles on mixed-language dialogue.</li>
+                <li><strong>🧬 KokoClone:</strong> Adapts the kokoro-onnx pipeline for zero-shot voice cloning from short reference audio clips (.wav), projecting acoustic features into Kokoro's style latent space.</li>
             </ul>""",
             # 3. DSP Audio Post-Processing
             """<h2 style='color:#ffd700;'>4. DSP Audio Post-Processing Chain</h2>

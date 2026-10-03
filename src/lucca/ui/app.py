@@ -97,10 +97,10 @@ def get_commorose_actions(
         CommoroseAction("SETTINGS", "⚙️", _open_settings, "Open 10-tab configuration suite"),
         CommoroseAction("CHAT BAR", "💬", _toggle_chat, "Toggle dialogue and chat input"),
         CommoroseAction(
-            "FOLDERS",
+            "PROJECT",
             "📁",
             _open_home,
-            "Open Project Lucca home directory",
+            "Open Project Lucca in explorer",
         ),
         CommoroseAction("PERSONA", "🧠", _tab_0, "Switch persona profile"),
         CommoroseAction("VOICE", "🎙️", _tab_1, "Voice synthesis blender"),

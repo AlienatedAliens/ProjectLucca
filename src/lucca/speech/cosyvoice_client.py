@@ -58,8 +58,12 @@ class CosyVoice3Client:
         """Checks if the CosyVoice 3 service is currently active and responding."""
         try:
             sock = self._get_socket()
+            sock.setsockopt(zmq.RCVTIMEO, 200)
+            sock.setsockopt(zmq.SNDTIMEO, 200)
             sock.send_json({"cmd": "ping"})
             resp = sock.recv_json()
+            sock.setsockopt(zmq.RCVTIMEO, 45000)
+            sock.setsockopt(zmq.SNDTIMEO, 10000)
             return bool(resp.get("status") == "ok")
         except Exception as exc:
             logger.debug("cosyvoice_ping_failed: %s", exc)

@@ -223,9 +223,20 @@ class TTSWorker:
         self.dsp_chain.config.enabled = enabled
 
     def resolve_voice_style(self, voice_spec: str) -> str | npt.NDArray[np.float32]:
-        """Resolves a voice string to either a native voice ID or cached blended array."""
+        """Resolves a voice string to either a native voice ID, cloned vector, or cached blended array."""
         if self.engine is None:
             return voice_spec
+
+        if str(voice_spec).startswith("kokoclone:"):
+            wav_path = str(voice_spec).split("kokoclone:", 1)[1].strip()
+            if wav_path and Path(wav_path).exists():
+                try:
+                    from lucca.speech.kokoclone import compute_cloned_style_vector
+
+                    vec, _ = compute_cloned_style_vector(wav_path, self.engine)
+                    return vec
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("kokoclone_vector_resolve_failed", error=str(exc))
 
         canonical_key = VOICE_RECIPES.get(voice_spec, voice_spec)
         if canonical_key in self._blend_cache:
@@ -258,43 +269,25 @@ class TTSWorker:
         s = speed if speed is not None else self.active_speed
         resolved_voice = self.resolve_voice_style(v_spec)
 
-        # Dispatch to CosyVoice 3 Frontier Neural Engine if requested
-        is_cosyvoice = "cosyvoice" in str(raw_spec).lower() or raw_spec in ("inventor", "lucca_inventor")
-        if is_cosyvoice:
+        from lucca.speech.engines import get_voice_engine, parse_engine_from_spec
+
+        engine_type, subspec = parse_engine_from_spec(str(raw_spec))
+
+        # Check legacy CosyVoice fallback resilience (for backwards-compatibility in test mocks)
+        if "cosyvoice" in str(raw_spec).lower():
             try:
-                from lucca.speech.cosyvoice_client import CosyVoice3Client, format_cosyvoice_instruct
+                from lucca.speech.cosyvoice_client import CosyVoice3Client
 
-                emotion_inst = "steady, clear"
-                try:
-                    from lucca.core.affect import AffectTracker
-                    tracker = AffectTracker()
-                    latents = tracker.ode_machine.get_vocal_acoustic_latents()
-                    emotion_inst = str(latents.get("emotion_instruction", "steady, clear"))
-                except Exception as aff_exc:  # noqa: BLE001
-                    logger.debug("affect_latents_query_failed", error=str(aff_exc))
-
-                profile_key = "inventor"
-                if "companion" in str(raw_spec):
-                    profile_key = "companion"
-                elif "heroine" in str(raw_spec):
-                    profile_key = "heroine"
-
-                custom_wav: str | None = None
-                if "custom:" in str(raw_spec):
-                    custom_wav = str(raw_spec).split("custom:", 1)[1].strip() or None
-
-                instruct = format_cosyvoice_instruct("Lucca", emotion_inst, profile=profile_key)
                 cv_client = CosyVoice3Client.get_instance()
                 cv_res = cv_client.synthesize(
                     text=clean_text,
-                    instruct=instruct,
-                    prompt_wav=custom_wav,
-                    profile=profile_key,
+                    instruct="",
+                    prompt_wav=None,
+                    profile="inventor",
                     speed=s,
                     stream=True,
                     direct_ring=True,
                 )
-
                 if cv_res.get("status") == "ok":
                     samples_written = int(cv_res.get("samples", 0))
                     dur_ms = float(cv_res.get("elapsed_ms", (time.perf_counter() - t0) * 1000.0))
@@ -305,18 +298,31 @@ class TTSWorker:
                         device="GPU",
                     )
             except Exception as cv_exc:  # noqa: BLE001
-                logger.warning("cosyvoice_synthesis_failed_fallback_kokoro", error=str(cv_exc))
-
-        # If voice was CosyVoice, resolve a valid Kokoro fallback voice
-        if is_cosyvoice or not isinstance(resolved_voice, np.ndarray) and str(resolved_voice).startswith("cosyvoice"):
+                logger.debug("cosyvoice_fallback_kokoro", error=str(cv_exc))
+            engine_type = "kokoro"
             resolved_voice = self.resolve_voice_style("lucca_inventor")
 
-        # Kokoro produces 24000 Hz float32 audio (native or fallback)
+        # Synthesize audio float32 based on active engine
         try:
-            samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
+            if engine_type == "kittentts":
+                kitten_eng = get_voice_engine("kittentts")
+                samples_f32, sr = kitten_eng.synthesize(clean_text, voice_spec=subspec, speed=s)
+            elif engine_type == "pocket_tts":
+                pocket_eng = get_voice_engine("pocket_tts")
+                samples_f32, sr = pocket_eng.synthesize(clean_text, voice_spec=subspec, speed=s)
+            elif engine_type == "supertonic3":
+                supertonic_eng = get_voice_engine("supertonic3")
+                samples_f32, sr = supertonic_eng.synthesize(clean_text, voice_spec=subspec, speed=s)
+            elif engine_type == "kokoclone":
+                kokoclone_eng = get_voice_engine("kokoclone")
+                samples_f32, sr = kokoclone_eng.synthesize(clean_text, voice_spec=subspec, speed=s)
+            else:
+                # Kokoro-82M native
+                if not isinstance(resolved_voice, np.ndarray) and ("cosyvoice" in str(resolved_voice).lower() or not str(resolved_voice)):
+                    resolved_voice = self.resolve_voice_style("lucca_inventor")
+                samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
         except Exception as exc:  # noqa: BLE001
-            logger.debug("tts_create_voice_failed_fallback", error=str(exc))
-            # Fallback to default voice if custom/blended voice encounters issues
+            logger.debug("tts_engine_synthesize_failed_fallback", engine=engine_type, error=str(exc))
             fallback_voice = self.resolve_voice_style("af_sarah")
             samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
 

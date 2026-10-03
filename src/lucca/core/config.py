@@ -115,11 +115,17 @@ class ASRSettings(BaseModel):
 
 class TTSSettings(BaseModel):
     model: str = "tts/kokoro-v1"
+    engine: Literal["kokoro", "kittentts", "pocket_tts", "supertonic3", "kokoclone"] = "kokoro"
     voice: str = "genki_heroine"
     speed: float = 1.10
     device_ladder: list[DeviceType] = Field(default_factory=_default_device_ladder)
     speak_code: bool = False
     speak_urls: bool = False
+    ref_audio_path: str = ""
+    kittentts_variant: Literal["nano", "mini"] = "mini"
+    kittentts_quant: Literal["int8", "fp32"] = "int8"
+    pocket_latency_ms: int = 60
+    supertonic_lang_mode: str = "auto"
 
 
 class AudioSettings(BaseModel):

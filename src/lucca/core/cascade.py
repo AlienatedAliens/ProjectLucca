@@ -951,10 +951,14 @@ class EpistemicSearchCascade:
             now_local = datetime.now().astimezone()
             time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
             active_voice = cfg.voice or rt.tts.voice
+            from lucca.speech.engines import ENGINE_CATALOG, parse_engine_from_spec
+            eng_id, _ = parse_engine_from_spec(str(active_voice))
+            eng_desc = ENGINE_CATALOG.get(eng_id)
+            eng_name = eng_desc.name if eng_desc else "Kokoro-82M"
             tts_info = (
-                f"speech synthesis 'CosyVoice 3 Frontier' (voice: '{active_voice}', 15 affective PAD stances) with Kokoro-82M fallback"
+                f"speech synthesis 'CosyVoice 3 Frontier' (voice: '{active_voice}') with Kokoro-82M fallback"
                 if "cosyvoice" in str(active_voice).lower()
-                else f"speech synthesis '{Path(rt.tts.model).name}' voice '{active_voice}'"
+                else f"speech synthesis '{eng_name}' (voice: '{active_voice}')"
             )
             vision_info = (
                 f"; multimodal vision projector '{Path(rt.llm.mmproj).name}' active (mode: {rt.llm.mode})"

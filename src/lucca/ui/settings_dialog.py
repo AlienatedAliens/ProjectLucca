@@ -334,9 +334,10 @@ class SettingsDialog(QDialog):
         self.tabs.currentChanged.connect(self._on_tab_changed)
 
         # Synchronize 3D PAD Affective dynamics toggles across Persona and Voice Blender tabs
-        self.tab_voice.cb_affect_enabled.setChecked(self.tab_persona.chk_affect_enabled.isChecked())
-        self.tab_voice.cb_affect_enabled.toggled.connect(self.tab_persona.chk_affect_enabled.setChecked)
-        self.tab_persona.chk_affect_enabled.toggled.connect(self.tab_voice.cb_affect_enabled.setChecked)
+        if hasattr(self.tab_voice, "cb_affect_enabled"):
+            self.tab_voice.cb_affect_enabled.setChecked(self.tab_persona.chk_affect_enabled.isChecked())
+            self.tab_voice.cb_affect_enabled.toggled.connect(self.tab_persona.chk_affect_enabled.setChecked)
+            self.tab_persona.chk_affect_enabled.toggled.connect(self.tab_voice.cb_affect_enabled.setChecked)
 
         # Bottom Action Bar
         btn_box = QHBoxLayout()
