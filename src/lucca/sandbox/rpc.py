@@ -443,6 +443,16 @@ class DockerRPCTransport:
                         elapsed_ms=elapsed_ms,
                     )
 
+        # Ensure list_dir produces a human-readable content string if None
+        if tool == "list_dir" and ok and isinstance(structured, dict) and not content:
+            entries = structured.get("entries", [])
+            if isinstance(entries, list):
+                if entries:
+                    names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
+                    content = f"Directory contains {len(entries)} item(s): {', '.join(names)}"
+                else:
+                    content = "Directory is empty (0 items)."
+
         return ToolResult(
             call_id=res_dict.get("call_id", call_id),
             ok=ok,

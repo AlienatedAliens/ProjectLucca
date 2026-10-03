@@ -271,7 +271,17 @@ def select_floor_cue(query_text: str, target_substrate: EpistemicSubstrate | Non
     ):
         return "Checking system telemetry..."
     if target_substrate == EpistemicSubstrate.WORKSPACE or any(
-        w in lower for w in ("file", "code", "directory", "workspace", "script", "folder", "repo")
+        w in lower
+        for w in (
+            "file",
+            "code",
+            "directory",
+            "workspace",
+            "script",
+            "folder",
+            "repo",
+            "inbox",
+        )
     ):
         return "Searching the workspace files..."
     if target_substrate == EpistemicSubstrate.MEMORY or any(
@@ -676,6 +686,16 @@ def classify_epistemic_intent(
         "grep",
         "ast",
         "contents of",
+        "inbox",
+        "drop folder",
+        "incoming files",
+        "any files",
+        "what files",
+        "have any files",
+        "do you have files",
+        "files do you have",
+        "document",
+        "documents",
     )
     has_file_name = bool(
         re.search(
@@ -1266,9 +1286,50 @@ class EpistemicSearchCascade:
             return items
 
         try:
-            # Extract potential file paths mentioned in query
-            file_match = re.search(r"([\w\-./\\]+\.(?:toml|py|json|md|txt|ya?ml))", query_text)
-            if file_match:
+            lower = query_text.lower()
+
+            # 1. Inbox inquiries
+            if any(w in lower for w in ("inbox", "drop folder", "incoming")):
+                res = self._execute_sandbox(
+                    tool_name="list_dir",
+                    args={"path": "inbox"},
+                    confirmed=True,
+                )
+                if res and res.ok:
+                    entries = (
+                        (res.structured or {}).get("entries", [])
+                        if isinstance(res.structured, dict)
+                        else []
+                    )
+                    names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
+                    if names:
+                        content_str = (
+                            f"Inbox drop folder contains {len(names)} file(s) waiting to be imported: "
+                            f"{', '.join(names)}. (Location: host inbox/)"
+                        )
+                    else:
+                        content_str = "Inbox drop folder is currently empty (0 files waiting)."
+                    items.append(
+                        EvidenceItem(
+                            substrate=EpistemicSubstrate.WORKSPACE,
+                            trust_tier=TrustTier.TIER_2_WORKSPACE,
+                            source="workspace:inbox",
+                            content=content_str,
+                            polarity=BelnapValue.TRUE,
+                            confidence=1.0,
+                            metadata={"path": "inbox", "files": names, "count": len(names)},
+                        )
+                    )
+                return items
+
+            # 2. Specific file read inquiries (e.g. "Read config/persona.toml in the workspace")
+            file_match = re.search(
+                r"([\w\-./\\]+\.(?:toml|py|json|md|txt|ya?ml|url))", query_text
+            )
+            is_explicit_listing = any(
+                w in lower for w in ("list files", "directory", "folder", "all files", "what files")
+            )
+            if file_match and not is_explicit_listing:
                 rel_path = file_match.group(1).replace("\\", "/")
                 res = self._execute_sandbox(
                     tool_name="read_file",
@@ -1288,26 +1349,67 @@ class EpistemicSearchCascade:
                             metadata={"path": rel_path, "truncated": len(res.content) > 500},
                         )
                     )
-            elif any(
-                w in query_text.lower()
-                for w in ("list files", "directory", "workspace files", "folder")
-            ):
+                return items
+
+            # 3. General workspace file listing inquiries
+            is_workspace_listing = (
+                any(
+                    w in lower
+                    for w in (
+                        "list files",
+                        "directory",
+                        "workspace files",
+                        "folder",
+                        "files at all",
+                        "any files",
+                        "what files",
+                        "have any files",
+                        "do you have files",
+                        "files do you have",
+                        "in your workspace",
+                        "in the workspace",
+                        "files in workspace",
+                        "show files",
+                        "show me files",
+                        "contents of workspace",
+                        "what's in your workspace",
+                        "what is in your workspace",
+                        "all files",
+                    )
+                )
+                or ("files" in lower and "workspace" in lower)
+                or ("files" in lower and any(v in lower for v in ("have", "see", "show", "list", "any")))
+            )
+
+            if is_workspace_listing:
                 res = self._execute_sandbox(
                     tool_name="list_dir",
                     args={"path": "."},
                     confirmed=True,
                 )
-                if res and res.ok and (res.content or res.structured):
-                    content_str = res.content if res.content else json.dumps(res.structured)
+                if res and res.ok:
+                    entries = (
+                        (res.structured or {}).get("entries", [])
+                        if isinstance(res.structured, dict)
+                        else []
+                    )
+                    names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
+                    if names:
+                        content_str = (
+                            f"Workspace directory contains {len(names)} item(s): "
+                            f"{', '.join(names)}."
+                        )
+                    else:
+                        content_str = "Workspace directory is currently empty (0 files)."
                     items.append(
                         EvidenceItem(
                             substrate=EpistemicSubstrate.WORKSPACE,
                             trust_tier=TrustTier.TIER_2_WORKSPACE,
                             source="workspace:list_dir",
-                            content=content_str[:500],
+                            content=content_str,
                             polarity=BelnapValue.TRUE,
                             confidence=1.0,
-                            metadata={"path": "."},
+                            metadata={"path": ".", "files": names, "count": len(names)},
                         )
                     )
         except Exception as exc:  # noqa: BLE001

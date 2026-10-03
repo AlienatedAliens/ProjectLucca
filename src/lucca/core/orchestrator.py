@@ -4485,6 +4485,10 @@ class Orchestrator:
             elif name == "fetch_url":
                 url = str(args.get("url", "the page"))
                 spoken_msg = f"I fetched {url}."
+            elif name == "inbox_handoff":
+                spoken_msg = str(res.content or "Imported from inbox.")
+            elif name == "list_dir":
+                spoken_msg = str(res.content or "Checked directory.")
             else:
                 spoken_msg = f"Executed {name}."
         elif res.exit_code == -2 or "sandbox unavailable" in (res.stderr or ""):

@@ -1185,6 +1185,7 @@ class SandboxService:
                 )
 
         if tool_name == "inbox_handoff":
+            t0 = time.perf_counter()
             try:
                 parsed_inbox = InboxHandoffArgs.model_validate(args)
             except ValidationError as exc:
@@ -1195,16 +1196,117 @@ class SandboxService:
                     stderr=f"invalid_arguments: {exc}",
                     elapsed_ms=0.0,
                 )
-            try:
-                dest = self.workspace_mgr.import_from_inbox(parsed_inbox.filename)
-                content = f"Imported '{parsed_inbox.filename}' into workspace."
+
+            target_fn = str(parsed_inbox.filename or "all").strip()
+            target_lower = target_fn.lower()
+
+            if target_lower in ("list", "check", "?", "status", "ls"):
+                files = [
+                    f.name
+                    for f in sorted(
+                        self.workspace_mgr.inbox_root.iterdir(), key=lambda p: p.name.lower()
+                    )
+                    if f.is_file()
+                ]
+                if files:
+                    content = f"Inbox contains {len(files)} file(s): {', '.join(files)}"
+                else:
+                    content = "Inbox is empty (0 files)."
                 return ToolResult(
                     call_id=call_id,
                     ok=True,
                     exit_code=0,
                     content=content,
-                    structured={"filename": parsed_inbox.filename, "dest_path": str(dest)},
-                    elapsed_ms=0.0,
+                    structured={"files": files, "count": len(files)},
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+            if target_lower in ("all", "*", "all files", "everything", ""):
+                inbox_files = [
+                    f
+                    for f in sorted(
+                        self.workspace_mgr.inbox_root.iterdir(), key=lambda p: p.name.lower()
+                    )
+                    if f.is_file()
+                ]
+                if not inbox_files:
+                    content = "Inbox is currently empty; no files to import."
+                    return ToolResult(
+                        call_id=call_id,
+                        ok=True,
+                        exit_code=0,
+                        content=content,
+                        structured={"imported": [], "count": 0},
+                        elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                imported: list[str] = []
+                errors: list[str] = []
+                for f in inbox_files:
+                    try:
+                        self.workspace_mgr.import_from_inbox(f.name)
+                        imported.append(f.name)
+                    except Exception as exc:  # noqa: BLE001
+                        errors.append(f"{f.name}: {exc}")
+                if imported:
+                    content = (
+                        f"Imported {len(imported)} file(s) from inbox: {', '.join(imported)}."
+                    )
+                    if errors:
+                        content += f" (Errors: {'; '.join(errors)})"
+                    return ToolResult(
+                        call_id=call_id,
+                        ok=True,
+                        exit_code=0,
+                        content=content,
+                        structured={
+                            "imported": imported,
+                            "count": len(imported),
+                            "errors": errors,
+                        },
+                        elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
+                content = f"Failed to import files from inbox: {'; '.join(errors)}"
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=content,
+                    content=content,
+                    structured={"imported": [], "errors": errors},
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+            try:
+                dest = self.workspace_mgr.import_from_inbox(target_fn)
+                content = f"Imported '{target_fn}' into workspace."
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    content=content,
+                    structured={"filename": target_fn, "dest_path": str(dest)},
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except FileNotFoundError:
+                avail = [
+                    f.name
+                    for f in sorted(
+                        self.workspace_mgr.inbox_root.iterdir(), key=lambda p: p.name.lower()
+                    )
+                    if f.is_file()
+                ]
+                avail_str = (
+                    f"Available inbox files: {', '.join(avail)}" if avail else "Inbox is empty."
+                )
+                err_msg = f"File '{target_fn}' not found in inbox. {avail_str}"
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=err_msg,
+                    content=err_msg,
+                    structured={"error": "not_found", "requested": target_fn, "available": avail},
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("inbox_handoff_failed", error=str(exc))
@@ -1213,8 +1315,79 @@ class SandboxService:
                     ok=False,
                     exit_code=1,
                     stderr=str(exc),
-                    elapsed_ms=0.0,
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
+
+        # 8b. List Dir Host Intercept for Inbox
+        if tool_name == "list_dir":
+            raw_path = str(
+                (args.get("path") if isinstance(args, dict) else getattr(args, "path", ""))
+                or (
+                    args.get("rel_path")
+                    if isinstance(args, dict)
+                    else getattr(args, "rel_path", "")
+                )
+                or (
+                    args.get("directory")
+                    if isinstance(args, dict)
+                    else getattr(args, "directory", "")
+                )
+                or ""
+            ).strip()
+            norm_path = raw_path.replace("\\", "/").strip("/. ").lower()
+            is_inbox_req = (
+                norm_path in ("inbox", "inbox drop folder", "drop folder")
+                or norm_path.endswith("/inbox")
+            )
+            if is_inbox_req:
+                t0 = time.perf_counter()
+                inbox_path = self.workspace_mgr.inbox_root
+                entries: list[dict[str, JsonValue]] = []
+                try:
+                    for item in sorted(inbox_path.iterdir(), key=lambda p: p.name.lower()):
+                        try:
+                            st = item.stat()
+                            entries.append(
+                                {
+                                    "name": item.name,
+                                    "size": st.st_size,
+                                    "mtime": st.st_mtime,
+                                    "is_dir": item.is_dir(),
+                                }
+                            )
+                        except (OSError, ValueError):
+                            continue
+                    file_names = [str(e["name"]) for e in entries if not e.get("is_dir")]
+                    if entries:
+                        content = (
+                            f"Inbox drop folder contains {len(entries)} item(s): "
+                            f"{', '.join(file_names)}. Use inbox_handoff(filename='all') to import."
+                        )
+                    else:
+                        content = "Inbox drop folder is currently empty (0 files)."
+                    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+                    return ToolResult(
+                        call_id=call_id,
+                        ok=True,
+                        exit_code=0,
+                        structured={
+                            "entries": entries,
+                            "truncated": False,
+                            "location": "inbox",
+                            "count": len(entries),
+                        },
+                        content=content,
+                        elapsed_ms=elapsed_ms,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("list_inbox_failed", error=str(exc))
+                    return ToolResult(
+                        call_id=call_id,
+                        ok=False,
+                        exit_code=1,
+                        stderr=str(exc),
+                        elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                    )
 
         # 9. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)

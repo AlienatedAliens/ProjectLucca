@@ -117,11 +117,11 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "list_dir": ToolSchema(
             name="list_dir",
-            description="List files and directories in the workspace",
+            description="List files and directories in the workspace. Set rel_path='inbox' to inspect incoming files waiting in the host inbox drop folder.",
             parameters={
                 "rel_path": ToolParameter(
                     type="string",
-                    description="Relative directory path under workspace",
+                    description="Relative directory path under workspace (or 'inbox' for incoming drop folder)",
                     required=False,
                 ),
                 "recursive": ToolParameter(
@@ -415,11 +415,11 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "inbox_handoff": ToolSchema(
             name="inbox_handoff",
-            description="Move a file from the inbox drop folder into the workspace.",
+            description="Move files from the inbox drop folder into the workspace. Pass 'all' or '*' to import all files, or pass a specific filename.",
             parameters={
                 "filename": ToolParameter(
                     type="string",
-                    description="Filename in inbox/ to import (basename only, no path)",
+                    description="Filename in inbox/ to import, or 'all' to import all files",
                     required=True,
                 ),
             },

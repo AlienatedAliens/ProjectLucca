@@ -224,7 +224,21 @@ class ClipboardReadArgs(BaseModel):
 
 
 class InboxHandoffArgs(BaseModel):
-    filename: str = Field(min_length=1, description="Filename in inbox/ to import")
+    filename: str = Field(default="all", description="Filename in inbox/ to import, or 'all' to import all files, or 'list' to inspect")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_filename(cls, data: object) -> object:
+        if isinstance(data, dict):
+            fn = data.get("filename")
+            if not fn:
+                for alt in ("file", "name", "target", "path"):
+                    if data.get(alt):
+                        data["filename"] = str(data[alt])
+                        break
+            if not data.get("filename"):
+                data["filename"] = "all"
+        return data
 
 
 class ScreenshotCaptureArgs(BaseModel):
