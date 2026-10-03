@@ -117,7 +117,7 @@ All results are permanently recorded in [`RESULTS.md`](file:///C:/Projects/Proje
 4. **SymPy `solve()` Dict Indexing Crash (`KeyError: 0`) (Step 4 Debugging, `9b6858e`)**:
    - *Problem*: Exact arithmetic prompt caused Gemma to call `sympy.solve()`, but index it as `sol[0]`. SymPy returns a dictionary `{var: val}` for linear systems, causing `KeyError: 0` crashes on 9 dev problems. Turn 2 feedback repeated the identical mistake.
    - *Fix*: Guided prompt to use `dict=True` (`sol = solve(..., dict=True)`) and access `sol[0][x]`, and injected an explicit `KeyError` diagnostic hint into Turn 2.
-   - *Result*: `KeyError` crashes dropped from 9 to 2 (-78%), `runtime_crash` dropped from 20 to 14, and Strict CAS rose to **306/400 (76.50%)**, beating the baseline.
+   - *Result*: `KeyError` crashes dropped from 9 to 2 (-78%), `runtime_crash` dropped from 20 to 14. Strict CAS **306/400 (76.50%)** is statistically indistinguishable from the 305/400 baseline (a one-item difference inside a ±4-point CI); the measurable gains of v1.35 so far are determinism and crash-class reduction, not accuracy.
 
 ---
 
@@ -136,6 +136,8 @@ Dataset file: `data/benchmarks/math500_test.jsonl` (SHA-256: `35dc41080a3680858b
 ---
 
 ## 6. How the Incoming Agent Should Execute Step 5
+
+> **SUPERSEDED (2026-10-03): do NOT run Step 5 directly.** Follow [`handover/V135_CLOSEOUT_PLAYBOOK.md`](file:///c:/Projects/ProjectLucca/handover/V135_CLOSEOUT_PLAYBOOK.md) instead. The ledger script [`scripts/v135_failure_ledger.py`](file:///c:/Projects/ProjectLucca/scripts/v135_failure_ledger.py) showed that **42 of the 94 strict failures on dev-400-v2 are `finish_reason=length` truncations at the 768-token cap** (the "uniform ~15.6 s T1 latency" is the cap, not a timeout). The playbook fixes that and the crash-feedback content first, labels every remaining failure, audits test-set contamination, then runs the final test once with `math_fresh_heldout_500` (n=500) as the primary set and test-100 as secondary. The Step 5 text below is retained for reference only.
 
 The dev set regression is resolved, and performance is frozen under `v1.35-frozen`. The incoming agent should run **Step 5: Held-Out Test Set Evaluation**.
 
@@ -183,3 +185,88 @@ To interact with Lucca outside the benchmark suite:
   ```
 - **Live Pipeline Web Debugger**:
   Open `http://localhost:8765` (served by `ui/pipeline_debugger/index.html`) to watch real-time token cascades, affective PAD states, and tool invocations across tanks 1–9.
+
+---
+
+## 8. Forward Roadmap: Work Order 29 & The 15-Module Cognitive Ladder
+
+Detailed specifications and architectural mappings are preserved in [`handover/WORKORDER_29.md`](file:///c:/Projects/ProjectLucca/handover/WORKORDER_29.md) and canonical plan [`plans/2026-10-03_wo29_neurosymbolic_program_synthesis_and_15_module_cognitive_ladder.md`](file:///c:/Projects/ProjectLucca/plans/2026-10-03_wo29_neurosymbolic_program_synthesis_and_15_module_cognitive_ladder.md).
+
+
+### 8.1 Architectural Primer & Module Mapping
+
+Lucca is uniquely primed for this 15-module expansion; each component extends established foundations:
+
+| Tier | # | Module Name | Target File | Existing Foundation in Lucca |
+| :--- | :---: | :--- | :--- | :--- |
+| **Part 1: Core Synthesis** *(v1.4.0 Baseline / WO-29)* | **1** | **Functional Scheme Spatial DSL** | `src/lucca/reasoning/spatial_primitives.scm` | Plugs directly into MicroScheme AST parser & primitives in [`src/lucca/reasoning/scheme/`](file:///c:/Projects/ProjectLucca/src/lucca/reasoning/scheme/) |
+| | **2** | **Equality Saturation Rewrite Rules** | `src/lucca/reasoning/egraph.py` | Extends the existing Congruence-Closure E-Graph in [`egraph.py`](file:///c:/Projects/ProjectLucca/src/lucca/reasoning/egraph.py#L37-L60) |
+| | **3** | **Persistent Docker Scheme RPC** | `src/lucca/sandbox/rpc.py` | Extends line-buffered `DockerRPCTransport` in [`rpc.py`](file:///c:/Projects/ProjectLucca/src/lucca/sandbox/rpc.py) |
+| | **4** | **GBNF S-Expression Grammar** | `config/grammars/scheme_sketch.gbnf` | Native GBNF logit constraint in `llama-server.exe` |
+| | **5** | **Scratchpad Falsification Loop** | `src/lucca/core/scratchpad.py` | Integrates into `SubTurnScratchpadBuffer` & Docker preflight |
+| | **6** | **Non-Destructive Epistemic Prober** | `src/lucca/router/heuristic.py` | Extends the Conformal Intent Valve to halt on ambiguity ($\bot$) |
+| **Part 2: Robustness & Hygiene** *(WO-30)* | **7** | **Idiomaticity Cost Extractor** | `src/lucca/reasoning/cost.py` | Plugs into AST extraction in [`egraph.py`](file:///c:/Projects/ProjectLucca/src/lucca/reasoning/egraph.py) |
+| | **8** | **Transactional Git Staging DAG** | `src/lucca/sandbox/staging.py` | Context-manager worktree isolation inside WSL2 |
+| | **9** | **Traceback Divergence Guard** | `src/lucca/core/convergence.py` | Extends turn convergence checks to abort hallucination loops |
+| | **10** | **Belnap Latent Investigator** | `src/lucca/memory/latent_probe.py` | Uses Belnap 4-valued logic ($\top, \bot, T, F$) to isolate env state drift |
+| | **11** | **Boundary Topology Parser** | `src/lucca/reasoning/topology.py` | Builds on AST extraction in [`ast_sanitizer.py`](file:///c:/Projects/ProjectLucca/src/lucca/sandbox/ast_sanitizer.py) to protect API contracts |
+| **Part 3: Autonomous Search** *(v1.5.0 Cognitive Engine / WO-31)* | **12** | **AST-Hole MCTS Engine** | `src/lucca/reasoning/mcts.py` | Multi-threaded CPU tree search over S-expression holes |
+| | **13** | **BitNet b1.58 2B Policy Prior** | `src/lucca/reasoning/bitnet_policy.py` | Host CPU integer SIMD execution (~1.2 GB RAM, 0 MB VRAM) |
+| | **14** | **DreamCoder Macro Miner** | `src/lucca/reasoning/compression.py` | Extends anti-unification in [`egraph.py`](file:///c:/Projects/ProjectLucca/src/lucca/reasoning/egraph.py) for sleep-phase library learning |
+| | **15** | **Backward Abduction Solver** | `src/lucca/reasoning/abduction.py` | Works backwards from target invariant assertions using e-graph unification |
+
+### 8.2 Hardware Integrity
+- **0 MB VRAM Delta:** Runs in host CPU threads (Core Ultra 9 275HX), host DDR5 RAM, or WSL2 Docker sandbox.
+- **Dedicated Engine Protection:** RTX 5080 Laptop GPU remains 100% dedicated to LLM deliberation (`gemma-4-12b` / `nemotron-30b`); Intel NPU handles Kokoro TTS and Silero VAD.
+- **Invariants Preserved:** ADR-006 (cryptographic envelope memory commits) and ADR-013 (Docker containerization).
+
+### 8.3 Execution Roadmap
+```mermaid
+flowchart TD
+    subgraph Gate ["Immediate Verification Gate"]
+        H1["3-Way Re-Prompt Brief on ~110 Items"] --> H2["Harness Frozen"]
+        H2 --> H3["Model Swap (Nemotron on Frozen Harness)"]
+        H3 --> H4["Label 20 Bucket C Failures"]
+    end
+
+    subgraph WO29 ["WO-29: Part 1 Baseline (v1.4.0)"]
+        M1["1. Spatial DSL"]
+        M2["2. E-Graph Rewrites"]
+        M3["3. Docker Scheme RPC"]
+        M4["4. GBNF Grammar"]
+        M5["5. Scratchpad Falsification"]
+        M6["6. Epistemic Prober"]
+    end
+
+    subgraph WO30 ["WO-30: Part 2 Robustness & Hygiene"]
+        M7["7. Idiomaticity Cost"]
+        M8["8. Transactional Git DAG"]
+        M9["9. Loop Divergence Guard"]
+        M10["10. Belnap Latent Probe"]
+        M11["11. Boundary AST Parser"]
+    end
+
+    subgraph WO31 ["WO-31: Part 3 Scaling (v1.5.0)"]
+        M12["12. AST-Hole MCTS"]
+        M13["13. BitNet b1.58 2B Prior"]
+        M14["14. DreamCoder Macro Miner"]
+        M15["15. Backward Abduction"]
+    end
+
+    Gate --> WO29
+    WO29 --> WO30
+    WO30 --> WO31
+
+    subgraph Orthogonal ["Parallel & Gated Work"]
+        Voice["Voice Scaffolding: Acoustic Lock & Slot-Locking (Parallel)"]
+        WO32["WO-32: Reflection Loop (Gated on 200-500 Organic Dogfood Turns)"]
+    end
+```
+
+### 8.4 Immediate Gate Protocol
+1. Run isolated 3-way re-prompt comparison across ~110 feedback items.
+2. Lock winning harness configuration.
+3. Test model swap (Nemotron on frozen harness).
+4. Label 20 representative Bucket C failures.
+5. Unblock WO-29 Part 1 baseline execution.
+
