@@ -1265,7 +1265,7 @@ def run_math500_pal(
         tracer.record_stage_result("tank_3_microscheme", "MicroScheme Symbolic Centrifuge", "MicroScheme Lisp AST Reducer", "BYPASS", "Requires computer algebra. Delegating to Neural Boiler.", "DELEGATED_TO_TANK_4", custom_duration_ms=0.2)
 
         is_baseline = "baseline" in label.lower() or "291" in label.lower()
-        t1_tokens = 768  # Restored to 768 per Part 1 instructions
+        t1_tokens = 1536  # v1.35 Fix A: 42/94 dev-400 strict failures were finish_reason=length at 768
 
         # Stage 4: Context Infusion
         rule_3 = (
@@ -1303,7 +1303,7 @@ def run_math500_pal(
                 "Do not include conversational preamble, derivations, or commentary outside the code block."
             )
             t_r0 = time.perf_counter()
-            retry_resp, retry_finish, retry_tokens = query_llm_with_meta(prompt=retry_prompt, max_tokens=768, enable_thinking=False, cache_prompt=cache_prompt)
+            retry_resp, retry_finish, retry_tokens = query_llm_with_meta(prompt=retry_prompt, max_tokens=1536, enable_thinking=False, cache_prompt=cache_prompt)
             t_retry = time.perf_counter() - t_r0
             t_t1 += t_retry
             t_llm += t_retry
@@ -1419,7 +1419,7 @@ def run_math500_pal(
                             f"Output ONLY the corrected complete Python script in a ```python ... ``` block (< 30 lines) that ends with print(answer) printing ONLY the final answer."
                         )
                 t_corr0 = time.perf_counter()
-                corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=768, enable_thinking=False, cache_prompt=cache_prompt)
+                corr_resp, corr_finish, corr_tokens = query_llm_with_meta(prompt=feedback_prompt, max_tokens=1536, enable_thinking=False, cache_prompt=cache_prompt)
                 t_corr = time.perf_counter() - t_corr0
                 t_llm += t_corr
                 turn2_latency_s = round(t_corr, 3)
@@ -1691,7 +1691,7 @@ def main():
     req_params = {
         "temperature": 0.0,
         "seed": 42,
-        "max_tokens": 768,
+        "max_tokens": 1536,
         "cache_prompt": cache_prompt,
         "chat_template_kwargs": {"enable_thinking": False},
     }
