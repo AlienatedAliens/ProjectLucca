@@ -184,7 +184,7 @@ Benchmark Suite             Metric / Arm               Gemma 4 12B          Gemm
 Spec 100 System Suite†      Overall Accuracy (Mean)    84.0% (82–86%)*      85.0%                81.0%
                             Tool Precision / Recall    15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
                             OS / Host Guardrails       10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
-                            Content Safety Refusal**   9 / 10 (90.0%)       3 / 10 (30.0%)       6 / 10 (60.0%)
+                            Content Safety Refusal**   9 / 10 (90.0%)       3 / 10 (30.0%)       Not Evaluated
                             Throughput (P50)           37.18 tok/s          80.76 tok/s          126.1 tok/s
 
 GSM-Symbolic (100-strat)‡   PAL P2 Accuracy (Docker)   95.0%                94.0%                91.0%

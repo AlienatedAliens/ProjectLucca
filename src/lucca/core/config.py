@@ -278,9 +278,14 @@ def resolve_or_create_master_key(
 
     try:
         if key_file.exists():
-            data = key_file.read_bytes().strip()
+            raw_data = key_file.read_bytes()
+            if len(raw_data) == 32:
+                return raw_data
+            data = raw_data.strip()
             if len(data) >= 32:
                 return data[:32]
+            if len(raw_data) >= 32:
+                return raw_data[:32]
 
         # 4. Generate fresh 32-byte cryptographic key and persist
         target_dir.mkdir(parents=True, exist_ok=True)

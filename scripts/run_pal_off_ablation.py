@@ -297,8 +297,9 @@ def execute_r0_item(
     item: dict[str, Any],
     benchmark: str,
     port: int,
+    max_tokens: int = 1536,
 ) -> dict[str, Any]:
-    """R0: Raw Direct (enable_thinking=False, max_tokens=1536)."""
+    """R0: Raw Direct (enable_thinking=False, max_tokens=max_tokens)."""
     if benchmark == "gsm_symbolic":
         prompt = (
             "You are a precise mathematical assistant. Solve the following word problem step by step. "
@@ -316,7 +317,7 @@ def execute_r0_item(
 
     content, reasoning, finish_reason, tokens, latency = query_llm_pal_off(
         prompt=prompt,
-        max_tokens=1536,
+        max_tokens=max_tokens,
         enable_thinking=False,
         port=port,
     )
@@ -343,6 +344,8 @@ def execute_r0_item(
         "item_id": item["item_id"],
         "arm": "r0",
         "benchmark": benchmark,
+        "subject": item.get("subject", ""),
+        "level": item.get("level", 0),
         "strict_pass": strict_pass,
         "lenient_pass": lenient_pass,
         "finish_reason": finish_reason,
@@ -408,6 +411,8 @@ def execute_r1_item(
         "item_id": item["item_id"],
         "arm": "r1",
         "benchmark": benchmark,
+        "subject": item.get("subject", ""),
+        "level": item.get("level", 0),
         "strict_pass": strict_pass,
         "lenient_pass": lenient_pass,
         "finish_reason": finish_reason,
@@ -480,6 +485,8 @@ def execute_p1_item(
         "item_id": item["item_id"],
         "arm": "p1",
         "benchmark": benchmark,
+        "subject": item.get("subject", ""),
+        "level": item.get("level", 0),
         "strict_pass": strict_pass,
         "lenient_pass": lenient_pass,
         "finish_reason": finish_reason,
@@ -569,6 +576,8 @@ def execute_p2_item(
         "item_id": item["item_id"],
         "arm": "p2",
         "benchmark": benchmark,
+        "subject": item.get("subject", ""),
+        "level": item.get("level", 0),
         "strict_pass": strict_pass,
         "lenient_pass": lenient_pass,
         "finish_reason": finish2,
@@ -853,18 +862,32 @@ def run_benchmark_arm(
         cap_suffix = f"_cap{max_code_tokens}"
     elif arm == "r1" and max_thinking_tokens != 4096 and model_label != "gemma-4-12b":
         cap_suffix = f"_think{max_thinking_tokens}"
+    elif arm == "r0" and max_thinking_tokens != 1536:
+        cap_suffix = f"_cap{max_thinking_tokens}"
     out_file = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}_{samples}.json"
     chk_file = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}_{samples}.checkpoint.json"
 
     completed: dict[str, dict[str, Any]] = {}
-    if resume and chk_file.exists():
-        try:
-            chk_data = json.loads(chk_file.read_text(encoding="utf-8"))
-            for r in chk_data.get("results", []):
-                completed[r["item_id"]] = r
-            print(f"   [Resume] Loaded {len(completed)} existing results from checkpoint.")
-        except Exception:
-            pass
+    if resume:
+        if chk_file.exists():
+            try:
+                chk_data = json.loads(chk_file.read_text(encoding="utf-8"))
+                for r in chk_data.get("results", []):
+                    completed[r["item_id"]] = r
+                print(f"   [Resume] Loaded {len(completed)} existing results from checkpoint.")
+            except Exception:
+                pass
+        if len(completed) < 100 and samples > 100:
+            file_100 = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}_100.json"
+            if file_100.exists():
+                try:
+                    data_100 = json.loads(file_100.read_text(encoding="utf-8"))
+                    for r in data_100.get("results", []):
+                        if r["item_id"] not in completed:
+                            completed[r["item_id"]] = r
+                    print(f"   [Resume] Loaded {len(completed)} existing results from 100-sample run: {file_100.name}")
+                except Exception:
+                    pass
 
     # Load dataset
     if benchmark_name == "gsm_symbolic":
@@ -886,7 +909,7 @@ def run_benchmark_arm(
             continue
 
         if arm == "r0":
-            res = execute_r0_item(item, benchmark_name, port)
+            res = execute_r0_item(item, benchmark_name, port, max_tokens=max_thinking_tokens)
         elif arm == "r1":
             res = execute_r1_item(item, benchmark_name, port, max_thinking_tokens=max_thinking_tokens)
         elif arm == "p1":

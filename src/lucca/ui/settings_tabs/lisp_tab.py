@@ -6,6 +6,7 @@ WO-18e (F-ARCH-104)
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pydantic import JsonValue
@@ -203,6 +204,23 @@ class LispTab(QWidget):
                     "priority": 10,
                     "state": status,
                     "code": code,
+                    "on_disk": True,
+                }
+
+        # Also load standalone procedural rules from config/rules
+        rules_dir = Path("config/rules")
+        if rules_dir.exists() and rules_dir.is_dir():
+            for scm_file in sorted(rules_dir.glob("*.scm")):
+                rule_code = scm_file.read_text(encoding="utf-8")
+                rule_id = scm_file.stem
+                if 'rule "' in rule_code:
+                    rule_id = rule_code.split('rule "')[1].split('"')[0]
+                self.lisp_rules[rule_id] = {
+                    "category": "Tools & Execution",
+                    "purpose": f"Procedural rule from {scm_file.name}",
+                    "priority": 10,
+                    "state": "QUARANTINE",
+                    "code": rule_code,
                     "on_disk": True,
                 }
 

@@ -357,3 +357,144 @@ def test_admin_cli_memory_quarantine_and_migration(
     # Verify quarantine is cleared
     fresh_retriever = HybridRetriever(db=temp_memory_db, master_key=new_master_key)
     assert len(fresh_retriever.get_persisted_quarantine_records()) == 0
+
+
+def test_transaction_rollback_on_interrupted_migration(
+    temp_memory_db: DatabaseManager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verifies that an error during database mutation triggers immediate rollback,
+    leaving original signatures and quarantine records completely uncorrupted."""
+    import sqlite3
+
+    leg_key = KNOWN_LEGACY_KEYS[0]
+    new_master_key = secrets.token_bytes(32)
+
+    store_dev = MemoryStore(db=temp_memory_db, master_key=leg_key)
+    signer_dev = create_user_speech_signer(master_key=leg_key)
+    payload = UnsignedPayload(
+        provenance=Provenance.USER_EXPLICIT,
+        kind="fact",
+        content="Atomic rollback test memory.",
+        confidence=1.0,
+        nonce=secrets.token_hex(16),
+        created_at=time.time(),
+        trace_id="t-rollback",
+        session_id="s-rollback",
+    )
+    signed = signer_dev.sign(payload)
+    store_dev.commit(signed)
+
+    orig_sig = signed.signature
+
+    orig_conn = temp_memory_db.get_writer()
+
+    class FailingConnection:
+        def __init__(self, real_conn: sqlite3.Connection) -> None:
+            self._real = real_conn
+
+        def execute(self, sql: str, *args, **kwargs):
+            if "UPDATE provenance_envelopes" in sql:
+                raise sqlite3.OperationalError("Simulated disk I/O interrupt")
+            return self._real.execute(sql, *args, **kwargs)
+
+        def __getattr__(self, name: str):
+            return getattr(self._real, name)
+
+    monkeypatch.setattr(temp_memory_db, "get_writer", lambda: FailingConnection(orig_conn))
+
+    with pytest.raises(sqlite3.OperationalError, match="Simulated disk I/O interrupt"):
+        migrate_memory_keys(
+            db=temp_memory_db,
+            new_master_key=new_master_key,
+            dry_run=False,
+        )
+
+    # Verify rollback: signature is still the original signature
+    with temp_memory_db.read_cursor() as cur:
+        cur.execute("SELECT signature FROM provenance_envelopes WHERE entry_id = ?", (signed.entry_id,))
+        row = cur.fetchone()
+        assert row["signature"] == orig_sig
+
+
+def test_dry_run_mode_does_not_mutate_signatures(
+    temp_memory_db: DatabaseManager,
+) -> None:
+    """Verifies that dry-run mode computes candidate counts without mutating SQLite tables."""
+    leg_key = KNOWN_LEGACY_KEYS[0]
+    new_master_key = secrets.token_bytes(32)
+
+    store_dev = MemoryStore(db=temp_memory_db, master_key=leg_key)
+    signer_dev = create_user_speech_signer(master_key=leg_key)
+    payload = UnsignedPayload(
+        provenance=Provenance.USER_EXPLICIT,
+        kind="fact",
+        content="Dry run test memory.",
+        confidence=1.0,
+        nonce=secrets.token_hex(16),
+        created_at=time.time(),
+        trace_id="t-dry",
+        session_id="s-dry",
+    )
+    signed = signer_dev.sign(payload)
+    store_dev.commit(signed)
+
+    report = migrate_memory_keys(
+        db=temp_memory_db,
+        new_master_key=new_master_key,
+        dry_run=True,
+    )
+
+    assert report.total_scanned == 1
+    assert report.migrated_count == 1
+    assert report.backup_path is None
+
+    # Verify signature was NOT changed
+    with temp_memory_db.read_cursor() as cur:
+        cur.execute("SELECT signature FROM provenance_envelopes WHERE entry_id = ?", (signed.entry_id,))
+        row = cur.fetchone()
+        assert row["signature"] == signed.signature
+        # Done flag not set
+        cur.execute("SELECT value FROM migration_metadata WHERE key = 'keys_migrated'")
+        assert cur.fetchone() is None
+
+
+def test_tampered_payload_json_is_rejected(
+    temp_memory_db: DatabaseManager,
+) -> None:
+    """Verifies that an attacker altering payload_json (content mismatch) is rejected and skipped."""
+    leg_key = KNOWN_LEGACY_KEYS[0]
+    new_master_key = secrets.token_bytes(32)
+
+    store_dev = MemoryStore(db=temp_memory_db, master_key=leg_key)
+    signer_dev = create_user_speech_signer(master_key=leg_key)
+    payload = UnsignedPayload(
+        provenance=Provenance.USER_EXPLICIT,
+        kind="fact",
+        content="Original authentic memory content.",
+        confidence=1.0,
+        nonce=secrets.token_hex(16),
+        created_at=time.time(),
+        trace_id="t-forged",
+        session_id="s-forged",
+    )
+    signed = signer_dev.sign(payload)
+    store_dev.commit(signed)
+
+    # Tamper payload_json directly in SQLite
+    writer = temp_memory_db.get_writer()
+    tampered_json = '{"content": "Tampered payload text", "provenance": "USER_EXPLICIT"}'
+    writer.execute(
+        "UPDATE provenance_envelopes SET payload_json = ? WHERE entry_id = ?",
+        (tampered_json, signed.entry_id),
+    )
+
+    report = migrate_memory_keys(
+        db=temp_memory_db,
+        new_master_key=new_master_key,
+        dry_run=False,
+    )
+
+    assert report.tampered_skipped_count == 1
+    assert report.migrated_count == 0
+    assert any("payload content != memories.content" in err for err in report.errors)

@@ -89,7 +89,31 @@ On Gemma 4 12B on MATH-500 dev ($n=100$):
 ### 2.4 Baseline Confound: R0 Token Starvation on Small Models
 On Gemma 4 E2B, direct raw generation (R0) scored 51.0% strict with a 1,536-token cap and suffered 26% truncations. Because each truncated item is an automatic failure, part of the apparent gap between R0 (51%) and PAL P2 @ 2k (77%) reflects token starvation in R0. Future work should evaluate R0 with a 4,096-token cap to isolate the true contribution of code execution.
 
-### 2.5 Coding Assistance Preflight: No Detectable Benefit on Larger Models
+### 2.5 Per-Subject and Per-Level Breakdown on Dev MATH-500 (n=100)
+
+Computing stratified performance across mathematical domains and problem tiers highlights clear structural patterns across scale and scaffolding:
+
+#### Per-Subject Accuracy (Strict CAS Pass Rate)
+| Subject | n | E4B R1 (Think) | E4B P2 (PAL) | 12B P2 (PAL) | 12B R1 (Think) | E2B R1 (Think) | E2B P2 (PAL) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Algebra** | 25 | 92.0% (23/25) | **96.0%** (24/25) | **96.0%** (24/25) | 72.0% (18/25) | **96.0%** (24/25) | 88.0% (22/25) |
+| **Counting & Probability** | 6 | **100.0%** (6/6) | **100.0%** (6/6) | **100.0%** (6/6) | 33.3% (2/6) | 66.7% (4/6) | **100.0%** (6/6) |
+| **Geometry** | 7 | **85.7%** (6/7) | 57.1% (4/7) | **85.7%** (6/7) | **85.7%** (6/7) | 71.4% (5/7) | **85.7%** (6/7) |
+| **Intermediate Algebra** | 19 | **63.2%** (12/19) | **63.2%** (12/19) | **63.2%** (12/19) | 47.4% (9/19) | **68.4%** (13/19) | 57.9% (11/19) |
+| **Number Theory** | 11 | **100.0%** (11/11) | **100.0%** (11/11) | **100.0%** (11/11) | 27.3% (3/11) | **90.9%** (10/11) | **90.9%** (10/11) |
+| **Prealgebra** | 18 | 77.8% (14/18) | **88.9%** (16/18) | **94.4%** (17/18) | 66.7% (12/18) | **83.3%** (15/18) | **83.3%** (15/18) |
+| **Precalculus** | 14 | **92.9%** (13/14) | 71.4% (10/14) | 64.3% (9/14) | 57.1% (8/14) | **92.9%** (13/14) | 50.0% (7/14) |
+
+#### Per-Level Accuracy (Strict CAS Pass Rate)
+| Level | n | E4B R1 (Think) | E4B P2 (PAL) | 12B P2 (PAL) | 12B R1 (Think) | E2B R1 (Think) | E2B P2 (PAL) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Level 1** | 11 | 81.8% (9/11) | **90.9%** (10/11) | **90.9%** (10/11) | 72.7% (8/11) | **90.9%** (10/11) | 81.8% (9/11) |
+| **Level 2** | 25 | **100.0%** (25/25) | 84.0% (21/25) | **96.0%** (24/25) | 84.0% (21/25) | **96.0%** (24/25) | 80.0% (20/25) |
+| **Level 3** | 19 | **94.7%** (18/19) | **94.7%** (18/19) | 89.5% (17/19) | 73.7% (14/19) | **94.7%** (18/19) | 89.5% (17/19) |
+| **Level 4** | 22 | **90.9%** (20/22) | **90.9%** (20/22) | **90.9%** (20/22) | 50.0% (11/22) | 81.8% (18/22) | **86.4%** (19/22) |
+| **Level 5** | 23 | 56.5% (13/23) | **60.9%** (14/23) | **60.9%** (14/23) | 17.4% (4/23) | **60.9%** (14/23) | 52.2% (12/23) |
+
+### 2.6 Coding Assistance Preflight: No Detectable Benefit on Larger Models
 In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw $\to$ 76.8% assisted). For larger models, assisted preflight showed no statistically detectable benefit ($p > 0.5$):
 - **12B:** 94.5% raw (155/164) $\to$ 93.9% assisted (154/164, difference of 1 item, McNemar $p = 1.0$).
 - **E4B:** 87.8% raw (144/164) $\to$ 86.0% assisted (141/164, difference of 3 items, McNemar $p = 0.5488$).
