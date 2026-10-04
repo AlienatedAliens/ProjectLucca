@@ -1,14 +1,13 @@
-# Project Lucca — Version 1.35.2 System Architecture Specification
+# Project Lucca — Version 1.35.6 System Architecture Specification
 ## Multi-Scale Compound Neurosymbolic Edge Architecture & Cognitive Substrate
 
-**Title:** Project Lucca v1.35.2 System Architecture & Technical Specification  
-**Version:** 1.35.2-stable  
-**Release Tag:** `v1.35.2-stable`  
-**Git Commit:** `4fa5e9e` (closeout baseline: `f20537fe`; audit remediation commit: `4fa5e9e`)  
-**Date:** October 4, 2026  
+**Title:** Project Lucca v1.35.6 System Architecture & Technical Specification  
+**Version:** 1.35.6-stable  
+**Release Tag:** `v1.35.6-stable`  
+**Date:** October 5, 2026  
 **Authors:** Project Lucca Architecture Notes  
 **Target Platform:** Consumer Edge (NVIDIA GeForce RTX 5080 Laptop GPU, 16,303 MiB GDDR7 VRAM, Headless Compute)  
-**Status:** System Architecture Specification (v1.35.2)  
+**Status:** System Architecture Specification (v1.35.6)  
 
 ---
 
@@ -16,7 +15,7 @@
 
 Project Lucca is a local personal systems companion and research engineer designed to execute on consumer hardware with zero external telemetry dependencies or cloud subscriptions.
 
-Version 1.35.2 formalizes the **Multi-Scale Compound Neurosymbolic Edge Architecture**, focusing on controlled empirical validation, deterministic supervision, and cryptographic memory safety:
+Version 1.35.6 formalizes the **Multi-Scale Compound Neurosymbolic Edge Architecture**, focusing on controlled empirical validation, deterministic supervision, and cryptographic memory safety:
 1. **Cryptographic Memory Verification & Persistent Quarantine:** Replaces unkeyed SHA-256 column checks with a two-stage HMAC-SHA256 verification pipeline in `HybridRetriever`. SQLite row mutations or signature mismatches are detected via constant-time HMAC comparison over canonical JSON payloads and quarantined into the persistent SQLite `memory_quarantine` table with user-facing alerts, rather than crashing with unhandled exceptions or causing silent amnesia.
 2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across a 40-sentence formal battery with 100% test pass rate (40/40 in `test_truth_in_receipt_battery.py`; 66/66 combined supervisor unit tests; 74/74 including 8 deontic sandbox tests).
 3. **The 12B Scale Inversion Under Greedy Decoding:** Documents that under greedy decoding ($T=0.0$), extended unslotted thinking scratchpads degrade Gemma 4 12B on competition mathematics (dropping from 90.0% direct to 58.0% thinking, McNemar $p = 4.66 \times 10^{-10}$, 32:0 discordant ratio), whereas direct raw generation solves 90.0% of problems in 12.9s.
@@ -27,7 +26,7 @@ Version 1.35.2 formalizes the **Multi-Scale Compound Neurosymbolic Edge Architec
 
 ## 2. Multi-Scale Neural Substrate
 
-Project Lucca v1.35.2 supports three validated, headless neural deployment tiers served via `llama-server.exe` with flash attention, unslotted greedy decoding ($T=0.0$) for formal reasoning benchmarks (and $T=0.6$ for conversational / Spec 100 evaluations), and embedded Jinja templating:
+Project Lucca v1.35.6 supports three validated, headless neural deployment tiers served via `llama-server.exe` with flash attention, unslotted greedy decoding ($T=0.0$) for formal reasoning benchmarks (and $T=0.6$ for conversational / Spec 100 evaluations), and embedded Jinja templating:
 
 | Attribute | Gemma 4 12B Unified | Gemma 4 E4B Sovereign Core | Gemma 4 E2B Ultra-Edge |
 | :--- | :--- | :--- | :--- |
@@ -59,7 +58,7 @@ llama-server.exe \
 ## 3. Cryptographic Memory & Provenance Substrate
 
 ### 3.1 Two-Stage Read-Time HMAC Verification & Persistent Quarantine Pipeline
-In Lucca v1.35.2, the memory retrieval pathway ([`src/lucca/memory/retrieval.py`](file:///C:/projects/projectlucca/src/lucca/memory/retrieval.py)) enforces cryptographic tamper evidence across all vector (dense KNN) and lexical (BM25 FTS) memory hits before returning records to the orchestrator:
+In Lucca v1.35.6, the memory retrieval pathway ([`src/lucca/memory/retrieval.py`](file:///C:/projects/projectlucca/src/lucca/memory/retrieval.py)) enforces cryptographic tamper evidence across all vector (dense KNN) and lexical (BM25 FTS) memory hits before returning records to the orchestrator:
 
 ```
 [RetrievalQuery] 
@@ -91,7 +90,7 @@ For each candidate memory record:
 ```
 
 ### 3.2 Non-Silent Tamper Surfacing & Amnesia Defense
-Rather than silently dropping bad rows (hiding database injection attacks) or raising an unhandled `RuntimeError` (which disabled all memory retrieval whenever a key rotated or a single row was modified), v1.35.2 implements **persistent database quarantine with proactive user surfacing**:
+Rather than silently dropping bad rows (hiding database injection attacks) or raising an unhandled `RuntimeError` (which disabled all memory retrieval whenever a key rotated or a single row was modified), v1.35.6 implements **persistent database quarantine with proactive user surfacing**:
 1. **Persistent DB Quarantine:** Corrupted rows are inserted into SQLite `memory_quarantine` table with columns `(memory_id, entry_id, reason, stage, quarantined_at)`. Quarantined IDs are loaded on boot and excluded from subsequent searches across sessions.
 2. **Integrity Surfacing & Alert API:** A security notice (`"Security notice: N memories failed cryptographic integrity checks and were quarantined."`) is emitted programmatically via `HybridRetriever.get_integrity_status_report()`. While retriever and backend logs capture this alert on every retrieval turn, end-user front-end UI widget rendering remains an active integration item.
 3. **Key Persistence:** Master keys are generated cryptographically (`secrets.token_bytes(32)`) and persisted to disk at `data/keys/master.key` with `0600` permissions. All public dev fallback constants (`b"0123456789..."`) have been eliminated from `main.py`, `service.py`, `signer_factory.py`, and `admin.py`.
@@ -137,7 +136,7 @@ flowchart TD
 ```
 
 ### 4.2 Pattern Coverage & Supervisor Decision Policies
-v1.35.2 formalizes coverage and policy decisions across:
+v1.35.6 formalizes coverage and policy decisions across:
 - **21 Action Verbs (Extracted Directly from Code `ACTION_VERBS`):** `delete` (`deleted`), `create` (`created`), `modify` (`modified`), `execute` (`executed`), `run` (`ran`), `install` (`installed`), `remove` (`removed`), `send` (`sent`), `upload` (`uploaded`), `fetch` (`fetched`), `save` (`saved`), `write` (`wrote`), `post` (`posted`), `reboot` (`rebooted`), `book` (`booked`), `place` (`placed`), `process` (`processed`), `start` (`started`), `close` (`closed`), `copy` (`copied`), `move` (`moved`).  
   *(Note: `build`, `compile`, and `deploy` are not present in the active regex in `src/lucca/sandbox/output_supervisor.py:286-289`; earlier documentation mistakenly included them while omitting `reboot`, `book`, `place`, `process`, and `fetch` which were added during WO-17).*
 - **Known Paraphrase Limitation (Case C01):** The matcher relies on direct pronoun-action pairings (`I deleted`, `I created`). Periphrastic constructions such as *"I took care of removing the temporary files"* or *"I wrapped up creating the branch"* do not match the action verb lemma regex and pass without receipt checking. Category C in the test battery verifies that these do not produce false aborts, but this behavior represents a known coverage gap for ungrounded paraphrases.
@@ -203,7 +202,7 @@ $$\text{Router}(M, T) = \begin{cases}
 
 ```
 ========================================================================================================================
-CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.5)
+CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.6)
 ========================================================================================================================
 Benchmark Suite             Metric / Arm               Gemma 4 12B          Gemma 4 E4B          Gemma 4 E2B
 ------------------------------------------------------------------------------------------------------------------------
@@ -254,7 +253,7 @@ Results across this study were generated across committed development stages:
 - **`1c58587`**: Factorial ablation harness implementation and initial E2B/12B sweep runs.
 - **`dec0d79`**: Grader commit consolidating `compare_math_strict` and `compare_math_lenient`.
 - **`f20537fe`**: Release closeout baseline commit.
-- **`v1.35.5` (Current)**: Comprehensive audit remediation commit (key persistence, SQLite quarantine table, full held-out matrix across all 3 models, controlled deconfounding on identical dev items, live 100-probe supervisor evaluation, and rule-count reconciliation). All result JSON artifacts contain `git_commit` and `git_dirty` flags written directly by the test harness.
+- **`v1.35.6` (Current)**: Comprehensive audit remediation commit (key persistence, SQLite quarantine table, full held-out matrix across all 3 models, controlled deconfounding on identical dev items, live 100-probe supervisor evaluation, and rule-count reconciliation). All result JSON artifacts contain `git_commit` and `git_dirty` flags written directly by the test harness.
 
 ### 7.2 Test Suite & Rule Taxonomy Breakdown
 The project maintains a tiered test taxonomy across multiple test scopes verified via `--collect-only`:
