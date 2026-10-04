@@ -63,13 +63,17 @@ Evaluated strictly on identical problems within the same split ($n=100$). Column
 
 ## 3. Cross-Split Generalization Analysis (Dev vs Held-Out)
 
-Because problems differ between Dev and Held-Out, McNemar is invalid. We report independent two-proportion z-tests and Wilson 95% CIs:
+Because problems differ between Dev and Held-Out, McNemar is invalid. We report independent two-proportion z-tests (asymptotic normal approximation; Fisher's exact test reported for comparison) and Wilson 95% CIs:
 
-| Model | Arm | Dev Strict Acc [95% CI] | Held-Out Strict Acc [95% CI] | Delta (pp) | z-Score | Two-Tailed p-Value | Generalization Assessment |
+| Model | Arm | Dev Strict Acc [95% CI] | Held-Out Strict Acc [95% CI] | Delta (pp) | z-Score | Approx p-Value (Fisher Exact) | Generalization Assessment |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
-| gemma-4-12b | R0 (Direct) | 90.0% [82.0%, 94.8%] | 89.0% [80.8%, 94.1%] | -1.0 | 0.231 | 0.8176 | No statistically detectable difference |
-| gemma-4-12b | P2 (PAL) | 85.0% [76.2%, 91.1%] | 86.0% [77.3%, 91.9%] | +1.0 | -0.201 | 0.8408 | No statistically detectable difference |
-| gemma-4-e4b | R1 (Thinking) | 85.0% [76.2%, 91.1%] | 88.0% [79.6%, 93.4%] | +3.0 | -0.621 | 0.5348 | No statistically detectable difference |
-| gemma-4-e4b | P2 (PAL) | 83.0% [73.9%, 89.5%] | 73.0% [63.0%, 81.2%] | -10.0 | 1.707 | 0.0878 | No statistically detectable difference |
-| gemma-4-e2b | R1 (Thinking) | 81.0% [71.7%, 87.9%] | 81.0% [71.7%, 87.9%] | +0.0 | 0.000 | 1.0000 | No statistically detectable difference |
-| gemma-4-e2b | P2 (PAL) | 77.0% [67.3%, 84.6%] | 61.0% [50.7%, 70.4%] | -16.0 | 2.446 | 0.0144 | Significant drop |
+| gemma-4-12b | R0 (Direct) | 90.0% [82.0%, 94.8%] | 89.0% [80.8%, 94.1%] | -1.0 | 0.231 | 0.8176 (p = 1.0000) | No statistically detectable difference |
+| gemma-4-12b | P2 (PAL) | 85.0% [76.2%, 91.1%] | 86.0% [77.3%, 91.9%] | +1.0 | -0.201 | 0.8408 (p = 1.0000) | No statistically detectable difference |
+| gemma-4-e4b | R1 (Thinking) | 85.0% [76.2%, 91.1%] | 88.0% [79.6%, 93.4%] | +3.0 | -0.621 | 0.5348 (p = 0.6868) | No statistically detectable difference |
+| gemma-4-e4b | P2 (PAL) | 83.0% [73.9%, 89.5%] | 73.0% [63.0%, 81.2%] | -10.0 | 1.707 | 0.0878 (p = 0.1239) | No statistically detectable difference |
+| gemma-4-e2b | R1 (Thinking) | 81.0% [71.7%, 87.9%] | 81.0% [71.7%, 87.9%] | +0.0 | 0.000 | 1.0000 (p = 1.0000) | No statistically detectable difference |
+| gemma-4-e2b | P2 (PAL) | 77.0% [67.3%, 84.6%] | 61.0% [50.7%, 70.4%] | -16.0 | 2.446 | 0.0144 (p = 0.0223) | Significant drop |
+
+---
+
+*Note: Dev split comprises lines 1–100 of `math500_test.jsonl` (historically 'test-100' in v1.3). Held-out evaluations were conducted on the first 100 consecutive problems of `math_fresh_heldout_500.jsonl` (lines 1–100); the remaining 400 problems in this dataset remain unrun and unreported. Items 15 and 73 of `math_fresh_heldout_500.jsonl` were briefly executed during exploratory benchmarking prior to v1.35 formalization as documented in `handover/V135_CONTAMINATION_AUDIT.md` (indices 14 and 72), though without prompt tuning or demonstration exposure.*

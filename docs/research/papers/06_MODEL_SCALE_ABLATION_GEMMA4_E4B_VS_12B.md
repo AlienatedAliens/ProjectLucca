@@ -58,6 +58,7 @@ Operational Footprint       Active VRAM Allocation        9,972 MiB (10.0 GiB) 4
 * 12B Spec 100: 4 runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored heretic fine-tunes (logs/test_reports/cross_model_30_gemma-4-*.json); E4B complied with 7/10 harmful adversarial probes (30% refusal rate), while 12B refused 9/10. Gemma 4 E2B was not evaluated in cross_model_30.
 *** Evaluated with 4,096-token cap on held-out math: E2B R0 achieved 51.0% (4% truncations) and E4B R0 achieved 52.0% (1% truncations), proving that baseline gaps reflect fundamental reasoning limits of prose generation rather than token starvation.
+**** Split Nomenclature & Leak Disclosure: Dev split comprises lines 1–100 of math500_test.jsonl (historically designated 'test-100' in v1.3 before prompt-tuning contamination audit handover/V135_CONTAMINATION_AUDIT.md reclassified it as development). Held-out split comprises lines 1–100 of math_fresh_heldout_500.jsonl (remaining 400 problems remain unrun and unreported). The known exploratory execution leak of items 15 and 73 documented in the contamination audit occurred on math_fresh_heldout_500.jsonl, placing them inside the evaluated held-out 100 sample (indices 14 and 72).
 ```
 
 ---
@@ -167,11 +168,10 @@ On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on stri
 ### 3.3 Analysis of the Strict-to-Lenient Gap
 Across all MATH-500 evaluations, lenient normalization exceeds strict CAS equivalence by 4 to 10 percentage points:
 - Analysis of discordant items reveals formatting discrepancies rather than algebraic errors: set notation versus tuple syntax (e.g. `\{1, 2\}` vs `(1, 2)`), coordinate spacing, and unexpanded `\pm` forms. All headline claims in this paper lead with strict CAS equivalence.
-- Analysis of discordant items reveals formatting discrepancies rather than algebraic errors: set notation versus tuple syntax (e.g. `\{1, 2\}` vs `(1, 2)`), coordinate spacing, and unexpanded `\pm` forms.
 
 ### 3.4 Cross-Model Generalization Matrix on Held-Out Split (n=100)
 
-Evaluating all three model scales across the identical 100 unseen held-out problems completes the factorial matrix:
+Evaluating all three model scales across the identical 100 unseen held-out problems (lines 1–100 of `math_fresh_heldout_500.jsonl`; the remaining 400 problems remain unrun and unreported) provides the comparative held-out evaluation:
 
 ```
 ========================================================================================================================
@@ -224,3 +224,4 @@ Based on our controlled evaluations, we claim:
 3. **Pre-thinking before code offload is redundant on E2B:** Arm P3 (PAL + Thinking) provides no accuracy advantage over pure code offload (76% vs 77%, $p=1.000$) while doubling compute cost.
 4. **Greedy thinking mode degrades 12B on competition math:** Under $T=0.0$ greedy decoding, extended thinking induced catastrophic truncation loops (58% vs 90%, $p = 4.66 \times 10^{-10}$).
 5. **Router nature:** Benchmark routing dispatches via oracle dataset labels. A production companion requires an in-the-wild intent classifier.
+6. **Held-Out Sample Scope & Leak Disclosure:** Held-out evaluations were conducted on the first 100 consecutive problems of `math_fresh_heldout_500.jsonl` (lines 1–100). The remaining 400 problems in this dataset remain unrun and unreported. Items 15 and 73 of this dataset were briefly executed during pre-v1.35 exploratory benchmarking as documented in `handover/V135_CONTAMINATION_AUDIT.md`, placing them inside the evaluated 100 sample (indices 14 and 72), though without prompt tuning or demonstration injection.

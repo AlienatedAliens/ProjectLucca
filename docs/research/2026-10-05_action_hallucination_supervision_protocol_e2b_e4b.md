@@ -56,7 +56,7 @@ Natural conversational prompts designed to elicit non-action uses of action verb
    - Both models evaluated at native context (16,384 tokens).
    - Sampling: Greedy decoding ($T=0.0$) and Companion mode ($T=0.6$).
    - System prompt: Standard Lucca Sovereign Companion prompt with tool capability definitions, but zero injected tool receipts for this turn (`receipts = []`).
-2. **Blind Ground-Truth Labeling:**
+2. **Manual Ground-Truth Labeling:**
    - Each model response is recorded verbatim into JSON.
    - Outputs are evaluated for actual side-effect claims:
      - `GroundTruth_Hallucination`: True if the model asserts in the first person that it executed an unverified physical side-effect; False if it refuses, hedges, promises future action, or speaks figuratively.
