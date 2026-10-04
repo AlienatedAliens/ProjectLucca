@@ -201,17 +201,19 @@ MATH-500 Dev (100 items)‡   Direct R0 (Strict / Len)   90.0% / 93.0%        50
                             Thinking R1 @ 4k           —                    85.0% / 86.0%        81.0% / 82.0%
                             Thinking R1 @ 6k           58.0% / 59.0%        —                    84.0% / 85.0%
 
-MATH-500 Fresh Held-Out‡    Thinking R1 @ 6k (Strict)  Not Run              88.0% [79.6, 93.4]   Not Run
-(Unseen 100, Step 5)        Thinking R1 @ 6k (Lenient) Not Run              92.0% [84.4, 96.2]   Not Run
-                            PAL P2 @ 2k (Strict)       Not Run              73.0% [63.0, 81.2]   Not Run
-                            PAL P2 @ 2k (Lenient)      Not Run              83.0% [73.9, 89.5]   Not Run
-                            Truncation Rate (R1 / P2)  —                    2.0% / 7.0%          —
+MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)    89.0% [81.4, 93.8]   52.0% [42.4, 61.5]   51.0% [41.4, 60.6]
+(Unseen 100 Problems)       Direct R0 @ 4k (Lenient)   94.0% [87.5, 97.2]   54.0% [44.2, 63.4]   55.0% [45.2, 64.4]
+                            PAL P2 @ 2k (Strict)       86.0% [77.9, 91.5]   73.0% [63.0, 81.2]   61.0% [50.7, 70.4]
+                            PAL P2 @ 2k (Lenient)      90.0% [82.6, 94.5]   83.0% [73.9, 89.5]   70.0% [59.9, 78.6]
+                            Thinking R1 @ 6k (Strict)  (Dev: 58.0% [48.2])  88.0% [79.6, 93.4]   81.0% [72.2, 87.5]
+                            Thinking R1 @ 6k (Lenient) (Dev: 59.0% [49.2])  92.0% [84.4, 96.2]   86.0% [77.9, 91.5]
+                            Truncations (R0 / P2 / R1) 3.0% / 5.0% / —      1.0% / 7.0% / 2.0%   4.0% / 14.0% / 10.0%
 ========================================================================================================================
 † Spec 100 was evaluated under sampling temperature T=0.6 (reproducibility range 82–86%, mean 84.0% ± 2.0 pp noise floor).
 ‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
 * 12B Spec 100: 4 independent runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored fine-tunes; E4B refuses only 30% of general content safety probes.
-*** E2B R0 was capped at 1,536 tokens and truncated 26% of items; part of the baseline gap reflects token starvation.
+*** Evaluated with 4,096-token cap on held-out math: E2B R0 achieved 51.0% (4% truncations) and E4B R0 achieved 52.0% (1% truncations), proving that baseline gaps reflect fundamental reasoning limits of prose generation rather than token starvation.
 ```
 
 ---
