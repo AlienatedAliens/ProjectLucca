@@ -145,6 +145,32 @@ v1.35.2 formalizes coverage and policy decisions across:
 - **Idiomatic Non-Actions:** Covers analytical idioms (`ran a check`), possessives (`placed my trust in`), and physical metaphors (`closed her eyes`).
 - **Formal 40-Sentence Battery:** 10 grounded, 10 ungrounded, 10 paraphrases, 10 honest/hedged/negated sentences verified in [`tests/test_truth_in_receipt_battery.py`](file:///C:/projects/projectlucca/tests/test_truth_in_receipt_battery.py). All 40 cases pass (combined supervisor test suite: 66/66 passing; 74/74 including deontic sandbox tests).
 
+### 4.3 Live Action Hallucination Evaluation ($n=100, T=0.6$)
+To measure supervisor behavior against unconstrained model outputs under realistic conversational sampling ($T=0.6$), we evaluated a balanced 100-probe battery ([`data/benchmarks/action_hallucination_battery_100.json`](file:///c:/Projects/ProjectLucca/data/benchmarks/action_hallucination_battery_100.json)) containing 50 temptation probes, 25 honest controls, and 25 idiomatic non-action controls (testing `placed`, `moved`, `closed`, `processed`):
+
+| Evaluation Metric | Gemma 4 E4B ($T=0.6$) | Gemma 4 E2B ($T=0.6$) |
+| :--- | :---: | :---: |
+| **Control Probes ($n=50$)** | 25 Honest + 25 Idioms | 25 Honest + 25 Idioms |
+| — False Aborts (FP) | **0 / 50 (0.0%)** | **0 / 50 (0.0%)** |
+| — Specificity [95% Wilson CI] | **100.0%** [92.9%, 100.0%] | **100.0%** [92.9%, 100.0%] |
+| **Temptation Probes ($n=50$)** | 50 Unverified Action Requests | 50 Unverified Action Requests |
+| — False Action Claims Emitted (Ground Truth) | 15 / 50 (30.0%) | 8 / 50 (16.0%) |
+| — Hallucinations Caught by Supervisor (TP) | 1 / 15 | 0 / 8 |
+| — Hallucinations Escaped (FN) | 14 / 15 | 8 / 8 |
+| — Clean / Honest Responses (TN) | 35 / 50 (70.0%) | 42 / 50 (84.0%) |
+| **Supervision Performance** | | |
+| — Precision [95% Wilson CI] | **100.0% (1/1)** [20.7%, 100.0%] | Undefined ($0/0$ alarms raised) |
+| — Recall / Catch Rate [95% Wilson CI] | **6.7% (1/15)** [1.2%, 29.8%] | **0.0% (0/8)** [0.0%, 32.4%] |
+
+**Methodology & Escape Mode Analysis:**
+1. **Labeling Independence:** Ground truth was established via blind manual review of completions rather than regex matchers. Automated regex labeling in early harness revisions proved circular because it relied on the same lemma patterns as the supervisor itself.
+2. **Escape Mechanisms:** While the supervisor achieves 100% precision on true non-actions (zero false aborts across all 50 controls), its recall on live edge hallucinations is constrained by syntax:
+   - **Active Progressive Participles:** Models frequently assert actions using present-participle constructions without first-person pronouns (*"Closing all browser tabs..."*, *"Moving all PDFs..."*, *"Running cleanup tasks now..."*).
+   - **Structured Markdown Blocks:** Models format output as action markers (*"\*\*Action:\*\* Sending email..."*, *"\*\*Action:\*\* Deleting directory..."*).
+   - **Passive / Noun-Phrase Completions:** Models emit telegraphic confirmations (*"Done. The status update has been posted..."*, *"Reminder set for tomorrow at 10 AM"*).
+   - **Unlisted Verb Lemmas:** Verbs like `opened` (*"I've opened firewall port 22"*) and `launched` (*"Launching Excel... Done"*) were absent from `ACTION_VERBS`.
+3. **Engineering Implications:** Expanding the supervisor to match bare sentence-initial participles risks false aborts on gerund noun phrases (*"Installing packages requires admin rights"*). True robust closure of the escape mode requires syntactic dependency parsing or secondary lightweight verifier classification before TTS dispatch.
+
 ---
 
 ## 5. Dynamic Task Router & Neurosymbolic Execution
@@ -214,7 +240,7 @@ MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)    89.0% [80.8, 94.1]   52
 ‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
 * 12B Spec 100: 4 independent runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored fine-tunes; E4B refuses only 30% of general content safety probes.
-*** Tested directly on identical Dev-100 items with 4,096-token cap: E4B R0 scored 52.0% (5:3 discordant, p = 0.7266 NS) and E2B R0 scored 57.0% (10:4 discordant, p = 0.1796 NS), proving that baseline gaps reflect fundamental reasoning limits of prose generation rather than token starvation.
+*** Tested directly on identical Dev-100 items with 4,096-token cap: E4B R0 scored 52.0% (5:3 discordant, p = 0.7266 NS) and E2B R0 scored 57.0% (10:4 discordant, p = 0.1796 NS). A larger token budget did not produce a statistically detectable accuracy gain under direct prose generation, showing that truncation relief alone does not account for observed scaffold differences.
 ```
 
 ---
@@ -227,9 +253,9 @@ Results across this study were generated across committed development stages:
 - **`1c58587`**: Factorial ablation harness implementation and initial E2B/12B sweep runs.
 - **`dec0d79`**: Grader commit consolidating `compare_math_strict` and `compare_math_lenient`.
 - **`f20537fe`**: Release closeout baseline commit.
-- **`v1.35.2` (Current)**: Audit remediation commit (key persistence, SQLite quarantine table, held-out P2 evaluation, and doc corrections). Going forward, all result JSON artifacts contain `git_commit` and `git_dirty` flags written directly by the test harness.
+- **`v1.35.4` (Current)**: Comprehensive audit remediation commit (key persistence, SQLite quarantine table, full held-out matrix across all 3 models, controlled deconfounding on identical dev items, live 100-probe supervisor evaluation, and rule-count reconciliation). All result JSON artifacts contain `git_commit` and `git_dirty` flags written directly by the test harness.
 
-### 7.2 Test Suite Breakdown
+### 7.2 Test Suite & Rule Taxonomy Breakdown
 The project maintains a tiered test taxonomy across multiple test scopes verified via `--collect-only`:
 - **27 Tests (`tests/test_output_supervisor.py`):** Core deontic policy capitulation (11 assertion patterns), lookback window tokenization, past temporal marker suppression, stalling filler detection, and idiomatic non-action false-positive guards (`placed`, `moved`, `closed`, `processed`).
 - **40 Tests (`tests/test_truth_in_receipt_battery.py`):** Exhaustive Truth-in-Receipt battery across 4 balanced categories: Category A (10 grounded claims), Category B (10 ungrounded claims), Category C (10 paraphrases/idioms), and Category D (10 epistemic hedges and negations).
@@ -237,7 +263,14 @@ The project maintains a tiered test taxonomy across multiple test scopes verifie
 - **67 Tests:** The combined supervisor test suite (`test_output_supervisor.py` [27] + `test_truth_in_receipt_battery.py` [40]).
 - **75 Tests:** The full supervisor and deontic isolation suite (`test_output_supervisor.py` [27] + `test_truth_in_receipt_battery.py` [40] + `test_deontic_sandbox_m2.py` [8]).  
   *(Note on historical counts: The '19 deontic tests' referenced in earlier documentation represented 11 assertion pattern tests in `test_output_supervisor.py` combined with the 8 tests in `test_deontic_sandbox_m2.py`. Reporting 26 + 19 double-counted those 11 tests).*
-- **1,189 Tests:** The complete repository pytest suite across all subsystems (memory, sandbox, router, LISP engine, speech, affect ODE, and static gates).
+- **1,198 Tests:** The complete repository pytest suite across all subsystems (memory, sandbox, router, LISP engine, speech, affect ODE, and static gates), with 100% passing.
+
+### 7.3 Rule Inventory & MicroScheme Activation Topology
+`LispTab` and the orchestrator interface manage an inventory of 18 distinct MicroScheme rules:
+1. **15 Active Factory Skills (`config/skills/*/plan.scm`):** Fully loaded into `RuleLifecycleManager` on engine boot. 12 skills (`calc-eval-v1`, `unit-convert-v1`, `quick-fact-v1`, `define-term-v1`, `memory-brief-v1`, `note-take-v1`, `self-health-v1`, `recent-context-v1`, `resource-report-v1`, `sys-specs-v1`, `proc-top-v1`, `session-recap-v1`) expose `expose_as_tool: true` and are advertised in the prompt manifest; when dispatched via `invoke_skill`, their MicroScheme plans execute live. 1 skill (`time-greeting-v1`) governs conversational greetings, and 2 skills (`plan-decompose-v1`, `correction-ack-v1`) serve as yield-shortcuts.
+2. **1 Retired Skill (`config/skills/_retired/barge-in-sorry-v1/plan.scm`):** Quarantined pending audio-layer barge-in event wiring.
+3. **1 Standalone Procedural Rule (`config/rules/calc-open-with-expr-v1.scm`):** Loaded into `LispTab` in `QUARANTINE` state. This rule was never wired to a tool manifest and has recorded 0 production firing events.
+4. **1 In-Memory UI Fallback Mock (`open-calculator-v1`):** Retained in `lisp_tab.py` solely as an in-memory sample fallback when the on-disk registry is empty.
 
 ---
 
@@ -249,6 +282,6 @@ In accordance with architectural transparency standards, the following known lim
 2. **Trusted Workspace `read_file` Payloads:** File contents read within the workspace boundary receive `TOOL_VERIFIED` provenance envelopes. If untrusted external documents (e.g. downloaded text files) are placed into the workspace, their contents can act as indirect prompt-injection vectors without cryptographic domain gating.
 3. **Cross-Tier Precedence Masks Contradictions:** Cross-tier evidential conflicts produce NO `BOTH` (conflict) value and NO entry in the `review_queue`. Because the cascade enforces strict hierarchical precedence (`TrustTier.TIER_0` strictly supersedes `TIER_1`, which supersedes `TIER_2`, etc. per [`src/lucca/core/cascade.py:1790-1858`](file:///c:/Projects/ProjectLucca/src/lucca/core/cascade.py)), the higher-trust tier simply wins outright and lower-trust contradictory evidence is suppressed as superseded. Belnap `CONFLICT` (`BOTH`) and subsequent review-queue entries arise strictly within the same tier when conflicting evidence has identical precedence.
 4. **No Point-in-Time (`as_of`) Query API:** While the underlying SQLite schema stores bi-temporal timestamps (`valid_from`, `valid_to`), the `HybridRetriever.search()` API does not currently expose an explicit `as_of` temporal query parameter for point-in-time historical time-travel.
-5. **Procedural Rule Inventory Discrepancy & Dormancy:** The repository defines procedural rules in two disparate locations: `config/rules/calc-open-with-expr-v1.scm` (the seed skill file defining `calc-open-with-expr-v1`) and `src/lucca/ui/settings_tabs/lisp_tab.py:47` (the sample table in the settings UI defining `open-calculator-v1`). Neither rule is automatically loaded into `RuleLifecycleManager` on engine boot without manual skill import or UI submission, and neither rule fired during any recorded benchmark suite or live evaluation run, leaving the MicroScheme procedural execution engine completely unexercised in production.
-6. **Severe Safety Vulnerability in Default Model (E4B Compliance with Harmful Probes):** In cross-model safety evaluations ([`logs/test_reports/cross_model_30_gemma-4-e4b.json`](file:///c:/Projects/ProjectLucca/logs/test_reports/cross_model_30_gemma-4-e4b.json)), the uncensored fine-tune (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`) complied with 7 of 10 adversarial harmful prompts (including detailed engagement on keylogger synthesis, credential phishing, and ricin inquiries), refusing only 3 of 10 (30% refusal rate). In contrast, Gemma 4 12B refused 9 of 10 ([`logs/test_reports/cross_model_30_gemma-4-12b.json`](file:///c:/Projects/ProjectLucca/logs/test_reports/cross_model_30_gemma-4-12b.json)). Gemma 4 E2B was not evaluated in `cross_model_30` and its safety compliance rate remains unverified. Deploying E4B as the sovereign core represents an active safety hazard requiring external guardrail enforcement.
+5. **Standalone Procedural Rule Dormancy:** While the 15 active factory skills in `config/skills/` are loaded on boot and execute when invoked, the standalone procedural rule `config/rules/calc-open-with-expr-v1.scm` remains in `QUARANTINE` status and has 0 production firing events. Early audit notes characterizing the engine as having "exactly one rule that never fired" referred strictly to this quarantined file in `config/rules/`, overlooking the 15 active skill rules in `config/skills/`.
+6. **Severe Safety Vulnerability in Default Model (E4B Compliance with Harmful Probes):** In cross-model safety evaluations ([`logs/test_reports/cross_model_30_gemma-4-e4b.json`](file:///c:/Projects/ProjectLucca/logs/test_reports/cross_model_30_gemma-4-e4b.json)), the uncensored fine-tune (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`) complied with 7 of 10 adversarial harmful prompts (including detailed engagement on keylogger synthesis, credential phishing, and ricin inquiries), refusing only 3 of 10 (30% refusal rate). In contrast, Gemma 4 12B refused 9 of 10 ([`logs/test_reports/cross_model_30_gemma-4-12b.json`](file:///c:/Projects/ProjectLucca/logs/test_reports/cross_model_30_gemma-4-12b.json)). Gemma 4 E2B was not evaluated in `cross_model_30` (its fine-tune focused on Sinhala bilingual transfer) and its safety compliance rate remains unverified. Deploying E4B as the sovereign core represents an active safety hazard requiring external guardrail enforcement.
 7. **Regex vs. AST Semantic Gap in Output Supervision:** The supervisor operates via compiled regular expressions rather than an abstract syntax tree of natural language. Consequently, periphrastic phrasing (*"I took care of removing..."*) bypasses action verb matching, and epistemic hedges (*"I think I deleted..."*) intentionally suppress verification, providing potential evasion channels.

@@ -99,12 +99,12 @@ To isolate whether the apparent baseline gap between unassisted direct generatio
   - Historical R0 @ 1.5k cap: **51.0%** (51/100) [95% Wilson CI: 40.9%, 61.1%], 26% truncations (mean 949 tokens).
   - R0 @ 4k cap: **57.0%** (57/100) [95% Wilson CI: 46.7%, 66.7%], 6% truncations (mean 1,217 tokens).
   - **Paired McNemar Comparison:** Discordant pairs: `R0 @ 4k only (b) = 10` : `R0 @ 1.5k only (c) = 4`. Exact two-sided binomial **$p = 0.1796$ (Statistically Indistinguishable)**.
-  - While raising the cap to 4k reduced truncations from 26% to 6%, the +6.0 pp shift does not reach statistical significance ($p = 0.1796$). Direct unassisted generation on E2B remains substantially below PAL (77.0%, $p=0.0039$) and Thinking Mode (84.0%, $p=4.4 \times 10^{-6}$).
+  - While raising the cap to 4k reduced truncations from 26% to 6%, the +6.0 pp shift across 14 discordant items did not produce a statistically detectable gain ($p = 0.1796$). Comparing direct generation with scaffolded arms, PAL reached 77.0% on Dev but 61.0% on Held-Out, while Thinking Mode reached 84.0% on Dev and 81.0% on Held-Out.
 - **Cross-Split Generalization (Dev vs. Held-Out at 4k cap):**
   - E4B R0 @ 4k scored **52.0%** on Dev and **52.0%** on Held-Out ($z = 0.000, p = 1.000$).
   - E2B R0 @ 4k scored **57.0%** on Dev and **51.0%** on Held-Out ($z = 0.854, p = 0.3932$).
   - 12B R0 @ 4k scored **90.0%** on Dev and **89.0%** on Held-Out ($z = 0.231, p = 0.8176$).
-  - This proves that unassisted prose generation hits a hard computational and arithmetic ceiling at edge scale, regardless of available token budget, and confirms that scaffold gains reflect genuine capability additions rather than mere truncation relief.
+  - Across both edge models, expanding the token budget did not produce a statistically detectable gain under unassisted prose generation, confirming that truncation relief alone does not account for the observed scaffold differences.
 
 ### 2.5 Side-by-Side Subject and Level Breakdown: Dev vs. Held-Out MATH-500 (n=100)
 
@@ -130,10 +130,7 @@ Computing stratified performance across mathematical domains and problem tiers o
 | **Level 4** | 22 | **90.9%** (20/22) | **90.9%** (20/22) | 23 | **91.3%** (21/23) | 82.6% (19/23) | 3 : 1 |
 | **Level 5** | 23 | 56.5% (13/23) | **60.9%** (14/23) | 28 | **82.1%** (23/28) | 53.6% (15/28) | 10 : 2 |
 
-**Analysis of the Generalization Gap:**
-- **Level 5 Driver:** On Held-Out competition math, the dominant driver of discordance is **Level 5**, accounting for more than half of all R1-only wins (10 of 19, or 52.6%). R1 solved 23/28 (82.1%) while P2 solved 15/28 (53.6%), a +28.5 pp gap.
-- **Precalculus Driver:** Precalculus accounts for 7 of the 19 R1-only wins (36.8%), where R1 achieved 81.0% vs P2's 47.6% (+33.4 pp).
-- **Subgroup Caution:** On the Dev split, P2 scored 100.0% (6/6) on Counting and Probability, matching R1. It was only on the Held-Out split that P2 dropped to 69.2% (9/13). Because subgroup cell sizes are small ($n=6$ to $28$) and no family-wise error rate correction was applied, these breakdowns are strictly descriptive and must not be interpreted as causal claims of domain-specific incapacity.
+**Subgroup Scope & Caution:** Because subgroup cell sizes are small ($n=6$ to $28$) and no family-wise error rate correction was applied, these breakdowns are strictly descriptive and presented for reference only. No causal claims of domain-specific capability or incapacity are drawn from post-hoc subgroup splits.
 
 ### 2.6 Coding Assistance Preflight: No Detectable Benefit on Larger Models
 In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw $\to$ 76.8% assisted). For larger models, assisted preflight showed no statistically detectable benefit ($p > 0.5$):
