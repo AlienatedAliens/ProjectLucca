@@ -132,7 +132,9 @@ def migrate_memory_keys(
         except Exception as exc:  # noqa: BLE001
             logger.debug("migration_payload_parse_error", memory_id=mid, error=str(exc))
             report.tampered_skipped_count += 1
-            report.errors.append(f"Memory #{mid} (entry {entry_id[:8]}): invalid payload JSON ({exc})")
+            report.errors.append(
+                f"Memory #{mid} (entry {entry_id[:8]}): invalid payload JSON ({exc})"
+            )
             continue
 
         if "content" in raw_dict and raw_dict["content"] != content_str:
@@ -154,7 +156,9 @@ def migrate_memory_keys(
             prov_enum = Provenance(prov_str)
         except ValueError:
             report.tampered_skipped_count += 1
-            report.errors.append(f"Memory #{mid} (entry {entry_id[:8]}): unknown provenance '{prov_str}'")
+            report.errors.append(
+                f"Memory #{mid} (entry {entry_id[:8]}): unknown provenance '{prov_str}'"
+            )
             continue
 
         # Compute signature under new key
@@ -179,7 +183,8 @@ def migrate_memory_keys(
         if not is_old_match and not force:
             report.tampered_skipped_count += 1
             report.errors.append(
-                f"Memory #{mid} (entry {entry_id[:8]}): signature does not match old key and force=False"
+                f"Memory #{mid} (entry {entry_id[:8]}): "
+                "signature does not match old key and force=False"
             )
             continue
 

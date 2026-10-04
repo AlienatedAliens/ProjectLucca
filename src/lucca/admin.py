@@ -11,14 +11,11 @@ import sys
 from pathlib import Path
 from typing import Literal
 
-logger = logging.getLogger(__name__)
-
-
 from pydantic import JsonValue
 from rich.console import Console
 from rich.table import Table
 
-from lucca.core.config import get_config
+from lucca.core.config import get_config, resolve_or_create_master_key
 from lucca.core.env_check import check_models_manifest, run_env_check
 from lucca.core.trace import (
     StageStat,
@@ -34,6 +31,8 @@ from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.egress import EgressVerifier
+
+logger = logging.getLogger(__name__)
 
 
 def load_trace_records(
@@ -527,7 +526,6 @@ def run_memory_cli(
     db.migrate()
 
     cfg = get_config()
-    from lucca.core.config import resolve_or_create_master_key
     mk: bytes = resolve_or_create_master_key(cfg)
 
     manager = MemoryManager(db=db, master_key=mk)
@@ -719,7 +717,8 @@ def run_memory_cli(
         try:
             store.forget(active_ids, user_confirmed=True)
             console.print(
-                f"[bold green]SUCCESS: Factory reset complete. Soft-deleted and audited {len(active_ids)} memories.[/bold green]"
+                "[bold green]SUCCESS: Factory reset complete. "
+                f"Soft-deleted and audited {len(active_ids)} memories.[/bold green]"
             )
             return 0
         except Exception as err:  # noqa: BLE001
@@ -771,7 +770,9 @@ def run_memory_cli(
             return 0
         except Exception as err:  # noqa: BLE001
             logger.debug("forget_memory_failed: %s", err)
-            console.print(f"[bold red]FAILED: Could not forget memory '{target_id}': {err}[/bold red]")
+            console.print(
+                f"[bold red]FAILED: Could not forget memory '{target_id}': {err}[/bold red]"
+            )
             return 1
 
     if action == "quarantine-list":
@@ -781,7 +782,10 @@ def run_memory_cli(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='memory_quarantine'"
             )
             if not cur.fetchone():
-                console.print("[yellow]Quarantine table does not exist yet (no quarantined memories).[/yellow]")
+                console.print(
+                    "[yellow]Quarantine table does not exist yet "
+                    "(no quarantined memories).[/yellow]"
+                )
                 return 0
             cur = conn.execute(
                 "SELECT memory_id, entry_id, reason, stage, quarantined_at "
@@ -792,7 +796,10 @@ def run_memory_cli(
             conn.close()
 
         if not rows:
-            console.print("[bold green]No memories currently quarantined. Cryptographic integrity clean.[/bold green]")
+            console.print(
+                "[bold green]No memories currently quarantined. "
+                "Cryptographic integrity clean.[/bold green]"
+            )
             return 0
 
         table = Table(
@@ -1022,7 +1029,8 @@ def create_parser() -> argparse.ArgumentParser:
     p_mforget.add_argument("entry_id", help="Memory ID or Entry ID to forget")
 
     mem_sub.add_parser(
-        "reset", help="Factory reset memory store to zero active memories (soft-delete and audit all)"
+        "reset",
+        help="Factory reset memory store to zero active memories (soft-delete and audit all)",
     )
 
     mem_sub.add_parser(
@@ -1032,7 +1040,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     p_mmigrate = mem_sub.add_parser(
         "migrate-keys",
-        help="Migrate and re-sign memory envelopes from legacy dev-fallback key to active master key",
+        help="Migrate and re-sign memory envelopes from legacy dev key to active master key",
     )
     p_mmigrate.add_argument(
         "--dry-run",
