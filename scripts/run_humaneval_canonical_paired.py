@@ -60,7 +60,25 @@ def load_humaneval_dataset() -> list[dict]:
     return data
 
 
+import argparse
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description="HumanEval Canonical 164 Paired Evaluation")
+    parser.add_argument("--label", type=str, default="", help="Optional label suffix for output files")
+    args = parser.parse_args()
+
+    raw_out = (
+        REPO_ROOT / "logs" / "test_reports" / f"humaneval_canonical_raw_164_{args.label}.json"
+        if args.label
+        else RAW_OUTPUT_FILE
+    )
+    asst_out = (
+        REPO_ROOT / "logs" / "test_reports" / f"humaneval_canonical_assisted_164_{args.label}.json"
+        if args.label
+        else ASSISTED_OUTPUT_FILE
+    )
+
     dataset = load_humaneval_dataset()
     print(f"Loaded {len(dataset)} canonical HumanEval tasks from {DATA_FILE}")
 
@@ -307,9 +325,9 @@ def main() -> int:
         "results": assisted_results,
     }
 
-    RAW_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    RAW_OUTPUT_FILE.write_text(json.dumps(raw_report, indent=2), encoding="utf-8")
-    ASSISTED_OUTPUT_FILE.write_text(json.dumps(assisted_report, indent=2), encoding="utf-8")
+    raw_out.parent.mkdir(parents=True, exist_ok=True)
+    raw_out.write_text(json.dumps(raw_report, indent=2), encoding="utf-8")
+    asst_out.write_text(json.dumps(assisted_report, indent=2), encoding="utf-8")
 
     print("\n=======================================================")
     print("Step 2b Paired Evaluation Summary")
@@ -321,8 +339,8 @@ def main() -> int:
     print(f"Raw Only Pass:   {raw_report['paired_comparison']['raw_only_pass']}")
     print(f"Rescued (Asst):  {raw_report['paired_comparison']['assisted_only_pass']}")
     print(f"Preflight Fired: {preflight_triggered_count}")
-    print(f"Artifact Raw:      {RAW_OUTPUT_FILE}")
-    print(f"Artifact Assisted: {ASSISTED_OUTPUT_FILE}")
+    print(f"Artifact Raw:      {raw_out}")
+    print(f"Artifact Assisted: {asst_out}")
     print("=======================================================\n")
     return 0
 

@@ -12,6 +12,9 @@ Provides:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import logging
+
+logger = logging.getLogger(__name__)
 
 from lucca.reasoning.scheme.macros import MacroDefinition
 from lucca.reasoning.scheme.parser import (
@@ -144,6 +147,16 @@ class EGraph:
                 else:
                     new_hashcons[canon_enode] = root_id
             self._hashcons = new_hashcons
+
+    def saturate(self, rules: list[RewriteRule] | None = None, iter_limit: int = 30) -> int:
+        """Runs equality saturation over this egraph using rules (or standard rules)."""
+        active_rules = rules if rules is not None else (STANDARD_REWRITE_RULES + SPATIAL_REWRITE_RULES)
+        return equality_saturate(self, active_rules, iter_limit=iter_limit)
+
+    def extract(self, class_id: int) -> SchemeNode:
+        """Extracts the minimal cost canonical AST from the specified e-class."""
+        return extract_best(self, class_id)
+
 
 
 def ast_size(node: SchemeNode) -> int:
@@ -334,3 +347,362 @@ def _ast_equal(a: SchemeNode, b: SchemeNode) -> bool:
             return False
         return all(_ast_equal(x, y) for x, y in zip(a, b, strict=True))
     return bool(a == b)
+
+
+# ==============================================================================
+# Equality Saturation Rewrite Engine (WO-29 Module 2)
+# ==============================================================================
+
+
+@dataclass(frozen=True)
+class RewriteRule:
+    """
+    Term-rewriting equality saturation rule over MicroScheme ASTs.
+    LHS and RHS can contain pattern variables prefixed with '?' or 'arg_'.
+    """
+
+    lhs: SchemeNode
+    rhs: SchemeNode
+    name: str = ""
+    bidirectional: bool = False
+
+    @classmethod
+    def from_sexpr(
+        cls,
+        lhs_sexpr: str,
+        rhs_sexpr: str,
+        name: str = "",
+        bidirectional: bool = False,
+    ) -> RewriteRule:
+        from lucca.reasoning.scheme.parser import parse_expr
+
+        return cls(
+            lhs=parse_expr(lhs_sexpr),
+            rhs=parse_expr(rhs_sexpr),
+            name=name or f"{lhs_sexpr} => {rhs_sexpr}",
+            bidirectional=bidirectional,
+        )
+
+
+def is_pattern_var(node: SchemeNode) -> str | None:
+    """Returns variable name if node is a pattern variable (e.g. '?x', '?s'), else None."""
+    if isinstance(node, Symbol):
+        if node.name.startswith("?") or node.name.startswith("arg_") or node.name.startswith("param_"):
+            return node.name
+    elif isinstance(node, str):
+        if node.startswith("?") or node.startswith("arg_") or node.startswith("param_"):
+            return node
+    return None
+
+
+def _atom_matches(pat: SchemeAtom, atom: SchemeAtom) -> bool:
+    """Checks whether a pattern atom matches an e-node head atom."""
+    if isinstance(pat, Symbol) and isinstance(atom, Symbol):
+        return pat.name == atom.name
+    if isinstance(pat, Symbol) and isinstance(atom, str):
+        return pat.name == atom
+    if isinstance(pat, str) and isinstance(atom, Symbol):
+        return pat == atom.name
+    if isinstance(pat, (int, float)) and isinstance(atom, (int, float)):
+        return pat == atom
+    return bool(pat == atom)
+
+
+def ematch_pattern(
+    pattern: SchemeNode,
+    egraph: EGraph,
+    class_id: int,
+    bindings: dict[str, int],
+) -> list[dict[str, int]]:
+    """
+    Recursively matches a pattern against a given e-class in the E-Graph.
+    Returns all valid variable-to-eclass substitution mappings.
+    """
+    var_name = is_pattern_var(pattern)
+    if var_name is not None:
+        root_cid = egraph.find(class_id)
+        if var_name in bindings:
+            if egraph.find(bindings[var_name]) == root_cid:
+                return [bindings]
+            return []
+        new_bindings = dict(bindings)
+        new_bindings[var_name] = root_cid
+        return [new_bindings]
+
+    root_class = egraph.find(class_id)
+    eclass = egraph._classes.get(root_class)
+    if eclass is None:
+        return []
+
+    matches: list[dict[str, int]] = []
+    if isinstance(pattern, list):
+        if not pattern:
+            for head_atom, child_ids in eclass.nodes:
+                if (
+                    isinstance(head_atom, Symbol)
+                    and head_atom.name == "()"
+                    and len(child_ids) == 0
+                ):
+                    matches.append(dict(bindings))
+            return matches
+
+        pat_head = pattern[0]
+        pat_children = pattern[1:]
+
+        for head_atom, child_ids in eclass.nodes:
+            if not _atom_matches(pat_head, head_atom):
+                continue
+            if len(child_ids) != len(pat_children):
+                continue
+
+            curr_matches = [dict(bindings)]
+            for p_child, c_id in zip(pat_children, child_ids, strict=True):
+                next_matches: list[dict[str, int]] = []
+                for b in curr_matches:
+                    next_matches.extend(ematch_pattern(p_child, egraph, c_id, b))
+                curr_matches = next_matches
+                if not curr_matches:
+                    break
+            matches.extend(curr_matches)
+    else:
+        for head_atom, child_ids in eclass.nodes:
+            if len(child_ids) == 0 and _atom_matches(pattern, head_atom):
+                matches.append(dict(bindings))
+
+    return matches
+
+
+def instantiate_pattern(
+    pattern: SchemeNode,
+    bindings: dict[str, int],
+    egraph: EGraph,
+) -> int:
+    """Instantiates a pattern into the E-Graph given variable-to-eclass bindings."""
+    var_name = is_pattern_var(pattern)
+    if var_name is not None:
+        if var_name in bindings:
+            return egraph.find(bindings[var_name])
+        raise ValueError(f"Unbound pattern variable '{var_name}' during instantiation")
+
+    if isinstance(pattern, list):
+        if not pattern:
+            return egraph.add([])
+        head = pattern[0]
+        child_ids = tuple(instantiate_pattern(c, bindings, egraph) for c in pattern[1:])
+        if isinstance(head, (Symbol, Keyword, str, int, float, bool)):
+            head_atom: SchemeAtom = head
+        else:
+            head_atom = Symbol("list")
+        enode = (head_atom, child_ids)
+        return egraph._add_enode(enode)
+    else:
+        return egraph.add(pattern)
+
+
+def _get_class_constant(egraph: EGraph, class_id: int) -> SchemeAtom | None:
+    """Returns the literal constant in an e-class if present."""
+    r = egraph.find(class_id)
+    eclass = egraph._classes.get(r)
+    if not eclass:
+        return None
+    for head, children in eclass.nodes:
+        if not children and isinstance(head, (int, float, bool, str)):
+            return head
+    return None
+
+
+def _fold_constants(egraph: EGraph) -> bool:
+    """Evaluates pure constant arithmetic / logic expressions in the E-Graph."""
+    changed = False
+    for r in list(egraph._classes.keys()):
+        root_id = egraph.find(r)
+        eclass = egraph._classes.get(root_id)
+        if not eclass:
+            continue
+        for head, children in list(eclass.nodes):
+            op = head.name if isinstance(head, Symbol) else str(head)
+            if op in ("+", "-", "*", "/", "min", "max") and len(children) >= 1:
+                child_consts = [_get_class_constant(egraph, ch) for ch in children]
+                if all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in child_consts):
+                    nums = [float(c) for c in child_consts if c is not None]
+                    try:
+                        res: float | int | None = None
+                        if op == "+":
+                            res = sum(nums)
+                        elif op == "*":
+                            res = 1.0
+                            for n in nums:
+                                res *= n
+                        elif op == "-":
+                            res = -nums[0] if len(nums) == 1 else nums[0] - sum(nums[1:])
+                        elif op == "/":
+                            if len(nums) == 2 and nums[1] != 0:
+                                res = nums[0] / nums[1]
+                        elif op == "min":
+                            res = min(nums)
+                        elif op == "max":
+                            res = max(nums)
+
+                        if res is not None:
+                            if res.is_integer():
+                                res = int(res)
+                            res_id = egraph.add(res)
+                            if egraph.find(res_id) != root_id:
+                                egraph.merge(root_id, res_id)
+                                changed = True
+                    except Exception as exc:
+                        logger.debug("constant_fold_error: %s", exc)
+    return changed
+
+
+def equality_saturate(
+    egraph: EGraph,
+    rules: list[RewriteRule],
+    iter_limit: int = 30,
+    node_limit: int = 2000,
+) -> int:
+    """
+    Executes Equality Saturation over the E-Graph until fixpoint or resource limits.
+    In each iteration: matches rules, instantiates rewritten nodes, unions e-classes,
+    folds constants, and restores congruence closure.
+    """
+    iterations = 0
+    while iterations < iter_limit:
+        iterations += 1
+        matches: list[tuple[int, SchemeNode, dict[str, int]]] = []
+
+        # 1. Match phase
+        class_ids = list(egraph._classes.keys())
+        for rule in rules:
+            for root_id in class_ids:
+                for b in ematch_pattern(rule.lhs, egraph, root_id, {}):
+                    matches.append((root_id, rule.rhs, b))
+                if rule.bidirectional:
+                    for b in ematch_pattern(rule.rhs, egraph, root_id, {}):
+                        matches.append((root_id, rule.lhs, b))
+
+        # 2. Apply phase
+        merged_any = False
+        for root_id, rhs_pattern, b in matches:
+            rhs_id = instantiate_pattern(rhs_pattern, b, egraph)
+            if egraph.find(root_id) != egraph.find(rhs_id):
+                egraph.merge(root_id, rhs_id)
+                merged_any = True
+
+        # 3. Rebuild phase
+        egraph.rebuild()
+
+        # 4. Constant folding phase
+        if _fold_constants(egraph):
+            egraph.rebuild()
+            merged_any = True
+
+        total_nodes = sum(len(c.nodes) for c in egraph._classes.values())
+        if not merged_any or total_nodes > node_limit:
+            break
+
+    return iterations
+
+
+def extract_best(
+    egraph: EGraph,
+    class_id: int,
+    cost_fn: Callable[[SchemeNode], int] | None = None,
+) -> SchemeNode:
+    """
+    Extracts the minimal cost canonical AST from the specified e-class using dynamic programming.
+    In case of equivalent representations, chooses the smallest and simplest expression.
+    """
+    root_target = egraph.find(class_id)
+    best_cost: dict[int, float] = {}
+    best_node: dict[int, tuple[SchemeAtom, tuple[int, ...]]] = {}
+
+    # Initialize leaves
+    for c in list(egraph._classes.values()):
+        r = egraph.find(c.class_id)
+        for head, children in c.nodes:
+            if not children:
+                c_cost = 1.0
+                if c_cost < best_cost.get(r, float("inf")):
+                    best_cost[r] = c_cost
+                    best_node[r] = (head, ())
+
+    # Iterative cost relaxation
+    max_iters = len(egraph._classes) * 2 + 10
+    changed = True
+    iterations = 0
+    while changed and iterations < max_iters:
+        changed = False
+        iterations += 1
+        for c in list(egraph._classes.values()):
+            r = egraph.find(c.class_id)
+            for head, children in c.nodes:
+                if all(egraph.find(ch) in best_cost for ch in children):
+                    cost = 1.0 + sum(best_cost[egraph.find(ch)] for ch in children)
+                    if cost < best_cost.get(r, float("inf")):
+                        best_cost[r] = cost
+                        best_node[r] = (head, tuple(egraph.find(ch) for ch in children))
+                        changed = True
+
+    # Reconstruct minimal AST
+    def _build(cid: int, visited: set[int]) -> SchemeNode:
+        r = egraph.find(cid)
+        if r in visited:
+            for h, ch in egraph._classes[r].nodes:
+                if not ch:
+                    return h
+            return Symbol("cycle")
+        if r not in best_node:
+            for h, ch in egraph._classes[r].nodes:
+                if not ch:
+                    return h
+            return Symbol("unknown")
+        head, children = best_node[r]
+        if not children:
+            return head
+        new_visited = visited | {r}
+        return [head, *[_build(ch, new_visited) for ch in children]]
+
+    return _build(root_target, set())
+
+
+# --- Pre-compiled Canonical Rewrite Rules ---
+
+STANDARD_REWRITE_RULES: list[RewriteRule] = [
+    RewriteRule.from_sexpr("(+ ?x 0)", "?x", name="add-zero-right"),
+    RewriteRule.from_sexpr("(+ 0 ?x)", "?x", name="add-zero-left"),
+    RewriteRule.from_sexpr("(* ?x 1)", "?x", name="mul-one-right"),
+    RewriteRule.from_sexpr("(* 1 ?x)", "?x", name="mul-one-left"),
+    RewriteRule.from_sexpr("(* ?x 0)", "0", name="mul-zero-right"),
+    RewriteRule.from_sexpr("(* 0 ?x)", "0", name="mul-zero-left"),
+    RewriteRule.from_sexpr("(- ?x 0)", "?x", name="sub-zero"),
+    RewriteRule.from_sexpr("(- ?x ?x)", "0", name="sub-self"),
+    RewriteRule.from_sexpr("(/ ?x 1)", "?x", name="div-one"),
+    RewriteRule.from_sexpr("(not (not ?x))", "?x", name="not-not"),
+    RewriteRule.from_sexpr("(and ?x ?x)", "?x", name="and-idempotent"),
+    RewriteRule.from_sexpr("(or ?x ?x)", "?x", name="or-idempotent"),
+    RewriteRule.from_sexpr("(min ?x ?x)", "?x", name="min-idempotent"),
+    RewriteRule.from_sexpr("(max ?x ?x)", "?x", name="max-idempotent"),
+]
+
+SPATIAL_REWRITE_RULES: list[RewriteRule] = [
+    RewriteRule.from_sexpr("(translate ?s 0 0)", "?s", name="translate-zero"),
+    RewriteRule.from_sexpr(
+        "(translate (translate ?s ?dx1 ?dy1) ?dx2 ?dy2)",
+        "(translate ?s (+ ?dx1 ?dx2) (+ ?dy1 ?dy2))",
+        name="translate-combine",
+    ),
+    RewriteRule.from_sexpr("(scale ?s 1)", "?s", name="scale-identity"),
+    RewriteRule.from_sexpr(
+        "(scale (scale ?s ?f1) ?f2)",
+        "(scale ?s (* ?f1 ?f2))",
+        name="scale-combine",
+    ),
+    RewriteRule.from_sexpr("(rotate ?s 0)", "?s", name="rotate-zero"),
+    RewriteRule.from_sexpr(
+        "(rotate (rotate ?s ?t1) ?t2)",
+        "(rotate ?s (+ ?t1 ?t2))",
+        name="rotate-combine",
+    ),
+]
+

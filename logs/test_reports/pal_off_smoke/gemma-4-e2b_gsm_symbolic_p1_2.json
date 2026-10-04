@@ -1,0 +1,58 @@
+{
+  "model_label": "gemma-4-e2b",
+  "benchmark": "gsm_symbolic",
+  "arm": "p1",
+  "samples": 2,
+  "strict_passed": 2,
+  "strict_accuracy": 100.0,
+  "strict_ci_95": [
+    19.79,
+    100.0
+  ],
+  "lenient_passed": 2,
+  "lenient_accuracy": 100.0,
+  "lenient_ci_95": [
+    19.79,
+    100.0
+  ],
+  "total_tokens": 969,
+  "avg_tokens_per_item": 484.5,
+  "truncation_count": 0,
+  "truncation_rate_pct": 0.0,
+  "total_elapsed_s": 10.22,
+  "avg_latency_s": 5.11,
+  "vram_start_mib": 2372,
+  "vram_peak_mib": 2372,
+  "results": [
+    {
+      "item_id": "gsm-sym-t11-i1",
+      "arm": "p1",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 154,
+      "latency_s": 0.924,
+      "predicted_ans": "948.0",
+      "ground_truth": "948.0",
+      "exit_code": 0,
+      "failure_class": "none",
+      "truncated": false
+    },
+    {
+      "item_id": "gsm-sym-t20-i1",
+      "arm": "p1",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 815,
+      "latency_s": 4.586,
+      "predicted_ans": "24.0",
+      "ground_truth": "24.0",
+      "exit_code": 0,
+      "failure_class": "none",
+      "truncated": false
+    }
+  ]
+}

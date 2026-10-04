@@ -66,7 +66,15 @@ def load_stratified_dataset() -> list[dict]:
     return stratified
 
 
+import argparse
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description="GSM-Symbolic 100-Template Stratified PAL Evaluation")
+    parser.add_argument("--output-file", type=str, default=str(OUTPUT_FILE), help="Output JSON path")
+    args = parser.parse_args()
+    out_path = Path(args.output_file)
+
     dataset = load_stratified_dataset()
     print(f"Loaded {len(dataset)} stratified templates from {DATA_FILE}")
 
@@ -204,9 +212,9 @@ def main() -> int:
         "results": results,
     }
 
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_FILE.write_text(json.dumps(report_payload, indent=2), encoding="utf-8")
-    print(f"\n[OK] Step 2a complete. Saved report to: {OUTPUT_FILE}")
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(report_payload, indent=2), encoding="utf-8")
+    print(f"\n[OK] Step 2a complete. Saved report to: {out_path}")
     print(f"Counts: n={total}, passed={passed_count}, failed={failed_count}, acc={acc_pct:.2f}%, CI=[{ci_low*100:.2f}%, {ci_high*100:.2f}%]")
     return 0
 

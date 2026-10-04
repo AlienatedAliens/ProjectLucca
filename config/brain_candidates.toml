@@ -30,7 +30,8 @@ vendor_markers = ["mistral ai", "mistral-nemo", "nvidia and mistral"]
 
 [candidates.gemma4]
 label = "gemma4-12b-heretic-q6k"
-gguf = "C:/Projects/ProjectLucca/models/gemma-4-12b-heretic-Q6_K.gguf"
+gguf = "C:/ProjectLucca/models/llm/gemma-4-12b-heretic-Q6_K.gguf"
+mmproj = "C:/ProjectLucca/models/llm/gemma-4-12b-heretic-mmproj-f16.gguf"
 server = "stock"
 extra_args = []
 thinking = "off"
@@ -45,3 +46,13 @@ extra_args = []
 thinking = "off"
 abliterated = false
 vendor_markers = ["alibaba", "qwen", "prism ml", "prismml", "bonsai model", "tongyi"]
+
+[candidates.gemma4_e4b]
+label = "gemma4-e4b-heretic-q6k"
+gguf = "C:/ProjectLucca/models/llm/gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf"
+server = "stock"
+extra_args = []
+thinking = "off"
+abliterated = true
+vendor_markers = ["google deepmind", "developed by google", "trained by google", "i am gemma", "i'm gemma", "gemma model"]
+

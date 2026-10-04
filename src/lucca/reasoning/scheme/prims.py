@@ -16,7 +16,7 @@ from lucca.core.exceptions import (
     SchemeYieldSignal,
 )
 from lucca.core.schemas import AssertFact, RuleState, Say, ToolCall, is_valid_predicate
-from lucca.reasoning.scheme.parser import Keyword, SchemeValue
+from lucca.reasoning.scheme.parser import Keyword, SchemeValue, Symbol
 
 INT_MAX = 2**63 - 1
 INT_MIN = -(2**63)
@@ -568,6 +568,416 @@ def prim_assert(args: list[SchemeValue]) -> AssertFact:
     return AssertFact(s=s.strip(), p=clean_p, o=o.strip())
 
 
+# --- Spatial & Geometric DSL Primitives (WO-29 Module 1) ---
+
+
+def _to_point_2d(val: SchemeValue, op_name: str) -> tuple[float, float]:
+    if isinstance(val, list):
+        items = val
+        if len(items) >= 3 and (
+            items[0] == "point"
+            or (isinstance(items[0], Symbol) and items[0].name == "point")
+            or items[0] == "vec"
+            or (isinstance(items[0], Symbol) and items[0].name == "vec")
+        ):
+            items = items[1:]
+        if len(items) >= 2:
+            return float(_check_number(items[0], op_name)), float(_check_number(items[1], op_name))
+    raise SchemeRuntimeError(
+        f"Operator '{op_name}' expects 2D point [x, y] or (point x y), got {val}",
+        cause_type="TypeError",
+    )
+
+
+def prim_point(args: list[SchemeValue]) -> list[SchemeValue]:
+    if len(args) == 2:
+        x = _check_number(args[0], "point")
+        y = _check_number(args[1], "point")
+        return ["point", x, y]
+    elif len(args) == 3:
+        x = _check_number(args[0], "point")
+        y = _check_number(args[1], "point")
+        z = _check_number(args[2], "point")
+        return ["point", x, y, z]
+    raise SchemeRuntimeError(
+        f"'point' requires 2 or 3 coordinates, got {len(args)}", cause_type="ValueError"
+    )
+
+
+def prim_vec(args: list[SchemeValue]) -> list[SchemeValue]:
+    if len(args) == 2:
+        dx = _check_number(args[0], "vec")
+        dy = _check_number(args[1], "vec")
+        return ["vec", dx, dy]
+    elif len(args) == 3:
+        dx = _check_number(args[0], "vec")
+        dy = _check_number(args[1], "vec")
+        dz = _check_number(args[2], "vec")
+        return ["vec", dx, dy, dz]
+    raise SchemeRuntimeError(
+        f"'vec' requires 2 or 3 components, got {len(args)}", cause_type="ValueError"
+    )
+
+
+def prim_rect(args: list[SchemeValue]) -> list[SchemeValue]:
+    if len(args) != 4:
+        raise SchemeRuntimeError(
+            f"'rect' requires 4 arguments (x y w h), got {len(args)}", cause_type="ValueError"
+        )
+    x = _check_number(args[0], "rect")
+    y = _check_number(args[1], "rect")
+    w = _check_number(args[2], "rect")
+    h = _check_number(args[3], "rect")
+    if w < 0 or h < 0:
+        raise SchemeRuntimeError(
+            f"'rect' width and height must be non-negative, got w={w}, h={h}", cause_type="ValueError"
+        )
+    return ["rect", x, y, w, h]
+
+
+def prim_circle(args: list[SchemeValue]) -> list[SchemeValue]:
+    if len(args) == 2:
+        cx, cy = _to_point_2d(args[0], "circle")
+        r = _check_number(args[1], "circle")
+    elif len(args) == 3:
+        cx = _check_number(args[0], "circle")
+        cy = _check_number(args[1], "circle")
+        r = _check_number(args[2], "circle")
+    else:
+        raise SchemeRuntimeError(
+            f"'circle' requires (center r) or (cx cy r), got {len(args)} args",
+            cause_type="ValueError",
+        )
+    if r < 0:
+        raise SchemeRuntimeError(
+            f"'circle' radius must be non-negative, got r={r}", cause_type="ValueError"
+        )
+    return ["circle", cx, cy, r]
+
+
+def prim_polygon(args: list[SchemeValue]) -> list[SchemeValue]:
+    pts: list[tuple[float, float]] = []
+    if len(args) == 1 and isinstance(args[0], list):
+        raw_pts = args[0]
+    else:
+        raw_pts = args
+    for p in raw_pts:
+        pts.append(_to_point_2d(p, "polygon"))
+    if len(pts) < 3:
+        raise SchemeRuntimeError(
+            f"'polygon' requires at least 3 vertices, got {len(pts)}", cause_type="ValueError"
+        )
+    return ["polygon", *[["point", p[0], p[1]] for p in pts]]
+
+
+def prim_distance(args: list[SchemeValue]) -> float:
+    if len(args) == 2:
+        p1 = _to_point_2d(args[0], "distance")
+        p2 = _to_point_2d(args[1], "distance")
+        return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
+    elif len(args) == 4:
+        x1 = float(_check_number(args[0], "distance"))
+        y1 = float(_check_number(args[1], "distance"))
+        x2 = float(_check_number(args[2], "distance"))
+        y2 = float(_check_number(args[3], "distance"))
+        return math.hypot(x2 - x1, y2 - y1)
+    raise SchemeRuntimeError(
+        f"'distance' requires 2 points or 4 coordinates (x1 y1 x2 y2), got {len(args)} args",
+        cause_type="ValueError",
+    )
+
+
+def prim_translate(args: list[SchemeValue]) -> SchemeValue:
+    if len(args) != 3:
+        raise SchemeRuntimeError(
+            f"'translate' requires 3 arguments (shape dx dy), got {len(args)}",
+            cause_type="ValueError",
+        )
+    shape = args[0]
+    dx = float(_check_number(args[1], "translate"))
+    dy = float(_check_number(args[2], "translate"))
+
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'translate' expects a shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+
+    if tag == "point":
+        return ["point", float(shape[1]) + dx, float(shape[2]) + dy]
+    elif tag == "rect":
+        return ["rect", float(shape[1]) + dx, float(shape[2]) + dy, shape[3], shape[4]]
+    elif tag == "circle":
+        return ["circle", float(shape[1]) + dx, float(shape[2]) + dy, shape[3]]
+    elif tag == "polygon":
+        new_pts = [
+            ["point", float(p[1]) + dx, float(p[2]) + dy]
+            for p in shape[1:]
+            if isinstance(p, list) and len(p) >= 3
+        ]
+        return ["polygon", *new_pts]
+    elif tag == "vec":
+        return ["vec", shape[1], shape[2]]
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape type in 'translate': {tag}", cause_type="ValueError")
+
+
+def prim_rotate(args: list[SchemeValue]) -> SchemeValue:
+    if len(args) < 2 or len(args) > 4:
+        raise SchemeRuntimeError(
+            f"'rotate' requires (shape theta [ox oy]), got {len(args)} args", cause_type="ValueError"
+        )
+    shape = args[0]
+    theta = float(_check_number(args[1], "rotate"))
+    ox, oy = 0.0, 0.0
+    if len(args) == 3:
+        ox, oy = _to_point_2d(args[2], "rotate")
+    elif len(args) == 4:
+        ox = float(_check_number(args[2], "rotate"))
+        oy = float(_check_number(args[3], "rotate"))
+
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'rotate' expects a shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+    cos_t = math.cos(theta)
+    sin_t = math.sin(theta)
+
+    def rot_xy(x: float, y: float) -> tuple[float, float]:
+        rx = ox + (x - ox) * cos_t - (y - oy) * sin_t
+        ry = oy + (x - ox) * sin_t + (y - oy) * cos_t
+        return rx, ry
+
+    if tag == "point":
+        rx, ry = rot_xy(float(shape[1]), float(shape[2]))
+        return ["point", rx, ry]
+    elif tag == "circle":
+        rx, ry = rot_xy(float(shape[1]), float(shape[2]))
+        return ["circle", rx, ry, shape[3]]
+    elif tag == "rect":
+        x, y, w, h = float(shape[1]), float(shape[2]), float(shape[3]), float(shape[4])
+        pts = [
+            rot_xy(x, y),
+            rot_xy(x + w, y),
+            rot_xy(x + w, y + h),
+            rot_xy(x, y + h),
+        ]
+        return ["polygon", *[["point", px, py] for px, py in pts]]
+    elif tag == "polygon":
+        new_pts = []
+        for p in shape[1:]:
+            if isinstance(p, list) and len(p) >= 3:
+                rx, ry = rot_xy(float(p[1]), float(p[2]))
+                new_pts.append(["point", rx, ry])
+        return ["polygon", *new_pts]
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape type in 'rotate': {tag}", cause_type="ValueError")
+
+
+def prim_scale(args: list[SchemeValue]) -> SchemeValue:
+    if len(args) < 2 or len(args) > 4:
+        raise SchemeRuntimeError(
+            f"'scale' requires (shape factor [ox oy]), got {len(args)} args", cause_type="ValueError"
+        )
+    shape = args[0]
+    factor = float(_check_number(args[1], "scale"))
+    ox, oy = 0.0, 0.0
+    if len(args) == 3:
+        ox, oy = _to_point_2d(args[2], "scale")
+    elif len(args) == 4:
+        ox = float(_check_number(args[2], "scale"))
+        oy = float(_check_number(args[3], "scale"))
+
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'scale' expects a shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+
+    def scale_xy(x: float, y: float) -> tuple[float, float]:
+        return ox + (x - ox) * factor, oy + (y - oy) * factor
+
+    if tag == "point":
+        sx, sy = scale_xy(float(shape[1]), float(shape[2]))
+        return ["point", sx, sy]
+    elif tag == "rect":
+        x, y, w, h = float(shape[1]), float(shape[2]), float(shape[3]), float(shape[4])
+        sx, sy = scale_xy(x, y)
+        return ["rect", sx, sy, w * factor, h * factor]
+    elif tag == "circle":
+        cx, cy, r = float(shape[1]), float(shape[2]), float(shape[3])
+        scx, scy = scale_xy(cx, cy)
+        return ["circle", scx, scy, abs(r * factor)]
+    elif tag == "polygon":
+        new_pts = []
+        for p in shape[1:]:
+            if isinstance(p, list) and len(p) >= 3:
+                sx, sy = scale_xy(float(p[1]), float(p[2]))
+                new_pts.append(["point", sx, sy])
+        return ["polygon", *new_pts]
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape type in 'scale': {tag}", cause_type="ValueError")
+
+
+def prim_bounding_box(args: list[SchemeValue]) -> list[SchemeValue]:
+    if len(args) != 1:
+        raise SchemeRuntimeError(f"'bounding-box' requires 1 argument, got {len(args)}", cause_type="ValueError")
+    shape = args[0]
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'bounding-box' expects shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+
+    if tag == "point":
+        return ["rect", shape[1], shape[2], 0, 0]
+    elif tag == "rect":
+        return ["rect", shape[1], shape[2], shape[3], shape[4]]
+    elif tag == "circle":
+        cx, cy, r = float(shape[1]), float(shape[2]), float(shape[3])
+        return ["rect", cx - r, cy - r, 2 * r, 2 * r]
+    elif tag == "polygon":
+        xs = [float(p[1]) for p in shape[1:] if isinstance(p, list) and len(p) >= 3]
+        ys = [float(p[2]) for p in shape[1:] if isinstance(p, list) and len(p) >= 3]
+        if not xs or not ys:
+            raise SchemeRuntimeError("Empty polygon in 'bounding-box'", cause_type="ValueError")
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        return ["rect", min_x, min_y, max_x - min_x, max_y - min_y]
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape in 'bounding-box': {tag}", cause_type="ValueError")
+
+
+def prim_contains(args: list[SchemeValue]) -> bool:
+    if len(args) == 2:
+        shape = args[0]
+        px, py = _to_point_2d(args[1], "contains?")
+    elif len(args) == 3:
+        shape = args[0]
+        px = float(_check_number(args[1], "contains?"))
+        py = float(_check_number(args[2], "contains?"))
+    else:
+        raise SchemeRuntimeError(
+            f"'contains?' requires (shape pt) or (shape px py), got {len(args)} args",
+            cause_type="ValueError",
+        )
+
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'contains?' expects shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+
+    if tag == "rect":
+        rx, ry, rw, rh = float(shape[1]), float(shape[2]), float(shape[3]), float(shape[4])
+        return rx <= px <= rx + rw and ry <= py <= ry + rh
+    elif tag == "circle":
+        cx, cy, r = float(shape[1]), float(shape[2]), float(shape[3])
+        return (px - cx) ** 2 + (py - cy) ** 2 <= (r**2) + 1e-9
+    elif tag == "polygon":
+        # Ray casting point-in-polygon algorithm
+        vertices = [
+            (float(p[1]), float(p[2]))
+            for p in shape[1:]
+            if isinstance(p, list) and len(p) >= 3
+        ]
+        n = len(vertices)
+        if n < 3:
+            return False
+        inside = False
+        p1x, p1y = vertices[0]
+        for i in range(1, n + 1):
+            p2x, p2y = vertices[i % n]
+            if py > min(p1y, p2y):
+                if py <= max(p1y, p2y):
+                    if px <= max(p1x, p2x):
+                        if p1y != p2y:
+                            xinters = (py - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        if p1x == p2x or px <= xinters:
+                            inside = not inside
+            p1x, p1y = p2x, p2y
+        return inside
+    elif tag == "point":
+        return abs(float(shape[1]) - px) < 1e-9 and abs(float(shape[2]) - py) < 1e-9
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape in 'contains?': {tag}", cause_type="ValueError")
+
+
+def prim_intersects(args: list[SchemeValue]) -> bool:
+    if len(args) != 2:
+        raise SchemeRuntimeError(f"'intersects?' requires 2 shapes, got {len(args)}", cause_type="ValueError")
+    bb1 = prim_bounding_box([args[0]])
+    bb2 = prim_bounding_box([args[1]])
+    x1, y1, w1, h1 = float(bb1[1]), float(bb1[2]), float(bb1[3]), float(bb1[4])
+    x2, y2, w2, h2 = float(bb2[1]), float(bb2[2]), float(bb2[3]), float(bb2[4])
+    # AABB overlap check
+    return not (x1 + w1 < x2 or x2 + w2 < x1 or y1 + h1 < y2 or y2 + h2 < y1)
+
+
+def prim_area(args: list[SchemeValue]) -> float:
+    if len(args) != 1:
+        raise SchemeRuntimeError(f"'area' requires 1 shape, got {len(args)}", cause_type="ValueError")
+    shape = args[0]
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'area' expects shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+
+    if tag == "rect":
+        return float(shape[3]) * float(shape[4])
+    elif tag == "circle":
+        return math.pi * (float(shape[3]) ** 2)
+    elif tag == "polygon":
+        vertices = [
+            (float(p[1]), float(p[2]))
+            for p in shape[1:]
+            if isinstance(p, list) and len(p) >= 3
+        ]
+        n = len(vertices)
+        if n < 3:
+            return 0.0
+        # Shoelace formula
+        area = 0.0
+        for i in range(n):
+            j = (i + 1) % n
+            area += vertices[i][0] * vertices[j][1]
+            area -= vertices[j][0] * vertices[i][1]
+        return 0.5 * abs(area)
+    elif tag in ("point", "vec"):
+        return 0.0
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape in 'area': {tag}", cause_type="ValueError")
+
+
+def prim_perimeter(args: list[SchemeValue]) -> float:
+    if len(args) != 1:
+        raise SchemeRuntimeError(f"'perimeter' requires 1 shape, got {len(args)}", cause_type="ValueError")
+    shape = args[0]
+    if not isinstance(shape, list) or not shape:
+        raise SchemeRuntimeError(f"'perimeter' expects shape list, got {shape}", cause_type="TypeError")
+
+    tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
+
+    if tag == "rect":
+        return 2.0 * (float(shape[3]) + float(shape[4]))
+    elif tag == "circle":
+        return 2.0 * math.pi * float(shape[3])
+    elif tag == "polygon":
+        vertices = [
+            (float(p[1]), float(p[2]))
+            for p in shape[1:]
+            if isinstance(p, list) and len(p) >= 3
+        ]
+        n = len(vertices)
+        if n < 2:
+            return 0.0
+        perim = 0.0
+        for i in range(n):
+            j = (i + 1) % n
+            perim += math.hypot(vertices[j][0] - vertices[i][0], vertices[j][1] - vertices[i][1])
+        return perim
+    elif tag in ("point", "vec"):
+        return 0.0
+    else:
+        raise SchemeRuntimeError(f"Unsupported shape in 'perimeter': {tag}", cause_type="ValueError")
+
+
 # Frozen static primitives table
 PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "+": prim_add,
@@ -591,4 +1001,20 @@ PURE_PRIMITIVES: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {
     "assert": prim_assert,
     "yield-to-core": prim_yield_to_core,
     "interrupt-core": prim_interrupt_core,
+    # Spatial & Geometric DSL (WO-29 Module 1)
+    "point": prim_point,
+    "vec": prim_vec,
+    "rect": prim_rect,
+    "circle": prim_circle,
+    "polygon": prim_polygon,
+    "distance": prim_distance,
+    "translate": prim_translate,
+    "rotate": prim_rotate,
+    "scale": prim_scale,
+    "bounding-box": prim_bounding_box,
+    "contains?": prim_contains,
+    "intersects?": prim_intersects,
+    "intersect": prim_intersects,
+    "area": prim_area,
+    "perimeter": prim_perimeter,
 }

@@ -1,0 +1,103 @@
+{
+  "model_label": "gemma-4-e2b",
+  "benchmark": "gsm_symbolic",
+  "arm": "r0",
+  "samples": 5,
+  "strict_passed": 4,
+  "strict_accuracy": 80.0,
+  "strict_ci_95": [
+    29.88,
+    98.95
+  ],
+  "lenient_passed": 4,
+  "lenient_accuracy": 80.0,
+  "lenient_ci_95": [
+    29.88,
+    98.95
+  ],
+  "total_tokens": 2824,
+  "avg_tokens_per_item": 564.8,
+  "truncation_count": 0,
+  "truncation_rate_pct": 0.0,
+  "total_elapsed_s": 18.49,
+  "avg_latency_s": 3.699,
+  "vram_start_mib": 2372,
+  "vram_peak_mib": 2372,
+  "results": [
+    {
+      "item_id": "gsm-sym-t11-i1",
+      "arm": "r0",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 368,
+      "thinking_tokens": 0,
+      "latency_s": 2.22,
+      "predicted_ans": "948.0",
+      "ground_truth": "948.0",
+      "failure_class": "none",
+      "truncated": false
+    },
+    {
+      "item_id": "gsm-sym-t20-i1",
+      "arm": "r0",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": false,
+      "lenient_pass": false,
+      "finish_reason": "stop",
+      "completion_tokens": 687,
+      "thinking_tokens": 0,
+      "latency_s": 4.509,
+      "predicted_ans": "22.0",
+      "ground_truth": "24.0",
+      "failure_class": "arithmetic_slip",
+      "truncated": false
+    },
+    {
+      "item_id": "gsm-sym-t39-i1",
+      "arm": "r0",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 732,
+      "thinking_tokens": 0,
+      "latency_s": 4.867,
+      "predicted_ans": "18.0",
+      "ground_truth": "18.0",
+      "failure_class": "none",
+      "truncated": false
+    },
+    {
+      "item_id": "gsm-sym-t43-i1",
+      "arm": "r0",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 668,
+      "thinking_tokens": 0,
+      "latency_s": 4.454,
+      "predicted_ans": "121.0",
+      "ground_truth": "121.0",
+      "failure_class": "none",
+      "truncated": false
+    },
+    {
+      "item_id": "gsm-sym-t74-i1",
+      "arm": "r0",
+      "benchmark": "gsm_symbolic",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 369,
+      "thinking_tokens": 0,
+      "latency_s": 2.441,
+      "predicted_ans": "354.0",
+      "ground_truth": "354.0",
+      "failure_class": "none",
+      "truncated": false
+    }
+  ]
+}

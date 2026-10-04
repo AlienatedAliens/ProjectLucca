@@ -242,4 +242,5 @@ def get_kokoclone_metadata(wav_path: str | Path) -> dict[str, Any]:
         meta["sample_rate"] = sr
         return meta
     except Exception as exc:  # noqa: BLE001
+        _LOG.warning("failed to inspect audio clip %s: %s", wav_path, exc)
         return {"error": str(exc), "file_name": Path(wav_path).name}

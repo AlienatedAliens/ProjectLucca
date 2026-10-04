@@ -32,7 +32,7 @@ TOKEN_SPEC = [
     ("BOOLEAN", r"#(?:t|f)(?![a-zA-Z0-9_?=<>!-])"),
     ("LPAREN", r"\("),
     ("RPAREN", r"\)"),
-    ("SYMBOL", r"[a-zA-Z_][a-zA-Z0-9_?=<>!-]*|[+\-*/<>=]+"),
+    ("SYMBOL", r"[a-zA-Z_?][a-zA-Z0-9_?=<>!-]*|[+\-*/<>=]+"),
     ("WS", r"\s+"),
     ("MISMATCH", r"."),
 ]

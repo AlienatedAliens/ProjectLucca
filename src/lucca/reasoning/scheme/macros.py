@@ -151,3 +151,24 @@ class MacroExpander:
             return [self._substitute(child, subst_map) for child in template]
         else:
             return template
+
+
+def load_spatial_macros(registry: MacroRegistry | None = None) -> MacroRegistry:
+    """Loads spatial domain macros from spatial_primitives.scm into the MacroRegistry."""
+    from pathlib import Path
+
+    from lucca.reasoning.scheme.parser import Parser, tokenize
+
+    reg = registry if registry is not None else MacroRegistry()
+    scm_path = Path(__file__).resolve().parent.parent / "spatial_primitives.scm"
+    if scm_path.exists():
+        content = scm_path.read_text(encoding="utf-8")
+        tokens = tokenize(content)
+        parser = Parser(tokens, macro_registry=reg)
+        while parser.pos < len(parser.tokens):
+            if parser.tokens[parser.pos].type == "LPAREN":
+                parser._parse_expr()
+            else:
+                parser.pos += 1
+    return reg
+

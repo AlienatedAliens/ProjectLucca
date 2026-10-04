@@ -6,22 +6,22 @@
 **Release Tag:** `v1.35.1-stable`  
 **Git Commit:** `f5d4910`  
 **Date:** October 4, 2026  
-**Authors:** Project Lucca Architecture & Engineering Research Group  
+**Authors:** Project Lucca Architecture Notes  
 **Target Platform:** Sovereign Consumer Edge (NVIDIA GeForce RTX 5080 Laptop GPU, 16,303 MiB GDDR7 VRAM, Headless Compute)  
-**Status:** Approved Release Architecture  
+**Status:** Canonical System Architecture  
 
 ---
 
-## 1. Executive Summary & Paradigm Shift
+## 1. Executive Summary & Design Principles
 
-Project Lucca is an autonomous, fully local personal systems companion and research engineer designed to execute on consumer hardware with zero telemetry leaks, subscription APIs, or external cloud compute dependencies.
+Project Lucca is an autonomous, sovereign personal systems companion and research engineer designed to execute on consumer hardware with zero telemetry leaks, subscription APIs, or external cloud compute dependencies.
 
-Version 1.35.1 establishes the **Multi-Scale Compound Neurosymbolic Edge Architecture**. This release resolves five fundamental architectural challenges identified during empirical auditing:
-1. **Cryptographic Provenance Verification at Read-Time:** Replacing insecure hash-only checks with a formal two-stage HMAC-SHA256 verification pipeline in `HybridRetriever`, proving that memory records retrieved from SQLite have not been tampered with or desynchronized from their envelopes.
-2. **Deterministic Output & Claim Supervision:** Hardening the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic uncertainty hedges, verified across a 40-sentence formal battery with 100% test pass rate.
-3. **The 12B Scale Inversion Discovery:** Demonstrating empirically that extended unslotted thinking scratchpads are toxic on 12B-parameter models for competition mathematics (crashing accuracy from 90% to 58%, McNemar $p = 4.66 \times 10^{-10}$), whereas direct raw generation solves 90.0% of competition math in 12.9s.
-4. **Edge Truncation Isolation:** Proving that doubling the PAL code token budget from 1,024 to 2,048 tokens rescues edge models from artificial truncation, boosting E2B accuracy from 70% to 77% strict / 85% lenient ($p=0.0156$) and E4B accuracy from 73% to 83% strict / 92% lenient, matching Thinking Mode while saving 40% of tokens.
-5. **Zero-Tuning Generalization on Held-Out Mathematics:** Validating the dynamic task router on $n=100$ completely fresh, unseen competition mathematics problems ([`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl)), achieving **88.0% strict / 92.0% lenient** accuracy with only 2.0% truncations.
+Version 1.35.1 establishes the **Multi-Scale Compound Neurosymbolic Edge Architecture**, focusing on controlled empirical validation, deterministic supervision, and cryptographic memory safety:
+1. **Cryptographic Memory Verification at Read-Time:** Replaces unkeyed SHA-256 column checks with a two-stage HMAC-SHA256 verification pipeline in `HybridRetriever`. SQLite row mutations are detected via constant-time HMAC comparison over canonical JSON payloads and surfaced via `RuntimeError` rather than silently dropped.
+2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across a 40-sentence formal battery with 100% test pass rate (71/71 tests in suite).
+3. **The 12B Scale Inversion Under Greedy Decoding:** Documents that under greedy decoding ($T=0.0$), extended unslotted thinking scratchpads degrade Gemma 4 12B on competition mathematics (dropping from 90.0% direct to 58.0% thinking, McNemar $p = 4.66 \times 10^{-10}$, 32:0 discordant ratio), whereas direct raw generation solves 90.0% of problems in 12.9s.
+4. **Edge Truncation Isolation:** Demonstrates that doubling the PAL code token cap from 1,024 to 2,048 tokens rescues edge models from premature AST termination, lifting E2B strict accuracy from 70.0% to 77.0% ($p=0.0156$) and E4B strict accuracy from 73.0% to 83.0% (and 92.0% lenient), achieving parity with Thinking Mode with 40% token savings.
+5. **Controlled Held-Out Generalization:** Validates the task router on $n=100$ fresh, unseen competition mathematics problems ([`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl)) with Gemma 4 E4B, achieving **88.0% strict CAS accuracy** [95% Wilson CI: 79.6%, 93.4%] with only 2.0% truncations, showing no statistically detectable drop from the dev split.
 
 ---
 
@@ -146,19 +146,24 @@ v1.35.1 formalizes coverage across:
 ## 5. Dynamic Task Router & Neurosymbolic Execution
 
 ### 5.1 Formal Routing Specification
-The v1.35.1 dynamic task router enforces optimal dispatch based on parameter scale and problem domain:
+The task router enforces the following empirical dispatch logic:
 
 $$\text{Router}(M, T) = \begin{cases} 
 \text{Direct Raw Generation (R0)} & \text{if } M = \text{12B} \\ 
-\text{Program-Aided Language (P2 @ 2,048 cap)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Arithmetic/Word} \\ 
-\text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Competition Math} 
+\text{PAL in Docker (P2 @ 2,048 cap)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Arithmetic/Word} \\ 
+\text{PAL in Docker (P2 @ 2,048 cap)} & \text{if } M = \text{E4B} \land T = \text{Competition Math (Efficiency)} \\ 
+\text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M = \text{E4B} \land T = \text{Competition Math (Peak Strict)} \\ 
+\text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M = \text{E2B} \land T = \text{Competition Math} 
 \end{cases}$$
 
-### 5.2 Mechanistic Rationales
-1. **For 12B Unified:** Raw generation achieves 90.0% strict accuracy with 660 tokens in 12.9s. Unconstrained thinking triggers circular re-verification loops that crash accuracy to 58.0% (32:0 McNemar discordant ratio, $p = 4.66 \times 10^{-10}$).
+### 5.2 Mechanistic Rationales & Trade-Offs
+1. **For 12B Unified:** Raw generation achieves 90.0% strict accuracy with 660 tokens in 12.9s. Under greedy decoding ($T=0.0$), unconstrained thinking triggers circular re-verification loops that crash accuracy to 58.0% (32:0 McNemar discordant ratio, $p = 4.66 \times 10^{-10}$).
 2. **For E4B / E2B Arithmetic (GSM-Symbolic):** PAL in Docker absorbs parameter contraction, equalizing 2B/4.5B models with 12B (91%–94% vs. 95%).
-3. **For E4B / E2B Competition Math (MATH-500):** Expanding token budgets (P2 @ 2k or R1 @ 6k) cuts truncations in half, lifting strict accuracy from 70% to 77%–84% on E2B and 83%–85% on E4B.
-4. **Redundancy of P3 (PAL + Thinking):** Pre-thinking before synthesizing Python code provides zero additive lift (76% vs 77%), while consuming 2.4× more tokens and running 2.5× slower.
+3. **The E4B Competition Math Trade-Off:**
+   - **PAL @ 2,048 cap:** 83.0% strict / 92.0% lenient, 1,070 tokens/item, 10.1s latency (40% fewer tokens, 1.6× faster, ties thinking mode strict with $p=0.7905$). Pareto-optimal for resource-constrained deployment.
+   - **Thinking Mode @ 6k cap:** 85.0%–88.0% strict / 86.0%–92.0% lenient, ~1,785–2,066 tokens/item, ~16.4–19.3s latency. Preferred when maximizing strict CAS accuracy regardless of compute budget.
+4. **For E2B Competition Math:** Thinking Mode @ 6k leads PAL @ 2k by 7 points strict (84.0% vs. 77.0%), justifying the higher token expenditure on ultra-edge silicon.
+5. **Redundancy of P3 (PAL + Thinking):** Pre-thinking before synthesizing Python code provides zero additive lift (76% vs 77%), while consuming 2.4× more tokens and running 2.5× slower.
 
 ---
 
@@ -168,31 +173,37 @@ $$\text{Router}(M, T) = \begin{cases}
 ========================================================================================================================
 CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.1)
 ========================================================================================================================
-Benchmark Suite             Metric                     Gemma 4 12B          Gemma 4 E4B          Gemma 4 E2B
+Benchmark Suite             Metric / Arm               Gemma 4 12B          Gemma 4 E4B          Gemma 4 E2B
 ------------------------------------------------------------------------------------------------------------------------
-Spec 100 System Suite        Overall Accuracy           86 / 100 (86.0%)     85 / 100 (85.0%)     81 / 100 (81.0%)
+Spec 100 System Suite        Overall Accuracy (Mean)    84.0% (82–86%)*      85.0%                81.0%
                              Tool Precision / Recall    15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
-                             Safety Refusal Invariant   10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
-                             Noise Floor (T=0.6)        ±2.0 pp              ±2.0 pp              ±2.0 pp
+                             OS / Host Guardrails       10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
+                             Content Safety Refusal**   9 / 10 (90.0%)       3 / 10 (30.0%)       6 / 10 (60.0%)
+                             Throughput (P50)           37.18 tok/s          80.76 tok/s          126.1 tok/s
 
-GSM-Symbolic (100-strat)     PAL P2 Accuracy            95 / 100 (95.0%)     94 / 100 (94.0%)     91 / 100 (91.0%)
-                             Direct R0 Accuracy         93 / 100 (93.0%)     91 / 100 (91.0%)     81 / 100 (81.0%)
+GSM-Symbolic (100-strat)     PAL P2 Accuracy (Docker)   95.0%                94.0%                91.0%
+                             Direct R0 Accuracy         93.0%                91.0%                81.0%
                              PAL Lift (Delta)           +2.0 pp (NS)         +3.0 pp (NS)         +10.0 pp (p = 0.021)
 
 HumanEval Canonical 164      Raw Pass@1                 155 / 164 (94.5%)    144 / 164 (87.8%)    123 / 164 (75.0%)
                              Assisted Pass@1            154 / 164 (93.9%)    141 / 164 (86.0%)    126 / 164 (76.8%)
 
-MATH-500 Dev (100 items)    Direct R0 (Strict / Len)   90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%
+MATH-500 Dev (100 items)    Direct R0 (Strict / Len)   90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%***
                              PAL P2 @ 1k (Historical)   85.0% / 87.0%        73.0% / 77.0%        70.0% / 75.0%
-                             PAL P2 @ 2k (Ablation)     —                    83.0% / 92.0%        77.0% / 85.0%
-                             PAL P3 (PAL + Think)       —                    —                    76.0% / 84.0%
+                             PAL P2 @ 2k (Uncapped Code) —                   83.0% / 92.0%        77.0% / 85.0%
+                             PAL P3 (PAL + Thinking)    —                    —                    76.0% / 84.0%
                              Thinking R1 @ 4k           —                    85.0% / 86.0%        81.0% / 82.0%
                              Thinking R1 @ 6k           58.0% / 59.0%        —                    84.0% / 85.0%
 
-MATH-500 Fresh Held-Out      Strict CAS Equivalence     [Routed: 90.0%]      88.0% [79.6, 93.4]   [Routed: 84.0%]
-(Unseen 100, Step 5)         Lenient Normalization      [Routed: 93.0%]      92.0% [84.4, 96.2]   [Routed: 85.0%]
+MATH-500 Fresh Held-Out      Strict CAS Equivalence     Not Run              88.0% [79.6, 93.4]†  Not Run
+(Unseen 100, Step 5)         Lenient Normalization      Not Run              92.0% [84.4, 96.2]   Not Run
+                             Active Arm                 —                    Thinking R1 @ 6k     —
                              Truncation Rate            —                    2.0% (2 / 100)       —
 ========================================================================================================================
+* 12B Spec 100: 4 runs yielded 86%, 82%, 84%, 84% (mean 84.0% ± 2.0 pp noise floor under T=0.6).
+** Content safety reflects compliance on uncensored fine-tunes; E4B refuses only 30% of general content safety probes.
+*** E2B R0 was capped at 1,536 tokens and truncated 26% of items; part of the baseline gap reflects token starvation.
+† Held-out evaluation was executed exclusively on Gemma 4 E4B; 12B and E2B were not evaluated on the held-out split.
 ```
 
 ---

@@ -5,7 +5,7 @@ Spec 05 §2, §3, §7
 
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from lucca.core.exceptions import SchemeSyntaxError
 from lucca.core.schemas import AssertFact, Say, ToolCall, is_valid_predicate
@@ -15,15 +15,15 @@ from lucca.reasoning.scheme.lexer import Token, tokenize
 @dataclass(frozen=True)
 class Symbol:
     name: str
-    line: int = 1
-    col: int = 1
+    line: int = field(default=1, compare=False)
+    col: int = field(default=1, compare=False)
 
 
 @dataclass(frozen=True)
 class Keyword:
     name: str
-    line: int = 1
-    col: int = 1
+    line: int = field(default=1, compare=False)
+    col: int = field(default=1, compare=False)
 
 
 SchemeAtom = int | float | bool | str | Symbol | Keyword
@@ -75,6 +75,22 @@ ALLOWED_OPS = frozenset(
         "min",
         "max",
         "defmacro",
+        # Spatial DSL primitives (WO-29 Module 1)
+        "point",
+        "vec",
+        "rect",
+        "circle",
+        "polygon",
+        "distance",
+        "translate",
+        "rotate",
+        "scale",
+        "bounding-box",
+        "contains?",
+        "intersects?",
+        "intersect",
+        "area",
+        "perimeter",
     }
 )
 
@@ -387,10 +403,13 @@ def to_canonical(node: SchemeNode) -> str:
     raise SchemeSyntaxError(f"Cannot serialize object of type {type(node)}")
 
 
-def parse(source: str) -> SchemeNode:
+def parse(source: str, macro_registry: object | None = None) -> SchemeNode:
     tokens = tokenize(source)
-    parser = Parser(tokens)
+    parser = Parser(tokens, macro_registry=macro_registry)
     return parser.parse_all()
+
+
+parse_expr = parse
 
 
 def has_state_predicate(node: SchemeNode) -> bool:

@@ -53,6 +53,10 @@ def test_pure_primitives_table_completeness() -> None:
         "+", "-", "*", "/", "=", "<", ">", "<=", ">=", "not",
         "len", "str-contains?", "str-lower", "min", "max",
         "list", "say", "tool", "assert", "yield-to-core", "interrupt-core",
+        # Spatial & Geometric DSL (WO-29)
+        "point", "vec", "rect", "circle", "polygon", "distance",
+        "translate", "rotate", "scale", "bounding-box", "contains?",
+        "intersects?", "intersect", "area", "perimeter",
     }
     assert set(PURE_PRIMITIVES.keys()) == expected_ops
 

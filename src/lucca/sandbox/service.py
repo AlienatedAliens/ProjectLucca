@@ -1246,6 +1246,7 @@ class SandboxService:
                         self.workspace_mgr.import_from_inbox(f.name)
                         imported.append(f.name)
                     except Exception as exc:  # noqa: BLE001
+                        logger.warning("inbox_import_failed", filename=f.name, error=str(exc))
                         errors.append(f"{f.name}: {exc}")
                 if imported:
                     content = (

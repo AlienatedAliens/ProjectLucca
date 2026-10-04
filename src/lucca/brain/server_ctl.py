@@ -197,23 +197,26 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
         # Check audio compatibility badge
         # Check if an mmproj file exists that matches this model
         paired_mmproj: Path | None = None
+        p_name_lower = path.name.lower()
         for cand_name in all_names:
-            if "mmproj" in cand_name.lower():
+            c_name_lower = cand_name.lower()
+            if "mmproj" in c_name_lower:
                 # Prefer model-specific match
-                if "gemma" in path.name.lower() and "gemma" in cand_name.lower():
+                if "gemma" in p_name_lower and "gemma" in c_name_lower:
                     paired_mmproj = models_dir / cand_name
                     break
-                if "ultravox" in path.name.lower() and "ultravox" in cand_name.lower():
+                if "ultravox" in p_name_lower and "ultravox" in c_name_lower:
                     paired_mmproj = models_dir / cand_name
                     break
-                if paired_mmproj is None:
+                if "llama" in p_name_lower and "llama" in c_name_lower:
                     paired_mmproj = models_dir / cand_name
+                    break
 
-        is_audio_model = "ultravox" in path.name.lower() or "audio" in path.name.lower()
+        is_audio_model = "ultravox" in p_name_lower or "audio" in p_name_lower
         is_vision_model = (
-            "vision" in path.name.lower()
-            or "vl" in path.name.lower()
-            or (paired_mmproj is not None and "mmproj" in str(paired_mmproj).lower())
+            "vision" in p_name_lower
+            or "vl" in p_name_lower
+            or (paired_mmproj is not None and not is_audio_model and "vision" in str(paired_mmproj).lower())
         )
 
         if is_audio_model and paired_mmproj is not None and paired_mmproj.exists():

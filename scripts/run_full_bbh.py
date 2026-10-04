@@ -35,6 +35,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+# Fix Windows console encoding
+if sys.platform == "win32":
+    try:
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 DATA_DIR = REPO_ROOT / "data" / "benchmarks"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 REPORTS_DIR = REPO_ROOT / "logs" / "test_reports"
@@ -277,6 +287,8 @@ def query_llm(prompt: str, max_tokens: int = 512, retries: int = 2) -> str:
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
         "temperature": 0.0,
+        "seed": 42,
+        "cache_prompt": False,
         "chat_template_kwargs": {"enable_thinking": False},
     }
     for attempt in range(retries):

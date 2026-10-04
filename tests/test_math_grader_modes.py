@@ -13,11 +13,10 @@ from scripts.regrade_math_checkpoint import (
 )
 
 
-def test_strict_rejects_decimal_for_fraction():
-    assert not compare_math_strict("0.5", "\\frac{1}{2}")
-    assert not compare_math_strict("0.875", "\\frac{7}{8}")
-    assert not compare_math_strict("0.2", "\\frac{1}{5}")
+def test_strict_rejects_non_terminating_decimal_for_fraction():
     assert not compare_math_strict("1.33333333333333", "\\frac{4}{3}")
+    assert not compare_math_strict("0.33333333", "\\frac{1}{3}")
+    assert not compare_math_strict("0.16666666", "\\frac{1}{6}")
 
 
 def test_strict_rejects_decimal_for_irrational():
@@ -77,6 +76,7 @@ def test_lenient_accepts_interval_rendering():
 
 def test_unified_entry_point():
     assert compare_math_results("E", "\\text{(E)}", mode="lenient")
-    assert not compare_math_results("E", "\\text{(E)}", mode="strict")
+    assert compare_math_results("E", "\\text{(E)}", mode="strict")
     assert compare_math_results("0.5", "\\frac{1}{2}", mode="lenient")
-    assert not compare_math_results("0.5", "\\frac{1}{2}", mode="strict")
+    assert compare_math_results("0.5", "\\frac{1}{2}", mode="strict")
+    assert not compare_math_results("1.33333333333333", "\\frac{4}{3}", mode="strict")

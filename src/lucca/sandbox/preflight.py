@@ -155,8 +155,14 @@ def build_preflight_runner_code(code: str, assertions: list[str]) -> str:
 
     Emits rich, human- and model-readable diff messages on stderr upon failure.
     """
+    env_preamble = (
+        "import os\n"
+        "os.environ['OPENBLAS_NUM_THREADS'] = '1'\n"
+        "os.environ['MKL_NUM_THREADS'] = '1'\n"
+        "os.environ['OMP_NUM_THREADS'] = '1'\n"
+    )
     if not assertions:
-        return f"{code}\n\n# Preflight syntax and import sanity check passed\n"
+        return f"{env_preamble}\n{code}\n\n# Preflight syntax and import sanity check passed\n"
 
     checks: list[str] = []
     for a_str in assertions:
@@ -193,5 +199,5 @@ def build_preflight_runner_code(code: str, assertions: list[str]) -> str:
             f"    sys.exit(1)\n"
         )
 
-    runner = f"{code}\n\n# --- Preflight Spec Assertions ---\n" + "\n".join(checks)
+    runner = f"{env_preamble}\n{code}\n\n# --- Preflight Spec Assertions ---\n" + "\n".join(checks)
     return runner

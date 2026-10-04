@@ -1,0 +1,58 @@
+{
+  "model_label": "gemma-4-e2b",
+  "benchmark": "math500",
+  "arm": "p1",
+  "samples": 2,
+  "strict_passed": 1,
+  "strict_accuracy": 50.0,
+  "strict_ci_95": [
+    2.67,
+    97.33
+  ],
+  "lenient_passed": 1,
+  "lenient_accuracy": 50.0,
+  "lenient_ci_95": [
+    2.67,
+    97.33
+  ],
+  "total_tokens": 1262,
+  "avg_tokens_per_item": 631.0,
+  "truncation_count": 1,
+  "truncation_rate_pct": 50.0,
+  "total_elapsed_s": 7.69,
+  "avg_latency_s": 3.845,
+  "vram_start_mib": 2372,
+  "vram_peak_mib": 2372,
+  "results": [
+    {
+      "item_id": "math500-1",
+      "arm": "p1",
+      "benchmark": "math500",
+      "strict_pass": true,
+      "lenient_pass": true,
+      "finish_reason": "stop",
+      "completion_tokens": 238,
+      "latency_s": 1.437,
+      "predicted_ans": "(3.0, pi/2)",
+      "ground_truth": "\\left( 3, \\frac{\\pi}{2} \\right)",
+      "exit_code": 0,
+      "failure_class": "none",
+      "truncated": false
+    },
+    {
+      "item_id": "math500-2",
+      "arm": "p1",
+      "benchmark": "math500",
+      "strict_pass": false,
+      "lenient_pass": false,
+      "finish_reason": "length",
+      "completion_tokens": 1024,
+      "latency_s": 5.704,
+      "predicted_ans": "",
+      "ground_truth": "p - q",
+      "exit_code": 0,
+      "failure_class": "length_truncation",
+      "truncated": true
+    }
+  ]
+}
