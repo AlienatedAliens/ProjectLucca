@@ -23,6 +23,11 @@
 | `math-v1.35-final-fresh-500` | `46486cf` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 500 | 451 | 85.80% (429/500) | 90.20% (451/500) | [82.47%, 88.59%] (S) / [87.28%, 92.51%] (L) | `logs/test_reports/checkpoint_math500_v1.35-final-fresh-500.json` | 7.20 points above v1.3 on paired items (+36 net items, 66 gains, 30 losses); `length` truncations 29→12, crashes 21→14. Primary held-out evaluation. |
 | `math-v1.35-final-test-100` | `46486cf` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (1-100) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 100 | 89 | 86.00% (86/100) | 89.00% (89/100) | [77.86%, 91.47%] (S) / [81.37%, 93.75%] (L) | `logs/test_reports/checkpoint_math500_v1.35-final-test-100.json` | statistically indistinguishable from v1.3 baseline 85/100; `length` truncations 8→1, crashes 5→3. Secondary evaluation (deemed contaminated tuning set; informational only). |
 
+---
+
+*Nomenclature Mapping:* The dataset slice `data/benchmarks/math500_test.jsonl` (problems 1–100) is designated as **Dev-100** in research papers and factorial ablation reports, reflecting its historical role as a prompt-development split in v1.3 where it was labeled `test-100`.
+
+
 
 
 
