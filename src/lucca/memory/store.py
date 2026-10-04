@@ -62,7 +62,7 @@ class MemoryStore:
         self.backup_dir = Path(backup_dir) if isinstance(backup_dir, str) else backup_dir
 
         self.gate = ProvenanceGate(master_key=master_key, db=db)
-        self.retriever = HybridRetriever(db=db, embedder=embedding_port)
+        self.retriever = HybridRetriever(db=db, embedder=embedding_port, master_key=master_key)
 
         self.read_only: bool = False
         self.vec_backfill: list[int] = []

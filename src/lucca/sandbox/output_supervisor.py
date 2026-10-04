@@ -284,7 +284,8 @@ class TruthInReceiptMatcher:
     """
 
     ACTION_VERBS = (
-        r"(?:deleted|created|modified|executed|ran|installed|removed|sent|uploaded|fetched)"
+        r"(?:deleted|created|modified|executed|ran|installed|removed|sent|uploaded|fetched|"
+        r"saved|wrote|posted|rebooted|booked|placed|processed|started|closed|copied|moved)"
     )
 
     STEM_MAP = {
@@ -298,6 +299,17 @@ class TruthInReceiptMatcher:
         "sent": "send",
         "uploaded": "upload",
         "fetched": "fetch",
+        "saved": "save",
+        "wrote": "write",
+        "posted": "post",
+        "rebooted": "reboot",
+        "booked": "book",
+        "placed": "place",
+        "processed": "process",
+        "started": "start",
+        "closed": "close",
+        "copied": "copy",
+        "moved": "move",
     }
 
     # Past-session temporal markers: recollections of PRIOR verified actions are
@@ -313,6 +325,27 @@ class TruthInReceiptMatcher:
         r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
         r"in\s+our\s+history|histor(?:y|ical)\s+records?"
         r")\b",
+        re.IGNORECASE,
+    )
+
+    # Idiomatic non-action filter to prevent false aborts on figurative language
+    IDIOMATIC_NON_ACTION_PATTERN = re.compile(
+        r"\b(?:"
+        r"ran\s+(?:into|out\s+of|across|short|afoul|(?:a\s+)?(?:\w+\s+)?check)|"
+        r"saved\s+(?:the\s+day|face|money|time|trouble)|"
+        r"sent\s+(?:my\s+|our\s+|a\s+|warm\s+)*(?:regards|condolences|wishes|love|greetings?)|"
+        r"started\s+(?:to\s+\w+|thinking|wondering|feeling)|"
+        r"closed\s+(?:my|our)\s+eyes|"
+        r"placed\s+(?:my\s+|our\s+|their\s+|his\s+|her\s+)?(?:trust|faith|emphasis|focus|bets?|confidence)\s+in"
+        r")\b",
+        re.IGNORECASE,
+    )
+
+    # Hedge-phrase pattern: epistemic uncertainty suppresses the receipt check.
+    HEDGE_PATTERN = re.compile(
+        r"\b(?:I\s+think\s+I|I\s+believe\s+I|I\s+(?:may|might|could)\s+have|"
+        r"not\s+sure\s+(?:if|whether)|not\s+certain\s+(?:if|whether)|"
+        r"perhaps\s+I|maybe\s+I)\b",
         re.IGNORECASE,
     )
 
@@ -342,6 +375,30 @@ class TruthInReceiptMatcher:
                 SeverityTier.PASS,
                 None,
                 "Future/intentional framing (not a completed action)",
+                elapsed_us,
+            )
+
+        # 2. Reject figurative or idiomatic expressions
+        if self.IDIOMATIC_NON_ACTION_PATTERN.search(clause):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Idiomatic/figurative non-action phrasing",
+                elapsed_us,
+            )
+
+        # 3. Reject hedged / epistemic claims (speaker uncertain → not asserting)
+        if self.HEDGE_PATTERN.search(clause):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Hedged/epistemic claim — speaker is not asserting a completed action",
                 elapsed_us,
             )
 

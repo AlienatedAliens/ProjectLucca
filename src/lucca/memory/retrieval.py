@@ -3,6 +3,9 @@ Project Lucca — Hybrid Memory Retrieval (sqlite-vec KNN + FTS5 BM25 + RRF)
 Spec 04 §6, Spec 10
 """
 
+import base64
+import hashlib
+import hmac
 import json
 import sqlite3
 import time
@@ -22,6 +25,7 @@ from lucca.core.schemas import (
     standard_for_confidence,
 )
 from lucca.memory.db import DatabaseManager
+from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
 from lucca.memory.tokens import build_fts_query, subtokens
 from lucca.ports import EmbeddingPort
 
@@ -127,9 +131,15 @@ class HybridRetriever:
     by bi-temporal filtering and 1-hop KG expansion.
     """
 
-    def __init__(self, db: DatabaseManager, embedder: EmbeddingPort | None = None) -> None:
+    def __init__(
+        self,
+        db: DatabaseManager,
+        embedder: EmbeddingPort | None = None,
+        master_key: bytes | None = None,
+    ) -> None:
         self.db = db
         self.embedder = embedder
+        self.master_key = master_key  # None disables HMAC verification (dev/test only)
 
     def search(self, q: RetrievalQuery, now: float | None = None) -> list[MemoryHit]:
         current_time = now if now is not None else time.time()
@@ -207,7 +217,7 @@ class HybridRetriever:
             query_sql = f"""
                 SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
                        m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible,
-                       p.confidence
+                       p.confidence, p.content_sha256, p.signature, p.payload_json
                 FROM memories m
                 JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                 WHERE m.memory_id IN ({placeholders})
@@ -220,6 +230,88 @@ class HybridRetriever:
                 if mid not in rows:
                     continue
                 r = rows[mid]
+
+                # Integrity check — two-stage:
+                # Stage 1: content_sha256 fast-fail (catches naive DB edits)
+                # Stage 2: HMAC-SHA256 over payload_json (requires master_key; catches
+                #           any edit that also updated content_sha256 in the envelope)
+                _integrity_ok = True
+                try:
+                    stored_sha = r["content_sha256"]
+                    actual_sha = hashlib.sha256(
+                        str(r["content"]).encode("utf-8")
+                    ).hexdigest()
+                    if stored_sha and actual_sha != stored_sha:
+                        logger.error(
+                            "memory_retrieval_integrity_violation",
+                            stage="content_sha256",
+                            memory_id=mid,
+                        )
+                        _integrity_ok = False
+
+                    if _integrity_ok and self.master_key is not None:
+                        stored_sig = r["signature"]
+                        payload_json_raw = r["payload_json"]
+                        if stored_sig and payload_json_raw:
+                            # Reconstruct canonical bytes the same way BaseProvenanceSigner.sign()
+                            # does: parse the stored JSON, strip the 4 excluded fields, then
+                            # re-serialize with sorted keys + compact separators.
+                            # This matches canonicalize_unsigned_payload() exactly.
+                            _EXCLUDED = {"signature", "signer_id", "entry_id", "content_sha256"}
+                            try:
+                                raw_dict = json.loads(payload_json_raw)
+                                if "content" in raw_dict and raw_dict["content"] != r["content"]:
+                                    logger.error(
+                                        "memory_retrieval_integrity_violation",
+                                        stage="payload_content_mismatch",
+                                        memory_id=mid,
+                                    )
+                                    _integrity_ok = False
+                                canon_dict = {k: v for k, v in raw_dict.items() if k not in _EXCLUDED}
+                                canonical_bytes = json.dumps(
+                                    canon_dict,
+                                    sort_keys=True,
+                                    separators=(",", ":"),
+                                    ensure_ascii=False,
+                                ).encode("utf-8")
+                            except (json.JSONDecodeError, AttributeError) as parse_err:
+                                logger.warning(
+                                    "memory_retrieval_payload_parse_error",
+                                    memory_id=mid,
+                                    error=str(parse_err),
+                                )
+                                canonical_bytes = None
+
+                            if canonical_bytes is not None:
+                                prov_enum = Provenance(r["provenance"])
+                                derived_key = derive_provenance_key(self.master_key, prov_enum)
+                                expected_raw = hmac.new(
+                                    derived_key, canonical_bytes, hashlib.sha256
+                                ).digest()
+                                expected_sig = base64.b64encode(expected_raw).decode("ascii")
+                                if not hmac.compare_digest(stored_sig, expected_sig):
+                                    logger.error(
+                                        "memory_retrieval_integrity_violation",
+                                        stage="hmac",
+                                        memory_id=mid,
+                                    )
+                                    _integrity_ok = False
+
+                except (KeyError, IndexError, ValueError) as exc:
+                    logger.warning(
+                        "memory_retrieval_integrity_check_error",
+                        memory_id=mid,
+                        error=str(exc),
+                    )
+
+                if not _integrity_ok:
+                    # Surface violation: raise so orchestrator can notify the user.
+                    # Do NOT silently return an empty result — silent failures hide attacks.
+                    raise RuntimeError(
+                        f"Memory integrity violation detected for memory_id={mid}. "
+                        "The record may have been tampered with. Retrieval aborted."
+                    )
+
                 valid_to = r["valid_to"]
                 forgotten_at = r["forgotten_at"]
                 kind = str(r["kind"])
