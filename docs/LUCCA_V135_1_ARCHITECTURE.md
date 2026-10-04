@@ -167,8 +167,8 @@ $$\text{Router}(M, T) = \begin{cases}
 3. **The E4B Competition Math Trade-Off (Dev vs. Held-Out):**
    - **On Dev Split ($n=100$):** PAL @ 2,048 cap scored 83.0% strict / 92.0% lenient (10.1s, 1,070 tok), tying Thinking Mode R1 @ 4k (85.0% strict / 86.0% lenient, $p=0.7905$ NS).
    - **On Held-Out Split ($n=100$):** Evaluated side-by-side on the identical 100 unseen competition problems, Thinking Mode R1 @ 6k scored **88.0% strict / 92.0% lenient**, while PAL P2 @ 2k scored **73.0% strict / 83.0% lenient**.
-   - **Paired McNemar Analysis:** On strict CAS, discordant pairs are 4 : 19 ($p = 0.0026$, significant advantage for R1); on lenient normalization, discordant pairs are 4 : 13 ($p = 0.0490$). On harder unseen competition problems, latent thinking tokens allow the model to explore geometric and algebraic relationships before committing to numeric calculations, whereas direct Python synthesis without pre-thinking fails when the model cannot directly formalize the equations.
-4. **P3 Redundancy Limitation:** Pre-thinking before synthesizing Python code (Arm P3) was shown to be redundant on Gemma 4 E2B (76% vs 77%, $p=1.000$, 4:5 discordant). Multi-model generalization of this finding across other scales remains an open empirical question.
+   - **Paired McNemar Analysis:** On strict CAS, discordant pairs are `R1-only (b) = 19 : P2-only (c) = 4` ($p = 0.0026$, significant advantage for R1); on lenient normalization, discordant pairs are `R1-only (b) = 13 : P2-only (c) = 4` ($p = 0.0490$). On harder unseen competition problems, latent thinking tokens allow the model to explore geometric and algebraic relationships before committing to numeric calculations, whereas direct Python synthesis without pre-thinking fails when the model cannot directly formalize the equations.
+4. **P3 Redundancy Limitation:** Pre-thinking before synthesizing Python code (Arm P3) was shown to be redundant on Gemma 4 E2B (76% vs 77%, $p=1.000$, `P2-only = 5 : P3-only = 4`). Multi-model generalization of this finding across other scales remains an open empirical question.
 5. **Router Nature Disclosure:** In the benchmark harness, `--arm routed` switches execution using the benchmark metadata label (`benchmark == 'gsm_symbolic'` vs `'math500'`). This represents an **oracle label lookup**, not an active neural intent classifier. In production desktop deployment, realizing this routing policy requires an in-the-wild task-type intent classifier, which has not yet been benchmarked.
 
 ---
@@ -177,7 +177,7 @@ $$\text{Router}(M, T) = \begin{cases}
 
 ```
 ========================================================================================================================
-CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.2)
+CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.4)
 ========================================================================================================================
 Benchmark Suite             Metric / Arm               Gemma 4 12B          Gemma 4 E4B          Gemma 4 E2B
 ------------------------------------------------------------------------------------------------------------------------
@@ -193,6 +193,7 @@ GSM-Symbolic (100-strat)‡   PAL P2 Accuracy (Docker)   95.0%                94
 
 HumanEval Canonical 164‡    Raw Pass@1                 155 / 164 (94.5%)    144 / 164 (87.8%)    123 / 164 (75.0%)
                             Assisted Pass@1            154 / 164 (93.9%)    141 / 164 (86.0%)    126 / 164 (76.8%)
+                            (Assisted Effect)          No Detectable Ben.   No Detectable Ben.   +1.8 pp (p = 0.55 NS)
 
 MATH-500 Dev (100 items)‡   Direct R0 (Strict / Len)   90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%***
                             PAL P2 @ 1k (Historical)   85.0% / 87.0%        73.0% / 77.0%        70.0% / 75.0%
@@ -201,19 +202,19 @@ MATH-500 Dev (100 items)‡   Direct R0 (Strict / Len)   90.0% / 93.0%        50
                             Thinking R1 @ 4k           —                    85.0% / 86.0%        81.0% / 82.0%
                             Thinking R1 @ 6k           58.0% / 59.0%        —                    84.0% / 85.0%
 
-MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)    89.0% [81.4, 93.8]   52.0% [42.4, 61.5]   51.0% [41.4, 60.6]
-(Unseen 100 Problems)       Direct R0 @ 4k (Lenient)   94.0% [87.5, 97.2]   54.0% [44.2, 63.4]   55.0% [45.2, 64.4]
-                            PAL P2 @ 2k (Strict)       86.0% [77.9, 91.5]   73.0% [63.0, 81.2]   61.0% [50.7, 70.4]
-                            PAL P2 @ 2k (Lenient)      90.0% [82.6, 94.5]   83.0% [73.9, 89.5]   70.0% [59.9, 78.6]
-                            Thinking R1 @ 6k (Strict)  (Dev: 58.0% [48.2])  88.0% [79.6, 93.4]   81.0% [72.2, 87.5]
-                            Thinking R1 @ 6k (Lenient) (Dev: 59.0% [49.2])  92.0% [84.4, 96.2]   86.0% [77.9, 91.5]
-                            Truncations (R0 / P2 / R1) 3.0% / 5.0% / —      1.0% / 7.0% / 2.0%   4.0% / 14.0% / 10.0%
+MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)    89.0% [80.8, 94.1]   52.0% [41.8, 62.0]   51.0% [40.9, 61.1]
+(Unseen 100 Problems)       Direct R0 @ 4k (Lenient)   94.0% [86.9, 97.5]   54.0% [43.8, 63.9]   55.0% [44.8, 64.9]
+                            PAL P2 @ 2k (Strict)       86.0% [77.3, 91.9]   73.0% [63.0, 81.2]   61.0% [50.7, 70.4]
+                            PAL P2 @ 2k (Lenient)      90.0% [82.0, 94.8]   83.0% [73.9, 89.5]   70.0% [59.9, 78.6]
+                            Thinking R1 @ 6k (Strict)  (Dev: 58.0% [47.7])  88.0% [79.6, 93.4]   81.0% [71.7, 87.9]
+                            Thinking R1 @ 6k (Lenient) (Dev: 59.0% [48.7])  92.0% [84.4, 96.2]   86.0% [77.3, 91.9]
+                            Truncations (R0 / P2 / R1) 3.0% / 5.0% / —      1.0% / 8.0% / 2.0%   4.0% / 14.0% / 10.0%
 ========================================================================================================================
 † Spec 100 was evaluated under sampling temperature T=0.6 (reproducibility range 82–86%, mean 84.0% ± 2.0 pp noise floor).
 ‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
 * 12B Spec 100: 4 independent runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored fine-tunes; E4B refuses only 30% of general content safety probes.
-*** Evaluated with 4,096-token cap on held-out math: E2B R0 achieved 51.0% (4% truncations) and E4B R0 achieved 52.0% (1% truncations), proving that baseline gaps reflect fundamental reasoning limits of prose generation rather than token starvation.
+*** Tested directly on identical Dev-100 items with 4,096-token cap: E4B R0 scored 52.0% (5:3 discordant, p = 0.7266 NS) and E2B R0 scored 57.0% (10:4 discordant, p = 0.1796 NS), proving that baseline gaps reflect fundamental reasoning limits of prose generation rather than token starvation.
 ```
 
 ---

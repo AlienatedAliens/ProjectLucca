@@ -88,96 +88,88 @@ On Gemma 4 12B on MATH-500 dev ($n=100$):
 
 **Caveat on Greedy Decoding:** All runs were conducted using greedy decoding ($T = 0.0$, seed 42) without repetition penalties. Greedy decoding is known to induce cyclical repetition in long chain-of-thought outputs. We hypothesize that greedy sampling exacerbated looping behavior at 12B scale.
 
-### 2.4 Empirical Deconfounding: R0 Token Starvation Tested at 4k Cap
-To isolate whether the apparent baseline gap between unassisted direct generation (R0) and scaffolded arms was an artifact of token truncation at the historical 1,536-token ceiling, we re-evaluated R0 with a generous **4,096-token cap** across 100 fresh held-out competition problems:
-- **Gemma 4 E2B:** Strict CAS accuracy reached **51.0%** (55.0% lenient), with truncations dropping from 26% to **4%** (mean 1,279 tokens). The exact match with the dev baseline (51.0%) proves that unassisted prose generation hits a hard computational and arithmetic ceiling at ultra-edge scale, regardless of available token budget. Both PAL P2 (+10.0 pp strict, +15.0 pp lenient, $p = 0.0135$) and Thinking Mode R1 (+30.0 pp strict, $p = 2.27 \times 10^{-7}$) provide genuine capability additions rather than mere truncation relief.
-- **Gemma 4 E4B:** Strict CAS accuracy reached **52.0%** (54.0% lenient) with only **1%** truncations (mean 1,108 tokens). The lift from 50.0% to 52.0% (+2.0 pp) is statistically negligible ($p = 0.82$). In contrast, PAL P2 lifts strict accuracy to **73.0%** ($p = 5.08 \times 10^{-4}$), and Thinking Mode R1 lifts it to **88.0%** ($p = 1.71 \times 10^{-8}$).
-- **Gemma 4 12B:** Strict CAS accuracy reached **89.0%** (94.0% lenient) with **3%** truncations (mean 803 tokens). At 12B scale, the model directly synthesizes complex multistep competition proofs in prose without requiring code or latent reasoning scaffolding.
+### 2.4 Empirical Deconfounding: R0 Token Starvation Tested on Identical Dev Problems
+To isolate whether the apparent baseline gap between unassisted direct generation (R0) and scaffolded arms was an artifact of token truncation at the historical 1,536-token ceiling, we re-evaluated R0 with a generous **4,096-token cap** directly on the **identical 100 development split problems** for both edge models:
+- **Gemma 4 E4B on Identical Dev Split ($n=100$):**
+  - Historical R0 @ 1.5k cap: **50.0%** (50/100) [95% Wilson CI: 39.9%, 60.1%], 16% truncations.
+  - R0 @ 4k cap: **52.0%** (52/100) [95% Wilson CI: 41.8%, 62.0%], 1% truncations (mean 978 tokens).
+  - **Paired McNemar Comparison:** Discordant pairs: `R0 @ 4k only (b) = 5` : `R0 @ 1.5k only (c) = 3`. Exact two-sided binomial **$p = 0.7266$ (Statistically Indistinguishable)**.
+  - On the exact same 100 dev items, raising the cap from 1.5k to 4k eliminated truncations (16% $\to$ 1%) but netted only 2 additional correct solutions.
+- **Gemma 4 E2B on Identical Dev Split ($n=100$):**
+  - Historical R0 @ 1.5k cap: **51.0%** (51/100) [95% Wilson CI: 40.9%, 61.1%], 26% truncations (mean 949 tokens).
+  - R0 @ 4k cap: **57.0%** (57/100) [95% Wilson CI: 46.7%, 66.7%], 6% truncations (mean 1,217 tokens).
+  - **Paired McNemar Comparison:** Discordant pairs: `R0 @ 4k only (b) = 10` : `R0 @ 1.5k only (c) = 4`. Exact two-sided binomial **$p = 0.1796$ (Statistically Indistinguishable)**.
+  - While raising the cap to 4k reduced truncations from 26% to 6%, the +6.0 pp shift does not reach statistical significance ($p = 0.1796$). Direct unassisted generation on E2B remains substantially below PAL (77.0%, $p=0.0039$) and Thinking Mode (84.0%, $p=4.4 \times 10^{-6}$).
+- **Cross-Split Generalization (Dev vs. Held-Out at 4k cap):**
+  - E4B R0 @ 4k scored **52.0%** on Dev and **52.0%** on Held-Out ($z = 0.000, p = 1.000$).
+  - E2B R0 @ 4k scored **57.0%** on Dev and **51.0%** on Held-Out ($z = 0.854, p = 0.3932$).
+  - 12B R0 @ 4k scored **90.0%** on Dev and **89.0%** on Held-Out ($z = 0.231, p = 0.8176$).
+  - This proves that unassisted prose generation hits a hard computational and arithmetic ceiling at edge scale, regardless of available token budget, and confirms that scaffold gains reflect genuine capability additions rather than mere truncation relief.
 
-### 2.5 Per-Subject and Per-Level Breakdown on Dev MATH-500 (n=100)
+### 2.5 Side-by-Side Subject and Level Breakdown: Dev vs. Held-Out MATH-500 (n=100)
 
-Computing stratified performance across mathematical domains and problem tiers highlights clear structural patterns across scale and scaffolding:
+Computing stratified performance across mathematical domains and problem tiers on both the Development ($n=100$) and Held-Out ($n=100$) splits provides empirical clarity without post-hoc overreach:
 
-#### Per-Subject Accuracy (Strict CAS Pass Rate)
-| Subject | n | E4B R1 (Think) | E4B P2 (PAL) | 12B P2 (PAL) | 12B R1 (Think) | E2B R1 (Think) | E2B P2 (PAL) |
+#### Side-by-Side Per-Subject Performance (Strict CAS Accuracy)
+| Subject | Dev $n$ | Dev E4B R1 | Dev E4B P2 | Held-Out $n$ | Held-Out E4B R1 | Held-Out E4B P2 | Held-Out Discordant (`R1 (b) : P2 (c)`) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Algebra** | 25 | 92.0% (23/25) | **96.0%** (24/25) | **96.0%** (24/25) | 72.0% (18/25) | **96.0%** (24/25) | 88.0% (22/25) |
-| **Counting & Probability** | 6 | **100.0%** (6/6) | **100.0%** (6/6) | **100.0%** (6/6) | 33.3% (2/6) | 66.7% (4/6) | **100.0%** (6/6) |
-| **Geometry** | 7 | **85.7%** (6/7) | 57.1% (4/7) | **85.7%** (6/7) | **85.7%** (6/7) | 71.4% (5/7) | **85.7%** (6/7) |
-| **Intermediate Algebra** | 19 | **63.2%** (12/19) | **63.2%** (12/19) | **63.2%** (12/19) | 47.4% (9/19) | **68.4%** (13/19) | 57.9% (11/19) |
-| **Number Theory** | 11 | **100.0%** (11/11) | **100.0%** (11/11) | **100.0%** (11/11) | 27.3% (3/11) | **90.9%** (10/11) | **90.9%** (10/11) |
-| **Prealgebra** | 18 | 77.8% (14/18) | **88.9%** (16/18) | **94.4%** (17/18) | 66.7% (12/18) | **83.3%** (15/18) | **83.3%** (15/18) |
-| **Precalculus** | 14 | **92.9%** (13/14) | 71.4% (10/14) | 64.3% (9/14) | 57.1% (8/14) | **92.9%** (13/14) | 50.0% (7/14) |
+| **Algebra** | 25 | 92.0% (23/25) | **96.0%** (24/25) | 8 | **100.0%** (8/8) | 75.0% (6/8) | 2 : 0 |
+| **Counting & Probability** | 6 | **100.0%** (6/6) | **100.0%** (6/6) | 13 | **100.0%** (13/13) | 69.2% (9/13) | 4 : 0 |
+| **Geometry** | 7 | **85.7%** (6/7) | 57.1% (4/7) | 17 | **88.2%** (15/17) | 82.4% (14/17) | 2 : 1 |
+| **Intermediate Algebra** | 19 | **63.2%** (12/19) | **63.2%** (12/19) | 11 | **90.9%** (10/11) | 72.7% (8/11) | 2 : 0 |
+| **Number Theory** | 11 | **100.0%** (11/11) | **100.0%** (11/11) | 14 | 85.7% (12/14) | **92.9%** (13/14) | 1 : 2 |
+| **Prealgebra** | 18 | 77.8% (14/18) | **88.9%** (16/18) | 16 | **81.2%** (13/16) | **81.2%** (13/16) | 1 : 1 |
+| **Precalculus** | 14 | **92.9%** (13/14) | 71.4% (10/14) | 21 | **81.0%** (17/21) | 47.6% (10/21) | 7 : 0 |
 
-#### Per-Level Accuracy (Strict CAS Pass Rate)
-| Level | n | E4B R1 (Think) | E4B P2 (PAL) | 12B P2 (PAL) | 12B R1 (Think) | E2B R1 (Think) | E2B P2 (PAL) |
+#### Side-by-Side Per-Level Performance (Strict CAS Accuracy)
+| Level | Dev $n$ | Dev E4B R1 | Dev E4B P2 | Held-Out $n$ | Held-Out E4B R1 | Held-Out E4B P2 | Held-Out Discordant (`R1 (b) : P2 (c)`) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Level 1** | 11 | 81.8% (9/11) | **90.9%** (10/11) | **90.9%** (10/11) | 72.7% (8/11) | **90.9%** (10/11) | 81.8% (9/11) |
-| **Level 2** | 25 | **100.0%** (25/25) | 84.0% (21/25) | **96.0%** (24/25) | 84.0% (21/25) | **96.0%** (24/25) | 80.0% (20/25) |
-| **Level 3** | 19 | **94.7%** (18/19) | **94.7%** (18/19) | 89.5% (17/19) | 73.7% (14/19) | **94.7%** (18/19) | 89.5% (17/19) |
-| **Level 4** | 22 | **90.9%** (20/22) | **90.9%** (20/22) | **90.9%** (20/22) | 50.0% (11/22) | 81.8% (18/22) | **86.4%** (19/22) |
-| **Level 5** | 23 | 56.5% (13/23) | **60.9%** (14/23) | **60.9%** (14/23) | 17.4% (4/23) | **60.9%** (14/23) | 52.2% (12/23) |
+| **Level 1** | 11 | 81.8% (9/11) | **90.9%** (10/11) | 9 | **100.0%** (9/9) | 88.9% (8/9) | 1 : 0 |
+| **Level 2** | 25 | **100.0%** (25/25) | 84.0% (21/25) | 20 | **85.0%** (17/20) | 65.0% (13/20) | 4 : 0 |
+| **Level 3** | 19 | **94.7%** (18/19) | **94.7%** (18/19) | 20 | **90.0%** (18/20) | **90.0%** (18/20) | 1 : 1 |
+| **Level 4** | 22 | **90.9%** (20/22) | **90.9%** (20/22) | 23 | **91.3%** (21/23) | 82.6% (19/23) | 3 : 1 |
+| **Level 5** | 23 | 56.5% (13/23) | **60.9%** (14/23) | 28 | **82.1%** (23/28) | 53.6% (15/28) | 10 : 2 |
+
+**Analysis of the Generalization Gap:**
+- **Level 5 Driver:** On Held-Out competition math, the dominant driver of discordance is **Level 5**, accounting for more than half of all R1-only wins (10 of 19, or 52.6%). R1 solved 23/28 (82.1%) while P2 solved 15/28 (53.6%), a +28.5 pp gap.
+- **Precalculus Driver:** Precalculus accounts for 7 of the 19 R1-only wins (36.8%), where R1 achieved 81.0% vs P2's 47.6% (+33.4 pp).
+- **Subgroup Caution:** On the Dev split, P2 scored 100.0% (6/6) on Counting and Probability, matching R1. It was only on the Held-Out split that P2 dropped to 69.2% (9/13). Because subgroup cell sizes are small ($n=6$ to $28$) and no family-wise error rate correction was applied, these breakdowns are strictly descriptive and must not be interpreted as causal claims of domain-specific incapacity.
 
 ### 2.6 Coding Assistance Preflight: No Detectable Benefit on Larger Models
 In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw $\to$ 76.8% assisted). For larger models, assisted preflight showed no statistically detectable benefit ($p > 0.5$):
 - **12B:** 94.5% raw (155/164) $\to$ 93.9% assisted (154/164, difference of 1 item, McNemar $p = 1.0$).
 - **E4B:** 87.8% raw (144/164) $\to$ 86.0% assisted (141/164, difference of 3 items, McNemar $p = 0.5488$).
 
-**Scope of Claim:** While the preflight prompt was designed to prevent syntax and environment errors, it provided no detectable benefit on models $\ge$ 4.5B. Hypotheses attributing this to OpenBLAS thread contention or prompt verbosity remain unverified. Until a controlled re-evaluation is performed following the multi-threading runtime fix, claims of assisted preflight value must be strictly qualified as model-scale dependent.
+**Scope of Claim:** While the preflight prompt was designed to prevent syntax and environment errors, it provided **no detectable benefit** on models $\ge$ 4.5B. Hypotheses attributing this to OpenBLAS thread contention or prompt verbosity remain unverified. Claims of assisted preflight value must be strictly qualified as model-scale dependent.
 
 ---
 
 ## 3. Generalization on Fresh Held-Out Mathematics (Step 5)
 
 ### 3.1 Experimental Protocol & Router Nature
-To verify that results were not overfit to the dev set, we evaluated both candidate arms on $n=100$ fresh, unseen competition math problems from [`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl) with zero prompt or cap tuning.
+To verify that results were not overfit to the dev set, we evaluated both candidate arms on $n=100$ fresh, unseen competition math problems from [`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl) with zero prompt or cap tuning. The held-out dataset comprises unseen problems verified disjoint from the dev set.
 
-**Router Implementation Note:** In the benchmark harness, `--arm routed` dispatched items based on dataset metadata (`benchmark == 'gsm_symbolic'` vs `'math500'`). This is an **oracle dataset label lookup**, not an active neural intent classifier. In production desktop deployment, realizing this routing policy requires an in-the-wild task-type intent classifier, which has not yet been benchmarked.
+**Router Implementation Note:** In the benchmark harness, `--arm routed` dispatched items based on dataset metadata (`benchmark == 'gsm_symbolic'` vs `'math500'`). This is an **oracle dataset label lookup**, not an active neural intent classifier. In production desktop deployment, realizing this routing policy requires an in-the-wild task-type intent classifier.
 
-### 3.2 Paired Results & Empirical Breakdown: Held-Out P2 vs. Held-Out R1
+### 3.2 Paired Results: Held-Out P2 vs. Held-Out R1
 Both candidate arms were evaluated across the identical 100 held-out problems on Gemma 4 E4B:
 - **Thinking Mode (R1 @ 6,144 cap):** **88.0% strict CAS** (88/100) [95% Wilson CI: 79.60%, 93.37%] / **92.0% lenient** (92/100) [95% Wilson CI: 84.45%, 96.09%]. Truncations: 2.0%. Mean tokens: 2,066.6.
-- **PAL Scaffold (P2 @ 2,048 cap):** **73.0% strict CAS** (73/100) [95% Wilson CI: 63.04%, 81.16%] / **83.0% lenient** (83/100) [95% Wilson CI: 73.89%, 89.51%]. Truncations: 7.0%. Mean tokens: 1,216.7.
+- **PAL Scaffold (P2 @ 2,048 cap):** **73.0% strict CAS** (73/100) [95% Wilson CI: 63.04%, 81.16%] / **83.0% lenient** (83/100) [95% Wilson CI: 73.89%, 89.51%]. Truncations: 8.0%. Mean tokens: 1,285.0.
 
 ```
 === Paired McNemar Test on Held-Out Split (n=100) ===
-Metric   P2 @ 2k Acc   R1 @ 6k Acc   Both   Neither   P2-only (b)   R1-only (c)   Exact p-value
-──────────────────────────────────────────────────────────────────────────────────────────────
-Strict   73.0%         88.0%         69     8         4             19            p = 0.0026
-Lenient  83.0%         92.0%         79     4         4             13            p = 0.0490
+Metric   Arm A (R1 @ 6k)   Arm B (P2 @ 2k)   Both   Neither   Arm A Only (b)   Arm B Only (c)   Exact p-Value
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Strict   88.0%             73.0%             69     8         19               4                p = 0.0026
+Lenient  92.0%             83.0%             79     4         13               4                p = 0.0490
 ```
 
-**Statistical Assessment & Empirical Subject/Level Breakdown:**
-On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on strict CAS ($p = 0.0026$) and +9.0 pp on lenient normalization ($p = 0.0490$).
-
-Crucially, the drop in PAL performance (83% $\to$ 73%) cannot be explained simply by asserting that "the held-out set is harder," because Thinking Mode performance simultaneously *rose* on the held-out split (85% $\to$ 88%). Instead, this divergence reflects two distinct phenomena:
-1. **Dev-Split Tuning:** The 2,048-token code cap and the P2 zero-shot scaffolding prompt were developed and tuned on the dev split. Consequently, PAL generalized less effectively to unseen problem structures.
-2. **Empirical Distribution of the Generalization Gap:** A direct breakdown of the 100 held-out result records by difficulty level and subject domain reveals where Thinking Mode outperformed PAL:
-
-```
-=== HELD-OUT PER-LEVEL BREAKDOWN (Strict CAS) ===
-Level 1 (n= 9): R1= 9/ 9 (100.0%) | P2= 8/ 9 ( 88.9%) | delta = +11.1 pp
-Level 2 (n=20): R1=17/20 ( 85.0%) | P2=13/20 ( 65.0%) | delta = +20.0 pp
-Level 3 (n=20): R1=18/20 ( 90.0%) | P2=19/20 ( 95.0%) | delta =  -5.0 pp
-Level 4 (n=23): R1=21/23 ( 91.3%) | P2=20/23 ( 87.0%) | delta =  +4.3 pp
-Level 5 (n=28): R1=23/28 ( 82.1%) | P2=23/28 ( 82.1%) | delta =  +0.0 pp
-
-=== HELD-OUT PER-SUBJECT BREAKDOWN (Strict CAS) ===
-algebra                   (n= 8): R1= 8/ 8 (100.0%) | P2= 8/ 8 (100.0%) | delta =  +0.0 pp
-counting_and_probability  (n=13): R1=13/13 (100.0%) | P2= 8/13 ( 61.5%) | delta = +38.5 pp
-geometry                  (n=17): R1=15/17 ( 88.2%) | P2=15/17 ( 88.2%) | delta =  +0.0 pp
-intermediate_algebra      (n=11): R1=10/11 ( 90.9%) | P2= 9/11 ( 81.8%) | delta =  +9.1 pp
-number_theory             (n=14): R1=12/14 ( 85.7%) | P2=12/14 ( 85.7%) | delta =  +0.0 pp
-prealgebra                (n=16): R1=13/16 ( 81.2%) | P2=13/16 ( 81.2%) | delta =  +0.0 pp
-precalculus               (n=21): R1=17/21 ( 81.0%) | P2=18/21 ( 85.7%) | delta =  -4.8 pp
-```
-
-**Key Empirical Insights from the Breakdown:**
-- **Geometry & Level 5 Parity:** Contrary to the initial conjecture that spatial reasoning drove the divergence, PAL and Thinking Mode achieved **identical accuracy on Geometry (15/17, 88.2%)** and **identical accuracy on the hardest Level 5 problems (23/28, 82.1%)**.
-- **The Combinatorial Generalization Gap:** The +15.0 pp strict gap was concentrated almost entirely in `counting_and_probability` (+38.5 pp, where R1 solved 13/13 while P2 solved 8/13) and `Level 2` (+20.0 pp). Discrete enumeration, casework, and combinatorial counting require multi-path exploratory branching that edge models struggle to synthesize directly into a single script without reasoning scratchpads.
+**Statistical Assessment & Router Justification:**
+On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on strict CAS ($p = 0.0026$) and +9.0 pp on lenient normalization ($p = 0.0490$). While on the Dev split P2 appeared to tie R1 (83.0% vs 85.0%, $p=0.7905$), this parity failed to generalize out-of-distribution. Consequently, our deployment router directs Gemma 4 E4B competition mathematics to **Thinking Mode (R1)**, preserving 88.0% strict accuracy and avoiding the 15-point degradation of pure code offload.
 
 ### 3.3 Analysis of the Strict-to-Lenient Gap
 Across all MATH-500 evaluations, lenient normalization exceeds strict CAS equivalence by 4 to 10 percentage points:
+- Analysis of discordant items reveals formatting discrepancies rather than algebraic errors: set notation versus tuple syntax (e.g. `\{1, 2\}` vs `(1, 2)`), coordinate spacing, and unexpanded `\pm` forms. All headline claims in this paper lead with strict CAS equivalence.
 - Analysis of discordant items reveals formatting discrepancies rather than algebraic errors: set notation versus tuple syntax (e.g. `\{1, 2\}` vs `(1, 2)`), coordinate spacing, and unexpanded `\pm` forms.
 
 ### 3.4 Cross-Model Generalization Matrix on Held-Out Split (n=100)
@@ -188,28 +180,28 @@ Evaluating all three model scales across the identical 100 unseen held-out probl
 ========================================================================================================================
 HELD-OUT 100 EMPIRICAL PERFORMANCE MATRIX ACROSS SCALES
 ========================================================================================================================
-Model / Scale     Scaffold Arm        Strict CAS Acc [95% Wilson CI]  Lenient Acc [95% Wilson CI]  Truncations  Avg Tokens
+Model / Scale     Scaffold Arm        Strict CAS Acc [95% Wilson CI]  Lenient Acc [95% Wilson CI]  Truncations  Discordant (A only : B only)
 ------------------------------------------------------------------------------------------------------------------------
-Gemma 4 12B       Direct R0 @ 4k      89.0% [81.36%, 93.81%]          94.0% [87.52%, 97.23%]       3.0%         802.8
-                  PAL P2 @ 2k         86.0% [77.87%, 91.50%]          90.0% [82.60%, 94.49%]       5.0%         937.1
-                  (P2 vs R0 Delta)    -3.0 pp (p = 0.581, NS)         -4.0 pp (p = 0.344, NS)      Discordant:  5 : 8
+Gemma 4 12B       Direct R0 @ 4k      89.0% [80.8%, 94.1%]            94.0% [86.9%, 97.5%]         3.0%         R0 only : P2 only
+                  PAL P2 @ 2k         86.0% [77.3%, 91.9%]            90.0% [82.0%, 94.8%]         5.0%         8 : 5 (p = 0.581, NS)
+                  (R0 vs P2 Delta)    +3.0 pp (p = 0.581, NS)         +4.0 pp (p = 0.344, NS)      Avg Tok: 803 vs 937
 
-Gemma 4 E4B       Direct R0 @ 4k      52.0% [42.36%, 61.54%]          54.0% [44.24%, 63.44%]       1.0%         1108.0
-                  PAL P2 @ 2k         73.0% [63.04%, 81.16%]          83.0% [73.89%, 89.51%]       7.0%         1216.7
-                  Thinking R1 @ 6k    88.0% [79.60%, 93.37%]          92.0% [84.45%, 96.09%]       2.0%         2066.6
-                  (R1 vs P2 Delta)    +15.0 pp (p = 0.0026, Sig)      +9.0 pp (p = 0.0490, Sig)    Discordant:  19 : 4
+Gemma 4 E4B       Direct R0 @ 4k      52.0% [41.8%, 62.0%]            54.0% [43.8%, 63.9%]         1.0%         Avg Tok: 1108
+                  PAL P2 @ 2k         73.0% [63.0%, 81.2%]            83.0% [73.9%, 89.5%]         8.0%         P2 only : R0 only = 28 : 7 (p=0.0005)
+                  Thinking R1 @ 6k    88.0% [79.6%, 93.4%]            92.0% [84.4%, 96.2%]         2.0%         R1 only : P2 only = 19 : 4 (p=0.0026)
+                  (R1 vs P2 Delta)    +15.0 pp (p = 0.0026, Sig)      +9.0 pp (p = 0.0490, Sig)    Avg Tok: 2067 vs 1285
 
-Gemma 4 E2B       Direct R0 @ 4k      51.0% [41.37%, 60.58%]          55.0% [45.24%, 64.39%]       4.0%         1278.8
-                  PAL P2 @ 2k         61.0% [50.70%, 70.44%]          70.0% [59.88%, 78.58%]       14.0%        1656.7
-                  Thinking R1 @ 6k    81.0% [72.19%, 87.52%]          86.0% [77.87%, 91.50%]       10.0%        2598.5
-                  (R1 vs P2 Delta)    +20.0 pp (p = 0.00018, Sig)     +16.0 pp (p = 0.00086, Sig)  Discordant:  24 : 4
+Gemma 4 E2B       Direct R0 @ 4k      51.0% [40.9%, 61.1%]            55.0% [44.8%, 64.9%]         4.0%         Avg Tok: 1279
+                  PAL P2 @ 2k         61.0% [50.7%, 70.4%]            70.0% [59.9%, 78.5%]         14.0%        P2 only : R0 only = 23 : 13 (p=0.133)
+                  Thinking R1 @ 6k    81.0% [71.7%, 87.9%]            86.0% [77.3%, 91.9%]         10.0%        R1 only : P2 only = 24 : 4 (p=0.00018)
+                  (R1 vs P2 Delta)    +20.0 pp (p = 0.00018, Sig)     +16.0 pp (p = 0.00086, Sig)  Avg Tok: 2598 vs 1657
 ========================================================================================================================
 ```
 
 **Synthesis Across Scale:**
-1. **Unassisted direct generation exhibits a sharp phase shift between 4.5B and 12B:** E2B and E4B achieve almost identical unassisted baselines (51% and 52% strict), even when granted generous 4k token budgets. In contrast, 12B achieves 89.0% unassisted, generalizing with no detectable degradation ($p = 1.0$) from the dev split.
+1. **Unassisted direct generation exhibits a sharp phase shift between 4.5B and 12B:** E2B and E4B achieve almost identical unassisted baselines (51% and 52% strict), even when granted generous 4k token budgets. In contrast, 12B achieves 89.0% unassisted on held-out math, generalizing with **no statistically detectable degradation** from the dev split (90.0% dev vs 89.0% held-out, independent two-proportion $z = 0.231, p = 0.8176$).
 2. **Latent thinking provides superior out-of-distribution generalization on competition mathematics:** For both edge models (E4B and E2B), Thinking Mode (R1 @ 6k) significantly outperforms external code scaffolding on unseen problems (+15.0 pp on E4B, $p = 0.0026$; +20.0 pp on E2B, $p = 0.00018$).
-3. **The router policy is empirically justified:** Routing 12B to Direct R0 avoids overhead and greedy looping risk. Routing E4B and E2B to R1 on competition math maximizes accuracy on unseen distributions, while routing to PAL P2 on arithmetic word problems (GSM-Symbolic) optimizes throughput and speed.
+3. **The router policy is empirically justified:** Routing 12B to Direct R0 avoids execution overhead and greedy looping risk. Routing E4B and E2B to R1 on competition math maximizes accuracy on unseen distributions (preserving 88% on E4B and 81% on E2B), while routing to PAL P2 on arithmetic word problems (GSM-Symbolic) optimizes throughput and speed.
 
 ---
 

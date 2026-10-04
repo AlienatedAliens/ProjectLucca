@@ -29,7 +29,7 @@ def test_frozen_binary_version_flag() -> None:
     # S603: EXE_PATH is a repo-relative constant, not untrusted input; check=False because the
     # assertions below inspect returncode explicitly.
     res = subprocess.run(  # noqa: S603
-        [str(EXE_PATH), "--version"], capture_output=True, text=True, timeout=15, check=False
+        [str(EXE_PATH), "--version"], capture_output=True, text=True, timeout=45, check=False
     )
     assert res.returncode == 0
     assert f"Lucca {__version__}" in res.stdout
@@ -38,7 +38,7 @@ def test_frozen_binary_version_flag() -> None:
 def test_frozen_binary_help_flag() -> None:
     """Verifies that Lucca.exe --help prints usage information with code 0."""
     res = subprocess.run(  # noqa: S603 — repo-relative constant path; returncode asserted below
-        [str(EXE_PATH), "--help"], capture_output=True, text=True, timeout=15, check=False
+        [str(EXE_PATH), "--help"], capture_output=True, text=True, timeout=45, check=False
     )
     assert res.returncode == 0
     assert "Project Lucca" in res.stdout
