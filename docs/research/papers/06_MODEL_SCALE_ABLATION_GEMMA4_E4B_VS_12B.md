@@ -13,9 +13,9 @@
 
 We evaluate Google DeepMind's Gemma 4 family across three parameter scales—**Unified 12B** (`gemma-4-12b-heretic-Q6_K.gguf`), **Edge E4B** (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`), and **Ultra-Edge E2B** (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`)—within the Project Lucca execution harness.
 
-Our primary controlled finding is that **token cap starvation accounts for much of the apparent gap between Program-Aided Language (PAL) scaffolding and internal thinking mode on small edge models**. Raising the PAL code-generation token cap from 1,024 to 2,048 tokens per turn on Gemma 4 E2B lifts strict CAS accuracy from 70.0% to 77.0% (exact binomial $p = 0.0156$, 7:0 discordant pairs), cutting truncations from 19% to 10%. On Gemma 4 E4B, raising the cap brings PAL strict accuracy from 73.0% to 83.0% (and 92.0% lenient on dev), achieving statistical parity with native thinking mode (85.0% strict, $p = 0.7905$) while saving 40% of tokens and running 1.6× faster.
+Our primary controlled finding on the development split is that **token cap starvation accounts for much of the apparent gap between Program-Aided Language (PAL) scaffolding and internal thinking mode on small edge models**. Raising the PAL code-generation token cap from 1,024 to 2,048 tokens per turn on Gemma 4 E2B lifts strict CAS accuracy from 70.0% to 77.0% (exact binomial $p = 0.0156$, 7:0 discordant pairs), cutting truncations from 19% to 10%. On Gemma 4 E4B dev, raising the cap brings PAL strict accuracy from 73.0% to 83.0% (and 92.0% lenient), achieving statistical parity with native thinking mode (85.0% strict, $p = 0.7905$) while saving 40% of tokens and running 1.6× faster.
 
-Conversely, on Gemma 4 12B under greedy decoding ($T=0.0$), extended thinking mode with a 6,144 token budget collapsed from 90.0% (direct raw generation) to 58.0% (exact binomial $p = 4.66 \times 10^{-10}$, 32:0 discordant pairs), with 44% of items terminating at the token ceiling. On fresh held-out competition mathematics ($n=100$), side-by-side evaluation of both candidate arms on Gemma 4 E4B revealed that Thinking Mode (R1 @ 6k) achieved **88.0% strict CAS / 92.0% lenient**, while PAL (P2 @ 2k) achieved **73.0% strict / 83.0% lenient** (discordant pairs 4:19 strict, $p = 0.0026$), demonstrating that on challenging competition problems, latent exploration before numeric computation provides a significant advantage over direct Python code generation.
+However, fresh evaluation on unseen held-out competition mathematics ($n=100$) reveals that this parity is dev-split specific and does not hold across wider subject distributions. Side-by-side evaluation of both candidate arms on Gemma 4 E4B showed Thinking Mode (R1 @ 6k) achieving **88.0% strict CAS / 92.0% lenient**, whereas PAL (P2 @ 2k) fell to **73.0% strict / 83.0% lenient** (discordant pairs 4:19 strict, exact binomial $p = 0.0026$). While PAL code generation was tuned on the dev split and excels on arithmetic and algebraic formalization, latent thinking tokens enable exploratory reasoning on competition problems with higher geometry and combinatorial depth before equation commitment. Conversely, on Gemma 4 12B under greedy decoding ($T=0.0$), extended thinking mode with a 6,144 token budget collapsed from 90.0% (direct raw generation) to 58.0% (exact binomial $p = 4.66 \times 10^{-10}$, 32:0 discordant pairs), with 44% of items terminating at the token ceiling.
 
 ```
 ========================================================================================================================
@@ -54,7 +54,7 @@ Operational Footprint       Active VRAM Allocation        9,972 MiB (10.0 GiB) 4
 † Spec 100 was evaluated under sampling temperature T=0.6 (noise floor 82–86%, mean 84.0% ± 2.0 pp).
 ‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
 * 12B Spec 100: 4 runs yielded 86%, 82%, 84%, 84%.
-** Content safety reflects compliance on uncensored heretic fine-tunes; E4B refuses only 30% of general safety probes.
+** Content safety reflects compliance on uncensored heretic fine-tunes (logs/test_reports/cross_model_30_gemma-4-*.json); E4B complied with 7/10 harmful adversarial probes (30% refusal rate), while 12B refused 9/10.
 *** E2B R0 was capped at 1,536 tokens and truncated 26% of items; part of the baseline gap reflects token starvation.
 ```
 
@@ -94,6 +94,8 @@ In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw 
 - **12B:** 94.5% raw (155/164) $\to$ 93.9% assisted (154/164, -1 problem).
 - **E4B:** 87.8% raw (144/164) $\to$ 86.0% assisted (141/164, -3 problems).
 
+**Unqualified Regression Notice:** While the preflight prompt was designed to prevent syntax and environment errors, it induced slight pass rate degradations on larger models. Hypotheses attributing this to OpenBLAS thread contention or prompt verbosity remain unverified; no re-run demonstrating a rescue or fix has been established. Until a controlled re-evaluation is performed, assisted preflight must be treated as an unrescued regression on models $\ge$ 4.5B.
+
 ---
 
 ## 3. Generalization on Fresh Held-Out Mathematics (Step 5)
@@ -116,7 +118,20 @@ Strict   73.0%         88.0%         69     8         4             19          
 Lenient  83.0%         92.0%         79     4         4             13            p = 0.0490
 ```
 
-**Statistical Assessment:** On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on strict CAS ($p = 0.0026$) and +9.0 pp on lenient normalization ($p = 0.0490$). The performance gap between dev and held-out reflects the difficulty distribution of the held-out split: on advanced competition problems requiring geometric or algebraic conceptual breakthroughs, thinking tokens enable intermediate exploration before equation formulation, whereas direct Python synthesis without pre-thinking fails when the model cannot directly formalize the equations.
+**Statistical Assessment & Dev vs. Held-Out Analysis:**
+On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on strict CAS ($p = 0.0026$) and +9.0 pp on lenient normalization ($p = 0.0490$).
+
+Crucially, the drop in PAL performance (83% $\to$ 73%) cannot be explained simply by asserting that "the held-out set is harder," because Thinking Mode performance simultaneously *rose* on the held-out split (85% $\to$ 88%). Instead, this divergence reflects two distinct phenomena:
+1. **Dev-Split Tuning:** The 2,048-token code cap and the P2 zero-shot scaffolding prompt were developed and tuned on the dev split. Consequently, PAL generalized less effectively to unseen problem structures.
+2. **Structural Subject and Level Mix Shift:** An audit of the problem metadata across both 100-problem samples reveals key distribution shifts:
+   - **Difficulty Levels:**
+     - Dev Split: Level 1: 11%, Level 2: 25%, Level 3: 19%, Level 4: 22%, Level 5: 23%.
+     - Held-Out Split: Level 1: 9%, Level 2: 20%, Level 3: 20%, Level 4: 23%, Level 5: 28% (+5 pp hardest Level 5 problems).
+   - **Subject Mix:**
+     - Dev Split: Algebra: 25%, Intermediate Algebra: 19%, Prealgebra: 18%, Precalculus: 14%, Number Theory: 11%, Geometry: 7%, Counting & Probability: 6%.
+     - Held-Out Split: Precalculus: 21%, Geometry: 17% (+10 pp), Prealgebra: 16%, Number Theory: 14%, Counting & Probability: 13% (+7 pp), Intermediate Algebra: 11%, Algebra: 8% (-17 pp).
+
+   Domains like Geometry (+10 pp) and Counting & Probability (+7 pp) require spatial framing, coordinate setup, and multi-branch casework that are difficult to synthesize into a single Python script without exploratory reasoning. In contrast, latent thinking tokens (R1) allow the model to brainstorm geometric invariants and algebraic relationships before committing to numeric calculations.
 
 ### 3.3 Analysis of the Strict-to-Lenient Gap
 Across all MATH-500 evaluations, lenient normalization exceeds strict CAS equivalence by 4 to 10 percentage points:
@@ -134,26 +149,15 @@ Our empirical data presents a clear trade-off for Gemma 4 E4B:
 ### 4.2 Locked Dispatch Rules for Project Lucca
 - **Gemma 4 12B:** Route to **Direct Raw Generation (R0)** for all mathematical reasoning. Bypasses execution overhead and avoids greedy thinking loops.
 - **Gemma 4 E2B:** Route arithmetic word problems to **PAL (P2 @ 2k)** (+10 pp over direct); route competition math to **Thinking Mode (R1 @ 6k)** (84% strict vs 77% PAL).
-- **Gemma 4 E4B:** Route arithmetic to **PAL (P2 @ 2k)**; route competition math to **Thinking Mode (R1 @ 6k)** for maximum accuracy, or **PAL (P2 @ 2k)** where speed/token efficiency is paramount.
+- **Gemma 4 E4B:** Route arithmetic to **PAL (P2 @ 2k)**; route competition math to **Thinking Mode (R1 @ 6k)** for maximum accuracy (or PAL where speed/token efficiency is paramount).
 
 ---
 
 ## 5. Scope of Legitimate Claims
 
 Based on our controlled evaluations, we claim:
-1. **Token cap budget governs small-model PAL performance:** Doubling the code-generation limit from 1k to 2k tokens cuts truncations in half and produces statistically significant gains on E2B (+7 pp strict, $p=0.0156$) and E4B (+10 pp strict).
+1. **Token cap budget governs small-model PAL performance:** Doubling the code-generation limit from 1k to 2k tokens cuts truncations in half and produces statistically significant gains on E2B (+7 pp strict, $p=0.0156$) and E4B (+10 pp strict on dev).
 2. **Thinking tokens lead on hard competition math:** On held-out competition problems, thinking mode provides a statistically significant +15.0 pp strict lift over direct PAL ($p=0.0026$), whereas on arithmetic (GSM-Symbolic) PAL matches or exceeds thinking mode.
 3. **Pre-thinking before code offload is redundant on E2B:** Arm P3 (PAL + Thinking) provides no accuracy advantage over pure code offload (76% vs 77%, $p=1.000$) while doubling compute cost.
 4. **Greedy thinking mode degrades 12B on competition math:** Under $T=0.0$ greedy decoding, extended thinking induced catastrophic truncation loops (58% vs 90%, $p = 4.66 \times 10^{-10}$).
 5. **Router nature:** Benchmark routing dispatches via oracle dataset labels. A production companion requires an in-the-wild intent classifier.
-
----
-
-## 5. Scope of Legitimate Claims
-
-Based on our controlled evaluations, we claim:
-1. **Token cap budget governs small-model PAL performance:** Doubling the code-generation limit from 1k to 2k tokens cuts truncations in half and produces statistically significant gains on E2B (+7 pp strict, $p=0.0156$) and E4B (+10 pp strict).
-2. **Scaffolding equalizes small models with thinking mode at lower cost:** With adequate code caps, PAL offload brings 4.5B models to parity with native thinking mode while saving 40% of tokens.
-3. **Pre-thinking before code offload is redundant:** Arm P3 (PAL + Thinking) provides no accuracy advantage over pure code offload (76% vs 77%) while doubling compute cost.
-4. **Greedy thinking mode degrades 12B on competition math:** Under $T=0.0$ greedy decoding, extended thinking induced catastrophic truncation loops (58% vs 90%, $p = 4.66 \times 10^{-10}$).
-5. **Edge generalization holds on fresh data for E4B:** Thinking mode @ 6k achieved 88.0% strict / 92.0% lenient on 100 unseen competition problems, showing no detectable drop from the dev split.

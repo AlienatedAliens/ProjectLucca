@@ -4,7 +4,7 @@
 **Title:** Project Lucca v1.35.2 System Architecture & Technical Specification  
 **Version:** 1.35.2-stable  
 **Release Tag:** `v1.35.2-stable`  
-**Git Commit:** `f20537fe` (closeout baseline; audit remediation commit: current HEAD)  
+**Git Commit:** `4fa5e9e` (closeout baseline: `f20537fe`; audit remediation commit: `4fa5e9e`)  
 **Date:** October 4, 2026  
 **Authors:** Project Lucca Architecture Notes  
 **Target Platform:** Consumer Edge (NVIDIA GeForce RTX 5080 Laptop GPU, 16,303 MiB GDDR7 VRAM, Headless Compute)  
@@ -18,16 +18,16 @@ Project Lucca is a local personal systems companion and research engineer design
 
 Version 1.35.2 formalizes the **Multi-Scale Compound Neurosymbolic Edge Architecture**, focusing on controlled empirical validation, deterministic supervision, and cryptographic memory safety:
 1. **Cryptographic Memory Verification & Persistent Quarantine:** Replaces unkeyed SHA-256 column checks with a two-stage HMAC-SHA256 verification pipeline in `HybridRetriever`. SQLite row mutations or signature mismatches are detected via constant-time HMAC comparison over canonical JSON payloads and quarantined into the persistent SQLite `memory_quarantine` table with user-facing alerts, rather than crashing with unhandled exceptions or causing silent amnesia.
-2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across a 40-sentence formal battery with 100% test pass rate (40/40 in `test_truth_in_receipt_battery.py`; 66/66 combined supervisor unit tests; 71/71 including deontic lookahead checks).
+2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across a 40-sentence formal battery with 100% test pass rate (40/40 in `test_truth_in_receipt_battery.py`; 66/66 combined supervisor unit tests; 74/74 including 8 deontic sandbox tests).
 3. **The 12B Scale Inversion Under Greedy Decoding:** Documents that under greedy decoding ($T=0.0$), extended unslotted thinking scratchpads degrade Gemma 4 12B on competition mathematics (dropping from 90.0% direct to 58.0% thinking, McNemar $p = 4.66 \times 10^{-10}$, 32:0 discordant ratio), whereas direct raw generation solves 90.0% of problems in 12.9s.
-4. **Edge Truncation Isolation:** Demonstrates that doubling the PAL code token cap from 1,024 to 2,048 tokens rescues edge models from premature code truncation, lifting E2B strict accuracy from 70.0% to 77.0% ($p=0.0156$) and E4B strict accuracy from 73.0% to 83.0% (and 92.0% lenient), achieving parity with Thinking Mode with 40% token savings.
+4. **Edge Truncation Isolation:** Demonstrates that doubling the PAL code token cap from 1,024 to 2,048 tokens rescues edge models from premature code truncation, lifting E2B strict accuracy from 70.0% to 77.0% ($p=0.0156$) and E4B strict accuracy from 73.0% to 83.0% (and 92.0% lenient) on the dev split, achieving parity with Thinking Mode with 40% token savings.
 5. **Fresh Held-Out Evaluation & Router Nature:** Evaluates $n=100$ fresh, unseen competition mathematics problems ([`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl)) with Gemma 4 E4B across both candidate arms: Thinking Mode (R1 @ 6k) achieves **88.0% strict CAS / 92.0% lenient** [95% Wilson CI: 79.6%, 93.4%], while PAL (P2 @ 2k) achieves **73.0% strict / 83.0% lenient** (discordant pairs 4:19 strict, exact binomial $p = 0.0026$). Transparently notes that the benchmark router dispatches via oracle dataset label lookup (`benchmark == 'gsm_symbolic'` vs `'math500'`), and real-world deployment requires an in-the-wild task-type intent classifier.
 
 ---
 
 ## 2. Multi-Scale Neural Substrate
 
-Project Lucca v1.35.1 supports three validated, headless neural deployment tiers served via `llama-server.exe` with flash attention, unslotted greedy decoding, and embedded Jinja templating:
+Project Lucca v1.35.2 supports three validated, headless neural deployment tiers served via `llama-server.exe` with flash attention, unslotted greedy decoding ($T=0.0$) for formal reasoning benchmarks (and $T=0.6$ for conversational / Spec 100 evaluations), and embedded Jinja templating:
 
 | Attribute | Gemma 4 12B Unified | Gemma 4 E4B Sovereign Core | Gemma 4 E2B Ultra-Edge |
 | :--- | :--- | :--- | :--- |
@@ -93,11 +93,13 @@ For each candidate memory record:
 ### 3.2 Non-Silent Tamper Surfacing & Amnesia Defense
 Rather than silently dropping bad rows (hiding database injection attacks) or raising an unhandled `RuntimeError` (which disabled all memory retrieval whenever a key rotated or a single row was modified), v1.35.2 implements **persistent database quarantine with proactive user surfacing**:
 1. **Persistent DB Quarantine:** Corrupted rows are inserted into SQLite `memory_quarantine` table with columns `(memory_id, entry_id, reason, stage, quarantined_at)`. Quarantined IDs are loaded on boot and excluded from subsequent searches across sessions.
-2. **User-Facing Alerting:** A security notice (`"Security notice: N memories failed cryptographic integrity checks and were quarantined."`) is emitted via `HybridRetriever.get_integrity_status_report()`, passed to the `EpistemicSearchCascade`, and displayed in the user UI.
+2. **Integrity Surfacing & Alert API:** A security notice (`"Security notice: N memories failed cryptographic integrity checks and were quarantined."`) is emitted programmatically via `HybridRetriever.get_integrity_status_report()`. While retriever and backend logs capture this alert on every retrieval turn, end-user front-end UI widget rendering remains an active integration item.
 3. **Key Persistence:** Master keys are generated cryptographically (`secrets.token_bytes(32)`) and persisted to disk at `data/keys/master.key` with `0600` permissions. All public dev fallback constants (`b"0123456789..."`) have been eliminated from `main.py`, `service.py`, `signer_factory.py`, and `admin.py`.
 4. **Resilient Retrieval:** Uncorrupted memories continue to retrieve successfully alongside new memories committed with the active master key.
+5. **Key-at-Rest Co-Location Threat Model:** The master key file (`data/keys/master.key`) sits adjacent to the database file it protects (`data/memory.sqlite`) within the host filesystem. While restricted via `0600` file permissions, this co-location means HMAC-SHA256 memory envelopes defend against unprivileged processes, application-level tampering, and unauthorized SQL column modifications, but do not protect against an attacker with root host read access to the `data/` directory tree. Future versions may evaluate DPAPI / TPM envelope sealing to mitigate host-level co-location.
+6. **Cryptographic Key Migration CLI (`migrate-keys`):** To prevent silent amnesia or mass quarantine when migrating databases from historical development runs or rotating master keys, [`lucca-admin memory migrate-keys`](file:///c:/Projects/ProjectLucca/src/lucca/memory/migration_tool.py) validates content SHA-256 integrity for legacy records signed with dev fallback keys (`b"0123456789abcdef..."`), re-computes HMAC signatures under the active master key, atomically updates `provenance_envelopes`, and purges quarantined records. Operators can inspect quarantine status via `lucca-admin memory quarantine-list`.
 
-Verified across 8 deterministic unit tests in [`tests/test_memory_hmac_tamper.py`](file:///C:/projects/projectlucca/tests/test_memory_hmac_tamper.py) and [`tests/test_memory_key_persistence_and_restart.py`](file:///C:/projects/projectlucca/tests/test_memory_key_persistence_and_restart.py).
+Verified across 11 deterministic unit tests in [`tests/test_memory_hmac_tamper.py`](file:///c:/Projects/ProjectLucca/tests/test_memory_hmac_tamper.py), [`tests/test_memory_key_persistence_and_restart.py`](file:///c:/Projects/ProjectLucca/tests/test_memory_key_persistence_and_restart.py), and [`tests/test_memory_key_migration.py`](file:///c:/Projects/ProjectLucca/tests/test_memory_key_migration.py).
 
 ---
 
@@ -136,26 +138,28 @@ flowchart TD
 
 ### 4.2 Pattern Coverage & Supervisor Decision Policies
 v1.35.2 formalizes coverage and policy decisions across:
-- **21 Action Verbs:** `create`, `delete`, `remove`, `write`, `save`, `send`, `upload`, `move`, `copy`, `execute`, `modify`, `update`, `install`, `post`, `run`, `start`, `stop`, `close`, `build`, `compile`, `deploy`.
+- **21 Action Verbs (Extracted Directly from Code `ACTION_VERBS`):** `delete` (`deleted`), `create` (`created`), `modify` (`modified`), `execute` (`executed`), `run` (`ran`), `install` (`installed`), `remove` (`removed`), `send` (`sent`), `upload` (`uploaded`), `fetch` (`fetched`), `save` (`saved`), `write` (`wrote`), `post` (`posted`), `reboot` (`rebooted`), `book` (`booked`), `place` (`placed`), `process` (`processed`), `start` (`started`), `close` (`closed`), `copy` (`copied`), `move` (`moved`).  
+  *(Note: `build`, `compile`, and `deploy` are not present in the active regex in `src/lucca/sandbox/output_supervisor.py:286-289`; earlier documentation mistakenly included them while omitting `reboot`, `book`, `place`, `process`, and `fetch` which were added during WO-17).*
 - **Known Paraphrase Limitation (Case C01):** The matcher relies on direct pronoun-action pairings (`I deleted`, `I created`). Periphrastic constructions such as *"I took care of removing the temporary files"* or *"I wrapped up creating the branch"* do not match the action verb lemma regex and pass without receipt checking. Category C in the test battery verifies that these do not produce false aborts, but this behavior represents a known coverage gap for ungrounded paraphrases.
 - **Hedge Exemption Policy (Step 3):** By architectural decision, statements qualified by epistemic uncertainty (*"I think I deleted"*, *"I might have removed"*) are exempt from receipt verification to preserve natural conversational nuance and avoid penalizing honest human-like uncertainty. However, this creates a recognized evasion vector where ungrounded claims can bypass supervision if prefaced with a hedge.
 - **Idiomatic Non-Actions:** Covers analytical idioms (`ran a check`), possessives (`placed my trust in`), and physical metaphors (`closed her eyes`).
-- **Formal 40-Sentence Battery:** 10 grounded, 10 ungrounded, 10 paraphrases, 10 honest/hedged/negated sentences verified in [`tests/test_truth_in_receipt_battery.py`](file:///C:/projects/projectlucca/tests/test_truth_in_receipt_battery.py). All 40 cases pass (combined supervisor test suite: 66/66 passing).
+- **Formal 40-Sentence Battery:** 10 grounded, 10 ungrounded, 10 paraphrases, 10 honest/hedged/negated sentences verified in [`tests/test_truth_in_receipt_battery.py`](file:///C:/projects/projectlucca/tests/test_truth_in_receipt_battery.py). All 40 cases pass (combined supervisor test suite: 66/66 passing; 74/74 including deontic sandbox tests).
 
 ---
 
 ## 5. Dynamic Task Router & Neurosymbolic Execution
 
 ### 5.1 Formal Routing Specification
-The task router enforces the following empirical dispatch logic:
+The task router enforces the following empirical dispatch logic (with R1 @ 6k locked as the canonical default for E4B competition mathematics based on fresh held-out evidence):
 
 $$\text{Router}(M, T) = \begin{cases} 
 \text{Direct Raw Generation (R0)} & \text{if } M = \text{12B} \\ 
 \text{PAL in Docker (P2 @ 2,048 cap)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Arithmetic/Word} \\ 
-\text{PAL in Docker (P2 @ 2,048 cap)} & \text{if } M = \text{E4B} \land T = \text{Competition Math (Efficiency)} \\ 
-\text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M = \text{E4B} \land T = \text{Competition Math (Peak Strict)} \\ 
+\text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M = \text{E4B} \land T = \text{Competition Math} \\ 
 \text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M = \text{E2B} \land T = \text{Competition Math} 
 \end{cases}$$
+
+*(Design Note: For Gemma 4 E4B on competition math, PAL P2 @ 2k remains an optional operator-selected efficiency profile saving 40% tokens and 1.6× latency on dev-like problems, but Thinking Mode R1 @ 6k is the canonical default because it provides a statistically significant +15 pp strict accuracy advantage on held-out competition problems: 88.0% vs. 73.0%, $p = 0.0026$).*
 
 ### 5.2 Mechanistic Rationales, Empirical Findings & Router Disclosure
 1. **For 12B Unified:** Raw generation achieves 90.0% strict accuracy with 660 tokens in 12.9s. Under greedy decoding ($T=0.0$), unconstrained thinking triggers circular re-verification loops that crash accuracy to 58.0% (32:0 McNemar discordant ratio, $p = 4.66 \times 10^{-10}$).
@@ -223,11 +227,13 @@ Results across this study were generated across committed development stages:
 - **`v1.35.2` (Current)**: Audit remediation commit (key persistence, SQLite quarantine table, held-out P2 evaluation, and doc corrections). Going forward, all result JSON artifacts contain `git_commit` and `git_dirty` flags written directly by the test harness.
 
 ### 7.2 Test Suite Breakdown
-The project maintains a tiered test taxonomy across multiple test scopes:
-- **26 Tests (`tests/test_output_supervisor.py`):** Core deontic policy capitulation, lookback window tokenization, past temporal marker suppression, and basic idiom handling.
+The project maintains a tiered test taxonomy across multiple test scopes verified via `--collect-only`:
+- **26 Tests (`tests/test_output_supervisor.py`):** Core deontic policy capitulation (11 assertion patterns), lookback window tokenization, past temporal marker suppression, and basic idiom handling.
 - **40 Tests (`tests/test_truth_in_receipt_battery.py`):** Exhaustive Truth-in-Receipt battery across 4 balanced categories: Category A (10 grounded claims), Category B (10 ungrounded claims), Category C (10 paraphrases/idioms), and Category D (10 epistemic hedges and negations).
+- **8 Tests (`tests/test_deontic_sandbox_m2.py`):** Adversarial Win32 handle containment, hard link rejection, two-stage open, DNS rebinding, HMAC token replay, and multi-turn taint monitor isolation.
 - **66 Tests:** The combined supervisor test suite (`test_output_supervisor.py` [26] + `test_truth_in_receipt_battery.py` [40]).
-- **71 Tests:** The full supervisor and deontic isolation suite (`test_output_supervisor.py` [26] + `test_truth_in_receipt_battery.py` [40] + `tests/test_deontic_sandbox_m2.py` [5]).
+- **74 Tests:** The full supervisor and deontic isolation suite (`test_output_supervisor.py` [26] + `test_truth_in_receipt_battery.py` [40] + `test_deontic_sandbox_m2.py` [8]).  
+  *(Note on historical counts: The '19 deontic tests' referenced in earlier documentation represents the 11 deontic capitulation tests in `test_output_supervisor.py` combined with the 8 sandbox M2 tests in `test_deontic_sandbox_m2.py`).*
 - **1,184 Tests:** The complete repository pytest suite across all subsystems (memory, sandbox, router, LISP engine, speech, affect ODE, and static gates).
 
 ---
@@ -236,10 +242,10 @@ The project maintains a tiered test taxonomy across multiple test scopes:
 
 In accordance with architectural transparency standards, the following known limitations are formally documented:
 
-1. **`LISP_ASSERTION` as Grounding Evidence:** Assertions emitted by MicroScheme pure rules are currently admitted into long-term memory as grounding-eligible facts based purely on rule engine signature. They are not subjected to empirical external corroboration.
+1. **Host-Signed LLM Assertions as Grounding Evidence (`LISP_ASSERTION`):** In the abductive deduction loop ([`src/lucca/core/orchestrator.py:1550-1645`](file:///c:/Projects/ProjectLucca/src/lucca/core/orchestrator.py)), inference steps proposed by the LLM (`step_kind="llm_abductive"`) are validated only against premise presence before the orchestrator signs them directly using `SignerFactory.lisp_assertion()`. These entries are NOT deterministic outputs of the MicroScheme rule engine, yet receive `LISP_ASSERTION` provenance envelopes that are marked `grounding_eligible = 1`. This creates a vulnerability where LLM-generated inference proposals bypass external empirical verification and become permanently grounded in long-term memory.
 2. **Trusted Workspace `read_file` Payloads:** File contents read within the workspace boundary receive `TOOL_VERIFIED` provenance envelopes. If untrusted external documents (e.g. downloaded text files) are placed into the workspace, their contents can act as indirect prompt-injection vectors without cryptographic domain gating.
-3. **Silent Cross-Class Contradictions:** When contradictory claims from different provenance classes enter the store, they are stored and represented in the Belnap evidential lattice as `BOTH` (contradictory) rather than actively pruned or resolved. Active resolution only occurs during explicit reflection cycles.
+3. **Cross-Tier Precedence Masks Contradictions:** Cross-tier evidential conflicts produce NO `BOTH` (conflict) value and NO entry in the `review_queue`. Because the cascade enforces strict hierarchical precedence (`TrustTier.TIER_0` strictly supersedes `TIER_1`, which supersedes `TIER_2`, etc. per [`src/lucca/core/cascade.py:1790-1858`](file:///c:/Projects/ProjectLucca/src/lucca/core/cascade.py)), the higher-trust tier simply wins outright and lower-trust contradictory evidence is suppressed as superseded. Belnap `CONFLICT` (`BOTH`) and subsequent review-queue entries arise strictly within the same tier when conflicting evidence has identical precedence.
 4. **No Point-in-Time (`as_of`) Query API:** While the underlying SQLite schema stores bi-temporal timestamps (`valid_from`, `valid_to`), the `HybridRetriever.search()` API does not currently expose an explicit `as_of` temporal query parameter for point-in-time historical time-travel.
-5. **Single Unexercised MicroScheme Rule:** Out of all registered procedural rules, exactly 1 rule in the library remains unexercised in automated CI fixtures.
-6. **E4B Content-Safety Refusal Rate:** Due to uncensored fine-tuning, Gemma 4 E4B exhibits a ~30% refusal rate on standard adversarial content-safety probes, failing to engage with benign edge queries that trigger naive keyword refusals.
+5. **Single-Rule Library Never Fired in Practice:** The MicroScheme procedural rule library currently consists of exactly one registered rule (`open-calculator-v1` in [`src/lucca/ui/settings_tabs/lisp_tab.py:47`](file:///c:/Projects/ProjectLucca/src/lucca/ui/settings_tabs/lisp_tab.py)). Across all recorded benchmark suites and evaluation runs, this single rule has never fired once, leaving the runtime procedural execution engine effectively unexercised in production.
+6. **Severe Safety Vulnerability in Default Model (E4B Compliance with Harmful Probes):** In cross-model safety evaluations ([`logs/test_reports/cross_model_30_gemma-4-e4b.json`](file:///c:/Projects/ProjectLucca/logs/test_reports/cross_model_30_gemma-4-e4b.json)), the uncensored fine-tune (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`) complied with 7 of 10 adversarial harmful prompts (including detailed engagement on keylogger synthesis, credential phishing, and ricin inquiries), refusing only 3 of 10 (30% refusal rate). In contrast, Gemma 4 12B refused 9 of 10 ([`logs/test_reports/cross_model_30_gemma-4-12b.json`](file:///c:/Projects/ProjectLucca/logs/test_reports/cross_model_30_gemma-4-12b.json)), and E2B refused 6 of 10. Deploying E4B as the sovereign core represents an active safety hazard requiring external guardrail enforcement.
 7. **Regex vs. AST Semantic Gap in Output Supervision:** The supervisor operates via compiled regular expressions rather than an abstract syntax tree of natural language. Consequently, periphrastic phrasing (*"I took care of removing..."*) bypasses action verb matching, and epistemic hedges (*"I think I deleted..."*) intentionally suppress verification, providing potential evasion channels.

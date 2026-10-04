@@ -27,6 +27,7 @@ from lucca.core.trace import (
 )
 from lucca.memory.db import DatabaseManager
 from lucca.memory.manager import MemoryManager
+from lucca.memory.migration_tool import migrate_memory_keys
 from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import RuleLifecycleManager
@@ -514,6 +515,8 @@ def run_memory_cli(
     approver: str = "operator",
     topic: str | None = None,
     entry_id: str | None = None,
+    dry_run: bool = False,
+    force: bool = False,
 ) -> int:
     """Manages autobiographical memory, belief revisions, and review queue (D-MEM-04, Rung A1)."""
     if db_path is None:
@@ -771,6 +774,81 @@ def run_memory_cli(
             console.print(f"[bold red]FAILED: Could not forget memory '{target_id}': {err}[/bold red]")
             return 1
 
+    if action == "quarantine-list":
+        conn = db.get_connection()
+        try:
+            cur = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='memory_quarantine'"
+            )
+            if not cur.fetchone():
+                console.print("[yellow]Quarantine table does not exist yet (no quarantined memories).[/yellow]")
+                return 0
+            cur = conn.execute(
+                "SELECT memory_id, entry_id, reason, stage, quarantined_at "
+                "FROM memory_quarantine ORDER BY quarantined_at DESC"
+            )
+            rows = cur.fetchall()
+        finally:
+            conn.close()
+
+        if not rows:
+            console.print("[bold green]No memories currently quarantined. Cryptographic integrity clean.[/bold green]")
+            return 0
+
+        table = Table(
+            title=f"Quarantined Memories — Integrity Check Failures ({len(rows)} records)",
+            caption="Cryptographic Tamper Defense (HMAC-SHA256)",
+        )
+        table.add_column("Memory ID", style="cyan", no_wrap=True)
+        table.add_column("Entry ID", style="magenta")
+        table.add_column("Stage", style="red")
+        table.add_column("Reason", style="yellow")
+        table.add_column("Quarantined At", justify="right")
+
+        for r in rows:
+            table.add_row(
+                str(r[0]),
+                str(r[1])[:16] + "...",
+                str(r[3]),
+                str(r[2]),
+                str(r[4]),
+            )
+        console.print(table)
+        return 0
+
+    if action == "migrate-keys":
+        if mk is None:
+            console.print("[red]Error: master_key required for key migration.[/red]")
+            return 1
+        console.print(
+            f"[bold blue]Starting memory key migration...[/bold blue] "
+            f"({'DRY RUN' if dry_run else 'LIVE MUTATION'})"
+        )
+        report = migrate_memory_keys(
+            db=db,
+            new_master_key=mk,
+            dry_run=dry_run,
+            force=force,
+        )
+
+        table = Table(title="Memory Key Migration Report", caption="Cryptographic Key Migration")
+        table.add_column("Metric", style="cyan")
+        table.add_column("Value", style="bold green" if report.is_success else "yellow")
+
+        table.add_row("Total Scanned Envelopes", str(report.total_scanned))
+        table.add_row("Envelopes Migrated / Re-signed", str(report.migrated_count))
+        table.add_row("Already Valid Under Master Key", str(report.already_valid_count))
+        table.add_row("Tampered / Skipped Records", str(report.tampered_skipped_count))
+        table.add_row("Quarantine Records Cleared", str(report.quarantine_cleared_count))
+        table.add_row("Dry Run Mode", str(dry_run))
+
+        console.print(table)
+        if report.errors:
+            console.print("[bold red]Migration Warnings / Errors:[/bold red]")
+            for err in report.errors:
+                console.print(f"  - {err}")
+        return 0 if report.is_success else 1
+
     console.print(f"[red]Unknown memory action: {action}[/red]")
     return 1
 
@@ -947,6 +1025,26 @@ def create_parser() -> argparse.ArgumentParser:
         "reset", help="Factory reset memory store to zero active memories (soft-delete and audit all)"
     )
 
+    mem_sub.add_parser(
+        "quarantine-list",
+        help="List all quarantined memory records that failed cryptographic integrity checks",
+    )
+
+    p_mmigrate = mem_sub.add_parser(
+        "migrate-keys",
+        help="Migrate and re-sign memory envelopes from legacy dev-fallback key to active master key",
+    )
+    p_mmigrate.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Scan and report eligible records without writing modifications to disk",
+    )
+    p_mmigrate.add_argument(
+        "--force",
+        action="store_true",
+        help="Force re-signing even if existing signature does not match canonical dev key",
+    )
+
     # Stubs per F-CORE-027
     for stub in ["metrics", "router", "replay"]:
         sub = subparsers.add_parser(
@@ -1045,6 +1143,8 @@ def main(argv: list[str] | None = None) -> None:
         approver = getattr(args, "approver", "operator")
         topic = getattr(args, "topic", None)
         entry_id = getattr(args, "entry_id", None)
+        dry_run = getattr(args, "dry_run", False)
+        force = getattr(args, "force", False)
         db_arg = getattr(args, "db", None)
         db_path = Path(db_arg) if db_arg else None
         sys.exit(
@@ -1058,6 +1158,8 @@ def main(argv: list[str] | None = None) -> None:
                 approver=approver,
                 topic=topic,
                 entry_id=entry_id,
+                dry_run=dry_run,
+                force=force,
             )
         )
     elif args.cmd in ("metrics", "router", "replay"):
