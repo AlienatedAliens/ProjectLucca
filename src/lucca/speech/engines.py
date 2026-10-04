@@ -13,20 +13,20 @@ Unified engine abstraction for the 5 ratified speech synthesis engines:
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 import re
-from typing import Any, Literal
+from typing import Any, Final, Literal
 
 import kokoro_onnx
 import numpy as np
 import numpy.typing as npt
+import structlog
 
 from lucca.speech.kokoclone import compute_cloned_style_vector
 from lucca.speech.text_normalizer import normalize_text
 
-_LOG = logging.getLogger(__name__)
+_LOG = structlog.get_logger(__name__)
 
 KOKORO_MODEL_PATH = Path(r"C:\ProjectLucca\models\tts\kokoro-v1.0.onnx")
 KOKORO_VOICES_PATH = Path(r"C:\ProjectLucca\models\tts\voices-v1.0.bin")

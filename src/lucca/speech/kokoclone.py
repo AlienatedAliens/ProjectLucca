@@ -13,15 +13,15 @@ to generate a valid (510, 1, 256) float32 style tensor.
 
 from __future__ import annotations
 
-import logging
+import wave
 from pathlib import Path
 from typing import Any
-import wave
 
 import numpy as np
 import numpy.typing as npt
+import structlog
 
-_LOG = logging.getLogger(__name__)
+_LOG = structlog.get_logger(__name__)
 
 # Cache of extracted style vectors: wav_path -> (mtime, style_array, metadata)
 _CLONE_CACHE: dict[str, tuple[float, npt.NDArray[np.float32], dict[str, Any]]] = {}
