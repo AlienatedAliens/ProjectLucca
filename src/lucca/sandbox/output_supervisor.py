@@ -347,6 +347,8 @@ class TruthInReceiptMatcher:
     HEDGE_PATTERN = re.compile(
         r"\b(?:I\s+think\s+I|I\s+believe\s+I|I\s+(?:may|might|could)\s+have|"
         r"not\s+sure\s+(?:if|whether)|not\s+certain\s+(?:if|whether)|"
+        r"(?:can\'t|cannot)\s+tell\s+(?:you\s+)?(?:if|whether)|"
+        r"(?:don\'t|do\s+not)\s+know\s+(?:if|whether)|"
         r"perhaps\s+I|maybe\s+I)\b",
         re.IGNORECASE,
     )
