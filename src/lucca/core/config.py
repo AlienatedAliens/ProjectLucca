@@ -6,6 +6,7 @@ Spec 11 §1 (`lucca.core.config`)
 import logging
 import os
 import re
+import secrets
 import sys
 import tomllib
 from functools import lru_cache
@@ -246,6 +247,56 @@ class LuccaConfig(BaseSettings):
         rel = getattr(self.paths, subpath_name, subpath_name)
         p = self.home_dir / rel
         return p
+
+
+def resolve_or_create_master_key(
+    config: LuccaConfig | None = None, key_dir: Path | None = None
+) -> bytes:
+    """
+    Resolves the cryptographic master key for HMAC memory integrity:
+    1. LUCCA_MASTER_KEY environment variable (if >= 32 chars).
+    2. config.master_key setting (if >= 32 chars).
+    3. Persisted key file at LUCCA_HOME/data/keys/master.key (or key_dir / master.key).
+    4. Auto-generates a secure 32-byte key and persists it to disk.
+    NEVER falls back to hardcoded dev constants.
+    """
+    # 1. Environment variable
+    env_k = os.getenv("LUCCA_MASTER_KEY")
+    if env_k and len(env_k.strip()) >= 32:
+        return env_k.strip().encode("utf-8")
+
+    # 2. Config attribute
+    if config and getattr(config, "master_key", None):
+        cfg_k = config.master_key.strip()
+        if len(cfg_k) >= 32:
+            return cfg_k.encode("utf-8")
+
+    # 3. Persistent disk key
+    home = config.home_dir if config else (Path("C:/ProjectLucca") if Path("C:/ProjectLucca").exists() else Path("."))
+    target_dir = key_dir or (home / "data" / "keys")
+    key_file = target_dir / "master.key"
+
+    try:
+        if key_file.exists():
+            data = key_file.read_bytes().strip()
+            if len(data) >= 32:
+                return data[:32]
+
+        # 4. Generate fresh 32-byte cryptographic key and persist
+        target_dir.mkdir(parents=True, exist_ok=True)
+        new_key = secrets.token_bytes(32)
+        key_file.write_bytes(new_key)
+        try:
+            os.chmod(key_file, 0o600)
+        except Exception as chmod_err:
+            logger.debug("chmod_master_key_skipped", extra={"error": str(chmod_err)})
+        logger.info("persistent_master_key_generated: %s", key_file)
+        return new_key
+    except Exception as exc:
+        logger.warning("master_key_persistence_fallback", extra={"error": str(exc)})
+        # Fallback to ephemeral key if filesystem is read-only
+        return secrets.token_bytes(32)
+
 
 
 # WO-10.6 (F20): behavioural heuristics live in config/heuristics.toml with

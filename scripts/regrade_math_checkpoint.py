@@ -78,7 +78,13 @@ def regrade_checkpoint(
     print(f"Label: {label} (post-hoc: grader fixes designed after inspection)")
     print(f"=======================================================\n")
 
-    items = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    raw_data = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+    if isinstance(raw_data, dict) and "results" in raw_data:
+        items = raw_data["results"]
+    elif isinstance(raw_data, list):
+        items = raw_data
+    else:
+        raise ValueError(f"Unsupported checkpoint format in {checkpoint_path}")
     assert len(items) > 0, f"Expected non-empty checkpoint, got {len(items)}"
 
     strict_passes = []
@@ -87,8 +93,8 @@ def regrade_checkpoint(
 
     for idx, item in enumerate(items, 1):
         pred = str(item.get("predicted_ans", "")).strip()
-        exp = str(item.get("expected_ans", "")).strip()
-        orig_passed = item.get("passed", False)
+        exp = str(item.get("expected_ans") or item.get("ground_truth", "")).strip()
+        orig_passed = item.get("passed", item.get("strict_pass", False))
 
         is_strict = compare_math_strict(pred, exp)
         is_lenient = compare_math_lenient(pred, exp)

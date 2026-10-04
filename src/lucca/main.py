@@ -197,6 +197,7 @@ class Supervisor:
 
         # Start Core Orchestrator in supervisor process
         print("Starting core orchestrator...")
+        from lucca.core.config import resolve_or_create_master_key  # noqa: PLC0415
         from lucca.memory.db import DatabaseManager  # noqa: PLC0415
         from lucca.memory.store import MemoryStore  # noqa: PLC0415
         from lucca.senses.embed import EmbedWorker, LocalEmbeddingPort  # noqa: PLC0415
@@ -210,17 +211,7 @@ class Supervisor:
             logger.debug("db_migrate_failed: %s", exc)
             sys.stderr.write(f"WARNING: Database migration failed: {exc}\n")
 
-        master_key = (
-            self.config.master_key.encode("utf-8")
-            if getattr(self.config, "master_key", None)
-            else None
-        )
-        if master_key is None or len(master_key) < 32:
-            sys.stderr.write(
-                "FATAL [BOOT]: No valid master_key configured for MemoryStore; "
-                "falling back to insecure dev key.\n"
-            )
-            master_key = b"01234567890123456789012345678901"
+        master_key = resolve_or_create_master_key(self.config)
 
         try:
             memory_store = MemoryStore(

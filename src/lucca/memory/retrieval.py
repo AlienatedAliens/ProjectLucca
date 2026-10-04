@@ -136,10 +136,72 @@ class HybridRetriever:
         db: DatabaseManager,
         embedder: EmbeddingPort | None = None,
         master_key: bytes | None = None,
+        raise_on_tamper: bool = False,
     ) -> None:
         self.db = db
         self.embedder = embedder
         self.master_key = master_key  # None disables HMAC verification (dev/test only)
+        self.raise_on_tamper = raise_on_tamper
+        self.quarantined_memory_ids: list[int] = []
+        self.user_integrity_warnings: list[str] = []
+        self._load_persisted_quarantine_ids()
+
+    def _load_persisted_quarantine_ids(self) -> None:
+        """Loads all historically quarantined memory IDs from the database."""
+        try:
+            with self.db.read_cursor() as cur:
+                cur.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='memory_quarantine'"
+                )
+                if cur.fetchone():
+                    cur.execute("SELECT memory_id FROM memory_quarantine")
+                    self.quarantined_memory_ids = [int(row[0]) for row in cur.fetchall()]
+        except Exception as exc:
+            logger.debug("load_persisted_quarantine_ids_failed", error=str(exc))
+
+    def get_integrity_status_report(self) -> str | None:
+        """Returns human-readable notice if any memories are currently quarantined."""
+        self._load_persisted_quarantine_ids()
+        count = len(self.quarantined_memory_ids)
+        if count == 0:
+            return None
+        return f"Security notice: {count} {'memory' if count == 1 else 'memories'} failed cryptographic integrity checks and were quarantined."
+
+    def _persist_quarantine(self, memory_id: int, entry_id: str | None, stage: str, reason: str) -> None:
+        try:
+            with self.db.get_writer() as conn:
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS memory_quarantine ("
+                    "memory_id INTEGER PRIMARY KEY, "
+                    "entry_id TEXT, "
+                    "reason TEXT NOT NULL, "
+                    "stage TEXT NOT NULL, "
+                    "quarantined_at REAL NOT NULL"
+                    ")"
+                )
+                conn.execute(
+                    "INSERT OR REPLACE INTO memory_quarantine (memory_id, entry_id, reason, stage, quarantined_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (memory_id, entry_id, reason, stage, time.time()),
+                )
+                conn.commit()
+        except Exception as q_err:
+            logger.warning("persist_memory_quarantine_failed", memory_id=memory_id, error=str(q_err))
+
+    def get_persisted_quarantine_records(self) -> list[dict[str, object]]:
+        """Returns all memory records quarantined across sessions."""
+        try:
+            with self.db.read_cursor() as cur:
+                cur.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='memory_quarantine'"
+                )
+                if not cur.fetchone():
+                    return []
+                cur.execute("SELECT memory_id, entry_id, reason, stage, quarantined_at FROM memory_quarantine ORDER BY quarantined_at DESC")
+                return [dict(row) for row in cur.fetchall()]
+        except Exception as exc:
+            logger.debug("get_persisted_quarantine_records_failed", error=str(exc))
+            return []
 
     def search(self, q: RetrievalQuery, now: float | None = None) -> list[MemoryHit]:
         current_time = now if now is not None else time.time()
@@ -192,6 +254,8 @@ class HybridRetriever:
 
             # 3. Reciprocal Rank Fusion (k=60)
             all_candidate_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
+            if self.quarantined_memory_ids:
+                all_candidate_ids -= set(self.quarantined_memory_ids)
             if not all_candidate_ids:
                 return []
 
@@ -305,12 +369,32 @@ class HybridRetriever:
                     )
 
                 if not _integrity_ok:
-                    # Surface violation: raise so orchestrator can notify the user.
-                    # Do NOT silently return an empty result — silent failures hide attacks.
-                    raise RuntimeError(
-                        f"Memory integrity violation detected for memory_id={mid}. "
-                        "The record may have been tampered with. Retrieval aborted."
+                    eid = str(r["entry_id"]) if "entry_id" in r.keys() else None
+                    logger.error(
+                        "memory_retrieval_integrity_quarantine",
+                        stage="integrity_quarantine",
+                        memory_id=mid,
+                        entry_id=eid,
+                        msg=f"Memory row {mid} failed integrity verification (SHA256/HMAC mismatch). Row quarantined.",
                     )
+                    self.quarantined_memory_ids.append(mid)
+                    self._persist_quarantine(
+                        memory_id=mid,
+                        entry_id=eid,
+                        stage="hmac_or_sha256",
+                        reason="Cryptographic integrity verification failed",
+                    )
+                    warn = f"Security notice: Memory record {mid} failed cryptographic verification and was quarantined."
+                    if warn not in self.user_integrity_warnings:
+                        self.user_integrity_warnings.append(warn)
+
+                    if self.raise_on_tamper:
+                        raise RuntimeError(
+                            f"Memory integrity violation detected for memory_id={mid}. "
+                            "The record may have been tampered with. Retrieval aborted."
+                        )
+                    # Quarantine: exclude from hits and continue retrieving valid rows
+                    continue
 
                 valid_to = r["valid_to"]
                 forgotten_at = r["forgotten_at"]

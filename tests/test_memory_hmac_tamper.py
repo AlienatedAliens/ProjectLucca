@@ -56,12 +56,12 @@ def seeded_store(tmp_path: Path):
     return store, db
 
 
-def _retriever(db) -> HybridRetriever:
-    return HybridRetriever(db=db, master_key=MASTER_KEY)
+def _retriever(db, raise_on_tamper: bool = True) -> HybridRetriever:
+    return HybridRetriever(db=db, master_key=MASTER_KEY, raise_on_tamper=raise_on_tamper)
 
 
-def _retriever_no_key(db) -> HybridRetriever:
-    return HybridRetriever(db=db, master_key=None)
+def _retriever_no_key(db, raise_on_tamper: bool = True) -> HybridRetriever:
+    return HybridRetriever(db=db, master_key=None, raise_on_tamper=raise_on_tamper)
 
 
 
@@ -201,4 +201,49 @@ def test_forged_payload_json_caught_by_hmac(seeded_store):
     q = RetrievalQuery(query_text="secret project name", top_k=5)
     with pytest.raises(RuntimeError, match="integrity violation"):
         retriever.search(q)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Test 6 — Resilient Quarantine: default mode omits tampered row without aborting
+# ──────────────────────────────────────────────────────────────────────────────
+
+def test_tamper_quarantined_by_default_without_crashing_retrieval(seeded_store):
+    """Under production default (raise_on_tamper=False), a tampered row is logged and
+    quarantined, excluded from returned hits, and does not abort retrieval."""
+    store, db = seeded_store
+
+    tampered = "The secret project name is FORGED_BUT_QUARANTINED."
+    new_sha = hashlib.sha256(tampered.encode("utf-8")).hexdigest()
+
+    with db.get_writer() as conn:
+        conn.execute(
+            "UPDATE memories SET content=? WHERE content LIKE '%Meridian%'",
+            (tampered,),
+        )
+        conn.execute(
+            "UPDATE provenance_envelopes SET content_sha256=? "
+            "WHERE entry_id=(SELECT entry_id FROM memories WHERE content=?)",
+            (new_sha, tampered),
+        )
+        conn.commit()
+
+    # Default HybridRetriever has raise_on_tamper=False
+    retriever = HybridRetriever(db=db, master_key=MASTER_KEY, raise_on_tamper=False)
+    q = RetrievalQuery(query_text="secret project name", top_k=5)
+
+    # Retrieval must NOT raise RuntimeError
+    hits = retriever.search(q)
+
+    # The tampered memory must be recorded in quarantined_memory_ids
+    assert len(retriever.quarantined_memory_ids) == 1
+
+    # Verify DB persistence across sessions
+    persisted = retriever.get_persisted_quarantine_records()
+    assert len(persisted) == 1
+    assert persisted[0]["memory_id"] == retriever.quarantined_memory_ids[0]
+
+    # Verify user-facing warning was accumulated
+    assert len(retriever.user_integrity_warnings) == 1
+    assert "Security notice: Memory record" in retriever.user_integrity_warnings[0]
+
 

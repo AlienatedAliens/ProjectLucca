@@ -359,12 +359,9 @@ class SandboxService:
 
     def get_memory_manager(self) -> MemoryManager:
         if self._memory_manager is None:
+            from lucca.core.config import resolve_or_create_master_key
             cfg = get_config()
-            mk = None
-            if cfg.master_key and len(cfg.master_key.strip()) >= 32:
-                mk = cfg.master_key.strip().encode("utf-8")
-            elif getattr(cfg.env, "mode", "prod") == "dev":
-                mk = b"01234567890123456789012345678901"
+            mk = resolve_or_create_master_key(cfg)
             try:
                 self._memory_manager = MemoryManager(master_key=mk)
             except Exception as exc:

@@ -89,6 +89,19 @@ def get_git_commit_hash() -> str:
         return "unknown"
 
 
+def is_git_dirty() -> bool:
+    """Check if git working tree has uncommitted changes."""
+    try:
+        out = subprocess.check_output(
+            ["git", "status", "--porcelain"],
+            stderr=subprocess.DEVNULL,
+            encoding="utf-8",
+        )
+        return bool(out.strip())
+    except Exception:
+        return False
+
+
 def get_server_model_name(port: int = 8080) -> str:
     """Query llama-server endpoint to identify active model name."""
     try:
@@ -934,6 +947,7 @@ def run_benchmark_arm(
         "samples": len(results_list),
         "split": split,
         "git_commit": get_git_commit_hash(),
+        "git_dirty": is_git_dirty(),
         "max_thinking_tokens": max_thinking_tokens,
         "max_code_tokens": max_code_tokens,
         "strict_passed": strict_passed,

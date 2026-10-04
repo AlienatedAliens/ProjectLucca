@@ -524,11 +524,8 @@ def run_memory_cli(
     db.migrate()
 
     cfg = get_config()
-    mk: bytes | None = None
-    if cfg.master_key:
-        mk = cfg.master_key.encode("utf-8")
-    elif cfg.env.mode == "dev":
-        mk = b"01234567890123456789012345678901"
+    from lucca.core.config import resolve_or_create_master_key
+    mk: bytes = resolve_or_create_master_key(cfg)
 
     manager = MemoryManager(db=db, master_key=mk)
     console = Console()

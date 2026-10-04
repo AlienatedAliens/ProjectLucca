@@ -38,13 +38,8 @@ class SignerFactory:
     def __init__(self, master_key: bytes | None = None) -> None:
         key = master_key
         if key is None or len(key) < 32:
-            env = os.environ.get("LUCCA_ENV") or os.environ.get("LUCCA_ENV__MODE", "dev")
-            if env != "dev":
-                raise ValueError(
-                    f"Master key must be at least 32 bytes (got {len(key) if key is not None else 0}); "
-                    f"dev fallback prohibited when LUCCA_ENV={env!r} (must be 'dev')."
-                )
-            key = DEV_MASTER_KEY
+            from lucca.core.config import resolve_or_create_master_key
+            key = resolve_or_create_master_key()
         self._master_key: bytes = bytes(key)
 
     @property

@@ -1,27 +1,27 @@
-# Project Lucca — Version 1.35.1 System Architecture Specification
-## Sovereign Compound Neurosymbolic Edge Architecture & Multi-Scale Cognitive Substrate
+# Project Lucca — Version 1.35.2 System Architecture Specification
+## Multi-Scale Compound Neurosymbolic Edge Architecture & Cognitive Substrate
 
-**Title:** Project Lucca v1.35.1 System Architecture & Technical Specification  
-**Version:** 1.35.1-stable  
-**Release Tag:** `v1.35.1-stable`  
-**Git Commit:** `f5d4910`  
+**Title:** Project Lucca v1.35.2 System Architecture & Technical Specification  
+**Version:** 1.35.2-stable  
+**Release Tag:** `v1.35.2-stable`  
+**Git Commit:** `f20537fe` (closeout baseline; audit remediation commit: current HEAD)  
 **Date:** October 4, 2026  
 **Authors:** Project Lucca Architecture Notes  
-**Target Platform:** Sovereign Consumer Edge (NVIDIA GeForce RTX 5080 Laptop GPU, 16,303 MiB GDDR7 VRAM, Headless Compute)  
-**Status:** Canonical System Architecture  
+**Target Platform:** Consumer Edge (NVIDIA GeForce RTX 5080 Laptop GPU, 16,303 MiB GDDR7 VRAM, Headless Compute)  
+**Status:** System Architecture Specification (v1.35.2)  
 
 ---
 
 ## 1. Executive Summary & Design Principles
 
-Project Lucca is an autonomous, sovereign personal systems companion and research engineer designed to execute on consumer hardware with zero telemetry leaks, subscription APIs, or external cloud compute dependencies.
+Project Lucca is a local personal systems companion and research engineer designed to execute on consumer hardware with zero external telemetry dependencies or cloud subscriptions.
 
-Version 1.35.1 establishes the **Multi-Scale Compound Neurosymbolic Edge Architecture**, focusing on controlled empirical validation, deterministic supervision, and cryptographic memory safety:
-1. **Cryptographic Memory Verification at Read-Time:** Replaces unkeyed SHA-256 column checks with a two-stage HMAC-SHA256 verification pipeline in `HybridRetriever`. SQLite row mutations are detected via constant-time HMAC comparison over canonical JSON payloads and surfaced via `RuntimeError` rather than silently dropped.
-2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across a 40-sentence formal battery with 100% test pass rate (71/71 tests in suite).
+Version 1.35.2 formalizes the **Multi-Scale Compound Neurosymbolic Edge Architecture**, focusing on controlled empirical validation, deterministic supervision, and cryptographic memory safety:
+1. **Cryptographic Memory Verification & Persistent Quarantine:** Replaces unkeyed SHA-256 column checks with a two-stage HMAC-SHA256 verification pipeline in `HybridRetriever`. SQLite row mutations or signature mismatches are detected via constant-time HMAC comparison over canonical JSON payloads and quarantined into the persistent SQLite `memory_quarantine` table with user-facing alerts, rather than crashing with unhandled exceptions or causing silent amnesia.
+2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across a 40-sentence formal battery with 100% test pass rate (40/40 in `test_truth_in_receipt_battery.py`; 66/66 combined supervisor unit tests; 71/71 including deontic lookahead checks).
 3. **The 12B Scale Inversion Under Greedy Decoding:** Documents that under greedy decoding ($T=0.0$), extended unslotted thinking scratchpads degrade Gemma 4 12B on competition mathematics (dropping from 90.0% direct to 58.0% thinking, McNemar $p = 4.66 \times 10^{-10}$, 32:0 discordant ratio), whereas direct raw generation solves 90.0% of problems in 12.9s.
-4. **Edge Truncation Isolation:** Demonstrates that doubling the PAL code token cap from 1,024 to 2,048 tokens rescues edge models from premature AST termination, lifting E2B strict accuracy from 70.0% to 77.0% ($p=0.0156$) and E4B strict accuracy from 73.0% to 83.0% (and 92.0% lenient), achieving parity with Thinking Mode with 40% token savings.
-5. **Controlled Held-Out Generalization:** Validates the task router on $n=100$ fresh, unseen competition mathematics problems ([`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl)) with Gemma 4 E4B, achieving **88.0% strict CAS accuracy** [95% Wilson CI: 79.6%, 93.4%] with only 2.0% truncations, showing no statistically detectable drop from the dev split.
+4. **Edge Truncation Isolation:** Demonstrates that doubling the PAL code token cap from 1,024 to 2,048 tokens rescues edge models from premature code truncation, lifting E2B strict accuracy from 70.0% to 77.0% ($p=0.0156$) and E4B strict accuracy from 73.0% to 83.0% (and 92.0% lenient), achieving parity with Thinking Mode with 40% token savings.
+5. **Fresh Held-Out Evaluation & Router Nature:** Evaluates $n=100$ fresh, unseen competition mathematics problems ([`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_fresh_heldout_500.jsonl)) with Gemma 4 E4B across both candidate arms: Thinking Mode (R1 @ 6k) achieves **88.0% strict CAS / 92.0% lenient** [95% Wilson CI: 79.6%, 93.4%], while PAL (P2 @ 2k) achieves **73.0% strict / 83.0% lenient** (discordant pairs 4:19 strict, exact binomial $p = 0.0026$). Transparently notes that the benchmark router dispatches via oracle dataset label lookup (`benchmark == 'gsm_symbolic'` vs `'math500'`), and real-world deployment requires an in-the-wild task-type intent classifier.
 
 ---
 
@@ -58,8 +58,8 @@ llama-server.exe \
 
 ## 3. Cryptographic Memory & Provenance Substrate
 
-### 3.1 Two-Stage Read-Time HMAC Verification Pipeline
-In Lucca v1.35.1, the memory retrieval pathway ([`src/lucca/memory/retrieval.py`](file:///C:/projects/projectlucca/src/lucca/memory/retrieval.py)) enforces tamper evidence across all vector (dense KNN) and lexical (BM25 FTS) memory hits before returning records to the orchestrator:
+### 3.1 Two-Stage Read-Time HMAC Verification & Persistent Quarantine Pipeline
+In Lucca v1.35.2, the memory retrieval pathway ([`src/lucca/memory/retrieval.py`](file:///C:/projects/projectlucca/src/lucca/memory/retrieval.py)) enforces cryptographic tamper evidence across all vector (dense KNN) and lexical (BM25 FTS) memory hits before returning records to the orchestrator:
 
 ```
 [RetrievalQuery] 
@@ -67,17 +67,18 @@ In Lucca v1.35.1, the memory retrieval pathway ([`src/lucca/memory/retrieval.py`
        ▼
 [Hybrid Search: Dense KNN + BM25 FTS via Reciprocal Rank Fusion]
        │
+       ├─► [Pre-Filter Known Quarantined IDs] ──► Exclude rows in memory_quarantine table
        ▼
 For each candidate memory record:
        │
        ├─► [Stage 1: Content SHA-256 Fast-Fail]
        │     SHA256(memories.content) == provenance_envelopes.content_sha256?
-       │     ├── NO  ──► Emit "stage=content_sha256" error ──► RAISE RuntimeError
+       │     ├── NO  ──► Emit "stage=content_sha256" error ──► Quarantine row to DB & continue
        │     └── YES ──► Proceed to Content Match Gate
        │
        ├─► [Content Match Gate]
        │     memories.content == payload_json.content?
-       │     ├── NO  ──► Emit "stage=payload_content_mismatch" ──► RAISE RuntimeError
+       │     ├── NO  ──► Emit "stage=payload_content_mismatch" ──► Quarantine row to DB & continue
        │     └── YES ──► Proceed to Cryptographic HMAC
        │
        └─► [Stage 2: Constant-Time HMAC-SHA256 Verification]
@@ -85,26 +86,25 @@ For each candidate memory record:
              2. Canonical Bytes: JSON(canonical_dict, sort_keys=True, compact_separators)
              3. Expected Signature: Base64(HMAC-SHA256(derived_key, canonical_bytes))
              4. hmac.compare_digest(stored_signature, expected_signature)?
-                   ├── NO  ──► Emit "stage=hmac" error ──► RAISE RuntimeError
-                   └── YES ──► Memory Hit Verified ──► Surface to Agent
+                   ├── NO  ──► Emit "stage=hmac" error ──► Quarantine row to DB & continue
+                   └── YES ──► Memory Hit Verified ──► Return to Orchestrator
 ```
 
-### 3.2 Non-Silent Tamper Surfacing
-Unlike prior versions which silently suppressed corrupted rows (hiding database injection attacks from the operator), v1.35.1 immediately halts the search operation with an explicit exception:
-```python
-raise RuntimeError(
-    f"Memory integrity violation detected for memory_id={mid}. "
-    f"The record may have been tampered with. Retrieval aborted."
-)
-```
-Verified across 5 deterministic unit tests in [`tests/test_memory_hmac_tamper.py`](file:///C:/projects/projectlucca/tests/test_memory_hmac_tamper.py).
+### 3.2 Non-Silent Tamper Surfacing & Amnesia Defense
+Rather than silently dropping bad rows (hiding database injection attacks) or raising an unhandled `RuntimeError` (which disabled all memory retrieval whenever a key rotated or a single row was modified), v1.35.2 implements **persistent database quarantine with proactive user surfacing**:
+1. **Persistent DB Quarantine:** Corrupted rows are inserted into SQLite `memory_quarantine` table with columns `(memory_id, entry_id, reason, stage, quarantined_at)`. Quarantined IDs are loaded on boot and excluded from subsequent searches across sessions.
+2. **User-Facing Alerting:** A security notice (`"Security notice: N memories failed cryptographic integrity checks and were quarantined."`) is emitted via `HybridRetriever.get_integrity_status_report()`, passed to the `EpistemicSearchCascade`, and displayed in the user UI.
+3. **Key Persistence:** Master keys are generated cryptographically (`secrets.token_bytes(32)`) and persisted to disk at `data/keys/master.key` with `0600` permissions. All public dev fallback constants (`b"0123456789..."`) have been eliminated from `main.py`, `service.py`, `signer_factory.py`, and `admin.py`.
+4. **Resilient Retrieval:** Uncorrupted memories continue to retrieve successfully alongside new memories committed with the active master key.
+
+Verified across 8 deterministic unit tests in [`tests/test_memory_hmac_tamper.py`](file:///C:/projects/projectlucca/tests/test_memory_hmac_tamper.py) and [`tests/test_memory_key_persistence_and_restart.py`](file:///C:/projects/projectlucca/tests/test_memory_key_persistence_and_restart.py).
 
 ---
 
 ## 4. Output Supervision & Deontic Grounding Substrate
 
 ### 4.1 Truth-In-Receipt Matcher Architecture
-The supervisor ([`src/lucca/sandbox/output_supervisor.py`](file:///C:/projects/projectlucca/src/lucca/sandbox/output_supervisor.py)) performs sub-millisecond per-clause AST verification on streaming assistant tokens before spoken TTS chunk emission.
+The supervisor ([`src/lucca/sandbox/output_supervisor.py`](file:///C:/projects/projectlucca/src/lucca/sandbox/output_supervisor.py)) performs deterministic regex-based clause-level verification on streaming assistant tokens before spoken TTS chunk emission.
 
 ```mermaid
 flowchart TD
@@ -113,19 +113,19 @@ flowchart TD
     
     ClauseEval --> Step1{"Future / Intentional?<br/>(I will, I plan to, I'm about to)"}
     Step1 -- Yes --> Pass["Pass (Not completed action)"]
-    Step1 -- No --> Step2{"Analytical / Idiomatic Non-Action?<br/>(ran a check, moved mountains, took care of)"}
+    Step1 -- No --> Step2{"Analytical / Idiomatic Non-Action?<br/>(ran a check, saved the day, closed my eyes)"}
     
     Step2 -- Yes --> Pass
     Step2 -- No --> Step3{"Epistemic Hedge Present?<br/>(I think I, I believe I, might have)"}
     
-    Step3 -- Yes --> Pass
+    Step3 -- Yes --> PassHedge["Pass by Policy (Hedge Exemption)"]
     Step3 -- No --> Step4{"Past Session Context?<br/>(Yesterday, Last session)"}
     
     Step4 -- Yes --> Pass
     Step4 -- No --> Step5{"Negation Present?<br/>(did not, never, haven't)"}
     
     Step5 -- Yes --> Pass
-    Step5 -- No --> Step6{"Stem Match in ACTION_VERBS?<br/>(create, delete, save, send, move)"}
+    Step5 -- No --> Step6{"Direct Match in ACTION_VERBS?<br/>(I created, I deleted, I saved, I sent)"}
     
     Step6 -- No --> Pass
     Step6 -- Yes --> ReceiptCheck{"ToolReceipt Present in Session<br/>matching (tool, target, status=OK)?"}
@@ -134,12 +134,13 @@ flowchart TD
     ReceiptCheck -- No --> Abort["TRIGGER Mid-Utterance Abort<br/>Drop TTS Queue, Record Breach"]
 ```
 
-### 4.2 Pattern Widening & Battery Verification
-v1.35.1 formalizes coverage across:
+### 4.2 Pattern Coverage & Supervisor Decision Policies
+v1.35.2 formalizes coverage and policy decisions across:
 - **21 Action Verbs:** `create`, `delete`, `remove`, `write`, `save`, `send`, `upload`, `move`, `copy`, `execute`, `modify`, `update`, `install`, `post`, `run`, `start`, `stop`, `close`, `build`, `compile`, `deploy`.
-- **Hedge Suppression Regex:** `(?:i\s+think\s+i|i\s+believe\s+i|not\s+(?:entirely\s+)?certain|might\s+have|could\s+have|may\s+have)`.
+- **Known Paraphrase Limitation (Case C01):** The matcher relies on direct pronoun-action pairings (`I deleted`, `I created`). Periphrastic constructions such as *"I took care of removing the temporary files"* or *"I wrapped up creating the branch"* do not match the action verb lemma regex and pass without receipt checking. Category C in the test battery verifies that these do not produce false aborts, but this behavior represents a known coverage gap for ungrounded paraphrases.
+- **Hedge Exemption Policy (Step 3):** By architectural decision, statements qualified by epistemic uncertainty (*"I think I deleted"*, *"I might have removed"*) are exempt from receipt verification to preserve natural conversational nuance and avoid penalizing honest human-like uncertainty. However, this creates a recognized evasion vector where ungrounded claims can bypass supervision if prefaced with a hedge.
 - **Idiomatic Non-Actions:** Covers analytical idioms (`ran a check`), possessives (`placed my trust in`), and physical metaphors (`closed her eyes`).
-- **Formal 40-Sentence Battery:** 10 grounded, 10 ungrounded, 10 paraphrases, 10 honest/hedged/negated sentences verified in [`tests/test_truth_in_receipt_battery.py`](file:///C:/projects/projectlucca/tests/test_truth_in_receipt_battery.py) (**66/66 unit tests passing**).
+- **Formal 40-Sentence Battery:** 10 grounded, 10 ungrounded, 10 paraphrases, 10 honest/hedged/negated sentences verified in [`tests/test_truth_in_receipt_battery.py`](file:///C:/projects/projectlucca/tests/test_truth_in_receipt_battery.py). All 40 cases pass (combined supervisor test suite: 66/66 passing).
 
 ---
 
@@ -156,14 +157,15 @@ $$\text{Router}(M, T) = \begin{cases}
 \text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M = \text{E2B} \land T = \text{Competition Math} 
 \end{cases}$$
 
-### 5.2 Mechanistic Rationales & Trade-Offs
+### 5.2 Mechanistic Rationales, Empirical Findings & Router Disclosure
 1. **For 12B Unified:** Raw generation achieves 90.0% strict accuracy with 660 tokens in 12.9s. Under greedy decoding ($T=0.0$), unconstrained thinking triggers circular re-verification loops that crash accuracy to 58.0% (32:0 McNemar discordant ratio, $p = 4.66 \times 10^{-10}$).
 2. **For E4B / E2B Arithmetic (GSM-Symbolic):** PAL in Docker absorbs parameter contraction, equalizing 2B/4.5B models with 12B (91%–94% vs. 95%).
-3. **The E4B Competition Math Trade-Off:**
-   - **PAL @ 2,048 cap:** 83.0% strict / 92.0% lenient, 1,070 tokens/item, 10.1s latency (40% fewer tokens, 1.6× faster, ties thinking mode strict with $p=0.7905$). Pareto-optimal for resource-constrained deployment.
-   - **Thinking Mode @ 6k cap:** 85.0%–88.0% strict / 86.0%–92.0% lenient, ~1,785–2,066 tokens/item, ~16.4–19.3s latency. Preferred when maximizing strict CAS accuracy regardless of compute budget.
-4. **For E2B Competition Math:** Thinking Mode @ 6k leads PAL @ 2k by 7 points strict (84.0% vs. 77.0%), justifying the higher token expenditure on ultra-edge silicon.
-5. **Redundancy of P3 (PAL + Thinking):** Pre-thinking before synthesizing Python code provides zero additive lift (76% vs 77%), while consuming 2.4× more tokens and running 2.5× slower.
+3. **The E4B Competition Math Trade-Off (Dev vs. Held-Out):**
+   - **On Dev Split ($n=100$):** PAL @ 2,048 cap scored 83.0% strict / 92.0% lenient (10.1s, 1,070 tok), tying Thinking Mode R1 @ 4k (85.0% strict / 86.0% lenient, $p=0.7905$ NS).
+   - **On Held-Out Split ($n=100$):** Evaluated side-by-side on the identical 100 unseen competition problems, Thinking Mode R1 @ 6k scored **88.0% strict / 92.0% lenient**, while PAL P2 @ 2k scored **73.0% strict / 83.0% lenient**.
+   - **Paired McNemar Analysis:** On strict CAS, discordant pairs are 4 : 19 ($p = 0.0026$, significant advantage for R1); on lenient normalization, discordant pairs are 4 : 13 ($p = 0.0490$). On harder unseen competition problems, latent thinking tokens allow the model to explore geometric and algebraic relationships before committing to numeric calculations, whereas direct Python synthesis without pre-thinking fails when the model cannot directly formalize the equations.
+4. **P3 Redundancy Limitation:** Pre-thinking before synthesizing Python code (Arm P3) was shown to be redundant on Gemma 4 E2B (76% vs 77%, $p=1.000$, 4:5 discordant). Multi-model generalization of this finding across other scales remains an open empirical question.
+5. **Router Nature Disclosure:** In the benchmark harness, `--arm routed` switches execution using the benchmark metadata label (`benchmark == 'gsm_symbolic'` vs `'math500'`). This represents an **oracle label lookup**, not an active neural intent classifier. In production desktop deployment, realizing this routing policy requires an in-the-wild task-type intent classifier, which has not yet been benchmarked.
 
 ---
 
@@ -171,53 +173,73 @@ $$\text{Router}(M, T) = \begin{cases}
 
 ```
 ========================================================================================================================
-CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.1)
+CONSOLIDATED BENCHMARK MATRIX ACROSS THE 3 PARAMETER SCALES (PROJECT LUCCA v1.35.2)
 ========================================================================================================================
 Benchmark Suite             Metric / Arm               Gemma 4 12B          Gemma 4 E4B          Gemma 4 E2B
 ------------------------------------------------------------------------------------------------------------------------
-Spec 100 System Suite        Overall Accuracy (Mean)    84.0% (82–86%)*      85.0%                81.0%
-                             Tool Precision / Recall    15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
-                             OS / Host Guardrails       10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
-                             Content Safety Refusal**   9 / 10 (90.0%)       3 / 10 (30.0%)       6 / 10 (60.0%)
-                             Throughput (P50)           37.18 tok/s          80.76 tok/s          126.1 tok/s
+Spec 100 System Suite†      Overall Accuracy (Mean)    84.0% (82–86%)*      85.0%                81.0%
+                            Tool Precision / Recall    15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
+                            OS / Host Guardrails       10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
+                            Content Safety Refusal**   9 / 10 (90.0%)       3 / 10 (30.0%)       6 / 10 (60.0%)
+                            Throughput (P50)           37.18 tok/s          80.76 tok/s          126.1 tok/s
 
-GSM-Symbolic (100-strat)     PAL P2 Accuracy (Docker)   95.0%                94.0%                91.0%
-                             Direct R0 Accuracy         93.0%                91.0%                81.0%
-                             PAL Lift (Delta)           +2.0 pp (NS)         +3.0 pp (NS)         +10.0 pp (p = 0.021)
+GSM-Symbolic (100-strat)‡   PAL P2 Accuracy (Docker)   95.0%                94.0%                91.0%
+                            Direct R0 Accuracy         93.0%                91.0%                81.0%
+                            PAL Lift (Delta)           +2.0 pp (NS)         +3.0 pp (NS)         +10.0 pp (p = 0.021)
 
-HumanEval Canonical 164      Raw Pass@1                 155 / 164 (94.5%)    144 / 164 (87.8%)    123 / 164 (75.0%)
-                             Assisted Pass@1            154 / 164 (93.9%)    141 / 164 (86.0%)    126 / 164 (76.8%)
+HumanEval Canonical 164‡    Raw Pass@1                 155 / 164 (94.5%)    144 / 164 (87.8%)    123 / 164 (75.0%)
+                            Assisted Pass@1            154 / 164 (93.9%)    141 / 164 (86.0%)    126 / 164 (76.8%)
 
-MATH-500 Dev (100 items)    Direct R0 (Strict / Len)   90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%***
-                             PAL P2 @ 1k (Historical)   85.0% / 87.0%        73.0% / 77.0%        70.0% / 75.0%
-                             PAL P2 @ 2k (Uncapped Code) —                   83.0% / 92.0%        77.0% / 85.0%
-                             PAL P3 (PAL + Thinking)    —                    —                    76.0% / 84.0%
-                             Thinking R1 @ 4k           —                    85.0% / 86.0%        81.0% / 82.0%
-                             Thinking R1 @ 6k           58.0% / 59.0%        —                    84.0% / 85.0%
+MATH-500 Dev (100 items)‡   Direct R0 (Strict / Len)   90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%***
+                            PAL P2 @ 1k (Historical)   85.0% / 87.0%        73.0% / 77.0%        70.0% / 75.0%
+                            PAL P2 @ 2k (Uncapped Code) —                   83.0% / 92.0%        77.0% / 85.0%
+                            PAL P3 (PAL + Thinking)    —                    —                    76.0% / 84.0%
+                            Thinking R1 @ 4k           —                    85.0% / 86.0%        81.0% / 82.0%
+                            Thinking R1 @ 6k           58.0% / 59.0%        —                    84.0% / 85.0%
 
-MATH-500 Fresh Held-Out      Strict CAS Equivalence     Not Run              88.0% [79.6, 93.4]†  Not Run
-(Unseen 100, Step 5)         Lenient Normalization      Not Run              92.0% [84.4, 96.2]   Not Run
-                             Active Arm                 —                    Thinking R1 @ 6k     —
-                             Truncation Rate            —                    2.0% (2 / 100)       —
+MATH-500 Fresh Held-Out‡    Thinking R1 @ 6k (Strict)  Not Run              88.0% [79.6, 93.4]   Not Run
+(Unseen 100, Step 5)        Thinking R1 @ 6k (Lenient) Not Run              92.0% [84.4, 96.2]   Not Run
+                            PAL P2 @ 2k (Strict)       Not Run              73.0% [63.0, 81.2]   Not Run
+                            PAL P2 @ 2k (Lenient)      Not Run              83.0% [73.9, 89.5]   Not Run
+                            Truncation Rate (R1 / P2)  —                    2.0% / 7.0%          —
 ========================================================================================================================
-* 12B Spec 100: 4 runs yielded 86%, 82%, 84%, 84% (mean 84.0% ± 2.0 pp noise floor under T=0.6).
+† Spec 100 was evaluated under sampling temperature T=0.6 (reproducibility range 82–86%, mean 84.0% ± 2.0 pp noise floor).
+‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
+* 12B Spec 100: 4 independent runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored fine-tunes; E4B refuses only 30% of general content safety probes.
 *** E2B R0 was capped at 1,536 tokens and truncated 26% of items; part of the baseline gap reflects token starvation.
-† Held-out evaluation was executed exclusively on Gemma 4 E4B; 12B and E2B were not evaluated on the held-out split.
 ```
 
 ---
 
-## 7. Configuration & File Manifest
+## 7. Configuration, Provenance & Test Suite Taxonomy
 
-### Core Modules
-* [`src/lucca/memory/retrieval.py`](file:///C:/projects/projectlucca/src/lucca/memory/retrieval.py): Two-stage HMAC verification and hybrid search.
-* [`src/lucca/memory/store.py`](file:///C:/projects/projectlucca/src/lucca/memory/store.py): Memory store coordinator passing `master_key` to retriever.
-* [`src/lucca/memory/signers.py`](file:///C:/projects/projectlucca/src/lucca/memory/signers.py): HKDF key derivation and payload canonicalization.
-* [`src/lucca/sandbox/output_supervisor.py`](file:///C:/projects/projectlucca/src/lucca/sandbox/output_supervisor.py): TruthInReceiptMatcher and deontic lookahead engine.
-* [`scripts/run_pal_off_ablation.py`](file:///C:/projects/projectlucca/scripts/run_pal_off_ablation.py): Comprehensive factorial ablation harness.
+### 7.1 Commit Provenance
+Results across this study were generated across committed development stages:
+- **`f5d4910`**: Pre-closeout baseline implementation of supervisor and initial benchmarks.
+- **`1c58587`**: Factorial ablation harness implementation and initial E2B/12B sweep runs.
+- **`dec0d79`**: Grader commit consolidating `compare_math_strict` and `compare_math_lenient`.
+- **`f20537fe`**: Release closeout baseline commit.
+- **`v1.35.2` (Current)**: Audit remediation commit (key persistence, SQLite quarantine table, held-out P2 evaluation, and doc corrections). Going forward, all result JSON artifacts contain `git_commit` and `git_dirty` flags written directly by the test harness.
 
-### Test Suites
-* [`tests/test_memory_hmac_tamper.py`](file:///C:/projects/projectlucca/tests/test_memory_hmac_tamper.py): 5/5 HMAC tamper and verification tests.
-* [`tests/test_truth_in_receipt_battery.py`](file:///C:/projects/projectlucca/tests/test_truth_in_receipt_battery.py): 40-sentence supervisor test battery.
-* [`tests/test_output_supervisor.py`](file:///C:/projects/projectlucca/tests/test_output_supervisor.py): 26 deontic and session unit tests.
+### 7.2 Test Suite Breakdown
+The project maintains a tiered test taxonomy across multiple test scopes:
+- **26 Tests (`tests/test_output_supervisor.py`):** Core deontic policy capitulation, lookback window tokenization, past temporal marker suppression, and basic idiom handling.
+- **40 Tests (`tests/test_truth_in_receipt_battery.py`):** Exhaustive Truth-in-Receipt battery across 4 balanced categories: Category A (10 grounded claims), Category B (10 ungrounded claims), Category C (10 paraphrases/idioms), and Category D (10 epistemic hedges and negations).
+- **66 Tests:** The combined supervisor test suite (`test_output_supervisor.py` [26] + `test_truth_in_receipt_battery.py` [40]).
+- **71 Tests:** The full supervisor and deontic isolation suite (`test_output_supervisor.py` [26] + `test_truth_in_receipt_battery.py` [40] + `tests/test_deontic_sandbox_m2.py` [5]).
+- **1,184 Tests:** The complete repository pytest suite across all subsystems (memory, sandbox, router, LISP engine, speech, affect ODE, and static gates).
+
+---
+
+## 8. Known Architectural Limitations
+
+In accordance with architectural transparency standards, the following known limitations are formally documented:
+
+1. **`LISP_ASSERTION` as Grounding Evidence:** Assertions emitted by MicroScheme pure rules are currently admitted into long-term memory as grounding-eligible facts based purely on rule engine signature. They are not subjected to empirical external corroboration.
+2. **Trusted Workspace `read_file` Payloads:** File contents read within the workspace boundary receive `TOOL_VERIFIED` provenance envelopes. If untrusted external documents (e.g. downloaded text files) are placed into the workspace, their contents can act as indirect prompt-injection vectors without cryptographic domain gating.
+3. **Silent Cross-Class Contradictions:** When contradictory claims from different provenance classes enter the store, they are stored and represented in the Belnap evidential lattice as `BOTH` (contradictory) rather than actively pruned or resolved. Active resolution only occurs during explicit reflection cycles.
+4. **No Point-in-Time (`as_of`) Query API:** While the underlying SQLite schema stores bi-temporal timestamps (`valid_from`, `valid_to`), the `HybridRetriever.search()` API does not currently expose an explicit `as_of` temporal query parameter for point-in-time historical time-travel.
+5. **Single Unexercised MicroScheme Rule:** Out of all registered procedural rules, exactly 1 rule in the library remains unexercised in automated CI fixtures.
+6. **E4B Content-Safety Refusal Rate:** Due to uncensored fine-tuning, Gemma 4 E4B exhibits a ~30% refusal rate on standard adversarial content-safety probes, failing to engage with benign edge queries that trigger naive keyword refusals.
+7. **Regex vs. AST Semantic Gap in Output Supervision:** The supervisor operates via compiled regular expressions rather than an abstract syntax tree of natural language. Consequently, periphrastic phrasing (*"I took care of removing..."*) bypasses action verb matching, and epistemic hedges (*"I think I deleted..."*) intentionally suppress verification, providing potential evasion channels.

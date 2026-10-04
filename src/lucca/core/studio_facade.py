@@ -53,10 +53,11 @@ class StudioFacade:
         master_key: bytes | None = None,
     ) -> None:
         cfg = get_config()
+        from lucca.core.config import resolve_or_create_master_key
         self.master_key = (
             master_key
             if master_key is not None
-            else (cfg.master_key.encode("utf-8") if cfg.master_key else None)
+            else resolve_or_create_master_key(cfg)
         )
 
         if db is not None:
@@ -223,10 +224,9 @@ class StudioFacade:
         if not user_confirmed:
             raise ValueError("Factory reset requires user confirmation")
         if self.store is None:
-            if self.master_key:
-                self.store = MemoryStore(db=self.db, master_key=self.master_key)
-            else:
-                self.store = MemoryStore(db=self.db, master_key=b"\x00" * 32)
+            from lucca.core.config import get_config, resolve_or_create_master_key
+            key = self.master_key or resolve_or_create_master_key(get_config())
+            self.store = MemoryStore(db=self.db, master_key=key)
         deleted_counts = self.store.hard_purge_all(user_confirmed=True)
         return sum(deleted_counts.values())
 
