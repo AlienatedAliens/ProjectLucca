@@ -337,3 +337,35 @@
   4. **Timeout Disproval & Miss Taxonomy:** Rigorous physical execution log audit verified 0 container timeouts (0.19s mean container execution time), disproving timeout speculation. The 23 baseline misses were formally categorized into SymPy runtime exceptions (7), notation/spacing formatting variations (7), base subscripts (3), prose extraction slips (3), and genuine CAS algebraic limits (3).
   5. **Phased Clawback Methodology:** Mandates strict variable isolation: (A) frozen v1.2 baseline on 400 held-out problems, (B) 2-turn execution feedback loop alone at 16K, (C) 32K context scaling under dedicated compute mode (`Disp.A: Off`), and (D) paired McNemar contingency testing via uniform post-run SymPy rescorer (`scripts/rescore_with_sympy.py`).
 - **Status:** Ratified & Enforced (`scripts/run_modern_2024_benchmarks.py`, `scripts/rescore_with_sympy.py`).
+
+### D-MEM-05 — Two-Stage HKDF HMAC-SHA256 Read-Time Verification & Persistent Quarantine Pipeline
+- **Decision:** Resolves unhandled runtime exceptions and silent memory amnesia during key rotation or database tampering:
+  1. **Two-Stage Verification Pipeline:** `HybridRetriever.search()` enforces Stage 1 content SHA-256 match followed by Stage 2 constant-time HMAC-SHA256 verification using HKDF derived keys (`info="prov/" + provenance`).
+  2. **Persistent Database Quarantine:** Rows failing verification are inserted into the SQLite `memory_quarantine` table `(memory_id, entry_id, reason, stage, quarantined_at)`. Quarantined rows are cached in-memory on startup to prevent repeated verification costs.
+  3. **Non-Silent Integrity Alert API:** `HybridRetriever.get_integrity_status_report()` surfaces structured alerts to the orchestrator rather than failing closed or crashing the turn.
+  4. **Key Migration CLI:** `lucca-admin memory migrate-keys` validates legacy SHA-256 records, re-computes HMAC signatures under active master keys, and purges quarantined records without data loss.
+- **Status:** Ratified & Enforced (`src/lucca/memory/retrieval.py`, `src/lucca/memory/migration_tool.py`, `tests/test_memory_hmac_tamper.py`).
+
+### D-SEC-05 — Truth-in-Receipt Output Supervision & Epistemic Hedge Exemption Policy
+- **Decision:** Establishes output supervision boundaries against ungrounded action claims (false action claims / FAC):
+  1. **21 Verified Action Verbs:** `TruthInReceiptMatcher` scans streaming assistant tokens across 21 action verb lemmas (`delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`).
+  2. **Receipt Verification:** If an action claim matches an active verb lemma without a corresponding verified `ToolReceipt` in the active turn session, a mid-utterance abort is triggered, clearing the audio queue and halting execution.
+  3. **Hedge Exemption Policy:** Statements expressing epistemic hedges (*"I think I deleted"*, *"I believe I closed"*) or intentions (*"I will delete"*) are exempt from receipt matching to prevent false aborts on natural conversational nuance.
+  4. **Validation Battery:** Validated via 40-sentence balanced test battery (40/40 passing in `test_truth_in_receipt_battery.py`) and live 100-probe battery (0/50 false aborts on controls).
+- **Status:** Ratified & Enforced (`src/lucca/sandbox/output_supervisor.py`, `tests/test_truth_in_receipt_battery.py`, `tests/test_output_supervisor.py`).
+
+### D-ROUT-02 — Dynamic Task Router Specification for Multi-Scale Edge Deployment
+- **Decision:** Enforces empirical neurosymbolic execution routing across the three validated model scales (12B, E4B, E2B):
+  1. **Formal Dispatch Policy:**
+     $$\text{Router}(M, T) = \begin{cases} 
+     \text{Direct Raw Generation (R0 @ 4k)} & \text{if } M = \text{12B} \\ 
+     \text{PAL in Docker (P2 @ 2k)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Arithmetic/Word} \\ 
+     \text{Thinking Mode (R1 @ 6k)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Competition Math} 
+     \end{cases}$$
+  2. **Empirical Rationale:**
+     - For 12B: Raw direct generation achieves 89.0% on held-out math in 12.9s. Thinking scratchpads degrade greedy decoding ($T=0.0$) to 58.0% ($p = 4.66 \times 10^{-10}$).
+     - For E4B: Thinking Mode R1 @ 6k achieves 88.0% strict CAS on held-out math, significantly outperforming PAL P2 @ 2k (73.0%, $p = 0.0026$, discordant ratio 19:4).
+     - For E2B: Thinking Mode R1 @ 6k achieves 81.0% strict CAS, significantly outperforming PAL P2 @ 2k (61.0%, $p = 0.0002$, discordant ratio 22:2).
+  3. **Router Nature Disclosure:** Benchmark harness switches using benchmark metadata labels (oracle dispatch). In-the-wild desktop deployment requires an intent classifier.
+- **Status:** Ratified & Enforced (`docs/LUCCA_V135_1_ARCHITECTURE.md`, `docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`).
+

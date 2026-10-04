@@ -88,3 +88,21 @@ Tools with non-trivial side effects (filesystem writes, application launches, pr
 1. **Nonce Generation:** When a destructive tool is proposed, Lucca generates a cryptographic nonce bound to the current turn ID and timestamp.
 2. **Replay Protection:** A confirmation token expires after $60.0\,\text{s}$ or upon single use. A delayed or repeated *"yes"* has zero evidential authority and cannot trigger old actions.
 3. **Session Binding:** Tokens are HMAC-SHA256 signed using a session-ephemeral secret, preventing token forgery across separate sessions.
+
+---
+
+## 5. Dynamic Task Router & Neurosymbolic Execution (`D-ROUT-02`)
+
+As formalized in v1.35.3+, cognitive routing coordinates execution between direct generation, Docker sandboxed Python (PAL), and latent thinking tokens across the 3 validated edge parameter scales:
+
+$$\text{Router}(M, T) = \begin{cases} 
+\text{Direct Raw Generation (R0 @ 4k)} & \text{if } M = \text{12B} \\ 
+\text{PAL in Docker (P2 @ 2k)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Arithmetic/Word} \\ 
+\text{Thinking Mode (R1 @ 6k)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Competition Math} 
+\end{cases}$$
+
+### 5.1 Empirical Rationale Across Model Scales
+1. **Gemma 4 12B Unified:** Raw generation achieves 89.0% held-out strict accuracy (88.8% on 98-item clean) in 12.9s. Under greedy decoding ($T=0.0$), unconstrained thinking triggers circular re-verification loops that crash accuracy to 58.0% (32:0 McNemar discordant ratio, $p = 4.66 \times 10^{-10}$).
+2. **Gemma 4 E4B / E2B Arithmetic (GSM-Symbolic):** PAL in Docker absorbs parameter contraction, equalizing 2B/4.5B models with 12B (91%–94% vs. 95%).
+3. **Edge Competition Mathematics:** Thinking Mode R1 @ 6k is the canonical default on hard unseen competition math, providing a statistically significant +15 pp strict accuracy advantage on E4B (88.0% vs. 73.0%, $p = 0.0026$) and +20 pp on E2B (81.0% vs. 61.0%, $p = 0.0002$) by allowing latent tokens to structure mathematical problem representations prior to final solution emission.
+

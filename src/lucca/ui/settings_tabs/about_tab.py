@@ -40,7 +40,7 @@ class AboutTab(QWidget):
         txt_about.setHtml("""
             <div style="text-align: center; margin-bottom: 12px;">
                 <h2 style="color: #ffd700; font-size: 20px; margin-bottom: 2px;">⏳ PROJECT LUCCA DESKTOP COMPANION</h2>
-                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 1.3.0 Production Release</span>
+                <span style="color: #38bdf8; font-family: monospace; font-weight: bold;">Version 1.35.6 Production Release</span>
             </div>
 
             <h4 style="color: #ffd700; border-bottom: 1px solid #4a62a8; padding-bottom: 4px;">Companion Origin & Purpose</h4>

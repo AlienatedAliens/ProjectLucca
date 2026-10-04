@@ -7,6 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.35.6] — 2026-10-05
+
+### Added
+- **98-Item Robustness Reproducibility (`scripts/recompute_heldout_98.py`):**
+  - Evaluated held-out benchmark split excluding items 15 and 73 (incidental exploratory prompt-tuning exposures on `math_fresh_heldout_500.jsonl` at indices 14 and 72).
+  - Confirmed that excluding both items shifts strict accuracy by at most 1.0 pp across all 8 evaluated arms with zero changes to model rankings or empirical conclusions (12B Direct R0: 88.8% vs 89.0%; 12B PAL P2: 85.7% vs 86.0%; E4B Routed R1: 87.8% vs 88.0%; E4B PAL P2: 73.5% vs 73.0%; E4B Direct R0: 51.0% vs 52.0%; E2B Thinking R1: 80.6% vs 81.0%; E2B PAL P2: 61.2% vs 61.0%; E2B Direct R0: 50.0% vs 51.0%).
+- **Documentation & Substrate Alignment:**
+  - Aligned System Architecture Specification (`docs/LUCCA_V135_1_ARCHITECTURE.md`) and research papers to release `v1.35.6-stable`, updating version metadata, scorecard headers, and commit provenance.
+  - Freshly verified full test suite: 1,198 passed, 0 failed, 67 deselected (100% green).
+
+---
+
+## [1.35.5] — 2026-10-05
+
+### Added
+- **Split Nomenclature Reconciliation:**
+  - Standardized split nomenclature across all research documents and reports: mapped `test-100` (lines 1–100 of `math500_test.jsonl`) to `Dev-100` per `V135_CONTAMINATION_AUDIT.md`, with `Held-Out 100` defined strictly as lines 1–100 of `math_fresh_heldout_500.jsonl` (remaining 400 problems unrun and held in reserve).
+- **Output Supervisor Sensitivity Stratum Analysis:**
+  - Reordered and audited supervisor evaluation reporting in §4.3 to lead with strict completed action claims (1 of 8 detected, 12.5%, 95% Wilson CI: [2.2%, 47.1%]) alongside broad action assertions (1 of 23 detected, 4.3%, 95% Wilson CI: [0.8%, 21.0%]).
+  - Disclosed that embedded `ground_truth_hallucination` fields in raw JSON files reflect automated regex labeling circular with the supervisor itself; ground truth is provided by manual audit in `logs/test_reports/action_hallucination_labels_100.jsonl`.
+  - Disclosed boundary case decisions (e.g. E4B `T03` classified as `CLEAN`/`INTENT` because it solicited user confirmation prior to execution).
+- **Rule Invocation Frequency Qualification:**
+  - Qualified all 15 active factory skills in `config/skills/` as loaded and callable, explicitly noting that invocation frequency is not measured in production logs.
+
+---
+
+## [1.35.4] — 2026-10-05
+
+### Added
+- **Truth-in-Receipt 40-Sentence Formal Battery (`tests/test_truth_in_receipt_battery.py`):**
+  - Implemented 40 balanced test cases across 4 categories: Category A (10 grounded claims), Category B (10 ungrounded claims), Category C (10 paraphrases/idioms), and Category D (10 epistemic hedges and negations) with 100% test pass rate.
+- **Live 100-Probe Action Hallucination Evaluation ($n=100, T=0.6$):**
+  - Evaluated balanced 100-probe battery (`data/benchmarks/action_hallucination_battery_100.json`: 50 temptation probes, 25 honest controls, 25 idiomatic controls for `placed`, `moved`, `closed`, `processed`) across Gemma 4 E4B and E2B.
+  - Confirmed 0 / 50 false alarms on control probes.
+  - Identified 4 empirical escape modes: active progressive participles (12 escapes), structured markdown headers (2 escapes), passive state assertions (6 escapes), and unlisted verb lemmas (2 escapes).
+- **Controlled Token Starvation Deconfounding on Identical Dev Items:**
+  - Evaluated Direct R0 with 4,096-token cap against 1,536-token baseline on identical Dev-100 problems. E4B scored 52.0% (5:3 discordant, $p = 0.7266$ NS) and E2B scored 57.0% (10:4 discordant, $p = 0.1796$ NS), confirming that token cap relaxation alone does not account for scaffold accuracy deltas.
+- **Test Suite Expansion:**
+  - Test suite expanded from 1,184 to 1,198 passing tests (0 failed, 67 deselected).
+
+---
+
+## [1.35.3] — 2026-10-04
+
+### Added
+- **Full Empirical Held-Out Matrix Across 3 Parameter Scales:**
+  - Completed side-by-side evaluation across Gemma 4 12B, E4B, and E2B on 100 unseen competition mathematics problems (`math_fresh_heldout_500.jsonl`).
+- **Research Paper 6 (`06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`):**
+  - Formulated formal paper detailing:
+    - 12B Scale Inversion under greedy decoding ($T=0.0$): unconstrained thinking degrades 12B from 90.0% to 58.0% ($p = 4.66 \times 10^{-10}$).
+    - E4B Compound Parity: Thinking Mode R1 @ 6k achieves 88.0% strict CAS accuracy, outperforming PAL P2 @ 2k (73.0%, $p = 0.0026$).
+    - Dynamic Task Router ($\text{Router}(M, T)$): Dispatches Direct R0 for 12B, PAL P2 for small-model arithmetic, and Thinking Mode R1 @ 6k for edge competition mathematics.
+- **Cryptographic Key Migration CLI (`src/lucca/memory/migration_tool.py`):**
+  - Added `lucca-admin memory migrate-keys` to validate legacy SHA-256 records, re-compute HMAC signatures under active master keys, and purge quarantined rows without silent amnesia.
+
+---
+
+## [1.35.2] — 2026-10-04
+
+### Added
+- **Persistent SQLite Memory Quarantine (`src/lucca/memory/retrieval.py`):**
+  - Replaced unhandled runtime crashes and silent dropping of corrupt rows with persistent quarantine into SQLite `memory_quarantine` table `(memory_id, entry_id, reason, stage, quarantined_at)`.
+  - Quarantined IDs are loaded on boot and excluded from subsequent searches.
+- **Memory Integrity Surfacing API:**
+  - Implemented `HybridRetriever.get_integrity_status_report()` emitting programmatic security alerts when integrity checks fail.
+- **Master Key Persistence Hardening:**
+  - Master keys generated via `secrets.token_bytes(32)` and persisted to `data/keys/master.key` with `0600` permissions. Removed all public dev fallback keys (`b"0123456789..."`) from `main.py`, `service.py`, `signer_factory.py`, and `admin.py`.
+- **System Architecture Specification v1.35.2:**
+  - Authored `docs/LUCCA_V135_1_ARCHITECTURE.md` establishing the multi-scale compound neurosymbolic edge architecture.
+
+---
+
+## [1.35.1] — 2026-10-04
+
+### Added
+- **Audit Remediation Implementation:**
+  - Codified 9-point remediation from release audit: HKDF key derivation with domain salt (`"lucca-v2"`), read-time two-stage HMAC verification, and matcher verb expansion.
+- **TruthInReceiptMatcher Verb Expansion (`src/lucca/sandbox/output_supervisor.py`):**
+  - Expanded `ACTION_VERBS` to 21 verified verbs (`delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`).
+- **Edge Model Action Hallucination Protocol:**
+  - Authored evaluation harness for edge model action hallucination under unconstrained conversational generation.
+
+---
+
+## [1.35.0] — 2026-10-03
+
+### Added
+- **Contamination Audit & Test Split Reclassification (`handover/V135_CONTAMINATION_AUDIT.md`):**
+  - Reclassified `math500_test.jsonl` (problems 1–100) as development split (`Dev-100`) due to historical prompt tuning.
+  - Designated `data/benchmarks/math_fresh_heldout_500.jsonl` (lines 1–100) as primary unseen held-out benchmark.
+- **SymPy Grader Hardening:**
+  - Fixed non-deterministic SymPy evaluation crashes and dict indexing errors on Dev-400 benchmark set.
+
+---
+
 ## [1.3.0] — 2026-09-30
 
 ### Added

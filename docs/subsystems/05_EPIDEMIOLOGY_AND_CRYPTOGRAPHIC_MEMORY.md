@@ -118,3 +118,45 @@ Supersession requests automatically enter the Studio Review Queue if they:
 1. Mutate core persona invariants or user safety preferences.
 2. Overwrite an entry with high historical importance score ($\ge 0.85$).
 3. Introduce an evidential contradiction ($\mathbf{B}$) in the Belnap bilattice.
+
+---
+
+## 6. Two-Stage HMAC-SHA256 Read-Time Verification & Persistent Quarantine (`D-MEM-05`)
+
+As formalized in v1.35.2+, memory retrieval enforces cryptographic tamper evidence across all vector (dense KNN) and lexical (BM25 FTS) hits before returning records to the orchestrator:
+
+```
+[RetrievalQuery] 
+       │
+       ▼
+[Hybrid Search: Dense KNN + BM25 FTS via Reciprocal Rank Fusion]
+       │
+       ├─► [Pre-Filter Known Quarantined IDs] ──► Exclude rows in memory_quarantine table
+       ▼
+For each candidate memory record:
+       │
+       ├─► [Stage 1: Content SHA-256 Fast-Fail]
+       │     SHA256(memories.content) == provenance_envelopes.content_sha256?
+       │     ├── NO  ──► Emit "stage=content_sha256" error ──► Quarantine row to DB & continue
+       │     └── YES ──► Proceed to Content Match Gate
+       │
+       ├─► [Content Match Gate]
+       │     memories.content == payload_json.content?
+       │     ├── NO  ──► Emit "stage=payload_content_mismatch" ──► Quarantine row to DB & continue
+       │     └── YES ──► Proceed to Cryptographic HMAC
+       │
+       └─► [Stage 2: Constant-Time HMAC-SHA256 Verification]
+             1. Key Derivation: derived_key = HKDF(master_key, salt="lucca-v2", info="prov/" + provenance)
+             2. Canonical Bytes: JSON(canonical_dict, sort_keys=True, compact_separators)
+             3. Expected Signature: Base64(HMAC-SHA256(derived_key, canonical_bytes))
+             4. hmac.compare_digest(stored_signature, expected_signature)?
+                   ├── NO  ──► Emit "stage=hmac" error ──► Quarantine row to DB & continue
+                   └── YES ──► Memory Hit Verified ──► Return to Orchestrator
+```
+
+### 6.1 Persistent Quarantine & Non-Silent Alerting
+1. **Persistent DB Quarantine:** Corrupted rows are inserted into the SQLite `memory_quarantine` table `(memory_id, entry_id, reason, stage, quarantined_at)`. Quarantined IDs are loaded on boot and excluded from subsequent searches.
+2. **Integrity Surfacing API:** Programmatically surfaced via `HybridRetriever.get_integrity_status_report()`, avoiding silent data corruption while maintaining turn availability.
+3. **Master Key Persistence:** Master keys are generated via `secrets.token_bytes(32)` and persisted to `data/keys/master.key` with `0600` permissions.
+4. **Key Migration Tool:** Supported via `lucca-admin memory migrate-keys` to re-sign records when rotating keys without data loss.
+

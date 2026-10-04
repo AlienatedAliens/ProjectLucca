@@ -1,6 +1,6 @@
 [project]
 name = "project-lucca"
-version = "1.3.0"
+version = "1.35.6"
 description = "Local-first sandboxed desktop companion with real-time voice, four-process topology, and compiled symbolic reasoning"
 readme = "README.md"
 requires-python = ">=3.12"

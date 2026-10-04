@@ -45,13 +45,14 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ## 3. Master Documentation Directory
 
 **Canonical Active Documentation:**
-- **Decisions Register**: [`docs/DECISIONS.md`](./docs/DECISIONS.md) — All 25 ratified ADRs (`D-AUD-01` through `D-EVAL-01`).
-- **Master System Architecture**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) (v2.0.0) — Process topology, IPC, cognitive tiers, memory, rules, and security.
-- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) (v2.0.0) — Cascade pipeline, Gemma-4 12B deployment and prompt architecture.
+- **System Architecture Specification (v1.35.6-stable)**: [`docs/LUCCA_V135_1_ARCHITECTURE.md`](./docs/LUCCA_V135_1_ARCHITECTURE.md) — Multi-scale compound edge architecture (12B, E4B, E2B), persistent SQLite memory quarantine, Truth-in-Receipt output supervision, and dynamic task router.
+- **Foundation System Architecture (v2.0.0)**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Process topology, IPC, cognitive tiers, memory, rules, and security for Milestones 1–7.
+- **Decisions Register**: [`docs/DECISIONS.md`](./docs/DECISIONS.md) — All ratified ADRs (`D-AUD-01` through `D-ROUT-02`).
+- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) — Multi-scale Gemma 4 deployment, dynamic task router, VRAM clamp, and KV-cache architecture.
 - **User Guide**: [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./docs/USER_GUIDE_WHAT_LUCCA_DOES.md) — Complete user guide and capabilities overview.
 - **Compound Reasoning Specification**: [`docs/specs/COMPOUND_REASONING_100_SPEC.md`](./docs/specs/COMPOUND_REASONING_100_SPEC.md) — 10-domain 100-probe cognitive benchmark battery (`SPEC-BENCH-100-v1.0`).
-- **Action Log & V2 Backlog**: [`docs/V2_ACTION_LOG.md`](./docs/V2_ACTION_LOG.md) and [`docs/V2_BACKLOG.md`](./docs/V2_BACKLOG.md).
-- **Capability Roadmap**: [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./docs/specs/STUDIO_CAPABILITY_ROADMAP.md) — Studio taxonomy and capability ladder.
+- **Experimental Results Ledger**: [`RESULTS.md`](./RESULTS.md) — Full benchmark logs, 3-model factorial ablation matrix, and 98-item robustness table.
+- **Research Papers**: [`docs/research/papers/`](./docs/research/papers/) — 6 peer-review caliber papers, including Paper 6 on small-model compound scaling (`06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`).
 - **Release Audit**: [`docs/audit/findings/V1_RELEASE_AUDIT.md`](./docs/audit/findings/V1_RELEASE_AUDIT.md) — Release audit and verification evidence.
 - **Audio Concurrency Contract**: [`docs/adr/0009_audio_concurrency_contract.md`](./docs/adr/0009_audio_concurrency_contract.md).
 
@@ -61,12 +62,21 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ---
 
 ## 4. Key Settled Facts Every Agent Must Know
-- **LLM**: Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` with stock llama.cpp (≥ b11026), `--jinja` and GGUF-embedded chat template, `enable_thinking=false` mandatory for companion tiers, 16,384 context default, Q8_0 KV cache, flash attention, and 12.5 GB (12,800 MB) resident VRAM clamp (`D-BRAIN-05` v2). (Control parameter ablation model: `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` at ~4B effective params; NeMo deprecated and pinned for rollback).
-- **Cognitive & Academic Verification**: Validated under Three-Track Empirical Battery:
+- **Multi-Scale LLM Substrate**: Served via `llama-server.exe` across 3 validated edge tiers:
+  - **Gemma 4 12B Unified** (`gemma-4-12b-heretic-Q6_K.gguf`): 9,972 MiB VRAM (61.2%), TTFT 286.9 ms, 37.18 tok/s. Used for complex symbolic escalation.
+  - **Gemma 4 E4B Sovereign Core** (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`): 4,382 MiB VRAM (26.9%), TTFT 86.1 ms, 80.76–103.0 tok/s. Default desktop core.
+  - **Gemma 4 E2B Ultra-Edge** (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`): 2,260 MiB VRAM (13.9%), TTFT 73.2 ms, 126.1–169.1 tok/s. Low-power companion.
+- **Dynamic Task Router**:
+  - $\text{Router}(M, T)$: Direct R0 for 12B; PAL in Docker (P2 @ 2k) for small-model arithmetic; Thinking Mode (R1 @ 6k) for edge competition math (yielding 88.0% strict on E4B vs 73.0% PAL, $p=0.0026$).
+- **Cognitive & Academic Verification**: Validated under Three-Track Empirical Battery + Multi-Scale Held-Out Matrix:
   - Track 1 (`SPEC-BENCH-100-v1.0`): **91.0% pass rate**, 100.0% path policy compliance, 100.0% epistemic faithfulness.
-  - Track 2 (Standard Academic Battery): GSM8K PAL **100.0%**, Canonical HumanEval 164 tasks **95.73% pass@1**, Big-Bench Hard (Full 1,000 Tasks) **92.40% (924/1,000)**: Boolean **99.2%**, Geometry **84.0%**, Tracking **100.0%**, Dyck **86.4%**.
-  - Track 3 (Modern 2024-2025 Academic Benchmarks): GSM-Symbolic **100.0% (100/100)** in 527.4s, HumanEval-Plus **91.46% pass@1 (150/164)** in 1,016.8s (10 preflight rescues), MATH-500 PAL **77.0% strict / 87.0% SymPy** (69.6% L5, 1,149.7s).
-- **ASR**: Faster-Whisper on CPU/NPU runs on every turn to produce ground-truth text transcripts.
-- **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with 2,048-token quota and multi-factor prioritization (`D-MEM-03`). Fast-path context sync preserves multi-turn memory (`D-ARCH-06`). (Chroma retired).
+  - Track 2 (Standard Academic Battery): GSM8K PAL **100.0%**, Canonical HumanEval **95.73% pass@1**, Big-Bench Hard **92.40% (924/1,000)**.
+  - Track 3 (Modern Academic Benchmarks): GSM-Symbolic **100.0%**, HumanEval-Plus **91.46% pass@1**, MATH-500 Fresh Held-Out 500 **74.20% strict / 78.80% SymPy CAS** (81.7% Level 4 AIME).
+  - Held-Out 100 Multi-Scale Matrix: 12B Direct R0: 89.0% [88.8% on 98-item clean]; E4B Thinking R1: 88.0% [87.8% on 98-item clean]; E2B Thinking R1: 81.0% [80.6% on 98-item clean].
+- **Output Supervision & Deontic Grounding**:
+  - `TruthInReceiptMatcher` with 21 verified action verbs (`delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`) and epistemic hedge exemption policy.
+  - 40-sentence formal battery: 40/40 passing; live 100-probe evaluation: 0/50 control false alarms.
+- **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with HKDF HMAC-SHA256 read-time tamper verification and persistent SQLite `memory_quarantine` table (`D-MEM-05`). Key persistence via `data/keys/master.key` (`0600`).
+- **Regression Test Suite**: **1,198 passing unit tests** across all subsystems (0 failed, 67 deselected).
 - **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`).
 - **Process Topology**: Four native host processes + ZeroMQ IPC (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server` per ADR-008).

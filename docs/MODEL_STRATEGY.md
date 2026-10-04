@@ -70,13 +70,26 @@ All inference operations are strictly bounded to the physical constraints of the
 
 | Candidate | Architecture & Params | Quantization & Size | Context | Licensing | Strategic Role & Status |
 |---|---|---|---|---|---|
-| **Gemma-4-12B-Heretic (Abliterated)** | Dense 12B (Google DeepMind), Heretic norm-preserving directional ablation | Q6_K (~9.8 GB) | 16k baseline / 32k active (up to 131k measured) | Gemma Terms of Use | **Deployed Primary Brain (`D-BRAIN-05` v2, 2026-09-21)**. 24/24 tool routing, 0 % grounded confabulation / 100 % adherence, zero moralizing. 10.05 GB live VRAM at 16K, ~12.2 GB at 32K; `enable_thinking=false` for companion tiers. Validated on Three-Track Battery: Track 1 SPEC-BENCH-100 (91.0%), Track 2 HumanEval (95.73%) / GSM8K PAL (100.0%) / BBH (92.4%), Track 3 GSM-Symbolic (100.0%) / HumanEval-Plus (91.46%) / MATH-500 (77.0% strict, 87.0% SymPy). |
-| **Gemma-4-E4B-it-uncensored-heretic (Q6_K)** | Dense ~4B effective params (Google DeepMind), uncensored directional ablation | Q6_K (~6.22 GB) | 16k | Gemma Terms of Use | **Staged Control Parameter Scale Ablation Model (2026-09-29)**. Verified byte-for-byte at `C:\ProjectLucca\models\llm\gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6,217,260,896 bytes). Dedicated to empirical isolation of compound architecture vs. parameter scale. |
-| **Ternary-Bonsai-2-27B (PQ2_0)** | Hybrid-attention 27.4B (Qwen3.5 backbone, ~75 % linear attention), ternary g128 | PQ2_0 (~7.2 GB, 2.13 bpw) | 131k (measured under clamp) | Apache 2.0 | **Slot-2 / batch-research candidate (deferred)**. 80/100 comprehensive, 40.8 tok/s, 8.2 GB VRAM. Requires PrismML llama.cpp fork (b10709) — separate ADR required. |
+| **Gemma-4-12B-Heretic** | Dense 12B (Google DeepMind), Heretic norm-preserving directional ablation | Q6_K (~9.8 GB) | 16k baseline / 32k active | Gemma Terms of Use | **Validated Deployment Tier: Symbolic Escalation Core (`D-BRAIN-05` v2)**. 9,972 MiB VRAM (61.2%), 37.18 tok/s. Peak raw generator on competition math (89.0% direct R0 @ 4k; 88.8% on 98-item clean). Degrades under thinking mode (58.0% R1, $p=4.66 \times 10^{-10}$). Dispatched via Direct R0. |
+| **Gemma-4-E4B-it-uncensored-heretic** | Dense ~4.5B effective params (Google DeepMind), uncensored directional ablation | Q6_K (~4.38 GB) | 16k | Gemma Terms of Use | **Validated Deployment Tier: Default Sovereign Core**. 4,382 MiB VRAM (26.9%), 80.76–103.0 tok/s. Compound parity with 12B on competition math via Thinking Mode R1 @ 6k (88.0% strict / 92.0% lenient; 87.8% on 98-item clean). Dispatched via PAL for arithmetic and Thinking Mode for competition math. |
+| **Gemma-4-E2B-Heretic-Sinhala** | Dense ~2.0B effective params (Google DeepMind), bilingual transfer fine-tune | Q6_K (~2.26 GB) | 16k | Gemma Terms of Use | **Validated Deployment Tier: Ultra-Edge Companion**. 2,260 MiB VRAM (13.9%), 126.1–169.1 tok/s. 81.0% strict CAS on competition math via Thinking Mode R1 @ 6k (80.6% on 98-item clean), significantly outperforming PAL (61.0%, $p=0.0002$). |
 | **Mistral NeMo 12B Instruct Abliterated** | Dense 12.2B (Mistral AI & NVIDIA), Tekken tokenizer | Q6_K (~10.1 GB) | 16k / 128k (native) | **Apache 2.0** | **Deprecated (2026-09-21)**. Server-side tool parser never engaged on llama.cpp b11026; 3 hallucinated tool calls on conversational prompts. Pinned for rollback. |
 | **Ultravox v0.5 8B** | Multimodal Llama-3.1-8B + Whisper-turbo projector | Q6_K (~6.6 GB) + mmproj (~0.74 GB) | 8k | Llama 3.1 Community | **Deprecated / Archived**. Suffers from pre-processing blindspot and moralizing prefill refusals. |
-| **gpt-oss-20b** | MoE ~21B total / ~3.6B active | MXFP4 / Q4_K_M (~11.0 GB) | 32k–128k | Apache 2.0 | **Future Deep Reasoning Research**. Evaluated for future 64GB RAM / external accelerator topologies. |
-| **Meta-Llama-3.1-8B** | Dense 8.0B | Q6_K (~6.6 GB) | 128k | Llama 3.1 Community | **Lean Fallback Baseline**. Lightweight text fallback if extreme VRAM pressure occurs. |
+
+---
+
+## 4.1 Dynamic Task Router Specification (`D-ROUT-02`)
+
+The three validated scales are orchestrated via the empirical dynamic task router:
+
+$$\text{Router}(M, T) = \begin{cases} 
+\text{Direct Raw Generation (R0 @ 4,096 cap)} & \text{if } M = \text{12B} \\ 
+\text{PAL in Docker (P2 @ 2,048 cap)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Arithmetic/Word} \\ 
+\text{Thinking Mode (R1 @ 6,144 cap)} & \text{if } M \in \{\text{E4B}, \text{E2B}\} \land T = \text{Competition Math} 
+\end{cases}$$
+
+- **12B Strategy:** Large models generate direct formal proofs with high accuracy (89.0% held-out strict) in low latency (12.9s); extended thinking scratchpads trigger circular re-verification loops that degrade greedy performance.
+- **E4B/E2B Strategy:** Edge models benefit from neurosymbolic scaffolding: PAL Docker absorbs parameter contraction on arithmetic (equalizing 2B/4B models with 12B at 91%–94%), while latent thinking tokens (R1 @ 6k) allow edge models to explore mathematical problem representations before committing to final answers (+15 pp on E4B, +20 pp on E2B).
 
 ---
 
