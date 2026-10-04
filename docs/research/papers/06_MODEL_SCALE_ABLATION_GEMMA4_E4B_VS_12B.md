@@ -26,7 +26,7 @@ Benchmark Suite             Metric / Arm                  Gemma 4 12B          G
 Spec 100 System Suite†      Overall Accuracy (Mean ± 2pp) 84.0% (82–86%)*      85.0%                81.0%
                             Tool Precision / Recall       15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
                             OS / Host Guardrails          10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
-                            Content Safety Refusal**      9 / 10 (90.0%)       3 / 10 (30.0%)       6 / 10 (60.0%)
+                            Content Safety Refusal**      9 / 10 (90.0%)       3 / 10 (30.0%)       Not Evaluated
                             Throughput (P50)              37.18 tok/s          80.76 tok/s          126.1 tok/s
 
 GSM-Symbolic (100-strat)‡   PAL P2 Accuracy (Docker)      95.0%                94.0%                91.0%
@@ -54,7 +54,7 @@ Operational Footprint       Active VRAM Allocation        9,972 MiB (10.0 GiB) 4
 † Spec 100 was evaluated under sampling temperature T=0.6 (noise floor 82–86%, mean 84.0% ± 2.0 pp).
 ‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
 * 12B Spec 100: 4 runs yielded 86%, 82%, 84%, 84%.
-** Content safety reflects compliance on uncensored heretic fine-tunes (logs/test_reports/cross_model_30_gemma-4-*.json); E4B complied with 7/10 harmful adversarial probes (30% refusal rate), while 12B refused 9/10.
+** Content safety reflects compliance on uncensored heretic fine-tunes (logs/test_reports/cross_model_30_gemma-4-*.json); E4B complied with 7/10 harmful adversarial probes (30% refusal rate), while 12B refused 9/10. Gemma 4 E2B was not evaluated in cross_model_30.
 *** E2B R0 was capped at 1,536 tokens and truncated 26% of items; part of the baseline gap reflects token starvation.
 ```
 
@@ -89,12 +89,12 @@ On Gemma 4 12B on MATH-500 dev ($n=100$):
 ### 2.4 Baseline Confound: R0 Token Starvation on Small Models
 On Gemma 4 E2B, direct raw generation (R0) scored 51.0% strict with a 1,536-token cap and suffered 26% truncations. Because each truncated item is an automatic failure, part of the apparent gap between R0 (51%) and PAL P2 @ 2k (77%) reflects token starvation in R0. Future work should evaluate R0 with a 4,096-token cap to isolate the true contribution of code execution.
 
-### 2.5 Coding Assistance Preflight: Regressions on Larger Models
-In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw $\to$ 76.8% assisted). For larger models, assisted mode slightly regressed pass rates:
-- **12B:** 94.5% raw (155/164) $\to$ 93.9% assisted (154/164, -1 problem).
-- **E4B:** 87.8% raw (144/164) $\to$ 86.0% assisted (141/164, -3 problems).
+### 2.5 Coding Assistance Preflight: No Detectable Benefit on Larger Models
+In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw $\to$ 76.8% assisted). For larger models, assisted preflight showed no statistically detectable benefit ($p > 0.5$):
+- **12B:** 94.5% raw (155/164) $\to$ 93.9% assisted (154/164, difference of 1 item, McNemar $p = 1.0$).
+- **E4B:** 87.8% raw (144/164) $\to$ 86.0% assisted (141/164, difference of 3 items, McNemar $p = 0.5488$).
 
-**Unqualified Regression Notice:** While the preflight prompt was designed to prevent syntax and environment errors, it induced slight pass rate degradations on larger models. Hypotheses attributing this to OpenBLAS thread contention or prompt verbosity remain unverified; no re-run demonstrating a rescue or fix has been established. Until a controlled re-evaluation is performed, assisted preflight must be treated as an unrescued regression on models $\ge$ 4.5B.
+**Scope of Claim:** While the preflight prompt was designed to prevent syntax and environment errors, it provided no detectable benefit on models $\ge$ 4.5B. Hypotheses attributing this to OpenBLAS thread contention or prompt verbosity remain unverified. Until a controlled re-evaluation is performed following the multi-threading runtime fix, claims of assisted preflight value must be strictly qualified as model-scale dependent.
 
 ---
 
@@ -105,7 +105,7 @@ To verify that results were not overfit to the dev set, we evaluated both candid
 
 **Router Implementation Note:** In the benchmark harness, `--arm routed` dispatched items based on dataset metadata (`benchmark == 'gsm_symbolic'` vs `'math500'`). This is an **oracle dataset label lookup**, not an active neural intent classifier. In production desktop deployment, realizing this routing policy requires an in-the-wild task-type intent classifier, which has not yet been benchmarked.
 
-### 3.2 Paired Results: Held-Out P2 vs. Held-Out R1
+### 3.2 Paired Results & Empirical Breakdown: Held-Out P2 vs. Held-Out R1
 Both candidate arms were evaluated across the identical 100 held-out problems on Gemma 4 E4B:
 - **Thinking Mode (R1 @ 6,144 cap):** **88.0% strict CAS** (88/100) [95% Wilson CI: 79.60%, 93.37%] / **92.0% lenient** (92/100) [95% Wilson CI: 84.45%, 96.09%]. Truncations: 2.0%. Mean tokens: 2,066.6.
 - **PAL Scaffold (P2 @ 2,048 cap):** **73.0% strict CAS** (73/100) [95% Wilson CI: 63.04%, 81.16%] / **83.0% lenient** (83/100) [95% Wilson CI: 73.89%, 89.51%]. Truncations: 7.0%. Mean tokens: 1,216.7.
@@ -118,20 +118,34 @@ Strict   73.0%         88.0%         69     8         4             19          
 Lenient  83.0%         92.0%         79     4         4             13            p = 0.0490
 ```
 
-**Statistical Assessment & Dev vs. Held-Out Analysis:**
+**Statistical Assessment & Empirical Subject/Level Breakdown:**
 On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on strict CAS ($p = 0.0026$) and +9.0 pp on lenient normalization ($p = 0.0490$).
 
 Crucially, the drop in PAL performance (83% $\to$ 73%) cannot be explained simply by asserting that "the held-out set is harder," because Thinking Mode performance simultaneously *rose* on the held-out split (85% $\to$ 88%). Instead, this divergence reflects two distinct phenomena:
 1. **Dev-Split Tuning:** The 2,048-token code cap and the P2 zero-shot scaffolding prompt were developed and tuned on the dev split. Consequently, PAL generalized less effectively to unseen problem structures.
-2. **Structural Subject and Level Mix Shift:** An audit of the problem metadata across both 100-problem samples reveals key distribution shifts:
-   - **Difficulty Levels:**
-     - Dev Split: Level 1: 11%, Level 2: 25%, Level 3: 19%, Level 4: 22%, Level 5: 23%.
-     - Held-Out Split: Level 1: 9%, Level 2: 20%, Level 3: 20%, Level 4: 23%, Level 5: 28% (+5 pp hardest Level 5 problems).
-   - **Subject Mix:**
-     - Dev Split: Algebra: 25%, Intermediate Algebra: 19%, Prealgebra: 18%, Precalculus: 14%, Number Theory: 11%, Geometry: 7%, Counting & Probability: 6%.
-     - Held-Out Split: Precalculus: 21%, Geometry: 17% (+10 pp), Prealgebra: 16%, Number Theory: 14%, Counting & Probability: 13% (+7 pp), Intermediate Algebra: 11%, Algebra: 8% (-17 pp).
+2. **Empirical Distribution of the Generalization Gap:** A direct breakdown of the 100 held-out result records by difficulty level and subject domain reveals where Thinking Mode outperformed PAL:
 
-   Domains like Geometry (+10 pp) and Counting & Probability (+7 pp) require spatial framing, coordinate setup, and multi-branch casework that are difficult to synthesize into a single Python script without exploratory reasoning. In contrast, latent thinking tokens (R1) allow the model to brainstorm geometric invariants and algebraic relationships before committing to numeric calculations.
+```
+=== HELD-OUT PER-LEVEL BREAKDOWN (Strict CAS) ===
+Level 1 (n= 9): R1= 9/ 9 (100.0%) | P2= 8/ 9 ( 88.9%) | delta = +11.1 pp
+Level 2 (n=20): R1=17/20 ( 85.0%) | P2=13/20 ( 65.0%) | delta = +20.0 pp
+Level 3 (n=20): R1=18/20 ( 90.0%) | P2=19/20 ( 95.0%) | delta =  -5.0 pp
+Level 4 (n=23): R1=21/23 ( 91.3%) | P2=20/23 ( 87.0%) | delta =  +4.3 pp
+Level 5 (n=28): R1=23/28 ( 82.1%) | P2=23/28 ( 82.1%) | delta =  +0.0 pp
+
+=== HELD-OUT PER-SUBJECT BREAKDOWN (Strict CAS) ===
+algebra                   (n= 8): R1= 8/ 8 (100.0%) | P2= 8/ 8 (100.0%) | delta =  +0.0 pp
+counting_and_probability  (n=13): R1=13/13 (100.0%) | P2= 8/13 ( 61.5%) | delta = +38.5 pp
+geometry                  (n=17): R1=15/17 ( 88.2%) | P2=15/17 ( 88.2%) | delta =  +0.0 pp
+intermediate_algebra      (n=11): R1=10/11 ( 90.9%) | P2= 9/11 ( 81.8%) | delta =  +9.1 pp
+number_theory             (n=14): R1=12/14 ( 85.7%) | P2=12/14 ( 85.7%) | delta =  +0.0 pp
+prealgebra                (n=16): R1=13/16 ( 81.2%) | P2=13/16 ( 81.2%) | delta =  +0.0 pp
+precalculus               (n=21): R1=17/21 ( 81.0%) | P2=18/21 ( 85.7%) | delta =  -4.8 pp
+```
+
+**Key Empirical Insights from the Breakdown:**
+- **Geometry & Level 5 Parity:** Contrary to the initial conjecture that spatial reasoning drove the divergence, PAL and Thinking Mode achieved **identical accuracy on Geometry (15/17, 88.2%)** and **identical accuracy on the hardest Level 5 problems (23/28, 82.1%)**.
+- **The Combinatorial Generalization Gap:** The +15.0 pp strict gap was concentrated almost entirely in `counting_and_probability` (+38.5 pp, where R1 solved 13/13 while P2 solved 8/13) and `Level 2` (+20.0 pp). Discrete enumeration, casework, and combinatorial counting require multi-path exploratory branching that edge models struggle to synthesize directly into a single script without reasoning scratchpads.
 
 ### 3.3 Analysis of the Strict-to-Lenient Gap
 Across all MATH-500 evaluations, lenient normalization exceeds strict CAS equivalence by 4 to 10 percentage points:

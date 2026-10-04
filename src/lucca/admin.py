@@ -13,6 +13,7 @@ from typing import Literal
 
 from pydantic import JsonValue
 from rich.console import Console
+from rich.prompt import Confirm
 from rich.table import Table
 
 from lucca.core.config import get_config, resolve_or_create_master_key
@@ -515,7 +516,9 @@ def run_memory_cli(
     topic: str | None = None,
     entry_id: str | None = None,
     dry_run: bool = False,
-    force: bool = False,
+    yes: bool = False,
+    include_lisp_assertions: bool = False,
+    no_backup: bool = False,
 ) -> int:
     """Manages autobiographical memory, belief revisions, and review queue (D-MEM-04, Rung A1)."""
     if db_path is None:
@@ -827,6 +830,14 @@ def run_memory_cli(
         if mk is None:
             console.print("[red]Error: master_key required for key migration.[/red]")
             return 1
+
+        if not dry_run and not yes:
+            target_desc = f"memory entry '{entry_id}'" if entry_id else "all eligible memories"
+            prompt_msg = f"Are you sure you want to re-sign {target_desc} under active master key?"
+            if not Confirm.ask(prompt_msg):
+                console.print("[yellow]Migration cancelled by user.[/yellow]")
+                return 0
+
         console.print(
             f"[bold blue]Starting memory key migration...[/bold blue] "
             f"({'DRY RUN' if dry_run else 'LIVE MUTATION'})"
@@ -834,8 +845,10 @@ def run_memory_cli(
         report = migrate_memory_keys(
             db=db,
             new_master_key=mk,
+            target_entry_id=entry_id,
             dry_run=dry_run,
-            force=force,
+            rebless_lisp_assertions=include_lisp_assertions,
+            create_backup=not no_backup,
         )
 
         table = Table(title="Memory Key Migration Report", caption="Cryptographic Key Migration")
@@ -846,10 +859,27 @@ def run_memory_cli(
         table.add_row("Envelopes Migrated / Re-signed", str(report.migrated_count))
         table.add_row("Already Valid Under Master Key", str(report.already_valid_count))
         table.add_row("Tampered / Skipped Records", str(report.tampered_skipped_count))
+        table.add_row(
+            "LISP_ASSERTION Held (Not Re-blessed)",
+            str(report.lisp_assertions_held_count),
+        )
         table.add_row("Quarantine Records Cleared", str(report.quarantine_cleared_count))
+        if report.backup_path:
+            table.add_row("Pre-Migration Backup File", report.backup_path)
+        if report.already_migrated:
+            table.add_row("Migration State", "ALREADY COMPLETED (Done Flag Set)")
         table.add_row("Dry Run Mode", str(dry_run))
 
         console.print(table)
+
+        if report.provenance_counts:
+            ptable = Table(title="Scanned Envelopes by Provenance Class")
+            ptable.add_column("Provenance Class", style="magenta")
+            ptable.add_column("Envelopes Scanned", style="cyan")
+            for prov_name, cnt in sorted(report.provenance_counts.items()):
+                ptable.add_row(prov_name, str(cnt))
+            console.print(ptable)
+
         if report.errors:
             console.print("[bold red]Migration Warnings / Errors:[/bold red]")
             for err in report.errors:
@@ -1043,14 +1073,29 @@ def create_parser() -> argparse.ArgumentParser:
         help="Migrate and re-sign memory envelopes from legacy dev key to active master key",
     )
     p_mmigrate.add_argument(
+        "--entry-id",
+        help="Migrate a specific memory entry by entry_id",
+    )
+    p_mmigrate.add_argument(
         "--dry-run",
         action="store_true",
         help="Scan and report eligible records without writing modifications to disk",
     )
     p_mmigrate.add_argument(
-        "--force",
+        "-y",
+        "--yes",
         action="store_true",
-        help="Force re-signing even if existing signature does not match canonical dev key",
+        help="Confirm migration without interactive prompt",
+    )
+    p_mmigrate.add_argument(
+        "--include-lisp-assertions",
+        action="store_true",
+        help="Include LISP_ASSERTION rows in migration (default: held for operator review)",
+    )
+    p_mmigrate.add_argument(
+        "--no-backup",
+        action="store_true",
+        help="Skip automatic database file backup prior to writing modifications",
     )
 
     # Stubs per F-CORE-027
@@ -1152,7 +1197,9 @@ def main(argv: list[str] | None = None) -> None:
         topic = getattr(args, "topic", None)
         entry_id = getattr(args, "entry_id", None)
         dry_run = getattr(args, "dry_run", False)
-        force = getattr(args, "force", False)
+        yes = getattr(args, "yes", False)
+        include_lisp_assertions = getattr(args, "include_lisp_assertions", False)
+        no_backup = getattr(args, "no_backup", False)
         db_arg = getattr(args, "db", None)
         db_path = Path(db_arg) if db_arg else None
         sys.exit(
@@ -1167,7 +1214,9 @@ def main(argv: list[str] | None = None) -> None:
                 topic=topic,
                 entry_id=entry_id,
                 dry_run=dry_run,
-                force=force,
+                yes=yes,
+                include_lisp_assertions=include_lisp_assertions,
+                no_backup=no_backup,
             )
         )
     elif args.cmd in ("metrics", "router", "replay"):

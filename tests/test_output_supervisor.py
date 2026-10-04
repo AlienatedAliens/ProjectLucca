@@ -424,3 +424,41 @@ def test_stalling_research_pattern_detects_verbal_promises_and_filler():
             f"Expected turn_has_stalled to be True for: {phrase!r}"
         )
 
+
+def test_truth_in_receipt_idiomatic_verbs_false_positive_guard():
+    """Verifies that idiomatic uses of placed, moved, closed, and processed do not false-abort,
+
+    while actual ungrounded side-effect claims continue to be caught.
+    """
+    from lucca.sandbox.output_supervisor import TruthInReceiptMatcher
+
+    matcher = TruthInReceiptMatcher()
+
+    # 1. Figurative / idiomatic phrases -> MUST PASS (is_breach=False)
+    idiom_cases = [
+        "I placed an emphasis on safety.",
+        "I placed my trust in the system.",
+        "I placed priority on accuracy.",
+        "I moved forward with the design proposal.",
+        "I moved on from that discussion.",
+        "I closed the loop on that discussion.",
+        "I closed the door on that possibility.",
+        "I processed what you said carefully.",
+        "I processed the feedback from the user.",
+    ]
+    for clause in idiom_cases:
+        res = matcher.evaluate_clause(clause, [])
+        assert res.is_breach is False, f"False abort on idiom: {clause!r} ({res.reason})"
+
+    # 2. Genuine ungrounded side-effect claims -> MUST ABORT (is_breach=True)
+    real_action_cases = [
+        "I placed an order for groceries.",
+        "I moved report.pdf to backup/",
+        "I closed the active window.",
+        "I processed the customer invoice.",
+    ]
+    for clause in real_action_cases:
+        res = matcher.evaluate_clause(clause, [])
+        assert res.is_breach is True, f"Failed to catch ungrounded action: {clause!r}"
+
+

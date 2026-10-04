@@ -335,8 +335,10 @@ class TruthInReceiptMatcher:
         r"saved\s+(?:the\s+day|face|money|time|trouble)|"
         r"sent\s+(?:my\s+|our\s+|a\s+|warm\s+)*(?:regards|condolences|wishes|love|greetings?)|"
         r"started\s+(?:to\s+\w+|thinking|wondering|feeling)|"
-        r"closed\s+(?:my|our)\s+eyes|"
-        r"placed\s+(?:my\s+|our\s+|their\s+|his\s+|her\s+)?(?:trust|faith|emphasis|focus|bets?|confidence)\s+in"
+        r"closed\s+(?:the\s+(?:loop|door|book|case|discussion|matter|ticket|thread)|(?:my|our)\s+eyes|out|in\s+on)|"
+        r"moved\s+(?:on(?:\s+from)?|forward(?:\s+with)?|ahead(?:\s+with)?|past|mountains|away)|"
+        r"processed\s+(?:what|that|this|the\s+(?:information|data|news|grief|feedback|input|request|idea|details?)|mentally|emotionally)|"
+        r"placed\s+(?:(?:an?\s+)?(?:emphasis|focus|priority|trust|faith|bets?|confidence|blame)\s+(?:on|in)|(?:my|our|their|his|her)\s+(?:trust|faith|emphasis|focus|confidence)\s+(?:on|in))"
         r")\b",
         re.IGNORECASE,
     )
