@@ -236,6 +236,63 @@ records:
       - "Variance cause NOT PROVEN: item-level diff shows exactly 2 flips (HumanEval/132, HumanEval/103, both PASS->FAIL) with DIFFERENT generated code between runs - divergence occurs on the preflight-rescue path (canonical raw/assisted, which share the decoding, reproduced byte-identically). Candidate causes: preflight execution timing sensitivity, server state. Report as a range (149-151/164, 90.9-92.1%), not a point estimate."
       - "A 50-task subset run (49/50, 98.0%) exists at modern_benchmarks_2024_20261005T232049Z_12b-plus-rerun.json - different protocol, NOT comparable to the 164-task figures; its first 50 items match the 164-task re-run exactly (0 mismatches)."
 
+  - benchmark_id: gsm_symbolic_stratified_100_v1_35_6
+    status: current
+    experiment: >
+      GSM-Symbolic, 100 templates, STRATIFIED protocol, PAL via
+      DockerRPCTransport (2026-10-01, clean tree bef28b5). Origin of the
+      94.0% figure (RESULTS.md row gsm-symbolic-strat-100). Distinct from
+      the 2026-09-29 v1.3-harness run below (100/100) - different protocol
+      and date; cite the protocol with the number.
+    run_artifact: logs/test_reports/gsm_symbolic_100_templates.json
+    harness_version: "scripts/run_modern_2024_benchmarks.py (stratified config)"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/GSM_symbolic.jsonl
+    dataset_sha256_at_run: 945055837b232bd9b56827b1e3a5aa019075f29e8ba4669d9a9df8b4439a291f
+    results:
+      strict: { passed: 94, total: 100, accuracy_pct: 94.0, elapsed_s: 624.97 }
+    git_commit: bef28b59c98d6cc249a88fe90e3682aaa38cba93
+    git_dirty: false
+  - benchmark_id: gsm_symbolic_100_v1_3
+    status: current
+    experiment: >
+      GSM-Symbolic, 100 templates, v1.3 modern-benchmarks harness
+      (2026-09-29). Origin of the 100.0% figure. Different protocol and date
+      from gsm_symbolic_stratified_100_v1_35_6 (94.0%); cite the protocol
+      with the number.
+    run_artifacts:
+      - logs/test_reports/v1.3/modern_benchmarks_2024_20260929T173711Z.json
+      - logs/test_reports/frozen_v1.2_baseline/modern_benchmarks_2024_20260929T173711Z.json
+    harness_version: "scripts/run_modern_2024_benchmarks.py (v1.3 harness)"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/GSM_symbolic.jsonl
+    results:
+      strict: { passed: 100, total: 100, accuracy_pct: 100.0, elapsed_s: 527.39 }
+    caveats:
+      - "Protocol and date differ from gsm_symbolic_stratified_100_v1_35_6 (94.0%); the delta is protocol-attributable until a paired re-run says otherwise."
+  - benchmark_id: contrastive_battery_v1_35_6
+    status: superseded
+    experiment: >
+      Contrastive live battery, 30 probes, Arm A (bare LLM) vs Arm B
+      (compound pipeline), 2026-10-05. INVALID AS EVIDENCE in current form
+      per the 2026-10-06 criticism cycle (register C-01..C-06): 14/30 Arm A
+      replies were empty and graded FAIL/fabricated; a genuine abstention
+      (A09) was graded fabricated; the post-hoc grader revision moved Arm B
+      introspection from 5/10 to 9/10 across the 0.8 threshold; I01/I04
+      Arm B passes contain garbled question-echo text; R07/I09 Arm B hit
+      the recollection-hysteresis hard-abort. The advertised deltas
+      (+90pp recall, +50pp introspection, +30pp abstention) are NOT YET
+      MEASURED pending a re-run with a frozen grader, an ERROR state for
+      empty replies, a RAG baseline arm, and 30 probes per stratum.
+    run_artifacts:
+      - logs/test_reports/contrastive_battery_20261005T200643Z.json
+      - logs/test_reports/contrastive_battery_20261005T200643Z_regraded.json
+    harness_version: "tests/test_contrastive_live_hw.py (grader NOT frozen; revised post-run)"
+    results:
+      per_probe_results_array_only: "summary blocks in the regraded artifact are stale; per-probe results are authoritative but the battery is superseded"
+    caveats:
+      - "Do not cite the deltas from this battery. Superseded by the Phase 3.5-3.6 re-run (frozen grader, 3 arms, 30/stratum)."
+
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
   # reference these record IDs (see plans/2026-10-04_external_review_remediation_workshop.md §3).
