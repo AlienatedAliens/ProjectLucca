@@ -362,3 +362,38 @@ Genuinely unverifiable from the repository alone:
    the tree. Same class as the MATH-500 rescore gap. Proving absence
    everywhere on disk is out of scope; the actionable fix is the same
    (manifest record from the existing 2026-10-03 artifact, or a re-run).
+
+---
+
+## Post-audit correction (2026-10-06): the HumanEval "retraction" was itself wrong
+
+This document's A3/F15 conclusion — that HumanEval 95.73% (157/164) and
+HumanEval-Plus 91.46% (150/164) were unsourced — was **an auditor error**,
+caused by a scanner that checked only top-level `passed` fields and missed
+summary blocks nested under `benchmarks.humaneval` /
+`benchmarks.humaneval_plus`. A properly recursive scan
+(`scratch/scan_all_humaneval_blocks.py`) located both artifacts on
+2026-10-06:
+
+- `logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json`
+  (also under `frozen_v1.2_baseline/`): `humaneval: passed 157/164
+  (95.73%), elapsed 760.67 s` — zero-shot direct execution in Docker under
+  the academic-benchmarks harness, 2026-09-28 (WO-26 era).
+- `logs/test_reports/v1.3/modern_benchmarks_2024_20260929T174613Z.json`
+  (also under `frozen_v1.2_baseline/`): `humaneval_plus: passed 150/164
+  (91.46%), elapsed 1016.83 s` — 2026-09-29.
+
+**Corrected status:** both figures are **sourced**. They measure a
+*different protocol* from the canonical paired harness (zero-shot direct
+execution vs the 2026-10-02 paired raw/assisted run that reproduced
+item-for-item at 94.51%/93.90%). The real defect was missing protocol
+labels and missing manifest records, not missing artifacts. Fixed:
+manifest records `humaneval_zeroshot_academic_v1_3` (new) and
+`humaneval_plus_v1_35_6` (now three recorded runs: 150/151/149 of 164,
+90.85–92.07%); `cited_figures` RETRACTED entries replaced with proper
+record mappings; papers 01, the neurosymbolic paper, the user guide, the
+SotU, and the handover now cite the protocol with each number.
+
+**Lesson recorded:** a negative scan result is only as good as the scan.
+"Artifact not found" must specify the search shape before it supports a
+retraction.

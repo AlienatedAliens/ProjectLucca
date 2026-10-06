@@ -178,6 +178,29 @@ records:
     git_dirty: true
     caveats:
       - "Reproduction ran on a dirty tree; identical item-level outcome makes grader/decoding determinism the plausible explanation, not tuning."
+  - benchmark_id: humaneval_zeroshot_academic_v1_3
+    status: current
+    experiment: >
+      HumanEval canonical 164, ZERO-SHOT direct execution in Docker under the
+      academic-benchmarks harness (2026-09-28, WO-26 era). This is a DIFFERENT
+      protocol from the canonical paired harness (humaneval_canonical_paired_v1_35_6):
+      no preflight rescue, different prompt template. Origin of the 95.73%
+      (157/164) figure. Initially believed unsourced during the 2026-10-05
+      adversarial audit (scanner checked only top-level `passed` fields and
+      missed the nested benchmarks.humaneval block); artifact located in
+      logs/test_reports/v1.3/ and frozen_v1.2_baseline/ on 2026-10-06.
+    run_artifacts:
+      - logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json
+      - logs/test_reports/frozen_v1.2_baseline/academic_benchmarks_20260928T182758Z.json
+    harness_version: "scripts/run_standard_academic_benchmarks.py (academic_benchmarks runner)"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/humaneval.jsonl
+    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
+    grader: { method: canonical_unit_tests_check_entry_point, execution: docker_file_sandbox, preflight_rescue: off }
+    results:
+      zero_shot: { passed: 157, total: 164, accuracy_pct: 95.73, elapsed_s: 760.67 }
+    caveats:
+      - "Different protocol from humaneval_canonical_paired_v1_35_6 (94.51% raw / 93.90% assisted, 2026-10-02, reproduced item-for-item). Cite the protocol with the number; do not compare across protocols."
   - benchmark_id: humaneval_plus_v1_35_6
     status: current
     experiment: >
@@ -188,10 +211,13 @@ records:
       preflight-rescue path (2 flips, different generated code; cause not
       proven: preflight execution timing sensitivity vs server state); cite
       the range or a frozen-tree run, not a point estimate from a single
-      dirty-tree run. The widely cited 91.46% (150/164) traces to a WO-26-era
-      run whose artifact was never located in logs/ - treated as unsourced
-      (adversarial audit 2026-10-05).
+      dirty-tree run. The 91.46% (150/164) figure is the 2026-09-29 run
+      (artifact located 2026-10-06 in logs/test_reports/v1.3/ after the
+      adversarial audit's scanner missed nested blocks); it is sourced, not
+      retracted.
     run_artifacts:
+      - logs/test_reports/v1.3/modern_benchmarks_2024_20260929T174613Z.json
+      - logs/test_reports/frozen_v1.2_baseline/modern_benchmarks_2024_20260929T174613Z.json
       - logs/test_reports/modern_benchmarks_2024_20261003T194152Z_12b-plus.json
       - logs/test_reports/modern_benchmarks_2024_20261005T232510Z_12b-plus-rerun-164.json
     harness_version: "scripts/run_modern_2024_benchmarks.py --benchmark humaneval-plus --samples 164"
@@ -200,8 +226,9 @@ records:
     decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
     grader: { method: docker_differential_execution_plus_inputs, preflight_rescue: on }
     results:
+      run_2026_09_29: { passed: 150, total: 164, accuracy_pct: 91.46, elapsed_s: 1016.83 }
       run_2026_10_03: { passed: 151, total: 164, accuracy_pct: 92.07 }
-      run_2026_10_05: { passed: 149, total: 164, accuracy_pct: 90.9 }
+      run_2026_10_05: { passed: 149, total: 164, accuracy_pct: 90.85 }
     git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
     git_dirty: true
     caveats:
@@ -218,5 +245,5 @@ cited_figures:
   "88.8% clean 98-item (12B R0)": math500_heldout100_direct_r0_v1_35_6
   "94.51% / 93.90% HumanEval canonical (raw / assisted)": humaneval_canonical_paired_v1_35_6
   "92.07% / 90.9% HumanEval-Plus (2026-10-03 / 2026-10-05 runs)": humaneval_plus_v1_35_6
-  "95.73% HumanEval (157/164)": RETRACTED — no artifact; superseded by humaneval_canonical_paired_v1_35_6
-  "91.46% HumanEval-Plus (150/164)": RETRACTED — artifact unlocated; superseded by humaneval_plus_v1_35_6
+  "95.73% HumanEval zero-shot (157/164, 2026-09-28 academic harness)": humaneval_zeroshot_academic_v1_3
+  "91.46% HumanEval-Plus (150/164, 2026-09-29 run)": humaneval_plus_v1_35_6

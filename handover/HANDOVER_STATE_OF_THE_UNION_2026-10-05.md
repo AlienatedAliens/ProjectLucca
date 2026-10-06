@@ -8,17 +8,21 @@ superseded_by: []
 verification: code-cited
 ```
 
-> **Correction banner (2026-10-06, post-audit).** This handover was the
-> *input brief* for the SotU; two figures it quoted as current have since
-> been retracted after artifact verification: HumanEval **95.73% (157/164)**
-> (no supporting artifact; canonical run reproduced item-for-item at
-> 94.51% raw / 93.90% assisted) and HumanEval-Plus **91.46% (150/164)**
-> (artifact unlocated; two recorded runs give 90.9–92.1%). Authoritative
-> records: `data/benchmarks/MANIFEST.yaml`
-> (`humaneval_canonical_paired_v1_35_6`, `humaneval_plus_v1_35_6`). The
-> supervisor's live result is also now reported with both halves
-> (sensitivity 1/23 broad / 1/8 strict; 0/50 false aborts on action-free
-> controls only). See `docs/research/STATE_OF_THE_UNION_2026-10.md` and
+> **Correction banner (2026-10-06, post-audit; amended same day).** This
+> handover was the *input brief* for the SotU. Its HumanEval figures are
+> **sourced but protocol-specific**: 95.73% (157/164) is the zero-shot
+> academic-harness run of 2026-09-28 (artifact in
+> `logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json`), and
+> 91.46% (150/164) is the 2026-09-29 HumanEval-Plus run (artifact in
+> `logs/test_reports/v1.3/modern_benchmarks_2024_20260929T174613Z.json`).
+> The canonical paired harness (2026-10-02, reproduced item-for-item)
+> measures 94.51% raw / 93.90% assisted. Cite the protocol with the number;
+> all records live in `data/benchmarks/MANIFEST.yaml`. An interim audit pass
+> wrongly retracted these figures before the artifacts were located — the
+> scanner checked only top-level `passed` fields. The supervisor's live
+> result is now reported with both halves (sensitivity 1/23 broad / 1/8
+> strict; 0/50 false aborts on action-free controls only). See
+> `docs/research/STATE_OF_THE_UNION_2026-10.md` and
 > `docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md`.
 
 **Your mission:** write a **State of the Union document** for Project Lucca
@@ -112,7 +116,7 @@ Your SotU document MUST:
 | Regression suite | 1,243 passed / 0 failed / 68 deselected | `data/metrics/TEST_METRICS.yaml` |
 | Static architectural gates | 24/24 | `tests/test_static_gates.py` |
 | SPEC-BENCH-100 cognitive battery | 91.0% (Run 3) | Track 1 harness |
-| HumanEval / HumanEval-Plus | 95.73% / 91.46% pass@1 | Track 2/3 harnesses |
+| HumanEval / HumanEval-Plus | **95.73% zero-shot (157/164, academic harness)** / **94.51% raw / 93.90% assisted (canonical paired)** / **90.9–92.1% Plus (149–151/164, three runs)** *(all sourced — manifest `humaneval_zeroshot_academic_v1_3`, `humaneval_canonical_paired_v1_35_6`, `humaneval_plus_v1_35_6`)* | Track 2/3 harnesses |
 | GSM8K PAL / GSM-Symbolic | 100% / 100% | Track 2/3 |
 | BBH (4-subset composite) | 92.40% | Track 2 |
 | MATH-500 held-out-100 Direct R0 | 89.0% (88.8% clean-98) | manifest `math500_heldout100_direct_r0_v1_35_6` |
