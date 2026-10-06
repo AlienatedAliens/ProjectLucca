@@ -382,7 +382,9 @@ with host fallback disabled; `--network none` file sandbox; shell launch ban;
 absolute egress blocks with a human-only confirmation override; typed
 argument schemas on every tool with a static gate proving coverage; AST
 sanitization with compiler preflight; Truth-in-Receipt supervision with a
-70-sentence battery and live 0/50 false-abort evidence; provenance-gated
+70-sentence battery and live probe evidence (measured sensitivity 1/23
+broad / 1/8 strict on ungrounded claims; 0/50 false aborts on action-free
+controls); provenance-gated
 memory with 11/11 tamper gates and the `D-MEM-06` split; and, new since the
 compilation was written, the contrastive battery (§3.6) and the
 recollection-hysteresis fix (§2.3) as a worked example of the supervisor

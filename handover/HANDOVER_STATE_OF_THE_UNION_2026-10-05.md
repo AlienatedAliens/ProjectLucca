@@ -8,6 +8,19 @@ superseded_by: []
 verification: code-cited
 ```
 
+> **Correction banner (2026-10-06, post-audit).** This handover was the
+> *input brief* for the SotU; two figures it quoted as current have since
+> been retracted after artifact verification: HumanEval **95.73% (157/164)**
+> (no supporting artifact; canonical run reproduced item-for-item at
+> 94.51% raw / 93.90% assisted) and HumanEval-Plus **91.46% (150/164)**
+> (artifact unlocated; two recorded runs give 90.9–92.1%). Authoritative
+> records: `data/benchmarks/MANIFEST.yaml`
+> (`humaneval_canonical_paired_v1_35_6`, `humaneval_plus_v1_35_6`). The
+> supervisor's live result is also now reported with both halves
+> (sensitivity 1/23 broad / 1/8 strict; 0/50 false aborts on action-free
+> controls only). See `docs/research/STATE_OF_THE_UNION_2026-10.md` and
+> `docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md`.
+
 **Your mission:** write a **State of the Union document** for Project Lucca
 covering (1) a full progress review, (2) the complete current capability
 inventory, and (3) an honest assessment of grant-application prospects. This
