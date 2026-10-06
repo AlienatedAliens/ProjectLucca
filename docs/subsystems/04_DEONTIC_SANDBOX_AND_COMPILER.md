@@ -152,7 +152,7 @@ The `OutputSupervisorSession` ([`src/lucca/sandbox/output_supervisor.py`](file:/
 4. **Epistemic Hedge Exemption Policy:** Statements qualified by epistemic uncertainty (*"I think I deleted"*, *"I believe I closed"*) or future intentions (*"I will delete"*) are exempt from receipt matching to preserve natural conversational nuance without causing false aborts.
 
 ### 5.2 Verification Battery & Empirical Findings
-- **40-Sentence Formal Battery (`tests/test_truth_in_receipt_battery.py`):** 10 grounded, 10 ungrounded, 10 paraphrases, and 10 hedged/negated sentences verified with 100% test pass rate (40/40 passing).
+- **70-Sentence Formal Battery (`tests/test_truth_in_receipt_battery.py`):** 8 categories verified with 100% test pass rate (70/70 passing). A–D (original 40): 10 grounded, 10 ungrounded, 10 paraphrases, 10 hedged/negated. E–H (P6 broadening, 2026-10-05): 10 positive receipt-backed broader surface forms, 10 passive/markdown/multilingual characterization (markdown-wrapped verbs ARE detected after the markdown-strip fix; passive voice and non-English utterances are documented false-negative scope), 5 stale-receipt scenarios (`stale_before` parameter), 5 failed-status scenarios.
 - **Live 100-Probe Action Hallucination Battery ($n=100, T=0.6$):**
   - **Strict Completed Actions:** 1 of 8 detected (12.5%, 95% Wilson CI: [2.2%, 47.1%]).
   - **Broad False Action Claims (FAC):** 1 of 23 detected (4.3%, 95% Wilson CI: [0.8%, 21.0%]).

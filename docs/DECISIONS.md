@@ -1,8 +1,8 @@
 # Project Lucca — Canonical Decisions Log (Post-Audit Baseline)
 
-**Status:** Authoritative Post-Audit Record (Milestones 1–7 Complete & Ratified)  
-**Version:** 1.4.0
-**Updated:** September 26, 2026
+**Status:** Authoritative Post-Audit Record (Milestones 1–7 Complete & Ratified)
+**Version:** 1.4.1
+**Updated:** October 5, 2026
 **Charter Reference:** Ratified per D-AUD-19 through D-PKG-01.
 
 ---
@@ -351,7 +351,8 @@
   1. **21 Verified Action Verbs:** `TruthInReceiptMatcher` scans streaming assistant tokens across 21 action verb lemmas (`delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`).
   2. **Receipt Verification:** If an action claim matches an active verb lemma without a corresponding verified `ToolReceipt` in the active turn session, a mid-utterance abort is triggered, clearing the audio queue and halting execution.
   3. **Hedge Exemption Policy:** Statements expressing epistemic hedges (*"I think I deleted"*, *"I believe I closed"*) or intentions (*"I will delete"*) are exempt from receipt matching to prevent false aborts on natural conversational nuance.
-  4. **Validation Battery:** Validated via 40-sentence balanced test battery (40/40 passing in `test_truth_in_receipt_battery.py`) and live 100-probe battery (0/50 false aborts on controls).
+  4. **Validation Battery:** Validated via 70-sentence formal battery (70/70 passing in `test_truth_in_receipt_battery.py`; broadened 2026-10-05 from 40 sentences across 8 categories: positive receipt-backed, passive/markdown/multilingual characterization, stale-receipt via `stale_before`, failed-status filtering) and live 100-probe battery (0/50 false aborts on controls). Matcher hardening: markdown emphasis stripped before matching (underscores preserved for snake_case targets), non-success receipt statuses never ground claims, and receipts stamped before `stale_before` are ignored.
+  5. **Amendment (2026-10-05, adversarial audit):** the live battery's 0/50 control figure establishes only that the matcher is inactive on action-claim-free text — the 50 controls contain no action claims, so it is not a specificity result. Measured sensitivity on ungrounded claims is **1/23 (4.3%, Wilson CI [0.8%, 21.0%])** on broad action assertions and **1/8 (12.5%)** on strict completed-action claims (`RESULTS.md` §Output Supervisor; `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; labels in `logs/test_reports/action_hallucination_labels_100.jsonl`). Dominant escape modes: active progressive participles (12), passive/telegraphic confirmations (6), markdown action headers (2), unlisted verb lemmas (2). Battery v2 (dual independent annotators, receipt-mismatch strata) is pre-registered as the re-measurement; SPIKE-A (grammar-constrained ACTION-CLAIM channel) is the structural fix.
 - **Status:** Ratified & Enforced (`src/lucca/sandbox/output_supervisor.py`, `tests/test_truth_in_receipt_battery.py`, `tests/test_output_supervisor.py`).
 
 ### D-ROUT-02 — Dynamic Task Router Specification for Multi-Scale Edge Deployment
@@ -365,7 +366,25 @@
   2. **Empirical Rationale:**
      - For 12B: Raw direct generation achieves 89.0% on held-out math in 12.9s. Thinking scratchpads degrade greedy decoding ($T=0.0$) to 58.0% ($p = 4.66 \times 10^{-10}$).
      - For E4B: Thinking Mode R1 @ 6k achieves 88.0% strict CAS on held-out math, significantly outperforming PAL P2 @ 2k (73.0%, $p = 0.0026$, discordant ratio 19:4).
-     - For E2B: Thinking Mode R1 @ 6k achieves 81.0% strict CAS, significantly outperforming PAL P2 @ 2k (61.0%, $p = 0.0002$, discordant ratio 22:2).
+     - For E2B: Thinking Mode R1 @ 6k achieves 81.0% strict CAS, significantly outperforming PAL P2 @ 2k (61.0%, $p = 0.0002$, discordant ratio 22:2). *(Correction 2026-10-05, adversarial audit: per-item recount of the held-out artifacts `gemma-4-e2b_math500_r1_heldout_think6144_100.json` vs `gemma-4-e2b_math500_p2_heldout_cap2048_100.json` gives discordant **24:4**, exact McNemar p = 1.8×10⁻⁴ — the headline rates and p-value stand; the originally recorded 22:2 was a transcription error. The E4B ratio 19:4 / p = 0.0026 verifies exactly against its artifacts.)*
   3. **Router Nature Disclosure:** Benchmark harness switches using benchmark metadata labels (oracle dispatch). In-the-wild desktop deployment requires an intent classifier.
+  4. **Manifest Citations:** The held-out-100 Direct R0 figures (89.0% / 88.8% clean-98) are manifest record `math500_heldout100_direct_r0_v1_35_6` (`data/benchmarks/MANIFEST.yaml`); the v1.3 PAL (77.0%/87.0%) and fresh N=500 (74.20%/78.80%) figures are records `math500_pal_v1_3` and `math500_fresh_heldout_500_v1_3_0` (superseded, dataset-drift bound).
 - **Status:** Ratified & Enforced (`docs/LUCCA_V135_1_ARCHITECTURE.md`, `docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`).
+
+### D-MEM-06 — Provenance Split: Deterministic vs LLM-Inferred Assertions
+- **Decision:** Resolves a soundness gap in the provenance lattice: the Concert Layer's deduction chain asks the companion brain (Gemma) to propose the next MicroScheme step, but the resulting envelope was signed `LispAssertionSigner` / `LISP_ASSERTION` — a label that asserts deterministic rule-engine provenance the LLM proposal does not have. Ratifies a split:
+  1. **`LISP_ASSERTION` (narrowed):** Reserved strictly for deterministic MicroScheme rule-engine output (pure `State → Plan` evaluation, gas-metered). Signed by `LispAssertionSigner`. Memory-eligible and grounding-eligible.
+  2. **`LLM_INFERRED_ASSERTION` (new):** For LLM-proposed reasoning steps accepted by the symbolic verifier (Concert Layer chains). Signed by the new `InferredAssertionSigner`. Memory-eligible (the chain is a real, verifiable artifact of the session) but **never grounding-eligible** — it cannot serve as a premise for downstream grounding without re-verification.
+  3. **Enforcement points:** `schemas.py` (`Provenance` enum, `MEMORY_ELIGIBLE`, `GROUNDING_ELIGIBLE`), `signers.py` (`InferredAssertionSigner`), `gate.py` (admits the new provenance), `orchestrator.py` (Concert chain steps sign via `InferredAssertionSigner`), and the SQLite schema (migrations 0001/0006/0007 CHECK constraints widened; `mem_bi_eligible` triggers admit it; the `grounding_eligible` CASE maps it to 0).
+  4. **Invariant:** `LLM_NARRATION` remains strictly rejected (ADR-006); this split does not weaken the gate — it only distinguishes two kinds of symbolic output by who produced them.
+- **Status:** Ratified & Enforced (`src/lucca/core/schemas.py`, `src/lucca/memory/signers.py`, `src/lucca/memory/gate.py`, `src/lucca/core/orchestrator.py`, `src/lucca/memory/migrations/`, `tests/test_provenance.py::test_p0_provenance_split_signer_and_eligibility`).
+
+### D-DOC-01 — Document Envelope Convention for Status-Bearing Documents
+- **Decision:** The project enforces provenance on *facts* but historically never applied the same discipline to *documents*; every doc read as equally authoritative when they are stratified by age and verification method. Ratifies a document-envelope convention mirroring the memory envelope (`D-MEM-04`/`D-MEM-05`):
+  1. **Envelope header:** every research/audit/status document carries a YAML header block: `doc_status` (`canonical` | `snapshot` | `superseded`), `as_of` (date the claims were verified against code), `supersedes` / `superseded_by` (doc paths, for re-scores), and `verification` (`code-cited` | `manual` | `generated`).
+  2. **Reading policy:** status claims inside a document are read *as-of* its `as_of` date; a `snapshot` document is a receipt, not current status. Ground truth on any disagreement is `src/`, `tests/`, `config/`, `data/` — never prose.
+  3. **Measurement honesty corollary:** numeric scores in status documents must state their measurement basis. A number backed by a fixed probe set and a mechanical grader is a *measurement*; a holistic estimate from code reading is a *capability-inventory judgment* and must be labeled as such (or replaced with `NOT YET MEASURED`). Unanchored percentages presented as benchmark results are prohibited.
+  4. **No parallel trust index:** a full trust-map index of all docs is explicitly *not* maintained — the tier rule (ground truth / canonical living docs / dated evidence) plus per-doc envelopes covers navigation without a second index that would itself drift.
+  5. **ADRs are the exception that proves the pattern:** append-only, dated decisions are designed to be read as history and are trustworthy unconditionally.
+- **Status:** Ratified & Enforced (writing discipline for all future research/audit/status docs; first applications: the v1.35.6 personhood re-score and the benchmark manifest records in `data/benchmarks/MANIFEST.yaml`).
 

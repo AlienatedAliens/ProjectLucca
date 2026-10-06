@@ -116,8 +116,8 @@ Every active document aligns with the following ground-truth facts verified in c
    - Retrospection answered via Substrate 7 (`SELF_HISTORY`).
    - Beliefs managed via `ReflectionEngine` with evidence-gated `supersede()` and 5-criterion flagged Studio review queue.
 7. **Quality & Verification Gates**:
-   - 12 static architectural gates in `tests/test_static_gates.py` (zero `Any` public API, provenance contracts, staleness linter).
-   - 671 non-hardware regression tests passing (100% green).
+   - 24 static architectural gates in `tests/test_static_gates.py` (zero `Any` public API, provenance contracts, staleness linter, decomposition and registry-consistency gates).
+   - 1,243 non-hardware regression tests passing (100% green; record `metrics-2026-10-05` in `data/metrics/TEST_METRICS.yaml`).
    - C1 split-conformal abstention acceptance gate passing (Wilson LB $\ge 0.80$).
    - A1 live hardware introspective accuracy passing (50 self-questions battery).
    - **Track 1 (`SPEC-BENCH-100-v1.0`)**: 91.0% pass rate, 100.0% path policy compliance, 100.0% epistemic faithfulness, 100.0% tool recovery.

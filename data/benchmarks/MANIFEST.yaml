@@ -1,0 +1,222 @@
+# Project Lucca — Benchmark Provenance Manifest
+#
+# Canonical registry of benchmark evaluation records. Every published numeric
+# benchmark claim (papers, architecture docs, user guide, DECISIONS) MUST cite
+# a record_id from this file. Figures without a record are not citable.
+#
+# This manifest resolves the MATH-500 "three different numbers" problem: the
+# 77.0/87.0, 74.20/78.80, and 89.0/94.0 figures are NOT competing measurements
+# of one experiment. They are three distinct, versioned experiments with
+# different datasets, graders, and harness builds. Each gets its own record.
+#
+# Generated: 2026-10-05 (v1.35.6). Records were reconstructed from run artifacts
+# under logs/test_reports/. Fields marked null were not recorded by the harness
+# at the time of the run; they are gaps to be closed by future runs, not guesses.
+
+schema_version: 1
+project_version: "1.35.6"
+generated_utc: "2026-10-05T08:00:00Z"
+
+datasets:
+  math500_test_full:
+    path: data/benchmarks/math500_test.jsonl
+    sha256_current: 35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132
+    n_items: 500
+    nomenclature: >
+      Lines 1-100 of this file are designated Dev-100 in research papers and
+      factorial reports (historically labeled "test-100" in v1.3). Lines 101-500
+      are the dev-400 held-out reserve. See RESULTS.md "Split Nomenclature".
+  math_fresh_heldout_500:
+    path: data/benchmarks/math_fresh_heldout_500.jsonl
+    sha256_current: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
+    sha256_at_v1_3_runs: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
+    n_items: 500
+    primary_slice: lines 1-100 (held-out-100; problems 101-500 unrun, reserved)
+    exposure_disclosure: >
+      Exploratory prompt inspection touched problems 15 and 73 (zero-indexed 14,
+      72) per handover/V135_CONTAMINATION_AUDIT.md. No harness or prompt change
+      was made in response. Clean 98-item subset reproducible via
+      scripts/recompute_heldout_98.py.
+    drift_note: >
+      The file hash changed between the v1.3 runs (2026-09-30) and the v1.35
+      runs (2026-10-03). v1.3 records are therefore bound to the earlier
+      dataset revision; cross-version comparisons of these records are
+      dataset-drifted and must be labeled as such.
+
+models:
+  gemma_4_12b_heretic_q6k:
+    filename: gemma-4-12b-heretic-Q6_K.gguf
+    sha256: ea50ec1e6065576314a09f4f2051e07d5bf61d8d6cce11c09249c155217aeeab
+    source: models/MANIFEST.json (canonical pin)
+  # E4B / E2B weights used by the pal_off_ablation arms are NOT pinned in
+  # models/MANIFEST.json. Gap: pin them before any future E4B/E2B record is
+  # cited in a paper.
+
+records:
+  - benchmark_id: math500_pal_v1_3
+    status: superseded  # do not cite as current; historical v1.3 evidence only
+    experiment: >
+      v1.3 PAL-mode MATH-500 evaluation on the Dev-100 slice. This is the
+      origin of the "77.0% strict / 87.0% SymPy-equivalence" figures cited in
+      docs/DECISIONS.md (Track 2) and docs/specs/WO26_ACCEPTANCE_REPORT.md.
+    run_artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T180321Z.json
+    run_timestamp: "20260929T180321Z"
+    harness_version: "1.3.0"
+    model: gemma_4_12b_heretic_q6k
+    dataset: math500_test_full
+    split: { evaluated: 100, slice: "lines 1-100 (Dev-100)", clean_excluding_leaked: null, leaked_items: [] }
+    decoding: { temperature: null, seed: null, max_tokens: null }  # not recorded by v1.3 harness
+    grader:
+      strict: normalized_string_exact   # harness-measured
+      lenient: forensic_audit           # NOT a mechanical regrade; see note below
+    results:
+      strict: { passed: 77, total: 100, accuracy_pct: 77.0, elapsed_s: 1149.65 }
+      lenient_forensic: { passed: 87, total: 100, accuracy_pct: 87.0 }
+    provenance_note: >
+      The 87.0% figure is a post-hoc FORENSIC AUDIT of the 23 non-passing items
+      (docs/specs/WO26_ACCEPTANCE_REPORT.md:177-180): 7 SymPy runtime exceptions,
+      7 notation/spacing variations, 3 base subscripts, 3 prose extraction slips,
+      3 genuine CAS limits. Derivation rate 84.0%; 87.0% only when base-notation
+      subscripts are counted as equivalent. It is not a mechanical regrade and
+      must be labeled "forensic audit" wherever cited.
+    git_commit: null
+    git_dirty: null
+
+  - benchmark_id: math500_fresh_heldout_500_v1_3_0
+    status: superseded  # v1.3 evidence; superseded by math500_heldout100_direct_r0_v1_35_6 for headline claims
+    experiment: >
+      v1.3.0 fresh held-out MATH-500 evaluation, N=500, 32K context. Origin of
+      the "74.20% strict / 78.80% SymPy CAS" figures (docs/USER_GUIDE_WHAT_LUCCA_DOES.md:189,
+      docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md:344-347, paper 01).
+    run_artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260930T031359Z_v1.3-fresh-heldout-500.json
+    run_timestamp: "20260930T031359Z"
+    harness_version: "1.3.0"
+    context_size: 32768
+    model: gemma_4_12b_heretic_q6k
+    dataset: math_fresh_heldout_500
+    dataset_sha256_at_run: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
+    split: { evaluated: 500, slice: "all lines", clean_excluding_leaked: null, leaked_items: [] }
+    decoding: { temperature: null, seed: null, max_tokens: null }  # not recorded by v1.3 harness
+    grader:
+      strict: rescore_strict            # post-hoc rescore, see provenance_note
+      lenient: sympy_cas_3stage         # post-hoc rescore via scripts/rescore_with_sympy.py
+    results:
+      raw_harness: { passed: 382, total: 500, accuracy_pct: 76.4, elapsed_s: 3470.11 }
+      rescored_strict: { passed: 371, total: 500, accuracy_pct: 74.20 }
+      rescored_lenient: { passed: 394, total: 500, accuracy_pct: 78.80 }
+    provenance_note: >
+      The raw harness score was 382/500 (76.4%) under the v1.3 grader. The
+      published 74.20/78.80 pair comes from a post-hoc uniform 3-stage CAS
+      rescore (scripts/rescore_with_sympy.py) of the same run artifact; no
+      rescored artifact JSON was committed to logs/. The +4.60% CAS delta and
+      0.00% false-accept rate over 23 newly accepted answers are documented in
+      the citing papers. PROVENANCE GAP: commit the rescored artifact so the
+      figures become mechanically reproducible.
+    level_breakdown: { level_4_aime: "107/131 (81.68%)", level_5_usamo: "84/136 (61.76%)" }
+    git_commit: null
+    git_dirty: null
+
+  - benchmark_id: math500_heldout100_direct_r0_v1_35_6
+    status: current  # primary held-out evaluation for v1.35.x claims
+    experiment: >
+      v1.35.6 Gemma 4 12B Direct R0 arm on the held-out-100 slice (lines 1-100
+      of math_fresh_heldout_500.jsonl), PAL-off factorial ablation. Origin of
+      the "89.0% strict / 94.0% lenient" figures (RESULTS.md row
+      `12b-math500-heldout-r0-4k`, docs/LUCCA_V135_1_ARCHITECTURE.md, paper 06).
+    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-12b_math500_r0_heldout_cap4096_100.json
+    # NOTE: the RESULTS.md ledger row cites a non-existent path
+    # `logs/test_reports/pal_off_ablation/checkpoint_12b_math500_heldout_100_r0_cap4096.json`;
+    # the artifact above is the real file. Path drift corrected here.
+    harness_version: "1.35.x (pal_off_ablation factorial harness)"
+    model: gemma_4_12b_heretic_q6k
+    dataset: math_fresh_heldout_500
+    dataset_sha256_at_run: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
+    split: { evaluated: 100, slice: "lines 1-100", clean_excluding_leaked: 98, leaked_items: [15, 73] }
+    clean_98_result: { strict: "87/98 (88.8%)", reproducible_via: scripts/recompute_heldout_98.py }
+    decoding: { temperature: 0.0, seed: 42, max_tokens: 4096, enable_thinking: false, cache_prompt: false }
+    grader:
+      strict: sympy_cas_normalized
+      lenient: sympy_cas_lenient_normalization
+    results:
+      strict: { passed: 89, total: 100, accuracy_pct: 89.0 }
+      lenient: { passed: 94, total: 100, accuracy_pct: 94.0 }
+      truncation_rate_pct: 3.0
+      elapsed_s: 902.11
+      vram_peak_mib: 10574
+    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+    git_dirty: true
+    caveats:
+      - "git_dirty: true — working tree contained uncommitted changes at run time; not a frozen-tree reproduction."
+      - "For clean (non-dirty) reproductions use the frozen_v1.2_baseline / pal_off_smoke trees or future frozen-tree runs."
+
+  - benchmark_id: humaneval_canonical_paired_v1_35_6
+    status: current
+    experiment: >
+      HumanEval canonical 164, paired design (Raw arm: preflight rescue OFF;
+      Assisted arm: 1-shot docstring-correction rescue ON). First run
+      2026-10-02 (commit c3561206); reproduced item-for-item on 2026-10-05
+      under the same decoding (T=0.0, seed 42, cache_prompt=false) with
+      identical paired counts (both_pass 153, both_fail 8, raw-only 2,
+      rescued 1, preflight fired 30). Origin of the artifact-backed figures;
+      the previously cited 95.73% (157/164) has no supporting artifact
+      anywhere in logs/ and is retracted (adversarial audit 2026-10-05).
+    run_artifact: logs/test_reports/humaneval_canonical_raw_164.json
+    reproduction_artifacts:
+      - logs/test_reports/humaneval_canonical_raw_164.json
+      - logs/test_reports/humaneval_canonical_assisted_164.json
+      - logs/test_reports/humaneval_canonical_raw_164_20261002.json
+      - logs/test_reports/humaneval_canonical_assisted_164_20261002.json
+    harness_version: "scripts/run_humaneval_canonical_paired.py"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/humaneval.jsonl
+    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
+    grader: { method: canonical_unit_tests_check_entry_point, execution: docker_file_sandbox }
+    results:
+      raw: { passed: 155, total: 164, accuracy_pct: 94.51 }
+      assisted: { passed: 154, total: 164, accuracy_pct: 93.90 }
+    git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
+    git_dirty: true
+    caveats:
+      - "Reproduction ran on a dirty tree; identical item-level outcome makes grader/decoding determinism the plausible explanation, not tuning."
+  - benchmark_id: humaneval_plus_v1_35_6
+    status: current
+    experiment: >
+      HumanEval-Plus (EvalPlus adversarial inputs, 164 tasks, Docker
+      differential execution base + 80x Plus inputs, preflight rescue ON).
+      Two recorded runs: 2026-10-03 (151/164, 92.07%) and 2026-10-05
+      (149/164, 90.9%). The 2-item delta is generation divergence on the
+      preflight-rescue path (2 flips, different generated code; cause not
+      proven: preflight execution timing sensitivity vs server state); cite
+      the range or a frozen-tree run, not a point estimate from a single
+      dirty-tree run. The widely cited 91.46% (150/164) traces to a WO-26-era
+      run whose artifact was never located in logs/ - treated as unsourced
+      (adversarial audit 2026-10-05).
+    run_artifacts:
+      - logs/test_reports/modern_benchmarks_2024_20261003T194152Z_12b-plus.json
+      - logs/test_reports/modern_benchmarks_2024_20261005T232510Z_12b-plus-rerun-164.json
+    harness_version: "scripts/run_modern_2024_benchmarks.py --benchmark humaneval-plus --samples 164"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/HumanEvalPlus.jsonl
+    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
+    grader: { method: docker_differential_execution_plus_inputs, preflight_rescue: on }
+    results:
+      run_2026_10_03: { passed: 151, total: 164, accuracy_pct: 92.07 }
+      run_2026_10_05: { passed: 149, total: 164, accuracy_pct: 90.9 }
+    git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
+    git_dirty: true
+    caveats:
+      - "Both recorded runs are dirty-tree; a frozen-tree Plus run is outstanding."
+      - "Variance cause NOT PROVEN: item-level diff shows exactly 2 flips (HumanEval/132, HumanEval/103, both PASS->FAIL) with DIFFERENT generated code between runs - divergence occurs on the preflight-rescue path (canonical raw/assisted, which share the decoding, reproduced byte-identically). Candidate causes: preflight execution timing sensitivity, server state. Report as a range (149-151/164, 90.9-92.1%), not a point estimate."
+      - "A 50-task subset run (49/50, 98.0%) exists at modern_benchmarks_2024_20261005T232049Z_12b-plus-rerun.json - different protocol, NOT comparable to the 164-task figures; its first 50 items match the 164-task re-run exactly (0 mismatches)."
+
+cited_figures:
+  # Map of published numeric claims -> record_id. Update citation sites to
+  # reference these record IDs (see plans/2026-10-04_external_review_remediation_workshop.md §3).
+  "77.0% / 87.0% MATH-500 (Track 2)": math500_pal_v1_3
+  "74.20% / 78.80% MATH-500 fresh held-out 500": math500_fresh_heldout_500_v1_3_0
+  "89.0% / 94.0% MATH-500 held-out 100 (12B R0)": math500_heldout100_direct_r0_v1_35_6
+  "88.8% clean 98-item (12B R0)": math500_heldout100_direct_r0_v1_35_6
+  "94.51% / 93.90% HumanEval canonical (raw / assisted)": humaneval_canonical_paired_v1_35_6
+  "92.07% / 90.9% HumanEval-Plus (2026-10-03 / 2026-10-05 runs)": humaneval_plus_v1_35_6
+  "95.73% HumanEval (157/164)": RETRACTED — no artifact; superseded by humaneval_canonical_paired_v1_35_6
+  "91.46% HumanEval-Plus (150/164)": RETRACTED — artifact unlocated; superseded by humaneval_plus_v1_35_6

@@ -1,0 +1,53 @@
+# Project Lucca — Authoritative Test & Gate Metrics Record
+# Single source of truth for test-suite and static-gate counts cited in active docs.
+# Regenerate by running the commands below; active docs MUST cite record_id `metrics-2026-10-05`.
+# Historical documents (CHANGELOG.md entries, plans/, docs/archive/) keep their dated figures
+# as historical records and are NOT rewritten by this generator.
+
+schema_version: 1
+record_id: metrics-2026-10-05
+generated_at: "2026-10-05T10:10:00Z"
+toolchain:
+  python: "3.12 (uv-managed, .venv)"
+  runner: pytest
+  command_full_suite: ".venv\\Scripts\\python.exe -m pytest tests/ -q --deselect tests/test_capability_assessment_live_hw.py"
+  command_gates: ".venv\\Scripts\\python.exe -m pytest tests/test_static_gates.py --collect-only -q"
+
+static_gates:
+  module: tests/test_static_gates.py
+  count: 24
+  all_passing: true
+  note: >
+    Active docs previously drifted between "12" and "31" gate counts; the
+    collected count in tests/test_static_gates.py is authoritative.
+
+regression_suite:
+  passed: 1243
+  failed: 0
+  deselected: 68
+  deselection_reason: "hardware-gated tests (live HW / NPU / dGPU markers) and tier markers"
+  duration_s: 253.0
+  note: >
+    Count includes test_p0_provenance_split_signer_and_eligibility added by D-MEM-06
+    (provenance split; 1,198 -> 1,199 on 2026-10-05), the 11 tests in
+    tests/test_tts_safety_guard.py added by the P6 TTS output safety guard
+    (1,199 -> 1,210 on 2026-10-05), the +30 Truth-in-Receipt battery
+    broadening tests (categories E-H; 1,210 -> 1,240 on 2026-10-05), the
+    +2 stale_before production-wiring tests (1,240 -> 1,242 on 2026-10-05),
+    and the +1 recollection-hysteresis regression test (1,242 -> 1,243 on
+    2026-10-05). Deselection rose 67 -> 68: the hw-marked contrastive
+    battery (tests/test_contrastive_live_hw.py) joined the deselected set.
+
+superseded_records:
+  - record_id: metrics-2026-09-26
+    passed: 1198
+    deselected: 67
+    source: "CHANGELOG.md v1.35.6-stable entry; README.md scorecard"
+  - record_id: metrics-wo17-2026-09-24
+    passed: 671
+    deselected: 49
+    source: "plans/2026-09-24_wo17_system_remediation_modernization.md (historical)"
+  - record_id: metrics-v-era
+    passed: 973
+    deselected: 46
+    source: "CHANGELOG.md mid-release entries (historical)"

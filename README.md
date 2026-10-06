@@ -124,7 +124,7 @@ All measurements were obtained directly from live execution on native workstatio
 | **Z3 SMT Verification Time** | Automated SAT, contingency, and path proofs; unmodeled predicates fail closed (`UNMODELED_PREDICATE`) | **$\le 25\,\text{ms}$** (Budget: $\le 500\,\text{ms}$) | **Verified** |
 | **Frozen Packaging Acceptance** | `Lucca.exe --check` 10-point native hardware audit | **$10 / 10$ criteria PASSED (code 0)** | **Verified** |
 | **Static Architectural Gates** | Architectural invariants, zero-`Any`, provenance, staleness linter, registry consistency | **$24 / 24$ gates PASSED (code 0)** | **Verified** |
-| **Full Regression Test Suite** | 70+ test modules covering all subsystems | **1,198 / 1,198 PASSED (67 deselected, 100% GREEN)** | **Verified** |
+| **Full Regression Test Suite** | 70+ test modules covering all subsystems | **1,243 / 1,243 PASSED (68 deselected, 100% GREEN)** — record `metrics-2026-10-05` (`data/metrics/TEST_METRICS.yaml`) | **Verified** |
 | **Track 1: SPEC-BENCH-100-v1.0** | 100-problem multi-domain frozen ground-truth cognitive battery (Run 3) | **91.0% (91/100)**; Path: **100%**; Epistemic: **100%**; Tool Rec: **3/3** | **Verified** |
 | **Track 2: Canonical HumanEval**| Full 164 coding tasks pass@1 executed in Docker sandbox | **95.73% pass@1 (157 / 164)** | **Verified** |
 | **Track 2: GSM8K in PAL Mode**  | Program-Aided Language math executed via Docker Python | **100.0% (30 / 30)** | **Verified** |
@@ -139,10 +139,10 @@ All measurements were obtained directly from live execution on native workstatio
 | **v1.3.0: Tolerant AST Residual**| 100-problem empirical audit of empty code extraction                  | **0.0% residual (0 / 100)**, 95% CI: [0.00%, 3.70%] | **Verified** |
 | **v1.3.0: Neurosymbolic Recovery**| 2-tier preflight compiler + 2-turn execution feedback on failure traces| **85.11% recovery (40 / 47)** (27/30 design, 13/17 held-out) | **Verified** |
 | **v1.3.0: 3-Stage CAS Grader**   | String match $\to$ 5-pt random numeric $\to$ 2.0s worker thread SymPy CAS | **7 / 7 test gates PASSED (100% GREEN)** | **Verified** |
-| **v1.3.0: Fresh Held-Out 500**   | Unseen 500-problem competition suite (32K ctx + feedback loop)       | **74.20% strict (371/500) / 78.80% CAS (394/500)** (0.0% false accepts, 81.7% L4 AIME) | **Verified** |
+| **v1.3.0: Fresh Held-Out 500**   | Unseen 500-problem competition suite (32K ctx + feedback loop)       | **74.20% strict (371/500) / 78.80% CAS (394/500)** (0.0% false accepts, 81.7% L4 AIME) — manifest record `math500_fresh_heldout_500_v1_3_0` | **Verified** |
 | **v1.3.0: Persistent HTTP Pool** | Keepalive connection recycling (`max_keepalive_connections=10`)       | **285.2 ms** Turn-2 TTFT (0 socket leaks, 24/24 race tests pass) | **Verified** |
 | **v1.3.0: Closing BBH Regression**| Full 4-subset algorithmic regression test battery                    | **97.5% passed (39 / 40)** in 277.8s (10/10 Boolean, 10/10 Tracking, 10/10 Dyck) | **Verified** |
-| **v1.35.6: Truth-in-Receipt Battery** | 40-sentence formal supervisor battery across 4 balanced categories | **40 / 40 PASSED (100% GREEN)**; 0/50 control false alarms | **Verified** |
+| **v1.35.6: Truth-in-Receipt Battery** | 70-sentence formal supervisor battery across 8 categories (P6 broadening: positive receipt-backed, passive/markdown/multilingual, stale-receipt, failed-status) | **70 / 70 PASSED (100% GREEN)**; live battery: sensitivity **1/23 (4.3%)** broad / **1/8 (12.5%)** strict on ungrounded claims, 0/50 false aborts on action-free controls (controls contain no action claims; specificity vs receipt-backed claims reserved for Battery v2) | **Verified** |
 | **v1.35.6: Memory Tamper Quarantine** | HKDF HMAC-SHA256 read-time tamper detection & persistent quarantine | **11 / 11 test gates PASSED**; key persistence & zero amnesia | **Verified** |
 | **v1.35.6: Multi-Scale Held-Out 100** | Unseen competition math across 3 scales: 12B Direct R0, E4B R1, E2B R1 | **89.0% (12B) / 88.0% (E4B) / 81.0% (E2B)** (88.8%/87.8%/80.6% on 98-item clean) | **Verified** |
 

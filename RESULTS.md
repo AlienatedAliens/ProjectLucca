@@ -34,6 +34,14 @@
 
 ## Split Nomenclature & Exposure Disclosures
 
+**Manifest record citations (`data/benchmarks/MANIFEST.yaml`):** the three
+MATH-500 experiment figures cited across the docs are manifest records
+`math500_pal_v1_3` (77.0%/87.0% PAL Dev-100, superseded),
+`math500_fresh_heldout_500_v1_3_0` (74.20%/78.80% fresh N=500, superseded,
+dataset-drift bound), and `math500_heldout100_direct_r0_v1_35_6` (89.0%
+Direct R0 held-out-100, current). These are distinct experiments, not
+contradictory data.
+
 1. **Nomenclature Mapping:** The dataset slice `data/benchmarks/math500_test.jsonl` (problems 1–100) is designated as **Dev-100** across research papers and factorial reports, reflecting its historical role as a prompt-development split in v1.3 where it was labeled `test-100`.
 2. **Held-Out Definition:** The primary held-out benchmark comprises lines 1–100 of `data/benchmarks/math_fresh_heldout_500.jsonl`. Problems 101–500 remain strictly unrun and held in reserve.
 3. **Exploratory Leak Disclosure:** As documented in `handover/V135_CONTAMINATION_AUDIT.md`, exploratory prompt inspection touched problems 15 and 73 on `math_fresh_heldout_500.jsonl` (zero-indexed: indices 14 and 72). No harness or prompt modification was made in response to this exposure.

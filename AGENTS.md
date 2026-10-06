@@ -71,12 +71,12 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 - **Cognitive & Academic Verification**: Validated under Three-Track Empirical Battery + Multi-Scale Held-Out Matrix:
   - Track 1 (`SPEC-BENCH-100-v1.0`): **91.0% pass rate**, 100.0% path policy compliance, 100.0% epistemic faithfulness.
   - Track 2 (Standard Academic Battery): GSM8K PAL **100.0%**, Canonical HumanEval **95.73% pass@1**, Big-Bench Hard **92.40% (924/1,000)**.
-  - Track 3 (Modern Academic Benchmarks): GSM-Symbolic **100.0%**, HumanEval-Plus **91.46% pass@1**, MATH-500 Fresh Held-Out 500 **74.20% strict / 78.80% SymPy CAS** (81.7% Level 4 AIME).
+  - Track 3 (Modern Academic Benchmarks): GSM-Symbolic **100.0%**, HumanEval-Plus **91.46% pass@1**, MATH-500 Fresh Held-Out 500 **74.20% strict / 78.80% SymPy CAS** (81.7% Level 4 AIME; manifest record `math500_fresh_heldout_500_v1_3_0`).
   - Held-Out 100 Multi-Scale Matrix: 12B Direct R0: 89.0% [88.8% on 98-item clean]; E4B Thinking R1: 88.0% [87.8% on 98-item clean]; E2B Thinking R1: 81.0% [80.6% on 98-item clean].
 - **Output Supervision & Deontic Grounding**:
   - `TruthInReceiptMatcher` with 21 verified action verbs (`delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`) and epistemic hedge exemption policy.
-  - 40-sentence formal battery: 40/40 passing; live 100-probe evaluation: 0/50 control false alarms.
+  - 70-sentence formal battery (8 categories; P6 broadening): 70/70 passing; live 100-probe evaluation: 0/50 control false alarms.
 - **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with HKDF HMAC-SHA256 read-time tamper verification and persistent SQLite `memory_quarantine` table (`D-MEM-05`). Key persistence via `data/keys/master.key` (`0600`).
-- **Regression Test Suite**: **1,198 passing unit tests** across all subsystems (0 failed, 67 deselected).
+- **Regression Test Suite**: **1,243 passing unit tests** across all subsystems (0 failed, 68 deselected; record `metrics-2026-10-05` in `data/metrics/TEST_METRICS.yaml`).
 - **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`).
 - **Process Topology**: Four native host processes + ZeroMQ IPC (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server` per ADR-008).

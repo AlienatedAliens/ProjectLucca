@@ -24,7 +24,7 @@ The authoritative, line-by-line verified capabilities manual and testing protoco
    - The 15 active MicroScheme rules and forward-chaining assertion engine
     - **Three-Track Cognitive & Academic Benchmark Verification** (Track 1 `SPEC-BENCH-100-v1.0` 91%; Track 2 Canonical HumanEval 95.73%, GSM8K PAL 100%, BBH 92.4%; Track 3 GSM-Symbolic 100%, HumanEval-Plus 91.46%, MATH-500 77% strict / 87% SymPy)
     - **v1.3.0 Structural Compiler & 2-Tier Neurosymbolic Execution** (Tolerant AST extractor with 0.0% empty code residual, Turn-1 compiler preflight, 2-turn execution feedback recovering 85.11% of baseline runtime crashes, and 3-stage CAS equivalence grader)
-    - **v1.35.6 Multi-Scale Compound Edge Deployment & Safety Hardening** (Validated 3-tier neural substrate across Gemma 4 12B, E4B, and E2B; dynamic task routing with PAL vs. Thinking Mode R1 @ 6k; HKDF HMAC-SHA256 read-time tamper quarantine with user alert APIs; 40-sentence Truth-in-Receipt supervisor battery with 0/50 control false alarms)
+    - **v1.35.6 Multi-Scale Compound Edge Deployment & Safety Hardening** (Validated 3-tier neural substrate across Gemma 4 12B, E4B, and E2B; dynamic task routing with PAL vs. Thinking Mode R1 @ 6k; HKDF HMAC-SHA256 read-time tamper quarantine with user alert APIs; 70-sentence Truth-in-Receipt supervisor battery with 0/50 control false alarms)
 4. **[3. The Two Big Architecture Claims & How to Test Them](./docs/USER_GUIDE_WHAT_LUCCA_DOES.md#3-the-two-big-claims--how-true-are-they-at-l2-and-how-do-you-test-them)**:
    - Claim A: Federated cognitive architecture & independent skill registration
    - Claim B: Reasoning onion & bidirectional substrate interaction (12-step verification battery)

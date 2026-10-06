@@ -1,5 +1,22 @@
 # Progress Toward the Four Aspects of Personhood — 2026-09-26
 
+```yaml
+doc_status: superseded
+as_of: 2026-09-26
+supersedes: []
+superseded_by: [docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md]
+verification: manual
+```
+
+> **Supersession note (2026-10-05, per `D-DOC-01`):** this document is a dated
+> snapshot. The scorecard percentages (~80% / ~50% / ~85% / ~75%) are
+> **capability-inventory judgments, not measurements** — holistic estimates
+> from a code reading with no fixed probe set or mechanical grader. They are
+> retired by the v1.35.6 re-score, which reports measured pass rates where a
+> mechanical grader exists and **NOT YET MEASURED** otherwise. The framework
+> (§0), standing caveat, and Qness mapping (§6, as design philosophy) remain
+> valid and are carried forward.
+
 **Purpose:** the owner's stated goal is not personhood as a binary threshold but a **person-shaped** system — one that has the buildable, functional-epistemic aspects of personhood: Introspective Accuracy, Individuation, Functional Coherence, Autobiographical Coherence. This document scores Lucca's progress on each against the actual codebase (every claim cited to its implementing file or test), maps the roadmap onto the four pillars, and records the design philosophy (the "Qness" section).
 
 **Method:** codebase-verified assessment. Nothing below is aspirational unless marked *in flight* (with its work order) or *missing* (with its trigger).

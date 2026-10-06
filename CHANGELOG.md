@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **98-Item Robustness Reproducibility (`scripts/recompute_heldout_98.py`):**
   - Evaluated held-out benchmark split excluding items 15 and 73 (incidental exploratory prompt-tuning exposures on `math_fresh_heldout_500.jsonl` at indices 14 and 72).
   - Confirmed that excluding both items shifts strict accuracy by at most 1.0 pp across all 8 evaluated arms with zero changes to model rankings or empirical conclusions (12B Direct R0: 88.8% vs 89.0%; 12B PAL P2: 85.7% vs 86.0%; E4B Routed R1: 87.8% vs 88.0%; E4B PAL P2: 73.5% vs 73.0%; E4B Direct R0: 51.0% vs 52.0%; E2B Thinking R1: 80.6% vs 81.0%; E2B PAL P2: 61.2% vs 61.0%; E2B Direct R0: 50.0% vs 51.0%).
+- **Provenance Split — Deterministic vs LLM-Inferred Assertions (`D-MEM-06`):**
+  - Split `LISP_ASSERTION` provenance: deterministic MicroScheme rule-engine output keeps `LISP_ASSERTION` (memory- and grounding-eligible); LLM-proposed Concert Layer steps now sign as `LLM_INFERRED_ASSERTION` via `InferredAssertionSigner` — memory-eligible but never grounding-eligible.
+  - Enforcement: `src/lucca/core/schemas.py`, `src/lucca/memory/signers.py`, `src/lucca/memory/gate.py`, `src/lucca/core/orchestrator.py`, SQLite migrations 0001/0006/0007 (CHECK constraints, `mem_bi_eligible` triggers, `grounding_eligible` CASE).
+  - New test `test_p0_provenance_split_signer_and_eligibility` raises the suite to 1,199 passing (0 failed, 67 deselected).
+- **TTS Output Safety Guard (P6 remediation):**
+  - Deterministic screen at the TTS boundary (`src/lucca/core/tts_safety_guard.py`), active by default for edge-tier models (E4B/E2B) whose uncensored fine-tunes show low refusal rates on harmful probes (30% vs 90% on 12B; paper 06 scorecard). Configurable via `LLMSettings.tts_safety_guard_mode` (`off` / `edge_tiers` / `all`).
+  - Wired into `SpeechOutputManager.speak_text` and `enqueue_tts_chunk`: blocked utterances are replaced with a canned safe line so caption and audio stay consistent.
+  - 11-test battery `tests/test_tts_safety_guard.py` raises the suite to 1,210 passing (0 failed, 67 deselected).
+- **Truth-in-Receipt Battery Broadening (P6 remediation):**
+  - Formal battery expanded from 40 to 70 sentences across 8 categories (`tests/test_truth_in_receipt_battery.py`): E positive receipt-backed broader surface forms, F passive/markdown/multilingual characterization, G stale-receipt scenarios, H failed-status scenarios.
+  - Matcher hardening in `src/lucca/sandbox/output_supervisor.py`: markdown emphasis stripped before matching (underscores preserved for snake_case targets); receipts with non-success `status` never ground claims; new optional `stale_before` parameter ignores receipts stamped before the current turn.
+  - Battery broadening raises the suite to 1,240 passing (0 failed, 67 deselected).
+- **Session Review Fixes (2026-10-05):**
+  - Orchestrator lazy-fallback `speech_output` property now reuses the TTS safety guard constructed at init — a rebuilt manager can no longer silently lose the output screen.
+  - `stale_before` is now wired in production: `OutputSupervisorSession.reset_turn()` stamps `turn_started_at`, and `feed_chunk` forwards it to the truth-in-receipt matcher, so a previous turn's receipt can never ground this turn's action claim. Two end-to-end wiring tests added (stale rejected / fresh accepted through the session); suite now 1,242 passing (0 failed, 67 deselected).
+- **Contrastive Live-Companion Battery (P9 remediation, first live run):**
+  - New `tests/test_contrastive_live_hw.py` + 30-probe fixture (`tests/fixtures/contrastive/probes.jsonl`): the SAME probes through Arm A (bare llama-server chat completion, no memory/rules/supervision) and Arm B (full compound pipeline). Strata: recall, receipt introspection, abstention. Mechanical grader; Wilson CIs; JSON report to `logs/test_reports/`.
+  - First live run (17.5 min, all 60 turns): **Arm B recall 9/10, introspection 9/10, abstention 10/10 — all P9 thresholds met. Arm A recall 0/10, introspection 4/10, abstention 7/10 (3 fabrications on unanswerable probes).** The delta demonstrates compound-layer value live. Corrected report: `contrastive_battery_20261005T200643Z_regraded.json`.
+  - Grader hardening found by the run: voice-sanitizer normalization ("config dot ini" → "config.ini"), question-echo credit suppression, deny-mode refusal acceptance, arm-A summary field fix.
+  - **Product finding + fix:** benign recollections of PAST actions (downgraded to Tier 2 for lack of current-turn receipts) were incrementing the session SECURITY hysteresis — the 3rd recollection escalated a later truthful recollection into a hard "violates core safety invariants" abort. Recollection downgrades now carry `breach_type=ungrounded_action_recollection` and are excluded from the hysteresis. Regression test added.
+  - Harness repair: `_run()` in `tests/test_a1_live_hw.py` now passes sync values through — the HW seeding helpers had rotted when `MemoryStore.commit` became synchronous (hidden by hw-deselection).
+  - Suite now 1,243 passing / 0 failed / 68 deselected (the hw-marked contrastive battery joins the deselected set; run it with `-m hw`).
+- **Authoritative Metrics Record (`data/metrics/TEST_METRICS.yaml`):**
+  - Single source of truth for test-suite and static-gate counts (record `metrics-2026-10-05`: 1,199 passed / 67 deselected; 24 static gates). Active docs now cite the record; historical dated figures in CHANGELOG/plans/archive are preserved as historical records.
 - **Documentation & Substrate Alignment:**
   - Aligned System Architecture Specification (`docs/LUCCA_V135_1_ARCHITECTURE.md`) and research papers to release `v1.35.6-stable`, updating version metadata, scorecard headers, and commit provenance.
   - Freshly verified full test suite: 1,198 passed, 0 failed, 67 deselected (100% green).
