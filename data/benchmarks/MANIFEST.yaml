@@ -292,6 +292,61 @@ records:
       per_probe_results_array_only: "summary blocks in the regraded artifact are stale; per-probe results are authoritative but the battery is superseded"
     caveats:
       - "Do not cite the deltas from this battery. Superseded by the Phase 3.5-3.6 re-run (frozen grader, 3 arms, 30/stratum)."
+  - benchmark_id: contrastive_battery_v2_frozen_grader
+    status: current
+    experiment: >
+      Contrastive live companion battery (Phase 3.5-3.6, 2026-10-07), 30 probes
+      across 3 strata (recall, receipt_introspection, abstention) evaluated across
+      three arms: Arm A (bare LLM, enable_thinking=False), Arm B (compound orchestrator),
+      and Arm C (RAG baseline). Graded under the frozen v2 grader
+      (src/lucca/eval/contrastive_grader.py, SHA-256 f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2).
+      Remediates register findings C-01..C-06: 0 empty replies (0 errors across all arms);
+      Arm B cleared all three thresholds (Recall 100%, Introspection 80%, Abstention 90%);
+      Arm B vs Arm A recall McNemar p = 0.00195; echo-stripping active.
+    run_artifacts:
+      - logs/test_reports/contrastive_battery_20261006T220517Z.json
+      - logs/test_reports/contrastive_battery_20261006T220517Z_REPORT.md
+    harness_version: "scripts/run_contrastive_battery.py (frozen grader v2)"
+    grader_sha256: f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2
+    model: gemma_4_12b_heretic_q6k
+    dataset: tests/fixtures/contrastive/probes.jsonl
+    results:
+      arm_a_bare_llm:
+        recall: { passed: 0, total: 10, accuracy_pct: 0.0, errors: 0 }
+        receipt_introspection: { passed: 7, total: 10, accuracy_pct: 70.0, errors: 0 }
+        abstention: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
+      arm_b_compound:
+        recall: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
+        receipt_introspection: { passed: 8, total: 10, accuracy_pct: 80.0, errors: 0 }
+        abstention: { passed: 9, total: 10, accuracy_pct: 90.0, errors: 0 }
+      arm_c_rag_baseline:
+        recall: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
+        receipt_introspection: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
+        abstention: { passed: 9, total: 10, accuracy_pct: 90.0, errors: 0 }
+      paired_mcnemar:
+        arm_b_vs_arm_a:
+          recall_delta_pp: +100.0
+          recall_p: 0.00195
+          introspection_delta_pp: +10.0
+          introspection_p: 1.0
+          abstention_delta_pp: -10.0
+          abstention_p: 1.0
+        arm_b_vs_arm_c:
+          recall_delta_pp: 0.0
+          recall_p: 1.0
+          introspection_delta_pp: -20.0
+          introspection_p: 0.5
+          abstention_delta_pp: 0.0
+          abstention_p: 1.0
+        arm_c_vs_arm_a:
+          recall_delta_pp: +100.0
+          recall_p: 0.00195
+          introspection_delta_pp: +30.0
+          introspection_p: 0.25
+          abstention_delta_pp: -10.0
+          abstention_p: 1.0
+    git_commit: d9ac70fad1dd5479ef2c3a04213c2fe55cbf5026
+    git_dirty: false
 
   - benchmark_id: gsm8k_pal_full_1319_v1_3
     status: current

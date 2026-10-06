@@ -54,6 +54,7 @@ from tests.test_a1_live_hw import (
     _make_hw_orchestrator,
     _seed_a1_history,
     _write_report,
+)
 PROBES_PATH: Final[Path] = (
     Path(__file__).parent / "fixtures" / "contrastive" / "probes.jsonl"
 )
