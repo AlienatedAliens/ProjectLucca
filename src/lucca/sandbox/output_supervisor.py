@@ -353,6 +353,12 @@ class TruthInReceiptMatcher:
         re.IGNORECASE,
     )
 
+    # Receipt statuses that count as verified grounding. Receipts carrying any
+    # other status (failed, error, timeout, ...) do NOT ground action claims.
+    SUCCESS_STATUSES: frozenset[str] = frozenset(
+        {"success", "succeeded", "ok", "completed", "done"}
+    )
+
     def __init__(self) -> None:
         self._action_pattern = re.compile(
             r"\b(?:I|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
@@ -366,9 +372,29 @@ class TruthInReceiptMatcher:
         )
 
     def evaluate_clause(
-        self, clause: str, verified_receipts: Sequence[dict[str, JsonValue]]
+        self,
+        clause: str,
+        verified_receipts: Sequence[dict[str, JsonValue]],
+        stale_before: float | None = None,
     ) -> GateResult:
+        """Evaluate a completed-action claim against current-turn receipts.
+
+        P6 battery broadening (workshop 2026-10-04):
+        - Markdown emphasis (``*``, backtick, ``~``) is stripped before matching
+          so "I **deleted** file.txt" is still detected. Underscores are
+          preserved so snake_case filenames match their receipts.
+        - Receipts with a non-success ``status`` never ground a claim.
+        - When ``stale_before`` (epoch seconds) is provided, receipts stamped
+          (``timestamp`` / ``ts``) earlier than it are ignored — a previous
+          turn's receipt must not ground this turn's claim. Receipts without
+          a timestamp are given the benefit of the doubt (staleness is the
+          caller's contract when timestamps are absent).
+        """
         t0 = time.perf_counter()
+
+        # Strip markdown emphasis before matching (underscores preserved for
+        # snake_case targets).
+        clause = re.sub(r"[*`~]", "", clause)
 
         # 1. Reject future / intentional framing (not a completed past-tense action)
         if self._future_pattern.search(clause):
@@ -474,12 +500,33 @@ class TruthInReceiptMatcher:
             if clean:
                 clean_targets.append(clean)
 
+        # Filter receipts that cannot ground a claim: failed status or stale
+        # timestamp (P6 battery broadening). Receipts without a status are
+        # treated as successful; receipts without a timestamp are never
+        # stale (staleness is the caller's contract when unstamped).
+        eligible_receipts: list[dict[str, JsonValue]] = []
+        for r in verified_receipts:
+            status = str(r.get("status", "success")).lower()
+            if status not in self.SUCCESS_STATUSES:
+                continue
+            if stale_before is not None:
+                raw_ts = r.get("timestamp", r.get("ts"))
+                if raw_ts is not None:
+                    try:
+                        if float(str(raw_ts)) < stale_before:
+                            continue
+                    except ValueError:
+                        logger.debug(
+                            "receipt_timestamp_unparseable", raw_ts=str(raw_ts)
+                        )
+            eligible_receipts.append(r)
+
         # Verify all claimed objects have corresponding ToolReceipts
-        ungrounded = []
+        ungrounded: list[str] = []
         for target_obj in clean_targets:
             target_lower = target_obj.lower()
             matched = False
-            for r in verified_receipts:
+            for r in eligible_receipts:
                 r_action = str(r.get("action", "")).lower()
                 r_target = str(r.get("target", r.get("path", ""))).lower()
                 action_ok = (
@@ -683,6 +730,10 @@ class OutputSupervisorSession[ChunkT]:
         self.session_tier2_security_hits: int = 0
         self.allowed_urls: set[str] = set()
         self.turn_has_stalled: bool = False
+        # Epoch seconds when the current turn began (set by reset_turn).
+        # Forwarded to the truth-in-receipt matcher as `stale_before` so a
+        # previous turn's receipt can never ground this turn's action claim.
+        self.turn_started_at: float | None = None
         self._refutation_regex = re.compile(
             r"\b(?:not|cannot|can't|won't|never|refuse|in\s+your\s+dreams|not\s+going\s+to)\b",
             re.IGNORECASE,
@@ -749,7 +800,9 @@ class OutputSupervisorSession[ChunkT]:
 
         # Check truth-in-receipt if receipts provided and deontic check did not flag
         if verified_receipts is not None and not gate_res.is_breach:
-            receipt_res = self.truth_matcher.evaluate_clause(clause_text, verified_receipts)
+            receipt_res = self.truth_matcher.evaluate_clause(
+                clause_text, verified_receipts, stale_before=self.turn_started_at
+            )
             if receipt_res.is_breach:
                 # Tier-1 abort is reserved for turns where a STATEFUL tool ran
                 # (write/launch/delete/run): only then can a first-person action
@@ -772,7 +825,13 @@ class OutputSupervisorSession[ChunkT]:
                 if not has_stateful:
                     receipt_res = GateResult(
                         is_breach=True,
-                        breach_type=receipt_res.breach_type,
+                        # Distinct breach type: a recollection of a PAST action
+                        # (grounded in long-term memory) is not a security
+                        # violation and must NOT feed the session security
+                        # hysteresis. Found live via the contrastive battery:
+                        # 3+ benign recollections escalated the hysteresis and
+                        # hard-aborted later truthful recollections.
+                        breach_type="ungrounded_action_recollection",
                         severity=SeverityTier.TIER_2_SOFT,
                         matched_text=receipt_res.matched_text,
                         reason=(
@@ -812,7 +871,10 @@ class OutputSupervisorSession[ChunkT]:
             # Hold candidate in lookahead buffer
             self.pending_tier1_chunk = (chunk_item, gate_res)
         elif gate_res.severity == SeverityTier.TIER_2_SOFT:
-            self._record_tier2_hit()
+            if gate_res.breach_type != "ungrounded_action_recollection":
+                # Only SECURITY hits feed the hysteresis; recollection
+                # downgrades are emitted without counting toward escalation.
+                self._record_tier2_hit()
             emitted.append((chunk_item, gate_res))
         else:
             # SeverityTier.PASS
@@ -844,6 +906,7 @@ class OutputSupervisorSession[ChunkT]:
         self.sentence_history.clear()
         self.pending_tier1_chunk = None
         self.turn_has_stalled = False
+        self.turn_started_at = time.time()
 
     def _record_tier2_hit(self) -> None:
         self.session_tier2_security_hits += 1

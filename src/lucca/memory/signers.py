@@ -170,7 +170,12 @@ def create_tool_result_signer(
 
 
 class LispAssertionSigner(BaseProvenanceSigner):
-    """Constructed ONLY in lucca.reasoning.executor."""
+    """Constructed ONLY in lucca.reasoning.executor.
+
+    Signs deterministic rule-engine output (LISP_ASSERTION). LLM-proposed deduction
+    steps are NOT signed here — they carry LLM_INFERRED_ASSERTION via
+    InferredAssertionSigner, which is never grounding-eligible (P0 split).
+    """
 
     allowed_provenances: frozenset[Provenance] = frozenset(
         {
@@ -188,6 +193,32 @@ def create_lisp_assertion_signer(
 ) -> LispAssertionSigner:
     """Authorized factory for constructing LispAssertionSigner (WO-20 Phase 1)."""
     return LispAssertionSigner(master_key=master_key, signer_id=signer_id)
+
+
+class InferredAssertionSigner(BaseProvenanceSigner):
+    """Constructed ONLY in lucca.core.orchestrator for LLM-proposed deduction steps.
+
+    P0 provenance split: LLM-authored InferenceSteps are signed LLM_INFERRED_ASSERTION,
+    which is memory-eligible (review queue) but never grounding-eligible. A step is
+    promoted to the deterministic LISP_ASSERTION badge only when re-derived by a
+    deterministic rule or Z3-verified.
+    """
+
+    allowed_provenances: frozenset[Provenance] = frozenset(
+        {
+            Provenance.LLM_INFERRED_ASSERTION,
+        }
+    )
+
+    def __init__(self, master_key: bytes, signer_id: str = "orchestrator@lucca-core") -> None:
+        super().__init__(master_key, signer_id)
+
+
+def create_inferred_assertion_signer(
+    master_key: bytes, signer_id: str = "orchestrator@lucca-core"
+) -> InferredAssertionSigner:
+    """Authorized factory for constructing InferredAssertionSigner (P0 provenance split)."""
+    return InferredAssertionSigner(master_key=master_key, signer_id=signer_id)
 
 
 class InferredFactSigner(BaseProvenanceSigner):

@@ -212,6 +212,7 @@ class Provenance(StrEnum):
     TOOL_VERIFIED = "TOOL_VERIFIED"
     TOOL_CONTENT_UNTRUSTED = "TOOL_CONTENT_UNTRUSTED"
     LISP_ASSERTION = "LISP_ASSERTION"
+    LLM_INFERRED_ASSERTION = "LLM_INFERRED_ASSERTION"
     INFERRED = "INFERRED"
     LLM_NARRATION = "LLM_NARRATION"
     ASSISTANT_UTTERANCE = "ASSISTANT_UTTERANCE"
@@ -229,6 +230,7 @@ MEMORY_ELIGIBLE: frozenset[Provenance] = frozenset(
         Provenance.INFERRED,
         Provenance.TOOL_VERIFIED,
         Provenance.LISP_ASSERTION,
+        Provenance.LLM_INFERRED_ASSERTION,
         Provenance.ASSISTANT_UTTERANCE,
         Provenance.ASSISTANT_ACTION,
         Provenance.ASSISTANT_BELIEF,
@@ -236,6 +238,9 @@ MEMORY_ELIGIBLE: frozenset[Provenance] = frozenset(
     }
 )
 
+# P0 provenance split: LLM-proposed deduction steps carry LLM_INFERRED_ASSERTION, which is
+# memory-eligible (review queue) but NEVER grounding-eligible. Only deterministic rule-engine
+# output (LISP_ASSERTION via LispAssertionSigner) contributes to the Belnap substrate.
 GROUNDING_ELIGIBLE: frozenset[Provenance] = frozenset(
     {
         Provenance.USER_EXPLICIT,

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS provenance_envelopes_new (
                         'TOOL_VERIFIED',
                         'TOOL_CONTENT_UNTRUSTED',
                         'LISP_ASSERTION',
+                        'LLM_INFERRED_ASSERTION',
                         'INFERRED',
                         'ASSISTANT_UTTERANCE',
                         'ASSISTANT_ACTION',
@@ -48,7 +49,7 @@ SELECT
   created_at, trace_id, session_id, asr_model, asr_avg_logprob, audio_sha256,
   tool_name, tool_call_id, tool_exit_code, confidence, payload_json,
   CASE
-    WHEN provenance IN ('TOOL_CONTENT_UNTRUSTED', 'ASSISTANT_UTTERANCE', 'ASSISTANT_BELIEF') THEN 0
+    WHEN provenance IN ('TOOL_CONTENT_UNTRUSTED', 'ASSISTANT_UTTERANCE', 'ASSISTANT_BELIEF', 'LLM_INFERRED_ASSERTION') THEN 0
     ELSE 1
   END AS grounding_eligible
 FROM provenance_envelopes;
@@ -68,6 +69,7 @@ CREATE TRIGGER mem_bi_eligible BEFORE INSERT ON memories BEGIN
           'USER_DERIVED',
           'TOOL_VERIFIED',
           'LISP_ASSERTION',
+          'LLM_INFERRED_ASSERTION',
           'INFERRED',
           'ASSISTANT_UTTERANCE',
           'ASSISTANT_ACTION',

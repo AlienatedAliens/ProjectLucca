@@ -3,6 +3,7 @@ name = "project-lucca"
 version = "1.35.6"
 description = "Local-first sandboxed desktop companion with real-time voice, four-process topology, and compiled symbolic reasoning"
 readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.7.0",

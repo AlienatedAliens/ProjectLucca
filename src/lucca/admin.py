@@ -860,7 +860,7 @@ def run_memory_cli(
         table.add_row("Already Valid Under Master Key", str(report.already_valid_count))
         table.add_row("Tampered / Skipped Records", str(report.tampered_skipped_count))
         table.add_row(
-            "LISP_ASSERTION Held (Not Re-blessed)",
+            "LLM-Proposed Assertions Held (Not Re-blessed)",
             str(report.lisp_assertions_held_count),
         )
         table.add_row("Quarantine Records Cleared", str(report.quarantine_cleared_count))
@@ -1090,7 +1090,10 @@ def create_parser() -> argparse.ArgumentParser:
     p_mmigrate.add_argument(
         "--include-lisp-assertions",
         action="store_true",
-        help="Include LISP_ASSERTION rows in migration (default: held for operator review)",
+        help=(
+            "Include LLM-proposed assertion rows (LLM_INFERRED_ASSERTION and legacy "
+            "LISP_ASSERTION) in migration (default: held for operator review)"
+        ),
     )
     p_mmigrate.add_argument(
         "--no-backup",

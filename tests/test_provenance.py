@@ -15,9 +15,11 @@ from lucca.core.schemas import (
     Provenance,
     UnsignedPayload,
 )
+from lucca.core.schemas import GROUNDING_ELIGIBLE, MEMORY_ELIGIBLE
 from lucca.memory.gate import ProvenanceGate
 from lucca.memory.signers import (
     DerivedFactSigner,
+    InferredAssertionSigner,
     LispAssertionSigner,
     ToolResultSigner,
     UserSpeechSigner,
@@ -50,6 +52,11 @@ def tool_signer():
 @pytest.fixture
 def lisp_signer():
     return LispAssertionSigner(master_key=TEST_MASTER_KEY)
+
+
+@pytest.fixture
+def inferred_assertion_signer():
+    return InferredAssertionSigner(master_key=TEST_MASTER_KEY)
 
 
 def test_t_prov_01_canonicalisation_key_order_independent():
@@ -117,10 +124,46 @@ def test_t_prov_02_signer_authorization_matrix(user_signer, fact_signer, tool_si
     with pytest.raises(ProvenanceRejected):
         tool_signer.sign(make_payload(Provenance.LISP_ASSERTION))
 
-    # LispAssertionSigner: LISP_ASSERTION only
+    # LispAssertionSigner: LISP_ASSERTION only (deterministic rule-engine output)
     assert lisp_signer.sign(make_payload(Provenance.LISP_ASSERTION)).signature
     with pytest.raises(ProvenanceRejected):
         lisp_signer.sign(make_payload(Provenance.USER_EXPLICIT))
+    with pytest.raises(ProvenanceRejected):
+        lisp_signer.sign(make_payload(Provenance.LLM_INFERRED_ASSERTION))
+
+
+def test_p0_provenance_split_signer_and_eligibility(inferred_assertion_signer, gate):
+    """P0 split: LLM-proposed steps sign as LLM_INFERRED_ASSERTION (memory-eligible,
+    never grounding-eligible); deterministic rule output keeps LISP_ASSERTION."""
+    now = time.time()
+
+    def make_payload(p: Provenance) -> UnsignedPayload:
+        return UnsignedPayload(
+            provenance=p,
+            kind="fact",
+            content="test assertion",
+            created_at=now,
+            nonce=f"nonce_split_{p.value}",
+        )
+
+    # InferredAssertionSigner signs LLM_INFERRED_ASSERTION only
+    assert inferred_assertion_signer.sign(make_payload(Provenance.LLM_INFERRED_ASSERTION)).signature
+    with pytest.raises(ProvenanceRejected):
+        inferred_assertion_signer.sign(make_payload(Provenance.LISP_ASSERTION))
+
+    # Eligibility invariants
+    assert Provenance.LLM_INFERRED_ASSERTION in MEMORY_ELIGIBLE
+    assert Provenance.LLM_INFERRED_ASSERTION not in GROUNDING_ELIGIBLE
+    assert Provenance.LISP_ASSERTION in GROUNDING_ELIGIBLE
+
+    # Gate admits LLM_INFERRED_ASSERTION (memory-eligible)
+    admitted = gate.admit(
+        inferred_assertion_signer.sign(make_payload(Provenance.LLM_INFERRED_ASSERTION)),
+        now=now,
+    )
+    assert admitted.payload.provenance == Provenance.LLM_INFERRED_ASSERTION
+    # grounding_eligible is a DB column computed at commit time from GROUNDING_ELIGIBLE;
+    # membership in GROUNDING_ELIGIBLE (asserted above) is the authoritative invariant.
 
 
 def test_t_prov_03_tamper_detection(user_signer, gate):

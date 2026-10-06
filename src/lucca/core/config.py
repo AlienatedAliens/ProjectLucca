@@ -77,6 +77,13 @@ class LLMSettings(BaseModel):
     chat_template: str | None = None
     # Human-readable brain name for self-awareness prompts. None = derived from filename.
     display_name: str | None = None
+    # TTS output safety guard (P6 remediation, workshop 2026-10-04). Edge-tier
+    # uncensored fine-tunes (E4B/E2B) show low refusal rates on harmful probes
+    # (30% vs 90% on 12B; paper 06 scorecard). This deterministic screen is the
+    # last chokepoint before audio leaves the machine. "edge_tiers" = active
+    # only when the model filename contains an edge-tier marker (E4B/E2B);
+    # "all" = every tier; "off" = disabled.
+    tts_safety_guard_mode: Literal["off", "edge_tiers", "all"] = "edge_tiers"
 
     @field_validator("chat_template_file", "chat_template", "display_name", mode="before")
     @classmethod

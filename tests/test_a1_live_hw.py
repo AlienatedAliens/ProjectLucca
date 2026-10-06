@@ -110,7 +110,16 @@ _ABSTENTION_PHRASES: Final[frozenset[str]] = frozenset(
 )
 
 
-def _run[T](coro: Coroutine[object, object, T]) -> T:
+def _run[T](coro: Coroutine[object, object, T] | T) -> T:
+    """Await an awaitable on a fresh event loop; pass sync values through.
+
+    MemoryStore.commit and ReflectionEngine.detect_and_handle_contradiction are
+    synchronous; older HW call sites still wrap them in _run(). Tolerating both
+    keeps the harness correct regardless of API asyncness (found live when the
+    contrastive battery hit the rot hidden by hw-deselection).
+    """
+    if not asyncio.iscoroutine(coro):
+        return coro
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:

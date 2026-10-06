@@ -17,12 +17,14 @@ from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
     DerivedFactSigner,
+    InferredAssertionSigner,
     InferredFactSigner,
     LispAssertionSigner,
     ToolResultSigner,
     UserSpeechSigner,
     create_assistant_utterance_signer,
     create_derived_fact_signer,
+    create_inferred_assertion_signer,
     create_inferred_fact_signer,
     create_lisp_assertion_signer,
     create_tool_result_signer,
@@ -66,8 +68,22 @@ class SignerFactory:
         return CoherenceBreachSigner(master_key=self._master_key, signer_id=signer_id)
 
     def lisp_assertion(self, signer_id: str = "rules@lucca-core") -> LispAssertionSigner:
-        """Creates an authorized LispAssertionSigner (WO-20 Phase 1)."""
+        """Creates an authorized LispAssertionSigner (WO-20 Phase 1).
+
+        Signs deterministic rule-engine output only. LLM-proposed deduction steps
+        use inferred_assertion() (P0 provenance split).
+        """
         return create_lisp_assertion_signer(master_key=self._master_key, signer_id=signer_id)
+
+    def inferred_assertion(
+        self, signer_id: str = "orchestrator@lucca-core"
+    ) -> InferredAssertionSigner:
+        """Creates an authorized InferredAssertionSigner (P0 provenance split).
+
+        Signs LLM-proposed InferenceSteps as LLM_INFERRED_ASSERTION: memory-eligible
+        (review queue) but never grounding-eligible until re-derived deterministically.
+        """
+        return create_inferred_assertion_signer(master_key=self._master_key, signer_id=signer_id)
 
     def inferred_fact(
         self, signer_id: str = "orchestrator@lucca-core"

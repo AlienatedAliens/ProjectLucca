@@ -1644,22 +1644,34 @@ def test_phase6_live_acceptance_source_conditioned_chain(
     assert spoken == expected_condition_speech
     assert expected_condition_speech in spoken_history
 
-    # 6. Intermediates signed as LISP_ASSERTION in store (Trap 2)
+    # 6. P0 provenance split: seeded facts are deterministic LISP_ASSERTION (grounding-eligible);
+    # LLM-proposed intermediates carry LLM_INFERRED_ASSERTION (never grounding-eligible).
     with orch.db.read_cursor() as cur:
         cur.execute(
             """
-            SELECT entry_id, signature, payload_json, provenance
+            SELECT entry_id, signature, payload_json, provenance, grounding_eligible
             FROM provenance_envelopes
-            WHERE provenance = 'LISP_ASSERTION'
+            WHERE provenance IN ('LISP_ASSERTION', 'LLM_INFERRED_ASSERTION')
             ORDER BY created_at ASC
             """
         )
-        lisp_rows = cur.fetchall()
-    # At least p1, p2, step1, step2 exist
-    assert len(lisp_rows) >= 4
-    contents = [json.loads(r[2])["content"] for r in lisp_rows]
-    assert "user likely_location Philippines" in contents
-    assert "driver-582.11 likely_fixes user's wsl-crash" in contents
+        assertion_rows = cur.fetchall()
+    # p1, p2 (deterministic) + step1, step2 (LLM-proposed)
+    assert len(assertion_rows) == 4
+    lisp_contents = [
+        json.loads(r[2])["content"] for r in assertion_rows if r[3] == "LISP_ASSERTION"
+    ]
+    inferred_contents = [
+        json.loads(r[2])["content"]
+        for r in assertion_rows
+        if r[3] == "LLM_INFERRED_ASSERTION"
+    ]
+    assert "user partner_is judge_in_philippines" in lisp_contents
+    assert "user tz_is UTC+8" in lisp_contents
+    assert "user likely_location Philippines" in inferred_contents
+    assert "driver-582.11 likely_fixes user's wsl-crash" in inferred_contents
+    # P0 invariant: LLM-proposed rows are never grounding-eligible
+    assert all(r[4] == 0 for r in assertion_rows if r[3] == "LLM_INFERRED_ASSERTION")
 
     # 7. Final commit as INFERRED with proof trace and standard label
     with orch.db.read_cursor() as cur:

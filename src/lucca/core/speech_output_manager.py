@@ -17,6 +17,7 @@ import structlog
 
 from lucca.brain.chunker import sanitize_for_voice
 from lucca.core.ipc_schemas import Envelope, PlayBeginPayload, UICaptionPayload
+from lucca.core.tts_safety_guard import SAFE_REPLACEMENT, TTSSafetyGuard
 from lucca.core.trace import TurnTrace, now_ns
 from lucca.senses.ring_buffer import FLAG_ABORT, FLAG_EOS
 
@@ -34,8 +35,12 @@ class SpeechOutputManager:
         orchestrator: Orchestrator | None = None,
         start_worker: bool = False,
         maxsize: int = 32,
+        safety_guard: TTSSafetyGuard | None = None,
     ) -> None:
         self._orchestrator = orchestrator
+        # P6 remediation: deterministic output screen at the TTS boundary.
+        # None = guard disabled (tests / explicit opt-out).
+        self._safety_guard = safety_guard
         self.tts_queue: queue.Queue[
             tuple[TurnTrace, int, str]
             | tuple[TurnTrace, int, str, threading.Event | None]
@@ -107,7 +112,17 @@ class SpeechOutputManager:
             logger.debug("tts_overflow_event_publish_failed", error=str(exc))
 
     def enqueue_tts_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
-        """Enqueues a synthesized voice chunk with drop-oldest overflow policy (WO-17 Phase 7)."""
+        """Enqueues a synthesized voice chunk with drop-oldest overflow policy (WO-17 Phase 7).
+
+        P6 remediation: each chunk is screened by the TTS safety guard before
+        entering the queue; blocked chunks are replaced with the canned safe
+        line. Chunks are screened independently (sentence-aligned chunking
+        makes cross-chunk evasion unlikely but not impossible).
+        """
+        if self._safety_guard is not None and text:
+            verdict = self._safety_guard.screen(text)
+            if not verdict.allowed:
+                text = SAFE_REPLACEMENT
         item = (trace, chunk_id, text, None)
         try:
             self.tts_queue.put(item, timeout=0.05)
@@ -266,10 +281,20 @@ class SpeechOutputManager:
         return sentinel_enqueued and done_event.is_set()
 
     def speak_text(self, trace: TurnTrace, text: str) -> None:
-        """Directly sanitizes and synthesizes text, managing playback state and ring buffer."""
+        """Directly sanitizes and synthesizes text, managing playback state and ring buffer.
+
+        P6 remediation: the sanitized text is screened by the TTS safety guard
+        before synthesis; blocked utterances are replaced with the canned safe
+        line so the caption and the spoken audio stay consistent.
+        """
         clean_text = sanitize_for_voice(text)
         if not clean_text:
             return
+
+        if self._safety_guard is not None:
+            verdict = self._safety_guard.screen(clean_text)
+            if not verdict.allowed:
+                clean_text = SAFE_REPLACEMENT
 
         orch = self._orchestrator
         if orch is not None and hasattr(orch, "play_ring") and orch.play_ring is not None:

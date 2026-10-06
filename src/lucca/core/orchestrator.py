@@ -121,6 +121,7 @@ from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.text_utils import normalize_transcript
+from lucca.core.tts_safety_guard import TTSSafetyGuard
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
     SubTurnScratchpadBuffer,
@@ -270,10 +271,20 @@ class Orchestrator:
         self.chunker = StreamingChunker()
 
         # Speech Output Manager (WO-18b.5 / F-ARCH-103)
+        # P6 remediation: deterministic TTS output safety guard, active by
+        # default for edge-tier models (E4B/E2B) whose uncensored fine-tunes
+        # show low refusal rates on harmful probes (paper 06 scorecard).
+        # The guard is constructed once and reused by the lazy fallback
+        # property so a rebuilt manager never silently loses the screen.
+        self._tts_safety_guard = TTSSafetyGuard(
+            mode=self.config.llm.tts_safety_guard_mode,
+            active_model=self.config.llm.model,
+        )
         self.speech_output = SpeechOutputManager(
             orchestrator=self,
             start_worker=True,
             maxsize=32,
+            safety_guard=self._tts_safety_guard,
         )
 
         # ASR
@@ -597,7 +608,10 @@ class Orchestrator:
     def speech_output(self) -> SpeechOutputManager:
         mgr = getattr(self, "_speech_output", None)
         if mgr is None:
-            mgr = SpeechOutputManager(orchestrator=self)
+            mgr = SpeechOutputManager(
+                orchestrator=self,
+                safety_guard=getattr(self, "_tts_safety_guard", None),
+            )
             self._speech_output = mgr
         return mgr
 
@@ -1109,17 +1123,32 @@ class Orchestrator:
         self.commits.commit_assistant_utterance(text, trace)
 
     def _commit_lisp_assertion(
-        self, action: AssertFact, trace: TurnTrace | None = None
+        self,
+        action: AssertFact,
+        trace: TurnTrace | None = None,
+        *,
+        llm_inferred: bool = False,
     ) -> SignedPayload | None:
-        """Commits an AssertFact action as a signed LISP_ASSERTION envelope (WO-20 Phase 1)."""
+        """Commits an AssertFact action as a signed envelope (WO-20 Phase 1).
+
+        P0 provenance split: deterministic rule-engine output is signed
+        LISP_ASSERTION (grounding-eligible); LLM-proposed deduction steps are
+        signed LLM_INFERRED_ASSERTION (memory-eligible, never grounding-eligible
+        until re-derived deterministically or Z3-verified).
+        """
         if not self.memory_store:
             return None
-        signer = self.signer_factory.lisp_assertion()
+        if llm_inferred:
+            signer = self.signer_factory.inferred_assertion()
+            provenance = Provenance.LLM_INFERRED_ASSERTION
+        else:
+            signer = self.signer_factory.lisp_assertion()
+            provenance = Provenance.LISP_ASSERTION
         now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
         trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
         unsigned = UnsignedPayload(
             content=f"{action.s} {action.p} {action.o}",
-            provenance=Provenance.LISP_ASSERTION,
+            provenance=provenance,
             kind="fact",
             nonce=os.urandom(16).hex(),
             created_at=now,
@@ -1632,9 +1661,10 @@ class Orchestrator:
 
             if not unverified:
                 q_results = self._evaluate_step_corroboration(step)
-                # Valid step: Sign and commit as LISP_ASSERTION (TRAP 1: Orchestrator signs!)
+                # P0 split: LLM-proposed step signs as LLM_INFERRED_ASSERTION
+                # (never grounding-eligible until re-derived deterministically).
                 action = AssertFact(s=step.s, p=step.p, o=step.o)
-                signed = self._commit_lisp_assertion(action, trace)
+                signed = self._commit_lisp_assertion(action, trace, llm_inferred=True)
                 env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
                 ctx.add_intermediate(
                     envelope_id=env_id,
@@ -1693,7 +1723,9 @@ class Orchestrator:
                     action = AssertFact(
                         s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o
                     )
-                    signed = self._commit_lisp_assertion(action, trace)
+                    signed = self._commit_lisp_assertion(
+                        action, trace, llm_inferred=True
+                    )  # P0 split: LLM-proposed step
                     env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
                     ctx.add_intermediate(
                         envelope_id=env_id,
@@ -1717,7 +1749,9 @@ class Orchestrator:
                 target = step_to_evaluate if step_to_evaluate is not None else step
                 q_results = self._evaluate_step_corroboration(target)
                 action = AssertFact(s=target.s, p=target.p, o=target.o)
-                signed = self._commit_lisp_assertion(action, trace)
+                signed = self._commit_lisp_assertion(
+                    action, trace, llm_inferred=True
+                )  # P0 split: LLM-proposed step
                 env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
                 ctx.add_intermediate(
                     envelope_id=env_id,

@@ -77,7 +77,9 @@ def migrate_memory_keys(
     1. One-time migration flag in SQLite prevents accidental duplicate migration runs.
     2. File backup of database before any writes.
     3. Multi-key legacy verification: checks against all known historical fallbacks.
-    4. LISP_ASSERTION rows are held for review by default (never auto-blessed into grounding).
+    4. LLM-proposed assertion rows (LLM_INFERRED_ASSERTION, and legacy LISP_ASSERTION
+    rows which predate the provenance split) are held for review by default and are
+    never auto-blessed into grounding-eligible memory.
     5. Atomic transaction with rollback on failure.
     6. Strict avoidance of --force: unverified rows are never re-signed.
     """
@@ -162,12 +164,17 @@ def migrate_memory_keys(
 
         report.provenance_counts[prov_str] = report.provenance_counts.get(prov_str, 0) + 1
 
-        # Safeguard: LISP_ASSERTION rows are LLM-proposed abductive inferences.
-        # They must not be automatically re-blessed into grounding-eligible memory.
-        if prov_str == Provenance.LISP_ASSERTION.value and not rebless_lisp_assertions:
+        # Safeguard: LLM_INFERRED_ASSERTION rows are LLM-proposed deduction steps (P0 split)
+        # and are never auto-blessed. Legacy LISP_ASSERTION rows predate the split and may
+        # have been LLM-proposed, so they are held for operator review as well.
+        if (
+            prov_str
+            in (Provenance.LLM_INFERRED_ASSERTION.value, Provenance.LISP_ASSERTION.value)
+            and not rebless_lisp_assertions
+        ):
             report.lisp_assertions_held_count += 1
             report.errors.append(
-                f"Memory #{mid} (entry {entry_id[:8]}): LISP_ASSERTION held; "
+                f"Memory #{mid} (entry {entry_id[:8]}): {prov_str} held; "
                 "not automatically re-blessed as grounding-eligible"
             )
             continue
