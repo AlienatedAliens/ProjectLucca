@@ -90,3 +90,33 @@ must be re-run with a frozen grader, an `ERROR` state for empty replies, a
 RAG baseline arm, and 30 probes per stratum (Phase 3.5–3.6) before any
 document cites it. Until then, every doc quoting the contrastive deltas is
 downgraded to **NOT YET MEASURED** (Phase 4).
+
+## B4 pre-registration (Phase 3 prep, 2026-10-06)
+
+**Sealed dataset:** `data/benchmarks/math_b4_sealed_100.jsonl`
+SHA-256 `14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b`,
+seed 20261006, 100 items stratified over 7 MATH subjects, sampled by
+`scripts/freeze_b4_sealed_dataset.py` from a 4,000-item candidate pool
+verified disjoint (normalized problem text, overlap = 0) from BOTH
+previously-run files. Registered in `data/benchmarks/EXPOSURE.yaml` with
+`runs: []` — no run, no prompt inspection, no harness contact until this
+protocol is executed as written.
+
+**Protocol (fixed before first execution):**
+1. **Arms (12B model, greedy, seed 42, cache_prompt=false):** R0 cap4096,
+   PAL P2 cap2048, Thinking R1 think6144 — identical to the pal_off grid
+   arm definitions so results are comparable to the existing matrix.
+2. **Grader:** the v1.35 dual grader (strict sympy_cas_normalized +
+   lenient sympy_cas_lenient_normalization), frozen before the run; the
+   grader file hash is recorded in the run artifact.
+3. **Analysis:** per-arm strict/lenient rates with plain Wilson 95% CIs;
+   paired McNemar exact tests between arms on per-item outcomes; per-item
+   artifact with embedded git_commit and dataset sha256.
+4. **Primary claim this run licenses:** clean held-out arm deltas
+   (R1 vs P2, R1 vs R0) uncontaminated by tuning exposure — replacing the
+   exposed heldout-100 comparisons (register D-02).
+5. **No peeking rule:** the dataset file is not opened, printed, or
+   inspected before the run; the harness reads it directly.
+6. **Deviation rule:** any change to arms, n, grader, or dataset after this
+   pre-registration requires a dated amendment in this register BEFORE the
+   run (standing scope-amendment rule, advisory §3.2).

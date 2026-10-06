@@ -107,13 +107,18 @@ datasets:
       - { date: "2026-10-04", artifact: logs/test_reports/gsm_symbolic_100_templates_e2b.json, commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5, range: "all 100 (stratified)", harness: "stratified runner", purpose: E2B evaluation (82/100) }
       # pal_off grid + smoke arms, 2026-10-04 (7 x 100-item arms + 4 x 2-item smokes + 1 x 5-item):
       - { date: "2026-10-04", artifact: logs/test_reports/pal_off_ablation/ (7 gsm_symbolic arm files + pal_off_smoke 4 files + e2b_r0_5), commit: "3029c543 / 1c585876 era", range: "all 100 per arm", harness: "pal_off factorial", purpose: ablation arms }
-    verdict: TUNING-EXPOSED — same 100 templates run 12+ times across protocols and models
+    verdict: TUNING-EXPOSED (the used 100) — but a reserve exists in the file
     what_each_range_is:
-      all_100: >
+      used_100: >
         One fixed 100-template set, reused across the v1.3 harness, the
         stratified runner, and the entire pal_off ablation grid. Every
-        GSM-Symbolic figure in the repo measures the same items; there is no
-        untouched GSM-Symbolic reserve.
+        published GSM-Symbolic figure in the repo measures these same items.
+      unused_4900: >
+        GSM_symbolic.jsonl contains 5,000 lines; only 100 templates have ever
+        been run. The remaining ~4,900 are untouched by runs but were NOT
+        part of any sealed protocol — if a future GSM-Symbolic held-out run
+        is needed, sample from them with a frozen seed, hash, and seal here
+        BEFORE first execution (same procedure as math_b4_sealed_100).
 
   humaneval:
     path: data/benchmarks/humaneval.jsonl
@@ -135,6 +140,31 @@ datasets:
       - { date: "2026-10-03", artifact: logs/test_reports/modern_benchmarks_2024_20261003T194152Z_12b-plus.json, commit: null, range: "all 164", harness: "v1.35 modern-benchmarks", purpose: evaluation (151/164) }
       - { date: "2026-10-05", artifact: logs/test_reports/modern_benchmarks_2024_20261005T232510Z_12b-plus-rerun-164.json, commit: null, range: "all 164", harness: "v1.35 modern-benchmarks", purpose: reproduction (149/164) }
     verdict: EXPOSED — 9+ runs including 6 tuning probes on 2026-09-29; the 91.46% "final" run followed same-day tuning probes on the same items
+
+  math_b4_sealed_100:
+    path: data/benchmarks/math_b4_sealed_100.jsonl
+    n_items: 100
+    sha256_at_seal: 14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b
+    sealed_utc: "2026-10-06"
+    seed: 20261006
+    source: >
+      HuggingFaceTB/MATH test partitions (7 subjects), sampled by
+      scripts/freeze_b4_sealed_dataset.py from a 4,000-item candidate pool
+      verified disjoint (normalized problem text) from BOTH previously-run
+      files (math500_test.jsonl, math_fresh_heldout_500.jsonl). Independent
+      disjointness check at seal time: overlap = 0.
+    runs: []   # SEALED — no run, no prompt inspection, no harness contact
+    verdict: SEALED — clean held-out reserve for B4
+    pre_registered_protocol:
+      purpose: "B4 clean held-out ablation (R0 vs P2 vs R1 arms, 12B model)"
+      arms: [r0_cap4096, p2_cap2048, r1_think6144]
+      decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
+      grader: "v1.35 sympy_cas_normalized strict + lenient (frozen at run time; grader file hashed into the artifact)"
+      analysis: "paired McNemar per arm pair on strict outcomes; plain Wilson CIs; per-item artifact with embedded git_commit and dataset sha256"
+      gate: "no execution until operator approval recorded in plans/AUDIT_REGISTER.md"
+      note: >
+        Any deviation from this protocol (different n, different arms, added
+        inspection of the problems) voids the seal and requires re-sourcing.
 
   gsm8k:
     path: data/benchmarks/gsm8k_test.jsonl
