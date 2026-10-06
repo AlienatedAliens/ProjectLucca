@@ -129,3 +129,5 @@ protocol is executed as written.
 6. **Deviation rule:** any change to arms, n, grader, or dataset after this
    pre-registration requires a dated amendment in this register BEFORE the
    run (standing scope-amendment rule, advisory §3.2).
+7. **Operator approval (2026-10-07):** Approved by operator to execute the B4 clean held-out protocol as pre-registered.
+

@@ -1753,7 +1753,7 @@ def main():
         "--grading-mode",
         choices=["strict", "lenient", "both"],
         default="both",
-        help="Math equivalence grading mode: 'strict' (exact string/symbolic only), 'lenient' (all v1.3 rules + MC, units, %, matrices, sets, intervals), or 'both' (default, records both)",
+        help="Math equivalence grading mode: 'strict' (exact string/symbolic only), 'lenient' (all v1.3 rules + MC, units, %%, matrices, sets, intervals), or 'both' (default, records both)",
     )
     args = parser.parse_args()
 
