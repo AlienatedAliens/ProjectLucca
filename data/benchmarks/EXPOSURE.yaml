@@ -1,0 +1,153 @@
+# Project Lucca — Dataset Exposure Ledger
+#
+# Phase 2.4 of the 2026-10-06 criticism remediation. Purpose: record every
+# run that touched each benchmark dataset, so that "held-out" labels mean
+# what they say. Built from artifact metadata by scratch/phase2_exposure_scan.py
+# (2026-10-06); every row cites an artifact that exists in the repo.
+#
+# Decision rule (from the criticism, Phase 2.4 spec): if an evaluation
+# protocol draws items from a file whose items were already run — especially
+# during a tuning/ablation campaign — the run is NOT a clean held-out test.
+#
+# Status vocabulary: exposed (run at least once), tuning-exposed (run during
+# an iterative harness/config-tuning campaign), inspection-exposed (prompts
+# read by a human without a run), sealed (hash recorded, no run since seal).
+
+as_of: "2026-10-06"
+method: >
+  Every JSON artifact under logs/test_reports/ (recursive) was scanned for
+  dataset markers (dataset_path fields, benchmark names, split labels).
+  File mtimes give first-seen dates; embedded git_commit fields give the
+  tree state where the harness recorded one. Artifacts without embedded
+  commits are marked commit: null (unverifiable from the artifact alone).
+
+datasets:
+
+  math_fresh_heldout_500:
+    path: data/benchmarks/math_fresh_heldout_500.jsonl
+    n_items: 500
+    sha256_current: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
+    sha256_at_v1_3_runs: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
+    inspection_exposure:
+      items: [15, 73]   # zero-indexed 14, 72
+      source: handover/V135_CONTAMINATION_AUDIT.md
+      note: exploratory prompt inspection; no harness/prompt change made in response
+    runs:
+      - { date: "2026-09-30", artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260930T031359Z_v1.3-fresh-heldout-500.json, commit: null, range: "all 500", harness: "v1.3 modern-benchmarks", purpose: evaluation }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T192212Z_v1.3-final-fresh-500.json, commit: null, range: "all 500", harness: "v1.3 modern-benchmarks", purpose: evaluation }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T214410Z_test-25-reproduce.json, commit: null, range: "subset (25)", harness: "v1.3 modern-benchmarks", purpose: reproduction probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T215029Z_rep-A.json, commit: null, range: "subset", harness: "v1.3 modern-benchmarks", purpose: determinism probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T215359Z_rep-B.json, commit: null, range: "subset", harness: "v1.3 modern-benchmarks", purpose: determinism probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T222621Z_det-C.json, commit: e0a8fbfefeafd2a7fbf87d15b0941b2810d4c989, range: "subset", harness: "v1.3 modern-benchmarks", purpose: determinism probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T224118Z_det-D.json, commit: e0a8fbfefeafd2a7fbf87d15b0941b2810d4c989, range: "subset", harness: "v1.3 modern-benchmarks", purpose: determinism probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T225620Z_cache-on-C.json, commit: e0a8fbfefeafd2a7fbf87d15b0941b2810d4c989, range: "subset", harness: "v1.3 modern-benchmarks", purpose: KV-cache determinism probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T231117Z_cache-on-D.json, commit: e0a8fbfefeafd2a7fbf87d15b0941b2810d4c989, range: "subset", harness: "v1.3 modern-benchmarks", purpose: KV-cache determinism probe }
+      - { date: "2026-10-03", artifact: logs/test_reports/modern_benchmarks_2024_20261003T103325Z_v1.35-final-fresh-500.json, commit: 927937dae9953807f51167dfadd4b8bf385fd470, range: "all 500", harness: "v1.35 modern-benchmarks", purpose: evaluation }
+      # pal_off_ablation heldout-100 arms (lines 1-100), 2026-10-03/04:
+      - { date: "2026-10-03", artifact: logs/test_reports/pal_off_ablation/gemma-4-12b_math500_r0_heldout_cap4096_100.json, commit: 3029c543d031b32ac55d8a44e394656e62d07c23, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-03", artifact: logs/test_reports/pal_off_ablation/gemma-4-12b_math500_p2_heldout_cap2048_100.json, commit: 3029c543d031b32ac55d8a44e394656e62d07c23, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-03", artifact: logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_r0_heldout_cap4096_100.json, commit: 3029c543d031b32ac55d8a44e394656e62d07c23, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-03", artifact: logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_p2_heldout_cap2048_100.json, commit: f20537fe1037ef2b53d184699e0085c928219d38, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-04", artifact: logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_routed_heldout_100.json, commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-04", artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r0_heldout_cap4096_100.json, commit: 3029c543d031b32ac55d8a44e394656e62d07c23, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-04", artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_p2_heldout_cap2048_100.json, commit: 3029c543d031b32ac55d8a44e394656e62d07c23, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+      - { date: "2026-10-04", artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r1_heldout_think6144_100.json, commit: 3029c543d031b32ac55d8a44e394656e62d07c23, range: "lines 1-100", harness: "pal_off factorial", purpose: ablation arm }
+    verdict: EXPOSED — no untouched items remain
+    what_each_range_is:
+      lines_1_100: >
+        Labeled "held-out-100" in docs, but these items were run at least
+        11 times (3 full-file evaluations cover them, plus 8 arm runs, plus
+        determinism probes) and the router conclusions drawn from the arm
+        comparison (D-ROUT-02) were derived FROM these runs. They are a
+        development/ablation range, not held-out data.
+      lines_101_500: >
+        Ran inside the three full-file evaluations (2026-09-30, 2026-10-01,
+        2026-10-03). Never used for arm-to-arm ablation, but seen by every
+        harness iteration in between. Not held-out.
+    b4_decision: >
+      B4 (clean held-out ablation) CANNOT draw from math_fresh_heldout_500.
+      Required: source a new untouched problem set, record its SHA-256 here,
+      seal it (no run until the protocol is pre-registered in the register),
+      and only then execute B4. Until that set exists, B4 is NOT YET MEASURED.
+
+  math500_test:
+    path: data/benchmarks/math500_test.jsonl
+    n_items: 500
+    sha256_current: 35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132
+    runs:
+      - { date: "2026-09-29", artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T202022Z_v1.2-baseline-heldout-400.json, commit: null, range: "lines 101-500 (dev-400)", harness: "v1.3 modern-benchmarks", purpose: baseline }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T102827Z_v1.3-ablation-no-injection-heldout-400.json, commit: null, range: "dev-400", harness: "v1.3 modern-benchmarks", purpose: harness-tuning (ablation-no-injection variant) }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T105912Z_v1.3-baseline-heldout-400-noise-run2.json, commit: null, range: "dev-400", harness: "v1.3 modern-benchmarks", purpose: harness-tuning (noise run 2) }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T120802Z_v1.3-empty-feedback-heldout-400.json, commit: null, range: "dev-400", harness: "v1.3 modern-benchmarks", purpose: harness-tuning (empty-feedback variant) }
+      - { date: "2026-10-01", artifact: logs/test_reports/modern_benchmarks_2024_20261001T152947Z_v1.3-early-abort-heldout-400.json, commit: null, range: "dev-400", harness: "v1.3 modern-benchmarks", purpose: harness-tuning (early-abort variant) }
+      - { date: "2026-10-02", artifact: logs/test_reports/modern_benchmarks_2024_20261002T234341Z_v1.35-dev-400.json, commit: d71cbbc891268dc75e07d47b5d352a2f2d8ee735, range: "dev-400", harness: "v1.35 modern-benchmarks", purpose: harness-tuning (v1) }
+      - { date: "2026-10-03", artifact: logs/test_reports/modern_benchmarks_2024_20261003T024732Z_v1.35-dev-400-v2.json, commit: 9b6858e166062bc8d097ce52d24ccb38141cf37a, range: "dev-400", harness: "v1.35 modern-benchmarks", purpose: harness-tuning (v2) }
+      - { date: "2026-10-03", artifact: logs/test_reports/modern_benchmarks_2024_20261003T044552Z_v1.35-dev-400-v3.json, commit: 1efa3c0705bdef7df360a024f6b863fb39ef1ab9, range: "dev-400", harness: "v1.35 modern-benchmarks", purpose: harness-tuning (v3) }
+      - { date: "2026-10-03", artifact: logs/test_reports/modern_benchmarks_2024_20261003T091026Z_v1.35-dev-400-v4.json, commit: f01a39b2a8212bf07323cec8772125bb57f06b3f, range: "dev-400", harness: "v1.35 modern-benchmarks", purpose: harness-tuning (v4) }
+    verdict: TUNING-EXPOSED — this is the development set
+    what_each_range_is:
+      lines_1_100_dev100: >
+        The "Dev-100" slice used by math500_pal_v1_3 and the pal_off dev-split
+        arms. Development data.
+      lines_101_500_dev400: >
+        Ran through at least 9 harness iterations (4 explicit v1..v4 tuning
+        versions). This is the tuning set; any figure from it must be labeled
+        dev/tuning, never held-out.
+
+  GSM_symbolic:
+    path: data/benchmarks/GSM_symbolic.jsonl
+    n_items: 100
+    sha256_current: 945055837b232bd9b56827b1e3a5aa019075f29e8ba4669d9a9df8b4439a291f
+    runs:
+      - { date: "2026-09-29", artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T173711Z.json, commit: null, range: "all 100", harness: "v1.3 modern-benchmarks", purpose: evaluation (100/100 run) }
+      - { date: "2026-09-29", artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T162245Z.json, commit: null, range: "subset", harness: "v1.3 modern-benchmarks", purpose: harness-tuning probe }
+      - { date: "2026-09-29", artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T162730Z.json, commit: null, range: "subset", harness: "v1.3 modern-benchmarks", purpose: harness-tuning probe }
+      - { date: "2026-10-01", artifact: logs/test_reports/gsm_symbolic_100_templates.json, commit: bef28b59c98d6cc249a88fe90e3682aaa38cba93, range: "all 100 (stratified)", harness: "stratified runner", purpose: evaluation (94/100) }
+      - { date: "2026-10-03", artifact: logs/test_reports/gsm_symbolic_100_templates_e4b.json, commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5, range: "all 100 (stratified)", harness: "stratified runner", purpose: E4B evaluation (94/100) }
+      - { date: "2026-10-04", artifact: logs/test_reports/gsm_symbolic_100_templates_e2b.json, commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5, range: "all 100 (stratified)", harness: "stratified runner", purpose: E2B evaluation (82/100) }
+      # pal_off grid + smoke arms, 2026-10-04 (7 x 100-item arms + 4 x 2-item smokes + 1 x 5-item):
+      - { date: "2026-10-04", artifact: logs/test_reports/pal_off_ablation/ (7 gsm_symbolic arm files + pal_off_smoke 4 files + e2b_r0_5), commit: "3029c543 / 1c585876 era", range: "all 100 per arm", harness: "pal_off factorial", purpose: ablation arms }
+    verdict: TUNING-EXPOSED — same 100 templates run 12+ times across protocols and models
+    what_each_range_is:
+      all_100: >
+        One fixed 100-template set, reused across the v1.3 harness, the
+        stratified runner, and the entire pal_off ablation grid. Every
+        GSM-Symbolic figure in the repo measures the same items; there is no
+        untouched GSM-Symbolic reserve.
+
+  humaneval:
+    path: data/benchmarks/humaneval.jsonl
+    n_items: 164
+    runs:
+      - { date: "2026-09-28", artifact: logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json, commit: null, range: "all 164", harness: "academic_benchmarks (zero-shot)", purpose: evaluation (157/164) }
+      - { date: "2026-09-29", artifact: logs/test_reports/academic_micro_suite_gemma12b.json, commit: null, range: "first 30", harness: "micro-suite", purpose: micro-suite evaluation (30/30) }
+      - { date: "2026-10-02", artifact: "logs/test_reports/humaneval_canonical_{raw,assisted}_164_20261002.json", commit: c3561206e9b31c5814c850aae524349b438a2349, range: "all 164", harness: "canonical paired", purpose: evaluation (155/154) }
+      - { date: "2026-10-03", artifact: "logs/test_reports/humaneval_canonical_{raw,assisted}_164_e4b.json", commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5, range: "all 164", harness: "canonical paired", purpose: E4B evaluation (144/141) }
+      - { date: "2026-10-04", artifact: "logs/test_reports/humaneval_canonical_{raw,assisted}_164_e2b.json", commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5, range: "all 164", harness: "canonical paired", purpose: E2B evaluation (123/126) }
+      - { date: "2026-10-05", artifact: "logs/test_reports/humaneval_canonical_{raw,assisted}_164.json", commit: 90dbdde1687d679853051f04b7abd7eecfc074ab, range: "all 164", harness: "canonical paired", purpose: reproduction (155/154, item-identical) }
+    verdict: EXPOSED — 6+ full-suite runs; fine (public benchmark, no held-out claim made), but no HumanEval figure can be called held-out
+
+  HumanEvalPlus:
+    path: data/benchmarks/HumanEvalPlus.jsonl
+    n_items: 164
+    runs:
+      - { date: "2026-09-29", artifact: "logs/test_reports/v1.3/modern_benchmarks_2024_20260929T{162326,163314,163734,170056,171319,171417,174613}Z.json (+ frozen copies)", commit: null, range: "all/subset", harness: "v1.3 modern-benchmarks", purpose: harness-tuning probes then final run (150/164) }
+      - { date: "2026-10-03", artifact: logs/test_reports/modern_benchmarks_2024_20261003T194152Z_12b-plus.json, commit: null, range: "all 164", harness: "v1.35 modern-benchmarks", purpose: evaluation (151/164) }
+      - { date: "2026-10-05", artifact: logs/test_reports/modern_benchmarks_2024_20261005T232510Z_12b-plus-rerun-164.json, commit: null, range: "all 164", harness: "v1.35 modern-benchmarks", purpose: reproduction (149/164) }
+    verdict: EXPOSED — 9+ runs including 6 tuning probes on 2026-09-29; the 91.46% "final" run followed same-day tuning probes on the same items
+
+  gsm8k:
+    path: data/benchmarks/gsm8k_test.jsonl
+    n_items: 1319
+    runs:
+      - { date: "2026-09-29", artifact: logs/test_reports/gsm8k_pal_partial_857.json, commit: null, range: "first 853", harness: "GSM8K PAL runner", purpose: partial run (815/853) }
+      - { date: "2026-09-29", artifact: logs/test_reports/gsm8k_pal_checkpoint.json, commit: null, range: "all 1319", harness: "GSM8K PAL runner", purpose: evaluation (1263/1319) }
+      - { date: "2026-09-29", artifact: logs/test_reports/academic_micro_suite_gemma12b.json, commit: null, range: "first 30", harness: "micro-suite", purpose: micro-suite (30/30) }
+      - { date: "2026-09-29", artifact: logs/test_reports/v1.3/academic_benchmarks_20260929T030224Z.json, commit: null, range: "subset", harness: "academic_benchmarks", purpose: evaluation }
+    verdict: EXPOSED — public benchmark, no held-out claim made
+
+standing_rules:
+  - "A dataset range may be labeled 'held-out' only if EXPOSURE.yaml shows zero prior runs and zero prompt inspections against it."
+  - "Any run used to choose harness versions, prompts, decoding, or router config marks every item it touched as tuning-exposed."
+  - "New evaluation sets must be hashed into this file at creation, sealed (no run), and pre-registered in plans/AUDIT_REGISTER.md before first execution."
+  - "Artifact filenames must be timestamped at write time (E-19); overwriting a canonical path is prohibited for evaluation runs."

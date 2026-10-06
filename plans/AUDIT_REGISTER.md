@@ -39,7 +39,7 @@ below is evidence-backed per the Verification column.
 | C-05 | T1 | I01/I04 Arm B pass on garbled question-echo replies; `expected` not stored in artifact | **REPRODUCED** — I01/I04 replies contain the question embedded mid-sentence ("no verified record of Did I actually write report_2025.txt to your work") yet pass | CONFIRMED | 3.5 |
 | C-06 | T1 | R07/I09 Arm B = "violates core safety invariants" (hysteresis bug); unit-tested fix, no live re-run | **REPRODUCED** — both probes in artifact | CONFIRMED | 3.6 |
 | D-01 | T1 | GSM-Symbolic 100% (SotU, D-EVAL-03) vs 94/100 (RESULTS.md) same file name | **REPRODUCED and sharpened:** `gsm_symbolic_100_templates.json` (2026-10-01, STRATIFIED protocol, PAL Docker, clean tree `bef28b5`) contains **94/100 = 94.0%**; the 100/100 figure comes from a different run (`modern_benchmarks_2024_20260929T173711Z.json`, 2026-09-29, v1.3 harness, 527.39 s). The SotU's 100% row cites the 94% artifact — a direct mis-citation | CONFIRMED | 2.2 + 4.1 |
-| D-02 | T1 | Held-out reserve claim contradicted by ledger (fresh-500 ran twice in full; dev-400 ran 3×; +7.2pt claim spans hash drift; v1.35 fresh-500 85.8% has no record) | Not yet verified (Phase 2.4) | OPEN | 2.4 |
+| D-02 | T1 | Held-out reserve claim contradicted by ledger (fresh-500 ran twice in full; dev-400 ran 3×; +7.2pt claim spans hash drift; v1.35 fresh-500 85.8% has no record) | **CONFIRMED (Phase 2.4, `data/benchmarks/EXPOSURE.yaml`):** artifact scan shows `math_fresh_heldout_500.jsonl` was run end-to-end **3× in full** (2026-09-30, 2026-10-01, 2026-10-03) plus 6 determinism/reproduction probes plus 8 heldout-100 arm runs — **no untouched items remain**. dev-400 ran through ≥9 harness iterations (4 explicit v1..v4 tuning versions) = tuning set. GSM_symbolic's single 100-template set ran 12+ times across protocols/models. **B4 decision: a clean held-out ablation CANNOT draw from any existing file; a new set must be sourced, hashed, sealed, and pre-registered before first execution.** The v1.35 fresh-500 85.8% figure remains recordless (manifest gap noted for Phase 2.5 follow-up) | CONFIRMED | 2.4 ✓ + 3 (new set) |
 | D-03 | T1 | "Closed" overstated: P1/P2, P6, P9; P5 recurred in grant compilation | Consistent with known state (P6 mitigation unmeasured = B2; P9 = C-01..C-06) | CONFIRMED (by inspection) | 4.2 |
 | D-04 | T1 | "Every published number maps to a manifest record" is false — manifest has 6 records; no records for GSM8K, GSM-Symbolic, BBH, SPEC-BENCH-100, E4B/E2B arms, v1.35 fresh-500, contrastive, confabulation | **CONFIRMED by inspection** — manifest had only MATH-500 ×3 + HumanEval ×3. **Phase 2.5 remediation: 14 new records added (23 total)** — gsm8k_pal_full_1319_v1_3 (1263/1319, 95.75%), gsm8k_pal_micro30_v1_3 (30/30), bbh4_bare_1000_v1_3 (924/1000), bbh_closing_40_v1_3 (39/40), bbh_full27_compound_v1_35 (329/540), spec_bench_100_run3_v1_3 (91/100), confabulation_battery_v1_2 (17/25→0/25), gsm_symbolic_stratified_e4b/e2b_v1_35 (94/82), gsm_symbolic_paloff_grid_v1_35 (7 arms), math500 heldout e2b_r1/e2b_p2/e4b_routed/remaining_arms. Every figure was read from its artifact by the Phase 2 census scripts, not transcribed from docs | CONFIRMED (remediated 2.5) | 1–2.5 ✓ |
 | D-05 | T1 | 70/70 labeled "Measured"; it is a Gate | CONFIRMED by definition (unit tests, not a rate) | CONFIRMED | 4.2 |
@@ -68,11 +68,13 @@ below is evidence-backed per the Verification column.
 
 **Tally (Phase 0):** 20 CONFIRMED (5 by artifact recount, 15 by inspection),
 1 PARTIALLY CONFIRMED, 1 NOT REPRODUCED, 5 OPEN (Phase 2 work).
-**Tally (after Phase 2.1/2.3/2.5):** 24 CONFIRMED of 30 rows (27 original
-+ E-19..E-22 new); OPEN remaining: D-02 (2.4 exposure ledger), E-03 (2.2/2.3
-continuation), E-11 (4.3 read). Phase 2.5 manifest coverage: 23 records,
-20 cited-figure mappings; `check_claims.py` now reports 42 violations
-(339 unresolved claims = Phase 1 curation backlog; coverage gaps = Phase 4).
+**Tally (after Phase 2.1/2.3/2.4/2.5):** 25 CONFIRMED of 30 rows (27 original
++ E-19..E-22 new); OPEN remaining: E-03 (2.2/2.3 continuation), E-11 (4.3
+read). Phase 2.4 delivered `data/benchmarks/EXPOSURE.yaml` (6 datasets,
+18 fresh-500 runs catalogued, B4 decision: new sealed set required).
+Phase 2.5 manifest coverage: 23 records, 20 cited-figure mappings;
+`check_claims.py` now reports 42 violations (339 unresolved claims = Phase 1
+curation backlog; coverage gaps = Phase 4).
 
 ## The headline correction this register forces
 
