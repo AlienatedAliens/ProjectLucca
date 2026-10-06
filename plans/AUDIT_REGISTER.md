@@ -45,7 +45,8 @@ below is evidence-backed per the Verification column.
 | D-05 | T1 | 70/70 labeled "Measured"; it is a Gate | CONFIRMED by definition (unit tests, not a rate) | CONFIRMED | 4.2 |
 | E-01 | T2 | RESULTS.md "Passed" column mixes strict/lenient/neither | **CONFIRMED (Phase 2.3, `scripts/regen_results_ledger.py`):** 25 ledger rows recomputed from per-item data. The three v1.35 rows demonstrate the mixed semantics exactly — dev-400: Passed=318 (lenient) vs strict 299; dev-400-v2: Passed=322 (lenient) vs strict 306; final-fresh-500: Passed=451 (lenient) vs strict 429. Recomputed strict counts match the strict% column in all three; the Passed column is the lenient count there and the strict count elsewhere | CONFIRMED | 4.1 |
 | E-02 | T2 | CI method mixed across ledger rows | **PARTIALLY CONFIRMED (Phase 2.3):** recomputed plain-Wilson CIs match the stated CIs on the v1.35 rows (e.g. dev-400 [70.27%, 78.76%] exact) but differ on gsm-symbolic-strat-100 (stated [86.88%, 97.54%] vs plain [87.52%, 97.22%]) — consistent with continuity-corrected Wilson on some rows | CONFIRMED (partial) | 4.1 |
-| E-03 | T2 | Four v1.3 fresh-500 strict figures (74.20/76.4/78.6/79.2) | Not yet fully mapped (Phase 2.2/2.3 continue) — the regen confirms the raw-harness vs posthoc-rescore distinction for the pairs checked | OPEN | 2.3 |
+| E-03 | T2 | Four v1.3 fresh-500 strict figures (74.20/76.4/78.6/79.2) | **CONFIRMED and fully mapped (Phase 2.6):** the four figures are TWO distinct runs under THREE grader generations. (1) 2026-09-30 run (`modern_benchmarks_2024_20260930T031359Z_v1.3-fresh-heldout-500.json`): raw harness 382/500 = **76.4%**; post-hoc SymPy CAS rescore = **74.20%** strict / 78.80% lenient (rescored artifact never committed — provenance gap, already in manifest `math500_fresh_heldout_500_v1_3_0`). (2) Same 09-30 run regraded under the v1.35 grader: `checkpoint_math500_v1.3-fresh-500_{strict,lenient}_posthoc.json` = **78.60%** (393/500, per-item recount ✓) / 86.40% (432/500, ✓). (3) A SECOND full run on 2026-10-01 (`checkpoint_math500_v1.3-final-fresh-500.json`): stated **79.20%** strict (396/500) / 86.60% lenient (433/500) — but see E-23 | CONFIRMED | 2.6 ✓ |
+| E-23 | T2 | **NEW (Phase 2.6):** the RESULTS.md row `math-v1.3-fresh-500` states 79.20% strict (396/500) / 86.60% lenient (433/500) citing `checkpoint_math500_v1.3-final-fresh-500.json` — the figures are NOT derivable from that artifact: per-item `passed` recounts to **420/500 (84.0%)**; the artifact has no strict/lenient fields, no summary block, no embedded commit; the sibling summary artifact (`modern_benchmarks_2024_20261001T192212Z_v1.3-final-fresh-500.json`) contains config only with `benchmarks: {}`; no posthoc regrade artifacts exist for this run. No field combination (failure_class, feedback_succeeded) yields 396 or 433 | Direct recount + field-combination sweep | CONFIRMED | 4.1 (restate as 84.0% per-item or mark unsourced) |
 | E-04 | T2 | Commit hashes disagree RESULTS.md vs manifest | **CONFIRMED (Phase 2.3):** (a) the three v1.35 checkpoint artifacts carry NO embedded git_commit, so their stated commits (`deacabe`/`9b6858e`/`46486cf`) are unverifiable from the artifact; (b) the humaneval canonical artifacts were overwritten by the 2026-10-05 reproduction, so their embedded commit (`90dbdde1`) now differs from the stated `bef28b5` — originals preserved as `*_20261002.json` | CONFIRMED | 4.1 |
 | E-19 | T2 | **NEW (Phase 2.3):** artifact paths are not immutable — re-running a benchmark at the same canonical path overwrites the artifact and changes its embedded metadata (commit, timestamp), silently breaking the ledger's commit column | Regeneration revealed it; fix: cite preserved-original artifacts for historical rows, or make the harness write timestamped filenames only | CONFIRMED | 4.1 |
 | E-20 | T2 | **NEW (Phase 2.5):** paper 01 states the SPEC-BENCH-100 progression "Run 1: 70%, Run 2: 85%, Run 3: 91%" — the only full-100 artifacts in the repo score 90.0% (20260928T153710Z), 93.0% (20260928T163106Z), 91.0% (20260928T170640Z). The 70/85 figures match no full-battery artifact | Census scan of all 80 compound_benchmark_*.json files: exactly three 100-problem runs (90/93/91); 70.0% appears only in 10-probe chunk runs | CONFIRMED | 4.3 |
@@ -68,13 +69,15 @@ below is evidence-backed per the Verification column.
 
 **Tally (Phase 0):** 20 CONFIRMED (5 by artifact recount, 15 by inspection),
 1 PARTIALLY CONFIRMED, 1 NOT REPRODUCED, 5 OPEN (Phase 2 work).
-**Tally (after Phase 2.1/2.3/2.4/2.5):** 25 CONFIRMED of 30 rows (27 original
-+ E-19..E-22 new); OPEN remaining: E-03 (2.2/2.3 continuation), E-11 (4.3
-read). Phase 2.4 delivered `data/benchmarks/EXPOSURE.yaml` (6 datasets,
-18 fresh-500 runs catalogued, B4 decision: new sealed set required).
-Phase 2.5 manifest coverage: 23 records, 20 cited-figure mappings;
-`check_claims.py` now reports 42 violations (339 unresolved claims = Phase 1
-curation backlog; coverage gaps = Phase 4).
+**Tally (after Phase 2.1/2.3/2.4/2.5/2.6):** 27 CONFIRMED of 31 rows (27
+original + E-19..E-23 new); OPEN remaining: E-11 (4.3 read, Phase 4).
+Phase 2.4 delivered `data/benchmarks/EXPOSURE.yaml` (6 datasets, 18
+fresh-500 runs catalogued, B4 decision: new sealed set required).
+Phase 2.5 manifest coverage: 23 records, 20 cited-figure mappings.
+Phase 2.6 mapped all four v1.3 fresh-500 figures (E-03) and found the
+79.20% row unreproducible from its artifact (E-23). `check_claims.py`
+reports 42 violations (339 unresolved claims = Phase 1 curation backlog;
+coverage gaps = Phase 4). **Phase 2 COMPLETE except E-11 (Phase 4 read).**
 
 ## The headline correction this register forces
 
