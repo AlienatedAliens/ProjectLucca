@@ -293,9 +293,271 @@ records:
     caveats:
       - "Do not cite the deltas from this battery. Superseded by the Phase 3.5-3.6 re-run (frozen grader, 3 arms, 30/stratum)."
 
+  - benchmark_id: gsm8k_pal_full_1319_v1_3
+    status: current
+    experiment: >
+      GSM8K full canonical test set (1,319 items), PAL mode via Docker Python
+      execution, v1.3-era harness. Origin of the 95.75% (1,263/1,319) figure
+      (NEUROSYMBOLIC_RESEARCH_PAPER.md, paper 01, USER_GUIDE capability table).
+    run_artifact: logs/test_reports/gsm8k_pal_checkpoint.json
+    harness_version: "v1.3-era GSM8K PAL runner"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/gsm8k_test.jsonl
+    results:
+      strict: { passed: 1263, total: 1319, accuracy_pct: 95.75 }
+    git_commit: null   # not embedded in artifact
+    git_dirty: null
+    caveats:
+      - "A partial checkpoint (815/853 evaluated, 95.55%) exists at logs/test_reports/gsm8k_pal_partial_857.json; the checkpoint artifact is the completed 1,319-item run."
+      - "Distinct from the 30-probe micro-suite record gsm8k_pal_micro30_v1_3 (100.0%, 30/30); cite the protocol with the number."
+
+  - benchmark_id: gsm8k_pal_micro30_v1_3
+    status: current
+    experiment: >
+      GSM8K 30-probe micro-suite, PAL mode (2026-09-29). Origin of the
+      "GSM8K PAL 100.0% (30/30)" figure (DECISIONS.md D-EVAL-02 Track 2,
+      docs/ARCHITECTURE.md, USER_GUIDE). The same artifact also contains a
+      30-probe HumanEval block (30/30) and a 120-item BBH block (115/120,
+      95.83%) - do not cite those blocks without their own verification.
+    run_artifact: logs/test_reports/academic_micro_suite_gemma12b.json
+    run_timestamp: "2026-09-29T02:25:00Z"
+    harness_version: "academic micro-suite runner (n=30)"
+    model: gemma_4_12b_heretic_q6k
+    results:
+      gsm8k_pal: { passed: 30, total: 30, accuracy_pct: 100.0, mean_latency_s: 5.82 }
+    caveats:
+      - "30-probe subset, not the full 1,319-item suite; cite alongside gsm8k_pal_full_1319_v1_3 (95.75%) and label the n."
+
+  - benchmark_id: bbh4_bare_1000_v1_3
+    status: current
+    experiment: >
+      Big-Bench Hard, 4 subsets x 250 tasks (Boolean Logic, Geometric Shapes,
+      3-Object Tracking, Dyck Languages), bare-weights zero-shot, N=1,000
+      (2026-09-28). Origin of the 92.40% (924/1,000) consolidated figure
+      (paper 01, docs/ARCHITECTURE.md, USER_GUIDE, docs/README.md).
+    run_artifacts:
+      - logs/test_reports/v1.3/academic_benchmarks_20260928T184814Z.json
+      - logs/test_reports/frozen_v1.2_baseline/academic_benchmarks_20260928T184814Z.json
+    harness_version: "scripts/run_standard_academic_benchmarks.py (academic_benchmarks runner)"
+    model: gemma_4_12b_heretic_q6k
+    results:
+      bbh4_bare: { passed: 924, total: 1000, accuracy_pct: 92.40, elapsed_s: 7937.41 }
+    caveats:
+      - "Bare-weights protocol; NOT comparable to the compound full-27 run (bbh_full27_compound_v1_35, 60.93%)."
+
+  - benchmark_id: bbh_closing_40_v1_3
+    status: current
+    experiment: >
+      BBH closing regression battery, 40 items (2026-09-30). Origin of the
+      "97.5% on 2026-09-30 Closing Battery" figure (NEUROSYMBOLIC_RESEARCH_PAPER.md).
+    run_artifacts:
+      - logs/test_reports/v1.3/academic_benchmarks_20260930T050204Z.json
+      - logs/test_reports/academic_benchmarks_latest.json
+    harness_version: "scripts/run_standard_academic_benchmarks.py (samples_configured=10)"
+    model: gemma_4_12b_heretic_q6k
+    results:
+      bbh_closing: { passed: 39, total: 40, accuracy_pct: 97.5, elapsed_s: 277.79 }
+
+  - benchmark_id: bbh_full27_compound_v1_35
+    status: current
+    experiment: >
+      Big-Bench Hard FULL 27-subset suite (27 x 20 = 540 items), compound
+      pipeline (algorithmic + language modes), 2026-10-03. Origin of the
+      "60.9% full 27 subsets / 59.6% algorithmic" figures in
+      docs/LUCCA_V135_E4B_ARCHITECTURE.md (E4B run).
+    run_artifact: logs/test_reports/bbh_full_27_latest.json
+    run_timestamp: "20261003T174322Z"
+    harness_version: "BBH full-27 harness"
+    results:
+      full_27: { passed: 329, total: 540, accuracy_pct: 60.93, elapsed_s: 1498.8 }
+      algorithmic_subsets: { accuracy_pct: 59.64 }
+      language_subsets: { accuracy_pct: 62.31 }
+    caveats:
+      - "Compound-pipeline protocol; NOT comparable to the bare-weights BBH-4 record bbh4_bare_1000_v1_3 (92.40%)."
+      - "External baseline comparison in the citing doc (53.0% DeepMind bare) is a published figure, not an internal artifact."
+
+  - benchmark_id: spec_bench_100_run3_v1_3
+    status: current
+    experiment: >
+      SPEC-BENCH-100-v1.0 Official Run 3 (2026-09-28): 100 frozen probes,
+      live end-to-end TurnPipeline. Origin of the 91.0% (91/100) pass rate,
+      100% path-policy compliance, 100% epistemic faithfulness figures
+      (DECISIONS.md D-EVAL-02, docs/ARCHITECTURE.md, USER_GUIDE, paper 01).
+    run_artifacts:
+      - logs/test_reports/v1.3/compound_benchmark_20260928T170640Z.json
+      - logs/test_reports/frozen_v1.2_baseline/compound_benchmark_20260928T170640Z.json
+    harness_version: "tests/test_compound_reasoning_benchmark.py (compound_benchmark runner)"
+    model: gemma_4_12b_heretic_q6k
+    results:
+      run3: { passed: 91, total: 100, accuracy_pct: 91.0, path_ok: 100, faithfulness_ok: 100 }
+    caveats:
+      - "Two earlier full-100 runs exist in the same directory: 90.0% (20260928T153710Z) and 93.0% (20260928T163106Z). Paper 01's stated progression 'Run 1: 70%, Run 2: 85%, Run 3: 91%' does NOT match these artifacts (register E-20); the 70/85 figures are unsourced as full-battery runs."
+
+  - benchmark_id: confabulation_battery_v1_2
+    status: current
+    experiment: >
+      Milestone-3 confabulation battery, 25 trials, temperature 0.6. Baseline
+      (no grounding): 17/25 confabulated (68.0%). Cascade-grounded: 0/25
+      confabulated (0.0%), adherence 25/25 (100.0%). Origin of the
+      confabulation-delta claims (paper 03, SotU fixed-probe list).
+    run_artifact: data/eval/milestone3_confabulation_battery.json
+    results:
+      baseline: { confabulations: 17, total: 25, rate_pct: 68.0 }
+      cascade_grounded: { confabulations: 0, total: 25, rate_pct: 0.0, adherence: 25, adherence_pct: 100.0 }
+    caveats:
+      - "Paper 03 states 18/25 (72.0%) for the baseline arm - MISMATCH with the artifact's 17/25 (68.0%) (register E-21); correct in Phase 4."
+
+  - benchmark_id: gsm_symbolic_stratified_e4b_v1_35
+    status: current
+    experiment: >
+      GSM-Symbolic 100 templates, STRATIFIED protocol, PAL via
+      DockerRPCTransport, E4B model (2026-10-03). Origin of the E4B 94.0%
+      GSM-Symbolic figure (docs/LUCCA_V135_E4B_ARCHITECTURE.md, and the E4B
+      'PAL P2' cell in docs/LUCCA_V135_1_ARCHITECTURE.md).
+    run_artifact: logs/test_reports/gsm_symbolic_100_templates_e4b.json
+    run_timestamp: "20261003T154548Z"
+    harness_version: "stratified GSM-Symbolic runner (PAL DockerRPCTransport)"
+    dataset: data/benchmarks/GSM_symbolic.jsonl
+    results:
+      strict: { passed: 94, total: 100, accuracy_pct: 94.0, elapsed_s: 227.19 }
+    git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
+    git_dirty: true
+    caveats:
+      - "Stratified-templates protocol; NOT the same protocol as the pal_off_ablation grid arms (gsm_symbolic_paloff_grid_v1_35). The v1.35.1 per-tier table mixes these two protocols across its cells (register E-22)."
+
+  - benchmark_id: gsm_symbolic_stratified_e2b_v1_35
+    status: current
+    experiment: >
+      GSM-Symbolic 100 templates, STRATIFIED protocol, PAL via
+      DockerRPCTransport, E2B model (2026-10-04). Origin of the E2B 82.0%
+      figure (docs/LUCCA_V135_E2B_ARCHITECTURE.md).
+    run_artifact: logs/test_reports/gsm_symbolic_100_templates_e2b.json
+    run_timestamp: "20261004T011744Z"
+    harness_version: "stratified GSM-Symbolic runner (PAL DockerRPCTransport)"
+    dataset: data/benchmarks/GSM_symbolic.jsonl
+    results:
+      strict: { passed: 82, total: 100, accuracy_pct: 82.0, elapsed_s: 155.11 }
+    git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
+    git_dirty: true
+    caveats:
+      - "82.0% (stratified) and 91.0% (pal_off p2 arm, gsm_symbolic_paloff_grid_v1_35) are BOTH real E2B measurements under DIFFERENT protocols; cite the protocol with the number."
+
+  - benchmark_id: gsm_symbolic_paloff_grid_v1_35
+    status: current
+    experiment: >
+      GSM-Symbolic 100-item arms from the pal_off factorial ablation grid
+      (split: dev). Backs the per-tier cells in docs/LUCCA_V135_1_ARCHITECTURE.md
+      for 12B and E2B, and the E4B Direct-R0 cell.
+    run_artifacts:
+      - logs/test_reports/pal_off_ablation/gemma-4-12b_gsm_symbolic_p2_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-12b_gsm_symbolic_r0_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_p2_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_r0_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e4b_gsm_symbolic_r0_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e4b_gsm_symbolic_r1_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_r1_100.json
+    harness_version: "pal_off_ablation factorial harness"
+    results:
+      "12b_p2": { strict_passed: 95, total: 100, accuracy_pct: 95.0 }
+      "12b_r0": { strict_passed: 93, total: 100, accuracy_pct: 93.0 }
+      "e2b_p2": { strict_passed: 91, total: 100, accuracy_pct: 91.0 }
+      "e2b_r0": { strict_passed: 81, total: 100, accuracy_pct: 81.0 }
+      "e4b_r0": { strict_passed: 91, total: 100, accuracy_pct: 91.0 }
+      "e4b_r1": { strict_passed: 86, total: 100, accuracy_pct: 86.0 }
+      "e2b_r1": { strict_passed: 85, total: 100, accuracy_pct: 85.0 }
+    caveats:
+      - "The v1.35.1 table's E4B 'PAL P2 94.0' cell is backed by gsm_symbolic_stratified_e4b_v1_35 (stratified protocol), NOT by this grid - the grid has no E4B p2 arm (register E-22)."
+      - "12B r1 arm exists only as an incomplete checkpoint (20/100 completed); no 12B r1 GSM-Symbolic figure is citable."
+
+  - benchmark_id: math500_heldout100_e2b_r1_v1_35_6
+    status: current
+    experiment: >
+      MATH-500 held-out-100, E2B Thinking R1 arm (think6144). One half of the
+      D-ROUT-02 McNemar pair (24:4 discordant, p=1.8e-4 vs the P2 arm).
+    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r1_heldout_think6144_100.json
+    harness_version: "pal_off_ablation factorial harness"
+    dataset: math_fresh_heldout_500
+    split: { evaluated: 100, slice: "lines 1-100" }
+    results:
+      strict: { passed: 81, total: 100, accuracy_pct: 81.0 }
+      lenient: { passed: 86, total: 100, accuracy_pct: 86.0 }
+      truncation_rate_pct: 10.0
+    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+    git_dirty: true
+
+  - benchmark_id: math500_heldout100_e2b_p2_v1_35_6
+    status: current
+    experiment: >
+      MATH-500 held-out-100, E2B PAL P2 arm (cap2048). Other half of the
+      D-ROUT-02 McNemar pair (24:4 discordant, p=1.8e-4 vs the R1 arm).
+    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_p2_heldout_cap2048_100.json
+    harness_version: "pal_off_ablation factorial harness"
+    dataset: math_fresh_heldout_500
+    split: { evaluated: 100, slice: "lines 1-100" }
+    results:
+      strict: { passed: 61, total: 100, accuracy_pct: 61.0 }
+      lenient: { passed: 70, total: 100, accuracy_pct: 70.0 }
+      truncation_rate_pct: 14.0
+    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+    git_dirty: true
+
+  - benchmark_id: math500_heldout100_e4b_routed_v1_35_6
+    status: current
+    experiment: >
+      MATH-500 held-out-100, E4B ROUTED arm. Origin of the "E4B Thinking R1:
+      88.0%" cell in the multi-scale held-out matrix (SotU, D-ROUT-02
+      context, paper 06). NOTE: the artifact's arm label is `routed`, not
+      `r1`; the docs' "Thinking R1" label for this cell is a naming drift.
+    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_routed_heldout_100.json
+    harness_version: "pal_off_ablation factorial harness"
+    dataset: math_fresh_heldout_500
+    split: { evaluated: 100, slice: "lines 1-100" }
+    results:
+      strict: { passed: 88, total: 100, accuracy_pct: 88.0 }
+      lenient: { passed: 92, total: 100, accuracy_pct: 92.0 }
+      truncation_rate_pct: 2.0
+    git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
+    git_dirty: true
+    caveats:
+      - "Arm-label drift: docs say 'Thinking R1', artifact says arm=routed. A separate E4B r1 arm exists on the dev split (85.0% strict, gemma-4-e4b_math500_r1_100.json) - do not conflate."
+
+  - benchmark_id: math500_heldout100_remaining_arms_v1_35_6
+    status: current
+    experiment: >
+      Remaining MATH-500 held-out-100 arms from the pal_off grid, recorded so
+      every cell of the per-tier tables resolves to an artifact.
+    run_artifacts:
+      - logs/test_reports/pal_off_ablation/gemma-4-12b_math500_p2_heldout_cap2048_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_p2_heldout_cap2048_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_r0_heldout_cap4096_100.json
+      - logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r0_heldout_cap4096_100.json
+    harness_version: "pal_off_ablation factorial harness"
+    dataset: math_fresh_heldout_500
+    split: { evaluated: 100, slice: "lines 1-100" }
+    results:
+      "12b_p2": { strict_passed: 86, total: 100, accuracy_pct: 86.0, lenient_pct: 90.0 }
+      "e4b_p2": { strict_passed: 73, total: 100, accuracy_pct: 73.0, lenient_pct: 83.0 }
+      "e4b_r0": { strict_passed: 52, total: 100, accuracy_pct: 52.0, lenient_pct: 54.0 }
+      "e2b_r0": { strict_passed: 51, total: 100, accuracy_pct: 51.0, lenient_pct: 55.0 }
+    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+    git_dirty: true
+
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
   # reference these record IDs (see plans/2026-10-04_external_review_remediation_workshop.md §3).
+
+  "95.75% GSM8K PAL full suite (1,263/1,319)": gsm8k_pal_full_1319_v1_3
+  "100.0% GSM8K PAL micro-suite (30/30)": gsm8k_pal_micro30_v1_3
+  "92.40% BBH-4 bare weights (924/1,000)": bbh4_bare_1000_v1_3
+  "97.5% BBH closing battery (39/40, 2026-09-30)": bbh_closing_40_v1_3
+  "60.9% BBH full-27 compound (329/540)": bbh_full27_compound_v1_35
+  "91.0% SPEC-BENCH-100 Run 3 (91/100)": spec_bench_100_run3_v1_3
+  "68.0% -> 0.0% confabulation (25 trials)": confabulation_battery_v1_2
+  "94.0% GSM-Symbolic E4B (stratified)": gsm_symbolic_stratified_e4b_v1_35
+  "82.0% GSM-Symbolic E2B (stratified)": gsm_symbolic_stratified_e2b_v1_35
+  "95/93/91/81 GSM-Symbolic pal_off grid arms": gsm_symbolic_paloff_grid_v1_35
+  "81.0% vs 61.0% MATH-500 held-out-100 E2B R1/P2 (McNemar pair)": math500_heldout100_e2b_r1_v1_35_6
+  "88.0% MATH-500 held-out-100 E4B routed": math500_heldout100_e4b_routed_v1_35_6
   "77.0% / 87.0% MATH-500 (Track 2)": math500_pal_v1_3
   "74.20% / 78.80% MATH-500 fresh held-out 500": math500_fresh_heldout_500_v1_3_0
   "89.0% / 94.0% MATH-500 held-out 100 (12B R0)": math500_heldout100_direct_r0_v1_35_6
