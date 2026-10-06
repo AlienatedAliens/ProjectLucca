@@ -79,6 +79,15 @@ Phase 2.6 mapped all four v1.3 fresh-500 figures (E-03) and found the
 reports 42 violations (339 unresolved claims = Phase 1 curation backlog;
 coverage gaps = Phase 4). **Phase 2 COMPLETE except E-11 (Phase 4 read).**
 
+**Tally (after Phase 3 prep, 2026-10-06):** 29 CONFIRMED of 31 rows, 0 OPEN.
+E-11 remediated 2026-10-06 (protocol labels + manifest records on
+D-EVAL-02/03, commit 5e89532, pulled forward from Phase 4.3 with operator
+approval). Of the remaining two: E-02 partial closes in Phase 4.1's CI
+census; E-15 not reproduced, no action. Phase 3 prep delivered the B4
+sealed set (`math_b4_sealed_100.jsonl`, SHA-256 14c8af21…100b, `runs: []`
+in EXPOSURE.yaml, protocol pre-registered below) and the frozen contrastive
+grader (`src/lucca/eval/contrastive_grader.py`, SHA-256 f015710f…27c2).
+
 ## The headline correction this register forces
 
 The contrastive battery's advertised deltas (+90pp recall, +50pp
