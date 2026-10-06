@@ -15,6 +15,21 @@ Project Lucca's progression follows a disciplined, evidence-based sequence:
 3. **WO-29 (Part 1 Core Synthesis):** Implements Modules 1–6 on host CPU and Docker sandbox, laying the foundational neuro-symbolic program synthesis channel for v1.4.0.
 4. **WO-30 (Part 2 Robustness & Hygiene):** Implements Modules 7–11 for invariant defense, Git worktree staging, and divergence prevention.
 5. **WO-31 (Part 3 Autonomous Search):** Implements Modules 12–15 for CPU MCTS, BitNet b1.58 2B policy prior, and DreamCoder macro mining (v1.5.0).
+
+> **Reconsideration note (2026-10-05, workshop follow-up):** the Part 1/2/3
+> framing undersells where the cognitive payoff concentrates. Parts 1–2
+> (Modules 1–11) are **plumbing and hygiene** — necessary substrate, but
+> individually replaceable infrastructure. Part 3 (Modules 12–15) is the
+> **fluidity-of-thought and individuation engine**: MCTS over AST holes is the
+> search mechanism (fluidity), and DreamCoder macro mining is the mechanism by
+> which Lucca acquires *her own* learned competencies — the learned-skill half
+> of individuation that the personhood framework (IN-D) currently scores as
+> unmeasured. Planning implication: when sequencing under time pressure,
+> Part 3's macro-mining loop is the differentiator for both the compound-AI
+> narrative and the individuation measurement; Parts 1–2 should be scoped as
+> enablers with explicit "good enough" cut lines rather than polish targets.
+> This note re-frames priorities; it does not change module assignments or
+> target releases.
 6. **Orthogonal Tracks:** Acoustic Lock & Slot-Locking for voice companion fluency; WO-32 proactive reflection loop (gated on 200–500 organic dogfood turns).
 
 ---
