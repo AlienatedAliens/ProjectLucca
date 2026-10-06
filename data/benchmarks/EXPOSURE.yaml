@@ -153,8 +153,11 @@ datasets:
       verified disjoint (normalized problem text) from BOTH previously-run
       files (math500_test.jsonl, math_fresh_heldout_500.jsonl). Independent
       disjointness check at seal time: overlap = 0.
-    runs: []   # SEALED — no run, no prompt inspection, no harness contact
-    verdict: SEALED — clean held-out reserve for B4
+    runs:
+      - { date: "2026-10-07", arm: r0_cap4096, artifact: logs/test_reports/b4_sealed/gemma-4-12b_math500_r0_b4_sealed_cap4096_100.json, commit: b340ce0165d6128207fcef3785fa4d249660c77f, strict: "93/100 (93.0%)", lenient: "94/100 (94.0%)" }
+      - { date: "2026-10-07", arm: p2_cap2048, artifact: logs/test_reports/b4_sealed/gemma-4-12b_math500_p2_b4_sealed_cap2048_100.json, commit: b340ce0165d6128207fcef3785fa4d249660c77f, strict: "87/100 (87.0%)", lenient: "92/100 (92.0%)" }
+      - { date: "2026-10-07", arm: r1_think6144, artifact: logs/test_reports/b4_sealed/gemma-4-12b_math500_r1_b4_sealed_think6144_100.json, commit: b340ce0165d6128207fcef3785fa4d249660c77f, strict: "46/100 (46.0%)", lenient: "46/100 (46.0%)" }
+    verdict: EXECUTED (CLEAN HELD-OUT ABLATION) — executed 2026-10-07 under pre-registered protocol
     pre_registered_protocol:
       purpose: "B4 clean held-out ablation (R0 vs P2 vs R1 arms, 12B model)"
       arms: [r0_cap4096, p2_cap2048, r1_think6144]

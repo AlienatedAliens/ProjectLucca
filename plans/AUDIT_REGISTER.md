@@ -88,6 +88,8 @@ sealed set (`math_b4_sealed_100.jsonl`, SHA-256 14c8af21…100b, `runs: []`
 in EXPOSURE.yaml, protocol pre-registered below) and the frozen contrastive
 grader (`src/lucca/eval/contrastive_grader.py`, SHA-256 f015710f…27c2).
 
+**Tally (after Phase 3 GPU night runs, 2026-10-07):** B1 frozen-tree reproduction delivered (88.0% strict / 93.0% lenient; 99/100 items match baseline); GSM-Symbolic 100-template reproduction delivered (94.0%, 100/100 match); HumanEval paired reproduction delivered (94.51% raw / 93.90% assisted, 164/164 match); B4 clean held-out ablation executed across all 3 pre-registered arms on sealed dataset (R0 93.0% strict / 94.0% lenient; P2 87.0% strict / 92.0% lenient; R1 46.0% strict / 46.0% lenient; McNemar paired tests recorded; EXPOSURE.yaml and MANIFEST.yaml updated).
+
 ## The headline correction this register forces
 
 The contrastive battery's advertised deltas (+90pp recall, +50pp
@@ -130,4 +132,13 @@ protocol is executed as written.
    pre-registration requires a dated amendment in this register BEFORE the
    run (standing scope-amendment rule, advisory §3.2).
 7. **Operator approval (2026-10-07):** Approved by operator to execute the B4 clean held-out protocol as pre-registered.
+8. **Execution outcomes (2026-10-07):** Executed exactly per pre-registered protocol on commit `b340ce0`.
+   - **R0 cap4096:** 93/100 (93.0% strict, CI [85.62%, 96.90%]) / 94/100 (94.0% lenient, CI [86.88%, 97.54%]), 0% truncations.
+   - **PAL P2 cap2048:** 87/100 (87.0% strict, CI [78.44%, 92.62%]) / 92/100 (92.0% lenient, CI [84.39%, 96.23%]), 0% truncations.
+   - **Thinking R1 think6144:** 46/100 (46.0% strict/lenient, CI [36.09%, 56.22%]), 55% length truncations.
+   - **Paired McNemar exact tests ($N=100$):**
+     - P2 vs R0: strict $\Delta = -6.0$ pp, discordant 1:7, $p = 0.0703$; lenient $\Delta = -2.0$ pp, discordant 2:4, $p = 0.6875$.
+     - R1 vs P2: strict $\Delta = -41.0$ pp, discordant 3:44, $p = 2.46 \times 10^{-10}$; lenient $\Delta = -46.0$ pp, discordant 0:46, $p = 2.84 \times 10^{-14}$.
+     - R1 vs R0: strict $\Delta = -47.0$ pp, discordant 0:47, $p = 1.42 \times 10^{-14}$; lenient $\Delta = -48.0$ pp, discordant 0:48, $p = 7.11 \times 10^{-15}$.
+   - **Receipt:** `logs/test_reports/b4_sealed/gemma-4-12b_math500_{r0,p2,r1}_b4_sealed_*.json`. Dataset SHA `14c8af21...100b`, Grader SHA `f1caae15...fdbd`. Supersedes D-02 exposed figures.
 

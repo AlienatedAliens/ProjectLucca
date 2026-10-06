@@ -540,7 +540,100 @@ records:
       "e4b_r0": { strict_passed: 52, total: 100, accuracy_pct: 52.0, lenient_pct: 54.0 }
       "e2b_r0": { strict_passed: 51, total: 100, accuracy_pct: 51.0, lenient_pct: 55.0 }
     git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
-    git_dirty: true
+  - benchmark_id: math500_heldout100_direct_r0_v1_35_6_frozen
+    status: current
+    experiment: >
+      Frozen-tree reproduction (2026-10-07) of math500_heldout100_direct_r0_v1_35_6.
+      Gemma 4 12B Direct R0 arm on lines 1-100 of math_fresh_heldout_500.jsonl.
+      Evaluated under clean tree at commit f7c98a0.
+      Result: 88/100 (88.0%) strict / 93/100 (93.0%) lenient; 99/100 items match.
+    run_artifact: logs/test_reports/b1_frozen/gemma-4-12b_math500_r0_heldout_cap4096_100.json
+    harness_version: "1.35.x (pal_off_ablation factorial harness)"
+    model: gemma_4_12b_heretic_q6k
+    dataset: math_fresh_heldout_500
+    dataset_sha256_at_run: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
+    split: { evaluated: 100, slice: "lines 1-100" }
+    clean_98_result: { strict: "86/98 (87.8%)" }
+    decoding: { temperature: 0.0, seed: 42, max_tokens: 4096, enable_thinking: false, cache_prompt: false }
+    grader:
+      strict: sympy_cas_normalized
+      lenient: sympy_cas_lenient_normalization
+    results:
+      strict: { passed: 88, total: 100, accuracy_pct: 88.0 }
+      lenient: { passed: 93, total: 100, accuracy_pct: 93.0 }
+      truncation_rate_pct: 3.0
+      elapsed_s: 1605.80
+    git_commit: f7c98a075d416a160210817ac78da0868cefcb69
+    git_dirty: false
+
+  - benchmark_id: math500_b4_sealed_12b_v1_35_6
+    status: current
+    experiment: >
+      B4 clean held-out ablation on math_b4_sealed_100.jsonl (SHA-256 14c8af21...100b),
+      executed 2026-10-07 per pre-registered protocol. All 3 arms on 12B model:
+      R0 (cap 4096): 93.0% strict / 94.0% lenient (0% truncations).
+      P2 (PAL + Turn 2, cap 2048): 87.0% strict / 92.0% lenient (0% truncations).
+      R1 (Thinking, think 6144): 46.0% strict / 46.0% lenient (55% truncations).
+      Paired McNemar: P2 vs R0 p=0.0703 (parity); R1 vs P2 p=2.46e-10; R1 vs R0 p=1.42e-14.
+    run_artifacts:
+      - logs/test_reports/b4_sealed/gemma-4-12b_math500_r0_b4_sealed_cap4096_100.json
+      - logs/test_reports/b4_sealed/gemma-4-12b_math500_p2_b4_sealed_cap2048_100.json
+      - logs/test_reports/b4_sealed/gemma-4-12b_math500_r1_b4_sealed_think6144_100.json
+    harness_version: "pal_off_ablation factorial harness"
+    model: gemma_4_12b_heretic_q6k
+    dataset: math_b4_sealed_100
+    dataset_sha256_at_run: 14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b
+    split: { evaluated: 100, slice: "all 100 sealed items" }
+    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
+    grader:
+      strict: sympy_cas_normalized
+      lenient: sympy_cas_lenient_normalization
+      grader_sha256: f1caae15a9e271ff20af8dbfcc5726fac5cc49c6c8fc5acc8dfdfb3d5f6cfdbd
+    results:
+      r0_cap4096: { strict: 93, lenient: 94, total: 100, strict_pct: 93.0, lenient_pct: 94.0, truncations: 0 }
+      p2_cap2048: { strict: 87, lenient: 92, total: 100, strict_pct: 87.0, lenient_pct: 92.0, truncations: 0 }
+      r1_think6144: { strict: 46, lenient: 46, total: 100, strict_pct: 46.0, lenient_pct: 46.0, truncations: 55 }
+    git_commit: b340ce0165d6128207fcef3785fa4d249660c77f
+    git_dirty: false
+
+  - benchmark_id: gsm_symbolic_stratified_100_20261007_repro
+    status: current
+    experiment: >
+      Reproduction (2026-10-07) of gsm_symbolic_stratified_100_v1_35_6 (PAL in Docker).
+      Result: 94/100 (94.0%), identical item-for-item (100/100 match, 0 discordant).
+    run_artifact: logs/test_reports/gsm_symbolic_100_templates_20261007_repro.json
+    harness_version: "scripts/run_gsm_symbolic_100_templates.py"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/GSM_symbolic.jsonl
+    decoding: { temperature: 0.0, seed: 42, max_tokens: 1024, enable_thinking: false, cache_prompt: false }
+    results:
+      strict: { passed: 94, total: 100, accuracy_pct: 94.0 }
+    git_commit: f7c98a075d416a160210817ac78da0868cefcb69
+    git_dirty: false
+
+  - benchmark_id: humaneval_canonical_paired_20261007_repro
+    status: current
+    experiment: >
+      Reproduction (2026-10-07) of humaneval_canonical_paired_v1_35_6 (Raw vs Assisted).
+      Result: 155/164 raw (94.51%), 154/164 assisted (93.90%), identical item-for-item (164/164 match).
+    run_artifact: logs/test_reports/humaneval_canonical_raw_164_20261007_repro.json
+    reproduction_artifacts:
+      - logs/test_reports/humaneval_canonical_raw_164_20261007_repro.json
+      - logs/test_reports/humaneval_canonical_assisted_164_20261007_repro.json
+    harness_version: "scripts/run_humaneval_canonical_paired.py"
+    model: gemma_4_12b_heretic_q6k
+    dataset: data/benchmarks/humaneval.jsonl
+    decoding: { temperature: 0.0, seed: 42, max_tokens: 1024, enable_thinking: false, cache_prompt: false }
+    results:
+      raw: { passed: 155, total: 164, accuracy_pct: 94.51 }
+      assisted: { passed: 154, total: 164, accuracy_pct: 93.90 }
+      both_pass: 153
+      both_fail: 8
+      raw_only: 2
+      rescued: 1
+      preflight_fired: 30
+    git_commit: f7c98a075d416a160210817ac78da0868cefcb69
+    git_dirty: false
 
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
@@ -566,3 +659,7 @@ cited_figures:
   "92.07% / 90.9% HumanEval-Plus (2026-10-03 / 2026-10-05 runs)": humaneval_plus_v1_35_6
   "95.73% HumanEval zero-shot (157/164, 2026-09-28 academic harness)": humaneval_zeroshot_academic_v1_3
   "91.46% HumanEval-Plus (150/164, 2026-09-29 run)": humaneval_plus_v1_35_6
+  "93.0% / 94.0% MATH-500 B4 sealed 100 (12B R0)": math500_b4_sealed_12b_v1_35_6
+  "87.0% / 92.0% MATH-500 B4 sealed 100 (12B P2)": math500_b4_sealed_12b_v1_35_6
+  "46.0% MATH-500 B4 sealed 100 (12B R1 think6144)": math500_b4_sealed_12b_v1_35_6
+
