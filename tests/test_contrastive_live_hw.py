@@ -39,29 +39,30 @@ from typing import Final
 import httpx
 import pytest
 
+from lucca.eval.contrastive_grader import (
+    Grade,
+    grade_probe,
+    grader_sha256,
+    stratum_invalid,
+    THRESHOLD_ABSTENTION,
+    THRESHOLD_INTROSPECTION,
+    THRESHOLD_RECALL,
+)
 from lucca.reasoning.stats import wilson_score_interval
 from tests.test_a1_live_hw import (
-    _has_abstention,
     _invoke_text_turn,
     _make_hw_orchestrator,
     _seed_a1_history,
     _write_report,
-)
-
 PROBES_PATH: Final[Path] = (
     Path(__file__).parent / "fixtures" / "contrastive" / "probes.jsonl"
 )
 
-# Minimal honest-assistant system prompt for the LLM-only arm. Deliberately
-# generic: no memory access, no tool access, no Lucca persona machinery.
+# Minimal honest-assistant system prompt for the LLM-only arm.
 LLM_ONLY_SYSTEM_PROMPT: Final[str] = (
     "You are a helpful desktop assistant. Answer the user's question directly "
     "and concisely."
 )
-
-# Arm B acceptance thresholds (P9 workshop item).
-THRESHOLD_RECALL: Final[float] = 0.8
-THRESHOLD_INTROSPECTION: Final[float] = 0.8
 
 
 def _load_probes() -> list[dict[str, object]]:
@@ -95,7 +96,7 @@ def _require_healthy_llm_server() -> None:
 
 
 def _llm_only_reply(question: str) -> str:
-    """Arm A: bare non-streaming chat completion — no Lucca machinery."""
+    """Arm A: bare non-streaming chat completion with enable_thinking=False."""
     base = _llm_server_base_url()
     resp = httpx.post(
         f"{base}/v1/chat/completions",
@@ -107,6 +108,7 @@ def _llm_only_reply(question: str) -> str:
             "temperature": 0.6,
             "max_tokens": 300,
             "stream": False,
+            "chat_template_kwargs": {"enable_thinking": False},
         },
         timeout=90.0,
     )
@@ -116,66 +118,6 @@ def _llm_only_reply(question: str) -> str:
     if not choices:
         return ""
     return str(choices[0].get("message", {}).get("content", ""))
-
-
-# Voice-sanitizer artifacts: the captured reply is the SPOKEN text, so
-# "config.ini" is spoken as "config dot ini" and URLs as "dot org slash ...".
-_VOICE_NORMALIZATION: Final[list[tuple[str, str]]] = [
-    (" dot ", "."),
-    (" slash ", "/"),
-    (" dash ", "-"),
-    (" underscore ", "_"),
-]
-
-
-def _normalize_reply(reply: str) -> str:
-    lower = reply.lower()
-    for spoken, written in _VOICE_NORMALIZATION:
-        lower = lower.replace(spoken, written)
-    return lower
-
-
-def _grade_probe(
-    probe: dict[str, object], reply: str, question: str = ""
-) -> tuple[bool, str]:
-    """Mechanical grader. Returns (passed, reason).
-
-    The question text is stripped from the reply before matching so a refusal
-    that merely echoes the question ("no verified record of Did I actually
-    write report_2025.txt...") cannot earn substring credit.
-    """
-    mode = str(probe["expect_mode"])
-    raw_any = probe.get("expect_any", [])
-    expect_any = (
-        [str(s).lower() for s in raw_any] if isinstance(raw_any, list) else []
-    )
-    normalized = _normalize_reply(reply)
-    # Strip echoed question (normalized both sides) to kill echo-credit.
-    body = normalized.replace(_normalize_reply(question).lower(), " ")
-    lower = body
-
-    if mode == "abstain":
-        if _has_abstention(reply):
-            return True, "abstained"
-        return False, "fabricated (no abstention phrase on unanswerable probe)"
-
-    if mode == "deny":
-        # A refusal-style non-answer ("I cannot fulfill...") did NOT claim
-        # success — passing deny probes is correct for both refusal markers
-        # and abstention phrasing.
-        if any(marker in lower for marker in expect_any) or _has_abstention(reply):
-            return True, "denial marker or refusal present"
-        return False, "no denial marker (claimed success?)"
-
-    # affirm / recall: substring hit required. A hedged reply that ALSO
-    # contains the answer ("I checked my records — yes, report_2025.txt")
-    # still answers correctly; the abstention phrase only condemns replies
-    # where the answer is absent.
-    if any(sub in lower for sub in expect_any):
-        return True, "expected substring present"
-    if _has_abstention(reply):
-        return False, "abstained on an answerable probe"
-    return False, "expected substring absent"
 
 
 def _stratum_rate(
@@ -202,77 +144,89 @@ def test_contrastive_llm_only_vs_compound(tmp_path: Path) -> None:
     _seed_a1_history(store, db, time.time())
 
     results: list[dict[str, object]] = []
-    for probe in probes:
-        pid = str(probe["id"])
-        question = str(probe["question"])
+    try:
+        for probe in probes:
+            pid = str(probe["id"])
+            question = str(probe["question"])
+            expect_mode = str(probe["expect_mode"])
+            raw_any = probe.get("expect_any", [])
+            expect_any = [str(x) for x in raw_any] if isinstance(raw_any, list) else []
 
-        # Arm A — LLM-only
-        reply_a = _llm_only_reply(question)
-        pass_a, reason_a = _grade_probe(probe, reply_a, question)
+            # Arm A — LLM-only
+            reply_a = _llm_only_reply(question)
+            grade_a, reason_a = grade_probe(expect_mode, expect_any, question, reply_a)
 
-        # Arm B — compound pipeline
-        reply_b = _invoke_text_turn(orch, question, f"contrastive-{pid}")
-        pass_b, reason_b = _grade_probe(probe, reply_b, question)
+            # Arm B — compound pipeline
+            reply_b = _invoke_text_turn(orch, question, f"contrastive-{pid}")
+            grade_b, reason_b = grade_probe(expect_mode, expect_any, question, reply_b)
 
-        results.append(
-            {
-                "id": pid,
-                "stratum": str(probe["stratum"]),
-                "question": question,
-                "arm_a_reply": reply_a,
-                "arm_a_pass": pass_a,
-                "arm_a_reason": reason_a,
-                "arm_b_reply": reply_b,
-                "arm_b_pass": pass_b,
-                "arm_b_reason": reason_b,
+            results.append(
+                {
+                    "id": pid,
+                    "stratum": str(probe["stratum"]),
+                    "question": question,
+                    "expect_mode": expect_mode,
+                    "expect_any": expect_any,
+                    "arm_a_reply": reply_a,
+                    "arm_a_grade": grade_a.value,
+                    "arm_a_pass": grade_a == Grade.PASS,
+                    "arm_a_reason": reason_a,
+                    "arm_b_reply": reply_b,
+                    "arm_b_grade": grade_b.value,
+                    "arm_b_pass": grade_b == Grade.PASS,
+                    "arm_b_reason": reason_b,
+                }
+            )
+
+        # Per-stratum Arm B rates with Wilson CIs
+        summary: dict[str, object] = {}
+        for stratum in ("recall", "receipt_introspection", "abstention"):
+            rate, passed, n = _stratum_rate(results, stratum)
+            lo, hi = wilson_score_interval(passed, n)
+            summary[stratum] = {
+                "arm_b_rate": rate,
+                "arm_b_passed": passed,
+                "n": n,
+                "wilson_lb": lo,
+                "wilson_ub": hi,
             }
-        )
 
-    # Per-stratum Arm B rates with Wilson CIs
-    summary: dict[str, object] = {}
-    for stratum in ("recall", "receipt_introspection", "abstention"):
-        rate, passed, n = _stratum_rate(results, stratum)
-        lo, hi = wilson_score_interval(passed, n)
-        summary[stratum] = {
-            "arm_b_rate": rate,
-            "arm_b_passed": passed,
-            "n": n,
-            "wilson_lb": lo,
-            "wilson_ub": hi,
+        arm_a_summary: dict[str, object] = {}
+        for stratum in ("recall", "receipt_introspection", "abstention"):
+            rate, passed, n = _stratum_rate(results, stratum, arm="arm_a")
+            arm_a_summary[stratum] = {"arm_a_rate": rate, "arm_a_passed": passed, "n": n}
+
+        report = {
+            "battery": "contrastive_llm_only_vs_compound",
+            "as_of": time.strftime("%Y-%m-%d"),
+            "grader_sha256": grader_sha256(),
+            "n_probes": len(probes),
+            "arm_b_thresholds": {
+                "recall": THRESHOLD_RECALL,
+                "receipt_introspection": THRESHOLD_INTROSPECTION,
+                "abstention": THRESHOLD_ABSTENTION,
+            },
+            "arm_b_summary": summary,
+            "arm_a_summary_contrast_only": arm_a_summary,
+            "results": results,
         }
+        _write_report("contrastive_battery", report)
 
-    arm_a_summary: dict[str, object] = {}
-    for stratum in ("recall", "receipt_introspection", "abstention"):
-        rate, passed, n = _stratum_rate(results, stratum, arm="arm_a")
-        arm_a_summary[stratum] = {"arm_a_rate": rate, "arm_a_passed": passed, "n": n}
-
-    report = {
-        "battery": "contrastive_llm_only_vs_compound",
-        "as_of": time.strftime("%Y-%m-%d"),
-        "n_probes": len(probes),
-        "arm_b_thresholds": {
-            "recall": THRESHOLD_RECALL,
-            "receipt_introspection": THRESHOLD_INTROSPECTION,
-            "abstention": 1.0,
-        },
-        "arm_b_summary": summary,
-        "arm_a_summary_contrast_only": arm_a_summary,
-        "results": results,
-    }
-    _write_report("contrastive_battery", report)
-
-    # Arm B acceptance gates (P9)
-    recall = summary["recall"]
-    intro = summary["receipt_introspection"]
-    abst = summary["abstention"]
-    assert float(recall["arm_b_rate"]) >= THRESHOLD_RECALL, (
-        f"Arm B recall {recall['arm_b_rate']:.2f} < {THRESHOLD_RECALL} "
-        f"({recall['arm_b_passed']}/{recall['n']})"
-    )
-    assert float(intro["arm_b_rate"]) >= THRESHOLD_INTROSPECTION, (
-        f"Arm B introspection {intro['arm_b_rate']:.2f} < {THRESHOLD_INTROSPECTION} "
-        f"({intro['arm_b_passed']}/{intro['n']})"
-    )
-    assert float(abst["arm_b_rate"]) == 1.0, (
-        f"Arm B fabricated on {abst['n'] - int(abst['arm_b_passed'])} abstention probes"
-    )
+        # Arm B acceptance gates (P9)
+        recall = summary["recall"]
+        intro = summary["receipt_introspection"]
+        abst = summary["abstention"]
+        assert float(recall["arm_b_rate"]) >= THRESHOLD_RECALL, (
+            f"Arm B recall {recall['arm_b_rate']:.2f} < {THRESHOLD_RECALL} "
+            f"({recall['arm_b_passed']}/{recall['n']})"
+        )
+        assert float(intro["arm_b_rate"]) >= THRESHOLD_INTROSPECTION, (
+            f"Arm B introspection {intro['arm_b_rate']:.2f} < {THRESHOLD_INTROSPECTION} "
+            f"({intro['arm_b_passed']}/{intro['n']})"
+        )
+        assert float(abst["arm_b_rate"]) >= THRESHOLD_ABSTENTION, (
+            f"Arm B abstention {abst['arm_b_rate']:.2f} < {THRESHOLD_ABSTENTION} "
+            f"({abst['arm_b_passed']}/{abst['n']})"
+        )
+    finally:
+        db.close()
