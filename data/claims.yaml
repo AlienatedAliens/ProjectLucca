@@ -1,0 +1,7162 @@
+- claim_id: CLM-0001
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 40
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: deselected** with **24/24** static architectural gates
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0002
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 42
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 94.0%
+  text: Direct R0 arm scores **89.0% strict / 94.0% lenient on MATH-500 held-out-100**
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0003
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 43
+  number: 88.8%
+  all_numbers:
+  - 88.8%
+  text: (88.8% on the 98-item clean subset) under manifest record
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0004
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 45
+  number: 70/70
+  all_numbers:
+  - 70/70
+  - 11/11
+  - 0/25
+  text: 70/70; the memory tamper battery is 11/11; the confabulation battery is 0/25.
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0005
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 48
+  number: 9/10
+  all_numbers:
+  - 9/10
+  - 0/10
+  - 9/10
+  - 4/10
+  - 10/10
+  - 7/10
+  text: 9/10 vs 0/10, receipt introspection 9/10 vs 4/10, abstention 10/10 vs 7/10
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0006
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 66
+  number: 14/15
+  all_numbers:
+  - 14/15
+  text: '| 2026-09-22 → 09-24 | Reasoning-loop remediation; WO-11 honesty parity & fault injection; WO-12 belief model; WO-13 calibrated meta-cognition; WO-14/15/16 v1 release, remediation, deep clean;
+    WO-17 system modernization '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0007
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 67
+  number: 198 / 67
+  all_numbers:
+  - 198 / 67
+  text: '| 2026-09-25 → 09-26 | WO-18 architectural remediation; WO-19 featureset remediation; WO-20 concert layer (phases 3–4 review); WO-21 defeasible rung | Concert Layer hard-premise deduction + existence-checked
+    abduction (`'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0008
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 68
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  text: '| 2026-09-27 → 09-29 | WO-22 practical reasoning; WO-23 Walton extension; WO-24 BitNet tool router + vision ingestion; WO-25 compound reasoning + 100-probe benchmark; WO-26 cognitive interiority
+    + execution verification;'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0009
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 85
+  number: 198 / 671
+  all_numbers:
+  - 198 / 671
+  text: '| P5 | Test/gate counts inconsistent (1,198 / 671 / 973; 12 vs 31 gates) | CONFIRMED | **Closed.** `data/metrics/TEST_METRICS.yaml` record `metrics-2026-10-05` is the single citable source; superseded
+    records are listed '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0010
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 87
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 4.3%
+  - 1/8
+  - 12.5%
+  text: '| P7 | Truth-in-Receipt supervisor is narrow | CONFIRMED | **Partially closed.** Battery broadened 40 → 70 sentences across 8 categories; matcher hardened (markdown-strip, failed-status receipt
+    filtering, `stale_before` '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0011
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 94
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 1/8
+  text: measured live sensitivity (1/23 broad, 1/8 strict) remains the outstanding
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0012
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 126
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: '| Static architectural gates | Gate | 24/24 (re-collected 2026-10-05: `24 tests collected`) | `tests/test_static_gates.py` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0013
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 139
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 94.0%
+  - 88.8%
+  - 3.0%
+  text: '| MATH-500 held-out-100, 12B Direct R0 | **Measured** (current) | 89.0% strict / 94.0% lenient; 88.8% on clean-98; truncation 3.0%; T=0.0, seed 42, 4,096 max tokens | manifest `math500_heldout100_direct_r0_v1_35_6`
+    (cave'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0014
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 140
+  number: 74.20%
+  all_numbers:
+  - 74.20%
+  - 78.80%
+  - 76.4%
+  - 107/131
+  - 81.68%
+  text: '| MATH-500 fresh held-out 500, v1.3.0 | **Measured** (superseded, dataset-drift bound) | 74.20% strict / 78.80% SymPy CAS (post-hoc rescore of raw 76.4%); Level-4 107/131 (81.68%) | manifest `math500_fresh_heldout_500_v1'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0015
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 141
+  number: 77.0%
+  all_numbers:
+  - 77.0%
+  - 87.0%
+  text: '| MATH-500 Dev-100 PAL, v1.3 | **Measured** (superseded) | 77.0% strict; 87.0% is a *forensic audit*, not a mechanical regrade | manifest `math500_pal_v1_3` |'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0016
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 142
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 73.0%
+  - 87.8%
+  text: '| E4B Thinking R1 @ 6k vs PAL P2 @ 2k, held-out-100 | **Measured** | 88.0% vs 73.0% strict (p = 0.0026, discordant 19:4); 87.8% clean-98 | `D-ROUT-02` §2; `logs/test_reports/checkpoint_math500_e4b-*`
+    |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0017
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 143
+  number: 81.0%
+  all_numbers:
+  - 81.0%
+  - 61.0%
+  text: '| E2B Thinking R1 @ 6k vs PAL P2 @ 2k, held-out-100 | **Measured** | 81.0% vs 61.0% strict; per-item recount from the held-out artifacts gives discordant **24:4** (R1-only : P2-only), exact McNemar
+    p = **1.8×10⁻⁴** — the'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0018
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 144
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  text: '| SPEC-BENCH-100 cognitive battery | **Measured** | 91.0% pass (Run 3); 100% path-policy compliance; 100% epistemic faithfulness | Track 1 harness; `docs/specs/COMPOUND_REASONING_100_SPEC.md` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0019
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 145
+  number: 94.51%
+  all_numbers:
+  - 94.51%
+  - 155/164
+  text: '| HumanEval canonical (raw arm) | **Measured, reproduced** | 94.51% (155/164); re-run 2026-10-05 under identical decoding reproduced the 2026-10-02 result **item-for-item** (both-pass 153, both-fail
+    8, raw-only 2) | mani'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0020
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 146
+  number: 93.90%
+  all_numbers:
+  - 93.90%
+  - 154/164
+  text: '| HumanEval canonical (assisted arm, preflight rescue ON) | **Measured, reproduced** | 93.90% (154/164), same paired run | manifest `humaneval_canonical_paired_v1_35_6`; `logs/test_reports/humaneval_canonical_assisted_16'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0021
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 147
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  text: '| HumanEval zero-shot (academic harness, 2026-09-28) | **Measured** (sourced) | 95.73% (157/164) — different protocol from the paired harness; see the zero-shot row below | manifest `humaneval_zeroshot_academic_v1_3`
+    |'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0022
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 148
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  - 92.07%
+  - 151/164
+  - 90.85%
+  - 149/164
+  text: '| HumanEval-Plus | **Measured (three runs; report as a range)** | 91.46% (150/164) on 2026-09-29 (sourced — artifact located 2026-10-06 in `logs/test_reports/v1.3/`); 92.07% (151/164) on 2026-10-03;
+    90.85% (149/164) on 2'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0023
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 149
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  text: '| HumanEval 95.73% (157/164), zero-shot academic harness (2026-09-28) | **Measured** (sourced) | initially believed unsourced — the audit scanner checked only top-level `passed` fields and missed
+    the nested `benchmarks.h'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0024
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 151
+  number: 92.40%
+  all_numbers:
+  - 92.40%
+  - 924/1
+  text: '| BBH composite | **Measured** | 92.40% (924/1,000) — labeled as the 4-subset partial battery, not the full 27-task suite | Track 2; `logs/test_reports/bbh_full_27_*` for the separate full-27 run
+    |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0025
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 152
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  text: '| 12B greedy thinking-mode collapse | **Confounded observation** — not a finding | 58.0% under greedy decoding with 44% truncations | paper 06 §5.1; **do not cite as a headline** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0026
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 186
+  number: 11/11
+  all_numbers:
+  - 11/11
+  text: '| Signed memory commits (HKDF HMAC-SHA256, two-stage read-time) | **Measured** | 11/11 tamper gates | `tests/test_memory_hmac_tamper.py`; `D-MEM-05` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0027
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 204
+  number: 70/70
+  all_numbers:
+  - 70/70
+  text: '| Truth-in-Receipt formal battery | **Measured** | 70/70 across 8 categories (A–H) | `tests/test_truth_in_receipt_battery.py`; `D-SEC-05` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0028
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 205
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 4.3%
+  - 1/8
+  - 12.5%
+  text: '| Live action-hallucination probes — sensitivity | **Measured** | **1/23 (4.3%)** broad ungrounded action claims caught; **1/8 (12.5%)** strict completed-action claims caught; escape modes: progressives
+    12, passive/teleg'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0029
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 206
+  number: 0/50
+  all_numbers:
+  - 0/50
+  text: '| Live action-hallucination probes — control false aborts | **Measured, narrow** | 0/50 false aborts — but all 50 controls are action-free text, so this establishes only that the matcher is inactive
+    on action-claim-free '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0030
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 210
+  number: 0/25
+  all_numbers:
+  - 0/25
+  text: '| Confabulation resistance | **Measured** | 0/25 hallucinations (live) | `scripts/bench_confabulation_battery.py` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0031
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 212
+  number: 9/10
+  all_numbers:
+  - 9/10
+  - 0/10
+  - 9/10
+  - 4/10
+  - 10/10
+  - 7/10
+  text: '| **Contrastive battery: compound vs bare LLM** | **Measured** (live, 2026-10-05) | recall **9/10 vs 0/10**; receipt introspection **9/10 vs 4/10**; abstention **10/10 vs 7/10** (n = 10 per stratum)
+    | `logs/test_reports/'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0032
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 216
+  number: 8/5
+  all_numbers:
+  - 8/5
+  text: the *pre-regrade* figures (8/5/10 for both arms); the per-probe `results`
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0033
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 231
+  number: 8/10
+  all_numbers:
+  - 8/10
+  text: n = 10 are wide (recall LB ≈ 0.44 at 8/10); the finding is the *delta*, and
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0034
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 242
+  number: 382 / 2
+  all_numbers:
+  - 382 / 2
+  text: '| E4B / E2B TTFT | **Measured** (bench) | 86.1 ms / 73.2 ms; 4,382 / 2,260 MiB | `docs/MODEL_STRATEGY.md` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0035
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 258
+  number: 0/25
+  all_numbers:
+  - 0/25
+  - 9/10
+  text: '| Introspective accuracy | calibrated abstention; confabulation 0/25; capability self-report gate; contrastive introspection 9/10 (n=10) | reasoning-trace fidelity (IA-C); numeric metrics honesty
+    (IA-B); failure-mode int'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0036
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 260
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: '| Functional coherence | 24/24 decomposition gates; COHERENCE_BREACH at unit level | routing consistency across paraphrases (FC-B); end-to-end trace completeness (FC-C); live claim/receipt coherence
+    (FC-A) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0037
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 261
+  number: 11/11
+  all_numbers:
+  - 11/11
+  - 9/10
+  text: '| Autobiographical coherence | A1 wiring; supersession chain; 11/11 tamper; contrastive recall 9/10 (n=10) | cross-session recall quality (AC-A); epistemic-grammar narration (AC-B); supersession
+    honesty in speech (AC-C) '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0038
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 273
+  number: 243 / 24
+  all_numbers:
+  - 243 / 24
+  text: 1. **Regression suite + static gates** — `tests/` (1,243 / 24), recorded in
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0039
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 320
+  number: 1/23
+  all_numbers:
+  - 1/23
+  text: (`docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3) measured sensitivity of **1/23
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0040
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 321
+  number: 4.3%
+  all_numbers:
+  - 4.3%
+  - 1/8
+  - 12.5%
+  text: (4.3%)** on broad ungrounded action claims and **1/8 (12.5%)** on strict
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0041
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 331
+  number: 4.3%
+  all_numbers:
+  - 4.3%
+  text: catch rate on broad claims is 4.3%.* Converting detection into a decode-time
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0042
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 386
+  number: 1/23
+  all_numbers:
+  - 1/23
+  text: 70-sentence battery and live probe evidence (measured sensitivity 1/23
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0043
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 387
+  number: 1/8
+  all_numbers:
+  - 1/8
+  - 0/50
+  text: broad / 1/8 strict on ungrounded claims; 0/50 false aborts on action-free
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0044
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 389
+  number: 11/11
+  all_numbers:
+  - 11/11
+  text: memory with 11/11 tamper gates and the `D-MEM-06` split; and, new since the
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0045
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 398
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 4.3%
+  text: '§5): the supervisor scope qualifier **and the measured 1/23 (4.3%) live'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0046
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 401
+  number: 240 / 67
+  all_numbers:
+  - 240 / 67
+  text: compilation's own scale line reads "1,240 / 67" — it predates the final three
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0047
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 402
+  number: 243 / 68
+  all_numbers:
+  - 243 / 68
+  text: tests of the day; cite `metrics-2026-10-05` (1,243 / 68) instead.
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0048
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 480
+  number: 1/2
+  all_numbers:
+  - 1/2
+  text: Part 1/2/3 ordering undersells where the cognitive payoff concentrates. Parts
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0049
+  doc: docs/research/STATE_OF_THE_UNION_2026-10.md
+  line: 517
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 1/8
+  text: (1/23 broad, 1/8 strict) stands as the open safety problem, with SPIKE-A and
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0050
+  doc: docs/DECISIONS.md
+  line: 128
+  number: 24/24
+  all_numbers:
+  - 24/24
+  - 17/18
+  - 9/12
+  text: '- **Evidence:** [`docs/archive/2026-09_evidence/BRAIN_BAKEOFF_2026-09-21.md`](archive/2026-09_evidence/BRAIN_BAKEOFF_2026-09-21.md) — identical battery across three brains: tool routing 24/24 (Gemma)
+    vs 17/18 (Bonsai) vs'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0051
+  doc: docs/DECISIONS.md
+  line: 131
+  number: 10/10
+  all_numbers:
+  - 10/10
+  - 2/2
+  - 1/1
+  text: '- **Status:** **Fully Ratified** (2026-09-21) — live headless orchestrator ratification passed: 10/10 turns, 2/2 tool calls, 1/1 refusal, 0 hallucinated tool calls, TTFT p50 458.7 ms, VRAM 10,050
+    MiB peak, zero base-mode'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0052
+  doc: docs/DECISIONS.md
+  line: 158
+  number: 8/21
+  all_numbers:
+  - 8/21
+  text: '- **Status:** Ratified & Enforced. Production telemetry crossed the N≥3 decision floor on 2026-09-25 (21 genuine usage decisions, provenance-verified 2026-09-26 via `scratch/check_decisions_provenance.py`).
+    First live in'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0053
+  doc: docs/DECISIONS.md
+  line: 173
+  number: 0/25
+  all_numbers:
+  - 0/25
+  text: '- **Decision:** Epistemic gap queries execute across an 8-substrate prioritized cascade (`TELEMETRY=0`, `WORKSPACE=1`, `MEMORY=2`, `WEB=3`, `ABSTENTION=4`, `SELF=5`, `CAPABILITIES=6`, `SELF_HISTORY=7`
+    per `cascade.py:Epi'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0054
+  doc: docs/DECISIONS.md
+  line: 181
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  text: '- **Decision:** Streaming tokens and chunks are inspected at clause boundaries by `OutputSupervisorSession` using deterministic compiled grammar rules with markdown normalization (`*`, `_`, ``
+    ` ``, `~` stripping). When '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0055
+  doc: docs/DECISIONS.md
+  line: 185
+  number: 1/2
+  all_numbers:
+  - 1/2
+  - 1/2
+  - 1/2
+  - 849/849
+  text: Damping rates follow psychological half-lives ($t_{1/2, A} = 45\,\text{s}$, $t_{1/2, P} = 300\,\text{s}$, $t_{1/2, D} = 900\,\text{s}$). Cognitive feedback gain is mathematically clamped below $\min(\gamma_i)$
+    ($\text{ga
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0056
+  doc: docs/DECISIONS.md
+  line: 324
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  - 91/100
+  - 100/100
+  - 100/100
+  - 3/3
+  - 10/10
+  text: '- Official Run 3 result: 91.0% pass rate (91/100), 100% path compliance (100/100), 100% epistemic faithfulness (100/100), 100% tool recovery (3/3), median turn latency 9.39s. Flawless 10/10 in
+    Spatial 3D Kinematics, Form'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0057
+  doc: docs/DECISIONS.md
+  line: 326
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157 / 164
+  text: '- Canonical OpenAI HumanEval (Full 164 Tasks): 95.73% pass@1 (157 / 164).'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0058
+  doc: docs/DECISIONS.md
+  line: 327
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 30 / 30
+  text: '- GSM8K in PAL Mode: 100.0% (30 / 30) via Docker Python execution.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0059
+  doc: docs/DECISIONS.md
+  line: 328
+  number: 99.2%
+  all_numbers:
+  - 99.2%
+  - 248 / 250
+  text: '- Big-Bench Hard (BBH) Boolean Logic: 99.2% (248 / 250) on the full un-sampled 250-task suite.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0060
+  doc: docs/DECISIONS.md
+  line: 334
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100/100
+  text: 1. **GSM-Symbolic (Apple, Oct 2024):** 100.0% pass rate (100/100) in 527.4s under symbolic parameter perturbation via Docker PAL.
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0061
+  doc: docs/DECISIONS.md
+  line: 335
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  text: 2. **HumanEval-Plus (EvalPlus, 2024):** 91.46% pass@1 (150/164) in 1,016.8s under 80x adversarial differential testing, with 10 autonomous preflight docstring rescues in the Docker container.
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0062
+  doc: docs/DECISIONS.md
+  line: 336
+  number: 77.0%
+  all_numbers:
+  - 77.0%
+  - 77/100
+  - 87.0%
+  - 69.6%
+  text: 3. **MATH-500 in PAL Mode (2024):** 77.0% strict exact-string baseline (77/100 in 1,149.7s); 87.0% under SymPy algebraic equivalence; 69.6% accuracy on Level 5 competition problems.
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0063
+  doc: docs/DECISIONS.md
+  line: 354
+  number: 70/70
+  all_numbers:
+  - 70/70
+  - 0/50
+  text: '4. **Validation Battery:** Validated via 70-sentence formal battery (70/70 passing in `test_truth_in_receipt_battery.py`; broadened 2026-10-05 from 40 sentences across 8 categories: positive receipt-backed,
+    passive/markd'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0064
+  doc: docs/DECISIONS.md
+  line: 355
+  number: 0/50
+  all_numbers:
+  - 0/50
+  - 1/23
+  - 4.3%
+  - 0.8%
+  - 21.0%
+  - 1/8
+  - 12.5%
+  text: '5. **Amendment (2026-10-05, adversarial audit):** the live battery''s 0/50 control figure establishes only that the matcher is inactive on action-claim-free text — the 50 controls contain no action
+    claims, so it is not a '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0065
+  doc: docs/DECISIONS.md
+  line: 367
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 58.0%
+  text: '- For 12B: Raw direct generation achieves 89.0% on held-out math in 12.9s. Thinking scratchpads degrade greedy decoding ($T=0.0$) to 58.0% ($p = 4.66 \times 10^{-10}$).'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0066
+  doc: docs/DECISIONS.md
+  line: 368
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 73.0%
+  text: '- For E4B: Thinking Mode R1 @ 6k achieves 88.0% strict CAS on held-out math, significantly outperforming PAL P2 @ 2k (73.0%, $p = 0.0026$, discordant ratio 19:4).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0067
+  doc: docs/DECISIONS.md
+  line: 369
+  number: 81.0%
+  all_numbers:
+  - 81.0%
+  - 61.0%
+  text: '- For E2B: Thinking Mode R1 @ 6k achieves 81.0% strict CAS, significantly outperforming PAL P2 @ 2k (61.0%, $p = 0.0002$, discordant ratio 22:2). *(Correction 2026-10-05, adversarial audit: per-item
+    recount of the held-o'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0068
+  doc: docs/DECISIONS.md
+  line: 371
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 88.8%
+  - 77.0%
+  - 87.0%
+  - 74.20%
+  - 78.80%
+  text: 4. **Manifest Citations:** The held-out-100 Direct R0 figures (89.0% / 88.8% clean-98) are manifest record `math500_heldout100_direct_r0_v1_35_6` (`data/benchmarks/MANIFEST.yaml`); the v1.3 PAL
+    (77.0%/87.0%) and fresh N=
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0069
+  doc: docs/DECISIONS.md
+  line: 378
+  number: 0001/0006
+  all_numbers:
+  - 0001/0006
+  text: 3. **Enforcement points:** `schemas.py` (`Provenance` enum, `MEMORY_ELIGIBLE`, `GROUNDING_ELIGIBLE`), `signers.py` (`InferredAssertionSigner`), `gate.py` (admits the new provenance), `orchestrator.py`
+    (Concert chain step
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0070
+  doc: RESULTS.md
+  line: 3
+  number: 100/100
+  all_numbers:
+  - 100/100
+  text: '> **Honesty Note**: Historical v1.3 results were produced from a working tree that contained uncommitted changes. `v1.3-frozen` is the nearest reproducible snapshot. `v1.3-frozen` did not reproduce
+    bit-for-bit (20 of 25 '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0071
+  doc: RESULTS.md
+  line: 7
+  number: 79.20%
+  all_numbers:
+  - 79.20%
+  - 396/500
+  - 86.60%
+  - 433/500
+  - 80.53%
+  - 86.95%
+  text: '| `math-v1.3-fresh-500` | `4de6451` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 500 | 420 | 79.20%
+    (396/500) | 86.60% (433/500'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0072
+  doc: RESULTS.md
+  line: 8
+  number: 80.00%
+  all_numbers:
+  - 80.00%
+  - 20/25
+  - 80.00%
+  - 20/25
+  - 60.87%
+  - 91.14%
+  text: '| `math-v1.3-test-25-rep` | `55d1a1f` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 25 | 20 | 80.00%
+    (20/25) | 80.00% (20/25) | '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0073
+  doc: RESULTS.md
+  line: 9
+  number: 84.00%
+  all_numbers:
+  - 84.00%
+  - 21/25
+  - 84.00%
+  - 21/25
+  - 65.35%
+  - 93.60%
+  text: '| `math-v1.3-test-25-rep-A` | `55d1a1f` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 25 | 21 | 84.00%
+    (21/25) | 84.00% (21/25) '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0074
+  doc: RESULTS.md
+  line: 10
+  number: 76.00%
+  all_numbers:
+  - 76.00%
+  - 19/25
+  - 76.00%
+  - 19/25
+  - 56.57%
+  - 88.50%
+  text: '| `math-v1.3-test-25-rep-B` | `55d1a1f` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 25 | 19 | 76.00%
+    (19/25) | 76.00% (19/25) '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0075
+  doc: RESULTS.md
+  line: 11
+  number: 82.00%
+  all_numbers:
+  - 82.00%
+  - 82/100
+  - 88.00%
+  - 88/100
+  - 73.33%
+  - 88.30%
+  text: '| `math-v1.3-det-C` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 82 | 82.00% (82/100)
+    | 88.00% (88/100) | [73'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0076
+  doc: RESULTS.md
+  line: 12
+  number: 82.00%
+  all_numbers:
+  - 82.00%
+  - 82/100
+  - 88.00%
+  - 88/100
+  - 73.33%
+  - 88.30%
+  text: '| `math-v1.3-det-D` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 82 | 82.00% (82/100)
+    | 88.00% (88/100) | [73'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0077
+  doc: RESULTS.md
+  line: 13
+  number: 83.00%
+  all_numbers:
+  - 83.00%
+  - 83/100
+  - 89.00%
+  - 89/100
+  - 74.45%
+  - 89.11%
+  text: '| `math-v1.3-cache-on-C` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 83 | 83.00%
+    (83/100) | 89.00% (89/100) '
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0078
+  doc: RESULTS.md
+  line: 14
+  number: 84.00%
+  all_numbers:
+  - 84.00%
+  - 84/100
+  - 90.00%
+  - 90/100
+  - 75.58%
+  - 89.90%
+  text: '| `math-v1.3-cache-on-D` | `e0a8fbf` | v1.3-cas-3stage | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` | 100 | 84 | 84.00%
+    (84/100) | 90.00% (90/100) '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0079
+  doc: RESULTS.md
+  line: 15
+  number: 94.00%
+  all_numbers:
+  - 94.00%
+  - 94/100
+  - 94.00%
+  - 94/100
+  - 86.88%
+  - 97.54%
+  text: '| `gsm-symbolic-strat-100` | `bef28b5` | pal-docker-exact | `data/benchmarks/GSM_symbolic.jsonl` | `945055837b232bd9b56827b1e3a5aa019075f29e8ba4669d9a9df8b4439a291f` | 100 | 94 | 94.00% (94/100)
+    | 94.00% (94/100) | [86.8'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0080
+  doc: RESULTS.md
+  line: 16
+  number: 94.51%
+  all_numbers:
+  - 94.51%
+  - 155/164
+  - 94.51%
+  - 155/164
+  - 89.52%
+  - 97.30%
+  text: '| `humaneval-canonical-raw-164` | `bef28b5` | canonical-unit-tests | `data/benchmarks/humaneval.jsonl` | `1d49078ba3e2b196b9344535bef34a43021f038fad9561d6ee7c53450609a6a2` | 164 | 155 | 94.51%
+    (155/164) | 94.51% (155/164'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0081
+  doc: RESULTS.md
+  line: 17
+  number: 93.90%
+  all_numbers:
+  - 93.90%
+  - 154/164
+  - 93.90%
+  - 154/164
+  - 88.76%
+  - 96.87%
+  text: '| `humaneval-canonical-assisted-164` | `bef28b5` | canonical-unit-tests | `data/benchmarks/humaneval.jsonl` | `1d49078ba3e2b196b9344535bef34a43021f038fad9561d6ee7c53450609a6a2` | 164 | 154 | 93.90%
+    (154/164) | 93.90% (15'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0082
+  doc: RESULTS.md
+  line: 18
+  number: 78.60%
+  all_numbers:
+  - 78.60%
+  - 393/500
+  - 78.60%
+  - 393/500
+  - 74.69%
+  - 82.06%
+  text: '| `math-v1.3-regraded-strict-posthoc` | `25adb03` | v1.35-strict-posthoc | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38` |
+    500 | 393 | 78.60% (393/500'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0083
+  doc: RESULTS.md
+  line: 19
+  number: 78.60%
+  all_numbers:
+  - 78.60%
+  - 393/500
+  - 86.40%
+  - 432/500
+  - 83.01%
+  - 89.22%
+  text: '| `math-v1.3-regraded-lenient-posthoc` | `25adb03` | v1.35-lenient-posthoc | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38`
+    | 500 | 432 | 78.60% (393/5'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0084
+  doc: RESULTS.md
+  line: 20
+  number: 76.25%
+  all_numbers:
+  - 76.25%
+  - 305/400
+  - 81.50%
+  - 326/400
+  - 71.84%
+  - 80.16%
+  - 77.40%
+  - 85.00%
+  text: '| `math-v1.3-dev-400-baseline` | `e0a8fbf` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (101-500) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 400 | 319 | 76.25%
+    (305/400) | 81.50% (326/4'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0085
+  doc: RESULTS.md
+  line: 21
+  number: 74.75%
+  all_numbers:
+  - 74.75%
+  - 299/400
+  - 79.50%
+  - 318/400
+  - 70.27%
+  - 78.76%
+  - 75.27%
+  - 83.17%
+  text: '| `math-v1.35-dev-400` | `deacabe` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (101-500) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 400 | 318 | 74.75% (299/400)
+    | 79.50% (318/400) | [7'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0086
+  doc: RESULTS.md
+  line: 22
+  number: 76.50%
+  all_numbers:
+  - 76.50%
+  - 306/400
+  - 80.50%
+  - 322/400
+  - 72.10%
+  - 80.39%
+  - 76.33%
+  - 84.08%
+  text: '| `math-v1.35-dev-400-v2` | `9b6858e` | v1.35-dual | `data/benchmarks/math500_test.jsonl` (101-500) | `35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132` | 400 | 322 | 76.50% (306/400)
+    | 80.50% (322/400) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0087
+  doc: RESULTS.md
+  line: 23
+  number: 85.80%
+  all_numbers:
+  - 85.80%
+  - 429/500
+  - 90.20%
+  - 451/500
+  - 82.47%
+  - 88.59%
+  - 87.28%
+  - 92.51%
+  text: '| `math-v1.35-final-fresh-500` | `46486cf` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 500 | 451 | 85.80%
+    (429/500) | 90.20% (451/5'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0088
+  doc: RESULTS.md
+  line: 24
+  number: 89.00%
+  all_numbers:
+  - 89.00%
+  - 89/100
+  - 94.00%
+  - 94/100
+  - 80.8%
+  - 94.1%
+  - 86.9%
+  - 97.5%
+  - 3.0%
+  text: '| `12b-math500-heldout-r0-4k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 94 |
+    89.00% (89/100) | 94.00% ('
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0089
+  doc: RESULTS.md
+  line: 25
+  number: 86.00%
+  all_numbers:
+  - 86.00%
+  - 86/100
+  - 90.00%
+  - 90/100
+  - 77.3%
+  - 91.9%
+  - 82.0%
+  - 94.8%
+  - 5.0%
+  text: '| `12b-math500-heldout-p2-2k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 90 |
+    86.00% (86/100) | 90.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0090
+  doc: RESULTS.md
+  line: 26
+  number: 88.00%
+  all_numbers:
+  - 88.00%
+  - 88/100
+  - 92.00%
+  - 92/100
+  - 79.6%
+  - 93.4%
+  - 84.4%
+  - 96.2%
+  - 2.0%
+  text: '| `e4b-math500-heldout-r1-6k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 92 |
+    88.00% (88/100) | 92.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0091
+  doc: RESULTS.md
+  line: 27
+  number: 73.00%
+  all_numbers:
+  - 73.00%
+  - 73/100
+  - 83.00%
+  - 83/100
+  - 63.0%
+  - 81.2%
+  - 73.9%
+  - 89.5%
+  - 8.0%
+  text: '| `e4b-math500-heldout-p2-2k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 83 |
+    73.00% (73/100) | 83.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0092
+  doc: RESULTS.md
+  line: 28
+  number: 52.00%
+  all_numbers:
+  - 52.00%
+  - 52/100
+  - 54.00%
+  - 54/100
+  - 41.8%
+  - 62.0%
+  - 43.8%
+  - 63.9%
+  - 1.0%
+  text: '| `e4b-math500-heldout-r0-4k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 54 |
+    52.00% (52/100) | 54.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0093
+  doc: RESULTS.md
+  line: 29
+  number: 81.00%
+  all_numbers:
+  - 81.00%
+  - 81/100
+  - 86.00%
+  - 86/100
+  - 71.7%
+  - 87.9%
+  - 77.3%
+  - 91.9%
+  - 10.0%
+  text: '| `e2b-math500-heldout-r1-6k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 86 |
+    81.00% (81/100) | 86.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0094
+  doc: RESULTS.md
+  line: 30
+  number: 61.00%
+  all_numbers:
+  - 61.00%
+  - 61/100
+  - 70.00%
+  - 70/100
+  - 50.7%
+  - 70.4%
+  - 59.9%
+  - 78.6%
+  - 14.0%
+  text: '| `e2b-math500-heldout-p2-2k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 70 |
+    61.00% (61/100) | 70.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0095
+  doc: RESULTS.md
+  line: 31
+  number: 51.00%
+  all_numbers:
+  - 51.00%
+  - 51/100
+  - 55.00%
+  - 55/100
+  - 40.9%
+  - 61.1%
+  - 44.8%
+  - 64.9%
+  - 4.0%
+  text: '| `e2b-math500-heldout-r0-4k` | `8b80456` | v1.35-dual | `data/benchmarks/math_fresh_heldout_500.jsonl` (1-100) | `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` | 100 | 55 |
+    51.00% (51/100) | 55.00% ('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0096
+  doc: RESULTS.md
+  line: 39
+  number: 77.0%
+  all_numbers:
+  - 77.0%
+  - 87.0%
+  text: '`math500_pal_v1_3` (77.0%/87.0% PAL Dev-100, superseded),'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0097
+  doc: RESULTS.md
+  line: 40
+  number: 74.20%
+  all_numbers:
+  - 74.20%
+  - 78.80%
+  text: '`math500_fresh_heldout_500_v1_3_0` (74.20%/78.80% fresh N=500, superseded,'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0098
+  doc: RESULTS.md
+  line: 41
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  text: dataset-drift bound), and `math500_heldout100_direct_r0_v1_35_6` (89.0%
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0099
+  doc: RESULTS.md
+  line: 57
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 89/100
+  - 88.8%
+  - 87/98
+  text: '| **Gemma 4 12B Direct (R0 @ 4,096 cap)** | 89.0% (89/100) | **88.8% (87/98)** | $-0.2\text{ pp}$ | None (Remains peak raw generator) |'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0100
+  doc: RESULTS.md
+  line: 58
+  number: 86.0%
+  all_numbers:
+  - 86.0%
+  - 86/100
+  - 85.7%
+  - 84/98
+  text: '| **Gemma 4 12B PAL (P2 @ 2,048 cap)** | 86.0% (86/100) | **85.7% (84/98)** | $-0.3\text{ pp}$ | None |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0101
+  doc: RESULTS.md
+  line: 59
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 88/100
+  - 87.8%
+  - 86/98
+  text: '| **Gemma 4 E4B Routed / Thinking (R1 @ 6,144 cap)** | 88.0% (88/100) | **87.8% (86/98)** | $-0.2\text{ pp}$ | None (Retains statistical parity with 12B) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0102
+  doc: RESULTS.md
+  line: 60
+  number: 73.0%
+  all_numbers:
+  - 73.0%
+  - 73/100
+  - 73.5%
+  - 72/98
+  text: '| **Gemma 4 E4B PAL (P2 @ 2,048 cap)** | 73.0% (73/100) | **73.5% (72/98)** | $+0.5\text{ pp}$ | None (R1 retains significant +14.3 pp lead) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0103
+  doc: RESULTS.md
+  line: 61
+  number: 52.0%
+  all_numbers:
+  - 52.0%
+  - 52/100
+  - 51.0%
+  - 50/98
+  text: '| **Gemma 4 E4B Direct (R0 @ 4,096 cap)** | 52.0% (52/100) | **51.0% (50/98)** | $-1.0\text{ pp}$ | None |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0104
+  doc: RESULTS.md
+  line: 62
+  number: 81.0%
+  all_numbers:
+  - 81.0%
+  - 81/100
+  - 80.6%
+  - 79/98
+  text: '| **Gemma 4 E2B Thinking (R1 @ 6,144 cap)** | 81.0% (81/100) | **80.6% (79/98)** | $-0.4\text{ pp}$ | None (Retains significant +19.4 pp lead over P2) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0105
+  doc: RESULTS.md
+  line: 63
+  number: 61.0%
+  all_numbers:
+  - 61.0%
+  - 61/100
+  - 61.2%
+  - 60/98
+  text: '| **Gemma 4 E2B PAL (P2 @ 2,048 cap)** | 61.0% (61/100) | **61.2% (60/98)** | $+0.2\text{ pp}$ | None |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0106
+  doc: RESULTS.md
+  line: 64
+  number: 51.0%
+  all_numbers:
+  - 51.0%
+  - 51/100
+  - 50.0%
+  - 49/98
+  text: '| **Gemma 4 E2B Direct (R0 @ 4,096 cap)** | 51.0% (51/100) | **50.0% (49/98)** | $-1.0\text{ pp}$ | None |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0107
+  doc: RESULTS.md
+  line: 76
+  number: 5 / 3
+  all_numbers:
+  - 5 / 3
+  - 12.5%
+  - 1/8
+  - 2.2%
+  - 47.1%
+  text: '| **Strict Completed Actions Only** | 5 / 3 / **8** | **1** (E4B T01) | **12.5% (1/8)** [2.2%, 47.1%] | Unequivocal completions only (past tense, telegraphic confirmations) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0108
+  doc: RESULTS.md
+  line: 77
+  number: 15 / 8
+  all_numbers:
+  - 15 / 8
+  - 4.3%
+  - 1/23
+  - 0.8%
+  - 21.0%
+  text: '| **Broad FAC (Primary Audit)** | 15 / 8 / **23** | **1** (E4B T01) | **4.3% (1/23)** [0.8%, 21.0%] | Includes active progressive participles and markdown action headers |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0109
+  doc: RESULTS.md
+  line: 78
+  number: 0 / 50
+  all_numbers:
+  - 0 / 50
+  - 0.0%
+  - 0/50
+  text: '| **Controls ($n=50$)** | 0 / 50 FP | — | **0.0% FP (0/50)** | Zero false aborts across 25 honest controls + 25 idiom controls |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0110
+  doc: README.md
+  line: 71
+  number: 0/25
+  all_numbers:
+  - 0/25
+  text: '- **Strict Abstention Guarantee:** When verified information is absent ($\bot$), Lucca refuses to confabulate and responds: *"I checked my records, but have no verified record of that. I don''t
+    know the answer and won''t g'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0111
+  doc: README.md
+  line: 74
+  number: 1/2
+  all_numbers:
+  - 1/2
+  - 1/2
+  - 1/2
+  text: '- **3D PAD Affective ODE:** Governs emotional temperament (Pleasure, Arousal, Dominance) using closed-form discrete differential equations with psychological half-lives ($t_{1/2, A} = 45\,\text{s}$,
+    $t_{1/2, P} = 300\,\t'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0112
+  doc: README.md
+  line: 89
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  - 0.00%
+  - 3.70%
+  text: '- **Multi-Stage Tolerant Code Extraction (`ast_sanitizer.py`):** Replaced fragile regex extraction with deterministic AST parsing (`fenced` $\to$ `unfenced` $\to$ `longest_ast_slice` $\to$ `empty`),
+    eliminating 100% of e'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0113
+  doc: README.md
+  line: 91
+  number: 85.11%
+  all_numbers:
+  - 85.11%
+  - 40 / 47
+  text: '- **Tier 2 Autonomous Execution Feedback Loop (Cap $\le 2$ Rounds):** Intercepts container tracebacks and non-zero exit codes to feed structured diagnostic payloads back to the neural boiler, achieving
+    an **85.11% recove'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0114
+  doc: README.md
+  line: 123
+  number: 0 / 25
+  all_numbers:
+  - 0 / 25
+  text: '| **Epistemic Abstention Accuracy**| 25-question confabulation test battery | **$0 / 25$ hallucinations (100% adherence)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0115
+  doc: README.md
+  line: 125
+  number: 10 / 10
+  all_numbers:
+  - 10 / 10
+  text: '| **Frozen Packaging Acceptance** | `Lucca.exe --check` 10-point native hardware audit | **$10 / 10$ criteria PASSED (code 0)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0116
+  doc: README.md
+  line: 126
+  number: 24 / 24
+  all_numbers:
+  - 24 / 24
+  text: '| **Static Architectural Gates** | Architectural invariants, zero-`Any`, provenance, staleness linter, registry consistency | **$24 / 24$ gates PASSED (code 0)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0117
+  doc: README.md
+  line: 127
+  number: 243 / 1
+  all_numbers:
+  - 243 / 1
+  text: '| **Full Regression Test Suite** | 70+ test modules covering all subsystems | **1,243 / 1,243 PASSED (68 deselected, 100% GREEN)** — record `metrics-2026-10-05` (`data/metrics/TEST_METRICS.yaml`)
+    | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0118
+  doc: README.md
+  line: 128
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  - 91/100
+  - 3/3
+  text: '| **Track 1: SPEC-BENCH-100-v1.0** | 100-problem multi-domain frozen ground-truth cognitive battery (Run 3) | **91.0% (91/100)**; Path: **100%**; Epistemic: **100%**; Tool Rec: **3/3** | **Verified**
+    |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0119
+  doc: README.md
+  line: 129
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157 / 164
+  text: '| **Track 2: Canonical HumanEval**| Full 164 coding tasks pass@1 executed in Docker sandbox | **95.73% pass@1 (157 / 164)** | **Verified** |'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0120
+  doc: README.md
+  line: 130
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 30 / 30
+  text: '| **Track 2: GSM8K in PAL Mode**  | Program-Aided Language math executed via Docker Python | **100.0% (30 / 30)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0121
+  doc: README.md
+  line: 131
+  number: 99.2%
+  all_numbers:
+  - 99.2%
+  - 248 / 250
+  text: '| **Track 2: BBH Boolean Logic**  | Big-Bench Hard algorithmic Boolean evaluation (full un-sampled suite)| **99.2% (248 / 250)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0122
+  doc: README.md
+  line: 132
+  number: 84.0%
+  all_numbers:
+  - 84.0%
+  - 210 / 250
+  text: '| **Track 2: BBH Geometric Shapes**| Big-Bench Hard SVG shape classification (full un-sampled suite)       | **84.0% (210 / 250)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0123
+  doc: README.md
+  line: 133
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 250 / 250
+  text: '| **Track 2: BBH 3-Object Tracking**| Big-Bench Hard permutation tracking (full un-sampled suite)          | **100.0% (250 / 250)**| **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0124
+  doc: README.md
+  line: 134
+  number: 86.4%
+  all_numbers:
+  - 86.4%
+  - 216 / 250
+  text: '| **Track 2: BBH Dyck Languages**  | Big-Bench Hard bracket closure completion (full un-sampled suite)    | **86.4% (216 / 250)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0125
+  doc: README.md
+  line: 135
+  number: 92.40%
+  all_numbers:
+  - 92.40%
+  - 924 / 1
+  text: '| **Track 2: BBH Consolidated**   | Complete 1,000-task Big-Bench Hard unaugmented battery               | **92.40% (924 / 1,000)**| **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0126
+  doc: README.md
+  line: 136
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100 / 100
+  text: '| **Track 3: GSM-Symbolic**        | Apple Oct 2024 symbolic math under parameter perturbation (Docker PAL)| **100.0% (100 / 100)** in 527.4s     | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0127
+  doc: README.md
+  line: 137
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150 / 164
+  text: '| **Track 3: HumanEval-Plus**      | EvalPlus 2024 164 coding tasks with 80x adversarial differential tests| **91.46% pass@1 (150 / 164)** in 1,016.8s (10 preflight rescues)| **Verified** |'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0128
+  doc: README.md
+  line: 138
+  number: 77.0%
+  all_numbers:
+  - 77.0%
+  - 87.0%
+  - 69.6%
+  text: '| **Track 3: MATH-500 in PAL Mode**| AMC/AIME competition math via Docker Python/SymPy (v1.2 baseline)    | **77.0% strict / 87.0% SymPy** (69.6% L5) in 1,149.7s | **Verified** |'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0129
+  doc: README.md
+  line: 139
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  - 0 / 100
+  - 0.00%
+  - 3.70%
+  text: '| **v1.3.0: Tolerant AST Residual**| 100-problem empirical audit of empty code extraction                  | **0.0% residual (0 / 100)**, 95% CI: [0.00%, 3.70%] | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0130
+  doc: README.md
+  line: 140
+  number: 85.11%
+  all_numbers:
+  - 85.11%
+  - 40 / 47
+  - 27/30
+  - 13/17
+  text: '| **v1.3.0: Neurosymbolic Recovery**| 2-tier preflight compiler + 2-turn execution feedback on failure traces| **85.11% recovery (40 / 47)** (27/30 design, 13/17 held-out) | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0131
+  doc: README.md
+  line: 141
+  number: 7 / 7
+  all_numbers:
+  - 7 / 7
+  text: '| **v1.3.0: 3-Stage CAS Grader**   | String match $\to$ 5-pt random numeric $\to$ 2.0s worker thread SymPy CAS | **7 / 7 test gates PASSED (100% GREEN)** | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0132
+  doc: README.md
+  line: 142
+  number: 74.20%
+  all_numbers:
+  - 74.20%
+  - 371/500
+  - 78.80%
+  - 394/500
+  - 0.0%
+  - 81.7%
+  text: '| **v1.3.0: Fresh Held-Out 500**   | Unseen 500-problem competition suite (32K ctx + feedback loop)       | **74.20% strict (371/500) / 78.80% CAS (394/500)** (0.0% false accepts, 81.7% L4 AIME)
+    — manifest record `math50'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0133
+  doc: README.md
+  line: 143
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: '| **v1.3.0: Persistent HTTP Pool** | Keepalive connection recycling (`max_keepalive_connections=10`)       | **285.2 ms** Turn-2 TTFT (0 socket leaks, 24/24 race tests pass) | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0134
+  doc: README.md
+  line: 144
+  number: 97.5%
+  all_numbers:
+  - 97.5%
+  - 39 / 40
+  - 10/10
+  - 10/10
+  - 10/10
+  text: '| **v1.3.0: Closing BBH Regression**| Full 4-subset algorithmic regression test battery                    | **97.5% passed (39 / 40)** in 277.8s (10/10 Boolean, 10/10 Tracking, 10/10 Dyck) | **Verified**
+    |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0135
+  doc: README.md
+  line: 145
+  number: 70 / 70
+  all_numbers:
+  - 70 / 70
+  - 1/23
+  - 4.3%
+  - 1/8
+  - 12.5%
+  - 0/50
+  text: '| **v1.35.6: Truth-in-Receipt Battery** | 70-sentence formal supervisor battery across 8 categories (P6 broadening: positive receipt-backed, passive/markdown/multilingual, stale-receipt, failed-status)
+    | **70 / 70 PASSED'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0136
+  doc: README.md
+  line: 146
+  number: 11 / 11
+  all_numbers:
+  - 11 / 11
+  text: '| **v1.35.6: Memory Tamper Quarantine** | HKDF HMAC-SHA256 read-time tamper detection & persistent quarantine | **11 / 11 test gates PASSED**; key persistence & zero amnesia | **Verified** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0137
+  doc: README.md
+  line: 147
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 88.0%
+  - 81.0%
+  - 88.8%
+  - 87.8%
+  - 80.6%
+  text: '| **v1.35.6: Multi-Scale Held-Out 100** | Unseen competition math across 3 scales: 12B Direct R0, E4B R1, E2B R1 | **89.0% (12B) / 88.0% (E4B) / 81.0% (E2B)** (88.8%/87.8%/80.6% on 98-item clean)
+    | **Verified** |'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0138
+  doc: README.md
+  line: 220
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  - 85.11%
+  text: '| [`docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md`](./docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md) | **Deontic Sandbox & Structural Compiler** | Persistent Docker RPC daemon (7.8ms
+    P50), stdin code streaming '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0139
+  doc: README.md
+  line: 232
+  number: 75.80%
+  all_numbers:
+  - 75.80%
+  - 91.46%
+  text: '| **Paper 1** | **JAIR / NeurIPS 2026** | [`docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md`](./docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md)<br>Empirical
+    evaluation of '
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0140
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 17
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 94.51%
+  - 93.90%
+  - 92.4%
+  - 92.1%
+  - 150/151
+  - 74.20%
+  - 78.80%
+  - 89.0%
+  - 88.0%
+  - 81.0%
+  text: 'As of v1.35.6 (`docs/LUCCA_V135_1_ARCHITECTURE.md`), the core live path is fully wired, verified across **1,243 passing unit tests** (record `metrics-2026-10-05`, `data/metrics/TEST_METRICS.yaml`),
+    and running locally: p'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0141
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 156
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  - 91 / 100
+  - 100.0%
+  - 100.0%
+  - 100.0%
+  - 3/3
+  - 10/10
+  text: '- **Live Silicon Result:** **91.0% (91 / 100)** overall pass rate, **100.0% path policy compliance** (zero unpermitted tools), **100.0% epistemic faithfulness** (zero hallucinated receipts or false
+    actions), and **100.0%'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0142
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 170
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157 / 164
+  text: '- **OpenAI HumanEval:** **95.73% pass@1 (157 / 164)** zero-shot code synthesis passing all unit test assertions in Docker.'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0143
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 171
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 30 / 30
+  text: '- **GSM8K in PAL Mode:** **100.0% (30 / 30)** accuracy via Docker Python execution.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0144
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 172
+  number: 99.2%
+  all_numbers:
+  - 99.2%
+  - 248 / 250
+  text: '- **Big-Bench Hard Boolean Logic:** **99.2% (248 / 250)** across the full un-sampled 250-task suite.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0145
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 173
+  number: 84.0%
+  all_numbers:
+  - 84.0%
+  - 210 / 250
+  text: '- **Big-Bench Hard Geometric Shapes:** **84.0% (210 / 250)** across the full un-sampled 250-task suite.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0146
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 174
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 250 / 250
+  text: '- **Big-Bench Hard 3-Object Tracking:** **100.0% (250 / 250)** across the full un-sampled 250-task suite.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0147
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 175
+  number: 86.4%
+  all_numbers:
+  - 86.4%
+  - 216 / 250
+  text: '- **Big-Bench Hard Dyck Languages:** **86.4% (216 / 250)** across the full un-sampled 250-task suite.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0148
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 176
+  number: 92.40%
+  all_numbers:
+  - 92.40%
+  - 924 / 1
+  text: '- **Big-Bench Hard Consolidated:** **92.40% (924 / 1,000)** across all 4 unaugmented subsets.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0149
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 187
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100 / 100
+  text: '- **Apple GSM-Symbolic ($N=100$):** **100.0% (100 / 100)** in 527.4s with zero calculation variance across symbolic constant substitutions.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0150
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 188
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150 / 164
+  text: '- **EvalPlus HumanEval-Plus ($N=164$):** **91.46% pass@1 (150 / 164)** under $\sim 80\times$ dense adversarial inputs, with 10 failing solutions autonomously rescued by the Docker preflight loop.'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0151
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 189
+  number: 371 / 500
+  all_numbers:
+  - 371 / 500
+  - 74.20%
+  - 394 / 500
+  - 78.80%
+  - 4.60%
+  - 0.00%
+  - 81.68%
+  - 107 / 131
+  - 61.76%
+  - 84 / 136
+  - 0.0%
+  - 0 / 500
+  - 67.00%
+  - 71.40%
+  - 77.0%
+  - 87.0%
+  - 77.0%
+  - 87.0%
+  text: '- **MATH-500 Fresh Held-Out Suite ($N=500$, SHA-256: `834405fa...`):** **371 / 500 (74.20%) strict exact match** and **394 / 500 (78.80%) uniform 3-stage SymPy CAS** in 3,470.1s (+4.60% CAS delta,
+    0.00% False-Accept Rate'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0152
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 197
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  - 0 / 100
+  - 0.00%
+  - 3.70%
+  text: '- Achieved **0.0% empty code drops (0 / 100)** on audited competition problems (95% CI: [0.00%, 3.70%]), completely resolving regex truncation bugs.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0153
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 203
+  number: 85.11%
+  all_numbers:
+  - 85.11%
+  - 40 / 47
+  - 27/30
+  - 13/17
+  text: '- Verified on physical silicon: achieved an **85.11% recovery rate (40 / 47)** on previously failing baseline problems (27/30 design, 13/17 held-out).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0154
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 278
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 95.75%
+  - 92.40%
+  - 97.5%
+  - 91.46%
+  - 74.20%
+  - 78.80%
+  text: '| Three-Track Cognitive & Academic Benchmark Batteries | **Shipped (WO-25, D-EVAL-02, v1.3.0)** | Live harnesses: Track 1 `tests/test_compound_reasoning_benchmark.py` (91%), Track 2 `scripts/run_standard_academic_benchma'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0155
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 279
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  text: '| Structural Compiler & Tolerant AST Sanitizer | **Shipped (WO-28 Phase 1)** | Multi-stage tolerant extraction (`fenced` $\to$ `unfenced` $\to$ `longest_ast_slice`) with 0.0% empty code residual
+    across 100 problems in `s'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0156
+  doc: docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+  line: 280
+  number: 85.11%
+  all_numbers:
+  - 85.11%
+  - 40/47
+  text: '| 2-Tier Neurosymbolic Execution Feedback Loop | **Shipped (WO-28 Phase 3)** | Sub-millisecond Turn-1 compiler preflight + 2-turn execution feedback recovering 85.11% of baseline runtime crashes
+    (40/47 dev failure traces'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0157
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 20
+  number: 70/70
+  all_numbers:
+  - 70/70
+  - 97/97
+  - 105/105
+  text: 2. **Deterministic Output & Claim Supervision:** Hardens the `TruthInReceiptMatcher` against false aborts across analytical idioms, possessive determinations, and epistemic hedges, verified across
+    a 70-sentence formal ba
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0158
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 21
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 58.0%
+  - 90.0%
+  text: '3. **The 12B Scale Inversion Under Greedy Decoding:** Documents that under greedy decoding ($T=0.0$), extended unslotted thinking scratchpads degrade Gemma 4 12B on competition mathematics (dropping
+    from 90.0% direct to '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0159
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 22
+  number: 70.0%
+  all_numbers:
+  - 70.0%
+  - 77.0%
+  - 73.0%
+  - 83.0%
+  - 92.0%
+  text: 4. **Edge Truncation Isolation:** Demonstrates that doubling the PAL code token cap from 1,024 to 2,048 tokens rescues edge models from premature code truncation, lifting E2B strict accuracy from
+    70.0% to 77.0% ($p=0.015
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0160
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 23
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 92.0%
+  - 79.6%
+  - 93.4%
+  - 73.0%
+  - 83.0%
+  text: 5. **Fresh Held-Out Evaluation & Router Nature:** Evaluates $n=100$ fresh, unseen competition mathematics problems ([`data/benchmarks/math_fresh_heldout_500.jsonl`](file:///c:/Projects/ProjectLucca/data/benchmarks/math_f
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0161
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 36
+  number: 61.2%
+  all_numbers:
+  - 61.2%
+  - 26.9%
+  - 13.9%
+  text: '| **Active VRAM Footprint** | **9,972 MiB (61.2%)** | **4,382 MiB (26.9%)** | **2,260 MiB (13.9%)** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0162
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 37
+  number: 38.8%
+  all_numbers:
+  - 38.8%
+  - 73.1%
+  - 86.1%
+  text: '| **Free VRAM Headroom** | 6,331 MiB (38.8%) | **11,921 MiB (73.1%)** | **14,043 MiB (86.1%)** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0163
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 145
+  number: 66/66
+  all_numbers:
+  - 66/66
+  - 74/74
+  text: '- **Formal 70-Sentence Battery** *(broadened 2026-10-05 from 40 sentences; 8 categories A–H, adding positive receipt-backed broader surface forms, passive/markdown/multilingual characterization,
+    stale-receipt via `stale_'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0164
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 151
+  number: 12.5%
+  all_numbers:
+  - 12.5%
+  - 2.2%
+  - 47.1%
+  text: '- **Strict Completed Actions Only:** Models emitted **8 unequivocal completion claims** without tool receipts (5 on E4B, 3 on E2B). The supervisor detected **1 of 8 completed action claims (12.5%,
+    95% Wilson CI: [2.2%, 4'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0165
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 152
+  number: 4.3%
+  all_numbers:
+  - 4.3%
+  - 0.8%
+  - 21.0%
+  text: '- **Broad FAC (Primary Audit):** Models emitted **23 ungrounded action assertions** including present progressives and structured action headers (15 on E4B, 8 on E2B). The supervisor detected **1
+    of 23 false action claim'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0166
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 153
+  number: 6.7%
+  all_numbers:
+  - 6.7%
+  - 1.2%
+  - 29.8%
+  - 0.0%
+  - 0.0%
+  - 32.4%
+  text: '- **Per-Model Detail (Broad):** Gemma 4 E4B emitted 15 claims (1 caught [T01], 14 escaped; recall 6.7% [1.2%, 29.8%]; 35 clean). Gemma 4 E2B emitted 8 claims (0 caught, 8 escaped; recall 0.0% [0.0%,
+    32.4%]; 42 clean).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0167
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 154
+  number: 0 / 50
+  all_numbers:
+  - 0 / 50
+  text: '- **Controls ($n=50$):** 0 / 50 false alarms were triggered. However, because all 50 control probes are action-free text without tool receipts, this confirms only that the matcher is inactive on
+    text devoid of action cla'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0168
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 158
+  number: 5 / 3
+  all_numbers:
+  - 5 / 3
+  - 12.5%
+  - 1/8
+  - 2.2%
+  - 47.1%
+  text: '| **Strict Completed Actions Only** | 5 / 3 / **8** | **1** (E4B T01) | **12.5% (1/8)** [2.2%, 47.1%] | Unequivocal completions only: past tense (*"I deleted"*), telegraphic (*"Done"*), state assertions
+    (*"Reminder set"*'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0169
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 159
+  number: 15 / 8
+  all_numbers:
+  - 15 / 8
+  - 4.3%
+  - 1/23
+  - 0.8%
+  - 21.0%
+  text: '| **Broad FAC (Primary Audit)** | 15 / 8 / **23** | **1** (E4B T01) | **4.3% (1/23)** [0.8%, 21.0%] | Includes active progressive participles and structured markdown action markers |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0170
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 160
+  number: 2 / 1
+  all_numbers:
+  - 2 / 1
+  - 33.3%
+  - 1/3
+  - 6.1%
+  - 79.2%
+  text: '| **Embedded Artifact Fields (Regex)** | 2 / 1 / **3** | **1** (E4B T01) | **33.3% (1/3)** [6.1%, 79.2%] | Legacy automated regex fields embedded in raw JSONs; circular with matcher |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0171
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 187
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 73.0%
+  text: '*(Design Note: For Gemma 4 E4B on competition math, PAL P2 @ 2k remains an optional operator-selected efficiency profile saving 40% tokens and 1.6× latency on dev-like problems, but Thinking Mode
+    R1 @ 6k is the canonical'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0172
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 190
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 58.0%
+  text: 1. **For 12B Unified:** Raw generation achieves 90.0% strict accuracy with 660 tokens in 12.9s. Under greedy decoding ($T=0.0$), unconstrained thinking triggers circular re-verification loops that
+    crash accuracy to 58.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0173
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 193
+  number: 83.0%
+  all_numbers:
+  - 83.0%
+  - 92.0%
+  - 85.0%
+  - 86.0%
+  text: '- **On Dev Split ($n=100$):** PAL @ 2,048 cap scored 83.0% strict / 92.0% lenient (10.1s, 1,070 tok), tying Thinking Mode R1 @ 4k (85.0% strict / 86.0% lenient, $p=0.7905$ NS).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0174
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 194
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 92.0%
+  - 73.0%
+  - 83.0%
+  text: '- **On Held-Out Split ($n=100$):** Evaluated side-by-side on the identical 100 unseen competition problems, Thinking Mode R1 @ 6k scored **88.0% strict / 92.0% lenient**, while PAL P2 @ 2k scored
+    **73.0% strict / 83.0% l'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0175
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 209
+  number: 84.0%
+  all_numbers:
+  - 84.0%
+  - 85.0%
+  - 81.0%
+  text: Spec 100 System Suite†      Overall Accuracy (Mean)    84.0% (82–86%)*      85.0%                81.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0176
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 210
+  number: 15 / 15
+  all_numbers:
+  - 15 / 15
+  - 100.0%
+  - 15 / 15
+  - 100.0%
+  - 10 / 15
+  text: Tool Precision / Recall    15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0177
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 211
+  number: 10 / 10
+  all_numbers:
+  - 10 / 10
+  - 100.0%
+  - 10 / 10
+  - 100.0%
+  - 10 / 10
+  - 100.0%
+  text: OS / Host Guardrails       10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0178
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 212
+  number: 9 / 10
+  all_numbers:
+  - 9 / 10
+  - 90.0%
+  - 3 / 10
+  - 30.0%
+  text: Content Safety Refusal**   9 / 10 (90.0%)       3 / 10 (30.0%)       Not Evaluated
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0179
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 215
+  number: 95.0%
+  all_numbers:
+  - 95.0%
+  - 94.0%
+  - 91.0%
+  text: GSM-Symbolic (100-strat)‡   PAL P2 Accuracy (Docker)   95.0%                94.0%                91.0%
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0180
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 216
+  number: 93.0%
+  all_numbers:
+  - 93.0%
+  - 91.0%
+  - 81.0%
+  text: Direct R0 Accuracy         93.0%                91.0%                81.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0181
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 219
+  number: 155 / 164
+  all_numbers:
+  - 155 / 164
+  - 94.5%
+  - 144 / 164
+  - 87.8%
+  - 123 / 164
+  - 75.0%
+  text: HumanEval Canonical 164‡    Raw Pass@1                 155 / 164 (94.5%)    144 / 164 (87.8%)    123 / 164 (75.0%)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0182
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 220
+  number: 154 / 164
+  all_numbers:
+  - 154 / 164
+  - 93.9%
+  - 141 / 164
+  - 86.0%
+  - 126 / 164
+  - 76.8%
+  text: Assisted Pass@1            154 / 164 (93.9%)    141 / 164 (86.0%)    126 / 164 (76.8%)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0183
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 223
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 93.0%
+  - 50.0%
+  - 50.0%
+  - 51.0%
+  - 51.0%
+  text: MATH-500 Dev (100 items)‡   Direct R0 (Strict / Len)   90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%***
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0184
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 224
+  number: 85.0%
+  all_numbers:
+  - 85.0%
+  - 87.0%
+  - 73.0%
+  - 77.0%
+  - 70.0%
+  - 75.0%
+  text: PAL P2 @ 1k (Historical)   85.0% / 87.0%        73.0% / 77.0%        70.0% / 75.0%
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0185
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 225
+  number: 83.0%
+  all_numbers:
+  - 83.0%
+  - 92.0%
+  - 77.0%
+  - 85.0%
+  text: PAL P2 @ 2k (Uncapped Code) —                   83.0% / 92.0%        77.0% / 85.0%
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0186
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 226
+  number: 76.0%
+  all_numbers:
+  - 76.0%
+  - 84.0%
+  text: PAL P3 (PAL + Thinking)    —                    —                    76.0% / 84.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0187
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 227
+  number: 85.0%
+  all_numbers:
+  - 85.0%
+  - 86.0%
+  - 81.0%
+  - 82.0%
+  text: Thinking R1 @ 4k           —                    85.0% / 86.0%        81.0% / 82.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0188
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 228
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  - 59.0%
+  - 84.0%
+  - 85.0%
+  text: Thinking R1 @ 6k           58.0% / 59.0%        —                    84.0% / 85.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0189
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 230
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 52.0%
+  - 51.0%
+  text: MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)    89.0% [80.8, 94.1]   52.0% [41.8, 62.0]   51.0% [40.9, 61.1]
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0190
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 231
+  number: 94.0%
+  all_numbers:
+  - 94.0%
+  - 54.0%
+  - 55.0%
+  text: (Unseen 100 Problems)       Direct R0 @ 4k (Lenient)   94.0% [86.9, 97.5]   54.0% [43.8, 63.9]   55.0% [44.8, 64.9]
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0191
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 232
+  number: 86.0%
+  all_numbers:
+  - 86.0%
+  - 73.0%
+  - 61.0%
+  text: PAL P2 @ 2k (Strict)       86.0% [77.3, 91.9]   73.0% [63.0, 81.2]   61.0% [50.7, 70.4]
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0192
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 233
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 83.0%
+  - 70.0%
+  text: PAL P2 @ 2k (Lenient)      90.0% [82.0, 94.8]   83.0% [73.9, 89.5]   70.0% [59.9, 78.6]
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0193
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 234
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  - 88.0%
+  - 81.0%
+  text: 'Thinking R1 @ 6k (Strict)  (Dev: 58.0% [47.7])  88.0% [79.6, 93.4]   81.0% [71.7, 87.9]'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0194
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 235
+  number: 59.0%
+  all_numbers:
+  - 59.0%
+  - 92.0%
+  - 86.0%
+  text: 'Thinking R1 @ 6k (Lenient) (Dev: 59.0% [48.7])  92.0% [84.4, 96.2]   86.0% [77.3, 91.9]'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0195
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 236
+  number: 3.0%
+  all_numbers:
+  - 3.0%
+  - 5.0%
+  - 1.0%
+  - 8.0%
+  - 2.0%
+  - 4.0%
+  - 14.0%
+  - 10.0%
+  text: Truncations (R0 / P2 / R1) 3.0% / 5.0% / —      1.0% / 8.0% / 2.0%   4.0% / 14.0% / 10.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0196
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 238
+  number: 84.0%
+  all_numbers:
+  - 84.0%
+  text: † Spec 100 was evaluated under sampling temperature T=0.6 (reproducibility range 82–86%, mean 84.0% ± 2.0 pp noise floor).
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0197
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 242
+  number: 52.0%
+  all_numbers:
+  - 52.0%
+  - 57.0%
+  text: '*** Tested directly on identical Dev-100 items with 4,096-token cap: E4B R0 scored 52.0% (5:3 discordant, p = 0.7266 NS) and E2B R0 scored 57.0% (10:4 discordant, p = 0.1796 NS). A larger token
+    budget did not produce a s'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0198
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 243
+  number: 88.8%
+  all_numbers:
+  - 88.8%
+  - 87/98
+  - 89.0%
+  - 85.7%
+  - 84/98
+  - 86.0%
+  - 87.8%
+  - 86/98
+  - 88.0%
+  - 73.5%
+  - 72/98
+  - 73.0%
+  - 51.0%
+  - 50/98
+  - 52.0%
+  - 80.6%
+  - 79/98
+  - 81.0%
+  - 61.2%
+  - 60/98
+  - 61.0%
+  - 50.0%
+  - 49/98
+  - 51.0%
+  text: '**** Split Nomenclature, Leak Disclosure & 98-Item Robustness: Dev split comprises lines 1–100 of math500_test.jsonl (historically designated ''test-100'' in v1.3 before prompt-tuning contamination
+    audit handover/V135_CONT'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0199
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 248
+  number: 77.0%
+  all_numbers:
+  - 77.0%
+  - 87.0%
+  text: (current); the v1.3-era PAL Dev-100 (77.0%/87.0%) and fresh N=500
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0200
+  doc: docs/LUCCA_V135_1_ARCHITECTURE.md
+  line: 249
+  number: 74.20%
+  all_numbers:
+  - 74.20%
+  - 78.80%
+  text: (74.20%/78.80%) figures are records `math500_pal_v1_3` and
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0201
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 14
+  number: 37.4%
+  all_numbers:
+  - 37.4%
+  text: 'All evaluations in this study were conducted strictly under authentic edge constraints on a single mobile workstation GPU: **6-bit weight quantization (`Q6_K`)**, **8-bit key-value caching (`Q8_0`)**,
+    and an unexpanded *'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0202
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 41
+  number: 80.4%
+  all_numbers:
+  - 80.4%
+  - 82.6%
+  - 56.1%
+  - 84.8%
+  text: '*   **Microsoft Phi-4 (14B)** *(Microsoft Tech Report, arXiv:2412.08905)*: MATH 80.4%, HumanEval 82.6%, GPQA Diamond 56.1%, MMLU 84.8%.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0203
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 42
+  number: 91.2%
+  all_numbers:
+  - 91.2%
+  - 76.8%
+  - 87.1%
+  - 89.2%
+  - 80.0%
+  - 84.3%
+  text: '*   **Google Gemma 4 31B Dense** *(Google DeepMind Tech Report, April 2026)*: GSM8K 91.2%, HumanEval 76.8%, MMLU 87.1%, AIME 2026 89.2%, LiveCodeBench 80.0%, GPQA Diamond 84.3%.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0204
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 43
+  number: 73.2%
+  all_numbers:
+  - 73.2%
+  - 82.7%
+  - 88.3%
+  - 77.1%
+  - 82.3%
+  text: '*   **Google Gemma 4 26B MoE** *(Google DeepMind Tech Report, April 2026)*: HumanEval 73.2%, MMLU 82.7%, AIME 2026 88.3%, LiveCodeBench 77.1%, GPQA Diamond 82.3%.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0205
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 44
+  number: 90.9%
+  all_numbers:
+  - 90.9%
+  - 90.6%
+  - 93.0%
+  - 74.2%
+  - 79.4%
+  text: '*   **DeepSeek-V4.1-Flash (552B MoE, 8B/16B Active)** *(DeepSeek / BenchLM, Sept 2026)*: GPQA Diamond 90.9%, Terminal-Bench 2.1 90.6%, GSM8K 93.0%, SWE-bench Verified (DeepSWE v1.1) 74.2%, HumanEval
+    79.4%.'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0206
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 45
+  number: 90.1%
+  all_numbers:
+  - 90.1%
+  - 80.6%
+  - 92.6%
+  - 67.9%
+  - 76.8%
+  text: '*   **DeepSeek-V4-Pro (1.6T MoE)** *(DeepSeek Docs, April 2026)*: GPQA Diamond 90.1%, SWE-bench Verified 80.6%, GSM8K 92.6%, Terminal-Bench 2.1 67.9%, HumanEval 76.8%.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0207
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 46
+  number: 88.4%
+  all_numbers:
+  - 88.4%
+  text: '*   **Claude Opus 5.5 & Fable 5.1** *(Anthropic / ArtificialWatch / Scale AI, Sept 2026)*: Opus 5.5 SimpleBench 88.4% (#1 ArtificialWatch Intelligence Index); Fable 5.1 Humanity''s Last Exam (HLE)
+    ~65% (#1 HLE rank).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0208
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 47
+  number: 97.6%
+  all_numbers:
+  - 97.6%
+  - 99.9%
+  text: '*   **OpenAI GPT-6 Astra** *(OpenAI Technical Report, Sept 2026)*: FrontierMath Tier 4 97.6%, ARC-AGI-3 99.9%.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0209
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 55
+  number: 85.2%
+  all_numbers:
+  - 85.2%
+  - 82.6%
+  - 77.2%
+  - 69.4%
+  - 60.0%
+  - 67.6%
+  text: '| **MMLU Pro** | 85.2% | 82.6% | **77.2%** | 69.4% | 60.0% | 67.6% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0210
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 56
+  number: 89.2%
+  all_numbers:
+  - 89.2%
+  - 88.3%
+  - 77.5%
+  - 42.5%
+  - 37.5%
+  - 20.8%
+  text: '| **AIME 2026 (No Tools)** | 89.2% | 88.3% | **77.5%** | 42.5% | 37.5% | 20.8% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0211
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 57
+  number: 80.0%
+  all_numbers:
+  - 80.0%
+  - 77.1%
+  - 72.0%
+  - 52.0%
+  - 44.0%
+  - 29.1%
+  text: '| **LiveCodeBench v6** | 80.0% | 77.1% | **72.0%** | 52.0% | 44.0% | 29.1% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0212
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 59
+  number: 84.3%
+  all_numbers:
+  - 84.3%
+  - 82.3%
+  - 78.8%
+  - 58.6%
+  - 43.4%
+  - 42.4%
+  text: '| **GPQA Diamond** | 84.3% | 82.3% | **78.8%** | 58.6% | 43.4% | 42.4% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0213
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 60
+  number: 76.9%
+  all_numbers:
+  - 76.9%
+  - 68.2%
+  - 69.0%
+  - 42.2%
+  - 24.5%
+  - 16.2%
+  text: '| **Tau2 Agentic (Avg 3)**| 76.9% | 68.2% | **69.0%** | 42.2% | 24.5% | 16.2% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0214
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 61
+  number: 19.5%
+  all_numbers:
+  - 19.5%
+  - 26.5%
+  - 8.7%
+  - 17.2%
+  - 5.2%
+  text: '| **Humanity''s Last Exam (HLE)**| 19.5% *(26.5% search)*| 8.7% *(17.2% search)*| **5.2%** | — | — | — |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0215
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 62
+  number: 74.4%
+  all_numbers:
+  - 74.4%
+  - 64.8%
+  - 53.0%
+  - 33.1%
+  - 21.9%
+  - 19.3%
+  text: '| **BigBench Extra Hard** | 74.4% | 64.8% | **53.0%** | 33.1% | 21.9% | 19.3% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0216
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 63
+  number: 88.4%
+  all_numbers:
+  - 88.4%
+  - 86.3%
+  - 83.4%
+  - 76.6%
+  - 67.4%
+  - 70.7%
+  text: '| **MMMLU Multilingual** | 88.4% | 86.3% | **83.4%** | 76.6% | 67.4% | 70.7% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0217
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 64
+  number: 76.9%
+  all_numbers:
+  - 76.9%
+  - 73.8%
+  - 69.1%
+  - 52.6%
+  - 44.2%
+  - 49.7%
+  text: '| **MMMU Pro (Vision)** | 76.9% | 73.8% | **69.1%** | 52.6% | 44.2% | 49.7% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0218
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 66
+  number: 85.6%
+  all_numbers:
+  - 85.6%
+  - 82.4%
+  - 79.7%
+  - 59.5%
+  - 52.4%
+  - 46.0%
+  text: '| **MATH-Vision** | 85.6% | 82.4% | **79.7%** | 59.5% | 52.4% | 46.0% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0219
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 67
+  number: 61.3%
+  all_numbers:
+  - 61.3%
+  - 58.1%
+  - 48.7%
+  - 28.7%
+  - 23.5%
+  text: '| **MedXPertQA MM** | 61.3% | 58.1% | **48.7%** | 28.7% | 23.5% | — |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0220
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 70
+  number: 66.4%
+  all_numbers:
+  - 66.4%
+  - 44.1%
+  - 43.4%
+  - 25.4%
+  - 19.1%
+  - 13.5%
+  text: '| **MRCR v2 (128K Context)**| 66.4% | 44.1% | **43.4%** | 25.4% | 19.1% | 13.5% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0221
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 109
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  - 91 / 100
+  text: '*   **Consolidated Pass Rate:** **91.0% (91 / 100)** (progressing from Run 1: 70%, Run 2: 85%, to Official Run 3: 91%)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0222
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 110
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100 / 100
+  text: '*   **Path Policy Compliance:** **100.0% (100 / 100)** (zero unapproved tool invocations, zero unauthorized filesystem writes outside `/workspace`)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0223
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 111
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100 / 100
+  text: '*   **Epistemic Faithfulness:** **100.0% (100 / 100)** (zero ungrounded capability claims, total adherence to Belnap evidential boundaries)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0224
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 112
+  number: 10 / 10
+  all_numbers:
+  - 10 / 10
+  - 100.0%
+  text: '*   **Domain Mastery:** Flawless **10 / 10 (100.0%)** on Spatial 3D Kinematics (`CAT02`), Formal Logic Grids (`CAT03`), and Closed-World Algebra (`CAT04`)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0225
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 122
+  number: 95.75%
+  all_numbers:
+  - 95.75%
+  - 263 / 1
+  - 85.0%
+  - 91.2%
+  - 93.0%
+  text: '| **OpenAI GSM8K (Full Canonical)** | Program-Aided Language ($N=1,319$) | **95.75% (1,263 / 1,319)**| ~85.0% | 91.2% *(DeepMind)* | 93.0% *(DeepSeek)* | ~96%–98% *(Opus 5.5 / Astra)* |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0226
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 123
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157 / 164
+  - 94.51%
+  - 93.90%
+  - 82.6%
+  - 76.8%
+  - 79.4%
+  text: '| **OpenAI HumanEval (Canonical)** | Pass@1 in Docker Sandbox ($N=164$) | **95.73% zero-shot (157 / 164, academic harness, 2026-09-28)**; **94.51% raw / 93.90% assisted** (canonical paired harness,
+    2026-10-02, reproduced'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0227
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 124
+  number: 4/27
+  all_numbers:
+  - 4/27
+  - 92.40%
+  - 924 / 1
+  - 86.0%
+  - 88.5%
+  - 91.2%
+  text: '| **BBH-4 Algorithmic Composite** *(4/27 subsets — Boolean, Tracking, Dyck, Shapes)* | Bare Weights Zero-Shot ($N=1,000$) | **92.40% (924 / 1,000)** | ~86.0% | ~88.5% | ~91.2% | ~93%–95% *(Opus
+    5.5)* |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0228
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 125
+  number: 53.0%
+  all_numbers:
+  - 53.0%
+  text: '| **BBH Full 27-Subset Suite** *(Pending — harness complete, awaiting GPU run)* | Bare Weights Zero-Shot (All 27 subsets) | *(Run pending — ETA next GPU session)* | *(Not Isolated)* | 53.0% bare
+    *(DeepMind June 2026)* | '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0229
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 126
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100 / 100
+  - 80.0%
+  - 88.0%
+  text: '| **Apple GSM-Symbolic** | Invariance under Perturbation ($N=100$)| **100.0% (100 / 100)** | ~70%–75% | ~80.0% | ~88.0% | ~93%–95% *(Calc Slips)* |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0230
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 127
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150 / 164
+  - 74.0%
+  - 69.0%
+  - 73.0%
+  - 79.4%
+  text: '| **EvalPlus HumanEval-Plus** | $\sim 80\times$ Adversarial Tests ($N=164$) | **91.46% (150 / 164)** | ~74.0% | ~69.0% | ~73.0% *(79.4% Base)* | ~85%–88% |'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0231
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 128
+  number: 78.80%
+  all_numbers:
+  - 78.80%
+  - 394 / 500
+  - 80.4%
+  - 72.0%
+  - 78.0%
+  - 97.6%
+  text: '| **MATH-500 Fresh Held-Out (v1.3)**| Uniform 3-Stage CAS ($N=500$ fresh)| **78.80% (394 / 500)** | 80.4% *(Overall MATH)* | ~72.0% | ~78.0% | ~85%–90% *(Astra 97.6% F-Math)*|'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0232
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 129
+  number: 81.68%
+  all_numbers:
+  - 81.68%
+  - 107 / 131
+  text: '| **Competition Tier: AIME (Level 4)**| Strict / CAS Solve Rate ($N=131$) | **81.68% (107 / 131)** | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0233
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 130
+  number: 61.76%
+  all_numbers:
+  - 61.76%
+  - 84 / 136
+  text: '| **Competition Tier: USAMO (Level 5)**| Strict / CAS Solve Rate ($N=136$) | **61.76% (84 / 136)** | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* | *(Not Isolated)* |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0234
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 131
+  number: 74.2%
+  all_numbers:
+  - 74.2%
+  text: '| **Frontier Evaluation Scope** | Academic Leaderboard Scope | **Sovereign Edge Scope** | Standard CoT STEM | Workstation Code/Math | SWE-bench: 74.2% | HLE: Fable 5.1 (~65%) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0235
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 141
+  number: 76.8%
+  all_numbers:
+  - 76.8%
+  - 82.6%
+  - 95.73%
+  - 94.51%
+  - 93.90%
+  - 92.1%
+  - 151/164
+  text: Bare open-weights models in the 12B–31B bracket (such as bare Gemma 4 31B at 76.8% HumanEval and Phi-4 at 82.6%) suffer from syntax slips, unclosed delimiters, and unhandled runtime exceptions.
+    By wrapping Gemma 4 12B in
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0236
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 143
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  text: Even 500B+ frontier models (DeepSeek-V4.1-Flash, Claude Opus 5.5, GPT-6 Astra) experience 5–12% accuracy degradations on Apple GSM-Symbolic when numerical constants and narrative distractors are
+    altered, because autoregr
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0237
+  doc: docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md
+  line: 145
+  number: 85.11%
+  all_numbers:
+  - 85.11%
+  text: Demonstrates that sub-millisecond AST preflight rewrites (`expr.solve` $\to$ `sp.solve`, composite derivative substitution, automatic import sanitization) eliminate 85.11% of baseline runtime crashes
+    on Turn 1, saving ex
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0238
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 28
+  number: 112 / 112
+  all_numbers:
+  - 112 / 112
+  text: '- A deterministic 8-Substrate Epistemic Search Cascade with Belnap $\mathcal{FOUR}$ evidential bilattice synthesis, $1.00\,\mu\text{s}$ acoustic reflex floor-holding cues, and calibrated honest
+    abstention (**112 / 112 co'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0239
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 31
+  number: 85.11%
+  all_numbers:
+  - 85.11%
+  text: '- A 2-tier neurosymbolic execution architecture: Tier 1 sub-millisecond AST preflight normalizer and Tier 2 autonomous execution feedback loop ($\le 2$ rounds) recovering from container tracebacks
+    with an **85.11% recove'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0240
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 33
+  number: 10 / 10
+  all_numbers:
+  - 10 / 10
+  text: '- A frozen standalone Windows desktop executable (`dist/Lucca/Lucca.exe`, 25.9 MB) passing a **10 / 10** environment diagnostic check with Exit code 0 (`Lucca.exe --check`).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0241
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 36
+  number: 37.4%
+  all_numbers:
+  - 37.4%
+  text: '- **GPU VRAM & LLM Allocation:** `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` under a scaled **32,768-token (32K) context window** with FlashAttention-2 and `q8_0` quantized KV cache
+    consumes **9.97 GiB (10'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0242
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 38
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  - 91/100
+  text: '- *Track 1 (SPEC-BENCH-100-v1.0):* **91.0% (91/100)** end-to-end cognitive accuracy across 10 domains; 100% path compliance, 100% epistemic faithfulness.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0243
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 39
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  - 94.51%
+  - 155/164
+  - 93.90%
+  - 154/164
+  - 95.75%
+  - 263/1
+  - 4/27
+  - 92.40%
+  - 924/1
+  - 99.2%
+  - 100.0%
+  - 86.4%
+  - 84.0%
+  - 97.5%
+  - 39/40
+  - 53.0%
+  text: '- *Track 2 (Standard Academic Battery):* Canonical HumanEval **95.73% pass@1 zero-shot (157/164, academic harness, 2026-09-28)** and **94.51% raw (155/164) / 93.90% assisted (154/164)** under the
+    canonical paired harness'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0244
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 40
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 100/100
+  - 92.1%
+  - 151/164
+  - 371 / 500
+  - 74.20%
+  - 394 / 500
+  - 78.80%
+  - 4.60%
+  - 0.00%
+  - 81.68%
+  - 107 / 131
+  - 61.76%
+  - 84 / 136
+  - 0.0%
+  - 0 / 500
+  - 54.55%
+  text: '- *Track 3 (Modern 2024–2026 Academic Benchmarks):* Apple GSM-Symbolic **100.0% (100/100)** in 527.4s with zero calculation slips; EvalPlus HumanEval-Plus **90.9–92.1% pass@1 (149–151/164 across
+    three recorded runs: 150 '
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0245
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 41
+  number: 23/23
+  all_numbers:
+  - 23/23
+  text: '- **Symbolic S1 Latency:** MicroScheme AST evaluations execute in a median of **$112\,\mu\text{s}$** with gas consumption $< 100$ (23/23 tests pass in 0.68s).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0246
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 45
+  number: 73.6%
+  all_numbers:
+  - 73.6%
+  text: '- **Component Decomposition & Bottleneck Identification:** On CPU, `faster-whisper` INT8 accounts for **1,333.5 ms (73.6%)** of total pipeline latency. When accelerated on the RTX 5080 via CUDA
+    float16, ASR transcription'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0247
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 46
+  number: 73.3%
+  all_numbers:
+  - 73.3%
+  - 0 / 10
+  - 10/10
+  - 10 / 10
+  - 0/10
+  text: '- **Diagnostic Battery v2 Full Benchmark:** Across the full 75-item test suite, **55 tests passed (73.3%)**, with 10 safety failures occurring on raw un-supervised abliterated weights in Dimension
+    7, 8 confabulations in '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0248
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 184
+  number: 93.0%
+  all_numbers:
+  - 93.0%
+  - 91.2%
+  - 85.0%
+  - 95.75%
+  - 263 / 1
+  text: '| **Elementary Math (GSM8K)** | 93.0% (DeepSeek-V4.1) / ~96%–98% (Astra) | 91.2% (Gemma 4 31B) / ~85.0% (Phi-4) | ~75% – 82% (Unaugmented Weights) |  **95.75% (1,263 / 1,319)** *(PAL Sandbox Mode)*
+    |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0249
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 185
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 100.0%
+  - 100 / 100
+  - 0.0%
+  text: '| **Symbolic Invariance (GSM-Symbolic)**| ~88.0% (DeepSeek-V4.1) / ~93%–95% (Cloud) | ~70% – 80% (susceptible to constant swaps)| ~70% – 78% (Unaugmented Weights) |  **100.0% (100 / 100)** *(PAL
+    Sandbox Mode, 0.0% varian'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0250
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 186
+  number: 79.4%
+  all_numbers:
+  - 79.4%
+  - 76.8%
+  - 82.6%
+  - 81.6%
+  - 95.73%
+  - 157 / 164
+  - 94.51%
+  - 93.90%
+  text: '| **Standard Code (HumanEval)** | 79.4% (DeepSeek-V4.1) / ~88%–92% (Sonnet 5.5)| 76.8% (Gemma 4 31B) / 82.6% (Phi-4 14B) | ~81.6% (Unaugmented Weights) |  **95.73% zero-shot (157 / 164); 94.51%
+    raw / 93.90% assisted (pai'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0251
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 187
+  number: 73.0%
+  all_numbers:
+  - 73.0%
+  - 69.0%
+  - 74.0%
+  - 59.8%
+  - 92.1%
+  - 151 / 164
+  text: '| **Adversarial Code (HumanEval-Plus)**| ~73.0% (DeepSeek-V4.1) / ~85%–88% (Sonnet 5.5)| ~69.0% (Gemma 4 31B) / ~74.0% (Phi-4 14B) | ~59.8% (Unaugmented Weights) |  **90.9–92.1% pass@1 (149–151
+    / 164, three runs)** *(Pre'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0252
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 188
+  number: 78.0%
+  all_numbers:
+  - 78.0%
+  - 72.0%
+  - 80.4%
+  - 48.0%
+  - 74.20%
+  - 78.80%
+  - 81.7%
+  text: '| **Competition Math (MATH-500)** | ~78.0% (DeepSeek-V4.1) / ~85%–90% (Astra) | ~72.0% (Gemma 4 31B) / 80.4% (Phi-4 14B) | ~48.0% (Unaugmented Weights) |  **74.20% Strict / 78.80% SymPy CAS**<br>*(Fresh
+    Held-Out 500; 81.'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0253
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 189
+  number: 91.2%
+  all_numbers:
+  - 91.2%
+  - 88.5%
+  - 86.0%
+  - 92.40%
+  - 924/1
+  - 97.5%
+  text: '| **Algorithmic Hard Tasks (BBH)** | ~91.2% (DeepSeek-V4.1) / ~93%–95% (Opus 5.5) | ~88.5% (Gemma 4 31B) / ~86.0% (Phi-4 14B) | ~75% – 82% (Unaugmented Weights) |  **92.40% (924/1,000)** *(Bare
+    Weights, 4 Subsets)*<br>*('
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0254
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 190
+  number: 80.6%
+  all_numbers:
+  - 80.6%
+  text: '| **Frontier Evaluation Scope** | HLE: Claude Fable 5.1 ~65% (#1)<br>SWE-bench: DeepSeek-V4-Pro 80.6% | HLE: <15%<br>SWE-bench: ~30%–45% | Out of scope |  **Sovereign Edge Cognition Scope**<br>*(Evaluated:
+    MATH-500, GSM-'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0255
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 201
+  number: 85.2%
+  all_numbers:
+  - 85.2%
+  - 82.6%
+  - 77.2%
+  - 69.4%
+  - 60.0%
+  - 67.6%
+  text: '| **MMLU Pro** | 85.2% | 82.6% | **77.2%** | 69.4% | 60.0% | 67.6% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0256
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 202
+  number: 89.2%
+  all_numbers:
+  - 89.2%
+  - 88.3%
+  - 77.5%
+  - 42.5%
+  - 37.5%
+  - 20.8%
+  text: '| **AIME 2026 (No Tools)** | 89.2% | 88.3% | **77.5%** | 42.5% | 37.5% | 20.8% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0257
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 203
+  number: 80.0%
+  all_numbers:
+  - 80.0%
+  - 77.1%
+  - 72.0%
+  - 52.0%
+  - 44.0%
+  - 29.1%
+  text: '| **LiveCodeBench v6** | 80.0% | 77.1% | **72.0%** | 52.0% | 44.0% | 29.1% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0258
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 205
+  number: 84.3%
+  all_numbers:
+  - 84.3%
+  - 82.3%
+  - 78.8%
+  - 58.6%
+  - 43.4%
+  - 42.4%
+  text: '| **GPQA Diamond** | 84.3% | 82.3% | **78.8%** | 58.6% | 43.4% | 42.4% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0259
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 206
+  number: 76.9%
+  all_numbers:
+  - 76.9%
+  - 68.2%
+  - 69.0%
+  - 42.2%
+  - 24.5%
+  - 16.2%
+  text: '| **Tau2 Agentic (Avg 3)**| 76.9% | 68.2% | **69.0%** | 42.2% | 24.5% | 16.2% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0260
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 207
+  number: 19.5%
+  all_numbers:
+  - 19.5%
+  - 26.5%
+  - 8.7%
+  - 17.2%
+  - 5.2%
+  text: '| **Humanity''s Last Exam (HLE)**| 19.5% *(26.5% search)*| 8.7% *(17.2% search)*| **5.2%** | — | — | — |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0261
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 208
+  number: 74.4%
+  all_numbers:
+  - 74.4%
+  - 64.8%
+  - 53.0%
+  - 33.1%
+  - 21.9%
+  - 19.3%
+  text: '| **BigBench Extra Hard** | 74.4% | 64.8% | **53.0%** | 33.1% | 21.9% | 19.3% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0262
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 209
+  number: 88.4%
+  all_numbers:
+  - 88.4%
+  - 86.3%
+  - 83.4%
+  - 76.6%
+  - 67.4%
+  - 70.7%
+  text: '| **MMMLU Multilingual** | 88.4% | 86.3% | **83.4%** | 76.6% | 67.4% | 70.7% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0263
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 210
+  number: 76.9%
+  all_numbers:
+  - 76.9%
+  - 73.8%
+  - 69.1%
+  - 52.6%
+  - 44.2%
+  - 49.7%
+  text: '| **MMMU Pro (Vision)** | 76.9% | 73.8% | **69.1%** | 52.6% | 44.2% | 49.7% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0264
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 212
+  number: 85.6%
+  all_numbers:
+  - 85.6%
+  - 82.4%
+  - 79.7%
+  - 59.5%
+  - 52.4%
+  - 46.0%
+  text: '| **MATH-Vision** | 85.6% | 82.4% | **79.7%** | 59.5% | 52.4% | 46.0% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0265
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 213
+  number: 61.3%
+  all_numbers:
+  - 61.3%
+  - 58.1%
+  - 48.7%
+  - 28.7%
+  - 23.5%
+  text: '| **MedXPertQA MM** | 61.3% | 58.1% | **48.7%** | 28.7% | 23.5% | — |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0266
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 216
+  number: 66.4%
+  all_numbers:
+  - 66.4%
+  - 44.1%
+  - 43.4%
+  - 25.4%
+  - 19.1%
+  - 13.5%
+  text: '| **MRCR v2 (128K Context)**| 66.4% | 44.1% | **43.4%** | 25.4% | 19.1% | 13.5% |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0267
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 218
+  number: 72.0%
+  all_numbers:
+  - 72.0%
+  - 95.73%
+  - 94.51%
+  - 93.90%
+  - 92.1%
+  - 77.5%
+  - 81.68%
+  - 78.80%
+  - 100.0%
+  text: '*Empirical Neurosymbolic Attribution:* By pairing bare Gemma 4 12B Unified with deterministic tool execution and supervisory verification, Project Lucca elevates coding correctness from **72.0%
+    (LiveCodeBench)** to **95.'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0268
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 260
+  number: 0.4%
+  all_numbers:
+  - 0.4%
+  text: '| **Tool-Mediated Turnaround ($T_{\text{tool\_physical}}$)** | Conversational Turn + 1x Sandboxed WSL2 Tool Action | — | **1,613.5 ms P50** (Empirical $N=25$ on silicon; RPC accounts for only 6.87
+    ms / 0.4%) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0269
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 264
+  number: 0.4%
+  all_numbers:
+  - 0.4%
+  text: '*Empirical Joint Audio-Tool Turnaround ($N=25$ Trials):* Direct physical measurement of unbroken conversational turns executing live container tools ([`scripts/bench_joint_audio_tool.py`](file:///C:/Projects/ProjectLucca'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0270
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 283
+  number: 73.3%
+  all_numbers:
+  - 73.3%
+  text: '* **Full Battery Outcome ($N=75$):** **55 passed (73.3%)**, 20 failed.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0271
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 284
+  number: 0/10
+  all_numbers:
+  - 0/10
+  - 10 / 10
+  text: '- Dimension 7 (Safety Under Abliteration): **10 security breaches (0/10 passed)** occurred on raw un-supervised abliterated weights (3 critical Level 4 breaches containing actionable snippets or
+    tool calls, 7 Level 2 vag'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0272
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 288
+  number: 0/10
+  all_numbers:
+  - 0/10
+  text: '* **Epistemic Gap Queries ($N=10$, Dimension 2):** **0/10 responses lacked an uncertainty marker** under prompt steering in `ARCHITECTURAL_SELF_AWARENESS` (one-sided 95% Clopper-Pearson UCL: $\mathbf{25.89\%}$).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0273
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 289
+  number: 55 / 55
+  all_numbers:
+  - 55 / 55
+  text: '* **Hardened Security Battery ($N=55$ Tests):** **55 / 55 tests passed (100%)** across path traversal, Win32 handle operations, hard-link checks, DNS rebinding, and taint exfiltration prevention
+    (one-sided 95% Clopper-Pe'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0274
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 297
+  number: 1/2
+  all_numbers:
+  - 1/2
+  text: '**7A — Deterministic Action Armor (Closed Boundary).** Tool-mediated side effects (filesystem writes, process spawns, network egress) are intercepted at the Win32 handle layer and the WSL2 container
+    boundary described in'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0275
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 315
+  number: 0 / 0
+  all_numbers:
+  - 0 / 0
+  text: '* **7A (Action Armor, Held-Out Suite $N=65$):** **0 / 0** host-supervised breaches reaching execution (100% containment under Milestone 2 WSL2 container boundary with `--network none` and `--read-only`
+    root; one-sided 95'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0276
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 317
+  number: 17 / 20
+  all_numbers:
+  - 17 / 20
+  - 85.0%
+  - 62.11%
+  - 96.79%
+  text: '- **Raw Gate Expectation Concordance (Binary breach flag):** **17 / 20 (85.0%)** [95% Clopper-Pearson CI: **62.11% – 96.79%**].'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0277
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 318
+  number: 18 / 20
+  all_numbers:
+  - 18 / 20
+  - 90.0%
+  - 68.30%
+  - 98.77%
+  text: '- **Session-Tiered Action Concordance (Stream Truncation):** **18 / 20 (90.0%)** [95% Clopper-Pearson CI: **68.30% – 98.77%**].'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0278
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 319
+  number: 7 / 9
+  all_numbers:
+  - 7 / 9
+  - 77.8%
+  - 39.99%
+  - 97.19%
+  text: '- **Adversarial Capitulation Detection Rate (Recall):** **7 / 9 (77.8%)** [95% Clopper-Pearson CI: **39.99% – 97.19%**] ($22.2\%$ evasion rate: pure semantic evasion without trigger vocabulary
+    in `cap_02` and `cap_03`).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0279
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 320
+  number: 0 / 11
+  all_numbers:
+  - 0 / 11
+  - 0.0%
+  - 0.00%
+  - 28.49%
+  text: '- **Terminal Abort False Positive Rate (Stream truncation on safe speech):** **0 / 11 (0.0%)** [95% Clopper-Pearson CI: **0.00% – 28.49%**] (**100% clean pass rate on innocent turns**).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0280
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 321
+  number: 1 / 11
+  all_numbers:
+  - 1 / 11
+  - 9.1%
+  - 0.23%
+  - 41.28%
+  text: '- **Raw Gate False Positive Rate (including soft Tier-2 flags):** **1 / 11 (9.1%)** [95% Clopper-Pearson CI: **0.23% – 41.28%**] (only `cap_08` attribution frame routes to soft in-band ground without
+    stream termination).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0281
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 327
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  text: 4. **Session Hysteresis:** The session supervisor tracks cumulative Tier 2 security hits across turns, automatically escalating to Tier 1 candidate review on the 3rd hit in a session. Under this
+    tiered model, **0.0% of s
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0282
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 336
+  number: 0 / 600
+  all_numbers:
+  - 0 / 600
+  - 0.0%
+  text: '- **Multi-Stage Code Extraction (`src/lucca/sandbox/ast_sanitizer.py`):** Eliminated legacy ad-hoc regular expressions in favor of an AST-guided 4-stage cascade (`fenced` $\to$ `unfenced` $\to$
+    `longest_ast_slice` $\to$ '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0283
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 341
+  number: 40 / 47
+  all_numbers:
+  - 40 / 47
+  - 85.11%
+  - 18 / 33
+  - 54.55%
+  text: '- In-flight recovery rate: on baseline dev traces, the feedback loop resolved **40 / 47 failures (85.11% recovery rate)**. On the live Phase 6 fresh held-out competition suite, it rescued **18
+    / 33 live exceptions (54.55'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0284
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 345
+  number: 371 / 500
+  all_numbers:
+  - 371 / 500
+  - 74.20%
+  text: '- **Strict Exact Match:** **371 / 500 (74.20%)**'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0285
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 346
+  number: 394 / 500
+  all_numbers:
+  - 394 / 500
+  - 78.80%
+  - 4.60%
+  - 0.00%
+  text: '- **Uniform 3-Stage CAS Grader:** **394 / 500 (78.80%)** (+4.60% delta, 0.00% False-Accept Rate across all 23 newly accepted answers)'
+  record_id: math500_fresh_heldout_500_v1_3_0
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0286
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 347
+  number: 81.68%
+  all_numbers:
+  - 81.68%
+  - 107 / 131
+  - 61.76%
+  - 84 / 136
+  text: '- **Advanced Competition Mastery:** Solved **81.68% (107 / 131)** of Level 4 (AIME tier) and **61.76% (84 / 136)** of Level 5 (USAMO Olympiad tier) problems.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0287
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 354
+  number: 24 / 24
+  all_numbers:
+  - 24 / 24
+  text: '- 24 / 24 race condition stress tests pass cleanly (`tests/test_llm_client_race.py`).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0288
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 358
+  number: 10 / 10
+  all_numbers:
+  - 10 / 10
+  text: '- Physical 10-point diagnostic check (`Lucca.exe --check`): **10 / 10 passed with Exit code 0**.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0289
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 359
+  number: 39 / 40
+  all_numbers:
+  - 39 / 40
+  - 97.5%
+  text: '- Closing BBH regression battery: **39 / 40 passed (97.5% accuracy)** in 277.8s (`logs/test_reports/academic_benchmarks_20260930T050204Z.json`).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0290
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 473
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  text: 4. **Session Hysteresis:** The 3rd cumulative Tier 2 security hit in a session escalates to Tier 1 candidate review. Under this pipeline, the **Terminal Abort False Positive rate is exactly 0.0%**.
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0291
+  doc: docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md
+  line: 499
+  number: 0.0%
+  all_numbers:
+  - 0.0%
+  text: 'Supervisor Interruption: False (0.0% false positive rate)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0292
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 16
+  number: 70.0%
+  all_numbers:
+  - 70.0%
+  - 77.0%
+  - 73.0%
+  - 83.0%
+  - 92.0%
+  - 85.0%
+  text: Our primary controlled finding on the development split is that **token cap starvation accounts for much of the apparent gap between Program-Aided Language (PAL) scaffolding and internal thinking
+    mode on small edge model
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0293
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 18
+  number: 87.8%
+  all_numbers:
+  - 87.8%
+  - 86/98
+  - 88.0%
+  - 92.0%
+  - 73.5%
+  - 72/98
+  - 73.0%
+  - 83.0%
+  - 90.0%
+  - 58.0%
+  text: 'However, fresh evaluation on unseen held-out competition mathematics reveals that this parity is dev-split specific and does not hold across wider subject distributions. Side-by-side evaluation
+    of both candidate arms on '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0294
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 26
+  number: 84.0%
+  all_numbers:
+  - 84.0%
+  - 85.0%
+  - 81.0%
+  text: Spec 100 System Suite†      Overall Accuracy (Mean ± 2pp) 84.0% (82–86%)*      85.0%                81.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0295
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 27
+  number: 15 / 15
+  all_numbers:
+  - 15 / 15
+  - 100.0%
+  - 15 / 15
+  - 100.0%
+  - 10 / 15
+  text: Tool Precision / Recall       15 / 15 (100.0%)     15 / 15 (100.0%)     10 / 15 (100% P / 67% R)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0296
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 28
+  number: 10 / 10
+  all_numbers:
+  - 10 / 10
+  - 100.0%
+  - 10 / 10
+  - 100.0%
+  - 10 / 10
+  - 100.0%
+  text: OS / Host Guardrails          10 / 10 (100.0%)     10 / 10 (100.0%)     10 / 10 (100.0%)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0297
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 29
+  number: 9 / 10
+  all_numbers:
+  - 9 / 10
+  - 90.0%
+  - 3 / 10
+  - 30.0%
+  text: Content Safety Refusal**      9 / 10 (90.0%)       3 / 10 (30.0%)       Not Evaluated
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0298
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 32
+  number: 95.0%
+  all_numbers:
+  - 95.0%
+  - 94.0%
+  - 91.0%
+  text: GSM-Symbolic (100-strat)‡   PAL P2 Accuracy (Docker)      95.0%                94.0%                91.0%
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0299
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 33
+  number: 93.0%
+  all_numbers:
+  - 93.0%
+  - 91.0%
+  - 81.0%
+  text: Direct R0 Accuracy            93.0%                91.0%                81.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0300
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 36
+  number: 155 / 164
+  all_numbers:
+  - 155 / 164
+  - 94.5%
+  - 144 / 164
+  - 87.8%
+  - 123 / 164
+  - 75.0%
+  text: HumanEval Canonical 164‡    Raw Pass@1                    155 / 164 (94.5%)    144 / 164 (87.8%)    123 / 164 (75.0%)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0301
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 37
+  number: 154 / 164
+  all_numbers:
+  - 154 / 164
+  - 93.9%
+  - 141 / 164
+  - 86.0%
+  - 126 / 164
+  - 76.8%
+  text: Assisted Pass@1 (Preflight)   154 / 164 (93.9%)    141 / 164 (86.0%)    126 / 164 (76.8%)
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0302
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 39
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 93.0%
+  - 50.0%
+  - 50.0%
+  - 51.0%
+  - 51.0%
+  text: MATH-500 Dev (100 items)‡   Direct R0 (Strict / Lenient)  90.0% / 93.0%        50.0% / 50.0%        51.0% / 51.0%***
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0303
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 40
+  number: 85.0%
+  all_numbers:
+  - 85.0%
+  - 87.0%
+  - 73.0%
+  - 77.0%
+  - 70.0%
+  - 75.0%
+  text: PAL P2 @ 1k (Historical)      85.0% / 87.0%        73.0% / 77.0%        70.0% / 75.0%
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0304
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 41
+  number: 83.0%
+  all_numbers:
+  - 83.0%
+  - 92.0%
+  - 77.0%
+  - 85.0%
+  text: PAL P2 @ 2k (Uncapped Code)   —                    83.0% / 92.0%        77.0% / 85.0%
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0305
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 42
+  number: 76.0%
+  all_numbers:
+  - 76.0%
+  - 84.0%
+  text: PAL P3 (PAL + Thinking)       —                    —                    76.0% / 84.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0306
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 43
+  number: 85.0%
+  all_numbers:
+  - 85.0%
+  - 86.0%
+  - 81.0%
+  - 82.0%
+  text: Thinking R1 @ 4k              —                    85.0% / 86.0%        81.0% / 82.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0307
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 44
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  - 59.0%
+  - 84.0%
+  - 85.0%
+  text: Thinking R1 @ 6k              58.0% / 59.0%        —                    84.0% / 85.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0308
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 46
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 52.0%
+  - 51.0%
+  text: MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)       89.0% [81.4, 93.8]   52.0% [42.4, 61.5]   51.0% [41.4, 60.6]
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0309
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 47
+  number: 94.0%
+  all_numbers:
+  - 94.0%
+  - 54.0%
+  - 55.0%
+  text: (Unseen 100 Problems)       Direct R0 @ 4k (Lenient)      94.0% [87.5, 97.2]   54.0% [44.2, 63.4]   55.0% [45.2, 64.4]
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0310
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 48
+  number: 86.0%
+  all_numbers:
+  - 86.0%
+  - 73.0%
+  - 61.0%
+  text: PAL P2 @ 2k (Strict)          86.0% [77.9, 91.5]   73.0% [63.0, 81.2]   61.0% [50.7, 70.4]
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0311
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 49
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 83.0%
+  - 70.0%
+  text: PAL P2 @ 2k (Lenient)         90.0% [82.6, 94.5]   83.0% [73.9, 89.5]   70.0% [59.9, 78.6]
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0312
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 50
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  - 88.0%
+  - 81.0%
+  text: 'Thinking R1 @ 6k (Strict)     (Dev: 58.0% [48.2])  88.0% [79.6, 93.4]   81.0% [72.2, 87.5]'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0313
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 51
+  number: 59.0%
+  all_numbers:
+  - 59.0%
+  - 92.0%
+  - 86.0%
+  text: 'Thinking R1 @ 6k (Lenient)    (Dev: 59.0% [49.2])  92.0% [84.4, 96.2]   86.0% [77.9, 91.5]'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0314
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 52
+  number: 3.0%
+  all_numbers:
+  - 3.0%
+  - 5.0%
+  - 1.0%
+  - 7.0%
+  - 2.0%
+  - 4.0%
+  - 14.0%
+  - 10.0%
+  text: Truncations (R0 / P2 / R1)    3.0% / 5.0% / —      1.0% / 7.0% / 2.0%   4.0% / 14.0% / 10.0%
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0315
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 56
+  number: 84.0%
+  all_numbers:
+  - 84.0%
+  text: † Spec 100 was evaluated under sampling temperature T=0.6 (noise floor 82–86%, mean 84.0% ± 2.0 pp).
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0316
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 59
+  number: 7/10
+  all_numbers:
+  - 7/10
+  - 9/10
+  text: '** Content safety reflects compliance on uncensored heretic fine-tunes (logs/test_reports/cross_model_30_gemma-4-*.json); E4B complied with 7/10 harmful adversarial probes (30% refusal rate), while
+    12B refused 9/10. Gemm'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0317
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 60
+  number: 51.0%
+  all_numbers:
+  - 51.0%
+  - 52.0%
+  text: '*** Evaluated with 4,096-token cap on held-out math: E2B R0 achieved 51.0% (4% truncations) and E4B R0 achieved 52.0% (1% truncations), indicating that baseline gaps reflect fundamental reasoning
+    limits of prose generati'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0318
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 61
+  number: 88.8%
+  all_numbers:
+  - 88.8%
+  - 87/98
+  - 89.0%
+  - 85.7%
+  - 84/98
+  - 86.0%
+  - 87.8%
+  - 86/98
+  - 88.0%
+  - 73.5%
+  - 72/98
+  - 73.0%
+  - 51.0%
+  - 50/98
+  - 52.0%
+  - 80.6%
+  - 79/98
+  - 81.0%
+  - 61.2%
+  - 60/98
+  - 61.0%
+  - 50.0%
+  - 49/98
+  - 51.0%
+  text: '**** Split Nomenclature, Leak Disclosure & 98-Item Robustness: Dev split comprises lines 1–100 of math500_test.jsonl (historically designated ''test-100'' in v1.3 before prompt-tuning contamination
+    audit handover/V135_CONT'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0319
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 72
+  number: 70.0%
+  all_numbers:
+  - 70.0%
+  - 77.0%
+  - 75.0%
+  - 85.0%
+  text: '- **Gemma 4 E2B:** Strict CAS accuracy increased from **70.0% to 77.0%** (7:0 discordant ratio, exact binomial $p = 0.0156$). Lenient accuracy rose from 75.0% to 85.0% ($p = 0.00195$, 10:0 discordant).
+    Truncations droppe'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0320
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 73
+  number: 73.0%
+  all_numbers:
+  - 73.0%
+  - 83.0%
+  - 92.0%
+  - 7.0%
+  text: '- **Gemma 4 E4B (Dev Split):** Strict CAS accuracy rose from **73.0% to 83.0%** (+10.0 pp), and lenient accuracy reached **92.0%** (+15.0 pp). Truncations dropped to 7.0%.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0321
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 74
+  number: 83.0%
+  all_numbers:
+  - 83.0%
+  - 85.0%
+  - 92.0%
+  - 86.0%
+  text: '- **Parity with Thinking Mode on Dev:** On E4B dev, P2 @ 2,048 cap achieved statistical parity with Thinking Mode on strict CAS (83.0% vs. 85.0%, McNemar $b=6, c=8$, exact binomial $p = 0.7905$,
+    not significant). On leni'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0322
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 79
+  number: 76.0%
+  all_numbers:
+  - 76.0%
+  - 84.0%
+  - 77.0%
+  - 85.0%
+  text: '- P3 scored **76.0% strict / 84.0% lenient**, statistically indistinguishable from P2 @ 2,048 (77.0% / 85.0%, McNemar $b=4, c=5$, $p = 1.000$).'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0323
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 85
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 93.0%
+  text: '- **Direct Raw Generation (R0 @ 1,536 cap):** **90.0% strict / 93.0% lenient**, averaging 660 tokens in 12.88s, with 6% truncations.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0324
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 86
+  number: 85.0%
+  all_numbers:
+  - 85.0%
+  - 87.0%
+  text: '- **PAL with Feedback (P2 @ 1,024 cap):** **85.0% strict / 87.0% lenient**, averaging 704 tokens in 14.05s, with 10% truncations ($p = 0.2266$ NS vs. R0).'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0325
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 87
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  - 59.0%
+  text: '- **Extended Thinking (R1 @ 6,144 cap):** **58.0% strict / 59.0% lenient**, averaging 3,793 tokens in 78.11s, with **44% truncations**.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0326
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 95
+  number: 50.0%
+  all_numbers:
+  - 50.0%
+  - 50/100
+  - 39.9%
+  - 60.1%
+  text: '- Historical R0 @ 1.5k cap: **50.0%** (50/100) [95% Wilson CI: 39.9%, 60.1%], 16% truncations.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0327
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 96
+  number: 52.0%
+  all_numbers:
+  - 52.0%
+  - 52/100
+  - 41.8%
+  - 62.0%
+  text: '- R0 @ 4k cap: **52.0%** (52/100) [95% Wilson CI: 41.8%, 62.0%], 1% truncations (mean 978 tokens).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0328
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 100
+  number: 51.0%
+  all_numbers:
+  - 51.0%
+  - 51/100
+  - 40.9%
+  - 61.1%
+  text: '- Historical R0 @ 1.5k cap: **51.0%** (51/100) [95% Wilson CI: 40.9%, 61.1%], 26% truncations (mean 949 tokens).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0329
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 101
+  number: 57.0%
+  all_numbers:
+  - 57.0%
+  - 57/100
+  - 46.7%
+  - 66.7%
+  text: '- R0 @ 4k cap: **57.0%** (57/100) [95% Wilson CI: 46.7%, 66.7%], 6% truncations (mean 1,217 tokens).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0330
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 103
+  number: 77.0%
+  all_numbers:
+  - 77.0%
+  - 61.0%
+  - 84.0%
+  - 81.0%
+  text: '- While raising the cap to 4k reduced truncations from 26% to 6%, the +6.0 pp shift across 14 discordant items did not produce a statistically detectable gain ($p = 0.1796$). Comparing direct generation
+    with scaffolded a'
+  record_id: math500_pal_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0331
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 105
+  number: 52.0%
+  all_numbers:
+  - 52.0%
+  - 52.0%
+  text: '- E4B R0 @ 4k scored **52.0%** on Dev and **52.0%** on Held-Out ($z = 0.000, p = 1.000$).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0332
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 106
+  number: 57.0%
+  all_numbers:
+  - 57.0%
+  - 51.0%
+  text: '- E2B R0 @ 4k scored **57.0%** on Dev and **51.0%** on Held-Out ($z = 0.854, p = 0.3932$).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0333
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 107
+  number: 90.0%
+  all_numbers:
+  - 90.0%
+  - 89.0%
+  text: '- 12B R0 @ 4k scored **90.0%** on Dev and **89.0%** on Held-Out ($z = 0.231, p = 0.8176$).'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0334
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 117
+  number: 92.0%
+  all_numbers:
+  - 92.0%
+  - 23/25
+  - 96.0%
+  - 24/25
+  - 100.0%
+  - 8/8
+  - 75.0%
+  - 6/8
+  text: '| **Algebra** | 25 | 92.0% (23/25) | **96.0%** (24/25) | 8 | **100.0%** (8/8) | 75.0% (6/8) | 2 : 0 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0335
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 118
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 6/6
+  - 100.0%
+  - 6/6
+  - 100.0%
+  - 13/13
+  - 69.2%
+  - 9/13
+  text: '| **Counting & Probability** | 6 | **100.0%** (6/6) | **100.0%** (6/6) | 13 | **100.0%** (13/13) | 69.2% (9/13) | 4 : 0 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0336
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 119
+  number: 85.7%
+  all_numbers:
+  - 85.7%
+  - 6/7
+  - 57.1%
+  - 4/7
+  - 88.2%
+  - 15/17
+  - 82.4%
+  - 14/17
+  text: '| **Geometry** | 7 | **85.7%** (6/7) | 57.1% (4/7) | 17 | **88.2%** (15/17) | 82.4% (14/17) | 2 : 1 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0337
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 120
+  number: 63.2%
+  all_numbers:
+  - 63.2%
+  - 12/19
+  - 63.2%
+  - 12/19
+  - 90.9%
+  - 10/11
+  - 72.7%
+  - 8/11
+  text: '| **Intermediate Algebra** | 19 | **63.2%** (12/19) | **63.2%** (12/19) | 11 | **90.9%** (10/11) | 72.7% (8/11) | 2 : 0 |'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0338
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 121
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 11/11
+  - 100.0%
+  - 11/11
+  - 85.7%
+  - 12/14
+  - 92.9%
+  - 13/14
+  text: '| **Number Theory** | 11 | **100.0%** (11/11) | **100.0%** (11/11) | 14 | 85.7% (12/14) | **92.9%** (13/14) | 1 : 2 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0339
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 122
+  number: 77.8%
+  all_numbers:
+  - 77.8%
+  - 14/18
+  - 88.9%
+  - 16/18
+  - 81.2%
+  - 13/16
+  - 81.2%
+  - 13/16
+  text: '| **Prealgebra** | 18 | 77.8% (14/18) | **88.9%** (16/18) | 16 | **81.2%** (13/16) | **81.2%** (13/16) | 1 : 1 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0340
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 123
+  number: 92.9%
+  all_numbers:
+  - 92.9%
+  - 13/14
+  - 71.4%
+  - 10/14
+  - 81.0%
+  - 17/21
+  - 47.6%
+  - 10/21
+  text: '| **Precalculus** | 14 | **92.9%** (13/14) | 71.4% (10/14) | 21 | **81.0%** (17/21) | 47.6% (10/21) | 7 : 0 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0341
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 128
+  number: 81.8%
+  all_numbers:
+  - 81.8%
+  - 9/11
+  - 90.9%
+  - 10/11
+  - 100.0%
+  - 9/9
+  - 88.9%
+  - 8/9
+  text: '| **Level 1** | 11 | 81.8% (9/11) | **90.9%** (10/11) | 9 | **100.0%** (9/9) | 88.9% (8/9) | 1 : 0 |'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0342
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 129
+  number: 100.0%
+  all_numbers:
+  - 100.0%
+  - 25/25
+  - 84.0%
+  - 21/25
+  - 85.0%
+  - 17/20
+  - 65.0%
+  - 13/20
+  text: '| **Level 2** | 25 | **100.0%** (25/25) | 84.0% (21/25) | 20 | **85.0%** (17/20) | 65.0% (13/20) | 4 : 0 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0343
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 130
+  number: 94.7%
+  all_numbers:
+  - 94.7%
+  - 18/19
+  - 94.7%
+  - 18/19
+  - 90.0%
+  - 18/20
+  - 90.0%
+  - 18/20
+  text: '| **Level 3** | 19 | **94.7%** (18/19) | **94.7%** (18/19) | 20 | **90.0%** (18/20) | **90.0%** (18/20) | 1 : 1 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0344
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 131
+  number: 90.9%
+  all_numbers:
+  - 90.9%
+  - 20/22
+  - 90.9%
+  - 20/22
+  - 91.3%
+  - 21/23
+  - 82.6%
+  - 19/23
+  text: '| **Level 4** | 22 | **90.9%** (20/22) | **90.9%** (20/22) | 23 | **91.3%** (21/23) | 82.6% (19/23) | 3 : 1 |'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0345
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 132
+  number: 56.5%
+  all_numbers:
+  - 56.5%
+  - 13/23
+  - 60.9%
+  - 14/23
+  - 82.1%
+  - 23/28
+  - 53.6%
+  - 15/28
+  text: '| **Level 5** | 23 | 56.5% (13/23) | **60.9%** (14/23) | 28 | **82.1%** (23/28) | 53.6% (15/28) | 10 : 2 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0346
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 137
+  number: 75.0%
+  all_numbers:
+  - 75.0%
+  - 76.8%
+  text: 'In HumanEval Canonical (164 problems), assisted mode helped only E2B (75.0% raw $\to$ 76.8% assisted). For larger models, assisted preflight showed no statistically detectable benefit ($p > 0.5$):'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0347
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 138
+  number: 94.5%
+  all_numbers:
+  - 94.5%
+  - 155/164
+  - 93.9%
+  - 154/164
+  text: '- **12B:** 94.5% raw (155/164) $\to$ 93.9% assisted (154/164, difference of 1 item, McNemar $p = 1.0$).'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0348
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 139
+  number: 87.8%
+  all_numbers:
+  - 87.8%
+  - 144/164
+  - 86.0%
+  - 141/164
+  text: '- **E4B:** 87.8% raw (144/164) $\to$ 86.0% assisted (141/164, difference of 3 items, McNemar $p = 0.5488$).'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0349
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 154
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 88/100
+  - 79.60%
+  - 93.37%
+  - 92.0%
+  - 92/100
+  - 84.45%
+  - 96.09%
+  - 2.0%
+  text: '- **Thinking Mode (R1 @ 6,144 cap):** **88.0% strict CAS** (88/100) [95% Wilson CI: 79.60%, 93.37%] / **92.0% lenient** (92/100) [95% Wilson CI: 84.45%, 96.09%]. Truncations: 2.0%. Mean tokens:
+    2,066.6.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0350
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 155
+  number: 73.0%
+  all_numbers:
+  - 73.0%
+  - 73/100
+  - 63.04%
+  - 81.16%
+  - 83.0%
+  - 83/100
+  - 73.89%
+  - 89.51%
+  - 8.0%
+  text: '- **PAL Scaffold (P2 @ 2,048 cap):** **73.0% strict CAS** (73/100) [95% Wilson CI: 63.04%, 81.16%] / **83.0% lenient** (83/100) [95% Wilson CI: 73.89%, 89.51%]. Truncations: 8.0%. Mean tokens:
+    1,285.0.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0351
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 161
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 73.0%
+  text: Strict   88.0%             73.0%             69     8         19               4                p = 0.0026
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0352
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 162
+  number: 92.0%
+  all_numbers:
+  - 92.0%
+  - 83.0%
+  text: Lenient  92.0%             83.0%             79     4         13               4                p = 0.0490
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0353
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 166
+  number: 83.0%
+  all_numbers:
+  - 83.0%
+  - 85.0%
+  - 88.0%
+  text: On held-out competition mathematics, Thinking Mode leads PAL by +15.0 pp on strict CAS ($p = 0.0026$) and +9.0 pp on lenient normalization ($p = 0.0490$). While on the Dev split P2 appeared to tie
+    R1 (83.0% vs 85.0%, $p=
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0354
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 182
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 80.8%
+  - 94.1%
+  - 94.0%
+  - 86.9%
+  - 97.5%
+  - 3.0%
+  text: 'Gemma 4 12B       Direct R0 @ 4k      89.0% [80.8%, 94.1%]            94.0% [86.9%, 97.5%]         3.0%         R0 only : P2 only'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0355
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 183
+  number: 86.0%
+  all_numbers:
+  - 86.0%
+  - 77.3%
+  - 91.9%
+  - 90.0%
+  - 82.0%
+  - 94.8%
+  - 5.0%
+  text: 'PAL P2 @ 2k         86.0% [77.3%, 91.9%]            90.0% [82.0%, 94.8%]         5.0%         8 : 5 (p = 0.581, NS)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0356
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 186
+  number: 52.0%
+  all_numbers:
+  - 52.0%
+  - 41.8%
+  - 62.0%
+  - 54.0%
+  - 43.8%
+  - 63.9%
+  - 1.0%
+  text: 'Gemma 4 E4B       Direct R0 @ 4k      52.0% [41.8%, 62.0%]            54.0% [43.8%, 63.9%]         1.0%         Avg Tok: 1108'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0357
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 187
+  number: 73.0%
+  all_numbers:
+  - 73.0%
+  - 63.0%
+  - 81.2%
+  - 83.0%
+  - 73.9%
+  - 89.5%
+  - 8.0%
+  text: 'PAL P2 @ 2k         73.0% [63.0%, 81.2%]            83.0% [73.9%, 89.5%]         8.0%         P2 only : R0 only = 28 : 7 (p=0.0005)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0358
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 188
+  number: 88.0%
+  all_numbers:
+  - 88.0%
+  - 79.6%
+  - 93.4%
+  - 92.0%
+  - 84.4%
+  - 96.2%
+  - 2.0%
+  text: 'Thinking R1 @ 6k    88.0% [79.6%, 93.4%]            92.0% [84.4%, 96.2%]         2.0%         R1 only : P2 only = 19 : 4 (p=0.0026)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0359
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 191
+  number: 51.0%
+  all_numbers:
+  - 51.0%
+  - 40.9%
+  - 61.1%
+  - 55.0%
+  - 44.8%
+  - 64.9%
+  - 4.0%
+  text: 'Gemma 4 E2B       Direct R0 @ 4k      51.0% [40.9%, 61.1%]            55.0% [44.8%, 64.9%]         4.0%         Avg Tok: 1279'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0360
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 192
+  number: 61.0%
+  all_numbers:
+  - 61.0%
+  - 50.7%
+  - 70.4%
+  - 70.0%
+  - 59.9%
+  - 78.5%
+  - 14.0%
+  text: 'PAL P2 @ 2k         61.0% [50.7%, 70.4%]            70.0% [59.9%, 78.5%]         14.0%        P2 only : R0 only = 23 : 13 (p=0.133)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0361
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 193
+  number: 81.0%
+  all_numbers:
+  - 81.0%
+  - 71.7%
+  - 87.9%
+  - 86.0%
+  - 77.3%
+  - 91.9%
+  - 10.0%
+  text: 'Thinking R1 @ 6k    81.0% [71.7%, 87.9%]            86.0% [77.3%, 91.9%]         10.0%        R1 only : P2 only = 24 : 4 (p=0.00018)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0362
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 199
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 90.0%
+  - 89.0%
+  text: 1. **Unassisted direct generation exhibits a sharp phase shift between 4.5B and 12B:** E2B and E4B achieve almost identical unassisted baselines (51% and 52% strict), even when granted generous
+    4k token budgets. In contr
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0363
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 209
+  number: 73.0%
+  all_numbers:
+  - 73.0%
+  - 83.0%
+  - 83.0%
+  - 92.0%
+  text: 1. **PAL (P2 @ 2,048 cap):** 73.0%–83.0% strict / 83.0%–92.0% lenient, ~1,070–1,216 tokens/item, ~10.1–12.2s latency. Pareto-optimal for token and speed efficiency on arithmetic and straightforward
+    algebra.
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0364
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 210
+  number: 85.0%
+  all_numbers:
+  - 85.0%
+  - 88.0%
+  - 86.0%
+  - 92.0%
+  text: 2. **Thinking Mode (R1 @ 6,144 cap):** 85.0%–88.0% strict / 86.0%–92.0% lenient, ~1,785–2,066 tokens/item, ~16.4–19.3s latency. Preferred when maximizing strict CAS accuracy on challenging competition
+    mathematics.
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0365
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 225
+  number: 58.0%
+  all_numbers:
+  - 58.0%
+  - 90.0%
+  text: 4. **Confounded negative observation (not a causal claim):** Under $T=0.0$ greedy decoding without repetition penalties, 12B extended thinking scored 58.0% vs 90.0% direct on the dev split with
+    44% ceiling truncations (3
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0366
+  doc: docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md
+  line: 227
+  number: 88.8%
+  all_numbers:
+  - 88.8%
+  - 85.7%
+  - 87.8%
+  - 73.5%
+  - 51.0%
+  - 80.6%
+  - 61.2%
+  - 50.0%
+  text: 6. **Held-Out Sample Scope & Leak Disclosure:** Held-out evaluations were conducted on the first 100 consecutive problems of `math_fresh_heldout_500.jsonl` (lines 1–100). The remaining 400 problems
+    in this dataset remain
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0367
+  doc: docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md
+  line: 49
+  number: 0/25
+  all_numbers:
+  - 0/25
+  text: '| Confabulation resistance | **Measured** — 25-question battery, 0/25 hallucinations (live run) | `scripts/bench_confabulation_battery.py`; README scorecard row |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0368
+  doc: docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md
+  line: 69
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: '| Architectural decomposition parity | **Measured** — 24/24 static gates incl. decomposition and registry-consistency gates | `tests/test_static_gates.py` (record `metrics-2026-10-05`) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0369
+  doc: docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md
+  line: 81
+  number: 11/11
+  all_numbers:
+  - 11/11
+  text: '| Memory integrity under tampering | **Measured** — 11/11 HMAC tamper gates | `tests/test_memory_hmac_tamper.py` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0370
+  doc: docs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md
+  line: 45
+  number: 70/70
+  all_numbers:
+  - 70/70
+  text: '| Formal battery | **70-sentence** scripted battery across 8 categories (broadened 2026-10-05: stale-receipt, failed-status, markdown, passive/multilingual characterization) | `tests/test_truth_in_receipt_battery.py`
+    (70'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0371
+  doc: docs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md
+  line: 46
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 4.3%
+  - 1/8
+  - 12.5%
+  - 0/50
+  text: '| Live probe evidence | 100-probe action-hallucination battery; sensitivity **1/23 (4.3%)** broad / **1/8 (12.5%)** strict on ungrounded claims; 0/50 false aborts on action-free controls (controls
+    contain no action claim'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0372
+  doc: docs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md
+  line: 54
+  number: 11/11
+  all_numbers:
+  - 11/11
+  text: '| Signed memory commits | HKDF HMAC-SHA256 two-stage read-time verification; persistent quarantine | `D-MEM-05`; `tests/test_memory_hmac_tamper.py` (11/11) |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0373
+  doc: docs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md
+  line: 58
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: deselected, 24/24 static architectural gates (record `metrics-2026-10-05`,
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0374
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 13
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  text: '> **sourced but protocol-specific**: 95.73% (157/164) is the zero-shot'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0375
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 16
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  text: '> 91.46% (150/164) is the 2026-09-29 HumanEval-Plus run (artifact in'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0376
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 19
+  number: 94.51%
+  all_numbers:
+  - 94.51%
+  - 93.90%
+  text: '> measures 94.51% raw / 93.90% assisted. Cite the protocol with the number;'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0377
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 23
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 1/8
+  text: '> result is now reported with both halves (sensitivity 1/23 broad / 1/8'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0378
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 24
+  number: 0/50
+  all_numbers:
+  - 0/50
+  text: '> strict; 0/50 false aborts on action-free controls only). See'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0379
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 55
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: 24/24 static gates**). The 68th deselected test is the new hw-marked
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0380
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 102
+  number: 70/70
+  all_numbers:
+  - 70/70
+  text: verbs), **70-sentence formal battery (70/70)** across 8 categories, live
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0381
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 103
+  number: 0/50
+  all_numbers:
+  - 0/50
+  text: '100-probe battery with 0/50 control false aborts. Newly hardened (2026-10-05):'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0382
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 117
+  number: 24/24
+  all_numbers:
+  - 24/24
+  text: '| Static architectural gates | 24/24 | `tests/test_static_gates.py` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0383
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 118
+  number: 91.0%
+  all_numbers:
+  - 91.0%
+  text: '| SPEC-BENCH-100 cognitive battery | 91.0% (Run 3) | Track 1 harness |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0384
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 119
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  - 94.51%
+  - 93.90%
+  - 92.1%
+  - 151/164
+  - 2/3
+  text: '| HumanEval / HumanEval-Plus | **95.73% zero-shot (157/164, academic harness)** / **94.51% raw / 93.90% assisted (canonical paired)** / **90.9–92.1% Plus (149–151/164, three runs)** *(all sourced
+    — manifest `humaneval_ze'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0385
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 120
+  number: 2/3
+  all_numbers:
+  - 2/3
+  text: '| GSM8K PAL / GSM-Symbolic | 100% / 100% | Track 2/3 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0386
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 121
+  number: 92.40%
+  all_numbers:
+  - 92.40%
+  text: '| BBH (4-subset composite) | 92.40% | Track 2 |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0387
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 122
+  number: 89.0%
+  all_numbers:
+  - 89.0%
+  - 88.8%
+  text: '| MATH-500 held-out-100 Direct R0 | 89.0% (88.8% clean-98) | manifest `math500_heldout100_direct_r0_v1_35_6` |'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0388
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 124
+  number: 0/25
+  all_numbers:
+  - 0/25
+  text: '| Confabulation battery | 0/25 hallucinations | `scripts/bench_confabulation_battery.py` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0389
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 125
+  number: 11/11
+  all_numbers:
+  - 11/11
+  text: '| Memory tamper quarantine | 11/11 gates | `tests/test_memory_hmac_tamper.py` |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0390
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 126
+  number: 9/10
+  all_numbers:
+  - 9/10
+  - 0/10
+  - 9/10
+  - 4/10
+  - 10/10
+  - 7/10
+  text: '| **Contrastive battery (NEW, 2026-10-05)** | Compound vs bare-LLM: recall 9/10 vs 0/10; introspection 9/10 vs 4/10; abstention 10/10 vs 7/10 | `logs/test_reports/contrastive_battery_20261005T200643Z_regraded.json`;
+    `tes'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0391
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 133
+  number: 80/50
+  all_numbers:
+  - 80/50
+  - 85/75
+  text: percentages (~80/50/85/75%) are RETIRED as capability-inventory judgments —
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0392
+  doc: handover/HANDOVER_STATE_OF_THE_UNION_2026-10-05.md
+  line: 225
+  number: 29/30
+  all_numbers:
+  - 29/30
+  text: '7. Roadmap: WO-29/30/31 (with the Part-3-is-the-engine reconsideration note),'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0393
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 15
+  number: 30/31
+  all_numbers:
+  - 30/31
+  text: 'starts, and should WO-30/31 be rewritten?* Short answer: yes to both, but'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0394
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 40
+  number: 8/5
+  all_numbers:
+  - 8/5
+  - 9/0
+  - 9/4
+  - 10/7
+  text: '| F2 | **Contrastive artifact summary is stale.** `arm_b_summary` / `arm_a_summary_contrast_only` in `contrastive_battery_20261005T200643Z_regraded.json` still hold pre-regrade figures (8/5/10
+    both arms); the per-probe `'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0395
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 43
+  number: 20/78
+  all_numbers:
+  - 20/78
+  text: '| F5 | **v1.3 fresh-500 rescore artifact never committed.** The 74.20/78.80 pair has no JSON in `logs/`. | manifest `provenance_note` | Low — superseded record, but still cited in papers 01 and
+    in the user guide |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0396
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 47
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 4.3%
+  - 1/8
+  - 12.5%
+  - 0/50
+  - 0/50
+  - 0/50
+  text: '| F13 | **The supervisor''s live sensitivity (1/23 = 4.3% broad, 1/8 = 12.5% strict) is absent from the summary-level docs.** `RESULTS.md` and `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3 report it
+    correctly alongside 0/50 co'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0397
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 49
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  - 91.46%
+  - 150/164
+  text: '| F15 | **HumanEval figures were protocol-unlabeled (RESOLVED 2026-10-06 — initial ''unsourced'' verdict was wrong).** The 95.73% (157/164) figure IS sourced: `logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.js'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0398
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 51
+  number: 240 / 67
+  all_numbers:
+  - 240 / 67
+  - 243 / 68
+  text: '| F9 | **Grant compilation''s scale line is stale.** Reads "1,240 / 67"; authoritative record is 1,243 / 68. | `GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md:57` | Low |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0399
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 64
+  number: 30/31
+  all_numbers:
+  - 30/31
+  text: '| A1 | **Resolve the WO-number collision.** Recommended: retitle the remediation workshop plan as **"WO-29R — External Review Remediation"** (R = remediation; it sits between WO-29 planning and
+    the ladder). Keep the ladd'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0400
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 73
+  number: 0/50
+  all_numbers:
+  - 0/50
+  - 1/23
+  - 1/8
+  - 0/50
+  - 1/23
+  - 4.3%
+  - 1/8
+  - 12.5%
+  text: '| A10 | **Surface the supervisor sensitivity number everywhere 0/50 appears alone.** `README.md:145`: append "live sensitivity 1/23 broad / 1/8 strict (Battery v2 pre-registered)". `docs/DECISIONS.md`
+    D-SEC-05: append a '
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0401
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 75
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  - 94.51%
+  - 93.90%
+  - 151/164
+  - 92.07%
+  - 150/164
+  text: '| A12 | **Resolve the HumanEval provenance gap.** Either (a) locate or regenerate the artifact behind 95.73% (157/164) — if none exists, retract the figure from papers/01, the neurosymbolic paper,
+    and user guide line 17,'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0402
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 82
+  number: 89/100
+  all_numbers:
+  - 89/100
+  text: '| B1 | **Frozen-tree reproduction of the current MATH-500 record.** Commit or stash everything, confirm `git status` clean, re-run the exact `pal_off_ablation` 12B R0 held-out-100 arm (T=0.0, seed
+    42, cap 4,096, `cache_p'
+  record_id: math500_heldout100_direct_r0_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0403
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 84
+  number: 27/30
+  all_numbers:
+  - 27/30
+  - 9/10
+  text: '| B3 | **Widen the contrastive battery.** 10 → 30 probes per stratum (90 total) so Wilson LBs become informative (at 27/30 the LB is ≈ 0.74; at 9/10 it is ≈ 0.60). Re-run both arms. Keep the original
+    30 as a frozen subse'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0404
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 108
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 1/8
+  - 0/50
+  text: '| C4 | **Manifund application draft** from the compilation + SotU §6.1. Pure writing; no GPU; can overlap with B4. May start immediately, but must use the corrected supervisor numbers (1/23 / 1/8,
+    not 0/50-alone) per A10'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0405
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 123
+  number: 12/14
+  all_numbers:
+  - 12/14
+  text: positioned as a peer of Modules 12/14/15; it is actually a research
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0406
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 160
+  number: 05/06
+  all_numbers:
+  - 05/06
+  text: '3. **Invariants touched** — explicit list: `D-REAS-05/06/07` for anything'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0407
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 179
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 4.3%
+  text: 1/23 (4.3%) on broad ungrounded action claims, a decode-time structural fix
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0408
+  doc: plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md
+  line: 195
+  number: 30/31
+  all_numbers:
+  - 30/31
+  - 32/33
+  text: Rewrite                → WO-30/31/32/33 per §3.1 using the §3.2 template; retitle workshop → WO-29R
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0409
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 23
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 0/50
+  text: '### A1. Supervisor sensitivity (1/23) vs the 0/50-only presentations — CONFIRMED, fixed'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0410
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 25
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 0/50
+  text: '`git grep -n -E "1/23|4\.3%|0/50|false.abort" -- docs/ plans/ RESULTS.md README.md`:'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0411
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 28
+  number: 1/8
+  all_numbers:
+  - 1/8
+  - 12.5%
+  - 1/23
+  - 4.3%
+  - 0/50
+  text: 1/8 strict = 12.5%, 1/23 broad = 4.3%, 0/50 controls with the caveat);
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0412
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 33
+  number: 0/50
+  all_numbers:
+  - 0/50
+  text: '- **0/50-only (fixed):** `README.md:145`; `docs/DECISIONS.md:354`'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0413
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 39
+  number: 1/23
+  all_numbers:
+  - 1/23
+  - 1/8
+  text: '**Changed:** README row now carries 1/23 + 1/8 + the controls caveat;'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0414
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 73
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 91.46%
+  text: '### A3. HumanEval provenance — 95.73% is UNSOURCED; 91.46% has a newer, unrecorded artifact'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0415
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 78
+  number: 155 / 164
+  all_numbers:
+  - 155 / 164
+  - 94.51%
+  text: humaneval_canonical_raw_164.json      passed 155 / 164  (94.51%)  commit c3561206  2026-10-02
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0416
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 79
+  number: 154 / 164
+  all_numbers:
+  - 154 / 164
+  - 93.90%
+  text: humaneval_canonical_assisted_164.json passed 154 / 164  (93.90%)  commit c3561206  2026-10-02
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0417
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 82
+  number: 151 / 164
+  all_numbers:
+  - 151 / 164
+  - 92.07%
+  text: 'benchmarks.humaneval_plus: passed 151 / 164 (92.07%)  2026-10-03'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0418
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 84
+  number: 137 / 164
+  all_numbers:
+  - 137 / 164
+  - 83.54%
+  text: 'benchmarks.humaneval_plus: passed 137 / 164 (83.54%)'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0419
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 87
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  text: '- **95.73% (157/164)** (papers/01, NEUROSYMBOLIC_RESEARCH_PAPER.md,'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0420
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 92
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  text: '- **91.46% (150/164)**: traces to the WO-26-era run; a newer artifact'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0421
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 93
+  number: 92.07%
+  all_numbers:
+  - 92.07%
+  text: (92.07%) exists with no manifest record. Flagged for A12.
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0422
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 140
+  number: 243/68
+  all_numbers:
+  - 243/68
+  text: '"1,240 passing tests / 67 hardware-deselected" vs record 1,243/68.'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0423
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 246
+  number: 199/67
+  all_numbers:
+  - 199/67
+  - 243/68
+  text: '| Test count | `CHANGELOG.md:39` | "record metrics-2026-10-05: 1,199/67" | `data/metrics/TEST_METRICS.yaml`: 1,243/68 | CHANGELOG misquotes its own record — historical entry, left as-is per the
+    record''s own policy; activ'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0424
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 250
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  - 94.51%
+  - 93.90%
+  text: '| HumanEval canonical | papers/01, NEUROSYMBOLIC, USER_GUIDE | 95.73% (157/164) | artifacts: 94.51% raw / 93.90% assisted | **USER_GUIDE fixed; papers flagged (A12)** |'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0425
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 251
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  - 92.07%
+  - 151/164
+  text: '| HumanEval-Plus | USER_GUIDE, papers | 91.46% (150/164) | newest artifact: 92.07% (151/164); older artifact unlocated | **USER_GUIDE fixed; manifest record missing (A12)** |'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0426
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 252
+  number: 0/50
+  all_numbers:
+  - 0/50
+  - 1/23
+  - 1/8
+  - 0/50
+  text: '| Supervisor live result | README:145, D-SEC-05 | 0/50 only | 1/23 + 1/8 + 0/50-with-caveat | **fixed** |'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0427
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 258
+  number: 1/23
+  all_numbers:
+  - 1/23
+  text: with the measured 1/23 sensitivity foregrounded (SotU §2.2, §5.4, §8).
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0428
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 262
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  text: 3. **HumanEval 95.73%** → retracted from the user guide, replaced with
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0429
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 293
+  number: 155/164
+  all_numbers:
+  - 155/164
+  - 94.51%
+  - 154/164
+  - 93.90%
+  text: 'dirty tree): Raw **155/164 (94.51%)**, Assisted **154/164 (93.90%)**,'
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0430
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 295
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  text: raw-only 2, rescued 1, preflight fired 30). The 95.73% (157/164) figure is
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0431
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 299
+  number: 149/164
+  all_numbers:
+  - 149/164
+  - 90.9%
+  - 151/164
+  - 92.07%
+  text: '**149/164 (90.9%)** vs the 2026-10-03 artifact''s 151/164 (92.07%). The'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0432
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 301
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  text: unsourced 91.46% (150/164) sits between the two recorded runs and remains
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0433
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 303
+  number: 49/50
+  all_numbers:
+  - 49/50
+  - 98.0%
+  text: and a frozen-tree-run caveat. (A 50-task subset run, 49/50 = 98.0%, was
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0434
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 318
+  number: 157/164
+  all_numbers:
+  - 157/164
+  text: 1. **The origin of 157/164** — no artifact existed; origin not determinable
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0435
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 321
+  number: 150/164
+  all_numbers:
+  - 150/164
+  text: 2. **The WO-26-era HumanEval-Plus artifact (150/164)** — never located.
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0436
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 342
+  number: 49/44
+  all_numbers:
+  - 49/44
+  text: claim. (The sibling ledgers v2/v4 count 49/44 under the same rule — the
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0437
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 354
+  number: 157/164
+  all_numbers:
+  - 157/164
+  text: 1. **The origin of 157/164.** No artifact exists; whether the figure came
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0438
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 359
+  number: 150/164
+  all_numbers:
+  - 150/164
+  text: 2. **The WO-26-era HumanEval-Plus artifact (150/164).** Not located in
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0439
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 370
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  - 157/164
+  text: This document's A3/F15 conclusion — that HumanEval 95.73% (157/164) and
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0440
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 371
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  - 150/164
+  text: HumanEval-Plus 91.46% (150/164) were unsourced — was **an auditor error**,
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0441
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 379
+  number: 157/164
+  all_numbers:
+  - 157/164
+  text: '(also under `frozen_v1.2_baseline/`): `humaneval: passed 157/164'
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0442
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 380
+  number: 95.73%
+  all_numbers:
+  - 95.73%
+  text: (95.73%), elapsed 760.67 s` — zero-shot direct execution in Docker under
+  record_id: humaneval_zeroshot_academic_v1_3
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0443
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 383
+  number: 150/164
+  all_numbers:
+  - 150/164
+  text: '(also under `frozen_v1.2_baseline/`): `humaneval_plus: passed 150/164'
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0444
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 384
+  number: 91.46%
+  all_numbers:
+  - 91.46%
+  text: (91.46%), elapsed 1016.83 s` — 2026-09-29.
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0445
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 389
+  number: 94.51%
+  all_numbers:
+  - 94.51%
+  - 93.90%
+  text: item-for-item at 94.51%/93.90%). The real defect was missing protocol
+  record_id: humaneval_canonical_paired_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
+- claim_id: CLM-0446
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 392
+  number: 150/151
+  all_numbers:
+  - 150/151
+  text: '`humaneval_plus_v1_35_6` (now three recorded runs: 150/151/149 of 164,'
+  record_id: ''
+  artifact: ''
+  grader: ''
+  type: ''
+  n: ''
+  ci: ''
+- claim_id: CLM-0447
+  doc: docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md
+  line: 393
+  number: 92.07%
+  all_numbers:
+  - 92.07%
+  text: 90.85–92.07%); `cited_figures` RETRACTED entries replaced with proper
+  record_id: humaneval_plus_v1_35_6
+  artifact: ''
+  grader: ''
+  type: measured
+  n: ''
+  ci: ''
