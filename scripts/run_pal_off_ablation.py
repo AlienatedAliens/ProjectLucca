@@ -204,8 +204,10 @@ def load_gsm_symbolic_stratified(samples: int = 500, split: str = "dev") -> list
 
 
 def load_math500_dataset(samples: int = 500, split: str = "dev") -> list[dict[str, Any]]:
-    """Load canonical MATH-500 test dataset (dev) or fresh heldout 500 (heldout)."""
-    if split == "heldout":
+    """Load canonical MATH-500 test dataset (dev), fresh heldout 500 (heldout), or B4 sealed (b4_sealed)."""
+    if split == "b4_sealed":
+        data_file = DATA_DIR / "math_b4_sealed_100.jsonl"
+    elif split == "heldout":
         data_file = DATA_DIR / "math_fresh_heldout_500.jsonl"
     else:
         data_file = DATA_DIR / "math500_test.jsonl"
@@ -220,8 +222,9 @@ def load_math500_dataset(samples: int = 500, split: str = "dev") -> list[dict[st
     for idx, itm in enumerate(selected, 1):
         sol = itm.get("solution", "")
         gt = extract_math500_ground_truth(sol)
+        item_id = itm.get("b4_sealed_id") or f"math500-{split}-{idx}"
         dataset.append({
-            "item_id": f"math500-{split}-{idx}",
+            "item_id": item_id,
             "idx": idx,
             "problem": itm.get("problem", ""),
             "solution_raw": sol,
@@ -860,7 +863,7 @@ def run_benchmark_arm(
     cap_suffix = ""
     if arm in ("p1", "p2") and max_code_tokens != 1024:
         cap_suffix = f"_cap{max_code_tokens}"
-    elif arm == "r1" and max_thinking_tokens != 4096 and model_label != "gemma-4-12b":
+    elif arm == "r1" and max_thinking_tokens != 4096:
         cap_suffix = f"_think{max_thinking_tokens}"
     elif arm == "r0" and max_thinking_tokens != 1536:
         cap_suffix = f"_cap{max_thinking_tokens}"
@@ -989,6 +992,10 @@ def run_benchmark_arm(
         "vram_peak_mib": max(vram_start, vram_end),
         "results": results_list,
     }
+    if split == "b4_sealed":
+        import hashlib
+        summary["dataset_sha256"] = "14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b"
+        summary["grader_sha256"] = hashlib.sha256((REPO_ROOT / "scripts" / "run_modern_2024_benchmarks.py").read_bytes()).hexdigest()
 
     out_file.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     if chk_file.exists():
@@ -1090,7 +1097,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="PAL-Off Factorial Model-Scale Ablation Runner")
     parser.add_argument("--model-label", type=str, default="auto", help="Model label (e.g. gemma-4-e2b, gemma-4-e4b, gemma-4-12b)")
     parser.add_argument("--arm", type=str, default="all", choices=["r0", "r1", "p1", "p2", "p3", "routed", "all"], help="Scaffold arm")
-    parser.add_argument("--split", type=str, default="dev", choices=["dev", "heldout"], help="Dataset split (dev or heldout)")
+    parser.add_argument("--split", type=str, default="dev", choices=["dev", "heldout", "b4_sealed"], help="Dataset split (dev, heldout, or b4_sealed)")
     parser.add_argument("--benchmark", type=str, default="all", choices=["gsm_symbolic", "math500", "all"], help="Benchmark suite")
     parser.add_argument("--samples", type=int, default=500, help="Number of items to evaluate (100 or 500)")
     parser.add_argument("--max-thinking-tokens", type=int, default=4096, help="Max tokens for thinking mode / reasoning")
