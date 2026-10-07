@@ -72,6 +72,14 @@ def load_summary(artifact: str) -> dict[str, object]:
                    source="top-level summary", git_commit=commit_from(d))
         return out
 
+    # Shape D: pal_off summary dict with strict_passed/lenient_passed
+    if isinstance(d, dict) and "strict_passed" in d:
+        tot = d.get("samples") or len(d.get("results", []))
+        out.update(total=tot, passed_strict=d.get("strict_passed"),
+                   passed_lenient=d.get("lenient_passed"),
+                   source="pal_off summary block", git_commit=commit_from(d))
+        return out
+
     return {"error": "unrecognized artifact shape", "keys": sorted(d)[:12] if isinstance(d, dict) else type(d).__name__}
 
 
