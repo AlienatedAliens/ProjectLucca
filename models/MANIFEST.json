@@ -64,6 +64,20 @@
       "source_repo": "culturerevolt/gemma-4-12b-heretic-abliterated",
       "source_filename": "gemma-4-12b-heretic-mmproj-f16.gguf",
       "status": "PRIMARY — multimodal vision adapter for Gemma-4 12B (D-BRAIN-05, WO-24)"
+    },
+    "llm/gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf": {
+      "sha256": "ab52d2db11a2d33573b31dc704121f25e918373224182dbde9d6e02e1c34586e",
+      "size_bytes": 6217260896,
+      "source_repo": "llmfan46/gemma-4-E4B-it-uncensored-heretic-GGUF",
+      "source_filename": "gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf",
+      "status": "EDGE TIER — efficiency companion tier (E4B)"
+    },
+    "llm/Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf": {
+      "sha256": "6e30dcc324485590e2023e82a350dd96a8dca58ee5c360902824b86802d0c143",
+      "size_bytes": 3829836832,
+      "source_repo": "culturerevolt/Gemma4-E2B-Heretic-Sinhala-GGUF",
+      "source_filename": "Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf",
+      "status": "EDGE TIER — ultra-low latency edge tier (E2B)"
     }
   }
 }
