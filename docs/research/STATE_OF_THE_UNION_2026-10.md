@@ -65,9 +65,9 @@ oracle dispatch (SPIKE-B, registered, not scheduled).
 |---|---|---|
 | 2026-09-22 → 09-24 | Reasoning-loop remediation; WO-11 honesty parity & fault injection; WO-12 belief model; WO-13 calibrated meta-cognition; WO-14/15/16 v1 release, remediation, deep clean; WO-17 system modernization | v1.0 release line. Test count at WO-17 closeout: 671 passed / 49 deselected (`metrics-wo17-2026-09-24`, superseded). |
 | 2026-09-25 → 09-26 | WO-18 architectural remediation; WO-19 featureset remediation; WO-20 concert layer (phases 3–4 review); WO-21 defeasible rung | Concert Layer hard-premise deduction + existence-checked abduction (`D-REAS-09`); supersession ("direct word outranks inference", `tests/test_concert_layer.py`). Test count 1,198 / 67 deselected at v1.35.6-stable tag (`metrics-2026-09-26`, superseded). |
-| 2026-09-27 → 09-29 | WO-22 practical reasoning; WO-23 Walton extension; WO-24 BitNet tool router + vision ingestion; WO-25 compound reasoning + 100-probe benchmark; WO-26 cognitive interiority + execution verification; WO-27 affective manifold (frozen) | SPEC-BENCH-100 battery (91.0%, Run 3); Z3 SMT rule verification (`D-REAS-07`); e-graph anti-unification macro synthesis (`D-REAS-08`). |
+| 2026-09-27 → 09-29 | WO-22 practical reasoning; WO-23 Walton extension; WO-24 heuristic tool router (BitNet neural shortlister deferred per plan trigger) + vision ingestion; WO-25 compound reasoning + 100-probe benchmark; WO-26 cognitive interiority + execution verification; WO-27 affective manifold (frozen) | SPEC-BENCH-100 battery (91.0%, Run 3, 91/100, 95% Wilson [83.8%, 95.2%]; manifest `spec_bench_100_run3_v1_3`); Z3 SMT rule verification (`D-REAS-07`); e-graph anti-unification macro synthesis (`D-REAS-08`). |
 | 2026-09-30 → 10-03 | WO-28 v1.3 structural compiler & neurosymbolic execution; v1.35 evidence & rigor campaign; WO-29 planned (15-module cognitive ladder) | v1.3 PAL harness (`math500_pal_v1_3`, superseded); fresh held-out 500 run (`math500_fresh_heldout_500_v1_3_0`, superseded, dataset-drift bound); v1.35 held-out-100 Direct R0 (`math500_heldout100_direct_r0_v1_35_6`, **current**); multi-scale E4B/E2B tier validation (`D-ROUT-02`). |
-| 2026-10-04 → 10-05 | External-review remediation workshop (plan file self-titles as "WO-30", colliding with the ladder's WO-30 Part 2 — numbering unresolved; see §2.2 and the companion advisory) | Provenance split (`D-MEM-06`), benchmark manifest, authoritative metrics record, paper 06 narrowing, TTS safety guard, Truth-in-Receipt battery broadening, contrastive battery, document envelope convention (`D-DOC-01`). |
+| 2026-10-04 → 10-05 | External-review remediation workshop (plan file historically self-titled as "WO-30"; resolved in pre-WO-30 shoring advisory §3.1 which establishes WO-30 as "Minimum Viable Engine") | Provenance split (`D-MEM-06`), benchmark manifest, authoritative metrics record, paper 06 narrowing, TTS safety guard, Truth-in-Receipt battery broadening, contrastive battery, document envelope convention (`D-DOC-01`). |
 
 ### 2.2 The external-review remediation arc (P0–P9 → dispositions)
 
@@ -207,7 +207,7 @@ numbers above are reproducible only by filename, not by hash.
 | Turn-boundary receipt staleness | Gate | `stale_before` wired via `reset_turn` → `evaluate_clause` | `src/lucca/sandbox/output_supervisor.py:378, 804`; +2 tests |
 | Recollection excluded from security hysteresis | Gate | `ungrounded_action_recollection` TIER_2_SOFT | `output_supervisor.py:834, 874`; +1 test |
 | TTS output safety guard (edge tiers) | Gate | `tts_safety_guard_mode = "edge_tiers"` default | `src/lucca/core/config.py:86`; `tests/test_tts_safety_guard.py` (11) |
-| Confabulation resistance | **Measured** | 0/25 hallucinations (live) | `scripts/bench_confabulation_battery.py` |
+| Confabulation resistance | **Measured** | 0/25 hallucinations (0.0%, 95% Wilson CI [0.0%, 13.3%]; live run, manifest `milestone3_confabulation_battery`) | `scripts/bench_confabulation_battery.py` |
 | Coherence breach as first-class evidence | Gate (unit) | `COHERENCE_BREACH` signed and stored | `src/lucca/core/coherence.py` |
 | **Contrastive battery: compound vs bare LLM** | **Measured** (live, 2026-10-05) | recall **9/10 vs 0/10**; receipt introspection **9/10 vs 4/10**; abstention **10/10 vs 7/10** (n = 10 per stratum) | `logs/test_reports/contrastive_battery_20261005T200643Z_regraded.json` (per-probe `results` array); `tests/test_contrastive_live_hw.py` (`-m hw`) |
 
@@ -255,7 +255,7 @@ The four batteries that would produce measurements are specified in
 
 | Aspect | Measured today | NOT YET MEASURED |
 |---|---|---|
-| Introspective accuracy | calibrated abstention; confabulation 0/25; capability self-report gate; contrastive introspection 9/10 (n=10) | reasoning-trace fidelity (IA-C); numeric metrics honesty (IA-B); failure-mode introspection |
+| Introspective accuracy | calibrated abstention; confabulation 0/25 (0.0%, 95% Wilson [0.0%, 13.3%]); capability self-report gate; contrastive introspection (Arm B 8/10, 80.0%, 95% Wilson [49.0%, 94.3%]; manifest `contrastive_battery_v2_frozen_grader`) | reasoning-trace fidelity (IA-C); numeric metrics honesty (IA-B); failure-mode introspection |
 | Individuation | signed user-specific memory; brain-swap identity persistence (event) | boundary integrity under injection (IN-B); self/other differentiation (IN-C); learned-skill count (IN-D) |
 | Functional coherence | 24/24 decomposition gates; COHERENCE_BREACH at unit level | routing consistency across paraphrases (FC-B); end-to-end trace completeness (FC-C); live claim/receipt coherence (FC-A) |
 | Autobiographical coherence | A1 wiring; supersession chain; 11/11 tamper; contrastive recall 9/10 (n=10) | cross-session recall quality (AC-A); epistemic-grammar narration (AC-B); supersession honesty in speech (AC-C) |
@@ -489,6 +489,13 @@ and the individuation measurement; Parts 1–2 should carry explicit "good
 enough" cut lines rather than be polish targets. The note re-frames priority;
 it does not change module assignments or target releases.
 
+**Ratified Work Order Re-sequencing (2026-10-05 advisory §3.1):** To align implementation with the highest-leverage engine components, the ladder was formally re-sequenced:
+- **WO-30 — Minimum Viable Engine:** Modules 14 (DreamCoder macro miner), 7 (idiomaticity cost), 4 (GBNF S-expression grammar), 5 (scratchpad falsification loop).
+- **WO-31 — Search & Safety-of-Search:** Modules 12 (AST-hole MCTS), 9 (traceback divergence guard), 11 (boundary topology parser), 15 (backward abduction).
+- **WO-32 — Policy Prior Spike:** Module 13 (BitNet b1.58 2B spike on CPU).
+- **WO-33 — Hygiene That Earned Its Place:** Modules 8 (transactional Git staging DAG), 10 (Belnap latent investigator), trigger-gated.
+- **WO-34 — Proactive reflection loop:** (re-numbered from old WO-32 to resolve collision).
+
 ### 7.3 V2 backlog highlights (`docs/V2_BACKLOG.md`)
 
 - Defeasible reasoning rung beyond WO-21: subjective-logic opinions,
@@ -497,7 +504,7 @@ it does not change module assignments or target releases.
   corroboration engine produces recurring clusters pairwise handling cannot
   resolve.
 - Failure-mode introspection — gated on accumulated fault history.
-- WO-32 proactive reflection loop — gated on 200–500 organic dogfood turns.
+- WO-34 (formerly WO-32) proactive reflection loop — gated on 200–500 organic dogfood turns.
 - Orthogonal voice track: acoustic lock and slot-locking for barge-in
   discipline.
 

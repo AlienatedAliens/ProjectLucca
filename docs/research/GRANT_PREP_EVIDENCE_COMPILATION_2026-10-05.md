@@ -14,6 +14,9 @@ application sequencing decision, and register the two SPIKE proposals. Every
 claim below cites its implementing file, test, or ratified ADR — per `D-DOC-01`,
 nothing here is aspirational without a work order attached.
 
+> [!NOTE]
+> This compilation documents the verified baseline subset under active empirical expansion, not a closed or exhaustive evidence base.
+
 ---
 
 ## 1. Evidence base (what already exists and is verified)
@@ -43,7 +46,7 @@ nothing here is aspirational without a work order attached.
 |---|---|---|
 | Truth-in-Receipt matcher | Claims of stateful side effects must match verified ToolReceipts; 21 action verbs; hedge exemption policy | `D-SEC-05`; `src/lucca/sandbox/output_supervisor.py` |
 | Formal battery | **70-sentence** scripted battery across 8 categories (broadened 2026-10-05: stale-receipt, failed-status, markdown, passive/multilingual characterization) | `tests/test_truth_in_receipt_battery.py` (70/70) |
-| Live probe evidence | 100-probe action-hallucination battery; sensitivity **1/23 (4.3%)** broad / **1/8 (12.5%)** strict on ungrounded claims; 0/50 false aborts on action-free controls (controls contain no action claims — specificity vs receipt-backed claims reserved for Battery v2) | `RESULTS.md` §Output Supervisor; `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; `logs/test_reports/` |
+| Live probe evidence | 100-probe action-hallucination battery; sensitivity **1/23 (4.3%)** broad / **1/8 (12.5%)** strict on ungrounded claims (single-annotator evaluation); 0/50 false aborts on action-free controls (controls contain no action claims — specificity vs receipt-backed claims reserved for Battery v2) | `RESULTS.md` §Output Supervisor; `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; `logs/test_reports/` |
 | Provenance gate | `LLM_NARRATION` unconditionally rejected; only authorized domain signers commit memory | ADR-006; `D-MEM-06` split (2026-10-05) |
 | Coherence self-audit | Claim/receipt mismatch recorded as `COHERENCE_BREACH` first-class evidence | `src/lucca/core/coherence.py` |
 
@@ -54,7 +57,7 @@ nothing here is aspirational without a work order attached.
 | Signed memory commits | HKDF HMAC-SHA256 two-stage read-time verification; persistent quarantine | `D-MEM-05`; `tests/test_memory_hmac_tamper.py` (11/11) |
 | Provenance lattice | Deterministic vs LLM-inferred assertions distinguished (`D-MEM-06`, 2026-10-05) | `tests/test_provenance.py` |
 
-**Scale of the verification discipline:** 1,240 passing tests / 67 hardware-
+**Scale of the verification discipline:** 1,243 passing tests / 68 hardware-
 deselected, 24/24 static architectural gates (record `metrics-2026-10-05`,
 `data/metrics/TEST_METRICS.yaml`).
 

@@ -46,7 +46,7 @@ is explicitly **NOT YET MEASURED** pending the probe batteries defined in
 | Sub-capability | Measurement | Receipt |
 |---|---|---|
 | Calibrated abstention | **Gate (unit)** — split-conformal acceptance gate with Wilson LB ≥ 0.80 | `tests/test_c1_abstention_acceptance.py` |
-| Confabulation resistance | **Measured** — 25-question battery, 0/25 hallucinations (live run) | `scripts/bench_confabulation_battery.py`; README scorecard row |
+| Confabulation resistance | **Measured** — 25-question battery, 0/25 hallucinations (0.0%, 95% Wilson CI [0.0%, 13.3%]; live run, manifest `milestone3_confabulation_battery`) | `scripts/bench_confabulation_battery.py`; README scorecard row |
 | Capability self-report grounding | **Gate (static)** — registry-derived reporting with abstention on unavailability | `src/lucca/core/capabilities.py`; static gate `test_capability_claims_real` |
 | Reasoning-trace fidelity | **NOT YET MEASURED** — requires battery IA-C | SPEC-PERSONHOOD §1 |
 | Metrics honesty (numeric tolerance) | **NOT YET MEASURED** — requires battery IA-B | SPEC-PERSONHOOD §1 |
