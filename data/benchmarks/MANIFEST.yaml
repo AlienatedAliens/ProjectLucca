@@ -48,9 +48,14 @@ models:
     filename: gemma-4-12b-heretic-Q6_K.gguf
     sha256: ea50ec1e6065576314a09f4f2051e07d5bf61d8d6cce11c09249c155217aeeab
     source: models/MANIFEST.json (canonical pin)
-  # E4B / E2B weights used by the pal_off_ablation arms are NOT pinned in
-  # models/MANIFEST.json. Gap: pin them before any future E4B/E2B record is
-  # cited in a paper.
+  gemma_4_e4b_heretic_q6k:
+    filename: gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf
+    sha256: ab52d2db11a2d33573b31dc704121f25e918373224182dbde9d6e02e1c34586e
+    source: models/MANIFEST.json (pinned in 45a240a)
+  gemma_4_e2b_heretic_sinhala_q6k:
+    filename: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+    sha256: 6e30dcc324485590e2023e82a350dd96a8dca58ee5c360902824b86802d0c143
+    source: models/MANIFEST.json (pinned in 45a240a)
 
 records:
   - benchmark_id: math500_pal_v1_3
@@ -690,6 +695,35 @@ records:
     git_commit: f7c98a075d416a160210817ac78da0868cefcb69
     git_dirty: false
 
+  - benchmark_id: tts_guard_efficacy_e4b_v1_35_6
+    status: current
+    experiment: >
+      Live TTS-Safety Guard Efficacy Battery (Block B2) on Gemma 4 E4B across the 30-probe
+      cross-model battery (10 harmful probes, 20 benign control probes).
+      Measures harmful block rate, benign false-block rate, and native refusal rate with 95% Wilson CIs.
+      Turns finding P6 from 'mitigated (unit-tested)' into 'mitigated (measured)'.
+    run_artifact: logs/test_reports/tts_guard_efficacy_20261007T020151Z.json
+    report_artifact: logs/test_reports/tts_guard_efficacy_20261007T020151Z_REPORT.md
+    harness_version: "scripts/run_tts_guard_efficacy_battery.py"
+    model: gemma_4_e4b_heretic_q6k
+    dataset: "cross_model_30_probe_battery (10 tool, 10 safety, 10 persona)"
+    guard_mode: edge_tiers
+    results:
+      harmful_n: 10
+      harmful_native_refusal: { count: 3, rate_pct: 30.0, ci_95: [8.1, 64.6] }
+      harmful_guard_block: { count: 0, rate_pct: 0.0, ci_95: [0.0, 34.5] }
+      harmful_combined_protection: { count: 3, rate_pct: 30.0, ci_95: [8.1, 64.6] }
+      benign_control_n: 20
+      benign_false_block: { count: 0, rate_pct: 0.0, ci_95: [0.0, 20.0] }
+    findings: >
+      Replicates the September historical E4B native refusal rate of 30.0% (3/10).
+      Achieved 0.0% false-block rate on benign control probes (0/20, Wilson UB 20.0%).
+      Guard regexes did not trigger on E4B's harmful responses because the model emitted conversational
+      deflections with participle verbs ('synthesizing', 'manufacturing') and broad terms ('explosive device')
+      rather than base-form verbs and specific chemical/weapon agent nouns.
+    git_commit: 45a240a4b2ffb806e298f45f6e77992129631239
+    git_dirty: true
+
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
   # reference these record IDs (see plans/2026-10-04_external_review_remediation_workshop.md §3).
@@ -717,4 +751,6 @@ cited_figures:
   "93.0% / 94.0% MATH-500 B4 sealed 100 (12B R0)": math500_b4_sealed_12b_v1_35_6
   "87.0% / 92.0% MATH-500 B4 sealed 100 (12B P2)": math500_b4_sealed_12b_v1_35_6
   "46.0% MATH-500 B4 sealed 100 (12B R1 think6144)": math500_b4_sealed_12b_v1_35_6
+  "30.0% E4B native refusal (3/10, Block B2 live)": tts_guard_efficacy_e4b_v1_35_6
+  "0.0% TTS guard false-block (0/20 benign control, Block B2 live)": tts_guard_efficacy_e4b_v1_35_6
 
