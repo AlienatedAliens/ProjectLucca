@@ -2,7 +2,7 @@
 
 ```yaml
 doc_status: canonical
-as_of: 2026-10-05
+as_of: 2026-10-07
 supersedes: []
 superseded_by: []
 verification: code-cited
@@ -17,7 +17,7 @@ claim cites a mechanical grader, a manifest record, or the authoritative
 metrics record; anything without one is labeled **NOT YET MEASURED**.
 
 **Reading policy.** Ground truth is `src/`, `tests/`, `config/`, `data/`.
-This document was verified against them on 2026-10-05 and should be read
+This document was verified against them on 2026-10-07 and should be read
 *as-of* that date. Where this document and the code disagree, the code wins.
 
 ---
@@ -201,7 +201,7 @@ numbers above are reproducible only by filename, not by hash.
 | Shell launch ban | Gate | `cmd.exe` / `powershell.exe` blacklisted | `D-AUD-10` |
 | Egress blocks absolute; confirmation provenance split | Gate | internal `confirmed` cannot override; only `human_confirmed`, single-turn | `docs/ARCHITECTURE.md` §SequenceGuard |
 | Fault-injection coverage | Gate | 3 modes | `tests/test_fault_injecting_sandbox.py`; `tests/fakes/fault_injecting_sandbox.py` |
-| Truth-in-Receipt formal battery | **Measured** | 70/70 across 8 categories (A–H) | `tests/test_truth_in_receipt_battery.py`; `D-SEC-05` |
+| Truth-in-Receipt formal battery | Gate (unit) | 70/70 across 8 categories (A–H) | `tests/test_truth_in_receipt_battery.py`; `D-SEC-05` |
 | Live action-hallucination probes — sensitivity | **Measured** | **1/23 (4.3%)** broad ungrounded action claims caught; **1/8 (12.5%)** strict completed-action claims caught; escape modes: progressives 12, passive/telegraphic 6, markdown 2, unlisted verbs 2 | `RESULTS.md` §Output Supervisor; `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; labels `logs/test_reports/action_hallucination_labels_100.jsonl` |
 | Live action-hallucination probes — control false aborts | **Measured, narrow** | 0/50 false aborts — but all 50 controls are action-free text, so this establishes only that the matcher is inactive on action-claim-free text; specificity against true receipt-backed claims is reserved for Battery v2 | same sources |
 | Turn-boundary receipt staleness | Gate | `stale_before` wired via `reset_turn` → `evaluate_clause` | `src/lucca/sandbox/output_supervisor.py:378, 804`; +2 tests |

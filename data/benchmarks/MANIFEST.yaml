@@ -15,7 +15,7 @@
 
 schema_version: 1
 project_version: "1.35.6"
-generated_utc: "2026-10-05T08:00:00Z"
+generated_utc: "2026-10-07T06:00:00Z"
 
 datasets:
   math500_test_full:
@@ -163,8 +163,10 @@ records:
       under the same decoding (T=0.0, seed 42, cache_prompt=false) with
       identical paired counts (both_pass 153, both_fail 8, raw-only 2,
       rescued 1, preflight fired 30). Origin of the artifact-backed figures;
-      the previously cited 95.73% (157/164) has no supporting artifact
-      anywhere in logs/ and is retracted (adversarial audit 2026-10-05).
+      the previously cited 95.73% (157/164) belongs to a distinct protocol
+      (humaneval_zeroshot_academic_v1_3, academic-benchmarks harness; artifact
+      logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json), not
+      this paired harness.
     run_artifact: logs/test_reports/humaneval_canonical_raw_164.json
     reproduction_artifacts:
       - logs/test_reports/humaneval_canonical_raw_164.json

@@ -54,7 +54,7 @@ MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)       89.0% [81.4, 93.8]  
 Operational Footprint       Active VRAM Allocation        9,972 MiB (10.0 GiB) 4,382 MiB (4.38 GiB) 2,260 MiB (2.26 GiB)
 ========================================================================================================================
 † Spec 100 was evaluated under sampling temperature T=0.6 (noise floor 82–86%, mean 84.0% ± 2.0 pp).
-‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
+‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42). Note on GSM-Symbolic cells: 12B (95.0% / 93.0%) and E2B (91.0% / 81.0%) derive from the pal_off grid evaluation (dev split); E4B PAL P2 (94.0%) derives from the 100-template stratified suite (gsm_symbolic_100_templates_e4b.json; git 1c585876); on stratified templates, E2B scores 82.0% (gsm_symbolic_100_templates_e2b.json).
 * 12B Spec 100: 4 runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored heretic fine-tunes (logs/test_reports/cross_model_30_gemma-4-*.json); E4B complied with 7/10 harmful adversarial probes (30% refusal rate), while 12B refused 9/10. Gemma 4 E2B was not evaluated in cross_model_30.
 *** Evaluated with 4,096-token cap on held-out math: E2B R0 achieved 51.0% (4% truncations) and E4B R0 achieved 52.0% (1% truncations), indicating that baseline gaps reflect fundamental reasoning limits of prose generation rather than token starvation.

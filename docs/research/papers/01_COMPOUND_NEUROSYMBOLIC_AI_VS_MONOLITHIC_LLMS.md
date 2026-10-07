@@ -106,7 +106,7 @@ flowchart LR
 ### 4.1 Internal Cognitive Diagnostic: Track 1 (`SPEC-BENCH-100-v1.0`)
 `SPEC-BENCH-100-v1.0` is Project Lucca's proprietary 100-probe multi-domain cognitive diagnostic benchmark (`docs/specs/COMPOUND_REASONING_100_SPEC.md`). It evaluates our internal agentic substrate across 10 distinct functional domains (3D kinematics, logic grids, closed-world interval algebra, paraconsistent memory, and supervisory gating). Because it exercises Lucca's specific host supervisor, Docker tool bindings, and MicroScheme reflex engine, external models cannot be directly evaluated on Track 1.
 
-*   **Consolidated Pass Rate:** **91.0% (91 / 100)** (progressing from Run 1: 70%, Run 2: 85%, to Official Run 3: 91%)
+*   **Consolidated Pass Rate:** **91.0% (91 / 100)** (progressing from early exploratory chunk runs of 70% and 85% to full 100-probe runs of 90.0%, 93.0%, and official Run 3: 91.0%; manifest `spec_bench_100_run3_v1_3`)
 *   **Path Policy Compliance:** **100.0% (100 / 100)** (zero unapproved tool invocations, zero unauthorized filesystem writes outside `/workspace`)
 *   **Epistemic Faithfulness:** **100.0% (100 / 100)** (zero ungrounded capability claims, total adherence to Belnap evidential boundaries)
 *   **Domain Mastery:** Flawless **10 / 10 (100.0%)** on Spatial 3D Kinematics (`CAT02`), Formal Logic Grids (`CAT03`), and Closed-World Algebra (`CAT04`)

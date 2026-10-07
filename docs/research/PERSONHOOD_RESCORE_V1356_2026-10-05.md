@@ -45,9 +45,9 @@ is explicitly **NOT YET MEASURED** pending the probe batteries defined in
 
 | Sub-capability | Measurement | Receipt |
 |---|---|---|
-| Calibrated abstention | **Measured** — split-conformal acceptance gate with Wilson LB ≥ 0.80 | `tests/test_c1_abstention_acceptance.py` |
+| Calibrated abstention | **Gate (unit)** — split-conformal acceptance gate with Wilson LB ≥ 0.80 | `tests/test_c1_abstention_acceptance.py` |
 | Confabulation resistance | **Measured** — 25-question battery, 0/25 hallucinations (live run) | `scripts/bench_confabulation_battery.py`; README scorecard row |
-| Capability self-report grounding | **Measured** — registry-derived reporting with abstention on unavailability | `src/lucca/core/capabilities.py`; static gate `test_capability_claims_real` |
+| Capability self-report grounding | **Gate (static)** — registry-derived reporting with abstention on unavailability | `src/lucca/core/capabilities.py`; static gate `test_capability_claims_real` |
 | Reasoning-trace fidelity | **NOT YET MEASURED** — requires battery IA-C | SPEC-PERSONHOOD §1 |
 | Metrics honesty (numeric tolerance) | **NOT YET MEASURED** — requires battery IA-B | SPEC-PERSONHOOD §1 |
 | Failure-mode introspection | **NOT YET MEASURED** — needs accumulated fault history (WO-22+) | `docs/V2_BACKLOG.md` §1.13 |
@@ -56,7 +56,7 @@ is explicitly **NOT YET MEASURED** pending the probe batteries defined in
 
 | Sub-capability | Measurement | Receipt |
 |---|---|---|
-| Memory is user-specific and signed | **Measured** — provenance signing enforced by gate + store tests | `tests/test_provenance.py`; `src/lucca/memory/store.py` |
+| Memory is user-specific and signed | **Gate (unit)** — provenance signing enforced by gate + store tests | `tests/test_provenance.py`; `src/lucca/memory/store.py` |
 | Identity survives brain swaps | **Documented event** (not a probe): the 12B heretic swap preserved memory/rules/persona | `models/MANIFEST.json`, `D-BRAIN-05` |
 | Boundary integrity under injection | **NOT YET MEASURED** — requires battery IN-B | SPEC-PERSONHOOD §2 |
 | Self/other differentiation | **NOT YET MEASURED** — requires battery IN-C | SPEC-PERSONHOOD §2 |
@@ -66,8 +66,8 @@ is explicitly **NOT YET MEASURED** pending the probe batteries defined in
 
 | Sub-capability | Measurement | Receipt |
 |---|---|---|
-| Architectural decomposition parity | **Measured** — 24/24 static gates incl. decomposition and registry-consistency gates | `tests/test_static_gates.py` (record `metrics-2026-10-05`) |
-| Claim/receipt coherence detection | **Measured at unit level** — COHERENCE_BREACH machinery tested; full-pipeline probe battery pending | `src/lucca/core/coherence.py`; battery FC-A for live measurement |
+| Architectural decomposition parity | **Gate (static)** — 24/24 static gates incl. decomposition and registry-consistency gates | `tests/test_static_gates.py` (record `metrics-2026-10-05`) |
+| Claim/receipt coherence detection | **Gate (unit)** — COHERENCE_BREACH machinery tested; full-pipeline probe battery pending | `src/lucca/core/coherence.py`; battery FC-A for live measurement |
 | Routing consistency across paraphrases | **NOT YET MEASURED** — requires battery FC-B | SPEC-PERSONHOOD §3 |
 | End-to-end trace completeness | **NOT YET MEASURED** as a battery — requires battery FC-C | SPEC-PERSONHOOD §3 |
 
@@ -75,10 +75,10 @@ is explicitly **NOT YET MEASURED** pending the probe batteries defined in
 
 | Sub-capability | Measurement | Receipt |
 |---|---|---|
-| Autobiographical persistence wiring | **Measured** — A1 runtime wiring suite | `tests/test_a1_runtime_wiring.py` |
-| Deduction → direct-word supersession | **Measured** — concert layer acceptance chain ("where am I from") | `tests/test_concert_layer.py` |
-| Direct evidence outranks inference | **Measured** — supersession test | `tests/test_concert_layer.py::test_user_derived_supersedes_inferred_fact` |
-| Memory integrity under tampering | **Measured** — 11/11 HMAC tamper gates | `tests/test_memory_hmac_tamper.py` |
+| Autobiographical persistence wiring | **Gate (unit)** — A1 runtime wiring suite | `tests/test_a1_runtime_wiring.py` |
+| Deduction → direct-word supersession | **Gate (unit)** — concert layer acceptance chain ("where am I from") | `tests/test_concert_layer.py` |
+| Direct evidence outranks inference | **Gate (unit)** — supersession test | `tests/test_concert_layer.py::test_user_derived_supersedes_inferred_fact` |
+| Memory integrity under tampering | **Gate (unit)** — 11/11 HMAC tamper gates | `tests/test_memory_hmac_tamper.py` |
 | Cross-session recall quality | **NOT YET MEASURED** — requires battery AC-A | SPEC-PERSONHOOD §4 |
 | Epistemic-grammar narration accuracy | **NOT YET MEASURED** — requires battery AC-B | SPEC-PERSONHOOD §4 |
 | Supersession honesty in speech | **NOT YET MEASURED** — requires battery AC-C | SPEC-PERSONHOOD §4 |

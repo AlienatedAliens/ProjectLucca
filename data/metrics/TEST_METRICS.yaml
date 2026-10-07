@@ -6,7 +6,7 @@
 
 schema_version: 1
 record_id: metrics-2026-10-05
-generated_at: "2026-10-05T10:10:00Z"
+generated_at: "2026-10-05T18:00:00Z"
 toolchain:
   python: "3.12 (uv-managed, .venv)"
   runner: pytest

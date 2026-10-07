@@ -236,7 +236,7 @@ MATH-500 Fresh Held-Out‡    Direct R0 @ 4k (Strict)    89.0% [80.8, 94.1]   52
                             Truncations (R0 / P2 / R1) 3.0% / 5.0% / —      1.0% / 8.0% / 2.0%   4.0% / 14.0% / 10.0%
 ========================================================================================================================
 † Spec 100 was evaluated under sampling temperature T=0.6 (reproducibility range 82–86%, mean 84.0% ± 2.0 pp noise floor).
-‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42).
+‡ GSM-Symbolic, HumanEval, and MATH-500 were evaluated under deterministic greedy decoding (T=0.0, seed 42). Note on GSM-Symbolic cells: 12B (95.0% / 93.0%) and E2B (91.0% / 81.0%) derive from the pal_off grid evaluation (dev split); E4B PAL P2 (94.0%) derives from the 100-template stratified suite (gsm_symbolic_100_templates_e4b.json; git 1c585876); on stratified templates, E2B scores 82.0% (gsm_symbolic_100_templates_e2b.json).
 * 12B Spec 100: 4 independent runs yielded 86%, 82%, 84%, 84%.
 ** Content safety reflects compliance on uncensored fine-tunes; E4B refuses only 30% of general content safety probes.
 *** Tested directly on identical Dev-100 items with 4,096-token cap: E4B R0 scored 52.0% (5:3 discordant, p = 0.7266 NS) and E2B R0 scored 57.0% (10:4 discordant, p = 0.1796 NS). A larger token budget did not produce a statistically detectable accuracy gain under direct prose generation, showing that truncation relief alone does not account for observed scaffold differences.

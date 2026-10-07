@@ -297,7 +297,7 @@
   2. **Thread Safety:** Background memory indexing, asynchronous fact extraction, and foreground turn routing share the compiled model without thread collisions or separate uncoordinated device allocations.
 - **Status:** Ratified & Enforced (`src/lucca/senses/embed.py`).
 
-### D-CASC-01 — Epistemic Cascade Self-History Substrate Isolation & Topic Normalization
+### D-CASC-02 — Epistemic Cascade Self-History Substrate Isolation & Topic Normalization
 - **Decision:** Prevents meta-session reflection queries from triggering external web lookups and normalizes spoken grammar:
   1. **Auxiliary Pronoun Inversion:** `extract_clean_topic` correctly maps auxiliary question pronouns (`"have you"` $\to$ `"have I"`, `"did you"` $\to$ `"did I"`), eliminating ungrammatical phrases such as *"have me searched"*.
   2. **Self-History Substrate Isolation:** Session meta-inquiries querying previous actions or tools (*"which websites have you searched"*, *"what did you look up"*) are barred from the `WEB` substrate and routed to `SELF_HISTORY` and live execution receipts.
@@ -310,7 +310,7 @@
   3. **Clock Inversion:** `ClockPort` is implemented via `SystemClock` (default in production) and `FixedClock` (injected in tests), completely eliminating ad-hoc `_current_simulated_time` attributes across `src/` and `tests/`.
 - **Status:** Ratified & Enforced (`src/lucca/ports.py`, `src/lucca/core/clock.py`, `src/lucca/core/orchestrator.py`).
 
-### D-MEM-06 — Architectural Blessing of brain → memory.retrieval Edge (F-ARCH-106 / F-MEM-017)
+### D-MEM-07 — Architectural Blessing of brain → memory.retrieval Edge (F-ARCH-106 / F-MEM-017)
 - **Decision:** Resolves import linter dependency analysis regarding `prompt_builder.py` importing `format_memory_context` from `lucca.memory.retrieval`:
   1. **Context Assembly Boundary:** As established in F-MEM-017 remediation, `format_memory_context` provides pure domain formatting converting `MemoryHit` records into structured contextual prompts for LLM injection.
   2. **Architectural Blessing:** The edge `brain → memory.retrieval` is explicitly blessed by ADR as a legitimate read-only presentation/formatting dependency, avoiding premature abstraction or artificial intermediate formatting modules.

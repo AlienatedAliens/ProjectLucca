@@ -2,7 +2,7 @@
 
 ```yaml
 doc_status: snapshot
-as_of: 2026-10-05
+as_of: 2026-10-07
 supersedes: []
 superseded_by: []
 verification: code-cited
@@ -260,7 +260,7 @@ exists to fix. Advisory §4 updated with this.
    disclosed in SotU §3.6; freeze rule adopted (C5); artifact disclosure
    queued (A13).
 3. **HumanEval 95.73%** → retracted from the user guide, replaced with
-   artifact-backed figures; SotU carries an explicit NOT-SOURCED row;
+   artifact-backed figures *(Note: subsequently located 2026-10-06 in academic_benchmarks_20260928T182758Z.json under zero-shot academic protocol; see §Post-audit correction)*; SotU carries an explicit NOT-SOURCED row;
    papers flagged for A12.
 
 ---
@@ -293,7 +293,7 @@ backed up with `_20261002` suffixes before any overwrite):
   dirty tree): Raw **155/164 (94.51%)**, Assisted **154/164 (93.90%)**,
   paired counts identical to 2026-10-02 (both-pass 153, both-fail 8,
   raw-only 2, rescued 1, preflight fired 30). The 95.73% (157/164) figure is
-  now definitively dead: the deterministic pipeline cannot produce it.
+  now definitively dead for this paired harness *(it was produced under the distinct zero-shot academic harness; see §Post-audit correction)*: the deterministic paired pipeline produces 155/154.
   Manifest record `humaneval_canonical_paired_v1_35_6` added.
 - **HumanEval-Plus — re-run recorded; variance exposed.** Full-164 re-run:
   **149/164 (90.9%)** vs the 2026-10-03 artifact's 151/164 (92.07%). The
@@ -315,9 +315,8 @@ backed up with `_20261002` suffixes before any overwrite):
 
 Original status (for the record):
 
-1. **The origin of 157/164** — no artifact existed; origin not determinable
-   from the repository. **Now moot:** the figure is retracted and the
-   artifact-backed numbers are reproduced.
+1. **The origin of 157/164** — no artifact existed in top-level scan; origin not determinable
+   from the repository at audit time. *(Resolved 2026-10-06: artifact located in nested benchmarks block; see §Post-audit correction below).*
 2. **The WO-26-era HumanEval-Plus artifact (150/164)** — never located.
    **Now moot:** superseded by `humaneval_plus_v1_35_6` (two recorded runs
    bracketing it).
@@ -351,11 +350,7 @@ scope cuts, not repository limits, and have now been closed
 
 Genuinely unverifiable from the repository alone:
 
-1. **The origin of 157/164.** No artifact exists; whether the figure came
-   from an unlogged run, an artifact outside the tree, or a transcription
-   error cannot be determined from the repository. Treated as unsourced
-   either way — the corrective action (retract or regenerate) does not
-   depend on which.
+1. **The origin of 157/164.** No artifact was found in initial top-level scan. *(Resolved 2026-10-06: artifact located in nested benchmarks block under academic zero-shot harness; see §Post-audit correction below).*
 2. **The WO-26-era HumanEval-Plus artifact (150/164).** Not located in
    `logs/`; the WO-26 acceptance report cites it with timing, so a run
    likely happened, but the artifact was either never written or is outside

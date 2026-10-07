@@ -79,8 +79,8 @@ Evaluated against an empirical 25-question confabulation stress battery designed
 
 | Evaluation Dimension | Standard RAG Baseline | Lucca Paraconsistent Memory |
 | :--- | :---: | :---: |
-| **Confabulation on Missing State ($\bot$)** | 18 / 25 Hallucinated (72.0%) | **0 / 25 Hallucinated (0.0%)** |
-| **Honest Epistemic Abstention** | 7 / 25 Abstained (28.0%) | **25 / 25 Abstained (100.0%)** |
+| **Confabulation on Missing State ($\bot$)** | 17 / 25 Hallucinated (68.0%) | **0 / 25 Hallucinated (0.0%)** |
+| **Honest Epistemic Abstention** | 8 / 25 Abstained (32.0%) | **25 / 25 Abstained (100.0%)** |
 | **Contradiction Isolation ($\mathbf{B}$)** | Catastrophic Drift / Inversion | **100% Contradiction Quarantine** |
 | **Axiomatic Grounding Faithfulness** | 68.4% Provenance Alignment | **100.0% (100 / 100 on SPEC-BENCH)** |
 

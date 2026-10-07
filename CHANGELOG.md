@@ -392,7 +392,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Turn State & History Forwarding in Turn Pipeline (`TurnPipeline` & `Orchestrator`):**
   - Fixed parameter dropping in `turn_pipeline.py` by forwarding `last_tool` and `last_tool_ok` into `router.route()` kwargs.
   - Forwarded `last_tool` in `_build_rule_state`, enabling single-word entity follow-ups (*"Factoriza"*) to refine active searches rather than misrouting to `clarify`.
-- **Epistemic Cascade Grammar & Substrate Isolation (`EpistemicSearchCascade`, D-CASC-01):**
+- **Epistemic Cascade Grammar & Substrate Isolation (`EpistemicSearchCascade`, D-CASC-02):**
   - Corrected pronoun shift in `cascade.extract_clean_topic` (`"have you"` $\to$ `"have I"`, eliminating ungrammatical phrases like *"have me searched"*).
   - Filtered self-history queries (*"which websites have you searched"*) from triggering external web searches, routing them to session history introspection.
 - **Live Flow Verification & Interactive Testing Harness (`scripts/test_session_flow.py`):**
