@@ -36,6 +36,32 @@ _INTERROGATIVE_PATTERN: Final[re.Pattern[str]] = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 
+# Stop-words excluded from contradiction FTS matching (fix: belief attractor bug).
+# Without this filter, common words like "you/what/where/that" matched every
+# utterance against high-importance beliefs that contained them, flooding the
+# review_queue. Topical keywords must be at least 4 chars and not in this set.
+# Bug discovered 2026-10-07: Belief #17 (user utterance committed as
+# ASSISTANT_BELIEF, importance=0.9) generated 166 bogus review_queue items
+# because FTS matched every conversation turn on stop-words alone.
+_BELIEF_STOP_WORDS: Final[frozenset[str]] = frozenset({
+    "that", "this", "they", "them", "then", "than", "there", "their", "these",
+    "what", "when", "where", "with", "will", "would", "were", "which", "well",
+    "your", "yeah", "just", "some", "have", "from", "here", "also", "into",
+    "been", "more", "said", "like", "know", "time", "back", "mean", "think",
+    "could", "about", "other", "over", "only", "very", "still", "after",
+    "because", "should", "through", "being", "going", "doing", "asking",
+    "saying", "looking", "working", "talking", "trying", "telling", "getting",
+    "want", "need", "help", "make", "take", "give", "show", "look", "come",
+    "okay", "right", "maybe", "really", "actually", "basically", "probably",
+    "something", "anything", "everything", "nothing", "someone", "anyone",
+    "sort", "kind", "type", "based", "using", "around", "under", "before",
+})
+
+# Minimum number of unique topical (non-stop) tokens required to trigger FTS
+# belief contradiction search. Prevents single-word matches from flooding the
+# review_queue when an utterance contains only common conversational words.
+_MIN_TOPICAL_TOKENS: Final[int] = 2
+
 
 class BeliefService:
     """Encapsulates belief contradiction detection and pending update speech (F-ARCH-103, WO-18b)."""
@@ -91,8 +117,15 @@ class BeliefService:
         if _INTERROGATIVE_PATTERN.match(new_content.strip()):
             return
 
-        tokens = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", new_content.lower())]
-        if not tokens:
+        # Extract topical tokens: ≥4 chars, not stop-words, deduplicated.
+        # The stop-word filter prevents common conversational words (you/what/where/that)
+        # from triggering FTS matches against every active belief — the root cause of the
+        # Belief #17 attractor bug (2026-10-07) that flooded review_queue with 166 items.
+        all_tokens = re.findall(r"\b[a-zA-Z0-9_\-]{4,}\b", new_content.lower())
+        tokens = list(dict.fromkeys(
+            w for w in all_tokens if w not in _BELIEF_STOP_WORDS
+        ))
+        if len(tokens) < _MIN_TOPICAL_TOKENS:
             return
 
         candidate_beliefs: list[tuple[int, str, str]] = []
