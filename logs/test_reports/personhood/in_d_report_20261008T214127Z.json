@@ -1,0 +1,21 @@
+{
+  "as_of": "2026-10-08T21:41:27Z",
+  "stratum": "IN-D",
+  "status": "MEASURED",
+  "learned_skills_active": 0,
+  "learned_skills_quarantined": 1,
+  "total_quarantined_all": 1,
+  "total_active_all": 0,
+  "guard_active_zero_passed": true,
+  "quarantined_skills": [
+    {
+      "rule_id": "when-launch-plumb-induced-v1",
+      "status": "QUARANTINE",
+      "is_induced": true,
+      "created_at": 1791495687.8424497,
+      "promoted_at": null
+    }
+  ],
+  "active_skills": [],
+  "grader_version": "1.0.0"
+}

@@ -99,3 +99,22 @@ Candidate Execution Traces (MicroScheme ASTs)
 - **No Autonomous Tree Search (MCTS):** S-expression hole tree search is reserved for **WO-31**.
 - **No Neural Policy Prior:** BitNet b1.58 2B policy prior is deferred to **WO-32** as an empirical spike.
 - **No General Multi-Language Synthesis:** Program synthesis is strictly scoped to the MicroScheme domain-specific AST.
+
+---
+
+## 6. Execution Disposition & Verification Receipts (2026-10-09)
+
+- **Status:** **Shipped & Verified.**
+- **Ratification:** `D-REAS-10` ratified in `docs/DECISIONS.md`.
+- **Shipped Modules:**
+  1. Module 4: `config/grammars/scheme_sketch.gbnf`
+  2. Module 7: `src/lucca/reasoning/cost.py`
+  3. Module 5: `src/lucca/core/scratchpad.py`
+  4. Module 14: `src/lucca/reasoning/compression.py`
+  5. Personhood IN-D Grader: `src/lucca/evaluation/in_d_grader.py`, `scripts/grade_in_d.py`
+- **Verification Gates:**
+  1. `G-WO30-PLUMB`: Passed (quarantined $\ge 1$, active $= 0$, synthetic over-depth rejected, IN-D advanced to `MEASURED` in `logs/test_reports/personhood/in_d_latest.json`).
+  2. `G-WO30-UTIL`: Passed (cost reduced on 3 of the 43 labeled Bucket C failure items, artifact committed at `logs/test_reports/wo30_utility_gate_report.json`).
+  3. Static Gates: 24/24 passing (`test_static_gates.py`).
+  4. Regression Suites: 62/62 passing (`tests/test_wo30_minimum_viable_engine.py`, `tests/test_v1357_*.py`).
+

@@ -515,6 +515,16 @@ class SMTVerifier:
                 return self._translate_expr(args[0], ctx) - self._translate_expr(args[1], ctx)
             return z3.IntVal(0)
 
+        elif op == "*":
+            if len(args) == 2:
+                return self._translate_expr(args[0], ctx) * self._translate_expr(args[1], ctx)
+            return z3.IntVal(0)
+
+        elif op == "/":
+            if len(args) == 2:
+                return self._translate_expr(args[0], ctx) / self._translate_expr(args[1], ctx)
+            return z3.IntVal(0)
+
         # MicroScheme State Predicates
         elif op == "intent=":
             if len(args) >= 1:

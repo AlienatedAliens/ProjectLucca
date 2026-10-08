@@ -5,6 +5,19 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [Unreleased] — Work Order 30: Minimum Viable Engine
+
+### Added
+- **Minimum Viable Engine (Macro Mining & Rule Induction Loop, `D-REAS-10`):**
+  - **Module 4 (GBNF S-Expression Grammar):** Added `config/grammars/scheme_sketch.gbnf` enforcing balanced parentheses, strict MicroScheme primitives, and token-level logit constraints during LLM proposal decoding.
+  - **Module 7 (Idiomaticity Cost Extractor):** Added `src/lucca/reasoning/cost.py` evaluating structural description length: $\text{Cost}(T) = \sum_{n \in T} w(\text{op}_n) + \alpha \cdot \text{depth}(T)$ ($w(\text{primitive})=1$, $w(\text{branch})=2$, $\alpha=0.5$), providing the objective function for candidate compression ranking.
+  - **Module 5 (Scratchpad Falsification Loop):** Added `src/lucca/core/scratchpad.py` executing concrete I/O counterexample tests ($\ge 3$ test cases) under container sandboxing (`D-AUD-13`), failing fast on runtime crashes, timeouts ($\le 500\,\text{ms}$), or assertion errors prior to SMT or quarantine ingestion.
+  - **Module 14 (DreamCoder Macro Miner):** Added `src/lucca/reasoning/compression.py` extending first-order syntactic anti-unification in `egraph.py` to mine common sub-AST patterns, enforce bounded complexity (`D-REAS-05`: depth $\le 8$, steps $\le 64$), prove Z3 SMT correctness (`D-REAS-07`), and emit candidates strictly into `QUARANTINE` via `RuleLifecycleManager` (`D-REAS-06`: 0 to `ACTIVE` without operator approval).
+  - **Personhood IN-D Grader:** Added `src/lucca/evaluation/in_d_grader.py` and `scripts/grade_in_d.py` advancing the IN-D learned-skill count from "NOT YET MEASURED" to active mechanical measurement (`logs/test_reports/personhood/in_d_latest.json`), asserting 0 active skills and tracking quarantined skills.
+  - **Pre-Registered Acceptance Gates Passed:**
+    - `G-WO30-PLUMB`: $\ge 1$ mined macro admitted to `QUARANTINE`, 0 admitted to `ACTIVE` without operator review, synthetic over-depth candidate rejected by `D-REAS-05`, IN-D grader advanced to active measurement.
+    - `G-WO30-UTIL`: Mined macro shadow evaluation reduced description length cost on $\ge 3$ of the 43 labeled Bucket C reasoning failure items, with full reporting in `logs/test_reports/wo30_utility_gate_report.json`.
+
 ---
 
 ## [1.35.7] — 2026-10-09

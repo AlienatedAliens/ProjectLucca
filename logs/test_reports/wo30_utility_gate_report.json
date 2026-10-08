@@ -1,0 +1,48 @@
+{
+  "as_of": "2026-10-08T21:41:27Z",
+  "gate": "G-WO30-UTIL",
+  "macro_name": "add-scaled",
+  "macro_sexpr": "(defmacro add-scaled (arg_7_0 arg_7_1 arg_7_2)\n  (+ arg_7_0 (* arg_7_1 arg_7_2)))",
+  "status": "PASS",
+  "bucket_c_total_items": 43,
+  "items_improved": 3,
+  "improvements": [
+    {
+      "item_index": 11,
+      "baseline_cost": 6.5,
+      "compressed_cost": 5.0,
+      "cost_delta": 1.5
+    },
+    {
+      "item_index": 23,
+      "baseline_cost": 13.0,
+      "compressed_cost": 12.0,
+      "cost_delta": 1.0
+    },
+    {
+      "item_index": 28,
+      "baseline_cost": 6.5,
+      "compressed_cost": 5.0,
+      "cost_delta": 1.5
+    }
+  ],
+  "mined_candidate": {
+    "name": "add-scaled",
+    "params": [
+      "arg_7_0",
+      "arg_7_1",
+      "arg_7_2"
+    ],
+    "s_expression": "(defmacro add-scaled (arg_7_0 arg_7_1 arg_7_2)\n  (+ arg_7_0 (* arg_7_1 arg_7_2)))",
+    "body_canonical": "(+ arg_7_0 (* arg_7_1 arg_7_2))",
+    "depth": 3,
+    "step_count": 1,
+    "compression_savings": 3.0,
+    "falsification_passed": true,
+    "smt_verified": true,
+    "quarantined": true,
+    "active": false,
+    "rejection_reason": null,
+    "rule_id": "add-scaled-induced-v1"
+  }
+}
