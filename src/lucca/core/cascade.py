@@ -963,11 +963,7 @@ class EpistemicSearchCascade:
             eng_id, _ = parse_engine_from_spec(str(active_voice))
             eng_desc = ENGINE_CATALOG.get(eng_id)
             eng_name = eng_desc.name if eng_desc else "Kokoro-82M"
-            tts_info = (
-                f"speech synthesis 'CosyVoice 3 Frontier' (voice: '{active_voice}') with Kokoro-82M fallback"
-                if "cosyvoice" in str(active_voice).lower()
-                else f"speech synthesis '{eng_name}' (voice: '{active_voice}')"
-            )
+            tts_info = f"speech synthesis '{eng_name}' (voice: '{active_voice}')"
             vision_info = (
                 f"; multimodal vision projector '{Path(rt.llm.mmproj).name}' active (mode: {rt.llm.mode})"
                 if (rt.llm.mode == "vision" or getattr(rt.llm, "mmproj", None))

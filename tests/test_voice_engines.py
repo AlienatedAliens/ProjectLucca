@@ -94,10 +94,10 @@ def test_engine_spec_parsing() -> None:
     assert eng == "kokoro"
     assert "af_bella" in sub
 
-    # Legacy CosyVoice string maps to Kokoro
-    eng, sub = parse_engine_from_spec("cosyvoice3:inventor")
+    # General voice spec maps to Kokoro
+    eng, sub = parse_engine_from_spec("genki_heroine")
     assert eng == "kokoro"
-    assert sub == "lucca_inventor"
+    assert sub == "genki_heroine"
 
 
 def test_engine_catalog_descriptors() -> None:

@@ -53,7 +53,6 @@ def check_mshybrid_vram() -> tuple[bool, str]:
     Dynamic budget based on resident model footprint:
     - Idle baseline: < 1500 MB
     - llama-server resident (LLM + Vision mmproj): <= 12800 MB
-    - Full companion stack (llama-server + CosyVoice 3): <= 15200 MB (within 16GB physical VRAM)
     """
     nvidia_smi = shutil.which("nvidia-smi")
     if not nvidia_smi:
@@ -83,21 +82,11 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             logger.debug("check_llama_health_failed: %s", exc)
             llama_active = False
 
-        cosy_active = False
-        try:
-            from lucca.speech.cosyvoice_client import CosyVoice3Client
-
-            cosy_active = CosyVoice3Client.get_instance().ping()
-        except Exception as exc:
-            logger.debug("check_cosyvoice_ping_failed: %s", exc)
-            cosy_active = False
-
         # Compute dynamic budget based on active resident workloads
         if llama_active:
             budget_mb = min(15200.0, total_mb - 1000.0)
             vision_tag = "+Vision" if has_vision else ""
-            cosy_tag = " + CosyVoice 3" if cosy_active else ""
-            workload_desc = f"llama-server [LLM{vision_tag}]{cosy_tag} resident"
+            workload_desc = f"llama-server [LLM{vision_tag}] resident"
             if used_mb > budget_mb:
                 return (
                     False,
@@ -106,17 +95,6 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             return (
                 True,
                 f"dGPU VRAM used: {used_mb:.1f} MB ({workload_desc}, within {budget_mb:.0f} MB budget)",
-            )
-        elif cosy_active:
-            budget_mb = min(8000.0, total_mb - 2000.0)
-            if used_mb > budget_mb:
-                return (
-                    False,
-                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
-                )
-            return (
-                True,
-                f"dGPU VRAM used: {used_mb:.1f} MB (CosyVoice 3 resident, within {budget_mb:.0f} MB budget)",
             )
 
         if used_mb > 1500:

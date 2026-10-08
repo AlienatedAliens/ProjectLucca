@@ -382,8 +382,7 @@ class AffectiveODEMachine:
 
     def get_vocal_acoustic_latents(self, now: float | None = None) -> dict[str, float | str]:
         """
-        Computes continuous acoustic control parameters from Mehrabian 3D PAD coordinates
-        for frontier voice engines (CosyVoice 2 / GPT-SoVITS v2 / F5-TTS).
+        Computes continuous acoustic control parameters from Mehrabian 3D PAD coordinates.
         ADR-009, Spec 16 §4, WO-27.
         """
         st = self.get_current_state(now)

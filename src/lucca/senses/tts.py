@@ -273,35 +273,6 @@ class TTSWorker:
 
         engine_type, subspec = parse_engine_from_spec(str(raw_spec))
 
-        # Check legacy CosyVoice fallback resilience (for backwards-compatibility in test mocks)
-        if "cosyvoice" in str(raw_spec).lower():
-            try:
-                from lucca.speech.cosyvoice_client import CosyVoice3Client
-
-                cv_client = CosyVoice3Client.get_instance()
-                cv_res = cv_client.synthesize(
-                    text=clean_text,
-                    instruct="",
-                    prompt_wav=None,
-                    profile="inventor",
-                    speed=s,
-                    stream=True,
-                    direct_ring=True,
-                )
-                if cv_res.get("status") == "ok":
-                    samples_written = int(cv_res.get("samples", 0))
-                    dur_ms = float(cv_res.get("elapsed_ms", (time.perf_counter() - t0) * 1000.0))
-                    return TTSDonePayload(
-                        chunk_id=chunk_id,
-                        samples=samples_written,
-                        elapsed_ms=dur_ms,
-                        device="GPU",
-                    )
-            except Exception as cv_exc:  # noqa: BLE001
-                logger.debug("cosyvoice_fallback_kokoro", error=str(cv_exc))
-            engine_type = "kokoro"
-            resolved_voice = self.resolve_voice_style("lucca_inventor")
-
         # Synthesize audio float32 based on active engine
         try:
             if engine_type == "kittentts":
@@ -318,7 +289,7 @@ class TTSWorker:
                 samples_f32, sr = kokoclone_eng.synthesize(clean_text, voice_spec=subspec, speed=s)
             else:
                 # Kokoro-82M native
-                if not isinstance(resolved_voice, np.ndarray) and ("cosyvoice" in str(resolved_voice).lower() or not str(resolved_voice)):
+                if not isinstance(resolved_voice, np.ndarray) and not str(resolved_voice):
                     resolved_voice = self.resolve_voice_style("lucca_inventor")
                 samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
         except Exception as exc:  # noqa: BLE001

@@ -491,7 +491,6 @@ def parse_engine_from_spec(spec: str) -> tuple[EngineType, str]:
     - 'supertonic3:auto' -> ('supertonic3', 'auto')
     - 'kokoclone:C:/clip.wav' -> ('kokoclone', 'C:/clip.wav')
     - 'blend:0.70*af_sky+0.30*jf_alpha' -> ('kokoro', 'blend:...')
-    - 'cosyvoice3:inventor' -> ('kokoro', 'lucca_inventor')  # graceful legacy mapping
     - 'genki_heroine' -> ('kokoro', 'genki_heroine')
     """
     raw = (spec or "").strip()
@@ -512,10 +511,6 @@ def parse_engine_from_spec(spec: str) -> tuple[EngineType, str]:
     if lower.startswith("kokoclone"):
         sub = raw.split("kokoclone:", 1)[1] if ":" in raw else ""
         return "kokoclone", sub
-
-    if "cosyvoice" in lower:
-        # Legacy fallback gracefully redirected to Kokoro
-        return "kokoro", "lucca_inventor"
 
     # Default to Kokoro
     clean = raw.removeprefix("kokoro:").strip()

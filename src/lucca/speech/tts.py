@@ -12,7 +12,6 @@ from lucca.senses.tts import (
     get_available_voices,
     parse_voice_blend,
 )
-from lucca.speech.cosyvoice_client import CosyVoice3Client, format_cosyvoice_instruct
 from lucca.speech.engines import (
     ENGINE_CATALOG,
     KITTEN_VOICES,
@@ -41,7 +40,6 @@ __all__ = [
     "VOICE_ALIASES",
     "VOICE_RECIPES",
     "BaseVoiceEngine",
-    "CosyVoice3Client",
     "KittenTTSEngine",
     "KittenTextNormalizer",
     "KokoCloneEngine",
@@ -52,7 +50,6 @@ __all__ = [
     "VoiceEngineDescriptor",
     "compute_cloned_style_vector",
     "enhance_anime_expressive_punctuation",
-    "format_cosyvoice_instruct",
     "get_available_voices",
     "get_kokoclone_metadata",
     "get_voice_engine",

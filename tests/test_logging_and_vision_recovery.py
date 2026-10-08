@@ -1,6 +1,6 @@
 """
 Unit tests for process logging setup, TurnTrace vision mode acceptance,
-and CosyVoice-to-Kokoro fallback resilience.
+and voice engine fallback resilience.
 """
 
 from __future__ import annotations
@@ -56,8 +56,8 @@ def test_setup_process_logging_creates_file(tmp_path: Path, monkeypatch: pytest.
     assert "Forensic heartbeat marker 42" in content
 
 
-def test_cascade_self_substrate_reflects_vision_and_cosyvoice(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify query_substrate_self introspects active vision projector and CosyVoice 3."""
+def test_cascade_self_substrate_reflects_vision(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify query_substrate_self introspects active vision projector."""
     cascade = EpistemicSearchCascade()
     items = cascade.query_substrate_self("Who are you?")
     assert len(items) == 1
@@ -68,23 +68,19 @@ def test_cascade_self_substrate_reflects_vision_and_cosyvoice(monkeypatch: pytes
     assert "gemma-4-12b-heretic-mmproj-f16.gguf" in self_info or "vision projector" in self_info.lower()
 
 
-def test_tts_worker_cosyvoice_fallback_to_kokoro() -> None:
-    """Verify TTSWorker handles cosyvoice3 voice gracefully when service is unavailable."""
-    from unittest.mock import patch
+def test_tts_worker_unknown_voice_fallback_to_kokoro() -> None:
+    """Verify TTSWorker handles unknown voice spec gracefully via Kokoro fallback."""
     from lucca.senses.ring_buffer import get_playback_ring
 
     ring = get_playback_ring(create=True)
     worker = TTSWorker(play_ring=ring)
 
-    # Calling synthesize with cosyvoice3 when worker port is offline should fallback to Kokoro
-    # without raising unhandled voice KeyError/ValueError
-    with patch("lucca.speech.cosyvoice_client.CosyVoice3Client.synthesize", return_value={"status": "error", "error": "offline"}):
-        res = worker.synthesize(
-            chunk_id=1,
-            text="Testing resilient speech fallback.",
-            voice="cosyvoice3:inventor",
-            speed=1.0,
-        )
+    res = worker.synthesize(
+        chunk_id=1,
+        text="Testing resilient speech fallback.",
+        voice="unknown_voice_variant",
+        speed=1.0,
+    )
     assert res is not None
     assert res.chunk_id == 1
 
