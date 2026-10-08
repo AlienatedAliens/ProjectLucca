@@ -8,6 +8,7 @@ reflection engine dispatch, and queued spoken update delivery.
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from collections import deque
@@ -134,14 +135,14 @@ class BeliefService:
         if len(tokens) < _MIN_TOPICAL_TOKENS:
             return
 
-        candidate_beliefs: list[tuple[int, str, str]] = []
+        candidate_beliefs: list[tuple[int, str, str, str | None]] = []
         try:
             with db.read_cursor() as cur:
                 fts_query = " OR ".join(f'"{t}"' for t in tokens[:10])
                 try:
                     cur.execute(
                         """
-                        SELECT m.memory_id, m.content, m.kind
+                        SELECT m.memory_id, m.content, m.kind, p.payload_json
                         FROM memories m
                         JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                         WHERE m.valid_to IS NULL
@@ -153,12 +154,15 @@ class BeliefService:
                         """,
                         (fts_query,),
                     )
-                    candidate_beliefs = [(int(r[0]), str(r[1]), str(r[2])) for r in cur.fetchall()]
+                    candidate_beliefs = [
+                        (int(r[0]), str(r[1]), str(r[2]), str(r[3]) if r[3] is not None else None)
+                        for r in cur.fetchall()
+                    ]
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("fts_match_failed_fallback_plain", error=str(exc))
                     cur.execute(
                         """
-                        SELECT m.memory_id, m.content, m.kind
+                        SELECT m.memory_id, m.content, m.kind, p.payload_json
                         FROM memories m
                         JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                         WHERE m.valid_to IS NULL AND p.provenance = 'ASSISTANT_BELIEF'
@@ -168,7 +172,14 @@ class BeliefService:
                     for r in cur.fetchall():
                         c_low = str(r[1]).lower()
                         if any(t in c_low for t in tokens):
-                            candidate_beliefs.append((int(r[0]), str(r[1]), str(r[2])))
+                            candidate_beliefs.append(
+                                (
+                                    int(r[0]),
+                                    str(r[1]),
+                                    str(r[2]),
+                                    str(r[3]) if r[3] is not None else None,
+                                )
+                            )
                             if len(candidate_beliefs) >= 5:
                                 break
         except Exception as exc:  # noqa: BLE001
@@ -179,10 +190,22 @@ class BeliefService:
             return
 
         t_start = time.perf_counter()
-        for belief_id, _old_content, _ in candidate_beliefs:
+        for belief_id, old_content, kind, payload_json in candidate_beliefs:
             if (time.perf_counter() - t_start) > 0.200:
                 logger.warning("reflection_contradiction_budget_exceeded", trace_id=trace.trace_id)
                 break
+
+            candidate_topic: str = kind
+            if payload_json:
+                try:
+                    pj = json.loads(payload_json)
+                    struct = pj.get("structured")
+                    if isinstance(struct, dict) and struct.get("topic"):
+                        candidate_topic = str(struct["topic"])
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("candidate_topic_parse_failed", error=str(exc))
+
+            is_conflict_top = self._evaluate_candidate_conflict(old_content, new_content)
 
             try:
                 is_queued, res_str = refl_engine.detect_and_handle_contradiction(
@@ -190,8 +213,8 @@ class BeliefService:
                     new_content=new_content,
                     reason_entry_id=new_entry_id,
                     proposed_confidence=1.0,
-                    is_conflict_top=False,
-                    topic=None,
+                    is_conflict_top=is_conflict_top,
+                    topic=candidate_topic,
                     now=self.clock.now_utc(),
                 )
 
@@ -210,6 +233,43 @@ class BeliefService:
                     )
             except Exception as exc:  # noqa: BLE001
                 logger.warning("contradiction_handling_failed", error=str(exc), belief_id=belief_id)
+
+    def _evaluate_candidate_conflict(self, old_content: str, new_content: str) -> bool:
+        """Evaluates candidate belief contradiction signal (Belnap TOP conflict).
+
+        In Belnap bilattice semantics:
+        - Explicit user correction / negation of prior belief resolves as Belnap F, which
+          enables clean autonomous supersession (Spec §7, D-MEM-04).
+        - Mutually competing affirmative values without retraction (e.g. 100% vs 150%,
+          port 8080 vs port 9000) represent true Belnap TOP conflict requiring review.
+        """
+        old_lower = old_content.lower()
+        new_lower = new_content.lower()
+
+        # Explicit user negation / retraction resolves to Belnap F (not TOP conflict)
+        retraction_cues = [
+            r"\b(?:don't|dont|do\s+not|not|never|no\s+longer|wrong|actually\s+live\s+in)\b",
+        ]
+        if any(re.search(cue, new_lower) for cue in retraction_cues):
+            return False
+
+        # Numeric attribute disagreement represents genuine Belnap TOP conflict
+        old_nums = set(re.findall(r"\b\d+(?:\.\d+)?%?\b", old_lower))
+        new_nums = set(re.findall(r"\b\d+(?:\.\d+)?%?\b", new_lower))
+        if old_nums and new_nums and old_nums != new_nums:
+            return True
+
+        # Mutually exclusive affirmative values / states
+        competing_pairs = [
+            ("enabled", "disabled"),
+            ("light mode", "dark mode"),
+            ("dark mode", "light mode"),
+        ]
+        for v1, v2 in competing_pairs:
+            if v1 in old_lower and v2 in new_lower:
+                return True
+
+        return False
 
     _check_contradictions = check_contradictions
 

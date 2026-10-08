@@ -95,6 +95,144 @@ def jaccard_similarity(text1: str, text2: str) -> float:
     return len(t1 & t2) / union_len
 
 
+OPPOSING_POLARITY_PAIRS: Final[frozenset[frozenset[str]]] = frozenset(
+    {
+        frozenset({"always", "never"}),
+        frozenset({"always", "not"}),
+        frozenset({"always", "dont"}),
+        frozenset({"must", "never"}),
+        frozenset({"must", "cannot"}),
+        frozenset({"must", "not"}),
+        frozenset({"enable", "disable"}),
+        frozenset({"enabled", "disabled"}),
+        frozenset({"allow", "forbid"}),
+        frozenset({"allow", "deny"}),
+        frozenset({"allow", "block"}),
+        frozenset({"allowed", "forbidden"}),
+        frozenset({"allowed", "denied"}),
+        frozenset({"allowed", "blocked"}),
+        frozenset({"true", "false"}),
+        frozenset({"include", "exclude"}),
+        frozenset({"included", "excluded"}),
+        frozenset({"require", "forbid"}),
+        frozenset({"required", "forbidden"}),
+        frozenset({"accept", "reject"}),
+        frozenset({"accepted", "rejected"}),
+        frozenset({"on", "off"}),
+        frozenset({"yes", "no"}),
+    }
+)
+
+OPPOSING_POLARITY_GROUPS: Final[tuple[tuple[frozenset[str], frozenset[str]], ...]] = (
+    (frozenset({"always"}), frozenset({"never", "not", "dont", "no"})),
+    (
+        frozenset({"must", "require", "required", "requiring"}),
+        frozenset({"never", "cannot", "not", "dont", "forbid", "forbidden", "forbidding"}),
+    ),
+    (
+        frozenset({"enable", "enabled", "enabling"}),
+        frozenset({"disable", "disabled", "disabling"}),
+    ),
+    (
+        frozenset({"allow", "allowed", "allowing"}),
+        frozenset(
+            {
+                "forbid",
+                "forbidden",
+                "forbidding",
+                "deny",
+                "denied",
+                "denying",
+                "block",
+                "blocked",
+                "blocking",
+            }
+        ),
+    ),
+    (
+        frozenset({"accept", "accepted", "accepting"}),
+        frozenset({"reject", "rejected", "rejecting"}),
+    ),
+    (
+        frozenset({"include", "included", "including"}),
+        frozenset({"exclude", "excluded", "excluding"}),
+    ),
+    (frozenset({"true", "yes", "on"}), frozenset({"false", "no", "off"})),
+)
+
+NEGATION_TOKENS: Final[frozenset[str]] = frozenset(
+    {
+        "never",
+        "not",
+        "no",
+        "cannot",
+        "dont",
+        "doesnt",
+        "didnt",
+        "wont",
+        "without",
+    }
+)
+
+POSITIVE_MODALS: Final[frozenset[str]] = frozenset(
+    {
+        "always",
+        "must",
+        "only",
+        "require",
+        "required",
+    }
+)
+
+
+def is_rule_conflict(text1: str, text2: str) -> bool:
+    """
+    Evaluates whether two candidate rule phrasings contradict each other (Rule Conflict).
+    Guards against Jaccard false-merging of opposing rules (e.g. 'always single quotes'
+    vs 'never single quotes') per v1.35.7 Phase 1 hygiene and G-V1357-RULE.
+
+    Compatible / near-paraphrase pairs (e.g. 'always single quotes' vs 'prefer single quotes')
+    are NOT flagged as conflicts.
+    """
+    t1 = normalize_tokens(text1)
+    t2 = normalize_tokens(text2)
+    if not t1 or not t2:
+        return False
+
+    # Check antonym / opposing polarity pairs and groups (including cross-conjugations)
+    for pos_group, neg_group in OPPOSING_POLARITY_GROUPS:
+        if (any(w in pos_group for w in t1) and any(w in neg_group for w in t2)) or (
+            any(w in neg_group for w in t1) and any(w in pos_group for w in t2)
+        ):
+            return True
+
+    for pair in OPPOSING_POLARITY_PAIRS:
+        p_list = list(pair)
+        if len(p_list) == 2:
+            w1, w2 = p_list[0], p_list[1]
+            if (w1 in t1 and w2 in t2) or (w2 in t1 and w1 in t2):
+                return True
+
+    # Check positive modal vs negation asymmetry
+    has_pos_1 = any(w in POSITIVE_MODALS for w in t1)
+    has_neg_1 = any(w in NEGATION_TOKENS for w in t1)
+    has_pos_2 = any(w in POSITIVE_MODALS for w in t2)
+    has_neg_2 = any(w in NEGATION_TOKENS for w in t2)
+
+    if (has_pos_1 and has_neg_2) or (has_pos_2 and has_neg_1):
+        return True
+
+    # Check asymmetric negation when remainder of phrasings heavily overlaps
+    t1_clean = t1 - NEGATION_TOKENS
+    t2_clean = t2 - NEGATION_TOKENS
+    if t1_clean and t2_clean:
+        overlap = len(t1_clean & t2_clean) / len(t1_clean | t2_clean)
+        if overlap >= 0.60 and (has_neg_1 != has_neg_2):
+            return True
+
+    return False
+
+
 def cluster_phrasings(
     values: list[str],
     threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
@@ -129,8 +267,14 @@ def cluster_phrasings(
             leader = str(cl["leader"])
             sim = jaccard_similarity(item, leader)
             if sim >= threshold and sim > best_sim:
-                best_sim = sim
-                best_cluster_idx = idx
+                members = cl.get("members")
+                has_conflict = is_rule_conflict(item, leader) or (
+                    isinstance(members, list)
+                    and any(is_rule_conflict(item, str(m)) for m in members)
+                )
+                if not has_conflict:
+                    best_sim = sim
+                    best_cluster_idx = idx
 
         if best_cluster_idx is not None:
             cl = clusters[best_cluster_idx]

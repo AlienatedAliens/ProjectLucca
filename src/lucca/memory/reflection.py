@@ -4,6 +4,7 @@ Spec D-MEM-04, Rung A1, ModularRSI §4.3
 """
 
 import datetime
+import re
 import time
 import uuid
 
@@ -199,10 +200,11 @@ class ReflectionEngine:
         # Autonomous revision: commit new belief and supersede old belief
         # Base importance boosted +0.4 for revised belief per Spec §7
         revised_importance = min(1.0, max(importance, 0.5) + 0.4)
+        canonical_content = self._canonicalize_proposition(new_content)
         unsigned = UnsignedPayload(
             provenance=Provenance.ASSISTANT_BELIEF,
             kind="belief",
-            content=new_content,
+            content=canonical_content,
             structured={"importance": revised_importance, "valid_from": current_time},
             trace_id=f"autonomous-refl-{uuid.uuid4().hex[:8]}",
             created_at=current_time,
@@ -215,8 +217,8 @@ class ReflectionEngine:
             old_belief_id, new_memory_id, reason=reason_entry_id, now=current_time
         )
 
-        # Summarise new_content to a readable cap so spoken update stays concise.
-        new_summary = new_content[:80].rstrip() + ("…" if len(new_content) > 80 else "")
+        # Summarise canonical_content to a readable cap so spoken update stays concise.
+        new_summary = canonical_content[:80].rstrip() + ("…" if len(canonical_content) > 80 else "")
         spoken_update = (
             f"I've revised a belief I had — previously: {old_content[:60].rstrip()}. "
             f"New understanding: {new_summary}."
@@ -228,6 +230,29 @@ class ReflectionEngine:
             reason_entry_id=reason_entry_id,
         )
         return False, spoken_update
+
+    @staticmethod
+    def _canonicalize_proposition(text: str) -> str:
+        """Canonicalizes conversational utterance into a declarative belief proposition.
+
+        Bans raw conversational speech / user transcripts from direct ASSISTANT_BELIEF
+        ingestion (Spec §7, D-MEM-04, v1.35.7 Phase 1 hygiene).
+        """
+        clean = text.strip()
+        # Strip common conversational speech prefixes and filler
+        pattern = (
+            r"^(?:actually|well|i mean|you know|wait|hey|um|uh|look|so|basically|listen)[,\s]+"
+        )
+        while True:
+            m = re.match(pattern, clean, re.IGNORECASE)
+            if not m:
+                break
+            clean = clean[m.end():].lstrip()
+        if clean:
+            clean = clean[0].upper() + clean[1:]
+        if clean and not clean.endswith((".", "!", "?")):
+            clean += "."
+        return clean
 
     def list_pending_reviews(self) -> list[dict[str, object]]:
         """Returns all pending items in review_queue."""

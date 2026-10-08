@@ -1473,6 +1473,40 @@ class EpistemicSearchCascade:
 
         return items
 
+    @staticmethod
+    def _evaluate_polarity(
+        content: str,
+        query_text: str = "",
+    ) -> tuple[bool, bool]:
+        """Evaluates evidential polarity (told_true, told_false) for an evidence item.
+
+        Remediates hardcoded told_false=False defects (v1.35.7 Phase 1 hygiene).
+        In Phase 1, uses lexical polarity & refutation cues; in Phase 3, integrates
+        SemanticVerifierPort.
+        """
+        content_lower = content.lower()
+        query_lower = query_text.lower() if query_text else ""
+
+        # Strong negation / refutation patterns
+        refutation_patterns = [
+            r"\b(?:not\s+supported|does\s+not\s+support|do\s+not\s+support|cannot|unsupported)\b",
+            r"\b(?:no\s+longer\s+supported|deprecated|removed|disabled|incompatible)\b",
+            r"\b(?:not\s+available|never\s+supported|impossible|fails\s+to)\b",
+            r"\b(?:is\s+false|false\b)",
+        ]
+
+        is_refuting = any(re.search(pat, content_lower) for pat in refutation_patterns)
+
+        if is_refuting:
+            query_is_negative = bool(
+                re.search(r"\b(?:not|unsupported|never|cannot)\b", query_lower)
+            )
+            if query_is_negative:
+                return True, False
+            return False, True
+
+        return True, False
+
     def query_substrate_self_history(self, query_text: str) -> list[EvidenceItem]:
         """
         Queries self-history (Substrate 7: SELF_HISTORY, Tier 1).
@@ -1526,6 +1560,9 @@ class EpistemicSearchCascade:
                     content_str = str(content)
                     is_wrong_query = "wrong" in query_text.lower() or "error" in query_text.lower()
                     if is_wrong_query and (prov == "COHERENCE_BREACH" or sup_by is not None):
+                        told_true, told_false = self._evaluate_polarity(
+                            content_str, query_text
+                        )
                         candidates.append(
                             (
                                 10,  # Highest priority for explicit error/breach retrospection
@@ -1538,8 +1575,8 @@ class EpistemicSearchCascade:
                                         f"Historical revision / breach: {content_str} "
                                         f"(superseded_by={sup_by})"
                                     ),
-                                    told_true=True,
-                                    told_false=False,
+                                    told_true=told_true,
+                                    told_false=told_false,
                                     confidence=1.0,
                                     metadata={"provenance": str(prov), "superseded_by": sup_by},
                                 ),
@@ -1548,7 +1585,9 @@ class EpistemicSearchCascade:
                     elif not is_wrong_query and tokens:
                         score = sum(1 for t in tokens if t in content_str.lower())
                         if score > 0:
-                            is_grounding = bool(gr_elig)
+                            told_true, told_false = self._evaluate_polarity(
+                                content_str, query_text
+                            )
                             candidates.append(
                                 (
                                     score,
@@ -1558,8 +1597,8 @@ class EpistemicSearchCascade:
                                         trust_tier=TrustTier.TIER_1_HARDWARE,
                                         source=f"history:{str(prov).lower()}:{mid}",
                                         content=content_str,
-                                        told_true=is_grounding,
-                                        told_false=False,
+                                        told_true=told_true,
+                                        told_false=told_false,
                                         confidence=1.0,
                                         metadata={
                                             "provenance": str(prov),
@@ -1616,6 +1655,9 @@ class EpistemicSearchCascade:
                     confirmed=True,
                 )
                 if res and res.ok and res.content:
+                    told_true, told_false = self._evaluate_polarity(
+                        res.content[:600], query_text
+                    )
                     items.append(
                         EvidenceItem(
                             substrate=EpistemicSubstrate.WEB,
@@ -1623,8 +1665,8 @@ class EpistemicSearchCascade:
                             source=f"web:{target_url}",
                             content=res.content[:600],
                             proposition=f"web_content({target_url})",
-                            told_true=True,
-                            told_false=False,
+                            told_true=told_true,
+                            told_false=told_false,
                             confidence=0.85,
                             metadata={"url": target_url},
                         )
@@ -1658,6 +1700,9 @@ class EpistemicSearchCascade:
                 confirmed=True,
             )
             if res and res.ok and res.content:
+                told_true, told_false = self._evaluate_polarity(
+                    res.content[:1500], query_text
+                )
                 items.append(
                     EvidenceItem(
                         substrate=EpistemicSubstrate.WEB,
@@ -1665,8 +1710,8 @@ class EpistemicSearchCascade:
                         source=f"web_search:{search_query}",
                         content=res.content[:1500],
                         proposition=f"web_search_results({search_query})",
-                        told_true=True,
-                        told_false=False,
+                        told_true=told_true,
+                        told_false=told_false,
                         confidence=0.85,
                         metadata=res.structured if isinstance(res.structured, dict) else {"query": search_query},
                     )
