@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.35.7] — 2026-10-09
+
+### Added
+- **Epistemic Integrity & Semantic NLI Verification (`D-MEM-08`):**
+  - **Phase 1: Core Pipeline Hygiene (`f729601`):**
+    - Remediated hardcoded `is_conflict_top=False` and `topic=None` in `belief_service.py`.
+    - Enforced canonical sanitized beliefs in `reflection.py`, eliminating raw user transcripts from memory injection.
+    - Fixed all four hardcoded `told_false=False` evidence sites in `cascade.py` with dynamic refutation polarity evaluation.
+    - Upgraded rule clustering in `induction.py` to prevent false-merging of opposing rule pairs via token-overlap/Jaccard heuristics.
+  - **Phase 2: Semantic Verifier Subsystem (`ports.py`, `core/schemas.py`, `senses/verifier.py`):**
+    - Added `@runtime_checkable class SemanticVerifierPort(Protocol)` with keyword-only arguments `check_consistency(*, premise, hypothesis)`.
+    - Added `VerifierLabel(StrEnum)` (`ENTAILMENT`, `CONTRADICTION`, `NEUTRAL`, `UNCERTAIN`) and `VerificationResult` strict Pydantic v2 schemas conforming to Zero-`Any` (`D-AUD-01`).
+    - Implemented `VerifierWorker` and `LocalSemanticVerifierPort` utilizing OpenVINO FP16 runtime on host CPU/NPU with strict $\Delta\text{VRAM} = 0\,\text{MB}$ overhead.
+    - Pre-registered decision threshold $\tau = 0.50$ with $[0.40, 0.60]$ uncertainty band (`UNCERTAIN`), sub-25ms fast-path latency, thread-safe bounded 1,024-entry LRU cache (`BoundedLRUPairCache`), NFC Unicode normalization, and fail-open degradation logging `verifier_degraded`.
+  - **Phase 3: Cross-Subsystem Wiring Across 7 Subsystems:**
+    - `belief_service.py`: Candidate beliefs with `CONTRADICTION` routed to true Belnap $\top$ conflict handling.
+    - `cascade.py`: Dynamic polarity assignment evaluating `told_false=True` on contradiction and `told_true=True` on entailment, supporting both instance and unbound class calls.
+    - `coherence.py`: Tool receipt output entailment checks against spoken action claims.
+    - `induction.py`: Bidirectional entailment clustering for paraphrases while preserving `D-REAS-06` 5-cluster/0-error gate and quarantine invariants.
+    - `memory_commit_service.py`: Transcript entailment checks rejecting contradictory candidate facts.
+    - `corroboration.py`: Critical question CQ1 relevant similarity evaluation via bidirectional entailment.
+    - `self_diagnosis.py`: Observation entailment against symptom descriptions preventing token-overlap false alarms.
+  - **Phase 4: GBNF Distiller & Provenance Invariants (`reasoning/distill.py`):**
+    - Added `config/grammars/belief_distill.gbnf` for constrained declarative JSON proposition extraction.
+    - Implemented `distill_contradiction_to_proposition` and `sign_distilled_proposition` (`USER_DERIVED`).
+    - Enforced ADR-006 / D-MEM-05 provenance invariants: unsigned propositions rejected by `ProvenanceGate` and persisted to SQLite `memory_quarantine` table with structured rejection reasons.
+  - **Gates & Verification Suites:**
+    - Passed all 9 pre-registered acceptance gates (`G-V1357-HYGIENE`, `G-V1357-LATENCY`, `G-V1357-BELNAP`, `G-V1357-RULE`, `G-V1357-VERIFIER-NEG`, `G-V1357-DISTILL`, `G-V1357-ANALOGY`, `G-V1357-DIAG`, `G-V1357-REGRESS`).
+    - Dedicated test suites: `tests/test_v1357_verifier.py`, `tests/test_v1357_provenance_negative.py`, `tests/test_v1357_semantic_wiring.py`, `tests/test_v1357_epistemic_hygiene.py`, `tests/test_v1357_edge_cases.py`, and `tests/test_v1357_extended_verification.py`.
+
+---
+
 ## [1.35.6] — 2026-10-05
 
 ### Added

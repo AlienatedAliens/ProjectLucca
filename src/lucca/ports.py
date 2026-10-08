@@ -5,7 +5,7 @@ All external boundaries are accessed strictly through these Protocols.
 """
 
 from collections.abc import Iterator, Sequence
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
@@ -23,6 +23,7 @@ from lucca.core.schemas import (
     ToolResult,
     TracePoint,
     TurnTrace,
+    VerificationResult,
 )
 
 
@@ -116,3 +117,11 @@ class TracePort(Protocol):
 
     def mark(self, trace_id: str, point: TracePoint, t_ns: int | None = None) -> None: ...
     def finish(self, trace_id: str) -> TurnTrace: ...
+
+
+@runtime_checkable
+class SemanticVerifierPort(Protocol):
+    """NLI / Semantic consistency verifier (Spec 04, v1.35.7)."""
+
+    def check_consistency(self, *, premise: str, hypothesis: str) -> VerificationResult: ...
+

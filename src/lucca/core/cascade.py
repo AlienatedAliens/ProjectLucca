@@ -21,10 +21,16 @@ import structlog
 import ulid
 from pydantic import BaseModel, Field, JsonValue
 
-from lucca.core.schemas import MemoryHit, RetrievalQuery, ToolResult, standard_for_confidence
+from lucca.core.schemas import (
+    MemoryHit,
+    RetrievalQuery,
+    ToolResult,
+    VerifierLabel,
+    standard_for_confidence,
+)
 from lucca.core.trace import now_ns
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
-from lucca.ports import MemoryStorePort
+from lucca.ports import MemoryStorePort, SemanticVerifierPort
 from lucca.reasoning.recall import recall_past_episodes, tokenize_query
 
 logger = structlog.get_logger(__name__)
@@ -898,10 +904,12 @@ class EpistemicSearchCascade:
         sandbox: object | None = None,
         memory_store: MemoryStorePort | None = None,
         enable_floor_cues: bool = True,
+        verifier: SemanticVerifierPort | None = None,
     ) -> None:
         self.sandbox = sandbox
         self.memory_store = memory_store
         self.enable_floor_cues = enable_floor_cues
+        self.verifier = verifier
 
     def classify_intent(self, query_text: str) -> tuple[bool, list[EpistemicSubstrate], str | None]:
         return classify_epistemic_intent(query_text)
@@ -1473,19 +1481,42 @@ class EpistemicSearchCascade:
 
         return items
 
-    @staticmethod
     def _evaluate_polarity(
+        self,
         content: str,
         query_text: str = "",
     ) -> tuple[bool, bool]:
         """Evaluates evidential polarity (told_true, told_false) for an evidence item.
 
         Remediates hardcoded told_false=False defects (v1.35.7 Phase 1 hygiene).
-        In Phase 1, uses lexical polarity & refutation cues; in Phase 3, integrates
-        SemanticVerifierPort.
+        In Phase 3, integrates SemanticVerifierPort with automatic fail-open lexical degradation.
+        Supports both instance calls `self._evaluate_polarity(content, query)` and
+        unbound class calls `EpistemicSearchCascade._evaluate_polarity(content, query)`.
         """
-        content_lower = content.lower()
-        query_lower = query_text.lower() if query_text else ""
+        if isinstance(self, str):
+            actual_content = self
+            actual_query = content if isinstance(content, str) else query_text
+            verifier = None
+        else:
+            actual_content = content
+            actual_query = query_text
+            verifier = getattr(self, "verifier", None)
+
+        if verifier is not None and actual_query.strip():
+            try:
+                v_res = verifier.check_consistency(
+                    premise=actual_content, hypothesis=actual_query
+                )
+                if not v_res.degraded:
+                    if v_res.label == VerifierLabel.ENTAILMENT:
+                        return True, False
+                    if v_res.label == VerifierLabel.CONTRADICTION:
+                        return False, True
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("cascade_verifier_eval_failed", error=str(exc))
+
+        content_lower = actual_content.lower()
+        query_lower = actual_query.lower() if actual_query else ""
 
         # Strong negation / refutation patterns
         refutation_patterns = [

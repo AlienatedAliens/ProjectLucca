@@ -17,8 +17,9 @@ from typing import TYPE_CHECKING, Final
 import structlog
 
 from lucca.core.clock import SystemClock
+from lucca.core.schemas import VerifierLabel
 from lucca.core.trace import TurnTrace
-from lucca.ports import ClockPort
+from lucca.ports import ClockPort, SemanticVerifierPort
 
 if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
@@ -79,11 +80,13 @@ class BeliefService:
         reflection_engine: ReflectionEngine | None,
         clock: ClockPort | None = None,
         orchestrator: Orchestrator | None = None,
+        verifier: SemanticVerifierPort | None = None,
     ) -> None:
         self.db = db
         self.reflection_engine = reflection_engine
         self.clock: ClockPort = clock or SystemClock()
         self._orchestrator = orchestrator
+        self.verifier = verifier
         self._local_pending_spoken_updates: deque[str] = deque()
 
     @property
@@ -205,7 +208,30 @@ class BeliefService:
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("candidate_topic_parse_failed", error=str(exc))
 
-            is_conflict_top = self._evaluate_candidate_conflict(old_content, new_content)
+            is_conflict_top = False
+            if self.verifier is not None:
+                try:
+                    v_res = self.verifier.check_consistency(
+                        premise=old_content, hypothesis=new_content
+                    )
+                    if not v_res.degraded:
+                        if v_res.label == VerifierLabel.CONTRADICTION:
+                            is_conflict_top = True
+                        elif v_res.label == VerifierLabel.ENTAILMENT:
+                            is_conflict_top = False
+                        else:
+                            is_conflict_top = self._evaluate_candidate_conflict(
+                                old_content, new_content
+                            )
+                    else:
+                        is_conflict_top = self._evaluate_candidate_conflict(
+                            old_content, new_content
+                        )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("belief_verifier_eval_failed", error=str(exc))
+                    is_conflict_top = self._evaluate_candidate_conflict(old_content, new_content)
+            else:
+                is_conflict_top = self._evaluate_candidate_conflict(old_content, new_content)
 
             try:
                 is_queued, res_str = refl_engine.detect_and_handle_contradiction(

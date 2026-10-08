@@ -28,7 +28,8 @@ import structlog
 from pydantic import BaseModel, Field, model_validator
 
 from lucca.core.capabilities import get_capability_registry
-from lucca.core.schemas import JsonValue
+from lucca.core.schemas import JsonValue, VerifierLabel
+from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
 
@@ -203,6 +204,7 @@ class CoherenceClaim(BaseModel, frozen=True):
 def detect_ungrounded_action_claims(
     narration: str,
     receipts: Sequence[ToolReceipt],
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CoherenceClaim]:
     """
     Pure function detecting action claims in narration and verifying against tool receipts.
@@ -358,6 +360,22 @@ def detect_ungrounded_action_claims(
                 continue
             allowed_tools = tool_family_map.get(detected_family, frozenset())
             is_grounded = bool(allowed_tools & successful_tools)
+
+            # Semantic verification: tool receipt premise entails narration hypothesis (Spec §3.3)
+            if not is_grounded and verifier is not None:
+                for r in receipts:
+                    if r.ok:
+                        r_summary = f"Tool {r.resolved_tool} succeeded with args {r.args} and output: {r.output or ''}"
+                        try:
+                            v_res = verifier.check_consistency(
+                                premise=r_summary, hypothesis=clause
+                            )
+                            if not v_res.degraded and v_res.label == VerifierLabel.ENTAILMENT:
+                                is_grounded = True
+                                break
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("coherence_verifier_eval_failed", error=str(exc))
+
             breach_desc = None
             if not is_grounded:
                 breach_desc = (

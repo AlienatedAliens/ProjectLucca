@@ -15,6 +15,8 @@ from pydantic import BaseModel, Field, JsonValue
 
 from lucca.core import env_check
 from lucca.core.config import get_config
+from lucca.core.schemas import VerifierLabel
+from lucca.ports import SemanticVerifierPort
 from lucca.memory.db import DatabaseManager
 from lucca.memory.retrieval import search_decision_records
 
@@ -65,8 +67,10 @@ class DiagnosisEngine:
         self,
         fault_model_path: Path | str | None = None,
         db: DatabaseManager | None = None,
+        verifier: SemanticVerifierPort | None = None,
     ) -> None:
         self.db = db
+        self.verifier = verifier
         self.fault_model: list[FaultModelEntry] = []
         self._load_fault_model(fault_model_path)
 
@@ -184,6 +188,22 @@ class DiagnosisEngine:
 
             for symptom in fault.symptoms:
                 s_lower = symptom.lower()
+                # Semantic verification (Spec 11 §7, G-V1357-DIAG)
+                if self.verifier is not None:
+                    try:
+                        v_res = self.verifier.check_consistency(
+                            premise=obs_joined, hypothesis=symptom
+                        )
+                        if not v_res.degraded:
+                            if v_res.label == VerifierLabel.ENTAILMENT:
+                                matched_symptoms.append(symptom)
+                                continue
+                            elif v_res.label == VerifierLabel.CONTRADICTION:
+                                # Contradictory observations (e.g. "temperature is normal" vs "overheating")
+                                continue
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("diagnosis_verifier_eval_failed", error=str(exc))
+
                 if s_lower in obs_joined:
                     matched_symptoms.append(symptom)
                 else:

@@ -26,10 +26,10 @@ This backlog explicitly documents all architectural proposals, speculative resea
 - **v1.0 Baseline:** Deterministic two-tier routing (frozen prefix + category manifest suffix) with MicroScheme AST compilation and conformal risk control fallback.
 - **Trigger to Revisit:** Production decision log volume exceeds $\ge 10,000$ labeled turns with verified ground truth outcomes, clearing the statistical volume threshold required to train high-capacity routing classifiers without synthetic collapse.
 
-### 1.3 NLI Commonsense Validator
+### 1.3 NLI Commonsense Validator *(GRADUATED & RATIFIED in v1.35.7 via D-MEM-08)*
 - **Scope:** Dedicated Natural Language Inference (NLI) auxiliary model performing cross-assertion consistency verification on every memory commit.
 - **v1.0 Baseline:** Cryptographic HMAC-SHA256 provenance envelopes (ADR-006), 4-state Belnap epistemic logic, and strict deontic output supervisor regex/symbolic guards.
-- **Trigger to Revisit:** Completion of R4 encoder selection (e.g., ModernBERT-small vs. MiniLM-L6-v2) **and** validation of the OpenVINO NPU hardware execution harness on target host hardware with measured latency $\le 30$ ms.
+- **Status (2026-10-09):** Graduated in Release v1.35.7 under `D-MEM-08`. Deployed OpenVINO NLI semantic verifier (`ModernBERT-base-nli` on host CPU/NPU, 0 MB VRAM overhead, $\le 25$ ms latency) across 7 core subsystems (`belief_service`, `cascade`, `coherence`, `induction`, `memory_commit_service`, `corroboration`, `self_diagnosis`).
 
 ### 1.4 Rung L5 — Learned NPU-Embedding Skill Ranking (30-Cap Review)
 - **Scope:** Learned neural within-category vector ranking of skills in the Prompt Frontier Suffix, accompanied by empirical relaxation or re-evaluation of the 30-rule library cap.

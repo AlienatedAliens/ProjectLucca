@@ -2170,7 +2170,9 @@ class Orchestrator:
                             call_id="simulated",
                         )
                     )
-        claims = detect_ungrounded_action_claims(narration, norm_receipts)
+        claims = detect_ungrounded_action_claims(
+            narration, norm_receipts, verifier=getattr(self, "verifier", None)
+        )
         un_grounded = [c for c in claims if not c.grounded]
         if un_grounded:
             return un_grounded[0].breach_description or "Ungrounded action claim detected"

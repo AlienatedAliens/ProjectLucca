@@ -1,4 +1,4 @@
 """Project Lucca — Local Desktop Companion Agent"""
 
-__version__ = "1.35.6"
+__version__ = "1.35.7"
 

@@ -18,7 +18,8 @@ from typing import Final
 import structlog
 
 from lucca.core.exceptions import RuleError, RuleValidationError, SchemeSyntaxError
-from lucca.core.schemas import CandidateRule
+from lucca.core.schemas import CandidateRule, VerifierLabel
+from lucca.ports import SemanticVerifierPort
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.egraph import synthesize_macro_from_patterns
 from lucca.reasoning.lifecycle import RuleLifecycleManager
@@ -185,7 +186,11 @@ POSITIVE_MODALS: Final[frozenset[str]] = frozenset(
 )
 
 
-def is_rule_conflict(text1: str, text2: str) -> bool:
+def is_rule_conflict(
+    text1: str,
+    text2: str,
+    verifier: SemanticVerifierPort | None = None,
+) -> bool:
     """
     Evaluates whether two candidate rule phrasings contradict each other (Rule Conflict).
     Guards against Jaccard false-merging of opposing rules (e.g. 'always single quotes'
@@ -194,6 +199,24 @@ def is_rule_conflict(text1: str, text2: str) -> bool:
     Compatible / near-paraphrase pairs (e.g. 'always single quotes' vs 'prefer single quotes')
     are NOT flagged as conflicts.
     """
+    if verifier is not None:
+        try:
+            r1 = verifier.check_consistency(premise=text1, hypothesis=text2)
+            r2 = verifier.check_consistency(premise=text2, hypothesis=text1)
+            if not r1.degraded and not r2.degraded:
+                if (
+                    r1.label == VerifierLabel.CONTRADICTION
+                    or r2.label == VerifierLabel.CONTRADICTION
+                ):
+                    return True
+                if (
+                    r1.label == VerifierLabel.ENTAILMENT
+                    and r2.label == VerifierLabel.ENTAILMENT
+                ):
+                    return False
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("rule_verifier_eval_failed", error=str(exc))
+
     t1 = normalize_tokens(text1)
     t2 = normalize_tokens(text2)
     if not t1 or not t2:
@@ -236,12 +259,14 @@ def is_rule_conflict(text1: str, text2: str) -> bool:
 def cluster_phrasings(
     values: list[str],
     threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[tuple[str, int, list[str]]]:
     """
     Deterministically clusters a list of string values into near-duplicate groups
-    using token-set Jaccard similarity >= threshold.
+    using bidirectional entailment (SemanticVerifierPort) or token-set Jaccard similarity >= threshold.
 
-    Bounded and model-free: operates strictly in-process with deterministic sorting.
+    Preservation invariant D-REAS-06: changes merge grouping only. QUARANTINE registration
+    and 5-cluster/0-error promotion gate remain completely intact.
     Returns list of (representative_value, total_occurrences, member_phrasings).
     """
     if not values:
@@ -265,12 +290,26 @@ def cluster_phrasings(
 
         for idx, cl in enumerate(clusters):
             leader = str(cl["leader"])
+            is_entailed_pair = False
+            if verifier is not None:
+                try:
+                    r1 = verifier.check_consistency(premise=item, hypothesis=leader)
+                    r2 = verifier.check_consistency(premise=leader, hypothesis=item)
+                    if not r1.degraded and not r2.degraded:
+                        if (
+                            r1.label == VerifierLabel.ENTAILMENT
+                            and r2.label == VerifierLabel.ENTAILMENT
+                        ):
+                            is_entailed_pair = True
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("induction_cluster_verifier_failed", error=str(exc))
+
             sim = jaccard_similarity(item, leader)
-            if sim >= threshold and sim > best_sim:
+            if (sim >= threshold or is_entailed_pair) and (sim > best_sim or is_entailed_pair):
                 members = cl.get("members")
-                has_conflict = is_rule_conflict(item, leader) or (
+                has_conflict = is_rule_conflict(item, leader, verifier=verifier) or (
                     isinstance(members, list)
-                    and any(is_rule_conflict(item, str(m)) for m in members)
+                    and any(is_rule_conflict(item, str(m), verifier=verifier) for m in members)
                 )
                 if not has_conflict:
                     best_sim = sim

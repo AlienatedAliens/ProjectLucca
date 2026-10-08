@@ -16,11 +16,11 @@ import structlog
 import ulid
 
 from lucca.core.clock import SystemClock
-from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload
+from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload, VerifierLabel
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.trace import TurnTrace
 from lucca.memory.extraction import FactExtractor
-from lucca.ports import ClockPort, MemoryStorePort
+from lucca.ports import ClockPort, MemoryStorePort, SemanticVerifierPort
 
 if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
@@ -358,11 +358,13 @@ class MemoryCommitService:
         signer_factory: SignerFactory,
         clock: ClockPort | None = None,
         orchestrator: Orchestrator | None = None,
+        verifier: SemanticVerifierPort | None = None,
     ) -> None:
         self.memory_store = memory_store
         self.signer_factory = signer_factory
         self.clock: ClockPort = clock or SystemClock()
         self._orchestrator = orchestrator
+        self.verifier = verifier
         self._fact_extractor: FactExtractor | None = None
         self._last_transcript_signed: SignedPayload | None = None
 
@@ -576,6 +578,22 @@ class MemoryCommitService:
 
         now = self.clock.now_utc()
         for signed_fact in signed_facts:
+            # Semantic verification: verify fact candidate does not contradict transcript
+            if self.verifier is not None:
+                try:
+                    v_res = self.verifier.check_consistency(
+                        premise=transcript_payload.content,
+                        hypothesis=str(signed_fact.content),
+                    )
+                    if not v_res.degraded and v_res.label == VerifierLabel.CONTRADICTION:
+                        logger.info(
+                            "passive_fact_rejected_contradiction",
+                            fact=str(signed_fact.content),
+                        )
+                        continue
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("fact_verifier_eval_failed", error=str(exc))
+
             try:
                 self.memory_store.commit(signed_fact, now=now)
                 logger.info("passive_fact_extracted", content=str(signed_fact.content))

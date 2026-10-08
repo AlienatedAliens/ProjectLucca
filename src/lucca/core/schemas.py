@@ -939,3 +939,35 @@ class ModelRegistryEntry(BaseModel):
 
     def get(self, item: str, default: object = None) -> object:
         return getattr(self, item, default)
+
+
+# ============================================================================
+# Semantic Verifier Contracts (Spec 04, v1.35.7)
+# ============================================================================
+
+
+class VerifierLabel(StrEnum):
+    ENTAILMENT = "ENTAILMENT"
+    CONTRADICTION = "CONTRADICTION"
+    NEUTRAL = "NEUTRAL"
+    UNCERTAIN = "UNCERTAIN"
+
+
+class VerificationResult(BaseModel):
+    label: VerifierLabel
+    entailment_prob: float = 0.0
+    contradiction_prob: float = 0.0
+    neutral_prob: float = 0.0
+    confidence: float = 0.0
+    latency_ms: float = 0.0
+    cached: bool = False
+    degraded: bool = False
+    premise: str = ""
+    hypothesis: str = ""
+
+    def __getitem__(self, item: str) -> object:
+        return getattr(self, item)
+
+    def get(self, item: str, default: object = None) -> object:
+        return getattr(self, item, default)
+

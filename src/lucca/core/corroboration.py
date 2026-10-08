@@ -24,7 +24,8 @@ from typing import Final
 import structlog
 from pydantic import BaseModel, Field
 
-from lucca.core.schemas import InferenceStep
+from lucca.core.schemas import InferenceStep, VerifierLabel
+from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
 
@@ -1137,6 +1138,7 @@ def _evaluate_analogy_questions(
     step: InferenceStep,
     store: object = None,
     receipts: Sequence[object] = (),
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
     """Evaluates Walton Argument from Analogy critical questions (WO-23 Phase 1).
 
@@ -1156,9 +1158,26 @@ def _evaluate_analogy_questions(
             asserting_source = m.group(1).strip()
             break
 
-    # CQ1: Relevant similarity check
+    # CQ1: Relevant similarity check (bidirectional entailment via SemanticVerifierPort)
     q1_matches: list[str] = []
     q1_failed = False
+    if verifier is not None and case_a and case_b:
+        try:
+            r_ab = verifier.check_consistency(premise=case_a, hypothesis=case_b)
+            r_ba = verifier.check_consistency(premise=case_b, hypothesis=case_a)
+            if not r_ab.degraded and not r_ba.degraded:
+                if (
+                    r_ab.label == VerifierLabel.CONTRADICTION
+                    or r_ba.label == VerifierLabel.CONTRADICTION
+                ):
+                    q1_failed = True
+                elif (
+                    r_ab.label == VerifierLabel.ENTAILMENT
+                    or r_ba.label == VerifierLabel.ENTAILMENT
+                ):
+                    q1_matches.append("semantic_entailment")
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("analogy_verifier_eval_failed", error=str(exc))
     for r in receipts:
         r_text = (
             str(getattr(r, "output", "") or "")
@@ -2083,6 +2102,7 @@ def critical_questions(
     step: InferenceStep,
     store: object = None,
     receipts: Sequence[object] = (),
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
     """Evaluates the critical questions for an argumentation scheme (WO-21 Phase 2, WO-23 Phase 1).
 
@@ -2099,7 +2119,7 @@ def critical_questions(
     if norm_scheme == Scheme.SIGN.value:
         return _evaluate_sign_questions(step, store=store, receipts=receipts)
     if norm_scheme == Scheme.ANALOGY.value:
-        return _evaluate_analogy_questions(step, store=store, receipts=receipts)
+        return _evaluate_analogy_questions(step, store=store, receipts=receipts, verifier=verifier)
     if norm_scheme == Scheme.CONSEQUENCE.value:
         return _evaluate_consequence_questions(step, store=store, receipts=receipts)
     if norm_scheme == Scheme.PRECEDENT.value:
