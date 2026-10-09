@@ -984,14 +984,12 @@ class RuleLifecycleManager:
             return
 
         rule = self.rules[rule_id]
-        writer = self.db.get_writer()
         snapshots_json = json.dumps(
             [[s.model_dump(mode="json"), p.model_dump(mode="json")] for s, p in rule.snapshots]
         )
         clusters_json = json.dumps(sorted(list(rule.success_clusters)))
 
-        try:
-            writer.execute("BEGIN IMMEDIATE")
+        with self.db.write_transaction() as writer:
             writer.execute(
                 """
                 INSERT INTO rule_states (
@@ -1049,11 +1047,6 @@ class RuleLifecycleManager:
                         1 if c.stale else 0,
                     ),
                 )
-
-            writer.execute("COMMIT")
-        except Exception:
-            writer.execute("ROLLBACK")
-            raise
 
     def load_skills(self, skills_dir: Path | str | None = None) -> int:
         """

@@ -313,7 +313,13 @@ class ScratchpadFalsifier:
                     timeout_s=0.5,
                 )
                 if res.ok:
-                    return True, res.content, None
+                    raw_out = (res.content or "").strip()
+                    try:
+                        import ast as _py_ast
+                        parsed_val = _py_ast.literal_eval(raw_out)
+                    except (ValueError, SyntaxError):
+                        parsed_val = raw_out
+                    return True, parsed_val, None
                 return False, None, res.stderr or "Container execution error"
             except Exception as rpc_err:
                 logger.warning("container_falsification_rpc_error", error=str(rpc_err))

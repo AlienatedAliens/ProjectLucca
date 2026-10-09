@@ -164,8 +164,8 @@ class SMTVerifier:
     Invokes Z3 solver with bounded timeout to enforce deterministic invariants.
     """
 
-    def __init__(self, timeout_ms: int = DEFAULT_SMT_TIMEOUT_MS) -> None:
-        self.timeout_ms = timeout_ms
+    def __init__(self, timeout_ms: int | float = DEFAULT_SMT_TIMEOUT_MS) -> None:
+        self.timeout_ms: int = max(1, int(timeout_ms))
 
     def verify_source(
         self,

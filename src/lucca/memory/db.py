@@ -6,6 +6,7 @@ Spec 04 §1, §2, ADR-002
 import json
 import re
 import sqlite3
+import threading
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -50,7 +51,21 @@ class DatabaseManager:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self._writer_conn: sqlite3.Connection | None = None
+        self._write_lock = threading.Lock()
         self._is_closed = False
+
+    @contextmanager
+    def write_transaction(self) -> Generator[sqlite3.Connection, None, None]:
+        """Provides thread-safe atomic transaction on dedicated writer connection."""
+        with self._write_lock:
+            writer = self.get_writer()
+            writer.execute("BEGIN IMMEDIATE")
+            try:
+                yield writer
+                writer.execute("COMMIT")
+            except Exception:
+                writer.execute("ROLLBACK")
+                raise
 
     def get_connection(self) -> sqlite3.Connection:
         """Create a fresh configured SQLite connection."""
@@ -134,12 +149,10 @@ class DatabaseManager:
 
     def record_execution_triple(self, triple: ExecutionTriple) -> None:
         """Persists an execution triple (Proposal, Decision, Outcome) to SQLite WAL."""
-        writer = self.get_writer()
         prop_json = json.dumps(triple.proposal.model_dump(mode="json"))
         dec_json = json.dumps(triple.decision.model_dump(mode="json"))
         out_json = json.dumps(triple.outcome.model_dump(mode="json"))
-        writer.execute("BEGIN IMMEDIATE")
-        try:
+        with self.write_transaction() as writer:
             writer.execute(
                 """
                 INSERT INTO execution_triples (
@@ -153,10 +166,6 @@ class DatabaseManager:
                 """,
                 (triple.triple_id, prop_json, dec_json, out_json, triple.created_at),
             )
-            writer.execute("COMMIT")
-        except Exception:
-            writer.execute("ROLLBACK")
-            raise
 
     def get_execution_triple(self, triple_id: str) -> ExecutionTriple | None:
         """Reads an execution triple from SQLite by triple_id."""
