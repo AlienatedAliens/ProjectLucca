@@ -94,7 +94,7 @@ def grade_in_d(
             with db.read_cursor() as cur:
                 cur.execute(
                     """
-                    SELECT rule_id, status, is_induced, created_at, promoted_at
+                    SELECT rule_id, status, source_canonical, created_at, promoted_at
                     FROM rule_states
                     """
                 )
@@ -102,11 +102,11 @@ def grade_in_d(
                 for row in rows:
                     r_id = str(row[0])
                     st = str(row[1])
-                    ind = bool(row[2]) if len(row) > 2 and row[2] is not None else False
+                    src_canon = str(row[2]) if len(row) > 2 and row[2] is not None else ""
                     c_at = float(row[3]) if len(row) > 3 and row[3] is not None else 0.0
                     p_at = float(row[4]) if len(row) > 4 and row[4] is not None else None
 
-                    is_ind = ind or "induced" in r_id or "mined" in r_id
+                    is_ind = ("induced" in r_id.lower() or "mined" in r_id.lower() or "defmacro" in src_canon.lower())
                     entry = INDSkillEntry(
                         rule_id=r_id,
                         status=st,
