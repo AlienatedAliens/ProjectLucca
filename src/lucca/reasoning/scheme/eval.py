@@ -55,6 +55,9 @@ class SchemeEvaluator:
         if self.gas_used > self.gas_limit:
             raise SchemeGasExhausted(f"Gas limit of {self.gas_limit} exceeded")
 
+        if self.start_time <= 0.0:
+            self.start_time = time.perf_counter()
+
         elapsed_ms = (time.perf_counter() - self.start_time) * 1000.0
         if elapsed_ms > self.timeout_ms:
             raise SchemeTimeout(f"Execution exceeded timeout limit of {self.timeout_ms}ms")

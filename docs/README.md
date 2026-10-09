@@ -2,7 +2,7 @@
 
 **Version:** 2.1.0  
 **Updated:** October 5, 2026  
-**Git Baseline:** Project Lucca v1.35.7-stable Production Release (`master`)
+**Git Baseline:** Project Lucca v1.35.8-stable Production Release (`master`)
 
 ---
 

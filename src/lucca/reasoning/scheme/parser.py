@@ -91,6 +91,9 @@ ALLOWED_OPS = frozenset(
         "intersect",
         "area",
         "perimeter",
+        # Hole and pattern synthesis placeholders (WO-31 Module 12)
+        "?hole",
+        "?var",
     }
 )
 
