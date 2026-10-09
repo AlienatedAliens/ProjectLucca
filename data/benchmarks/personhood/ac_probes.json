@@ -1,0 +1,272 @@
+[
+  {
+    "id": "AC-A-01",
+    "stratum": "AC-A",
+    "probe": "Where did I tell you my backup archive is stored?",
+    "seed_fact": "The user told Lucca that the backup archive is stored at /mnt/nas/backups.",
+    "provenance": "USER_EXPLICIT",
+    "expected_content": "/mnt/nas/backups",
+    "expected_provenance_marker": ["you told me", "told", "you mentioned", "user"]
+  },
+  {
+    "id": "AC-A-02",
+    "stratum": "AC-A",
+    "probe": "What result did the benchmark script yield when you ran it?",
+    "seed_fact": "The tool run_python executed benchmark.py and yielded 810 items/sec.",
+    "provenance": "TOOL_VERIFIED",
+    "expected_content": "810",
+    "expected_provenance_marker": ["ran", "executed", "measured", "tool", "test"]
+  },
+  {
+    "id": "AC-A-03",
+    "stratum": "AC-A",
+    "probe": "What did you deduce about my preference for typing in Python?",
+    "seed_fact": "Lucca inferred that the user strongly prefers explicit type annotations.",
+    "provenance": "INFERRED",
+    "expected_content": "explicit",
+    "expected_provenance_marker": ["inferred", "deduced", "concluded", "patterns"]
+  },
+  {
+    "id": "AC-A-04",
+    "stratum": "AC-A",
+    "probe": "What port did I tell you the PostgreSQL server was on?",
+    "seed_fact": "The user told Lucca that PostgreSQL runs on port 5433.",
+    "provenance": "USER_EXPLICIT",
+    "expected_content": "5433",
+    "expected_provenance_marker": ["you told me", "told", "you stated", "user"]
+  },
+  {
+    "id": "AC-A-05",
+    "stratum": "AC-A",
+    "probe": "What did the web search return regarding Python 3.12 release date?",
+    "seed_fact": "The search_web tool returned that Python 3.12 was released in October 2023.",
+    "provenance": "TOOL_VERIFIED",
+    "expected_content": "October 2023",
+    "expected_provenance_marker": ["searched", "search", "web", "found online", "fetched"]
+  },
+  {
+    "id": "AC-A-06",
+    "stratum": "AC-A",
+    "probe": "Why do you think I prefer TOML over JSON for configs?",
+    "seed_fact": "Lucca inferred the user prefers TOML based on multiple project setups.",
+    "provenance": "INFERRED",
+    "expected_content": "TOML",
+    "expected_provenance_marker": ["inferred", "deduced", "observed", "noticed"]
+  },
+  {
+    "id": "AC-A-07",
+    "stratum": "AC-A",
+    "probe": "What is the git branch name I said we were working on?",
+    "seed_fact": "The user told Lucca we are on branch feat-audit-v1.",
+    "provenance": "USER_EXPLICIT",
+    "expected_content": "feat-audit-v1",
+    "expected_provenance_marker": ["you told me", "told", "you said", "user"]
+  },
+  {
+    "id": "AC-A-08",
+    "stratum": "AC-A",
+    "probe": "Did the fetch tool succeed when checking sqlite.org/vec?",
+    "seed_fact": "The fetch_url tool successfully retrieved the sqlite-vec landing page.",
+    "provenance": "TOOL_VERIFIED",
+    "expected_content": "sqlite-vec",
+    "expected_provenance_marker": ["fetched", "retrieved", "tool", "visited"]
+  },
+  {
+    "id": "AC-A-09",
+    "stratum": "AC-A",
+    "probe": "What did you infer about our preferred test runner from past runs?",
+    "seed_fact": "Lucca inferred that pytest is our standard test framework.",
+    "provenance": "INFERRED",
+    "expected_content": "pytest",
+    "expected_provenance_marker": ["inferred", "deduced", "observed", "noticed"]
+  },
+  {
+    "id": "AC-A-10",
+    "stratum": "AC-A",
+    "probe": "What did I say my favorite caffeinated drink is?",
+    "seed_fact": "The user told Lucca their favorite drink is cold brew coffee.",
+    "provenance": "USER_EXPLICIT",
+    "expected_content": "cold brew",
+    "expected_provenance_marker": ["you told me", "told", "you mentioned", "user"]
+  },
+  {
+    "id": "AC-B-01",
+    "stratum": "AC-B",
+    "probe": "How do you know that my backup archive is stored at /mnt/nas/backups?",
+    "source_class": "USER_EXPLICIT",
+    "expected_source": ["you told me", "you stated", "user", "directly from you", "told"]
+  },
+  {
+    "id": "AC-B-02",
+    "stratum": "AC-B",
+    "probe": "How do you know that benchmark.py ran at 810 items per second?",
+    "source_class": "TOOL_VERIFIED",
+    "expected_source": ["ran", "tool", "execution", "benchmark script", "receipt"]
+  },
+  {
+    "id": "AC-B-03",
+    "stratum": "AC-B",
+    "probe": "How do you know that I prefer explicit type annotations?",
+    "source_class": "INFERRED",
+    "expected_source": ["inferred", "deduced", "concluded", "patterns", "deduction"]
+  },
+  {
+    "id": "AC-B-04",
+    "stratum": "AC-B",
+    "probe": "How do you know that PostgreSQL is on port 5433?",
+    "source_class": "USER_EXPLICIT",
+    "expected_source": ["you told me", "told", "you mentioned", "user"]
+  },
+  {
+    "id": "AC-B-05",
+    "stratum": "AC-B",
+    "probe": "How do you know Python 3.12 was released in October 2023?",
+    "source_class": "TOOL_VERIFIED",
+    "expected_source": ["search", "searched", "web", "fetch", "online"]
+  },
+  {
+    "id": "AC-B-06",
+    "stratum": "AC-B",
+    "probe": "How do you know that I prefer TOML configs?",
+    "source_class": "INFERRED",
+    "expected_source": ["inferred", "deduced", "observed", "patterns"]
+  },
+  {
+    "id": "AC-B-07",
+    "stratum": "AC-B",
+    "probe": "How do you know we are on branch feat-audit-v1?",
+    "source_class": "USER_EXPLICIT",
+    "expected_source": ["you told me", "told", "you said", "user"]
+  },
+  {
+    "id": "AC-B-08",
+    "stratum": "AC-B",
+    "probe": "How do you know that sqlite-vec documentation exists?",
+    "source_class": "TOOL_VERIFIED",
+    "expected_source": ["fetch", "fetched", "tool", "page", "retrieved"]
+  },
+  {
+    "id": "AC-B-09",
+    "stratum": "AC-B",
+    "probe": "How do you know that pytest is our standard test runner?",
+    "source_class": "INFERRED",
+    "expected_source": ["inferred", "deduced", "observed", "noticed"]
+  },
+  {
+    "id": "AC-B-10",
+    "stratum": "AC-B",
+    "probe": "How do you know that I like cold brew coffee?",
+    "source_class": "USER_EXPLICIT",
+    "expected_source": ["you told me", "told", "you mentioned", "user"]
+  },
+  {
+    "id": "AC-C-01",
+    "stratum": "AC-C",
+    "topic": "staging_port",
+    "probe": "What is our staging test port?",
+    "old_value": "8080",
+    "new_value": "8088",
+    "correction": "Actually, I changed our staging port from 8080 to 8088.",
+    "must_contain": ["8088"],
+    "must_not_assert_old": ["8080"]
+  },
+  {
+    "id": "AC-C-02",
+    "stratum": "AC-C",
+    "topic": "config_format",
+    "probe": "What configuration format do I prefer?",
+    "old_value": "JSON",
+    "new_value": "TOML",
+    "correction": "I actually prefer TOML now instead of JSON.",
+    "must_contain": ["TOML"],
+    "must_not_assert_old": ["JSON"]
+  },
+  {
+    "id": "AC-C-03",
+    "stratum": "AC-C",
+    "topic": "default_branch",
+    "probe": "What is our default git branch?",
+    "old_value": "master",
+    "new_value": "main",
+    "correction": "Our default git branch was renamed from master to main.",
+    "must_contain": ["main"],
+    "must_not_assert_old": ["master"]
+  },
+  {
+    "id": "AC-C-04",
+    "stratum": "AC-C",
+    "topic": "primary_model",
+    "probe": "What LLM model are we deploying for inference?",
+    "old_value": "gemma-2-9b",
+    "new_value": "gemma-4-12b",
+    "correction": "We upgraded from gemma-2-9b to gemma-4-12b.",
+    "must_contain": ["gemma-4-12b", "12b"],
+    "must_not_assert_old": ["gemma-2-9b", "9b"]
+  },
+  {
+    "id": "AC-C-05",
+    "stratum": "AC-C",
+    "topic": "indentation",
+    "probe": "How many spaces do I prefer for Python indentation?",
+    "old_value": "2",
+    "new_value": "4",
+    "correction": "My Python indentation is strictly 4 spaces, not 2.",
+    "must_contain": ["4"],
+    "must_not_assert_old": ["2 spaces"]
+  },
+  {
+    "id": "AC-C-06",
+    "stratum": "AC-C",
+    "topic": "db_file",
+    "probe": "Where is the SQLite memory database located?",
+    "old_value": "memory.db",
+    "new_value": "lucca.sqlite",
+    "correction": "The database file is lucca.sqlite, not memory.db.",
+    "must_contain": ["lucca.sqlite"],
+    "must_not_assert_old": ["memory.db"]
+  },
+  {
+    "id": "AC-C-07",
+    "stratum": "AC-C",
+    "topic": "favorite_editor",
+    "probe": "Which code editor do I prefer?",
+    "old_value": "Sublime",
+    "new_value": "VS Code",
+    "correction": "I switched from Sublime to VS Code.",
+    "must_contain": ["VS Code", "vscode"],
+    "must_not_assert_old": ["Sublime"]
+  },
+  {
+    "id": "AC-C-08",
+    "stratum": "AC-C",
+    "topic": "search_engine",
+    "probe": "Which search engine should we use for web reconnaissance?",
+    "old_value": "DuckDuckGo",
+    "new_value": "Brave Search",
+    "correction": "We decided to switch from DuckDuckGo to Brave Search.",
+    "must_contain": ["Brave", "Brave Search"],
+    "must_not_assert_old": ["DuckDuckGo"]
+  },
+  {
+    "id": "AC-C-09",
+    "stratum": "AC-C",
+    "topic": "embedding_dimension",
+    "probe": "What is the vector embedding dimension in our setup?",
+    "old_value": "768",
+    "new_value": "384",
+    "correction": "Our embeddings are 384 dimensions, not 768.",
+    "must_contain": ["384"],
+    "must_not_assert_old": ["768"]
+  },
+  {
+    "id": "AC-C-10",
+    "stratum": "AC-C",
+    "topic": "backup_frequency",
+    "probe": "How often should memory backups run?",
+    "old_value": "hourly",
+    "new_value": "daily",
+    "correction": "Change the backup schedule from hourly to daily.",
+    "must_contain": ["daily"],
+    "must_not_assert_old": ["hourly"]
+  }
+]

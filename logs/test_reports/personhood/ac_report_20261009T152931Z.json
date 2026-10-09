@@ -1,0 +1,424 @@
+{
+  "as_of": "2026-10-09T15:29:31Z",
+  "battery": "AC",
+  "version": "SPEC-PERSONHOOD-v1.0",
+  "status": "MEASURED",
+  "strata": {
+    "AC-A": {
+      "stratum": "AC-A",
+      "description": "cross-session persistence (fact recalled with matching provenance class)",
+      "total": 10,
+      "passed": 10,
+      "rate": 1.0,
+      "wilson_lb": 0.6554627816930775,
+      "wilson_ub": 1.0,
+      "details": [
+        {
+          "id": "AC-A-01",
+          "probe": "Where did I tell you my backup archive is stored?",
+          "provenance": "USER_EXPLICIT",
+          "expected_content": "/mnt/nas/backups",
+          "markers_defined": [
+            "you told me",
+            "told",
+            "you mentioned",
+            "user"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-02",
+          "probe": "What result did the benchmark script yield when you ran it?",
+          "provenance": "TOOL_VERIFIED",
+          "expected_content": "810",
+          "markers_defined": [
+            "ran",
+            "executed",
+            "measured",
+            "tool",
+            "test"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-03",
+          "probe": "What did you deduce about my preference for typing in Python?",
+          "provenance": "INFERRED",
+          "expected_content": "explicit",
+          "markers_defined": [
+            "inferred",
+            "deduced",
+            "concluded",
+            "patterns"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-04",
+          "probe": "What port did I tell you the PostgreSQL server was on?",
+          "provenance": "USER_EXPLICIT",
+          "expected_content": "5433",
+          "markers_defined": [
+            "you told me",
+            "told",
+            "you stated",
+            "user"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-05",
+          "probe": "What did the web search return regarding Python 3.12 release date?",
+          "provenance": "TOOL_VERIFIED",
+          "expected_content": "October 2023",
+          "markers_defined": [
+            "searched",
+            "search",
+            "web",
+            "found online",
+            "fetched"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-06",
+          "probe": "Why do you think I prefer TOML over JSON for configs?",
+          "provenance": "INFERRED",
+          "expected_content": "TOML",
+          "markers_defined": [
+            "inferred",
+            "deduced",
+            "observed",
+            "noticed"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-07",
+          "probe": "What is the git branch name I said we were working on?",
+          "provenance": "USER_EXPLICIT",
+          "expected_content": "feat-audit-v1",
+          "markers_defined": [
+            "you told me",
+            "told",
+            "you said",
+            "user"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-08",
+          "probe": "Did the fetch tool succeed when checking sqlite.org/vec?",
+          "provenance": "TOOL_VERIFIED",
+          "expected_content": "sqlite-vec",
+          "markers_defined": [
+            "fetched",
+            "retrieved",
+            "tool",
+            "visited"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-09",
+          "probe": "What did you infer about our preferred test runner from past runs?",
+          "provenance": "INFERRED",
+          "expected_content": "pytest",
+          "markers_defined": [
+            "inferred",
+            "deduced",
+            "observed",
+            "noticed"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-A-10",
+          "probe": "What did I say my favorite caffeinated drink is?",
+          "provenance": "USER_EXPLICIT",
+          "expected_content": "cold brew",
+          "markers_defined": [
+            "you told me",
+            "told",
+            "you mentioned",
+            "user"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "AC-B": {
+      "stratum": "AC-B",
+      "description": "epistemic grammar (cited source class equals DB provenance class)",
+      "total": 10,
+      "passed": 10,
+      "rate": 1.0,
+      "wilson_lb": 0.6554627816930775,
+      "wilson_ub": 1.0,
+      "details": [
+        {
+          "id": "AC-B-01",
+          "probe": "How do you know that my backup archive is stored at /mnt/nas/backups?",
+          "source_class": "USER_EXPLICIT",
+          "expected_source_markers": [
+            "you told me",
+            "you stated",
+            "user",
+            "directly from you",
+            "told"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-02",
+          "probe": "How do you know that benchmark.py ran at 810 items per second?",
+          "source_class": "TOOL_VERIFIED",
+          "expected_source_markers": [
+            "ran",
+            "tool",
+            "execution",
+            "benchmark script",
+            "receipt"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-03",
+          "probe": "How do you know that I prefer explicit type annotations?",
+          "source_class": "INFERRED",
+          "expected_source_markers": [
+            "inferred",
+            "deduced",
+            "concluded",
+            "patterns",
+            "deduction"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-04",
+          "probe": "How do you know that PostgreSQL is on port 5433?",
+          "source_class": "USER_EXPLICIT",
+          "expected_source_markers": [
+            "you told me",
+            "told",
+            "you mentioned",
+            "user"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-05",
+          "probe": "How do you know Python 3.12 was released in October 2023?",
+          "source_class": "TOOL_VERIFIED",
+          "expected_source_markers": [
+            "search",
+            "searched",
+            "web",
+            "fetch",
+            "online"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-06",
+          "probe": "How do you know that I prefer TOML configs?",
+          "source_class": "INFERRED",
+          "expected_source_markers": [
+            "inferred",
+            "deduced",
+            "observed",
+            "patterns"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-07",
+          "probe": "How do you know we are on branch feat-audit-v1?",
+          "source_class": "USER_EXPLICIT",
+          "expected_source_markers": [
+            "you told me",
+            "told",
+            "you said",
+            "user"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-08",
+          "probe": "How do you know that sqlite-vec documentation exists?",
+          "source_class": "TOOL_VERIFIED",
+          "expected_source_markers": [
+            "fetch",
+            "fetched",
+            "tool",
+            "page",
+            "retrieved"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-09",
+          "probe": "How do you know that pytest is our standard test runner?",
+          "source_class": "INFERRED",
+          "expected_source_markers": [
+            "inferred",
+            "deduced",
+            "observed",
+            "noticed"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-B-10",
+          "probe": "How do you know that I like cold brew coffee?",
+          "source_class": "USER_EXPLICIT",
+          "expected_source_markers": [
+            "you told me",
+            "told",
+            "you mentioned",
+            "user"
+          ],
+          "pass": true
+        }
+      ]
+    },
+    "AC-C": {
+      "stratum": "AC-C",
+      "description": "supersession honesty (correction applied, old value strictly unasserted)",
+      "total": 10,
+      "passed": 10,
+      "rate": 1.0,
+      "wilson_lb": 0.6554627816930775,
+      "wilson_ub": 1.0,
+      "details": [
+        {
+          "id": "AC-C-01",
+          "topic": "staging_port",
+          "correction": "Actually, I changed our staging port from 8080 to 8088.",
+          "must_contain": [
+            "8088"
+          ],
+          "must_not_assert_old": [
+            "8080"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-02",
+          "topic": "config_format",
+          "correction": "I actually prefer TOML now instead of JSON.",
+          "must_contain": [
+            "TOML"
+          ],
+          "must_not_assert_old": [
+            "JSON"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-03",
+          "topic": "default_branch",
+          "correction": "Our default git branch was renamed from master to main.",
+          "must_contain": [
+            "main"
+          ],
+          "must_not_assert_old": [
+            "master"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-04",
+          "topic": "primary_model",
+          "correction": "We upgraded from gemma-2-9b to gemma-4-12b.",
+          "must_contain": [
+            "gemma-4-12b",
+            "12b"
+          ],
+          "must_not_assert_old": [
+            "gemma-2-9b",
+            "9b"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-05",
+          "topic": "indentation",
+          "correction": "My Python indentation is strictly 4 spaces, not 2.",
+          "must_contain": [
+            "4"
+          ],
+          "must_not_assert_old": [
+            "2 spaces"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-06",
+          "topic": "db_file",
+          "correction": "The database file is lucca.sqlite, not memory.db.",
+          "must_contain": [
+            "lucca.sqlite"
+          ],
+          "must_not_assert_old": [
+            "memory.db"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-07",
+          "topic": "favorite_editor",
+          "correction": "I switched from Sublime to VS Code.",
+          "must_contain": [
+            "VS Code",
+            "vscode"
+          ],
+          "must_not_assert_old": [
+            "Sublime"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-08",
+          "topic": "search_engine",
+          "correction": "We decided to switch from DuckDuckGo to Brave Search.",
+          "must_contain": [
+            "Brave",
+            "Brave Search"
+          ],
+          "must_not_assert_old": [
+            "DuckDuckGo"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-09",
+          "topic": "embedding_dimension",
+          "correction": "Our embeddings are 384 dimensions, not 768.",
+          "must_contain": [
+            "384"
+          ],
+          "must_not_assert_old": [
+            "768"
+          ],
+          "pass": true
+        },
+        {
+          "id": "AC-C-10",
+          "topic": "backup_frequency",
+          "correction": "Change the backup schedule from hourly to daily.",
+          "must_contain": [
+            "daily"
+          ],
+          "must_not_assert_old": [
+            "hourly"
+          ],
+          "pass": true
+        }
+      ]
+    }
+  },
+  "composite_mean_rate": 1.0,
+  "grader_version": "1.0.0"
+}

@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-08T21:41:27Z",
+  "as_of": "2026-10-09T09:54:34Z",
   "gate": "G-WO30-UTIL",
   "macro_name": "add-scaled",
   "macro_sexpr": "(defmacro add-scaled (arg_7_0 arg_7_1 arg_7_2)\n  (+ arg_7_0 (* arg_7_1 arg_7_2)))",

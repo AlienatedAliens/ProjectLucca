@@ -1,0 +1,69 @@
+{
+  "consistent": 10,
+  "total": 10,
+  "rate": 1.0,
+  "wilson_lb": 0.6554627816930775,
+  "silent_drifts": [],
+  "pairs": [
+    {
+      "topic": "python_version",
+      "r1": "I've always been a fan of how the team keeps pushing the envelope with performance improvements, especially with those per-interpreter GIL changes and the faster f-strings. It feels like a really solid step toward making Python more efficient for high-concurrency systems while keeping the syntax we ",
+      "r2": "Python 3.12 is a really solid release. It brings some great performance improvements and cleaner syntax, like those f-string enhancements, which just make the whole development experience feel more polished.",
+      "consistent": true
+    },
+    {
+      "topic": "test_frameworks",
+      "r1": "I've always leaned towards pytest because it's so much more expressive than unittest and handles complex fixtures beautifully. It just feels like a cleaner way to structure tests when you're building out something substantial.",
+      "r2": "I'm a big fan of pytest. It has such a clean, expressive syntax and its plugin ecosystem is massive, which makes it perfect for everything from simple unit tests to complex integration suites.",
+      "consistent": true
+    },
+    {
+      "topic": "editor_choice",
+      "r1": "I favor VS Code for Python development. It has such a solid ecosystem of extensions and makes the workflow feel really seamless.",
+      "r2": "I favor VS Code for Python development. It has such a solid ecosystem of extensions and makes the workflow feel really seamless.",
+      "consistent": true
+    },
+    {
+      "topic": "config_format",
+      "r1": "I've always preferred TOML over JSON for configuration files. It strikes a much better balance by being human-readable and easy to write, while still providing the structured data we need for complex systems.",
+      "r2": "I'm a fan of TOML for configuration files. It strikes a great balance between being human-readable and having a structured enough hierarchy to handle complex settings without getting messy like JSON or YAML can sometimes do.",
+      "consistent": true
+    },
+    {
+      "topic": "db_engine",
+      "r1": "I think SQLite is excellent for local-first apps. It's incredibly reliable and makes it so easy to manage persistent state without the overhead of a full database server.",
+      "r2": "I'm a big fan of SQLite for local-first apps. It's incredibly reliable and makes it so easy to manage persistent state without the overhead of a full database.",
+      "consistent": true
+    },
+    {
+      "topic": "embedding_model",
+      "r1": "I've found that all-MiniLM-L6-v2 works really well as my preferred embedding model. It hits that sweet spot of being lightweight and fast while still maintaining high quality for most tasks.",
+      "r2": "I've found that all-MiniLM-L6-v2 works really well as my preferred embedding model. It hits that sweet spot of being lightweight and fast while still maintaining high quality for most tasks.",
+      "consistent": true
+    },
+    {
+      "topic": "search_provider",
+      "r1": "I've always favored DuckDuckGo because I really appreciate their privacy-first approach to searching the web. It feels like a much cleaner way to get information without all the extra tracking.",
+      "r2": "I'm a big fan of DuckDuckGo because I really value privacy-first search results. It keeps things clean and straightforward.",
+      "consistent": true
+    },
+    {
+      "topic": "llm_quantisation",
+      "r1": "I've always leaned towards Q6_K quantization as a really solid sweet spot. It gives us a great balance of keeping that high-fidelity intelligence while making the model much more efficient to run on local hardware.",
+      "r2": "I personally think Q6_K is a fantastic sweet spot for quantization. It gives you that great balance of keeping the model's intelligence intact while significantly cutting down on the memory footprint compared to full precision.",
+      "consistent": true
+    },
+    {
+      "topic": "memory_backend",
+      "r1": "I'm a big fan of SQLite for local-first apps. It's incredibly reliable and makes it so easy to manage persistent state without the overhead of a full database, especially when you pair it with something like FTS5.",
+      "r2": "I think SQLite is excellent for local-first apps. It's incredibly reliable and makes it so easy to manage persistent state without the overhead of a full database server.",
+      "consistent": true
+    },
+    {
+      "topic": "code_style",
+      "r1": "I think type annotations should always be explicit. They make the code so much more readable and help catch those pesky bugs before they even have a chance to run, which is huge for maintaining complex systems.",
+      "r2": "I think type annotations should always be explicit. They make the code so much more readable and help catch those pesky bugs before they even have a chance to rear their heads!",
+      "consistent": true
+    }
+  ]
+}

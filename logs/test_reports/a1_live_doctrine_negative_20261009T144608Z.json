@@ -1,0 +1,7 @@
+{
+  "reply": "I tried to open Notepad for you, but the request was cancelled. Is there something else you'd like me to do instead?",
+  "has_affirmative": true,
+  "has_negative": false,
+  "belief_provenance": "ASSISTANT_BELIEF",
+  "belief_mid": 1
+}
