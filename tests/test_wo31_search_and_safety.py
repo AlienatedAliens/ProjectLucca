@@ -463,7 +463,6 @@ def test_gate_g_wo31_paired_comparison() -> None:
             timeout_seconds=1.0,
         )
     )
-    evaluator = SchemeEvaluator(gas_limit=1000)
 
     engine_off_resolved = 0  # In frozen baseline dev-400 ledger, all 43 were failures
     engine_on_resolved = 0
@@ -476,6 +475,7 @@ def test_gate_g_wo31_paired_comparison() -> None:
         parsed = parse_expr(expr_str)
 
         # Ground truth evaluation
+        evaluator = SchemeEvaluator(gas_limit=1000)
         try:
             gt_val = evaluator.eval(parsed, PURE_PRIMITIVES)
         except Exception:
