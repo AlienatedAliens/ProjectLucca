@@ -206,6 +206,7 @@ class LLMClient:
         enable_thinking: bool | None = None,
         user_model_directive: str | None = None,
         episode_hints: list[str] | str | None = None,
+        grammar: str | None = None,
     ) -> Generator[LLMEvent, None, None]:
         eff_trace_id = trace_id or f"anon-{now_ns()}"
         eff_temp = (
@@ -306,7 +307,8 @@ class LLMClient:
             "stop": ["</s>", "[INST]", "[/INST]", "<|im_end|>", "\nUser:"],
             "stream": True,
         }
-
+        if grammar is not None:
+            payload["grammar"] = grammar
 
         demux = ToolCallDemux()
         client = self.http_client

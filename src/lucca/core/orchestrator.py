@@ -2393,6 +2393,7 @@ class Orchestrator:
         enable_thinking: bool | None = None,
         user_model_directive: str | None = None,
         episode_hints: list[str] | str | None = None,
+        grammar: str | None = None,
     ) -> None:
         """
         Executes streaming LLM response generation with multi-step tool re-prompting
@@ -2515,6 +2516,7 @@ class Orchestrator:
                     enable_thinking=enable_thinking,
                     user_model_directive=user_model_directive,
                     episode_hints=episode_hints,
+                    grammar=grammar if not round_tools else None,
                 ):
                     if trace.interrupted or self._cancel_token.is_set():
                         break

@@ -23,6 +23,7 @@ import json
 import re
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import structlog
@@ -622,16 +623,28 @@ class TurnPipeline:
                 intent="act_then_narrate",
             )
             trace.enable_thinking = enable_thinking
+            action_claim_grammar = self.get_action_claim_grammar()
             self.orch._stream_llm_speech(
                 trace=trace,
                 user_msg=user_text or "[Voice audio]",
                 decision_id=decision_id,
                 messages=narration_msgs,
                 enable_thinking=enable_thinking,
+                grammar=action_claim_grammar,
             )
         except Exception as e:  # noqa: BLE001
             logger.error("act_then_narrate_error", error=str(e))
             self.orch._finalize_turn(trace, decision_id)
+
+    def get_action_claim_grammar(self) -> str | None:
+        """Loads decode-time GBNF grammar for action claim channel (SPIKE-A / D-SEC-06)."""
+        grammar_path = Path("config/grammars/action_claim.gbnf")
+        if grammar_path.exists():
+            try:
+                return grammar_path.read_text(encoding="utf-8")
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("action_claim_grammar_load_failed", path=str(grammar_path), error=str(exc))
+        return None
 
     # ------------------------------------------------------------------------
     # Phase 5 Helpers: Epistemic Context & Intent-Based Tool Gating

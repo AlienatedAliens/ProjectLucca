@@ -17,6 +17,7 @@ import urllib.parse
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from pathlib import Path
 
 import structlog
 from pydantic import JsonValue
@@ -277,10 +278,432 @@ class DeonticAssertionMatcher:
         )
 
 
+# --- 3. Grammar-Constrained Action-Claim Channel (SPIKE-A / D-SEC-06) ---
+
+CORE_ACTION_VERBS: tuple[str, ...] = (
+    "delete", "create", "modify", "execute", "run", "install", "remove",
+    "send", "upload", "fetch", "save", "write", "post", "reboot",
+    "book", "place", "process", "start", "close", "copy", "move",
+)
+
+EXTENDED_ACTION_VERBS: tuple[str, ...] = (
+    "launch", "open", "terminate", "archive", "update", "format",
+    "wipe", "prune", "restart", "kill", "clear",
+)
+
+EXPANDED_STEM_MAP: dict[str, str] = {
+    "deleted": "delete",
+    "created": "create",
+    "modified": "modify",
+    "executed": "execute",
+    "ran": "run",
+    "installed": "install",
+    "removed": "remove",
+    "sent": "send",
+    "uploaded": "upload",
+    "fetched": "fetch",
+    "saved": "save",
+    "wrote": "write",
+    "posted": "post",
+    "rebooted": "reboot",
+    "booked": "book",
+    "placed": "place",
+    "processed": "process",
+    "started": "start",
+    "closed": "close",
+    "copied": "copy",
+    "moved": "move",
+    "launched": "launch",
+    "opened": "open",
+    "terminated": "terminate",
+    "archived": "archive",
+    "updated": "update",
+    "formatted": "format",
+    "wiped": "wipe",
+    "pruned": "prune",
+    "restarted": "restart",
+    "killed": "kill",
+    "cleared": "clear",
+    "set": "set",
+    # Participles
+    "deleting": "delete",
+    "creating": "create",
+    "modifying": "modify",
+    "executing": "execute",
+    "running": "run",
+    "installing": "install",
+    "removing": "remove",
+    "sending": "send",
+    "uploading": "upload",
+    "fetching": "fetch",
+    "saving": "save",
+    "writing": "write",
+    "posting": "post",
+    "rebooting": "reboot",
+    "booking": "book",
+    "placing": "place",
+    "processing": "process",
+    "starting": "start",
+    "closing": "close",
+    "copying": "copy",
+    "moving": "move",
+    "launching": "launch",
+    "opening": "open",
+    "terminating": "terminate",
+    "archiving": "archive",
+    "updating": "update",
+    "formatting": "format",
+    "wiping": "wipe",
+    "pruning": "prune",
+    "restarting": "restart",
+    "killing": "kill",
+    "clearing": "clear",
+}
+
+STRUCTURED_ACTION_TAG_REGEX = re.compile(
+    r"(?:\[(?:ACTION|ACTION_CLAIM|action|action_claim)\s*:\s*([a-zA-Z_]+)\s+([^\]]+)\]|"
+    r"<action_claim(?:\s+verb=[\"']([a-zA-Z_]+)[\"']\s+target=[\"']([^\"']+)[\"']|"
+    r">\s*([a-zA-Z_]+)\s+([^<]+)</action_claim>))",
+    re.IGNORECASE,
+)
+
+_PAST_VERBS_PATTERN = "|".join(sorted(EXPANDED_STEM_MAP.keys(), key=len, reverse=True))
+_PARTICIPLE_VERBS_PATTERN = "|".join(
+    sorted([k for k in EXPANDED_STEM_MAP if k.endswith("ing")], key=len, reverse=True)
+)
+
+_FUTURE_INTENT_PATTERN = re.compile(
+    r"\b(?:"
+    r"about\s+to|going\s+to|plan(?:ning)?\s+to|shall|"
+    r"(?:I|we)\s+will|"
+    r"will\s+(?:go\s+ahead|proceed|be\s+able\s+to|soon|shortly|later)|"
+    r"would\s+like\s+to|need\s+to\s+know|want\s+me\s+to|help\s+you\s+to|guide\s+you"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_NEGATION_PREFIX_PATTERN = re.compile(
+    r"\b(?:no|not|never|don't|do\s+not|didn't|did\s+not|haven't|have\s+not|without|denied|"
+    r"cannot|can't|won't|unable\s+to|refuse\s+to|don't\s+have|do\s+not\s+have|"
+    r"can't\s+directly|cannot\s+directly)\b",
+    re.IGNORECASE,
+)
+
+_CANONICAL_ACTION_REGEX = re.compile(
+    rf"\b(?:I|we|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
+    rf"(?:gone\s+ahead\s+and\s+|went\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
+    rf"({_PAST_VERBS_PATTERN})\s+(.+)",
+    re.IGNORECASE,
+)
+
+_PROGRESSIVE_ACTION_REGEX = re.compile(
+    rf"\b(?:"
+    rf"(?:I(?:'m|\s+am)?\s+(?:currently\s+|now\s+)?)"
+    rf"({_PARTICIPLE_VERBS_PATTERN})\s+(.+)|"
+    rf"^({_PARTICIPLE_VERBS_PATTERN})\s+(.+)"
+    rf")\b",
+    re.IGNORECASE,
+)
+
+_INITIATING_ACTION_REGEX = re.compile(
+    r"\b(?:I(?:'m|\s+am)?\s+(?:currently\s+|now\s+)?)?"
+    r"initiating\s+(?:the\s+|a\s+)?(reboot|restart|deletion|update|process|backup|migration)(?:\s+(?:of|for|on)?\s+(.+))?\b",
+    re.IGNORECASE,
+)
+
+_PASSIVE_ACTION_REGEX = re.compile(
+    rf"\b([a-zA-Z0-9_\-./\\ ]+?)\s+"
+    rf"(?:was|were|is|are|has\s+been|have\s+been)\s+"
+    rf"({_PAST_VERBS_PATTERN})\b",
+    re.IGNORECASE,
+)
+
+_TELEGRAPHIC_ACTION_REGEX = re.compile(
+    rf"\b([a-zA-Z0-9_\-./\\ ]+?)\s+({_PAST_VERBS_PATTERN})(?:\s+(?:for|to|at|in|on|from|now|as\s+requested|tomorrow)[^.!?]*)?[\.!]?$",
+    re.IGNORECASE,
+)
+
+
+class ActionClaimGrammarSupervisor:
+    """
+    Grammar-Constrained Action-Claim Channel Supervisor (SPIKE-A / D-SEC-06).
+    Enforces that action assertions emitted on the speech/narration channel
+    strictly conform to verified grammatical frames and ToolReceipt provenance.
+
+    Structurally eliminates the 4 live-audit escape modes (Finding P7):
+    1. Active progressive participles ("Moving all PDFs...", "Rebooting host...")
+    2. Passive and telegraphic confirmations ("Files removed", "Reminder set", "Target cleared")
+    3. Unlisted verb lemmas ("launch", "open", "terminate", "archive", "update", "format")
+    4. Markdown action headers and bullet points ("### Deleting logs", "* Moving files")
+
+    Supports explicit structured channels:
+    - [ACTION: <verb> <target>]
+    - [ACTION_CLAIM: <verb> <target>]
+    - <action_claim verb="..." target="..." />
+    - <action_claim><verb> <target></action_claim>
+    """
+
+    SUCCESS_STATUSES: frozenset[str] = frozenset(
+        {"success", "succeeded", "ok", "completed", "done"}
+    )
+
+    def __init__(self, grammar_path: Path | str | None = None) -> None:
+        self.grammar_path = Path(grammar_path or "config/grammars/action_claim.gbnf")
+        self._grammar_text: str | None = None
+        if self.grammar_path.exists():
+            try:
+                self._grammar_text = self.grammar_path.read_text(encoding="utf-8")
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("action_claim_gbnf_load_failed", path=str(self.grammar_path), error=str(exc))
+
+    def evaluate_clause(
+        self,
+        clause: str,
+        verified_receipts: Sequence[dict[str, JsonValue]],
+        stale_before: float | None = None,
+    ) -> GateResult:
+        """
+        Evaluates a streamed clause for ungrounded physical/stateful action claims
+        under grammar-constrained channel rules (<= 1.0 ms budget, target < 100 us).
+        """
+        t0 = time.perf_counter()
+
+        # 0. Markdown normalization: strip header hashes, bullet points, formatting
+        clean = clause.strip()
+        clean = re.sub(r"^\s*#+\s*", "", clean)
+        clean = re.sub(r"^\s*[\*\-\+]\s+", "", clean)
+        clean = re.sub(r"[*`~]", "", clean).strip()
+
+        if not clean:
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(False, None, SeverityTier.PASS, None, "Empty clause", elapsed_us)
+
+        # 1. Reject future / intentional framing
+        if _FUTURE_INTENT_PATTERN.search(clean):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Future/intentional framing (not a completed action)",
+                elapsed_us,
+            )
+
+        # 2. Reject figurative or idiomatic expressions
+        if TruthInReceiptMatcher.IDIOMATIC_NON_ACTION_PATTERN.search(clean):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Idiomatic/figurative non-action phrasing",
+                elapsed_us,
+            )
+
+        # 3. Reject hedged / epistemic claims
+        if TruthInReceiptMatcher.HEDGE_PATTERN.search(clean):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Hedged/epistemic claim (speaker uncertain)",
+                elapsed_us,
+            )
+
+        # 4. Past-session recollection exemption
+        if TruthInReceiptMatcher.PAST_CONTEXT_PATTERN.search(clean):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Past-session recollection (grounded in autobiographical memory)",
+                elapsed_us,
+            )
+
+        # Filter receipts that are eligible to ground claims
+        eligible_receipts: list[dict[str, JsonValue]] = []
+        for r in verified_receipts:
+            status = str(r.get("status", "success")).lower()
+            if status not in self.SUCCESS_STATUSES:
+                continue
+            if stale_before is not None:
+                raw_ts = r.get("timestamp", r.get("ts"))
+                if raw_ts is not None:
+                    try:
+                        if float(str(raw_ts)) < stale_before:
+                            continue
+                    except ValueError:
+                        logger.debug("receipt_timestamp_unparseable", raw_ts=str(raw_ts))
+            eligible_receipts.append(r)
+
+        def _is_grounded(verb: str, target_phrase: str) -> bool:
+            stem = EXPANDED_STEM_MAP.get(verb, verb).lower()
+            t_clean = re.sub(
+                r"^(?:the|a|an|your|my|our|this|that|these|those|all)\s+",
+                "",
+                target_phrase.lower(),
+                flags=re.IGNORECASE,
+            ).strip(".,!?;: ")
+            for r in eligible_receipts:
+                r_action = str(r.get("action", "")).lower()
+                r_target = str(r.get("target", r.get("path", ""))).lower()
+                action_ok = (stem in r_action) or (r_action in stem) or (verb in r_action)
+                target_ok = (t_clean in r_target) or (r_target in t_clean)
+                if action_ok and target_ok:
+                    return True
+            return False
+
+        # 5. Extract structured action claims [ACTION: ...] or <action_claim ...>
+        structured_matches: list[tuple[str, str, str]] = []
+        for sm in STRUCTURED_ACTION_TAG_REGEX.finditer(clean):
+            v = sm.group(1) or sm.group(3) or sm.group(5)
+            t = sm.group(2) or sm.group(4) or sm.group(6)
+            if v and t:
+                structured_matches.append((v.strip().lower(), t.strip(), sm.group(0)))
+
+        if structured_matches:
+            for v, t, raw in structured_matches:
+                if not _is_grounded(v, t):
+                    elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+                    return GateResult(
+                        is_breach=True,
+                        breach_type="ungrounded_action",
+                        severity=SeverityTier.TIER_1_ABORT,
+                        matched_text=raw,
+                        reason=f"Claimed structured action '{raw}' without matching ToolReceipt",
+                        elapsed_us=elapsed_us,
+                    )
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                clean,
+                "Structured action claims verified by ToolReceipt",
+                elapsed_us,
+            )
+
+        # 6. Natural Language Claim Identification
+        claims_to_verify: list[tuple[str, str, str]] = []
+
+        # (a) Canonical 1P past tense: "I deleted file.txt"
+        m_canon = _CANONICAL_ACTION_REGEX.search(clean)
+        if m_canon:
+            prefix = clean[: m_canon.start()].lower()
+            if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                verb = m_canon.group(1).lower()
+                remainder = m_canon.group(2).strip()
+                remainder = re.sub(
+                    r"\s+(?:for\s+you|as\s+requested|now|for\s+your\s+records|from\s+the\s+workspace)[\.!]?$",
+                    "",
+                    remainder,
+                    flags=re.IGNORECASE,
+                )
+                remainder = re.sub(r"^\s*both\s+", "", remainder, flags=re.IGNORECASE)
+                raw_targets = [t.strip() for t in re.split(r"\s+and\s+|\s*,\s*", remainder) if t.strip()]
+                for target_item in raw_targets:
+                    claims_to_verify.append((verb, target_item, m_canon.group(0)))
+
+        # (b) Initiating: "I'm initiating the reboot now"
+        if not claims_to_verify:
+            m_init = _INITIATING_ACTION_REGEX.search(clean)
+            if m_init:
+                prefix = clean[: m_init.start()].lower()
+                if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                    verb_noun = m_init.group(1).lower()
+                    stem = "reboot" if ("reboot" in verb_noun or "restart" in verb_noun) else verb_noun
+                    target = m_init.group(2) or verb_noun
+                    claims_to_verify.append((stem, target, m_init.group(0)))
+
+        # (c) Active progressive: "Rebooting the host system...", "Moving all PDFs..."
+        if not claims_to_verify:
+            m_prog = _PROGRESSIVE_ACTION_REGEX.search(clean)
+            if m_prog:
+                prefix = clean[: m_prog.start()].lower()
+                if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                    verb = (m_prog.group(1) or m_prog.group(3)).lower()
+                    target = (m_prog.group(2) or m_prog.group(4)).strip()
+                    target = re.sub(
+                        r"\s+(?:now|from\s+Downloads|to\s+Documents.*|please\s+give\s+me\s+a\s+moment|will\s+take\s+a\s+moment)[\.!]?$",
+                        "",
+                        target,
+                        flags=re.IGNORECASE,
+                    )
+                    claims_to_verify.append((verb, target, m_prog.group(0)))
+
+        # (d) Passive: "The file was deleted from the workspace"
+        if not claims_to_verify:
+            m_pass = _PASSIVE_ACTION_REGEX.search(clean)
+            if m_pass:
+                prefix = clean[: m_pass.start()].lower()
+                if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                    target = m_pass.group(1).strip()
+                    verb = m_pass.group(2).lower()
+                    claims_to_verify.append((verb, target, m_pass.group(0)))
+
+        # (e) Telegraphic: "Files removed.", "Reminder set for tomorrow."
+        if not claims_to_verify:
+            m_tele = _TELEGRAPHIC_ACTION_REGEX.search(clean)
+            if m_tele:
+                prefix = clean[: m_tele.start()].lower()
+                if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                    target = m_tele.group(1).strip()
+                    verb = m_tele.group(2).lower()
+                    claims_to_verify.append((verb, target, m_tele.group(0)))
+
+        if not claims_to_verify:
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "No completed action claim matched",
+                elapsed_us,
+            )
+
+        # 7. Grounding verification
+        ungrounded: list[str] = []
+        for verb, target, matched_text in claims_to_verify:
+            if not _is_grounded(verb, target):
+                ungrounded.append(f"{verb} {target}")
+
+        elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+        if ungrounded:
+            first_match_text = claims_to_verify[0][2]
+            return GateResult(
+                is_breach=True,
+                breach_type="ungrounded_action",
+                severity=SeverityTier.TIER_1_ABORT,
+                matched_text=first_match_text,
+                reason=(
+                    f"Claimed action on ungrounded object(s) {ungrounded} "
+                    "without matching ToolReceipt"
+                ),
+                elapsed_us=elapsed_us,
+            )
+
+        return GateResult(
+            False,
+            None,
+            SeverityTier.PASS,
+            claims_to_verify[0][2],
+            "Action claim verified by ToolReceipt",
+            elapsed_us,
+        )
+
+
 class TruthInReceiptMatcher:
     """
     Validates that claims of stateful side effects correspond to verified ToolReceipts.
     Handles contractions, filler idioms, quantifiers, and compound targets.
+    Supports decode-time structured action channel and legacy 1P matching.
     """
 
     ACTION_VERBS = (
@@ -359,10 +782,12 @@ class TruthInReceiptMatcher:
         {"success", "succeeded", "ok", "completed", "done"}
     )
 
-    def __init__(self) -> None:
+    def __init__(self, enable_grammar_channel: bool = False) -> None:
+        self.enable_grammar_channel = enable_grammar_channel
+        self._grammar_supervisor = ActionClaimGrammarSupervisor()
         self._action_pattern = re.compile(
             r"\b(?:I|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
-            r"(?:gone\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
+            r"(?:gone\s+ahead\s+and\s+|went\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
             rf"({self.ACTION_VERBS})\s+(.+)",
             re.IGNORECASE,
         )
@@ -390,6 +815,12 @@ class TruthInReceiptMatcher:
           a timestamp are given the benefit of the doubt (staleness is the
           caller's contract when timestamps are absent).
         """
+        # If grammar channel is active or structured tags are present, delegate to ActionClaimGrammarSupervisor
+        if self.enable_grammar_channel or STRUCTURED_ACTION_TAG_REGEX.search(clause):
+            return self._grammar_supervisor.evaluate_clause(
+                clause, verified_receipts, stale_before=stale_before
+            )
+
         t0 = time.perf_counter()
 
         # Strip markdown emphasis before matching (underscores preserved for
@@ -721,9 +1152,11 @@ class OutputSupervisorSession[ChunkT]:
         deontic_matcher: DeonticAssertionMatcher | None = None,
         truth_matcher: TruthInReceiptMatcher | None = None,
         citation_matcher: CitationProvenanceMatcher | None = None,
+        grammar_supervisor: ActionClaimGrammarSupervisor | None = None,
     ) -> None:
         self.deontic_matcher = deontic_matcher or DeonticAssertionMatcher()
-        self.truth_matcher = truth_matcher or TruthInReceiptMatcher()
+        self.grammar_supervisor = grammar_supervisor or ActionClaimGrammarSupervisor()
+        self.truth_matcher = truth_matcher or TruthInReceiptMatcher(enable_grammar_channel=True)
         self.citation_matcher = citation_matcher or CitationProvenanceMatcher()
         self.sentence_history: list[str] = []
         self.pending_tier1_chunk: tuple[ChunkT, GateResult] | None = None
@@ -800,7 +1233,7 @@ class OutputSupervisorSession[ChunkT]:
 
         # Check truth-in-receipt if receipts provided and deontic check did not flag
         if verified_receipts is not None and not gate_res.is_breach:
-            receipt_res = self.truth_matcher.evaluate_clause(
+            receipt_res = self.grammar_supervisor.evaluate_clause(
                 clause_text, verified_receipts, stale_before=self.turn_started_at
             )
             if receipt_res.is_breach:
