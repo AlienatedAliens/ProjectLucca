@@ -480,12 +480,12 @@ and the individuation measurement; Parts 1–2 should carry explicit "good
 enough" cut lines rather than be polish targets. The note re-frames priority;
 it does not change module assignments or target releases.
 
-**Ratified Work Order Re-sequencing (2026-10-05 advisory §3.1):** To align implementation with the highest-leverage engine components, the ladder was formally re-sequenced:
-- **WO-30 — Minimum Viable Engine:** Modules 14 (DreamCoder macro miner), 7 (idiomaticity cost), 4 (GBNF S-expression grammar), 5 (scratchpad falsification loop).
-- **WO-31 — Search & Safety-of-Search:** Modules 12 (AST-hole MCTS), 9 (traceback divergence guard), 11 (boundary topology parser), 15 (backward abduction).
-- **WO-32 — Policy Prior Spike:** Module 13 (BitNet b1.58 2B spike on CPU).
-- **WO-33 — Hygiene That Earned Its Place:** Modules 8 (transactional Git staging DAG), 10 (Belnap latent investigator), trigger-gated.
-- **WO-34 — Proactive reflection loop:** (re-numbered from old WO-32 to resolve collision).
+**Ratified Work Order Re-sequencing & Completion (2026-10-09):** The cognitive ladder execution status:
+- **WO-30 — Minimum Viable Engine:** Modules 14 (DreamCoder macro miner), 7 (idiomaticity cost), 4 (GBNF S-expression grammar), 5 (scratchpad falsification loop). **Completed (v1.35.8).**
+- **WO-31 — Search & Safety-of-Search:** Modules 12 (AST-hole MCTS), 9 (traceback divergence guard), 11 (boundary topology parser), 15 (backward abduction). **Completed (v1.36.0, `D-REAS-11`, achieving 90.7% resolution on Bucket C failures).**
+- **WO-32 — Policy Prior Spike (BitNet b1.58 2B):** Formally retired/deprioritized per audit finding F8 and operator directive; MCTS achieves 90.7% (39/43) resolution on deterministic heuristics without neural prior overhead.
+- **WO-33 — Hygiene That Earned Its Place:** Module 8 (transactional Git staging DAG, `git_dag.py`) and Module 10 (Belnap latent investigator, `latent_probe.py`). **Completed (`D-MEM-09`).**
+- **WO-34 — Proactive Reflection Loop:** Sleep-phase macro consolidation daemon (`consolidation.py`) driving DreamCoder macro compression, quarantine governance (`D-REAS-06`), and mechanical IN-D individuation scoring. **Completed (`D-REAS-12`).**
 
 ### 7.3 V2 backlog highlights (`docs/V2_BACKLOG.md`)
 

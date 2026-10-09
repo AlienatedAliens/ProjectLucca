@@ -431,4 +431,24 @@
   6. **Cross-Subsystem Preservation Invariants:** Entailment clustering in `induction.py` affects only merge grouping; the `D-REAS-06` 5-cluster/0-error promotion gate and quarantine invariants remain intact. Truth-in-Receipt action supervision (`sandbox/output_supervisor.py`) retains its 21-verb orthogonality boundary; NLI serves as an orthogonal post-turn coherence channel.
 - **Status:** Ratified & Enforced (`src/lucca/ports.py`, `src/lucca/core/schemas.py`, `src/lucca/senses/verifier.py`, `src/lucca/reasoning/distill.py`, `src/lucca/core/belief_service.py`, `src/lucca/core/cascade.py`, `src/lucca/core/coherence.py`, `src/lucca/core/orchestrator.py`, `src/lucca/reasoning/induction.py`, `src/lucca/core/memory_commit_service.py`, `src/lucca/core/corroboration.py`, `src/lucca/core/self_diagnosis.py`, `tests/test_v1357_*.py`).
 
+### D-MEM-09 — Transactional Git Staging DAG & Belnap Latent Epistemic Prober (WO-33) *(ratified 2026-10-09)*
+- **Decision:** Enforces transactional integrity and non-destructive epistemic probing across workspace and memory:
+  1. **Transactional Git Staging DAG (Module 8):** Deploys `GitStagingDAG` and `StagingTransaction` in `src/lucca/memory/git_dag.py`. Provides dependency-ordered mutation staging, cycle detection, preflight AST syntax/boundary verification hooks, unified diff previewing, and atomic rollback on I/O or validation failure. Guarantees zero dirty workspace state on abort.
+  2. **Belnap Latent Investigator (Module 10):** Deploys `BelnapLatentInvestigator` in `src/lucca/memory/latent_probe.py` implementing Belnap-Dunn four-valued lattice logic ($\mathbf{4} = \{T, F, \bot, \top\}$). Replaces destructive memory overwrites with non-destructive read probes across filesystem and environment. Upon detecting a contradiction ($\top$), generates polite conversational clarification prompts rather than hallucinating or corrupting memory state.
+  3. **Invariants:** Strictly Zero-`Any` typed (`D-AUD-01`). Sub-millisecond execution budget ($< 1.0\,\text{ms}$). $\Delta\text{VRAM} = 0\,\text{MB}$.
+- **Status:** Ratified & Enforced (`src/lucca/memory/git_dag.py`, `src/lucca/memory/latent_probe.py`, `tests/test_wo33_git_dag_and_belnap.py`).
+
+### D-REAS-12 — Proactive Sleep-Phase Reflection & Lifelong Macro Consolidation (WO-34) *(ratified 2026-10-09)*
+- **Decision:** Formalizes Project Lucca's autonomous sleep-phase macro discovery, validation, and skill registration loop:
+  1. **Autonomous Consolidation Daemon:** Deploys `ConsolidationEngine` in `src/lucca/reasoning/consolidation.py` to aggregate conversational and reasoning AST execution traces during idle/sleep phases.
+  2. **DreamCoder Macro Mining:** Clusters execution traces by syntactic shape and invokes `DreamCoderMacroMiner` (`src/lucca/reasoning/compression.py`) to discover recurring motifs via first-order anti-unification.
+  3. **Strict Invariant Governance:**
+     - `D-REAS-05`: Bounded macro complexity (depth $\le 8$, expansion steps $\le 64$).
+     - `D-REAS-06`: Quarantine-only admission. Exactly 0 mined macros reach `ACTIVE` without explicit operator sign-off (`guard_active_zero_passed = True`).
+     - `D-REAS-07`: Z3 SMT formal verification and scratchpad falsification prior to quarantine.
+  4. **Personhood Stratum IN-D Measurement:** Automatically executes the mechanical IN-D grader (`src/lucca/evaluation/in_d_grader.py`), updating and archiving `logs/test_reports/personhood/in_d_latest.json`. Formally transitions **Battery IN Stratum IN-D (Learned Competencies / Individuation)** from "NOT YET MEASURED" to an active mechanical measurement.
+  5. **Hardware Budget Invariant:** $\Delta\text{VRAM} = 0\,\text{MB}$ strictly enforced on dGPU. CPU-only execution on Intel Core Ultra host threads.
+- **Status:** Ratified & Enforced (`src/lucca/reasoning/consolidation.py`, `src/lucca/evaluation/in_d_grader.py`, `tests/test_wo34_proactive_reflection.py`, `logs/test_reports/personhood/in_d_latest.json`).
+
+
 
