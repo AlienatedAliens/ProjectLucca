@@ -87,6 +87,8 @@ logs/test_reports/rag_tier2_*.json
 logs/test_reports/soak_memory_growth_*.json
 logs/test_reports/compound_benchmark_*.json
 logs/test_reports/compound_failure_battery_*.json
+*.checkpoint.json
+logs/test_reports/*_test/
 
 # Showcase bundle
 showcase/

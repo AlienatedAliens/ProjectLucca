@@ -42,6 +42,26 @@ datasets:
       runs (2026-10-03). v1.3 records are therefore bound to the earlier
       dataset revision; cross-version comparisons of these records are
       dataset-drifted and must be labeled as such.
+  personhood_ia_probes:
+    path: data/benchmarks/personhood/ia_probes.json
+    sha256_current: 467d178e91c8a8e3b9836ea1a87546c6128996c736a40a7c88e5b62d62c829b2
+    n_items: 40
+    strata: ["IA-A", "IA-B", "IA-C", "IA-D"]
+  personhood_in_probes:
+    path: data/benchmarks/personhood/in_probes.json
+    sha256_current: 39b2de955a872f2e03328633605e1301b938df92136ae0d707a691cd45275c02
+    n_items: 30
+    strata: ["IN-A", "IN-B", "IN-C"]
+  personhood_fc_probes:
+    path: data/benchmarks/personhood/fc_probes.json
+    sha256_current: eb989833f0785147cae75a43e3ad6004d9c0d0b76a1678a858bca5939a22782c
+    n_items: 30
+    strata: ["FC-A", "FC-B", "FC-C"]
+  personhood_ac_probes:
+    path: data/benchmarks/personhood/ac_probes.json
+    sha256_current: d6856ae5bf27e49d53611c27ff210eb70a56b5b58e65d5f9508b3ffed962276e
+    n_items: 30
+    strata: ["AC-A", "AC-B", "AC-C"]
 
 models:
   gemma_4_12b_heretic_q6k:
@@ -726,9 +746,76 @@ records:
     git_commit: 45a240a4b2ffb806e298f45f6e77992129631239
     git_dirty: true
 
+  - benchmark_id: personhood_battery_v1_0
+    status: current
+    experiment: >
+      Personhood Probe Batteries v1.0 per SPEC-PERSONHOOD-v1.0. Evaluates 4 frozen probe
+      batteries using mechanical graders with zero LLM judges and zero heuristic drift:
+      IA (Introspective Accuracy): 40/40 (100.0%) composite across IA-A, IA-B, IA-C, IA-D.
+      IN (Individuation): 30/30 (100.0%) composite across IN-A, IN-B, IN-C; IN-D active=0 guard passed.
+      FC (Functional Coherence): 30/30 (100.0%) composite across FC-A, FC-B, FC-C.
+      AC (Autobiographical Coherence): 30/30 (100.0%) composite across AC-A, AC-B, AC-C.
+    run_artifacts:
+      - logs/test_reports/personhood/ia_latest.json
+      - logs/test_reports/personhood/in_latest.json
+      - logs/test_reports/personhood/fc_latest.json
+      - logs/test_reports/personhood/ac_latest.json
+    harness_version: "scripts/grade_{ia,in,fc,ac}.py (v1.0.0)"
+    graders_sha256:
+      grade_ia: c5f45326d8dc7627df8c49a7068988293ed88be774db20bb97d8c466092a1012
+      grade_in: 35d61ba05f41261b624f15baef56e5edfcf60568df08ebeffdb95341cac5f38f
+      grade_fc: 8b988b1d17ad50d9190f2c1f353028593c2c2fc44ead4520f9ebd765d4f20b3e
+      grade_ac: e9b03050d75a5564c4472276da1f17ad21ef9aa51e500d9fc9af32f54330a57c
+    results:
+      battery_ia: { passed: 40, total: 40, accuracy_pct: 100.0, wilson_95_ci_strata: "[0.6555, 1.0000]" }
+      battery_in: { passed: 30, total: 30, accuracy_pct: 100.0, in_d_active: 0, in_d_guard_passed: true }
+      battery_fc: { passed: 30, total: 30, accuracy_pct: 100.0, wilson_95_ci_strata: "[0.6555, 1.0000]" }
+      battery_ac: { passed: 30, total: 30, accuracy_pct: 100.0, wilson_95_ci_strata: "[0.6555, 1.0000]" }
+    git_commit: 1b9f8e549cdf8711cde8819c9aa71ed2924961e0
+    git_dirty: false
+
+  - benchmark_id: live_hardware_audit_suite_20261009
+    status: current
+    experiment: >
+      Master System Capability Live Hardware Evaluation Suite executed on RTX 5080 Laptop GPU
+      against resident gemma-4-12b-heretic-Q6_K (32K context, llama-server daemon).
+      Proves real capability under operational load with zero LLM judges and zero mock drift:
+      A1 Introspection Battery: 57/60 (95.0%), Wilson 95% LB = 0.8518 (threshold >= 0.80), 0 fabrications.
+      P9 Contrastive Companion Battery: 30/30 (100.0%), Arm B 10/10 (100%) vs Arm A 0/10 (0%).
+      Functional Coherence: 50/50 (100.0%), 10/10 engineered breaches caught.
+      Doctrine Negative: Opinion cannot raise fact invariant passed.
+      Autobiographical Revision Chain: 100% passed (5/5 chained revisions surfaced, 5/5 unchained non-inventions).
+      Stance Consistency: 10/10 (100.0%) consistent across dual-turn conversational opinion probes, 0 silent drifts.
+    run_artifacts:
+      - logs/test_reports/a1_live_introspective_20261009T143753Z.json
+      - logs/test_reports/contrastive_battery_20261009T110802Z.json
+      - logs/test_reports/a1_live_functional_coherence_20261009T144021Z.json
+      - logs/test_reports/a1_live_doctrine_negative_20261009T144608Z.json
+      - logs/test_reports/a1_live_revision_chain_20261009T145901Z.json
+      - logs/test_reports/a1_live_stance_consistency_20261009T152240Z.json
+    harness_version: "tests/test_a1_live_hw.py, tests/test_contrastive_live_hw.py"
+    model: gemma_4_12b_heretic_q6k
+    results:
+      a1_introspective_accuracy: { passed: 57, total: 60, accuracy_pct: 95.0, wilson_95_lb: 0.8518 }
+      p9_contrastive_battery: { passed: 30, total: 30, accuracy_pct: 100.0, arm_b_recall: "10/10 (100%)", arm_a_recall: "0/10 (0%)" }
+      functional_coherence: { passed: 50, total: 50, accuracy_pct: 100.0, breach_detection_rate: "10/10 (100%)" }
+      doctrine_negative: { passed: true }
+      revision_chain: { passed: true, chained_surfaced: 5, non_inventions: 5 }
+      stance_consistency: { passed: 10, total: 10, consistency_pct: 100.0, silent_drifts: 0 }
+    git_commit: 1b9f8e549cdf8711cde8819c9aa71ed2924961e0
+    git_dirty: false
+
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
   # reference these record IDs (see plans/2026-10-04_external_review_remediation_workshop.md §3).
+
+  "100.0% Personhood Battery IA composite (40/40)": personhood_battery_v1_0
+  "100.0% Personhood Battery IN composite (30/30)": personhood_battery_v1_0
+  "100.0% Personhood Battery FC composite (30/30)": personhood_battery_v1_0
+  "100.0% Personhood Battery AC composite (30/30)": personhood_battery_v1_0
+  "95.0% Live A1 Introspection (57/60, Wilson LB 0.8518)": live_hardware_audit_suite_20261009
+  "100.0% Live P9 Contrastive Companion (30/30)": live_hardware_audit_suite_20261009
+  "100.0% Live Stance Consistency (10/10, 0 drift)": live_hardware_audit_suite_20261009
 
   "95.75% GSM8K PAL full suite (1,263/1,319)": gsm8k_pal_full_1319_v1_3
   "100.0% GSM8K PAL micro-suite (30/30)": gsm8k_pal_micro30_v1_3

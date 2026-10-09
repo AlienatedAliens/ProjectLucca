@@ -43,9 +43,9 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from lucca.reasoning.stats import wilson_score_interval
-from lucca.sandbox.rpc import DockerRPCTransport
-from scripts.run_modern_2024_benchmarks import (
+from lucca.reasoning.stats import wilson_score_interval  # noqa: E402
+from lucca.sandbox.rpc import DockerRPCTransport  # noqa: E402
+from scripts.run_modern_2024_benchmarks import (  # noqa: E402
     compare_math_lenient,
     compare_math_strict,
     extract_gsm_ground_truth,
@@ -90,10 +90,10 @@ def get_git_commit_hash() -> str:
 
 
 def is_git_dirty() -> bool:
-    """Check if git working tree has uncommitted changes."""
+    """Check if git working tree has uncommitted tracked changes."""
     try:
         out = subprocess.check_output(
-            ["git", "status", "--porcelain"],
+            ["git", "status", "--porcelain", "-uno"],
             stderr=subprocess.DEVNULL,
             encoding="utf-8",
         )
@@ -1074,7 +1074,7 @@ def generate_comparative_report(
 
     for mod in models:
         for bm in benchmarks:
-            for a1, a2, label in pairs:
+            for a1, a2, _label in pairs:
                 if (mod, bm, a1) in raw_results_store and (mod, bm, a2) in raw_results_store:
                     mc = exact_mcnemar_test(raw_results_store[(mod, bm, a1)], raw_results_store[(mod, bm, a2)])
                     sig_str = "**YES** (Significant)" if mc["significant_05"] else "NO (Parity / Noise)"
