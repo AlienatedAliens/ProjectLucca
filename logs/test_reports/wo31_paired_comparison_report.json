@@ -1,10 +1,10 @@
 {
-  "as_of": "2026-10-09T04:11:10Z",
+  "as_of": "2026-10-09T04:27:23Z",
   "gate": "G-WO31-PAIRED",
   "total_items": 43,
   "engine_off_resolved": 0,
-  "engine_on_resolved": 24,
-  "resolution_rate": "55.8%",
+  "engine_on_resolved": 23,
+  "resolution_rate": "53.5%",
   "hardware_vram_delta_mb": 0,
   "cpu_workers": 4,
   "items": [
@@ -256,9 +256,9 @@
       "expected": "\\frac9{19}",
       "expr": "(/ 9 19)",
       "engine_off_status": "FAIL",
-      "engine_on_status": "PASS",
-      "synthesized_code": "(/ 9 19)",
-      "explored_nodes": 17
+      "engine_on_status": "UNRESOLVED",
+      "synthesized_code": null,
+      "explored_nodes": 0
     },
     {
       "idx": "209",

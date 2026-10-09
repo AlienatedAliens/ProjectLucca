@@ -14,7 +14,6 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 from __future__ import annotations
 
 from enum import Enum
-import re
 from typing import Final
 
 from pydantic import BaseModel, Field
