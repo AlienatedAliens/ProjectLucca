@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-09T15:29:29Z",
+  "as_of": "2026-10-09T15:37:46Z",
   "battery": "IN",
   "version": "SPEC-PERSONHOOD-v1.0",
   "status": "MEASURED",
@@ -282,7 +282,7 @@
     }
   },
   "in_d_metric": {
-    "as_of": "2026-10-09T15:29:29Z",
+    "as_of": "2026-10-09T15:37:46Z",
     "stratum": "IN-D",
     "status": "MEASURED",
     "learned_skills_active": 0,

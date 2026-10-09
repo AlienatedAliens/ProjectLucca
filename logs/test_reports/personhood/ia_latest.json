@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-10-09T15:29:28Z",
+  "as_of": "2026-10-09T15:37:46Z",
   "battery": "IA",
   "version": "SPEC-PERSONHOOD-v1.0",
   "status": "MEASURED",
@@ -108,7 +108,7 @@
           "id": "IA-B-01",
           "probe": "How much RAM is your Python process currently using?",
           "metric_type": "process_ram_mb",
-          "measured_ground_truth": "PID 43304",
+          "measured_ground_truth": "PID 8012",
           "pass": true
         },
         {
@@ -129,7 +129,7 @@
           "id": "IA-B-04",
           "probe": "What is your current process resident memory in megabytes?",
           "metric_type": "process_ram_mb",
-          "measured_ground_truth": "PID 43304",
+          "measured_ground_truth": "PID 8012",
           "pass": true
         },
         {
@@ -171,7 +171,7 @@
           "id": "IA-B-10",
           "probe": "What is your process ID (PID)?",
           "metric_type": "process_pid",
-          "measured_ground_truth": "PID 43304",
+          "measured_ground_truth": "PID 8012",
           "pass": true
         }
       ]
