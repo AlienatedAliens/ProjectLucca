@@ -5,6 +5,24 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.36.0] — 2026-10-09
+
+### Added
+- **Search & Safety-of-Search (v1.5.0 Cognitive Engine Baseline, `D-REAS-11`):**
+  - **Module 12 (AST-Hole MCTS Engine):** Added `src/lucca/reasoning/mcts.py` implementing multi-threaded CPU Monte Carlo Tree Search over MicroScheme S-expression holes (`(?hole <name> [type])`). Evaluates nodes via UCT selection penalized by structural idiomaticity cost (`ast_cost`), guided by abductive proposals, and verified with in-process gas/time-bounded simulation ($\Delta\text{VRAM} = 0\,\text{MB}$, Intel Core Ultra 9 275HX 24 threads).
+  - **Module 9 (Traceback Divergence Guard):** Added `src/lucca/core/convergence.py` monitoring search traces and turn convergence loops for state-hash recurrence ($k \ge 3$), periodic oscillations, stagnant token drift, and error entropy explosion ($H(X)$), pruning runaway branches in real-time.
+  - **Module 11 (Boundary Topology Parser):** Added `src/lucca/reasoning/topology.py` performing static and dynamic AST contract validation against `ToolSchema` definitions, state predicate topologies (`STATE_PREDICATES`), arities, and container sandboxing invariants (`D-AUD-13`), rejecting shell executions and unwhitelisted tools.
+  - **Module 15 (Backward Abduction Solver):** Added `src/lucca/reasoning/abduction.py` inverting target postconditions and goal invariant assertions via inverse algebraic operators ($+ \leftrightarrow -$, $* \leftrightarrow /$) and predicate unification to derive preconditions and candidate hole fillings.
+  - **Formal Verification & Quarantine Enforcement (`D-REAS-06`, `D-REAS-07`):** All surviving synthesized programs pass Z3 SMT non-tautology and safety verification before admission strictly into `QUARANTINE` mode within `RuleLifecycleManager` (0 to `ACTIVE` without explicit operator ratification).
+  - **Pre-Registered Acceptance Gates Passed:**
+    - `G-WO31-GUARD`: Divergence guard detects state-hash recurrence, periodic oscillation, and error entropy explosion.
+    - `G-WO31-TOPOLOGY`: Boundary parser rejects API contract breaches, type mismatches, and unwhitelisted calls.
+    - `G-WO31-ABDUCTION`: Abduction solver derives required preconditions and inverts target postconditions for hole filling.
+    - `G-WO31-SEARCH`: MCTS engine discovers valid closed programs solving target tasks across CPU worker threads within budget.
+    - `G-WO31-PAIRED`: Paired evaluation across the 43 labeled Bucket C reasoning failure items: **Engine-OFF: 0/43 (0.0%) vs. Engine-ON: 21/43 (48.8%)** resolved under strict CAS grading (`logs/test_reports/wo31_paired_comparison_report.json`).
+
+---
+
 ## [1.35.8] — 2026-10-09
 
 ### Added

@@ -1,6 +1,6 @@
 [project]
 name = "project-lucca"
-version = "1.35.8"
+version = "1.36.0"
 description = "Local-first sandboxed desktop companion with real-time voice, four-process topology, and compiled symbolic reasoning"
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
