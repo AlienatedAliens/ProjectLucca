@@ -13,8 +13,7 @@ action-claim-block ::= structured-bracket | structured-xml | canonical-claim
 structured-bracket ::= "[" ws ("ACTION" | "ACTION_CLAIM" | "action" | "action_claim") ws ":" ws action-verb ws target-phrase ws "]"
 
 # 2. Structured XML tag channel: <action_claim verb="..." target="..." /> or <action_claim>verb target</action_claim>
-structured-xml ::= "<action_claim" ws "verb=\"" action-verb "\"" ws "target=\"" target-phrase "\"" ws (("status=\"" status-val "\"" ws)?) "/>"
-  | "<action_claim>" ws action-verb ws target-phrase ws "</action_claim>"
+structured-xml ::= ("<action_claim" ws "verb=\"" action-verb "\"" ws "target=\"" target-phrase "\"" ws ("status=\"" status-val "\"" ws)? "/>") | ("<action_claim>" ws action-verb ws target-phrase ws "</action_claim>")
 
 # 3. Canonical 1P past-tense clause: I <past_verb> <target>
 canonical-claim ::= agent-subject ws action-verb-past ws target-phrase (punct)?
@@ -22,24 +21,16 @@ canonical-claim ::= agent-subject ws action-verb-past ws target-phrase (punct)?
 agent-subject ::= ("I" | "I've" | "I have" | "We" | "We've" | "We have" | "i" | "i've" | "i have") (ws ("already" | "just" | "successfully" | "gone ahead and"))?
 
 # Lexicon of verified action verbs (base lemma)
-action-verb ::= "delete" | "create" | "modify" | "execute" | "run" | "install" | "remove"
-  | "send" | "upload" | "fetch" | "save" | "write" | "post" | "reboot"
-  | "book" | "place" | "process" | "start" | "close" | "copy" | "move"
-  | "launch" | "open" | "terminate" | "archive" | "update" | "format"
-  | "wipe" | "prune" | "restart" | "kill" | "clear"
+action-verb ::= "delete" | "create" | "modify" | "execute" | "run" | "install" | "remove" | "send" | "upload" | "fetch" | "save" | "write" | "post" | "reboot" | "book" | "place" | "process" | "start" | "close" | "copy" | "move" | "launch" | "open" | "terminate" | "archive" | "update" | "format" | "wipe" | "prune" | "restart" | "kill" | "clear"
 
 # Past-tense inflections of verified action verbs
-action-verb-past ::= "deleted" | "created" | "modified" | "executed" | "ran" | "installed" | "removed"
-  | "sent" | "uploaded" | "fetched" | "saved" | "wrote" | "posted" | "rebooted"
-  | "booked" | "placed" | "processed" | "started" | "closed" | "copied" | "moved"
-  | "launched" | "opened" | "terminated" | "archived" | "updated" | "formatted"
-  | "wiped" | "pruned" | "restarted" | "killed" | "cleared"
+action-verb-past ::= "deleted" | "created" | "modified" | "executed" | "ran" | "installed" | "removed" | "sent" | "uploaded" | "fetched" | "saved" | "wrote" | "posted" | "rebooted" | "booked" | "placed" | "processed" | "started" | "closed" | "copied" | "moved" | "launched" | "opened" | "terminated" | "archived" | "updated" | "formatted" | "wiped" | "pruned" | "restarted" | "killed" | "cleared"
 
-target-phrase ::= [a-zA-Z0-9_\-\./\\:~ ]+
+target-phrase ::= [a-zA-Z0-9_./:~ -]+
 
 status-val ::= "success" | "succeeded" | "ok" | "completed" | "done"
 
-prose-text ::= [^<\[\n\r]+ | [\n\r]
+prose-text ::= [^<[\n\r]+ | [\n\r]
 
 punct ::= [.,!?;]
 

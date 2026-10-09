@@ -295,8 +295,6 @@ class LLMClient:
 
         payload: dict[str, object] = {
             "messages": prepared_messages,
-            "tools": [t.model_dump() for t in eff_tools],
-            "tool_choice": "auto",
             "chat_template_kwargs": build_chat_template_kwargs(
                 self.config.llm, enable_thinking=enable_thinking
             ),
@@ -309,6 +307,9 @@ class LLMClient:
         }
         if grammar is not None:
             payload["grammar"] = grammar
+        elif eff_tools:
+            payload["tools"] = [t.model_dump() for t in eff_tools]
+            payload["tool_choice"] = "auto"
 
         demux = ToolCallDemux()
         client = self.http_client

@@ -11,6 +11,7 @@ import json
 import logging
 import struct
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -494,10 +495,15 @@ def start_server(cfg: LLMSettings, home_dir: Path) -> subprocess.Popen[bytes]:
     log_file = home_dir / "logs" / "llama-server.log"
     log_file.parent.mkdir(parents=True, exist_ok=True)
     fp = open(log_file, "wb")
+    creationflags = 0
+    if sys.platform == "win32":
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+
     return subprocess.Popen(  # noqa: S603
         cmd,
         stdout=fp,
         stderr=subprocess.STDOUT,
+        creationflags=creationflags,
     )
 
 
