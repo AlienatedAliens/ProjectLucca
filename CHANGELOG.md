@@ -5,7 +5,7 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
-## [Unreleased] — Work Order 30: Minimum Viable Engine
+## [1.35.8] — 2026-10-09
 
 ### Added
 - **Minimum Viable Engine (Macro Mining & Rule Induction Loop, `D-REAS-10`):**
