@@ -1,0 +1,18 @@
+root ::= ws expr-list ws
+expr-list ::= sketch (newline ws sketch)*
+sketch ::= "(" ws math-op (ws-plus arg)* ws ")"
+math-op ::= "simplify" | "solve" | "factor" | "expand" | "integrate" | "diff" | "subst" | "+" | "-" | "*" | "/" | "pow" | "="
+arg ::= kw-pair | atom | sub-sketch
+sub-sketch ::= "(" ws math-op (ws-plus sub-arg)* ws ")"
+sub-arg ::= kw-pair | atom | ("(" ws math-op (ws-plus (kw-pair | atom))* ws ")")
+kw-pair ::= (":var" ws-plus var) | (":val" ws-plus number) | (":target" ws-plus number) | (":var" ws-plus hole-var) | (":val" ws-plus hole-val)
+atom ::= hole | var | number
+hole ::= hole-var | hole-val | hole-term
+hole-var ::= "?hole-var"
+hole-val ::= "?hole-val"
+hole-term ::= "?hole-term"
+var ::= "x" | "y" | "z" | "n" | "k" | "t" | "a" | "b" | "c" | "expr" | "ans"
+number ::= "-"? [0-9]+ ("." [0-9]+)?
+ws ::= [ \t]*
+newline ::= [\n]+
+ws-plus ::= [ \t\n\r]+

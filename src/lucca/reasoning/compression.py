@@ -144,7 +144,7 @@ class DreamCoderMacroMiner:
     ) -> None:
         self.lifecycle = rule_lifecycle
         self.falsifier = falsifier or ScratchpadFalsifier()
-        self.smt_verifier = smt_verifier or SMTVerifier()
+        self.smt_verifier = smt_verifier or SMTVerifier(allow_pure_reasoning=True)
 
     def mine_candidate(
         self,
@@ -324,9 +324,10 @@ class DreamCoderMacroMiner:
             sample_call_args = " ".join(f'"{p}_val"' for p in params)
             when_clause = f'(and (intent= "reasoning") ({macro_name} {sample_call_args}))'
 
+        clean_rule_name = macro_name.replace("_", "-")
         wrapped_rule_source = (
             f"{defmacro_sexpr}\n\n"
-            f'(rule "{macro_name}-induced-v1"\n'
+            f'(rule "{clean_rule_name}-induced-v1"\n'
             f"  :when {when_clause}\n"
             f'  :plan (list (say "mined macro verified"))\n'
             f"  :priority 1)"
@@ -354,7 +355,7 @@ class DreamCoderMacroMiner:
 
         # 6. D-REAS-06 Rule Lifecycle Quarantine Admission (0 to ACTIVE)
         quarantined = False
-        rule_id = f"{macro_name}-induced-v1"
+        rule_id = f"{clean_rule_name}-induced-v1"
         if self.lifecycle is not None:
             try:
                 managed = self.lifecycle.register_rule(wrapped_rule_source)
@@ -436,3 +437,124 @@ class DreamCoderMacroMiner:
             "improvements": improvements,
             "utility_gate_satisfied": reduced_count >= 3,
         }
+
+
+def _ast_skeleton(node: SchemeNode, max_depth: int = 2) -> tuple[object, ...]:
+    """Computes a structural skeleton signature for clustering candidate subtrees."""
+    if isinstance(node, list) and node and max_depth > 0:
+        head = node[0].name if isinstance(node[0], Symbol) else str(node[0])
+        return (head, len(node), tuple(_ast_skeleton(c, max_depth - 1) for c in node[1:]))
+    return ("*",)
+
+
+def mine_new_primitives(
+    solved_traces: list[SchemeNode | str],
+    miner: DreamCoderMacroMiner | None = None,
+    min_traces: int = 2,
+    min_cost_savings: float = 2.0,
+    prefix: str = "prim",
+) -> list[MinedMacroCandidate]:
+    """
+    Induces parameter-abstracted MicroScheme primitives/macros across verified solved traces
+    via first-order anti-unification (Milestone 3, WO-33).
+
+    Enforces the anti-test-tuning gate:
+    1. Candidates are induced strictly from existing solved traces.
+    2. Sub-AST pattern must appear across >= min_traces independent traces.
+    3. Minimum compression savings >= min_cost_savings (MDL).
+    4. Passes dynamic scratchpad falsification and Z3 SMT formal verification.
+    """
+    parsed_traces: list[SchemeNode] = []
+    for t in solved_traces:
+        if isinstance(t, str):
+            parsed_traces.append(parse_expr(t))
+        else:
+            parsed_traces.append(t)
+
+    if len(parsed_traces) < min_traces:
+        return []
+
+    # Map skeleton -> dict of trace_idx -> list of subtrees
+    clusters: dict[tuple[object, ...], dict[int, list[SchemeNode]]] = {}
+
+    for t_idx, trace in enumerate(parsed_traces):
+        subtrees = extract_subtrees(trace, min_depth=2, max_depth=5)
+        d = ast_depth(trace)
+        if 2 <= d <= 5:
+            subtrees.append(trace)
+
+        for sub in subtrees:
+            skel = _ast_skeleton(sub, max_depth=2)
+            if skel not in clusters:
+                clusters[skel] = {}
+            if t_idx not in clusters[skel]:
+                clusters[skel][t_idx] = []
+            clusters[skel][t_idx].append(sub)
+
+    effective_miner = miner or DreamCoderMacroMiner(
+        smt_verifier=SMTVerifier(allow_pure_reasoning=True)
+    )
+    admitted: list[MinedMacroCandidate] = []
+    seen_bodies: set[str] = set()
+
+    for _skel, trace_map in clusters.items():
+        if len(trace_map) < min_traces:
+            continue
+
+        # Extract representative instances across independent traces
+        instances = [trace_map[t_idx][0] for t_idx in sorted(trace_map.keys())]
+
+        clean_prefix = prefix.replace("_", "-")
+        macro_name = f"{clean_prefix}-{len(admitted) + 1}"
+        candidate = effective_miner.mine_candidate(
+            macro_name=macro_name,
+            instances=instances,
+        )
+
+        if (
+            candidate.falsification_passed
+            and candidate.smt_verified
+            and candidate.compression_savings >= min_cost_savings
+            and candidate.body_canonical not in seen_bodies
+        ):
+            seen_bodies.add(candidate.body_canonical)
+            admitted.append(candidate)
+
+    return admitted
+
+
+def register_mined_primitive(
+    candidate: MinedMacroCandidate,
+    macro_registry: MacroRegistry | None = None,
+    min_cost_savings: float = 2.0,
+) -> bool:
+    """
+    Registers a mined macro into the Scheme macro registry if it satisfies
+    all Milestone 3 admission criteria (coverage >= 2 traces, SMT verified, savings >= 2.0).
+    """
+    if not candidate.smt_verified or not candidate.falsification_passed:
+        return False
+    if candidate.compression_savings < min_cost_savings:
+        return False
+    if not candidate.params:
+        return False
+
+    macro_def = MacroDefinition(
+        name=candidate.name,
+        params=candidate.params,
+        body=parse_expr(candidate.body_canonical),
+        doc=f"Mined primitive (savings={candidate.compression_savings:.2f})",
+    )
+    if macro_registry is not None:
+        macro_registry.register(macro_def)
+    else:
+        from lucca.reasoning.spatial_scheme import GLOBAL_MACRO_REGISTRY
+        GLOBAL_MACRO_REGISTRY.register(macro_def)
+
+    from lucca.reasoning.spatial_dsl import register_macro_primitive
+    register_macro_primitive(
+        name=candidate.name,
+        params=candidate.params,
+        doc=f"Mined primitive (savings={candidate.compression_savings:.2f}): {candidate.body_canonical}",
+    )
+    return True

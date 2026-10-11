@@ -78,6 +78,20 @@
       "source_repo": "culturerevolt/Gemma4-E2B-Heretic-Sinhala-GGUF",
       "source_filename": "Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf",
       "status": "EDGE TIER — ultra-low latency edge tier (E2B)"
+    },
+    "llm/gemma-4-E4B-it-mmproj-BF16.gguf": {
+      "sha256": "ffa64aebf7144bbadd5a1e143b77794d88e76a81cc0168d91de0770eb49e88e0",
+      "size_bytes": 991552000,
+      "source_repo": "culturerevolt/gemma-4-E4B-it-uncensored-heretic",
+      "source_filename": "gemma-4-E4B-it-mmproj-BF16.gguf",
+      "status": "EDGE TIER — multimodal vision adapter for E4B"
+    },
+    "llm/gemma-4-E2B-it-mmproj-f16.gguf": {
+      "sha256": "140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa",
+      "size_bytes": 985654080,
+      "source_repo": "culturerevolt/Gemma4-E2B-Heretic-Sinhala",
+      "source_filename": "gemma-4-E2B-it-mmproj-f16.gguf",
+      "status": "EDGE TIER — multimodal vision adapter for E2B"
     }
   }
 }

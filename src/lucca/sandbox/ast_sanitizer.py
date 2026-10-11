@@ -29,6 +29,7 @@ import ast
 import io
 import keyword
 from typing import Tuple
+import textwrap
 import tokenize
 
 import structlog
@@ -108,7 +109,8 @@ def _normalize_tokens(code: str) -> str:
         return tokenize.untokenize(new_tokens)
     except Exception as exc:
         err_str = str(exc)
-        if "line continuation character" not in err_str and "unterminated string literal" not in err_str:
+        _noisy = ("line continuation", "unterminated string", "unindent", "unexpected EOF", "syntax")
+        if not any(n in err_str.lower() for n in _noisy):
             logger.debug("tokenize_normalization_fallback", error=err_str)
         return code
 
@@ -157,7 +159,7 @@ def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
         if "```python" in text:
             parts = text.split("```python")
             for part in reversed(parts[1:]):
-                block = part.split("```")[0].strip()
+                block = textwrap.dedent(part.split("```")[0]).strip()
                 if block:
                     candidate = _close_brackets_and_quotes(_normalize_tokens(block))
                     parsed, _, _ = _try_parse(candidate)
@@ -171,6 +173,7 @@ def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
                 block = parts[i].strip()
                 if block.startswith("python\n") or block.startswith("py\n"):
                     block = block.split("\n", 1)[1].strip()
+                block = textwrap.dedent(block).strip()
                 candidate = _close_brackets_and_quotes(_normalize_tokens(block))
                 if block and (_looks_like_code(block) or _try_parse(candidate)[0]):
                     return block, "fenced"
@@ -178,6 +181,7 @@ def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
             block = parts[1].strip()
             if block.startswith("python\n") or block.startswith("py\n"):
                 block = block.split("\n", 1)[1].strip()
+            block = textwrap.dedent(block).strip()
             candidate = _close_brackets_and_quotes(_normalize_tokens(block))
             if block and (_looks_like_code(block) or _try_parse(candidate)[0]):
                 return block, "fenced"

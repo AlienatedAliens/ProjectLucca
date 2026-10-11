@@ -91,9 +91,66 @@ ALLOWED_OPS = frozenset(
         "intersect",
         "area",
         "perimeter",
-        # Hole and pattern synthesis placeholders (WO-31 Module 12)
+        # Hole and pattern synthesis placeholders (WO-31 Module 12 / WO-33)
         "?hole",
         "?var",
+        "??hole",
+        "??var",
+        # Discrete 2D Spatial Primitives (WO-29 Module 1 / WO-33)
+        "find-objects",
+        "count-objects",
+        "dominant-object",
+        "unique-colors",
+        "order-columns-by-height",
+        "column-heights",
+        "row-widths",
+        "sort-objects",
+        "complete-symmetry",
+        "rot90",
+        "flip-h",
+        "flip-v",
+        "is-enclosed",
+        "fill-holes",
+        "flood-fill",
+        "count-cells",
+        "crop",
+        "crop-to-content",
+        "bbox-of-all",
+        "paste",
+        "move-until-contact",
+        "draw-line",
+        "majority-filter",
+        "denoise",
+        "restore-periodic-pattern",
+        "periodic-restore",
+        # MathCAS primitives (Milestone 4, WO-33)
+        "simplify",
+        "solve",
+        "factor",
+        "expand",
+        "integrate",
+        "diff",
+        "pow",
+        "subst",
+        # Universal Symbolic Primitives (WO-35 Milestone 35.3)
+        "reverse",
+        "take",
+        "drop",
+        "zip",
+        "unique",
+        "member?",
+        "subset?",
+        "union",
+        "intersection",
+        "difference",
+        "vec2d",
+        "vec-add",
+        "vec-sub",
+        "vec-scale",
+        "manhattan-dist",
+        "euclidean-dist",
+        "heading-turn",
+        "step-forward",
     }
 )
 
@@ -134,11 +191,17 @@ class RuleDefinition:
 
 
 class Parser:
-    def __init__(self, tokens: list[Token], macro_registry: object | None = None) -> None:
+    def __init__(
+        self,
+        tokens: list[Token],
+        macro_registry: object | None = None,
+        allowed_ops: frozenset[str] | None = None,
+    ) -> None:
         self.tokens = tokens
         self.pos = 0
         self.depth = 0
         self.macro_registry = macro_registry
+        self.allowed_ops = ALLOWED_OPS if allowed_ops is None else (ALLOWED_OPS | allowed_ops)
         self._in_macro_body = False
         self._in_fact_pattern = False
 
@@ -329,7 +392,13 @@ class Parser:
                 raise SchemeSyntaxError(
                     "Primitive shadowing or 'define' is forbidden", items[0].line, items[0].col
                 )
-            if not self._in_macro_body and not was_in_fact_pattern and op not in ALLOWED_OPS:
+            if (
+                not self._in_macro_body
+                and not was_in_fact_pattern
+                and op not in self.allowed_ops
+                and not op.startswith("?")
+                and not op.startswith("??")
+            ):
                 has_macro = False
                 if self.macro_registry is not None and hasattr(self.macro_registry, "has"):
                     has_macro = self.macro_registry.has(op)
@@ -406,9 +475,13 @@ def to_canonical(node: SchemeNode) -> str:
     raise SchemeSyntaxError(f"Cannot serialize object of type {type(node)}")
 
 
-def parse(source: str, macro_registry: object | None = None) -> SchemeNode:
+def parse(
+    source: str,
+    macro_registry: object | None = None,
+    allowed_ops: frozenset[str] | None = None,
+) -> SchemeNode:
     tokens = tokenize(source)
-    parser = Parser(tokens, macro_registry=macro_registry)
+    parser = Parser(tokens, macro_registry=macro_registry, allowed_ops=allowed_ops)
     return parser.parse_all()
 
 
@@ -423,20 +496,25 @@ def has_state_predicate(node: SchemeNode) -> bool:
     return False
 
 
-def _validate_operators(node: SchemeNode) -> None:
+def _validate_operators(node: SchemeNode, allowed_ops: frozenset[str] | None = None) -> None:
     """Verifies that all operator symbols in the node are strictly in ALLOWED_OPS."""
+    effective_ops = ALLOWED_OPS if allowed_ops is None else (ALLOWED_OPS | allowed_ops)
     if isinstance(node, list) and node:
         head = node[0]
         if isinstance(head, Symbol):
             op = head.name
-            if op not in ALLOWED_OPS:
+            if (
+                op not in effective_ops
+                and not op.startswith("?")
+                and not op.startswith("??")
+            ):
                 raise SchemeSyntaxError(
                     f"Disallowed operator '{op}' after macro expansion", head.line, head.col
                 )
             if op in ("assert", "fact-exists?", "fact-value"):
                 return
         for child in node:
-            _validate_operators(child)
+            _validate_operators(child, allowed_ops=effective_ops)
 
 
 def _validate_action_node(action: SchemeNode) -> None:

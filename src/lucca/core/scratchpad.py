@@ -330,7 +330,6 @@ class ScratchpadFalsifier:
         if self.allow_in_process_fallback:
             try:
                 evaluator = SchemeEvaluator(gas_limit=200, timeout_ms=50.0)
-                evaluator.start_time = time.perf_counter()
 
                 # Provide rich simulated state containing inputs for state predicates
                 app_name = "calc"
@@ -353,6 +352,20 @@ class ScratchpadFalsifier:
                     session_turns=1,
                 )
                 env = build_env(simulated_state)
+                from lucca.reasoning.spatial_scheme import SPATIAL_SCHEME_PRIMITIVES
+
+                env.update(SPATIAL_SCHEME_PRIMITIVES)
+                dummy_row_a: SchemeValue = [0, 0]
+                dummy_row_b: SchemeValue = [0, 0]
+                dummy_grid_val: SchemeValue = [dummy_row_a, dummy_row_b]
+
+                def _dummy_grid_fn(_args: list[SchemeValue]) -> SchemeValue:
+                    return dummy_grid_val
+
+                env["input"] = _dummy_grid_fn
+                env["grid"] = _dummy_grid_fn
+
+                evaluator.start_time = time.perf_counter()
                 val = evaluator.eval(ast, env)
                 return True, val, None
             except Exception as eval_err:

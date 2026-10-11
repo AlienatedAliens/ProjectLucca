@@ -100,8 +100,14 @@ module = [
     "psutil.*",
     "torch.*",
     "z3.*",
+    "sympy.*",
+    "scipy.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "lucca.reasoning.spatial_dsl"
+warn_return_any = false
 
 [tool.pytest.ini_options]
 minversion = "8.0"

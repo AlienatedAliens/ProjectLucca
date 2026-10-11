@@ -13,20 +13,28 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
-from typing import Final
+import itertools
+import re
+import time
+from typing import Final, cast
 
 from pydantic import BaseModel, Field
 import structlog
 
 from lucca.core.schemas import ToolSchema
+from lucca.reasoning.egraph import prune_equivalent_sketches
 from lucca.reasoning.scheme.parser import (
     ALLOWED_OPS,
     STATE_PREDICATES,
     Keyword,
     SchemeAtom,
     SchemeNode,
+    SchemeValue,
     Symbol,
+    parse_expr,
     to_canonical,
 )
 
@@ -107,6 +115,31 @@ ARITY_SPEC: Final[dict[str, tuple[int, int | None]]] = {
     "intersect": (2, 2),
     "area": (1, 1),
     "perimeter": (1, 1),
+    # Discrete 2D Spatial DSL primitives (WO-29 / WO-33)
+    "find-objects": (1, 3),
+    "count-objects": (1, 3),
+    "dominant-object": (1, 1),
+    "unique-colors": (1, 1),
+    "order-columns-by-height": (1, 3),
+    "column-heights": (1, 2),
+    "row-widths": (1, 2),
+    "sort-objects": (1, 3),
+    "complete-symmetry": (1, 3),
+    "rot90": (1, 2),
+    "flip-h": (1, 1),
+    "flip-v": (1, 1),
+    "is-enclosed": (2, 3),
+    "fill-holes": (1, 3),
+    "flood-fill": (4, 5),
+    "count-cells": (1, 2),
+    "crop": (2, 5),
+    "crop-to-content": (1, 2),
+    "bbox-of-all": (1, 1),
+    "paste": (3, 5),
+    "move-until-contact": (3, 4),
+    "draw-line": (5, 6),
+    "majority-filter": (1, 2),
+    "denoise": (1, 2),
 }
 
 
@@ -142,10 +175,20 @@ class TopologyValidationResult(BaseModel):
 def is_hole_node(node: SchemeNode) -> bool:
     """Checks whether an AST node represents an unexpanded symbolic hole."""
     if isinstance(node, Symbol):
-        return node.name.startswith("?hole") or node.name.startswith("?var") or node.name.startswith("?h")
+        name = node.name
+        return (
+            name.startswith("?hole")
+            or name.startswith("??hole")
+            or name.startswith("?var")
+            or name.startswith("??var")
+            or name.startswith("?h-")
+            or name.startswith("?h_")
+            or name.startswith("??h-")
+            or name.startswith("??h_")
+        )
     if isinstance(node, list) and len(node) >= 2:
         head = node[0]
-        if isinstance(head, Symbol) and head.name in ("?hole", "hole", "?var"):
+        if isinstance(head, Symbol) and head.name in ("?hole", "hole", "?var", "??hole"):
             return True
     return False
 
@@ -153,11 +196,14 @@ def is_hole_node(node: SchemeNode) -> bool:
 def extract_hole_info(node: SchemeNode) -> tuple[str, str | None] | None:
     """Extracts (hole_name, hole_type) from a hole node."""
     if isinstance(node, Symbol):
-        if node.name.startswith("?hole") or node.name.startswith("?var") or node.name.startswith("?h"):
-            return node.name, None
+        if is_hole_node(node):
+            raw = node.name.strip("?")
+            parts = re.split(r"[-_]", raw)
+            h_type = parts[-1] if len(parts) > 1 and parts[-1] else None
+            return node.name, h_type
     if isinstance(node, list) and len(node) >= 2:
         head = node[0]
-        if isinstance(head, Symbol) and head.name in ("?hole", "hole", "?var"):
+        if isinstance(head, Symbol) and head.name in ("?hole", "hole", "?var", "??hole"):
             h_name = str(node[1].name if isinstance(node[1], Symbol) else node[1])
             h_type = (
                 str(node[2].name if isinstance(node[2], Symbol) else node[2])
@@ -166,6 +212,29 @@ def extract_hole_info(node: SchemeNode) -> tuple[str, str | None] | None:
             )
             return h_name, h_type
     return None
+
+
+def extract_holes_from_ast(node: SchemeNode) -> list[tuple[str, str | None]]:
+    """Traverses a MicroScheme AST and extracts unique (hole_name, hole_type) tuples."""
+    holes: list[tuple[str, str | None]] = []
+
+    def _walk(n: SchemeNode) -> None:
+        if is_hole_node(n):
+            info = extract_hole_info(n)
+            if info is not None:
+                holes.append(info)
+        elif isinstance(n, list):
+            for child in n:
+                _walk(child)
+
+    _walk(node)
+    seen: set[str] = set()
+    unique_holes: list[tuple[str, str | None]] = []
+    for name, h_type in holes:
+        if name not in seen:
+            seen.add(name)
+            unique_holes.append((name, h_type))
+    return unique_holes
 
 
 class BoundaryTopologyParser:
@@ -419,3 +488,173 @@ class BoundaryTopologyParser:
         """
         result = self.validate_ast(node, allow_holes=False)
         return result.is_valid
+
+
+@dataclass(frozen=True)
+class HoleEnumerationResult:
+    """Result of enumerating and verifying candidate hole bindings."""
+
+    best_binding: dict[str, SchemeValue] | None
+    evaluated_count: int
+    pruned_count: int
+    coverage_rate: float
+    ranked_bindings: list[tuple[dict[str, SchemeValue], float]]
+    latency_ms: float
+
+
+def instantiate_hole_ast(node: SchemeNode, bindings: dict[str, SchemeValue]) -> SchemeNode:
+    """Recursively replaces hole symbols with bound Scheme values."""
+    if is_hole_node(node):
+        info = extract_hole_info(node)
+        if info:
+            h_name = info[0]
+            if h_name in bindings:
+                b_val = bindings[h_name]
+                if isinstance(b_val, (int, float, bool, str, Keyword, Symbol)):
+                    return b_val
+                if isinstance(b_val, list):
+                    return cast(SchemeNode, b_val)
+    if isinstance(node, list):
+        return [instantiate_hole_ast(child, bindings) for child in node]
+    return node
+
+
+def enumerate_hole_bindings(
+    sketch: SchemeNode | str,
+    eval_fn: Callable[[SchemeNode, SchemeValue, dict[str, SchemeValue]], SchemeValue],
+    demos: list[tuple[SchemeValue, SchemeValue]],
+    candidate_domains: dict[str, list[SchemeValue]] | None = None,
+    max_candidates: int = 200,
+    use_egraph_pruning: bool = True,
+) -> HoleEnumerationResult:
+    """
+    Given a MicroScheme sketch with typed parameter holes and demonstration pairs,
+    enumerates candidate parameter bindings and evaluates them on host CPU.
+    Uses E-Graph equivalence to collapse redundant candidate ASTs before evaluation.
+    """
+    t0 = time.perf_counter()
+    if isinstance(sketch, str):
+        node = parse_expr(sketch)
+    else:
+        node = sketch
+
+    holes = extract_holes_from_ast(node)
+    if not holes:
+        all_passed = True
+        passed_demos = 0
+        for inp, expected in demos:
+            try:
+                out = eval_fn(node, inp, {})
+                if out == expected:
+                    passed_demos += 1
+                else:
+                    all_passed = False
+            except Exception as exc:
+                logger.debug("hole_eval_direct_failed", error=str(exc))
+                all_passed = False
+        cov = (passed_demos / len(demos)) if demos else 1.0
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        best: dict[str, SchemeValue] | None = {} if all_passed else None
+        return HoleEnumerationResult(
+            best_binding=best,
+            evaluated_count=1,
+            pruned_count=0,
+            coverage_rate=cov if all_passed else 0.0,
+            ranked_bindings=[({}, cov)] if all_passed else [],
+            latency_ms=elapsed_ms,
+        )
+
+    domain_per_hole: list[list[SchemeValue]] = []
+    hole_names: list[str] = []
+    custom_domains = candidate_domains or {}
+
+    for name, h_type in holes:
+        hole_names.append(name)
+        if name in custom_domains:
+            domain_per_hole.append(custom_domains[name])
+            continue
+        t = (h_type or "").lower()
+        if t in custom_domains:
+            domain_per_hole.append(custom_domains[t])
+        elif "axis" in t:
+            domain_per_hole.append(["both", "auto", "h", "v"])
+        elif "mode" in t:
+            domain_per_hole.append(["auto", "bbox", "canvas"])
+        elif "conn" in t:
+            domain_per_hole.append([4, 8])
+        elif "bool" in t:
+            domain_per_hole.append([True, False])
+        elif "color" in t:
+            domain_per_hole.append([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        elif "int" in t:
+            domain_per_hole.append([0, 1, 2, 3])
+        elif "key" in t:
+            domain_per_hole.append([Keyword(":height"), Keyword(":width"), Keyword(":area"), Keyword(":min-r"), Keyword(":min-c")])
+        else:
+            domain_per_hole.append(["h", "v", 4, 8, 0, 1, True, False])
+
+    all_combos = list(itertools.product(*domain_per_hole))
+    total_unpruned = len(all_combos)
+    if total_unpruned > max_candidates:
+        all_combos = all_combos[:max_candidates]
+
+    pruned_count = 0
+    candidate_list: list[tuple[dict[str, SchemeValue], SchemeNode]] = []
+    for combo in all_combos:
+        binding: dict[str, SchemeValue] = dict(zip(hole_names, combo, strict=True))
+        inst_node = instantiate_hole_ast(node, binding)
+        candidate_list.append((binding, inst_node))
+
+    if use_egraph_pruning and len(candidate_list) > 1:
+        ast_nodes = [item[1] for item in candidate_list]
+        deduped_asts = prune_equivalent_sketches(ast_nodes)
+        deduped_set = {to_canonical(d) for d in deduped_asts}
+        pruned_candidates = [
+            item for item in candidate_list if to_canonical(item[1]) in deduped_set
+        ]
+        pruned_count = len(candidate_list) - len(pruned_candidates)
+        candidate_list = pruned_candidates
+
+    ranked_results: list[tuple[dict[str, SchemeValue], float]] = []
+    evaluated_count = 0
+    best_binding: dict[str, SchemeValue] | None = None
+    best_coverage = 0.0
+
+    for binding, inst_node in candidate_list:
+        evaluated_count += 1
+        passed_demos = 0
+        all_passed = True
+        for inp, expected in demos:
+            try:
+                out = eval_fn(inst_node, inp, binding)
+                if out == expected:
+                    passed_demos += 1
+                else:
+                    all_passed = False
+            except Exception as exc:
+                logger.debug("hole_eval_candidate_failed", error=str(exc))
+                all_passed = False
+
+        coverage = (passed_demos / len(demos)) if demos else 0.0
+        if coverage > 0.0:
+            ranked_results.append((binding, coverage))
+
+        if all_passed:
+            best_binding = binding
+            best_coverage = 1.0
+            break
+        elif coverage > best_coverage:
+            best_coverage = coverage
+            best_binding = binding
+
+    ranked_results.sort(key=lambda x: -x[1])
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+    return HoleEnumerationResult(
+        best_binding=best_binding if best_coverage == 1.0 else None,
+        evaluated_count=evaluated_count,
+        pruned_count=pruned_count,
+        coverage_rate=best_coverage,
+        ranked_bindings=ranked_results,
+        latency_ms=elapsed_ms,
+    )

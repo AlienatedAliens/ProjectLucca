@@ -42,6 +42,7 @@ VerificationStatus = Literal[
     "SYNTAX_ERROR",
     "TIMEOUT",
     "ERROR",
+    "UNMODELED_PREDICATE",
 ]
 
 # Sensitive and system path signatures
@@ -112,6 +113,19 @@ class StateContext:
         self.entity_has: dict[tuple[str, str], z3.BoolRef] = {}
         self.entity_int: dict[str, z3.ArithRef] = {}
         self.entity_str: dict[str, z3.SeqRef] = {}
+        self.uninterpreted_funcs: dict[str, z3.FuncDeclRef] = {}
+
+    def get_uninterpreted_func(
+        self,
+        name: str,
+        arg_sorts: tuple[z3.SortRef, ...],
+        ret_sort: z3.SortRef,
+    ) -> z3.FuncDeclRef:
+        clean = re.sub(r"[^a-zA-Z0-9_]", "_", name)
+        key = f"{clean}_{len(arg_sorts)}"
+        if key not in self.uninterpreted_funcs:
+            self.uninterpreted_funcs[key] = z3.Function(clean, *arg_sorts, ret_sort)
+        return self.uninterpreted_funcs[key]
 
     def get_axioms(self) -> list[z3.BoolRef]:
         """Foundational valid bounds on agent operational state."""
@@ -164,8 +178,13 @@ class SMTVerifier:
     Invokes Z3 solver with bounded timeout to enforce deterministic invariants.
     """
 
-    def __init__(self, timeout_ms: int | float = DEFAULT_SMT_TIMEOUT_MS) -> None:
+    def __init__(
+        self,
+        timeout_ms: int | float = DEFAULT_SMT_TIMEOUT_MS,
+        allow_pure_reasoning: bool = False,
+    ) -> None:
         self.timeout_ms: int = max(1, int(timeout_ms))
+        self.allow_pure_reasoning: bool = allow_pure_reasoning
 
     def verify_source(
         self,
@@ -200,7 +219,14 @@ class SMTVerifier:
         try:
             when_z3 = self._translate_expr(rule_def.when_expr, ctx)
             if not isinstance(when_z3, z3.BoolRef):
-                when_z3 = z3.BoolVal(bool(when_z3))
+                if isinstance(when_z3, (z3.ArithRef, z3.BitVecRef)):
+                    when_z3 = when_z3 != 0
+                elif isinstance(when_z3, z3.SeqRef):
+                    when_z3 = z3.Length(when_z3) > 0
+                elif isinstance(when_z3, z3.ExprRef):
+                    when_z3 = z3.BoolVal(True)
+                else:
+                    when_z3 = z3.BoolVal(bool(when_z3))
         except Exception as exc:  # noqa: BLE001
             logger.debug("smt_translate_expr_failed", error=str(exc))
             return SMTVerificationResult(
@@ -602,6 +628,17 @@ class SMTVerifier:
                 key = str(args[0])
                 return ctx.get_entity_str(key)
             return z3.StringVal("")
+
+        if self.allow_pure_reasoning:
+            clean_op = re.sub(r"[^a-zA-Z0-9_]", "_", op)
+            child_z3: list[z3.ExprRef] = []
+            arg_sorts: list[z3.SortRef] = []
+            for c in args:
+                tz = self._translate_expr(c, ctx)
+                child_z3.append(tz)
+                arg_sorts.append(tz.sort())
+            fn_decl = ctx.get_uninterpreted_func(clean_op, tuple(arg_sorts), z3.BoolSort())
+            return fn_decl(*child_z3)
 
         raise ValueError(
             f"Unmodeled MicroScheme predicate or operator '{op}' cannot be safely verified by SMT"

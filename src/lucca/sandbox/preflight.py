@@ -26,12 +26,14 @@ def extract_python_code(text: str) -> str:
     """Extracts executable Python code from markdown blocks or raw text using tolerant AST fallback."""
     if not text:
         return ""
+    import textwrap
     from lucca.sandbox.ast_sanitizer import extract_python_code_tolerant, sanitize_and_repair_python_code
     code, stage = extract_python_code_tolerant(text)
     if not code:
         return ""
+    code = textwrap.dedent(code).strip()
     repaired, ok, _ = sanitize_and_repair_python_code(code)
-    return repaired if ok else code
+    return textwrap.dedent(repaired).strip() if ok else code
 
 
 def extract_docstring_assertions(

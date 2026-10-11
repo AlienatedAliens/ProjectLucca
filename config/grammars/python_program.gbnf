@@ -1,0 +1,6 @@
+# GBNF Grammar for Executable Python Code Blocks in Markdown Fences
+# Project Lucca (WO-35 Milestone 35.2)
+
+root ::= "```python\n" code-lines "```"
+code-lines ::= (code-line "\n")+
+code-line ::= [^\n`]* | "`" [^\n`]* | "``" [^\n`]*

@@ -14,12 +14,12 @@ Operator weights:
 
 from __future__ import annotations
 
+import ast
 from typing import Final
 
 from lucca.reasoning.scheme.macros import MacroDefinition
 from lucca.reasoning.scheme.parser import (
     Keyword,
-    SchemeAtom,
     SchemeNode,
     Symbol,
 )
@@ -134,3 +134,47 @@ def compute_compression_savings(
     compressed_cost = macro_def_cost + compute_description_length(compressed_nodes, alpha=alpha)
 
     return original_cost - compressed_cost
+
+
+def python_ast_cost(
+    code: str,
+    alpha: float = DEFAULT_ALPHA,
+    literal_penalty: float = 200.0,
+) -> float:
+    """
+    Computes structural Occam's Razor complexity cost for a Python program AST:
+        Cost(P) = node_count + alpha * tree_depth + literal_penalty * magic_constants
+
+    Penalizes AST node count, deep nesting, and hardcoded sample-specific integer comparisons.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return float("inf")
+
+    node_count = 0
+    max_depth = 0
+    magic_penalties = 0.0
+
+    def _walk_depth(node: ast.AST, depth: int) -> None:
+        nonlocal node_count, max_depth, magic_penalties
+        node_count += 1
+        max_depth = max(max_depth, depth)
+
+        if isinstance(node, ast.Compare):
+            for comparator in node.comparators:
+                if (
+                    isinstance(comparator, ast.Constant)
+                    and isinstance(comparator.value, int)
+                    and comparator.value > 1
+                ):
+                    magic_penalties += literal_penalty
+        elif isinstance(node, ast.Constant) and isinstance(node.value, int) and node.value > 1:
+            magic_penalties += 5.0
+
+        for child in ast.iter_child_nodes(node):
+            _walk_depth(child, depth + 1)
+
+    _walk_depth(tree, 1)
+    return float(node_count) + (alpha * float(max_depth)) + magic_penalties
+

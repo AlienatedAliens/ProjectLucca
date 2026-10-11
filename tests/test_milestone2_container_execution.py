@@ -30,7 +30,7 @@ def rpc_transport() -> DockerRPCTransport:
     return rpc
 
 
-def test_container_rpc_liveness(rpc_transport: DockerRPCTransport):
+def test_container_rpc_liveness(rpc_transport: DockerRPCTransport) -> None:
     """Verifies that lucca-toolsrv responds to list_dir via Docker exec."""
     res = rpc_transport.execute(call_id="c-live-1", tool="list_dir", args={"path": "."})
     assert res.ok is True
@@ -39,7 +39,7 @@ def test_container_rpc_liveness(rpc_transport: DockerRPCTransport):
     assert "entries" in res.structured
 
 
-def test_run_python_in_container(rpc_transport: DockerRPCTransport):
+def test_run_python_in_container(rpc_transport: DockerRPCTransport) -> None:
     """Verifies safe Python evaluation inside the Linux container."""
     code = "import sys, math; print(f'PI={math.pi:.4f}; PY={sys.version_info.major}.{sys.version_info.minor}')"
     res = rpc_transport.execute(call_id="c-py-1", tool="run_python", args={"code": code})
@@ -49,7 +49,7 @@ def test_run_python_in_container(rpc_transport: DockerRPCTransport):
     assert "PY=3.12" in str(res.content)
 
 
-def test_network_none_confinement(rpc_transport: DockerRPCTransport):
+def test_network_none_confinement(rpc_transport: DockerRPCTransport) -> None:
     """
     Verifies that --network none physically prevents network egress.
     Socket connect must raise Network is unreachable (Errno 101).
@@ -70,7 +70,7 @@ except Exception as exc:
     assert "CONNECTED" not in str(res.content)
 
 
-def test_host_filesystem_unmounted(rpc_transport: DockerRPCTransport):
+def test_host_filesystem_unmounted(rpc_transport: DockerRPCTransport) -> None:
     """
     Verifies that the Windows host drive (C:\\) and System32 are not mounted in container.
     """
@@ -85,7 +85,7 @@ print('EXISTS_WIN:', os.path.exists('/mnt/c/Windows'))
     assert "EXISTS_WIN: False" in str(res.content)
 
 
-def test_container_read_only_root(rpc_transport: DockerRPCTransport):
+def test_container_read_only_root(rpc_transport: DockerRPCTransport) -> None:
     """
     Verifies that container root filesystem is read-only (--read-only).
     Attempts to write to /etc or /bin must fail with EROFS (Read-only file system).
@@ -105,7 +105,7 @@ except Exception as exc:
     assert "WROTE_EVIL" not in str(res.content)
 
 
-def test_container_unprivileged_user(rpc_transport: DockerRPCTransport):
+def test_container_unprivileged_user(rpc_transport: DockerRPCTransport) -> None:
     """
     Verifies that container runs as unprivileged user 1000:1000, not root (UID 0).
     """
@@ -119,7 +119,7 @@ print(f'UID={os.getuid()}; GID={os.getgid()}')
     assert "UID=0" not in str(res.content)
 
 
-def test_container_file_crud_lifecycle(rpc_transport: DockerRPCTransport):
+def test_container_file_crud_lifecycle(rpc_transport: DockerRPCTransport) -> None:
     """Verifies file write, read with sha256 audit, and deletion inside container."""
     test_file = "m2_verification_test.txt"
     test_payload = "Project Lucca Milestone 2: Deontic Sandbox Verified on Silicon."
@@ -153,7 +153,7 @@ def test_container_file_crud_lifecycle(rpc_transport: DockerRPCTransport):
     assert res_d.structured == {"deleted": True}
 
 
-def test_container_traversal_rejection(rpc_transport: DockerRPCTransport):
+def test_container_traversal_rejection(rpc_transport: DockerRPCTransport) -> None:
     """Verifies that path traversal escaping /workspace is rejected by container tool."""
     res = rpc_transport.execute(
         call_id="c-trav-1",
@@ -162,3 +162,104 @@ def test_container_traversal_rejection(rpc_transport: DockerRPCTransport):
     )
     assert res.ok is False
     assert "traversal" in str(res.stderr).lower()
+
+
+def test_container_tmpfs_noexec_enforcement(rpc_transport: DockerRPCTransport) -> None:
+    """
+    Verifies that /tmp is mounted with noexec.
+    Attempting to execute a script written to /tmp must fail with PermissionError (EACCES).
+    """
+    code = """
+import os, subprocess
+script_path = '/tmp/test_exec.sh'
+with open(script_path, 'w') as f:
+    f.write('#!/bin/sh\\necho EXECUTED\\n')
+os.chmod(script_path, 0o755)
+try:
+    res = subprocess.run([script_path], capture_output=True, text=True)
+    print('OUTPUT:', res.stdout.strip())
+except PermissionError as exc:
+    print(f'NOEXEC_BLOCKED: {exc}')
+except Exception as exc:
+    print(f'OTHER_ERROR: {type(exc).__name__} [{exc}]')
+finally:
+    if os.path.exists(script_path):
+        try: os.remove(script_path)
+        except: pass
+"""
+    res = rpc_transport.execute(call_id="c-noexec-1", tool="run_python", args={"code": code})
+    assert res.ok is True
+    assert "NOEXEC_BLOCKED" in str(res.content) or "Permission denied" in str(res.content)
+    assert "EXECUTED" not in str(res.content)
+
+
+def test_container_tmpfs_size_limit_32mb(rpc_transport: DockerRPCTransport) -> None:
+    """
+    Verifies that /tmp tmpfs size limit (32MB) is strictly enforced.
+    Attempting to write 40MB must fail with No space left on device (ENOSPC).
+    """
+    code = """
+import os
+target = '/tmp/oversize.bin'
+try:
+    with open(target, 'wb') as f:
+        # Write in 4MB chunks up to 40MB
+        for _ in range(10):
+            f.write(b'\\x00' * (4 * 1024 * 1024))
+    print('WROTE_40MB')
+except OSError as exc:
+    print(f'SIZE_LIMIT_BLOCKED: {exc}')
+finally:
+    if os.path.exists(target):
+        try: os.remove(target)
+        except: pass
+"""
+    res = rpc_transport.execute(call_id="c-size-1", tool="run_python", args={"code": code})
+    assert res.ok is True
+    assert "SIZE_LIMIT_BLOCKED" in str(res.content) or "No space left on device" in str(res.content)
+    assert "WROTE_40MB" not in str(res.content)
+
+
+def test_container_security_opts_cap_drop_and_no_new_privs(rpc_transport: DockerRPCTransport) -> None:
+    """
+    Verifies that --cap-drop=ALL and --security-opt=no-new-privileges are active in /proc/self/status.
+    Effective capabilities must be zero and NoNewPrivs must be 1.
+    """
+    code = """
+with open('/proc/self/status', 'r') as f:
+    status = f.read()
+
+no_new_privs = None
+cap_eff = None
+for line in status.splitlines():
+    if line.startswith('NoNewPrivs:'):
+        no_new_privs = line.split(':')[1].strip()
+    elif line.startswith('CapEff:'):
+        cap_eff = line.split(':')[1].strip()
+
+print(f'NoNewPrivs={no_new_privs}; CapEff={cap_eff}')
+"""
+    res = rpc_transport.execute(call_id="c-caps-1", tool="run_python", args={"code": code})
+    assert res.ok is True
+    assert "NoNewPrivs=1" in str(res.content)
+    assert "CapEff=0000000000000000" in str(res.content)
+
+
+def test_container_memory_limit_enforcement(rpc_transport: DockerRPCTransport) -> None:
+    """
+    Verifies that --memory=768m cgroup boundary prevents unbounded RAM allocation.
+    Attempting to allocate 2GB buffer must raise MemoryError or fail safely.
+    """
+    code = """
+try:
+    buf = bytearray(2 * 1024 * 1024 * 1024)
+    print('ALLOCATED_2GB')
+except MemoryError:
+    print('MEMORY_LIMIT_BLOCKED: MemoryError')
+except Exception as exc:
+    print(f'ALLOC_FAILED: {type(exc).__name__}')
+"""
+    res = rpc_transport.execute(call_id="c-mem-1", tool="run_python", args={"code": code})
+    assert "MEMORY_LIMIT_BLOCKED" in str(res.content) or not res.ok
+    assert "ALLOCATED_2GB" not in str(res.content)
+

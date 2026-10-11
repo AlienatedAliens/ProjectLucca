@@ -11,6 +11,7 @@ Provides:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 import logging
 
@@ -450,7 +451,7 @@ def ematch_pattern(
         pat_children = pattern[1:]
 
         for head_atom, child_ids in eclass.nodes:
-            if not _atom_matches(pat_head, head_atom):
+            if isinstance(pat_head, list) or not _atom_matches(pat_head, head_atom):
                 continue
             if len(child_ids) != len(pat_children):
                 continue
@@ -524,7 +525,7 @@ def _fold_constants(egraph: EGraph) -> bool:
             if op in ("+", "-", "*", "/", "min", "max") and len(children) >= 1:
                 child_consts = [_get_class_constant(egraph, ch) for ch in children]
                 if all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in child_consts):
-                    nums = [float(c) for c in child_consts if c is not None]
+                    nums: list[float] = [float(c) for c in child_consts if isinstance(c, (int, float)) and not isinstance(c, bool)]
                     try:
                         res: float | int | None = None
                         if op == "+":
@@ -705,4 +706,53 @@ SPATIAL_REWRITE_RULES: list[RewriteRule] = [
         name="rotate-combine",
     ),
 ]
+
+DISCRETE_SPATIAL_REWRITE_RULES: list[RewriteRule] = [
+    RewriteRule.from_sexpr("(flip-h (flip-h ?g))", "?g", name="flip-h-involution"),
+    RewriteRule.from_sexpr("(flip-v (flip-v ?g))", "?g", name="flip-v-involution"),
+    RewriteRule.from_sexpr("(rot90 ?g 0)", "?g", name="rot90-zero"),
+    RewriteRule.from_sexpr("(rot90 ?g 4)", "?g", name="rot90-four"),
+    RewriteRule.from_sexpr("(crop-to-content (crop-to-content ?g))", "(crop-to-content ?g)", name="crop-idempotent"),
+]
+
+
+def prune_equivalent_sketches(
+    candidates: list[SchemeNode],
+    rules: list[RewriteRule] | None = None,
+    iter_limit: int = 15,
+) -> list[SchemeNode]:
+    """
+    Inserts candidate expressions into a shared E-Graph, executes equality saturation,
+    and returns a deduplicated list of candidate ASTs with at most one representative
+    per equivalence class (retaining the AST with smallest size).
+    """
+    if len(candidates) <= 1:
+        return candidates
+
+    egraph = EGraph()
+    active_rules = rules if rules is not None else (
+        STANDARD_REWRITE_RULES + SPATIAL_REWRITE_RULES + DISCRETE_SPATIAL_REWRITE_RULES
+    )
+
+    class_to_candidates: dict[int, list[SchemeNode]] = {}
+    cand_class_ids: list[int] = []
+
+    for cand in candidates:
+        cid = egraph.add(cand)
+        cand_class_ids.append(cid)
+
+    # Saturate equivalence graph
+    egraph.saturate(active_rules, iter_limit=iter_limit)
+
+    for cand, cid in zip(candidates, cand_class_ids, strict=True):
+        root = egraph.find(cid)
+        class_to_candidates.setdefault(root, []).append(cand)
+
+    # For each equivalence class, pick representative with lowest ast_size
+    deduped: list[SchemeNode] = []
+    for class_cands in class_to_candidates.values():
+        best_cand = min(class_cands, key=ast_size)
+        deduped.append(best_cand)
+
+    return deduped
 

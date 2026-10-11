@@ -117,10 +117,19 @@ class MacroExpander:
 
             args = node[1:]
             if len(args) != len(macro_def.params):
-                raise SchemeSyntaxError(
-                    f"Macro '{macro_def.name}' expects {len(macro_def.params)} arguments, "
-                    f"got {len(args)}"
-                )
+                if (
+                    len(args) == len(macro_def.params) + 1
+                    and isinstance(args[0], Symbol)
+                    and args[0].name in ("input", "grid")
+                    and "input" not in macro_def.params
+                    and "grid" not in macro_def.params
+                ):
+                    args = args[1:]
+                else:
+                    raise SchemeSyntaxError(
+                        f"Macro '{macro_def.name}' expects {len(macro_def.params)} arguments, "
+                        f"got {len(args)}"
+                    )
 
             self.step_count += 1
             if self.step_count > MAX_MACRO_STEPS:

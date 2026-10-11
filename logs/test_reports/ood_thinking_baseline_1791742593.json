@@ -1,0 +1,162 @@
+{
+  "timestamp": "2026-10-11T18:16:33.439282+00:00",
+  "total_problems": 6,
+  "summary": {
+    "direct": {
+      "passed": 2,
+      "pct": 33.33333333333333,
+      "truncation_rate": 0.6666666666666666
+    },
+    "thinking": {
+      "passed": 5,
+      "pct": 83.33333333333334,
+      "truncation_rate": 0.5
+    },
+    "pal": {
+      "passed": 6,
+      "pct": 100.0,
+      "truncation_rate": 0.16666666666666666
+    },
+    "non_crux": {
+      "direct_passed": 2,
+      "thinking_passed": 4,
+      "pal_passed": 4,
+      "lift_thinking_over_direct_pp": 50.0,
+      "lift_pal_over_thinking_pp": 0.0
+    },
+    "mcnemar": {
+      "direct_vs_thinking": {
+        "b": 0,
+        "c": 3,
+        "p_value": 0.25
+      },
+      "thinking_vs_pal": {
+        "b": 0,
+        "c": 1,
+        "p_value": 1.0
+      }
+    }
+  },
+  "problems": [
+    {
+      "domain": "SpatialNavigation",
+      "problem_id": "Navigate_1",
+      "prompt_text": "If you follow these instructions, do you return to the starting point? Always face forward. Take 1 step backward. Take 9 steps left. Take 2 steps backward. Take 6 steps forward. Take 4 steps forward. Take 4 steps backward. Take 3 steps right.\nOptions:\n- Yes\n- No",
+      "expected_answer": "No",
+      "direct_predicted": "No",
+      "direct_success": true,
+      "direct_finish_reason": "stop",
+      "thinking_predicted": "No",
+      "thinking_success": true,
+      "thinking_finish_reason": "length",
+      "thinking_reasoning_len": 8573,
+      "pal_method": "INTERNAL_FALLBACK",
+      "pal_code": null,
+      "pal_predicted": "No",
+      "pal_success": true,
+      "pal_finish_reason": "length",
+      "pal_failure_stage": null,
+      "elapsed_ms": 74086.30599999742
+    },
+    {
+      "domain": "SpatialNavigation",
+      "problem_id": "Navigate_2",
+      "prompt_text": "If you follow these instructions, do you return to the starting point? Always face forward. Take 10 steps left. Take 10 steps forward. Take 7 steps forward. Take 2 steps forward.\nOptions:\n- Yes\n- No",
+      "expected_answer": "No",
+      "direct_predicted": "No",
+      "direct_success": true,
+      "direct_finish_reason": "stop",
+      "thinking_predicted": "No",
+      "thinking_success": true,
+      "thinking_finish_reason": "length",
+      "thinking_reasoning_len": 9625,
+      "pal_method": "VERIFIED_PROGRAM",
+      "pal_code": "x ,y =0 ,0 \nheading =0 \n\ndef move (steps ,direction ):\n    global x ,y ,heading \n    if direction ==\"forward\":\n        x +=steps *(1 if heading ==0 else (0 if heading ==90 or heading ==270 else -1 ))\n        y +=steps *(0 if heading ==0 or heading ==180 else (1 if heading ==90 else -1 ))\n    elif direction ==\"left\":\n        heading =(heading -90 )%360 \n\nmove (10 ,\"left\")\nmove (10 ,\"forward\")\nmove (7 ,\"forward\")\nmove (2 ,\"forward\")\n\nif (x ,y )==(0 ,0 ):\n    print (\"Yes\")\nelse :\n    print (\"No\")",
+      "pal_predicted": "No",
+      "pal_success": true,
+      "pal_finish_reason": "stop",
+      "pal_failure_stage": null,
+      "elapsed_ms": 65428.60690000816
+    },
+    {
+      "domain": "LogicalDeduction",
+      "problem_id": "Deduction_1",
+      "prompt_text": "The following paragraphs each describe a set of three objects arranged in a fixed order. The statements are logically consistent within each paragraph. On a branch, there are three birds: a blue jay, a quail, and a falcon. The falcon is to the right of the blue jay. The blue jay is to the right of the quail.\nOptions:\n(A) The blue jay is the second from the left\n(B) The quail is the second from the left\n(C) The falcon is the second from the left",
+      "expected_answer": "(A)",
+      "direct_predicted": null,
+      "direct_success": false,
+      "direct_finish_reason": "length",
+      "thinking_predicted": "(A)",
+      "thinking_success": true,
+      "thinking_finish_reason": "stop",
+      "thinking_reasoning_len": 3448,
+      "pal_method": "VERIFIED_PROGRAM",
+      "pal_code": "import itertools \n\nobjects =['blue jay','quail','falcon']\noptions ={\n'A':lambda p :p [1 ]=='blue jay',\n'B':lambda p :p [1 ]=='quail',\n'C':lambda p :p [1 ]=='falcon'\n}\n\nconstraints =[\nlambda p :p .index ('falcon')>p .index ('blue jay'),\nlambda p :p .index ('blue jay')>p .index ('quail')\n]\n\nvalid_permutations =[]\nfor p in itertools .permutations (objects ):\n    if all (c (p )for c in constraints ):\n        valid_permutations .append (p )\n\nfor opt_letter ,check in options .items ():\n    for p in valid_permutations :\n        if check (p ):\n            print (f'({opt_letter })')\n            exit ()",
+      "pal_predicted": "(A)",
+      "pal_success": true,
+      "pal_finish_reason": "stop",
+      "pal_failure_stage": null,
+      "elapsed_ms": 38948.06999999855
+    },
+    {
+      "domain": "LogicalDeduction",
+      "problem_id": "Deduction_2",
+      "prompt_text": "The following paragraphs each describe a set of three objects arranged in a fixed order. The statements are logically consistent within each paragraph. In an antique car show, there are three vehicles: a motorcyle, a limousine, and a convertible. The motorcyle is newer than the limousine. The convertible is newer than the motorcyle.\nOptions:\n(A) The motorcyle is the oldest\n(B) The limousine is the oldest\n(C) The convertible is the oldest",
+      "expected_answer": "(B)",
+      "direct_predicted": null,
+      "direct_success": false,
+      "direct_finish_reason": "length",
+      "thinking_predicted": "(B)",
+      "thinking_success": true,
+      "thinking_finish_reason": "stop",
+      "thinking_reasoning_len": 1677,
+      "pal_method": "VERIFIED_PROGRAM",
+      "pal_code": "import sympy as sp\nfrom sympy import *\n\nimport itertools \n\nvehicles =['motorcycle','limousine','convertible']\noptions ={\n'A':lambda p :p [0 ]=='motorcycle',\n'B':lambda p :p [0 ]=='limousine',\n'C':lambda p :p [0 ]=='convertible'\n}\n\ndef solve ():\n    for p in itertools .permutations (vehicles ):\n    # p[0] is oldest, p[1] is middle, p[2] is newest\n    # Clue 1: motorcycle is newer than limousine (limousine < motorcycle)\n    # Clue 2: convertible is newer than motorcycle (motorcycle < convertible)\n    # Order of age (oldest to newest): limousine < motorcycle < convertible\n\n    # Find indices in the permutation to determine relative age\n        idx_limo =p .index ('limousine')\n        idx_moto =p .index ('motorcycle')\n        idx_conv =p .index ('convertible')\n\n        if idx_limo <idx_moto <idx_conv :\n            for label ,condition in options .items ():\n                if condition (p ):\n                    print (f'({label })')\n                    return \n\nsolve ()",
+      "pal_predicted": "(B)",
+      "pal_success": true,
+      "pal_finish_reason": "stop",
+      "pal_failure_stage": null,
+      "elapsed_ms": 23755.38489999599
+    },
+    {
+      "domain": "CodeExecution",
+      "problem_id": "CruxEval_1",
+      "prompt_text": "def f(nums):\n    output = []\n    for n in nums:\n        output.append((nums.count(n), n))\n    output.sort(reverse=True)\n    return output\nInput: [1, 1, 3, 1, 3, 1]",
+      "expected_answer": "[(4, 1), (4, 1), (4, 1), (4, 1), (2, 3), (2, 3)]",
+      "direct_predicted": "To determine the return value of `f([1, 1, 3, 1, 3, 1])`, let's trace the execution:\n\n1.  **Input**: `nums = [1, 1, 3, 1, 3, 1]`\n2.  **Iteration**:\n    *   `n = 1`: `nums.count(1)` is 4. Append `(4, 1)`.\n    *   `n = 1`: `nums.count(1)` is 4. Append `(4, 1)",
+      "direct_success": false,
+      "direct_finish_reason": "length",
+      "thinking_predicted": "def f(nums):\n        output = []\n        for n in nums:\n            output.append((nums.count(n), n))\n        output.sort(reverse=True)\n        return output",
+      "thinking_success": false,
+      "thinking_finish_reason": "length",
+      "thinking_reasoning_len": 6710,
+      "pal_method": "VERIFIED_PROGRAM",
+      "pal_code": "def f(nums):\n    output = []\n    for n in nums:\n        output.append((nums.count(n), n))\n    output.sort(reverse=True)\n    return output\n\nres = f([1, 1, 3, 1, 3, 1])\nprint(repr(res))\n",
+      "pal_predicted": "[(4, 1), (4, 1), (4, 1), (4, 1), (2, 3), (2, 3)]",
+      "pal_success": true,
+      "pal_finish_reason": "stop",
+      "pal_failure_stage": null,
+      "elapsed_ms": 63868.0214999913
+    },
+    {
+      "domain": "CodeExecution",
+      "problem_id": "CruxEval_2",
+      "prompt_text": "def f(a, b, c):\n    result = {}\n    for d in a, b, c:\n        result.update(dict.fromkeys(d))\n    return result\nInput: (1, ), (1, ), (1, 2)",
+      "expected_answer": "{1: None, 2: None}",
+      "direct_predicted": "To determine the return value of the function `f` with the input `(1, ), (1, ), (1, 2)`, let's trace the execution:\n\n1.  **Initialization**: `result = {}`\n2.  **First iteration (`d = (1,)`)**:\n    *   `dict.fromkeys((1,))` creates `{1: None}`.\n    *   `result.update({1: None})` results in `result = {1: None}`.\n3.  **Second iteration (`d = (1,)`)**:\n    *   `",
+      "direct_success": false,
+      "direct_finish_reason": "length",
+      "thinking_predicted": "{1: None, 2: None}",
+      "thinking_success": true,
+      "thinking_finish_reason": "stop",
+      "thinking_reasoning_len": 6443,
+      "pal_method": "VERIFIED_PROGRAM",
+      "pal_code": "def f(a, b, c):\n    result = {}\n    for d in a, b, c:\n        result.update(dict.fromkeys(d))\n    return result\n\nres = f((1, ), (1, ), (1, 2))\nprint(repr(res))\n",
+      "pal_predicted": "{1: None, 2: None}",
+      "pal_success": true,
+      "pal_finish_reason": "stop",
+      "pal_failure_stage": null,
+      "elapsed_ms": 52325.744599991594
+    }
+  ]
+}

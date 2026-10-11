@@ -1,0 +1,110 @@
+{
+  "benchmark": "OOD_Generality_Audit",
+  "timestamp_utc": "2026-10-11T16:27:21.595425+00:00",
+  "total_problems": 3,
+  "closed_world_falsification": {
+    "falsified_count": 3,
+    "falsification_rate": 1.0,
+    "conclusion": "spatial_dsl.py is strictly closed-world to 2D integer matrices."
+  },
+  "architectural_transfer": {
+    "arm_a_total_passed": 1,
+    "arm_a_pass_rate": 0.3333333333333333,
+    "arm_a_ci_95": [
+      0.06149212499615059,
+      0.792339885219745
+    ],
+    "arm_b_total_passed": 3,
+    "arm_b_pass_rate": 1.0,
+    "arm_b_ci_95": [
+      0.4385039693523135,
+      0.9999999999999999
+    ],
+    "net_scaffold_lift_pp": 66.66666666666666,
+    "domains": {
+      "SpatialNavigation": {
+        "total": 1,
+        "arm_a_passed": 1,
+        "arm_a_rate": 1.0,
+        "arm_b_passed": 1,
+        "arm_b_rate": 1.0,
+        "scaffold_lift_pp": 0.0,
+        "verified_program_wins": 1
+      },
+      "LogicalDeduction": {
+        "total": 1,
+        "arm_a_passed": 0,
+        "arm_a_rate": 0.0,
+        "arm_b_passed": 1,
+        "arm_b_rate": 1.0,
+        "scaffold_lift_pp": 100.0,
+        "verified_program_wins": 1
+      },
+      "CodeExecution": {
+        "total": 1,
+        "arm_a_passed": 0,
+        "arm_a_rate": 0.0,
+        "arm_b_passed": 1,
+        "arm_b_rate": 1.0,
+        "scaffold_lift_pp": 100.0,
+        "verified_program_wins": 1
+      }
+    }
+  },
+  "problems": [
+    {
+      "domain": "SpatialNavigation",
+      "problem_id": "Navigate_1",
+      "prompt_text": "If you follow these instructions, do you return to the starting point? Always face forward. Take 1 step backward. Take 9 steps left. Take 2 steps backward. Take 6 steps forward. Take 4 steps forward. Take 4 steps backward. Take 3 steps right.\nOptions:\n- Yes\n- No",
+      "expected_answer": "No",
+      "closed_world_passed": false,
+      "closed_world_error": "ValueError: invalid literal for int() with base 10: 'If you follow these instructions, do you return to the starting point? Always face forward. Take 1 step backward. Take 9 steps left. Take 2 steps backward. Take 6 steps forward. Take 4 steps forward.",
+      "arm_a_predicted": "No",
+      "arm_a_success": true,
+      "arm_a_finish_reason": "stop",
+      "arm_b_method": "VERIFIED_PROGRAM",
+      "arm_b_code": "x ,y =0 ,0 \nheading =0 \n\ndef move (dx ,dy ):\n    global x ,y \n    x +=dx \n    y +=dy \n\nmove (-1 ,0 )\nx -=9 \nmove (-2 ,0 )\nmove (6 ,0 )\nmove (4 ,0 )\nmove (-4 ,0 )\nx +=3 \n\nif x ==0 and y ==0 :\n    print (\"Yes\")\nelse :\n    print (\"No\")",
+      "arm_b_predicted": "No",
+      "arm_b_success": true,
+      "arm_b_finish_reason": "stop",
+      "failure_stage": null,
+      "elapsed_ms": 7675.275200002943
+    },
+    {
+      "domain": "LogicalDeduction",
+      "problem_id": "Deduction_1",
+      "prompt_text": "The following paragraphs each describe a set of three objects arranged in a fixed order. The statements are logically consistent within each paragraph. On a branch, there are three birds: a blue jay, a quail, and a falcon. The falcon is to the right of the blue jay. The blue jay is to the right of the quail.\nOptions:\n(A) The blue jay is the second from the left\n(B) The quail is the second from the left\n(C) The falcon is the second from the left",
+      "expected_answer": "(A)",
+      "closed_world_passed": false,
+      "closed_world_error": "ValueError: invalid literal for int() with base 10: 'The following paragraphs each describe a set of three objects arranged in a fixed order. The statements are logically consistent within each paragraph. On a branch, there are three birds: a blue jay,",
+      "arm_a_predicted": null,
+      "arm_a_success": false,
+      "arm_a_finish_reason": "length",
+      "arm_b_method": "VERIFIED_PROGRAM",
+      "arm_b_code": "import itertools \n\nobjects =['blue jay','quail','falcon']\noptions ={\n'A':lambda p :p [1 ]=='blue jay',\n'B':lambda p :p [1 ]=='quail',\n'C':lambda p :p [1 ]=='falcon'\n}\n\nconstraints =[\nlambda p :p .index ('falcon')>p .index ('blue jay'),\nlambda p :p .index ('blue jay')>p .index ('quail')\n]\n\nvalid_permutations =[]\nfor p in itertools .permutations (objects ):\n    if all (c (p )for c in constraints ):\n        valid_permutations .append (p )\n\nfor opt_letter ,check in options .items ():\n    for p in valid_permutations :\n        if check (p ):\n            print (f'({opt_letter })')\n            exit ()",
+      "arm_b_predicted": "(A)",
+      "arm_b_success": true,
+      "arm_b_finish_reason": "stop",
+      "failure_stage": null,
+      "elapsed_ms": 7149.661899995408
+    },
+    {
+      "domain": "CodeExecution",
+      "problem_id": "CruxEval_1",
+      "prompt_text": "def f(nums):\n    output = []\n    for n in nums:\n        output.append((nums.count(n), n))\n    output.sort(reverse=True)\n    return output\nInput: [1, 1, 3, 1, 3, 1]",
+      "expected_answer": "[(4, 1), (4, 1), (4, 1), (4, 1), (2, 3), (2, 3)]",
+      "closed_world_passed": false,
+      "closed_world_error": "ValueError: invalid literal for int() with base 10: 'def f(nums):\\n    output = []\\n    for n in nums:\\n        output.append((nums.count(n), n))\\n    output.sort(reverse=True)\\n    return output'",
+      "arm_a_predicted": "To determine the return value of `f([1, 1, 3, 1, 3, 1])`, let's trace the execution:\n\n1.  **Input**: `nums = [1, 1, 3, 1, 3, 1]`\n2.  **Iteration**:\n    *   `n = 1`: `nums.count(1)` is 4. Append `(4, 1)`.\n    *   `n = 1`: `nums.count(1)` is 4. Append `(4, 1)",
+      "arm_a_success": false,
+      "arm_a_finish_reason": "length",
+      "arm_b_method": "VERIFIED_PROGRAM",
+      "arm_b_code": "def f(nums):\n    output = []\n    for n in nums:\n        output.append((nums.count(n), n))\n    output.sort(reverse=True)\n    return output\n\nres = f([1, 1, 3, 1, 3, 1])\nprint(repr(res))\n",
+      "arm_b_predicted": "[(4, 1), (4, 1), (4, 1), (4, 1), (2, 3), (2, 3)]",
+      "arm_b_success": true,
+      "arm_b_finish_reason": "stop",
+      "failure_stage": null,
+      "elapsed_ms": 2720.8385999983875
+    }
+  ]
+}
