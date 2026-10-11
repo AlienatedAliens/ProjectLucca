@@ -377,7 +377,14 @@ flowchart TD
   - Incompatible / Crashed: **60/60 (100.0%)** (`ValueError: invalid literal for int` / `TypeError`).
   - Audit Finding: Confirms irrefutably that `spatial_dsl.py` and `scheme_sketch.gbnf` are **100% closed-world to 2D integer matrices**. They possess 0% zero-shot transfer outside pixel grids.
 
-### 9.11 Complete Multi-Scale Factorial Matrix (12B vs E4B vs E2B on 60 OOD Tasks)
+### 9.11 Historical Multi-Scale Matrix on 60 OOD Items (Superseded Direct Baseline — Regression Continuity)
+
+> [!WARNING]
+> **CORRECTION BANNER (Superseded Baseline Disclosure — 2026-10-12):**  
+> The headline lifts reported in this section (+62.5 pp / +45.0 pp / +17.5 pp) were measured against an Arm A direct control evaluated with `enable_thinking: false` and artificially constrained by a 128-token cap (`max_tokens: 128`), producing a 63.9% token truncation rate.  
+> When re-evaluated with native non-greedy thinking enabled (`enable_thinking: true`, `max_tokens: 3072`, $T=0.6$) in Section 9.13, bare Gemma 4 12B solves **37/40 (92.5%)** of clean text logic and spatial navigation problems natively. On those 40 text items, Thinking (37/40) vs PAL (40/40) has discordant pairs 3:0 (exact two-sided McNemar $p = 0.25$), showing **no statistically detectable accuracy difference at $n=40$**.  
+> PAL's statistically verified structural advantage over thinking mode is strictly on **Code Execution Tracing (CruxEval: 20/20 vs 10/20, $p \approx 0.002$)**, eliminating 9,000-character mental thinking loops, deterministic CPU execution, and latency reduction. This 60-item matrix is preserved below for historical audit provenance and continuity as a regression smoke test, but must not be cited as evidence of massive accuracy lift on text reasoning.
+
 - **Run Configuration:** 32k context split into 4 parallel slots (8,192 tokens per slot), 8-bit quantized KV cache (`--cache-type-k q8_0`, `--cache-type-v q8_0`), Flash Attention enabled (`--flash-attn on`).
 
 | Model Scale & Artifact | Active VRAM | Arm A (Bare Weights) | Arm B (PAL Code Synthesis) | Net Overall Lift | **Non-CruxEval Subtotal** (Nav + Logic, n=40) | CruxEval (Code, n=20)* | Logic Deduction (n=20) | Spatial Nav (n=20) | Sealed Audit Report |
@@ -443,11 +450,15 @@ flowchart TD
   | **Non-CruxEval Subtotal** ($n=40$) | **12/40 (30.0%)** | **37/40 (92.5%)** | **40/40 (100.0%)** | **+62.5 pp** | **+7.5 pp** |
   | **Overall (All 3 Domains)** ($n=60$) | **14/60 (23.3%)** | **47/60 (78.3%)** | **60/60 (100.0%)** | **+55.0 pp** | **+21.7 pp** |
 - **Statistical Significance & McNemar Tests:**
-  - **Direct vs Extended Thinking:** Direct won 2, Thinking won 35. Exact two-sided binomial McNemar $p = \mathbf{1.0245 \times 10^{-8}}$. (Proves conclusively that Direct Arm A was severely handicapped by the token cap).
-  - **Extended Thinking vs PAL:** Thinking won 0, PAL won 13. Exact two-sided binomial McNemar $p = \mathbf{2.4414 \times 10^{-4}}$.
+  - **Direct vs Extended Thinking ($n=60$):** Direct won 2, Thinking won 35. Exact two-sided binomial McNemar $p = \mathbf{1.0245 \times 10^{-8}}$. (Proves conclusively that Direct Arm A was severely handicapped by the token cap).
+  - **Extended Thinking vs PAL (All 60 items):** Thinking won 0, PAL won 13. Exact two-sided binomial McNemar $p = \mathbf{2.4414 \times 10^{-4}}$.
+  - **Extended Thinking vs PAL (Non-Crux Text Tasks Only, $n=40$):** Thinking won 0, PAL won 3. Exact two-sided binomial McNemar $p = \mathbf{0.2500}$.
+    * Per domain: Navigation discordant pairs 2:0 ($p = 0.5000$), Deduction discordant pairs 1:0 ($p = 1.0000$).
+    * **Finding:** On clean text algorithmic puzzles, there is **no statistically detectable accuracy difference** between native thinking and PAL at $n=40$. PAL's measured structural advantage is strictly on Code Execution Tracing (CruxEval: 20/20 vs 10/20, $p \approx 0.002$), elimination of 9,000-token mental thinking loops, and deterministic execution.
 - **Locus of PAL's Structural Advantage:**
   - **10 of PAL's 13 wins over Extended Thinking occurred on CruxEval** (code execution tracing). When forced to simulate state mutations across loops in its head, mental simulation failed 50.0% of the time (10/20) due to variable drift and infinite thought loops. PAL executed the code deterministically in $<10\text{ms}$ with 100% precision.
-  - On mental constraint reasoning and spatial navigation, native thinking already achieves **92.5% (37/40)**. PAL provides a targeted **+7.5 pp lift** by eliminating 9,000-character mental coordinate loops.
+  - On mental constraint reasoning and spatial navigation, native thinking already achieves **92.5% (37/40)**. PAL provides a targeted **+7.5 pp lift** (3 items rescued) by eliminating 9,000-character mental coordinate loops.
+
 - **Truncation Rates (`finish_reason == "length"`):**
   - Arm A Direct: **38/60 (63.3%)**
   - Arm A Extended Thinking: **12/60 (20.0%)** (all 12 occurred in long mental simulation loops in Nav and Crux)
@@ -468,34 +479,36 @@ flowchart TD
   - **Pytest Gate:** **81/81 tests passing in 9.61s** ([`tests/test_cegis_python.py`](file:///C:/Projects/ProjectLucca/tests/test_cegis_python.py), [`tests/test_universal_primitives.py`](file:///C:/Projects/ProjectLucca/tests/test_universal_primitives.py), [`tests/test_static_gates.py`](file:///C:/Projects/ProjectLucca/tests/test_static_gates.py), [`tests/test_spatial_dsl.py`](file:///C:/Projects/ProjectLucca/tests/test_spatial_dsl.py)).
   - **Static Typing Gate:** `uv run mypy --strict` 100% clean across all new reasoning modules, audit scripts, and unit tests.
   - **Packaging Gate:** 7/7 passing in 24.7s ([`tests/test_packaging.py`](file:///C:/Projects/ProjectLucca/tests/test_packaging.py)).
-  - **Container Isolation & Negative Breakout Gate (Claude v4 §4.5):** **12/12 live container tests passing in 5.05s** ([`tests/test_milestone2_container_execution.py`](file:///C:/Projects/ProjectLucca/tests/test_milestone2_container_execution.py)). Formally verifies:
+  - **Container Isolation & Negative Breakout Gate (Claude v4 §4.5 & v5 §8):** **13/13 live container tests passing in 4.96s** ([`tests/test_milestone2_container_execution.py`](file:///C:/Projects/ProjectLucca/tests/test_milestone2_container_execution.py)). Formally verifies:
     1. `--network none`: outbound socket connections blocked (`Errno 101 Network is unreachable`).
     2. `--read-only`: root filesystem writes blocked (`EROFS: Read-only file system`).
     3. `--user 1000:1000`: unprivileged non-root execution (`UID=1000, GID=1000`).
     4. Host isolation: Windows drive (`C:\Windows`) unmounted.
-    5. `/tmp` tmpfs `noexec`: binary/script execution from `/tmp` rejected with `PermissionError` (`EACCES`).
+    5. `/tmp` tmpfs `noexec`: binary/script execution from `/tmp` rejected with `PermissionError` (`[Errno 13] Permission denied`).
     6. `/tmp` tmpfs `size=32m`: writes exceeding 32MB rejected with `OSError: [Errno 28] No space left on device`.
     7. `--cap-drop=ALL` & `--security-opt=no-new-privileges`: effective capabilities `CapEff == 0000000000000000` and `NoNewPrivs == 1`.
-    8. `--memory=768m`: memory allocation ceilings enforced via Linux cgroup.
+    8. `--memory=768m`: memory allocation ceilings enforced via Linux cgroup (2GB buffer triggers `MemoryError`).
+    9. `--pids-limit=256`: process fork bombs halted by cgroup pids limit (`BlockingIOError: [Errno 11] Resource temporarily unavailable` at spawned=252).
 
-### 9.15 Sealed Full-Scale OOD Generality Audit with Autonomous CEGIS Repair (Milestone 35.4)
+### 9.15 Sealed 60-Problem OOD Regression Smoke Test with PAL Code Synthesis & Iterative Self-Debugging (WO-35.4)
 - **Harness:** [`scripts/run_ood_generality_audit.py`](file:///C:/Projects/ProjectLucca/scripts/run_ood_generality_audit.py) integrating [`PythonCEGISEngine`](file:///C:/Projects/ProjectLucca/src/lucca/reasoning/cegis_python.py).
 - **Environment:** Resident Gemma 4 12B Heretic Q6_K on single-slot `--parallel 1` (`task-10564`), persistent Docker worker `lucca-file-sandbox` (`DockerRPCTransport`).
 - **Sealed Report:** [`logs/test_reports/ood_generality_audit_1791752034.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/ood_generality_audit_1791752034.json) (Timestamp: 2026-10-11T20:53:54Z).
 - **Factorial Results ($n=60$ tasks across 3 domains):**
-  | Domain / Metric | Arm A (Bare Frozen Weights, $T=0.1$) | Arm B (PAL Synthesis & CEGIS Repair, Docker) | Net Scaffold Lift | Verified Program Wins |
+  | Domain / Metric | Arm A (Bare Frozen Weights, $T=0.1$) | Arm B (PAL Synthesis with Self-Debugging, Docker) | Net Lift over Direct | Verified Program Wins |
   | :--- | :---: | :---: | :---: | :---: |
   | **Spatial Navigation** ($n=20$) | 12/20 (60.0%) | **20/20 (100.0%)** | **+40.0 pp** | 19/20 |
   | **Logical Deduction** ($n=20$) | 1/20 (5.0%) | **20/20 (100.0%)** | **+95.0 pp** | 20/20 |
   | **Code Execution (CruxEval)** ($n=20$) | 2/20 (10.0%) | **20/20 (100.0%)** | **+90.0 pp** | 20/20 |
   | **Non-Crux Subtotal (Nav + Ded)** ($n=40$) | 13/40 (32.5%) | **40/40 (100.0%)** | **+67.5 pp** | 39/40 |
   | **Overall Aggregate** ($n=60$) | **15/60 (25.0%)** | **60/60 (100.0%)** | **+75.0 pp** | **59/60 (98.3%)** |
-- **Key Empirical Invariants Confirmed:**
-  1. **Strict Closed-World Falsification:** **60/60 (100.0%)** non-grid tasks failed when parsed by `spatial_dsl` (`ValueError: invalid literal for int`), formally proving the closed-world nature of 2D matrix DSLs.
-  2. **Empirical Non-Regression ($Arm\ B \ge Arm\ A$):** **100% PRESERVED across all 60 problems**. Exactly zero negative flips observed.
-  3. **Wilson Score 95% Confidence Intervals:**
+- **Key Empirical Findings & Suite Scope:**
+  1. **Suite Ceiling & Regression Scope:** Having reached 60/60 (100.0%), this 60-problem set has reached its measurement ceiling. It is now classified as an **OOD Regression Smoke Test** to catch breakage, and cannot be used to prove broad generalization or measure further headroom.
+  2. **Strict Closed-World Falsification:** **60/60 (100.0%)** non-grid tasks failed when parsed by `spatial_dsl` (`ValueError: invalid literal for int`), formally proving the closed-world nature of 2D matrix DSLs.
+  3. **Empirical Non-Regression ($Arm\ B \ge Arm\ A$):** **100% PRESERVED across all 60 problems**. Exactly zero negative flips observed.
+  4. **Wilson Score 95% Confidence Intervals:**
      - Arm A Overall: $[15.8\%,\ 37.2\%]$
      - Arm B Overall: $[94.0\%,\ 100.0\%]$
-     - Non-overlapping confidence intervals confirming architectural superiority of verified program synthesis over bare zero-shot generation.
+
 
 

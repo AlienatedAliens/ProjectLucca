@@ -263,3 +263,36 @@ except Exception as exc:
     assert "MEMORY_LIMIT_BLOCKED" in str(res.content) or not res.ok
     assert "ALLOCATED_2GB" not in str(res.content)
 
+
+def test_container_pids_limit_fork_bomb(rpc_transport: DockerRPCTransport) -> None:
+    """
+    Verifies that --pids-limit=256 cgroup boundary halts runaway process fork bombs.
+    Spawning 300 children must raise BlockingIOError (Errno 11 Resource temporarily unavailable).
+    """
+    code = """
+import os, time
+pids = []
+try:
+    for i in range(300):
+        pid = os.fork()
+        if pid == 0:
+            time.sleep(5)
+            os._exit(0)
+        pids.append(pid)
+    print(f'SPAWNED_ALL_{len(pids)}')
+except BlockingIOError as e:
+    print(f'FORK_BLOCKED_BY_CGROUP_PIDS_LIMIT: spawned={len(pids)}, error={e}')
+except Exception as e:
+    print(f'FORK_EXCEPTION: spawned={len(pids)}, {type(e).__name__}={e}')
+finally:
+    for p in pids:
+        try: os.kill(p, 9)
+        except: pass
+"""
+    res = rpc_transport.execute(call_id="c-fork-1", tool="run_python", args={"code": code})
+    assert res.ok is True
+    assert "FORK_BLOCKED_BY_CGROUP_PIDS_LIMIT" in str(res.content)
+    assert "Errno 11" in str(res.content)
+    assert "SPAWNED_ALL_300" not in str(res.content)
+
+
