@@ -802,8 +802,50 @@ records:
       doctrine_negative: { passed: true }
       revision_chain: { passed: true, chained_surfaced: 5, non_inventions: 5 }
       stance_consistency: { passed: 10, total: 10, consistency_pct: 100.0, silent_drifts: 0 }
-    git_commit: 1b9f8e549cdf8711cde8819c9aa71ed2924961e0
-    git_dirty: false
+  - benchmark_id: cruxeval_input_dev_50_v1_5_0
+    status: current
+    experiment: >
+      CRUXEval-Input 50-problem dev evaluation (sample_0 to sample_49). Evaluates input prediction:
+      given Python function `f` and target output, predict `f(...)`.
+      Arm A (Direct 1-shot): 38/50 (76.0%), Wilson 95% CI [62.6%, 85.7%].
+      Arm B (One-Shot Verified): 38/50 (76.0%).
+      Arm B (Iterative CEGIS Repair up to 3 turns): 46/50 (92.0%), Wilson 95% CI [81.2%, 96.8%].
+      Rescued: 8 problems rescued specifically by multi-turn counterexample repair (+16.0 pp lift).
+      Discordant pairs: 0:8, exact two-sided McNemar p = 0.00781.
+    run_artifacts:
+      - logs/test_reports/cruxeval_input_dev_1791762821248.json
+    harness_version: scripts/run_cruxeval_input.py
+    model: gemma_4_12b_heretic_q6k
+    results:
+      arm_a_direct: { passed: 38, total: 50, accuracy_pct: 76.0, wilson_95_ci: "[0.6259, 0.8570]" }
+      arm_b_one_shot: { passed: 38, total: 50, accuracy_pct: 76.0 }
+      arm_b_cegis: { passed: 46, total: 50, accuracy_pct: 92.0, wilson_95_ci: "[0.8116, 0.9685]" }
+      cegis_rescue_count: 8
+      cegis_rescue_lift_pp: 16.0
+      mcnemar_two_sided_p: 0.0078125
+    git_commit: 39d0e76c1ef5d06e835e1049de5b34d98fb01b15
+
+  - benchmark_id: cruxeval_input_sealed_100_v1_5_0
+    status: current
+    experiment: >
+      CRUXEval-Input 100-problem sealed held-out evaluation (sample_50 to sample_149).
+      Arm A (Direct 1-shot): 63/100 (63.0%), Wilson 95% CI [53.2%, 71.8%].
+      Arm B (One-Shot Verified): 64/100 (64.0%).
+      Arm B (Iterative CEGIS Repair up to 3 turns): 78/100 (78.0%), Wilson 95% CI [68.9%, 85.0%].
+      Rescued: 14 problems rescued specifically by multi-turn counterexample repair (+14.0 pp lift).
+      Discordant pairs: 0:15, exact two-sided McNemar p = 0.000061 (p = 6.1e-5).
+    run_artifacts:
+      - logs/test_reports/cruxeval_input_sealed_1791763075938.json
+    harness_version: scripts/run_cruxeval_input.py
+    model: gemma_4_12b_heretic_q6k
+    results:
+      arm_a_direct: { passed: 63, total: 100, accuracy_pct: 63.0, wilson_95_ci: "[0.5320, 0.7180]" }
+      arm_b_one_shot: { passed: 64, total: 100, accuracy_pct: 64.0 }
+      arm_b_cegis: { passed: 78, total: 100, accuracy_pct: 78.0, wilson_95_ci: "[0.6890, 0.8500]" }
+      cegis_rescue_count: 14
+      cegis_rescue_lift_pp: 14.0
+      mcnemar_two_sided_p: 0.000061
+    git_commit: 39d0e76c1ef5d06e835e1049de5b34d98fb01b15
 
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
@@ -842,4 +884,7 @@ cited_figures:
   "46.0% MATH-500 B4 sealed 100 (12B R1 think6144)": math500_b4_sealed_12b_v1_35_6
   "30.0% E4B native refusal (3/10, Block B2 live)": tts_guard_efficacy_e4b_v1_35_6
   "0.0% TTS guard false-block (0/20 benign control, Block B2 live)": tts_guard_efficacy_e4b_v1_35_6
+  "92.0% CRUXEval-Input Dev 50 (CEGIS Engine)": cruxeval_input_dev_50_v1_5_0
+  "78.0% CRUXEval-Input Sealed 100 (CEGIS Engine)": cruxeval_input_sealed_100_v1_5_0
+  "+14.0 pp / +16.0 pp CRUXEval-Input CEGIS Rescue Lift": cruxeval_input_sealed_100_v1_5_0
 

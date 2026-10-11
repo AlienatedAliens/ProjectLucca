@@ -510,5 +510,28 @@ flowchart TD
      - Arm A Overall: $[15.8\%,\ 37.2\%]$
      - Arm B Overall: $[94.0\%,\ 100.0\%]$
 
-
-
+### 9.16 Formal Evaluation on CRUXEval-Input Benchmark & CEGIS Verification Delta (WO-35.6)
+- **Harness:** [`scripts/run_cruxeval_input.py`](file:///C:/Projects/ProjectLucca/scripts/run_cruxeval_input.py) against resident Gemma 4 12B Heretic Q6_K (`task-10564`) and hardened Docker worker `lucca-file-sandbox` (`DockerRPCTransport(use_direct_fallback=False)`).
+- **Core Methodology (Addressing Claude v5 §3 & §6.3):**
+  - Unlike CRUXEval-Output (which is solved 100% by executing the function in a sandbox), **CRUXEval-Input** evaluates inverse reasoning: given function `f` and target output $y$, synthesize input argument $x$ such that `f(x) == y`.
+  - Execution does NOT solve CRUXEval-Input by construction. It serves as the deterministic oracle inside a **Counterexample-Guided Inductive Synthesis (CEGIS) / Self-Debugging loop**:
+    - **Turn 1:** Model hypothesizes initial candidate call `f(x_0)`.
+    - **Sandbox Execution:** Runs candidate inside Docker container. If `f(x_0) == y`, verified!
+    - **Turns 2–3 (Repair Loop):** If execution yields output mismatch (`got repr(actual), expected repr(y)`) or a runtime exception (traceback), the concrete counterexample is fed back into the prompt to refine the hypothesis.
+- **Empirical Results:**
+  | Split & Metric | Arm A (Direct 1-Shot, $T=0$) | Arm B (One-Shot PAL, Docker) | Arm B (Iterative CEGIS, up to 3 turns) | CEGIS Rescue Lift | Rescued Items | Exact McNemar Two-Sided $p$ |
+  | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+  | **Dev Split** ($n=50$) | 38/50 (76.0%) | 38/50 (76.0%) | **46/50 (92.0%)** | **+16.0 pp** | 8/50 items | $\mathbf{0.0078}$ ($p < 0.01$) |
+  | **Sealed Held-Out** ($n=100$) | 63/100 (63.0%) | 64/100 (64.0%) | **78/100 (78.0%)** | **+14.0 pp** | 14/100 items | $\mathbf{0.00006}$ ($p = 6.1 \times 10^{-5}$) |
+  | **Combined Aggregate** ($n=150$) | 101/150 (67.3%) | 102/150 (68.0%) | **124/150 (82.7%)** | **+14.7 pp** | **22/150 items** | $\mathbf{2.38 \times 10^{-7}}$ |
+- **Key Empirical Invariants Confirmed:**
+  1. **Direct Empirical Demonstration of CEGIS Rescue:** Formally measures the exact value of self-debugging and counterexample-driven repair beyond one-shot synthesis. On 22 distinct problems where one-shot synthesis failed (e.g., casing mismatches, off-by-one list indexing, boundary condition errors), the counterexample allowed the model to self-correct and pass on Turn 2 or Turn 3.
+  2. **Statistical Significance:** McNemar discordant pairs are **0:22** across all 150 items (zero negative flips). The hypothesis that CEGIS repair does not lift accuracy over direct/one-shot synthesis is rejected at $p = 2.38 \times 10^{-7}$.
+  3. **Failure Stage Taxonomy on Remaining 26 Failures:**
+     - `OUTPUT_MISMATCH`: 18/26 (69.2%) — model made incorrect logical assumptions about complex string manipulations that failed 3 consecutive repair turns.
+     - `TRANSLATION_NO_CALL`: 5/26 (19.2%) — model emitted pseudo-code or comments instead of a valid executable function call.
+     - `RUNTIME_ERROR`: 3/26 (11.5%) — unhandled syntax or type exception in candidate input.
+- **Sealed Artifacts & Manifest Records:**
+  - Dev Report: [`logs/test_reports/cruxeval_input_dev_1791762821248.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/cruxeval_input_dev_1791762821248.json)
+  - Sealed Report: [`logs/test_reports/cruxeval_input_sealed_1791763075938.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/cruxeval_input_sealed_1791763075938.json)
+  - Pinned Manifest Records: `cruxeval_input_dev_50_v1_5_0` and `cruxeval_input_sealed_100_v1_5_0` in [`data/benchmarks/MANIFEST.yaml`](file:///C:/Projects/ProjectLucca/data/benchmarks/MANIFEST.yaml).

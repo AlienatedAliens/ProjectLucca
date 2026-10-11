@@ -443,15 +443,17 @@ def evaluate_cruxeval(ex: dict[str, Any], idx: int) -> AuditProblemResult:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Out-of-Distribution Generality Audit")
     parser.add_argument("--samples", type=int, default=20, help="Number of samples per domain (default: 20)")
+    parser.add_argument("--offset", type=int, default=0, help="Offset into dataset (e.g. 20 for held-out items)")
     args = parser.parse_args()
 
     n_samples: int = args.samples
+    offset: int = args.offset
     print(f"=================================================================")
     print(f"=== PROJECT LUCCA: OUT-OF-DISTRIBUTION GENERALITY AUDIT ===")
     print(f"=================================================================")
     print(f"Timestamp: {datetime.now(UTC).isoformat()}")
     print(f"Target Server: {SERVER_URL}")
-    print(f"Sample Size: {n_samples} per domain (Total {n_samples * 3} problems)")
+    print(f"Sample Size: {n_samples} per domain (Offset: {offset}, Total {n_samples * 3} problems)")
     print(f"Testing BOTH Audit Interpretations:")
     print(f"  1. Strict Closed-World Falsification (spatial_dsl compatibility probe)")
     print(f"  2. Domain-General Architectural Transfer (Arm A Bare vs Arm B Neurosymbolic)\n")
@@ -462,10 +464,10 @@ def main() -> None:
     # Domain 1: Spatial & Vector Navigation
     # -------------------------------------------------------------------------
     nav_file = REPO_ROOT / "data" / "benchmarks" / "bbh_navigate.json"
-    nav_data = json.loads(nav_file.read_text(encoding="utf-8"))["examples"][:n_samples]
-    print(f"--- [Domain 1/3] Spatial & Vector Navigation ({len(nav_data)} tasks) ---", flush=True)
+    nav_data = json.loads(nav_file.read_text(encoding="utf-8"))["examples"][offset : offset + n_samples]
+    print(f"--- [Domain 1/3] Spatial & Vector Navigation ({len(nav_data)} tasks, offset={offset}) ---", flush=True)
     for idx, ex in enumerate(nav_data, 1):
-        res = evaluate_navigate(ex, idx)
+        res = evaluate_navigate(ex, offset + idx)
         results.append(res)
         tag = "LIFT +1" if res.arm_b_success and not res.arm_a_success else ("SAME" if res.arm_a_success == res.arm_b_success else "REGRESSION -1")
         print(f"[{idx:02d}/{len(nav_data)}] Nav | Arm A: {'PASS' if res.arm_a_success else 'FAIL'} | Arm B: {'PASS' if res.arm_b_success else 'FAIL'} ({res.arm_b_method}) [{tag}] | CW Fail: {res.closed_world_error[:35]} ({res.elapsed_ms:.0f}ms)", flush=True)
@@ -474,10 +476,10 @@ def main() -> None:
     # Domain 2: Symbolic Relational Deduction
     # -------------------------------------------------------------------------
     ded_file = REPO_ROOT / "data" / "benchmarks" / "bbh_logical_deduction_three_objects.json"
-    ded_data = json.loads(ded_file.read_text(encoding="utf-8"))["examples"][:n_samples]
-    print(f"\n--- [Domain 2/3] Symbolic Relational Deduction ({len(ded_data)} tasks) ---", flush=True)
+    ded_data = json.loads(ded_file.read_text(encoding="utf-8"))["examples"][offset : offset + n_samples]
+    print(f"\n--- [Domain 2/3] Symbolic Relational Deduction ({len(ded_data)} tasks, offset={offset}) ---", flush=True)
     for idx, ex in enumerate(ded_data, 1):
-        res = evaluate_logical_deduction(ex, idx)
+        res = evaluate_logical_deduction(ex, offset + idx)
         results.append(res)
         tag = "LIFT +1" if res.arm_b_success and not res.arm_a_success else ("SAME" if res.arm_a_success == res.arm_b_success else "REGRESSION -1")
         print(f"[{idx:02d}/{len(ded_data)}] Ded | Arm A: {'PASS' if res.arm_a_success else 'FAIL'} | Arm B: {'PASS' if res.arm_b_success else 'FAIL'} ({res.arm_b_method}) [{tag}] | CW Fail: {res.closed_world_error[:35]} ({res.elapsed_ms:.0f}ms)", flush=True)
@@ -486,11 +488,11 @@ def main() -> None:
     # Domain 3: Code Execution & Invariant Tracing
     # -------------------------------------------------------------------------
     crux_file = REPO_ROOT / "data" / "benchmarks" / "cruxeval" / "data" / "cruxeval.jsonl"
-    crux_lines = crux_file.read_text(encoding="utf-8").strip().split("\n")[:n_samples]
+    crux_lines = crux_file.read_text(encoding="utf-8").strip().split("\n")[offset : offset + n_samples]
     crux_data = [json.loads(line) for line in crux_lines]
-    print(f"\n--- [Domain 3/3] Code Execution & Invariant Tracing ({len(crux_data)} tasks) ---", flush=True)
+    print(f"\n--- [Domain 3/3] Code Execution & Invariant Tracing ({len(crux_data)} tasks, offset={offset}) ---", flush=True)
     for idx, ex in enumerate(crux_data, 1):
-        res = evaluate_cruxeval(ex, idx)
+        res = evaluate_cruxeval(ex, offset + idx)
         results.append(res)
         tag = "LIFT +1" if res.arm_b_success and not res.arm_a_success else ("SAME" if res.arm_a_success == res.arm_b_success else "REGRESSION -1")
         print(f"[{idx:02d}/{len(crux_data)}] Crux| Arm A: {'PASS' if res.arm_a_success else 'FAIL'} | Arm B: {'PASS' if res.arm_b_success else 'FAIL'} ({res.arm_b_method}) [{tag}] | CW Fail: {res.closed_world_error[:35]} ({res.elapsed_ms:.0f}ms)", flush=True)
