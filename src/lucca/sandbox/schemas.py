@@ -258,7 +258,14 @@ class CancelTaskArgs(BaseModel):
     task_id: str = Field(min_length=1)
 
 
+class ContainerWorldArgs(BaseModel):
+    events: list[dict[str, JsonValue]] = Field(default_factory=list)
+    query_item: str = Field(min_length=1)
+    query_agent: str | None = None
+
+
 TOOL_ARG_SCHEMAS: dict[str, type[BaseModel]] = {
+    "container_world": ContainerWorldArgs,
     "read_file": ReadFileArgs,
     "write_file": WriteFileArgs,
     "search_web": SearchWebArgs,
@@ -307,6 +314,7 @@ __all__ = [
     "CalcMathArgs",
     "CancelTaskArgs",
     "ClipboardReadArgs",
+    "ContainerWorldArgs",
     "DeleteFileArgs",
     "EXTRA_TOOL_SCHEMAS",
     "FetchUrlArgs",

@@ -37,6 +37,7 @@ from lucca.sandbox.schemas import (
     TOOL_ARG_SCHEMAS,
     ArtifactVerifyArgs,
     CalcMathArgs,
+    ContainerWorldArgs,
     FetchUrlArgs,
     InboxHandoffArgs,
     LaunchAppArgs,
@@ -638,6 +639,42 @@ class SandboxService:
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("calc_math_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        # 4d. ContainerWorld Spatial & Theory-of-Mind State Tracker
+        if tool_name == "container_world":
+            try:
+                cw_args = ContainerWorldArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=-1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                from lucca.sandbox.container_world import ContainerWorld  # noqa: PLC0415
+
+                cw = ContainerWorld()
+                cw.process_events(cw_args.events)
+                loc = cw.query(cw_args.query_agent, cw_args.query_item)
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    content=f"Location: {loc}" if loc else "Location: unknown",
+                    structured={"location": loc, "world_state": cw.export_state()},
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("container_world_failed", error=str(exc))
                 return ToolResult(
                     call_id=call_id,
                     ok=False,

@@ -58,6 +58,7 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "sys_info": Risk.READ,
     "invoke_skill": Risk.READ,
     "calc_math": Risk.READ,
+    "container_world": Risk.READ,
     "schedule_event": Risk.READ,
     "artifact_verify": Risk.READ,
     "clipboard_read": Risk.READ,
