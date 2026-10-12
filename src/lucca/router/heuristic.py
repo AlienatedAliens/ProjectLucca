@@ -138,6 +138,45 @@ INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     "launch_app": "self",
 }
 
+CONTAINER_WORLD_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"where\s+would\s+[a-z]+\s+look|"
+    r"where\s+(?:is|was|did\s+[a-z]+\s+(?:put|move|leave))|"
+    r"who\s+(?:moved|took|has|placed)\s+the|"
+    r"what\s+is\s+the\s+location\s+of|"
+    r"find\s+the\s+[a-z]+\s+given"
+    r")\b",
+    re.IGNORECASE,
+)
+
+COMBINATORIAL_SMT_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"zebra\s+puzzle|"
+    r"einstein'?s\s+puzzle|"
+    r"satisfy\s+(?:the\s+following\s+)?constraints|"
+    r"truth[\s-]teller\s+and\s+liar|"
+    r"knights?\s+and\s+knaves?|"
+    r"five\s+houses|"
+    r"which\s+house|"
+    r"logic\s+grid|"
+    r"z3|"
+    r"smt\s+solver"
+    r")\b",
+    re.IGNORECASE,
+)
+
+SOFT_LOGIC_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"which\s+(?:statement|conclusion|hypothesis)\s+is\s+(?:true|false|correct|most\s+likely)|"
+    r"based\s+on\s+the\s+(?:story|context|passage)|"
+    r"deduce\s+whether|"
+    r"logically\s+follows|"
+    r"murder\s+mystery|"
+    r"who\s+committed\s+the\s+crime"
+    r")\b",
+    re.IGNORECASE,
+)
+
 
 def map_intent_to_category(
     intent: str,
@@ -419,6 +458,7 @@ class HeuristicRouter:
         mode: Literal["audio", "transcript", "vision"] = "transcript",
         has_registered_rule: bool = False,
         feats: RouteFeatures | None = None,
+        model_tier: Literal["12B", "E4B", "E2B"] | None = None,
     ) -> RouteDecision:
         """
         Executes routing decision logic per Spec 06 §1 & §2 and logs full DecisionRecord.
@@ -518,6 +558,41 @@ class HeuristicRouter:
         else:
             tier = ExecutionTier.FULL_LOOP
 
+        # Dynamic Tiered Neurosymbolic Reasoning & Thinking Mode Dispatch
+        if model_tier is None:
+            try:
+                cfg_model = get_config().model.lower()
+                if "e2b" in cfg_model:
+                    effective_tier = "E2B"
+                elif "e4b" in cfg_model:
+                    effective_tier = "E4B"
+                else:
+                    effective_tier = "12B"
+            except Exception:
+                effective_tier = "12B"
+        else:
+            effective_tier = model_tier
+
+        reasoning_domain: str | None = None
+        solver_tool: str | None = None
+        thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
+
+        if action_lit == "LLM":
+            if CONTAINER_WORLD_PATTERN.search(text_lower):
+                reasoning_domain = "spatial_relocation"
+                solver_tool = "container_world"
+                thinking_mode = "direct"
+            elif COMBINATORIAL_SMT_PATTERN.search(text_lower):
+                reasoning_domain = "combinatorial_smt"
+                solver_tool = "z3_smt"
+                thinking_mode = "direct"
+            elif SOFT_LOGIC_PATTERN.search(text_lower):
+                reasoning_domain = "soft_logic"
+                if effective_tier == "12B":
+                    thinking_mode = "direct"  # Avoid 36.7% overthinking collapse on 12B
+                else:
+                    thinking_mode = "thinking"  # Capture 23% -> 63% thinking lift on edge tiers
+
         route_action = RouteAction(action_lit)
         decision = RouteDecision(
             action=route_action,
@@ -527,6 +602,9 @@ class HeuristicRouter:
             fallback_applied=fallback_applied,
             calibrated=calibrated,
             elapsed_us=elapsed_us,
+            thinking_mode=thinking_mode,
+            solver_tool=solver_tool,
+            reasoning_domain=reasoning_domain,
         )
 
         features = RouteFeatures(
@@ -547,6 +625,9 @@ class HeuristicRouter:
             any_quarantine_rule_fired=any_quarantine_rule_fired,
             has_registered_rule=has_registered_rule,
             tier=tier,
+            thinking_mode=thinking_mode,
+            solver_tool=solver_tool,
+            reasoning_domain=reasoning_domain,
         )
 
         tid = trace_id or f"trace-{uuid.uuid4().hex[:8]}"

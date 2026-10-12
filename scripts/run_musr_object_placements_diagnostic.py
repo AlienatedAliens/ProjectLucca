@@ -59,6 +59,7 @@ def query_llm(
     max_tokens: int = 512,
     temperature: float = 0.0,
     enable_thinking: bool = False,
+    response_format: dict[str, Any] | None = None,
 ) -> tuple[str, str, int]:
     messages = [
         {
@@ -76,6 +77,8 @@ def query_llm(
         "temperature": temperature,
         "stream": False,
     }
+    if response_format is not None:
+        payload["response_format"] = response_format
     if not enable_thinking:
         payload["chat_template_kwargs"] = {"enable_thinking": False}
 
@@ -175,19 +178,24 @@ def run_container_world_solver(
     """
     t0 = time.perf_counter()
     prompt = (
-        "You are an expert spatial logician and entity extraction system.\n"
-        "Read the following story and extract all physical object placements, moves, and observations into JSON.\n\n"
+        "Extract the sequence of physical object placement and movement events from this story.\n"
+        "Return ONLY a JSON object with key \"events\", containing a list of dictionaries with:\n"
+        "- \"agent\": name of person moving or observing the object\n"
+        "- \"action\": \"put\", \"move\", or \"observe\"\n"
+        "- \"item\": item being moved\n"
+        "- \"location\": destination location\n"
+        "- \"observed_by\": list of other agents present who saw this\n\n"
         f"Story:\n{story}\n\n"
-        "Output ONLY a valid JSON object with the key 'events', where each item has:\n"
-        "- 'agent': name of the character acting (or null)\n"
-        "- 'action': 'place', 'move', or 'glimpse'\n"
-        "- 'item': name of the object being moved or seen\n"
-        "- 'location': where the object is moved to or seen at\n"
-        "- 'observed_by': list of characters who saw this event\n"
-        "Format: ```json\n{\"events\": [...]}\n```"
+        "Format: {\"events\": [...]}"
     )
 
-    raw, fin, tok = query_llm(prompt, max_tokens=1024, temperature=0.0, enable_thinking=False)
+    raw, fin, tok = query_llm(
+        prompt,
+        max_tokens=2048,
+        temperature=0.0,
+        enable_thinking=False,
+        response_format={"type": "json_object"},
+    )
     m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
     json_str = m.group(1) if m else raw.strip()
 
@@ -195,17 +203,34 @@ def run_container_world_solver(
     syntax_ok = False
     try:
         data = json.loads(json_str)
-        events = data.get("events", [])
         syntax_ok = True
+        if isinstance(data, dict):
+            if "events" in data and isinstance(data["events"], list):
+                events = data["events"]
+            else:
+                for v in data.values():
+                    if isinstance(v, list):
+                        events = v
+                        break
+        elif isinstance(data, list):
+            events = data
     except Exception:
-        # Try finding json array
-        m_arr = re.search(r"\[\s*\{.*?\}\s*\]", raw, re.DOTALL)
-        if m_arr:
-            try:
+        # Fallback: attempt to salvage truncated JSON or extract valid object array
+        try:
+            m_arr = re.search(r"\[\s*\{.*?\}\s*\]", raw, re.DOTALL)
+            if m_arr:
                 events = json.loads(m_arr.group(0))
                 syntax_ok = True
-            except Exception:
-                pass
+            else:
+                # If cut off at end, close brackets
+                last_brace = json_str.rfind("}")
+                if last_brace != -1:
+                    repaired = json_str[:last_brace+1] + "\n]}"
+                    data = json.loads(repaired)
+                    events = data.get("events", [])
+                    syntax_ok = True
+        except Exception:
+            pass
 
     tracker = ContainerWorld()
     for ev in events:

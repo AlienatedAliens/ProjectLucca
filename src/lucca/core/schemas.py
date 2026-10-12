@@ -725,6 +725,9 @@ class RouteFeatures(BaseModel):
     any_quarantine_rule_fired: bool = False
     has_registered_rule: bool = False
     tier: ExecutionTier = ExecutionTier.FULL_LOOP
+    thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
+    solver_tool: str | None = None
+    reasoning_domain: str | None = None
 
 
 class RouteDecision(BaseModel):
@@ -735,6 +738,9 @@ class RouteDecision(BaseModel):
     fallback_applied: bool = False
     calibrated: bool = False
     elapsed_us: int
+    thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
+    solver_tool: str | None = None
+    reasoning_domain: str | None = None
 
 
 class DecisionLabel(StrEnum):
