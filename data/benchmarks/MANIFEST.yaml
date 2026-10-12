@@ -1536,6 +1536,165 @@ records:
   run_artifacts:
   - logs/test_reports/edge_tier_ladder_e4b_1791774277.json
   status: current
+- benchmark_id: ood_e2b_ablation_ladder_v1_5_0
+  experiment: "Gemma 4 E2B Heretic Sinhala Q6_K full ablation ladder benchmark across\
+    \ all 60 problems in the OOD suite on single-slot (--parallel 1) inference with\
+    \ Docker sandboxing.\nRung Results:\n  - Rung 1: Direct Non-Truncated (max_tokens=2048,\
+    \ T=0.0): 40/60 (66.7%) [Non-Crux: 37/40 (92.5%)].\n  - Rung 2: Native Thinking\
+    \ (max_tokens=3072, T=0.6, top_p=0.95): 47/60 (78.3%) [Non-Crux: 37/40 (92.5%),\
+    \ Crux: 10/20 (50.0%)].\n  - Rung 3: One-Shot PAL (Docker container): 39/60 (65.0%)\
+    \ [Non-Crux: 20/40 (50.0%), Crux: 19/20 (95.0%)].\n  - Rung 4: PAL + Multi-Turn\
+    \ CEGIS Traceback Repair: 35/60 (58.3%) [Non-Crux: 18/40 (45.0%), Crux: 17/20\
+    \ (85.0%)].\n  - Rung 7: Best-of-3 PAL Control (unconditioned sampling): 38/60\
+    \ (63.3%).\n  - Rung 5: Fallback Cascade (PAL + CEGIS Repair -> Native Thinking\
+    \ Fallback): 56/60 (93.3%) [Non-Crux: 38/40 (95.0%), Crux: 18/20 (90.0%)].\nStatistical\
+    \ Findings (Review Notes v7 §5):\n  1. Fallback Cascade vs Native Thinking: +9\
+    \ items rescued (+15.0 pp net lift, 47/60 -> 56/60), discordant pairs 9:0, exact\
+    \ McNemar two-sided p = 0.00391 (p < 0.01).\n  2. Synthesis Boundary at 2.3B:\
+    \ PAL code synthesis collapses on text puzzles (45-50%) due to syntax/scoping\
+    \ errors, while Native Thinking is strong (92.5%). The Fallback Cascade seamlessly\
+    \ bridges this gap by routing failed executions to thinking.\n  3. Ultra-Low Memory\
+    \ Frontier: E2B Fallback Cascade achieves 93.3% accuracy at only 3,404 MiB VRAM\
+    \ on the RTX 5080 Laptop GPU."
+  git_commit: 00c84bf
+  harness_version: scripts/run_edge_tier_ladder.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  config:
+    parallel: 1
+    tier: e2b
+  results:
+    rung1_direct:
+      passed: 40
+      total: 60
+      accuracy_pct: 66.7
+    rung2_thinking:
+      passed: 47
+      total: 60
+      accuracy_pct: 78.3
+      non_crux_pct: 92.5
+    rung3_oneshot_pal:
+      passed: 39
+      total: 60
+      accuracy_pct: 65.0
+    rung4_cegis_repair:
+      passed: 35
+      total: 60
+      accuracy_pct: 58.3
+    rung7_best_of_3_control:
+      passed: 38
+      total: 60
+      accuracy_pct: 63.3
+    rung5_fallback_cascade:
+      passed: 56
+      total: 60
+      accuracy_pct: 93.3
+      non_crux_pct: 95.0
+      crux_pct: 90.0
+    statistical_comparisons:
+      cascade_vs_thinking:
+        lift_pp: 15.0
+        discordant_pairs:
+        - 9
+        - 0
+        mcnemar_two_sided_p: 0.00390625
+    hardware_footprint:
+      gpu_name: NVIDIA GeForce RTX 5080 Laptop GPU
+      peak_vram_mib: 3404.0
+      llama_server_ram_mb: 2351.3
+  run_artifacts:
+  - logs/test_reports/edge_tier_ladder_e2b_1791776444.json
+  status: current
+- benchmark_id: zebra_logic_difficulty_sweep_v1_5_0
+  experiment: "ZebraLogic Parametric Difficulty Sweep Benchmark across 4 search-space\
+    \ complexity tiers on Gemma 4 E2B Heretic Sinhala Q6_K:\n  - Tier 2x2 (2 states):\
+    \ Direct 4/5 (80.0%), Think 4/5 (80.0%), Z3 4/5 (80.0%).\n  - Tier 3x3 (36 states):\
+    \ Direct 1/5 (20.0%), Think 4/5 (80.0%), Z3 4/5 (80.0%).\n  - Tier 4x4 (13,824\
+    \ states): Direct 0/5 (0.0%), Think 2/5 (40.0%), Z3 5/5 (100.0%).\n  - Tier 5x5\
+    \ (207,360,000 states): Direct 1/5 (20.0%), Think 4/5 (80.0%), Z3 5/5 (100.0%).\n\
+    Aggregate Findings:\n  1. Curse of Complexity: Direct non-thinking collapses from\
+    \ 80% down to 0-20% as search space grows beyond 2 states.\n  2. SMT Scaling Flatness:\
+    \ Z3 SMT solver in Docker maintains 100% precision on large grids (Tier 4 & 5)\
+    \ with invariant sub-60ms execution latency regardless of combinatorial explosion.\n\
+    \  3. Aggregate Accuracy: Direct 6/20 (30.0%) vs Thinking 14/20 (70.0%) vs Z3\
+    \ SMT 18/20 (90.0%)."
+  git_commit: 00c84bf
+  harness_version: scripts/run_zebra_logic_sweep.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    tier_2x2:
+      states: 2
+      direct_pct: 80.0
+      thinking_pct: 80.0
+      z3_pct: 80.0
+    tier_3x3:
+      states: 36
+      direct_pct: 20.0
+      thinking_pct: 80.0
+      z3_pct: 80.0
+    tier_4x4:
+      states: 13824
+      direct_pct: 0.0
+      thinking_pct: 40.0
+      z3_pct: 100.0
+    tier_5x5:
+      states: 207360000
+      direct_pct: 20.0
+      thinking_pct: 80.0
+      z3_pct: 100.0
+    aggregate:
+      direct_passed: 6
+      thinking_passed: 14
+      z3_passed: 18
+      total: 20
+  run_artifacts:
+  - logs/test_reports/zebra_logic_sweep_1791777112.json
+  status: current
+- benchmark_id: bbh_heldout_suite_e2b_v1_5_0
+  experiment: "Held-Out BBH Multi-Domain Reasoning Benchmark across 5 untouched tasks\
+    \ (50 problems total) on Gemma 4 E2B Heretic Sinhala Q6_K:\n  - boolean_expressions\
+    \ (n=10): Direct 8/10 (80.0%), Think 8/10 (80.0%).\n  - date_understanding (n=10):\
+    \ Direct 8/10 (80.0%), Think 5/10 (50.0%).\n  - web_of_lies (n=10): Direct 2/10\
+    \ (20.0%), Think 1/10 (10.0%) [severe neural collapse on parity chains].\n  -\
+    \ tracking_shuffled_objects (n=10): Direct 10/10 (100.0%), Think 8/10 (80.0%).\n\
+    \  - formal_fallacies (n=10): Direct 8/10 (80.0%), Think 10/10 (100.0%) [thinking\
+    \ provides 100% precision on deductive syllogisms].\nAggregate Findings:\n  1.\
+    \ Direct 36/50 (72.0%) vs Thinking 32/50 (64.0%).\n  2. Task-Specific Divergence:\
+    \ Formal fallacies benefit massively from extended thinking (+20.0 pp), while\
+    \ boolean parity chains (web_of_lies) collapse under pure neural generation without\
+    \ a symbolic evaluator (10-20%)."
+  git_commit: 00c84bf
+  harness_version: scripts/run_bbh_heldout_suite.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total: 50
+    direct_passed: 36
+    direct_pct: 72.0
+    thinking_passed: 32
+    thinking_pct: 64.0
+    tasks:
+      boolean_expressions:
+        direct: 8
+        thinking: 8
+        total: 10
+      date_understanding:
+        direct: 8
+        thinking: 5
+        total: 10
+      web_of_lies:
+        direct: 2
+        thinking: 1
+        total: 10
+      tracking_shuffled_objects:
+        direct: 10
+        thinking: 8
+        total: 10
+      formal_fallacies:
+        direct: 8
+        thinking: 10
+        total: 10
+  run_artifacts:
+  - logs/test_reports/bbh_heldout_suite_1791777551.json
+  status: current
 cited_figures:
   100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
   100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0

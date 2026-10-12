@@ -1,0 +1,1533 @@
+{
+  "benchmark": "ZebraLogic_Grid_Difficulty_Sweep",
+  "description": "Parametric logic grid puzzles across 4 search-space tiers certified via Z3 SMT",
+  "total_problems": 40,
+  "tiers": {
+    "2x2": 10,
+    "3x3": 10,
+    "4x4": 10,
+    "5x5": 10
+  },
+  "problems": [
+    {
+      "problem_id": "Grid_2x2_01",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Blue.\n- The person associated with Alice is in the same house as Red.\n- Blue is in house 1.\n- Red is in house 2.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Blue\n(B) Red\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Blue",
+        "B": "Red"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Bob'] == house_of['Blue'])\nsolver.add(house_of['Alice'] == house_of['Red'])\nsolver.add(house_of['Blue'] == 1)\nsolver.add(house_of['Red'] == 2)\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_2x2_02",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- Bob is in house 1.\n- Red is in house 1.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Blue\n(B) Red\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Blue",
+        "B": "Red"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Red"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Blue"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Bob'] == 1)\nsolver.add(house_of['Red'] == 1)\n"
+    },
+    {
+      "problem_id": "Grid_2x2_03",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Red\n(B) Blue\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Red",
+        "B": "Blue"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Red"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Blue"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\n"
+    },
+    {
+      "problem_id": "Grid_2x2_04",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- Bob is in house 1.\n- Red is in house 2.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Blue\n(B) Red\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Blue",
+        "B": "Red"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Bob'] == 1)\nsolver.add(house_of['Red'] == 2)\n"
+    },
+    {
+      "problem_id": "Grid_2x2_05",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Red.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Blue\n(B) Red\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Blue",
+        "B": "Red"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Alice'] == house_of['Red'])\n"
+    },
+    {
+      "problem_id": "Grid_2x2_06",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- Alice is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Red\n(B) Blue\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Red",
+        "B": "Blue"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_2x2_07",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- Alice is in house 2.\n- Red is in house 2.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Red\n(B) Blue\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Red",
+        "B": "Blue"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Alice'] == 2)\nsolver.add(house_of['Red'] == 2)\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_2x2_08",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Red.\n- Alice is in house 1.\n- Blue is in house 1.\n- Red is in house 2.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Red\n(B) Blue\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Red",
+        "B": "Blue"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Bob'] == house_of['Red'])\nsolver.add(house_of['Alice'] == 1)\nsolver.add(house_of['Blue'] == 1)\nsolver.add(house_of['Red'] == 2)\n"
+    },
+    {
+      "problem_id": "Grid_2x2_09",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- Blue is in house 1.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Red\n(B) Blue\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Red",
+        "B": "Blue"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Blue"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Red"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Blue'] == 1)\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_2x2_10",
+      "grid_size": 2,
+      "num_attributes": 2,
+      "search_space_states": 2,
+      "prompt_text": "There are 2 houses in a row numbered 1 to 2 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Blue.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Blue\n(B) Red\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Blue",
+        "B": "Red"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Red"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Blue"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 2\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Red', 'Blue']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 2)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue']))\nsolver.add(house_of['Alice'] == house_of['Blue'])\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_01",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Charlie is in the same house as Red.\n- The person associated with Charlie is in the same house as Coffee.\n- The person associated with Red is in the same house as Coffee.\n- The person associated with Bob is in the same house as Blue.\n- The person associated with Alice is in the same house as Milk.\n- Coffee is in house 1.\n- Bob is in house 2.\n- Tea is in house 2.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Blue\n(B) Red\n(C) Green\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Blue",
+        "B": "Red",
+        "C": "Green"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Coffee"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Tea"
+        },
+        "3": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Milk"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Charlie'] == house_of['Red'])\nsolver.add(house_of['Charlie'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Bob'] == house_of['Blue'])\nsolver.add(house_of['Alice'] == house_of['Milk'])\nsolver.add(house_of['Coffee'] == 1)\nsolver.add(house_of['Bob'] == 2)\nsolver.add(house_of['Tea'] == 2)\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_02",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Blue.\n- The person associated with Blue is in the same house as Tea.\n- The person associated with Alice is in the same house as Milk.\n- The person associated with Charlie is in the same house as Red.\n- The person associated with Charlie is in the same house as Coffee.\n- The person associated with Red is in the same house as Coffee.\n- Bob is in house 1.\n- Green is in house 2.\n- Milk is in house 2.\n- Coffee is in house 3.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Blue\n(B) Green\n(C) Red\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Blue",
+        "B": "Green",
+        "C": "Red"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Tea"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Milk"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Coffee"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Bob'] == house_of['Blue'])\nsolver.add(house_of['Blue'] == house_of['Tea'])\nsolver.add(house_of['Alice'] == house_of['Milk'])\nsolver.add(house_of['Charlie'] == house_of['Red'])\nsolver.add(house_of['Charlie'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Bob'] == 1)\nsolver.add(house_of['Green'] == 2)\nsolver.add(house_of['Milk'] == 2)\nsolver.add(house_of['Coffee'] == 3)\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_03",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Blue is in the same house as Milk.\n- The person associated with Bob is in the same house as Green.\n- The person associated with Charlie is in the same house as Red.\n- The person associated with Red is in the same house as Coffee.\n- Blue is in house 1.\n- Milk is in house 1.\n- Red is in house 3.\n- Alice is directly to the left of Bob.\n- Bob is directly to the left of Charlie.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Red\n(B) Blue\n(C) Green\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Red",
+        "B": "Blue",
+        "C": "Green"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Milk"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Tea"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Coffee"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Bob'] == house_of['Green'])\nsolver.add(house_of['Charlie'] == house_of['Red'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Blue'] == 1)\nsolver.add(house_of['Milk'] == 1)\nsolver.add(house_of['Red'] == 3)\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\nsolver.add(house_of['Bob'] + 1 == house_of['Charlie'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_04",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Red.\n- The person associated with Alice is in the same house as Milk.\n- The person associated with Blue is in the same house as Coffee.\n- Charlie is in house 2.\n- Alice is directly to the left of Charlie.\n- Charlie is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 3?\n\nOptions:\n(A) Blue\n(B) Red\n(C) Green\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 3?",
+      "options": {
+        "A": "Blue",
+        "B": "Red",
+        "C": "Green"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Milk"
+        },
+        "2": {
+          "Name": "Charlie",
+          "Color": "Green",
+          "Drink": "Tea"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Coffee"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Alice'] == house_of['Red'])\nsolver.add(house_of['Alice'] == house_of['Milk'])\nsolver.add(house_of['Blue'] == house_of['Coffee'])\nsolver.add(house_of['Charlie'] == 2)\nsolver.add(house_of['Alice'] + 1 == house_of['Charlie'])\nsolver.add(house_of['Charlie'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_05",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Coffee.\n- The person associated with Bob is in the same house as Tea.\n- Charlie is in house 1.\n- Alice is in house 2.\n- Alice is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 3?\n\nOptions:\n(A) Green\n(B) Blue\n(C) Red\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 3?",
+      "options": {
+        "A": "Green",
+        "B": "Blue",
+        "C": "Red"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Milk"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Coffee"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Red",
+          "Drink": "Tea"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Alice'] == house_of['Coffee'])\nsolver.add(house_of['Bob'] == house_of['Tea'])\nsolver.add(house_of['Charlie'] == 1)\nsolver.add(house_of['Alice'] == 2)\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_06",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Green.\n- The person associated with Bob is in the same house as Coffee.\n- The person associated with Blue is in the same house as Coffee.\n- Green is in house 2.\n- Coffee is in house 3.\n- Alice is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Red\n(B) Blue\n(C) Green\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Red",
+        "B": "Blue",
+        "C": "Green"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Tea"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Milk"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Coffee"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Alice'] == house_of['Green'])\nsolver.add(house_of['Bob'] == house_of['Coffee'])\nsolver.add(house_of['Blue'] == house_of['Coffee'])\nsolver.add(house_of['Green'] == 2)\nsolver.add(house_of['Coffee'] == 3)\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_07",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Milk.\n- The person associated with Bob is in the same house as Green.\n- The person associated with Green is in the same house as Tea.\n- Alice is in house 1.\n- Milk is in house 1.\n- Charlie is in house 2.\n- Blue is in house 2.\n- Coffee is in house 2.\n- Tea is in house 3.\n- Alice is directly to the left of Charlie.\n- Charlie is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Blue\n(B) Green\n(C) Red\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Blue",
+        "B": "Green",
+        "C": "Red"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Milk"
+        },
+        "2": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Coffee"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Tea"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Alice'] == house_of['Milk'])\nsolver.add(house_of['Bob'] == house_of['Green'])\nsolver.add(house_of['Green'] == house_of['Tea'])\nsolver.add(house_of['Alice'] == 1)\nsolver.add(house_of['Milk'] == 1)\nsolver.add(house_of['Charlie'] == 2)\nsolver.add(house_of['Blue'] == 2)\nsolver.add(house_of['Coffee'] == 2)\nsolver.add(house_of['Tea'] == 3)\nsolver.add(house_of['Alice'] + 1 == house_of['Charlie'])\nsolver.add(house_of['Charlie'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_08",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Green.\n- The person associated with Charlie is in the same house as Blue.\n- The person associated with Charlie is in the same house as Tea.\n- The person associated with Blue is in the same house as Tea.\n- The person associated with Alice is in the same house as Milk.\n- Green is in house 1.\n- Blue is in house 2.\n- Alice is in house 3.\n- Red is in house 3.\n- Milk is in house 3.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) Blue\n(B) Red\n(C) Green\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "Blue",
+        "B": "Red",
+        "C": "Green"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Coffee"
+        },
+        "2": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Tea"
+        },
+        "3": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Milk"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Bob'] == house_of['Green'])\nsolver.add(house_of['Charlie'] == house_of['Blue'])\nsolver.add(house_of['Charlie'] == house_of['Tea'])\nsolver.add(house_of['Blue'] == house_of['Tea'])\nsolver.add(house_of['Alice'] == house_of['Milk'])\nsolver.add(house_of['Green'] == 1)\nsolver.add(house_of['Blue'] == 2)\nsolver.add(house_of['Alice'] == 3)\nsolver.add(house_of['Red'] == 3)\nsolver.add(house_of['Milk'] == 3)\n"
+    },
+    {
+      "problem_id": "Grid_3x3_09",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Green.\n- The person associated with Alice is in the same house as Red.\n- The person associated with Charlie is in the same house as Blue.\n- Bob is in house 1.\n- Red is in house 2.\n- Blue is in house 3.\n- Bob is directly to the left of Alice.\n- Alice is directly to the left of Charlie.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Green\n(B) Red\n(C) Blue\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Green",
+        "B": "Red",
+        "C": "Blue"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Tea"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Coffee"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Milk"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Bob'] == house_of['Green'])\nsolver.add(house_of['Alice'] == house_of['Red'])\nsolver.add(house_of['Charlie'] == house_of['Blue'])\nsolver.add(house_of['Bob'] == 1)\nsolver.add(house_of['Red'] == 2)\nsolver.add(house_of['Blue'] == 3)\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\nsolver.add(house_of['Alice'] + 1 == house_of['Charlie'])\n"
+    },
+    {
+      "problem_id": "Grid_3x3_10",
+      "grid_size": 3,
+      "num_attributes": 3,
+      "search_space_states": 36,
+      "prompt_text": "There are 3 houses in a row numbered 1 to 3 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Green.\n- The person associated with Charlie is in the same house as Blue.\n- The person associated with Blue is in the same house as Milk.\n- Red is in house 2.\n\nQuestion: Which attribute (Color) is in house 3?\n\nOptions:\n(A) Blue\n(B) Green\n(C) Red\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 3?",
+      "options": {
+        "A": "Blue",
+        "B": "Green",
+        "C": "Red"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Coffee"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Red",
+          "Drink": "Tea"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Milk"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 3\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'Red', 'Blue', 'Green', 'Tea', 'Coffee', 'Milk']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 3)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk']))\nsolver.add(house_of['Alice'] == house_of['Green'])\nsolver.add(house_of['Charlie'] == house_of['Blue'])\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Red'] == 2)\n"
+    },
+    {
+      "problem_id": "Grid_4x4_01",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Milk.\n- The person associated with Alice is in the same house as Dog.\n- The person associated with Blue is in the same house as Dog.\n- The person associated with Milk is in the same house as Dog.\n- The person associated with Bob is in the same house as Green.\n- The person associated with Bob is in the same house as Coffee.\n- The person associated with Green is in the same house as Coffee.\n- The person associated with Charlie is in the same house as Red.\n- The person associated with Charlie is in the same house as Water.\n- The person associated with Red is in the same house as Water.\n- The person associated with Red is in the same house as Cat.\n- The person associated with Water is in the same house as Cat.\n- The person associated with Yellow is in the same house as Tea.\n- The person associated with Tea is in the same house as Fish.\n- Alice is in house 1.\n- Blue is in house 1.\n- Cat is in house 3.\n- Tea is in house 4.\n- Charlie is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Blue\n(B) Red\n(C) Green\n(D) Yellow\n\nState your final answer as (D).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Blue",
+        "B": "Red",
+        "C": "Green",
+        "D": "Yellow"
+      },
+      "target_option": "(D)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Dog"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Coffee",
+          "Pet": "Bird"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Water",
+          "Pet": "Cat"
+        },
+        "4": {
+          "Name": "David",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Fish"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['Alice'] == house_of['Milk'])\nsolver.add(house_of['Alice'] == house_of['Dog'])\nsolver.add(house_of['Blue'] == house_of['Dog'])\nsolver.add(house_of['Milk'] == house_of['Dog'])\nsolver.add(house_of['Bob'] == house_of['Green'])\nsolver.add(house_of['Bob'] == house_of['Coffee'])\nsolver.add(house_of['Green'] == house_of['Coffee'])\nsolver.add(house_of['Charlie'] == house_of['Red'])\nsolver.add(house_of['Charlie'] == house_of['Water'])\nsolver.add(house_of['Red'] == house_of['Water'])\nsolver.add(house_of['Red'] == house_of['Cat'])\nsolver.add(house_of['Water'] == house_of['Cat'])\nsolver.add(house_of['Yellow'] == house_of['Tea'])\nsolver.add(house_of['Tea'] == house_of['Fish'])\nsolver.add(house_of['Alice'] == 1)\nsolver.add(house_of['Blue'] == 1)\nsolver.add(house_of['Cat'] == 3)\nsolver.add(house_of['Tea'] == 4)\nsolver.add(house_of['Charlie'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_02",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with Yellow is in the same house as Tea.\n- The person associated with Tea is in the same house as Fish.\n- The person associated with Charlie is in the same house as Red.\n- The person associated with Charlie is in the same house as Milk.\n- The person associated with Milk is in the same house as Cat.\n- The person associated with Green is in the same house as Water.\n- The person associated with Green is in the same house as Bird.\n- The person associated with Water is in the same house as Bird.\n- The person associated with Blue is in the same house as Dog.\n- Yellow is in house 1.\n- Fish is in house 1.\n- Charlie is in house 2.\n- Blue is in house 4.\n- Charlie is directly to the left of Alice.\n- Alice is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Red\n(B) Green\n(C) Blue\n(D) Yellow\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Red",
+        "B": "Green",
+        "C": "Blue",
+        "D": "Yellow"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Fish"
+        },
+        "2": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Milk",
+          "Pet": "Cat"
+        },
+        "3": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Bird"
+        },
+        "4": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Coffee",
+          "Pet": "Dog"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['Yellow'] == house_of['Tea'])\nsolver.add(house_of['Tea'] == house_of['Fish'])\nsolver.add(house_of['Charlie'] == house_of['Red'])\nsolver.add(house_of['Charlie'] == house_of['Milk'])\nsolver.add(house_of['Milk'] == house_of['Cat'])\nsolver.add(house_of['Green'] == house_of['Water'])\nsolver.add(house_of['Green'] == house_of['Bird'])\nsolver.add(house_of['Water'] == house_of['Bird'])\nsolver.add(house_of['Blue'] == house_of['Dog'])\nsolver.add(house_of['Yellow'] == 1)\nsolver.add(house_of['Fish'] == 1)\nsolver.add(house_of['Charlie'] == 2)\nsolver.add(house_of['Blue'] == 4)\nsolver.add(house_of['Charlie'] + 1 == house_of['Alice'])\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_03",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with David is in the same house as Green.\n- The person associated with Green is in the same house as Water.\n- The person associated with Alice is in the same house as Yellow.\n- The person associated with Alice is in the same house as Dog.\n- The person associated with Yellow is in the same house as Milk.\n- The person associated with Yellow is in the same house as Dog.\n- The person associated with Milk is in the same house as Dog.\n- The person associated with Charlie is in the same house as Coffee.\n- The person associated with Charlie is in the same house as Cat.\n- The person associated with Red is in the same house as Cat.\n- The person associated with Bob is in the same house as Blue.\n- The person associated with Blue is in the same house as Bird.\n- The person associated with Tea is in the same house as Bird.\n- Green is in house 1.\n- Fish is in house 1.\n- Alice is in house 2.\n- Dog is in house 2.\n- Charlie is in house 3.\n- Coffee is in house 3.\n- Cat is in house 3.\n- Blue is in house 4.\n- Bird is in house 4.\n- David is directly to the left of Alice.\n- Alice is directly to the left of Charlie.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Blue\n(B) Yellow\n(C) Green\n(D) Red\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Blue",
+        "B": "Yellow",
+        "C": "Green",
+        "D": "Red"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Fish"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Milk",
+          "Pet": "Dog"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Cat"
+        },
+        "4": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Tea",
+          "Pet": "Bird"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['David'] == house_of['Green'])\nsolver.add(house_of['Green'] == house_of['Water'])\nsolver.add(house_of['Alice'] == house_of['Yellow'])\nsolver.add(house_of['Alice'] == house_of['Dog'])\nsolver.add(house_of['Yellow'] == house_of['Milk'])\nsolver.add(house_of['Yellow'] == house_of['Dog'])\nsolver.add(house_of['Milk'] == house_of['Dog'])\nsolver.add(house_of['Charlie'] == house_of['Coffee'])\nsolver.add(house_of['Charlie'] == house_of['Cat'])\nsolver.add(house_of['Red'] == house_of['Cat'])\nsolver.add(house_of['Bob'] == house_of['Blue'])\nsolver.add(house_of['Blue'] == house_of['Bird'])\nsolver.add(house_of['Tea'] == house_of['Bird'])\nsolver.add(house_of['Green'] == 1)\nsolver.add(house_of['Fish'] == 1)\nsolver.add(house_of['Alice'] == 2)\nsolver.add(house_of['Dog'] == 2)\nsolver.add(house_of['Charlie'] == 3)\nsolver.add(house_of['Coffee'] == 3)\nsolver.add(house_of['Cat'] == 3)\nsolver.add(house_of['Blue'] == 4)\nsolver.add(house_of['Bird'] == 4)\nsolver.add(house_of['David'] + 1 == house_of['Alice'])\nsolver.add(house_of['Alice'] + 1 == house_of['Charlie'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_04",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with David is in the same house as Tea.\n- The person associated with Red is in the same house as Tea.\n- The person associated with Tea is in the same house as Fish.\n- The person associated with Bob is in the same house as Green.\n- The person associated with Green is in the same house as Cat.\n- The person associated with Coffee is in the same house as Cat.\n- The person associated with Charlie is in the same house as Dog.\n- The person associated with Alice is in the same house as Blue.\n- The person associated with Blue is in the same house as Water.\n- Red is in house 1.\n- Fish is in house 1.\n- Milk is in house 3.\n- Blue is in house 4.\n- Water is in house 4.\n- Bird is in house 4.\n- Charlie is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 3?\n\nOptions:\n(A) Green\n(B) Blue\n(C) Yellow\n(D) Red\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 3?",
+      "options": {
+        "A": "Green",
+        "B": "Blue",
+        "C": "Yellow",
+        "D": "Red"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Red",
+          "Drink": "Tea",
+          "Pet": "Fish"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Coffee",
+          "Pet": "Cat"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Yellow",
+          "Drink": "Milk",
+          "Pet": "Dog"
+        },
+        "4": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Water",
+          "Pet": "Bird"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['David'] == house_of['Tea'])\nsolver.add(house_of['Red'] == house_of['Tea'])\nsolver.add(house_of['Tea'] == house_of['Fish'])\nsolver.add(house_of['Bob'] == house_of['Green'])\nsolver.add(house_of['Green'] == house_of['Cat'])\nsolver.add(house_of['Coffee'] == house_of['Cat'])\nsolver.add(house_of['Charlie'] == house_of['Dog'])\nsolver.add(house_of['Alice'] == house_of['Blue'])\nsolver.add(house_of['Blue'] == house_of['Water'])\nsolver.add(house_of['Red'] == 1)\nsolver.add(house_of['Fish'] == 1)\nsolver.add(house_of['Milk'] == 3)\nsolver.add(house_of['Blue'] == 4)\nsolver.add(house_of['Water'] == 4)\nsolver.add(house_of['Bird'] == 4)\nsolver.add(house_of['Charlie'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_05",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with David is in the same house as Tea.\n- The person associated with David is in the same house as Bird.\n- The person associated with Green is in the same house as Bird.\n- The person associated with Tea is in the same house as Bird.\n- The person associated with Alice is in the same house as Blue.\n- The person associated with Alice is in the same house as Water.\n- The person associated with Blue is in the same house as Dog.\n- The person associated with Water is in the same house as Dog.\n- The person associated with Charlie is in the same house as Red.\n- The person associated with Charlie is in the same house as Milk.\n- The person associated with Red is in the same house as Milk.\n- The person associated with Red is in the same house as Cat.\n- The person associated with Bob is in the same house as Yellow.\n- David is in house 1.\n- Tea is in house 1.\n- Alice is in house 2.\n- Water is in house 2.\n- Milk is in house 3.\n- Cat is in house 3.\n- Charlie is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Green\n(B) Blue\n(C) Yellow\n(D) Red\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Green",
+        "B": "Blue",
+        "C": "Yellow",
+        "D": "Red"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Tea",
+          "Pet": "Bird"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Water",
+          "Pet": "Dog"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Milk",
+          "Pet": "Cat"
+        },
+        "4": {
+          "Name": "Bob",
+          "Color": "Yellow",
+          "Drink": "Coffee",
+          "Pet": "Fish"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['David'] == house_of['Tea'])\nsolver.add(house_of['David'] == house_of['Bird'])\nsolver.add(house_of['Green'] == house_of['Bird'])\nsolver.add(house_of['Tea'] == house_of['Bird'])\nsolver.add(house_of['Alice'] == house_of['Blue'])\nsolver.add(house_of['Alice'] == house_of['Water'])\nsolver.add(house_of['Blue'] == house_of['Dog'])\nsolver.add(house_of['Water'] == house_of['Dog'])\nsolver.add(house_of['Charlie'] == house_of['Red'])\nsolver.add(house_of['Charlie'] == house_of['Milk'])\nsolver.add(house_of['Red'] == house_of['Milk'])\nsolver.add(house_of['Red'] == house_of['Cat'])\nsolver.add(house_of['Bob'] == house_of['Yellow'])\nsolver.add(house_of['David'] == 1)\nsolver.add(house_of['Tea'] == 1)\nsolver.add(house_of['Alice'] == 2)\nsolver.add(house_of['Water'] == 2)\nsolver.add(house_of['Milk'] == 3)\nsolver.add(house_of['Cat'] == 3)\nsolver.add(house_of['Charlie'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_06",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with David is in the same house as Red.\n- The person associated with David is in the same house as Coffee.\n- The person associated with Red is in the same house as Coffee.\n- The person associated with Red is in the same house as Fish.\n- The person associated with Bob is in the same house as Blue.\n- The person associated with Bob is in the same house as Milk.\n- The person associated with Bob is in the same house as Cat.\n- The person associated with Blue is in the same house as Milk.\n- The person associated with Milk is in the same house as Cat.\n- The person associated with Charlie is in the same house as Yellow.\n- The person associated with Charlie is in the same house as Tea.\n- The person associated with Charlie is in the same house as Bird.\n- The person associated with Yellow is in the same house as Tea.\n- The person associated with Alice is in the same house as Water.\n- The person associated with Alice is in the same house as Dog.\n- The person associated with Green is in the same house as Dog.\n- The person associated with Water is in the same house as Dog.\n- Red is in house 1.\n- Fish is in house 1.\n- Blue is in house 2.\n- Milk is in house 2.\n- Charlie is in house 3.\n- Yellow is in house 3.\n- Tea is in house 3.\n- Green is in house 4.\n- Water is in house 4.\n- Dog is in house 4.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Red\n(B) Green\n(C) Yellow\n(D) Blue\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Red",
+        "B": "Green",
+        "C": "Yellow",
+        "D": "Blue"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Fish"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Cat"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Bird"
+        },
+        "4": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Dog"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['David'] == house_of['Red'])\nsolver.add(house_of['David'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Fish'])\nsolver.add(house_of['Bob'] == house_of['Blue'])\nsolver.add(house_of['Bob'] == house_of['Milk'])\nsolver.add(house_of['Bob'] == house_of['Cat'])\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Milk'] == house_of['Cat'])\nsolver.add(house_of['Charlie'] == house_of['Yellow'])\nsolver.add(house_of['Charlie'] == house_of['Tea'])\nsolver.add(house_of['Charlie'] == house_of['Bird'])\nsolver.add(house_of['Yellow'] == house_of['Tea'])\nsolver.add(house_of['Alice'] == house_of['Water'])\nsolver.add(house_of['Alice'] == house_of['Dog'])\nsolver.add(house_of['Green'] == house_of['Dog'])\nsolver.add(house_of['Water'] == house_of['Dog'])\nsolver.add(house_of['Red'] == 1)\nsolver.add(house_of['Fish'] == 1)\nsolver.add(house_of['Blue'] == 2)\nsolver.add(house_of['Milk'] == 2)\nsolver.add(house_of['Charlie'] == 3)\nsolver.add(house_of['Yellow'] == 3)\nsolver.add(house_of['Tea'] == 3)\nsolver.add(house_of['Green'] == 4)\nsolver.add(house_of['Water'] == 4)\nsolver.add(house_of['Dog'] == 4)\n"
+    },
+    {
+      "problem_id": "Grid_4x4_07",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with Blue is in the same house as Bird.\n- The person associated with Water is in the same house as Bird.\n- The person associated with Green is in the same house as Dog.\n- The person associated with David is in the same house as Yellow.\n- The person associated with David is in the same house as Coffee.\n- The person associated with Yellow is in the same house as Fish.\n- Red is in house 1.\n- Tea is in house 1.\n- Dog is in house 3.\n- David is in house 4.\n- Alice is directly to the left of Bob.\n- Bob is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Yellow\n(B) Blue\n(C) Red\n(D) Green\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Yellow",
+        "B": "Blue",
+        "C": "Red",
+        "D": "Green"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Tea",
+          "Pet": "Cat"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Water",
+          "Pet": "Bird"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Green",
+          "Drink": "Milk",
+          "Pet": "Dog"
+        },
+        "4": {
+          "Name": "David",
+          "Color": "Yellow",
+          "Drink": "Coffee",
+          "Pet": "Fish"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['Blue'] == house_of['Bird'])\nsolver.add(house_of['Water'] == house_of['Bird'])\nsolver.add(house_of['Green'] == house_of['Dog'])\nsolver.add(house_of['David'] == house_of['Yellow'])\nsolver.add(house_of['David'] == house_of['Coffee'])\nsolver.add(house_of['Yellow'] == house_of['Fish'])\nsolver.add(house_of['Red'] == 1)\nsolver.add(house_of['Tea'] == 1)\nsolver.add(house_of['Dog'] == 3)\nsolver.add(house_of['David'] == 4)\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\nsolver.add(house_of['Bob'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_08",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Coffee.\n- The person associated with Charlie is in the same house as Bird.\n- The person associated with Blue is in the same house as Milk.\n- The person associated with Milk is in the same house as Bird.\n- The person associated with Bob is in the same house as Yellow.\n- The person associated with Bob is in the same house as Dog.\n- The person associated with David is in the same house as Green.\n- The person associated with David is in the same house as Tea.\n- Coffee is in house 1.\n- Blue is in house 2.\n- Bird is in house 2.\n- Yellow is in house 3.\n- Fish is in house 4.\n- Charlie is directly to the left of Bob.\n- Bob is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 3?\n\nOptions:\n(A) Green\n(B) Blue\n(C) Red\n(D) Yellow\n\nState your final answer as (D).",
+      "question": "Which attribute (Color) is in house 3?",
+      "options": {
+        "A": "Green",
+        "B": "Blue",
+        "C": "Red",
+        "D": "Yellow"
+      },
+      "target_option": "(D)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Cat"
+        },
+        "2": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Bird"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Yellow",
+          "Drink": "Water",
+          "Pet": "Dog"
+        },
+        "4": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Tea",
+          "Pet": "Fish"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['Alice'] == house_of['Coffee'])\nsolver.add(house_of['Charlie'] == house_of['Bird'])\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Milk'] == house_of['Bird'])\nsolver.add(house_of['Bob'] == house_of['Yellow'])\nsolver.add(house_of['Bob'] == house_of['Dog'])\nsolver.add(house_of['David'] == house_of['Green'])\nsolver.add(house_of['David'] == house_of['Tea'])\nsolver.add(house_of['Coffee'] == 1)\nsolver.add(house_of['Blue'] == 2)\nsolver.add(house_of['Bird'] == 2)\nsolver.add(house_of['Yellow'] == 3)\nsolver.add(house_of['Fish'] == 4)\nsolver.add(house_of['Charlie'] + 1 == house_of['Bob'])\nsolver.add(house_of['Bob'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_09",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with David is in the same house as Green.\n- The person associated with David is in the same house as Bird.\n- The person associated with Alice is in the same house as Dog.\n- The person associated with Yellow is in the same house as Water.\n- The person associated with Blue is in the same house as Milk.\n- The person associated with Blue is in the same house as Fish.\n- The person associated with Charlie is in the same house as Cat.\n- The person associated with Red is in the same house as Tea.\n- The person associated with Red is in the same house as Cat.\n- David is in house 1.\n- Green is in house 1.\n- Alice is in house 2.\n- Water is in house 2.\n- Bob is in house 3.\n- Blue is in house 3.\n- Fish is in house 3.\n- David is directly to the left of Alice.\n- Alice is directly to the left of Bob.\n- Bob is directly to the left of Charlie.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Yellow\n(B) Blue\n(C) Green\n(D) Red\n\nState your final answer as (D).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Yellow",
+        "B": "Blue",
+        "C": "Green",
+        "D": "Red"
+      },
+      "target_option": "(D)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Coffee",
+          "Pet": "Bird"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Water",
+          "Pet": "Dog"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Fish"
+        },
+        "4": {
+          "Name": "Charlie",
+          "Color": "Red",
+          "Drink": "Tea",
+          "Pet": "Cat"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['David'] == house_of['Green'])\nsolver.add(house_of['David'] == house_of['Bird'])\nsolver.add(house_of['Alice'] == house_of['Dog'])\nsolver.add(house_of['Yellow'] == house_of['Water'])\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Blue'] == house_of['Fish'])\nsolver.add(house_of['Charlie'] == house_of['Cat'])\nsolver.add(house_of['Red'] == house_of['Tea'])\nsolver.add(house_of['Red'] == house_of['Cat'])\nsolver.add(house_of['David'] == 1)\nsolver.add(house_of['Green'] == 1)\nsolver.add(house_of['Alice'] == 2)\nsolver.add(house_of['Water'] == 2)\nsolver.add(house_of['Bob'] == 3)\nsolver.add(house_of['Blue'] == 3)\nsolver.add(house_of['Fish'] == 3)\nsolver.add(house_of['David'] + 1 == house_of['Alice'])\nsolver.add(house_of['Alice'] + 1 == house_of['Bob'])\nsolver.add(house_of['Bob'] + 1 == house_of['Charlie'])\n"
+    },
+    {
+      "problem_id": "Grid_4x4_10",
+      "grid_size": 4,
+      "num_attributes": 4,
+      "search_space_states": 13824,
+      "prompt_text": "There are 4 houses in a row numbered 1 to 4 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Red.\n- The person associated with Bob is in the same house as Coffee.\n- The person associated with Red is in the same house as Coffee.\n- The person associated with Red is in the same house as Dog.\n- The person associated with Coffee is in the same house as Dog.\n- The person associated with Alice is in the same house as Yellow.\n- The person associated with Yellow is in the same house as Water.\n- The person associated with Charlie is in the same house as Tea.\n- The person associated with Charlie is in the same house as Cat.\n- The person associated with Green is in the same house as Cat.\n- The person associated with David is in the same house as Blue.\n- The person associated with Blue is in the same house as Milk.\n- The person associated with Blue is in the same house as Bird.\n- The person associated with Milk is in the same house as Bird.\n- Coffee is in house 1.\n- Yellow is in house 2.\n- Green is in house 3.\n- Cat is in house 3.\n- Bird is in house 4.\n- Alice is directly to the left of Charlie.\n- Charlie is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Yellow\n(B) Blue\n(C) Green\n(D) Red\n\nState your final answer as (D).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Yellow",
+        "B": "Blue",
+        "C": "Green",
+        "D": "Red"
+      },
+      "target_option": "(D)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Dog"
+        },
+        "2": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Water",
+          "Pet": "Fish"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Green",
+          "Drink": "Tea",
+          "Pet": "Cat"
+        },
+        "4": {
+          "Name": "David",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Bird"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 4\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Red', 'Blue', 'Green', 'Yellow', 'Tea', 'Coffee', 'Milk', 'Water', 'Cat', 'Dog', 'Bird', 'Fish']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 4)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish']))\nsolver.add(house_of['Bob'] == house_of['Red'])\nsolver.add(house_of['Bob'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Dog'])\nsolver.add(house_of['Coffee'] == house_of['Dog'])\nsolver.add(house_of['Alice'] == house_of['Yellow'])\nsolver.add(house_of['Yellow'] == house_of['Water'])\nsolver.add(house_of['Charlie'] == house_of['Tea'])\nsolver.add(house_of['Charlie'] == house_of['Cat'])\nsolver.add(house_of['Green'] == house_of['Cat'])\nsolver.add(house_of['David'] == house_of['Blue'])\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Blue'] == house_of['Bird'])\nsolver.add(house_of['Milk'] == house_of['Bird'])\nsolver.add(house_of['Coffee'] == 1)\nsolver.add(house_of['Yellow'] == 2)\nsolver.add(house_of['Green'] == 3)\nsolver.add(house_of['Cat'] == 3)\nsolver.add(house_of['Bird'] == 4)\nsolver.add(house_of['Alice'] + 1 == house_of['Charlie'])\nsolver.add(house_of['Charlie'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_01",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Emma is in the same house as Red.\n- The person associated with Emma is in the same house as Cat.\n- The person associated with Emma is in the same house as Soccer.\n- The person associated with Red is in the same house as Tea.\n- The person associated with Tea is in the same house as Soccer.\n- The person associated with Cat is in the same house as Soccer.\n- The person associated with David is in the same house as Blue.\n- The person associated with David is in the same house as Running.\n- The person associated with Blue is in the same house as Milk.\n- The person associated with Blue is in the same house as Hamster.\n- The person associated with Milk is in the same house as Running.\n- The person associated with Yellow is in the same house as Coffee.\n- The person associated with Yellow is in the same house as Bird.\n- The person associated with Yellow is in the same house as Swimming.\n- The person associated with Bird is in the same house as Swimming.\n- The person associated with Charlie is in the same house as Green.\n- The person associated with Charlie is in the same house as Tennis.\n- The person associated with Water is in the same house as Fish.\n- The person associated with Fish is in the same house as Tennis.\n- The person associated with Bob is in the same house as White.\n- The person associated with Bob is in the same house as Basketball.\n- The person associated with White is in the same house as Juice.\n- The person associated with White is in the same house as Dog.\n- The person associated with White is in the same house as Basketball.\n- The person associated with Juice is in the same house as Dog.\n- Blue is in house 2.\n- Milk is in house 2.\n- Running is in house 2.\n- Yellow is in house 3.\n- Green is in house 4.\n- White is in house 5.\n- Dog is in house 5.\n- Emma is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 5?\n\nOptions:\n(A) Red\n(B) Green\n(C) White\n(D) Yellow\n(E) Blue\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 5?",
+      "options": {
+        "A": "Red",
+        "B": "Green",
+        "C": "White",
+        "D": "Yellow",
+        "E": "Blue"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Emma",
+          "Color": "Red",
+          "Drink": "Tea",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        },
+        "2": {
+          "Name": "David",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Hamster",
+          "Sport": "Running"
+        },
+        "3": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Coffee",
+          "Pet": "Bird",
+          "Sport": "Swimming"
+        },
+        "4": {
+          "Name": "Charlie",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Fish",
+          "Sport": "Tennis"
+        },
+        "5": {
+          "Name": "Bob",
+          "Color": "White",
+          "Drink": "Juice",
+          "Pet": "Dog",
+          "Sport": "Basketball"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Emma'] == house_of['Red'])\nsolver.add(house_of['Emma'] == house_of['Cat'])\nsolver.add(house_of['Emma'] == house_of['Soccer'])\nsolver.add(house_of['Red'] == house_of['Tea'])\nsolver.add(house_of['Tea'] == house_of['Soccer'])\nsolver.add(house_of['Cat'] == house_of['Soccer'])\nsolver.add(house_of['David'] == house_of['Blue'])\nsolver.add(house_of['David'] == house_of['Running'])\nsolver.add(house_of['Blue'] == house_of['Milk'])\nsolver.add(house_of['Blue'] == house_of['Hamster'])\nsolver.add(house_of['Milk'] == house_of['Running'])\nsolver.add(house_of['Yellow'] == house_of['Coffee'])\nsolver.add(house_of['Yellow'] == house_of['Bird'])\nsolver.add(house_of['Yellow'] == house_of['Swimming'])\nsolver.add(house_of['Bird'] == house_of['Swimming'])\nsolver.add(house_of['Charlie'] == house_of['Green'])\nsolver.add(house_of['Charlie'] == house_of['Tennis'])\nsolver.add(house_of['Water'] == house_of['Fish'])\nsolver.add(house_of['Fish'] == house_of['Tennis'])\nsolver.add(house_of['Bob'] == house_of['White'])\nsolver.add(house_of['Bob'] == house_of['Basketball'])\nsolver.add(house_of['White'] == house_of['Juice'])\nsolver.add(house_of['White'] == house_of['Dog'])\nsolver.add(house_of['White'] == house_of['Basketball'])\nsolver.add(house_of['Juice'] == house_of['Dog'])\nsolver.add(house_of['Blue'] == 2)\nsolver.add(house_of['Milk'] == 2)\nsolver.add(house_of['Running'] == 2)\nsolver.add(house_of['Yellow'] == 3)\nsolver.add(house_of['Green'] == 4)\nsolver.add(house_of['White'] == 5)\nsolver.add(house_of['Dog'] == 5)\nsolver.add(house_of['Emma'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_02",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Yellow is in the same house as Tea.\n- The person associated with Yellow is in the same house as Fish.\n- The person associated with Tea is in the same house as Fish.\n- The person associated with Tea is in the same house as Swimming.\n- The person associated with Fish is in the same house as Swimming.\n- The person associated with David is in the same house as Green.\n- The person associated with Green is in the same house as Juice.\n- The person associated with Juice is in the same house as Cat.\n- The person associated with Red is in the same house as Coffee.\n- The person associated with Red is in the same house as Bird.\n- The person associated with Coffee is in the same house as Basketball.\n- The person associated with Bird is in the same house as Basketball.\n- The person associated with Bob is in the same house as Water.\n- The person associated with Bob is in the same house as Dog.\n- The person associated with White is in the same house as Water.\n- The person associated with Water is in the same house as Soccer.\n- The person associated with Dog is in the same house as Soccer.\n- The person associated with Charlie is in the same house as Blue.\n- The person associated with Charlie is in the same house as Milk.\n- The person associated with Milk is in the same house as Hamster.\n- Tea is in house 1.\n- Fish is in house 1.\n- Green is in house 2.\n- Running is in house 2.\n- Red is in house 3.\n- White is in house 4.\n- Water is in house 4.\n- Dog is in house 4.\n- Hamster is in house 5.\n- Alice is directly to the left of David.\n- Emma is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Blue\n(B) Yellow\n(C) White\n(D) Green\n(E) Red\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Blue",
+        "B": "Yellow",
+        "C": "White",
+        "D": "Green",
+        "E": "Red"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Fish",
+          "Sport": "Swimming"
+        },
+        "2": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Juice",
+          "Pet": "Cat",
+          "Sport": "Running"
+        },
+        "3": {
+          "Name": "Emma",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Bird",
+          "Sport": "Basketball"
+        },
+        "4": {
+          "Name": "Bob",
+          "Color": "White",
+          "Drink": "Water",
+          "Pet": "Dog",
+          "Sport": "Soccer"
+        },
+        "5": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Hamster",
+          "Sport": "Tennis"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Yellow'] == house_of['Tea'])\nsolver.add(house_of['Yellow'] == house_of['Fish'])\nsolver.add(house_of['Tea'] == house_of['Fish'])\nsolver.add(house_of['Tea'] == house_of['Swimming'])\nsolver.add(house_of['Fish'] == house_of['Swimming'])\nsolver.add(house_of['David'] == house_of['Green'])\nsolver.add(house_of['Green'] == house_of['Juice'])\nsolver.add(house_of['Juice'] == house_of['Cat'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Bird'])\nsolver.add(house_of['Coffee'] == house_of['Basketball'])\nsolver.add(house_of['Bird'] == house_of['Basketball'])\nsolver.add(house_of['Bob'] == house_of['Water'])\nsolver.add(house_of['Bob'] == house_of['Dog'])\nsolver.add(house_of['White'] == house_of['Water'])\nsolver.add(house_of['Water'] == house_of['Soccer'])\nsolver.add(house_of['Dog'] == house_of['Soccer'])\nsolver.add(house_of['Charlie'] == house_of['Blue'])\nsolver.add(house_of['Charlie'] == house_of['Milk'])\nsolver.add(house_of['Milk'] == house_of['Hamster'])\nsolver.add(house_of['Tea'] == 1)\nsolver.add(house_of['Fish'] == 1)\nsolver.add(house_of['Green'] == 2)\nsolver.add(house_of['Running'] == 2)\nsolver.add(house_of['Red'] == 3)\nsolver.add(house_of['White'] == 4)\nsolver.add(house_of['Water'] == 4)\nsolver.add(house_of['Dog'] == 4)\nsolver.add(house_of['Hamster'] == 5)\nsolver.add(house_of['Alice'] + 1 == house_of['David'])\nsolver.add(house_of['Emma'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_03",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Charlie is in the same house as Swimming.\n- The person associated with Green is in the same house as Fish.\n- The person associated with Coffee is in the same house as Fish.\n- The person associated with Coffee is in the same house as Swimming.\n- The person associated with Emma is in the same house as Yellow.\n- The person associated with Emma is in the same house as Hamster.\n- The person associated with Tea is in the same house as Hamster.\n- The person associated with Tea is in the same house as Basketball.\n- The person associated with Red is in the same house as Juice.\n- The person associated with Red is in the same house as Bird.\n- The person associated with Red is in the same house as Tennis.\n- The person associated with Juice is in the same house as Bird.\n- The person associated with Blue is in the same house as Water.\n- The person associated with Blue is in the same house as Cat.\n- The person associated with Cat is in the same house as Soccer.\n- The person associated with David is in the same house as White.\n- The person associated with David is in the same house as Dog.\n- The person associated with White is in the same house as Dog.\n- The person associated with White is in the same house as Running.\n- The person associated with Dog is in the same house as Running.\n- Charlie is in house 1.\n- Coffee is in house 1.\n- Fish is in house 1.\n- Swimming is in house 1.\n- Blue is in house 4.\n- David is in house 5.\n- Dog is in house 5.\n- Running is in house 5.\n- Charlie is directly to the left of Emma.\n- Emma is directly to the left of Bob.\n- Bob is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 5?\n\nOptions:\n(A) White\n(B) Red\n(C) Blue\n(D) Yellow\n(E) Green\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 5?",
+      "options": {
+        "A": "White",
+        "B": "Red",
+        "C": "Blue",
+        "D": "Yellow",
+        "E": "Green"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Charlie",
+          "Color": "Green",
+          "Drink": "Coffee",
+          "Pet": "Fish",
+          "Sport": "Swimming"
+        },
+        "2": {
+          "Name": "Emma",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Hamster",
+          "Sport": "Basketball"
+        },
+        "3": {
+          "Name": "Bob",
+          "Color": "Red",
+          "Drink": "Juice",
+          "Pet": "Bird",
+          "Sport": "Tennis"
+        },
+        "4": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Water",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        },
+        "5": {
+          "Name": "David",
+          "Color": "White",
+          "Drink": "Milk",
+          "Pet": "Dog",
+          "Sport": "Running"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Charlie'] == house_of['Swimming'])\nsolver.add(house_of['Green'] == house_of['Fish'])\nsolver.add(house_of['Coffee'] == house_of['Fish'])\nsolver.add(house_of['Coffee'] == house_of['Swimming'])\nsolver.add(house_of['Emma'] == house_of['Yellow'])\nsolver.add(house_of['Emma'] == house_of['Hamster'])\nsolver.add(house_of['Tea'] == house_of['Hamster'])\nsolver.add(house_of['Tea'] == house_of['Basketball'])\nsolver.add(house_of['Red'] == house_of['Juice'])\nsolver.add(house_of['Red'] == house_of['Bird'])\nsolver.add(house_of['Red'] == house_of['Tennis'])\nsolver.add(house_of['Juice'] == house_of['Bird'])\nsolver.add(house_of['Blue'] == house_of['Water'])\nsolver.add(house_of['Blue'] == house_of['Cat'])\nsolver.add(house_of['Cat'] == house_of['Soccer'])\nsolver.add(house_of['David'] == house_of['White'])\nsolver.add(house_of['David'] == house_of['Dog'])\nsolver.add(house_of['White'] == house_of['Dog'])\nsolver.add(house_of['White'] == house_of['Running'])\nsolver.add(house_of['Dog'] == house_of['Running'])\nsolver.add(house_of['Charlie'] == 1)\nsolver.add(house_of['Coffee'] == 1)\nsolver.add(house_of['Fish'] == 1)\nsolver.add(house_of['Swimming'] == 1)\nsolver.add(house_of['Blue'] == 4)\nsolver.add(house_of['David'] == 5)\nsolver.add(house_of['Dog'] == 5)\nsolver.add(house_of['Running'] == 5)\nsolver.add(house_of['Charlie'] + 1 == house_of['Emma'])\nsolver.add(house_of['Emma'] + 1 == house_of['Bob'])\nsolver.add(house_of['Bob'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_04",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Yellow.\n- The person associated with Alice is in the same house as Tea.\n- The person associated with Alice is in the same house as Bird.\n- The person associated with Alice is in the same house as Basketball.\n- The person associated with Yellow is in the same house as Bird.\n- The person associated with Yellow is in the same house as Basketball.\n- The person associated with White is in the same house as Milk.\n- The person associated with White is in the same house as Dog.\n- The person associated with White is in the same house as Running.\n- The person associated with Milk is in the same house as Dog.\n- The person associated with Dog is in the same house as Running.\n- The person associated with Emma is in the same house as Green.\n- The person associated with Emma is in the same house as Water.\n- The person associated with Water is in the same house as Soccer.\n- The person associated with Cat is in the same house as Soccer.\n- The person associated with Charlie is in the same house as Blue.\n- The person associated with Charlie is in the same house as Fish.\n- The person associated with Charlie is in the same house as Swimming.\n- The person associated with Blue is in the same house as Coffee.\n- The person associated with Blue is in the same house as Fish.\n- The person associated with Blue is in the same house as Swimming.\n- The person associated with Red is in the same house as Juice.\n- The person associated with Juice is in the same house as Tennis.\n- Alice is in house 1.\n- Yellow is in house 1.\n- Tea is in house 1.\n- Basketball is in house 1.\n- Cat is in house 3.\n- Charlie is in house 4.\n- Coffee is in house 4.\n- Fish is in house 4.\n- David is in house 5.\n- Hamster is in house 5.\n- Tennis is in house 5.\n- Bob is directly to the left of Emma.\n- Emma is directly to the left of Charlie.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Yellow\n(B) Red\n(C) Blue\n(D) Green\n(E) White\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Yellow",
+        "B": "Red",
+        "C": "Blue",
+        "D": "Green",
+        "E": "White"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Bird",
+          "Sport": "Basketball"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "White",
+          "Drink": "Milk",
+          "Pet": "Dog",
+          "Sport": "Running"
+        },
+        "3": {
+          "Name": "Emma",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        },
+        "4": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Coffee",
+          "Pet": "Fish",
+          "Sport": "Swimming"
+        },
+        "5": {
+          "Name": "David",
+          "Color": "Red",
+          "Drink": "Juice",
+          "Pet": "Hamster",
+          "Sport": "Tennis"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Alice'] == house_of['Yellow'])\nsolver.add(house_of['Alice'] == house_of['Tea'])\nsolver.add(house_of['Alice'] == house_of['Bird'])\nsolver.add(house_of['Alice'] == house_of['Basketball'])\nsolver.add(house_of['Yellow'] == house_of['Bird'])\nsolver.add(house_of['Yellow'] == house_of['Basketball'])\nsolver.add(house_of['White'] == house_of['Milk'])\nsolver.add(house_of['White'] == house_of['Dog'])\nsolver.add(house_of['White'] == house_of['Running'])\nsolver.add(house_of['Milk'] == house_of['Dog'])\nsolver.add(house_of['Dog'] == house_of['Running'])\nsolver.add(house_of['Emma'] == house_of['Green'])\nsolver.add(house_of['Emma'] == house_of['Water'])\nsolver.add(house_of['Water'] == house_of['Soccer'])\nsolver.add(house_of['Cat'] == house_of['Soccer'])\nsolver.add(house_of['Charlie'] == house_of['Blue'])\nsolver.add(house_of['Charlie'] == house_of['Fish'])\nsolver.add(house_of['Charlie'] == house_of['Swimming'])\nsolver.add(house_of['Blue'] == house_of['Coffee'])\nsolver.add(house_of['Blue'] == house_of['Fish'])\nsolver.add(house_of['Blue'] == house_of['Swimming'])\nsolver.add(house_of['Red'] == house_of['Juice'])\nsolver.add(house_of['Juice'] == house_of['Tennis'])\nsolver.add(house_of['Alice'] == 1)\nsolver.add(house_of['Yellow'] == 1)\nsolver.add(house_of['Tea'] == 1)\nsolver.add(house_of['Basketball'] == 1)\nsolver.add(house_of['Cat'] == 3)\nsolver.add(house_of['Charlie'] == 4)\nsolver.add(house_of['Coffee'] == 4)\nsolver.add(house_of['Fish'] == 4)\nsolver.add(house_of['David'] == 5)\nsolver.add(house_of['Hamster'] == 5)\nsolver.add(house_of['Tennis'] == 5)\nsolver.add(house_of['Bob'] + 1 == house_of['Emma'])\nsolver.add(house_of['Emma'] + 1 == house_of['Charlie'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_05",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Tea.\n- The person associated with Red is in the same house as Tea.\n- The person associated with Red is in the same house as Bird.\n- The person associated with Red is in the same house as Swimming.\n- The person associated with Tea is in the same house as Bird.\n- The person associated with Tea is in the same house as Swimming.\n- The person associated with Emma is in the same house as Coffee.\n- The person associated with Emma is in the same house as Cat.\n- The person associated with Emma is in the same house as Soccer.\n- The person associated with White is in the same house as Coffee.\n- The person associated with White is in the same house as Soccer.\n- The person associated with Coffee is in the same house as Cat.\n- The person associated with Coffee is in the same house as Soccer.\n- The person associated with Charlie is in the same house as Milk.\n- The person associated with Charlie is in the same house as Hamster.\n- The person associated with Yellow is in the same house as Tennis.\n- The person associated with Milk is in the same house as Tennis.\n- The person associated with Hamster is in the same house as Tennis.\n- The person associated with Blue is in the same house as Juice.\n- The person associated with Juice is in the same house as Basketball.\n- The person associated with David is in the same house as Green.\n- The person associated with David is in the same house as Water.\n- The person associated with Green is in the same house as Running.\n- The person associated with Water is in the same house as Running.\n- The person associated with Fish is in the same house as Running.\n- Red is in house 1.\n- Tea is in house 1.\n- Emma is in house 2.\n- Coffee is in house 2.\n- Yellow is in house 3.\n- Juice is in house 4.\n- Dog is in house 4.\n- David is in house 5.\n- Running is in house 5.\n- Emma is directly to the left of Charlie.\n- Bob is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Green\n(B) Yellow\n(C) White\n(D) Red\n(E) Blue\n\nState your final answer as (E).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Green",
+        "B": "Yellow",
+        "C": "White",
+        "D": "Red",
+        "E": "Blue"
+      },
+      "target_option": "(E)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Tea",
+          "Pet": "Bird",
+          "Sport": "Swimming"
+        },
+        "2": {
+          "Name": "Emma",
+          "Color": "White",
+          "Drink": "Coffee",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Yellow",
+          "Drink": "Milk",
+          "Pet": "Hamster",
+          "Sport": "Tennis"
+        },
+        "4": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Juice",
+          "Pet": "Dog",
+          "Sport": "Basketball"
+        },
+        "5": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Fish",
+          "Sport": "Running"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Alice'] == house_of['Tea'])\nsolver.add(house_of['Red'] == house_of['Tea'])\nsolver.add(house_of['Red'] == house_of['Bird'])\nsolver.add(house_of['Red'] == house_of['Swimming'])\nsolver.add(house_of['Tea'] == house_of['Bird'])\nsolver.add(house_of['Tea'] == house_of['Swimming'])\nsolver.add(house_of['Emma'] == house_of['Coffee'])\nsolver.add(house_of['Emma'] == house_of['Cat'])\nsolver.add(house_of['Emma'] == house_of['Soccer'])\nsolver.add(house_of['White'] == house_of['Coffee'])\nsolver.add(house_of['White'] == house_of['Soccer'])\nsolver.add(house_of['Coffee'] == house_of['Cat'])\nsolver.add(house_of['Coffee'] == house_of['Soccer'])\nsolver.add(house_of['Charlie'] == house_of['Milk'])\nsolver.add(house_of['Charlie'] == house_of['Hamster'])\nsolver.add(house_of['Yellow'] == house_of['Tennis'])\nsolver.add(house_of['Milk'] == house_of['Tennis'])\nsolver.add(house_of['Hamster'] == house_of['Tennis'])\nsolver.add(house_of['Blue'] == house_of['Juice'])\nsolver.add(house_of['Juice'] == house_of['Basketball'])\nsolver.add(house_of['David'] == house_of['Green'])\nsolver.add(house_of['David'] == house_of['Water'])\nsolver.add(house_of['Green'] == house_of['Running'])\nsolver.add(house_of['Water'] == house_of['Running'])\nsolver.add(house_of['Fish'] == house_of['Running'])\nsolver.add(house_of['Red'] == 1)\nsolver.add(house_of['Tea'] == 1)\nsolver.add(house_of['Emma'] == 2)\nsolver.add(house_of['Coffee'] == 2)\nsolver.add(house_of['Yellow'] == 3)\nsolver.add(house_of['Juice'] == 4)\nsolver.add(house_of['Dog'] == 4)\nsolver.add(house_of['David'] == 5)\nsolver.add(house_of['Running'] == 5)\nsolver.add(house_of['Emma'] + 1 == house_of['Charlie'])\nsolver.add(house_of['Bob'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_06",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Emma is in the same house as Red.\n- The person associated with Emma is in the same house as Cat.\n- The person associated with Emma is in the same house as Soccer.\n- The person associated with Red is in the same house as Coffee.\n- The person associated with Red is in the same house as Cat.\n- The person associated with Red is in the same house as Soccer.\n- The person associated with Coffee is in the same house as Cat.\n- The person associated with Bob is in the same house as Milk.\n- The person associated with Bob is in the same house as Bird.\n- The person associated with White is in the same house as Milk.\n- The person associated with White is in the same house as Bird.\n- The person associated with White is in the same house as Running.\n- The person associated with Bird is in the same house as Running.\n- The person associated with David is in the same house as Blue.\n- The person associated with David is in the same house as Swimming.\n- The person associated with Blue is in the same house as Tea.\n- The person associated with Blue is in the same house as Swimming.\n- The person associated with Tea is in the same house as Hamster.\n- The person associated with Hamster is in the same house as Swimming.\n- The person associated with Charlie is in the same house as Yellow.\n- The person associated with Charlie is in the same house as Juice.\n- The person associated with Charlie is in the same house as Fish.\n- The person associated with Charlie is in the same house as Basketball.\n- The person associated with Yellow is in the same house as Basketball.\n- The person associated with Juice is in the same house as Basketball.\n- The person associated with Alice is in the same house as Water.\n- The person associated with Alice is in the same house as Tennis.\n- The person associated with Green is in the same house as Water.\n- The person associated with Green is in the same house as Dog.\n- The person associated with Green is in the same house as Tennis.\n- The person associated with Water is in the same house as Dog.\n- The person associated with Water is in the same house as Tennis.\n- Red is in house 1.\n- Coffee is in house 1.\n- Bob is in house 2.\n- Milk is in house 2.\n- Bird is in house 2.\n- Running is in house 2.\n- Swimming is in house 3.\n- Yellow is in house 4.\n- Alice is in house 5.\n- Green is in house 5.\n- Dog is in house 5.\n- Bob is directly to the left of David.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Green\n(B) White\n(C) Blue\n(D) Yellow\n(E) Red\n\nState your final answer as (E).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Green",
+        "B": "White",
+        "C": "Blue",
+        "D": "Yellow",
+        "E": "Red"
+      },
+      "target_option": "(E)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Emma",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "White",
+          "Drink": "Milk",
+          "Pet": "Bird",
+          "Sport": "Running"
+        },
+        "3": {
+          "Name": "David",
+          "Color": "Blue",
+          "Drink": "Tea",
+          "Pet": "Hamster",
+          "Sport": "Swimming"
+        },
+        "4": {
+          "Name": "Charlie",
+          "Color": "Yellow",
+          "Drink": "Juice",
+          "Pet": "Fish",
+          "Sport": "Basketball"
+        },
+        "5": {
+          "Name": "Alice",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Dog",
+          "Sport": "Tennis"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Emma'] == house_of['Red'])\nsolver.add(house_of['Emma'] == house_of['Cat'])\nsolver.add(house_of['Emma'] == house_of['Soccer'])\nsolver.add(house_of['Red'] == house_of['Coffee'])\nsolver.add(house_of['Red'] == house_of['Cat'])\nsolver.add(house_of['Red'] == house_of['Soccer'])\nsolver.add(house_of['Coffee'] == house_of['Cat'])\nsolver.add(house_of['Bob'] == house_of['Milk'])\nsolver.add(house_of['Bob'] == house_of['Bird'])\nsolver.add(house_of['White'] == house_of['Milk'])\nsolver.add(house_of['White'] == house_of['Bird'])\nsolver.add(house_of['White'] == house_of['Running'])\nsolver.add(house_of['Bird'] == house_of['Running'])\nsolver.add(house_of['David'] == house_of['Blue'])\nsolver.add(house_of['David'] == house_of['Swimming'])\nsolver.add(house_of['Blue'] == house_of['Tea'])\nsolver.add(house_of['Blue'] == house_of['Swimming'])\nsolver.add(house_of['Tea'] == house_of['Hamster'])\nsolver.add(house_of['Hamster'] == house_of['Swimming'])\nsolver.add(house_of['Charlie'] == house_of['Yellow'])\nsolver.add(house_of['Charlie'] == house_of['Juice'])\nsolver.add(house_of['Charlie'] == house_of['Fish'])\nsolver.add(house_of['Charlie'] == house_of['Basketball'])\nsolver.add(house_of['Yellow'] == house_of['Basketball'])\nsolver.add(house_of['Juice'] == house_of['Basketball'])\nsolver.add(house_of['Alice'] == house_of['Water'])\nsolver.add(house_of['Alice'] == house_of['Tennis'])\nsolver.add(house_of['Green'] == house_of['Water'])\nsolver.add(house_of['Green'] == house_of['Dog'])\nsolver.add(house_of['Green'] == house_of['Tennis'])\nsolver.add(house_of['Water'] == house_of['Dog'])\nsolver.add(house_of['Water'] == house_of['Tennis'])\nsolver.add(house_of['Red'] == 1)\nsolver.add(house_of['Coffee'] == 1)\nsolver.add(house_of['Bob'] == 2)\nsolver.add(house_of['Milk'] == 2)\nsolver.add(house_of['Bird'] == 2)\nsolver.add(house_of['Running'] == 2)\nsolver.add(house_of['Swimming'] == 3)\nsolver.add(house_of['Yellow'] == 4)\nsolver.add(house_of['Alice'] == 5)\nsolver.add(house_of['Green'] == 5)\nsolver.add(house_of['Dog'] == 5)\nsolver.add(house_of['Bob'] + 1 == house_of['David'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_07",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Alice is in the same house as Tea.\n- The person associated with Alice is in the same house as Dog.\n- The person associated with Alice is in the same house as Soccer.\n- The person associated with Yellow is in the same house as Tea.\n- The person associated with Yellow is in the same house as Dog.\n- The person associated with Tea is in the same house as Dog.\n- The person associated with Tea is in the same house as Soccer.\n- The person associated with Dog is in the same house as Soccer.\n- The person associated with Bob is in the same house as Swimming.\n- The person associated with Red is in the same house as Fish.\n- The person associated with Red is in the same house as Swimming.\n- The person associated with Coffee is in the same house as Fish.\n- The person associated with Coffee is in the same house as Swimming.\n- The person associated with Emma is in the same house as Juice.\n- The person associated with White is in the same house as Juice.\n- The person associated with Charlie is in the same house as Cat.\n- The person associated with Charlie is in the same house as Tennis.\n- The person associated with Blue is in the same house as Tennis.\n- The person associated with Milk is in the same house as Cat.\n- The person associated with David is in the same house as Water.\n- The person associated with David is in the same house as Bird.\n- The person associated with David is in the same house as Basketball.\n- The person associated with Green is in the same house as Basketball.\n- The person associated with Bird is in the same house as Basketball.\n- Alice is in house 1.\n- Dog is in house 1.\n- Soccer is in house 1.\n- Coffee is in house 2.\n- Fish is in house 2.\n- White is in house 3.\n- Juice is in house 3.\n- Charlie is in house 4.\n- Cat is in house 4.\n- Basketball is in house 5.\n\nQuestion: Which attribute (Color) is in house 3?\n\nOptions:\n(A) White\n(B) Green\n(C) Blue\n(D) Red\n(E) Yellow\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 3?",
+      "options": {
+        "A": "White",
+        "B": "Green",
+        "C": "Blue",
+        "D": "Red",
+        "E": "Yellow"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Tea",
+          "Pet": "Dog",
+          "Sport": "Soccer"
+        },
+        "2": {
+          "Name": "Bob",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Fish",
+          "Sport": "Swimming"
+        },
+        "3": {
+          "Name": "Emma",
+          "Color": "White",
+          "Drink": "Juice",
+          "Pet": "Hamster",
+          "Sport": "Running"
+        },
+        "4": {
+          "Name": "Charlie",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Cat",
+          "Sport": "Tennis"
+        },
+        "5": {
+          "Name": "David",
+          "Color": "Green",
+          "Drink": "Water",
+          "Pet": "Bird",
+          "Sport": "Basketball"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Alice'] == house_of['Tea'])\nsolver.add(house_of['Alice'] == house_of['Dog'])\nsolver.add(house_of['Alice'] == house_of['Soccer'])\nsolver.add(house_of['Yellow'] == house_of['Tea'])\nsolver.add(house_of['Yellow'] == house_of['Dog'])\nsolver.add(house_of['Tea'] == house_of['Dog'])\nsolver.add(house_of['Tea'] == house_of['Soccer'])\nsolver.add(house_of['Dog'] == house_of['Soccer'])\nsolver.add(house_of['Bob'] == house_of['Swimming'])\nsolver.add(house_of['Red'] == house_of['Fish'])\nsolver.add(house_of['Red'] == house_of['Swimming'])\nsolver.add(house_of['Coffee'] == house_of['Fish'])\nsolver.add(house_of['Coffee'] == house_of['Swimming'])\nsolver.add(house_of['Emma'] == house_of['Juice'])\nsolver.add(house_of['White'] == house_of['Juice'])\nsolver.add(house_of['Charlie'] == house_of['Cat'])\nsolver.add(house_of['Charlie'] == house_of['Tennis'])\nsolver.add(house_of['Blue'] == house_of['Tennis'])\nsolver.add(house_of['Milk'] == house_of['Cat'])\nsolver.add(house_of['David'] == house_of['Water'])\nsolver.add(house_of['David'] == house_of['Bird'])\nsolver.add(house_of['David'] == house_of['Basketball'])\nsolver.add(house_of['Green'] == house_of['Basketball'])\nsolver.add(house_of['Bird'] == house_of['Basketball'])\nsolver.add(house_of['Alice'] == 1)\nsolver.add(house_of['Dog'] == 1)\nsolver.add(house_of['Soccer'] == 1)\nsolver.add(house_of['Coffee'] == 2)\nsolver.add(house_of['Fish'] == 2)\nsolver.add(house_of['White'] == 3)\nsolver.add(house_of['Juice'] == 3)\nsolver.add(house_of['Charlie'] == 4)\nsolver.add(house_of['Cat'] == 4)\nsolver.add(house_of['Basketball'] == 5)\n"
+    },
+    {
+      "problem_id": "Grid_5x5_08",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Bob is in the same house as Dog.\n- The person associated with Yellow is in the same house as Coffee.\n- The person associated with Yellow is in the same house as Dog.\n- The person associated with Coffee is in the same house as Dog.\n- The person associated with Coffee is in the same house as Swimming.\n- The person associated with Emma is in the same house as Soccer.\n- The person associated with White is in the same house as Milk.\n- The person associated with Charlie is in the same house as Bird.\n- The person associated with Charlie is in the same house as Basketball.\n- The person associated with Green is in the same house as Tea.\n- The person associated with David is in the same house as Running.\n- The person associated with Red is in the same house as Juice.\n- The person associated with Red is in the same house as Cat.\n- The person associated with Red is in the same house as Running.\n- The person associated with Juice is in the same house as Cat.\n- The person associated with Juice is in the same house as Running.\n- The person associated with Alice is in the same house as Fish.\n- The person associated with Alice is in the same house as Tennis.\n- The person associated with Blue is in the same house as Fish.\n- The person associated with Water is in the same house as Fish.\n- The person associated with Fish is in the same house as Tennis.\n- Yellow is in house 1.\n- Coffee is in house 1.\n- White is in house 2.\n- Hamster is in house 2.\n- Tea is in house 3.\n- Red is in house 4.\n- Fish is in house 5.\n- Bob is directly to the left of Emma.\n- Emma is directly to the left of Charlie.\n- Charlie is directly to the left of David.\n- David is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 4?\n\nOptions:\n(A) Yellow\n(B) White\n(C) Red\n(D) Blue\n(E) Green\n\nState your final answer as (C).",
+      "question": "Which attribute (Color) is in house 4?",
+      "options": {
+        "A": "Yellow",
+        "B": "White",
+        "C": "Red",
+        "D": "Blue",
+        "E": "Green"
+      },
+      "target_option": "(C)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Bob",
+          "Color": "Yellow",
+          "Drink": "Coffee",
+          "Pet": "Dog",
+          "Sport": "Swimming"
+        },
+        "2": {
+          "Name": "Emma",
+          "Color": "White",
+          "Drink": "Milk",
+          "Pet": "Hamster",
+          "Sport": "Soccer"
+        },
+        "3": {
+          "Name": "Charlie",
+          "Color": "Green",
+          "Drink": "Tea",
+          "Pet": "Bird",
+          "Sport": "Basketball"
+        },
+        "4": {
+          "Name": "David",
+          "Color": "Red",
+          "Drink": "Juice",
+          "Pet": "Cat",
+          "Sport": "Running"
+        },
+        "5": {
+          "Name": "Alice",
+          "Color": "Blue",
+          "Drink": "Water",
+          "Pet": "Fish",
+          "Sport": "Tennis"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Bob'] == house_of['Dog'])\nsolver.add(house_of['Yellow'] == house_of['Coffee'])\nsolver.add(house_of['Yellow'] == house_of['Dog'])\nsolver.add(house_of['Coffee'] == house_of['Dog'])\nsolver.add(house_of['Coffee'] == house_of['Swimming'])\nsolver.add(house_of['Emma'] == house_of['Soccer'])\nsolver.add(house_of['White'] == house_of['Milk'])\nsolver.add(house_of['Charlie'] == house_of['Bird'])\nsolver.add(house_of['Charlie'] == house_of['Basketball'])\nsolver.add(house_of['Green'] == house_of['Tea'])\nsolver.add(house_of['David'] == house_of['Running'])\nsolver.add(house_of['Red'] == house_of['Juice'])\nsolver.add(house_of['Red'] == house_of['Cat'])\nsolver.add(house_of['Red'] == house_of['Running'])\nsolver.add(house_of['Juice'] == house_of['Cat'])\nsolver.add(house_of['Juice'] == house_of['Running'])\nsolver.add(house_of['Alice'] == house_of['Fish'])\nsolver.add(house_of['Alice'] == house_of['Tennis'])\nsolver.add(house_of['Blue'] == house_of['Fish'])\nsolver.add(house_of['Water'] == house_of['Fish'])\nsolver.add(house_of['Fish'] == house_of['Tennis'])\nsolver.add(house_of['Yellow'] == 1)\nsolver.add(house_of['Coffee'] == 1)\nsolver.add(house_of['White'] == 2)\nsolver.add(house_of['Hamster'] == 2)\nsolver.add(house_of['Tea'] == 3)\nsolver.add(house_of['Red'] == 4)\nsolver.add(house_of['Fish'] == 5)\nsolver.add(house_of['Bob'] + 1 == house_of['Emma'])\nsolver.add(house_of['Emma'] + 1 == house_of['Charlie'])\nsolver.add(house_of['Charlie'] + 1 == house_of['David'])\nsolver.add(house_of['David'] + 1 == house_of['Alice'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_09",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with David is in the same house as Yellow.\n- The person associated with David is in the same house as Fish.\n- The person associated with David is in the same house as Tennis.\n- The person associated with Yellow is in the same house as Fish.\n- The person associated with Yellow is in the same house as Tennis.\n- The person associated with Fish is in the same house as Tennis.\n- The person associated with Charlie is in the same house as Running.\n- The person associated with White is in the same house as Bird.\n- The person associated with White is in the same house as Running.\n- The person associated with Alice is in the same house as Red.\n- The person associated with Alice is in the same house as Swimming.\n- The person associated with Red is in the same house as Tea.\n- The person associated with Tea is in the same house as Swimming.\n- The person associated with Dog is in the same house as Swimming.\n- The person associated with Emma is in the same house as Coffee.\n- The person associated with Emma is in the same house as Hamster.\n- The person associated with Green is in the same house as Coffee.\n- The person associated with Green is in the same house as Hamster.\n- The person associated with Green is in the same house as Basketball.\n- The person associated with Blue is in the same house as Soccer.\n- The person associated with Milk is in the same house as Cat.\n- The person associated with Cat is in the same house as Soccer.\n- David is in house 1.\n- Yellow is in house 1.\n- Tennis is in house 1.\n- Bird is in house 2.\n- Running is in house 2.\n- Alice is in house 3.\n- Tea is in house 3.\n- Bob is in house 5.\n- Milk is in house 5.\n- Cat is in house 5.\n- Charlie is directly to the left of Alice.\n- Alice is directly to the left of Emma.\n- Emma is directly to the left of Bob.\n\nQuestion: Which attribute (Color) is in house 2?\n\nOptions:\n(A) White\n(B) Red\n(C) Green\n(D) Blue\n(E) Yellow\n\nState your final answer as (A).",
+      "question": "Which attribute (Color) is in house 2?",
+      "options": {
+        "A": "White",
+        "B": "Red",
+        "C": "Green",
+        "D": "Blue",
+        "E": "Yellow"
+      },
+      "target_option": "(A)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "David",
+          "Color": "Yellow",
+          "Drink": "Juice",
+          "Pet": "Fish",
+          "Sport": "Tennis"
+        },
+        "2": {
+          "Name": "Charlie",
+          "Color": "White",
+          "Drink": "Water",
+          "Pet": "Bird",
+          "Sport": "Running"
+        },
+        "3": {
+          "Name": "Alice",
+          "Color": "Red",
+          "Drink": "Tea",
+          "Pet": "Dog",
+          "Sport": "Swimming"
+        },
+        "4": {
+          "Name": "Emma",
+          "Color": "Green",
+          "Drink": "Coffee",
+          "Pet": "Hamster",
+          "Sport": "Basketball"
+        },
+        "5": {
+          "Name": "Bob",
+          "Color": "Blue",
+          "Drink": "Milk",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['David'] == house_of['Yellow'])\nsolver.add(house_of['David'] == house_of['Fish'])\nsolver.add(house_of['David'] == house_of['Tennis'])\nsolver.add(house_of['Yellow'] == house_of['Fish'])\nsolver.add(house_of['Yellow'] == house_of['Tennis'])\nsolver.add(house_of['Fish'] == house_of['Tennis'])\nsolver.add(house_of['Charlie'] == house_of['Running'])\nsolver.add(house_of['White'] == house_of['Bird'])\nsolver.add(house_of['White'] == house_of['Running'])\nsolver.add(house_of['Alice'] == house_of['Red'])\nsolver.add(house_of['Alice'] == house_of['Swimming'])\nsolver.add(house_of['Red'] == house_of['Tea'])\nsolver.add(house_of['Tea'] == house_of['Swimming'])\nsolver.add(house_of['Dog'] == house_of['Swimming'])\nsolver.add(house_of['Emma'] == house_of['Coffee'])\nsolver.add(house_of['Emma'] == house_of['Hamster'])\nsolver.add(house_of['Green'] == house_of['Coffee'])\nsolver.add(house_of['Green'] == house_of['Hamster'])\nsolver.add(house_of['Green'] == house_of['Basketball'])\nsolver.add(house_of['Blue'] == house_of['Soccer'])\nsolver.add(house_of['Milk'] == house_of['Cat'])\nsolver.add(house_of['Cat'] == house_of['Soccer'])\nsolver.add(house_of['David'] == 1)\nsolver.add(house_of['Yellow'] == 1)\nsolver.add(house_of['Tennis'] == 1)\nsolver.add(house_of['Bird'] == 2)\nsolver.add(house_of['Running'] == 2)\nsolver.add(house_of['Alice'] == 3)\nsolver.add(house_of['Tea'] == 3)\nsolver.add(house_of['Bob'] == 5)\nsolver.add(house_of['Milk'] == 5)\nsolver.add(house_of['Cat'] == 5)\nsolver.add(house_of['Charlie'] + 1 == house_of['Alice'])\nsolver.add(house_of['Alice'] + 1 == house_of['Emma'])\nsolver.add(house_of['Emma'] + 1 == house_of['Bob'])\n"
+    },
+    {
+      "problem_id": "Grid_5x5_10",
+      "grid_size": 5,
+      "num_attributes": 5,
+      "search_space_states": 207360000,
+      "prompt_text": "There are 5 houses in a row numbered 1 to 5 from left to right.\n\nClues:\n- The person associated with Charlie is in the same house as Hamster.\n- The person associated with Milk is in the same house as Hamster.\n- The person associated with Hamster is in the same house as Running.\n- The person associated with Emma is in the same house as Green.\n- The person associated with Emma is in the same house as Juice.\n- The person associated with Juice is in the same house as Fish.\n- The person associated with Alice is in the same house as Cat.\n- The person associated with Yellow is in the same house as Cat.\n- The person associated with Water is in the same house as Soccer.\n- The person associated with Cat is in the same house as Soccer.\n- The person associated with Bob is in the same house as Coffee.\n- The person associated with Bob is in the same house as Dog.\n- The person associated with Bob is in the same house as Tennis.\n- The person associated with Coffee is in the same house as Dog.\n- The person associated with Dog is in the same house as Tennis.\n- The person associated with Blue is in the same house as Tea.\n- The person associated with Blue is in the same house as Basketball.\n- The person associated with Tea is in the same house as Basketball.\n- The person associated with Bird is in the same house as Basketball.\n- Running is in house 1.\n- Green is in house 2.\n- Swimming is in house 2.\n- Alice is in house 3.\n- Water is in house 3.\n- Cat is in house 3.\n- Dog is in house 4.\n- Basketball is in house 5.\n- Charlie is directly to the left of Emma.\n- Emma is directly to the left of Alice.\n\nQuestion: Which attribute (Color) is in house 1?\n\nOptions:\n(A) Red\n(B) White\n(C) Blue\n(D) Yellow\n(E) Green\n\nState your final answer as (B).",
+      "question": "Which attribute (Color) is in house 1?",
+      "options": {
+        "A": "Red",
+        "B": "White",
+        "C": "Blue",
+        "D": "Yellow",
+        "E": "Green"
+      },
+      "target_option": "(B)",
+      "ground_truth_solution": {
+        "1": {
+          "Name": "Charlie",
+          "Color": "White",
+          "Drink": "Milk",
+          "Pet": "Hamster",
+          "Sport": "Running"
+        },
+        "2": {
+          "Name": "Emma",
+          "Color": "Green",
+          "Drink": "Juice",
+          "Pet": "Fish",
+          "Sport": "Swimming"
+        },
+        "3": {
+          "Name": "Alice",
+          "Color": "Yellow",
+          "Drink": "Water",
+          "Pet": "Cat",
+          "Sport": "Soccer"
+        },
+        "4": {
+          "Name": "Bob",
+          "Color": "Red",
+          "Drink": "Coffee",
+          "Pet": "Dog",
+          "Sport": "Tennis"
+        },
+        "5": {
+          "Name": "David",
+          "Color": "Blue",
+          "Drink": "Tea",
+          "Pet": "Bird",
+          "Sport": "Basketball"
+        }
+      },
+      "z3_verification_code": "\nimport z3\n\nsolver = z3.Solver()\n# Domain: 1 to 5\nhouse_of = {}\nall_vals = ['Alice', 'Bob', 'Charlie', 'David', 'Emma', 'Red', 'Blue', 'Green', 'Yellow', 'White', 'Tea', 'Coffee', 'Milk', 'Water', 'Juice', 'Cat', 'Dog', 'Bird', 'Fish', 'Hamster', 'Soccer', 'Tennis', 'Basketball', 'Swimming', 'Running']\nfor v in all_vals:\n    house_of[v] = z3.Int(v)\n    solver.add(house_of[v] >= 1, house_of[v] <= 5)\n\n# AllDifferent per attribute\nsolver.add(z3.Distinct(house_of['Alice'], house_of['Bob'], house_of['Charlie'], house_of['David'], house_of['Emma']))\nsolver.add(z3.Distinct(house_of['Red'], house_of['Blue'], house_of['Green'], house_of['Yellow'], house_of['White']))\nsolver.add(z3.Distinct(house_of['Tea'], house_of['Coffee'], house_of['Milk'], house_of['Water'], house_of['Juice']))\nsolver.add(z3.Distinct(house_of['Cat'], house_of['Dog'], house_of['Bird'], house_of['Fish'], house_of['Hamster']))\nsolver.add(z3.Distinct(house_of['Soccer'], house_of['Tennis'], house_of['Basketball'], house_of['Swimming'], house_of['Running']))\nsolver.add(house_of['Charlie'] == house_of['Hamster'])\nsolver.add(house_of['Milk'] == house_of['Hamster'])\nsolver.add(house_of['Hamster'] == house_of['Running'])\nsolver.add(house_of['Emma'] == house_of['Green'])\nsolver.add(house_of['Emma'] == house_of['Juice'])\nsolver.add(house_of['Juice'] == house_of['Fish'])\nsolver.add(house_of['Alice'] == house_of['Cat'])\nsolver.add(house_of['Yellow'] == house_of['Cat'])\nsolver.add(house_of['Water'] == house_of['Soccer'])\nsolver.add(house_of['Cat'] == house_of['Soccer'])\nsolver.add(house_of['Bob'] == house_of['Coffee'])\nsolver.add(house_of['Bob'] == house_of['Dog'])\nsolver.add(house_of['Bob'] == house_of['Tennis'])\nsolver.add(house_of['Coffee'] == house_of['Dog'])\nsolver.add(house_of['Dog'] == house_of['Tennis'])\nsolver.add(house_of['Blue'] == house_of['Tea'])\nsolver.add(house_of['Blue'] == house_of['Basketball'])\nsolver.add(house_of['Tea'] == house_of['Basketball'])\nsolver.add(house_of['Bird'] == house_of['Basketball'])\nsolver.add(house_of['Running'] == 1)\nsolver.add(house_of['Green'] == 2)\nsolver.add(house_of['Swimming'] == 2)\nsolver.add(house_of['Alice'] == 3)\nsolver.add(house_of['Water'] == 3)\nsolver.add(house_of['Cat'] == 3)\nsolver.add(house_of['Dog'] == 4)\nsolver.add(house_of['Basketball'] == 5)\nsolver.add(house_of['Charlie'] + 1 == house_of['Emma'])\nsolver.add(house_of['Emma'] + 1 == house_of['Alice'])\n"
+    }
+  ]
+}

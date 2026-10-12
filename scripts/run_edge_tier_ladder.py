@@ -299,14 +299,23 @@ def match_cruxeval(text: str) -> str | None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Edge-Tier Ablation Ladder Benchmark")
     parser.add_argument("--samples", type=int, default=20, help="Problems per domain")
+    parser.add_argument("--tier", type=str, default="e4b", choices=["e4b", "e2b", "12b"], help="Model tier under test")
     args = parser.parse_args()
     n_samples: int = args.samples
+    tier: str = args.tier.lower()
+
+    tier_models = {
+        "e4b": "Gemma 4 E4B Heretic Q6_K",
+        "e2b": "Gemma 4 E2B Heretic Sinhala Q6_K",
+        "12b": "Gemma 4 12B Heretic Q6_K",
+    }
+    model_name = tier_models.get(tier, f"Gemma 4 {tier.upper()}")
 
     print("==========================================================================", flush=True)
-    print("=== PROJECT LUCCA: EDGE-TIER (E4B) ABLATION LADDER BENCHMARK ===", flush=True)
+    print(f"=== PROJECT LUCCA: EDGE-TIER ({tier.upper()}) ABLATION LADDER BENCHMARK ===", flush=True)
     print("==========================================================================", flush=True)
     print(f"Timestamp: {datetime.now(UTC).isoformat()}", flush=True)
-    print(f"Model: Gemma 4 E4B Heretic Q6_K on single-slot (--parallel 1)", flush=True)
+    print(f"Model: {model_name} on single-slot (--parallel 1)", flush=True)
     print(f"Sample Size: {n_samples} per domain (Total {n_samples * 3} problems)\n", flush=True)
 
     results: list[ProblemEvaluation] = []
@@ -433,11 +442,11 @@ def main() -> None:
     out_dir = REPO_ROOT / "logs" / "test_reports"
     out_dir.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
-    out_file = out_dir / f"edge_tier_ladder_e4b_{ts}.json"
+    out_file = out_dir / f"edge_tier_ladder_{tier}_{ts}.json"
     report_data = {
-        "benchmark": "Edge_Tier_Ablation_Ladder_E4B",
+        "benchmark": f"Edge_Tier_Ablation_Ladder_{tier.upper()}",
         "timestamp_utc": datetime.now(UTC).isoformat(),
-        "model": "gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf",
+        "model": model_name,
         "summary": {
             "total": tot,
             "rung1_direct": {"passed": d_pass, "pct": d_pass / tot * 100.0},
