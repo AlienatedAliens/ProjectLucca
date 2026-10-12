@@ -107,7 +107,7 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
-def run_benchmark(per_domain_limit: int = 10, seed: int = 42) -> None:
+def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "E2B") -> None:
     domains = [
         ("murder_mystery", DATA_DIR / "musr_murder_mystery.json"),
         ("team_allocation", DATA_DIR / "musr_team_allocation.json"),
@@ -218,10 +218,12 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42) -> None:
     print(f"McNemar Discordant Pairs: b (Direct+, Think-)={b}, c (Direct-, Think+)={c} | p-value = {p_val:.4f}")
     print("=" * 60)
 
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"musr_benchmark_{int(time.time())}.json"
+    out_name = f"musr_benchmark_{model_tag}_{int(time.time())}.json" if model_tag else f"musr_benchmark_{int(time.time())}.json"
+    out_file = REPO_ROOT / "logs" / "test_reports" / out_name
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "MuSR_Multistep_Soft_Reasoning",
+        "model_tag": model_tag or "E2B",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_problems": n,
         "direct_passed": total_d,
@@ -239,7 +241,8 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MuSR Benchmark Runner")
-    parser.add_argument("--limit", type=int, default=5, help="Problems per domain (default: 5)")
+    parser.add_argument("--limit", type=int, default=10, help="Problems per domain (default: 10)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
+    parser.add_argument("--model-tag", type=str, default="E2B", help="Model tier tag (e.g. E2B, E4B, 12B)")
     args = parser.parse_args()
-    run_benchmark(per_domain_limit=args.limit, seed=args.seed)
+    run_benchmark(per_domain_limit=args.limit, seed=args.seed, model_tag=args.model_tag)

@@ -141,7 +141,7 @@ def format_memory_prompt(item: dict[str, Any]) -> str:
     )
 
 
-def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42) -> None:
+def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: str = "E2B") -> None:
     print("==========================================================================", flush=True)
     print("=== PROJECT LUCCA: LongMemEval CONVERSATIONAL MEMORY BENCHMARK ===", flush=True)
     print("==========================================================================", flush=True)
@@ -231,10 +231,12 @@ def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42) -> None:
     print(f"McNemar Discordant Pairs: b (Direct+, Think-)={b}, c (Direct-, Think+)={c} | p-value = {p_val:.4f}")
     print("=" * 60)
 
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"longmemeval_benchmark_{int(time.time())}.json"
+    out_name = f"longmemeval_benchmark_{model_tag}_{int(time.time())}.json" if model_tag else f"longmemeval_benchmark_{int(time.time())}.json"
+    out_file = REPO_ROOT / "logs" / "test_reports" / out_name
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "LongMemEval_MultiSession_Memory",
+        "model_tag": model_tag or "E2B",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_problems": n,
         "direct_passed": total_d,
@@ -254,5 +256,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="LongMemEval Benchmark Runner")
     parser.add_argument("--limit", type=int, default=10, help="Items per category (default: 10)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
+    parser.add_argument("--model-tag", type=str, default="E2B", help="Model tier tag (e.g. E2B, E4B, 12B)")
     args = parser.parse_args()
-    run_longmem_benchmark(limit_per_type=args.limit, seed=args.seed)
+    run_longmem_benchmark(limit_per_type=args.limit, seed=args.seed, model_tag=args.model_tag)

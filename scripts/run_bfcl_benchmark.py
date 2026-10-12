@@ -84,7 +84,7 @@ def query_llm_tools(
         return data["choices"][0]["message"]
 
 
-def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42) -> None:
+def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: str = "E2B") -> None:
     print("==========================================================================", flush=True)
     print("=== PROJECT LUCCA: BERKELEY FUNCTION CALLING LEADERBOARD (BFCL) ===", flush=True)
     print("==========================================================================", flush=True)
@@ -233,10 +233,12 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42) -> None:
     print(f"OVERALL BFCL ACCURACY: {sum(1 for r in results if r.passed)}/{len(results)} ({total_acc:.1f}%)")
     print("=" * 60)
 
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"bfcl_v3_benchmark_{int(time.time())}.json"
+    out_name = f"bfcl_v3_benchmark_{model_tag}_{int(time.time())}.json" if model_tag else f"bfcl_v3_benchmark_{int(time.time())}.json"
+    out_file = REPO_ROOT / "logs" / "test_reports" / out_name
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "BFCL_V3_Berkeley_Function_Calling",
+        "model_tag": model_tag or "E2B",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_items": len(results),
         "exec_simple_passed": sum(1 for r in simple_res if r.passed),
@@ -255,5 +257,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BFCL V3 Benchmark Runner")
     parser.add_argument("--limit", type=int, default=25, help="Items per category (default: 25)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
+    parser.add_argument("--model-tag", type=str, default="E2B", help="Model tier tag (e.g. E2B, E4B, 12B)")
     args = parser.parse_args()
-    run_bfcl_benchmark(limit_per_category=args.limit, seed=args.seed)
+    run_bfcl_benchmark(limit_per_category=args.limit, seed=args.seed, model_tag=args.model_tag)

@@ -1,0 +1,514 @@
+{
+  "benchmark": "BFCL_V3_Berkeley_Function_Calling",
+  "model_tag": "E4B",
+  "evaluated_at": "2026-10-12T06:38:52.530636+00:00",
+  "total_items": 50,
+  "exec_simple_passed": 22,
+  "exec_simple_pct": 88.0,
+  "irrelevance_passed": 22,
+  "irrelevance_pct": 88.0,
+  "overall_passed": 44,
+  "overall_pct": 88.0,
+  "results": [
+    {
+      "item_id": "exec_simple_42",
+      "category": "exec_simple",
+      "user_prompt": "I'm deep into my research on the Fibonacci sequence, and I need to analyze the first 20 numbers of the sequence for my s",
+      "ground_truth": "get_fibonacci_sequence(n=20)",
+      "predicted_call": "get_fibonacci_sequence(n=20)",
+      "passed": true,
+      "latency_s": 2.85,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_41",
+      "category": "exec_simple",
+      "user_prompt": "During my fieldwork in the forest, I've been closely monitoring a certain animal's movement patterns. Just recently, I'v",
+      "ground_truth": "get_distance(pointA=(32.71, -117.16), pointB=(34.05, -118.25))",
+      "predicted_call": "get_distance(pointA=[32.71, -117.16], pointB=[34.05, -118.25])",
+      "passed": false,
+      "latency_s": 3.69,
+      "error_note": "Arg mismatch: pred={'pointA': [32.71, -117.16], 'pointB': [34.05, -118.25]} vs gt={'pointA': '(32.71, -117.16)', 'pointB': '(34.05, -118.25)'}"
+    },
+    {
+      "item_id": "exec_simple_91",
+      "category": "exec_simple",
+      "user_prompt": "I'd like to reserve a king room for a customer with the ID 123. The booking is from December 11, 2023, to August 15, 202",
+      "ground_truth": "book_room(room_type='king',price=10000,check_in_date='12-11-2023',check_out_date='08-15-2024',customer_id='123')",
+      "predicted_call": "NO_TOOL_CALLED",
+      "passed": false,
+      "latency_s": 5.01,
+      "error_note": "Expected tool call but assistant replied with text"
+    },
+    {
+      "item_id": "exec_simple_9",
+      "category": "exec_simple",
+      "user_prompt": "I'm working on a physics simulation and I have a micro-particle here charged at 7.8 coulombs. It's placed in an electrom",
+      "ground_truth": "calculate_electrostatic_potential_energy(charge=7.8, voltage=15.2)",
+      "predicted_call": "calculate_electrostatic_potential_energy(charge=7.8, voltage=15.2)",
+      "passed": true,
+      "latency_s": 3.02,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_65",
+      "category": "exec_simple",
+      "user_prompt": "While I was delving into some quantum mechanics problems for my physics class, I stumbled upon a particularly challengin",
+      "ground_truth": "math_factorial(n=12)",
+      "predicted_call": "math_factorial(n=12)",
+      "passed": true,
+      "latency_s": 0.71,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_50",
+      "category": "exec_simple",
+      "user_prompt": "I'm considering purchasing a product from Amazon, and before I make a decision, I'd like to check its rating. The produc",
+      "ground_truth": "get_rating_by_amazon_ASIN(ASIN='B08BHXG144')",
+      "predicted_call": "get_rating_by_amazon_ASIN(ASIN=B08BHXG144)",
+      "passed": true,
+      "latency_s": 2.61,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_1",
+      "category": "exec_simple",
+      "user_prompt": "During last night's basketball game, one of the star players was on fire, attempting a whopping 30 free throws. It's gen",
+      "ground_truth": "calc_binomial_probability(n=30, k=15, p=0.5)",
+      "predicted_call": "calc_binomial_probability(k=15, n=30, p=0.5)",
+      "passed": true,
+      "latency_s": 3.29,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_70",
+      "category": "exec_simple",
+      "user_prompt": "I'm currently working with a client who's looking to purchase their first home and we're trying to map out their budget.",
+      "ground_truth": "mortgage_calculator(loan_amount=350000, interest_rate=0.035, loan_period=30)",
+      "predicted_call": "mortgage_calculator(interest_rate=0.035, loan_amount=350000, loan_period=30)",
+      "passed": true,
+      "latency_s": 3.81,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_15",
+      "category": "exec_simple",
+      "user_prompt": "I'm working on a report about a basketball player's average performance throughout the season. The data I have includes ",
+      "ground_truth": "calculate_mean(numbers=[15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160])",
+      "predicted_call": "calculate_mean(numbers=[15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160])",
+      "passed": true,
+      "latency_s": 4.04,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_78",
+      "category": "exec_simple",
+      "user_prompt": "As a data analyst, I'm dealing with a dataset that needs to be sorted for my analysis. I have these numbers [34, 2, 56, ",
+      "ground_truth": "sort_array(array=[34, 2, 56, 7, 9, 12], reverse=True)",
+      "predicted_call": "sort_array(array=[34, 2, 56, 7, 9, 12], reverse=True)",
+      "passed": true,
+      "latency_s": 3.3,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_73",
+      "category": "exec_simple",
+      "user_prompt": "I'm working on a program that's supposed to solve quadratic equations, and I need to test out a function that calculates",
+      "ground_truth": "quadratic_roots(a=5, b=-8, c=2)",
+      "predicted_call": "quadratic_roots(a=5, b=-8, c=2)",
+      "passed": true,
+      "latency_s": 1.19,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_10",
+      "category": "exec_simple",
+      "user_prompt": "During a training exercise, we're analyzing a simulation of a high-speed chase where a vehicle starts from a standstill ",
+      "ground_truth": "calculate_final_velocity(initial_velocity=0, acceleration=9.8, time=12)",
+      "predicted_call": "calculate_final_velocity(acceleration=9.8, initial_velocity=0, time=12)",
+      "passed": true,
+      "latency_s": 3.65,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_55",
+      "category": "exec_simple",
+      "user_prompt": "I need to check the current price of Microsoft Corporation's stock. Could you get me the latest stock price for Microsof",
+      "ground_truth": "get_stock_price_by_stock_name(stock_name='MSFT')",
+      "predicted_call": "get_stock_price_by_stock_name(stock_name=MSFT)",
+      "passed": true,
+      "latency_s": 3.08,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_56",
+      "category": "exec_simple",
+      "user_prompt": "I'm currently knee-deep in a geography project where understanding the time zones for different coordinates is crucial. ",
+      "ground_truth": "get_time_zone_by_coord(long='123.45', lat='-67.89')",
+      "predicted_call": "get_time_zone_by_coord(lat=-67.89, long=123.45)",
+      "passed": true,
+      "latency_s": 2.71,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_72",
+      "category": "exec_simple",
+      "user_prompt": "I'm prepping for tomorrow's algebra class about quadratic equations, and I want to show the students how to calculate th",
+      "ground_truth": "quadratic_roots(a=3, b=7, c=-10)",
+      "predicted_call": "quadratic_roots(a=3, b=7, c=-10)",
+      "passed": true,
+      "latency_s": 1.25,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_45",
+      "category": "exec_simple",
+      "user_prompt": "I manage inventory for our online store, and it's crucial to keep track of our competitors' pricing, particularly on Ama",
+      "ground_truth": "get_price_by_amazon_ASIN(ASIN='B08PPDJWC8')",
+      "predicted_call": "get_price_by_amazon_ASIN(ASIN=B08PPDJWC8)",
+      "passed": true,
+      "latency_s": 2.43,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_48",
+      "category": "exec_simple",
+      "user_prompt": "I'm working on a product review article and there's a particular item on Amazon I'm focusing on. Its ASIN is 'B08BHXG144",
+      "ground_truth": "get_product_name_by_amazon_ASIN(ASIN='B08BHXG144')",
+      "predicted_call": "get_product_name_by_amazon_ASIN(ASIN=B08BHXG144)",
+      "passed": true,
+      "latency_s": 3.09,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_92",
+      "category": "exec_simple",
+      "user_prompt": "I'm organizing a small get-together at my place tonight and I'm looking to order some food for the guests. I'd like to g",
+      "ground_truth": "order_food(item=['burger','ice cream'], quantity=[10,7], price=[5,2])",
+      "predicted_call": "order_food()",
+      "passed": false,
+      "latency_s": 5.04,
+      "error_note": "Arg mismatch: pred={} vs gt={'item': \"['burger','ice cream']\", 'quantity': [10, 7], 'price': [5, 2]}"
+    },
+    {
+      "item_id": "exec_simple_76",
+      "category": "exec_simple",
+      "user_prompt": "I'm working on a project about how holidays are celebrated across different nations and how these celebrations have evol",
+      "ground_truth": "retrieve_holiday_by_year(year='2010', country='FR')",
+      "predicted_call": "retrieve_holiday_by_year(country=FR, year=2010)",
+      "passed": true,
+      "latency_s": 2.49,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_37",
+      "category": "exec_simple",
+      "user_prompt": "I'm currently working on a wildlife research project that involves tracking the migration patterns of a bird species kno",
+      "ground_truth": "get_coordinates_from_city(city_name='Cairo')",
+      "predicted_call": "get_coordinates_from_city(city_name=Cairo)",
+      "passed": true,
+      "latency_s": 2.19,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_30",
+      "category": "exec_simple",
+      "user_prompt": "I'm in the middle of composing an article on the COVID-19 situation, focusing on Brazil's ongoing response and how it's ",
+      "ground_truth": "get_active_covid_case_by_country(country='Brazil')",
+      "predicted_call": "get_active_covid_case_by_country(country=Brazil)",
+      "passed": true,
+      "latency_s": 2.54,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_21",
+      "category": "exec_simple",
+      "user_prompt": "I'm working on the design for a triangular dam, and I've settled on the dimensions. The base is going to be 700 meters, ",
+      "ground_truth": "calculate_triangle_area(base=700, height=450)",
+      "predicted_call": "calculate_triangle_area(base=700, height=450)",
+      "passed": true,
+      "latency_s": 2.8,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_32",
+      "category": "exec_simple",
+      "user_prompt": "I'm currently compiling a report on various key players in the tech industry, and I'm looking into the origins and owner",
+      "ground_truth": "get_company_name_by_stock_name(stock_name='AAPL')",
+      "predicted_call": "get_company_name_by_stock_name(stock_name=AAPL)",
+      "passed": true,
+      "latency_s": 1.87,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_96",
+      "category": "exec_simple",
+      "user_prompt": "I'm considering showing the movie \"Avatar\" at my family's movie night this weekend, but I need to make sure it's appropr",
+      "ground_truth": "get_movie_rating(movie_name='Avatar')",
+      "predicted_call": "get_movie_rating(movie_name=Avatar)",
+      "passed": true,
+      "latency_s": 2.2,
+      "error_note": null
+    },
+    {
+      "item_id": "exec_simple_80",
+      "category": "exec_simple",
+      "user_prompt": "Could you calculate the sum of two binary numbers '0011' and '1100' for me?",
+      "ground_truth": "add_binary_numbers(a='0011',b='1100')",
+      "predicted_call": "add_binary_numbers(a=0011, b=1100)",
+      "passed": true,
+      "latency_s": 2.16,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_150",
+      "category": "irrelevance",
+      "user_prompt": "Which colors should I mix to get a specific color shade?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 4.75,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_179",
+      "category": "irrelevance",
+      "user_prompt": "Who played for Clippers in NBA",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 4.38,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_192",
+      "category": "irrelevance",
+      "user_prompt": "What is the roster of Manchester United?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 3.31,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_147",
+      "category": "irrelevance",
+      "user_prompt": "Who is the most important prophet in Christianity?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.1,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_110",
+      "category": "irrelevance",
+      "user_prompt": "What's the average temperature for Los Angeles in December?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 3.79,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_104",
+      "category": "irrelevance",
+      "user_prompt": "Calculate the volume of the sphere with radius 3 units.",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.03,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_11",
+      "category": "irrelevance",
+      "user_prompt": "What is the closest integer to 30?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 2.92,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_33",
+      "category": "irrelevance",
+      "user_prompt": "Identify the genetic code sequence \"ATCG\".",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "HALLUCINATED_CALL: identify_species",
+      "passed": false,
+      "latency_s": 3.3,
+      "error_note": "Model invoked tool identify_species when query was irrelevant"
+    },
+    {
+      "item_id": "irrelevance_44",
+      "category": "irrelevance",
+      "user_prompt": "What is the gene sequence for evolutionary changes in whales?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 3.5,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_215",
+      "category": "irrelevance",
+      "user_prompt": "How long will it take to travel from San Francisco to Los Angeles by car?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 2.67,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_38",
+      "category": "irrelevance",
+      "user_prompt": "Find me a documentary about global warming.",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.04,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_37",
+      "category": "irrelevance",
+      "user_prompt": "Find a picnic spot in Miami.",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.07,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_229",
+      "category": "irrelevance",
+      "user_prompt": "What are some popular sushi restaurants in Tokyo?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.04,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_146",
+      "category": "irrelevance",
+      "user_prompt": "Mix the color #FAEBD7 with #00FFFF, what is the new color?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.11,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_83",
+      "category": "irrelevance",
+      "user_prompt": "What's the current interest rate",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 3.27,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_114",
+      "category": "irrelevance",
+      "user_prompt": "What is the fastest route from Los Angeles to New York?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 4.08,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_71",
+      "category": "irrelevance",
+      "user_prompt": "Calculate the profit margin of a company with revenue of $200,000 and expenses of $150,000.",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 4.98,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_19",
+      "category": "irrelevance",
+      "user_prompt": "Find the volume of a cone with base radius 3 cm and height 5 cm.",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.11,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_22",
+      "category": "irrelevance",
+      "user_prompt": "What is the magnetic field at a point located at distance 'r' from a wire carrying current 'I'?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 5.06,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_123",
+      "category": "irrelevance",
+      "user_prompt": "What are the calories of a Big Mac?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 2.69,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_165",
+      "category": "irrelevance",
+      "user_prompt": "What type of instrument is a cello?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "HALLUCINATED_CALL: get_instrument_info",
+      "passed": false,
+      "latency_s": 2.4,
+      "error_note": "Model invoked tool get_instrument_info when query was irrelevant"
+    },
+    {
+      "item_id": "irrelevance_235",
+      "category": "irrelevance",
+      "user_prompt": "What is the best movie in 2020?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 4.66,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_72",
+      "category": "irrelevance",
+      "user_prompt": "What is the external rate of return for a project with cash flows of -$100, $40, $60, $80, $120?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "HALLUCINATED_CALL: calculate_internal_rate_of_return",
+      "passed": false,
+      "latency_s": 5.03,
+      "error_note": "Model invoked tool calculate_internal_rate_of_return when query was irrelevant"
+    },
+    {
+      "item_id": "irrelevance_195",
+      "category": "irrelevance",
+      "user_prompt": "Who won the chess tournament in 2015?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 3.47,
+      "error_note": null
+    },
+    {
+      "item_id": "irrelevance_216",
+      "category": "irrelevance",
+      "user_prompt": "Where is the closest Italian restaurant?",
+      "ground_truth": "NO_TOOL_CALL",
+      "predicted_call": "ABSTAIN_CORRECT",
+      "passed": true,
+      "latency_s": 2.93,
+      "error_note": null
+    }
+  ]
+}

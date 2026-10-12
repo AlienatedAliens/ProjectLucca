@@ -107,7 +107,7 @@ def extract_integer_answer(text: str) -> int | None:
     return None
 
 
-def run_aime_benchmark(limit: int = 30) -> None:
+def run_aime_benchmark(limit: int = 30, model_tag: str = "E2B") -> None:
     print("==========================================================================", flush=True)
     print("=== PROJECT LUCCA: AIME 2024 MATHEMATICS BENCHMARK ===", flush=True)
     print("==========================================================================", flush=True)
@@ -180,10 +180,12 @@ def run_aime_benchmark(limit: int = 30) -> None:
     print(f"McNemar Discordant Pairs: b (Direct+, Think-)={b}, c (Direct-, Think+)={c} | p-value = {p_val:.4f}")
     print("=" * 60)
 
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"aime_2024_benchmark_{int(time.time())}.json"
+    out_name = f"aime_2024_benchmark_{model_tag}_{int(time.time())}.json" if model_tag else f"aime_2024_benchmark_{int(time.time())}.json"
+    out_file = REPO_ROOT / "logs" / "test_reports" / out_name
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "AIME_2024_Olympiad_Mathematics",
+        "model_tag": model_tag or "E2B",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_problems": n,
         "direct_passed": total_d,
@@ -202,5 +204,6 @@ def run_aime_benchmark(limit: int = 30) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AIME 2024 Benchmark Runner")
     parser.add_argument("--limit", type=int, default=30, help="Problem limit (default: 30)")
+    parser.add_argument("--model-tag", type=str, default="E2B", help="Model tier tag (e.g. E2B, E4B, 12B)")
     args = parser.parse_args()
-    run_aime_benchmark(limit=args.limit)
+    run_aime_benchmark(limit=args.limit, model_tag=args.model_tag)
