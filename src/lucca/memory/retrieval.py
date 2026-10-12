@@ -63,11 +63,14 @@ def _provenance_tier(prov: object) -> int:
 
 
 def format_memory_context(
-    hits: list[MemoryHit], max_tokens: int = 2048, now: float | None = None
+    hits: list[MemoryHit],
+    max_tokens: int = 2048,
+    now: float | None = None,
+    max_content_chars: int = 160,
 ) -> str:
     """
     Render memory hits into prompt context block per Spec 04 §6 / Spec 10 / D-MEM-03:
-    - [{kind}/{provenance} {age}] {content} truncated to 160 chars
+    - [{kind}/{provenance} {age}] {content} truncated to max_content_chars (default 160)
     - graph hits as: - {content}
     - sorted by multi-factor hierarchy: (provenance tier, -score, -created_at)
     - Enforces <= max_tokens (approx 4 chars/token).
@@ -88,7 +91,8 @@ def format_memory_context(
 
     current_len = 0
     for hit in sorted_hits[:max_items]:
-        content_clean = hit.content[:160].replace("\r\n", "\n").replace("\r", "\n")
+        raw_text = hit.content[:max_content_chars] if max_content_chars > 0 else hit.content
+        content_clean = raw_text.replace("\r\n", "\n").replace("\r", "\n")
         while "\n[" in content_clean:
             content_clean = content_clean.replace("\n[", "\n(")
         if content_clean.startswith("["):
