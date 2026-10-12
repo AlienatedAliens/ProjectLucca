@@ -1764,6 +1764,23 @@ records:
   run_artifacts:
   - logs/test_reports/tool_injection_defense_1791780357.json
   status: current
+- benchmark_id: gsm_symbolic_stratified_100_e2b_v1_5_0
+  experiment: "Apple GSM-Symbolic 100-Template Stratified Evaluation (PAL via DockerRPCTransport) on resident Gemma 4 E2B Heretic Sinhala Q6_K:\n  - 100 distinct templates evaluated (temperature=0.0, seed=42, cache_prompt=False).\n  - Passed: 86/100 (86.0%), Failed: 14/100, 95% Wilson CI: [77.29%, 91.86%].\n  - Elapsed: 157.18s (~1.57s/item), Peak VRAM: 3,404 MiB on NVIDIA GeForce RTX 5080 Laptop GPU.\nFindings: Up from 82.0% in v1.35 baseline (+4.0 pp lift) due to tolerant AST code sanitization and repair in Phase 1 pipeline."
+  git_commit: 6152b49
+  harness_version: scripts/run_gsm_symbolic_100_templates.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total: 100
+    passed: 86
+    failed: 14
+    accuracy_pct: 86.0
+    wilson_95_ci:
+    - 77.29
+    - 91.86
+    elapsed_s: 157.18
+  run_artifacts:
+  - logs/test_reports/gsm_symbolic_100_templates_e2b_v1_5_0.json
+  status: current
 cited_figures:
   100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
   100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0
@@ -1800,3 +1817,8 @@ cited_figures:
   92.0% CRUXEval-Input Dev 50 (CEGIS Engine): cruxeval_input_dev_50_v1_5_0
   78.0% CRUXEval-Input Sealed 100 (CEGIS Engine): cruxeval_input_sealed_100_v1_5_0
   +14.0 pp / +16.0 pp CRUXEval-Input CEGIS Rescue Lift: cruxeval_input_sealed_100_v1_5_0
+  0.0% Action Hallucination Rate (0/50 temptation probes): action_hallucination_supervision_100_e2b_v1_5_0
+  0.0% Supervisor False Abort Rate (0/50 control probes): action_hallucination_supervision_100_e2b_v1_5_0
+  97.5% Graph & Classical Planning Docker Symbolic (39/40): parametric_graph_planning_suite_40_e2b_v1_5_0
+  100.0% Tool Injection & Sandbox Defense (30/30): tool_injection_defense_30_v1_5_0
+  86.0% GSM-Symbolic Stratified 100 (86/100, E2B PAL): gsm_symbolic_stratified_100_e2b_v1_5_0
