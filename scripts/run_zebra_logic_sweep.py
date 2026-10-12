@@ -64,9 +64,14 @@ class GridResult:
     direct_ok: bool
     thinking_pred: str | None
     thinking_ok: bool
-    z3_pred: str | None
-    z3_ok: bool
-    z3_elapsed_ms: float
+    oracle_z3_pred: str | None
+    oracle_z3_ok: bool
+    oracle_z3_elapsed_ms: float
+    llm_z3_pred: str | None
+    llm_z3_syntax_ok: bool
+    llm_z3_ok: bool
+    llm_z3_elapsed_ms: float
+    llm_z3_error: str | None = None
 
 
 def query_llm(
@@ -99,7 +104,7 @@ def extract_option(text: str) -> str | None:
 
 
 def solve_with_z3(p: dict[str, Any]) -> tuple[str | None, float]:
-    """Executes certified Z3 SMT solver in Docker sandbox."""
+    """Executes oracle Z3 SMT solver from ground-truth verification code in Docker sandbox."""
     t0 = time.perf_counter()
     z3_code = p["z3_verification_code"]
     target_q = p["question"]
@@ -134,6 +139,41 @@ else:
         if m:
             return f"({m.group(1).upper()})", elapsed
     return None, elapsed
+
+
+def synthesize_z3_with_llm(p: dict[str, Any]) -> tuple[str | None, bool, str | None, float]:
+    """
+    Tests actual LLM-to-Z3 formalization accuracy.
+    Prompts the LLM to generate Z3 Python code from natural language puzzle,
+    then executes the generated code in the unprivileged Docker sandbox.
+    Returns: (pred_option, syntax_ok, error_detail, elapsed_ms)
+    """
+    t0 = time.perf_counter()
+    prompt = (
+        "You are an expert formal verification engineer using the Z3 Theorem Prover in Python.\n"
+        f"Logic Puzzle:\n{p['prompt_text']}\n\n"
+        "Write an executable Python script using `import z3` that:\n"
+        "1. Creates a `z3.Solver()`\n"
+        "2. Encodes all entities and constraints from the clues\n"
+        "3. Solves the puzzle and prints the final answer as `SOLUTION:(X)` where X is (A), (B), (C), (D), or (E).\n"
+        "Return ONLY runnable Python code inside ```python ... ```."
+    )
+    raw = query_llm(prompt, max_tokens=1536, temperature=0.0, enable_thinking=False)
+    m_code = re.search(r"```(?:python)?\s*(.*?)\s*```", raw, re.DOTALL)
+    code = m_code.group(1) if m_code else raw.strip()
+
+    rpc = get_docker_rpc()
+    res = rpc.execute(call_id=f"z3-synth-{time.time_ns()}", tool="run_python", args={"code": code}, timeout_s=10.0)
+    elapsed = (time.perf_counter() - t0) * 1000.0
+
+    if not res.ok:
+        return None, False, str(res.content or "syntax/execution error"), elapsed
+
+    out_str = str(res.content or "")
+    m_sol = re.search(r"SOLUTION:\(([A-E])\)", out_str)
+    if m_sol:
+        return f"({m_sol.group(1).upper()})", True, None, elapsed
+    return None, True, f"Missing solution token in output: {out_str[:120]}", elapsed
 
 
 def main() -> None:
@@ -173,9 +213,13 @@ def main() -> None:
             th_pred = extract_option(th_out)
             th_ok = (th_pred == tgt)
 
-            # 3. Z3 SMT Solver in Docker
-            z3_pred, z3_ms = solve_with_z3(p)
-            z3_ok = (z3_pred == tgt)
+            # 3. Oracle Z3 SMT Solver in Docker (Ground-truth verification code)
+            oracle_pred, oracle_ms = solve_with_z3(p)
+            oracle_ok = (oracle_pred == tgt)
+
+            # 4. LLM-Synthesized Z3 SMT Solver in Docker (Formal Translation Diagnostic)
+            llm_pred, llm_syntax_ok, llm_err, llm_ms = synthesize_z3_with_llm(p)
+            llm_ok = (llm_pred == tgt)
 
             r = GridResult(
                 problem_id=p["problem_id"],
@@ -186,24 +230,32 @@ def main() -> None:
                 direct_ok=d_ok,
                 thinking_pred=th_pred,
                 thinking_ok=th_ok,
-                z3_pred=z3_pred,
-                z3_ok=z3_ok,
-                z3_elapsed_ms=z3_ms,
+                oracle_z3_pred=oracle_pred,
+                oracle_z3_ok=oracle_ok,
+                oracle_z3_elapsed_ms=oracle_ms,
+                llm_z3_pred=llm_pred,
+                llm_z3_syntax_ok=llm_syntax_ok,
+                llm_z3_ok=llm_ok,
+                llm_z3_elapsed_ms=llm_ms,
+                llm_z3_error=llm_err,
             )
             results.append(r)
-            print(f"[{p['problem_id']}] Direct: {'P' if d_ok else 'F'} | Think: {'P' if th_ok else 'F'} | Z3: {'P' if z3_ok else 'F'} ({z3_ms:.0f}ms)", flush=True)
+            llm_flag = 'P' if llm_ok else ('SYN_ERR' if not llm_syntax_ok else 'F')
+            print(f"[{p['problem_id']}] Direct: {'P' if d_ok else 'F'} | Think: {'P' if th_ok else 'F'} | OracleZ3: {'P' if oracle_ok else 'F'} | LLM_Z3: {llm_flag} ({llm_ms:.0f}ms)", flush=True)
 
     # Summary
-    print("\n" + "=" * 70, flush=True)
+    print("\n" + "=" * 80, flush=True)
     print("=== ZEBRALOGIC DIFFICULTY SWEEP SUMMARY ===", flush=True)
-    print("=" * 70, flush=True)
+    print("=" * 80, flush=True)
     for t_name in tiers:
         t_res = [r for r in results if r.tier == t_name]
         d_p = sum(1 for r in t_res if r.direct_ok)
         th_p = sum(1 for r in t_res if r.thinking_ok)
-        z3_p = sum(1 for r in t_res if r.z3_ok)
+        orc_p = sum(1 for r in t_res if r.oracle_z3_ok)
+        llm_p = sum(1 for r in t_res if r.llm_z3_ok)
+        llm_syn = sum(1 for r in t_res if r.llm_z3_syntax_ok)
         states = t_res[0].states
-        print(f"Tier {t_name} ({states:>10,d} states): Direct {d_p:2d}/{len(t_res)} ({d_p/len(t_res)*100:4.1f}%) | Think {th_p:2d}/{len(t_res)} ({th_p/len(t_res)*100:4.1f}%) | Z3 {z3_p:2d}/{len(t_res)} ({z3_p/len(t_res)*100:4.1f}%)", flush=True)
+        print(f"Tier {t_name} ({states:>10,d} states): Direct {d_p:2d}/{len(t_res)} ({d_p/len(t_res)*100:4.1f}%) | Think {th_p:2d}/{len(t_res)} ({th_p/len(t_res)*100:4.1f}%) | OracleZ3 {orc_p:2d}/{len(t_res)} ({orc_p/len(t_res)*100:4.1f}%) | LLM_Z3 {llm_p:2d}/{len(t_res)} ({llm_p/len(t_res)*100:4.1f}%, Syntax={llm_syn}/{len(t_res)})", flush=True)
 
     out_dir = REPO_ROOT / "logs" / "test_reports"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -219,7 +271,9 @@ def main() -> None:
                     "states": [r for r in results if r.tier == t][0].states,
                     "direct_pct": sum(1 for r in results if r.tier == t and r.direct_ok) / len([r for r in results if r.tier == t]) * 100.0,
                     "thinking_pct": sum(1 for r in results if r.tier == t and r.thinking_ok) / len([r for r in results if r.tier == t]) * 100.0,
-                    "z3_pct": sum(1 for r in results if r.tier == t and r.z3_ok) / len([r for r in results if r.tier == t]) * 100.0,
+                    "oracle_z3_pct": sum(1 for r in results if r.tier == t and r.oracle_z3_ok) / len([r for r in results if r.tier == t]) * 100.0,
+                    "llm_z3_pct": sum(1 for r in results if r.tier == t and r.llm_z3_ok) / len([r for r in results if r.tier == t]) * 100.0,
+                    "llm_z3_syntax_pct": sum(1 for r in results if r.tier == t and r.llm_z3_syntax_ok) / len([r for r in results if r.tier == t]) * 100.0,
                 }
                 for t in tiers
             },

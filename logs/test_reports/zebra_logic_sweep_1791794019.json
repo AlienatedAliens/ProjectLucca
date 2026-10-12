@@ -1,0 +1,115 @@
+{
+  "benchmark": "ZebraLogic_Difficulty_Sweep",
+  "timestamp_utc": "2026-10-12T08:33:39.824977+00:00",
+  "summary": {
+    "total_problems": 4,
+    "tiers": {
+      "2x2": {
+        "states": 2,
+        "direct_pct": 100.0,
+        "thinking_pct": 100.0,
+        "oracle_z3_pct": 100.0,
+        "llm_z3_pct": 100.0,
+        "llm_z3_syntax_pct": 100.0
+      },
+      "3x3": {
+        "states": 36,
+        "direct_pct": 100.0,
+        "thinking_pct": 100.0,
+        "oracle_z3_pct": 100.0,
+        "llm_z3_pct": 100.0,
+        "llm_z3_syntax_pct": 100.0
+      },
+      "4x4": {
+        "states": 13824,
+        "direct_pct": 100.0,
+        "thinking_pct": 100.0,
+        "oracle_z3_pct": 100.0,
+        "llm_z3_pct": 100.0,
+        "llm_z3_syntax_pct": 100.0
+      },
+      "5x5": {
+        "states": 207360000,
+        "direct_pct": 0.0,
+        "thinking_pct": 0.0,
+        "oracle_z3_pct": 100.0,
+        "llm_z3_pct": 100.0,
+        "llm_z3_syntax_pct": 100.0
+      }
+    }
+  },
+  "problems": [
+    {
+      "problem_id": "Grid_2x2_01",
+      "tier": "2x2",
+      "states": 2,
+      "expected": "(B)",
+      "direct_pred": "(B)",
+      "direct_ok": true,
+      "thinking_pred": "(B)",
+      "thinking_ok": true,
+      "oracle_z3_pred": "(B)",
+      "oracle_z3_ok": true,
+      "oracle_z3_elapsed_ms": 5069.130799995037,
+      "llm_z3_pred": "(B)",
+      "llm_z3_syntax_ok": true,
+      "llm_z3_ok": true,
+      "llm_z3_elapsed_ms": 13119.316700001946,
+      "llm_z3_error": null
+    },
+    {
+      "problem_id": "Grid_3x3_01",
+      "tier": "3x3",
+      "states": 36,
+      "expected": "(B)",
+      "direct_pred": "(B)",
+      "direct_ok": true,
+      "thinking_pred": "(B)",
+      "thinking_ok": true,
+      "oracle_z3_pred": "(B)",
+      "oracle_z3_ok": true,
+      "oracle_z3_elapsed_ms": 71.76700000127312,
+      "llm_z3_pred": "(B)",
+      "llm_z3_syntax_ok": true,
+      "llm_z3_ok": true,
+      "llm_z3_elapsed_ms": 18098.789200012106,
+      "llm_z3_error": null
+    },
+    {
+      "problem_id": "Grid_4x4_01",
+      "tier": "4x4",
+      "states": 13824,
+      "expected": "(D)",
+      "direct_pred": "(D)",
+      "direct_ok": true,
+      "thinking_pred": "(D)",
+      "thinking_ok": true,
+      "oracle_z3_pred": "(D)",
+      "oracle_z3_ok": true,
+      "oracle_z3_elapsed_ms": 68.51409999944735,
+      "llm_z3_pred": "(D)",
+      "llm_z3_syntax_ok": true,
+      "llm_z3_ok": true,
+      "llm_z3_elapsed_ms": 27842.31589999399,
+      "llm_z3_error": null
+    },
+    {
+      "problem_id": "Grid_5x5_01",
+      "tier": "5x5",
+      "states": 207360000,
+      "expected": "(C)",
+      "direct_pred": null,
+      "direct_ok": false,
+      "thinking_pred": "(E)",
+      "thinking_ok": false,
+      "oracle_z3_pred": "(C)",
+      "oracle_z3_ok": true,
+      "oracle_z3_elapsed_ms": 67.85690000106115,
+      "llm_z3_pred": "(C)",
+      "llm_z3_syntax_ok": true,
+      "llm_z3_ok": true,
+      "llm_z3_elapsed_ms": 24210.274600001867,
+      "llm_z3_error": null
+    }
+  ]
+}

@@ -41,9 +41,13 @@ class LongMemResult:
     direct_response: str
     direct_correct: bool
     direct_latency_s: float
+    direct_finish_reason: str
+    direct_tokens: int
     thinking_response: str
     thinking_correct: bool
     thinking_latency_s: float
+    thinking_finish_reason: str
+    thinking_tokens: int
 
 
 def query_llm(
@@ -51,7 +55,7 @@ def query_llm(
     max_tokens: int = 512,
     temperature: float = 0.0,
     enable_thinking: bool = False,
-) -> str:
+) -> tuple[str, str, int]:
     messages = [
         {
             "role": "system",
@@ -72,12 +76,18 @@ def query_llm(
         res = client.post(SERVER_URL, json=payload)
         res.raise_for_status()
         data = res.json()
-        msg = data["choices"][0]["message"]
+        choice = data["choices"][0]
+        finish_reason = choice.get("finish_reason") or "unknown"
+        usage = data.get("usage", {})
+        completion_tokens = usage.get("completion_tokens", 0)
+        msg = choice["message"]
         content = msg.get("content") or ""
         reasoning = msg.get("reasoning_content") or ""
         if content.strip() and reasoning.strip():
-            return f"{content}\n[REASONING]\n{reasoning}"
-        return content if content.strip() else reasoning
+            text = f"{content}\n[REASONING]\n{reasoning}"
+        else:
+            text = content if content.strip() else reasoning
+        return text, finish_reason, completion_tokens
 
 
 def evaluate_memory_answer(prediction: str, ground_truth: str) -> bool:
@@ -141,11 +151,18 @@ def format_memory_prompt(item: dict[str, Any]) -> str:
     )
 
 
-def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: str = "E2B") -> None:
+def run_longmem_benchmark(
+    limit_per_type: int = 10,
+    seed: int = 42,
+    model_tag: str = "E2B",
+    direct_cap: int = 512,
+    thinking_cap: int = 2048,
+) -> None:
     print("==========================================================================", flush=True)
     print("=== PROJECT LUCCA: LongMemEval CONVERSATIONAL MEMORY BENCHMARK ===", flush=True)
     print("==========================================================================", flush=True)
     print(f"Timestamp: {datetime.now(UTC).isoformat()}", flush=True)
+    print(f"Model: {model_tag} | Direct Cap: {direct_cap} | Thinking Cap: {thinking_cap}", flush=True)
     print(f"Dataset: {DATA_FILE.name} (limit={limit_per_type} per type)\n", flush=True)
 
     data = json.load(open(DATA_FILE, encoding="utf-8"))
@@ -173,20 +190,20 @@ def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: s
         # 1. Direct
         t0 = time.perf_counter()
         try:
-            d_out = query_llm(prompt, max_tokens=256, temperature=0.0, enable_thinking=False)
+            d_out, d_finish, d_tok = query_llm(prompt, max_tokens=direct_cap, temperature=0.0, enable_thinking=False)
             d_sec = time.perf_counter() - t0
             d_ok = evaluate_memory_answer(d_out, gt)
         except Exception:
-            d_out, d_ok, d_sec = "", False, 0.0
+            d_out, d_finish, d_tok, d_ok, d_sec = "", "error", 0, False, 0.0
 
         # 2. Thinking
         t0 = time.perf_counter()
         try:
-            th_out = query_llm(prompt, max_tokens=1024, temperature=0.6, enable_thinking=True)
+            th_out, th_finish, th_tok = query_llm(prompt, max_tokens=thinking_cap, temperature=0.6, enable_thinking=True)
             th_sec = time.perf_counter() - t0
             th_ok = evaluate_memory_answer(th_out, gt)
         except Exception:
-            th_out, th_ok, th_sec = "", False, 0.0
+            th_out, th_finish, th_tok, th_ok, th_sec = "", "error", 0, False, 0.0
 
         r = LongMemResult(
             question_id=qid,
@@ -196,13 +213,19 @@ def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: s
             direct_response=d_out[:120].replace("\n", " "),
             direct_correct=d_ok,
             direct_latency_s=round(d_sec, 2),
+            direct_finish_reason=d_finish,
+            direct_tokens=d_tok,
             thinking_response=th_out[:120].replace("\n", " "),
             thinking_correct=th_ok,
             thinking_latency_s=round(th_sec, 2),
+            thinking_finish_reason=th_finish,
+            thinking_tokens=th_tok,
         )
         results.append(r)
 
-        print(f"Direct={'PASS' if d_ok else 'FAIL'} | Think={'PASS' if th_ok else 'FAIL'} [GT: {str(gt)[:40]}]", flush=True)
+        d_flag = f"[TRUNC:{d_tok}]" if d_finish == "length" else f"[{d_tok}tok]"
+        th_flag = f"[TRUNC:{th_tok}]" if th_finish == "length" else f"[{th_tok}tok]"
+        print(f"Direct={'PASS' if d_ok else 'FAIL'} {d_flag} | Think={'PASS' if th_ok else 'FAIL'} {th_flag} [GT: {str(gt)[:40]}]", flush=True)
 
     # Summary
     print("\n" + "=" * 60)
@@ -218,6 +241,9 @@ def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: s
     total_d = sum(1 for r in results if r.direct_correct)
     total_th = sum(1 for r in results if r.thinking_correct)
 
+    d_trunc = sum(1 for r in results if r.direct_finish_reason == "length")
+    th_trunc = sum(1 for r in results if r.thinking_finish_reason == "length")
+
     b = sum(1 for r in results if r.direct_correct and not r.thinking_correct)
     c = sum(1 for r in results if not r.direct_correct and r.thinking_correct)
     try:
@@ -227,7 +253,7 @@ def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: s
         p_val = math.erfc((abs(b - c) - 1) / math.sqrt(2 * (b + c))) if (b + c) > 0 else 1.0
 
     print("-" * 60)
-    print(f"TOTAL (n={n}): Direct = {total_d}/{n} ({total_d/n*100:.1f}%) | Thinking = {total_th}/{n} ({total_th/n*100:.1f}%)")
+    print(f"TOTAL (n={n}): Direct = {total_d}/{n} ({total_d/n*100:.1f}%) [Truncated: {d_trunc}/{n}] | Thinking = {total_th}/{n} ({total_th/n*100:.1f}%) [Truncated: {th_trunc}/{n}]")
     print(f"McNemar Discordant Pairs: b (Direct+, Think-)={b}, c (Direct-, Think+)={c} | p-value = {p_val:.4f}")
     print("=" * 60)
 
@@ -239,10 +265,16 @@ def run_longmem_benchmark(limit_per_type: int = 10, seed: int = 42, model_tag: s
         "model_tag": model_tag or "E2B",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_problems": n,
+        "direct_cap": direct_cap,
+        "thinking_cap": thinking_cap,
         "direct_passed": total_d,
         "direct_pct": round(total_d / n * 100, 1),
+        "direct_truncations": d_trunc,
+        "direct_truncation_rate_pct": round(d_trunc / n * 100, 1),
         "thinking_passed": total_th,
         "thinking_pct": round(total_th / n * 100, 1),
+        "thinking_truncations": th_trunc,
+        "thinking_truncation_rate_pct": round(th_trunc / n * 100, 1),
         "discordant_b": b,
         "discordant_c": c,
         "mcnemar_p_value": round(p_val, 4),
@@ -257,5 +289,13 @@ if __name__ == "__main__":
     parser.add_argument("--limit", type=int, default=10, help="Items per category (default: 10)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
     parser.add_argument("--model-tag", type=str, default="E2B", help="Model tier tag (e.g. E2B, E4B, 12B)")
+    parser.add_argument("--direct-cap", type=int, default=512, help="Direct token cap (default: 512)")
+    parser.add_argument("--thinking-cap", type=int, default=2048, help="Thinking token cap (default: 2048)")
     args = parser.parse_args()
-    run_longmem_benchmark(limit_per_type=args.limit, seed=args.seed, model_tag=args.model_tag)
+    run_longmem_benchmark(
+        limit_per_type=args.limit,
+        seed=args.seed,
+        model_tag=args.model_tag,
+        direct_cap=args.direct_cap,
+        thinking_cap=args.thinking_cap,
+    )

@@ -39,7 +39,36 @@ class BFCLResult:
     predicted_call: str | None
     passed: bool
     latency_s: float
+    finish_reason: str = "unknown"
+    completion_tokens: int = 0
     error_note: str | None = None
+
+
+def compare_arg_values(pred_v: Any, gt_v: Any) -> bool:
+    """Semantic comparison tolerant to sequence container types and numeric types."""
+    if pred_v is None and gt_v is None:
+        return True
+    if pred_v is None or gt_v is None:
+        return False
+
+    # Sequence comparison (tuples vs lists)
+    if isinstance(pred_v, (list, tuple)) and isinstance(gt_v, (list, tuple)):
+        if len(pred_v) != len(gt_v):
+            return False
+        return all(compare_arg_values(p, g) for p, g in zip(pred_v, gt_v))
+
+    # Numeric comparison (ints vs floats)
+    try:
+        p_num = float(pred_v)
+        g_num = float(gt_v)
+        return abs(p_num - g_num) < 1e-4
+    except (ValueError, TypeError):
+        pass
+
+    # String / boolean / enum fallback
+    p_str = str(pred_v).strip().lower()
+    g_str = str(gt_v).strip().lower()
+    return p_str == g_str
 
 
 def parse_ground_truth_call(gt_str: str) -> tuple[str, dict[str, Any]]:
@@ -48,10 +77,8 @@ def parse_ground_truth_call(gt_str: str) -> tuple[str, dict[str, Any]]:
     if not m:
         return gt_str.strip(), {}
     fn_name, args_str = m.group(1), m.group(2)
-    # Simple regex arg parser
     args_dict = {}
     if args_str.strip():
-        # parse key=value
         parts = [p.strip() for p in re.split(r",\s*(?=[a-zA-Z_]\w*=)", args_str) if p.strip()]
         for p in parts:
             if "=" in p:
@@ -61,7 +88,14 @@ def parse_ground_truth_call(gt_str: str) -> tuple[str, dict[str, Any]]:
                 try:
                     args_dict[k] = json.loads(v)
                 except Exception:
-                    args_dict[k] = v.strip("\"'")
+                    # Handle unquoted tuples like '(32.71, -117.16)'
+                    if v.startswith("(") and v.endswith(")"):
+                        try:
+                            args_dict[k] = list(json.loads("[" + v[1:-1] + "]"))
+                        except Exception:
+                            args_dict[k] = v.strip("\"'")
+                    else:
+                        args_dict[k] = v.strip("\"'")
     return fn_name, args_dict
 
 
@@ -70,7 +104,7 @@ def query_llm_tools(
     tools: list[dict[str, Any]],
     max_tokens: int = 512,
     temperature: float = 0.0,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], str, int]:
     payload = {
         "messages": messages,
         "tools": [{"type": "function", "function": f} for f in tools],
@@ -81,7 +115,11 @@ def query_llm_tools(
         res = client.post(SERVER_URL, json=payload)
         res.raise_for_status()
         data = res.json()
-        return data["choices"][0]["message"]
+        choice = data["choices"][0]
+        finish_reason = choice.get("finish_reason") or "unknown"
+        usage = data.get("usage", {})
+        completion_tokens = usage.get("completion_tokens", 0)
+        return choice["message"], finish_reason, completion_tokens
 
 
 def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: str = "E2B") -> None:
@@ -124,7 +162,7 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
         ok = False
         err = None
         try:
-            msg = query_llm_tools(messages, tools)
+            msg, finish, tok = query_llm_tools(messages, tools)
             sec = time.perf_counter() - t0
             tool_calls = msg.get("tool_calls") or []
             if not tool_calls:
@@ -144,11 +182,10 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
                 # Match against ground truth
                 gt_name, gt_args = parse_ground_truth_call(gt_raw)
                 if fn_name == gt_name:
-                    # check required arg match
                     all_match = True
                     for k, v in gt_args.items():
                         pred_v = args.get(k)
-                        if str(pred_v).lower() != str(v).lower():
+                        if not compare_arg_values(pred_v, v):
                             all_match = False
                             break
                     ok = all_match
@@ -158,6 +195,7 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
                     err = f"Name mismatch: pred={fn_name} vs gt={gt_name}"
         except Exception as exc:
             sec = time.perf_counter() - t0
+            finish, tok = "error", 0
             err = str(exc)
 
         res = BFCLResult(
@@ -168,10 +206,13 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
             predicted_call=pred_str,
             passed=ok,
             latency_s=round(sec, 2),
+            finish_reason=finish,
+            completion_tokens=tok,
             error_note=err,
         )
         results.append(res)
-        print(f"{'PASS' if ok else 'FAIL'} (Pred: {pred_str} | GT: {gt_raw}) [{sec:.2f}s]", flush=True)
+        flag = f"[TRUNC:{tok}]" if finish == "length" else f"[{tok}tok]"
+        print(f"{'PASS' if ok else 'FAIL'} (Pred: {pred_str} | GT: {gt_raw}) {flag} [{sec:.2f}s]", flush=True)
 
     # 2. Irrelevance
     print(f"\n--- [Category: irrelevance (n={len(selected_irrel)})] ---", flush=True)
@@ -189,7 +230,7 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
         ok = False
         err = None
         try:
-            msg = query_llm_tools(messages, tools)
+            msg, finish, tok = query_llm_tools(messages, tools)
             sec = time.perf_counter() - t0
             tool_calls = msg.get("tool_calls") or []
             if not tool_calls:
@@ -202,6 +243,7 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
                 err = f"Model invoked tool {fn_name} when query was irrelevant"
         except Exception as exc:
             sec = time.perf_counter() - t0
+            finish, tok = "error", 0
             err = str(exc)
 
         res = BFCLResult(
@@ -212,10 +254,13 @@ def run_bfcl_benchmark(limit_per_category: int = 25, seed: int = 42, model_tag: 
             predicted_call=pred_str,
             passed=ok,
             latency_s=round(sec, 2),
+            finish_reason=finish,
+            completion_tokens=tok,
             error_note=err,
         )
         results.append(res)
-        print(f"{'PASS' if ok else 'FAIL'} ({pred_str}) [{sec:.2f}s]", flush=True)
+        flag = f"[TRUNC:{tok}]" if finish == "length" else f"[{tok}tok]"
+        print(f"{'PASS' if ok else 'FAIL'} ({pred_str}) {flag} [{sec:.2f}s]", flush=True)
 
     # Summary
     print("\n" + "=" * 60)

@@ -41,9 +41,13 @@ class MuSRResult:
     direct_prediction: str | None
     direct_correct: bool
     direct_latency_s: float
+    direct_finish_reason: str
+    direct_tokens: int
     thinking_prediction: str | None
     thinking_correct: bool
     thinking_latency_s: float
+    thinking_finish_reason: str
+    thinking_tokens: int
 
 
 def query_llm(
@@ -51,7 +55,7 @@ def query_llm(
     max_tokens: int = 512,
     temperature: float = 0.0,
     enable_thinking: bool = False,
-) -> str:
+) -> tuple[str, str, int]:
     messages = [
         {
             "role": "system",
@@ -72,13 +76,19 @@ def query_llm(
         res = client.post(SERVER_URL, json=payload)
         res.raise_for_status()
         data = res.json()
-        msg = data["choices"][0]["message"]
+        choice = data["choices"][0]
+        finish_reason = choice.get("finish_reason") or "unknown"
+        usage = data.get("usage", {})
+        completion_tokens = usage.get("completion_tokens", 0)
+        msg = choice["message"]
         content = msg.get("content") or ""
         reasoning = msg.get("reasoning_content") or ""
         # Combine content and reasoning for extraction
         if content.strip() and reasoning.strip():
-            return f"{content}\n[REASONING]\n{reasoning}"
-        return content if content.strip() else reasoning
+            text = f"{content}\n[REASONING]\n{reasoning}"
+        else:
+            text = content if content.strip() else reasoning
+        return text, finish_reason, completion_tokens
 
 
 def extract_answer(text: str) -> str | None:
@@ -107,7 +117,13 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
-def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "E2B") -> None:
+def run_benchmark(
+    per_domain_limit: int = 10,
+    seed: int = 42,
+    model_tag: str = "E2B",
+    direct_cap: int = 512,
+    thinking_cap: int = 2048,
+) -> None:
     domains = [
         ("murder_mystery", DATA_DIR / "musr_murder_mystery.json"),
         ("team_allocation", DATA_DIR / "musr_team_allocation.json"),
@@ -118,6 +134,7 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
     print("=== PROJECT LUCCA: MuSR MULTISTEP SOFT REASONING BENCHMARK ===", flush=True)
     print("==========================================================================", flush=True)
     print(f"Timestamp: {datetime.now(UTC).isoformat()}", flush=True)
+    print(f"Model: {model_tag} | Direct Cap: {direct_cap} | Thinking Cap: {thinking_cap}", flush=True)
     print(f"Domains: Murder Mystery, Team Allocation, Object Placements ({per_domain_limit} each)\n", flush=True)
 
     results: list[MuSRResult] = []
@@ -154,22 +171,22 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
             # 1. Direct
             t0 = time.perf_counter()
             try:
-                d_out = query_llm(prompt, max_tokens=512, temperature=0.0, enable_thinking=False)
+                d_out, d_finish, d_tok = query_llm(prompt, max_tokens=direct_cap, temperature=0.0, enable_thinking=False)
                 d_sec = time.perf_counter() - t0
                 d_pred = extract_answer(d_out)
                 d_ok = (d_pred == target_letter)
             except Exception as exc:
-                d_pred, d_ok, d_sec = None, False, 0.0
+                d_out, d_finish, d_tok, d_pred, d_ok, d_sec = "", "error", 0, None, False, 0.0
 
             # 2. Thinking
             t0 = time.perf_counter()
             try:
-                th_out = query_llm(prompt, max_tokens=1536, temperature=0.6, enable_thinking=True)
+                th_out, th_finish, th_tok = query_llm(prompt, max_tokens=thinking_cap, temperature=0.6, enable_thinking=True)
                 th_sec = time.perf_counter() - t0
                 th_pred = extract_answer(th_out)
                 th_ok = (th_pred == target_letter)
             except Exception as exc:
-                th_pred, th_ok, th_sec = None, False, 0.0
+                th_out, th_finish, th_tok, th_pred, th_ok, th_sec = "", "error", 0, None, False, 0.0
 
             r = MuSRResult(
                 problem_id=pid,
@@ -180,13 +197,19 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
                 direct_prediction=d_pred,
                 direct_correct=d_ok,
                 direct_latency_s=round(d_sec, 2),
+                direct_finish_reason=d_finish,
+                direct_tokens=d_tok,
                 thinking_prediction=th_pred,
                 thinking_correct=th_ok,
                 thinking_latency_s=round(th_sec, 2),
+                thinking_finish_reason=th_finish,
+                thinking_tokens=th_tok,
             )
             results.append(r)
 
-            print(f"Direct={'PASS' if d_ok else 'FAIL'} ({d_pred}) | Think={'PASS' if th_ok else 'FAIL'} ({th_pred}) [Target: {target_letter}]", flush=True)
+            d_flag = f"[TRUNC:{d_tok}]" if d_finish == "length" else f"[{d_tok}tok]"
+            th_flag = f"[TRUNC:{th_tok}]" if th_finish == "length" else f"[{th_tok}tok]"
+            print(f"Direct={'PASS' if d_ok else 'FAIL'} ({d_pred} {d_flag}) | Think={'PASS' if th_ok else 'FAIL'} ({th_pred} {th_flag}) [Target: {target_letter}]", flush=True)
 
     # Domain summary
     print("\n" + "=" * 60)
@@ -202,6 +225,10 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
     total_th = sum(1 for r in results if r.thinking_correct)
     n = len(results)
 
+    # Truncation counts
+    d_trunc = sum(1 for r in results if r.direct_finish_reason == "length")
+    th_trunc = sum(1 for r in results if r.thinking_finish_reason == "length")
+
     # Discordant pairs for McNemar
     b = sum(1 for r in results if r.direct_correct and not r.thinking_correct) # Direct pass, Think fail
     c = sum(1 for r in results if not r.direct_correct and r.thinking_correct) # Direct fail, Think pass
@@ -209,12 +236,11 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
         from scipy.stats import binomtest
         p_val = binomtest(min(b, c), b + c, 0.5).pvalue if (b + c) > 0 else 1.0
     except Exception:
-        # Normal approximation with continuity correction
         import math
         p_val = math.erfc((abs(b - c) - 1) / math.sqrt(2 * (b + c))) if (b + c) > 0 else 1.0
 
     print("-" * 60)
-    print(f"TOTAL: Direct = {total_d}/{n} ({total_d/n*100:.1f}%) | Thinking = {total_th}/{n} ({total_th/n*100:.1f}%)")
+    print(f"TOTAL: Direct = {total_d}/{n} ({total_d/n*100:.1f}%) [Truncated: {d_trunc}/{n}] | Thinking = {total_th}/{n} ({total_th/n*100:.1f}%) [Truncated: {th_trunc}/{n}]")
     print(f"McNemar Discordant Pairs: b (Direct+, Think-)={b}, c (Direct-, Think+)={c} | p-value = {p_val:.4f}")
     print("=" * 60)
 
@@ -226,10 +252,16 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
         "model_tag": model_tag or "E2B",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_problems": n,
+        "direct_cap": direct_cap,
+        "thinking_cap": thinking_cap,
         "direct_passed": total_d,
         "direct_pct": round(total_d / n * 100, 1),
+        "direct_truncations": d_trunc,
+        "direct_truncation_rate_pct": round(d_trunc / n * 100, 1),
         "thinking_passed": total_th,
         "thinking_pct": round(total_th / n * 100, 1),
+        "thinking_truncations": th_trunc,
+        "thinking_truncation_rate_pct": round(th_trunc / n * 100, 1),
         "discordant_b": b,
         "discordant_c": c,
         "mcnemar_p_value": round(p_val, 4),
@@ -237,12 +269,19 @@ def run_benchmark(per_domain_limit: int = 10, seed: int = 42, model_tag: str = "
     }
     out_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"Report written to: {out_file}")
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MuSR Benchmark Runner")
     parser.add_argument("--limit", type=int, default=10, help="Problems per domain (default: 10)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
     parser.add_argument("--model-tag", type=str, default="E2B", help="Model tier tag (e.g. E2B, E4B, 12B)")
+    parser.add_argument("--direct-cap", type=int, default=512, help="Direct token cap (default: 512)")
+    parser.add_argument("--thinking-cap", type=int, default=2048, help="Thinking token cap (default: 2048)")
     args = parser.parse_args()
-    run_benchmark(per_domain_limit=args.limit, seed=args.seed, model_tag=args.model_tag)
+    run_benchmark(
+        per_domain_limit=args.limit,
+        seed=args.seed,
+        model_tag=args.model_tag,
+        direct_cap=args.direct_cap,
+        thinking_cap=args.thinking_cap,
+    )
+
