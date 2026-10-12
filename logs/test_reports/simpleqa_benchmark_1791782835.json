@@ -1,0 +1,253 @@
+{
+  "benchmark": "OpenAI_SimpleQA_Calibration",
+  "evaluated_at": "2026-10-12T05:27:15.279628+00:00",
+  "total_questions": 30,
+  "correct": 0,
+  "incorrect": 2,
+  "abstain": 28,
+  "accuracy_pct": 0.0,
+  "precision_pct": 0.0,
+  "abstention_rate_pct": 93.3,
+  "results": [
+    {
+      "problem_id": 1,
+      "problem": "What year was the municipality of C\u00f3mbita, Boyac\u00e1, Colombia, founded?",
+      "target_answer": "1586",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.38
+    },
+    {
+      "problem_id": 2,
+      "problem": "What was the number of recorded injuries in the Weesp train disaster of 1918 in the Netherlands?",
+      "target_answer": "42 injuries.",
+      "response": "I do not know the exact number of recorded injuries in the Weesp train disaster of 1918 in the Netherlands.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.23
+    },
+    {
+      "problem_id": 3,
+      "problem": "Which village in Ontario was first settled in 1824 by Mr. A. Hurd, and had the Post Office established in 1836, with Mr. J. Leach being the first Postmaster, according to \"Conner & Coltson's Directory of the County of Ontario for 1869-70\"?",
+      "target_answer": "Prince Albert.",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.12
+    },
+    {
+      "problem_id": 4,
+      "problem": "What month, day, and year did Ciara perform in Tampa for her Jackie Tour?",
+      "target_answer": "May 16, 2015",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 5,
+      "problem": "In a 1988 paper, which author defined Mammalia phylogenetically as the crown group of mammals\u2014the clade consisting of the most recent common ancestor of living monotremes and therian mammals?",
+      "target_answer": "Timothy Rowe",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 6,
+      "problem": "What day, month, and year was Nathalie M\u00e9nigon born?",
+      "target_answer": "28 February 1957",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.1
+    },
+    {
+      "problem_id": 7,
+      "problem": "What was the name of the male victim in the famous 2012 Delhi gang rape and murder, commonly known as the \"Nirbhaya case\"?",
+      "target_answer": "Awindra Pratap Pandey",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 8,
+      "problem": "Following the 2016 Orlando nightclub shooting, which county in which state was the only county in the United States to refuse to lower its flags to half-staff?",
+      "target_answer": "Baldwin County in Alabama.",
+      "response": "Orange County, Florida.",
+      "verdict": "INCORRECT",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 9,
+      "problem": "How old was Aniol Serrasolses when he kayaked for the first time down the largest glacial waterfall ever recorded in Norway?",
+      "target_answer": "32",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.14
+    },
+    {
+      "problem_id": 10,
+      "problem": "Within plus or minus one minute, when was M\u00fcller substituted in the 2014 Champions League semi-final Real Madrid vs. Bayern match?",
+      "target_answer": "74",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.09
+    },
+    {
+      "problem_id": 11,
+      "problem": "What did Alison Garrs overdose on in the last episode of Season 2 of Happy Valley?",
+      "target_answer": "Diazepam",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 12,
+      "problem": "What was the name of the cricket team Dr. Abu Baker Asvat played for?",
+      "target_answer": "The Crescents",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.1
+    },
+    {
+      "problem_id": 13,
+      "problem": "For how many consecutive terms was the Indian politician Babanrao Shankar Gholap, alias Nana, elected to the Vidhan Sabha?",
+      "target_answer": "5",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.14
+    },
+    {
+      "problem_id": 14,
+      "problem": "In which year did Edward Meyrick first describe Cydalima mysteris?",
+      "target_answer": "1886",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.13
+    },
+    {
+      "problem_id": 15,
+      "problem": "What year was the municipality of Salgar, Antioquia, Colombia, founded?",
+      "target_answer": "1880",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.12
+    },
+    {
+      "problem_id": 16,
+      "problem": "What was the date, month, and year when the German Defence Minister Peter Struck announced further major changes to the German armed forces? A major part of this announcement was the plan to cut the German fighter fleet from 426 in early 2004 to 265 by 2015.",
+      "target_answer": "January 13, 2004",
+      "response": "I do not know the exact date, month, and year when Peter Struck announced further major changes to the German armed forces with the specific plan to cut the fighter fleet from 426 in early 2004 to 265 by 2015.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.43
+    },
+    {
+      "problem_id": 17,
+      "problem": "What was the Word of the Decade (2010\u20132019) according to the American Dialect Society?",
+      "target_answer": "they",
+      "response": "The Word of the Decade (2010\u20132019) according to the American Dialect Society was \"unimpressed\".",
+      "verdict": "INCORRECT",
+      "latency_s": 0.25
+    },
+    {
+      "problem_id": 18,
+      "problem": "For how many years did John Constable (English landscape painter) work on \"The Opening of Waterloo Bridge\"?",
+      "target_answer": "13",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.12
+    },
+    {
+      "problem_id": 19,
+      "problem": "In 2017, what case was Natasha Merle involved in, where she was a member of the petitioner team?",
+      "target_answer": "Buck v. Davis",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.12
+    },
+    {
+      "problem_id": 20,
+      "problem": "What is the middle name of Motaz Azaiza, Palestinian journalist?",
+      "target_answer": "Hilal",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.1
+    },
+    {
+      "problem_id": 21,
+      "problem": "What are the three cities where Arvind Kejriwal spent most of his childhood?",
+      "target_answer": "Sonipat, Ghaziabad, Hisar",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.14
+    },
+    {
+      "problem_id": 22,
+      "problem": "In what year was Rosario Crocetta appointed Councillor for Culture in the City Council of Gela with the Federation of the Greens?",
+      "target_answer": "1998",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.14
+    },
+    {
+      "problem_id": 23,
+      "problem": "In which month and year did the UN General Assembly unanimously elect Maurice Strong to be the first head of the UN Environment?",
+      "target_answer": "December 1972",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 24,
+      "problem": "In what year did Kristin Otto retire from swimming?",
+      "target_answer": "1989",
+      "response": "I do not know.",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.09
+    },
+    {
+      "problem_id": 25,
+      "problem": "Name the mission director of the Rohini Satellite 1 (RS-1) satellite launch in 1980.",
+      "target_answer": "Dr. Kalam",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.13
+    },
+    {
+      "problem_id": 26,
+      "problem": "In which year did Clive Derby-Lewis become town councilor for Bedfordview?",
+      "target_answer": "1972",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    },
+    {
+      "problem_id": 27,
+      "problem": "What day, month, and year was Louis Armstrong arrested and spent the night at New Orleans Juvenile Court?",
+      "target_answer": "December 31, 1912",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.12
+    },
+    {
+      "problem_id": 28,
+      "problem": "Name the enzyme that has an enzyme commission number of 3.1.4.2.",
+      "target_answer": "Glycerophosphocholine phosphodiesterase",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.1
+    },
+    {
+      "problem_id": 29,
+      "problem": "What is the weight of the Phosphorescent Pole weapon in Demon's Souls (2009) using the in-game units of weight, which are called \"units\"?",
+      "target_answer": "4.0 units",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.13
+    },
+    {
+      "problem_id": 30,
+      "problem": "What year did Shokichi Iyanaga become Dean of the Faculty of Science at Tokyo University?",
+      "target_answer": "1965",
+      "response": "I do not know",
+      "verdict": "ABSTAIN",
+      "latency_s": 0.11
+    }
+  ]
+}

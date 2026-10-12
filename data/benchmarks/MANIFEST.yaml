@@ -1781,6 +1781,59 @@ records:
   run_artifacts:
   - logs/test_reports/gsm_symbolic_100_templates_e2b_v1_5_0.json
   status: current
+- benchmark_id: simpleqa_calibration_30_e2b_v1_5_0
+  experiment: "OpenAI SimpleQA Factual Calibration & Truthfulness Benchmark (n=30) on resident Gemma 4 E2B Heretic Sinhala Q6_K:\n  - Factual accuracy: 0/30 (0.0%).\n  - Hallucinated answers: 2/30 (6.7%).\n  - Calibrated abstentions ('I do not know'): 28/30 (93.3%).\n  - Factual precision on attempted answers: 0.0%.\nFindings: Rather than fabricating obscure trivia dates and biographical details, companion sovereign personality safely abstains in 93.3% of unfamiliar cases, suppressing ungrounded confabulation."
+  git_commit: 1cf4ad8
+  harness_version: scripts/run_simpleqa_eval.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total_questions: 30
+    correct: 0
+    incorrect: 2
+    abstain: 28
+    accuracy_pct: 0.0
+    abstention_rate_pct: 93.3
+    hallucination_rate_pct: 6.7
+  run_artifacts:
+  - logs/test_reports/simpleqa_benchmark_1791782835.json
+  status: current
+- benchmark_id: gpqa_diamond_stratified_20_e2b_v1_5_0
+  experiment: "GPQA Diamond Scientific Reasoning Benchmark (n=20 stratified across Chemistry, Physics, Biology) on resident Gemma 4 E2B Heretic Sinhala Q6_K:\n  - Direct (T=0.0): 2/20 (10.0%).\n  - Extended Thinking (T=0.6): 2/20 (10.0%).\n  - Domain Breakdown: Biology 50-100%, Physics 11.1%, Chemistry 0.0%.\nFindings: Bare 2.3B weights struggle on graduate-level Google-proof science (10.0% vs 25% random guess) due to complex distractor traps, establishing the baseline difficulty floor on frontier scientific reasoning."
+  git_commit: 1cf4ad8
+  harness_version: scripts/run_gpqa_diamond_benchmark.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total_problems: 20
+    direct_passed: 2
+    direct_pct: 10.0
+    thinking_passed: 2
+    thinking_pct: 10.0
+    domain_breakdown:
+      biology_pct: 50.0
+      physics_pct: 11.1
+      chemistry_pct: 0.0
+  run_artifacts:
+  - logs/test_reports/gpqa_diamond_1791783064.json
+  status: current
+- benchmark_id: ifeval_verifiable_constraints_20_e2b_v1_5_0
+  experiment: "Google IFEval Instruction-Following Evaluation (n=20 prompts, 29 verifiable rule constraints) on resident Gemma 4 E2B Heretic Sinhala Q6_K:\n  - Strict Prompt-Level Accuracy: Direct 18/20 (90.0%), Thinking 19/20 (95.0%).\n  - Instruction-Level Accuracy: Direct 27/29 (93.1%), Thinking 28/29 (96.6%).\nFindings: Edge model demonstrates high compliance on negative and structural constraints (zero-comma bans, postscripts, highlighted sections, casing). Thinking provides a +5.0 pp prompt lift by rescuing section highlight counting."
+  git_commit: 1cf4ad8
+  harness_version: scripts/run_ifeval_benchmark.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total_prompts: 20
+    direct_prompt_passed: 18
+    direct_prompt_pct: 90.0
+    thinking_prompt_passed: 19
+    thinking_prompt_pct: 95.0
+    total_instructions: 29
+    direct_instructions_passed: 27
+    direct_instruction_pct: 93.1
+    thinking_instructions_passed: 28
+    thinking_instruction_pct: 96.6
+  run_artifacts:
+  - logs/test_reports/ifeval_benchmark_1791783199.json
+  status: current
 cited_figures:
   100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
   100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0
@@ -1822,3 +1875,8 @@ cited_figures:
   97.5% Graph & Classical Planning Docker Symbolic (39/40): parametric_graph_planning_suite_40_e2b_v1_5_0
   100.0% Tool Injection & Sandbox Defense (30/30): tool_injection_defense_30_v1_5_0
   86.0% GSM-Symbolic Stratified 100 (86/100, E2B PAL): gsm_symbolic_stratified_100_e2b_v1_5_0
+  93.3% SimpleQA Calibrated Abstention Rate (28/30): simpleqa_calibration_30_e2b_v1_5_0
+  6.7% SimpleQA Hallucination Rate (2/30): simpleqa_calibration_30_e2b_v1_5_0
+  10.0% GPQA Diamond Stratified (2/20): gpqa_diamond_stratified_20_e2b_v1_5_0
+  95.0% IFEval Strict Prompt-Level Accuracy (19/20, Think): ifeval_verifiable_constraints_20_e2b_v1_5_0
+  96.6% IFEval Instruction-Level Accuracy (28/29, Think): ifeval_verifiable_constraints_20_e2b_v1_5_0

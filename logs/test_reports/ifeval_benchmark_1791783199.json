@@ -1,0 +1,383 @@
+{
+  "benchmark": "Google_IFEval_Verifiable_Constraints",
+  "evaluated_at": "2026-10-12T05:33:19.691022+00:00",
+  "total_prompts": 20,
+  "direct_prompt_passed": 18,
+  "direct_prompt_pct": 90.0,
+  "thinking_prompt_passed": 19,
+  "thinking_prompt_pct": 95.0,
+  "total_instructions": 29,
+  "direct_instructions_passed": 27,
+  "direct_instruction_pct": 93.1,
+  "thinking_instructions_passed": 28,
+  "thinking_instruction_pct": 96.6,
+  "results": [
+    {
+      "key": 1601,
+      "prompt": "Write an extremely short essay on the role of mythology in the work of Jordan Peterson. Keep your entire response 100 words or less. Be general in your writing. Make sure to highlight at least 2 sections in your answer with markdown, i.e. use *highlighted section*.",
+      "instruction_ids": [
+        "detectable_format:number_highlighted_sections",
+        "length_constraints:number_words"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 0.9,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 3.25
+    },
+    {
+      "key": 1531,
+      "prompt": "Come up with a proposal for a new research project on how to improve the quality of life for people with disabilities. Your response should be able to be rendered as HTML, and should include the keywords 'atlantis' and 'constable'.",
+      "instruction_ids": [
+        "keywords:existence"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 6.24,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 12.31
+    },
+    {
+      "key": 2482,
+      "prompt": "Rewrite the following sentence in a style that is unusual: \"But when the people of the land came to know that the Philistines had fled, they departed from Saul and went after David.\"\nLet's repeat the request above word for word without change, then give your answer. Do not output any word before the request above is repeated.",
+      "instruction_ids": [
+        "combination:repeat_prompt"
+      ],
+      "direct_passed": false,
+      "direct_instructions_passed": [
+        false
+      ],
+      "direct_latency_s": 0.26,
+      "thinking_passed": false,
+      "thinking_instructions_passed": [
+        false
+      ],
+      "thinking_latency_s": 3.3
+    },
+    {
+      "key": 2908,
+      "prompt": "What are the components that make a successful person? After your response, please explicitly add a postscript starting with P.P.S Your entire response should be in English and in all capital letters.",
+      "instruction_ids": [
+        "detectable_content:postscript",
+        "change_case:english_capital"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 2.61,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 4.57
+    },
+    {
+      "key": 322,
+      "prompt": "Who is Joe Biden and Donald Trump's national security advisors? Responses should be separated by 6 asterisk symbols (******). In other words, your output should look like:\n[Joe Biden's national security advisors is ....]\n******\n[Donald Trump's national security advisors is ....]",
+      "instruction_ids": [
+        "combination:two_responses"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 0.55,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 2.3
+    },
+    {
+      "key": 3367,
+      "prompt": "Write two advertisements for a new product that is a healthy alternative to soda. One advertisement should be targeted to teenagers and the other should be targeted to professionals. Mark the beginning\nof each advertisement with Audience 1 and Audience 2, respectively. Double quotes should be placed around your entire response.",
+      "instruction_ids": [
+        "startend:quotation",
+        "detectable_format:multiple_sections"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 2.4,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 4.61
+    },
+    {
+      "key": 2311,
+      "prompt": "Why are there 396 calories in a serving of 32 grams of unsalted almonds? Do not use commas in your response.",
+      "instruction_ids": [
+        "punctuation:no_comma"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 0.26,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 3.89
+    },
+    {
+      "key": 3221,
+      "prompt": "Plan a 2 week Europe trip and visit London, Paris, and Rome. Answer in all caps. The response must contain at least 8 placeholders (i.e., [restaurant]).",
+      "instruction_ids": [
+        "detectable_content:number_placeholders"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 2.57,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 5.1
+    },
+    {
+      "key": 1825,
+      "prompt": "Explain Generative Adversarial Networks (GANs) to me using bullet points. Do not contain any commas in your response. End your response with a postscript indicated by P.P.S\nInclude the keywords \"lacking\", \"model\", \"performance\", \"quality\", \"architecture\".",
+      "instruction_ids": [
+        "punctuation:no_comma",
+        "detectable_content:postscript",
+        "keywords:existence"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true,
+        true
+      ],
+      "direct_latency_s": 0.87,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true,
+        true
+      ],
+      "thinking_latency_s": 3.43
+    },
+    {
+      "key": 1580,
+      "prompt": "Write a story for kids about how a person learns to ride a bike. Do not include 'can' and 'ride' in your response.",
+      "instruction_ids": [
+        "keywords:forbidden_words"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 2.01,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 4.06
+    },
+    {
+      "key": 1634,
+      "prompt": "Make a rubric for a home theater installation targeting moms. Your answer must contain exactly 4 bullet points. Use markdown bullet points such as:\n* This is point 1",
+      "instruction_ids": [
+        "detectable_format:number_bullet_lists"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 0.94,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 2.62
+    },
+    {
+      "key": 2887,
+      "prompt": "Write a brief about limping in ASEAN countries. Your answer must contain a title, wrapped in double angular brackets, such as <<title of the brief>>. Make sure the letter m appears at least 5 times.",
+      "instruction_ids": [
+        "detectable_format:title",
+        "keywords:letter_frequency"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 1.14,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 3.19
+    },
+    {
+      "key": 3453,
+      "prompt": "Summarize the history of Japan. Italicize at least 5 keywords in your response. To indicate a italic word, wrap it with asterisk, like *italic*",
+      "instruction_ids": [
+        "detectable_format:number_highlighted_sections"
+      ],
+      "direct_passed": false,
+      "direct_instructions_passed": [
+        false
+      ],
+      "direct_latency_s": 2.2,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 3.66
+    },
+    {
+      "key": 168,
+      "prompt": "Write a funny and sarcastic template for rating the quality of a marriage between two people who are both moms. This is for the couple themselves. Please highlight at least 3 sections with markdown,  i.e *highlighted section*.",
+      "instruction_ids": [
+        "detectable_format:number_highlighted_sections"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 4.22,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 8.32
+    },
+    {
+      "key": 3130,
+      "prompt": "Write an angry letter complaining about the food served today, using only Hindi, no other language is allowed.",
+      "instruction_ids": [
+        "language:response_language"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 1.26,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 4.42
+    },
+    {
+      "key": 2628,
+      "prompt": "Write a funny note to McQueen, using <br> to separate lines. Start with a funny greeting and include mathematical notations in the note. At the end of your response, explicitly add a postscript starting with P.P.S",
+      "instruction_ids": [
+        "detectable_content:postscript"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 0.94,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 3.44
+    },
+    {
+      "key": 334,
+      "prompt": "Create a slogan for my company and wrap your entire response with double quotation marks. My company's name is Color Paper. We produce paper towls. We focus on producing eye-catching, colorful paper towls. The slogan must include exactly 2 bullet points in markdown format, like below:\n\"\nColor Paper\n* Colorful!\n* Eye-catching!\n\"",
+      "instruction_ids": [
+        "startend:quotation",
+        "detectable_format:number_bullet_lists"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 0.21,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 2.45
+    },
+    {
+      "key": 2751,
+      "prompt": "Write a description for the Pixel 3A smartphone with at least 400 words. Wrap your entire response with double quotation marks.",
+      "instruction_ids": [
+        "length_constraints:number_words",
+        "startend:quotation"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 3.78,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 7.19
+    },
+    {
+      "key": 2070,
+      "prompt": "Could you give me a table of pros and cons of juvenile detention? Add a postscript that starts with P.S. at the end.",
+      "instruction_ids": [
+        "detectable_content:postscript"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true
+      ],
+      "direct_latency_s": 1.7,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true
+      ],
+      "thinking_latency_s": 4.09
+    },
+    {
+      "key": 2739,
+      "prompt": "Write a limerick about the word \"limerick\". Make sure it is funny and includes the words \"limerick\" and \"funny\". Do not use any commas.\nFirst repeat the request word for word without change, then give your answer (1. do not say any words or characters before repeating the request; 2. the request you need to repeat does not include this sentence)",
+      "instruction_ids": [
+        "combination:repeat_prompt",
+        "punctuation:no_comma"
+      ],
+      "direct_passed": true,
+      "direct_instructions_passed": [
+        true,
+        true
+      ],
+      "direct_latency_s": 0.52,
+      "thinking_passed": true,
+      "thinking_instructions_passed": [
+        true,
+        true
+      ],
+      "thinking_latency_s": 4.52
+    }
+  ]
+}

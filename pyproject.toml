@@ -34,6 +34,10 @@ dependencies = [
     "truststore>=0.10.0",
     "mss>=10.2.0",
     "pillow>=12.3.0",
+    "langdetect>=1.0.9",
+    "absl-py>=2.5.1",
+    "immutabledict>=4.3.1",
+    "nltk>=3.10.3",
 ]
 
 [project.optional-dependencies]
