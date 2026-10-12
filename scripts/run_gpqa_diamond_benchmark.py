@@ -96,7 +96,12 @@ def query_llm(
         res = client.post(SERVER_URL, json=payload)
         res.raise_for_status()
         data = res.json()
-        return data["choices"][0]["message"]["content"]
+        msg = data["choices"][0]["message"]
+        content = msg.get("content") or ""
+        reasoning = msg.get("reasoning_content") or ""
+        if content.strip() and reasoning.strip():
+            return f"{content}\n[REASONING]\n{reasoning}"
+        return content if content.strip() else reasoning
 
 
 def extract_answer(text: str) -> str | None:
@@ -173,7 +178,7 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
         # 2. Thinking
         t0 = time.perf_counter()
         try:
-            th_out = query_llm(prompt, max_tokens=1536, temperature=0.6, enable_thinking=True)
+            th_out = query_llm(prompt, max_tokens=2048, temperature=0.6, enable_thinking=True)
             th_sec = time.perf_counter() - t0
             th_pred = extract_answer(th_out)
             th_ok = (th_pred == correct_letter)

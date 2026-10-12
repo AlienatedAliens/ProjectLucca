@@ -232,6 +232,19 @@ class CruxInputProblemResult:
     elapsed_ms: float
 
 
+def _extract_signature_hint(code: str) -> str:
+    """Extracts exact parameter count and names from `def f(...)` via AST (Failure Class 1 fix)."""
+    try:
+        tree = ast.parse(code)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "f":
+                params = [a.arg for a in node.args.args]
+                return f"Signature requirement: `f` takes {len(params)} positional argument(s): f({', '.join(params)})."
+    except Exception:
+        pass
+    return ""
+
+
 def evaluate_cruxeval_input_problem(
     item: dict[str, Any], max_turns: int = 3
 ) -> CruxInputProblemResult:
@@ -240,6 +253,7 @@ def evaluate_cruxeval_input_problem(
     code = str(item["code"]).strip()
     target_out = str(item["output"]).strip()
     gt_input = str(item["input"]).strip()
+    sig_hint = _extract_signature_hint(code)
 
     system_prompt = (
         "You are a code synthesis engine. Output ONLY the Python function invocation `f(...)` "
@@ -275,38 +289,60 @@ def evaluate_cruxeval_input_problem(
     b_failure_stage: str | None = None
     turns_used = 0
 
-    for turn in range(1, max_turns + 1):
-        turns_used = turn
-        b_resp, b_finish = query_llm(
-            current_prompt,
-            system_prompt=system_prompt,
-            temperature=0.2 if turn > 1 else 0.0,
-            max_tokens=256,
-            enable_thinking=False,
-        )
-        cand_call = extract_function_call(b_resp)
-        if not cand_call:
-            b_failure_stage = "TRANSLATION_NO_CALL"
-            break
+    failed_attempts: list[str] = []
+    if sig_hint:
+        current_prompt = f"{arm_a_prompt}\n{sig_hint}"
 
-        b_call = cand_call
-        is_correct, feedback, status = execute_sandboxed_eval(code, cand_call, target_out)
-        if is_correct:
-            b_success = True
-            b_method = "ONE_SHOT_VERIFIED" if turn == 1 else "REPAIRED_PROGRAM"
-            b_failure_stage = None
-            break
+    # Check if Arm A already passed sandbox verification -> instant Turn 1 win without redundant LLM call
+    if a_success and a_call:
+        b_success = True
+        b_call = a_call
+        b_method = "ONE_SHOT_VERIFIED"
+        turns_used = 1
+    else:
+        if a_call:
+            _, fb0, st0 = execute_sandboxed_eval(code, a_call, target_out)
+            failed_attempts.append(f"- `{a_call}` -> {fb0}")
+            b_failure_stage = st0
+            b_call = a_call
 
-        # If failed and more turns remain, build repair prompt with concrete counterexample
-        b_failure_stage = status
-        current_prompt = (
-            f"Function:\n```python\n{code}\n```\n\n"
-            f"Target Output: {target_out}\n\n"
-            f"Your previous candidate input `{cand_call}` failed verification:\n"
-            f"{feedback}\n\n"
-            "Analyze the failure. Trace the code execution carefully and propose a corrected input.\n"
-            "Output ONLY the corrected function call, e.g. `f(...)`."
-        )
+        for turn in range(1, max_turns + 1):
+            turns_used = turn
+            if failed_attempts:
+                history_block = "\n".join(failed_attempts)
+                current_prompt = (
+                    f"Function:\n```python\n{code}\n```\n"
+                    f"{sig_hint}\n"
+                    f"Target Output: {target_out}\n\n"
+                    f"Previous candidate input(s) failed sandbox verification:\n{history_block}\n\n"
+                    "Work backwards from the return statement to the input parameters. "
+                    "Propose a DIFFERENT, corrected function call that produces the exact Target Output.\n"
+                    "Output ONLY the corrected function call inside ```python\nf(...)\n```."
+                )
+
+            temp = 0.0 if (turn == 1 and not failed_attempts) else (0.3 + 0.2 * (turn - 1))
+            b_resp, b_finish = query_llm(
+                current_prompt,
+                system_prompt=system_prompt,
+                temperature=temp,
+                max_tokens=256,
+                enable_thinking=False,
+            )
+            cand_call = extract_function_call(b_resp)
+            if not cand_call:
+                b_failure_stage = "TRANSLATION_NO_CALL"
+                continue
+
+            b_call = cand_call
+            is_correct, feedback, status = execute_sandboxed_eval(code, cand_call, target_out)
+            if is_correct:
+                b_success = True
+                b_method = "ONE_SHOT_VERIFIED" if (turn == 1 and not failed_attempts) else "REPAIRED_PROGRAM"
+                b_failure_stage = None
+                break
+
+            b_failure_stage = status
+            failed_attempts.append(f"- `{cand_call}` -> {feedback}")
 
     # Fallback to Arm A if Arm B failed completely
     if not b_success and a_success:

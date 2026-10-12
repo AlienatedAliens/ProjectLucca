@@ -120,11 +120,21 @@ def query_llm(
         return text, finish_reason, completion_tokens
 
 
-def evaluate_memory_answer(prediction: str, ground_truth: str) -> bool:
+def evaluate_memory_answer(prediction: str, ground_truth: str | int) -> bool:
     if not prediction:
         return False
     pred_lower = prediction.lower()
-    gt_lower = ground_truth.lower()
+    gt_lower = str(ground_truth).lower()
+
+    # Abstention equivalence check (for _abs unanswerable items)
+    if ("not enough" in gt_lower or "did not mention" in gt_lower) and (
+        "not have enough information" in pred_lower
+        or "not enough information" in pred_lower
+        or "cannot be determined" in pred_lower
+        or "didn't mention" in pred_lower
+        or "did not mention" in pred_lower
+    ):
+        return True
 
     # Direct substring check
     if gt_lower in pred_lower:
@@ -167,7 +177,7 @@ def run_pipeline_benchmark(
     limit_per_type: int = 10,
     seed: int = 42,
     model_tag: str = "12B",
-    top_k: int = 8,
+    top_k: int = 12,
     direct_cap: int = 512,
     thinking_cap: int = 2048,
     enable_thinking: bool = False,
@@ -272,6 +282,7 @@ def run_pipeline_benchmark(
                             content=turn_content,
                             created_at=s_ts + (t_idx * 5.0),
                             session_id=s_id,
+                            trace_id=f"{s_id}:turn_{t_idx}",
                             nonce=uuid.uuid4().hex,
                         )
                         signed = user_signer.sign(unsigned)
@@ -282,6 +293,7 @@ def run_pipeline_benchmark(
                             content=turn_content,
                             created_at=s_ts + (t_idx * 5.0),
                             session_id=s_id,
+                            trace_id=f"{s_id}:turn_{t_idx}",
                             nonce=uuid.uuid4().hex,
                         )
                         signed = assistant_signer.sign(unsigned)
@@ -291,22 +303,24 @@ def run_pipeline_benchmark(
 
             # Query Lucca Hybrid Retriever
             t_ret0 = time.perf_counter()
-            retrieval_query = RetrievalQuery(query_text=q_text, limit=top_k)
+            retrieval_query = RetrievalQuery(query_text=q_text, k=top_k)
             hits = store.retriever.search(retrieval_query, now=q_ts)
             retrieval_ms = (time.perf_counter() - t_ret0) * 1000.0
 
             pipeline_needle = any(has_answer_by_mid.get(h.memory_id, False) for h in hits)
-            rendered_memories = format_memory_context(hits, max_tokens=1536, now=q_ts, max_content_chars=500)
+            rendered_memories = format_memory_context(hits, max_tokens=2048, now=q_ts, max_content_chars=500, max_items=top_k)
             db.close()
 
         pipeline_prompt = (
-            f"--- PAST MEMORIES (Retrieved from Lucca Hybrid Store) ---\n"
+            f"--- PAST MEMORIES (Retrieved from Lucca Hybrid Store, Grouped by Session) ---\n"
             f"<memory>\n"
             f"{rendered_memories}\n"
             f"</memory>\n\n"
             f"--- CURRENT QUERY ---\n"
             f"Current Date: {q_date_str}\n"
             f"User Question: {q_text}\n\n"
+            f"Instructions: Synthesize facts across all retrieved sessions chronologically. "
+            f"When asked for a total, sum, or difference across sessions, combine every relevant session's numbers carefully.\n"
             f"Answer the question directly based on past memory:"
         )
 

@@ -72,31 +72,31 @@ def compare_arg_values(pred_v: Any, gt_v: Any) -> bool:
 
 
 def parse_ground_truth_call(gt_str: str) -> tuple[str, dict[str, Any]]:
-    """Parse 'func_name(a=1, b=2)' into (func_name, dict)."""
-    m = re.match(r"^(\w+)\((.*)\)$", gt_str.strip())
+    """Parse 'func_name(a=1, b=2)' into (func_name, dict) using Python AST."""
+    import ast as _ast
+    try:
+        tree = _ast.parse(gt_str.strip(), mode="eval")
+        if isinstance(tree.body, _ast.Call):
+            if isinstance(tree.body.func, _ast.Name):
+                fn_name = tree.body.func.id
+            elif isinstance(tree.body.func, _ast.Attribute):
+                fn_name = f"{_ast.unparse(tree.body.func)}"
+            else:
+                fn_name = _ast.unparse(tree.body.func)
+            args_dict: dict[str, Any] = {}
+            for kw in tree.body.keywords:
+                if kw.arg:
+                    try:
+                        args_dict[kw.arg] = _ast.literal_eval(kw.value)
+                    except Exception:
+                        args_dict[kw.arg] = _ast.unparse(kw.value).strip("\"'")
+            return fn_name, args_dict
+    except Exception:
+        pass
+    m = re.match(r"^([\w\.]+)\((.*)\)$", gt_str.strip())
     if not m:
         return gt_str.strip(), {}
-    fn_name, args_str = m.group(1), m.group(2)
-    args_dict = {}
-    if args_str.strip():
-        parts = [p.strip() for p in re.split(r",\s*(?=[a-zA-Z_]\w*=)", args_str) if p.strip()]
-        for p in parts:
-            if "=" in p:
-                k, v = p.split("=", 1)
-                k = k.strip()
-                v = v.strip()
-                try:
-                    args_dict[k] = json.loads(v)
-                except Exception:
-                    # Handle unquoted tuples like '(32.71, -117.16)'
-                    if v.startswith("(") and v.endswith(")"):
-                        try:
-                            args_dict[k] = list(json.loads("[" + v[1:-1] + "]"))
-                        except Exception:
-                            args_dict[k] = v.strip("\"'")
-                    else:
-                        args_dict[k] = v.strip("\"'")
-    return fn_name, args_dict
+    return m.group(1), {}
 
 
 def query_llm_tools(
@@ -105,11 +105,21 @@ def query_llm_tools(
     max_tokens: int = 512,
     temperature: float = 0.0,
 ) -> tuple[dict[str, Any], str, int]:
+    sys_msg = {
+        "role": "system",
+        "content": (
+            "You are a precise function-calling assistant. "
+            "Invoke a provided tool ONLY if its exact function definition and parameters directly fulfill the user's request. "
+            "If none of the provided tools directly match the user's domain or question, do NOT call any tool; respond in plain text instead."
+        ),
+    }
+    full_messages = [sys_msg, *messages] if (not messages or messages[0].get("role") != "system") else messages
     payload = {
-        "messages": messages,
+        "messages": full_messages,
         "tools": [{"type": "function", "function": f} for f in tools],
         "max_tokens": max_tokens,
         "temperature": temperature,
+        "chat_template_kwargs": {"enable_thinking": False},
     }
     with httpx.Client(timeout=TIMEOUT_SECONDS) as client:
         res = client.post(SERVER_URL, json=payload)

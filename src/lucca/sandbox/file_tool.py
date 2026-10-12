@@ -75,6 +75,9 @@ def validate_rel_path(p: str, workspace_root: Path | str = "/workspace") -> Path
         raise SandboxPathError("too_long", f"Path length {len(p)} exceeds maximum {MAX_PATH_LEN}")
 
     # Check forbidden characters
+    import unicodedata
+    if unicodedata.normalize("NFKC", p) != p:
+        raise SandboxPathError("invalid_chars", "Unicode compatibility homoglyphs (NFKC mismatch) are forbidden")
     if "\x00" in p:
         raise SandboxPathError("invalid_chars", "NUL byte in path is forbidden")
 

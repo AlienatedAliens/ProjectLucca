@@ -141,9 +141,16 @@ INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
 CONTAINER_WORLD_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"\b("
     r"where\s+would\s+[a-z]+\s+look|"
+    r"where\s+[a-z]+\s+would\s+look|"
+    r"[a-z]+'?s\s+belief|"
+    r"where\s+[a-z]+\s+(?:thinks?|believes?)|"
     r"where\s+(?:is|was|did\s+[a-z]+\s+(?:put|move|leave))|"
     r"who\s+(?:moved|took|has|placed)\s+the|"
     r"what\s+is\s+the\s+location\s+of|"
+    r"while\s+[a-z]+\s+(?:is|was)\s+(?:away|out|asleep)|"
+    r"without\s+[a-z]+\s+(?:seeing|knowing|noticing)|"
+    r"[a-z]+\s+(?:thinks?|believes?)\s+(?:remain|are\s+in|is\s+in)|"
+    r"container_world|containerworld|"
     r"find\s+the\s+[a-z]+\s+given"
     r")\b",
     re.IGNORECASE,
@@ -174,6 +181,23 @@ SOFT_LOGIC_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"murder\s+mystery|"
     r"who\s+committed\s+the\s+crime"
     r")\b",
+    re.IGNORECASE,
+)
+
+MATHEMATICAL_SYMPY_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"solve (?:the )?(?:system|equation|inequality|integral|derivative|polynomial)|"
+    r"calculate|compute|find the sum|find the product|find the value of|"
+    r"how many (?:ways|integers|solutions|combinations|permutations)|"
+    r"find the number of (?:ways|integers|solutions|residents|items)|"
+    r"roots? of|eigenvalues?|determinant|"
+    r"prime factors?|gcd|lcm|modulo|"
+    r"aime|competition math|olympiad math|"
+    r"evaluate (?:the )?(?:expression|limit|series)|"
+    r"sum of the squares|unique mode|median of the list|"
+    r"sympy"
+    r")\b|"
+    r"(?:\\boxed|\\log_|\\sum_|\\int_|\\frac|\\binom|\b[0-9]+\s*[\+\-\*\/\^]\s*[0-9]+)",
     re.IGNORECASE,
 )
 
@@ -561,14 +585,15 @@ class HeuristicRouter:
         # Dynamic Tiered Neurosymbolic Reasoning & Thinking Mode Dispatch
         if model_tier is None:
             try:
-                cfg_model = get_config().model.lower()
+                cfg_model = get_config().llm.model.lower()
                 if "e2b" in cfg_model:
                     effective_tier = "E2B"
                 elif "e4b" in cfg_model:
                     effective_tier = "E4B"
                 else:
                     effective_tier = "12B"
-            except Exception:
+            except (AttributeError, KeyError, ValueError, TypeError):
+                logger.debug("router_tier_detect_failed", error="config read error")
                 effective_tier = "12B"
         else:
             effective_tier = model_tier
@@ -576,24 +601,62 @@ class HeuristicRouter:
         reasoning_domain: str | None = None
         solver_tool: str | None = None
         thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
+        exposed_libraries: list[str] = []
 
         if action_lit == "LLM":
-            if CONTAINER_WORLD_PATTERN.search(text_lower):
+            has_cw = bool(CONTAINER_WORLD_PATTERN.search(text_lower))
+            has_z3 = bool(COMBINATORIAL_SMT_PATTERN.search(text_lower))
+            has_soft = bool(SOFT_LOGIC_PATTERN.search(text_lower))
+            has_sympy = bool(MATHEMATICAL_SYMPY_PATTERN.search(text_lower))
+
+            if has_cw:
+                exposed_libraries.append("container_world")
+            if has_z3:
+                exposed_libraries.append("z3")
+            if has_sympy:
+                exposed_libraries.append("sympy")
+
+            if has_cw:
                 reasoning_domain = "spatial_relocation"
                 solver_tool = "container_world"
                 thinking_mode = "direct"
-            elif COMBINATORIAL_SMT_PATTERN.search(text_lower):
+            elif has_z3:
                 reasoning_domain = "combinatorial_smt"
                 solver_tool = "z3_smt"
                 thinking_mode = "direct"
-            elif SOFT_LOGIC_PATTERN.search(text_lower):
+            elif has_soft:
                 reasoning_domain = "soft_logic"
                 if effective_tier == "12B":
                     thinking_mode = "direct"  # Avoid 36.7% overthinking collapse on 12B
                 else:
                     thinking_mode = "thinking"  # Capture 23% -> 63% thinking lift on edge tiers
+            elif has_sympy:
+                reasoning_domain = "mathematics"
+                solver_tool = "sympy_sandbox"
+                thinking_mode = "direct"
 
         route_action = RouteAction(action_lit)
+
+        # D-DUAL-01: Deliberation lane detection.
+        # A turn is routed to the deliberation lane (multi-second budget, floor-hold TTS cue)
+        # when it is a hard reasoning problem: math/SMT/spatial/soft_logic + (>= 15 words or multi-lobe).
+        DELIBERATION_DOMAINS = {"mathematics", "combinatorial_smt", "soft_logic", "spatial_relocation"}
+        word_count = len(text_lower.split())
+        deliberation_lane = (
+            reasoning_domain in DELIBERATION_DOMAINS
+            and (word_count >= 15 or len(exposed_libraries) >= 2)
+        )
+        FLOOR_HOLD_CUES = [
+            "Let me work that out.",
+            "Give me a moment to think through this.",
+            "Working on it now.",
+        ]
+        floor_hold_cue: str | None = None
+        if deliberation_lane:
+            import hashlib as _hl
+            _idx = int(_hl.md5(text_lower.encode()).hexdigest(), 16) % len(FLOOR_HOLD_CUES)
+            floor_hold_cue = FLOOR_HOLD_CUES[_idx]
+
         decision = RouteDecision(
             action=route_action,
             tier=tier,
@@ -605,6 +668,9 @@ class HeuristicRouter:
             thinking_mode=thinking_mode,
             solver_tool=solver_tool,
             reasoning_domain=reasoning_domain,
+            deliberation_lane=deliberation_lane,
+            floor_hold_cue=floor_hold_cue,
+            exposed_libraries=exposed_libraries,
         )
 
         features = RouteFeatures(
@@ -628,6 +694,9 @@ class HeuristicRouter:
             thinking_mode=thinking_mode,
             solver_tool=solver_tool,
             reasoning_domain=reasoning_domain,
+            deliberation_lane=deliberation_lane,
+            floor_hold_cue=floor_hold_cue,
+            exposed_libraries=exposed_libraries,
         )
 
         tid = trace_id or f"trace-{uuid.uuid4().hex[:8]}"

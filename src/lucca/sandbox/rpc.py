@@ -36,6 +36,76 @@ from lucca.sandbox.schemas import (
 logger = structlog.get_logger(__name__)
 
 
+_CONTAINER_WORLD_PRELUDE = '''
+import sys as _sys, types as _types
+class ContainerWorld:
+    def __init__(self) -> None:
+        self.world: dict[str, str] = {}
+        self.initial_world: dict[str, str] = {}
+        self.beliefs: dict[str, dict[str, str]] = {}
+    def process_event(self, ev: dict[str, object]) -> None:
+        agent = str(ev.get("agent") or ev.get("actor") or "").strip().lower()
+        action = str(ev.get("action") or "move").strip().lower()
+        item = str(ev.get("item") or "").strip().lower()
+        loc = str(ev.get("location") or ev.get("dst") or ev.get("to_loc") or "").strip().lower()
+        raw_obs = ev.get("observed_by") or []
+        obs_list = [str(o).strip().lower() for o in raw_obs if o] if isinstance(raw_obs, list) else []
+        if not item or not loc:
+            return
+        if item not in self.initial_world or action in ("initial", "start", "starting", "located"):
+            self.initial_world.setdefault(item, loc)
+        if action in ("initial", "start", "starting", "located", "move", "place", "put", "relocate", "transfer", "set", "leave", "drop"):
+            self.world[item] = loc
+        if agent and agent not in ("none", "null", "all", "everyone"):
+            self.beliefs.setdefault(agent, {})[item] = loc
+        for obs in obs_list:
+            if obs and obs not in ("none", "null"):
+                self.beliefs.setdefault(obs, {})[item] = loc
+    def place(self, arg1: str | None, arg2: str, arg3: str | None = None, observed_by: list[str] | None = None, actor: str | None = None) -> None:
+        agent_val, item_val, loc_val = ((actor or ""), (arg1 or ""), arg2) if arg3 is None else ((arg1 or actor or ""), arg2, arg3)
+        self.process_event({"agent": agent_val, "action": "place", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
+    def move(self, arg1: str | None, arg2: str, arg3: str | None = None, observed_by: list[str] | None = None, actor: str | None = None) -> None:
+        agent_val, item_val, loc_val = ((actor or ""), (arg1 or ""), arg2) if arg3 is None else ((arg1 or actor or ""), arg2, arg3)
+        self.process_event({"agent": agent_val, "action": "move", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
+    def reset(self) -> None:
+        self.world.clear(); self.initial_world.clear(); self.beliefs.clear()
+    def process_events(self, events: list[dict[str, object]]) -> None:
+        for ev in events:
+            self.process_event(ev)
+    def query(self, target_agent: str | None, item: str) -> str | None:
+        t_item = item.strip().lower()
+        if target_agent:
+            ag = target_agent.strip().lower()
+            if ag in self.beliefs:
+                if t_item in self.beliefs[ag]:
+                    return self.beliefs[ag][t_item]
+                for k, v in self.beliefs[ag].items():
+                    if t_item in k or k in t_item:
+                        return v
+            if t_item in self.initial_world:
+                return self.initial_world[t_item]
+            for k, v in self.initial_world.items():
+                if t_item in k or k in t_item:
+                    return v
+        if t_item in self.world:
+            return self.world[t_item]
+        for k, v in self.world.items():
+            if t_item in k or k in t_item:
+                return v
+        return None
+_cw_mod = _types.ModuleType("container_world")
+_cw_mod.ContainerWorld = ContainerWorld
+_sys.modules.setdefault("container_world", _cw_mod)
+'''
+
+def _inject_shared_workspace_prelude(code: str) -> str:
+    """Injects ContainerWorld module shim into sandboxed Python code when referenced (D-REAS-10)."""
+    if "ContainerWorld" in code or "container_world" in code:
+        if "class ContainerWorld" not in code:
+            return _CONTAINER_WORLD_PRELUDE + "\n" + code
+    return code
+
+
 class PersistentDockerWorker:
     """
     Long-lived stdio bridge to `lucca-toolsrv --loop` inside the unprivileged Docker container.
@@ -590,6 +660,9 @@ class DockerRPCTransport:
         effective_timeout_s = (
             timeout_s if timeout_s is not None else (15.0 if tool == "run_python" else 5.0)
         )
+        if tool == "run_python" and isinstance(args.get("code"), str):
+            args = dict(args)
+            args["code"] = _inject_shared_workspace_prelude(str(args["code"]))
 
         if self.use_direct_fallback:
             return self._execute_direct(call_id, tool, args, t0)

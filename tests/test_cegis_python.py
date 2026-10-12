@@ -110,3 +110,132 @@ def test_cegis_engine_mocked_repair(monkeypatch: pytest.MonkeyPatch) -> None:
     assert res.traces[0].ok_exec is False
     assert res.traces[0].error_type == "IndexError"
     assert res.traces[1].ok_exec is True
+
+def test_cegis_engine_synthesize_parallel_first_candidate_wins(monkeypatch: pytest.MonkeyPatch) -> None:
+    """synthesize_parallel: first execution-verified candidate is returned immediately."""
+    engine = PythonCEGISEngine(num_candidates=3)
+
+    call_count = 0
+
+    def mock_query(messages: list[dict[str, str]], temperature: float = 0.1, max_tokens: int = 512) -> tuple[str, str]:
+        nonlocal call_count
+        call_count += 1
+        return "```python\nprint(42)\n```", "stop"
+
+    exec_count = 0
+
+    def mock_exec(code: str) -> tuple[bool, str, str]:
+        nonlocal exec_count
+        exec_count += 1
+        return True, "42", ""
+
+    monkeypatch.setattr(engine, "_query_llm", mock_query)
+    monkeypatch.setattr(engine, "_execute_code", mock_exec)
+
+    res = engine.synthesize_parallel("Compute answer")
+    assert res.success is True
+    assert res.predicted_output == "42"
+    assert "PARALLEL_CANDIDATE_1" in res.method
+    # Should stop after first success — only 1 LLM call and 1 exec call
+    assert call_count == 1
+    assert exec_count == 1
+
+
+def test_cegis_engine_synthesize_parallel_fallback_on_all_fail(monkeypatch: pytest.MonkeyPatch) -> None:
+    """synthesize_parallel: falls back to synthesize_and_repair when all candidates fail."""
+    engine = PythonCEGISEngine(num_candidates=2, max_turns=1)
+
+    def mock_query(messages: list[dict[str, str]], temperature: float = 0.1, max_tokens: int = 512) -> tuple[str, str]:
+        return "```python\nprint(99)\n```", "stop"
+
+    exec_count = 0
+
+    def mock_exec(code: str) -> tuple[bool, str, str]:
+        nonlocal exec_count
+        exec_count += 1
+        # Parallel candidates fail; fallback attempt also fails (max_turns=1)
+        return False, "", "RuntimeError: intentional failure"
+
+    monkeypatch.setattr(engine, "_query_llm", mock_query)
+    monkeypatch.setattr(engine, "_execute_code", mock_exec)
+
+    res = engine.synthesize_parallel("Compute answer")
+    # Falls back to synthesize_and_repair which also exhausts (max_turns=1, 1 exec)
+    assert res.success is False
+
+
+def test_cegis_engine_synthesize_parallel_n1_routes_to_repair(monkeypatch: pytest.MonkeyPatch) -> None:
+    """synthesize_parallel with n_candidates=1 delegates directly to synthesize_and_repair."""
+    engine = PythonCEGISEngine(num_candidates=1, max_turns=1)
+
+    def mock_query(messages: list[dict[str, str]], temperature: float = 0.1, max_tokens: int = 512) -> tuple[str, str]:
+        return "```python\nprint(7)\n```", "stop"
+
+    def mock_exec(code: str) -> tuple[bool, str, str]:
+        return True, "7", ""
+
+    monkeypatch.setattr(engine, "_query_llm", mock_query)
+    monkeypatch.setattr(engine, "_execute_code", mock_exec)
+
+    res = engine.synthesize_parallel("Return seven")
+    assert res.success is True
+    # Routed through synthesize_and_repair, so method is VERIFIED_PROGRAM not PARALLEL_*
+    assert res.method == "VERIFIED_PROGRAM"
+
+
+def test_cegis_checked_formalization_agrees(monkeypatch: pytest.MonkeyPatch) -> None:
+    """synthesize_checked_formalization: returns immediately when symbolic & brute-force agree."""
+    engine = PythonCEGISEngine(num_candidates=3)
+    call_count = 0
+
+    def mock_query(
+        messages: list[dict[str, str]], temperature: float = 0.1, max_tokens: int = 512
+    ) -> tuple[str, str]:
+        nonlocal call_count
+        call_count += 1
+        return "```python\nprint(144)\n```", "stop"
+
+    def mock_exec(code: str) -> tuple[bool, str, str]:
+        return True, "144", ""
+
+    monkeypatch.setattr(engine, "_query_llm", mock_query)
+    monkeypatch.setattr(engine, "_execute_code", mock_exec)
+
+    res = engine.synthesize_checked_formalization("Find 12 squared")
+    assert res.success is True
+    assert res.predicted_output == "144"
+    assert res.method == "CHECKED_FORMALIZATION_AGREED"
+    assert call_count == 2
+
+
+def test_cegis_checked_formalization_disagrees_escalates(monkeypatch: pytest.MonkeyPatch) -> None:
+    """synthesize_checked_formalization: escalates to synthesize_parallel when paths disagree."""
+    engine = PythonCEGISEngine(num_candidates=2)
+    call_count = 0
+
+    def mock_query(
+        messages: list[dict[str, str]], temperature: float = 0.1, max_tokens: int = 512
+    ) -> tuple[str, str]:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return "```python\nprint(10)\n```", "stop"
+        if call_count == 2:
+            return "```python\nprint(20)\n```", "stop"
+        return "```python\nprint(15)\n```", "stop"
+
+    def mock_exec(code: str) -> tuple[bool, str, str]:
+        if "10" in code:
+            return True, "10", ""
+        if "20" in code:
+            return True, "20", ""
+        return True, "15", ""
+
+    monkeypatch.setattr(engine, "_query_llm", mock_query)
+    monkeypatch.setattr(engine, "_execute_code", mock_exec)
+
+    res = engine.synthesize_checked_formalization("Solve problem")
+    assert res.success is True
+    assert res.predicted_output == "15"
+    assert "PARALLEL_CANDIDATE_1" in res.method
+    assert call_count == 3

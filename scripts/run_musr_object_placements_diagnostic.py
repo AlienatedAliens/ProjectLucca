@@ -21,6 +21,7 @@ import json
 import math
 from pathlib import Path
 import random
+import difflib
 import re
 import sys
 import time
@@ -111,60 +112,7 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
-class ContainerWorld:
-    """
-    Deterministic Theory-of-Mind & Spatial State Tracker.
-    Tracks both physical ground-truth locations and per-agent belief states.
-    """
-
-    def __init__(self) -> None:
-        self.world: dict[str, str] = {}  # item -> current location
-        self.beliefs: dict[str, dict[str, str]] = {}  # agent -> item -> believed location
-
-    def process_event(self, ev: dict[str, Any]) -> None:
-        agent = str(ev.get("agent", "")).strip().lower()
-        action = str(ev.get("action", "")).strip().lower()
-        item = str(ev.get("item", "")).strip().lower()
-        loc = str(ev.get("location") or ev.get("dst") or "").strip().lower()
-        observers = [str(o).strip().lower() for o in ev.get("observed_by", [])]
-
-        if not item or not loc:
-            return
-
-        # Physical world update
-        if action in ("move", "place", "put", "relocate", "transfer"):
-            self.world[item] = loc
-
-        # Belief update: the acting agent always knows where they put it
-        if agent:
-            if agent not in self.beliefs:
-                self.beliefs[agent] = {}
-            self.beliefs[agent][item] = loc
-
-        # Any explicit observers also update their belief
-        for obs in observers:
-            if obs not in self.beliefs:
-                self.beliefs[obs] = {}
-            self.beliefs[obs][item] = loc
-
-    def query(self, target_agent: str | None, item: str) -> str | None:
-        target_item = item.strip().lower()
-        if target_agent:
-            agent = target_agent.strip().lower()
-            if agent in self.beliefs and target_item in self.beliefs[agent]:
-                return self.beliefs[agent][target_item]
-            # Match partial item name
-            for k, v in self.beliefs.get(agent, {}).items():
-                if target_item in k or k in target_item:
-                    return v
-
-        # Fall back to physical world state
-        if target_item in self.world:
-            return self.world[target_item]
-        for k, v in self.world.items():
-            if target_item in k or k in target_item:
-                return v
-        return None
+from lucca.sandbox.container_world import ContainerWorld
 
 
 def run_container_world_solver(
@@ -177,14 +125,39 @@ def run_container_world_solver(
     Returns: (predicted_choice_letter, deduced_location, events_count, syntax_ok, elapsed_ms)
     """
     t0 = time.perf_counter()
+
+    # Determine target agent and item from question FIRST so we can guide canonical naming
+    m_agent = re.search(r"place\s+([A-Z][a-z]+)\s+would\s+look", question)
+    target_agent = m_agent.group(1) if m_agent else None
+
+    target_item = "item"
+    m_item = re.search(r"find\s+the\s+([a-zA-Z][a-zA-Z\s]{0,30}?)\s+given", question)
+    if m_item:
+        target_item = m_item.group(1).strip()
+    else:
+        ITEM_WORDS = (
+            "notebook", "earphones", "guitar", "keys", "phone", "book", "bag",
+            "box", "case", "camera", "tablet", "laptop", "wallet", "glasses",
+            "backpack", "charger", "headphones", "remote", "scissors", "pen",
+        )
+        for w in ITEM_WORDS:
+            if w in story.lower():
+                target_item = w
+                break
+
+    choices_hint = ", ".join(f"'{c}'" for c in choices)
     prompt = (
-        "Extract the sequence of physical object placement and movement events from this story.\n"
+        "Extract the chronological sequence of object locations and movement events from this story.\n"
+        f"Focus especially on the item '{target_item}' (even if referred to by synonyms like 'masterpiece', 'new work', or 'device') "
+        f"and use the exact candidate location names when applicable ({choices_hint}).\n"
         "Return ONLY a JSON object with key \"events\", containing a list of dictionaries with:\n"
-        "- \"agent\": name of person moving or observing the object\n"
-        "- \"action\": \"put\", \"move\", or \"observe\"\n"
-        "- \"item\": item being moved\n"
-        "- \"location\": destination location\n"
-        "- \"observed_by\": list of other agents present who saw this\n\n"
+        "- \"agent\": name of person moving the object (or \"none\" for initial starting state)\n"
+        "- \"action\": \"initial\" (for starting locations known at the beginning of the story), \"move\", or \"put\"\n"
+        f"- \"item\": canonical item name (use \"{target_item}\" for the target object)\n"
+        "- \"location\": location of the item\n"
+        "- \"observed_by\": list of characters who are physically present in the same area AND directly aware of / witnessing this event. "
+        "IMPORTANT: For \"initial\" events at the start of the story where everyone is aware of the items' starting positions, list ALL characters in \"observed_by\". "
+        "For subsequent \"move\" or \"put\" events, ONLY include characters who actually see the move or see the item in its new spot (exclude anyone in a separate room, windowless office, isolated counter/booth, or out of sight).\n\n"
         f"Story:\n{story}\n\n"
         "Format: {\"events\": [...]}"
     )
@@ -215,17 +188,15 @@ def run_container_world_solver(
         elif isinstance(data, list):
             events = data
     except Exception:
-        # Fallback: attempt to salvage truncated JSON or extract valid object array
         try:
             m_arr = re.search(r"\[\s*\{.*?\}\s*\]", raw, re.DOTALL)
             if m_arr:
                 events = json.loads(m_arr.group(0))
                 syntax_ok = True
             else:
-                # If cut off at end, close brackets
                 last_brace = json_str.rfind("}")
                 if last_brace != -1:
-                    repaired = json_str[:last_brace+1] + "\n]}"
+                    repaired = json_str[:last_brace + 1] + "\n]}"
                     data = json.loads(repaired)
                     events = data.get("events", [])
                     syntax_ok = True
@@ -234,44 +205,52 @@ def run_container_world_solver(
 
     tracker = ContainerWorld()
     for ev in events:
-        tracker.process_event(ev)
-
-    # Determine target agent and item from question
-    # e.g. "Which location is the most likely place Danny would look to find the earphones given the story?"
-    m_agent = re.search(r"place\s+([A-Z][a-z]+)\s+would\s+look", question)
-    target_agent = m_agent.group(1) if m_agent else None
-
-    # Identify item
-    target_item = "item"
-    m_item = re.search(r"find\s+the\s+([a-zA-Z\s]+?)\s+given", question)
-    if m_item:
-        target_item = m_item.group(1).strip()
-    else:
-        for c in choices:
-            for w in ("notebook", "earphones", "guitar", "keys", "phone", "book", "bag"):
-                if w in story.lower():
-                    target_item = w
-                    break
+        if isinstance(ev, dict):
+            tracker.process_event(ev)
 
     deduced_loc = tracker.query(target_agent, target_item)
 
-    # Match deduced_loc against choices
-    best_choice_letter = None
+    # --- Multi-stage fuzzy choice matcher ---
+    def _normalize(s: str) -> str:
+        """Lowercase, strip leading articles/possessives, collapse whitespace."""
+        s = s.lower().strip()
+        for prefix in ("the ", "a ", "an "):
+            if s.startswith(prefix):
+                s = s[len(prefix):]
+        s = re.sub(r"'s\b", "", s)
+        s = re.sub(r"\s+", " ", s)
+        return s
+
     letters = ["(A)", "(B)", "(C)", "(D)", "(E)"][:len(choices)]
+    best_choice_letter = None
 
     if deduced_loc:
-        ded_lower = deduced_loc.lower()
-        for idx, ch in enumerate(choices):
-            ch_lower = ch.lower()
-            if ch_lower in ded_lower or ded_lower in ch_lower:
+        ded_norm = _normalize(deduced_loc)
+        ch_norms = [_normalize(ch) for ch in choices]
+
+        # Stage 1: exact substring match (both directions) after normalisation
+        for idx, ch_norm in enumerate(ch_norms):
+            if ch_norm in ded_norm or ded_norm in ch_norm:
                 best_choice_letter = letters[idx]
                 break
 
-    # If no exact match, fallback to keyword overlap with choices
-    if not best_choice_letter and deduced_loc:
-        scores = [len(set(ch.lower().split()) & set(deduced_loc.lower().split())) for ch in choices]
-        if max(scores) > 0:
-            best_choice_letter = letters[scores.index(max(scores))]
+        # Stage 2: token-set overlap (Jaccard-style, require >= 1 shared content token)
+        if not best_choice_letter:
+            STOP = {"the", "a", "an", "in", "on", "at", "of", "to", "and", "or", "is", "was"}
+            ded_toks = {t for t in ded_norm.split() if t not in STOP and len(t) >= 3}
+            scores = [
+                len(ded_toks & {t for t in ch.split() if t not in STOP and len(t) >= 3})
+                for ch in ch_norms
+            ]
+            if ded_toks and max(scores) > 0:
+                best_choice_letter = letters[scores.index(max(scores))]
+
+        # Stage 3: difflib SequenceMatcher ratio (catches partial word matches, typos)
+        if not best_choice_letter:
+            ratios = [difflib.SequenceMatcher(None, ded_norm, ch).ratio() for ch in ch_norms]
+            best_ratio = max(ratios)
+            if best_ratio >= 0.45:
+                best_choice_letter = letters[ratios.index(best_ratio)]
 
     elapsed = (time.perf_counter() - t0) * 1000.0
     return best_choice_letter, deduced_loc, len(events), syntax_ok, elapsed

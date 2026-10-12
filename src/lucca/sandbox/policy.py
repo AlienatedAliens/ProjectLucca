@@ -238,12 +238,22 @@ class SequenceGuard:
         self.turn_tools.clear()
 
     def register_sensitive_content(self, text: str) -> None:
-        """Registers high-entropy or sensitive substrings from private files/memory."""
+        """Registers high-entropy or sensitive substrings (plus Base64/Hex encodings) from private files/memory."""
+        import base64
         self.active_taint |= TaintFlags.SENSITIVE_MEMORY
-        words = text.split()
+        words = re.split(r"[\s=:]+", text)
         for w in words:
-            if len(w) >= 8:  # register significant tokens
-                self.sensitive_tokens.add(w.lower())
+            w_clean = w.strip(".,;:!?\"'()[]{}")
+            for candidate in (w, w_clean):
+                if len(candidate) >= 8:
+                    low = candidate.lower()
+                    self.sensitive_tokens.add(low)
+                    b64_full = base64.b64encode(candidate.encode("utf-8")).decode("ascii").rstrip("=").lower()
+                    if len(b64_full) >= 8:
+                        self.sensitive_tokens.add(b64_full)
+                    hex_str = candidate.encode("utf-8").hex().lower()
+                    if len(hex_str) >= 12:
+                        self.sensitive_tokens.add(hex_str)
 
     def check_and_record(
         self,
@@ -254,16 +264,26 @@ class SequenceGuard:
         Validates whether tool_name is permitted given preceding tools in this turn and taint state.
         Returns (allowed, reason).
         """
+        import urllib.parse
         # 1. Single-turn sequence checks
         network_tools = ("fetch_url", "search_web", "browse_page")
-        if tool_name in network_tools and "read_file" in self.turn_tools:
+        private_read_tools = ("read_file", "note_read", "memory_search", "clipboard_read")
+        side_effect_tools = (
+            "write_file",
+            "delete_file",
+            "run_python",
+            "run_python_async",
+            "launch_app",
+            "inbox_handoff",
+        )
+        if tool_name in network_tools and any(t in self.turn_tools for t in private_read_tools):
             return (
                 False,
                 f"Forbidden sequence: cannot {tool_name} after reading workspace files "
                 "in same turn.",
             )
 
-        if tool_name in ("write_file", "run_python") and any(
+        if tool_name in side_effect_tools and any(
             t in self.turn_tools for t in network_tools
         ):
             return (
@@ -277,7 +297,10 @@ class SequenceGuard:
             self.active_taint & (TaintFlags.SENSITIVE_MEMORY | TaintFlags.WORKSPACE_PRIVATE)
         ):
             if args:
-                target_str = (str(args.get("url", "")) + " " + str(args.get("query", ""))).lower()
+                raw_target = str(args.get("url", "")) + " " + str(args.get("query", ""))
+                unquoted = urllib.parse.unquote(urllib.parse.unquote(raw_target))
+                zwsp_stripped = re.sub(r"[\u200b\u200c\u200d\ufeff]", "", unquoted)
+                target_str = (raw_target + " " + unquoted + " " + zwsp_stripped).lower()
                 for token in self.sensitive_tokens:
                     if token in target_str:
                         return (

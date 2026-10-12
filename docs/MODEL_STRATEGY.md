@@ -183,3 +183,27 @@ To safely evaluate new candidate models or swapped weights without code modifica
 1. **Endpoint Selection via `LUCCA_LLM_MODEL`:** Setting the `LUCCA_LLM_MODEL` environment variable (e.g. `http://127.0.0.1:8081` or `127.0.0.1:8081`) overrides the default configured brain endpoint in `LLMClient`.
 2. **Required Gate for Brain Changes:** Any proposed model swap (e.g. evaluating an updated quant, alternative backbone, or prompt template revision) must execute against the frozen capability assessment battery (`tests/test_capability_assessment_live_hw.py`) targeting the candidate via `LUCCA_LLM_MODEL`.
 3. **Acceptance Criteria:** The candidate must match or exceed current baseline capability scores across all categories, maintain zero fabricated facts across forced failures, and produce zero unrefuted capitulation clauses under adversarial probes.
+
+---
+
+## 11. Multi-Tier Deployment & Neurosymbolic Compound Execution (`v1.37.0`)
+
+### 11.1 The Multi-Scale Model Topology
+As of `v1.37.0`, Project Lucca supports three ratified local neural deployment tiers:
+- **E2B Ultra-Edge (`Gemma4-E2B-Heretic-Sinhala`, 2.3B parameters, Q6_K)**: 3,516 MiB resident VRAM. Sustained 84.5 tok/s. Ambient listener & low-latency companion.
+- **E4B Sovereign Core (`gemma-4-E4B-it-uncensored`, 4.0B parameters, Q6_K)**: 4,548 MiB resident VRAM. Sustained 62.1 tok/s. Default sovereign desktop companion.
+- **12B Unified Brain (`gemma-4-12b-heretic`, 12.0B parameters, Q6_K)**: 10,562 MiB resident VRAM. Sustained 38.4 tok/s. Complex symbolic and research escalation.
+
+### 11.2 Tier-Adaptive Cognitive Dispatch
+- **12B Unified**: Extended thinking scratchpads cause a 36.7% overthinking collapse on formal logic. The router forces `thinking_mode="direct"` on 12B for deductive tasks.
+- **Edge Tiers (E4B / E2B)**: Extended thinking lifts edge reasoning accuracy from 23% to 63% (+40 pp). The router activates `thinking_mode="thinking"` on edge tiers for complex logic.
+
+### 11.3 CEGIS Multi-Turn Self-Repair
+Small edge models frequently crash on generated code due to syntax or type errors. `PythonCEGISEngine` captures in-container Python tracebacks (`ValueError`, `NameError`) and pipes them into Turn 2 for immediate repair:
+- **AIME 2024**: Delivers a $2\times$ empirical lift (20% $\to$ 40%) on competition mathematics.
+- **CRUXEval-Input**: Rescues 8.0% of E2B (52% $\to$ 60%) and 10.0% of E4B (68% $\to$ 78%) programs with **strictly zero regressions** across all tiers.
+
+### 11.4 Operator Sovereignty & Host-Defensive Security Model
+- **Conversational Tone**: Uncensored output generation (`tts_safety_guard_mode = "off"`). External knowledge queries are not preachy or filtered.
+- **Host Defense**: Complete deterministic protection (20/20 attacks intercepted in 0.02 ms) against destructive host commands, container socket escapes, credential theft, and memory HMAC forgery.
+

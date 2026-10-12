@@ -265,7 +265,6 @@ class ContainerWorldArgs(BaseModel):
 
 
 TOOL_ARG_SCHEMAS: dict[str, type[BaseModel]] = {
-    "container_world": ContainerWorldArgs,
     "read_file": ReadFileArgs,
     "write_file": WriteFileArgs,
     "search_web": SearchWebArgs,
@@ -293,6 +292,7 @@ TOOL_ARG_SCHEMAS: dict[str, type[BaseModel]] = {
 }
 
 EXTRA_TOOL_SCHEMAS: dict[str, type[BaseModel]] = {
+    "container_world": ContainerWorldArgs,
     "delete_file": DeleteFileArgs,
     "get_task_status": GetTaskStatusArgs,
     "list_tasks": ListTasksArgs,

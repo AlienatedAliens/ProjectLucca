@@ -5,6 +5,56 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.37.0] — 2026-10-12
+
+### Added
+- **Dynamic Neurosymbolic Mathematical & Spatial Routing (`D-ROUT-02`, `src/lucca/router/heuristic.py`):**
+  - Integrated `MATHEMATICAL_SYMPY_PATTERN` regex matching equations, integrals, systems of equations, polynomials, arithmetic, and Olympiad competition math.
+  - Added neurosymbolic tool routing: dispatches to `solver_tool="sympy_sandbox"` (`reasoning_domain="mathematics"`), `solver_tool="container_world"` (`reasoning_domain="spatial_relocation"`), and `solver_tool="z3_smt"` (`reasoning_domain="combinatorial_smt"`).
+  - Added tier-adaptive thinking mode dispatch: forces `thinking_mode="direct"` on 12B Unified to eliminate the 36.7% overthinking collapse, while activating `thinking_mode="thinking"` on edge models (E4B/E2B) to capture a +40 pp reasoning lift (23% $\to$ 63%).
+  - Router latency: **992.8 microseconds** (<1 ms P50).
+  - 40/40 pytest tests passing (`test_router_neurosymbolic.py`, `test_router.py`, `test_router_calibration.py`, `test_defensive_injection_guards.py`).
+
+- **Counterexample-Guided Inductive Synthesis (CEGIS) Multi-Turn Self-Repair (`src/lucca/reasoning/cegis_python.py`):**
+  - Implemented autonomous multi-turn exception feedback in `PythonCEGISEngine`. When container execution raises unhandled runtime exceptions (`ValueError`, `NameError`, `ZeroDivisionError`), the standard error traceback is extracted and framed into an immediate repair prompt for Turn 2.
+  - Added few-shot exemplar prompting and automatic `print(ans)` fallback injection to resolve edge model code generation truncations.
+  - **Empirical Validation on AIME 2024 (E4B)**: Compound SymPy CEGIS achieved 2/5 (40.0%) vs bare thinking 1/5 (20.0%) ($2\times$ empirical lift). Problem 4 logarithmic system crashed with `ValueError: Result is not rational` in Turn 1; CEGIS piped traceback to Turn 2, model refactored to exact symbolic evaluation via `sympify`, verified in Docker in 184ms: **PASS (33)** (`logs/test_reports/aime_sympy_diagnostic_E4B_1791816891.json`).
+  - **CRUXEval-Input Multi-Tier Sweeps (50-Item Dev Split)**:
+    - **E4B Edge (4.0B)**: Direct 68.0% (34/50) $\to$ CEGIS Rescued +5 (10.0 pp) $\to$ **78.0% overall** (39/50) ($p = 0.0625$, 0 regressions).
+    - **E2B Edge (2.3B)**: Direct 52.0% (26/50) $\to$ CEGIS Rescued +4 (8.0 pp) $\to$ **60.0% overall** (30/50) ($p = 0.1250$, 0 regressions).
+    - **12B Unified (12.0B)**: Direct 76.0% (38/50) $\to$ CEGIS Rescued +8 (16.0 pp) $\to$ **92.0% overall** (46/50) ($p = 0.0078$, 0 regressions).
+    - **Zero Regressions Invariant**: Across all 150 evaluations spanning E2B, E4B, and 12B, the regression rate was **identically zero** ($0:4$, $0:5$, $0:8$). CEGIS only accepts repairs that execute successfully and produce matching outputs against test invariants.
+
+- **Grammar & Schema-Constrained Decoding for Edge Tiers (`D-BRAIN-06`):**
+  - Resolved catastrophic event-list repetition loops on quantized edge models (E2B / E4B) by prioritizing schema definitions prior to narrative contexts and expanding token budget to 2048 tokens.
+  - Edge syntax failure rates eliminated from 30% down to **0% (10/10, 100.0% syntax validity)** on `ContainerWorld` spatial tracking.
+
+- **Defensive Prompt-Injection & Host Sandboxing Battery (`D-SEC-05`, `scripts/run_defensive_security_benchmark.py`):**
+  - Evaluated 20 hostile host-attack and prompt-injection vectors across 4 threat classes: host file deletion (`del /s /q`, `rm -rf`), container escapes (Docker socket, `/dev/mem`), credential exfiltration (SSH key theft, egress parameter leaks), and HMAC provenance envelope forgery.
+  - Intercepted: **20 / 20 (100.0%)**, zero escapes, 0.02ms defense latency.
+  - Uncensored output policy confirmed preserved (`tts_safety_guard_mode = "off"`). Safety strictly defends the operator and host filesystem.
+
+- **Persistent Docker Bridge Optimization (`PersistentDockerWorker`, `src/lucca/sandbox/rpc.py`):**
+  - Implemented long-lived stdio bridge to `lucca-toolsrv --loop` inside WSL2 Ubuntu Docker container (`lucca-file-sandbox`).
+  - Slashes container tool invocation latency from ~472ms P50 process spawn overhead down to **<2ms** (<22ms end-to-end execution).
+
+- **Whole-System Peak VRAM & Contention Benchmark (`scripts/run_whole_system_footprint_benchmark.py`):**
+  - Live execution profile on NVIDIA GeForce RTX 5080 Laptop GPU (16,303 MiB GDDR7 VRAM).
+  - Confirmed **zero VRAM contention**: auxiliary neural pipelines (OpenVINO MiniLM embeddings, Kokoro-82M TTS, Docker container) run strictly on CPU/NPU with $\Delta\text{VRAM} = 0\,\text{MiB}$.
+  - Multi-tier residency: E2B resident at 3,516 MiB (78.4% headroom), E4B resident at 4,548 MiB (72.1% headroom), 12B resident at 10,562 MiB (35.2% headroom).
+
+- **End-to-End Real-Time Voice & Tooling Integration Battery (`scripts/run_e2e_voice_tooling_integration.py`):**
+  - Complete live execution across Reflex Halt, Memory Substrate Fact Retrieval, Formal SymPy Sandbox Math, and Spatial Relocation Theory-of-Mind.
+  - **4 / 4 turns passing (100.0%)**:
+    - Turn 1 (Reflex): 587.4 ms total latency (3.4ms router, 583.8ms TTS).
+    - Turn 2 (Memory): 1,336.2 ms total latency (<1ms DB retrieval, 1,335.1ms TTS for 8.58s speech).
+    - Turn 3 (SymPy): 634.7 ms total latency (137$\mu\text{s}$ router, 22.3ms Docker tool execution, 612.1ms TTS).
+    - Turn 4 (Spatial): 575.9 ms total latency (202$\mu\text{s}$ router, 575.6ms TTS).
+  - Summary metrics: Router latency 992.8 $\mu\text{s}$, Docker tool execution 22.3 ms, Kokoro TTS 776.6 ms (RTF: 0.201, ~5x real-time), average total turn turnaround **783.6 ms**.
+  - Report: `logs/test_reports/e2e_voice_tooling_integration_1791817460.json`.
+
+---
+
 ## [1.36.0] — 2026-10-09
 
 ### Added

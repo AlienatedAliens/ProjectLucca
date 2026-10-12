@@ -67,6 +67,7 @@ def format_memory_context(
     max_tokens: int = 2048,
     now: float | None = None,
     max_content_chars: int = 160,
+    max_items: int = 8,
 ) -> str:
     """
     Render memory hits into prompt context block per Spec 04 §6 / Spec 10 / D-MEM-03:
@@ -74,9 +75,14 @@ def format_memory_context(
     - graph hits as: - {content}
     - sorted by multi-factor hierarchy: (provenance tier, -score, -created_at)
     - Enforces <= max_tokens (approx 4 chars/token).
+
+    Multi-session grouping (D-MEM-04):
+    When hits span multiple distinct sessions (different source_turn_id prefixes or
+    created_at buckets > 4h apart), hits are grouped by session and emitted with
+    [Session N — {age}] headers. This enables cross-session synthesis by the LLM
+    rather than presenting a flat ranked list that obscures temporal structure.
     """
     current_time = now if now is not None else time.time()
-    max_items = 8
     sorted_hits = sorted(
         hits,
         key=lambda h: (
@@ -86,44 +92,100 @@ def format_memory_context(
             -h.created_at,
         ),
     )
-    lines: list[str] = []
+
     char_budget = max_tokens * 4
 
-    current_len = 0
-    for hit in sorted_hits[:max_items]:
+    def _clean_content(hit: MemoryHit) -> str:
         raw_text = hit.content[:max_content_chars] if max_content_chars > 0 else hit.content
         content_clean = raw_text.replace("\r\n", "\n").replace("\r", "\n")
         while "\n[" in content_clean:
             content_clean = content_clean.replace("\n[", "\n(")
         if content_clean.startswith("["):
             content_clean = "(" + content_clean[1:]
+        return content_clean
 
+    def _format_hit(hit: MemoryHit, content_clean: str) -> str:
         if hit.kind == "graph":
-            line = f"- {content_clean}"
-        else:
-            age = calculate_age_str(hit.created_at, current_time)
-            prov_val = (
-                hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
+            return f"- {content_clean}"
+        age = calculate_age_str(hit.created_at, current_time)
+        prov_val = (
+            hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
+        )
+        if prov_val == "INFERRED":
+            conf_val = getattr(hit, "confidence", 1.0)
+            std_label = standard_for_confidence(conf_val).value
+            prefix = (
+                f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} "
+                f"— {std_label} {age}]"
             )
-            if prov_val == "INFERRED":
-                conf_val = getattr(hit, "confidence", 1.0)
-                std_label = standard_for_confidence(conf_val).value
-                prefix = (
-                    f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} "
-                    f"— {std_label} {age}]"
-                )
-                line = f"{prefix} {content_clean}"
-            else:
-                conf_str = (
-                    f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
-                )
-                line = f"- [{hit.kind}/{prov_val}{conf_str} {age}] {content_clean}"
+            return f"{prefix} {content_clean}"
+        conf_str = (
+            f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
+        )
+        return f"- [{hit.kind}/{prov_val}{conf_str} {age}] {content_clean}"
 
-        line_len = len(line) + 1
-        if current_len + line_len > char_budget:
-            break
-        lines.append(line)
-        current_len += line_len
+    # --- Multi-session grouping (D-MEM-04) ---
+    # Group hits by session prefix derived from source_turn_id (e.g. "sess_1:turn_3" ->
+    # "sess_1"), or by created_at 4-hour time bucket. Sessions sorted oldest-first so
+    # the LLM sees a chronological narrative rather than a flat score-ranked list.
+    SESSION_GAP_S = 4 * 3600  # 4 hours gap = distinct session
+
+    def _session_key(hit: MemoryHit) -> str:
+        tid = hit.source_turn_id or ""
+        for sep in (":", "_turn", "-turn"):
+            if sep in tid:
+                return tid.split(sep)[0]
+        if tid.startswith("sess"):
+            return tid
+        return str(int(hit.created_at // SESSION_GAP_S))
+
+    session_keys_ordered: list[str] = []
+    session_groups: dict[str, list[MemoryHit]] = {}
+    for hit in sorted_hits[:max_items]:
+        sk = _session_key(hit)
+        if sk not in session_groups:
+            session_keys_ordered.append(sk)
+            session_groups[sk] = []
+        session_groups[sk].append(hit)
+
+    multi_session = len(session_groups) > 1
+
+    lines: list[str] = []
+    current_len = 0
+
+    if multi_session:
+        # Sort sessions oldest-first by min created_at of their hits
+        session_keys_ordered.sort(
+            key=lambda sk: min(h.created_at for h in session_groups[sk])
+        )
+        for s_num, sk in enumerate(session_keys_ordered, start=1):
+            group_hits = sorted(session_groups[sk], key=lambda h: h.created_at)
+            oldest_ts = group_hits[0].created_at
+            sess_age = calculate_age_str(oldest_ts, current_time)
+            header = f"[Session {s_num} — {sess_age}]"
+            header_len = len(header) + 1
+            if current_len + header_len > char_budget:
+                break
+            lines.append(header)
+            current_len += header_len
+            for hit in group_hits:
+                content_clean = _clean_content(hit)
+                line = _format_hit(hit, content_clean)
+                line_len = len(line) + 1
+                if current_len + line_len > char_budget:
+                    break
+                lines.append(line)
+                current_len += line_len
+    else:
+        # Single-session: original flat rendering
+        for hit in sorted_hits[:max_items]:
+            content_clean = _clean_content(hit)
+            line = _format_hit(hit, content_clean)
+            line_len = len(line) + 1
+            if current_len + line_len > char_budget:
+                break
+            lines.append(line)
+            current_len += line_len
 
     return "\n".join(lines)
 
@@ -284,7 +346,7 @@ class HybridRetriever:
             placeholders = ",".join("?" for _ in sorted_candidates)
             query_sql = f"""
                 SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
-                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.grounding_eligible,
+                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.session_id, p.grounding_eligible,
                        p.confidence, p.content_sha256, p.signature, p.payload_json
                 FROM memories m
                 JOIN provenance_envelopes p ON m.entry_id = p.entry_id
@@ -437,7 +499,7 @@ class HybridRetriever:
                     content=str(r["content"]),
                     provenance=Provenance(r["provenance"]),
                     score=rrf_scores[mid],
-                    source_turn_id=r["trace_id"],
+                    source_turn_id=r["trace_id"] or r["session_id"],
                     kind=kind,
                     created_at=created_at,
                     valid_from=float(r["valid_from"]),

@@ -2,11 +2,11 @@
 
 **Status:** Foundation Architecture Specification (Milestones 1–7 Baseline)  
 **Version:** 2.0.0  
-**Updated:** September 24, 2026 (Superseded for v1.35+ by [`LUCCA_V135_1_ARCHITECTURE.md`](./LUCCA_V135_1_ARCHITECTURE.md))  
-**Charter Reference:** Ratified per D-AUD-19, D-BRAIN-05, D-ARCH-05, D-AFF-01, D-REAS-07, D-REAS-08, D-PKG-01, D-HON-01, D-MEM-04, D-META-01  
+**Updated:** October 12, 2026 (Active Architecture: [`LUCCA_V137_ARCHITECTURE.md`](./LUCCA_V137_ARCHITECTURE.md); Preceding Baseline: [`LUCCA_V135_1_ARCHITECTURE.md`](./LUCCA_V135_1_ARCHITECTURE.md))  
+**Charter Reference:** Ratified per D-AUD-19, D-BRAIN-05, D-ARCH-05, D-AFF-01, D-REAS-07, D-REAS-08, D-PKG-01, D-HON-01, D-MEM-04, D-META-01, D-ROUT-02, D-SEC-05  
 
 > [!IMPORTANT]
-> **Active Architecture Specification for v1.35+**: This document preserves the foundational system design established during Milestones 1–7. For the active, empirical architecture specification covering the multi-scale compound edge deployment (12B, E4B, E2B), persistent SQLite memory quarantine, Truth-in-Receipt output supervision, and dynamic task router, refer to the audited specification: **[`docs/LUCCA_V135_1_ARCHITECTURE.md`](./LUCCA_V135_1_ARCHITECTURE.md)** (`v1.35.6-stable`, October 5, 2026).
+> **Active Architecture Specification for v1.37+**: This document preserves the foundational system design established during Milestones 1–7. For the active, empirical architecture specification covering the compound neurosymbolic edge architecture (12B, E4B, E2B), dynamic SymPy / spatial router, CEGIS multi-turn self-repair, persistent Docker RPC bridge, host defense model, and sub-second Kokoro voice pipeline, refer to the audited specification: **[`docs/LUCCA_V137_ARCHITECTURE.md`](./LUCCA_V137_ARCHITECTURE.md)** (`v1.37.0-stable`, October 12, 2026). Preceding empirical baseline: **[`docs/LUCCA_V135_1_ARCHITECTURE.md`](./LUCCA_V135_1_ARCHITECTURE.md)**.
 
 ---
 

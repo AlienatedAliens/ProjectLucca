@@ -143,37 +143,64 @@ else:
 
 def synthesize_z3_with_llm(p: dict[str, Any]) -> tuple[str | None, bool, str | None, float]:
     """
-    Tests actual LLM-to-Z3 formalization accuracy.
-    Prompts the LLM to generate Z3 Python code from natural language puzzle,
-    then executes the generated code in the unprivileged Docker sandbox.
+    Tests LLM-to-Z3 formalization accuracy with 2-turn CEGIS sandbox repair.
     Returns: (pred_option, syntax_ok, error_detail, elapsed_ms)
     """
     t0 = time.perf_counter()
-    prompt = (
+    from lucca.sandbox.preflight import extract_python_code
+    opts_json = json.dumps(p.get("options", {}))
+    base_prompt = (
         "You are an expert formal verification engineer using the Z3 Theorem Prover in Python.\n"
         f"Logic Puzzle:\n{p['prompt_text']}\n\n"
-        "Write an executable Python script using `import z3` that:\n"
-        "1. Creates a `z3.Solver()`\n"
-        "2. Encodes all entities and constraints from the clues\n"
-        "3. Solves the puzzle and prints the final answer as `SOLUTION:(X)` where X is (A), (B), (C), (D), or (E).\n"
+        "Write a SHORT, COMPACT Python script (no comments!) following this exact pattern:\n"
+        "```python\n"
+        "import z3\n"
+        "s = z3.Solver()\n"
+        "groups = [['Alice', 'Bob', ...], ['Red', 'Blue', ...], ...]  # one list per attribute category\n"
+        "N = len(groups[0])\n"
+        "h = {v: z3.Int(v) for g in groups for v in g}\n"
+        "for g in groups:\n"
+        "    for v in g: s.add(h[v] >= 1, h[v] <= N)\n"
+        "    s.add(z3.Distinct([h[v] for v in g]))\n"
+        "# Add clue constraints using h['Name'] == h['Color'], h['A'] + 1 == h['B'], abs transition z3.If, etc.\n"
+        "assert s.check() == z3.sat\n"
+        "m = s.model()\n"
+        f"opts = {opts_json}\n"
+        "# Find which option key k in opts has m[h[opts[k]]].as_long() == target_house and print(f'SOLUTION:({k})')\n"
+        "```\n"
         "Return ONLY runnable Python code inside ```python ... ```."
     )
-    raw = query_llm(prompt, max_tokens=1536, temperature=0.0, enable_thinking=False)
-    m_code = re.search(r"```(?:python)?\s*(.*?)\s*```", raw, re.DOTALL)
-    code = m_code.group(1) if m_code else raw.strip()
-
     rpc = get_docker_rpc()
-    res = rpc.execute(call_id=f"z3-synth-{time.time_ns()}", tool="run_python", args={"code": code}, timeout_s=10.0)
+    cur_prompt = base_prompt
+    last_syntax_ok = False
+    last_err: str | None = None
+
+    for turn in range(1, 3):
+        raw = query_llm(cur_prompt, max_tokens=2048, temperature=0.0 if turn == 1 else 0.2, enable_thinking=False)
+        code = extract_python_code(raw) or raw.replace("```python", "").replace("```", "").strip()
+
+        res = rpc.execute(call_id=f"z3-synth-{time.time_ns()}", tool="run_python", args={"code": code}, timeout_s=10.0)
+        out_str = str(res.content or "")
+        err_str = str(res.stderr or "")
+        if res.ok:
+            last_syntax_ok = True
+            m_sol = re.search(r"SOLUTION:\(?([A-E])\)?", out_str)
+            if m_sol:
+                elapsed = (time.perf_counter() - t0) * 1000.0
+                return f"({m_sol.group(1).upper()})", True, None, elapsed
+            last_err = f"Missing SOLUTION:(X) in stdout: {out_str[:120]}"
+        else:
+            last_syntax_ok = False
+            last_err = (err_str or out_str or "syntax/execution error")[:300]
+
+        cur_prompt = (
+            f"{base_prompt}\n\n"
+            f"Your previous Z3 script failed with:\n{last_err}\n"
+            "Fix the Z3 constraints or syntax and ensure the script prints `SOLUTION:(X)`."
+        )
+
     elapsed = (time.perf_counter() - t0) * 1000.0
-
-    if not res.ok:
-        return None, False, str(res.content or "syntax/execution error"), elapsed
-
-    out_str = str(res.content or "")
-    m_sol = re.search(r"SOLUTION:\(([A-E])\)", out_str)
-    if m_sol:
-        return f"({m_sol.group(1).upper()})", True, None, elapsed
-    return None, True, f"Missing solution token in output: {out_str[:120]}", elapsed
+    return None, last_syntax_ok, last_err, elapsed
 
 
 def main() -> None:

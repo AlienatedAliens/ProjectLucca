@@ -708,6 +708,27 @@ class TurnPipeline:
             except Exception as exc:  # noqa: BLE001
                 logger.debug("episode_recall_hints_error", error=str(exc))
 
+        # D-DUAL-01 & D-REAS-10: Deliberation lane floor-hold cue & shared workspace hint
+        if route_decision is not None:
+            if (
+                route_decision.deliberation_lane
+                and route_decision.floor_hold_cue
+                and trace is not None
+                and getattr(trace, "origin", "ptt") == "ptt"
+            ):
+                self.orch._speak_text(trace, route_decision.floor_hold_cue)
+                self.orch._publish_caption(
+                    route_decision.floor_hold_cue, source="assistant", is_final=False
+                )
+            if len(route_decision.exposed_libraries) >= 2:
+                libs_str = ", ".join(route_decision.exposed_libraries)
+                ws_hint = (
+                    f"[Neurosymbolic Shared Workspace: Multiple symbolic libraries ({libs_str}) "
+                    "are active. In `run_python`, you can compose `import sympy`, `import z3`, "
+                    "and `from container_world import ContainerWorld` in a single Python script.]"
+                )
+                epistemic_ctx = f"{epistemic_ctx}\n{ws_hint}" if epistemic_ctx else ws_hint
+
         # WO-10.3 (F13): CLARIFY gets a brief-question directive
         if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
             clarify_hint = (
@@ -1017,6 +1038,11 @@ class TurnPipeline:
             eval_user_text or user_text,
             intent=rule_state.intent if hasattr(rule_state, "intent") else None,
         )
+        if route_decision is not None and route_decision.reasoning_domain is not None:
+            if route_decision.thinking_mode == "thinking":
+                enable_thinking = True
+            elif route_decision.thinking_mode == "direct":
+                enable_thinking = False
         trace.enable_thinking = enable_thinking
 
         # Tier 3 Code Synthesis with Autonomous Docker Preflight Loop (WO-26 Phase 4)

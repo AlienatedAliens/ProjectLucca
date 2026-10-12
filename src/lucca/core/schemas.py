@@ -728,6 +728,9 @@ class RouteFeatures(BaseModel):
     thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
     solver_tool: str | None = None
     reasoning_domain: str | None = None
+    deliberation_lane: bool = False  # D-DUAL-01: hard reasoning on deliberation lane
+    floor_hold_cue: str | None = None  # Spoken cue to hold the floor while deliberating
+    exposed_libraries: list[str] = Field(default_factory=list)  # D-REAS-10: shared workspace modules
 
 
 class RouteDecision(BaseModel):
@@ -741,6 +744,9 @@ class RouteDecision(BaseModel):
     thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
     solver_tool: str | None = None
     reasoning_domain: str | None = None
+    deliberation_lane: bool = False  # D-DUAL-01: hard reasoning routed to deliberation lane
+    floor_hold_cue: str | None = None  # Optional spoken cue to hold the conversational floor
+    exposed_libraries: list[str] = Field(default_factory=list)  # D-REAS-10: shared workspace modules
 
 
 class DecisionLabel(StrEnum):

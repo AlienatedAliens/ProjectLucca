@@ -397,6 +397,10 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     if ("itertools" in used_attr_bases or any(it in used_names for it in itertools_symbols)) and "itertools" not in imported_modules:
         imports_to_add.append("import itertools")
 
+    # Check if fractions.Fraction is needed
+    if "Fraction" in used_names and "Fraction" not in imported_names and "fractions" not in imported_modules:
+        imports_to_add.append("from fractions import Fraction")
+
     # Pre-flight definitions for commonly assumed math sets
     preflight_defs: list[str] = []
     if "primes" in used_names and "primes" not in assigned_names and "primes" not in imported_names:
