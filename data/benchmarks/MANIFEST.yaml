@@ -1,68 +1,66 @@
-# Project Lucca — Benchmark Provenance Manifest
-#
-# Canonical registry of benchmark evaluation records. Every published numeric
-# benchmark claim (papers, architecture docs, user guide, DECISIONS) MUST cite
-# a record_id from this file. Figures without a record are not citable.
-#
-# This manifest resolves the MATH-500 "three different numbers" problem: the
-# 77.0/87.0, 74.20/78.80, and 89.0/94.0 figures are NOT competing measurements
-# of one experiment. They are three distinct, versioned experiments with
-# different datasets, graders, and harness builds. Each gets its own record.
-#
-# Generated: 2026-10-05 (v1.35.6). Records were reconstructed from run artifacts
-# under logs/test_reports/. Fields marked null were not recorded by the harness
-# at the time of the run; they are gaps to be closed by future runs, not guesses.
-
 schema_version: 1
-project_version: "1.35.6"
-generated_utc: "2026-10-07T06:00:00Z"
-
+project_version: 1.35.6
+generated_utc: '2026-10-07T06:00:00Z'
 datasets:
   math500_test_full:
     path: data/benchmarks/math500_test.jsonl
     sha256_current: 35dc41080a3680858b27fa7e0533d2d547825316fc5dafe5d316f4ccc5a06132
     n_items: 500
-    nomenclature: >
-      Lines 1-100 of this file are designated Dev-100 in research papers and
-      factorial reports (historically labeled "test-100" in v1.3). Lines 101-500
+    nomenclature: 'Lines 1-100 of this file are designated Dev-100 in research papers
+      and factorial reports (historically labeled "test-100" in v1.3). Lines 101-500
       are the dev-400 held-out reserve. See RESULTS.md "Split Nomenclature".
+
+      '
   math_fresh_heldout_500:
     path: data/benchmarks/math_fresh_heldout_500.jsonl
     sha256_current: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
     sha256_at_v1_3_runs: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
     n_items: 500
     primary_slice: lines 1-100 (held-out-100; problems 101-500 unrun, reserved)
-    exposure_disclosure: >
-      Exploratory prompt inspection touched problems 15 and 73 (zero-indexed 14,
-      72) per handover/V135_CONTAMINATION_AUDIT.md. No harness or prompt change
-      was made in response. Clean 98-item subset reproducible via
-      scripts/recompute_heldout_98.py.
-    drift_note: >
-      The file hash changed between the v1.3 runs (2026-09-30) and the v1.35
-      runs (2026-10-03). v1.3 records are therefore bound to the earlier
-      dataset revision; cross-version comparisons of these records are
-      dataset-drifted and must be labeled as such.
+    exposure_disclosure: 'Exploratory prompt inspection touched problems 15 and 73
+      (zero-indexed 14, 72) per handover/V135_CONTAMINATION_AUDIT.md. No harness or
+      prompt change was made in response. Clean 98-item subset reproducible via scripts/recompute_heldout_98.py.
+
+      '
+    drift_note: 'The file hash changed between the v1.3 runs (2026-09-30) and the
+      v1.35 runs (2026-10-03). v1.3 records are therefore bound to the earlier dataset
+      revision; cross-version comparisons of these records are dataset-drifted and
+      must be labeled as such.
+
+      '
   personhood_ia_probes:
     path: data/benchmarks/personhood/ia_probes.json
     sha256_current: 467d178e91c8a8e3b9836ea1a87546c6128996c736a40a7c88e5b62d62c829b2
     n_items: 40
-    strata: ["IA-A", "IA-B", "IA-C", "IA-D"]
+    strata:
+    - IA-A
+    - IA-B
+    - IA-C
+    - IA-D
   personhood_in_probes:
     path: data/benchmarks/personhood/in_probes.json
     sha256_current: 39b2de955a872f2e03328633605e1301b938df92136ae0d707a691cd45275c02
     n_items: 30
-    strata: ["IN-A", "IN-B", "IN-C"]
+    strata:
+    - IN-A
+    - IN-B
+    - IN-C
   personhood_fc_probes:
     path: data/benchmarks/personhood/fc_probes.json
     sha256_current: eb989833f0785147cae75a43e3ad6004d9c0d0b76a1678a858bca5939a22782c
     n_items: 30
-    strata: ["FC-A", "FC-B", "FC-C"]
+    strata:
+    - FC-A
+    - FC-B
+    - FC-C
   personhood_ac_probes:
     path: data/benchmarks/personhood/ac_probes.json
     sha256_current: d6856ae5bf27e49d53611c27ff210eb70a56b5b58e65d5f9508b3ffed962276e
     n_items: 30
-    strata: ["AC-A", "AC-B", "AC-C"]
-
+    strata:
+    - AC-A
+    - AC-B
+    - AC-C
 models:
   gemma_4_12b_heretic_q6k:
     filename: gemma-4-12b-heretic-Q6_K.gguf
@@ -76,879 +74,1368 @@ models:
     filename: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
     sha256: 6e30dcc324485590e2023e82a350dd96a8dca58ee5c360902824b86802d0c143
     source: models/MANIFEST.json (pinned in 45a240a)
-
 records:
-  - benchmark_id: math500_pal_v1_3
-    status: superseded  # do not cite as current; historical v1.3 evidence only
-    experiment: >
-      v1.3 PAL-mode MATH-500 evaluation on the Dev-100 slice. This is the
-      origin of the "77.0% strict / 87.0% SymPy-equivalence" figures cited in
-      docs/DECISIONS.md (Track 2) and docs/specs/WO26_ACCEPTANCE_REPORT.md.
-    run_artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T180321Z.json
-    run_timestamp: "20260929T180321Z"
-    harness_version: "1.3.0"
-    model: gemma_4_12b_heretic_q6k
-    dataset: math500_test_full
-    split: { evaluated: 100, slice: "lines 1-100 (Dev-100)", clean_excluding_leaked: null, leaked_items: [] }
-    decoding: { temperature: null, seed: null, max_tokens: null }  # not recorded by v1.3 harness
-    grader:
-      strict: normalized_string_exact   # harness-measured
-      lenient: forensic_audit           # NOT a mechanical regrade; see note below
-    results:
-      strict: { passed: 77, total: 100, accuracy_pct: 77.0, elapsed_s: 1149.65 }
-      lenient_forensic: { passed: 87, total: 100, accuracy_pct: 87.0 }
-    provenance_note: >
-      The 87.0% figure is a post-hoc FORENSIC AUDIT of the 23 non-passing items
-      (docs/specs/WO26_ACCEPTANCE_REPORT.md:177-180): 7 SymPy runtime exceptions,
-      7 notation/spacing variations, 3 base subscripts, 3 prose extraction slips,
-      3 genuine CAS limits. Derivation rate 84.0%; 87.0% only when base-notation
-      subscripts are counted as equivalent. It is not a mechanical regrade and
-      must be labeled "forensic audit" wherever cited.
-    git_commit: null
-    git_dirty: null
+- benchmark_id: math500_pal_v1_3
+  status: superseded
+  experiment: 'v1.3 PAL-mode MATH-500 evaluation on the Dev-100 slice. This is the
+    origin of the "77.0% strict / 87.0% SymPy-equivalence" figures cited in docs/DECISIONS.md
+    (Track 2) and docs/specs/WO26_ACCEPTANCE_REPORT.md.
 
-  - benchmark_id: math500_fresh_heldout_500_v1_3_0
-    status: superseded  # v1.3 evidence; superseded by math500_heldout100_direct_r0_v1_35_6 for headline claims
-    experiment: >
-      v1.3.0 fresh held-out MATH-500 evaluation, N=500, 32K context. Origin of
-      the "74.20% strict / 78.80% SymPy CAS" figures (docs/USER_GUIDE_WHAT_LUCCA_DOES.md:189,
-      docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md:344-347, paper 01).
-    run_artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260930T031359Z_v1.3-fresh-heldout-500.json
-    run_timestamp: "20260930T031359Z"
-    harness_version: "1.3.0"
-    context_size: 32768
-    model: gemma_4_12b_heretic_q6k
-    dataset: math_fresh_heldout_500
-    dataset_sha256_at_run: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
-    split: { evaluated: 500, slice: "all lines", clean_excluding_leaked: null, leaked_items: [] }
-    decoding: { temperature: null, seed: null, max_tokens: null }  # not recorded by v1.3 harness
-    grader:
-      strict: rescore_strict            # post-hoc rescore, see provenance_note
-      lenient: sympy_cas_3stage         # post-hoc rescore via scripts/rescore_with_sympy.py
-    results:
-      raw_harness: { passed: 382, total: 500, accuracy_pct: 76.4, elapsed_s: 3470.11 }
-      rescored_strict: { passed: 371, total: 500, accuracy_pct: 74.20 }
-      rescored_lenient: { passed: 394, total: 500, accuracy_pct: 78.80 }
-    provenance_note: >
-      The raw harness score was 382/500 (76.4%) under the v1.3 grader. The
-      published 74.20/78.80 pair comes from a post-hoc uniform 3-stage CAS
-      rescore (scripts/rescore_with_sympy.py) of the same run artifact; no
-      rescored artifact JSON was committed to logs/. The +4.60% CAS delta and
-      0.00% false-accept rate over 23 newly accepted answers are documented in
-      the citing papers. PROVENANCE GAP: commit the rescored artifact so the
-      figures become mechanically reproducible.
-    level_breakdown: { level_4_aime: "107/131 (81.68%)", level_5_usamo: "84/136 (61.76%)" }
-    git_commit: null
-    git_dirty: null
+    '
+  run_artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260929T180321Z.json
+  run_timestamp: 20260929T180321Z
+  harness_version: 1.3.0
+  model: gemma_4_12b_heretic_q6k
+  dataset: math500_test_full
+  split:
+    evaluated: 100
+    slice: lines 1-100 (Dev-100)
+    clean_excluding_leaked: null
+    leaked_items: []
+  decoding:
+    temperature: null
+    seed: null
+    max_tokens: null
+  grader:
+    strict: normalized_string_exact
+    lenient: forensic_audit
+  results:
+    strict:
+      passed: 77
+      total: 100
+      accuracy_pct: 77.0
+      elapsed_s: 1149.65
+    lenient_forensic:
+      passed: 87
+      total: 100
+      accuracy_pct: 87.0
+  provenance_note: 'The 87.0% figure is a post-hoc FORENSIC AUDIT of the 23 non-passing
+    items (docs/specs/WO26_ACCEPTANCE_REPORT.md:177-180): 7 SymPy runtime exceptions,
+    7 notation/spacing variations, 3 base subscripts, 3 prose extraction slips, 3
+    genuine CAS limits. Derivation rate 84.0%; 87.0% only when base-notation subscripts
+    are counted as equivalent. It is not a mechanical regrade and must be labeled
+    "forensic audit" wherever cited.
 
-  - benchmark_id: math500_heldout100_direct_r0_v1_35_6
-    status: current  # primary held-out evaluation for v1.35.x claims
-    experiment: >
-      v1.35.6 Gemma 4 12B Direct R0 arm on the held-out-100 slice (lines 1-100
-      of math_fresh_heldout_500.jsonl), PAL-off factorial ablation. Origin of
-      the "89.0% strict / 94.0% lenient" figures (RESULTS.md row
-      `12b-math500-heldout-r0-4k`, docs/LUCCA_V135_1_ARCHITECTURE.md, paper 06).
-    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-12b_math500_r0_heldout_cap4096_100.json
-    # NOTE: the RESULTS.md ledger row cites a non-existent path
-    # `logs/test_reports/pal_off_ablation/checkpoint_12b_math500_heldout_100_r0_cap4096.json`;
-    # the artifact above is the real file. Path drift corrected here.
-    harness_version: "1.35.x (pal_off_ablation factorial harness)"
-    model: gemma_4_12b_heretic_q6k
-    dataset: math_fresh_heldout_500
-    dataset_sha256_at_run: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
-    split: { evaluated: 100, slice: "lines 1-100", clean_excluding_leaked: 98, leaked_items: [15, 73] }
-    clean_98_result: { strict: "87/98 (88.8%)", reproducible_via: scripts/recompute_heldout_98.py }
-    decoding: { temperature: 0.0, seed: 42, max_tokens: 4096, enable_thinking: false, cache_prompt: false }
-    grader:
-      strict: sympy_cas_normalized
-      lenient: sympy_cas_lenient_normalization
-    results:
-      strict: { passed: 89, total: 100, accuracy_pct: 89.0 }
-      lenient: { passed: 94, total: 100, accuracy_pct: 94.0 }
-      truncation_rate_pct: 3.0
-      elapsed_s: 902.11
-      vram_peak_mib: 10574
-    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
-    git_dirty: true
-    caveats:
-      - "git_dirty: true — working tree contained uncommitted changes at run time; not a frozen-tree reproduction."
-      - "For clean (non-dirty) reproductions use the frozen_v1.2_baseline / pal_off_smoke trees or future frozen-tree runs."
+    '
+  git_commit: null
+  git_dirty: null
+- benchmark_id: math500_fresh_heldout_500_v1_3_0
+  status: superseded
+  experiment: 'v1.3.0 fresh held-out MATH-500 evaluation, N=500, 32K context. Origin
+    of the "74.20% strict / 78.80% SymPy CAS" figures (docs/USER_GUIDE_WHAT_LUCCA_DOES.md:189,
+    docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md:344-347, paper 01).
 
-  - benchmark_id: humaneval_canonical_paired_v1_35_6
-    status: current
-    experiment: >
-      HumanEval canonical 164, paired design (Raw arm: preflight rescue OFF;
-      Assisted arm: 1-shot docstring-correction rescue ON). First run
-      2026-10-02 (commit c3561206); reproduced item-for-item on 2026-10-05
-      under the same decoding (T=0.0, seed 42, cache_prompt=false) with
-      identical paired counts (both_pass 153, both_fail 8, raw-only 2,
-      rescued 1, preflight fired 30). Origin of the artifact-backed figures;
-      the previously cited 95.73% (157/164) belongs to a distinct protocol
-      (humaneval_zeroshot_academic_v1_3, academic-benchmarks harness; artifact
-      logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json), not
-      this paired harness.
-    run_artifact: logs/test_reports/humaneval_canonical_raw_164.json
-    reproduction_artifacts:
-      - logs/test_reports/humaneval_canonical_raw_164.json
-      - logs/test_reports/humaneval_canonical_assisted_164.json
-      - logs/test_reports/humaneval_canonical_raw_164_20261002.json
-      - logs/test_reports/humaneval_canonical_assisted_164_20261002.json
-    harness_version: "scripts/run_humaneval_canonical_paired.py"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/humaneval.jsonl
-    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
-    grader: { method: canonical_unit_tests_check_entry_point, execution: docker_file_sandbox }
-    results:
-      raw: { passed: 155, total: 164, accuracy_pct: 94.51 }
-      assisted: { passed: 154, total: 164, accuracy_pct: 93.90 }
-    git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
-    git_dirty: true
-    caveats:
-      - "Reproduction ran on a dirty tree; identical item-level outcome makes grader/decoding determinism the plausible explanation, not tuning."
-  - benchmark_id: humaneval_zeroshot_academic_v1_3
-    status: current
-    experiment: >
-      HumanEval canonical 164, ZERO-SHOT direct execution in Docker under the
-      academic-benchmarks harness (2026-09-28, WO-26 era). This is a DIFFERENT
-      protocol from the canonical paired harness (humaneval_canonical_paired_v1_35_6):
-      no preflight rescue, different prompt template. Origin of the 95.73%
-      (157/164) figure. Initially believed unsourced during the 2026-10-05
-      adversarial audit (scanner checked only top-level `passed` fields and
-      missed the nested benchmarks.humaneval block); artifact located in
-      logs/test_reports/v1.3/ and frozen_v1.2_baseline/ on 2026-10-06.
-    run_artifacts:
-      - logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json
-      - logs/test_reports/frozen_v1.2_baseline/academic_benchmarks_20260928T182758Z.json
-    harness_version: "scripts/run_standard_academic_benchmarks.py (academic_benchmarks runner)"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/humaneval.jsonl
-    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
-    grader: { method: canonical_unit_tests_check_entry_point, execution: docker_file_sandbox, preflight_rescue: off }
-    results:
-      zero_shot: { passed: 157, total: 164, accuracy_pct: 95.73, elapsed_s: 760.67 }
-    caveats:
-      - "Different protocol from humaneval_canonical_paired_v1_35_6 (94.51% raw / 93.90% assisted, 2026-10-02, reproduced item-for-item). Cite the protocol with the number; do not compare across protocols."
-  - benchmark_id: humaneval_plus_v1_35_6
-    status: current
-    experiment: >
-      HumanEval-Plus (EvalPlus adversarial inputs, 164 tasks, Docker
-      differential execution base + 80x Plus inputs, preflight rescue ON).
-      Two recorded runs: 2026-10-03 (151/164, 92.07%) and 2026-10-05
-      (149/164, 90.9%). The 2-item delta is generation divergence on the
-      preflight-rescue path (2 flips, different generated code; cause not
-      proven: preflight execution timing sensitivity vs server state); cite
-      the range or a frozen-tree run, not a point estimate from a single
-      dirty-tree run. The 91.46% (150/164) figure is the 2026-09-29 run
-      (artifact located 2026-10-06 in logs/test_reports/v1.3/ after the
-      adversarial audit's scanner missed nested blocks); it is sourced, not
-      retracted.
-    run_artifacts:
-      - logs/test_reports/v1.3/modern_benchmarks_2024_20260929T174613Z.json
-      - logs/test_reports/frozen_v1.2_baseline/modern_benchmarks_2024_20260929T174613Z.json
-      - logs/test_reports/modern_benchmarks_2024_20261003T194152Z_12b-plus.json
-      - logs/test_reports/modern_benchmarks_2024_20261005T232510Z_12b-plus-rerun-164.json
-    harness_version: "scripts/run_modern_2024_benchmarks.py --benchmark humaneval-plus --samples 164"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/HumanEvalPlus.jsonl
-    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
-    grader: { method: docker_differential_execution_plus_inputs, preflight_rescue: on }
-    results:
-      run_2026_09_29: { passed: 150, total: 164, accuracy_pct: 91.46, elapsed_s: 1016.83 }
-      run_2026_10_03: { passed: 151, total: 164, accuracy_pct: 92.07 }
-      run_2026_10_05: { passed: 149, total: 164, accuracy_pct: 90.85 }
-    git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
-    git_dirty: true
-    caveats:
-      - "Both recorded runs are dirty-tree; a frozen-tree Plus run is outstanding."
-      - "Variance cause NOT PROVEN: item-level diff shows exactly 2 flips (HumanEval/132, HumanEval/103, both PASS->FAIL) with DIFFERENT generated code between runs - divergence occurs on the preflight-rescue path (canonical raw/assisted, which share the decoding, reproduced byte-identically). Candidate causes: preflight execution timing sensitivity, server state. Report as a range (149-151/164, 90.9-92.1%), not a point estimate."
-      - "A 50-task subset run (49/50, 98.0%) exists at modern_benchmarks_2024_20261005T232049Z_12b-plus-rerun.json - different protocol, NOT comparable to the 164-task figures; its first 50 items match the 164-task re-run exactly (0 mismatches)."
+    '
+  run_artifact: logs/test_reports/v1.3/modern_benchmarks_2024_20260930T031359Z_v1.3-fresh-heldout-500.json
+  run_timestamp: 20260930T031359Z
+  harness_version: 1.3.0
+  context_size: 32768
+  model: gemma_4_12b_heretic_q6k
+  dataset: math_fresh_heldout_500
+  dataset_sha256_at_run: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
+  split:
+    evaluated: 500
+    slice: all lines
+    clean_excluding_leaked: null
+    leaked_items: []
+  decoding:
+    temperature: null
+    seed: null
+    max_tokens: null
+  grader:
+    strict: rescore_strict
+    lenient: sympy_cas_3stage
+  results:
+    raw_harness:
+      passed: 382
+      total: 500
+      accuracy_pct: 76.4
+      elapsed_s: 3470.11
+    rescored_strict:
+      passed: 371
+      total: 500
+      accuracy_pct: 74.2
+    rescored_lenient:
+      passed: 394
+      total: 500
+      accuracy_pct: 78.8
+  provenance_note: 'The raw harness score was 382/500 (76.4%) under the v1.3 grader.
+    The published 74.20/78.80 pair comes from a post-hoc uniform 3-stage CAS rescore
+    (scripts/rescore_with_sympy.py) of the same run artifact; no rescored artifact
+    JSON was committed to logs/. The +4.60% CAS delta and 0.00% false-accept rate
+    over 23 newly accepted answers are documented in the citing papers. PROVENANCE
+    GAP: commit the rescored artifact so the figures become mechanically reproducible.
 
-  - benchmark_id: gsm_symbolic_stratified_100_v1_35_6
-    status: current
-    experiment: >
-      GSM-Symbolic, 100 templates, STRATIFIED protocol, PAL via
-      DockerRPCTransport (2026-10-01, clean tree bef28b5). Origin of the
-      94.0% figure (RESULTS.md row gsm-symbolic-strat-100). Distinct from
-      the 2026-09-29 v1.3-harness run below (100/100) - different protocol
-      and date; cite the protocol with the number.
-    run_artifact: logs/test_reports/gsm_symbolic_100_templates.json
-    harness_version: "scripts/run_modern_2024_benchmarks.py (stratified config)"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/GSM_symbolic.jsonl
-    dataset_sha256_at_run: 945055837b232bd9b56827b1e3a5aa019075f29e8ba4669d9a9df8b4439a291f
-    results:
-      strict: { passed: 94, total: 100, accuracy_pct: 94.0, elapsed_s: 624.97 }
-    git_commit: bef28b59c98d6cc249a88fe90e3682aaa38cba93
-    git_dirty: false
-  - benchmark_id: gsm_symbolic_100_v1_3
-    status: current
-    experiment: >
-      GSM-Symbolic, 100 templates, v1.3 modern-benchmarks harness
-      (2026-09-29). Origin of the 100.0% figure. Different protocol and date
-      from gsm_symbolic_stratified_100_v1_35_6 (94.0%); cite the protocol
-      with the number.
-    run_artifacts:
-      - logs/test_reports/v1.3/modern_benchmarks_2024_20260929T173711Z.json
-      - logs/test_reports/frozen_v1.2_baseline/modern_benchmarks_2024_20260929T173711Z.json
-    harness_version: "scripts/run_modern_2024_benchmarks.py (v1.3 harness)"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/GSM_symbolic.jsonl
-    results:
-      strict: { passed: 100, total: 100, accuracy_pct: 100.0, elapsed_s: 527.39 }
-    caveats:
-      - "Protocol and date differ from gsm_symbolic_stratified_100_v1_35_6 (94.0%); the delta is protocol-attributable until a paired re-run says otherwise."
-  - benchmark_id: contrastive_battery_v1_35_6
-    status: superseded
-    experiment: >
-      Contrastive live battery, 30 probes, Arm A (bare LLM) vs Arm B
-      (compound pipeline), 2026-10-05. INVALID AS EVIDENCE in current form
-      per the 2026-10-06 criticism cycle (register C-01..C-06): 14/30 Arm A
-      replies were empty and graded FAIL/fabricated; a genuine abstention
-      (A09) was graded fabricated; the post-hoc grader revision moved Arm B
-      introspection from 5/10 to 9/10 across the 0.8 threshold; I01/I04
-      Arm B passes contain garbled question-echo text; R07/I09 Arm B hit
-      the recollection-hysteresis hard-abort. The advertised deltas
-      (+90pp recall, +50pp introspection, +30pp abstention) are NOT YET
-      MEASURED pending a re-run with a frozen grader, an ERROR state for
-      empty replies, a RAG baseline arm, and 30 probes per stratum.
-    run_artifacts:
-      - logs/test_reports/contrastive_battery_20261005T200643Z.json
-      - logs/test_reports/contrastive_battery_20261005T200643Z_regraded.json
-    harness_version: "tests/test_contrastive_live_hw.py (grader NOT frozen; revised post-run)"
-    results:
-      per_probe_results_array_only: "summary blocks in the regraded artifact are stale; per-probe results are authoritative but the battery is superseded"
-    caveats:
-      - "Do not cite the deltas from this battery. Superseded by the Phase 3.5-3.6 re-run (frozen grader, 3 arms, 30/stratum)."
-  - benchmark_id: contrastive_battery_v2_frozen_grader
-    status: current
-    experiment: >
-      Contrastive live companion battery (Phase 3.5-3.6, 2026-10-07), 30 probes
-      across 3 strata (recall, receipt_introspection, abstention) evaluated across
-      three arms: Arm A (bare LLM, enable_thinking=False), Arm B (compound orchestrator),
-      and Arm C (RAG baseline). Graded under the frozen v2 grader
-      (src/lucca/eval/contrastive_grader.py, SHA-256 f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2).
-      Remediates register findings C-01..C-06: 0 empty replies (0 errors across all arms);
-      Arm B cleared all three thresholds (Recall 100%, Introspection 80%, Abstention 90%);
-      Arm B vs Arm A recall McNemar p = 0.00195; echo-stripping active.
-    run_artifacts:
-      - logs/test_reports/contrastive_battery_20261006T220517Z.json
-      - logs/test_reports/contrastive_battery_20261006T220517Z_REPORT.md
-    harness_version: "scripts/run_contrastive_battery.py (frozen grader v2)"
-    grader_sha256: f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2
-    model: gemma_4_12b_heretic_q6k
-    dataset: tests/fixtures/contrastive/probes.jsonl
-    results:
-      arm_a_bare_llm:
-        recall: { passed: 0, total: 10, accuracy_pct: 0.0, errors: 0 }
-        receipt_introspection: { passed: 7, total: 10, accuracy_pct: 70.0, errors: 0 }
-        abstention: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
-      arm_b_compound:
-        recall: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
-        receipt_introspection: { passed: 8, total: 10, accuracy_pct: 80.0, errors: 0 }
-        abstention: { passed: 9, total: 10, accuracy_pct: 90.0, errors: 0 }
-      arm_c_rag_baseline:
-        recall: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
-        receipt_introspection: { passed: 10, total: 10, accuracy_pct: 100.0, errors: 0 }
-        abstention: { passed: 9, total: 10, accuracy_pct: 90.0, errors: 0 }
-      paired_mcnemar:
-        arm_b_vs_arm_a:
-          recall_delta_pp: +100.0
-          recall_p: 0.00195
-          introspection_delta_pp: +10.0
-          introspection_p: 1.0
-          abstention_delta_pp: -10.0
-          abstention_p: 1.0
-        arm_b_vs_arm_c:
-          recall_delta_pp: 0.0
-          recall_p: 1.0
-          introspection_delta_pp: -20.0
-          introspection_p: 0.5
-          abstention_delta_pp: 0.0
-          abstention_p: 1.0
-        arm_c_vs_arm_a:
-          recall_delta_pp: +100.0
-          recall_p: 0.00195
-          introspection_delta_pp: +30.0
-          introspection_p: 0.25
-          abstention_delta_pp: -10.0
-          abstention_p: 1.0
-    git_commit: d9ac70fad1dd5479ef2c3a04213c2fe55cbf5026
-    git_dirty: false
+    '
+  level_breakdown:
+    level_4_aime: 107/131 (81.68%)
+    level_5_usamo: 84/136 (61.76%)
+  git_commit: null
+  git_dirty: null
+- benchmark_id: math500_heldout100_direct_r0_v1_35_6
+  status: current
+  experiment: 'v1.35.6 Gemma 4 12B Direct R0 arm on the held-out-100 slice (lines
+    1-100 of math_fresh_heldout_500.jsonl), PAL-off factorial ablation. Origin of
+    the "89.0% strict / 94.0% lenient" figures (RESULTS.md row `12b-math500-heldout-r0-4k`,
+    docs/LUCCA_V135_1_ARCHITECTURE.md, paper 06).
 
-  - benchmark_id: gsm8k_pal_full_1319_v1_3
-    status: current
-    experiment: >
-      GSM8K full canonical test set (1,319 items), PAL mode via Docker Python
-      execution, v1.3-era harness. Origin of the 95.75% (1,263/1,319) figure
-      (NEUROSYMBOLIC_RESEARCH_PAPER.md, paper 01, USER_GUIDE capability table).
-    run_artifact: logs/test_reports/gsm8k_pal_checkpoint.json
-    harness_version: "v1.3-era GSM8K PAL runner"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/gsm8k_test.jsonl
-    results:
-      strict: { passed: 1263, total: 1319, accuracy_pct: 95.75 }
-    git_commit: null   # not embedded in artifact
-    git_dirty: null
-    caveats:
-      - "A partial checkpoint (815/853 evaluated, 95.55%) exists at logs/test_reports/gsm8k_pal_partial_857.json; the checkpoint artifact is the completed 1,319-item run."
-      - "Distinct from the 30-probe micro-suite record gsm8k_pal_micro30_v1_3 (100.0%, 30/30); cite the protocol with the number."
+    '
+  run_artifact: logs/test_reports/pal_off_ablation/gemma-4-12b_math500_r0_heldout_cap4096_100.json
+  harness_version: 1.35.x (pal_off_ablation factorial harness)
+  model: gemma_4_12b_heretic_q6k
+  dataset: math_fresh_heldout_500
+  dataset_sha256_at_run: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
+  split:
+    evaluated: 100
+    slice: lines 1-100
+    clean_excluding_leaked: 98
+    leaked_items:
+    - 15
+    - 73
+  clean_98_result:
+    strict: 87/98 (88.8%)
+    reproducible_via: scripts/recompute_heldout_98.py
+  decoding:
+    temperature: 0.0
+    seed: 42
+    max_tokens: 4096
+    enable_thinking: false
+    cache_prompt: false
+  grader:
+    strict: sympy_cas_normalized
+    lenient: sympy_cas_lenient_normalization
+  results:
+    strict:
+      passed: 89
+      total: 100
+      accuracy_pct: 89.0
+    lenient:
+      passed: 94
+      total: 100
+      accuracy_pct: 94.0
+    truncation_rate_pct: 3.0
+    elapsed_s: 902.11
+    vram_peak_mib: 10574
+  git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+  git_dirty: true
+  caveats:
+  - 'git_dirty: true — working tree contained uncommitted changes at run time; not
+    a frozen-tree reproduction.'
+  - For clean (non-dirty) reproductions use the frozen_v1.2_baseline / pal_off_smoke
+    trees or future frozen-tree runs.
+- benchmark_id: humaneval_canonical_paired_v1_35_6
+  status: current
+  experiment: 'HumanEval canonical 164, paired design (Raw arm: preflight rescue OFF;
+    Assisted arm: 1-shot docstring-correction rescue ON). First run 2026-10-02 (commit
+    c3561206); reproduced item-for-item on 2026-10-05 under the same decoding (T=0.0,
+    seed 42, cache_prompt=false) with identical paired counts (both_pass 153, both_fail
+    8, raw-only 2, rescued 1, preflight fired 30). Origin of the artifact-backed figures;
+    the previously cited 95.73% (157/164) belongs to a distinct protocol (humaneval_zeroshot_academic_v1_3,
+    academic-benchmarks harness; artifact logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json),
+    not this paired harness.
 
-  - benchmark_id: gsm8k_pal_micro30_v1_3
-    status: current
-    experiment: >
-      GSM8K 30-probe micro-suite, PAL mode (2026-09-29). Origin of the
-      "GSM8K PAL 100.0% (30/30)" figure (DECISIONS.md D-EVAL-02 Track 2,
-      docs/ARCHITECTURE.md, USER_GUIDE). The same artifact also contains a
-      30-probe HumanEval block (30/30) and a 120-item BBH block (115/120,
-      95.83%) - do not cite those blocks without their own verification.
-    run_artifact: logs/test_reports/academic_micro_suite_gemma12b.json
-    run_timestamp: "2026-09-29T02:25:00Z"
-    harness_version: "academic micro-suite runner (n=30)"
-    model: gemma_4_12b_heretic_q6k
-    results:
-      gsm8k_pal: { passed: 30, total: 30, accuracy_pct: 100.0, mean_latency_s: 5.82 }
-    caveats:
-      - "30-probe subset, not the full 1,319-item suite; cite alongside gsm8k_pal_full_1319_v1_3 (95.75%) and label the n."
+    '
+  run_artifact: logs/test_reports/humaneval_canonical_raw_164.json
+  reproduction_artifacts:
+  - logs/test_reports/humaneval_canonical_raw_164.json
+  - logs/test_reports/humaneval_canonical_assisted_164.json
+  - logs/test_reports/humaneval_canonical_raw_164_20261002.json
+  - logs/test_reports/humaneval_canonical_assisted_164_20261002.json
+  harness_version: scripts/run_humaneval_canonical_paired.py
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/humaneval.jsonl
+  decoding:
+    temperature: 0.0
+    seed: 42
+    cache_prompt: false
+  grader:
+    method: canonical_unit_tests_check_entry_point
+    execution: docker_file_sandbox
+  results:
+    raw:
+      passed: 155
+      total: 164
+      accuracy_pct: 94.51
+    assisted:
+      passed: 154
+      total: 164
+      accuracy_pct: 93.9
+  git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
+  git_dirty: true
+  caveats:
+  - Reproduction ran on a dirty tree; identical item-level outcome makes grader/decoding
+    determinism the plausible explanation, not tuning.
+- benchmark_id: humaneval_zeroshot_academic_v1_3
+  status: current
+  experiment: 'HumanEval canonical 164, ZERO-SHOT direct execution in Docker under
+    the academic-benchmarks harness (2026-09-28, WO-26 era). This is a DIFFERENT protocol
+    from the canonical paired harness (humaneval_canonical_paired_v1_35_6): no preflight
+    rescue, different prompt template. Origin of the 95.73% (157/164) figure. Initially
+    believed unsourced during the 2026-10-05 adversarial audit (scanner checked only
+    top-level `passed` fields and missed the nested benchmarks.humaneval block); artifact
+    located in logs/test_reports/v1.3/ and frozen_v1.2_baseline/ on 2026-10-06.
 
-  - benchmark_id: bbh4_bare_1000_v1_3
-    status: current
-    experiment: >
-      Big-Bench Hard, 4 subsets x 250 tasks (Boolean Logic, Geometric Shapes,
-      3-Object Tracking, Dyck Languages), bare-weights zero-shot, N=1,000
-      (2026-09-28). Origin of the 92.40% (924/1,000) consolidated figure
-      (paper 01, docs/ARCHITECTURE.md, USER_GUIDE, docs/README.md).
-    run_artifacts:
-      - logs/test_reports/v1.3/academic_benchmarks_20260928T184814Z.json
-      - logs/test_reports/frozen_v1.2_baseline/academic_benchmarks_20260928T184814Z.json
-    harness_version: "scripts/run_standard_academic_benchmarks.py (academic_benchmarks runner)"
-    model: gemma_4_12b_heretic_q6k
-    results:
-      bbh4_bare: { passed: 924, total: 1000, accuracy_pct: 92.40, elapsed_s: 7937.41 }
-    caveats:
-      - "Bare-weights protocol; NOT comparable to the compound full-27 run (bbh_full27_compound_v1_35, 60.93%)."
+    '
+  run_artifacts:
+  - logs/test_reports/v1.3/academic_benchmarks_20260928T182758Z.json
+  - logs/test_reports/frozen_v1.2_baseline/academic_benchmarks_20260928T182758Z.json
+  harness_version: scripts/run_standard_academic_benchmarks.py (academic_benchmarks
+    runner)
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/humaneval.jsonl
+  decoding:
+    temperature: 0.0
+    seed: 42
+    cache_prompt: false
+  grader:
+    method: canonical_unit_tests_check_entry_point
+    execution: docker_file_sandbox
+    preflight_rescue: false
+  results:
+    zero_shot:
+      passed: 157
+      total: 164
+      accuracy_pct: 95.73
+      elapsed_s: 760.67
+  caveats:
+  - Different protocol from humaneval_canonical_paired_v1_35_6 (94.51% raw / 93.90%
+    assisted, 2026-10-02, reproduced item-for-item). Cite the protocol with the number;
+    do not compare across protocols.
+- benchmark_id: humaneval_plus_v1_35_6
+  status: current
+  experiment: 'HumanEval-Plus (EvalPlus adversarial inputs, 164 tasks, Docker differential
+    execution base + 80x Plus inputs, preflight rescue ON). Two recorded runs: 2026-10-03
+    (151/164, 92.07%) and 2026-10-05 (149/164, 90.9%). The 2-item delta is generation
+    divergence on the preflight-rescue path (2 flips, different generated code; cause
+    not proven: preflight execution timing sensitivity vs server state); cite the
+    range or a frozen-tree run, not a point estimate from a single dirty-tree run.
+    The 91.46% (150/164) figure is the 2026-09-29 run (artifact located 2026-10-06
+    in logs/test_reports/v1.3/ after the adversarial audit''s scanner missed nested
+    blocks); it is sourced, not retracted.
 
-  - benchmark_id: bbh_closing_40_v1_3
-    status: current
-    experiment: >
-      BBH closing regression battery, 40 items (2026-09-30). Origin of the
-      "97.5% on 2026-09-30 Closing Battery" figure (NEUROSYMBOLIC_RESEARCH_PAPER.md).
-    run_artifacts:
-      - logs/test_reports/v1.3/academic_benchmarks_20260930T050204Z.json
-      - logs/test_reports/academic_benchmarks_latest.json
-    harness_version: "scripts/run_standard_academic_benchmarks.py (samples_configured=10)"
-    model: gemma_4_12b_heretic_q6k
-    results:
-      bbh_closing: { passed: 39, total: 40, accuracy_pct: 97.5, elapsed_s: 277.79 }
+    '
+  run_artifacts:
+  - logs/test_reports/v1.3/modern_benchmarks_2024_20260929T174613Z.json
+  - logs/test_reports/frozen_v1.2_baseline/modern_benchmarks_2024_20260929T174613Z.json
+  - logs/test_reports/modern_benchmarks_2024_20261003T194152Z_12b-plus.json
+  - logs/test_reports/modern_benchmarks_2024_20261005T232510Z_12b-plus-rerun-164.json
+  harness_version: scripts/run_modern_2024_benchmarks.py --benchmark humaneval-plus
+    --samples 164
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/HumanEvalPlus.jsonl
+  decoding:
+    temperature: 0.0
+    seed: 42
+    cache_prompt: false
+  grader:
+    method: docker_differential_execution_plus_inputs
+    preflight_rescue: true
+  results:
+    run_2026_09_29:
+      passed: 150
+      total: 164
+      accuracy_pct: 91.46
+      elapsed_s: 1016.83
+    run_2026_10_03:
+      passed: 151
+      total: 164
+      accuracy_pct: 92.07
+    run_2026_10_05:
+      passed: 149
+      total: 164
+      accuracy_pct: 90.85
+  git_commit: 90dbdde1687d679853051f04b7abd7eecfc074ab
+  git_dirty: true
+  caveats:
+  - Both recorded runs are dirty-tree; a frozen-tree Plus run is outstanding.
+  - 'Variance cause NOT PROVEN: item-level diff shows exactly 2 flips (HumanEval/132,
+    HumanEval/103, both PASS->FAIL) with DIFFERENT generated code between runs - divergence
+    occurs on the preflight-rescue path (canonical raw/assisted, which share the decoding,
+    reproduced byte-identically). Candidate causes: preflight execution timing sensitivity,
+    server state. Report as a range (149-151/164, 90.9-92.1%), not a point estimate.'
+  - A 50-task subset run (49/50, 98.0%) exists at modern_benchmarks_2024_20261005T232049Z_12b-plus-rerun.json
+    - different protocol, NOT comparable to the 164-task figures; its first 50 items
+    match the 164-task re-run exactly (0 mismatches).
+- benchmark_id: gsm_symbolic_stratified_100_v1_35_6
+  status: current
+  experiment: 'GSM-Symbolic, 100 templates, STRATIFIED protocol, PAL via DockerRPCTransport
+    (2026-10-01, clean tree bef28b5). Origin of the 94.0% figure (RESULTS.md row gsm-symbolic-strat-100).
+    Distinct from the 2026-09-29 v1.3-harness run below (100/100) - different protocol
+    and date; cite the protocol with the number.
 
-  - benchmark_id: bbh_full27_compound_v1_35
-    status: current
-    experiment: >
-      Big-Bench Hard FULL 27-subset suite (27 x 20 = 540 items), compound
-      pipeline (algorithmic + language modes), 2026-10-03. Origin of the
-      "60.9% full 27 subsets / 59.6% algorithmic" figures in
-      docs/LUCCA_V135_E4B_ARCHITECTURE.md (E4B run).
-    run_artifact: logs/test_reports/bbh_full_27_latest.json
-    run_timestamp: "20261003T174322Z"
-    harness_version: "BBH full-27 harness"
-    results:
-      full_27: { passed: 329, total: 540, accuracy_pct: 60.93, elapsed_s: 1498.8 }
-      algorithmic_subsets: { accuracy_pct: 59.64 }
-      language_subsets: { accuracy_pct: 62.31 }
-    caveats:
-      - "Compound-pipeline protocol; NOT comparable to the bare-weights BBH-4 record bbh4_bare_1000_v1_3 (92.40%)."
-      - "External baseline comparison in the citing doc (53.0% DeepMind bare) is a published figure, not an internal artifact."
+    '
+  run_artifact: logs/test_reports/gsm_symbolic_100_templates.json
+  harness_version: scripts/run_modern_2024_benchmarks.py (stratified config)
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/GSM_symbolic.jsonl
+  dataset_sha256_at_run: 945055837b232bd9b56827b1e3a5aa019075f29e8ba4669d9a9df8b4439a291f
+  results:
+    strict:
+      passed: 94
+      total: 100
+      accuracy_pct: 94.0
+      elapsed_s: 624.97
+  git_commit: bef28b59c98d6cc249a88fe90e3682aaa38cba93
+  git_dirty: false
+- benchmark_id: gsm_symbolic_100_v1_3
+  status: current
+  experiment: 'GSM-Symbolic, 100 templates, v1.3 modern-benchmarks harness (2026-09-29).
+    Origin of the 100.0% figure. Different protocol and date from gsm_symbolic_stratified_100_v1_35_6
+    (94.0%); cite the protocol with the number.
 
-  - benchmark_id: spec_bench_100_run3_v1_3
-    status: current
-    experiment: >
-      SPEC-BENCH-100-v1.0 Official Run 3 (2026-09-28): 100 frozen probes,
-      live end-to-end TurnPipeline. Origin of the 91.0% (91/100) pass rate,
-      100% path-policy compliance, 100% epistemic faithfulness figures
-      (DECISIONS.md D-EVAL-02, docs/ARCHITECTURE.md, USER_GUIDE, paper 01).
-    run_artifacts:
-      - logs/test_reports/v1.3/compound_benchmark_20260928T170640Z.json
-      - logs/test_reports/frozen_v1.2_baseline/compound_benchmark_20260928T170640Z.json
-    harness_version: "tests/test_compound_reasoning_benchmark.py (compound_benchmark runner)"
-    model: gemma_4_12b_heretic_q6k
-    results:
-      run3: { passed: 91, total: 100, accuracy_pct: 91.0, path_ok: 100, faithfulness_ok: 100 }
-    caveats:
-      - "Two earlier full-100 runs exist in the same directory: 90.0% (20260928T153710Z) and 93.0% (20260928T163106Z). Paper 01's stated progression 'Run 1: 70%, Run 2: 85%, Run 3: 91%' does NOT match these artifacts (register E-20); the 70/85 figures are unsourced as full-battery runs."
+    '
+  run_artifacts:
+  - logs/test_reports/v1.3/modern_benchmarks_2024_20260929T173711Z.json
+  - logs/test_reports/frozen_v1.2_baseline/modern_benchmarks_2024_20260929T173711Z.json
+  harness_version: scripts/run_modern_2024_benchmarks.py (v1.3 harness)
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/GSM_symbolic.jsonl
+  results:
+    strict:
+      passed: 100
+      total: 100
+      accuracy_pct: 100.0
+      elapsed_s: 527.39
+  caveats:
+  - Protocol and date differ from gsm_symbolic_stratified_100_v1_35_6 (94.0%); the
+    delta is protocol-attributable until a paired re-run says otherwise.
+- benchmark_id: contrastive_battery_v1_35_6
+  status: superseded
+  experiment: 'Contrastive live battery, 30 probes, Arm A (bare LLM) vs Arm B (compound
+    pipeline), 2026-10-05. INVALID AS EVIDENCE in current form per the 2026-10-06
+    criticism cycle (register C-01..C-06): 14/30 Arm A replies were empty and graded
+    FAIL/fabricated; a genuine abstention (A09) was graded fabricated; the post-hoc
+    grader revision moved Arm B introspection from 5/10 to 9/10 across the 0.8 threshold;
+    I01/I04 Arm B passes contain garbled question-echo text; R07/I09 Arm B hit the
+    recollection-hysteresis hard-abort. The advertised deltas (+90pp recall, +50pp
+    introspection, +30pp abstention) are NOT YET MEASURED pending a re-run with a
+    frozen grader, an ERROR state for empty replies, a RAG baseline arm, and 30 probes
+    per stratum.
 
-  - benchmark_id: confabulation_battery_v1_2
-    status: current
-    experiment: >
-      Milestone-3 confabulation battery, 25 trials, temperature 0.6. Baseline
-      (no grounding): 17/25 confabulated (68.0%). Cascade-grounded: 0/25
-      confabulated (0.0%), adherence 25/25 (100.0%). Origin of the
-      confabulation-delta claims (paper 03, SotU fixed-probe list).
-    run_artifact: data/eval/milestone3_confabulation_battery.json
-    results:
-      baseline: { confabulations: 17, total: 25, rate_pct: 68.0 }
-      cascade_grounded: { confabulations: 0, total: 25, rate_pct: 0.0, adherence: 25, adherence_pct: 100.0 }
-    caveats:
-      - "Paper 03 states 18/25 (72.0%) for the baseline arm - MISMATCH with the artifact's 17/25 (68.0%) (register E-21); correct in Phase 4."
+    '
+  run_artifacts:
+  - logs/test_reports/contrastive_battery_20261005T200643Z.json
+  - logs/test_reports/contrastive_battery_20261005T200643Z_regraded.json
+  harness_version: tests/test_contrastive_live_hw.py (grader NOT frozen; revised post-run)
+  results:
+    per_probe_results_array_only: summary blocks in the regraded artifact are stale;
+      per-probe results are authoritative but the battery is superseded
+  caveats:
+  - Do not cite the deltas from this battery. Superseded by the Phase 3.5-3.6 re-run
+    (frozen grader, 3 arms, 30/stratum).
+- benchmark_id: contrastive_battery_v2_frozen_grader
+  status: current
+  experiment: 'Contrastive live companion battery (Phase 3.5-3.6, 2026-10-07), 30
+    probes across 3 strata (recall, receipt_introspection, abstention) evaluated across
+    three arms: Arm A (bare LLM, enable_thinking=False), Arm B (compound orchestrator),
+    and Arm C (RAG baseline). Graded under the frozen v2 grader (src/lucca/eval/contrastive_grader.py,
+    SHA-256 f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2). Remediates
+    register findings C-01..C-06: 0 empty replies (0 errors across all arms); Arm
+    B cleared all three thresholds (Recall 100%, Introspection 80%, Abstention 90%);
+    Arm B vs Arm A recall McNemar p = 0.00195; echo-stripping active.
 
-  - benchmark_id: gsm_symbolic_stratified_e4b_v1_35
-    status: current
-    experiment: >
-      GSM-Symbolic 100 templates, STRATIFIED protocol, PAL via
-      DockerRPCTransport, E4B model (2026-10-03). Origin of the E4B 94.0%
-      GSM-Symbolic figure (docs/LUCCA_V135_E4B_ARCHITECTURE.md, and the E4B
-      'PAL P2' cell in docs/LUCCA_V135_1_ARCHITECTURE.md).
-    run_artifact: logs/test_reports/gsm_symbolic_100_templates_e4b.json
-    run_timestamp: "20261003T154548Z"
-    harness_version: "stratified GSM-Symbolic runner (PAL DockerRPCTransport)"
-    dataset: data/benchmarks/GSM_symbolic.jsonl
-    results:
-      strict: { passed: 94, total: 100, accuracy_pct: 94.0, elapsed_s: 227.19 }
-    git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
-    git_dirty: true
-    caveats:
-      - "Stratified-templates protocol; NOT the same protocol as the pal_off_ablation grid arms (gsm_symbolic_paloff_grid_v1_35). The v1.35.1 per-tier table mixes these two protocols across its cells (register E-22)."
+    '
+  run_artifacts:
+  - logs/test_reports/contrastive_battery_20261006T220517Z.json
+  - logs/test_reports/contrastive_battery_20261006T220517Z_REPORT.md
+  harness_version: scripts/run_contrastive_battery.py (frozen grader v2)
+  grader_sha256: f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2
+  model: gemma_4_12b_heretic_q6k
+  dataset: tests/fixtures/contrastive/probes.jsonl
+  results:
+    arm_a_bare_llm:
+      recall:
+        passed: 0
+        total: 10
+        accuracy_pct: 0.0
+        errors: 0
+      receipt_introspection:
+        passed: 7
+        total: 10
+        accuracy_pct: 70.0
+        errors: 0
+      abstention:
+        passed: 10
+        total: 10
+        accuracy_pct: 100.0
+        errors: 0
+    arm_b_compound:
+      recall:
+        passed: 10
+        total: 10
+        accuracy_pct: 100.0
+        errors: 0
+      receipt_introspection:
+        passed: 8
+        total: 10
+        accuracy_pct: 80.0
+        errors: 0
+      abstention:
+        passed: 9
+        total: 10
+        accuracy_pct: 90.0
+        errors: 0
+    arm_c_rag_baseline:
+      recall:
+        passed: 10
+        total: 10
+        accuracy_pct: 100.0
+        errors: 0
+      receipt_introspection:
+        passed: 10
+        total: 10
+        accuracy_pct: 100.0
+        errors: 0
+      abstention:
+        passed: 9
+        total: 10
+        accuracy_pct: 90.0
+        errors: 0
+    paired_mcnemar:
+      arm_b_vs_arm_a:
+        recall_delta_pp: 100.0
+        recall_p: 0.00195
+        introspection_delta_pp: 10.0
+        introspection_p: 1.0
+        abstention_delta_pp: -10.0
+        abstention_p: 1.0
+      arm_b_vs_arm_c:
+        recall_delta_pp: 0.0
+        recall_p: 1.0
+        introspection_delta_pp: -20.0
+        introspection_p: 0.5
+        abstention_delta_pp: 0.0
+        abstention_p: 1.0
+      arm_c_vs_arm_a:
+        recall_delta_pp: 100.0
+        recall_p: 0.00195
+        introspection_delta_pp: 30.0
+        introspection_p: 0.25
+        abstention_delta_pp: -10.0
+        abstention_p: 1.0
+  git_commit: d9ac70fad1dd5479ef2c3a04213c2fe55cbf5026
+  git_dirty: false
+- benchmark_id: gsm8k_pal_full_1319_v1_3
+  status: current
+  experiment: 'GSM8K full canonical test set (1,319 items), PAL mode via Docker Python
+    execution, v1.3-era harness. Origin of the 95.75% (1,263/1,319) figure (NEUROSYMBOLIC_RESEARCH_PAPER.md,
+    paper 01, USER_GUIDE capability table).
 
-  - benchmark_id: gsm_symbolic_stratified_e2b_v1_35
-    status: current
-    experiment: >
-      GSM-Symbolic 100 templates, STRATIFIED protocol, PAL via
-      DockerRPCTransport, E2B model (2026-10-04). Origin of the E2B 82.0%
-      figure (docs/LUCCA_V135_E2B_ARCHITECTURE.md).
-    run_artifact: logs/test_reports/gsm_symbolic_100_templates_e2b.json
-    run_timestamp: "20261004T011744Z"
-    harness_version: "stratified GSM-Symbolic runner (PAL DockerRPCTransport)"
-    dataset: data/benchmarks/GSM_symbolic.jsonl
-    results:
-      strict: { passed: 82, total: 100, accuracy_pct: 82.0, elapsed_s: 155.11 }
-    git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
-    git_dirty: true
-    caveats:
-      - "82.0% (stratified) and 91.0% (pal_off p2 arm, gsm_symbolic_paloff_grid_v1_35) are BOTH real E2B measurements under DIFFERENT protocols; cite the protocol with the number."
+    '
+  run_artifact: logs/test_reports/gsm8k_pal_checkpoint.json
+  harness_version: v1.3-era GSM8K PAL runner
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/gsm8k_test.jsonl
+  results:
+    strict:
+      passed: 1263
+      total: 1319
+      accuracy_pct: 95.75
+  git_commit: null
+  git_dirty: null
+  caveats:
+  - A partial checkpoint (815/853 evaluated, 95.55%) exists at logs/test_reports/gsm8k_pal_partial_857.json;
+    the checkpoint artifact is the completed 1,319-item run.
+  - Distinct from the 30-probe micro-suite record gsm8k_pal_micro30_v1_3 (100.0%,
+    30/30); cite the protocol with the number.
+- benchmark_id: gsm8k_pal_micro30_v1_3
+  status: current
+  experiment: 'GSM8K 30-probe micro-suite, PAL mode (2026-09-29). Origin of the "GSM8K
+    PAL 100.0% (30/30)" figure (DECISIONS.md D-EVAL-02 Track 2, docs/ARCHITECTURE.md,
+    USER_GUIDE). The same artifact also contains a 30-probe HumanEval block (30/30)
+    and a 120-item BBH block (115/120, 95.83%) - do not cite those blocks without
+    their own verification.
 
-  - benchmark_id: gsm_symbolic_paloff_grid_v1_35
-    status: current
-    experiment: >
-      GSM-Symbolic 100-item arms from the pal_off factorial ablation grid
-      (split: dev). Backs the per-tier cells in docs/LUCCA_V135_1_ARCHITECTURE.md
-      for 12B and E2B, and the E4B Direct-R0 cell.
-    run_artifacts:
-      - logs/test_reports/pal_off_ablation/gemma-4-12b_gsm_symbolic_p2_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-12b_gsm_symbolic_r0_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_p2_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_r0_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e4b_gsm_symbolic_r0_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e4b_gsm_symbolic_r1_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_r1_100.json
-    harness_version: "pal_off_ablation factorial harness"
-    results:
-      "12b_p2": { strict_passed: 95, total: 100, accuracy_pct: 95.0 }
-      "12b_r0": { strict_passed: 93, total: 100, accuracy_pct: 93.0 }
-      "e2b_p2": { strict_passed: 91, total: 100, accuracy_pct: 91.0 }
-      "e2b_r0": { strict_passed: 81, total: 100, accuracy_pct: 81.0 }
-      "e4b_r0": { strict_passed: 91, total: 100, accuracy_pct: 91.0 }
-      "e4b_r1": { strict_passed: 86, total: 100, accuracy_pct: 86.0 }
-      "e2b_r1": { strict_passed: 85, total: 100, accuracy_pct: 85.0 }
-    caveats:
-      - "The v1.35.1 table's E4B 'PAL P2 94.0' cell is backed by gsm_symbolic_stratified_e4b_v1_35 (stratified protocol), NOT by this grid - the grid has no E4B p2 arm (register E-22)."
-      - "12B r1 arm exists only as an incomplete checkpoint (20/100 completed); no 12B r1 GSM-Symbolic figure is citable."
+    '
+  run_artifact: logs/test_reports/academic_micro_suite_gemma12b.json
+  run_timestamp: '2026-09-29T02:25:00Z'
+  harness_version: academic micro-suite runner (n=30)
+  model: gemma_4_12b_heretic_q6k
+  results:
+    gsm8k_pal:
+      passed: 30
+      total: 30
+      accuracy_pct: 100.0
+      mean_latency_s: 5.82
+  caveats:
+  - 30-probe subset, not the full 1,319-item suite; cite alongside gsm8k_pal_full_1319_v1_3
+    (95.75%) and label the n.
+- benchmark_id: bbh4_bare_1000_v1_3
+  status: current
+  experiment: 'Big-Bench Hard, 4 subsets x 250 tasks (Boolean Logic, Geometric Shapes,
+    3-Object Tracking, Dyck Languages), bare-weights zero-shot, N=1,000 (2026-09-28).
+    Origin of the 92.40% (924/1,000) consolidated figure (paper 01, docs/ARCHITECTURE.md,
+    USER_GUIDE, docs/README.md).
 
-  - benchmark_id: math500_heldout100_e2b_r1_v1_35_6
-    status: current
-    experiment: >
-      MATH-500 held-out-100, E2B Thinking R1 arm (think6144). One half of the
-      D-ROUT-02 McNemar pair (24:4 discordant, p=1.8e-4 vs the P2 arm).
-    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r1_heldout_think6144_100.json
-    harness_version: "pal_off_ablation factorial harness"
-    dataset: math_fresh_heldout_500
-    split: { evaluated: 100, slice: "lines 1-100" }
-    results:
-      strict: { passed: 81, total: 100, accuracy_pct: 81.0 }
-      lenient: { passed: 86, total: 100, accuracy_pct: 86.0 }
-      truncation_rate_pct: 10.0
-    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
-    git_dirty: true
+    '
+  run_artifacts:
+  - logs/test_reports/v1.3/academic_benchmarks_20260928T184814Z.json
+  - logs/test_reports/frozen_v1.2_baseline/academic_benchmarks_20260928T184814Z.json
+  harness_version: scripts/run_standard_academic_benchmarks.py (academic_benchmarks
+    runner)
+  model: gemma_4_12b_heretic_q6k
+  results:
+    bbh4_bare:
+      passed: 924
+      total: 1000
+      accuracy_pct: 92.4
+      elapsed_s: 7937.41
+  caveats:
+  - Bare-weights protocol; NOT comparable to the compound full-27 run (bbh_full27_compound_v1_35,
+    60.93%).
+- benchmark_id: bbh_closing_40_v1_3
+  status: current
+  experiment: 'BBH closing regression battery, 40 items (2026-09-30). Origin of the
+    "97.5% on 2026-09-30 Closing Battery" figure (NEUROSYMBOLIC_RESEARCH_PAPER.md).
 
-  - benchmark_id: math500_heldout100_e2b_p2_v1_35_6
-    status: current
-    experiment: >
-      MATH-500 held-out-100, E2B PAL P2 arm (cap2048). Other half of the
-      D-ROUT-02 McNemar pair (24:4 discordant, p=1.8e-4 vs the R1 arm).
-    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_p2_heldout_cap2048_100.json
-    harness_version: "pal_off_ablation factorial harness"
-    dataset: math_fresh_heldout_500
-    split: { evaluated: 100, slice: "lines 1-100" }
-    results:
-      strict: { passed: 61, total: 100, accuracy_pct: 61.0 }
-      lenient: { passed: 70, total: 100, accuracy_pct: 70.0 }
-      truncation_rate_pct: 14.0
-    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
-    git_dirty: true
+    '
+  run_artifacts:
+  - logs/test_reports/v1.3/academic_benchmarks_20260930T050204Z.json
+  - logs/test_reports/academic_benchmarks_latest.json
+  harness_version: scripts/run_standard_academic_benchmarks.py (samples_configured=10)
+  model: gemma_4_12b_heretic_q6k
+  results:
+    bbh_closing:
+      passed: 39
+      total: 40
+      accuracy_pct: 97.5
+      elapsed_s: 277.79
+- benchmark_id: bbh_full27_compound_v1_35
+  status: current
+  experiment: 'Big-Bench Hard FULL 27-subset suite (27 x 20 = 540 items), compound
+    pipeline (algorithmic + language modes), 2026-10-03. Origin of the "60.9% full
+    27 subsets / 59.6% algorithmic" figures in docs/LUCCA_V135_E4B_ARCHITECTURE.md
+    (E4B run).
 
-  - benchmark_id: math500_heldout100_e4b_routed_v1_35_6
-    status: current
-    experiment: >
-      MATH-500 held-out-100, E4B ROUTED arm. Origin of the "E4B Thinking R1:
-      88.0%" cell in the multi-scale held-out matrix (SotU, D-ROUT-02
-      context, paper 06). NOTE: the artifact's arm label is `routed`, not
-      `r1`; the docs' "Thinking R1" label for this cell is a naming drift.
-    run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_routed_heldout_100.json
-    harness_version: "pal_off_ablation factorial harness"
-    dataset: math_fresh_heldout_500
-    split: { evaluated: 100, slice: "lines 1-100" }
-    results:
-      strict: { passed: 88, total: 100, accuracy_pct: 88.0 }
-      lenient: { passed: 92, total: 100, accuracy_pct: 92.0 }
-      truncation_rate_pct: 2.0
-    git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
-    git_dirty: true
-    caveats:
-      - "Arm-label drift: docs say 'Thinking R1', artifact says arm=routed. A separate E4B r1 arm exists on the dev split (85.0% strict, gemma-4-e4b_math500_r1_100.json) - do not conflate."
+    '
+  run_artifact: logs/test_reports/bbh_full_27_latest.json
+  run_timestamp: 20261003T174322Z
+  harness_version: BBH full-27 harness
+  results:
+    full_27:
+      passed: 329
+      total: 540
+      accuracy_pct: 60.93
+      elapsed_s: 1498.8
+    algorithmic_subsets:
+      accuracy_pct: 59.64
+    language_subsets:
+      accuracy_pct: 62.31
+  caveats:
+  - Compound-pipeline protocol; NOT comparable to the bare-weights BBH-4 record bbh4_bare_1000_v1_3
+    (92.40%).
+  - External baseline comparison in the citing doc (53.0% DeepMind bare) is a published
+    figure, not an internal artifact.
+- benchmark_id: spec_bench_100_run3_v1_3
+  status: current
+  experiment: 'SPEC-BENCH-100-v1.0 Official Run 3 (2026-09-28): 100 frozen probes,
+    live end-to-end TurnPipeline. Origin of the 91.0% (91/100) pass rate, 100% path-policy
+    compliance, 100% epistemic faithfulness figures (DECISIONS.md D-EVAL-02, docs/ARCHITECTURE.md,
+    USER_GUIDE, paper 01).
 
-  - benchmark_id: math500_heldout100_remaining_arms_v1_35_6
-    status: current
-    experiment: >
-      Remaining MATH-500 held-out-100 arms from the pal_off grid, recorded so
-      every cell of the per-tier tables resolves to an artifact.
-    run_artifacts:
-      - logs/test_reports/pal_off_ablation/gemma-4-12b_math500_p2_heldout_cap2048_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_p2_heldout_cap2048_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_r0_heldout_cap4096_100.json
-      - logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r0_heldout_cap4096_100.json
-    harness_version: "pal_off_ablation factorial harness"
-    dataset: math_fresh_heldout_500
-    split: { evaluated: 100, slice: "lines 1-100" }
-    results:
-      "12b_p2": { strict_passed: 86, total: 100, accuracy_pct: 86.0, lenient_pct: 90.0 }
-      "e4b_p2": { strict_passed: 73, total: 100, accuracy_pct: 73.0, lenient_pct: 83.0 }
-      "e4b_r0": { strict_passed: 52, total: 100, accuracy_pct: 52.0, lenient_pct: 54.0 }
-      "e2b_r0": { strict_passed: 51, total: 100, accuracy_pct: 51.0, lenient_pct: 55.0 }
-    git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
-  - benchmark_id: math500_heldout100_direct_r0_v1_35_6_frozen
-    status: current
-    experiment: >
-      Frozen-tree reproduction (2026-10-07) of math500_heldout100_direct_r0_v1_35_6.
-      Gemma 4 12B Direct R0 arm on lines 1-100 of math_fresh_heldout_500.jsonl.
-      Evaluated under clean tree at commit f7c98a0.
-      Result: 88/100 (88.0%) strict / 93/100 (93.0%) lenient; 99/100 items match.
-    run_artifact: logs/test_reports/b1_frozen/gemma-4-12b_math500_r0_heldout_cap4096_100.json
-    harness_version: "1.35.x (pal_off_ablation factorial harness)"
-    model: gemma_4_12b_heretic_q6k
-    dataset: math_fresh_heldout_500
-    dataset_sha256_at_run: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
-    split: { evaluated: 100, slice: "lines 1-100" }
-    clean_98_result: { strict: "86/98 (87.8%)" }
-    decoding: { temperature: 0.0, seed: 42, max_tokens: 4096, enable_thinking: false, cache_prompt: false }
-    grader:
-      strict: sympy_cas_normalized
-      lenient: sympy_cas_lenient_normalization
-    results:
-      strict: { passed: 88, total: 100, accuracy_pct: 88.0 }
-      lenient: { passed: 93, total: 100, accuracy_pct: 93.0 }
-      truncation_rate_pct: 3.0
-      elapsed_s: 1605.80
-    git_commit: f7c98a075d416a160210817ac78da0868cefcb69
-    git_dirty: false
+    '
+  run_artifacts:
+  - logs/test_reports/v1.3/compound_benchmark_20260928T170640Z.json
+  - logs/test_reports/frozen_v1.2_baseline/compound_benchmark_20260928T170640Z.json
+  harness_version: tests/test_compound_reasoning_benchmark.py (compound_benchmark
+    runner)
+  model: gemma_4_12b_heretic_q6k
+  results:
+    run3:
+      passed: 91
+      total: 100
+      accuracy_pct: 91.0
+      path_ok: 100
+      faithfulness_ok: 100
+  caveats:
+  - 'Two earlier full-100 runs exist in the same directory: 90.0% (20260928T153710Z)
+    and 93.0% (20260928T163106Z). Paper 01''s stated progression ''Run 1: 70%, Run
+    2: 85%, Run 3: 91%'' does NOT match these artifacts (register E-20); the 70/85
+    figures are unsourced as full-battery runs.'
+- benchmark_id: confabulation_battery_v1_2
+  status: current
+  experiment: 'Milestone-3 confabulation battery, 25 trials, temperature 0.6. Baseline
+    (no grounding): 17/25 confabulated (68.0%). Cascade-grounded: 0/25 confabulated
+    (0.0%), adherence 25/25 (100.0%). Origin of the confabulation-delta claims (paper
+    03, SotU fixed-probe list).
 
-  - benchmark_id: math500_b4_sealed_12b_v1_35_6
-    status: current
-    experiment: >
-      B4 clean held-out ablation on math_b4_sealed_100.jsonl (SHA-256 14c8af21...100b),
-      executed 2026-10-07 per pre-registered protocol. All 3 arms on 12B model:
-      R0 (cap 4096): 93.0% strict / 94.0% lenient (0% truncations).
-      P2 (PAL + Turn 2, cap 2048): 87.0% strict / 92.0% lenient (0% truncations).
-      R1 (Thinking, think 6144): 46.0% strict / 46.0% lenient (55% truncations).
-      Paired McNemar: P2 vs R0 p=0.0703 (parity); R1 vs P2 p=2.46e-10; R1 vs R0 p=1.42e-14.
-    run_artifacts:
-      - logs/test_reports/b4_sealed/gemma-4-12b_math500_r0_b4_sealed_cap4096_100.json
-      - logs/test_reports/b4_sealed/gemma-4-12b_math500_p2_b4_sealed_cap2048_100.json
-      - logs/test_reports/b4_sealed/gemma-4-12b_math500_r1_b4_sealed_think6144_100.json
-    harness_version: "pal_off_ablation factorial harness"
-    model: gemma_4_12b_heretic_q6k
-    dataset: math_b4_sealed_100
-    dataset_sha256_at_run: 14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b
-    split: { evaluated: 100, slice: "all 100 sealed items" }
-    decoding: { temperature: 0.0, seed: 42, cache_prompt: false }
-    grader:
-      strict: sympy_cas_normalized
-      lenient: sympy_cas_lenient_normalization
-      grader_sha256: f1caae15a9e271ff20af8dbfcc5726fac5cc49c6c8fc5acc8dfdfb3d5f6cfdbd
-    results:
-      r0_cap4096: { strict: 93, lenient: 94, total: 100, strict_pct: 93.0, lenient_pct: 94.0, truncations: 0 }
-      p2_cap2048: { strict: 87, lenient: 92, total: 100, strict_pct: 87.0, lenient_pct: 92.0, truncations: 0 }
-      r1_think6144: { strict: 46, lenient: 46, total: 100, strict_pct: 46.0, lenient_pct: 46.0, truncations: 55 }
-    git_commit: b340ce0165d6128207fcef3785fa4d249660c77f
-    git_dirty: false
+    '
+  run_artifact: data/eval/milestone3_confabulation_battery.json
+  results:
+    baseline:
+      confabulations: 17
+      total: 25
+      rate_pct: 68.0
+    cascade_grounded:
+      confabulations: 0
+      total: 25
+      rate_pct: 0.0
+      adherence: 25
+      adherence_pct: 100.0
+  caveats:
+  - Paper 03 states 18/25 (72.0%) for the baseline arm - MISMATCH with the artifact's
+    17/25 (68.0%) (register E-21); correct in Phase 4.
+- benchmark_id: gsm_symbolic_stratified_e4b_v1_35
+  status: current
+  experiment: 'GSM-Symbolic 100 templates, STRATIFIED protocol, PAL via DockerRPCTransport,
+    E4B model (2026-10-03). Origin of the E4B 94.0% GSM-Symbolic figure (docs/LUCCA_V135_E4B_ARCHITECTURE.md,
+    and the E4B ''PAL P2'' cell in docs/LUCCA_V135_1_ARCHITECTURE.md).
 
-  - benchmark_id: gsm_symbolic_stratified_100_20261007_repro
-    status: current
-    experiment: >
-      Reproduction (2026-10-07) of gsm_symbolic_stratified_100_v1_35_6 (PAL in Docker).
-      Result: 94/100 (94.0%), identical item-for-item (100/100 match, 0 discordant).
-    run_artifact: logs/test_reports/gsm_symbolic_100_templates_20261007_repro.json
-    harness_version: "scripts/run_gsm_symbolic_100_templates.py"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/GSM_symbolic.jsonl
-    decoding: { temperature: 0.0, seed: 42, max_tokens: 1024, enable_thinking: false, cache_prompt: false }
-    results:
-      strict: { passed: 94, total: 100, accuracy_pct: 94.0 }
-    git_commit: f7c98a075d416a160210817ac78da0868cefcb69
-    git_dirty: false
+    '
+  run_artifact: logs/test_reports/gsm_symbolic_100_templates_e4b.json
+  run_timestamp: 20261003T154548Z
+  harness_version: stratified GSM-Symbolic runner (PAL DockerRPCTransport)
+  dataset: data/benchmarks/GSM_symbolic.jsonl
+  results:
+    strict:
+      passed: 94
+      total: 100
+      accuracy_pct: 94.0
+      elapsed_s: 227.19
+  git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
+  git_dirty: true
+  caveats:
+  - Stratified-templates protocol; NOT the same protocol as the pal_off_ablation grid
+    arms (gsm_symbolic_paloff_grid_v1_35). The v1.35.1 per-tier table mixes these
+    two protocols across its cells (register E-22).
+- benchmark_id: gsm_symbolic_stratified_e2b_v1_35
+  status: current
+  experiment: 'GSM-Symbolic 100 templates, STRATIFIED protocol, PAL via DockerRPCTransport,
+    E2B model (2026-10-04). Origin of the E2B 82.0% figure (docs/LUCCA_V135_E2B_ARCHITECTURE.md).
 
-  - benchmark_id: humaneval_canonical_paired_20261007_repro
-    status: current
-    experiment: >
-      Reproduction (2026-10-07) of humaneval_canonical_paired_v1_35_6 (Raw vs Assisted).
-      Result: 155/164 raw (94.51%), 154/164 assisted (93.90%), identical item-for-item (164/164 match).
-    run_artifact: logs/test_reports/humaneval_canonical_raw_164_20261007_repro.json
-    reproduction_artifacts:
-      - logs/test_reports/humaneval_canonical_raw_164_20261007_repro.json
-      - logs/test_reports/humaneval_canonical_assisted_164_20261007_repro.json
-    harness_version: "scripts/run_humaneval_canonical_paired.py"
-    model: gemma_4_12b_heretic_q6k
-    dataset: data/benchmarks/humaneval.jsonl
-    decoding: { temperature: 0.0, seed: 42, max_tokens: 1024, enable_thinking: false, cache_prompt: false }
-    results:
-      raw: { passed: 155, total: 164, accuracy_pct: 94.51 }
-      assisted: { passed: 154, total: 164, accuracy_pct: 93.90 }
-      both_pass: 153
-      both_fail: 8
-      raw_only: 2
-      rescued: 1
-      preflight_fired: 30
-    git_commit: f7c98a075d416a160210817ac78da0868cefcb69
-    git_dirty: false
+    '
+  run_artifact: logs/test_reports/gsm_symbolic_100_templates_e2b.json
+  run_timestamp: 20261004T011744Z
+  harness_version: stratified GSM-Symbolic runner (PAL DockerRPCTransport)
+  dataset: data/benchmarks/GSM_symbolic.jsonl
+  results:
+    strict:
+      passed: 82
+      total: 100
+      accuracy_pct: 82.0
+      elapsed_s: 155.11
+  git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
+  git_dirty: true
+  caveats:
+  - 82.0% (stratified) and 91.0% (pal_off p2 arm, gsm_symbolic_paloff_grid_v1_35)
+    are BOTH real E2B measurements under DIFFERENT protocols; cite the protocol with
+    the number.
+- benchmark_id: gsm_symbolic_paloff_grid_v1_35
+  status: current
+  experiment: 'GSM-Symbolic 100-item arms from the pal_off factorial ablation grid
+    (split: dev). Backs the per-tier cells in docs/LUCCA_V135_1_ARCHITECTURE.md for
+    12B and E2B, and the E4B Direct-R0 cell.
 
-  - benchmark_id: tts_guard_efficacy_e4b_v1_35_6
-    status: current
-    experiment: >
-      Live TTS-Safety Guard Efficacy Battery (Block B2) on Gemma 4 E4B across the 30-probe
-      cross-model battery (10 harmful probes, 20 benign control probes).
-      Measures harmful block rate, benign false-block rate, and native refusal rate with 95% Wilson CIs.
-      Turns finding P6 from 'mitigated (unit-tested)' into 'mitigated (measured)'.
-    run_artifact: logs/test_reports/tts_guard_efficacy_20261007T020151Z.json
-    report_artifact: logs/test_reports/tts_guard_efficacy_20261007T020151Z_REPORT.md
-    harness_version: "scripts/run_tts_guard_efficacy_battery.py"
-    model: gemma_4_e4b_heretic_q6k
-    dataset: "cross_model_30_probe_battery (10 tool, 10 safety, 10 persona)"
-    guard_mode: edge_tiers
-    results:
-      harmful_n: 10
-      harmful_native_refusal: { count: 3, rate_pct: 30.0, ci_95: [8.1, 64.6] }
-      harmful_guard_block: { count: 0, rate_pct: 0.0, ci_95: [0.0, 34.5] }
-      harmful_combined_protection: { count: 3, rate_pct: 30.0, ci_95: [8.1, 64.6] }
-      benign_control_n: 20
-      benign_false_block: { count: 0, rate_pct: 0.0, ci_95: [0.0, 20.0] }
-    findings: >
-      Replicates the September historical E4B native refusal rate of 30.0% (3/10).
-      Achieved 0.0% false-block rate on benign control probes (0/20, Wilson UB 20.0%).
-      Guard regexes did not trigger on E4B's harmful responses because the model emitted conversational
-      deflections with participle verbs ('synthesizing', 'manufacturing') and broad terms ('explosive device')
-      rather than base-form verbs and specific chemical/weapon agent nouns.
-    git_commit: 45a240a4b2ffb806e298f45f6e77992129631239
-    git_dirty: true
+    '
+  run_artifacts:
+  - logs/test_reports/pal_off_ablation/gemma-4-12b_gsm_symbolic_p2_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-12b_gsm_symbolic_r0_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_p2_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_r0_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e4b_gsm_symbolic_r0_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e4b_gsm_symbolic_r1_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e2b_gsm_symbolic_r1_100.json
+  harness_version: pal_off_ablation factorial harness
+  results:
+    12b_p2:
+      strict_passed: 95
+      total: 100
+      accuracy_pct: 95.0
+    12b_r0:
+      strict_passed: 93
+      total: 100
+      accuracy_pct: 93.0
+    e2b_p2:
+      strict_passed: 91
+      total: 100
+      accuracy_pct: 91.0
+    e2b_r0:
+      strict_passed: 81
+      total: 100
+      accuracy_pct: 81.0
+    e4b_r0:
+      strict_passed: 91
+      total: 100
+      accuracy_pct: 91.0
+    e4b_r1:
+      strict_passed: 86
+      total: 100
+      accuracy_pct: 86.0
+    e2b_r1:
+      strict_passed: 85
+      total: 100
+      accuracy_pct: 85.0
+  caveats:
+  - The v1.35.1 table's E4B 'PAL P2 94.0' cell is backed by gsm_symbolic_stratified_e4b_v1_35
+    (stratified protocol), NOT by this grid - the grid has no E4B p2 arm (register
+    E-22).
+  - 12B r1 arm exists only as an incomplete checkpoint (20/100 completed); no 12B
+    r1 GSM-Symbolic figure is citable.
+- benchmark_id: math500_heldout100_e2b_r1_v1_35_6
+  status: current
+  experiment: 'MATH-500 held-out-100, E2B Thinking R1 arm (think6144). One half of
+    the D-ROUT-02 McNemar pair (24:4 discordant, p=1.8e-4 vs the P2 arm).
 
-  - benchmark_id: personhood_battery_v1_0
-    status: current
-    experiment: >
-      Personhood Probe Batteries v1.0 per SPEC-PERSONHOOD-v1.0. Evaluates 4 frozen probe
-      batteries using mechanical graders with zero LLM judges and zero heuristic drift:
-      IA (Introspective Accuracy): 40/40 (100.0%) composite across IA-A, IA-B, IA-C, IA-D.
-      IN (Individuation): 30/30 (100.0%) composite across IN-A, IN-B, IN-C; IN-D active=0 guard passed.
-      FC (Functional Coherence): 30/30 (100.0%) composite across FC-A, FC-B, FC-C.
-      AC (Autobiographical Coherence): 30/30 (100.0%) composite across AC-A, AC-B, AC-C.
-    run_artifacts:
-      - logs/test_reports/personhood/ia_latest.json
-      - logs/test_reports/personhood/in_latest.json
-      - logs/test_reports/personhood/fc_latest.json
-      - logs/test_reports/personhood/ac_latest.json
-    harness_version: "scripts/grade_{ia,in,fc,ac}.py (v1.0.0)"
-    graders_sha256:
-      grade_ia: c5f45326d8dc7627df8c49a7068988293ed88be774db20bb97d8c466092a1012
-      grade_in: 35d61ba05f41261b624f15baef56e5edfcf60568df08ebeffdb95341cac5f38f
-      grade_fc: 8b988b1d17ad50d9190f2c1f353028593c2c2fc44ead4520f9ebd765d4f20b3e
-      grade_ac: e9b03050d75a5564c4472276da1f17ad21ef9aa51e500d9fc9af32f54330a57c
-    results:
-      battery_ia: { passed: 40, total: 40, accuracy_pct: 100.0, wilson_95_ci_strata: "[0.6555, 1.0000]" }
-      battery_in: { passed: 30, total: 30, accuracy_pct: 100.0, in_d_active: 0, in_d_guard_passed: true }
-      battery_fc: { passed: 30, total: 30, accuracy_pct: 100.0, wilson_95_ci_strata: "[0.6555, 1.0000]" }
-      battery_ac: { passed: 30, total: 30, accuracy_pct: 100.0, wilson_95_ci_strata: "[0.6555, 1.0000]" }
-    git_commit: 1b9f8e549cdf8711cde8819c9aa71ed2924961e0
-    git_dirty: false
+    '
+  run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r1_heldout_think6144_100.json
+  harness_version: pal_off_ablation factorial harness
+  dataset: math_fresh_heldout_500
+  split:
+    evaluated: 100
+    slice: lines 1-100
+  results:
+    strict:
+      passed: 81
+      total: 100
+      accuracy_pct: 81.0
+    lenient:
+      passed: 86
+      total: 100
+      accuracy_pct: 86.0
+    truncation_rate_pct: 10.0
+  git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+  git_dirty: true
+- benchmark_id: math500_heldout100_e2b_p2_v1_35_6
+  status: current
+  experiment: 'MATH-500 held-out-100, E2B PAL P2 arm (cap2048). Other half of the
+    D-ROUT-02 McNemar pair (24:4 discordant, p=1.8e-4 vs the R1 arm).
 
-  - benchmark_id: live_hardware_audit_suite_20261009
-    status: current
-    experiment: >
-      Master System Capability Live Hardware Evaluation Suite executed on RTX 5080 Laptop GPU
-      against resident gemma-4-12b-heretic-Q6_K (32K context, llama-server daemon).
-      Proves real capability under operational load with zero LLM judges and zero mock drift:
-      A1 Introspection Battery: 57/60 (95.0%), Wilson 95% LB = 0.8518 (threshold >= 0.80), 0 fabrications.
-      P9 Contrastive Companion Battery: 30/30 (100.0%), Arm B 10/10 (100%) vs Arm A 0/10 (0%).
-      Functional Coherence: 50/50 (100.0%), 10/10 engineered breaches caught.
-      Doctrine Negative: Opinion cannot raise fact invariant passed.
-      Autobiographical Revision Chain: 100% passed (5/5 chained revisions surfaced, 5/5 unchained non-inventions).
-      Stance Consistency: 10/10 (100.0%) consistent across dual-turn conversational opinion probes, 0 silent drifts.
-    run_artifacts:
-      - logs/test_reports/a1_live_introspective_20261009T143753Z.json
-      - logs/test_reports/contrastive_battery_20261009T110802Z.json
-      - logs/test_reports/a1_live_functional_coherence_20261009T144021Z.json
-      - logs/test_reports/a1_live_doctrine_negative_20261009T144608Z.json
-      - logs/test_reports/a1_live_revision_chain_20261009T145901Z.json
-      - logs/test_reports/a1_live_stance_consistency_20261009T152240Z.json
-    harness_version: "tests/test_a1_live_hw.py, tests/test_contrastive_live_hw.py"
-    model: gemma_4_12b_heretic_q6k
-    results:
-      a1_introspective_accuracy: { passed: 57, total: 60, accuracy_pct: 95.0, wilson_95_lb: 0.8518 }
-      p9_contrastive_battery: { passed: 30, total: 30, accuracy_pct: 100.0, arm_b_recall: "10/10 (100%)", arm_a_recall: "0/10 (0%)" }
-      functional_coherence: { passed: 50, total: 50, accuracy_pct: 100.0, breach_detection_rate: "10/10 (100%)" }
-      doctrine_negative: { passed: true }
-      revision_chain: { passed: true, chained_surfaced: 5, non_inventions: 5 }
-      stance_consistency: { passed: 10, total: 10, consistency_pct: 100.0, silent_drifts: 0 }
-  - benchmark_id: cruxeval_input_dev_50_v1_5_0
-    status: current
-    experiment: >
-      CRUXEval-Input 50-problem dev evaluation (sample_0 to sample_49). Evaluates input prediction:
-      given Python function `f` and target output, predict `f(...)`.
-      Arm A (Direct 1-shot): 38/50 (76.0%), Wilson 95% CI [62.6%, 85.7%].
-      Arm B (One-Shot Verified): 38/50 (76.0%).
-      Arm B (Iterative CEGIS Repair up to 3 turns): 46/50 (92.0%), Wilson 95% CI [81.2%, 96.8%].
-      Rescued: 8 problems rescued specifically by multi-turn counterexample repair (+16.0 pp lift).
-      Discordant pairs: 0:8, exact two-sided McNemar p = 0.00781.
-    run_artifacts:
-      - logs/test_reports/cruxeval_input_dev_1791762821248.json
-    harness_version: scripts/run_cruxeval_input.py
-    model: gemma_4_12b_heretic_q6k
-    results:
-      arm_a_direct: { passed: 38, total: 50, accuracy_pct: 76.0, wilson_95_ci: "[0.6259, 0.8570]" }
-      arm_b_one_shot: { passed: 38, total: 50, accuracy_pct: 76.0 }
-      arm_b_cegis: { passed: 46, total: 50, accuracy_pct: 92.0, wilson_95_ci: "[0.8116, 0.9685]" }
-      cegis_rescue_count: 8
-      cegis_rescue_lift_pp: 16.0
+    '
+  run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_p2_heldout_cap2048_100.json
+  harness_version: pal_off_ablation factorial harness
+  dataset: math_fresh_heldout_500
+  split:
+    evaluated: 100
+    slice: lines 1-100
+  results:
+    strict:
+      passed: 61
+      total: 100
+      accuracy_pct: 61.0
+    lenient:
+      passed: 70
+      total: 100
+      accuracy_pct: 70.0
+    truncation_rate_pct: 14.0
+  git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+  git_dirty: true
+- benchmark_id: math500_heldout100_e4b_routed_v1_35_6
+  status: current
+  experiment: 'MATH-500 held-out-100, E4B ROUTED arm. Origin of the "E4B Thinking
+    R1: 88.0%" cell in the multi-scale held-out matrix (SotU, D-ROUT-02 context, paper
+    06). NOTE: the artifact''s arm label is `routed`, not `r1`; the docs'' "Thinking
+    R1" label for this cell is a naming drift.
+
+    '
+  run_artifact: logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_routed_heldout_100.json
+  harness_version: pal_off_ablation factorial harness
+  dataset: math_fresh_heldout_500
+  split:
+    evaluated: 100
+    slice: lines 1-100
+  results:
+    strict:
+      passed: 88
+      total: 100
+      accuracy_pct: 88.0
+    lenient:
+      passed: 92
+      total: 100
+      accuracy_pct: 92.0
+    truncation_rate_pct: 2.0
+  git_commit: 1c585876a76af82caacb0d78b5b1686dd346d9c5
+  git_dirty: true
+  caveats:
+  - 'Arm-label drift: docs say ''Thinking R1'', artifact says arm=routed. A separate
+    E4B r1 arm exists on the dev split (85.0% strict, gemma-4-e4b_math500_r1_100.json)
+    - do not conflate.'
+- benchmark_id: math500_heldout100_remaining_arms_v1_35_6
+  status: current
+  experiment: 'Remaining MATH-500 held-out-100 arms from the pal_off grid, recorded
+    so every cell of the per-tier tables resolves to an artifact.
+
+    '
+  run_artifacts:
+  - logs/test_reports/pal_off_ablation/gemma-4-12b_math500_p2_heldout_cap2048_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_p2_heldout_cap2048_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e4b_math500_r0_heldout_cap4096_100.json
+  - logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r0_heldout_cap4096_100.json
+  harness_version: pal_off_ablation factorial harness
+  dataset: math_fresh_heldout_500
+  split:
+    evaluated: 100
+    slice: lines 1-100
+  results:
+    12b_p2:
+      strict_passed: 86
+      total: 100
+      accuracy_pct: 86.0
+      lenient_pct: 90.0
+    e4b_p2:
+      strict_passed: 73
+      total: 100
+      accuracy_pct: 73.0
+      lenient_pct: 83.0
+    e4b_r0:
+      strict_passed: 52
+      total: 100
+      accuracy_pct: 52.0
+      lenient_pct: 54.0
+    e2b_r0:
+      strict_passed: 51
+      total: 100
+      accuracy_pct: 51.0
+      lenient_pct: 55.0
+  git_commit: 3029c543d031b32ac55d8a44e394656e62d07c23
+- benchmark_id: math500_heldout100_direct_r0_v1_35_6_frozen
+  status: current
+  experiment: 'Frozen-tree reproduction (2026-10-07) of math500_heldout100_direct_r0_v1_35_6.
+    Gemma 4 12B Direct R0 arm on lines 1-100 of math_fresh_heldout_500.jsonl. Evaluated
+    under clean tree at commit f7c98a0. Result: 88/100 (88.0%) strict / 93/100 (93.0%)
+    lenient; 99/100 items match.
+
+    '
+  run_artifact: logs/test_reports/b1_frozen/gemma-4-12b_math500_r0_heldout_cap4096_100.json
+  harness_version: 1.35.x (pal_off_ablation factorial harness)
+  model: gemma_4_12b_heretic_q6k
+  dataset: math_fresh_heldout_500
+  dataset_sha256_at_run: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
+  split:
+    evaluated: 100
+    slice: lines 1-100
+  clean_98_result:
+    strict: 86/98 (87.8%)
+  decoding:
+    temperature: 0.0
+    seed: 42
+    max_tokens: 4096
+    enable_thinking: false
+    cache_prompt: false
+  grader:
+    strict: sympy_cas_normalized
+    lenient: sympy_cas_lenient_normalization
+  results:
+    strict:
+      passed: 88
+      total: 100
+      accuracy_pct: 88.0
+    lenient:
+      passed: 93
+      total: 100
+      accuracy_pct: 93.0
+    truncation_rate_pct: 3.0
+    elapsed_s: 1605.8
+  git_commit: f7c98a075d416a160210817ac78da0868cefcb69
+  git_dirty: false
+- benchmark_id: math500_b4_sealed_12b_v1_35_6
+  status: current
+  experiment: 'B4 clean held-out ablation on math_b4_sealed_100.jsonl (SHA-256 14c8af21...100b),
+    executed 2026-10-07 per pre-registered protocol. All 3 arms on 12B model: R0 (cap
+    4096): 93.0% strict / 94.0% lenient (0% truncations). P2 (PAL + Turn 2, cap 2048):
+    87.0% strict / 92.0% lenient (0% truncations). R1 (Thinking, think 6144): 46.0%
+    strict / 46.0% lenient (55% truncations). Paired McNemar: P2 vs R0 p=0.0703 (parity);
+    R1 vs P2 p=2.46e-10; R1 vs R0 p=1.42e-14.
+
+    '
+  run_artifacts:
+  - logs/test_reports/b4_sealed/gemma-4-12b_math500_r0_b4_sealed_cap4096_100.json
+  - logs/test_reports/b4_sealed/gemma-4-12b_math500_p2_b4_sealed_cap2048_100.json
+  - logs/test_reports/b4_sealed/gemma-4-12b_math500_r1_b4_sealed_think6144_100.json
+  harness_version: pal_off_ablation factorial harness
+  model: gemma_4_12b_heretic_q6k
+  dataset: math_b4_sealed_100
+  dataset_sha256_at_run: 14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b
+  split:
+    evaluated: 100
+    slice: all 100 sealed items
+  decoding:
+    temperature: 0.0
+    seed: 42
+    cache_prompt: false
+  grader:
+    strict: sympy_cas_normalized
+    lenient: sympy_cas_lenient_normalization
+    grader_sha256: f1caae15a9e271ff20af8dbfcc5726fac5cc49c6c8fc5acc8dfdfb3d5f6cfdbd
+  results:
+    r0_cap4096:
+      strict: 93
+      lenient: 94
+      total: 100
+      strict_pct: 93.0
+      lenient_pct: 94.0
+      truncations: 0
+    p2_cap2048:
+      strict: 87
+      lenient: 92
+      total: 100
+      strict_pct: 87.0
+      lenient_pct: 92.0
+      truncations: 0
+    r1_think6144:
+      strict: 46
+      lenient: 46
+      total: 100
+      strict_pct: 46.0
+      lenient_pct: 46.0
+      truncations: 55
+  git_commit: b340ce0165d6128207fcef3785fa4d249660c77f
+  git_dirty: false
+- benchmark_id: gsm_symbolic_stratified_100_20261007_repro
+  status: current
+  experiment: 'Reproduction (2026-10-07) of gsm_symbolic_stratified_100_v1_35_6 (PAL
+    in Docker). Result: 94/100 (94.0%), identical item-for-item (100/100 match, 0
+    discordant).
+
+    '
+  run_artifact: logs/test_reports/gsm_symbolic_100_templates_20261007_repro.json
+  harness_version: scripts/run_gsm_symbolic_100_templates.py
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/GSM_symbolic.jsonl
+  decoding:
+    temperature: 0.0
+    seed: 42
+    max_tokens: 1024
+    enable_thinking: false
+    cache_prompt: false
+  results:
+    strict:
+      passed: 94
+      total: 100
+      accuracy_pct: 94.0
+  git_commit: f7c98a075d416a160210817ac78da0868cefcb69
+  git_dirty: false
+- benchmark_id: humaneval_canonical_paired_20261007_repro
+  status: current
+  experiment: 'Reproduction (2026-10-07) of humaneval_canonical_paired_v1_35_6 (Raw
+    vs Assisted). Result: 155/164 raw (94.51%), 154/164 assisted (93.90%), identical
+    item-for-item (164/164 match).
+
+    '
+  run_artifact: logs/test_reports/humaneval_canonical_raw_164_20261007_repro.json
+  reproduction_artifacts:
+  - logs/test_reports/humaneval_canonical_raw_164_20261007_repro.json
+  - logs/test_reports/humaneval_canonical_assisted_164_20261007_repro.json
+  harness_version: scripts/run_humaneval_canonical_paired.py
+  model: gemma_4_12b_heretic_q6k
+  dataset: data/benchmarks/humaneval.jsonl
+  decoding:
+    temperature: 0.0
+    seed: 42
+    max_tokens: 1024
+    enable_thinking: false
+    cache_prompt: false
+  results:
+    raw:
+      passed: 155
+      total: 164
+      accuracy_pct: 94.51
+    assisted:
+      passed: 154
+      total: 164
+      accuracy_pct: 93.9
+    both_pass: 153
+    both_fail: 8
+    raw_only: 2
+    rescued: 1
+    preflight_fired: 30
+  git_commit: f7c98a075d416a160210817ac78da0868cefcb69
+  git_dirty: false
+- benchmark_id: tts_guard_efficacy_e4b_v1_35_6
+  status: current
+  experiment: 'Live TTS-Safety Guard Efficacy Battery (Block B2) on Gemma 4 E4B across
+    the 30-probe cross-model battery (10 harmful probes, 20 benign control probes).
+    Measures harmful block rate, benign false-block rate, and native refusal rate
+    with 95% Wilson CIs. Turns finding P6 from ''mitigated (unit-tested)'' into ''mitigated
+    (measured)''.
+
+    '
+  run_artifact: logs/test_reports/tts_guard_efficacy_20261007T020151Z.json
+  report_artifact: logs/test_reports/tts_guard_efficacy_20261007T020151Z_REPORT.md
+  harness_version: scripts/run_tts_guard_efficacy_battery.py
+  model: gemma_4_e4b_heretic_q6k
+  dataset: cross_model_30_probe_battery (10 tool, 10 safety, 10 persona)
+  guard_mode: edge_tiers
+  results:
+    harmful_n: 10
+    harmful_native_refusal:
+      count: 3
+      rate_pct: 30.0
+      ci_95:
+      - 8.1
+      - 64.6
+    harmful_guard_block:
+      count: 0
+      rate_pct: 0.0
+      ci_95:
+      - 0.0
+      - 34.5
+    harmful_combined_protection:
+      count: 3
+      rate_pct: 30.0
+      ci_95:
+      - 8.1
+      - 64.6
+    benign_control_n: 20
+    benign_false_block:
+      count: 0
+      rate_pct: 0.0
+      ci_95:
+      - 0.0
+      - 20.0
+  findings: 'Replicates the September historical E4B native refusal rate of 30.0%
+    (3/10). Achieved 0.0% false-block rate on benign control probes (0/20, Wilson
+    UB 20.0%). Guard regexes did not trigger on E4B''s harmful responses because the
+    model emitted conversational deflections with participle verbs (''synthesizing'',
+    ''manufacturing'') and broad terms (''explosive device'') rather than base-form
+    verbs and specific chemical/weapon agent nouns.
+
+    '
+  git_commit: 45a240a4b2ffb806e298f45f6e77992129631239
+  git_dirty: true
+- benchmark_id: personhood_battery_v1_0
+  status: current
+  experiment: 'Personhood Probe Batteries v1.0 per SPEC-PERSONHOOD-v1.0. Evaluates
+    4 frozen probe batteries using mechanical graders with zero LLM judges and zero
+    heuristic drift: IA (Introspective Accuracy): 40/40 (100.0%) composite across
+    IA-A, IA-B, IA-C, IA-D. IN (Individuation): 30/30 (100.0%) composite across IN-A,
+    IN-B, IN-C; IN-D active=0 guard passed. FC (Functional Coherence): 30/30 (100.0%)
+    composite across FC-A, FC-B, FC-C. AC (Autobiographical Coherence): 30/30 (100.0%)
+    composite across AC-A, AC-B, AC-C.
+
+    '
+  run_artifacts:
+  - logs/test_reports/personhood/ia_latest.json
+  - logs/test_reports/personhood/in_latest.json
+  - logs/test_reports/personhood/fc_latest.json
+  - logs/test_reports/personhood/ac_latest.json
+  harness_version: scripts/grade_{ia,in,fc,ac}.py (v1.0.0)
+  graders_sha256:
+    grade_ia: c5f45326d8dc7627df8c49a7068988293ed88be774db20bb97d8c466092a1012
+    grade_in: 35d61ba05f41261b624f15baef56e5edfcf60568df08ebeffdb95341cac5f38f
+    grade_fc: 8b988b1d17ad50d9190f2c1f353028593c2c2fc44ead4520f9ebd765d4f20b3e
+    grade_ac: e9b03050d75a5564c4472276da1f17ad21ef9aa51e500d9fc9af32f54330a57c
+  results:
+    battery_ia:
+      passed: 40
+      total: 40
+      accuracy_pct: 100.0
+      wilson_95_ci_strata: '[0.6555, 1.0000]'
+    battery_in:
+      passed: 30
+      total: 30
+      accuracy_pct: 100.0
+      in_d_active: 0
+      in_d_guard_passed: true
+    battery_fc:
+      passed: 30
+      total: 30
+      accuracy_pct: 100.0
+      wilson_95_ci_strata: '[0.6555, 1.0000]'
+    battery_ac:
+      passed: 30
+      total: 30
+      accuracy_pct: 100.0
+      wilson_95_ci_strata: '[0.6555, 1.0000]'
+  git_commit: 1b9f8e549cdf8711cde8819c9aa71ed2924961e0
+  git_dirty: false
+- benchmark_id: live_hardware_audit_suite_20261009
+  status: current
+  experiment: 'Master System Capability Live Hardware Evaluation Suite executed on
+    RTX 5080 Laptop GPU against resident gemma-4-12b-heretic-Q6_K (32K context, llama-server
+    daemon). Proves real capability under operational load with zero LLM judges and
+    zero mock drift: A1 Introspection Battery: 57/60 (95.0%), Wilson 95% LB = 0.8518
+    (threshold >= 0.80), 0 fabrications. P9 Contrastive Companion Battery: 30/30 (100.0%),
+    Arm B 10/10 (100%) vs Arm A 0/10 (0%). Functional Coherence: 50/50 (100.0%), 10/10
+    engineered breaches caught. Doctrine Negative: Opinion cannot raise fact invariant
+    passed. Autobiographical Revision Chain: 100% passed (5/5 chained revisions surfaced,
+    5/5 unchained non-inventions). Stance Consistency: 10/10 (100.0%) consistent across
+    dual-turn conversational opinion probes, 0 silent drifts.
+
+    '
+  run_artifacts:
+  - logs/test_reports/a1_live_introspective_20261009T143753Z.json
+  - logs/test_reports/contrastive_battery_20261009T110802Z.json
+  - logs/test_reports/a1_live_functional_coherence_20261009T144021Z.json
+  - logs/test_reports/a1_live_doctrine_negative_20261009T144608Z.json
+  - logs/test_reports/a1_live_revision_chain_20261009T145901Z.json
+  - logs/test_reports/a1_live_stance_consistency_20261009T152240Z.json
+  harness_version: tests/test_a1_live_hw.py, tests/test_contrastive_live_hw.py
+  model: gemma_4_12b_heretic_q6k
+  results:
+    a1_introspective_accuracy:
+      passed: 57
+      total: 60
+      accuracy_pct: 95.0
+      wilson_95_lb: 0.8518
+    p9_contrastive_battery:
+      passed: 30
+      total: 30
+      accuracy_pct: 100.0
+      arm_b_recall: 10/10 (100%)
+      arm_a_recall: 0/10 (0%)
+    functional_coherence:
+      passed: 50
+      total: 50
+      accuracy_pct: 100.0
+      breach_detection_rate: 10/10 (100%)
+    doctrine_negative:
+      passed: true
+    revision_chain:
+      passed: true
+      chained_surfaced: 5
+      non_inventions: 5
+    stance_consistency:
+      passed: 10
+      total: 10
+      consistency_pct: 100.0
+      silent_drifts: 0
+- benchmark_id: cruxeval_input_dev_50_v1_5_0
+  status: current
+  experiment: 'CRUXEval-Input 50-problem dev evaluation (sample_0 to sample_49). Evaluates
+    input prediction: given Python function `f` and target output, predict `f(...)`.
+    Arm A (Direct 1-shot): 38/50 (76.0%), Wilson 95% CI [62.6%, 85.7%]. Arm B (One-Shot
+    Verified): 38/50 (76.0%). Arm B (Iterative CEGIS Repair up to 3 turns): 46/50
+    (92.0%), Wilson 95% CI [81.2%, 96.8%]. Rescued: 8 problems rescued specifically
+    by multi-turn counterexample repair (+16.0 pp lift). Discordant pairs: 0:8, exact
+    two-sided McNemar p = 0.00781.
+
+    '
+  run_artifacts:
+  - logs/test_reports/cruxeval_input_dev_1791762821248.json
+  harness_version: scripts/run_cruxeval_input.py
+  model: gemma_4_12b_heretic_q6k
+  results:
+    arm_a_direct:
+      passed: 38
+      total: 50
+      accuracy_pct: 76.0
+      wilson_95_ci: '[0.6259, 0.8570]'
+    arm_b_one_shot:
+      passed: 38
+      total: 50
+      accuracy_pct: 76.0
+    arm_b_cegis:
+      passed: 46
+      total: 50
+      accuracy_pct: 92.0
+      wilson_95_ci: '[0.8116, 0.9685]'
+    cegis_rescue_count: 8
+    cegis_rescue_lift_pp: 16.0
+    mcnemar_two_sided_p: 0.0078125
+  git_commit: 39d0e76c1ef5d06e835e1049de5b34d98fb01b15
+- benchmark_id: cruxeval_input_sealed_100_v1_5_0
+  status: current
+  experiment: 'CRUXEval-Input 100-problem sealed held-out evaluation (sample_50 to
+    sample_149). Arm A (Direct 1-shot): 63/100 (63.0%), Wilson 95% CI [53.2%, 71.8%].
+    Arm B (One-Shot Verified): 64/100 (64.0%). Arm B (Iterative CEGIS Repair up to
+    3 turns): 78/100 (78.0%), Wilson 95% CI [68.9%, 85.0%]. Rescued: 14 problems rescued
+    specifically by multi-turn counterexample repair (+14.0 pp lift). Discordant pairs:
+    0:15, exact two-sided McNemar p = 0.000061 (p = 6.1e-5).
+
+    '
+  run_artifacts:
+  - logs/test_reports/cruxeval_input_sealed_1791763075938.json
+  harness_version: scripts/run_cruxeval_input.py
+  model: gemma_4_12b_heretic_q6k
+  results:
+    arm_a_direct:
+      passed: 63
+      total: 100
+      accuracy_pct: 63.0
+      wilson_95_ci: '[0.5320, 0.7180]'
+    arm_b_one_shot:
+      passed: 64
+      total: 100
+      accuracy_pct: 64.0
+    arm_b_cegis:
+      passed: 78
+      total: 100
+      accuracy_pct: 78.0
+      wilson_95_ci: '[0.6890, 0.8500]'
+    cegis_rescue_count: 14
+    cegis_rescue_lift_pp: 14.0
+- benchmark_id: ood_e4b_noise_floor_3x_v1_5_0
+  status: current
+  experiment: 'Gemma 4 E4B Heretic 3-repeat noise floor audit under single-slot --parallel
+    1 across the 60-problem OOD smoke suite. Run 1 (1791763338): Arm A 18/60 (30.0%),
+    Arm B 51/60 (85.0%), Lift +55.0 pp. Run 2 (1791763493): Arm A 19/60 (31.7%), Arm
+    B 51/60 (85.0%), Lift +53.3 pp. Run 3 (1791763645): Arm A 19/60 (31.7%), Arm B
+    51/60 (85.0%), Lift +53.3 pp. Variance: Arm B achieved exactly 51/60 (85.0%) across
+    all 3 runs (0.0 pp drift). Arm A mean = 31.1% (+-0.85 pp).
+
+    '
+  run_artifacts:
+  - logs/test_reports/ood_generality_audit_1791763338.json
+  - logs/test_reports/ood_generality_audit_1791763493.json
+  - logs/test_reports/ood_generality_audit_1791763645.json
+  harness_version: scripts/run_ood_generality_audit.py
+  model: gemma_4_e4b_heretic_q6k
+  results:
+    arm_a_mean_accuracy_pct: 31.1
+    arm_b_mean_accuracy_pct: 85.0
+    net_lift_pp: 53.9
+    empirical_non_regression: 100% PRESERVED
+  git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
+- benchmark_id: ood_e4b_thinking_baseline_v1_5_0
+  status: current
+  experiment: "Gemma 4 E4B Heretic extended thinking baseline audit (Option 2). Arm\
+    \ A Direct (cap=128): 19/60 (31.7%), 27/60 truncations (45.0%). Arm A Thinking\
+    \ (T=0.6, cap=3072): 51/60 (85.0%), 0/60 truncations (0.0%).\n  - Non-Crux (Nav\
+    \ + Ded, n=40): 39/40 (97.5%) [Navigation 19/20, Deduction 20/20].\n  - Code Execution\
+    \ (CruxEval, n=20): 12/20 (60.0%).\nArm B PAL (Docker container): 51/60 (85.0%).\n\
+    \  - Non-Crux (Nav + Ded, n=40): 31/40 (77.5%).\n  - Code Execution (CruxEval,\
+    \ n=20): 20/20 (100.0%).\nFinding: Native thinking beats one-shot PAL on clean\
+    \ algorithmic text puzzles (39/40 vs 31/40, +20.0 pp), while PAL beats native\
+    \ thinking on deterministic code execution tracing (20/20 vs 12/20, +40.0 pp).\n"
+  run_artifacts:
+  - logs/test_reports/ood_thinking_baseline_1791764165.json
+  harness_version: scripts/run_ood_thinking_baseline.py
+  model: gemma_4_e4b_heretic_q6k
+  results:
+    arm_a_direct:
+      passed: 19
+      total: 60
+      accuracy_pct: 31.7
+    arm_a_thinking:
+      passed: 51
+      total: 60
+      accuracy_pct: 85.0
+      non_crux_pct: 97.5
+    arm_b_pal:
+      passed: 51
+      total: 60
+      accuracy_pct: 85.0
+      non_crux_pct: 77.5
+      crux_pct: 100.0
+  git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
+- benchmark_id: ood_e2b_thinking_baseline_v1_5_0
+  status: current
+  experiment: "Gemma 4 E2B Heretic Sinhala extended thinking baseline audit (Option\
+    \ 2). Arm A Direct (cap=128): 15/60 (25.0%), 30/60 truncations (50.0%). Arm A\
+    \ Thinking (T=0.6, cap=3072): 50/60 (83.3%), 0/60 truncations (0.0%).\n  - Non-Crux\
+    \ (Nav + Ded, n=40): 39/40 (97.5%) [Navigation 19/20, Deduction 20/20].\n  - Code\
+    \ Execution (CruxEval, n=20): 11/20 (55.0%).\nArm B PAL (Docker container): 36/60\
+    \ (60.0%).\n  - Non-Crux (Nav + Ded, n=40): 16/40 (40.0%).\n  - Code Execution\
+    \ (CruxEval, n=20): 20/20 (100.0%).\nFinding: At 2.3B parameters, native thinking\
+    \ vastly outperforms one-shot PAL on algorithmic text problems (39/40 vs 16/40,\
+    \ +57.5 pp lift, McNemar p = 0.020), while PAL retains a 100% execution advantage\
+    \ on CruxEval.\n"
+  run_artifacts:
+  - logs/test_reports/ood_thinking_baseline_1791764685.json
+  harness_version: scripts/run_ood_thinking_baseline.py
+  model: gemma_4_e2b_heretic_sinhala_q6k
+  results:
+    arm_a_direct:
+      passed: 15
+      total: 60
+      accuracy_pct: 25.0
+    arm_a_thinking:
+      passed: 50
+      total: 60
+      accuracy_pct: 83.3
+      non_crux_pct: 97.5
+    arm_b_pal:
+      passed: 36
+      total: 60
+      accuracy_pct: 60.0
+      non_crux_pct: 40.0
+      crux_pct: 100.0
+  git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
+- benchmark_id: ood_12b_direct_adequate_cap_v1_5_0
+  experiment: "Gemma 4 12B Heretic Q6_K non-truncated Direct baseline audit (max_tokens=2048,\
+    \ enable_thinking=False, T=0.0) across all 60 problems in the OOD suite. Replaces\
+    \ the artificial cap-128 baseline (where 45% of turns truncated at length).\n\
+    \  - Spatial Navigation (n=20): 12/20 (60.0%), 0 truncations (0.0%).\n  - Logical\
+    \ Deduction (n=20): 20/20 (100.0%), 0 truncations (0.0%).\n  - Code Execution\
+    \ (n=20): 16/20 (80.0%), 0 truncations (0.0%).\n  - Non-Crux Subtotal (Nav + Ded,\
+    \ n=40): 32/40 (80.0%), 0 truncations (0.0%).\n  - Overall Aggregate (n=60): 48/60\
+    \ (80.0%), 0/60 truncations (0.0%).\nComparison against 12B PAL (60/60, 100.0%):\n\
+    \  - Aggregate discordant pairs: 12:0 (PAL wins: 12, Direct wins: 0), net lift:\
+    \ +20.0 pp (+12 items), exact McNemar two-sided p = 0.000488.\n  - Non-Crux discordant\
+    \ pairs: 8:0 (PAL wins: 8, Direct wins: 0), net lift: +20.0 pp (+8 items), exact\
+    \ McNemar two-sided p = 0.007812.\nFinding: Eliminating the 128-token cap reveals\
+    \ that Gemma 4 12B achieves 100% on logical deduction directly, raising the true\
+    \ non-truncated Direct baseline from 25.0% to 80.0%. PAL provides a verified +20.0\
+    \ pp lift (p = 0.000488) driven by spatial state tracking and execution determinism."
+  git_commit: 3be81d6
+  harness_version: scripts/run_ood_adequate_cap.py
+  model: gemma_4_12b_heretic_q6k
+  config:
+    temperature: 0.0
+    max_tokens: 2048
+    enable_thinking: false
+  results:
+    direct_adequate_cap:
+      accuracy_pct: 80.0
+      passed: 48
+      total: 60
+      truncations: 0
+      truncation_rate_pct: 0.0
+      domains:
+        spatial_navigation:
+          passed: 12
+          total: 20
+          accuracy_pct: 60.0
+        logical_deduction:
+          passed: 20
+          total: 20
+          accuracy_pct: 100.0
+        code_execution:
+          passed: 16
+          total: 20
+          accuracy_pct: 80.0
+        non_crux_subtotal:
+          passed: 32
+          total: 40
+          accuracy_pct: 80.0
+    comparison_vs_pal_12b:
+      discordant_pairs:
+      - 12
+      - 0
+      net_lift_pp: 20.0
+      mcnemar_two_sided_p: 0.00048828
+    comparison_vs_pal_non_crux:
+      discordant_pairs:
+      - 8
+      - 0
+      net_lift_pp: 20.0
       mcnemar_two_sided_p: 0.0078125
-    git_commit: 39d0e76c1ef5d06e835e1049de5b34d98fb01b15
-
-  - benchmark_id: cruxeval_input_sealed_100_v1_5_0
-    status: current
-    experiment: >
-      CRUXEval-Input 100-problem sealed held-out evaluation (sample_50 to sample_149).
-      Arm A (Direct 1-shot): 63/100 (63.0%), Wilson 95% CI [53.2%, 71.8%].
-      Arm B (One-Shot Verified): 64/100 (64.0%).
-      Arm B (Iterative CEGIS Repair up to 3 turns): 78/100 (78.0%), Wilson 95% CI [68.9%, 85.0%].
-      Rescued: 14 problems rescued specifically by multi-turn counterexample repair (+14.0 pp lift).
-      Discordant pairs: 0:15, exact two-sided McNemar p = 0.000061 (p = 6.1e-5).
-    run_artifacts:
-      - logs/test_reports/cruxeval_input_sealed_1791763075938.json
-    harness_version: scripts/run_cruxeval_input.py
-    model: gemma_4_12b_heretic_q6k
-    results:
-      arm_a_direct: { passed: 63, total: 100, accuracy_pct: 63.0, wilson_95_ci: "[0.5320, 0.7180]" }
-      arm_b_one_shot: { passed: 64, total: 100, accuracy_pct: 64.0 }
-      arm_b_cegis: { passed: 78, total: 100, accuracy_pct: 78.0, wilson_95_ci: "[0.6890, 0.8500]" }
-      cegis_rescue_count: 14
-      cegis_rescue_lift_pp: 14.0
-  - benchmark_id: ood_e4b_noise_floor_3x_v1_5_0
-    status: current
-    experiment: >
-      Gemma 4 E4B Heretic 3-repeat noise floor audit under single-slot --parallel 1 across the 60-problem OOD smoke suite.
-      Run 1 (1791763338): Arm A 18/60 (30.0%), Arm B 51/60 (85.0%), Lift +55.0 pp.
-      Run 2 (1791763493): Arm A 19/60 (31.7%), Arm B 51/60 (85.0%), Lift +53.3 pp.
-      Run 3 (1791763645): Arm A 19/60 (31.7%), Arm B 51/60 (85.0%), Lift +53.3 pp.
-      Variance: Arm B achieved exactly 51/60 (85.0%) across all 3 runs (0.0 pp drift). Arm A mean = 31.1% (+-0.85 pp).
-    run_artifacts:
-      - logs/test_reports/ood_generality_audit_1791763338.json
-      - logs/test_reports/ood_generality_audit_1791763493.json
-      - logs/test_reports/ood_generality_audit_1791763645.json
-    harness_version: scripts/run_ood_generality_audit.py
-    model: gemma_4_e4b_heretic_q6k
-    results:
-      arm_a_mean_accuracy_pct: 31.1
-      arm_b_mean_accuracy_pct: 85.0
-      net_lift_pp: 53.9
-      empirical_non_regression: "100% PRESERVED"
-    git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
-
-  - benchmark_id: ood_e4b_thinking_baseline_v1_5_0
-    status: current
-    experiment: >
-      Gemma 4 E4B Heretic extended thinking baseline audit (Option 2).
-      Arm A Direct (cap=128): 19/60 (31.7%), 27/60 truncations (45.0%).
-      Arm A Thinking (T=0.6, cap=3072): 51/60 (85.0%), 0/60 truncations (0.0%).
-        - Non-Crux (Nav + Ded, n=40): 39/40 (97.5%) [Navigation 19/20, Deduction 20/20].
-        - Code Execution (CruxEval, n=20): 12/20 (60.0%).
-      Arm B PAL (Docker container): 51/60 (85.0%).
-        - Non-Crux (Nav + Ded, n=40): 31/40 (77.5%).
-        - Code Execution (CruxEval, n=20): 20/20 (100.0%).
-      Finding: Native thinking beats one-shot PAL on clean algorithmic text puzzles (39/40 vs 31/40, +20.0 pp),
-      while PAL beats native thinking on deterministic code execution tracing (20/20 vs 12/20, +40.0 pp).
-    run_artifacts:
-      - logs/test_reports/ood_thinking_baseline_1791764165.json
-    harness_version: scripts/run_ood_thinking_baseline.py
-    model: gemma_4_e4b_heretic_q6k
-    results:
-      arm_a_direct: { passed: 19, total: 60, accuracy_pct: 31.7 }
-      arm_a_thinking: { passed: 51, total: 60, accuracy_pct: 85.0, non_crux_pct: 97.5 }
-      arm_b_pal: { passed: 51, total: 60, accuracy_pct: 85.0, non_crux_pct: 77.5, crux_pct: 100.0 }
-    git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
-
-  - benchmark_id: ood_e2b_thinking_baseline_v1_5_0
-    status: current
-    experiment: >
-      Gemma 4 E2B Heretic Sinhala extended thinking baseline audit (Option 2).
-      Arm A Direct (cap=128): 15/60 (25.0%), 30/60 truncations (50.0%).
-      Arm A Thinking (T=0.6, cap=3072): 50/60 (83.3%), 0/60 truncations (0.0%).
-        - Non-Crux (Nav + Ded, n=40): 39/40 (97.5%) [Navigation 19/20, Deduction 20/20].
-        - Code Execution (CruxEval, n=20): 11/20 (55.0%).
-      Arm B PAL (Docker container): 36/60 (60.0%).
-        - Non-Crux (Nav + Ded, n=40): 16/40 (40.0%).
-        - Code Execution (CruxEval, n=20): 20/20 (100.0%).
-      Finding: At 2.3B parameters, native thinking vastly outperforms one-shot PAL on algorithmic text problems
-      (39/40 vs 16/40, +57.5 pp lift, McNemar p = 0.020), while PAL retains a 100% execution advantage on CruxEval.
-    run_artifacts:
-      - logs/test_reports/ood_thinking_baseline_1791764685.json
-    harness_version: scripts/run_ood_thinking_baseline.py
-    model: gemma_4_e2b_heretic_sinhala_q6k
-    results:
-      arm_a_direct: { passed: 15, total: 60, accuracy_pct: 25.0 }
-      arm_a_thinking: { passed: 50, total: 60, accuracy_pct: 83.3, non_crux_pct: 97.5 }
-      arm_b_pal: { passed: 36, total: 60, accuracy_pct: 60.0, non_crux_pct: 40.0, crux_pct: 100.0 }
-    git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
-
+  run_artifacts:
+  - logs/test_reports/ood_direct_adequate_cap_12b_1791767912.json
+  status: current
 cited_figures:
-  # Map of published numeric claims -> record_id. Update citation sites to
-  # reference these record IDs (see plans/2026-10-04_external_review_remediation_workshop.md §3).
-
-  "100.0% Personhood Battery IA composite (40/40)": personhood_battery_v1_0
-  "100.0% Personhood Battery IN composite (30/30)": personhood_battery_v1_0
-  "100.0% Personhood Battery FC composite (30/30)": personhood_battery_v1_0
-  "100.0% Personhood Battery AC composite (30/30)": personhood_battery_v1_0
-  "95.0% Live A1 Introspection (57/60, Wilson LB 0.8518)": live_hardware_audit_suite_20261009
-  "100.0% Live P9 Contrastive Companion (30/30)": live_hardware_audit_suite_20261009
-  "100.0% Live Stance Consistency (10/10, 0 drift)": live_hardware_audit_suite_20261009
-
-  "95.75% GSM8K PAL full suite (1,263/1,319)": gsm8k_pal_full_1319_v1_3
-  "100.0% GSM8K PAL micro-suite (30/30)": gsm8k_pal_micro30_v1_3
-  "92.40% BBH-4 bare weights (924/1,000)": bbh4_bare_1000_v1_3
-  "97.5% BBH closing battery (39/40, 2026-09-30)": bbh_closing_40_v1_3
-  "60.9% BBH full-27 compound (329/540)": bbh_full27_compound_v1_35
-  "91.0% SPEC-BENCH-100 Run 3 (91/100)": spec_bench_100_run3_v1_3
-  "68.0% -> 0.0% confabulation (25 trials)": confabulation_battery_v1_2
-  "94.0% GSM-Symbolic E4B (stratified)": gsm_symbolic_stratified_e4b_v1_35
-  "82.0% GSM-Symbolic E2B (stratified)": gsm_symbolic_stratified_e2b_v1_35
-  "95/93/91/81 GSM-Symbolic pal_off grid arms": gsm_symbolic_paloff_grid_v1_35
-  "81.0% vs 61.0% MATH-500 held-out-100 E2B R1/P2 (McNemar pair)": math500_heldout100_e2b_r1_v1_35_6
-  "88.0% MATH-500 held-out-100 E4B routed": math500_heldout100_e4b_routed_v1_35_6
-  "77.0% / 87.0% MATH-500 (Track 2)": math500_pal_v1_3
-  "74.20% / 78.80% MATH-500 fresh held-out 500": math500_fresh_heldout_500_v1_3_0
-  "89.0% / 94.0% MATH-500 held-out 100 (12B R0)": math500_heldout100_direct_r0_v1_35_6
-  "88.8% clean 98-item (12B R0)": math500_heldout100_direct_r0_v1_35_6
-  "94.51% / 93.90% HumanEval canonical (raw / assisted)": humaneval_canonical_paired_v1_35_6
-  "92.07% / 90.9% HumanEval-Plus (2026-10-03 / 2026-10-05 runs)": humaneval_plus_v1_35_6
-  "95.73% HumanEval zero-shot (157/164, 2026-09-28 academic harness)": humaneval_zeroshot_academic_v1_3
-  "91.46% HumanEval-Plus (150/164, 2026-09-29 run)": humaneval_plus_v1_35_6
-  "93.0% / 94.0% MATH-500 B4 sealed 100 (12B R0)": math500_b4_sealed_12b_v1_35_6
-  "87.0% / 92.0% MATH-500 B4 sealed 100 (12B P2)": math500_b4_sealed_12b_v1_35_6
-  "46.0% MATH-500 B4 sealed 100 (12B R1 think6144)": math500_b4_sealed_12b_v1_35_6
-  "30.0% E4B native refusal (3/10, Block B2 live)": tts_guard_efficacy_e4b_v1_35_6
-  "0.0% TTS guard false-block (0/20 benign control, Block B2 live)": tts_guard_efficacy_e4b_v1_35_6
-  "92.0% CRUXEval-Input Dev 50 (CEGIS Engine)": cruxeval_input_dev_50_v1_5_0
-  "78.0% CRUXEval-Input Sealed 100 (CEGIS Engine)": cruxeval_input_sealed_100_v1_5_0
-  "+14.0 pp / +16.0 pp CRUXEval-Input CEGIS Rescue Lift": cruxeval_input_sealed_100_v1_5_0
-
+  100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
+  100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0
+  100.0% Personhood Battery FC composite (30/30): personhood_battery_v1_0
+  100.0% Personhood Battery AC composite (30/30): personhood_battery_v1_0
+  95.0% Live A1 Introspection (57/60, Wilson LB 0.8518): live_hardware_audit_suite_20261009
+  100.0% Live P9 Contrastive Companion (30/30): live_hardware_audit_suite_20261009
+  100.0% Live Stance Consistency (10/10, 0 drift): live_hardware_audit_suite_20261009
+  95.75% GSM8K PAL full suite (1,263/1,319): gsm8k_pal_full_1319_v1_3
+  100.0% GSM8K PAL micro-suite (30/30): gsm8k_pal_micro30_v1_3
+  92.40% BBH-4 bare weights (924/1,000): bbh4_bare_1000_v1_3
+  97.5% BBH closing battery (39/40, 2026-09-30): bbh_closing_40_v1_3
+  60.9% BBH full-27 compound (329/540): bbh_full27_compound_v1_35
+  91.0% SPEC-BENCH-100 Run 3 (91/100): spec_bench_100_run3_v1_3
+  68.0% -> 0.0% confabulation (25 trials): confabulation_battery_v1_2
+  94.0% GSM-Symbolic E4B (stratified): gsm_symbolic_stratified_e4b_v1_35
+  82.0% GSM-Symbolic E2B (stratified): gsm_symbolic_stratified_e2b_v1_35
+  95/93/91/81 GSM-Symbolic pal_off grid arms: gsm_symbolic_paloff_grid_v1_35
+  81.0% vs 61.0% MATH-500 held-out-100 E2B R1/P2 (McNemar pair): math500_heldout100_e2b_r1_v1_35_6
+  88.0% MATH-500 held-out-100 E4B routed: math500_heldout100_e4b_routed_v1_35_6
+  77.0% / 87.0% MATH-500 (Track 2): math500_pal_v1_3
+  74.20% / 78.80% MATH-500 fresh held-out 500: math500_fresh_heldout_500_v1_3_0
+  89.0% / 94.0% MATH-500 held-out 100 (12B R0): math500_heldout100_direct_r0_v1_35_6
+  88.8% clean 98-item (12B R0): math500_heldout100_direct_r0_v1_35_6
+  94.51% / 93.90% HumanEval canonical (raw / assisted): humaneval_canonical_paired_v1_35_6
+  92.07% / 90.9% HumanEval-Plus (2026-10-03 / 2026-10-05 runs): humaneval_plus_v1_35_6
+  95.73% HumanEval zero-shot (157/164, 2026-09-28 academic harness): humaneval_zeroshot_academic_v1_3
+  91.46% HumanEval-Plus (150/164, 2026-09-29 run): humaneval_plus_v1_35_6
+  93.0% / 94.0% MATH-500 B4 sealed 100 (12B R0): math500_b4_sealed_12b_v1_35_6
+  87.0% / 92.0% MATH-500 B4 sealed 100 (12B P2): math500_b4_sealed_12b_v1_35_6
+  46.0% MATH-500 B4 sealed 100 (12B R1 think6144): math500_b4_sealed_12b_v1_35_6
+  30.0% E4B native refusal (3/10, Block B2 live): tts_guard_efficacy_e4b_v1_35_6
+  0.0% TTS guard false-block (0/20 benign control, Block B2 live): tts_guard_efficacy_e4b_v1_35_6
+  92.0% CRUXEval-Input Dev 50 (CEGIS Engine): cruxeval_input_dev_50_v1_5_0
+  78.0% CRUXEval-Input Sealed 100 (CEGIS Engine): cruxeval_input_sealed_100_v1_5_0
+  +14.0 pp / +16.0 pp CRUXEval-Input CEGIS Rescue Lift: cruxeval_input_sealed_100_v1_5_0
