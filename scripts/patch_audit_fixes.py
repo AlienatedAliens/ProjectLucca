@@ -1,4 +1,4 @@
-"""
+r"""
 Applies the 5 audit fixes discovered from task-16230:
 1. src/lucca/reasoning/cegis_python.py:
    - Increase default max_tokens from 512 to 1024 in synthesize_checked_formalization, synthesize_parallel, and synthesize_and_repair

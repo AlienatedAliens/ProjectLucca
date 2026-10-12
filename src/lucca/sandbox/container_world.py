@@ -196,6 +196,11 @@ class ContainerWorld:
         self.initial_world = dict(iw) if isinstance(iw, dict) else {}
         self.beliefs = {k: dict(v) for k, v in b.items() if isinstance(v, dict)} if isinstance(b, dict) else {}
 
+    # Method aliases for common LLM hallucinations
+    put = place
+    relocate = move
+    ask = query
+
 
 def extract_events_from_json_text(text: str) -> tuple[list[dict[str, object]], bool]:
     """Extracts events list from LLM output, handling markdown fences and JSON arrays."""
@@ -243,3 +248,11 @@ def extract_events_from_json_text(text: str) -> tuple[list[dict[str, object]], b
             pass
 
     return [], False
+
+
+# Common aliases for LLMs importing World, KnowledgeBase, etc.
+World = ContainerWorld
+KnowledgeBase = ContainerWorld
+BeliefTracker = ContainerWorld
+
+__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "extract_events_from_json_text"]

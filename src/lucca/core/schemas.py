@@ -61,6 +61,11 @@ class ToolResult(BaseModel):
     elapsed_ms: float
     stderr: str = ""
 
+    @property
+    def stdout(self) -> str:
+        """Convenience alias for content matching standard subprocess conventions."""
+        return self.content or ""
+
 
 class ToolParameter(BaseModel):
     type: str

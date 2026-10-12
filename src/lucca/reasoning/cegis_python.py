@@ -61,6 +61,10 @@ class CEGISResult:
     traces: list[CEGISTrace] = field(default_factory=list)
     total_elapsed_ms: float = 0.0
 
+    @property
+    def output(self) -> str | None:
+        return self.predicted_output
+
 
 def parse_python_exception(stderr_text: str) -> tuple[str | None, str | None]:
     """Extracts the Python exception type and message from a standard traceback string."""
@@ -449,6 +453,8 @@ class PythonCEGISEngine:
         temperature: float = 0.1,
         max_tokens: int = 1024,
         exemplar_messages: list[dict[str, str]] | None = None,
+        prelude: str | None = None,
+        max_turns: int | None = None,
     ) -> CEGISResult:
         """
         Runs the full CEGIS loop:
@@ -471,7 +477,8 @@ class PythonCEGISEngine:
         predicted_out: str | None = None
         failure_stage: str | None = None
 
-        for turn in range(1, self.max_turns + 1):
+        effective_max_turns = max_turns if max_turns is not None else self.max_turns
+        for turn in range(1, effective_max_turns + 1):
             t_turn = time.perf_counter()
             content, finish_reason = self._query_llm(
                 messages=messages,
@@ -509,10 +516,12 @@ class PythonCEGISEngine:
 
             last_code = code
 
-            # Full executable snippet includes test harness if provided
+            # Full executable snippet includes prelude and test harness if provided
             full_exec_code = code
-            if test_harness and test_harness.strip() not in code:
-                full_exec_code = f"{code}\n\n# --- Verification Harness ---\n{test_harness}"
+            if prelude and prelude.strip() and prelude.strip() not in code:
+                full_exec_code = f"{prelude.strip()}\n\n{code}"
+            if test_harness and test_harness.strip() not in full_exec_code:
+                full_exec_code = f"{full_exec_code}\n\n# --- Verification Harness ---\n{test_harness}"
             if "print" not in full_exec_code and "ans" in full_exec_code:
                 full_exec_code = f"{full_exec_code}\nprint(ans)"
 
@@ -579,7 +588,7 @@ class PythonCEGISEngine:
             else:
                 failure_stage = "EXECUTION_RUNTIME_ERROR"
 
-            if turn < self.max_turns:
+            if turn < effective_max_turns:
                 # Construct autonomous repair prompt
                 repair_prompt = (
                     f"Your Python code produced a runtime error when executed in the sandbox:\n\n"
@@ -597,7 +606,7 @@ class PythonCEGISEngine:
         total_elapsed = (time.perf_counter() - t0) * 1000.0
         logger.warning(
             "cegis_synthesis_exhausted",
-            max_turns=self.max_turns,
+            max_turns=effective_max_turns,
             failure_stage=failure_stage,
             total_elapsed_ms=total_elapsed,
         )
@@ -605,7 +614,7 @@ class PythonCEGISEngine:
             success=False,
             final_code=last_code,
             predicted_output=None,
-            turns_taken=self.max_turns,
+            turns_taken=effective_max_turns,
             method="INTERNAL_FALLBACK",
             failure_stage=failure_stage or "LLM_REASONING_LOGIC",
             traces=traces,

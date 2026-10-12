@@ -1,0 +1,1940 @@
+{
+  "benchmark": "Sealed_Parametric_Reasoning_Master_Suite",
+  "generated_at": "2026-10-12T21:38:46.287933+00:00",
+  "master_seed": 42,
+  "total_tasks": 125,
+  "suite_counts": {
+    "single_lobe_epistemic": 25,
+    "single_lobe_smt": 25,
+    "single_lobe_cas": 25,
+    "two_lobe_composed": 25,
+    "formalization_translation": 25
+  },
+  "tasks": [
+    {
+      "task_id": "SEALED_CW_01",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Beatrice, Julian, and Eleanor are all in the facility and know that the 'compass' is in 'lab_bench'. Later, while Eleanor is in a soundproof bunker, Beatrice moves the 'compass' to 'observation_deck' (only Julian observes this move). Afterwards, Julian relocates the 'compass' to 'locker_seven' while both Beatrice and Eleanor are away. Where would Julian look for the 'compass'? Conclude with your answer as the exact location name.",
+      "ground_truth": "locker_seven",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Beatrice",
+          "Julian",
+          "Eleanor"
+        ],
+        "target_agent": "Julian",
+        "item": "compass",
+        "locations": [
+          "lab_bench",
+          "observation_deck",
+          "locker_seven"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_02",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Penelope, Alexander, and Nadia are all in the facility and know that the 'lens_filter' is in 'lab_bench'. Later, while Nadia is in a soundproof bunker, Penelope moves the 'lens_filter' to 'cargo_bay' (only Alexander observes this move). Afterwards, Alexander relocates the 'lens_filter' to 'briefcase' while both Penelope and Nadia are away. Where would Alexander look for the 'lens_filter'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Penelope",
+          "Alexander",
+          "Nadia"
+        ],
+        "target_agent": "Alexander",
+        "item": "lens_filter",
+        "locations": [
+          "lab_bench",
+          "cargo_bay",
+          "briefcase"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_03",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Marcus, Felix, and Beatrice are all in the facility and know that the 'cipher_disk' is in 'locker_seven'. Later, while Beatrice is in a soundproof bunker, Marcus moves the 'cipher_disk' to 'drawer' (only Felix observes this move). Afterwards, Felix relocates the 'cipher_disk' to 'workbench' while both Marcus and Beatrice are away. Where would Marcus look for the 'cipher_disk'? Conclude with your answer as the exact location name.",
+      "ground_truth": "drawer",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Marcus",
+          "Felix",
+          "Beatrice"
+        ],
+        "target_agent": "Marcus",
+        "item": "cipher_disk",
+        "locations": [
+          "locker_seven",
+          "drawer",
+          "workbench"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_04",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Felix, Quentin, and Penelope are all in the facility and know that the 'star_chart' is in 'storage_box'. Later, while Penelope is in a soundproof bunker, Felix moves the 'star_chart' to 'drawer' (only Quentin observes this move). Afterwards, Quentin relocates the 'star_chart' to 'cargo_bay' while both Felix and Penelope are away. Where would Penelope look for the 'star_chart'? Conclude with your answer as the exact location name.",
+      "ground_truth": "storage_box",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Felix",
+          "Quentin",
+          "Penelope"
+        ],
+        "target_agent": "Penelope",
+        "item": "star_chart",
+        "locations": [
+          "storage_box",
+          "drawer",
+          "cargo_bay"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_05",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Isabelle, Felix, and Marcus are all in the facility and know that the 'cipher_disk' is in 'vault_alpha'. Later, while Marcus is in a soundproof bunker, Isabelle moves the 'cipher_disk' to 'cargo_bay' (only Felix observes this move). Afterwards, Felix relocates the 'cipher_disk' to 'storage_box' while both Isabelle and Marcus are away. Where would Isabelle look for the 'cipher_disk'? Conclude with your answer as the exact location name.",
+      "ground_truth": "cargo_bay",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Isabelle",
+          "Felix",
+          "Marcus"
+        ],
+        "target_agent": "Isabelle",
+        "item": "cipher_disk",
+        "locations": [
+          "vault_alpha",
+          "cargo_bay",
+          "storage_box"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_06",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Beatrice, Felix, and Julian are all in the facility and know that the 'transponder' is in 'locker_seven'. Later, while Julian is in a soundproof bunker, Beatrice moves the 'transponder' to 'briefcase' (only Felix observes this move). Afterwards, Felix relocates the 'transponder' to 'cargo_bay' while both Beatrice and Julian are away. Where would Beatrice look for the 'transponder'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Beatrice",
+          "Felix",
+          "Julian"
+        ],
+        "target_agent": "Beatrice",
+        "item": "transponder",
+        "locations": [
+          "locker_seven",
+          "briefcase",
+          "cargo_bay"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_07",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Beatrice, Dmitri, and Oliver are all in the facility and know that the 'resonator' is in 'armory'. Later, while Oliver is in a soundproof bunker, Beatrice moves the 'resonator' to 'lab_bench' (only Dmitri observes this move). Afterwards, Dmitri relocates the 'resonator' to 'storage_box' while both Beatrice and Oliver are away. Where would Oliver look for the 'resonator'? Conclude with your answer as the exact location name.",
+      "ground_truth": "armory",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Beatrice",
+          "Dmitri",
+          "Oliver"
+        ],
+        "target_agent": "Oliver",
+        "item": "resonator",
+        "locations": [
+          "armory",
+          "lab_bench",
+          "storage_box"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_08",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Oliver, Felix, and Eleanor are all in the facility and know that the 'cipher_disk' is in 'storage_box'. Later, while Eleanor is in a soundproof bunker, Oliver moves the 'cipher_disk' to 'lab_bench' (only Felix observes this move). Afterwards, Felix relocates the 'cipher_disk' to 'vault_alpha' while both Oliver and Eleanor are away. Where would Eleanor look for the 'cipher_disk'? Conclude with your answer as the exact location name.",
+      "ground_truth": "storage_box",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Oliver",
+          "Felix",
+          "Eleanor"
+        ],
+        "target_agent": "Eleanor",
+        "item": "cipher_disk",
+        "locations": [
+          "storage_box",
+          "lab_bench",
+          "vault_alpha"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_09",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Isabelle, Liam, and Felix are all in the facility and know that the 'resonator' is in 'cargo_bay'. Later, while Felix is in a soundproof bunker, Isabelle moves the 'resonator' to 'locker_seven' (only Liam observes this move). Afterwards, Liam relocates the 'resonator' to 'briefcase' while both Isabelle and Felix are away. Where would Felix look for the 'resonator'? Conclude with your answer as the exact location name.",
+      "ground_truth": "cargo_bay",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Isabelle",
+          "Liam",
+          "Felix"
+        ],
+        "target_agent": "Felix",
+        "item": "resonator",
+        "locations": [
+          "cargo_bay",
+          "locker_seven",
+          "briefcase"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_10",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Dmitri, Julian, and Penelope are all in the facility and know that the 'decoder_ring' is in 'lab_bench'. Later, while Penelope is in a soundproof bunker, Dmitri moves the 'decoder_ring' to 'armory' (only Julian observes this move). Afterwards, Julian relocates the 'decoder_ring' to 'drawer' while both Dmitri and Penelope are away. Where would Dmitri look for the 'decoder_ring'? Conclude with your answer as the exact location name.",
+      "ground_truth": "armory",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Dmitri",
+          "Julian",
+          "Penelope"
+        ],
+        "target_agent": "Dmitri",
+        "item": "decoder_ring",
+        "locations": [
+          "lab_bench",
+          "armory",
+          "drawer"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_11",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Penelope, Nadia, and Catherine are all in the facility and know that the 'data_slate' is in 'workbench'. Later, while Catherine is in a soundproof bunker, Penelope moves the 'data_slate' to 'observation_deck' (only Nadia observes this move). Afterwards, Nadia relocates the 'data_slate' to 'locker_seven' while both Penelope and Catherine are away. Where would Catherine look for the 'data_slate'? Conclude with your answer as the exact location name.",
+      "ground_truth": "workbench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Penelope",
+          "Nadia",
+          "Catherine"
+        ],
+        "target_agent": "Catherine",
+        "item": "data_slate",
+        "locations": [
+          "workbench",
+          "observation_deck",
+          "locker_seven"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_12",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Eleanor, Julian, and Dmitri are all in the facility and know that the 'decoder_ring' is in 'briefcase'. Later, while Dmitri is in a soundproof bunker, Eleanor moves the 'decoder_ring' to 'drawer' (only Julian observes this move). Afterwards, Julian relocates the 'decoder_ring' to 'safe' while both Eleanor and Dmitri are away. Where would Dmitri look for the 'decoder_ring'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Eleanor",
+          "Julian",
+          "Dmitri"
+        ],
+        "target_agent": "Dmitri",
+        "item": "decoder_ring",
+        "locations": [
+          "briefcase",
+          "drawer",
+          "safe"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_13",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Beatrice, Eleanor, and Alexander are all in the facility and know that the 'cipher_disk' is in 'storage_box'. Later, while Alexander is in a soundproof bunker, Beatrice moves the 'cipher_disk' to 'locker_seven' (only Eleanor observes this move). Afterwards, Eleanor relocates the 'cipher_disk' to 'workbench' while both Beatrice and Alexander are away. Where would Alexander look for the 'cipher_disk'? Conclude with your answer as the exact location name.",
+      "ground_truth": "storage_box",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Beatrice",
+          "Eleanor",
+          "Alexander"
+        ],
+        "target_agent": "Alexander",
+        "item": "cipher_disk",
+        "locations": [
+          "storage_box",
+          "locker_seven",
+          "workbench"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_14",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Alexander, Katarina, and Dmitri are all in the facility and know that the 'decoder_ring' is in 'briefcase'. Later, while Dmitri is in a soundproof bunker, Alexander moves the 'decoder_ring' to 'safe' (only Katarina observes this move). Afterwards, Katarina relocates the 'decoder_ring' to 'attic' while both Alexander and Dmitri are away. Where would Dmitri look for the 'decoder_ring'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Alexander",
+          "Katarina",
+          "Dmitri"
+        ],
+        "target_agent": "Dmitri",
+        "item": "decoder_ring",
+        "locations": [
+          "briefcase",
+          "safe",
+          "attic"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_15",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Oliver, Katarina, and Marcus are all in the facility and know that the 'cipher_disk' is in 'armory'. Later, while Marcus is in a soundproof bunker, Oliver moves the 'cipher_disk' to 'vault_alpha' (only Katarina observes this move). Afterwards, Katarina relocates the 'cipher_disk' to 'locker_seven' while both Oliver and Marcus are away. Where would Marcus look for the 'cipher_disk'? Conclude with your answer as the exact location name.",
+      "ground_truth": "armory",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Oliver",
+          "Katarina",
+          "Marcus"
+        ],
+        "target_agent": "Marcus",
+        "item": "cipher_disk",
+        "locations": [
+          "armory",
+          "vault_alpha",
+          "locker_seven"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_16",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Gabriel, Marcus, and Rowan are all in the facility and know that the 'resonator' is in 'cargo_bay'. Later, while Rowan is in a soundproof bunker, Gabriel moves the 'resonator' to 'drawer' (only Marcus observes this move). Afterwards, Marcus relocates the 'resonator' to 'attic' while both Gabriel and Rowan are away. Where would Rowan look for the 'resonator'? Conclude with your answer as the exact location name.",
+      "ground_truth": "cargo_bay",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Gabriel",
+          "Marcus",
+          "Rowan"
+        ],
+        "target_agent": "Rowan",
+        "item": "resonator",
+        "locations": [
+          "cargo_bay",
+          "drawer",
+          "attic"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_17",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Nadia, Katarina, and Marcus are all in the facility and know that the 'data_slate' is in 'vault_alpha'. Later, while Marcus is in a soundproof bunker, Nadia moves the 'data_slate' to 'workbench' (only Katarina observes this move). Afterwards, Katarina relocates the 'data_slate' to 'briefcase' while both Nadia and Marcus are away. Where would Nadia look for the 'data_slate'? Conclude with your answer as the exact location name.",
+      "ground_truth": "workbench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Nadia",
+          "Katarina",
+          "Marcus"
+        ],
+        "target_agent": "Nadia",
+        "item": "data_slate",
+        "locations": [
+          "vault_alpha",
+          "workbench",
+          "briefcase"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_18",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Gabriel, Beatrice, and Helena are all in the facility and know that the 'transponder' is in 'pantry'. Later, while Helena is in a soundproof bunker, Gabriel moves the 'transponder' to 'lab_bench' (only Beatrice observes this move). Afterwards, Beatrice relocates the 'transponder' to 'storage_box' while both Gabriel and Helena are away. Where would Gabriel look for the 'transponder'? Conclude with your answer as the exact location name.",
+      "ground_truth": "lab_bench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Gabriel",
+          "Beatrice",
+          "Helena"
+        ],
+        "target_agent": "Gabriel",
+        "item": "transponder",
+        "locations": [
+          "pantry",
+          "lab_bench",
+          "storage_box"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_19",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Marcus, Rowan, and Helena are all in the facility and know that the 'quantum_key' is in 'safe'. Later, while Helena is in a soundproof bunker, Marcus moves the 'quantum_key' to 'briefcase' (only Rowan observes this move). Afterwards, Rowan relocates the 'quantum_key' to 'vault_alpha' while both Marcus and Helena are away. Where would Marcus look for the 'quantum_key'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Marcus",
+          "Rowan",
+          "Helena"
+        ],
+        "target_agent": "Marcus",
+        "item": "quantum_key",
+        "locations": [
+          "safe",
+          "briefcase",
+          "vault_alpha"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_20",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Alexander, Rowan, and Dmitri are all in the facility and know that the 'lens_filter' is in 'lab_bench'. Later, while Dmitri is in a soundproof bunker, Alexander moves the 'lens_filter' to 'attic' (only Rowan observes this move). Afterwards, Rowan relocates the 'lens_filter' to 'pantry' while both Alexander and Dmitri are away. Where would Alexander look for the 'lens_filter'? Conclude with your answer as the exact location name.",
+      "ground_truth": "attic",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Alexander",
+          "Rowan",
+          "Dmitri"
+        ],
+        "target_agent": "Alexander",
+        "item": "lens_filter",
+        "locations": [
+          "lab_bench",
+          "attic",
+          "pantry"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_21",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Oliver, Marcus, and Eleanor are all in the facility and know that the 'specimen_jar' is in 'vault_alpha'. Later, while Eleanor is in a soundproof bunker, Oliver moves the 'specimen_jar' to 'locker_seven' (only Marcus observes this move). Afterwards, Marcus relocates the 'specimen_jar' to 'pantry' while both Oliver and Eleanor are away. Where would Oliver look for the 'specimen_jar'? Conclude with your answer as the exact location name.",
+      "ground_truth": "locker_seven",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Oliver",
+          "Marcus",
+          "Eleanor"
+        ],
+        "target_agent": "Oliver",
+        "item": "specimen_jar",
+        "locations": [
+          "vault_alpha",
+          "locker_seven",
+          "pantry"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_22",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Nadia, Gabriel, and Marcus are all in the facility and know that the 'chronometer' is in 'locker_seven'. Later, while Marcus is in a soundproof bunker, Nadia moves the 'chronometer' to 'vault_alpha' (only Gabriel observes this move). Afterwards, Gabriel relocates the 'chronometer' to 'workbench' while both Nadia and Marcus are away. Where would Gabriel look for the 'chronometer'? Conclude with your answer as the exact location name.",
+      "ground_truth": "workbench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Nadia",
+          "Gabriel",
+          "Marcus"
+        ],
+        "target_agent": "Gabriel",
+        "item": "chronometer",
+        "locations": [
+          "locker_seven",
+          "vault_alpha",
+          "workbench"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_23",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Dmitri, Katarina, and Quentin are all in the facility and know that the 'transponder' is in 'briefcase'. Later, while Quentin is in a soundproof bunker, Dmitri moves the 'transponder' to 'workbench' (only Katarina observes this move). Afterwards, Katarina relocates the 'transponder' to 'storage_box' while both Dmitri and Quentin are away. Where would Quentin look for the 'transponder'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Dmitri",
+          "Katarina",
+          "Quentin"
+        ],
+        "target_agent": "Quentin",
+        "item": "transponder",
+        "locations": [
+          "briefcase",
+          "workbench",
+          "storage_box"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_24",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Eleanor, Helena, and Gabriel are all in the facility and know that the 'specimen_jar' is in 'vault_alpha'. Later, while Gabriel is in a soundproof bunker, Eleanor moves the 'specimen_jar' to 'locker_seven' (only Helena observes this move). Afterwards, Helena relocates the 'specimen_jar' to 'attic' while both Eleanor and Gabriel are away. Where would Helena look for the 'specimen_jar'? Conclude with your answer as the exact location name.",
+      "ground_truth": "attic",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Eleanor",
+          "Helena",
+          "Gabriel"
+        ],
+        "target_agent": "Helena",
+        "item": "specimen_jar",
+        "locations": [
+          "vault_alpha",
+          "locker_seven",
+          "attic"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_CW_25",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At the start of the mission, Isabelle, Catherine, and Penelope are all in the facility and know that the 'decoder_ring' is in 'lab_bench'. Later, while Penelope is in a soundproof bunker, Isabelle moves the 'decoder_ring' to 'workbench' (only Catherine observes this move). Afterwards, Catherine relocates the 'decoder_ring' to 'storage_box' while both Isabelle and Penelope are away. Where would Isabelle look for the 'decoder_ring'? Conclude with your answer as the exact location name.",
+      "ground_truth": "workbench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Isabelle",
+          "Catherine",
+          "Penelope"
+        ],
+        "target_agent": "Isabelle",
+        "item": "decoder_ring",
+        "locations": [
+          "lab_bench",
+          "workbench",
+          "storage_box"
+        ]
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_01",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 54\n3. y - x = 10\n4. z - y = 10\n5. 2*x + 3*y - z = 42\nFind and print the exact value of x.\nConclude with your final answer as an integer.",
+      "ground_truth": "8",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 8,
+        "y": 18,
+        "z": 28,
+        "query": "x"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_02",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 33\n3. y - x = 8\n4. z - y = 5\n5. 2*x + 3*y - z = 27\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "17",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 4,
+        "y": 12,
+        "z": 17,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_03",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 19\n3. y - x = 5\n4. z - y = 3\n5. 2*x + 3*y - z = 15\nFind and print the sum of their squares (x^2 + y^2 + z^2).\nConclude with your final answer as an integer.",
+      "ground_truth": "153",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 2,
+        "y": 7,
+        "z": 10,
+        "query": "sum_squares"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_04",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 16\n3. y - x = 3\n4. z - y = 4\n5. 2*x + 3*y - z = 10\nFind and print the sum of their squares (x^2 + y^2 + z^2).\nConclude with your final answer as an integer.",
+      "ground_truth": "110",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 2,
+        "y": 5,
+        "z": 9,
+        "query": "sum_squares"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_05",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 45\n3. y - x = 8\n4. z - y = 11\n5. 2*x + 3*y - z = 29\nFind and print the product (x * y * z).\nConclude with your final answer as an integer.",
+      "ground_truth": "2100",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 6,
+        "y": 14,
+        "z": 25,
+        "query": "product"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_06",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 38\n3. y - x = 7\n4. z - y = 3\n5. 2*x + 3*y - z = 39\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "17",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 7,
+        "y": 14,
+        "z": 17,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_07",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 29\n3. y - x = 4\n4. z - y = 3\n5. 2*x + 3*y - z = 29\nFind and print the sum of their squares (x^2 + y^2 + z^2).\nConclude with your final answer as an integer.",
+      "ground_truth": "305",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 6,
+        "y": 10,
+        "z": 13,
+        "query": "sum_squares"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_08",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 21\n3. y - x = 3\n4. z - y = 6\n5. 2*x + 3*y - z = 12\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "12",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 3,
+        "y": 6,
+        "z": 12,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_09",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 23\n3. y - x = 6\n4. z - y = 2\n5. 2*x + 3*y - z = 22\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "11",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 3,
+        "y": 9,
+        "z": 11,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_10",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 39\n3. y - x = 3\n4. z - y = 9\n5. 2*x + 3*y - z = 29\nFind and print the product (x * y * z).\nConclude with your final answer as an integer.",
+      "ground_truth": "1760",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 8,
+        "y": 11,
+        "z": 20,
+        "query": "product"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_11",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 29\n3. y - x = 5\n4. z - y = 4\n5. 2*x + 3*y - z = 26\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "14",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 5,
+        "y": 10,
+        "z": 14,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_12",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 21\n3. y - x = 2\n4. z - y = 2\n5. 2*x + 3*y - z = 22\nFind and print the product (x * y * z).\nConclude with your final answer as an integer.",
+      "ground_truth": "315",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 5,
+        "y": 7,
+        "z": 9,
+        "query": "product"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_13",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 27\n3. y - x = 7\n4. z - y = 7\n5. 2*x + 3*y - z = 15\nFind and print the product (x * y * z).\nConclude with your final answer as an integer.",
+      "ground_truth": "288",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 2,
+        "y": 9,
+        "z": 16,
+        "query": "product"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_14",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 51\n3. y - x = 10\n4. z - y = 4\n5. 2*x + 3*y - z = 52\nFind and print the exact value of y.\nConclude with your final answer as an integer.",
+      "ground_truth": "19",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 9,
+        "y": 19,
+        "z": 23,
+        "query": "y"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_15",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 57\n3. y - x = 9\n4. z - y = 12\n5. 2*x + 3*y - z = 42\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "30",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 9,
+        "y": 18,
+        "z": 30,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_16",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 22\n3. y - x = 6\n4. z - y = 4\n5. 2*x + 3*y - z = 16\nFind and print the exact value of x.\nConclude with your final answer as an integer.",
+      "ground_truth": "2",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 2,
+        "y": 8,
+        "z": 12,
+        "query": "x"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_17",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 30\n3. y - x = 2\n4. z - y = 11\n5. 2*x + 3*y - z = 13\nFind and print the sum of their squares (x^2 + y^2 + z^2).\nConclude with your final answer as an integer.",
+      "ground_truth": "398",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 5,
+        "y": 7,
+        "z": 18,
+        "query": "sum_squares"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_18",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 43\n3. y - x = 7\n4. z - y = 11\n5. 2*x + 3*y - z = 27\nFind and print the exact value of y.\nConclude with your final answer as an integer.",
+      "ground_truth": "13",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 6,
+        "y": 13,
+        "z": 24,
+        "query": "y"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_19",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 37\n3. y - x = 3\n4. z - y = 7\n5. 2*x + 3*y - z = 31\nFind and print the exact value of z.\nConclude with your final answer as an integer.",
+      "ground_truth": "18",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 8,
+        "y": 11,
+        "z": 18,
+        "query": "z"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_20",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 30\n3. y - x = 5\n4. z - y = 11\n5. 2*x + 3*y - z = 11\nFind and print the exact value of x.\nConclude with your final answer as an integer.",
+      "ground_truth": "3",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 3,
+        "y": 8,
+        "z": 19,
+        "query": "x"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_21",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 40\n3. y - x = 2\n4. z - y = 12\n5. 2*x + 3*y - z = 24\nFind and print the sum of their squares (x^2 + y^2 + z^2).\nConclude with your final answer as an integer.",
+      "ground_truth": "648",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 8,
+        "y": 10,
+        "z": 22,
+        "query": "sum_squares"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_22",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 37\n3. y - x = 3\n4. z - y = 4\n5. 2*x + 3*y - z = 38\nFind and print the exact value of y.\nConclude with your final answer as an integer.",
+      "ground_truth": "12",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 9,
+        "y": 12,
+        "z": 16,
+        "query": "y"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_23",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 30\n3. y - x = 6\n4. z - y = 12\n5. 2*x + 3*y - z = 8\nFind and print the exact value of x.\nConclude with your final answer as an integer.",
+      "ground_truth": "2",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 2,
+        "y": 8,
+        "z": 20,
+        "query": "x"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_24",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 26\n3. y - x = 3\n4. z - y = 2\n5. 2*x + 3*y - z = 28\nFind and print the product (x * y * z).\nConclude with your final answer as an integer.",
+      "ground_truth": "594",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 6,
+        "y": 9,
+        "z": 11,
+        "query": "product"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_25",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Three distinct positive integers x, y, z satisfy the following conditions:\n1. x < y < z\n2. x + y + z = 36\n3. y - x = 4\n4. z - y = 10\n5. 2*x + 3*y - z = 22\nFind and print the exact value of y.\nConclude with your final answer as an integer.",
+      "ground_truth": "10",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "x": 6,
+        "y": 10,
+        "z": 20,
+        "query": "y"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_01",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of the 7 consecutive primes starting from the 28-th prime (i.e. prime(28) + ... + prime(34)). Print the exact sum as an integer.",
+      "ground_truth": "863",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_sum"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_02",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of the 6 consecutive primes starting from the 17-th prime (i.e. prime(17) + ... + prime(22)). Print the exact sum as an integer.",
+      "ground_truth": "410",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_sum"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_03",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of the 4 consecutive primes starting from the 15-th prime (i.e. prime(15) + ... + prime(18)). Print the exact sum as an integer.",
+      "ground_truth": "220",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_sum"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_04",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of all proper positive divisors of 152 (excluding 152 itself). Print the exact sum as an integer.",
+      "ground_truth": "148",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "divisor_sigma"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_05",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 38-th prime number. Compute and print the value of (sympy.totient(p - 1) * p) mod 913.",
+      "ground_truth": "585",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "totient_prime"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_06",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 39-th prime number. Compute and print the value of (sympy.totient(p - 1) * p) mod 937.",
+      "ground_truth": "576",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "totient_prime"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_07",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 59-th prime number. Compute and print the value of (sympy.totient(p - 1) * p) mod 534.",
+      "ground_truth": "346",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "totient_prime"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_08",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the remainder when 7^2628 is divided by 478. Print the exact remainder as an integer.",
+      "ground_truth": "193",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "modular_exp"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_09",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the remainder when 6^2736 is divided by 490. Print the exact remainder as an integer.",
+      "ground_truth": "106",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "modular_exp"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_10",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of all proper positive divisors of 169 (excluding 169 itself). Print the exact sum as an integer.",
+      "ground_truth": "14",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "divisor_sigma"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_11",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the coefficient of x^3 in the expanded polynomial (3*x + 1)^13. Print the exact integer coefficient.",
+      "ground_truth": "7722",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "poly_coeff"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_12",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 31-th prime number. Compute and print the value of (sympy.totient(p - 1) * p) mod 664.",
+      "ground_truth": "588",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "totient_prime"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_13",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of the 6 consecutive primes starting from the 26-th prime (i.e. prime(26) + ... + prime(31)). Print the exact sum as an integer.",
+      "ground_truth": "660",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_sum"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_14",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 46-th prime number. Compute and print the value of (sympy.totient(p - 1) * p) mod 545.",
+      "ground_truth": "495",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "totient_prime"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_15",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 41-th prime number. Compute and print the value of (sympy.totient(p - 1) * p) mod 662.",
+      "ground_truth": "526",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "totient_prime"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_16",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of all proper positive divisors of 328 (excluding 328 itself). Print the exact sum as an integer.",
+      "ground_truth": "302",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "divisor_sigma"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_17",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the coefficient of x^12 in the expanded polynomial (4*x + 3)^14. Print the exact integer coefficient.",
+      "ground_truth": "13740539904",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "poly_coeff"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_18",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of the 4 consecutive primes starting from the 33-th prime (i.e. prime(33) + ... + prime(36)). Print the exact sum as an integer.",
+      "ground_truth": "576",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_sum"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_19",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of all proper positive divisors of 382 (excluding 382 itself). Print the exact sum as an integer.",
+      "ground_truth": "194",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "divisor_sigma"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_20",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of the 6 consecutive primes starting from the 21-th prime (i.e. prime(21) + ... + prime(26)). Print the exact sum as an integer.",
+      "ground_truth": "522",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_sum"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_21",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the remainder when 3^1511 is divided by 356. Print the exact remainder as an integer.",
+      "ground_truth": "327",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "modular_exp"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_22",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the coefficient of x^6 in the expanded polynomial (3*x + 2)^9. Print the exact integer coefficient.",
+      "ground_truth": "489888",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "poly_coeff"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_23",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of all proper positive divisors of 363 (excluding 363 itself). Print the exact sum as an integer.",
+      "ground_truth": "169",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "divisor_sigma"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_24",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the sum of all proper positive divisors of 186 (excluding 186 itself). Print the exact sum as an integer.",
+      "ground_truth": "198",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "divisor_sigma"
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_25",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Find the coefficient of x^6 in the expanded polynomial (3*x + 3)^8. Print the exact integer coefficient.",
+      "ground_truth": "183708",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "poly_coeff"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_01",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Arthur, and Charles know that the 'ledger' is in 'pantry'. At 09:00, Diana relocates the 'ledger' to 'study' while Arthur watches (Charles is in another wing). At 10:00, Arthur moves the 'ledger' to 'vault' alone while both Diana and Charles are away. Let L be where Diana believes the 'ledger' is located. Map L to integer k: 'pantry': 17, 'study': 23, 'vault': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "171",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_02",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 24, and b - a == 8. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "1232",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_03",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Diana, and Brenda know that the 'cipher' is in 'study'. At 09:00, Arthur relocates the 'cipher' to 'attic' while Diana watches (Brenda is in another wing). At 10:00, Diana moves the 'cipher' to 'vault' alone while both Arthur and Brenda are away. Let L be where Brenda believes the 'cipher' is located. Map L to integer k: 'study': 17, 'attic': 23, 'vault': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "123",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_04",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 13, and b - a == 5. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "153",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_05",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 11, and b - a == 5. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "80",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_06",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_A'. Alice moves the 'badge' to 'room_B' in front of Bob, while Charlie is away. Let w_C be the weight of where Charlie believes the badge is ('room_A': 5, 'room_B': 8). Let w_B be the weight of where Bob believes the badge is ('room_A': 5, 'room_B': 8). Find integers x, y using Z3 such that: x + y == 30, x >= w_C, and y == (w_B / 4) * x. Print the exact value of (x * y).",
+      "ground_truth": "200",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_07",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_A'. Alice moves the 'badge' to 'room_B' in front of Bob, while Charlie is away. Let w_C be the weight of where Charlie believes the badge is ('room_A': 5, 'room_B': 8). Let w_B be the weight of where Bob believes the badge is ('room_A': 5, 'room_B': 8). Find integers x, y using Z3 such that: x + y == 30, x >= w_C, and y == (w_B / 4) * x. Print the exact value of (x * y).",
+      "ground_truth": "200",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_08",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_A'. Alice moves the 'badge' to 'room_B' in front of Bob, while Charlie is away. Let w_C be the weight of where Charlie believes the badge is ('room_A': 5, 'room_B': 8). Let w_B be the weight of where Bob believes the badge is ('room_A': 5, 'room_B': 8). Find integers x, y using Z3 such that: x + y == 30, x >= w_C, and y == (w_B / 4) * x. Print the exact value of (x * y).",
+      "ground_truth": "200",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_09",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_A'. Alice moves the 'badge' to 'room_B' in front of Bob, while Charlie is away. Let w_C be the weight of where Charlie believes the badge is ('room_A': 5, 'room_B': 8). Let w_B be the weight of where Bob believes the badge is ('room_A': 5, 'room_B': 8). Find integers x, y using Z3 such that: x + y == 30, x >= w_C, and y == (w_B / 4) * x. Print the exact value of (x * y).",
+      "ground_truth": "200",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_10",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Arthur, and Brenda know that the 'ledger' is in 'attic'. At 09:00, Diana relocates the 'ledger' to 'study' while Arthur watches (Brenda is in another wing). At 10:00, Arthur moves the 'ledger' to 'pantry' alone while both Diana and Brenda are away. Let L be where Diana believes the 'ledger' is located. Map L to integer k: 'attic': 17, 'study': 23, 'pantry': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "171",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_11",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_A'. Alice moves the 'badge' to 'room_B' in front of Bob, while Charlie is away. Let w_C be the weight of where Charlie believes the badge is ('room_A': 5, 'room_B': 8). Let w_B be the weight of where Bob believes the badge is ('room_A': 5, 'room_B': 8). Find integers x, y using Z3 such that: x + y == 30, x >= w_C, and y == (w_B / 4) * x. Print the exact value of (x * y).",
+      "ground_truth": "200",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_12",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 12, and b - a == 6. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "90",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_13",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 20, and b - a == 8. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "574",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_14",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 13, and b - a == 5. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "153",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_15",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 18, and b - a == 8. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "364",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_16",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Charles, and Diana know that the 'ledger' is in 'study'. At 09:00, Arthur relocates the 'ledger' to 'vault' while Charles watches (Diana is in another wing). At 10:00, Charles moves the 'ledger' to 'pantry' alone while both Arthur and Diana are away. Let L be where Diana believes the 'ledger' is located. Map L to integer k: 'study': 17, 'vault': 23, 'pantry': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "123",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_17",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_A'. Alice moves the 'badge' to 'room_B' in front of Bob, while Charlie is away. Let w_C be the weight of where Charlie believes the badge is ('room_A': 5, 'room_B': 8). Let w_B be the weight of where Bob believes the badge is ('room_A': 5, 'room_B': 8). Find integers x, y using Z3 such that: x + y == 30, x >= w_C, and y == (w_B / 4) * x. Print the exact value of (x * y).",
+      "ground_truth": "200",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_18",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Charles, Diana, and Arthur know that the 'ledger' is in 'pantry'. At 09:00, Charles relocates the 'ledger' to 'vault' while Diana watches (Arthur is in another wing). At 10:00, Diana moves the 'ledger' to 'attic' alone while both Charles and Arthur are away. Let L be where Arthur believes the 'ledger' is located. Map L to integer k: 'pantry': 17, 'vault': 23, 'attic': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "123",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_19",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Charles, and Diana know that the 'specimen' is in 'study'. At 09:00, Arthur relocates the 'specimen' to 'pantry' while Charles watches (Diana is in another wing). At 10:00, Charles moves the 'specimen' to 'vault' alone while both Arthur and Diana are away. Let L be where Arthur believes the 'specimen' is located. Map L to integer k: 'study': 17, 'pantry': 23, 'vault': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "171",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_20",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Brenda, Diana, and Arthur know that the 'specimen' is in 'vault'. At 09:00, Brenda relocates the 'specimen' to 'pantry' while Diana watches (Arthur is in another wing). At 10:00, Diana moves the 'specimen' to 'study' alone while both Brenda and Arthur are away. Let L be where Brenda believes the 'specimen' is located. Map L to integer k: 'vault': 17, 'pantry': 23, 'study': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "171",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_21",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Charles, and Brenda know that the 'cipher' is in 'attic'. At 09:00, Diana relocates the 'cipher' to 'pantry' while Charles watches (Brenda is in another wing). At 10:00, Charles moves the 'cipher' to 'vault' alone while both Diana and Brenda are away. Let L be where Brenda believes the 'cipher' is located. Map L to integer k: 'attic': 17, 'pantry': 23, 'vault': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "123",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_22",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Two positive integers a and b satisfy: a < b, a + b == 13, and b - a == 5. Use Z3 to solve for a and b. Then, use SymPy to compute and print the sum of the first a primes, multiplied by b: sum(sympy.prime(j) for j in range(1, a + 1)) * b.",
+      "ground_truth": "153",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_23",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Diana, and Charles know that the 'cipher' is in 'vault'. At 09:00, Arthur relocates the 'cipher' to 'pantry' while Diana watches (Charles is in another wing). At 10:00, Diana moves the 'cipher' to 'study' alone while both Arthur and Charles are away. Let L be where Charles believes the 'cipher' is located. Map L to integer k: 'vault': 17, 'pantry': 23, 'study': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "123",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_24",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Arthur, and Brenda know that the 'cipher' is in 'attic'. At 09:00, Diana relocates the 'cipher' to 'pantry' while Arthur watches (Brenda is in another wing). At 10:00, Arthur moves the 'cipher' to 'study' alone while both Diana and Brenda are away. Let L be where Diana believes the 'cipher' is located. Map L to integer k: 'attic': 17, 'pantry': 23, 'study': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "171",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_COMP_25",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Charles, and Brenda know that the 'specimen' is in 'attic'. At 09:00, Arthur relocates the 'specimen' to 'pantry' while Charles watches (Brenda is in another wing). At 10:00, Charles moves the 'specimen' to 'vault' alone while both Arthur and Brenda are away. Let L be where Brenda believes the 'specimen' is located. Map L to integer k: 'attic': 17, 'pantry': 23, 'vault': 31. Using SymPy, compute and print the exact value of: (sympy.prime(k) + sympy.totient(k*10)) mod 797.",
+      "ground_truth": "123",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {}
+    },
+    {
+      "task_id": "SEALED_TRANS_01",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 62 cookies and packages them into boxes of 3 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "24",
+      "required_lobes": [],
+      "metadata": {
+        "n": 62,
+        "divisor": 3
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_02",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 67 cookies and packages them into boxes of 7 cookies each. The remaining cookies are divided equally among 4 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "25",
+      "required_lobes": [],
+      "metadata": {
+        "n": 67,
+        "divisor": 7
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_03",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 69 cookies and packages them into boxes of 7 cookies each. The remaining cookies are divided equally among 6 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "45",
+      "required_lobes": [],
+      "metadata": {
+        "n": 69,
+        "divisor": 7
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_04",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 61 cookies and packages them into boxes of 5 cookies each. The remaining cookies are divided equally among 1 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "13",
+      "required_lobes": [],
+      "metadata": {
+        "n": 61,
+        "divisor": 5
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_05",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 72 cookies and packages them into boxes of 6 cookies each. The remaining cookies are divided equally among 0 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "12",
+      "required_lobes": [],
+      "metadata": {
+        "n": 72,
+        "divisor": 6
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_06",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 65 cookies and packages them into boxes of 7 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "13",
+      "required_lobes": [],
+      "metadata": {
+        "n": 65,
+        "divisor": 7
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_07",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 42 cookies and packages them into boxes of 9 cookies each. The remaining cookies are divided equally among 6 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "40",
+      "required_lobes": [],
+      "metadata": {
+        "n": 42,
+        "divisor": 9
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_08",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 66 cookies and packages them into boxes of 8 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "12",
+      "required_lobes": [],
+      "metadata": {
+        "n": 66,
+        "divisor": 8
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_09",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 41 cookies and packages them into boxes of 3 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "17",
+      "required_lobes": [],
+      "metadata": {
+        "n": 41,
+        "divisor": 3
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_10",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 40 cookies and packages them into boxes of 5 cookies each. The remaining cookies are divided equally among 0 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "8",
+      "required_lobes": [],
+      "metadata": {
+        "n": 40,
+        "divisor": 5
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_11",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 100 cookies and packages them into boxes of 9 cookies each. The remaining cookies are divided equally among 1 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "12",
+      "required_lobes": [],
+      "metadata": {
+        "n": 100,
+        "divisor": 9
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_12",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 70 cookies and packages them into boxes of 8 cookies each. The remaining cookies are divided equally among 6 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "44",
+      "required_lobes": [],
+      "metadata": {
+        "n": 70,
+        "divisor": 8
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_13",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 74 cookies and packages them into boxes of 3 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "28",
+      "required_lobes": [],
+      "metadata": {
+        "n": 74,
+        "divisor": 3
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_14",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 98 cookies and packages them into boxes of 9 cookies each. The remaining cookies are divided equally among 8 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "74",
+      "required_lobes": [],
+      "metadata": {
+        "n": 98,
+        "divisor": 9
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_15",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 97 cookies and packages them into boxes of 5 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "23",
+      "required_lobes": [],
+      "metadata": {
+        "n": 97,
+        "divisor": 5
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_16",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 76 cookies and packages them into boxes of 6 cookies each. The remaining cookies are divided equally among 4 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "28",
+      "required_lobes": [],
+      "metadata": {
+        "n": 76,
+        "divisor": 6
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_17",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 54 cookies and packages them into boxes of 4 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "17",
+      "required_lobes": [],
+      "metadata": {
+        "n": 54,
+        "divisor": 4
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_18",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 73 cookies and packages them into boxes of 7 cookies each. The remaining cookies are divided equally among 3 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "19",
+      "required_lobes": [],
+      "metadata": {
+        "n": 73,
+        "divisor": 7
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_19",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 62 cookies and packages them into boxes of 6 cookies each. The remaining cookies are divided equally among 2 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "14",
+      "required_lobes": [],
+      "metadata": {
+        "n": 62,
+        "divisor": 6
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_20",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 55 cookies and packages them into boxes of 3 cookies each. The remaining cookies are divided equally among 1 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "19",
+      "required_lobes": [],
+      "metadata": {
+        "n": 55,
+        "divisor": 3
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_21",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 75 cookies and packages them into boxes of 5 cookies each. The remaining cookies are divided equally among 0 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "15",
+      "required_lobes": [],
+      "metadata": {
+        "n": 75,
+        "divisor": 5
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_22",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 85 cookies and packages them into boxes of 8 cookies each. The remaining cookies are divided equally among 5 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "35",
+      "required_lobes": [],
+      "metadata": {
+        "n": 85,
+        "divisor": 8
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_23",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 62 cookies and packages them into boxes of 7 cookies each. The remaining cookies are divided equally among 6 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "44",
+      "required_lobes": [],
+      "metadata": {
+        "n": 62,
+        "divisor": 7
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_24",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 61 cookies and packages them into boxes of 7 cookies each. The remaining cookies are divided equally among 5 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "33",
+      "required_lobes": [],
+      "metadata": {
+        "n": 61,
+        "divisor": 7
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_25",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the following: A baker has 76 cookies and packages them into boxes of 9 cookies each. The remaining cookies are divided equally among 4 children if remainder > 0, or the baker eats none. Find the total number of boxes formed plus the remainder squared: (boxes + remainder^2). Print only the final integer answer.",
+      "ground_truth": "24",
+      "required_lobes": [],
+      "metadata": {
+        "n": 76,
+        "divisor": 9
+      }
+    }
+  ]
+}

@@ -383,9 +383,9 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     imports_to_add: list[str] = []
 
     # Check if sympy is needed
-    sympy_symbols = {"symbols", "Symbol", "solve", "solveset", "factor", "expand", "simplify", "Matrix", "Rational", "Eq", "diff", "integrate", "pi", "oo"}
-    if ("sp" in used_attr_bases or any(s in used_names for s in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
-        imports_to_add.append("import sympy as sp\nfrom sympy import *")
+    sympy_symbols = {"symbols", "Symbol", "solve", "solveset", "factor", "expand", "simplify", "Matrix", "Rational", "Eq", "diff", "integrate", "pi", "oo", "prime", "totient", "divisor_sigma", "primepi"}
+    if ("sp" in used_attr_bases or "sympy" in used_attr_bases or "sympy" in used_names or any(s in used_names for s in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
+        imports_to_add.append("import sympy\nimport sympy as sp\nfrom sympy import *")
 
     # Check if math is needed
     math_symbols = {"sqrt", "factorial", "gcd", "lcm", "floor", "ceil", "comb", "perm"}
@@ -400,6 +400,16 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     # Check if fractions.Fraction is needed
     if "Fraction" in used_names and "Fraction" not in imported_names and "fractions" not in imported_modules:
         imports_to_add.append("from fractions import Fraction")
+
+    # Check if container_world / ContainerWorld / World / KnowledgeBase is needed
+    cw_symbols = {"ContainerWorld", "World", "KnowledgeBase", "BeliefTracker"}
+    if ("container_world" in used_attr_bases or any(c in used_names for c in cw_symbols)) and "container_world" not in imported_modules and not any(c in imported_names for c in cw_symbols):
+        imports_to_add.append("from container_world import ContainerWorld, World, KnowledgeBase, BeliefTracker")
+
+    # Check if z3 is needed
+    z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or", "And", "Not", "Distinct"}
+    if ("z3" in used_attr_bases or any(z in used_names for z in z3_symbols)) and "z3" not in imported_modules and not any(z in imported_names for z in z3_symbols):
+        imports_to_add.append("import z3\nfrom z3 import *")
 
     # Pre-flight definitions for commonly assumed math sets
     preflight_defs: list[str] = []

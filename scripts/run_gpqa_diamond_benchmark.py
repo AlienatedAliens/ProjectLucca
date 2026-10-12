@@ -168,7 +168,7 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
         # 1. Direct
         t0 = time.perf_counter()
         try:
-            d_out = query_llm(prompt, max_tokens=256, temperature=0.0, enable_thinking=False)
+            d_out = query_llm(prompt, max_tokens=2048, temperature=0.0, enable_thinking=False)
             d_sec = time.perf_counter() - t0
             d_pred = extract_answer(d_out)
             d_ok = (d_pred == correct_letter)

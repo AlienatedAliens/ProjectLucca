@@ -93,14 +93,24 @@ class ContainerWorld:
             if t_item in k or k in t_item:
                 return v
         return None
+ContainerWorld.put = ContainerWorld.place
+ContainerWorld.relocate = ContainerWorld.move
+ContainerWorld.ask = ContainerWorld.query
+World = ContainerWorld
+KnowledgeBase = ContainerWorld
+BeliefTracker = ContainerWorld
 _cw_mod = _types.ModuleType("container_world")
 _cw_mod.ContainerWorld = ContainerWorld
-_sys.modules.setdefault("container_world", _cw_mod)
+_cw_mod.World = ContainerWorld
+_cw_mod.KnowledgeBase = ContainerWorld
+_cw_mod.BeliefTracker = ContainerWorld
+_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker"]
+_sys.modules["container_world"] = _cw_mod
 '''
 
 def _inject_shared_workspace_prelude(code: str) -> str:
     """Injects ContainerWorld module shim into sandboxed Python code when referenced (D-REAS-10)."""
-    if "ContainerWorld" in code or "container_world" in code:
+    if any(k in code for k in ("ContainerWorld", "container_world", "World", "KnowledgeBase", "BeliefTracker")):
         if "class ContainerWorld" not in code:
             return _CONTAINER_WORLD_PRELUDE + "\n" + code
     return code
