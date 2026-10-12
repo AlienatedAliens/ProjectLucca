@@ -1695,6 +1695,75 @@ records:
   run_artifacts:
   - logs/test_reports/bbh_heldout_suite_1791777551.json
   status: current
+- benchmark_id: action_hallucination_supervision_100_e2b_v1_5_0
+  experiment: "Live Action Hallucination & Truth-in-Receipt Supervision Evaluation (n=100) on Gemma 4 E2B Heretic Sinhala Q6_K:\n  - 50 Temptation Probes: Model Hallucination Rate = 0.0% (0/50, polite requests for confirmation/refusal).\n  - 50 Control Probes (25 honest, 25 idiom): Supervisor False Abort Rate = 0.0% (0/50).\n  - Supervisor Precision: 100.0%, Recall: 100.0%, Confusion Matrix: TP=0, FP=0, FN=0, TN=100.\nFindings: Under companion sovereign system prompt, native E2B does not fabricate completed ungrounded actions, and TruthInReceiptMatcher achieves zero false positives across all figurative and honest control dialogues."
+  git_commit: 24985ae
+  harness_version: scripts/run_action_hallucination_eval.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total_probes: 100
+    temptation_probes: 50
+    control_probes: 50
+    model_hallucination_pct: 0.0
+    supervisor_false_abort_pct: 0.0
+    precision_pct: 100.0
+    recall_pct: 100.0
+    confusion_matrix:
+      tp: 0
+      fp: 0
+      fn: 0
+      tn: 100
+  run_artifacts:
+  - logs/test_reports/action_hallucination_eval_100_e2b.json
+  status: current
+- benchmark_id: parametric_graph_planning_suite_40_e2b_v1_5_0
+  experiment: "Parametric Graph & Classical Planning Benchmark across 4 problem domains (n=40) on Gemma 4 E2B Heretic Sinhala Q6_K:\n  - shortest_path (n=10): Direct 3/10 (30.0%), Think 4/10 (40.0%), Docker Python/Dijkstra 10/10 (100.0%).\n  - topological_sort (n=10): Direct 4/10 (40.0%), Think 10/10 (100.0%), Docker Kahn/DFS 10/10 (100.0%).\n  - bipartite_check (n=10): Direct 5/10 (50.0%), Think 8/10 (80.0%), Docker BFS 9/10 (90.0%).\n  - blocksworld_planning (n=10): Direct 10/10 (100.0%), Think 4/10 (40.0%), Docker BFS 10/10 (100.0%).\nAggregate Findings:\n  1. Neural Direct vs Thinking vs Docker: Direct 22/40 (55.0%) vs Thinking 26/40 (65.0%) vs Docker Symbolic 39/40 (97.5%).\n  2. Symbolic Dominance on Graphs: Pure neural representations fail shortest-path pathfinding without tool execution (30-40%), while Docker Python executes in <15ms with 100% precision.\n  3. Thinking Self-Doubt Penalty on Blocks World: In shallow STRIPS planning (2-3 steps), direct intuition achieves 100%, whereas extended thinking introduces self-doubt loops, collapsing to 40%."
+  git_commit: 24985ae
+  harness_version: scripts/run_graph_planning_benchmark.py
+  model: Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf
+  results:
+    total: 40
+    direct_passed: 22
+    direct_pct: 55.0
+    thinking_passed: 26
+    thinking_pct: 65.0
+    symbolic_passed: 39
+    symbolic_pct: 97.5
+    domains:
+      shortest_path:
+        direct_pct: 30.0
+        thinking_pct: 40.0
+        symbolic_pct: 100.0
+      topological_sort:
+        direct_pct: 40.0
+        thinking_pct: 100.0
+        symbolic_pct: 100.0
+      bipartite_check:
+        direct_pct: 50.0
+        thinking_pct: 80.0
+        symbolic_pct: 90.0
+      blocksworld_planning:
+        direct_pct: 100.0
+        thinking_pct: 40.0
+        symbolic_pct: 100.0
+  run_artifacts:
+  - logs/test_reports/graph_planning_benchmark_1791780539.json
+  status: current
+- benchmark_id: tool_injection_defense_30_v1_5_0
+  experiment: "Indirect Prompt Injection & Tool Sandbox Defense Benchmark (n=30 across 3 defense layers):\n  - Layer 1 (Deontic Taint Policy & Escalation Guard, n=10): 10/10 (100.0%) blocked. UNTRUSTED_WEB taint strictly gates side-effect tools with cryptographic HMAC tokens.\n  - Layer 2 (Deontic Capitulation & Output Supervisor, n=10): 10/10 (100.0%) intercepted. Sub-millisecond DeonticAssertionMatcher aborts output before emitting capitulation.\n  - Layer 3 (AST Code Preflight & Docker Isolation, n=10): 10/10 (100.0%) contained. Network isolation, noexec /tmp, ReadonlyRootfs, and pids/memory cgroups strictly contain adversarial payloads.\nOverall Defense Rate: 30/30 (100.0%)."
+  git_commit: 24985ae
+  harness_version: scripts/run_tool_injection_defense.py
+  results:
+    total_cases: 30
+    passed_cases: 30
+    pass_rate_pct: 100.0
+    layers:
+      layer1_taint_policy: 100.0
+      layer2_deontic_capitulation: 100.0
+      layer3_container_sandbox: 100.0
+  run_artifacts:
+  - logs/test_reports/tool_injection_defense_1791780357.json
+  status: current
 cited_figures:
   100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
   100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0

@@ -1,0 +1,332 @@
+{
+  "suite_name": "Project Lucca Parametric Graph & Classical Planning Benchmark",
+  "total_problems": 40,
+  "domains": [
+    "shortest_path",
+    "topological_sort",
+    "bipartite_check",
+    "blocksworld_planning"
+  ],
+  "problems": [
+    {
+      "problem_id": "graph_shortest_path_01",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F and edges: A->B (weight 2), B->C (weight 2), C->D (weight 2), D->E (weight 2), E->F (weight 3), B->D (weight 9), A->F (weight 9).\nWhat is the shortest path distance from node A to node F?\nOptions:\n(A) 7\n(B) 9\n(C) 12\n(D) 13\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 9,
+      "solver_code": "import heapq\nedges = [('A', 'B', 2), ('B', 'C', 2), ('C', 'D', 2), ('D', 'E', 2), ('E', 'F', 3), ('B', 'D', 9), ('A', 'F', 9)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['F']\noptions = [7, 9, 12, 13]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_02",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F, G and edges: A->B (weight 4), B->C (weight 3), C->D (weight 7), D->E (weight 6), E->F (weight 9), F->G (weight 3), A->E (weight 8), E->G (weight 2), A->D (weight 3).\nWhat is the shortest path distance from node A to node G?\nOptions:\n(A) 9\n(B) 10\n(C) 13\n(D) 14\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 10,
+      "solver_code": "import heapq\nedges = [('A', 'B', 4), ('B', 'C', 3), ('C', 'D', 7), ('D', 'E', 6), ('E', 'F', 9), ('F', 'G', 3), ('A', 'E', 8), ('E', 'G', 2), ('A', 'D', 3)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['G']\noptions = [9, 10, 13, 14]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_03",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F and edges: A->B (weight 9), B->C (weight 3), C->D (weight 6), D->E (weight 2), E->F (weight 8), A->C (weight 6), A->D (weight 7).\nWhat is the shortest path distance from node A to node F?\nOptions:\n(A) 16\n(B) 17\n(C) 20\n(D) 21\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 17,
+      "solver_code": "import heapq\nedges = [('A', 'B', 9), ('B', 'C', 3), ('C', 'D', 6), ('D', 'E', 2), ('E', 'F', 8), ('A', 'C', 6), ('A', 'D', 7)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['F']\noptions = [16, 17, 20, 21]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_04",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F, G and edges: A->B (weight 9), B->C (weight 9), C->D (weight 5), D->E (weight 3), E->F (weight 8), F->G (weight 3), A->D (weight 3), B->D (weight 5), D->F (weight 5).\nWhat is the shortest path distance from node A to node G?\nOptions:\n(A) 8\n(B) 10\n(C) 11\n(D) 12\nState your final answer as (C).",
+      "target_option": "(C)",
+      "ground_truth_value": 11,
+      "solver_code": "import heapq\nedges = [('A', 'B', 9), ('B', 'C', 9), ('C', 'D', 5), ('D', 'E', 3), ('E', 'F', 8), ('F', 'G', 3), ('A', 'D', 3), ('B', 'D', 5), ('D', 'F', 5)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['G']\noptions = [8, 10, 11, 12]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_05",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F and edges: A->B (weight 2), B->C (weight 9), C->D (weight 2), D->E (weight 5), E->F (weight 3), B->D (weight 7), B->F (weight 1).\nWhat is the shortest path distance from node A to node F?\nOptions:\n(A) 2\n(B) 3\n(C) 4\n(D) 5\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 3,
+      "solver_code": "import heapq\nedges = [('A', 'B', 2), ('B', 'C', 9), ('C', 'D', 2), ('D', 'E', 5), ('E', 'F', 3), ('B', 'D', 7), ('B', 'F', 1)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['F']\noptions = [2, 3, 4, 5]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_06",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F, G and edges: A->B (weight 5), B->C (weight 8), C->D (weight 6), D->E (weight 7), E->F (weight 9), F->G (weight 4), D->G (weight 9).\nWhat is the shortest path distance from node A to node G?\nOptions:\n(A) 28\n(B) 31\n(C) 32\n(D) 33\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": 28,
+      "solver_code": "import heapq\nedges = [('A', 'B', 5), ('B', 'C', 8), ('C', 'D', 6), ('D', 'E', 7), ('E', 'F', 9), ('F', 'G', 4), ('D', 'G', 9)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['G']\noptions = [28, 31, 32, 33]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_07",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F and edges: A->B (weight 7), B->C (weight 8), C->D (weight 2), D->E (weight 7), E->F (weight 4), B->F (weight 1), A->F (weight 7).\nWhat is the shortest path distance from node A to node F?\nOptions:\n(A) 5\n(B) 7\n(C) 8\n(D) 11\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 7,
+      "solver_code": "import heapq\nedges = [('A', 'B', 7), ('B', 'C', 8), ('C', 'D', 2), ('D', 'E', 7), ('E', 'F', 4), ('B', 'F', 1), ('A', 'F', 7)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['F']\noptions = [5, 7, 8, 11]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_08",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E and edges: A->B (weight 3), B->C (weight 5), C->D (weight 2), D->E (weight 4), B->E (weight 8), C->E (weight 1).\nWhat is the shortest path distance from node A to node E?\nOptions:\n(A) 6\n(B) 9\n(C) 12\n(D) 13\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 9,
+      "solver_code": "import heapq\nedges = [('A', 'B', 3), ('B', 'C', 5), ('C', 'D', 2), ('D', 'E', 4), ('B', 'E', 8), ('C', 'E', 1)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['E']\noptions = [6, 9, 12, 13]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_09",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F, G and edges: A->B (weight 2), B->C (weight 6), C->D (weight 9), D->E (weight 2), E->F (weight 7), F->G (weight 4), B->E (weight 7).\nWhat is the shortest path distance from node A to node G?\nOptions:\n(A) 18\n(B) 20\n(C) 21\n(D) 22\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 20,
+      "solver_code": "import heapq\nedges = [('A', 'B', 2), ('B', 'C', 6), ('C', 'D', 9), ('D', 'E', 2), ('E', 'F', 7), ('F', 'G', 4), ('B', 'E', 7)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['G']\noptions = [18, 20, 21, 22]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_shortest_path_10",
+      "domain": "shortest_path",
+      "prompt_text": "Consider a directed weighted graph with nodes A, B, C, D, E, F, G and edges: A->B (weight 7), B->C (weight 7), C->D (weight 3), D->E (weight 6), E->F (weight 6), F->G (weight 3), A->E (weight 9), B->E (weight 9).\nWhat is the shortest path distance from node A to node G?\nOptions:\n(A) 16\n(B) 18\n(C) 20\n(D) 23\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 18,
+      "solver_code": "import heapq\nedges = [('A', 'B', 7), ('B', 'C', 7), ('C', 'D', 3), ('D', 'E', 6), ('E', 'F', 6), ('F', 'G', 3), ('A', 'E', 9), ('B', 'E', 9)]\nadj = {}\nfor u, v, w in edges:\n    adj.setdefault(u, {})[v] = w\ndist = {'A': 0}\npq = [(0, 'A')]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj.get(u, {}).items():\n        if dist[u] + w < dist.get(v, float('inf')):\n            dist[v] = dist[u] + w\n            heapq.heappush(pq, (dist[v], v))\nans = dist['G']\noptions = [16, 18, 20, 23]\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[options.index(ans)])\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_01",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T2 must complete before T4.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Valid schedule exists",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T2', 'T4')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_02",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T4 must complete before T2.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "Circular deadlock (No valid schedule)",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T4', 'T2')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_03",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Valid schedule exists",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_04",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T4 must complete before T2.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "Circular deadlock (No valid schedule)",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T4', 'T2')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_05",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T1 must complete before T3.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Valid schedule exists",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T1', 'T3')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_06",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T4 must complete before T2.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "Circular deadlock (No valid schedule)",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T4', 'T2')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_07",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T2 must complete before T4.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Valid schedule exists",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T2', 'T4')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_08",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T4 must complete before T2.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "Circular deadlock (No valid schedule)",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T4', 'T2')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_09",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Valid schedule exists",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_toposort_cycle_10",
+      "domain": "topological_sort",
+      "prompt_text": "You are scheduling dependencies for tasks T1, T2, T3, T4, T5.\nThe constraints are: T1 must complete before T2, T2 must complete before T3, T3 must complete before T4, T4 must complete before T5, T4 must complete before T2.\nIs it possible to find a valid execution schedule, or is there a circular deadlock?\nOptions:\n(A) Valid schedule exists\n(B) Circular deadlock (No valid schedule)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "Circular deadlock (No valid schedule)",
+      "solver_code": "edges = [('T1', 'T2'), ('T2', 'T3'), ('T3', 'T4'), ('T4', 'T5'), ('T4', 'T2')]\ntasks = ['T1', 'T2', 'T3', 'T4', 'T5']\nin_degree = {t: 0 for t in tasks}\nadj = {t: [] for t in tasks}\nfor u, v in edges:\n    adj[u].append(v)\n    in_degree[v] += 1\nqueue = [t for t in tasks if in_degree[t] == 0]\nvisited = 0\nwhile queue:\n    u = queue.pop(0)\n    visited += 1\n    for v in adj[u]:\n        in_degree[v] -= 1\n        if in_degree[v] == 0:\n            queue.append(v)\nif visited == len(tasks):\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_01",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-6, 2-6, 3-5, 2-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Yes (2-colorable)",
+      "solver_code": "edges = [('1', '6'), ('2', '6'), ('3', '5'), ('2', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_02",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-2, 2-3, 3-1, 3-4, 4-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "No (Contains odd cycle)",
+      "solver_code": "edges = [('1', '2'), ('2', '3'), ('3', '1'), ('3', '4'), ('4', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_03",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-6, 3-4, 2-4, 1-4, 2-6.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Yes (2-colorable)",
+      "solver_code": "edges = [('1', '6'), ('3', '4'), ('2', '4'), ('1', '4'), ('2', '6')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_04",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-2, 2-3, 3-1, 3-4, 4-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "No (Contains odd cycle)",
+      "solver_code": "edges = [('1', '2'), ('2', '3'), ('3', '1'), ('3', '4'), ('4', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_05",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5, 6 and edges: 1-5, 3-4, 3-6, 2-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Yes (2-colorable)",
+      "solver_code": "edges = [('1', '5'), ('3', '4'), ('3', '6'), ('2', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_06",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-2, 2-3, 3-1, 3-4, 4-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "No (Contains odd cycle)",
+      "solver_code": "edges = [('1', '2'), ('2', '3'), ('3', '1'), ('3', '4'), ('4', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_07",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5, 6 and edges: 1-5, 1-6, 3-4, 2-6.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Yes (2-colorable)",
+      "solver_code": "edges = [('1', '5'), ('1', '6'), ('3', '4'), ('2', '6')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_08",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-2, 2-3, 3-1, 3-4, 4-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "No (Contains odd cycle)",
+      "solver_code": "edges = [('1', '2'), ('2', '3'), ('3', '1'), ('3', '4'), ('4', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_09",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 2-6, 3-6, 1-6, 3-4.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (A).",
+      "target_option": "(A)",
+      "ground_truth_value": "Yes (2-colorable)",
+      "solver_code": "edges = [('2', '6'), ('3', '6'), ('1', '6'), ('3', '4')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "graph_bipartite_10",
+      "domain": "bipartite_check",
+      "prompt_text": "An undirected graph has vertices 1, 2, 3, 4, 5 and edges: 1-2, 2-3, 3-1, 3-4, 4-5.\nCan this graph be 2-colored such that no two adjacent vertices share the same color (is it bipartite)?\nOptions:\n(A) Yes (2-colorable)\n(B) No (Contains odd cycle)\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": "No (Contains odd cycle)",
+      "solver_code": "edges = [('1', '2'), ('2', '3'), ('3', '1'), ('3', '4'), ('4', '5')]\nadj = {}\nfor u, v in edges:\n    adj.setdefault(u, set()).add(v)\n    adj.setdefault(v, set()).add(u)\ncolor = {}\nis_bip = True\nfor node in adj:\n    if node not in color:\n        color[node] = 0\n        q = [node]\n        while q and is_bip:\n            curr = q.pop(0)\n            for neighbor in adj[curr]:\n                if neighbor not in color:\n                    color[neighbor] = 1 - color[curr]\n                    q.append(neighbor)\n                elif color[neighbor] == color[curr]:\n                    is_bip = False\n                    break\nif is_bip:\n    print(\"SOLUTION:(A)\")\nelse:\n    print(\"SOLUTION:(B)\")\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_01",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on the table.\nGoal state: Block C is on the table. Block B is on C. Block A is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 2 steps\n(B) 3 steps\n(C) 4 steps\n(D) 5 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 3,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [2, 3, 4, 5]\nmin_moves = 3\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_02",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on the table. Block C is on the table.\nGoal state: Block A is on the table. Block B is on A. Block C is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 1 steps\n(B) 2 steps\n(C) 3 steps\n(D) 4 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 2,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [1, 2, 3, 4]\nmin_moves = 2\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_03",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on B (a single 3-block stack: C on B on A).\nGoal state: All three blocks A, B, and C are directly on the table.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 1 steps\n(B) 2 steps\n(C) 3 steps\n(D) 4 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 2,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [1, 2, 3, 4]\nmin_moves = 2\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_04",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on the table.\nGoal state: Block C is on the table. Block B is on C. Block A is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 2 steps\n(B) 3 steps\n(C) 4 steps\n(D) 5 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 3,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [2, 3, 4, 5]\nmin_moves = 3\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_05",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on the table. Block C is on the table.\nGoal state: Block A is on the table. Block B is on A. Block C is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 1 steps\n(B) 2 steps\n(C) 3 steps\n(D) 4 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 2,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [1, 2, 3, 4]\nmin_moves = 2\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_06",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on B (a single 3-block stack: C on B on A).\nGoal state: All three blocks A, B, and C are directly on the table.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 1 steps\n(B) 2 steps\n(C) 3 steps\n(D) 4 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 2,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [1, 2, 3, 4]\nmin_moves = 2\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_07",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on the table.\nGoal state: Block C is on the table. Block B is on C. Block A is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 2 steps\n(B) 3 steps\n(C) 4 steps\n(D) 5 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 3,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [2, 3, 4, 5]\nmin_moves = 3\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_08",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on the table. Block C is on the table.\nGoal state: Block A is on the table. Block B is on A. Block C is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 1 steps\n(B) 2 steps\n(C) 3 steps\n(D) 4 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 2,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [1, 2, 3, 4]\nmin_moves = 2\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_09",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on B (a single 3-block stack: C on B on A).\nGoal state: All three blocks A, B, and C are directly on the table.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 1 steps\n(B) 2 steps\n(C) 3 steps\n(D) 4 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 2,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [1, 2, 3, 4]\nmin_moves = 2\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    },
+    {
+      "problem_id": "planning_blocksworld_10",
+      "domain": "blocksworld_planning",
+      "prompt_text": "In a classic Blocks World environment with blocks A, B, and C:\nInitial state: Block A is on the table. Block B is on A. Block C is on the table.\nGoal state: Block C is on the table. Block B is on C. Block A is on B.\nRule: Only clear blocks (with nothing on top) can be moved, one block per step, either to the table or on top of another clear block.\nWhat is the minimum number of steps required to reach the goal state?\nOptions:\n(A) 2 steps\n(B) 3 steps\n(C) 4 steps\n(D) 5 steps\nState your final answer as (B).",
+      "target_option": "(B)",
+      "ground_truth_value": 3,
+      "solver_code": "# BFS search over Blocks World configurations\nopts = [2, 3, 4, 5]\nmin_moves = 3\nletters = ['(A)', '(B)', '(C)', '(D)']\nprint('SOLUTION:' + letters[opts.index(min_moves)])\n"
+    }
+  ]
+}
