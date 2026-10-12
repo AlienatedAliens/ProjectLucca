@@ -535,3 +535,33 @@ flowchart TD
   - Dev Report: [`logs/test_reports/cruxeval_input_dev_1791762821248.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/cruxeval_input_dev_1791762821248.json)
   - Sealed Report: [`logs/test_reports/cruxeval_input_sealed_1791763075938.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/cruxeval_input_sealed_1791763075938.json)
   - Pinned Manifest Records: `cruxeval_input_dev_50_v1_5_0` and `cruxeval_input_sealed_100_v1_5_0` in [`data/benchmarks/MANIFEST.yaml`](file:///C:/Projects/ProjectLucca/data/benchmarks/MANIFEST.yaml).
+
+### 9.17 Multi-Tier Factorial Audit: Direct vs Extended Thinking vs PAL (Claude v5 §5.4 & §13.4-5)
+- **Experimental Protocol:** Evaluated all 3 deployed tiers (**12B Heretic Q6_K**, **E4B Heretic Q6_K**, **E2B Heretic Sinhala Q6_K**) under single-slot `--parallel 1` on identical hardware (RTX 5080 Laptop GPU, 16GB VRAM):
+  - **Arm A Direct:** $T=0.0$, `max_tokens=128`, `enable_thinking=false`.
+  - **Arm A Extended Thinking:** $T=0.6$, `top_p=0.95`, `max_tokens=3072`, `enable_thinking=true`.
+  - **Arm B PAL:** $T=0.1$, `max_tokens=384`, Docker sandboxed execution (`use_direct_fallback=false`).
+- **Comprehensive Cross-Tier Results ($n=60$ per tier):**
+  | Model Tier | Domain / Split | Arm A Direct (cap=128) | Arm A Extended Thinking (cap=3072) | Arm B PAL (Docker) | Thinking vs Direct Delta | PAL vs Thinking Delta | Truncations (Direct / Think / PAL) |
+  | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+  | **Gemma 4 12B** | **Non-Crux ($n=40$)** | 13/40 (32.5%) | **37/40 (92.5%)** | **40/40 (100.0%)** | +60.0 pp | +7.5 pp ($p=0.25$) | 38/60 (63.3%) / 12/60 (20.0%) / 0/60 (0%) |
+  | | Code Tracing ($n=20$) | 2/20 (10.0%) | 10/20 (50.0%) | **20/20 (100.0%)** | +40.0 pp | **+50.0 pp** ($p \approx 0.002$) | |
+  | | **Overall ($n=60$)** | 15/60 (25.0%) | 47/60 (78.3%) | **60/60 (100.0%)** | +53.3 pp | **+21.7 pp** ($p = 2.4 \times 10^{-4}$) | |
+  | **Gemma 4 E4B** | **Non-Crux ($n=40$)** | 14/40 (35.0%) | **39/40 (97.5%)** | 31/40 (77.5%) | **+62.5 pp** | **-20.0 pp (Thinking wins)** | 27/60 (45.0%) / **0/60 (0.0%)** / 6/60 (10.0%) |
+  | | Code Tracing ($n=20$) | 5/20 (25.0%) | 12/20 (60.0%) | **20/20 (100.0%)** | +35.0 pp | **+40.0 pp** ($p \approx 0.008$) | |
+  | | **Overall ($n=60$)** | 19/60 (31.7%) | **51/60 (85.0%)** | **51/60 (85.0%)** | +53.3 pp | **0.0 pp (Tied 8:8, $p=1.00$)** | |
+  | **Gemma 4 E2B** | **Non-Crux ($n=40$)** | 13/40 (32.5%) | **39/40 (97.5%)** | 16/40 (40.0%) | **+65.0 pp** | **-57.5 pp (Thinking wins)** | 30/60 (50.0%) / **0/60 (0.0%)** / 5/60 (8.3%) |
+  | | Code Tracing ($n=20$) | 2/20 (10.0%) | 11/20 (55.0%) | **20/20 (100.0%)** | +45.0 pp | **+45.0 pp** ($p \approx 0.004$) | |
+  | | **Overall ($n=60$)** | 15/60 (25.0%) | **50/60 (83.3%)** | 36/60 (60.0%) | +58.3 pp | **-23.3 pp (Thinking wins)** | |
+- **Core Scientific Findings Resolving Review Notes v5:**
+  1. **Direct Baselines Were Uniformly Token-Truncated:** Across all three tiers, Direct Arm A suffered 45.0% to 63.3% truncation rates due to the 64/128 token budget.
+  2. **Native Thinking is Uniformly Capable Across Scales:** When given sufficient token budget without greedy collapse ($T=0.6$, cap=3072), native thinking scores **92.5% to 97.5% on algorithmic puzzles across ALL THREE TIERS** (37/40 at 12B, 39/40 at E4B, 39/40 at E2B). Zero truncations observed at E4B and E2B.
+  3. **Code Synthesis Capability Degrades with Model Scale:** Zero-shot Python synthesis succeeds at 12B (100%), degrades at E4B (77.5%), and collapses at E2B (40.0%) on multi-variable constraint problems due to syntax/scoping errors (`UnboundLocalError`).
+  4. **Code Execution Tracing is Scale-Invariant via Docker:** PAL provides a massive **+40.0 to +50.0 pp lift** on code execution tracing at every scale (100% across all tiers), because running code in a sandbox bypasses the LLM's inability to simulate loops in its head.
+  5. **Architectural Implication for Routing:** The compound system must **route by task nature**:
+     - Code execution and state invariant tracking $\rightarrow$ PAL / Docker sandbox.
+     - Natural language and algorithmic deduction on small models $\rightarrow$ Native thinking.
+     - Program synthesis and inverse problems $\rightarrow$ Iterative CEGIS self-debugging (+14.0 to +16.0 pp lift).
+- **Multi-Repeat Noise Floor Bounds (§13.4):**
+  - **12B (4 runs):** Arm A: $21.7\% - 25.0\%$ ($\pm 1.65$ pp); Arm B: $98.3\% - 100.0\%$ ($\pm 0.85$ pp).
+  - **E4B (3 runs):** Arm A: $30.0\% - 31.7\%$ ($\pm 0.85$ pp); Arm B: **exactly 85.0% across all 3 runs** (0.0 pp drift).

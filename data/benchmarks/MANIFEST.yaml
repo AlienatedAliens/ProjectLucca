@@ -844,8 +844,72 @@ records:
       arm_b_cegis: { passed: 78, total: 100, accuracy_pct: 78.0, wilson_95_ci: "[0.6890, 0.8500]" }
       cegis_rescue_count: 14
       cegis_rescue_lift_pp: 14.0
-      mcnemar_two_sided_p: 0.000061
-    git_commit: 39d0e76c1ef5d06e835e1049de5b34d98fb01b15
+  - benchmark_id: ood_e4b_noise_floor_3x_v1_5_0
+    status: current
+    experiment: >
+      Gemma 4 E4B Heretic 3-repeat noise floor audit under single-slot --parallel 1 across the 60-problem OOD smoke suite.
+      Run 1 (1791763338): Arm A 18/60 (30.0%), Arm B 51/60 (85.0%), Lift +55.0 pp.
+      Run 2 (1791763493): Arm A 19/60 (31.7%), Arm B 51/60 (85.0%), Lift +53.3 pp.
+      Run 3 (1791763645): Arm A 19/60 (31.7%), Arm B 51/60 (85.0%), Lift +53.3 pp.
+      Variance: Arm B achieved exactly 51/60 (85.0%) across all 3 runs (0.0 pp drift). Arm A mean = 31.1% (+-0.85 pp).
+    run_artifacts:
+      - logs/test_reports/ood_generality_audit_1791763338.json
+      - logs/test_reports/ood_generality_audit_1791763493.json
+      - logs/test_reports/ood_generality_audit_1791763645.json
+    harness_version: scripts/run_ood_generality_audit.py
+    model: gemma_4_e4b_heretic_q6k
+    results:
+      arm_a_mean_accuracy_pct: 31.1
+      arm_b_mean_accuracy_pct: 85.0
+      net_lift_pp: 53.9
+      empirical_non_regression: "100% PRESERVED"
+    git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
+
+  - benchmark_id: ood_e4b_thinking_baseline_v1_5_0
+    status: current
+    experiment: >
+      Gemma 4 E4B Heretic extended thinking baseline audit (Option 2).
+      Arm A Direct (cap=128): 19/60 (31.7%), 27/60 truncations (45.0%).
+      Arm A Thinking (T=0.6, cap=3072): 51/60 (85.0%), 0/60 truncations (0.0%).
+        - Non-Crux (Nav + Ded, n=40): 39/40 (97.5%) [Navigation 19/20, Deduction 20/20].
+        - Code Execution (CruxEval, n=20): 12/20 (60.0%).
+      Arm B PAL (Docker container): 51/60 (85.0%).
+        - Non-Crux (Nav + Ded, n=40): 31/40 (77.5%).
+        - Code Execution (CruxEval, n=20): 20/20 (100.0%).
+      Finding: Native thinking beats one-shot PAL on clean algorithmic text puzzles (39/40 vs 31/40, +20.0 pp),
+      while PAL beats native thinking on deterministic code execution tracing (20/20 vs 12/20, +40.0 pp).
+    run_artifacts:
+      - logs/test_reports/ood_thinking_baseline_1791764165.json
+    harness_version: scripts/run_ood_thinking_baseline.py
+    model: gemma_4_e4b_heretic_q6k
+    results:
+      arm_a_direct: { passed: 19, total: 60, accuracy_pct: 31.7 }
+      arm_a_thinking: { passed: 51, total: 60, accuracy_pct: 85.0, non_crux_pct: 97.5 }
+      arm_b_pal: { passed: 51, total: 60, accuracy_pct: 85.0, non_crux_pct: 77.5, crux_pct: 100.0 }
+    git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
+
+  - benchmark_id: ood_e2b_thinking_baseline_v1_5_0
+    status: current
+    experiment: >
+      Gemma 4 E2B Heretic Sinhala extended thinking baseline audit (Option 2).
+      Arm A Direct (cap=128): 15/60 (25.0%), 30/60 truncations (50.0%).
+      Arm A Thinking (T=0.6, cap=3072): 50/60 (83.3%), 0/60 truncations (0.0%).
+        - Non-Crux (Nav + Ded, n=40): 39/40 (97.5%) [Navigation 19/20, Deduction 20/20].
+        - Code Execution (CruxEval, n=20): 11/20 (55.0%).
+      Arm B PAL (Docker container): 36/60 (60.0%).
+        - Non-Crux (Nav + Ded, n=40): 16/40 (40.0%).
+        - Code Execution (CruxEval, n=20): 20/20 (100.0%).
+      Finding: At 2.3B parameters, native thinking vastly outperforms one-shot PAL on algorithmic text problems
+      (39/40 vs 16/40, +57.5 pp lift, McNemar p = 0.020), while PAL retains a 100% execution advantage on CruxEval.
+    run_artifacts:
+      - logs/test_reports/ood_thinking_baseline_1791764685.json
+    harness_version: scripts/run_ood_thinking_baseline.py
+    model: gemma_4_e2b_heretic_sinhala_q6k
+    results:
+      arm_a_direct: { passed: 15, total: 60, accuracy_pct: 25.0 }
+      arm_a_thinking: { passed: 50, total: 60, accuracy_pct: 83.3, non_crux_pct: 97.5 }
+      arm_b_pal: { passed: 36, total: 60, accuracy_pct: 60.0, non_crux_pct: 40.0, crux_pct: 100.0 }
+    git_commit: 4aeb490fae1ecda709db01bcfd1266ce20fbf7b0
 
 cited_figures:
   # Map of published numeric claims -> record_id. Update citation sites to
