@@ -1403,6 +1403,64 @@ records:
   run_artifacts:
   - logs/test_reports/ood_direct_adequate_cap_12b_1791767912.json
   status: current
+- benchmark_id: ood_12b_thinking_3x_noise_v1_5_0
+  experiment: "Gemma 4 12B Heretic Q6_K 3-repeat extended thinking noise audit (seeds\
+    \ 42, 43, 44, T=0.6, top_p=0.95, cap=3072) across Non-Crux suite (n=40).\n  -\
+    \ Run 1 (Seed 42): 36/40 (90.0%), Truncations: 5/40 (12.5%).\n  - Run 2 (Seed\
+    \ 43): 35/40 (87.5%), Truncations: 8/40 (20.0%).\n  - Run 3 (Seed 44): 35/40 (87.5%),\
+    \ Truncations: 10/40 (25.0%).\nNoise Statistics:\n  - Range: 87.5% - 90.0% (Mean:\
+    \ 88.33%, drift: +/-1.25 pp).\n  - Item Stability: Always Pass 31/40 (77.5%),\
+    \ Always Fail 0/40 (0.0%), Flips 9/40 (22.5%).\n  - Logical Deduction (n=20):\
+    \ Exactly 20/20 (100.0%) across all 3 runs (0 flips).\n  - Spatial Navigation\
+    \ (n=20): All 9 flips concentrated in Navigation, driven by perpetual re-verification\
+    \ loops reaching the 3072 token limit.\nHardware Footprint (RTX 5080 Laptop GPU):\n\
+    \  - Peak VRAM: 10558.0 MiB / 16303.0 MiB (64.8%).\n  - Peak GPU Temp: 71.0 C.\n\
+    \  - Peak Host RAM: 36755.9 MB (llama-server 13711.1 MB, WSL2 463.5 MB).\n  -\
+    \ Total Duration: 1461.0 s (1461 1-second physical samples)."
+  git_commit: a2758c8
+  harness_version: scripts/run_12b_noise_audit.py
+  model: gemma_4_12b_heretic_q6k
+  config:
+    temperature: 0.6
+    top_p: 0.95
+    max_tokens: 3072
+    enable_thinking: true
+    seeds:
+    - 42
+    - 43
+    - 44
+    parallel: 1
+  results:
+    runs:
+    - seed: 42
+      passed: 36
+      total: 40
+      accuracy_pct: 90.0
+    - seed: 43
+      passed: 35
+      total: 40
+      accuracy_pct: 87.5
+    - seed: 44
+      passed: 35
+      total: 40
+      accuracy_pct: 87.5
+    noise_statistics:
+      min_accuracy_pct: 87.5
+      max_accuracy_pct: 90.0
+      mean_accuracy_pct: 88.33
+      drift_pp: 1.25
+      always_pass_count: 31
+      always_fail_count: 0
+      flipping_count: 9
+    hardware_footprint:
+      gpu_name: NVIDIA GeForce RTX 5080 Laptop GPU
+      peak_vram_mib: 10558.0
+      peak_gpu_temp_c: 71.0
+      peak_host_ram_mb: 36755.9
+      peak_llama_server_ram_mb: 13711.1
+  run_artifacts:
+  - logs/test_reports/ood_12b_thinking_3x_noise_1791772456.json
+  status: current
 cited_figures:
   100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
   100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0
