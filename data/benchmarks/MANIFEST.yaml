@@ -1461,6 +1461,81 @@ records:
   run_artifacts:
   - logs/test_reports/ood_12b_thinking_3x_noise_1791772456.json
   status: current
+- benchmark_id: ood_e4b_ablation_ladder_v1_5_0
+  experiment: "Gemma 4 E4B Heretic Q6_K full ablation ladder benchmark across all\
+    \ 60 problems in the OOD suite on single-slot (--parallel 1) inference with Docker\
+    \ sandboxing.\nRung Results:\n  - Rung 1: Direct Non-Truncated (max_tokens=2048,\
+    \ T=0.0): 45/60 (75.0%) [Non-Crux: 39/40 (97.5%)].\n  - Rung 2: Native Thinking\
+    \ (max_tokens=3072, T=0.6, top_p=0.95): 49/60 (81.7%) [Non-Crux: 38/40 (95.0%),\
+    \ Crux: 11/20 (55.0%)].\n  - Rung 3: One-Shot PAL (Docker container): 47/60 (78.3%)\
+    \ [Non-Crux: 30/40 (75.0%), Crux: 17/20 (85.0%)].\n  - Rung 4: PAL + Multi-Turn\
+    \ CEGIS Traceback Repair: 48/60 (80.0%) [Non-Crux: 30/40 (75.0%), Crux: 18/20\
+    \ (90.0%)].\n  - Rung 7: Best-of-3 PAL Control (unconditioned sampling): 42/60\
+    \ (70.0%).\n  - Rung 5: Fallback Cascade (PAL + CEGIS Repair -> Native Thinking\
+    \ Fallback): 59/60 (98.3%) [Non-Crux: 40/40 (100.0%), Crux: 19/20 (95.0%)].\n\
+    Statistical Hypotheses & Findings (Review Notes v7 §5):\n  1. Fallback Cascade\
+    \ vs Native Thinking: +10 items rescued (+16.7 pp net lift, 49/60 -> 59/60), discordant\
+    \ pairs 10:0, exact McNemar two-sided p = 0.00195 (p < 0.01).\n  2. CEGIS Traceback\
+    \ Repair vs Best-of-3 Sampling Control: CEGIS repair beats unconditioned Best-of-3\
+    \ by +10.0 pp (48/60 vs 42/60, discordant 11:5, p = 0.210).\n  3. Pareto Efficiency:\
+    \ E4B with Fallback Cascade (5,590 MiB VRAM) achieves 98.3% accuracy, outperforming\
+    \ bare 12B Direct (80.0%) and bare 12B Thinking (78.3%) at half the memory footprint.\n\
+    Hardware Footprint (RTX 5080 Laptop GPU):\n  - Peak VRAM: 5,590.0 MiB / 16,303.0\
+    \ MiB (34.3%).\n  - Host RAM (llama-server): 4,272.2 MB.\n  - Total Duration:\
+    \ 1108.0 s."
+  git_commit: 0e476d7
+  harness_version: scripts/run_edge_tier_ladder.py
+  model: gemma_4_e4b_heretic_q6k
+  config:
+    parallel: 1
+    model_path: models/llm/gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf
+  results:
+    rung1_direct:
+      passed: 45
+      total: 60
+      accuracy_pct: 75.0
+    rung2_thinking:
+      passed: 49
+      total: 60
+      accuracy_pct: 81.7
+      non_crux_pct: 95.0
+    rung3_oneshot_pal:
+      passed: 47
+      total: 60
+      accuracy_pct: 78.3
+    rung4_cegis_repair:
+      passed: 48
+      total: 60
+      accuracy_pct: 80.0
+    rung7_best_of_3_control:
+      passed: 42
+      total: 60
+      accuracy_pct: 70.0
+    rung5_fallback_cascade:
+      passed: 59
+      total: 60
+      accuracy_pct: 98.3
+      non_crux_pct: 100.0
+      crux_pct: 95.0
+    statistical_comparisons:
+      cascade_vs_thinking:
+        lift_pp: 16.7
+        discordant_pairs:
+        - 10
+        - 0
+        mcnemar_two_sided_p: 0.001953125
+      cegis_vs_bo3:
+        discordant_pairs:
+        - 11
+        - 5
+        mcnemar_two_sided_p: 0.210113525
+    hardware_footprint:
+      gpu_name: NVIDIA GeForce RTX 5080 Laptop GPU
+      peak_vram_mib: 5590.0
+      llama_server_ram_mb: 4272.2
+  run_artifacts:
+  - logs/test_reports/edge_tier_ladder_e4b_1791774277.json
+  status: current
 cited_figures:
   100.0% Personhood Battery IA composite (40/40): personhood_battery_v1_0
   100.0% Personhood Battery IN composite (30/30): personhood_battery_v1_0
