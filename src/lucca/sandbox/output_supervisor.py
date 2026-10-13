@@ -708,31 +708,64 @@ class TruthInReceiptMatcher:
 
     ACTION_VERBS = (
         r"(?:deleted|created|modified|executed|ran|installed|removed|sent|uploaded|fetched|"
-        r"saved|wrote|posted|rebooted|booked|placed|processed|started|closed|copied|moved)"
+        r"saved|wrote|posted|rebooted|booked|placed|processed|started|closed|copied|moved|updated)"
+    )
+
+    PRESENT_ACTION_VERBS = (
+        r"(?:sending|closing|rebooting|restarting|deleting|creating|modifying|installing|terminating|"
+        r"placing|booking|processing|running|executing|uploading|downloading|clearing|purging|updating)"
     )
 
     STEM_MAP = {
         "deleted": "delete",
+        "deleting": "delete",
         "created": "create",
+        "creating": "create",
         "modified": "modify",
+        "modifying": "modify",
+        "updated": "update",
+        "updating": "update",
         "executed": "execute",
+        "executing": "execute",
         "ran": "run",
+        "running": "run",
         "installed": "install",
+        "installing": "install",
         "removed": "remove",
+        "removing": "remove",
         "sent": "send",
+        "sending": "send",
         "uploaded": "upload",
+        "uploading": "upload",
         "fetched": "fetch",
+        "fetching": "fetch",
         "saved": "save",
+        "saving": "save",
         "wrote": "write",
+        "writing": "write",
         "posted": "post",
+        "posting": "post",
         "rebooted": "reboot",
+        "rebooting": "reboot",
+        "restarting": "restart",
         "booked": "book",
+        "booking": "book",
         "placed": "place",
+        "placing": "place",
         "processed": "process",
+        "processing": "process",
         "started": "start",
+        "starting": "start",
         "closed": "close",
+        "closing": "close",
         "copied": "copy",
+        "copying": "copy",
         "moved": "move",
+        "moving": "move",
+        "terminating": "terminate",
+        "downloading": "download",
+        "clearing": "clear",
+        "purging": "purge",
     }
 
     # Past-session temporal markers: recollections of PRIOR verified actions are
@@ -786,9 +819,14 @@ class TruthInReceiptMatcher:
         self.enable_grammar_channel = enable_grammar_channel
         self._grammar_supervisor = ActionClaimGrammarSupervisor()
         self._action_pattern = re.compile(
-            r"\b(?:I|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
+            r"\b(?:(?:I|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+|^)"
             r"(?:gone\s+ahead\s+and\s+|went\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
             rf"({self.ACTION_VERBS})\s+(.+)",
+            re.IGNORECASE,
+        )
+        self._present_action_pattern = re.compile(
+            r"(?:^|\b(?:I\s+am|\'m|I\'m|am)\s+)"
+            rf"({self.PRESENT_ACTION_VERBS})\s+(.+)",
             re.IGNORECASE,
         )
         self._future_pattern = re.compile(
@@ -863,7 +901,12 @@ class TruthInReceiptMatcher:
                 elapsed_us,
             )
 
+        is_present_match = False
         m = self._action_pattern.search(clause)
+        if not m:
+            m = self._present_action_pattern.search(clause)
+            if m:
+                is_present_match = True
         if not m:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
@@ -874,6 +917,36 @@ class TruthInReceiptMatcher:
                 "No completed action claim matched",
                 elapsed_us,
             )
+
+        # Disambiguate explanatory gerund subjects from active physical claims
+        if is_present_match:
+            prefix = clause[: m.start()].lower()
+            if re.search(r"\b(?:by|for|while|worth|when|if|after|before|without|to|such\s+as|than)\s*$", prefix):
+                elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+                return GateResult(
+                    False,
+                    None,
+                    SeverityTier.PASS,
+                    None,
+                    "Prepositional gerund phrase (not an active physical claim)",
+                    elapsed_us,
+                )
+            remainder = m.group(2)
+            if not re.search(r"\b(?:I\s+am|\'m|I\'m)\b", clause, re.IGNORECASE):
+                if re.search(
+                    r"\b(?:is|are|was|were|can|could|will|would|makes|means|requires|helps|allows|provides|causes|involves|installs|works|operates)\b",
+                    remainder,
+                    re.IGNORECASE,
+                ):
+                    elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+                    return GateResult(
+                        False,
+                        None,
+                        SeverityTier.PASS,
+                        None,
+                        "Explanatory gerund subject (not an active physical claim)",
+                        elapsed_us,
+                    )
 
         # Past-session recollection exemption: claims framed as recollections of
         # PRIOR sessions are grounded by long-term memory, not current-turn

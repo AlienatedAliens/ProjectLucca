@@ -152,7 +152,7 @@ def evaluate_task_compound(
     # Determine code prompt based on required lobes
     import_header = []
     if "container_world" in required_lobes:
-        import_header.append("from container_world import ContainerWorld, World")
+        import_header.append("from container_world import ContainerWorld, World, Agent")
     if "sympy" in required_lobes:
         import_header.append("import sympy")
     if "z3" in required_lobes:
@@ -190,6 +190,12 @@ def main() -> None:
     parser.add_argument("--limit-per-suite", type=int, default=5, help="Tasks per suite (default: 5, max: 25)")
     parser.add_argument("--suite", type=str, default="all", help="Target suite name or 'all'")
     parser.add_argument("--model-tag", type=str, default="12B_V138", help="Model evaluation tag")
+    parser.add_argument(
+        "--arms",
+        choices=["all", "compound", "direct_compound"],
+        default="all",
+        help="Evaluation arms: 'all' (Direct+Thinking+Compound), 'compound' (Compound only), or 'direct_compound'",
+    )
     args = parser.parse_args()
 
     data_path = args.dataset if args.dataset.is_absolute() else REPO_ROOT / args.dataset
@@ -238,37 +244,49 @@ def main() -> None:
         print(f"[{idx:02d}/{len(selected):02d}] [{suite}] {tid} (GT={gt})... ", end="", flush=True)
 
         # 1. Arm A: Direct Baseline
+        run_direct = args.arms in ("all", "direct_compound")
         t0 = time.perf_counter()
-        try:
-            d_out, _, _ = query_llm(t["prompt"], max_tokens=1024, temperature=0.0, enable_thinking=False)
-            d_ms = (time.perf_counter() - t0) * 1000.0
-            d_pred = extract_answer(d_out, family)
-            d_ok = (d_pred == gt)
-        except Exception:
+        if run_direct:
+            try:
+                d_out, _, _ = query_llm(t["prompt"], max_tokens=1024, temperature=0.0, enable_thinking=False)
+                d_ms = (time.perf_counter() - t0) * 1000.0
+                d_pred = extract_answer(d_out, family)
+                d_ok = (d_pred == gt)
+            except Exception:
+                d_pred, d_ok, d_ms = None, False, 0.0
+        else:
             d_pred, d_ok, d_ms = None, False, 0.0
 
         # 2. Arm B: Extended Thinking Baseline
+        run_thinking = (args.arms == "all")
         t0 = time.perf_counter()
-        try:
-            th_out, _, _ = query_llm(t["prompt"], max_tokens=2048, temperature=0.6, enable_thinking=True)
-            th_ms = (time.perf_counter() - t0) * 1000.0
-            th_pred = extract_answer(th_out, family)
-            th_ok = (th_pred == gt)
-        except Exception:
+        if run_thinking:
+            try:
+                th_out, _, _ = query_llm(t["prompt"], max_tokens=2048, temperature=0.6, enable_thinking=True)
+                th_ms = (time.perf_counter() - t0) * 1000.0
+                th_pred = extract_answer(th_out, family)
+                th_ok = (th_pred == gt)
+            except Exception:
+                th_pred, th_ok, th_ms = None, False, 0.0
+        else:
             th_pred, th_ok, th_ms = None, False, 0.0
 
         # 3. Arm C: Compound Neurosymbolic Workspace
-        try:
-            c_pred, c_method, c_turns, c_ms = evaluate_task_compound(
-                prompt=t["prompt"],
-                family=family,
-                required_lobes=t["required_lobes"],
-                router=router,
-                engine=engine,
-            )
-            c_ok = (c_pred == gt)
-        except Exception as exc:
-            c_pred, c_method, c_turns, c_ms, c_ok = None, f"ERROR: {exc}", 0, 0.0, False
+        run_compound = args.arms in ("all", "compound", "direct_compound")
+        if run_compound:
+            try:
+                c_pred, c_method, c_turns, c_ms = evaluate_task_compound(
+                    prompt=t["prompt"],
+                    family=family,
+                    required_lobes=t["required_lobes"],
+                    router=router,
+                    engine=engine,
+                )
+                c_ok = (c_pred == gt)
+            except Exception as exc:
+                c_pred, c_method, c_turns, c_ms, c_ok = None, f"ERROR: {exc}", 0, 0.0, False
+        else:
+            c_pred, c_method, c_turns, c_ms, c_ok = None, "SKIPPED", 0, 0.0, False
 
         res = TaskEvalResult(
             task_id=tid,

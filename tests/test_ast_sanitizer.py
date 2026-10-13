@@ -116,14 +116,22 @@ print(res, root)
 
 
 def test_no_entrypoint_injection() -> None:
-    """Confirms Step 5 entrypoint injection is removed and does not append print."""
+    """Confirms non-entrypoint functions do not receive arbitrary print injection, while solve() is synthesized."""
     code = """
-def solve():
+def helper_func():
     return 42 * 2
 """
     repaired, ok, err = sanitize_and_repair_python_code(code)
     assert ok, err
     assert "print" not in repaired
+
+    solve_code = """
+def solve():
+    return 42 * 2
+"""
+    repaired_solve, ok_solve, err_solve = sanitize_and_repair_python_code(solve_code)
+    assert ok_solve, err_solve
+    assert "print(solve())" in repaired_solve
 
 
 def test_empty_extraction_returns_empty_stage() -> None:

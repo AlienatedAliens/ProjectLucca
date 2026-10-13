@@ -401,10 +401,10 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     if "Fraction" in used_names and "Fraction" not in imported_names and "fractions" not in imported_modules:
         imports_to_add.append("from fractions import Fraction")
 
-    # Check if container_world / ContainerWorld / World / KnowledgeBase is needed
-    cw_symbols = {"ContainerWorld", "World", "KnowledgeBase", "BeliefTracker"}
+    # Check if container_world / ContainerWorld / World / KnowledgeBase / Agent is needed
+    cw_symbols = {"ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"}
     if ("container_world" in used_attr_bases or any(c in used_names for c in cw_symbols)) and "container_world" not in imported_modules and not any(c in imported_names for c in cw_symbols):
-        imports_to_add.append("from container_world import ContainerWorld, World, KnowledgeBase, BeliefTracker")
+        imports_to_add.append("from container_world import ContainerWorld, World, KnowledgeBase, BeliefTracker, Agent")
 
     # Check if z3 is needed
     z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or", "And", "Not", "Distinct"}

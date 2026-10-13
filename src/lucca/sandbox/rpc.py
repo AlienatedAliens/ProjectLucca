@@ -152,12 +152,20 @@ ContainerWorld.record_observation = lambda self, *args, **kwargs: None
 World = ContainerWorld
 KnowledgeBase = ContainerWorld
 BeliefTracker = ContainerWorld
+class Agent:
+    def __init__(self, name: str = "", *args, **kwargs) -> None:
+        self.name = str(name)
+    def __str__(self) -> str:
+        return self.name
+    def __repr__(self) -> str:
+        return f"Agent({self.name!r})"
 _cw_mod = _types.ModuleType("container_world")
 _cw_mod.ContainerWorld = ContainerWorld
 _cw_mod.World = ContainerWorld
 _cw_mod.KnowledgeBase = ContainerWorld
 _cw_mod.BeliefTracker = ContainerWorld
-_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker"]
+_cw_mod.Agent = Agent
+_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"]
 _sys.modules["container_world"] = _cw_mod
 '''
 

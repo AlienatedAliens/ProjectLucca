@@ -346,9 +346,24 @@ def extract_events_from_json_text(text: str) -> tuple[list[dict[str, object]], b
     return [], False
 
 
-# Common aliases for LLMs importing World, KnowledgeBase, etc.
+# Common aliases for LLMs importing World, KnowledgeBase, Agent, etc.
 World = ContainerWorld
 KnowledgeBase = ContainerWorld
 BeliefTracker = ContainerWorld
 
-__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "extract_events_from_json_text"]
+
+class Agent:
+    """Helper alias for agent identification in synthesized code."""
+
+    def __init__(self, name: str = "", *args, **kwargs) -> None:
+        self.name = str(name)
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __repr__(self) -> str:
+        return f"Agent({self.name!r})"
+
+
+__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent", "extract_events_from_json_text"]
+
