@@ -1,0 +1,2334 @@
+{
+  "benchmark": "Sealed_Parametric_Reasoning_Master_Suite",
+  "generated_at": "2026-10-13T13:54:23.847744+00:00",
+  "master_seed": 20261014,
+  "difficulty": "hard",
+  "total_tasks": 125,
+  "suite_counts": {
+    "single_lobe_epistemic": 25,
+    "single_lobe_smt": 25,
+    "single_lobe_cas": 25,
+    "two_lobe_composed": 25,
+    "formalization_translation": 25
+  },
+  "tasks": [
+    {
+      "task_id": "SEALED_CW_HARD_01",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Gabriel, Rowan, Oliver, and Helena all gather in the central depot and observe that the 'quantum_key' is in 'vault_alpha'. At 09:00, while Gabriel and Helena are on exterior patrol, Rowan transfers the 'quantum_key' to 'storage_box' witnessed only by Oliver. At 10:00, while Gabriel and Rowan are in communications, Oliver relocates the 'quantum_key' to 'cargo_bay' witnessed only by Helena. At 11:00, Helena secretly moves the 'quantum_key' to 'pantry' alone without any observers. What does Helena believe that Rowan thinks is the location of the 'quantum_key'? Conclude with your answer as the exact location name.",
+      "ground_truth": "vault_alpha",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Gabriel",
+          "Rowan",
+          "Oliver",
+          "Helena"
+        ],
+        "observer_agent": "Helena",
+        "target_agent": "Rowan",
+        "item": "quantum_key",
+        "locations": [
+          "vault_alpha",
+          "storage_box",
+          "cargo_bay",
+          "pantry"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_02",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Marcus, Helena, Penelope, and Katarina all gather in the central depot and observe that the 'quantum_key' is in 'pantry'. At 09:00, while Marcus and Katarina are on exterior patrol, Helena transfers the 'quantum_key' to 'briefcase' witnessed only by Penelope. At 10:00, while Marcus and Helena are in communications, Penelope relocates the 'quantum_key' to 'workbench' witnessed only by Katarina. At 11:00, Katarina secretly moves the 'quantum_key' to 'vault_alpha' alone without any observers. What does Penelope believe that Marcus thinks is the location of the 'quantum_key'? Conclude with your answer as the exact location name.",
+      "ground_truth": "pantry",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Marcus",
+          "Helena",
+          "Penelope",
+          "Katarina"
+        ],
+        "observer_agent": "Penelope",
+        "target_agent": "Marcus",
+        "item": "quantum_key",
+        "locations": [
+          "pantry",
+          "briefcase",
+          "workbench",
+          "vault_alpha"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_03",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Liam, Helena, Isabelle, and Julian all gather in the central depot and observe that the 'chronometer' is in 'workbench'. At 09:00, while Liam and Julian are on exterior patrol, Helena transfers the 'chronometer' to 'vault_alpha' witnessed only by Isabelle. At 10:00, while Liam and Helena are in communications, Isabelle relocates the 'chronometer' to 'armory' witnessed only by Julian. At 11:00, Julian secretly moves the 'chronometer' to 'observation_deck' alone without any observers. What does Julian believe that Helena thinks is the location of the 'chronometer'? Conclude with your answer as the exact location name.",
+      "ground_truth": "workbench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Liam",
+          "Helena",
+          "Isabelle",
+          "Julian"
+        ],
+        "observer_agent": "Julian",
+        "target_agent": "Helena",
+        "item": "chronometer",
+        "locations": [
+          "workbench",
+          "vault_alpha",
+          "armory",
+          "observation_deck"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_04",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Felix, Alexander, Oliver, and Helena all gather in the central depot and observe that the 'quantum_key' is in 'locker_seven'. At 09:00, while Felix and Helena are on exterior patrol, Alexander transfers the 'quantum_key' to 'armory' witnessed only by Oliver. At 10:00, while Felix and Alexander are in communications, Oliver relocates the 'quantum_key' to 'storage_box' witnessed only by Helena. At 11:00, Helena secretly moves the 'quantum_key' to 'pantry' alone without any observers. What does Felix believe that Alexander thinks is the location of the 'quantum_key'? Conclude with your answer as the exact location name.",
+      "ground_truth": "locker_seven",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Felix",
+          "Alexander",
+          "Oliver",
+          "Helena"
+        ],
+        "observer_agent": "Felix",
+        "target_agent": "Alexander",
+        "item": "quantum_key",
+        "locations": [
+          "locker_seven",
+          "armory",
+          "storage_box",
+          "pantry"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_05",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Rowan, Gabriel, Penelope, and Alexander all gather in the central depot and observe that the 'compass' is in 'briefcase'. At 09:00, while Rowan and Alexander are on exterior patrol, Gabriel transfers the 'compass' to 'workbench' witnessed only by Penelope. At 10:00, while Rowan and Gabriel are in communications, Penelope relocates the 'compass' to 'cargo_bay' witnessed only by Alexander. At 11:00, Alexander secretly moves the 'compass' to 'attic' alone without any observers. What does Gabriel believe that Alexander thinks is the location of the 'compass'? Conclude with your answer as the exact location name.",
+      "ground_truth": "briefcase",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Rowan",
+          "Gabriel",
+          "Penelope",
+          "Alexander"
+        ],
+        "observer_agent": "Gabriel",
+        "target_agent": "Alexander",
+        "item": "compass",
+        "locations": [
+          "briefcase",
+          "workbench",
+          "cargo_bay",
+          "attic"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_06",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Eleanor, Rowan, Dmitri, and Quentin all gather in the central depot and observe that the 'quantum_key' is in 'vault_alpha'. At 09:00, while Eleanor and Quentin are on exterior patrol, Rowan transfers the 'quantum_key' to 'drawer' witnessed only by Dmitri. At 10:00, while Eleanor and Rowan are in communications, Dmitri relocates the 'quantum_key' to 'briefcase' witnessed only by Quentin. At 11:00, Quentin secretly moves the 'quantum_key' to 'lab_bench' alone without any observers. What does Rowan believe that Quentin thinks is the location of the 'quantum_key'? Conclude with your answer as the exact location name.",
+      "ground_truth": "vault_alpha",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Eleanor",
+          "Rowan",
+          "Dmitri",
+          "Quentin"
+        ],
+        "observer_agent": "Rowan",
+        "target_agent": "Quentin",
+        "item": "quantum_key",
+        "locations": [
+          "vault_alpha",
+          "drawer",
+          "briefcase",
+          "lab_bench"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_07",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Oliver, Rowan, Alexander, and Eleanor all gather in the central depot and observe that the 'specimen_jar' is in 'vault_alpha'. At 09:00, while Oliver and Eleanor are on exterior patrol, Rowan transfers the 'specimen_jar' to 'armory' witnessed only by Alexander. At 10:00, while Oliver and Rowan are in communications, Alexander relocates the 'specimen_jar' to 'cargo_bay' witnessed only by Eleanor. At 11:00, Eleanor secretly moves the 'specimen_jar' to 'attic' alone without any observers. What does Rowan believe that Oliver thinks is the location of the 'specimen_jar'? Conclude with your answer as the exact location name.",
+      "ground_truth": "vault_alpha",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Oliver",
+          "Rowan",
+          "Alexander",
+          "Eleanor"
+        ],
+        "observer_agent": "Rowan",
+        "target_agent": "Oliver",
+        "item": "specimen_jar",
+        "locations": [
+          "vault_alpha",
+          "armory",
+          "cargo_bay",
+          "attic"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_08",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Penelope, Oliver, Marcus, and Eleanor all gather in the central depot and observe that the 'specimen_jar' is in 'armory'. At 09:00, while Penelope and Eleanor are on exterior patrol, Oliver transfers the 'specimen_jar' to 'storage_box' witnessed only by Marcus. At 10:00, while Penelope and Oliver are in communications, Marcus relocates the 'specimen_jar' to 'cargo_bay' witnessed only by Eleanor. At 11:00, Eleanor secretly moves the 'specimen_jar' to 'workbench' alone without any observers. What does Eleanor believe that Marcus thinks is the location of the 'specimen_jar'? Conclude with your answer as the exact location name.",
+      "ground_truth": "cargo_bay",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Penelope",
+          "Oliver",
+          "Marcus",
+          "Eleanor"
+        ],
+        "observer_agent": "Eleanor",
+        "target_agent": "Marcus",
+        "item": "specimen_jar",
+        "locations": [
+          "armory",
+          "storage_box",
+          "cargo_bay",
+          "workbench"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_09",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Alexander, Nadia, Dmitri, and Oliver all gather in the central depot and observe that the 'chronometer' is in 'storage_box'. At 09:00, while Alexander and Oliver are on exterior patrol, Nadia transfers the 'chronometer' to 'safe' witnessed only by Dmitri. At 10:00, while Alexander and Nadia are in communications, Dmitri relocates the 'chronometer' to 'briefcase' witnessed only by Oliver. At 11:00, Oliver secretly moves the 'chronometer' to 'locker_seven' alone without any observers. What does Nadia believe that Alexander thinks is the location of the 'chronometer'? Conclude with your answer as the exact location name.",
+      "ground_truth": "storage_box",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Alexander",
+          "Nadia",
+          "Dmitri",
+          "Oliver"
+        ],
+        "observer_agent": "Nadia",
+        "target_agent": "Alexander",
+        "item": "chronometer",
+        "locations": [
+          "storage_box",
+          "safe",
+          "briefcase",
+          "locker_seven"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_10",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Marcus, Liam, Quentin, and Katarina all gather in the central depot and observe that the 'quantum_key' is in 'vault_alpha'. At 09:00, while Marcus and Katarina are on exterior patrol, Liam transfers the 'quantum_key' to 'locker_seven' witnessed only by Quentin. At 10:00, while Marcus and Liam are in communications, Quentin relocates the 'quantum_key' to 'cargo_bay' witnessed only by Katarina. At 11:00, Katarina secretly moves the 'quantum_key' to 'armory' alone without any observers. What does Marcus believe that Katarina thinks is the location of the 'quantum_key'? Conclude with your answer as the exact location name.",
+      "ground_truth": "vault_alpha",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Marcus",
+          "Liam",
+          "Quentin",
+          "Katarina"
+        ],
+        "observer_agent": "Marcus",
+        "target_agent": "Katarina",
+        "item": "quantum_key",
+        "locations": [
+          "vault_alpha",
+          "locker_seven",
+          "cargo_bay",
+          "armory"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_11",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Quentin, Felix, Julian, and Rowan all gather in the central depot and observe that the 'data_slate' is in 'locker_seven'. At 09:00, while Quentin and Rowan are on exterior patrol, Felix transfers the 'data_slate' to 'storage_box' witnessed only by Julian. At 10:00, while Quentin and Felix are in communications, Julian relocates the 'data_slate' to 'workbench' witnessed only by Rowan. At 11:00, Rowan secretly moves the 'data_slate' to 'attic' alone without any observers. What does Quentin believe that Julian thinks is the location of the 'data_slate'? Conclude with your answer as the exact location name.",
+      "ground_truth": "locker_seven",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Quentin",
+          "Felix",
+          "Julian",
+          "Rowan"
+        ],
+        "observer_agent": "Quentin",
+        "target_agent": "Julian",
+        "item": "data_slate",
+        "locations": [
+          "locker_seven",
+          "storage_box",
+          "workbench",
+          "attic"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_12",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Isabelle, Julian, Marcus, and Quentin all gather in the central depot and observe that the 'data_slate' is in 'cargo_bay'. At 09:00, while Isabelle and Quentin are on exterior patrol, Julian transfers the 'data_slate' to 'safe' witnessed only by Marcus. At 10:00, while Isabelle and Julian are in communications, Marcus relocates the 'data_slate' to 'vault_alpha' witnessed only by Quentin. At 11:00, Quentin secretly moves the 'data_slate' to 'pantry' alone without any observers. What does Marcus believe that Julian thinks is the location of the 'data_slate'? Conclude with your answer as the exact location name.",
+      "ground_truth": "safe",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Isabelle",
+          "Julian",
+          "Marcus",
+          "Quentin"
+        ],
+        "observer_agent": "Marcus",
+        "target_agent": "Julian",
+        "item": "data_slate",
+        "locations": [
+          "cargo_bay",
+          "safe",
+          "vault_alpha",
+          "pantry"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_13",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Julian, Helena, Catherine, and Penelope all gather in the central depot and observe that the 'star_chart' is in 'cargo_bay'. At 09:00, while Julian and Penelope are on exterior patrol, Helena transfers the 'star_chart' to 'workbench' witnessed only by Catherine. At 10:00, while Julian and Helena are in communications, Catherine relocates the 'star_chart' to 'drawer' witnessed only by Penelope. At 11:00, Penelope secretly moves the 'star_chart' to 'vault_alpha' alone without any observers. What does Helena believe that Julian thinks is the location of the 'star_chart'? Conclude with your answer as the exact location name.",
+      "ground_truth": "cargo_bay",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Julian",
+          "Helena",
+          "Catherine",
+          "Penelope"
+        ],
+        "observer_agent": "Helena",
+        "target_agent": "Julian",
+        "item": "star_chart",
+        "locations": [
+          "cargo_bay",
+          "workbench",
+          "drawer",
+          "vault_alpha"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_14",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Quentin, Beatrice, Eleanor, and Marcus all gather in the central depot and observe that the 'field_journal' is in 'drawer'. At 09:00, while Quentin and Marcus are on exterior patrol, Beatrice transfers the 'field_journal' to 'armory' witnessed only by Eleanor. At 10:00, while Quentin and Beatrice are in communications, Eleanor relocates the 'field_journal' to 'attic' witnessed only by Marcus. At 11:00, Marcus secretly moves the 'field_journal' to 'lab_bench' alone without any observers. What does Quentin believe that Marcus thinks is the location of the 'field_journal'? Conclude with your answer as the exact location name.",
+      "ground_truth": "drawer",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Quentin",
+          "Beatrice",
+          "Eleanor",
+          "Marcus"
+        ],
+        "observer_agent": "Quentin",
+        "target_agent": "Marcus",
+        "item": "field_journal",
+        "locations": [
+          "drawer",
+          "armory",
+          "attic",
+          "lab_bench"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_15",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Felix, Rowan, Oliver, and Quentin all gather in the central depot and observe that the 'star_chart' is in 'drawer'. At 09:00, while Felix and Quentin are on exterior patrol, Rowan transfers the 'star_chart' to 'storage_box' witnessed only by Oliver. At 10:00, while Felix and Rowan are in communications, Oliver relocates the 'star_chart' to 'vault_alpha' witnessed only by Quentin. At 11:00, Quentin secretly moves the 'star_chart' to 'armory' alone without any observers. What does Oliver believe that Felix thinks is the location of the 'star_chart'? Conclude with your answer as the exact location name.",
+      "ground_truth": "drawer",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Felix",
+          "Rowan",
+          "Oliver",
+          "Quentin"
+        ],
+        "observer_agent": "Oliver",
+        "target_agent": "Felix",
+        "item": "star_chart",
+        "locations": [
+          "drawer",
+          "storage_box",
+          "vault_alpha",
+          "armory"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_16",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Beatrice, Quentin, Rowan, and Julian all gather in the central depot and observe that the 'resonator' is in 'cargo_bay'. At 09:00, while Beatrice and Julian are on exterior patrol, Quentin transfers the 'resonator' to 'locker_seven' witnessed only by Rowan. At 10:00, while Beatrice and Quentin are in communications, Rowan relocates the 'resonator' to 'drawer' witnessed only by Julian. At 11:00, Julian secretly moves the 'resonator' to 'vault_alpha' alone without any observers. What does Rowan believe that Beatrice thinks is the location of the 'resonator'? Conclude with your answer as the exact location name.",
+      "ground_truth": "cargo_bay",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Beatrice",
+          "Quentin",
+          "Rowan",
+          "Julian"
+        ],
+        "observer_agent": "Rowan",
+        "target_agent": "Beatrice",
+        "item": "resonator",
+        "locations": [
+          "cargo_bay",
+          "locker_seven",
+          "drawer",
+          "vault_alpha"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_17",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Quentin, Dmitri, Marcus, and Alexander all gather in the central depot and observe that the 'specimen_jar' is in 'locker_seven'. At 09:00, while Quentin and Alexander are on exterior patrol, Dmitri transfers the 'specimen_jar' to 'vault_alpha' witnessed only by Marcus. At 10:00, while Quentin and Dmitri are in communications, Marcus relocates the 'specimen_jar' to 'storage_box' witnessed only by Alexander. At 11:00, Alexander secretly moves the 'specimen_jar' to 'attic' alone without any observers. What does Alexander believe that Quentin thinks is the location of the 'specimen_jar'? Conclude with your answer as the exact location name.",
+      "ground_truth": "locker_seven",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Quentin",
+          "Dmitri",
+          "Marcus",
+          "Alexander"
+        ],
+        "observer_agent": "Alexander",
+        "target_agent": "Quentin",
+        "item": "specimen_jar",
+        "locations": [
+          "locker_seven",
+          "vault_alpha",
+          "storage_box",
+          "attic"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_18",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Dmitri, Rowan, Isabelle, and Eleanor all gather in the central depot and observe that the 'star_chart' is in 'vault_alpha'. At 09:00, while Dmitri and Eleanor are on exterior patrol, Rowan transfers the 'star_chart' to 'workbench' witnessed only by Isabelle. At 10:00, while Dmitri and Rowan are in communications, Isabelle relocates the 'star_chart' to 'briefcase' witnessed only by Eleanor. At 11:00, Eleanor secretly moves the 'star_chart' to 'safe' alone without any observers. What does Rowan believe that Dmitri thinks is the location of the 'star_chart'? Conclude with your answer as the exact location name.",
+      "ground_truth": "vault_alpha",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Dmitri",
+          "Rowan",
+          "Isabelle",
+          "Eleanor"
+        ],
+        "observer_agent": "Rowan",
+        "target_agent": "Dmitri",
+        "item": "star_chart",
+        "locations": [
+          "vault_alpha",
+          "workbench",
+          "briefcase",
+          "safe"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_19",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Catherine, Alexander, Helena, and Liam all gather in the central depot and observe that the 'compass' is in 'attic'. At 09:00, while Catherine and Liam are on exterior patrol, Alexander transfers the 'compass' to 'vault_alpha' witnessed only by Helena. At 10:00, while Catherine and Alexander are in communications, Helena relocates the 'compass' to 'armory' witnessed only by Liam. At 11:00, Liam secretly moves the 'compass' to 'drawer' alone without any observers. What does Catherine believe that Alexander thinks is the location of the 'compass'? Conclude with your answer as the exact location name.",
+      "ground_truth": "attic",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Catherine",
+          "Alexander",
+          "Helena",
+          "Liam"
+        ],
+        "observer_agent": "Catherine",
+        "target_agent": "Alexander",
+        "item": "compass",
+        "locations": [
+          "attic",
+          "vault_alpha",
+          "armory",
+          "drawer"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_20",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Rowan, Eleanor, Isabelle, and Beatrice all gather in the central depot and observe that the 'compass' is in 'pantry'. At 09:00, while Rowan and Beatrice are on exterior patrol, Eleanor transfers the 'compass' to 'storage_box' witnessed only by Isabelle. At 10:00, while Rowan and Eleanor are in communications, Isabelle relocates the 'compass' to 'cargo_bay' witnessed only by Beatrice. At 11:00, Beatrice secretly moves the 'compass' to 'safe' alone without any observers. What does Beatrice believe that Eleanor thinks is the location of the 'compass'? Conclude with your answer as the exact location name.",
+      "ground_truth": "pantry",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Rowan",
+          "Eleanor",
+          "Isabelle",
+          "Beatrice"
+        ],
+        "observer_agent": "Beatrice",
+        "target_agent": "Eleanor",
+        "item": "compass",
+        "locations": [
+          "pantry",
+          "storage_box",
+          "cargo_bay",
+          "safe"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_21",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Catherine, Isabelle, Liam, and Eleanor all gather in the central depot and observe that the 'chronometer' is in 'locker_seven'. At 09:00, while Catherine and Eleanor are on exterior patrol, Isabelle transfers the 'chronometer' to 'attic' witnessed only by Liam. At 10:00, while Catherine and Isabelle are in communications, Liam relocates the 'chronometer' to 'cargo_bay' witnessed only by Eleanor. At 11:00, Eleanor secretly moves the 'chronometer' to 'drawer' alone without any observers. What does Liam believe that Isabelle thinks is the location of the 'chronometer'? Conclude with your answer as the exact location name.",
+      "ground_truth": "attic",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Catherine",
+          "Isabelle",
+          "Liam",
+          "Eleanor"
+        ],
+        "observer_agent": "Liam",
+        "target_agent": "Isabelle",
+        "item": "chronometer",
+        "locations": [
+          "locker_seven",
+          "attic",
+          "cargo_bay",
+          "drawer"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_22",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Felix, Liam, Dmitri, and Oliver all gather in the central depot and observe that the 'star_chart' is in 'drawer'. At 09:00, while Felix and Oliver are on exterior patrol, Liam transfers the 'star_chart' to 'pantry' witnessed only by Dmitri. At 10:00, while Felix and Liam are in communications, Dmitri relocates the 'star_chart' to 'workbench' witnessed only by Oliver. At 11:00, Oliver secretly moves the 'star_chart' to 'locker_seven' alone without any observers. What does Dmitri believe that Felix thinks is the location of the 'star_chart'? Conclude with your answer as the exact location name.",
+      "ground_truth": "drawer",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Felix",
+          "Liam",
+          "Dmitri",
+          "Oliver"
+        ],
+        "observer_agent": "Dmitri",
+        "target_agent": "Felix",
+        "item": "star_chart",
+        "locations": [
+          "drawer",
+          "pantry",
+          "workbench",
+          "locker_seven"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_23",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Quentin, Dmitri, Katarina, and Rowan all gather in the central depot and observe that the 'resonator' is in 'workbench'. At 09:00, while Quentin and Rowan are on exterior patrol, Dmitri transfers the 'resonator' to 'safe' witnessed only by Katarina. At 10:00, while Quentin and Dmitri are in communications, Katarina relocates the 'resonator' to 'storage_box' witnessed only by Rowan. At 11:00, Rowan secretly moves the 'resonator' to 'attic' alone without any observers. What does Dmitri believe that Rowan thinks is the location of the 'resonator'? Conclude with your answer as the exact location name.",
+      "ground_truth": "workbench",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Quentin",
+          "Dmitri",
+          "Katarina",
+          "Rowan"
+        ],
+        "observer_agent": "Dmitri",
+        "target_agent": "Rowan",
+        "item": "resonator",
+        "locations": [
+          "workbench",
+          "safe",
+          "storage_box",
+          "attic"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_24",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Katarina, Beatrice, Felix, and Alexander all gather in the central depot and observe that the 'star_chart' is in 'drawer'. At 09:00, while Katarina and Alexander are on exterior patrol, Beatrice transfers the 'star_chart' to 'locker_seven' witnessed only by Felix. At 10:00, while Katarina and Beatrice are in communications, Felix relocates the 'star_chart' to 'vault_alpha' witnessed only by Alexander. At 11:00, Alexander secretly moves the 'star_chart' to 'lab_bench' alone without any observers. What does Alexander believe that Beatrice thinks is the location of the 'star_chart'? Conclude with your answer as the exact location name.",
+      "ground_truth": "drawer",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Katarina",
+          "Beatrice",
+          "Felix",
+          "Alexander"
+        ],
+        "observer_agent": "Alexander",
+        "target_agent": "Beatrice",
+        "item": "star_chart",
+        "locations": [
+          "drawer",
+          "locker_seven",
+          "vault_alpha",
+          "lab_bench"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_CW_HARD_25",
+      "suite": "single_lobe_epistemic",
+      "family": "container_world",
+      "prompt": "At 08:00, Gabriel, Marcus, Felix, and Liam all gather in the central depot and observe that the 'lens_filter' is in 'locker_seven'. At 09:00, while Gabriel and Liam are on exterior patrol, Marcus transfers the 'lens_filter' to 'observation_deck' witnessed only by Felix. At 10:00, while Gabriel and Marcus are in communications, Felix relocates the 'lens_filter' to 'safe' witnessed only by Liam. At 11:00, Liam secretly moves the 'lens_filter' to 'armory' alone without any observers. What does Liam believe that Gabriel thinks is the location of the 'lens_filter'? Conclude with your answer as the exact location name.",
+      "ground_truth": "locker_seven",
+      "required_lobes": [
+        "container_world"
+      ],
+      "metadata": {
+        "agents": [
+          "Gabriel",
+          "Marcus",
+          "Felix",
+          "Liam"
+        ],
+        "observer_agent": "Liam",
+        "target_agent": "Gabriel",
+        "item": "lens_filter",
+        "locations": [
+          "locker_seven",
+          "observation_deck",
+          "safe",
+          "armory"
+        ],
+        "order": "second_order"
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_01",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 111796 and 128877 satisfying the following system of modular congruences:\n1. N % 19 == 10\n2. N % 29 == 12\n3. N % 31 == 18\nPrint only the final integer N.",
+      "ground_truth": "112300",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 112300,
+        "moduli": [
+          19,
+          29,
+          31
+        ],
+        "L": 111796,
+        "U": 128877
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_02",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 76111 and 88062 satisfying the following system of modular congruences:\n1. N % 17 == 4\n2. N % 19 == 6\n3. N % 37 == 32\nPrint only the final integer N.",
+      "ground_truth": "76215",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 76215,
+        "moduli": [
+          17,
+          19,
+          37
+        ],
+        "L": 76111,
+        "U": 88062
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_03",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 79515 and 89528 satisfying the following system of modular congruences:\n1. N % 17 == 12\n2. N % 19 == 1\n3. N % 31 == 6\nPrint only the final integer N.",
+      "ground_truth": "80048",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 80048,
+        "moduli": [
+          17,
+          19,
+          31
+        ],
+        "L": 79515,
+        "U": 89528
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_04",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 155971 and 176648 satisfying the following system of modular congruences:\n1. N % 23 == 20\n2. N % 29 == 27\n3. N % 31 == 15\nPrint only the final integer N.",
+      "ground_truth": "156627",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 156627,
+        "moduli": [
+          23,
+          29,
+          31
+        ],
+        "L": 155971,
+        "U": 176648
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_05",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 104683 and 122924 satisfying the following system of modular congruences:\n1. N % 17 == 11\n2. N % 29 == 21\n3. N % 37 == 8\nPrint only the final integer N.",
+      "ground_truth": "105088",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 105088,
+        "moduli": [
+          17,
+          29,
+          37
+        ],
+        "L": 104683,
+        "U": 122924
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_06",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 70118 and 80131 satisfying the following system of modular congruences:\n1. N % 17 == 2\n2. N % 19 == 12\n3. N % 31 == 5\nPrint only the final integer N.",
+      "ground_truth": "70654",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 70654,
+        "moduli": [
+          17,
+          19,
+          31
+        ],
+        "L": 70118,
+        "U": 80131
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_07",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 110060 and 123607 satisfying the following system of modular congruences:\n1. N % 19 == 8\n2. N % 23 == 9\n3. N % 31 == 5\nPrint only the final integer N.",
+      "ground_truth": "110892",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 110892,
+        "moduli": [
+          19,
+          23,
+          31
+        ],
+        "L": 110060,
+        "U": 123607
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_08",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 130027 and 146196 satisfying the following system of modular congruences:\n1. N % 19 == 0\n2. N % 23 == 1\n3. N % 37 == 6\nPrint only the final integer N.",
+      "ground_truth": "130986",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 130986,
+        "moduli": [
+          19,
+          23,
+          37
+        ],
+        "L": 130027,
+        "U": 146196
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_09",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 85096 and 118359 satisfying the following system of modular congruences:\n1. N % 29 == 26\n2. N % 31 == 5\n3. N % 37 == 1\nPrint only the final integer N.",
+      "ground_truth": "85286",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 85286,
+        "moduli": [
+          29,
+          31,
+          37
+        ],
+        "L": 85096,
+        "U": 118359
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_10",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 54210 and 61639 satisfying the following system of modular congruences:\n1. N % 17 == 10\n2. N % 19 == 12\n3. N % 23 == 2\nPrint only the final integer N.",
+      "ground_truth": "54903",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 54903,
+        "moduli": [
+          17,
+          19,
+          23
+        ],
+        "L": 54210,
+        "U": 61639
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_11",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 77360 and 88699 satisfying the following system of modular congruences:\n1. N % 17 == 5\n2. N % 23 == 13\n3. N % 29 == 13\nPrint only the final integer N.",
+      "ground_truth": "78052",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 78052,
+        "moduli": [
+          17,
+          23,
+          29
+        ],
+        "L": 77360,
+        "U": 88699
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_12",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 34640 and 49107 satisfying the following system of modular congruences:\n1. N % 17 == 6\n2. N % 23 == 1\n3. N % 37 == 11\nPrint only the final integer N.",
+      "ground_truth": "34754",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 34754,
+        "moduli": [
+          17,
+          23,
+          37
+        ],
+        "L": 34640,
+        "U": 49107
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_13",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 117584 and 132867 satisfying the following system of modular congruences:\n1. N % 17 == 5\n2. N % 29 == 22\n3. N % 31 == 15\nPrint only the final integer N.",
+      "ground_truth": "118342",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 118342,
+        "moduli": [
+          17,
+          29,
+          31
+        ],
+        "L": 117584,
+        "U": 132867
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_14",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 57417 and 66784 satisfying the following system of modular congruences:\n1. N % 17 == 3\n2. N % 19 == 16\n3. N % 29 == 20\nPrint only the final integer N.",
+      "ground_truth": "58194",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 58194,
+        "moduli": [
+          17,
+          19,
+          29
+        ],
+        "L": 57417,
+        "U": 66784
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_15",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 69587 and 85756 satisfying the following system of modular congruences:\n1. N % 19 == 15\n2. N % 23 == 6\n3. N % 37 == 9\nPrint only the final integer N.",
+      "ground_truth": "70087",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 70087,
+        "moduli": [
+          19,
+          23,
+          37
+        ],
+        "L": 69587,
+        "U": 85756
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_16",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 61418 and 70785 satisfying the following system of modular congruences:\n1. N % 17 == 4\n2. N % 19 == 6\n3. N % 29 == 26\nPrint only the final integer N.",
+      "ground_truth": "61680",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 61680,
+        "moduli": [
+          17,
+          19,
+          29
+        ],
+        "L": 61418,
+        "U": 70785
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_17",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 92945 and 111186 satisfying the following system of modular congruences:\n1. N % 17 == 0\n2. N % 29 == 18\n3. N % 37 == 10\nPrint only the final integer N.",
+      "ground_truth": "93398",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 93398,
+        "moduli": [
+          17,
+          29,
+          37
+        ],
+        "L": 92945,
+        "U": 111186
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_18",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 89739 and 101078 satisfying the following system of modular congruences:\n1. N % 17 == 15\n2. N % 23 == 11\n3. N % 29 == 27\nPrint only the final integer N.",
+      "ground_truth": "90217",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 90217,
+        "moduli": [
+          17,
+          23,
+          29
+        ],
+        "L": 89739,
+        "U": 101078
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_19",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 84558 and 99841 satisfying the following system of modular congruences:\n1. N % 17 == 14\n2. N % 29 == 9\n3. N % 31 == 19\nPrint only the final integer N.",
+      "ground_truth": "85269",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 85269,
+        "moduli": [
+          17,
+          29,
+          31
+        ],
+        "L": 84558,
+        "U": 99841
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_20",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 108594 and 122141 satisfying the following system of modular congruences:\n1. N % 19 == 4\n2. N % 23 == 11\n3. N % 31 == 21\nPrint only the final integer N.",
+      "ground_truth": "108893",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 108893,
+        "moduli": [
+          19,
+          23,
+          31
+        ],
+        "L": 108594,
+        "U": 122141
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_21",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 27100 and 40647 satisfying the following system of modular congruences:\n1. N % 19 == 18\n2. N % 23 == 14\n3. N % 31 == 9\nPrint only the final integer N.",
+      "ground_truth": "27568",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 27568,
+        "moduli": [
+          19,
+          23,
+          31
+        ],
+        "L": 27100,
+        "U": 40647
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_22",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 60167 and 70180 satisfying the following system of modular congruences:\n1. N % 17 == 6\n2. N % 19 == 11\n3. N % 31 == 27\nPrint only the final integer N.",
+      "ground_truth": "60849",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 60849,
+        "moduli": [
+          17,
+          19,
+          31
+        ],
+        "L": 60167,
+        "U": 70180
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_23",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 117985 and 139778 satisfying the following system of modular congruences:\n1. N % 19 == 18\n2. N % 31 == 11\n3. N % 37 == 3\nPrint only the final integer N.",
+      "ground_truth": "118958",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 118958,
+        "moduli": [
+          19,
+          31,
+          37
+        ],
+        "L": 117985,
+        "U": 139778
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_24",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 68719 and 78086 satisfying the following system of modular congruences:\n1. N % 17 == 8\n2. N % 19 == 0\n3. N % 29 == 0\nPrint only the final integer N.",
+      "ground_truth": "68875",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 68875,
+        "moduli": [
+          17,
+          19,
+          29
+        ],
+        "L": 68719,
+        "U": 78086
+      }
+    },
+    {
+      "task_id": "SEALED_Z3_HARD_25",
+      "suite": "single_lobe_smt",
+      "family": "z3",
+      "prompt": "Find the unique integer N strictly between 57143 and 64572 satisfying the following system of modular congruences:\n1. N % 17 == 3\n2. N % 19 == 18\n3. N % 23 == 9\nPrint only the final integer N.",
+      "ground_truth": "57854",
+      "required_lobes": [
+        "z3"
+      ],
+      "metadata": {
+        "N": 57854,
+        "moduli": [
+          17,
+          19,
+          23
+        ],
+        "L": 57143,
+        "U": 64572
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_01",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 81-th prime and q be the 153-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1187. Print only the final integer answer.",
+      "ground_truth": "936",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 419,
+        "p2": 883,
+        "N": 369977,
+        "mod": 1187
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_02",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 17 consecutive primes starting from the 95-th prime (prime(95) through prime(111)), modulo 2827. Print only the final integer answer.",
+      "ground_truth": "986",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 95,
+        "length": 17,
+        "mod": 2827
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_03",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 18 consecutive primes starting from the 147-th prime (prime(147) through prime(164)), modulo 2542. Print only the final integer answer.",
+      "ground_truth": "1090",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 147,
+        "length": 18,
+        "mod": 2542
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_04",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 15 consecutive primes starting from the 150-th prime (prime(150) through prime(164)), modulo 2202. Print only the final integer answer.",
+      "ground_truth": "561",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 150,
+        "length": 15,
+        "mod": 2202
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_05",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 100-th prime number and q be the 147-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1406. Print only the final integer answer.",
+      "ground_truth": "318",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 541,
+        "p2": 853,
+        "N": 461473,
+        "mod": 1406
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_06",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 12 consecutive primes starting from the 91-th prime (prime(91) through prime(102)), modulo 2452. Print only the final integer answer.",
+      "ground_truth": "1220",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 91,
+        "length": 12,
+        "mod": 2452
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_07",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 80-th prime number and q be the 131-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1322. Print only the final integer answer.",
+      "ground_truth": "1010",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 409,
+        "p2": 739,
+        "N": 302251,
+        "mod": 1322
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_08",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 116-th prime and q be the 133-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1726. Print only the final integer answer.",
+      "ground_truth": "1230",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 641,
+        "p2": 751,
+        "N": 481391,
+        "mod": 1726
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_09",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 90-th prime number and q be the 126-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1818. Print only the final integer answer.",
+      "ground_truth": "1614",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 463,
+        "p2": 701,
+        "N": 324563,
+        "mod": 1818
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_10",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 105-th prime number and q be the 120-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1800. Print only the final integer answer.",
+      "ground_truth": "660",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 571,
+        "p2": 659,
+        "N": 376289,
+        "mod": 1800
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_11",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 100-th prime and q be the 149-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1520. Print only the final integer answer.",
+      "ground_truth": "1000",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 541,
+        "p2": 859,
+        "N": 464719,
+        "mod": 1520
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_12",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 111-th prime and q be the 149-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1786. Print only the final integer answer.",
+      "ground_truth": "1368",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 607,
+        "p2": 859,
+        "N": 521413,
+        "mod": 1786
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_13",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 85-th prime number and q be the 134-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1330. Print only the final integer answer.",
+      "ground_truth": "1288",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 439,
+        "p2": 757,
+        "N": 332323,
+        "mod": 1330
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_14",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 105-th prime and q be the 145-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1439. Print only the final integer answer.",
+      "ground_truth": "1329",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 571,
+        "p2": 829,
+        "N": 473359,
+        "mod": 1439
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_15",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 103-th prime and q be the 129-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1141. Print only the final integer answer.",
+      "ground_truth": "973",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 563,
+        "p2": 727,
+        "N": 409301,
+        "mod": 1141
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_16",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 19 consecutive primes starting from the 102-th prime (prime(102) through prime(120)), modulo 2477. Print only the final integer answer.",
+      "ground_truth": "1639",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 102,
+        "length": 19,
+        "mod": 2477
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_17",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 106-th prime and q be the 149-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1039. Print only the final integer answer.",
+      "ground_truth": "438",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 577,
+        "p2": 859,
+        "N": 495643,
+        "mod": 1039
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_18",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 120-th prime and q be the 143-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1314. Print only the final integer answer.",
+      "ground_truth": "1158",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 659,
+        "p2": 823,
+        "N": 542357,
+        "mod": 1314
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_19",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 89-th prime number and q be the 142-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1784. Print only the final integer answer.",
+      "ground_truth": "776",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 461,
+        "p2": 821,
+        "N": 378481,
+        "mod": 1784
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_20",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 11 consecutive primes starting from the 139-th prime (prime(139) through prime(149)), modulo 1313. Print only the final integer answer.",
+      "ground_truth": "1247",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 139,
+        "length": 11,
+        "mod": 1313
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_21",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Compute the sum of 10 consecutive primes starting from the 133-th prime (prime(133) through prime(142)), modulo 1593. Print only the final integer answer.",
+      "ground_truth": "1464",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "prime_mod_sum",
+        "start_k": 133,
+        "length": 10,
+        "mod": 1593
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_22",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 111-th prime and q be the 147-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1130. Print only the final integer answer.",
+      "ground_truth": "562",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 607,
+        "p2": 853,
+        "N": 517771,
+        "mod": 1130
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_23",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 77-th prime number and q be the 139-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1180. Print only the final integer answer.",
+      "ground_truth": "868",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 389,
+        "p2": 797,
+        "N": 310033,
+        "mod": 1180
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_24",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 85-th prime and q be the 166-th prime. Let N = p * q. Using SymPy, compute the sum of all divisors sigma(N) modulo 1499. Print only the final integer answer.",
+      "ground_truth": "1248",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_sigma",
+        "p1": 439,
+        "p2": 983,
+        "N": 431537,
+        "mod": 1499
+      }
+    },
+    {
+      "task_id": "SEALED_SYMPY_HARD_25",
+      "suite": "single_lobe_cas",
+      "family": "sympy",
+      "prompt": "Let p be the 73-th prime number and q be the 127-th prime number. Let N = p * q. Using SymPy, compute the Euler totient phi(N) modulo 1634. Print only the final integer answer.",
+      "ground_truth": "956",
+      "required_lobes": [
+        "sympy"
+      ],
+      "metadata": {
+        "type": "semiprime_totient",
+        "p1": 367,
+        "p2": 709,
+        "N": 260203,
+        "mod": 1634
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_01",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Charles, Arthur, and Brenda know that the 'specimen' is in 'cellar'. At 09:00, Charles relocates the 'specimen' to 'vault' while Arthur watches (Brenda is in another wing). At 10:00, Arthur moves the 'specimen' to 'attic' while Charles watches (Brenda remains away). Let L be the location where Brenda believes that Arthur believes the 'specimen' is located. Map L to integer k: 'cellar': 47, 'vault': 53, 'attic': 59, 'study': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 1524.",
+      "ground_truth": "324",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_02",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_03",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Diana, and Charles know that the 'cipher' is in 'vault'. At 09:00, Arthur relocates the 'cipher' to 'cellar' while Diana watches (Charles is in another wing). At 10:00, Diana moves the 'cipher' to 'study' while Arthur watches (Charles remains away). Let L be the location where Charles believes that Diana believes the 'cipher' is located. Map L to integer k: 'vault': 47, 'cellar': 53, 'study': 59, 'attic': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 2121.",
+      "ground_truth": "969",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_04",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_05",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Charles, and Brenda know that the 'cipher' is in 'vault'. At 09:00, Arthur relocates the 'cipher' to 'cellar' while Charles watches (Brenda is in another wing). At 10:00, Charles moves the 'cipher' to 'study' while Arthur watches (Brenda remains away). Let L be the location where Brenda believes that Charles believes the 'cipher' is located. Map L to integer k: 'vault': 47, 'cellar': 53, 'study': 59, 'attic': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 1185.",
+      "ground_truth": "171",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_06",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_07",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_08",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Brenda, and Diana know that the 'ledger' is in 'study'. At 09:00, Arthur relocates the 'ledger' to 'vault' while Brenda watches (Diana is in another wing). At 10:00, Brenda moves the 'ledger' to 'cellar' while Arthur watches (Diana remains away). Let L be the location where Diana believes that Brenda believes the 'ledger' is located. Map L to integer k: 'study': 47, 'vault': 53, 'cellar': 59, 'attic': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 2450.",
+      "ground_truth": "1886",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_09",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Three positive integers a, b, c satisfy:\n1. a < b < c\n2. a + b + c = 104\n3. 2*a + 3*b - c = 84\n4. c - a = 32\nUse Z3 to solve for a, b, and c. Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). Print only the final integer answer.",
+      "ground_truth": "12780",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_10",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Three positive integers a, b, c satisfy:\n1. a < b < c\n2. a + b + c = 117\n3. 2*a + 3*b - c = 95\n4. c - a = 39\nUse Z3 to solve for a, b, and c. Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). Print only the final integer answer.",
+      "ground_truth": "13419",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_11",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Charles, and Brenda know that the 'cipher' is in 'cellar'. At 09:00, Arthur relocates the 'cipher' to 'pantry' while Charles watches (Brenda is in another wing). At 10:00, Charles moves the 'cipher' to 'vault' while Arthur watches (Brenda remains away). Let L be the location where Brenda believes that Charles believes the 'cipher' is located. Map L to integer k: 'cellar': 47, 'pantry': 53, 'vault': 59, 'study': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 2072.",
+      "ground_truth": "220",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_12",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Charles, Brenda, and Arthur know that the 'artifact' is in 'vault'. At 09:00, Charles relocates the 'artifact' to 'cellar' while Brenda watches (Arthur is in another wing). At 10:00, Brenda moves the 'artifact' to 'pantry' while Charles watches (Arthur remains away). Let L be the location where Arthur believes that Brenda believes the 'artifact' is located. Map L to integer k: 'vault': 47, 'cellar': 53, 'pantry': 59, 'study': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 1417.",
+      "ground_truth": "139",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_13",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Arthur, Charles, and Diana know that the 'specimen' is in 'pantry'. At 09:00, Arthur relocates the 'specimen' to 'cellar' while Charles watches (Diana is in another wing). At 10:00, Charles moves the 'specimen' to 'study' while Arthur watches (Diana remains away). Let L be the location where Diana believes that Charles believes the 'specimen' is located. Map L to integer k: 'pantry': 47, 'cellar': 53, 'study': 59, 'vault': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 2165.",
+      "ground_truth": "1946",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_14",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_15",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Charles, and Brenda know that the 'specimen' is in 'pantry'. At 09:00, Diana relocates the 'specimen' to 'attic' while Charles watches (Brenda is in another wing). At 10:00, Charles moves the 'specimen' to 'cellar' while Diana watches (Brenda remains away). Let L be the location where Brenda believes that Charles believes the 'specimen' is located. Map L to integer k: 'pantry': 47, 'attic': 53, 'cellar': 59, 'vault': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 2335.",
+      "ground_truth": "2196",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_16",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Three positive integers a, b, c satisfy:\n1. a < b < c\n2. a + b + c = 94\n3. 2*a + 3*b - c = 99\n4. c - a = 22\nUse Z3 to solve for a, b, and c. Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). Print only the final integer answer.",
+      "ground_truth": "3976",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_17",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Brenda, Arthur, and Charles know that the 'specimen' is in 'cellar'. At 09:00, Brenda relocates the 'specimen' to 'study' while Arthur watches (Charles is in another wing). At 10:00, Arthur moves the 'specimen' to 'attic' while Brenda watches (Charles remains away). Let L be the location where Charles believes that Arthur believes the 'specimen' is located. Map L to integer k: 'cellar': 47, 'study': 53, 'attic': 59, 'vault': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 1784.",
+      "ground_truth": "1148",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_18",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Charles, and Brenda know that the 'specimen' is in 'cellar'. At 09:00, Diana relocates the 'specimen' to 'attic' while Charles watches (Brenda is in another wing). At 10:00, Charles moves the 'specimen' to 'pantry' while Diana watches (Brenda remains away). Let L be the location where Brenda believes that Charles believes the 'specimen' is located. Map L to integer k: 'cellar': 47, 'attic': 53, 'pantry': 59, 'vault': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 1218.",
+      "ground_truth": "990",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_19",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_20",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Three positive integers a, b, c satisfy:\n1. a < b < c\n2. a + b + c = 72\n3. 2*a + 3*b - c = 69\n4. c - a = 18\nUse Z3 to solve for a, b, and c. Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). Print only the final integer answer.",
+      "ground_truth": "2952",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_21",
+      "suite": "two_lobe_composed",
+      "family": "cw_sympy",
+      "prompt": "At 08:00, Diana, Arthur, and Charles know that the 'artifact' is in 'pantry'. At 09:00, Diana relocates the 'artifact' to 'vault' while Arthur watches (Charles is in another wing). At 10:00, Arthur moves the 'artifact' to 'study' while Diana watches (Charles remains away). Let L be the location where Charles believes that Arthur believes the 'artifact' is located. Map L to integer k: 'pantry': 47, 'vault': 53, 'study': 59, 'attic': 61. Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod 1338.",
+      "ground_truth": "702",
+      "required_lobes": [
+        "container_world",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_22",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Three positive integers a, b, c satisfy:\n1. a < b < c\n2. a + b + c = 113\n3. 2*a + 3*b - c = 86\n4. c - a = 37\nUse Z3 to solve for a, b, and c. Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). Print only the final integer answer.",
+      "ground_truth": "17088",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_23",
+      "suite": "two_lobe_composed",
+      "family": "z3_sympy",
+      "prompt": "Three positive integers a, b, c satisfy:\n1. a < b < c\n2. a + b + c = 97\n3. 2*a + 3*b - c = 83\n4. c - a = 32\nUse Z3 to solve for a, b, and c. Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). Print only the final integer answer.",
+      "ground_truth": "5715",
+      "required_lobes": [
+        "z3",
+        "sympy"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_24",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_COMP_HARD_25",
+      "suite": "two_lobe_composed",
+      "family": "cw_z3",
+      "prompt": "Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. Bob then moves the 'badge' to 'room_c' alone. Let loc be the location where Charlie believes Alice believes the badge is. Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. Print the exact value of (x * y).",
+      "ground_truth": "600",
+      "required_lobes": [
+        "container_world",
+        "z3"
+      ],
+      "metadata": {
+        "difficulty": "hard"
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_01",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 47.\nFor step from 1 to 50 (inclusive):\n  If x is even: x = (x * 3 + 17) % 740\n  Otherwise: x = (x * 2 + step) % 740\nPrint only the final integer value of x.",
+      "ground_truth": "656",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 50,
+        "x0": 47,
+        "mod": 740
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_02",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 44.\nFor step from 1 to 49 (inclusive):\n  If x is even: x = (x * 5 + 11) % 678\n  Otherwise: x = (x * 2 + step) % 678\nPrint only the final integer value of x.",
+      "ground_truth": "135",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 49,
+        "x0": 44,
+        "mod": 678
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_03",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 18.\nFor step from 1 to 40 (inclusive):\n  If x is even: x = (x * 7 + 20) % 725\n  Otherwise: x = (x * 2 + step) % 725\nPrint only the final integer value of x.",
+      "ground_truth": "248",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 40,
+        "x0": 18,
+        "mod": 725
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_04",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 27.\nFor step from 1 to 57 (inclusive):\n  If x is even: x = (x * 5 + 13) % 540\n  Otherwise: x = (x * 2 + step) % 540\nPrint only the final integer value of x.",
+      "ground_truth": "303",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 57,
+        "x0": 27,
+        "mod": 540
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_05",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 34.\nFor step from 1 to 60 (inclusive):\n  If x is even: x = (x * 5 + 18) % 731\n  Otherwise: x = (x * 2 + step) % 731\nPrint only the final integer value of x.",
+      "ground_truth": "664",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 60,
+        "x0": 34,
+        "mod": 731
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_06",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 15.\nFor step from 1 to 45 (inclusive):\n  If x is even: x = (x * 6 + 21) % 510\n  Otherwise: x = (x * 2 + step) % 510\nPrint only the final integer value of x.",
+      "ground_truth": "285",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 45,
+        "x0": 15,
+        "mod": 510
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_07",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 45.\nFor step from 1 to 50 (inclusive):\n  If x is even: x = (x * 5 + 16) % 793\n  Otherwise: x = (x * 2 + step) % 793\nPrint only the final integer value of x.",
+      "ground_truth": "93",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 50,
+        "x0": 45,
+        "mod": 793
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_08",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 16.\nFor step from 1 to 51 (inclusive):\n  If x is even: x = (x * 7 + 12) % 978\n  Otherwise: x = (x * 2 + step) % 978\nPrint only the final integer value of x.",
+      "ground_truth": "856",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 51,
+        "x0": 16,
+        "mod": 978
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_09",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 47.\nFor step from 1 to 52 (inclusive):\n  If x is even: x = (x * 3 + 22) % 943\n  Otherwise: x = (x * 2 + step) % 943\nPrint only the final integer value of x.",
+      "ground_truth": "716",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 52,
+        "x0": 47,
+        "mod": 943
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_10",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 30.\nFor step from 1 to 55 (inclusive):\n  If x is even: x = (x * 7 + 19) % 778\n  Otherwise: x = (x * 2 + step) % 778\nPrint only the final integer value of x.",
+      "ground_truth": "215",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 55,
+        "x0": 30,
+        "mod": 778
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_11",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 29.\nFor step from 1 to 50 (inclusive):\n  If x is even: x = (x * 5 + 14) % 836\n  Otherwise: x = (x * 2 + step) % 836\nPrint only the final integer value of x.",
+      "ground_truth": "804",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 50,
+        "x0": 29,
+        "mod": 836
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_12",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 18.\nFor step from 1 to 55 (inclusive):\n  If x is even: x = (x * 6 + 13) % 621\n  Otherwise: x = (x * 2 + step) % 621\nPrint only the final integer value of x.",
+      "ground_truth": "417",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 55,
+        "x0": 18,
+        "mod": 621
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_13",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 23.\nFor step from 1 to 52 (inclusive):\n  If x is even: x = (x * 3 + 22) % 658\n  Otherwise: x = (x * 2 + step) % 658\nPrint only the final integer value of x.",
+      "ground_truth": "196",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 52,
+        "x0": 23,
+        "mod": 658
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_14",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 47.\nFor step from 1 to 47 (inclusive):\n  If x is even: x = (x * 3 + 29) % 893\n  Otherwise: x = (x * 2 + step) % 893\nPrint only the final integer value of x.",
+      "ground_truth": "396",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 47,
+        "x0": 47,
+        "mod": 893
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_15",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 25.\nFor step from 1 to 52 (inclusive):\n  If x is even: x = (x * 5 + 14) % 662\n  Otherwise: x = (x * 2 + step) % 662\nPrint only the final integer value of x.",
+      "ground_truth": "610",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 52,
+        "x0": 25,
+        "mod": 662
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_16",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 11.\nFor step from 1 to 56 (inclusive):\n  If x is even: x = (x * 6 + 16) % 912\n  Otherwise: x = (x * 2 + step) % 912\nPrint only the final integer value of x.",
+      "ground_truth": "352",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 56,
+        "x0": 11,
+        "mod": 912
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_17",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 47.\nFor step from 1 to 58 (inclusive):\n  If x is even: x = (x * 5 + 27) % 953\n  Otherwise: x = (x * 2 + step) % 953\nPrint only the final integer value of x.",
+      "ground_truth": "708",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 58,
+        "x0": 47,
+        "mod": 953
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_18",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 14.\nFor step from 1 to 56 (inclusive):\n  If x is even: x = (x * 5 + 17) % 985\n  Otherwise: x = (x * 2 + step) % 985\nPrint only the final integer value of x.",
+      "ground_truth": "270",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 56,
+        "x0": 14,
+        "mod": 985
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_19",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 31.\nFor step from 1 to 55 (inclusive):\n  If x is even: x = (x * 3 + 21) % 822\n  Otherwise: x = (x * 2 + step) % 822\nPrint only the final integer value of x.",
+      "ground_truth": "657",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 55,
+        "x0": 31,
+        "mod": 822
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_20",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 20.\nFor step from 1 to 49 (inclusive):\n  If x is even: x = (x * 7 + 21) % 600\n  Otherwise: x = (x * 2 + step) % 600\nPrint only the final integer value of x.",
+      "ground_truth": "419",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 49,
+        "x0": 20,
+        "mod": 600
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_21",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 26.\nFor step from 1 to 59 (inclusive):\n  If x is even: x = (x * 6 + 19) % 938\n  Otherwise: x = (x * 2 + step) % 938\nPrint only the final integer value of x.",
+      "ground_truth": "875",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 59,
+        "x0": 26,
+        "mod": 938
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_22",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 13.\nFor step from 1 to 50 (inclusive):\n  If x is even: x = (x * 3 + 28) % 823\n  Otherwise: x = (x * 2 + step) % 823\nPrint only the final integer value of x.",
+      "ground_truth": "746",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 50,
+        "x0": 13,
+        "mod": 823
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_23",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 30.\nFor step from 1 to 57 (inclusive):\n  If x is even: x = (x * 6 + 15) % 861\n  Otherwise: x = (x * 2 + step) % 861\nPrint only the final integer value of x.",
+      "ground_truth": "858",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 57,
+        "x0": 30,
+        "mod": 861
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_24",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 43.\nFor step from 1 to 42 (inclusive):\n  If x is even: x = (x * 6 + 26) % 655\n  Otherwise: x = (x * 2 + step) % 655\nPrint only the final integer value of x.",
+      "ground_truth": "146",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 42,
+        "x0": 43,
+        "mod": 655
+      }
+    },
+    {
+      "task_id": "SEALED_TRANS_HARD_25",
+      "suite": "formalization_translation",
+      "family": "pure_python",
+      "prompt": "Write a Python script that computes the final value of the following deterministic process:\nInitialize x = 39.\nFor step from 1 to 46 (inclusive):\n  If x is even: x = (x * 7 + 19) % 627\n  Otherwise: x = (x * 2 + step) % 627\nPrint only the final integer value of x.",
+      "ground_truth": "468",
+      "required_lobes": [],
+      "metadata": {
+        "difficulty": "hard",
+        "steps": 46,
+        "x0": 39,
+        "mod": 627
+      }
+    }
+  ]
+}

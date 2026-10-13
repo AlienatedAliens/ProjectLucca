@@ -365,7 +365,7 @@ def main() -> None:
     print("=" * 78)
 
     # Save JSON report
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"sealed_parametric_12B_V138_{int(time.time())}.json"
+    out_file = REPO_ROOT / "logs" / "test_reports" / f"sealed_parametric_{args.model_tag}_{int(time.time())}.json"
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "Sealed_Parametric_Reasoning_Master_Benchmark",

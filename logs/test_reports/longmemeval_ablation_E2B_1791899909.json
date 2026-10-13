@@ -1,0 +1,548 @@
+{
+  "benchmark": "LongMemEval_Retrieval_Ablation_Battery",
+  "timestamp_utc": "2026-10-13T14:01:41.896388+00:00",
+  "model_tag": "E2B",
+  "n_evaluated": 15,
+  "arms": {
+    "truncation": {
+      "accuracy": 0.2,
+      "recall_at_k": 1.0
+    },
+    "bm25_only": {
+      "accuracy": 0.5333,
+      "recall_at_k": 1.0
+    },
+    "dense_only": {
+      "accuracy": 0.3333,
+      "recall_at_k": 0.8667
+    },
+    "hybrid_rrf": {
+      "accuracy": 0.5333,
+      "recall_at_k": 1.0
+    },
+    "full_context_oracle": {
+      "accuracy": 0.3333,
+      "recall_at_k": 1.0
+    }
+  },
+  "mcnemar_vs_hybrid": {
+    "truncation_vs_hybrid": {
+      "discordant": [
+        0,
+        5
+      ],
+      "p_value": 0.0625
+    },
+    "bm25_vs_hybrid": {
+      "discordant": [
+        1,
+        1
+      ],
+      "p_value": 1.0
+    },
+    "dense_vs_hybrid": {
+      "discordant": [
+        0,
+        3
+      ],
+      "p_value": 0.25
+    }
+  },
+  "records": [
+    {
+      "qid": "affe2881",
+      "qtype": "knowledge-update",
+      "q_text": "How many different species of birds have I seen in my local park?",
+      "ground_truth": "32",
+      "truncation": {
+        "correct": true,
+        "needle": true,
+        "pred": "You have seen a total of 32 different species of birds in your local park."
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "You have seen a total of 32 different species of birds in your local park.",
+        "ret_ms": 3.5549999738577753
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "You have spotted 27 different species of birds in your local park so far.",
+        "ret_ms": 10.860600013984367
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "You have seen a total of 32 different species of birds in your local park.",
+        "ret_ms": 12.790099979611114
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "You have spotted 27 different species of birds in your local park so far."
+      }
+    },
+    {
+      "qid": "50635ada",
+      "qtype": "knowledge-update",
+      "q_text": "What was my previous frequent flyer status on United Airlines before I got the current status?",
+      "ground_truth": "Premier Silver",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information. The conversation history only mentions that yo"
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information.",
+        "ret_ms": 2.585100010037422
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information.",
+        "ret_ms": 10.817700007464737
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information.",
+        "ret_ms": 11.127400008263066
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "I do not have enough information. The conversation history mentions your current"
+      }
+    },
+    {
+      "qid": "cc5ded98",
+      "qtype": "knowledge-update",
+      "q_text": "How much time do I dedicate to coding exercises each day?",
+      "ground_truth": "about two hours",
+      "truncation": {
+        "correct": true,
+        "needle": true,
+        "pred": "You have been dedicating about two hours each day to coding exercises."
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Based on the past memories, you have dedicated about an hour each day to coding ",
+        "ret_ms": 2.8851999959442765
+      },
+      "dense_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "In one instance, you mentioned dedicating about an hour each day to coding exerc",
+        "ret_ms": 13.918800017563626
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "In one instance, you mentioned dedicating about an hour each day to coding exerc",
+        "ret_ms": 21.673399984138086
+      },
+      "full_context": {
+        "correct": true,
+        "pred": "You have been dedicating about two hours each day to coding exercises."
+      }
+    },
+    {
+      "qid": "ce6d2d27",
+      "qtype": "knowledge-update",
+      "q_text": "What day of the week do I take a cocktail-making class?",
+      "ground_truth": "Friday",
+      "truncation": {
+        "correct": true,
+        "needle": true,
+        "pred": "You take a cocktail-making class on Fridays."
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Based on the past memories, you mentioned having a cocktail-making class on both",
+        "ret_ms": 2.9501999961212277
+      },
+      "dense_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "You take a cocktail-making class on Fridays.",
+        "ret_ms": 13.833399978466332
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "Based on the past memories, you mentioned having a cocktail-making class on both",
+        "ret_ms": 17.100400000344962
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "I do not have enough information. The conversational history mentions a cocktail"
+      }
+    },
+    {
+      "qid": "f685340e",
+      "qtype": "knowledge-update",
+      "q_text": "How often do I play tennis with my friends at the local park previously? How often do I play now?",
+      "ground_truth": "Previously, you play tennis with your friends at the local park every week (on Sunday). Currently, you play tennis every other week (on Sunday).",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": ""
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Previously, you had weekly tennis sessions with friends. More recently, you ment",
+        "ret_ms": 2.4462000001221895
+      },
+      "dense_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Previously, you had weekly tennis sessions with friends, and you mentioned playi",
+        "ret_ms": 14.769200002774596
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "Previously, you had weekly tennis sessions with friends. Now, you are planning t",
+        "ret_ms": 12.29730001068674
+      },
+      "full_context": {
+        "correct": true,
+        "pred": "Based on our conversation history:\n\n*   **Previously:** You mentioned having **w"
+      }
+    },
+    {
+      "qid": "gpt4_78cf46a3",
+      "qtype": "temporal-reasoning",
+      "q_text": "Which event happened first, the narrator losing their phone charger or the narrator receiving their new phone case?",
+      "ground_truth": "Receiving the new phone case",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information. The conversational history mentions receiving "
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "The narrator receiving their new phone case happened first. The memory indicates",
+        "ret_ms": 2.8196999919600785
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "The narrator received their new",
+        "ret_ms": 11.573199997656047
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "",
+        "ret_ms": 10.381900006905198
+      },
+      "full_context": {
+        "correct": true,
+        "pred": "The narrator lost their old phone charger about two weeks ago, while they receiv"
+      }
+    },
+    {
+      "qid": "cc6d1ec1",
+      "qtype": "temporal-reasoning",
+      "q_text": "How long had I been bird watching when I attended the bird watching workshop?",
+      "ground_truth": "Two months",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "You attended the bird watching workshop a month ago."
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "You had been bird watching for about three months when you attended the bird wat",
+        "ret_ms": 3.7443000182975084
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": false,
+        "pred": "I do not have enough information.",
+        "ret_ms": 10.235199995804578
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "",
+        "ret_ms": 11.88679999904707
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "You attended the bird watching workshop a month ago."
+      }
+    },
+    {
+      "qid": "gpt4_59149c77",
+      "qtype": "temporal-reasoning",
+      "q_text": "How many days passed between my visit to the Museum of Modern Art (MoMA) and the 'Ancient Civilizations' exhibit at the Metropolitan Museum of Art?",
+      "ground_truth": "7 days. 8 days (including the last day) is also acceptable.",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information. I do not have a record of when you visited the"
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information",
+        "ret_ms": 4.288800002541393
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "7 days passed between your visit to the Museum of Modern Art (MoMA) on 2023/01/0",
+        "ret_ms": 12.724900007015094
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "7 days passed between your visit to the Museum of Modern Art (MoMA) on 2023/01/0",
+        "ret_ms": 13.675399997737259
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "Based on the conversational history:\n\n1.  Your visit to the Museum of Modern Art"
+      }
+    },
+    {
+      "qid": "gpt4_fe651585",
+      "qtype": "temporal-reasoning",
+      "q_text": "Who became a parent first, Rachel or Alex?",
+      "ground_truth": "Alex",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": ""
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "I",
+        "ret_ms": 1.5811000193934888
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information.",
+        "ret_ms": 12.454799987608567
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information.",
+        "ret_ms": 15.31090002390556
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "I do not have enough information."
+      }
+    },
+    {
+      "qid": "c8090214",
+      "qtype": "temporal-reasoning",
+      "q_text": "How many days before I bought the iPhone 13 Pro did I attend the Holiday Market?",
+      "ground_truth": "7 days. 8 days (including the last day) is also acceptable.",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information."
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "You attended the Holiday Market one week before Black Friday, which means you at",
+        "ret_ms": 2.3973999777808785
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "",
+        "ret_ms": 9.779000014532357
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "You attended the Holiday Market one week before Black Friday, which was when you",
+        "ret_ms": 12.57890000124462
+      },
+      "full_context": {
+        "correct": false,
+        "pred": ""
+      }
+    },
+    {
+      "qid": "51c32626",
+      "qtype": "multi-session",
+      "q_text": "When did I submit my research paper on sentiment analysis?",
+      "ground_truth": "February 1st",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information."
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information.",
+        "ret_ms": 2.4787999864201993
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": false,
+        "pred": "You submitted your research paper on sentiment analysis to EACL on 2023/05/23 (T",
+        "ret_ms": 13.73449998209253
+      },
+      "hybrid_rrf": {
+        "correct": false,
+        "needle": true,
+        "pred": "You submitted your research paper on sentiment analysis to ACL on 2023/05/23 (Tu",
+        "ret_ms": 12.784300022758543
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "You submitted your research paper on sentiment analysis to ACL on 2023/05/23."
+      }
+    },
+    {
+      "qid": "2b8f3739",
+      "qtype": "multi-session",
+      "q_text": "What is the total amount of money I earned from selling my products at the markets?",
+      "ground_truth": "$495",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "Based on the conversational history, you sold 20 potted herb plants at the Summe"
+      },
+      "bm25_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "Based on the past memories, you earned a total of $345 from selling your product",
+        "ret_ms": 5.710400000680238
+      },
+      "dense_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Based on the past memories, you have earned a total of $495 from selling your pr",
+        "ret_ms": 12.310000020079315
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "Based on the past memories, the total amount of money you earned from selling yo",
+        "ret_ms": 13.551799987908453
+      },
+      "full_context": {
+        "correct": false,
+        "pred": ""
+      }
+    },
+    {
+      "qid": "55241a1f",
+      "qtype": "multi-session",
+      "q_text": "What is the total number of comments on my recent Facebook Live session and my most popular YouTube video?",
+      "ground_truth": "33",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information to determine the total number of comments on yo"
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "The total number of comments on your recent Facebook Live session is 12, and you",
+        "ret_ms": 2.6594999944791198
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "The total number of comments on your recent Facebook Live session is 12.\n\nI do n",
+        "ret_ms": 13.327599997865036
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "The total number of comments on your recent Facebook Live session (12 comments) ",
+        "ret_ms": 9.35050001135096
+      },
+      "full_context": {
+        "correct": false,
+        "pred": "The total number of comments on your recent Facebook Live session was 12.\n\nI do "
+      }
+    },
+    {
+      "qid": "gpt4_e05b82a6",
+      "qtype": "multi-session",
+      "q_text": "How many times did I ride rollercoasters across all the events I attended from July to October?",
+      "ground_truth": "10 times",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": ""
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "You rode rollercoasters a total of 9 times across all the events you attended fr",
+        "ret_ms": 2.944700012449175
+      },
+      "dense_only": {
+        "correct": false,
+        "needle": true,
+        "pred": "",
+        "ret_ms": 11.022899998351932
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "You rode rollercoasters a total of 10 times across all the events you attended f",
+        "ret_ms": 12.916100007714704
+      },
+      "full_context": {
+        "correct": true,
+        "pred": "You have ridden rollercoasters a total of 10 times across the events you mention"
+      }
+    },
+    {
+      "qid": "0ea62687",
+      "qtype": "multi-session",
+      "q_text": "How much more miles per gallon was my car getting a few months ago compared to now?",
+      "ground_truth": "2",
+      "truncation": {
+        "correct": false,
+        "needle": true,
+        "pred": "I do not have enough information. The conversational history only mentions your "
+      },
+      "bm25_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Your car was getting 30 miles per gallon a few months ago, and it is currently g",
+        "ret_ms": 2.5594000180717558
+      },
+      "dense_only": {
+        "correct": true,
+        "needle": true,
+        "pred": "Your car was getting 30 miles per gallon a few months ago, and it is currently g",
+        "ret_ms": 11.674499983200803
+      },
+      "hybrid_rrf": {
+        "correct": true,
+        "needle": true,
+        "pred": "Your car was getting 30 miles per gallon a few months ago, and currently, you ar",
+        "ret_ms": 17.916300013894215
+      },
+      "full_context": {
+        "correct": true,
+        "pred": "Your car was getting 30 miles per gallon a few months ago, and currently, you ar"
+      }
+    }
+  ]
+}

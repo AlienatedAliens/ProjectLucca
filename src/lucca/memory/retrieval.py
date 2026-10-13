@@ -269,23 +269,30 @@ class HybridRetriever:
             logger.debug("get_persisted_quarantine_records_failed", error=str(exc))
             return []
 
-    def search(self, q: RetrievalQuery, now: float | None = None) -> list[MemoryHit]:
+    def search(
+        self,
+        q: RetrievalQuery,
+        now: float | None = None,
+        mode: str = "hybrid",
+    ) -> list[MemoryHit]:
         current_time = now if now is not None else time.time()
 
         # 1. Dense search (KNN via sqlite-vec)
         dense_ranks: dict[int, int] = {}
-        query_vec = q.query_vector
-        if query_vec is None and self.embedder is not None:
-            try:
-                vecs = self.embedder.embed([q.query_text])
-                if vecs and len(vecs[0]) == 384:
-                    query_vec = vecs[0]
-            except (RuntimeError, ValueError, OSError) as e:
-                logger.warning("dense_embedding_failed", error=str(e))
+        query_vec = None
+        if mode in ("hybrid", "dense"):
+            query_vec = q.query_vector
+            if query_vec is None and self.embedder is not None:
+                try:
+                    vecs = self.embedder.embed([q.query_text])
+                    if vecs and len(vecs[0]) == 384:
+                        query_vec = vecs[0]
+                except (RuntimeError, ValueError, OSError) as e:
+                    logger.warning("dense_embedding_failed", error=str(e))
 
         # 1-5. Execute read queries using a single read cursor
         with self.db.read_cursor() as cur:
-            if query_vec is not None:
+            if query_vec is not None and mode in ("hybrid", "dense"):
                 try:
                     serialized = sqlite_vec.serialize_float32(query_vec)
                     cur.execute(
@@ -302,21 +309,22 @@ class HybridRetriever:
 
             # 2. Sparse search (BM25 via FTS5)
             sparse_ranks: dict[int, int] = {}
-            expanded_query = f"{q.query_text} {subtokens(q.query_text)}"
-            fts_query_str = build_fts_query(expanded_query)
+            if mode in ("hybrid", "bm25"):
+                expanded_query = f"{q.query_text} {subtokens(q.query_text)}"
+                fts_query_str = build_fts_query(expanded_query)
 
-            try:
-                cur.execute(
-                    "SELECT rowid, bm25(fts_memories) as score FROM fts_memories "
-                    "WHERE fts_memories MATCH ? "
-                    "ORDER BY score "
-                    "LIMIT ?",
-                    (fts_query_str, MAX_CANDIDATES),
-                )
-                for rank, row in enumerate(cur.fetchall(), start=1):
-                    sparse_ranks[int(row[0])] = rank
-            except sqlite3.Error as e:
-                logger.warning("fts_search_failed", error=str(e))
+                try:
+                    cur.execute(
+                        "SELECT rowid, bm25(fts_memories) as score FROM fts_memories "
+                        "WHERE fts_memories MATCH ? "
+                        "ORDER BY score "
+                        "LIMIT ?",
+                        (fts_query_str, MAX_CANDIDATES),
+                    )
+                    for rank, row in enumerate(cur.fetchall(), start=1):
+                        sparse_ranks[int(row[0])] = rank
+                except sqlite3.Error as e:
+                    logger.warning("fts_search_failed", error=str(e))
 
             # 3. Reciprocal Rank Fusion (k=60)
             all_candidate_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
