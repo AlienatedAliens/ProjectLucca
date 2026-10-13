@@ -5,6 +5,27 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.42.0] — 2026-10-13
+
+### Added
+- **Unseen Dynamic Parametric Benchmark Seeding (Milestone 3, `scripts/generators/parametric_reasoning_generator.py`):**
+  - Generated fresh, cryptographically ground-truthed 125-task hard evaluation suite (`data/benchmarks/sealed_parametric_v142_unseen_hard_suite.json`, master seed: `20261014`, SHA256: `1AB7928C7B47912EBD35181136C7178DC691F8B20ADF9E2DEB7EAB002D533DEA`).
+  - Executed 3-arm empirical evaluation on resident Tier 3 (E2B Edge, `logs/test_reports/sealed_parametric_E2B_UNSEEN_SEALED_1791900860.json`):
+    - **Arm A (Direct Baseline):** 1/25 (4.0%)
+    - **Arm B (Extended Thinking):** 2/25 (8.0%)
+    - **Arm C (Compound Neurosymbolic):** 12/25 (48.0%)
+    - **Empirical Lift:** $+44.0\,\text{pp}$ vs Direct ($p = 0.000977$), $+40.0\,\text{pp}$ vs Thinking ($p = 0.012939$), exact two-sided McNemar test.
+    - Verified 100% solver accuracy on CAS totients (5/5) and formalization translation loops (5/5) where bare models completely collapsed ($0/5$).
+- **LongMemEval 5-Arm Retrieval Ablation (Milestone 6, `scripts/run_longmemeval_ablation_suite.py`):**
+  - Decoupled `HybridRetriever.search(mode="hybrid"|"bm25"|"dense")` in `src/lucca/memory/retrieval.py` to isolate sparse, dense, and reciprocal rank fusion mechanisms.
+  - Executed controlled 5-arm evaluation ($N=15$, 75 full LLM queries) on resident Tier 3 (E2B Edge, `logs/test_reports/longmemeval_ablation_E2B_1791899909.json`):
+    - **Arm A (Sliding Truncation):** Accuracy: 20.0% (3/15) | Recall@k: 100.0% | P50 Latency: 0.0 ms
+    - **Arm B (BM25 Sparse Only):** Accuracy: 53.3% (8/15) | Recall@k: 100.0% | P50 Latency: 2.1 ms
+    - **Arm C (Dense Vector Only):** Accuracy: 33.3% (5/15) | Recall@k: 86.7% | P50 Latency: 12.0 ms
+    - **Arm D (Lucca Hybrid RRF):** Accuracy: 53.3% (8/15) | Recall@k: 100.0% | P50 Latency: 11.8 ms
+    - **Arm E (Full-Context 32k Oracle):** Accuracy: 33.3% (5/15) | Recall@k: 100.0% | P50 Latency: 0.0 ms
+  - **Key Empirical Discovery:** Edge models suffer needle-in-a-haystack degradation in full 32k raw context (33.3%), whereas Lucca's Hybrid RRF memory pipeline matches peak BM25 accuracy (+33.3 pp lift over sliding truncation) while providing full semantic vector fallbacks.
+
 ## [1.41.0] — 2026-10-13
 
 ### Added

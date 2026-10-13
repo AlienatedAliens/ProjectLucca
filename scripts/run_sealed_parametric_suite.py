@@ -154,9 +154,9 @@ def evaluate_task_compound(
     if "container_world" in required_lobes:
         import_header.append("from container_world import ContainerWorld, World, Agent")
     if "sympy" in required_lobes:
-        import_header.append("import sympy")
+        import_header.append("import sympy\nfrom sympy import *")
     if "z3" in required_lobes:
-        import_header.append("import z3")
+        import_header.append("import z3\nfrom z3 import *")
 
     header_str = "\n".join(import_header)
     instructions = (
