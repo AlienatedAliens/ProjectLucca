@@ -409,7 +409,9 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     # Check if z3 is needed
     z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or", "And", "Not", "Distinct"}
     if ("z3" in used_attr_bases or any(z in used_names for z in z3_symbols)) and "z3" not in imported_modules and not any(z in imported_names for z in z3_symbols):
-        imports_to_add.append("import z3\nfrom z3 import *")
+        imports_to_add.append(
+            "import z3\nfrom z3 import *\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = z3.unsat\nexcept Exception:\n    pass"
+        )
 
     # Pre-flight definitions for commonly assumed math sets
     preflight_defs: list[str] = []
@@ -429,4 +431,53 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
         if not parsed or tree is None:
             return code, False, err
 
+    # 4d. AST Auto-Print Synthesis (Turn 1 Zero-Shot Optimization, Spec 32)
+    has_print = False
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id == "print":
+                has_print = True
+                break
+
+    if not has_print and tree.body:
+        common_targets = [
+            "final_answer", "ans", "result", "sol", "answer", "res",
+            "target", "output", "prediction", "location", "believed_loc",
+        ]
+        found_target = None
+        for tgt in common_targets:
+            if tgt in assigned_names:
+                found_target = tgt
+                break
+
+        if found_target:
+            code = code + f"\nprint({found_target})"
+        elif isinstance(tree.body[-1], (ast.Assign, ast.AnnAssign)):
+            last_stmt = tree.body[-1]
+            target_name = None
+            if isinstance(last_stmt, ast.Assign) and last_stmt.targets:
+                first_tgt = last_stmt.targets[0]
+                if isinstance(first_tgt, ast.Name):
+                    target_name = first_tgt.id
+            elif isinstance(last_stmt, ast.AnnAssign) and isinstance(last_stmt.target, ast.Name):
+                target_name = last_stmt.target.id
+
+            if target_name and target_name not in ("_", "__"):
+                code = code + f"\nprint({target_name})"
+        elif isinstance(tree.body[-1], ast.Expr):
+            # Replace/append print for unprinted trailing expression (e.g. w.query(...) or sp.totient(...))
+            try:
+                last_expr_code = ast.unparse(tree.body[-1].value)
+                code = code + f"\nprint({last_expr_code})"
+            except Exception:
+                pass
+        elif "solve" in assigned_names and any(isinstance(stmt, ast.FunctionDef) and stmt.name == "solve" for stmt in tree.body):
+            code = code + "\nprint(solve())"
+        elif "main" in assigned_names and any(isinstance(stmt, ast.FunctionDef) and stmt.name == "main" for stmt in tree.body):
+            code = code + "\nprint(main())"
+
     return code, True, ""
+
+
+# Canonical alias for compatibility
+sanitize_python_code = sanitize_and_repair_python_code

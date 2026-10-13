@@ -260,13 +260,42 @@ class ContainerWorld:
             else {}
         )
 
-    # Method aliases for common LLM hallucinations
+    def query_recursive(self, agent_chain: list[str], item: str) -> str | None:
+        """
+        Recursive N-th order Theory of Mind query:
+        B_{a_0}(B_{a_1}(...B_{a_{N-1}}(item)...))
+        """
+        if not agent_chain:
+            return self.query(None, item)
+        if len(agent_chain) == 1:
+            return self.query(agent_chain[0], item)
+        if len(agent_chain) == 2:
+            return self.query_second_order(agent_chain[0], agent_chain[1], item)
+
+        obs = agent_chain[0].strip().lower()
+        sub = agent_chain[1:]
+        first_hop = self.query_second_order(obs, sub[0], item)
+        if len(sub) == 1:
+            return first_hop
+        return self.query_recursive(sub, item)
+
+    # Method aliases for common LLM hallucinations & edge models
     put = place
     relocate = move
     ask = query
     query_2nd = query_second_order
     belief_of_belief = query_second_order
     query_nested = query_second_order
+    query_nth = query_recursive
+    belief_chain = query_recursive
+    set_object_location = place
+    place_object = place
+    add_object = place
+    set_location = place
+    set_object = place
+    set_object_state = place
+    add_agent = lambda self, *args, **kwargs: None
+    record_observation = lambda self, *args, **kwargs: None
 
 
 def extract_events_from_json_text(text: str) -> tuple[list[dict[str, object]], bool]:

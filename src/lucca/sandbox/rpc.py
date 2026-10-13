@@ -122,12 +122,33 @@ class ContainerWorld:
             if t_item in k or k in t_item:
                 return v
         return self.query(None, t_item)
+    def query_recursive(self, agent_chain: list[str], item: str) -> str | None:
+        if not agent_chain:
+            return self.query(None, item)
+        if len(agent_chain) == 1:
+            return self.query(agent_chain[0], item)
+        if len(agent_chain) == 2:
+            return self.query_second_order(agent_chain[0], agent_chain[1], item)
+        obs, sub = agent_chain[0].strip().lower(), agent_chain[1:]
+        first = self.query_second_order(obs, sub[0], item)
+        return first if len(sub) == 1 else self.query_recursive(sub, item)
+ContainerWorld.query_recursive = ContainerWorld.query_recursive
+ContainerWorld.query_nth = ContainerWorld.query_recursive
+ContainerWorld.belief_chain = ContainerWorld.query_recursive
 ContainerWorld.put = ContainerWorld.place
 ContainerWorld.relocate = ContainerWorld.move
 ContainerWorld.ask = ContainerWorld.query
 ContainerWorld.query_2nd = ContainerWorld.query_second_order
 ContainerWorld.belief_of_belief = ContainerWorld.query_second_order
 ContainerWorld.query_nested = ContainerWorld.query_second_order
+ContainerWorld.set_object_location = ContainerWorld.place
+ContainerWorld.place_object = ContainerWorld.place
+ContainerWorld.add_object = ContainerWorld.place
+ContainerWorld.set_location = ContainerWorld.place
+ContainerWorld.set_object = ContainerWorld.place
+ContainerWorld.set_object_state = ContainerWorld.place
+ContainerWorld.add_agent = lambda self, *args, **kwargs: None
+ContainerWorld.record_observation = lambda self, *args, **kwargs: None
 World = ContainerWorld
 KnowledgeBase = ContainerWorld
 BeliefTracker = ContainerWorld

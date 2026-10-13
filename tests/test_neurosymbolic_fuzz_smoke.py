@@ -12,7 +12,7 @@ from __future__ import annotations
 import itertools
 import pytest
 
-from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code
+from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code, sanitize_python_code
 from lucca.sandbox.container_world import (
     BeliefTracker,
     ContainerWorld,
@@ -183,3 +183,59 @@ print(f"SMOKE_RESULT:{ans}")
     )
     assert res.ok, f"Execution failed: {res.stderr}"
     assert "SMOKE_RESULT:67" in res.stdout
+
+
+# ---------------------------------------------------------------------------
+# 5. V1.40 Horizon Improvements: AST Auto-Print, Recursive ToM, & Aliases
+# ---------------------------------------------------------------------------
+
+def test_ast_auto_print_synthesis():
+    """Verify AST auto-print synthesis injects print statements into print-less scripts."""
+    # 1. Assignment to ans
+    code1, ok1, _ = sanitize_python_code("ans = 42")
+    assert ok1
+    assert "print(ans)" in code1
+
+    # 2. Assignment to final_answer
+    code2, ok2, _ = sanitize_python_code("x = 10\nfinal_answer = x * 2")
+    assert ok2
+    assert "print(final_answer)" in code2
+
+    # 3. Trailing expression without assignment
+    code3, ok3, _ = sanitize_python_code("from container_world import World\nw = World()\nw.place('a', 'b')\nw.query(None, 'a')")
+    assert ok3
+    assert "print(w.query(None, 'a'))" in code3
+
+    # 4. Function solve() defined without invocation
+    code4, ok4, _ = sanitize_python_code("def solve():\n    return 999")
+    assert ok4
+    assert "print(solve())" in code4
+
+
+def test_recursive_nth_order_tom_and_edge_aliases():
+    """Verify recursive N-th order Theory of Mind and edge model API aliases."""
+    cw = ContainerWorld()
+    # Edge aliases
+    cw.add_agent("Alice")
+    cw.record_observation("start")
+    cw.place_object("gem", "safe", observed_by=["Alice", "Bob"])
+    cw.set_object_location("gem", "vault", actor="Bob", observed_by=["Charlie"])
+
+    # 1st-order
+    assert cw.query("Alice", "gem") == "safe"
+    assert cw.query("Charlie", "gem") == "vault"
+
+    # 2nd-order
+    assert cw.query_second_order("Alice", "Bob", "gem") == "safe"
+
+    # Recursive N-th order
+    assert cw.query_recursive(["Alice", "Bob"], "gem") == "safe"
+    assert cw.query_recursive(["Charlie", "Bob"], "gem") == "vault"
+    assert cw.query_recursive(["David", "Alice", "Bob"], "gem") == "safe"
+
+
+def test_z3_solver_sat_alias_injection():
+    """Verify Z3 Solver.sat alias is injected by ast_sanitizer."""
+    code, ok, _ = sanitize_python_code("s = Solver()\nx = Int('x')\ns.add(x > 5)\nif s.check() == s.sat:\n    ans = 1")
+    assert ok
+    assert "z3.Solver.sat = z3.sat" in code

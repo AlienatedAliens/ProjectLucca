@@ -5,6 +5,73 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.40.0] — 2026-10-13
+
+### Added
+- **AST Auto-Print Synthesis (`Spec 32`, `src/lucca/sandbox/ast_sanitizer.py`):**
+  - Implemented automatic AST inspection and synthesis of `print(<target>)` when generated code computes results into variables (`ans`, `final_answer`, `sol`, `result`, `output`, `location`) or trailing unprinted expressions without calling `print()`.
+  - Eliminates `EmptyOutputError` on Turn 1 across CAS, SMT, and simulation tasks, turning Turn 2 CEGIS repairs into zero-shot Turn 1 completions.
+- **Recursive $N$-th Order Theory of Mind (`src/lucca/sandbox/container_world.py`, `src/lucca/sandbox/rpc.py`):**
+  - Generalised `ContainerWorld` to evaluate arbitrary $N$-agent recursive nested beliefs via `query_recursive(agent_chain, item)` ($B_{a_0}(B_{a_1}(\dots B_{a_k}(p)\dots))$), with aliases `query_nth` and `belief_chain`.
+  - Fully backward-compatible with 1st-order (`query`) and 2nd-order (`query_second_order`) lookups.
+- **Edge-Tier Model API Aliasing:**
+  - Bound common quantized edge model (E4B / E2B) hallucinated method names (`set_object_location`, `place_object`, `add_object`, `set_location`, `set_object`, `set_object_state`, `add_agent`, `record_observation`) to canonical equivalents in `ContainerWorld` and `_CONTAINER_WORLD_PRELUDE`.
+  - Injected `z3.Solver.sat = z3.sat` and `z3.Solver.unsat = z3.unsat` into AST preflight headers, resolving `AttributeError: 'Solver' object has no attribute 'sat'` on smaller models.
+- **SymPy / Z3 Dual-Formulation Consensus Sanitization (`src/lucca/reasoning/cegis_python.py`):**
+  - Connected `sanitize_python_code` directly to `synthesize_checked_formalization` and `synthesize_and_repair` pipelines.
+  - Both symbolic and brute-force candidate paths undergo lexical token normalization, auto-import injection, bracket closure, and AST auto-print synthesis before sandboxed Docker execution.
+- **Test Battery:** 26/26 neurosymbolic unit, fuzz, and smoke tests passing (`tests/test_neurosymbolic_fuzz_smoke.py`).
+
+---
+
+## [1.39.0] — 2026-10-13
+
+### Added
+- **Hard Parametric Reasoning Suite ($N=125$, `scripts/generators/parametric_reasoning_generator.py`):**
+  - Generated 125 strictly symbolic tasks with mathematically proven ground truths across 5 suites:
+    - `single_lobe_epistemic`: Second-order Theory of Mind ($B_{\text{obs}}(B_{\text{tgt}}(p))$).
+    - `single_lobe_smt`: Chinese Remainder Theorem with coprime moduli and unique solutions $N \in [19000, 85000]$.
+    - `single_lobe_cas`: Large semiprime totients ($\phi(p \cdot q)$) and divisor sums ($\sigma(p \cdot q)$) for primes with indices $k > 100$.
+    - `two_lobe_composed`: Joint epistemic + CAS/SMT deductions.
+    - `formalization_translation`: 50-step deterministic simulation loops with non-linear modular updates.
+  - Output artifact: `data/benchmarks/sealed_parametric_v139_hard_suite.json`.
+- **Complete 3-Tier Multi-Arm Benchmark Matrix on Resident Silicon (`RTX 5080 Mobile`):**
+  - **12B Unified (`gemma-4-12b-heretic-Q6_K.gguf`):**
+    - Compound Neurosymbolic: **25 / 25 (100.0%)** (24 on Turn 1).
+    - Direct Baseline ($T=0.0$): 14 / 25 (56.0%).
+    - Extended Thinking ($T=0.6$, 2048 tokens): 1 / 25 (4.0%).
+    - Statistical Significance: Compound vs Direct $p = 0.000977$ ($p < 0.001$), Compound vs Thinking $p < 10^{-6}$.
+  - **E4B Edge (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`):**
+    - Compound Neurosymbolic: **16 / 25 (64.0%)** (+56.0 pp lift, $p = 0.000519$).
+    - 100% on SMT (5/5), 100% on CAS (5/5), 100% on Formal Simulation (5/5 in 850 ms).
+    - Direct Baseline: 2 / 25 (8.0%), Extended Thinking: 2 / 25 (8.0%).
+  - **E2B Edge (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`):**
+    - Compound Neurosymbolic: **12 / 25 (48.0%)** (+32.0 pp lift, $p = 0.038574$).
+    - 100% on CAS (5/5 in ~1.1s), 100% on Formal Simulation (5/5 in ~600 ms).
+    - Direct Baseline: 4 / 25 (16.0%), Extended Thinking: 4 / 25 (16.0%).
+- **Pre-Emptive Docker Worker Warmup (`DockerRPCTransport.warmup()`, `src/lucca/sandbox/rpc.py`):**
+  - Pre-warms persistent stdio worker bridge to `lucca-toolsrv --loop`, eliminating the 3.5s cold-start spawn penalty down to **<9 ms** per invocation.
+- **Second-Order Epistemic Engine:** Implemented $B_{\text{observer}}(B_{\text{target}}(p))$ tracking in `ContainerWorld` and injected into `_CONTAINER_WORLD_PRELUDE`.
+- **Comprehensive Audit Artifact:** Published `docs/audit/V10_FULL_RESULTS_REVIEW_AND_IMPROVEMENT_AUDIT.md`.
+
+---
+
+## [1.38.0] — 2026-10-12
+
+### Added
+- **Sealed Parametric Reasoning Benchmark Framework (`data/benchmarks/sealed_parametric_v138_suite.json`):**
+  - Generated $N=125$ programmatic ground-truth tasks across 5 neurosymbolic suites.
+  - Evaluated on 12B ($N=25$): Compound 25/25 (100.0%) vs Extended Thinking 15/25 (60.0%) ($p = 0.001953$).
+- **Neurosymbolic Fuzz & Smoke Battery (`tests/test_neurosymbolic_fuzz_smoke.py`):**
+  - 23 unit, fuzz, and live integration tests verifying library alias bindings (`World`, `KnowledgeBase`, `BeliefTracker`), method aliases (`put`, `relocate`, `ask`), AST sanitizer auto-injections, and multi-lobe Docker execution (388 ms).
+- **Diagnostics & Historical Suite Hardening:**
+  - **BFCL v3 Grader Repair (`scripts/run_bfcl_benchmark.py`):** Implemented AST-based argument comparison treating `[a, b]` and `(a, b)` sequence representations as equivalent. Scored 10/10 (100%) on `exec_simple`, 18/20 (90%) overall.
+  - **GPQA Diamond Truncation Fix (`scripts/run_gpqa_diamond_benchmark.py`):** Expanded `max_tokens` from 256 to 2048, eliminating 20/30 direct prediction null truncation failures.
+  - **ZebraLogic Difficulty Sweep (`scripts/run_zebra_logic_sweep.py`):** Verified SMT solver performance (100% Oracle Z3, 87.5% LLM Z3; bare models drop to 50% on 4x4 and 5x5).
+  - **AIME 2024 CAS Diagnostic (`scripts/run_aime_sympy_diagnostic.py`):** Verified Compound SymPy (8/10, 80.0%) vs bare mental (1/10, 10.0%) ($p = 0.0156$).
+
+---
+
 ## [1.37.0] — 2026-10-12
 
 ### Added

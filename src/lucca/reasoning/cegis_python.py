@@ -24,6 +24,7 @@ from typing import Final
 import httpx
 import structlog
 
+from lucca.sandbox.ast_sanitizer import sanitize_python_code
 from lucca.sandbox.preflight import extract_python_code
 from lucca.sandbox.rpc import DockerRPCTransport
 
@@ -244,9 +245,9 @@ class PythonCEGISEngine:
             code = extract_python_code(content) or ""
             ok_exec, stdout_val, stderr_val = False, "", "No code extracted"
             if code:
-                if "print" not in code and "ans" in code:
-                    code = f"{code}\nprint(ans)"
-                ok_exec, stdout_val, stderr_val = self._execute_code(code)
+                sanitized_c, ok_s, _ = sanitize_python_code(code)
+                code_to_run = sanitized_c if ok_s else code
+                ok_exec, stdout_val, stderr_val = self._execute_code(code_to_run)
 
             elapsed_ms = (time.perf_counter() - t_cand) * 1000.0
             err_t, err_m = (None, None) if ok_exec else self._parse_err(stderr_val)
@@ -530,7 +531,10 @@ class PythonCEGISEngine:
                 full_exec_code = f"{prelude.strip()}\n\n{code}"
             if test_harness and test_harness.strip() not in full_exec_code:
                 full_exec_code = f"{full_exec_code}\n\n# --- Verification Harness ---\n{test_harness}"
-            if "print" not in full_exec_code and "ans" in full_exec_code:
+            sanitized_exec, ok_san, _ = sanitize_python_code(full_exec_code)
+            if ok_san:
+                full_exec_code = sanitized_exec
+            elif "print" not in full_exec_code and "ans" in full_exec_code:
                 full_exec_code = f"{full_exec_code}\nprint(ans)"
 
             ok_exec, stdout_val, stderr_val = self._execute_code(full_exec_code)
