@@ -43,6 +43,7 @@ class ContainerWorld:
         self.world: dict[str, str] = {}
         self.initial_world: dict[str, str] = {}
         self.beliefs: dict[str, dict[str, str]] = {}
+        self.second_order_beliefs: dict[str, dict[str, dict[str, str]]] = {}
     def process_event(self, ev: dict[str, object]) -> None:
         agent = str(ev.get("agent") or ev.get("actor") or "").strip().lower()
         action = str(ev.get("action") or "move").strip().lower()
@@ -56,11 +57,21 @@ class ContainerWorld:
             self.initial_world.setdefault(item, loc)
         if action in ("initial", "start", "starting", "located", "move", "place", "put", "relocate", "transfer", "set", "leave", "drop"):
             self.world[item] = loc
+        present = set()
         if agent and agent not in ("none", "null", "all", "everyone"):
             self.beliefs.setdefault(agent, {})[item] = loc
+            present.add(agent)
         for obs in obs_list:
-            if obs and obs not in ("none", "null"):
+            if obs and obs not in ("none", "null", "all", "everyone"):
                 self.beliefs.setdefault(obs, {})[item] = loc
+                present.add(obs)
+        for x in present:
+            if x not in self.second_order_beliefs:
+                self.second_order_beliefs[x] = {}
+            for y in present:
+                if y not in self.second_order_beliefs[x]:
+                    self.second_order_beliefs[x][y] = {}
+                self.second_order_beliefs[x][y][item] = loc
     def place(self, arg1: str | None, arg2: str, arg3: str | None = None, observed_by: list[str] | None = None, actor: str | None = None) -> None:
         agent_val, item_val, loc_val = ((actor or ""), (arg1 or ""), arg2) if arg3 is None else ((arg1 or actor or ""), arg2, arg3)
         self.process_event({"agent": agent_val, "action": "place", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
@@ -68,7 +79,7 @@ class ContainerWorld:
         agent_val, item_val, loc_val = ((actor or ""), (arg1 or ""), arg2) if arg3 is None else ((arg1 or actor or ""), arg2, arg3)
         self.process_event({"agent": agent_val, "action": "move", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
     def reset(self) -> None:
-        self.world.clear(); self.initial_world.clear(); self.beliefs.clear()
+        self.world.clear(); self.initial_world.clear(); self.beliefs.clear(); self.second_order_beliefs.clear()
     def process_events(self, events: list[dict[str, object]]) -> None:
         for ev in events:
             self.process_event(ev)
@@ -93,9 +104,30 @@ class ContainerWorld:
             if t_item in k or k in t_item:
                 return v
         return None
+    def query_second_order(self, observer_agent: str, target_agent: str, item: str) -> str | None:
+        obs = observer_agent.strip().lower()
+        tgt = target_agent.strip().lower()
+        t_item = item.strip().lower()
+        if obs == tgt:
+            return self.query(obs, t_item)
+        if obs in self.second_order_beliefs and tgt in self.second_order_beliefs[obs]:
+            if t_item in self.second_order_beliefs[obs][tgt]:
+                return self.second_order_beliefs[obs][tgt][t_item]
+            for k, v in self.second_order_beliefs[obs][tgt].items():
+                if t_item in k or k in t_item:
+                    return v
+        if t_item in self.initial_world:
+            return self.initial_world[t_item]
+        for k, v in self.initial_world.items():
+            if t_item in k or k in t_item:
+                return v
+        return self.query(None, t_item)
 ContainerWorld.put = ContainerWorld.place
 ContainerWorld.relocate = ContainerWorld.move
 ContainerWorld.ask = ContainerWorld.query
+ContainerWorld.query_2nd = ContainerWorld.query_second_order
+ContainerWorld.belief_of_belief = ContainerWorld.query_second_order
+ContainerWorld.query_nested = ContainerWorld.query_second_order
 World = ContainerWorld
 KnowledgeBase = ContainerWorld
 BeliefTracker = ContainerWorld
@@ -492,6 +524,17 @@ class DockerRPCTransport:
             check=False,
         )
         return res.returncode == 0 and self.is_container_running()
+
+    def warmup(self) -> bool:
+        """Pre-emptively verifies container status and warms up persistent RPC worker."""
+        if not self.ensure_container_running():
+            return False
+        if self.use_persistent_worker:
+            worker = self.get_worker()
+            if not worker.is_alive():
+                res = self.execute("warmup", "run_python", {"code": "pass"}, timeout_s=10.0)
+                return res.ok
+        return True
 
     def _process_response_dict(
         self,

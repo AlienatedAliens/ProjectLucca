@@ -56,6 +56,29 @@ def test_method_aliases_permutations(place_method, move_method, query_method):
     assert getattr(w, query_method)("elena", "doc") == "binder"
 
 
+def test_second_order_epistemic_reasoning():
+    """Verify second-order belief tracking: B_observer(B_target(p))."""
+    w = ContainerWorld()
+    w.place("gem", "pedestal", observed_by=["alice", "bob", "charlie"])
+    w.move("gem", "vault", actor="bob", observed_by=["charlie"])
+    w.move("gem", "pocket", actor="charlie", observed_by=[])
+
+    # First-order beliefs
+    assert w.query("charlie", "gem") == "pocket"
+    assert w.query("bob", "gem") == "vault"
+    assert w.query("alice", "gem") == "pedestal"
+
+    # Second-order beliefs
+    assert w.query_second_order("alice", "bob", "gem") == "pedestal"
+    assert w.query_second_order("bob", "charlie", "gem") == "vault"
+    assert w.query_second_order("charlie", "bob", "gem") == "vault"
+
+    # Aliases
+    assert w.query_2nd("alice", "bob", "gem") == "pedestal"
+    assert w.belief_of_belief("bob", "charlie", "gem") == "vault"
+    assert w.query_nested("charlie", "bob", "gem") == "vault"
+
+
 def test_signature_variants_fuzzing():
     """Fuzz positional vs keyword argument signatures on place/put and move/relocate."""
     w = ContainerWorld()

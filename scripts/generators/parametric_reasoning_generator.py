@@ -46,7 +46,7 @@ class SealedTask:
     metadata: dict[str, Any]
 
 
-def generate_epistemic_container_tasks(count: int = 25, seed: int = 1001) -> list[SealedTask]:
+def generate_epistemic_container_tasks(count: int = 25, seed: int = 1001, difficulty: str = "standard") -> list[SealedTask]:
     """Generates fresh ContainerWorld Theory of Mind / Epistemic belief tracking tasks."""
     rng = random.Random(seed)
     names_pool = [
@@ -67,34 +67,73 @@ def generate_epistemic_container_tasks(count: int = 25, seed: int = 1001) -> lis
 
     tasks: list[SealedTask] = []
     for i in range(1, count + 1):
-        task_id = f"SEALED_CW_{i:02d}"
-        agents = rng.sample(names_pool, 3)
-        item = rng.choice(items_pool)
-        locs = rng.sample(locs_pool, 3)
+        if difficulty == "hard":
+            task_id = f"SEALED_CW_HARD_{i:02d}"
+            agents = rng.sample(names_pool, 4)
+            item = rng.choice(items_pool)
+            locs = rng.sample(locs_pool, 4)
+            cw = ContainerWorld()
+            # 1. Initial shared knowledge
+            cw.place(item, locs[0], observed_by=agents)
+            # 2. Agent 1 moves item to locs[1] in presence of Agent 2 (Agent 0 and 3 away)
+            cw.move(item, locs[1], actor=agents[1], observed_by=[agents[2]])
+            # 3. Agent 2 moves item to locs[2] in presence of Agent 3 (Agent 0 and 1 away)
+            cw.move(item, locs[2], actor=agents[2], observed_by=[agents[3]])
+            # 4. Agent 3 secretly moves item to locs[3] alone
+            cw.move(item, locs[3], actor=agents[3], observed_by=[])
 
-        # Story structure:
-        # Paragraph 1: Initial state: All agents know item is at locs[0]
-        # Move 1: Agent 0 moves item to locs[1], witnessed by Agent 1 (not Agent 2)
-        # Move 2: Agent 1 moves item to locs[2], while Agent 0 and Agent 2 are absent
-        # Query target chosen randomly among Agent 0, 1, or 2
-        cw = ContainerWorld()
-        cw.place(item, locs[0], observed_by=agents)
-        cw.move(item, locs[1], actor=agents[0], observed_by=[agents[1]])
-        cw.move(item, locs[2], actor=agents[1], observed_by=[])
+            obs_agent, tgt_agent = rng.sample(agents, 2)
+            expected_loc = cw.query_second_order(obs_agent, tgt_agent, item)
 
-        target_agent = rng.choice(agents)
-        expected_loc = cw.query(target_agent, item)
+            story = (
+                f"At 08:00, {agents[0]}, {agents[1]}, {agents[2]}, and {agents[3]} all gather in the central depot "
+                f"and observe that the '{item}' is in '{locs[0]}'. "
+                f"At 09:00, while {agents[0]} and {agents[3]} are on exterior patrol, {agents[1]} transfers the '{item}' "
+                f"to '{locs[1]}' witnessed only by {agents[2]}. "
+                f"At 10:00, while {agents[0]} and {agents[1]} are in communications, {agents[2]} relocates the '{item}' "
+                f"to '{locs[2]}' witnessed only by {agents[3]}. "
+                f"At 11:00, {agents[3]} secretly moves the '{item}' to '{locs[3]}' alone without any observers. "
+                f"What does {obs_agent} believe that {tgt_agent} thinks is the location of the '{item}'? "
+                f"Conclude with your answer as the exact location name."
+            )
+            meta = {
+                "agents": agents,
+                "observer_agent": obs_agent,
+                "target_agent": tgt_agent,
+                "item": item,
+                "locations": locs,
+                "order": "second_order",
+            }
+        else:
+            task_id = f"SEALED_CW_{i:02d}"
+            agents = rng.sample(names_pool, 3)
+            item = rng.choice(items_pool)
+            locs = rng.sample(locs_pool, 3)
 
-        # Generate story prose
-        story = (
-            f"At the start of the mission, {agents[0]}, {agents[1]}, and {agents[2]} are all in the facility "
-            f"and know that the '{item}' is in '{locs[0]}'. "
-            f"Later, while {agents[2]} is in a soundproof bunker, {agents[0]} moves the '{item}' to '{locs[1]}' "
-            f"(only {agents[1]} observes this move). "
-            f"Afterwards, {agents[1]} relocates the '{item}' to '{locs[2]}' while both {agents[0]} and {agents[2]} are away. "
-            f"Where would {target_agent} look for the '{item}'? "
-            f"Conclude with your answer as the exact location name."
-        )
+            cw = ContainerWorld()
+            cw.place(item, locs[0], observed_by=agents)
+            cw.move(item, locs[1], actor=agents[0], observed_by=[agents[1]])
+            cw.move(item, locs[2], actor=agents[1], observed_by=[])
+
+            target_agent = rng.choice(agents)
+            expected_loc = cw.query(target_agent, item)
+
+            story = (
+                f"At the start of the mission, {agents[0]}, {agents[1]}, and {agents[2]} are all in the facility "
+                f"and know that the '{item}' is in '{locs[0]}'. "
+                f"Later, while {agents[2]} is in a soundproof bunker, {agents[0]} moves the '{item}' to '{locs[1]}' "
+                f"(only {agents[1]} observes this move). "
+                f"Afterwards, {agents[1]} relocates the '{item}' to '{locs[2]}' while both {agents[0]} and {agents[2]} are away. "
+                f"Where would {target_agent} look for the '{item}'? "
+                f"Conclude with your answer as the exact location name."
+            )
+            meta = {
+                "agents": agents,
+                "target_agent": target_agent,
+                "item": item,
+                "locations": locs,
+                "order": "first_order",
+            }
 
         tasks.append(
             SealedTask(
@@ -104,27 +143,65 @@ def generate_epistemic_container_tasks(count: int = 25, seed: int = 1001) -> lis
                 prompt=story,
                 ground_truth=expected_loc,
                 required_lobes=["container_world"],
-                metadata={
-                    "agents": agents,
-                    "target_agent": target_agent,
-                    "item": item,
-                    "locations": locs,
-                },
+                metadata=meta,
             )
         )
     return tasks
 
 
-def generate_combinatorial_z3_tasks(count: int = 25, seed: int = 2002) -> list[SealedTask]:
+def generate_combinatorial_z3_tasks(count: int = 25, seed: int = 2002, difficulty: str = "standard") -> list[SealedTask]:
     """Generates fresh combinatorial SMT puzzles with verified unique Z3 models."""
     rng = random.Random(seed)
     tasks: list[SealedTask] = []
 
     for i in range(1, count + 1):
+        if difficulty == "hard":
+            task_id = f"SEALED_Z3_HARD_{i:02d}"
+            moduli = rng.sample([17, 19, 23, 29, 31, 37], 3)
+            m1, m2, m3 = sorted(moduli)
+            M = m1 * m2 * m3
+            k_mult = rng.randint(2, 8)
+            base_sol = rng.randint(100, M - 1)
+            target_val = k_mult * M + base_sol
+            r1 = target_val % m1
+            r2 = target_val % m2
+            r3 = target_val % m3
+            L = target_val - rng.randint(50, min(1000, M - 50))
+            U = L + M
+
+            solver = z3.Solver()
+            n_var = z3.Int("n")
+            solver.add(n_var > L, n_var < U)
+            solver.add(n_var % m1 == r1)
+            solver.add(n_var % m2 == r2)
+            solver.add(n_var % m3 == r3)
+            if solver.check() != z3.sat:
+                continue
+
+            prompt = (
+                f"Find the unique integer N strictly between {L} and {U} satisfying "
+                f"the following system of modular congruences:\n"
+                f"1. N % {m1} == {r1}\n"
+                f"2. N % {m2} == {r2}\n"
+                f"3. N % {m3} == {r3}\n"
+                f"Print only the final integer N."
+            )
+            tasks.append(
+                SealedTask(
+                    task_id=task_id,
+                    suite="single_lobe_smt",
+                    family="z3",
+                    prompt=prompt,
+                    ground_truth=str(target_val),
+                    required_lobes=["z3"],
+                    metadata={"N": target_val, "moduli": [m1, m2, m3], "L": L, "U": U},
+                )
+            )
+            if len(tasks) == count:
+                break
+            continue
+
         task_id = f"SEALED_Z3_{i:02d}"
-        # Parametric system of non-linear / linear diophantine constraints
-        # Ensure a unique solution (x, y, z) in positive integers
-        # We generate target (x, y, z) first, then formulate tight clues
         x_val = rng.randint(2, 9)
         y_val = rng.randint(x_val + 2, x_val + 10)
         z_val = rng.randint(y_val + 2, y_val + 12)
@@ -200,12 +277,73 @@ def generate_combinatorial_z3_tasks(count: int = 25, seed: int = 2002) -> list[S
     return tasks
 
 
-def generate_number_theory_sympy_tasks(count: int = 25, seed: int = 3003) -> list[SealedTask]:
+def generate_number_theory_sympy_tasks(count: int = 25, seed: int = 3003, difficulty: str = "standard") -> list[SealedTask]:
     """Generates fresh competition-math style exact CAS number theory problems."""
     rng = random.Random(seed)
     tasks: list[SealedTask] = []
 
     for i in range(1, count + 1):
+        if difficulty == "hard":
+            task_id = f"SEALED_SYMPY_HARD_{i:02d}"
+            q_hard = rng.choice(["semiprime_totient", "semiprime_sigma", "prime_mod_sum"])
+            if q_hard == "semiprime_totient":
+                p1_idx = rng.randint(70, 110)
+                p2_idx = rng.randint(115, 160)
+                p1 = sympy.prime(p1_idx)
+                p2 = sympy.prime(p2_idx)
+                N = p1 * p2
+                mod = rng.randint(1000, 2000)
+                val = sympy.totient(N) % mod
+                prompt = (
+                    f"Let p be the {p1_idx}-th prime number and q be the {p2_idx}-th prime number. "
+                    f"Let N = p * q. "
+                    f"Using SymPy, compute the Euler totient phi(N) modulo {mod}. "
+                    f"Print only the final integer answer."
+                )
+                expected = str(val)
+                meta = {"type": q_hard, "p1": p1, "p2": p2, "N": N, "mod": mod}
+            elif q_hard == "semiprime_sigma":
+                p1_idx = rng.randint(80, 120)
+                p2_idx = rng.randint(125, 170)
+                p1 = sympy.prime(p1_idx)
+                p2 = sympy.prime(p2_idx)
+                N = p1 * p2
+                mod = rng.randint(1000, 2000)
+                val = int(sympy.divisor_sigma(N, 1)) % mod
+                prompt = (
+                    f"Let p be the {p1_idx}-th prime and q be the {p2_idx}-th prime. "
+                    f"Let N = p * q. "
+                    f"Using SymPy, compute the sum of all divisors sigma(N) modulo {mod}. "
+                    f"Print only the final integer answer."
+                )
+                expected = str(val)
+                meta = {"type": q_hard, "p1": p1, "p2": p2, "N": N, "mod": mod}
+            else:
+                start_k = rng.randint(80, 150)
+                length = rng.randint(10, 20)
+                mod = rng.randint(1000, 3000)
+                val = sum(sympy.prime(start_k + j) for j in range(length)) % mod
+                prompt = (
+                    f"Compute the sum of {length} consecutive primes starting from the "
+                    f"{start_k}-th prime (prime({start_k}) through prime({start_k + length - 1})), "
+                    f"modulo {mod}. Print only the final integer answer."
+                )
+                expected = str(val)
+                meta = {"type": q_hard, "start_k": start_k, "length": length, "mod": mod}
+
+            tasks.append(
+                SealedTask(
+                    task_id=task_id,
+                    suite="single_lobe_cas",
+                    family="sympy",
+                    prompt=prompt,
+                    ground_truth=expected,
+                    required_lobes=["sympy"],
+                    metadata=meta,
+                )
+            )
+            continue
+
         task_id = f"SEALED_SYMPY_{i:02d}"
         q_type = rng.choice(["totient_prime", "modular_exp", "prime_sum", "divisor_sigma", "poly_coeff"])
 
@@ -282,12 +420,111 @@ def generate_number_theory_sympy_tasks(count: int = 25, seed: int = 3003) -> lis
     return tasks
 
 
-def generate_multi_lobe_composed_tasks(count: int = 25, seed: int = 4004) -> list[SealedTask]:
+def generate_multi_lobe_composed_tasks(count: int = 25, seed: int = 4004, difficulty: str = "standard") -> list[SealedTask]:
     """Generates two-lobe composed neurosymbolic tasks requiring joint reasoning."""
     rng = random.Random(seed)
     tasks: list[SealedTask] = []
 
     for i in range(1, count + 1):
+        if difficulty == "hard":
+            task_id = f"SEALED_COMP_HARD_{i:02d}"
+            lobe_combo = rng.choice(["cw_sympy", "z3_sympy", "cw_z3"])
+
+            if lobe_combo == "cw_sympy":
+                names = rng.sample(["Arthur", "Brenda", "Charles", "Diana"], 3)
+                locs = rng.sample(["vault", "pantry", "study", "attic", "cellar"], 4)
+                item = rng.choice(["ledger", "cipher", "specimen", "artifact"])
+
+                cw = ContainerWorld()
+                cw.place(item, locs[0], observed_by=names)
+                cw.move(item, locs[1], actor=names[0], observed_by=[names[1]])
+                cw.move(item, locs[2], actor=names[1], observed_by=[names[0]])
+
+                # Second-order query: What does names[2] believe names[1] believes?
+                believed_loc = cw.query_second_order(names[2], names[1], item)
+                k_map = {locs[0]: 47, locs[1]: 53, locs[2]: 59, locs[3]: 61}
+                k = k_map[believed_loc]
+                mod = rng.randint(1000, 2500)
+                val = (int(sympy.prime(k)) * int(sympy.totient(k * 7))) % mod
+
+                prompt = (
+                    f"At 08:00, {names[0]}, {names[1]}, and {names[2]} know that the '{item}' is in '{locs[0]}'. "
+                    f"At 09:00, {names[0]} relocates the '{item}' to '{locs[1]}' while {names[1]} watches ({names[2]} is in another wing). "
+                    f"At 10:00, {names[1]} moves the '{item}' to '{locs[2]}' while {names[0]} watches ({names[2]} remains away). "
+                    f"Let L be the location where {names[2]} believes that {names[1]} believes the '{item}' is located. "
+                    f"Map L to integer k: '{locs[0]}': 47, '{locs[1]}': 53, '{locs[2]}': 59, '{locs[3]}': 61. "
+                    f"Using SymPy, compute and print the exact value of: (sympy.prime(k) * sympy.totient(k * 7)) mod {mod}."
+                )
+                expected = str(val)
+                lobes = ["container_world", "sympy"]
+
+            elif lobe_combo == "z3_sympy":
+                a_val = rng.randint(12, 25)
+                b_val = rng.randint(a_val + 5, a_val + 20)
+                c_val = rng.randint(b_val + 5, b_val + 25)
+
+                s1 = a_val + b_val + c_val
+                s2 = 2 * a_val + 3 * b_val - c_val
+                s3 = c_val - a_val
+
+                # SymPy query: sum of first a primes multiplied by (c - b)
+                prime_sum = sum(sympy.prime(j) for j in range(1, a_val + 1))
+                val = prime_sum * (c_val - b_val)
+
+                prompt = (
+                    f"Three positive integers a, b, c satisfy:\n"
+                    f"1. a < b < c\n"
+                    f"2. a + b + c = {s1}\n"
+                    f"3. 2*a + 3*b - c = {s2}\n"
+                    f"4. c - a = {s3}\n"
+                    f"Use Z3 to solve for a, b, and c. "
+                    f"Then use SymPy to compute the sum of the first a primes, multiplied by (c - b): "
+                    f"sum(sympy.prime(j) for j in range(1, a + 1)) * (c - b). "
+                    f"Print only the final integer answer."
+                )
+                expected = str(val)
+                lobes = ["z3", "sympy"]
+
+            else:  # cw_z3
+                names = ["Alice", "Bob", "Charlie"]
+                locs = ["room_a", "room_b", "room_c", "room_d"]
+                cw = ContainerWorld()
+                cw.place("badge", locs[0], observed_by=names)
+                cw.move("badge", locs[1], actor="Alice", observed_by=["Bob"])
+                cw.move("badge", locs[2], actor="Bob", observed_by=[])
+
+                # Second-order: Charlie's belief of Alice's belief -> room_a
+                cw_loc = cw.query_second_order("Charlie", "Alice", "badge")
+                w_map = {"room_a": 14, "room_b": 21, "room_c": 28, "room_d": 35}
+                w_val = w_map[cw_loc]
+
+                # Z3 problem: x, y such that x + y == 50, x >= w_val, 3*x - y == 30
+                # 4x = 80 -> x = 20, y = 30. (20 >= 14 holds)
+                prompt = (
+                    f"Initially, Alice, Bob, and Charlie know the 'badge' is in 'room_a'. "
+                    f"Alice moves the 'badge' to 'room_b' in front of Bob, while Charlie is away. "
+                    f"Bob then moves the 'badge' to 'room_c' alone. "
+                    f"Let loc be the location where Charlie believes Alice believes the badge is. "
+                    f"Weight mapping: 'room_a': 14, 'room_b': 21, 'room_c': 28, 'room_d': 35. Let W = weight(loc). "
+                    f"Find positive integers x, y using Z3 such that: x + y == 50, x >= W, and 3*x - y == 30. "
+                    f"Print the exact value of (x * y)."
+                )
+                expected = "600"
+                lobes = ["container_world", "z3"]
+
+            tasks.append(
+                SealedTask(
+                    task_id=task_id,
+                    suite="two_lobe_composed",
+                    family=lobe_combo,
+                    prompt=prompt,
+                    ground_truth=expected,
+                    required_lobes=lobes,
+                    metadata={"difficulty": "hard"},
+                )
+            )
+            continue
+
         task_id = f"SEALED_COMP_{i:02d}"
         lobe_combo = rng.choice(["cw_sympy", "z3_sympy", "cw_z3"])
 
@@ -383,12 +620,48 @@ def generate_multi_lobe_composed_tasks(count: int = 25, seed: int = 4004) -> lis
     return tasks
 
 
-def generate_formalization_translation_tasks(count: int = 25, seed: int = 5005) -> list[SealedTask]:
+def generate_formalization_translation_tasks(count: int = 25, seed: int = 5005, difficulty: str = "standard") -> list[SealedTask]:
     """Generates tasks evaluating formal code translation accuracy."""
     rng = random.Random(seed)
     tasks: list[SealedTask] = []
 
     for i in range(1, count + 1):
+        if difficulty == "hard":
+            task_id = f"SEALED_TRANS_HARD_{i:02d}"
+            x0 = rng.randint(10, 50)
+            steps = rng.randint(40, 60)
+            mult = rng.randint(3, 7)
+            add = rng.randint(11, 29)
+            mod = rng.randint(500, 999)
+
+            curr = x0
+            for step in range(1, steps + 1):
+                if curr % 2 == 0:
+                    curr = (curr * mult + add) % mod
+                else:
+                    curr = (curr * 2 + step) % mod
+
+            prompt = (
+                f"Write a Python script that computes the final value of the following deterministic process:\n"
+                f"Initialize x = {x0}.\n"
+                f"For step from 1 to {steps} (inclusive):\n"
+                f"  If x is even: x = (x * {mult} + {add}) % {mod}\n"
+                f"  Otherwise: x = (x * 2 + step) % {mod}\n"
+                f"Print only the final integer value of x."
+            )
+            tasks.append(
+                SealedTask(
+                    task_id=task_id,
+                    suite="formalization_translation",
+                    family="pure_python",
+                    prompt=prompt,
+                    ground_truth=str(curr),
+                    required_lobes=[],
+                    metadata={"difficulty": "hard", "steps": steps, "x0": x0, "mod": mod},
+                )
+            )
+            continue
+
         task_id = f"SEALED_TRANS_{i:02d}"
         n_items = rng.randint(40, 100)
         p_cut = rng.randint(3, 9)
@@ -425,25 +698,27 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Parametric Reasoning Suite Generator")
     parser.add_argument("--out", type=Path, default=OUT_DEFAULT, help="Output JSON path")
     parser.add_argument("--seed", type=int, default=42, help="Global master seed")
+    parser.add_argument("--difficulty", type=str, default="standard", choices=["standard", "hard"], help="Difficulty level")
     args = parser.parse_args()
 
     print("==========================================================================")
     print("=== PROJECT LUCCA: PARAMETRIC REASONING SUITE GENERATOR ===")
     print("==========================================================================")
-    print(f"Timestamp: {datetime.now(UTC).isoformat()} | Master Seed: {args.seed}")
+    print(f"Timestamp: {datetime.now(UTC).isoformat()} | Master Seed: {args.seed} | Difficulty: {args.difficulty}")
 
     all_tasks: list[SealedTask] = []
-    all_tasks.extend(generate_epistemic_container_tasks(count=25, seed=args.seed + 1))
-    all_tasks.extend(generate_combinatorial_z3_tasks(count=25, seed=args.seed + 2))
-    all_tasks.extend(generate_number_theory_sympy_tasks(count=25, seed=args.seed + 3))
-    all_tasks.extend(generate_multi_lobe_composed_tasks(count=25, seed=args.seed + 4))
-    all_tasks.extend(generate_formalization_translation_tasks(count=25, seed=args.seed + 5))
+    all_tasks.extend(generate_epistemic_container_tasks(count=25, seed=args.seed + 1, difficulty=args.difficulty))
+    all_tasks.extend(generate_combinatorial_z3_tasks(count=25, seed=args.seed + 2, difficulty=args.difficulty))
+    all_tasks.extend(generate_number_theory_sympy_tasks(count=25, seed=args.seed + 3, difficulty=args.difficulty))
+    all_tasks.extend(generate_multi_lobe_composed_tasks(count=25, seed=args.seed + 4, difficulty=args.difficulty))
+    all_tasks.extend(generate_formalization_translation_tasks(count=25, seed=args.seed + 5, difficulty=args.difficulty))
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "Sealed_Parametric_Reasoning_Master_Suite",
         "generated_at": datetime.now(UTC).isoformat(),
         "master_seed": args.seed,
+        "difficulty": args.difficulty,
         "total_tasks": len(all_tasks),
         "suite_counts": {
             "single_lobe_epistemic": 25,

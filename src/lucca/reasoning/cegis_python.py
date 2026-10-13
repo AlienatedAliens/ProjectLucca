@@ -104,6 +104,14 @@ class PythonCEGISEngine:
         self.num_candidates = num_candidates
         self._rpc: DockerRPCTransport | None = None
 
+    @property
+    def transport(self) -> DockerRPCTransport:
+        return self._get_rpc()
+
+    def warmup(self) -> bool:
+        """Pre-warms the underlying Docker RPC transport worker."""
+        return self._get_rpc().warmup()
+
     def _get_rpc(self) -> DockerRPCTransport:
         if self._rpc is None:
             self._rpc = DockerRPCTransport(

@@ -186,18 +186,21 @@ def evaluate_task_compound(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Sealed Parametric Reasoning Benchmark Evaluator")
+    parser.add_argument("--dataset", type=Path, default=DATA_FILE, help="Path to benchmark JSON dataset")
     parser.add_argument("--limit-per-suite", type=int, default=5, help="Tasks per suite (default: 5, max: 25)")
     parser.add_argument("--suite", type=str, default="all", help="Target suite name or 'all'")
     parser.add_argument("--model-tag", type=str, default="12B_V138", help="Model evaluation tag")
     args = parser.parse_args()
 
+    data_path = args.dataset if args.dataset.is_absolute() else REPO_ROOT / args.dataset
+
     print("==========================================================================")
     print("=== PROJECT LUCCA: SEALED PARAMETRIC REASONING MASTER BENCHMARK ===")
     print("==========================================================================")
     print(f"Timestamp: {datetime.now(UTC).isoformat()} | Model: {args.model_tag}")
-    print(f"Dataset: {DATA_FILE.name} (limit={args.limit_per_suite} per suite, target_suite={args.suite})\n")
+    print(f"Dataset: {data_path.name} (limit={args.limit_per_suite} per suite, target_suite={args.suite})\n")
 
-    data = json.load(open(DATA_FILE, encoding="utf-8"))
+    data = json.load(open(data_path, encoding="utf-8"))
     all_tasks = data.get("tasks", [])
 
     suites = [
@@ -217,9 +220,12 @@ def main() -> None:
 
     print(f"[+] Loaded {len(selected)} total sealed tasks across {len(suites)} suites.\n")
 
-    # Initialize Lucca neurosymbolic substrate
+    # Initialize Lucca neurosymbolic substrate & pre-warm worker
     router = HeuristicRouter()
     engine = PythonCEGISEngine(server_url=SERVER_URL, container_name="lucca-file-sandbox")
+    print("[*] Pre-warming Docker RPC worker...")
+    engine.transport.warmup()
+    print("[+] Docker RPC worker warm and ready.\n")
 
     results: list[TaskEvalResult] = []
 

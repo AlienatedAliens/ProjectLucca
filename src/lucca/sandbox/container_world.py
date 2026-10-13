@@ -21,6 +21,7 @@ class ContainerWorld:
         self.world: dict[str, str] = {}  # item -> current physical location
         self.initial_world: dict[str, str] = {}  # item -> initial location at start of narrative
         self.beliefs: dict[str, dict[str, str]] = {}  # agent -> item -> believed location
+        self.second_order_beliefs: dict[str, dict[str, dict[str, str]]] = {}  # observer -> target -> item -> location
 
     def process_event(self, ev: dict[str, object]) -> None:
         """
@@ -69,6 +70,22 @@ class ContainerWorld:
                 if obs not in self.beliefs:
                     self.beliefs[obs] = {}
                 self.beliefs[obs][item] = loc
+
+        # 4. Second-order belief update (Hintikka epistemic model)
+        present = set()
+        if agent and agent not in ("none", "null", "all", "everyone"):
+            present.add(agent)
+        for obs in observers:
+            if obs and obs not in ("none", "null", "all", "everyone"):
+                present.add(obs)
+
+        for x in present:
+            if x not in self.second_order_beliefs:
+                self.second_order_beliefs[x] = {}
+            for y in present:
+                if y not in self.second_order_beliefs[x]:
+                    self.second_order_beliefs[x][y] = {}
+                self.second_order_beliefs[x][y][item] = loc
 
     def place(
         self,
@@ -121,6 +138,7 @@ class ContainerWorld:
         self.world.clear()
         self.initial_world.clear()
         self.beliefs.clear()
+        self.second_order_beliefs.clear()
 
     def simulate(
         self,
@@ -179,12 +197,52 @@ class ContainerWorld:
 
         return None
 
+    def query_second_order(
+        self,
+        observer_agent: str,
+        target_agent: str,
+        item: str,
+    ) -> str | None:
+        """
+        Query second-order belief: What does observer_agent believe that target_agent believes
+        is the location of item? (B_observer(B_target(item)))
+        """
+        obs = observer_agent.strip().lower()
+        tgt = target_agent.strip().lower()
+        t_item = item.strip().lower()
+
+        # Reflexive second-order belief reduces to first-order belief: B_A(B_A(p)) = B_A(p)
+        if obs == tgt:
+            return self.query(obs, t_item)
+
+        # 1. Explicit nested belief model
+        if obs in self.second_order_beliefs and tgt in self.second_order_beliefs[obs]:
+            if t_item in self.second_order_beliefs[obs][tgt]:
+                return self.second_order_beliefs[obs][tgt][t_item]
+            for k, v in self.second_order_beliefs[obs][tgt].items():
+                if t_item in k or k in t_item:
+                    return v
+
+        # 2. Target retains initial shared state in observer's mental model
+        if t_item in self.initial_world:
+            return self.initial_world[t_item]
+        for k, v in self.initial_world.items():
+            if t_item in k or k in t_item:
+                return v
+
+        # 3. Fallback to physical world state
+        return self.query(None, t_item)
+
     def export_state(self) -> dict[str, object]:
         """Export current state for serialization."""
         return {
             "world": dict(self.world),
             "initial_world": dict(self.initial_world),
             "beliefs": {k: dict(v) for k, v in self.beliefs.items()},
+            "second_order_beliefs": {
+                k: {k2: dict(v2) for k2, v2 in v.items()}
+                for k, v in self.second_order_beliefs.items()
+            },
         }
 
     def load_state(self, state: dict[str, object]) -> None:
@@ -192,14 +250,23 @@ class ContainerWorld:
         w = state.get("world")
         iw = state.get("initial_world")
         b = state.get("beliefs")
+        sob = state.get("second_order_beliefs")
         self.world = dict(w) if isinstance(w, dict) else {}
         self.initial_world = dict(iw) if isinstance(iw, dict) else {}
         self.beliefs = {k: dict(v) for k, v in b.items() if isinstance(v, dict)} if isinstance(b, dict) else {}
+        self.second_order_beliefs = (
+            {k: {k2: dict(v2) for k2, v2 in v.items() if isinstance(v2, dict)} for k, v in sob.items() if isinstance(v, dict)}
+            if isinstance(sob, dict)
+            else {}
+        )
 
     # Method aliases for common LLM hallucinations
     put = place
     relocate = move
     ask = query
+    query_2nd = query_second_order
+    belief_of_belief = query_second_order
+    query_nested = query_second_order
 
 
 def extract_events_from_json_text(text: str) -> tuple[list[dict[str, object]], bool]:
