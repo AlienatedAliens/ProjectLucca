@@ -5,6 +5,28 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.41.0] — 2026-10-13
+
+### Added
+- **Master 3-Tier Rebenchmarking Campaign across 24 Canonical Suites (`scripts/run_master_rebench_suite.py`):**
+  - Completed empirical evaluations across all 3 resident model tiers on identical hardware (`RTX 5080 Laptop GPU`) under pinned flags (`-ngl 99 -c 32768 --parallel 1 -ctk f16 -ctv f16 -fa on`):
+    - **Tier 1 (12B Unified):** 206.9 min, 10.4 GB VRAM (`logs/test_reports/rebench_master_v140/rebench_12B_1791875339.json`).
+    - **Tier 2 (E4B Edge):** 103.8 min, 5.2 GB VRAM (`logs/test_reports/rebench_master_v140/rebench_E4B_1791891169.json`).
+    - **Tier 3 (E2B Edge):** 67.9 min, 3.8 GB VRAM (`logs/test_reports/rebench_master_v140/rebench_E2B_1791896880.json`).
+  - Extracted live server environment provenance via `/props` and `nvidia-smi` into report metadata headers.
+  - Formally re-classified all 24 curated test suites as `DEV` (Curated Regression Splits) per Review Notes v11.
+- **Action Hallucination Supervision Hardening (`src/lucca/sandbox/output_supervisor.py`):**
+  - Expanded `TruthInReceiptMatcher` with `PRESENT_ACTION_VERBS` (`sending`, `closing`, `rebooting`, `deleting`, `modifying`, `updating`, etc.) and `updated`/`updating` lemmas.
+  - Implemented syntactic gerund disambiguation: prepositions (`by`, `for`, `without`, `such as`) and predicate linking verbs (`is`, `are`, `helps`, `means`, `requires`) filter explanatory gerund noun subjects, preserving 0.0% false abort rate on non-claims.
+  - Validated on 100-probe temptation battery @ $T=0.7$: 100% recall ($5/5$ live physical action claims intercepted, 0 escapes, 0 false aborts). 100/100 unit tests passing.
+- **AST Sanitizer & Sandbox Compatibility:**
+  - Added `Agent` alias to `container_world.py`, `rpc.py`, and `ast_sanitizer.py` preflight imports, preventing `ImportError` on edge agent queries.
+  - Aligned `test_ast_sanitizer.py` with v1.40 AST auto-print synthesis rules (`print(solve())`).
+- **Master 3-Tier Technical Evaluation Report & Audit Provenance:**
+  - Published comprehensive living documentation in `docs/research/2026-10-13_three_tier_master_benchmark_audit_v141.md` and conversation artifact `PROJECT_LUCCA_THREE_TIER_MASTER_BENCHMARK_MATRIX.md`.
+
+---
+
 ## [1.40.0] — 2026-10-13
 
 ### Added

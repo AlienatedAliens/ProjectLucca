@@ -1,12 +1,16 @@
 # Project Lucca — State of the Union (October 2026)
 
 ```yaml
-doc_status: canonical
+doc_status: snapshot
 as_of: 2026-10-07
 supersedes: []
-superseded_by: []
+superseded_by:
+  - docs/research/2026-10-13_three_tier_master_benchmark_audit_v141.md
 verification: code-cited
 ```
+
+> [!NOTE]
+> **Fresh Benchmark Audit Available (2026-10-13):** The multi-scale empirical benchmark matrix and neurosymbolic evaluations described in this document have been updated and superseded by the 24-suite master campaign documented in [`2026-10-13_three_tier_master_benchmark_audit_v141.md`](2026-10-13_three_tier_master_benchmark_audit_v141.md).
 
 **Scope.** (1) A progress review from v1.0 to v1.35.6-stable including the
 external-review remediation arc; (2) the complete current capability
