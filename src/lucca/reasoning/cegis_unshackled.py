@@ -504,7 +504,7 @@ class UnshackledCEGISEngine:
         prompt: str,
         system_prompt: str | None = None,
         temperature: float = 0.2,
-        max_tokens: int = 1200,
+        max_tokens: int = 2048,
     ) -> str:
         """Queries local llama-server instance synchronously."""
         messages: list[dict[str, str]] = []
@@ -566,8 +566,10 @@ class UnshackledCEGISEngine:
             "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` that solves this transformation.",
             "2. You may write any necessary helper functions or use numpy, scipy.ndimage, itertools, and math.",
             "3. The grid values are integers 0-9 representing discrete colors (0=black, 1=blue, 2=red, 3=green, 4=yellow, 5=gray, 6=magenta, 7=orange, 8=cyan, 9=maroon).",
-            "4. Study object symmetries, connected components, background colors, bounding boxes, or relative spatial movements.",
-            "5. Return ONLY executable Python code inside a single ```python ... ``` block. Do not include markdown commentary outside the code block.",
+            "4. Object Connectivity: Objects can be 4-connected (orthogonal neighbors) or 8-connected (orthogonal + diagonal). You can use `scipy.ndimage.label(arr, structure=np.ones((3,3)))` for 8-connected components, or `structure=np.array([[0,1,0],[1,1,1],[0,1,0]])` for 4-connected components.",
+            "5. Relational Invariants: When multiple objects exist, consider relations between them: identical shape templates (comparing bounding-box-cropped binary masks across colors to find same vs different shapes), relative object sizes/areas, enclosure, or alignments.",
+            "6. Boundary Conditions: Be careful with canvas boundaries (row 0 to H-1, col 0 to W-1) to avoid stopping one cell early or overshooting.",
+            "7. Return ONLY executable Python code inside a single ```python ... ``` block. Do NOT write extensive text essays inside comments or docstrings; prioritize clean, complete, fully closed Python code.",
         ]
 
         if hint:
@@ -578,7 +580,7 @@ class UnshackledCEGISEngine:
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
-            max_tokens=1400,
+            max_tokens=2048,
         )
 
         code = extract_python_code(response_text)
@@ -659,10 +661,13 @@ class UnshackledCEGISEngine:
             "All Training Demonstrations for Reference:",
             train_desc,
             "Instructions for Repair:",
-            "1. Explain in 1-2 sentences of Python comments (# Diagnosis: ...) why your prior code failed this demonstration.",
-            "2. Modify your logic so that it satisfies Demonstration 1, 2, ... and ALL others simultaneously.",
-            "3. Ensure `def transform(grid: list[list[int]]) -> list[list[int]]:` is clean, robust, and handles boundaries properly.",
-            "4. Return ONLY executable Python code inside a single ```python ... ``` block.",
+            "1. Keep any diagnosis comment strictly under 2 lines (# Diagnosis: ...). Do NOT write lengthy text essays in docstrings or comments.",
+            "2. Prioritize writing complete, fully closed code: make sure all loops, brackets, and functions are complete before returning.",
+            "3. Check connectivity: if diagonal pixels touch to form shapes, use 8-connectivity (`scipy.ndimage.label(arr, structure=np.ones((3,3)))`).",
+            "4. Check relational invariants: if objects are being filtered or matched, check whether the criterion is identical binary shape templates (cropping components to bounding boxes and comparing boolean shapes across colors).",
+            "5. Modify your logic so that it satisfies Demonstration 1, 2, ... and ALL others simultaneously.",
+            "6. Ensure `def transform(grid: list[list[int]]) -> list[list[int]]:` is robust and handles canvas boundaries properly.",
+            "7. Return ONLY executable Python code inside a single ```python ... ``` block.",
         ])
 
         prompt = "\n".join(repair_prompt_lines)
@@ -670,7 +675,7 @@ class UnshackledCEGISEngine:
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
-            max_tokens=1400,
+            max_tokens=2048,
         )
 
         code = extract_python_code(response_text)
@@ -693,8 +698,10 @@ class UnshackledCEGISEngine:
 
         traces: list[CEGISTurn] = []
         current_code: str = ""
+        turn_idx = 1
+        limit_turns = effective_max_turns
 
-        for turn_idx in range(1, effective_max_turns + 1):
+        while turn_idx <= limit_turns:
             turn_t0 = time.perf_counter()
 
             if turn_idx == 1:
@@ -708,7 +715,7 @@ class UnshackledCEGISEngine:
                     diff=last_trace.failure_diff,
                     err_msg=last_trace.execution_error,
                     turn_num=turn_idx,
-                    temperature=0.2 + (turn_idx * 0.05),
+                    temperature=0.2 + (min(turn_idx, 5) * 0.05),
                 )
 
             current_code = code
@@ -728,6 +735,7 @@ class UnshackledCEGISEngine:
                         elapsed_ms=turn_elapsed,
                     )
                 )
+                turn_idx += 1
                 continue
 
             all_passed, passed_count, fail_idx, fail_diff, err_msg = self.verify_candidate(
@@ -770,15 +778,27 @@ class UnshackledCEGISEngine:
                     error_summary=None,
                 )
 
+            # Adaptive budget extension: if at current limit and showing positive progress, grant 1 bonus turn
+            if turn_idx == limit_turns and passed_count > 0 and limit_turns < effective_max_turns + 2:
+                logger.info(
+                    "adaptive_cegis_turn_extended",
+                    turn=turn_idx,
+                    passed=passed_count,
+                    total=total_examples,
+                )
+                limit_turns += 1
+
+            turn_idx += 1
+
         total_elapsed = (time.perf_counter() - t0) * 1000.0
         return CEGISRunResult(
             success=False,
             final_code=current_code,
-            turns_taken=effective_max_turns,
+            turns_taken=len(traces),
             turns=traces,
             test_predictions=[],
             total_elapsed_ms=total_elapsed,
-            error_summary=f"Failed to satisfy 100% of demonstrations after {effective_max_turns} turns.",
+            error_summary=f"Failed to satisfy 100% of demonstrations after {len(traces)} turns.",
         )
 
     @staticmethod

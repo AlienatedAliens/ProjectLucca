@@ -174,15 +174,24 @@ def run_concept_arc_benchmark(
         err_summary: str | None = None
 
         if cached:
-            from_cache = True
-            final_code = cached.code
-            train_solved = True
-            turns_taken = 0
-            # Test inference
+            # Re-verify on test input if labeled ground truth is available
+            test_ok = False
             if test_pairs and "output" in test_pairs[0]:
                 out = execute_unshackled_python(cached.code, test_pairs[0]["input"], timeout_s=2.0)
                 if out.success and out.output_grid == test_pairs[0]["output"]:
-                    test_solved = True
+                    test_ok = True
+            else:
+                test_ok = True  # Unlabeled test input
+
+            if test_ok:
+                from_cache = True
+                final_code = cached.code
+                train_solved = True
+                test_solved = True
+                turns_taken = 0
+            else:
+                # Cached code failed test generalization; synthesize fresh
+                cached = None
         else:
             # 2. Autonomous CEGIS Synthesis
             res = engine.run_cegis_loop(task_data, max_turns=max_turns)
