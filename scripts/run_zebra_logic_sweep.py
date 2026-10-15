@@ -26,6 +26,7 @@ from datetime import UTC, datetime
 import json
 from pathlib import Path
 import re
+import subprocess
 import sys
 import time
 from typing import Any, Final
@@ -35,23 +36,36 @@ import httpx
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from lucca.sandbox.rpc import DockerRPCTransport
-
 SERVER_URL: Final[str] = "http://127.0.0.1:8080/v1/chat/completions"
 TIMEOUT_SECONDS: Final[float] = 180.0
 
-_DOCKER_RPC: DockerRPCTransport | None = None
+
+@dataclass
+class PythonExecResult:
+    ok: bool
+    stdout: str
+    stderr: str
 
 
-def get_docker_rpc() -> DockerRPCTransport:
-    global _DOCKER_RPC
-    if _DOCKER_RPC is None:
-        _DOCKER_RPC = DockerRPCTransport(
-            container_name="lucca-file-sandbox", use_direct_fallback=False
+def execute_sandboxed_python(code: str, timeout_s: float = 10.0) -> PythonExecResult:
+    """Executes python code in an isolated native subprocess with watchdog timeout."""
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
         )
-        if not _DOCKER_RPC.is_container_running():
-            _DOCKER_RPC.ensure_container_running()
-    return _DOCKER_RPC
+        return PythonExecResult(
+            ok=(proc.returncode == 0),
+            stdout=proc.stdout,
+            stderr=proc.stderr,
+        )
+    except subprocess.TimeoutExpired:
+        return PythonExecResult(ok=False, stdout="", stderr=f"TimeoutExpired ({timeout_s}s)")
+    except Exception as exc:
+        return PythonExecResult(ok=False, stdout="", stderr=f"{type(exc).__name__}: {exc}")
+
 
 
 @dataclass
@@ -130,12 +144,11 @@ if solver.check() == z3.sat:
 else:
     print("UNSAT")
 """
-    rpc = get_docker_rpc()
-    res = rpc.execute(call_id=f"z3-{time.time_ns()}", tool="run_python", args={"code": harness}, timeout_s=10.0)
+    res = execute_sandboxed_python(harness, timeout_s=10.0)
     elapsed = (time.perf_counter() - t0) * 1000.0
 
-    if res.ok and res.content:
-        m = re.search(r"SOLUTION:\(([A-E])\)", str(res.content))
+    if res.ok and res.stdout:
+        m = re.search(r"SOLUTION:\(([A-E])\)", res.stdout)
         if m:
             return f"({m.group(1).upper()})", elapsed
     return None, elapsed
@@ -170,7 +183,6 @@ def synthesize_z3_with_llm(p: dict[str, Any]) -> tuple[str | None, bool, str | N
         "```\n"
         "Return ONLY runnable Python code inside ```python ... ```."
     )
-    rpc = get_docker_rpc()
     cur_prompt = base_prompt
     last_syntax_ok = False
     last_err: str | None = None
@@ -179,9 +191,9 @@ def synthesize_z3_with_llm(p: dict[str, Any]) -> tuple[str | None, bool, str | N
         raw = query_llm(cur_prompt, max_tokens=2048, temperature=0.0 if turn == 1 else 0.2, enable_thinking=False)
         code = extract_python_code(raw) or raw.replace("```python", "").replace("```", "").strip()
 
-        res = rpc.execute(call_id=f"z3-synth-{time.time_ns()}", tool="run_python", args={"code": code}, timeout_s=10.0)
-        out_str = str(res.content or "")
-        err_str = str(res.stderr or "")
+        res = execute_sandboxed_python(code, timeout_s=10.0)
+        out_str = res.stdout
+        err_str = res.stderr
         if res.ok:
             last_syntax_ok = True
             m_sol = re.search(r"SOLUTION:\(?([A-E])\)?", out_str)
@@ -216,7 +228,7 @@ def main() -> None:
     print("=== PROJECT LUCCA: ZEBRALOGIC DIFFICULTY SWEEP BENCHMARK ===", flush=True)
     print("==========================================================================", flush=True)
     print(f"Timestamp: {datetime.now(UTC).isoformat()}", flush=True)
-    print(f"Comparing: Direct vs Native Thinking vs Z3 SMT Solver in Docker\n", flush=True)
+    print("Comparing: Direct vs Native Thinking vs Z3 SMT Solver (Native Isolated Subprocess)\n", flush=True)
 
     results: list[GridResult] = []
 
