@@ -1,0 +1,492 @@
+{
+  "benchmark": "ConceptARC_DynamicMacro",
+  "model_tag": "Tier0-26B",
+  "mode": "minimal",
+  "timestamp_utc": "2026-10-14T18:30:39.941236+00:00",
+  "total_tasks": 5,
+  "arm_a_control": {
+    "passed": 2,
+    "pass_rate": 0.4,
+    "wilson_ci_95": [
+      0.11762105558763347,
+      0.7692752375628972
+    ]
+  },
+  "arm_b_dynamic": {
+    "passed": 3,
+    "pass_rate": 0.6,
+    "wilson_ci_95": [
+      0.23072476243710283,
+      0.8823789444123665
+    ],
+    "dynamic_macro_wins": 3,
+    "fallback_wins": 0
+  },
+  "tasks": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "arm_a_success": true,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": null,
+      "arm_b_success": true,
+      "arm_b_method": "DYNAMIC_MACRO_SYNTHESIS",
+      "arm_b_synthesized_code": "def get_grid_center (grid ):\n    \"\"\"\n    Calculates the integer coordinates of the geometric center of the grid.\n    For even dimensions, it returns the floor of the midpoint to maintain consistency.\n    \"\"\"\n    rows ,cols =grid .shape \n    center_row =rows //2 \n    center_col =cols //2 \n    return (center_row ,center_col )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef get_grid_center (grid ):\n    \"\"\"\n    Returns the (row, col) coordinates of the geometric center of the grid.\n    Uses floor division to match the pattern observed in the examples.\n    \"\"\"\n    rows ,cols =grid .shape \n    return (rows //2 ,cols //2 )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Transforms the grid by placing a single pixel of color 2 at the \n    geometric center (floor of H/2, floor of W/2).\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n\n    # Calculate the geometric center using floor division\n    center_r =rows //2 \n    center_c =cols //2 \n\n    # Create a copy of the grid to avoid mutating the input\n    new_grid =[row [:]for row in grid ]\n\n    # Place the pixel at the center with color 2\n    new_grid [center_r ][center_c ]=2 \n\n    return new_grid",
+      "arm_b_train_passed": true,
+      "arm_b_repair_rounds": 0,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": null,
+      "elapsed_ms": 38254.663300001994
+    },
+    {
+      "task_id": "CompleteShapeMinimal",
+      "concept": "CompleteShape",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": null,
+      "arm_a_failure_reason": "PARSE_ERROR_NO_GRID_DETECTED",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": null,
+      "arm_b_failure_reason": "PARSE_ERROR_NO_GRID_DETECTED",
+      "elapsed_ms": 219336.81579999757
+    },
+    {
+      "task_id": "CountMinimal",
+      "concept": "Count",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "SHAPE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "SHAPE_MISMATCH",
+      "elapsed_ms": 158882.21559999874
+    },
+    {
+      "task_id": "ExtractObjectsMinimal",
+      "concept": "ExtractObjects",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          7,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          7,
+          7,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "SHAPE_MISMATCH",
+      "arm_b_success": true,
+      "arm_b_method": "DYNAMIC_MACRO_SYNTHESIS",
+      "arm_b_synthesized_code": "def get_grid_center (grid ):\n    \"\"\"\n    Calculates the integer coordinates of the geometric center of the grid.\n    For even dimensions, it returns the floor of the midpoint to maintain consistency.\n    \"\"\"\n    rows ,cols =grid .shape \n    center_row =rows //2 \n    center_col =cols //2 \n    return (center_row ,center_col )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef get_grid_center (grid ):\n    \"\"\"\n    Returns the (row, col) coordinates of the geometric center of the grid.\n    Uses floor division to match the pattern observed in the examples.\n    \"\"\"\n    rows ,cols =grid .shape \n    return (rows //2 ,cols //2 )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef get_bounding_box (grid ):\n    \"\"\"\n    Finds the bounding box coordinates (min_row, max_row, min_col, max_col) \n    of all non-zero elements in the grid.\n    \"\"\"\n    coords =np .argwhere (grid !=0 )\n    if coords .size ==0 :\n        return None \n    min_row ,min_col =coords .min (axis =0 )\n    max_row ,max_col =coords .max (axis =0 )\n    return min_row ,max_row ,min_col ,max_col \n\ndef crop_to_bounding_box (grid ):\n    \"\"\"\n    Crops the input grid to the smallest rectangle containing all non-zero pixels.\n    \"\"\"\n    bbox =get_bounding_box (grid )\n    if bbox is None :\n        return np .array ([[]])\n    min_r ,max_r ,min_c ,max_c =bbox \n    # +1 because max indices are inclusive in the bounding box definition\n    return grid [min_r :max_r +1 ,min_c :max_c +1 ]\n\nimport numpy as np \n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Crops the input grid to the smallest bounding box containing all non-zero pixels.\n    \"\"\"\n    grid_np =np .array (grid )\n\n    # Find indices of all non-zero elements\n    coords =np .argwhere (grid_np !=0 )\n\n    # If no non-zero elements exist, return an empty grid (or as per specific logic)\n    if coords .size ==0 :\n        return []\n\n        # Determine the bounding box\n    min_row ,min_col =coords .min (axis =0 )\n    max_row ,max_col =coords .max (axis =0 )\n\n    # Slice the array to the bounding box (max_row + 1 because slice is exclusive)\n    cropped_grid =grid_np [min_row :max_row +1 ,min_col :max_col +1 ]\n\n    return cropped_grid .tolist ()",
+      "arm_b_train_passed": true,
+      "arm_b_repair_rounds": 0,
+      "arm_b_predicted_grid": [
+        [
+          7,
+          7
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "arm_b_failure_reason": null,
+      "elapsed_ms": 60532.52269999939
+    },
+    {
+      "task_id": "FilledNotFilledMinimal",
+      "concept": "FilledNotFilled",
+      "arm_a_success": true,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          5,
+          5,
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          5,
+          5,
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": null,
+      "arm_b_success": true,
+      "arm_b_method": "DYNAMIC_MACRO_SYNTHESIS",
+      "arm_b_synthesized_code": "def get_grid_center (grid ):\n    \"\"\"\n    Calculates the integer coordinates of the geometric center of the grid.\n    For even dimensions, it returns the floor of the midpoint to maintain consistency.\n    \"\"\"\n    rows ,cols =grid .shape \n    center_row =rows //2 \n    center_col =cols //2 \n    return (center_row ,center_col )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef get_grid_center (grid ):\n    \"\"\"\n    Returns the (row, col) coordinates of the geometric center of the grid.\n    Uses floor division to match the pattern observed in the examples.\n    \"\"\"\n    rows ,cols =grid .shape \n    return (rows //2 ,cols //2 )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef get_bounding_box (grid ):\n    \"\"\"\n    Finds the bounding box coordinates (min_row, max_row, min_col, max_col) \n    of all non-zero elements in the grid.\n    \"\"\"\n    coords =np .argwhere (grid !=0 )\n    if coords .size ==0 :\n        return None \n    min_row ,min_col =coords .min (axis =0 )\n    max_row ,max_col =coords .max (axis =0 )\n    return min_row ,max_row ,min_col ,max_col \n\ndef crop_to_bounding_box (grid ):\n    \"\"\"\n    Crops the input grid to the smallest rectangle containing all non-zero pixels.\n    \"\"\"\n    bbox =get_bounding_box (grid )\n    if bbox is None :\n        return np .array ([[]])\n    min_r ,max_r ,min_c ,max_c =bbox \n    # +1 because max indices are inclusive in the bounding box definition\n    return grid [min_r :max_r +1 ,min_c :max_c +1 ]\n\ndef get_connected_components (grid ):\n    \"\"\"\n    Identifies all connected components of non-zero pixels.\n    Returns a list of masks, where each mask is a boolean array for one object.\n    \"\"\"\n    binary_grid =(grid !=0 ).astype (int )\n    labeled_array ,num_features =label (binary_grid )\n    components =[]\n    for i in range (1 ,num_features +1 ):\n        components .append (labeled_array ==i )\n    return components \n\ndef has_topological_hole (grid ,component_mask ):\n    \"\"\"\n    Determines if a specific connected component encloses a background (0) area.\n    A component has a hole if the background pixels it encloses are not \n    connected to the edge of the grid.\n    \"\"\"\n    # Create a mask of the component\n    # To find holes, we look at the complement of the component\n    # and see if any '0' pixels are trapped inside.\n\n    # Create a mask where the component is 1 and everything else is 0\n    # We want to see if there are 0s that cannot reach the boundary\n    rows ,cols =grid .shape \n    background_mask =(grid ==0 )&(~component_mask )\n\n    # If there are no background pixels inside the bounding box, it's hard to have a hole\n    # But a more robust way: use flood fill from the edges on the background\n    # to find 'reachable' background pixels.\n\n    # Create a mask of all non-component pixels\n    not_component =~component_mask \n\n    # Flood fill from the boundary of the 'not_component' area\n    reachable_from_edge =np .zeros_like (not_component ,dtype =bool )\n\n    # Seed points: all edge pixels that are not part of the component\n    seeds =[]\n    for r in range (rows ):\n        if not_component [r ,0 ]:seeds .append ((r ,0 ))\n        if not_component [r ,cols -1 ]:seeds .append ((r ,cols -1 ))\n    for c in range (cols ):\n        if not_component [0 ,c ]:seeds .append ((0 ,c ))\n        if not_component [rows -1 ,c ]:seeds .append ((rows -1 ,c ))\n\n    from scipy .ndimage import binary_fill_holes \n\nimport numpy as np \nfrom scipy .ndimage import label ,binary_fill_holes \n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Identifies all connected components of non-zero color and retains only \n    those that possess a topological hole (enclosing background 0).\n    \"\"\"\n    grid_arr =np .array (grid )\n    rows ,cols =grid_arr .shape \n    output =np .zeros_like (grid_arr )\n\n    # Identify connected components of non-zero pixels\n    binary_grid =(grid_arr !=0 ).astype (int )\n    labeled_array ,num_features =label (binary_grid )\n\n    for i in range (1 ,num_features +1 ):\n    # Create a mask for the current component\n        component_mask =(labeled_array ==i )\n\n        # Check for topological holes:\n        # A component has a hole if filling the holes in its binary mask \n        # results in a larger area than the component itself.\n        # However, to strictly follow \"enclosing background 0\", we check if \n        # the filled version of the component mask contains 0s that were \n        # originally part of the background.\n\n        # binary_fill_holes fills 0-regions that are not connected to the grid edge.\n        filled_mask =binary_fill_holes (component_mask )\n\n        # If the filled mask has more pixels than the original component, \n        # it means it enclosed some area.\n        if np .sum (filled_mask )>np .sum (component_mask ):\n        # Verify that the enclosed area contains the background color 0\n        # (This handles cases where components might be nested)\n            enclosed_area_mask =filled_mask **component_mask \n            if np .any (grid_arr [enclosed_area_mask ]==0 ):\n            # Retain the component pixels and their original color\n                output [component_mask ]=grid_arr [component_mask ]\n\n    return output .tolist ()",
+      "arm_b_train_passed": true,
+      "arm_b_repair_rounds": 0,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          5,
+          5,
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          5,
+          5,
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": null,
+      "elapsed_ms": 127588.75999999873
+    }
+  ]
+}

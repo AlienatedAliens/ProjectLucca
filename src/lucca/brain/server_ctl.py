@@ -9,6 +9,7 @@ import hashlib
 import io
 import json
 import logging
+import re
 import struct
 import subprocess
 import sys
@@ -168,7 +169,7 @@ def parse_gguf_file(path: Path) -> GGUFMetadata:
 
 
 def _derive_quant_from_filename(filename: str) -> str:
-    parts = filename.replace(".gguf", "").split("-")
+    parts = re.split(r"[-.]", filename.replace(".gguf", ""))
     for part in reversed(parts):
         if part.upper().startswith("Q") or part.upper() in ("FP16", "FP32", "BF16", "F16", "F32"):
             return part.upper()
@@ -184,7 +185,17 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
     if not models_dir.exists():
         return registry
 
-    gguf_files = sorted(models_dir.glob("*.gguf"))
+    raw_files = set(models_dir.glob("*.gguf")).union(
+        p for p in models_dir.glob("*/*.gguf") if not p.parent.name.startswith(".")
+    )
+    seen_names: set[str] = set()
+    deduped_files: list[Path] = []
+    # Prioritize top-level files over subdirectories
+    for p in sorted(raw_files, key=lambda x: (len(x.parts), x.name)):
+        if p.name not in seen_names:
+            seen_names.add(p.name)
+            deduped_files.append(p)
+    gguf_files = sorted(deduped_files)
     all_names = {f.name for f in gguf_files}
 
     for path in gguf_files:
@@ -236,7 +247,11 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
             badge = "📄 Text via Whisper"
             badge_type = "transcript"
 
-        rel_path = f"llm/{path.name}"
+        try:
+            rel_path = str(path.relative_to(models_dir.parent)).replace("\\", "/")
+        except ValueError:
+            rel_path = f"llm/{path.name}"
+
         is_active = (
             rel_path == active_model_rel
             or path.name in active_model_rel
@@ -272,9 +287,14 @@ def resolve_model_path(rel_or_abs: str | Path, home_dir: Path) -> Path:
         home_dir / "models" / p,
         home_dir / p,
         home_dir / "models" / "llm" / p.name,
+        home_dir / "models" / "llm" / "Gemma426B" / p.name,
     ]:
         if cand.exists():
             return cand
+    if (home_dir / "models" / "llm").exists():
+        for found in (home_dir / "models" / "llm").glob(f"*/{p.name}"):
+            if found.exists():
+                return found
     return home_dir / "models" / p
 
 
@@ -311,18 +331,22 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
     model_gguf = resolve_model_path(cfg.model, home_dir)
     mmproj_gguf = resolve_model_path(cfg.mmproj, home_dir)
 
+    k_type = getattr(cfg, "kv_type_k", None) or cfg.kv_type
+    v_type = getattr(cfg, "kv_type_v", None) or cfg.kv_type
+    ngl = str(getattr(cfg, "ngl", 99))
+
     cmd = [
         str(llama_exe),
         "--model",
         str(model_gguf),
         "--n-gpu-layers",
-        "99",
+        ngl,
         "--ctx-size",
         str(cfg.ctx),
         "--cache-type-k",
-        cfg.kv_type,
+        k_type,
         "--cache-type-v",
-        cfg.kv_type,
+        v_type,
         "--cache-ram",
         str(cfg.cache_ram_mib),
         "--parallel",
@@ -336,6 +360,27 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         "--no-webui",
         "--jinja",
     ]
+
+    if getattr(cfg, "cpu_moe", False):
+        cmd.append("--cpu-moe")
+
+    if getattr(cfg, "moe_expert_cache_mib", None) is not None:
+        cmd.extend(["--moe-expert-cache-mib", str(cfg.moe_expert_cache_mib)])
+
+    spec_type = getattr(cfg, "spec_type", "none") or "none"
+    if spec_type != "none":
+        cmd.extend(["--spec-type", spec_type])
+        if "draft" in spec_type and getattr(cfg, "draft_model", None):
+            draft_gguf = resolve_model_path(cfg.draft_model, home_dir)
+            cmd.extend(["--spec-draft-model", str(draft_gguf)])
+            if getattr(cfg, "draft_ngl", None) is not None:
+                cmd.extend(["--spec-draft-ngl", str(cfg.draft_ngl)])
+            if getattr(cfg, "draft_n_max", None) is not None:
+                cmd.extend(["--spec-draft-n-max", str(cfg.draft_n_max)])
+            if getattr(cfg, "draft_kv_type_k", None):
+                cmd.extend(["--spec-draft-type-k", str(cfg.draft_kv_type_k)])
+            if getattr(cfg, "draft_kv_type_v", None):
+                cmd.extend(["--spec-draft-type-v", str(cfg.draft_kv_type_v)])
 
     template_file = resolve_template_file(cfg, home_dir)
     if template_file is not None:
@@ -436,6 +481,12 @@ def verify_model_files(cfg: LLMSettings, home_dir: Path) -> None:
         mmproj_path = resolve_model_path(cfg.mmproj, home_dir)
         if mmproj_path.exists() or cfg.mode == "audio":
             models_to_check.append(mmproj_path)
+    if (
+        getattr(cfg, "spec_type", "none") != "none"
+        and "draft" in getattr(cfg, "spec_type", "")
+        and getattr(cfg, "draft_model", None)
+    ):
+        models_to_check.append(resolve_model_path(cfg.draft_model, home_dir))
 
     for mpath in models_to_check:
         if not mpath.exists():

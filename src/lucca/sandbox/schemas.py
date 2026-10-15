@@ -264,6 +264,51 @@ class ContainerWorldArgs(BaseModel):
     query_agent: str | None = None
 
 
+class ResearchTopicArgs(BaseModel):
+    query: str = Field(min_length=1)
+    max_sources: int = Field(default=3, ge=1, le=10)
+    target_entity: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_query(cls, data: object) -> object:
+        if isinstance(data, dict):
+            if not data.get("query"):
+                for alt in ("topic", "q", "queries"):
+                    val = data.get(alt)
+                    if isinstance(val, str) and val.strip():
+                        data["query"] = val.strip()
+                        break
+                    elif isinstance(val, list) and val:
+                        data["query"] = str(val[0])
+                        break
+        return data
+
+
+class GrepTreeArgs(BaseModel):
+    pattern: str = Field(min_length=1, description="Regex or text pattern to search")
+    dir_path: str = Field(default=".", description="Relative directory path to search recursively")
+    max_hits: int = Field(default=100, ge=1, le=500)
+
+
+class ViewSliceArgs(BaseModel):
+    path: str = Field(min_length=1, description="Relative file path")
+    start_line: int = Field(default=1, ge=1, description="1-indexed starting line")
+    end_line: int = Field(default=100, ge=1, description="1-indexed ending line (inclusive)")
+
+
+class ApplyPatchArgs(BaseModel):
+    path: str = Field(min_length=1, description="Relative file path")
+    target_chunk: str = Field(min_length=1, description="Exact existing text block to replace")
+    replacement_chunk: str = Field(description="New replacement text block")
+
+
+class RunPytestArgs(BaseModel):
+    test_path: str = Field(default="", description="Specific test file or node")
+    cwd: str = Field(default=".", description="Working directory relative to workspace")
+    timeout: int = Field(default=60, ge=1, le=300)
+
+
 TOOL_ARG_SCHEMAS: dict[str, type[BaseModel]] = {
     "read_file": ReadFileArgs,
     "write_file": WriteFileArgs,
@@ -297,6 +342,14 @@ EXTRA_TOOL_SCHEMAS: dict[str, type[BaseModel]] = {
     "get_task_status": GetTaskStatusArgs,
     "list_tasks": ListTasksArgs,
     "cancel_task": CancelTaskArgs,
+    "research": ResearchTopicArgs,
+    "research_topic": ResearchTopicArgs,
+    "browse_page": FetchUrlArgs,
+    "render_page": FetchUrlArgs,
+    "grep_tree": GrepTreeArgs,
+    "view_slice": ViewSliceArgs,
+    "apply_patch": ApplyPatchArgs,
+    "run_pytest": RunPytestArgs,
 }
 
 
@@ -310,6 +363,7 @@ class PreflightResult(BaseModel):
     fail_open: bool = False
 
 __all__ = [
+    "ApplyPatchArgs",
     "ArtifactVerifyArgs",
     "CalcMathArgs",
     "CancelTaskArgs",
@@ -319,6 +373,7 @@ __all__ = [
     "EXTRA_TOOL_SCHEMAS",
     "FetchUrlArgs",
     "GetTaskStatusArgs",
+    "GrepTreeArgs",
     "InboxHandoffArgs",
     "InvokeSkillArgs",
     "LaunchAppArgs",
@@ -331,6 +386,8 @@ __all__ = [
     "PreflightResult",
     "QueryCapabilitiesArgs",
     "ReadFileArgs",
+    "ResearchTopicArgs",
+    "RunPytestArgs",
     "RunPythonArgs",
     "ScheduleEventArgs",
     "ScreenshotCaptureArgs",
@@ -340,5 +397,6 @@ __all__ = [
     "SelfMetricsArgs",
     "SysInfoArgs",
     "TOOL_ARG_SCHEMAS",
+    "ViewSliceArgs",
     "WriteFileArgs",
 ]

@@ -123,6 +123,10 @@ ALLOWED_OPS = frozenset(
         "denoise",
         "restore-periodic-pattern",
         "periodic-restore",
+        "replace-color",
+        "set-pixel",
+        "crop-bbox",
+        "fill-mask",
         # MathCAS primitives (Milestone 4, WO-33)
         "simplify",
         "solve",
@@ -190,6 +194,14 @@ class RuleDefinition:
     source_hash: str
 
 
+DYNAMIC_ALLOWED_OPS: set[str] = set()
+
+
+def register_dynamic_op(op_name: str) -> None:
+    """Registers a dynamically induced primitive operator name into the parser's allowed operations."""
+    DYNAMIC_ALLOWED_OPS.add(op_name)
+
+
 class Parser:
     def __init__(
         self,
@@ -201,7 +213,8 @@ class Parser:
         self.pos = 0
         self.depth = 0
         self.macro_registry = macro_registry
-        self.allowed_ops = ALLOWED_OPS if allowed_ops is None else (ALLOWED_OPS | allowed_ops)
+        base_allowed = ALLOWED_OPS | frozenset(DYNAMIC_ALLOWED_OPS)
+        self.allowed_ops = base_allowed if allowed_ops is None else (base_allowed | allowed_ops)
         self._in_macro_body = False
         self._in_fact_pattern = False
 

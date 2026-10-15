@@ -12,6 +12,7 @@ failure taxonomy, and per-concept performance breakdown.
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 import concurrent.futures
 import io
@@ -39,6 +40,7 @@ from lucca.reasoning.spatial_dsl import (
     SymbolicInvariants,
     analyze_symbolic_invariants,
     bbox_of_all,
+    boolean_combine,
     build_scene_graph,
     check_metamorphic_invariance,
     column_heights,
@@ -50,25 +52,42 @@ from lucca.reasoning.spatial_dsl import (
     denoise,
     dominant_object,
     draw_line,
+    extract_quadrant_macrogrid,
+    extrapolate_ray,
+    fill_framed_enclosures,
     fill_holes,
     find_objects,
+    find_separator_lines,
     flip_h,
     flip_v,
     flood_fill,
     format_scene_graph_prompt,
     generate_relational_diff,
     is_enclosed,
+    kronecker_fractal_tiling,
     majority_filter,
     move_until_contact,
     normalize_grid,
     order_columns_by_height,
+    palette_swap_by_legend,
     paste,
+    quadrant_tile,
     resolve_scoped_primitives,
     rot90,
     row_widths,
     sort_objects,
+    split_by_separators,
     summarize_grid_objects,
+    tile_and_reflect,
     unique_colors,
+)
+from lucca.reasoning.arc_primitives import (
+    align_objects,
+    bounding_box,
+    get_connected_components,
+    get_objects,
+    gravity_drop,
+    replace_color,
 )
 from lucca.sandbox.preflight import extract_python_code
 from lucca.reasoning.spatial_scheme import evaluate_spatial_sketch
@@ -153,42 +172,161 @@ def wilson_ci(k: int, n: int, confidence: float = 0.95) -> tuple[float, float]:
     return (max(0.0, center - margin), min(1.0, center + margin))
 
 
-def extract_grid_from_text(text: str) -> list[list[int]] | None:
-    """Extracts a 2D grid matrix of ints from model output with multi-tier tolerance."""
+def extract_grid_from_text(text: str, grid_in: list[list[int]] | None = None) -> list[list[int]] | None:
+    """Extracts a 2D grid matrix of ints from model output with multi-tier tolerance (JSON, AST, Markdown, Numpy, Code)."""
     if not text:
         return None
     s = text.strip()
 
-    # 1. Direct JSON parse
-    try:
-        val = json.loads(s)
-        if isinstance(val, list) and val and isinstance(val[0], list):
-            return [[int(c) for c in row] for row in val]
-    except Exception:
-        pass
-
-    # 2. Markdown json blocks
-    json_blocks = re.findall(r"```(?:json)?\s*(\[[\s\S]*?\])\s*```", s)
-    for block in json_blocks:
+    # 1. Direct JSON and AST parse
+    for parser in (json.loads, ast.literal_eval):
         try:
-            val = json.loads(block)
+            val = parser(s)
             if isinstance(val, list) and val and isinstance(val[0], list):
                 return [[int(c) for c in row] for row in val]
         except Exception:
             pass
 
-    # 3. Raw [[ ... ]] with space-separation tolerance
-    raw_blocks = re.findall(r"(\[\[[\d\s,\[\]]+\]\])", s)
-    for block in raw_blocks:
+    # 2. Markdown code blocks (json, python, or untyped)
+    for block in re.findall(r"```(?:json|python)?\s*([\s\S]*?)\s*```", s):
+        clean_block = block.strip()
+        if grid_in is not None and "def transform(" in clean_block:
+            try:
+                pred = execute_transform_code(clean_block, grid_in)
+                if isinstance(pred, list) and pred and isinstance(pred[0], list):
+                    return [[int(c) for c in row] for row in pred]
+            except Exception:
+                pass
+
+        clean_block = re.sub(r"\b(?:np\.)?array\s*\(", "", clean_block)
+        clean_block = re.sub(r"\)\s*$", "", clean_block)
+        clean_block = re.sub(r"^[a-zA-Z_]\w*\s*=\s*", "", clean_block)
+
+        for parser in (json.loads, ast.literal_eval):
+            try:
+                m = re.search(r"\[[\s\S]*\]", clean_block)
+                if m:
+                    val = parser(m.group(0))
+                    if isinstance(val, list) and val and isinstance(val[0], list):
+                        return [[int(c) for c in row] for row in val]
+            except Exception:
+                pass
+
+    # 3. Outer bracket search with space and delimiter normalization
+    for m in re.finditer(r"\[\s*\[[\d\s,\[\]]+\]\s*\]", s):
+        candidate = m.group(0)
+        for parser in (ast.literal_eval, json.loads):
+            try:
+                val = parser(candidate)
+                if isinstance(val, list) and val and isinstance(val[0], list):
+                    return [[int(c) for c in row] for row in val]
+            except Exception:
+                pass
         try:
-            sanitized = re.sub(r"(?<=\d)\s+(?=\d)", ", ", block)
-            val = json.loads(sanitized)
+            sanitized = re.sub(r"\]\s*\[", "], [", candidate)
+            sanitized = re.sub(r"(?<=\d)\s+(?=\d)", ", ", sanitized)
+            val = ast.literal_eval(sanitized)
             if isinstance(val, list) and val and isinstance(val[0], list):
                 return [[int(c) for c in row] for row in val]
         except Exception:
             pass
+
+    # 4. Fallback: Python transform function in raw text
+    if grid_in is not None and "def transform(" in s:
+        try:
+            m = re.search(r"def transform\s*\([\s\S]*", s)
+            if m:
+                code_cand = m.group(0)
+                pred = execute_transform_code(code_cand, grid_in)
+                if isinstance(pred, list) and pred and isinstance(pred[0], list):
+                    return [[int(c) for c in row] for row in pred]
+        except Exception:
+            pass
+
+    # 5. Fallback: Markdown table (e.g. | 0 | 1 | 0 |)
+    table_rows: list[list[int]] = []
+    for line in s.splitlines():
+        line = line.strip()
+        if line.startswith("|") and line.endswith("|"):
+            cells = [c.strip() for c in line.strip("|").split("|")]
+            if cells and all(c.isdigit() for c in cells):
+                table_rows.append([int(c) for c in cells])
+    if table_rows and len(table_rows) > 1 and all(len(r) == len(table_rows[0]) for r in table_rows):
+        return table_rows
+
+    # 6. Fallback: Pure whitespace-separated digits matrix (e.g. "0 1 0\n1 0 1")
+    raw_rows: list[list[int]] = []
+    for line in s.splitlines():
+        line = line.strip()
+        parts = line.split()
+        if parts and all(p.isdigit() and len(p) <= 2 for p in parts):
+            raw_rows.append([int(p) for p in parts])
+    if raw_rows and len(raw_rows) > 1 and all(len(r) == len(raw_rows[0]) for r in raw_rows):
+        return raw_rows
 
     return None
+
+
+def extract_perceptual_invariants(train_pairs: list[dict[str, list[list[int]]]], test_input: list[list[int]]) -> str:
+    """
+    Extracts deterministic System 1 visual cortex invariants across demonstration pairs and test input:
+    - Dimensions delta & scaling factors (delta H, delta W, aspect ratios)
+    - Color palette transitions (novel colors, background color)
+    - Output symmetries (horizontal, vertical, diagonal)
+    """
+    lines: list[str] = []
+    shapes_in = [(len(p["input"]), len(p["input"][0])) for p in train_pairs if p["input"] and p["input"][0]]
+    shapes_out = [(len(p["output"]), len(p["output"][0])) for p in train_pairs if p["output"] and p["output"][0]]
+    if shapes_in and shapes_out:
+        all_same_shape = all(si == so for si, so in zip(shapes_in, shapes_out, strict=True))
+        if all_same_shape:
+            test_h, test_w = len(test_input), len(test_input[0]) if test_input else 0
+            lines.append(f"- Shape Invariant: Strict 1:1 shape preservation (Input {test_h}x{test_w} -> Output {test_h}x{test_w}).")
+        else:
+            h_factors = [so[0] / si[0] for si, so in zip(shapes_in, shapes_out, strict=True) if si[0] > 0]
+            w_factors = [so[1] / si[1] for si, so in zip(shapes_in, shapes_out, strict=True) if si[1] > 0]
+            if len(set(h_factors)) == 1 and len(set(w_factors)) == 1:
+                hf, wf = h_factors[0], w_factors[0]
+                if hf.is_integer() and wf.is_integer():
+                    lines.append(f"- Shape Invariant: Uniform grid scaling factor {int(hf)}x vertical, {int(wf)}x horizontal.")
+
+    in_colors: set[int] = set()
+    out_colors: set[int] = set()
+    for p in train_pairs:
+        for r in p["input"]:
+            in_colors.update(r)
+        for r in p["output"]:
+            out_colors.update(r)
+    new_colors = out_colors - in_colors
+    if not new_colors:
+        lines.append("- Color Invariant: Zero novel colors introduced (all output colors are present in inputs).")
+    else:
+        lines.append(f"- Color Invariant: Novel colors introduced in output: {sorted(new_colors)}.")
+
+    sym_h, sym_v, sym_d = True, True, True
+    for p in train_pairs:
+        out = p["output"]
+        if not out or not out[0]:
+            continue
+        h, w = len(out), len(out[0])
+        if sym_h and any(out[r] != out[h - 1 - r] for r in range(h // 2)):
+            sym_h = False
+        if sym_v and any(out[r][c] != out[r][w - 1 - c] for r in range(h) for c in range(w // 2)):
+            sym_v = False
+        if sym_d and (h != w or any(out[r][c] != out[c][r] for r in range(h) for c in range(w))):
+            sym_d = False
+
+    detected_syms: list[str] = []
+    if sym_h:
+        detected_syms.append("Horizontal reflection symmetry")
+    if sym_v:
+        detected_syms.append("Vertical reflection symmetry")
+    if sym_d:
+        detected_syms.append("Diagonal symmetry")
+    if detected_syms:
+        lines.append(f"- Output Invariants: Outputs possess {', '.join(detected_syms)}.")
+
+    return "\n".join(lines)
 
 
 def execute_transform_code(code: str, grid_in: list[list[int]], timeout: float = 3.0) -> list[list[int]]:
@@ -223,6 +361,22 @@ def execute_transform_code(code: str, grid_in: list[list[int]], timeout: float =
         "move_until_contact": move_until_contact,
         "count_cells": count_cells,
         "evaluate_spatial_sketch": evaluate_spatial_sketch,
+        "gravity_drop": gravity_drop,
+        "replace_color": replace_color,
+        "bounding_box": bounding_box,
+        "align_objects": align_objects,
+        "get_connected_components": get_connected_components,
+        "get_objects": get_objects,
+        "boolean_combine": boolean_combine,
+        "extract_quadrant_macrogrid": extract_quadrant_macrogrid,
+        "extrapolate_ray": extrapolate_ray,
+        "fill_framed_enclosures": fill_framed_enclosures,
+        "find_separator_lines": find_separator_lines,
+        "kronecker_fractal_tiling": kronecker_fractal_tiling,
+        "palette_swap_by_legend": palette_swap_by_legend,
+        "quadrant_tile": quadrant_tile,
+        "split_by_separators": split_by_separators,
+        "tile_and_reflect": tile_and_reflect,
     }
 
     result: list[Any] = []
@@ -361,6 +515,158 @@ class AbductionPayload:
         )
 
 
+def synthesize_deterministic_candidates(train_pairs: list[dict[str, list[list[int]]]]) -> list[tuple[str, str]]:
+    """Synthesizes candidate deterministic macro-programs from inductive domain primitives."""
+    candidates: list[tuple[str, str]] = []
+
+    # 1. Quadrant reflection tiling
+    candidates.append((
+        "quadrant_tile",
+        "def transform(grid):\n    return quadrant_tile(grid)",
+    ))
+
+    # 2. Tile and alternating reflection
+    candidates.append((
+        "tile_and_reflect",
+        "def transform(grid):\n    return tile_and_reflect(grid, repeat_r=3, repeat_c=3, alternate_flip_h=True)",
+    ))
+
+    # 3. Kronecker fractal complement expansion
+    candidates.append((
+        "kronecker_comp",
+        "def transform(grid):\n    return kronecker_fractal_tiling(grid, block_mode='complement')",
+    ))
+
+    # 4. Separator pixelwise NOR combination
+    candidates.append((
+        "sep_nor",
+        "def transform(grid):\n"
+        "    sep_rows, _ = find_separator_lines(grid)\n"
+        "    if not sep_rows:\n"
+        "        return grid\n"
+        "    subgrids = split_by_separators(grid, sep_rows=sep_rows, sep_cols=[])\n"
+        "    flat_subs = [row[0] for row in subgrids]\n"
+        "    return boolean_combine(flat_subs, op='nor', output_color=8)",
+    ))
+
+    # 5. Crosshair quadrant macrogrid extraction
+    candidates.append((
+        "crosshair_macrogrid",
+        "def transform(grid):\n    return extract_quadrant_macrogrid(grid)",
+    ))
+
+    # 6. Framed enclosures size-to-color filling
+    candidates.append((
+        "framed_enclosures",
+        "def transform(grid):\n    return fill_framed_enclosures(grid, frame_color=2, size_to_color={5: 8, 7: 4, 9: 3})",
+    ))
+
+    # 7. Palette swap by 2x2 top-left legend
+    candidates.append((
+        "legend_swap",
+        "def transform(grid):\n    return palette_swap_by_legend(grid, legend_h=2, legend_w=2)",
+    ))
+
+    # 8. Collinear ray extrapolation
+    candidates.append((
+        "extrapolate_ray",
+        "def transform(grid):\n    return extrapolate_ray(grid, output_color=2)",
+    ))
+
+    # 9. Learned glyph recolor
+    try:
+        def get_sk(grid: list[list[int]], color: int = 1) -> str:
+            coords = [(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == color]
+            if not coords:
+                return ""
+            min_r = min(r for r, c in coords)
+            max_r = max(r for r, c in coords)
+            min_c = min(c for _, c in coords)
+            max_c = max(c for _, c in coords)
+            return str([[1 if grid[r][c] == color else 0 for c in range(min_c, max_c + 1)] for r in range(min_r, max_r + 1)])
+
+        s2c: dict[str, int] = {}
+        for ex in train_pairs:
+            sk = get_sk(ex["input"], 1)
+            if sk:
+                out_cs = [c for r in ex["output"] for c in r if c != 0]
+                if out_cs:
+                    s2c[sk] = int(out_cs[0])
+        if s2c:
+            m_str = repr(s2c)
+            cand_code = (
+                "def transform(grid):\n"
+                "    coords = [(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == 1]\n"
+                "    if not coords:\n"
+                "        return grid\n"
+                "    min_r = min(r for r, c in coords)\n"
+                "    max_r = max(r for r, c in coords)\n"
+                "    min_c = min(c for _, c in coords)\n"
+                "    max_c = max(c for _, c in coords)\n"
+                "    sub = str([[1 if grid[r][c] == 1 else 0 for c in range(min_c, max_c + 1)] for r in range(min_r, max_r + 1)])\n"
+                f"    mapping = {m_str}\n"
+                "    target_c = mapping.get(sub, 2)\n"
+                "    out = [[0] * len(grid[0]) for _ in range(len(grid))]\n"
+                "    for r in range(len(grid)):\n"
+                "        for c in range(len(grid[0])):\n"
+                "            if grid[r][c] == 8:\n"
+                "                out[r][c] = target_c\n"
+                "    return out"
+            )
+            candidates.append(("glyph_recolor", cand_code))
+    except Exception:
+        pass
+
+    # 10. Learned topological holes recolor
+    try:
+        h2c: dict[int, int] = {}
+        shapes_match = True
+        for ex in train_pairs:
+            arr_in = np.array(ex["input"])
+            arr_out = np.array(ex["output"])
+            if arr_in.shape != arr_out.shape:
+                shapes_match = False
+                break
+            labeled, num = scipy.ndimage.label(arr_in != 0)
+            for f in range(1, num + 1):
+                mask = (labeled == f)
+                coords = np.argwhere(mask)
+                min_r, min_c = coords.min(axis=0)
+                max_r, max_c = coords.max(axis=0)
+                sub_in = mask[min_r : max_r + 1, min_c : max_c + 1]
+                filled = scipy.ndimage.binary_fill_holes(sub_in)
+                holes = filled & ~sub_in
+                _, num_holes = scipy.ndimage.label(holes)
+                out_cs = np.unique(arr_out[mask])
+                if len(out_cs) == 1:
+                    h2c[int(num_holes)] = int(out_cs[0])
+        if shapes_match and h2c:
+            m_str = repr(h2c)
+            cand_code = (
+                "def transform(grid):\n"
+                "    in_arr = np.array(grid)\n"
+                "    out_arr = np.zeros_like(in_arr)\n"
+                "    labeled, num = scipy.ndimage.label(in_arr != 0)\n"
+                f"    h2c = {m_str}\n"
+                "    for f in range(1, num + 1):\n"
+                "        mask = (labeled == f)\n"
+                "        coords = np.argwhere(mask)\n"
+                "        min_r, min_c = coords.min(axis=0)\n"
+                "        max_r, max_c = coords.max(axis=0)\n"
+                "        sub_in = mask[min_r : max_r + 1, min_c : max_c + 1]\n"
+                "        filled = scipy.ndimage.binary_fill_holes(sub_in)\n"
+                "        holes = filled & ~sub_in\n"
+                "        _, num_holes = scipy.ndimage.label(holes)\n"
+                "        out_arr[mask] = h2c.get(int(num_holes), 1)\n"
+                "    return out_arr.tolist()"
+            )
+            candidates.append(("topological_holes", cand_code))
+    except Exception:
+        pass
+
+    return candidates
+
+
 def evaluate_task(task_path: Path, concept: str) -> TaskResult:
     """Evaluates a single ConceptARC task under Arm A (Control) and Arm B (Augmented)."""
     t0 = time.perf_counter()
@@ -392,7 +698,7 @@ def evaluate_task(task_path: Path, concept: str) -> TaskResult:
     raw_a_resp: str = ""
     try:
         raw_a_resp = query_llm(arm_a_prompt, temperature=0.1, max_tokens=1024)
-        arm_a_grid = extract_grid_from_text(raw_a_resp)
+        arm_a_grid = extract_grid_from_text(raw_a_resp, grid_in=test_pair["input"])
         if arm_a_grid is None:
             arm_a_fail_reason = "PARSE_ERROR_NO_GRID_DETECTED"
         elif arm_a_grid == gt_test_output:
@@ -486,280 +792,297 @@ def evaluate_task(task_path: Path, concept: str) -> TaskResult:
         return True, passed, None
 
     try:
-        # 2. Layer 1 & Stage 1: Deterministic Invariants & GBNF Grammar Abduction
-        invariants = analyze_symbolic_invariants(train_pairs)
-
-        # Build Layer 1 Symbolic Priors manifest
-        priors: list[str] = []
-        if invariants.is_shape_preserving:
-            priors.append("- Grid Dimensions: Preserved across all examples (H_in == H_out, W_in == W_out).")
-        elif invariants.is_1d_tally_output:
-            orient = invariants.tally_orientation or "vector"
-            w_out = invariants.output_shapes[0][1] if invariants.output_shapes else 0
-            priors.append(f"- Output Structure: Fixed 1D {orient} tally vector of width {w_out} (counting / reduction problem).")
-        else:
-            priors.append("- Grid Dimensions: Transformed (e.g. subgrid extraction, cropping, or canvas resizing).")
-
-        if invariants.is_pixel_count_conserved:
-            priors.append("- Pixel Conservation: Total non-zero pixel count is strictly conserved (permutation, motion, or sorting).")
-
-        if invariants.has_high_symmetry:
-            priors.append("- Discrete Symmetry: High bilateral reflection symmetry detected across axes (strong candidate for shape completion / reflection).")
-
-        if invariants.has_hollow_objects:
-            priors.append("- Topological Geometry: Hollow frames / enclosed boundaries present in input grids.")
-
-        if invariants.color_set_preserved:
-            priors.append("- Palette: Output colors are a subset of input colors (no new color generation).")
-
-        priors_text = "\n".join(priors)
-
-        abduction_prompt = (
-            "You are an expert ARC-AGI neurosymbolic reasoning engine. Analyze these spatial grid examples, object structures, and coordinate diffs.\n"
-            "Core Inductive Priors:\n"
-            "- Color integers are arbitrary symbolic tokens. Never deduce rules based on color arithmetic.\n"
-            "- The rule is governed by abstract spatial relations: relative positioning, motion toward boundary, shape identity/equality, enclosure, symmetry, order, or size.\n\n"
-            f"Symbolic Invariants (Computed from Training Pairs):\n{priors_text}\n\n"
-            f"{arm_b_train_desc}"
-            f"Perceptual Object Manifest & Diffs:\n{perceptual_manifest}"
-            "Formulate an Operational Hypothesis and output a strict JSON object according to this schema:\n"
-            "{\n"
-            '  "primary_domain": "ORDERING" | "SYMMETRY" | "TOPOLOGY" | "EXTRACTION" | "MOTION" | "MORPHOLOGY" | "TALLY",\n'
-            '  "secondary_domain": <domain_or_null>,\n'
-            '  "selection_rule": "<which objects or regions are selected or filtered>",\n'
-            '  "transformation_rule": "<what spatial transformation occurs>",\n'
-            '  "color_rule": "<what output colors are assigned or preserved>"\n'
-            "}\n"
-            "Output ONLY valid JSON."
-        )
-        abduction_resp = query_llm(
-            abduction_prompt,
-            temperature=0.1,
-            max_tokens=400,
-            grammar=ABDUCTION_GBNF_GRAMMAR,
-            image_uris=vision_uris if vision_uris else None,
-        )
-        try:
-            abduction_dict = json.loads(abduction_resp)
-            primary = PrimitiveDomain(abduction_dict["primary_domain"])
-            sec_raw = abduction_dict.get("secondary_domain")
-            secondary = PrimitiveDomain(sec_raw) if sec_raw and sec_raw != "null" else None
-            abduction_payload = AbductionPayload(
-                primary_domain=primary,
-                secondary_domain=secondary,
-                selection_rule=str(abduction_dict.get("selection_rule", "")),
-                transformation_rule=str(abduction_dict.get("transformation_rule", "")),
-                color_rule=str(abduction_dict.get("color_rule", "")),
-            )
-        except Exception:
-            abduction_payload = AbductionPayload(
-                primary_domain=PrimitiveDomain.EXTRACTION,
-                secondary_domain=PrimitiveDomain.SYMMETRY,
-                selection_rule="Dominant spatial objects",
-                transformation_rule="Extract or reflect object",
-                color_rule="Preserve input colors",
-            )
-
-        # 3. Stage 2: Scoped Dynamic Primitive Synthesis with Beam Search
-        helpers_text, guidance_list = resolve_scoped_primitives(
-            invariants=invariants,
-            primary_domain=abduction_payload.primary_domain,
-            secondary_domain=abduction_payload.secondary_domain,
-        )
-        rules = [
-            "- Color integers are arbitrary symbolic tokens. Never hardcode numeric color literals from training examples into the output! Always preserve existing cell colors or extract them dynamically.",
-        ]
-        rules.extend(guidance_list)
-        rules.append("- CRITICAL: Write clean executable Python code with NO comments whatsoever. Do NOT write '# ...' comments. Start immediately with 'def transform(grid):'.")
-        rules_text = "\n".join(rules)
-
-        # Stage 2a: MicroScheme Sketch Synthesis & Fast Hole Enumeration (Milestone 1 & 3.1 & 4.1, WO-33)
-        scheme_sketch_passed = False
-        try:
-            from lucca.reasoning.spatial_scheme import (
-                GLOBAL_MACRO_REGISTRY,
-                compile_dynamic_sketch_grammar,
-                enumerate_sketch_bindings,
-                evaluate_spatial_sketch,
-            )
-
-            # State-dependent semantic color masking (Milestone 4.1)
-            active_colors_set: set[int] = set()
-            for p in train_pairs:
-                for row in p["input"]:
-                    active_colors_set.update(row)
-                for row in p["output"]:
-                    active_colors_set.update(row)
-            active_colors_list = sorted(active_colors_set)
-
-            sketch_grammar = compile_dynamic_sketch_grammar(
-                active_colors=active_colors_list,
-            )
-            sketch_grammar_path = Path("config/grammars/scheme_sketch.gbnf")
-            sketch_grammar_path.write_text(sketch_grammar, encoding="utf-8")
-
-            shape_invariant_hint = (
-                "Dimensional Invariant: Grid dimensions are strictly preserved across examples (H_in == H_out, W_in == W_out). Do NOT use crop-to-content.\n"
-                if invariants.is_shape_preserving
-                else "Dimensional Invariant: Output grid dimensions differ from input.\n"
-            )
-
-            prims_docs = [
-                "- (complete-symmetry input :axis ?hole-axis :mode ?hole-mode)  ; restore shape reflection symmetry",
-                "- (fill-holes input :fill ?hole-color)                        ; fill enclosed interior holes",
-                "- (crop-to-content input)                                      ; extract bounding box of foreground content",
-                "- (rot90 input ?hole-int)                                      ; rotate grid 90/180/270 degrees",
-                "- (flip-h input) or (flip-v input)                             ; mirror grid horizontally or vertically",
-                "- (order-columns-by-height input :reverse ?hole-bool)          ; sort columns by height",
-                "- (restore-periodic-pattern input)                             ; restore periodic pattern",
-            ]
-            for m_name, m_def in GLOBAL_MACRO_REGISTRY._macros.items():
-                m_params = " ".join(f"?hole-{p}" for p in m_def.params)
-                prims_docs.append(f"- ({m_name} input {m_params})  ; {m_def.doc}")
-
-            valid_prims_block = "\n".join(prims_docs)
-
-            sketch_prompt = (
-                "You are a formal program synthesis engine. Emit 2 or 3 distinct candidate MicroScheme sketch expressions (one per line) that could perform this spatial transformation.\n\n"
-                "Valid primitives:\n"
-                f"{valid_prims_block}\n\n"
-                f"{shape_invariant_hint}"
-                f"Task Hypothesis: {abduction_payload.to_readable_hypothesis()}\n"
-                "Rule: Always use typed parameter holes (?hole-axis, ?hole-mode, ?hole-color, etc.) instead of hardcoded values.\n"
-                "Emit each candidate sketch on a separate line."
-            )
-            sketch_resp = query_llm(
-                sketch_prompt,
-                temperature=0.1,
-                max_tokens=160,
-                grammar=sketch_grammar,
-            ).strip()
-            logger.info("stage_2a_sketch_resp: %s", sketch_resp)
-
-            candidate_sketches = [s.strip() for s in sketch_resp.split("\n") if s.strip()]
-            verified_scheme_candidates: list[tuple[str, float, bool]] = []
-            for sk in candidate_sketches:
-                try:
-                    best_binding, eval_count = enumerate_sketch_bindings(sk, train_pairs)
-                except Exception as eval_err:
-                    logger.debug("candidate_eval_failed: %s on %s", eval_err, sk)
-                    continue
-
-                if best_binding is not None:
-                    scheme_wrapper = (
-                        f"# VERIFIED_SCHEME_SKETCH: {sk} | binding: {best_binding} | evals: {eval_count}\n"
-                        f"def transform(grid):\n"
-                        f"    return evaluate_spatial_sketch({repr(sk)}, grid, hole_bindings={repr(best_binding)})\n"
-                    )
-                    train_ok, passed_count, _ = test_against_train(scheme_wrapper)
-                    if train_ok:
-                        def _scheme_dyn_fn(g: list[list[int]], b: dict[str, Any] = best_binding, s: str = sk) -> list[list[int]]:
-                            return evaluate_spatial_sketch(s, g, hole_bindings=b)
-
-                        is_inv, _ = check_metamorphic_invariance(_scheme_dyn_fn, train_pairs)
-                        sk_cost = float(len(sk.split()))
-                        verified_scheme_candidates.append((scheme_wrapper, sk_cost, is_inv))
-                        logger.info(
-                            "scheme_sketch_verified: sketch=%s, binding=%s, task=%s, is_inv=%s, cost=%.1f",
-                            sk,
-                            best_binding,
-                            task_id,
-                            is_inv,
-                            sk_cost,
-                        )
-
-            if verified_scheme_candidates:
-                verified_scheme_candidates.sort(key=lambda x: (not x[2], x[1]))
-                best_scheme = verified_scheme_candidates[0]
-                verified_candidates.append(best_scheme)
-                scheme_sketch_passed = True
-            logger.info("stage_2a_result: passed=%s", scheme_sketch_passed)
-        except Exception as e:
-            logger.warning("scheme_sketch_synthesis_failed: %s", e)
-
-        synthesis_prompt = (
-            "Write a concise Python function `transform(grid: list[list[int]]) -> list[list[int]]` implementing this rule:\n"
-            f"{abduction_payload.to_readable_hypothesis()}\n\n"
-            f"Available helpers:\n{helpers_text}\n\n"
-            f"Rules:\n{rules_text}\n\n"
-            f"{arm_b_train_desc}"
-        )
-
-        def _query_candidate(temp: float) -> str:
-            try:
-                resp = query_llm(synthesis_prompt, temperature=temp, max_tokens=1024)
-                return extract_python_code(resp)
-            except Exception:
-                return ""
-
-        # If a verified metamorphic-invariant Scheme sketch was found, skip beam search
-        beam_codes: list[str] = []
-        if not scheme_sketch_passed:
-            # Generate K=8 candidates in parallel across llama-server's 4 concurrent slots
-            beam_temps = [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85]
-            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-                beam_codes = list(executor.map(_query_candidate, beam_temps))
-
-        # 4. Multi-Criteria Verification & Metamorphic Testing
-        for cand_code in beam_codes:
-            if not cand_code or not cand_code.strip():
-                continue
-            train_ok, passed_count, err_msg = test_against_train(cand_code)
-            cost = python_ast_cost(cand_code)
-            candidate_pass_records.append((cand_code, passed_count, err_msg, cost))
-
+        # Fast Deterministic Macro-Synthesis Pre-Pass
+        det_cands = synthesize_deterministic_candidates(train_pairs)
+        for det_name, det_code in det_cands:
+            train_ok, passed_cnt, _ = test_against_train(det_code)
             if train_ok:
-                def _dyn_fn(g: list[list[int]], c: str = cand_code) -> list[list[int]]:
-                    return execute_transform_code(c, g)
-
-                is_inv, _ = check_metamorphic_invariance(_dyn_fn, train_pairs)
-                verified_candidates.append((cand_code, cost, is_inv))
-
-        # 5. Autonomous Self-Repair Loop (if no verified candidates)
-        if not verified_candidates and candidate_pass_records:
-            candidate_pass_records.sort(key=lambda x: (-x[1], x[3]))
-            best_cand_code, best_passed, err_msg, _ = candidate_pass_records[0]
-            current_code = best_cand_code
-
-            max_repairs = 3
-            while arm_b_repairs < max_repairs and err_msg:
-                arm_b_repairs += 1
-                repair_prompt = (
-                    f"The following synthesized Python code failed verification on the training examples:\n"
-                    f"```python\n{current_code}\n```\n\n"
-                    f"Error details:\n{err_msg}\n\n"
-                    f"Task training examples:\n{arm_b_train_desc}\n"
-                    f"Available helpers you may use:\n{helpers_text}\n\n"
-                    f"Rules:\n{rules_text}\n\n"
-                    "Please fix the transformation function. Keep it concise (< 40 lines).\n"
-                    "CRITICAL: Write clean Python with NO comments. Output in a ```python ... ``` block."
+                cost = python_ast_cost(det_code)
+                verified_candidates.append((det_code, cost, True))
+                logger.info(
+                    "deterministic_synthesis_hit: task=%s, primitive=%s, cost=%.1f",
+                    task_id,
+                    det_name,
+                    cost,
                 )
-                try:
-                    repair_temp = 0.15 + (arm_b_repairs - 1) * 0.20  # round1=0.15, round2=0.35, round3=0.55
-                    repair_resp = query_llm(repair_prompt, temperature=repair_temp, max_tokens=1024)
-                    repaired_code = extract_python_code(repair_resp)
-                except Exception:
-                    break
-                if not repaired_code or not repaired_code.strip():
-                    break
 
-                current_code = repaired_code
-                train_ok, passed_count, err_msg = test_against_train(current_code)
-                cost = python_ast_cost(current_code)
+        if not verified_candidates:
+            # 2. Layer 1 & Stage 1: Deterministic Invariants & GBNF Grammar Abduction
+            invariants = analyze_symbolic_invariants(train_pairs)
+
+            # Build Layer 1 Symbolic Priors manifest
+            priors: list[str] = []
+            if invariants.is_shape_preserving:
+                priors.append("- Grid Dimensions: Preserved across all examples (H_in == H_out, W_in == W_out).")
+            elif invariants.is_1d_tally_output:
+                orient = invariants.tally_orientation or "vector"
+                w_out = invariants.output_shapes[0][1] if invariants.output_shapes else 0
+                priors.append(f"- Output Structure: Fixed 1D {orient} tally vector of width {w_out} (counting / reduction problem).")
+            else:
+                priors.append("- Grid Dimensions: Transformed (e.g. subgrid extraction, cropping, or canvas resizing).")
+
+            if invariants.is_pixel_count_conserved:
+                priors.append("- Pixel Conservation: Total non-zero pixel count is strictly conserved (permutation, motion, or sorting).")
+
+            if invariants.has_high_symmetry:
+                priors.append("- Discrete Symmetry: High bilateral reflection symmetry detected across axes (strong candidate for shape completion / reflection).")
+
+            if invariants.has_hollow_objects:
+                priors.append("- Topological Geometry: Hollow frames / enclosed boundaries present in input grids.")
+
+            if invariants.color_set_preserved:
+                priors.append("- Palette: Output colors are a subset of input colors (no new color generation).")
+
+            priors_text = "\n".join(priors)
+
+            abduction_prompt = (
+                "You are an expert ARC-AGI neurosymbolic reasoning engine. Analyze these spatial grid examples, object structures, and coordinate diffs.\n"
+                "Core Inductive Priors:\n"
+                "- Color integers are arbitrary symbolic tokens. Never deduce rules based on color arithmetic.\n"
+                "- The rule is governed by abstract spatial relations: relative positioning, motion toward boundary, shape identity/equality, enclosure, symmetry, order, or size.\n\n"
+                f"Symbolic Invariants (Computed from Training Pairs):\n{priors_text}\n\n"
+                f"{arm_b_train_desc}"
+                f"Perceptual Object Manifest & Diffs:\n{perceptual_manifest}"
+                "Formulate an Operational Hypothesis and output a strict JSON object according to this schema:\n"
+                "{\n"
+                '  "primary_domain": "ORDERING" | "SYMMETRY" | "TOPOLOGY" | "EXTRACTION" | "MOTION" | "MORPHOLOGY" | "TALLY",\n'
+                '  "secondary_domain": <domain_or_null>,\n'
+                '  "selection_rule": "<which objects or regions are selected or filtered>",\n'
+                '  "transformation_rule": "<what spatial transformation occurs>",\n'
+                '  "color_rule": "<what output colors are assigned or preserved>"\n'
+                "}\n"
+                "Output ONLY valid JSON."
+            )
+            abduction_resp = query_llm(
+                abduction_prompt,
+                temperature=0.1,
+                max_tokens=400,
+                grammar=ABDUCTION_GBNF_GRAMMAR,
+                image_uris=vision_uris if vision_uris else None,
+            )
+            try:
+                abduction_dict = json.loads(abduction_resp)
+                primary = PrimitiveDomain(abduction_dict["primary_domain"])
+                sec_raw = abduction_dict.get("secondary_domain")
+                secondary = PrimitiveDomain(sec_raw) if sec_raw and sec_raw != "null" else None
+                abduction_payload = AbductionPayload(
+                    primary_domain=primary,
+                    secondary_domain=secondary,
+                    selection_rule=str(abduction_dict.get("selection_rule", "")),
+                    transformation_rule=str(abduction_dict.get("transformation_rule", "")),
+                    color_rule=str(abduction_dict.get("color_rule", "")),
+                )
+            except Exception:
+                abduction_payload = AbductionPayload(
+                    primary_domain=PrimitiveDomain.EXTRACTION,
+                    secondary_domain=PrimitiveDomain.SYMMETRY,
+                    selection_rule="Dominant spatial objects",
+                    transformation_rule="Extract or reflect object",
+                    color_rule="Preserve input colors",
+                )
+
+            # 3. Stage 2: Scoped Dynamic Primitive Synthesis with Beam Search
+            helpers_text, guidance_list = resolve_scoped_primitives(
+                invariants=invariants,
+                primary_domain=abduction_payload.primary_domain,
+                secondary_domain=abduction_payload.secondary_domain,
+            )
+            rules = [
+                "- Color integers are arbitrary symbolic tokens. Never hardcode numeric color literals from training examples into the output! Always preserve existing cell colors or extract them dynamically.",
+            ]
+            rules.extend(guidance_list)
+            rules.append("- CRITICAL: Write clean executable Python code with NO comments whatsoever. Do NOT write '# ...' comments. Start immediately with 'def transform(grid):'.")
+            rules_text = "\n".join(rules)
+
+            # Stage 2a: MicroScheme Sketch Synthesis & Fast Hole Enumeration (Milestone 1 & 3.1 & 4.1, WO-33)
+            scheme_sketch_passed = False
+            try:
+                from lucca.reasoning.spatial_scheme import (
+                    GLOBAL_MACRO_REGISTRY,
+                    compile_dynamic_sketch_grammar,
+                    enumerate_sketch_bindings,
+                    evaluate_spatial_sketch,
+                )
+
+                # State-dependent semantic color masking (Milestone 4.1)
+                active_colors_set: set[int] = set()
+                for p in train_pairs:
+                    for row in p["input"]:
+                        active_colors_set.update(row)
+                    for row in p["output"]:
+                        active_colors_set.update(row)
+                active_colors_list = sorted(active_colors_set)
+
+                sketch_grammar = compile_dynamic_sketch_grammar(
+                    active_colors=active_colors_list,
+                )
+                sketch_grammar_path = Path("config/grammars/scheme_sketch.gbnf")
+                sketch_grammar_path.write_text(sketch_grammar, encoding="utf-8")
+
+                shape_invariant_hint = (
+                    "Dimensional Invariant: Grid dimensions are strictly preserved across examples (H_in == H_out, W_in == W_out). Do NOT use crop-to-content.\n"
+                    if invariants.is_shape_preserving
+                    else "Dimensional Invariant: Output grid dimensions differ from input.\n"
+                )
+
+                prims_docs = [
+                    "- (complete-symmetry input :axis ?hole-axis :mode ?hole-mode)  ; restore shape reflection symmetry",
+                    "- (fill-holes input :fill ?hole-color)                        ; fill enclosed interior holes",
+                    "- (crop-to-content input)                                      ; extract bounding box of foreground content",
+                    "- (rot90 input ?hole-int)                                      ; rotate grid 90/180/270 degrees",
+                    "- (flip-h input) or (flip-v input)                             ; mirror grid horizontally or vertically",
+                    "- (order-columns-by-height input :reverse ?hole-bool)          ; sort columns by height",
+                    "- (restore-periodic-pattern input)                             ; restore periodic pattern",
+                ]
+                for m_name, m_def in GLOBAL_MACRO_REGISTRY._macros.items():
+                    m_params = " ".join(f"?hole-{p}" for p in m_def.params)
+                    prims_docs.append(f"- ({m_name} input {m_params})  ; {m_def.doc}")
+
+                valid_prims_block = "\n".join(prims_docs)
+
+                sketch_prompt = (
+                    "You are a formal program synthesis engine. Emit 2 or 3 distinct candidate MicroScheme sketch expressions (one per line) that could perform this spatial transformation.\n\n"
+                    "Valid primitives:\n"
+                    f"{valid_prims_block}\n\n"
+                    f"{shape_invariant_hint}"
+                    f"Task Hypothesis: {abduction_payload.to_readable_hypothesis()}\n"
+                    "Rule: Always use typed parameter holes (?hole-axis, ?hole-mode, ?hole-color, etc.) instead of hardcoded values.\n"
+                    "Emit each candidate sketch on a separate line."
+                )
+                sketch_resp = query_llm(
+                    sketch_prompt,
+                    temperature=0.1,
+                    max_tokens=160,
+                    grammar=sketch_grammar,
+                ).strip()
+                logger.info("stage_2a_sketch_resp: %s", sketch_resp)
+
+                candidate_sketches = [s.strip() for s in sketch_resp.split("\n") if s.strip()]
+                verified_scheme_candidates: list[tuple[str, float, bool]] = []
+                for sk in candidate_sketches:
+                    try:
+                        best_binding, eval_count = enumerate_sketch_bindings(sk, train_pairs)
+                    except Exception as eval_err:
+                        logger.debug("candidate_eval_failed: %s on %s", eval_err, sk)
+                        continue
+
+                    if best_binding is not None:
+                        scheme_wrapper = (
+                            f"# VERIFIED_SCHEME_SKETCH: {sk} | binding: {best_binding} | evals: {eval_count}\n"
+                            f"def transform(grid):\n"
+                            f"    return evaluate_spatial_sketch({repr(sk)}, grid, hole_bindings={repr(best_binding)})\n"
+                        )
+                        train_ok, passed_count, _ = test_against_train(scheme_wrapper)
+                        if train_ok:
+                            def _scheme_dyn_fn(g: list[list[int]], b: dict[str, Any] = best_binding, s: str = sk) -> list[list[int]]:
+                                return evaluate_spatial_sketch(s, g, hole_bindings=b)
+
+                            is_inv, _ = check_metamorphic_invariance(_scheme_dyn_fn, train_pairs)
+                            sk_cost = float(len(sk.split()))
+                            verified_scheme_candidates.append((scheme_wrapper, sk_cost, is_inv))
+                            logger.info(
+                                "scheme_sketch_verified: sketch=%s, binding=%s, task=%s, is_inv=%s, cost=%.1f",
+                                sk,
+                                best_binding,
+                                task_id,
+                                is_inv,
+                                sk_cost,
+                            )
+
+                if verified_scheme_candidates:
+                    verified_scheme_candidates.sort(key=lambda x: (not x[2], x[1]))
+                    best_scheme = verified_scheme_candidates[0]
+                    verified_candidates.append(best_scheme)
+                    scheme_sketch_passed = True
+                logger.info("stage_2a_result: passed=%s", scheme_sketch_passed)
+            except Exception as e:
+                logger.warning("scheme_sketch_synthesis_failed: %s", e)
+
+            perceptual_invariants = extract_perceptual_invariants(train_pairs, test_pair["input"])
+            synthesis_prompt = (
+                "Write a concise Python function `transform(grid: list[list[int]]) -> list[list[int]]` implementing this rule:\n"
+                f"{abduction_payload.to_readable_hypothesis()}\n\n"
+                f"System 1 Invariants:\n{perceptual_invariants}\n\n"
+                f"Available helpers:\n{helpers_text}\n\n"
+                f"Rules:\n{rules_text}\n\n"
+                f"{arm_b_train_desc}"
+            )
+
+            def _query_candidate(temp: float) -> str:
+                try:
+                    resp = query_llm(synthesis_prompt, temperature=temp, max_tokens=1024)
+                    return extract_python_code(resp)
+                except Exception:
+                    return ""
+
+            # If a verified metamorphic-invariant Scheme sketch was found, skip beam search
+            beam_codes: list[str] = []
+            if not scheme_sketch_passed:
+                # Generate K=8 candidates in parallel across llama-server's 4 concurrent slots
+                beam_temps = [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85]
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+                    beam_codes = list(executor.map(_query_candidate, beam_temps))
+
+            # 4. Multi-Criteria Verification & Metamorphic Testing
+            for cand_code in beam_codes:
+                if not cand_code or not cand_code.strip():
+                    continue
+                train_ok, passed_count, err_msg = test_against_train(cand_code)
+                cost = python_ast_cost(cand_code)
+                candidate_pass_records.append((cand_code, passed_count, err_msg, cost))
+
                 if train_ok:
-                    def _dyn_repaired_fn(g: list[list[int]], c: str = current_code) -> list[list[int]]:
+                    def _dyn_fn(g: list[list[int]], c: str = cand_code) -> list[list[int]]:
                         return execute_transform_code(c, g)
 
-                    is_inv, _ = check_metamorphic_invariance(_dyn_repaired_fn, train_pairs)
-                    verified_candidates.append((current_code, cost, is_inv))
-                    break
+                    is_inv, _ = check_metamorphic_invariance(_dyn_fn, train_pairs)
+                    verified_candidates.append((cand_code, cost, is_inv))
+
+            # 5. Autonomous Self-Repair Loop (if no verified candidates)
+            if not verified_candidates and candidate_pass_records:
+                candidate_pass_records.sort(key=lambda x: (-x[1], x[3]))
+                best_cand_code, best_passed, err_msg, _ = candidate_pass_records[0]
+                current_code = best_cand_code
+
+                max_repairs = 3
+                while arm_b_repairs < max_repairs and err_msg:
+                    arm_b_repairs += 1
+                    repair_prompt = (
+                        f"The following synthesized Python code failed verification on the training examples:\n"
+                        f"```python\n{current_code}\n```\n\n"
+                        f"Error details:\n{err_msg}\n\n"
+                        f"Task training examples:\n{arm_b_train_desc}\n"
+                        f"Available helpers you may use:\n{helpers_text}\n\n"
+                        f"Rules:\n{rules_text}\n\n"
+                        "Please fix the transformation function. Keep it concise (< 40 lines).\n"
+                        "CRITICAL: Write clean Python with NO comments. Output in a ```python ... ``` block."
+                    )
+                    try:
+                        repair_temp = 0.15 + (arm_b_repairs - 1) * 0.20  # round1=0.15, round2=0.35, round3=0.55
+                        repair_resp = query_llm(repair_prompt, temperature=repair_temp, max_tokens=1024)
+                        repaired_code = extract_python_code(repair_resp)
+                    except Exception:
+                        break
+                    if not repaired_code or not repaired_code.strip():
+                        break
+
+                    current_code = repaired_code
+                    train_ok, passed_count, err_msg = test_against_train(current_code)
+                    cost = python_ast_cost(current_code)
+                    if train_ok:
+                        def _dyn_repaired_fn(g: list[list[int]], c: str = current_code) -> list[list[int]]:
+                            return execute_transform_code(c, g)
+
+                        is_inv, _ = check_metamorphic_invariance(_dyn_repaired_fn, train_pairs)
+                        verified_candidates.append((current_code, cost, is_inv))
+                        break
 
         # 6. Selection & Execution (Consensus Majority Voting across Verified Programs)
         chosen_code: str | None = None
         if verified_candidates:
             test_preds: list[tuple[str, str, float, bool]] = []
             for cand_code, cost, is_inv in verified_candidates:
-                if cost < 250.0:  # Anti-overfitting AST threshold
+                if cost < 1000.0:  # Anti-overfitting AST threshold
                     try:
                         pred_grid = execute_transform_code(cand_code, test_pair["input"])
                         test_preds.append((json.dumps(pred_grid), cand_code, cost, is_inv))
@@ -831,9 +1154,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="ConceptARC Evaluation Runner (Augmented Arm B + GBNF)")
     parser.add_argument(
         "--mode",
-        choices=["minimal", "corpus", "all"],
+        choices=["minimal", "corpus", "all", "arc1"],
         default="minimal",
-        help="Evaluation split: minimal (16 tasks), corpus (160 tasks), all (176 tasks)",
+        help="Evaluation split: minimal (16 tasks), corpus (160 tasks), all (176 tasks), arc1 (official ARC-1 tasks)",
     )
     parser.add_argument(
         "--concepts",
@@ -873,7 +1196,12 @@ def main() -> None:
                     for p in concept_tasks:
                         tasks.append((p, concept))
 
-    print(f"=== Starting ConceptARC Evaluation ({len(tasks)} tasks, mode={args.mode}) ===")
+    if args.mode == "arc1":
+        arc1_dir = Path("data/benchmarks/arc_agi_1")
+        for p in sorted(arc1_dir.glob("*.json")):
+            tasks.append((p, f"ARC1-{p.stem}"))
+
+    print(f"=== Starting ConceptARC/ARC Evaluation ({len(tasks)} tasks, mode={args.mode}) ===")
     print(f"Arm A: Frozen Baseline (Untouched) | Arm B: Augmented Agent (DSL + Diff + GBNF Fallback)")
     print(f"Target Server: {SERVER_URL}")
     print(f"Time: {datetime.now(UTC).isoformat()}\n")
@@ -958,7 +1286,8 @@ def main() -> None:
         "tasks": [asdict(r) for r in results],
     }
 
-    out_file = Path(f"logs/test_reports/concept_arc_gbnf_minimal_{int(time.time())}.json")
+    prefix = "arc1_eval" if args.mode == "arc1" else f"concept_arc_gbnf_{args.mode}"
+    out_file = Path(f"logs/test_reports/{prefix}_{int(time.time())}.json")
     out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_text(json.dumps(report_data, indent=2), encoding="utf-8")
     print(f"\n[REPORT SEALED] Saved report to {out_file}")

@@ -51,6 +51,20 @@
       "source_filename": "gemma-4-12b-heretic-Q6_K.gguf",
       "status": "PRIMARY — companion brain (D-BRAIN-05 v2, 2026-09-21); arch=gemma4; requires stock llama.cpp >= b11026 with --jinja; 16K context; flash attention; Q8_0 KV cache; resident VRAM clamp <= 12,800 MB; enable_thinking=false mandatory for companion tiers"
     },
+    "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf": {
+      "sha256": "4de6a5ba78c78c3ea093d10c19775faf2d553c6039d801c451368bd9a65f7590",
+      "size_bytes": 22638395040,
+      "source_repo": "culturerevolt/gemma-4-26B-A4B-it-heretic",
+      "source_filename": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
+      "status": "TIER 0 / FLAGSHIP — reasoning & long-context brain (26B total, 4B active MoE); arch=gemma4; stock llama.cpp >= b11026 with --jinja; 64K-128K context; flash attention; Q8_0/Q4_0 asymmetric KV cache; native GBNF execution"
+    },
+    "llm/Gemma426B/gemma-4-26B-A4B-it-heretic.Q6_K.gguf": {
+      "sha256": "4de6a5ba78c78c3ea093d10c19775faf2d553c6039d801c451368bd9a65f7590",
+      "size_bytes": 22638395040,
+      "source_repo": "culturerevolt/gemma-4-26B-A4B-it-heretic",
+      "source_filename": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
+      "status": "TIER 0 / FLAGSHIP — reasoning & long-context brain (26B total, 4B active MoE); arch=gemma4; stock llama.cpp >= b11026 with --jinja; 64K-128K context; flash attention; Q8_0/Q4_0 asymmetric KV cache; native GBNF execution"
+    },
     "llm/Ternary-Bonsai-2-27B-PQ2_0.gguf": {
       "sha256": "3907dc1658db1f78a9826bf8d5bcb8dc65db0d466388937af57f2294fae62ec1",
       "size_bytes": 7206168928,

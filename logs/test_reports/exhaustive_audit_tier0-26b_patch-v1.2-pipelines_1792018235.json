@@ -1,0 +1,85 @@
+{
+  "benchmark": "Exhaustive_Neurosymbolic_Factorial_Audit",
+  "model_tag": "Tier0-26B",
+  "patch_id": "patch-v1.2-pipelines",
+  "split": "minimal",
+  "timestamp_utc": "2026-10-14T22:50:35.388178+00:00",
+  "footprint_telemetry": {
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+      "total_vram_mib": 16303.0,
+      "peak_vram_used_mib": 14690.0,
+      "min_vram_used_mib": 14576.0,
+      "mean_vram_used_mib": 14678.2,
+      "peak_temperature_c": 51.0
+    },
+    "ram": {
+      "total_ram_mb": 64943.1,
+      "peak_ram_used_mb": 41653.8,
+      "min_ram_used_mb": 33897.5,
+      "peak_vmmem_wsl2_mb": 126.2,
+      "peak_llama_server_ram_mb": 22219.0
+    },
+    "samples_count": 10,
+    "duration_s": 20.0
+  },
+  "arm_summaries": {
+    "arm_d": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "wilson_ci_95": [
+        0.20654998073085312,
+        1.0
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 23281.184999999823,
+      "avg_total_tokens": 4576.0
+    }
+  },
+  "differential_matrix": {
+    "arm_d": {
+      "baseline_patch": "patch-v1.1-hybrid",
+      "rescues_f_to_p": [],
+      "regressions_p_to_f": [],
+      "ties": 1,
+      "discordant_total": 0,
+      "p_value_twosided": 1.0
+    }
+  },
+  "records": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.2-pipelines",
+      "arm": "Arm_D_Hybrid",
+      "success": true,
+      "method": "PYTHON_FALLBACK",
+      "failure_code": null,
+      "failure_detail": null,
+      "synthesized_program": "def get_center_coordinate (grid ):\n    \"\"\"\n    Returns the (row, col) index of the geometric center of the grid.\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n    return rows //2 ,cols //2\n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Identifies the geometric center of the grid and sets that pixel to color 2.\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n    center_row ,center_col =rows //2 ,cols //2 \n\n    # Create a copy to avoid mutating the original input if desired, \n    # though standard practice in these tasks often allows direct modification.\n    new_grid =[row [:]for row in grid ]\n    new_grid [center_row ][center_col ]=2 \n\n    return new_grid",
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 22827.7481000041,
+        "cpu_hole_enumeration_ms": 36.959499993827194,
+        "sandbox_execution_ms": 1.8125000060535967,
+        "total_elapsed_ms": 23281.184999999823,
+        "prompt_tokens": 4129,
+        "completion_tokens": 447,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 159.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 77,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    }
+  ]
+}

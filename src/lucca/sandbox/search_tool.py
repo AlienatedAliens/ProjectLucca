@@ -99,20 +99,118 @@ def classify_link_followability(url: str) -> tuple[str, bool, str]:
     return "html_page", True, "Followable Webpage (Recommended for fetch_url)"
 
 
+SEARXNG_DEFAULT_URL: str = "http://127.0.0.1:8888/search"
+
+
 def _simplify_search_query(q: str) -> str:
-    """Extract key substantive terms if a query has too many words for search engine indexers."""
+    """Extract key substantive terms if a query has conversational filler."""
     words = q.split()
     if len(words) <= 5:
         return ""
     stopwords = {
         "what", "was", "the", "a", "an", "in", "on", "at", "for", "of", "and", "or",
-        "to", "regarding", "major", "breaking", "architectural", "recent", "who", "did",
-        "does", "is", "are", "about", "how", "why", "difference", "differences",
+        "to", "who", "did", "does", "is", "are", "about", "how", "why", "can", "you",
+        "tell", "me", "please", "could", "would", "where", "which",
     }
     filtered = [w for w in words if w.lower().strip("?,.:;\"'") not in stopwords]
     if len(filtered) >= 2:
-        return " ".join(filtered[:7])
-    return " ".join(words[:6])
+        return " ".join(filtered[:10])
+    return " ".join(words[:8])
+
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def _resolve_searxng_url() -> str:
+    """Resolves SearXNG endpoint, checking config, WSL hyper-v dynamic IP, or localhost."""
+    try:
+        from lucca.core.config import get_config  # noqa: PLC0415
+
+        cfg_url = getattr(getattr(get_config(), "sandbox", None), "searxng_url", None)
+        if cfg_url and "127.0.0.1" not in cfg_url and "localhost" not in cfg_url:
+            return cfg_url
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("searxng_config_read_error", error=str(exc))
+
+    # In WSL2 NAT mode, Windows connects to WSL services via WSL's hyper-v IP
+    try:
+        import subprocess as _sp  # noqa: PLC0415
+
+        wsl_out = _sp.check_output(
+            ["wsl.exe", "-e", "sh", "-c", "hostname -I"],
+            text=True,
+            timeout=4.0,
+        ).strip().split()
+        if wsl_out:
+            wsl_ip = wsl_out[0]
+            return f"http://{wsl_ip}:8888/search"
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("searxng_wsl_hostname_resolution_failed", error=str(exc))
+
+    try:
+        import subprocess as _sp  # noqa: PLC0415
+
+        out = _sp.check_output(["arp", "-a"], text=True, timeout=1.0)
+        for line in out.splitlines():
+            if "00-15-5d" in line.lower() and "dynamic" in line.lower():
+                parts = line.split()
+                if parts:
+                    return f"http://{parts[0]}:8888/search"
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("searxng_arp_resolution_failed", error=str(exc))
+
+    return SEARXNG_DEFAULT_URL
+
+
+def _search_searxng(
+    query: str,
+    max_results: int = 5,
+    searxng_url: str | None = None,
+) -> list[dict[str, str]]:
+    """Primary search via local SearXNG aggregator with privacy and multiple upstream engines."""
+    url = searxng_url or _resolve_searxng_url()
+
+    results: list[dict[str, str]] = []
+    try:
+        import json as _json  # noqa: PLC0415
+        import urllib.request as _urllib_req  # noqa: PLC0415
+
+        encoded_params = urllib.parse.urlencode({"q": query, "format": "json"})
+        sep = "&" if "?" in url else "?"
+        full_url = f"{url}{sep}{encoded_params}"
+        req = _urllib_req.Request(
+            full_url,
+            headers={
+                "User-Agent": USER_AGENT,
+                "X-Forwarded-For": "127.0.0.1",
+                "X-Real-IP": "127.0.0.1",
+            },
+        )
+        with _urllib_req.urlopen(req, timeout=SEARCH_TIMEOUT_S) as resp:
+            if resp.status == 200:
+                raw_bytes = resp.read()
+                data = _json.loads(raw_bytes.decode("utf-8", errors="replace"))
+                raw_results = data.get("results", [])
+                for item in raw_results:
+                    title = str(item.get("title", "")).strip()
+                    snippet = str(item.get("content") or item.get("snippet") or "").strip()
+                    link = str(item.get("url", "")).strip()
+                    if title or snippet:
+                        results.append(
+                            {
+                                "title": title or "Web Result",
+                                "snippet": snippet or "No snippet preview available.",
+                                "url": link,
+                            }
+                        )
+                    if len(results) >= max_results:
+                        break
+            else:
+                logger.debug("searxng_search_non_200", status=resp.status, url=url)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("searxng_search_unavailable", error=str(exc), url=url)
+    return results
 
 
 STATIC_RFC_DEFINITIONS: dict[str, dict[str, str]] = {
@@ -246,12 +344,18 @@ def search_web(
 
     results: list[dict[str, str]] = []
 
-    # 1. Primary path: DDGS using primp TLS impersonation
-    # Only skip if httpx.Client.get is mocked in unit tests
+    # 1. Primary path: SearXNG aggregator
     is_mocked = hasattr(httpx.Client.get, "mock_calls") or hasattr(
         httpx.Client.get, "_mock_return_value"
     )
-    if DDGS is not None and not is_mocked:
+    if not is_mocked:
+        searxng_res = _search_searxng(clean_query, max_results=max_results)
+        if searxng_res:
+            results.extend(searxng_res)
+
+    # 2. Secondary path: DDGS using primp TLS impersonation
+    # Only skip if httpx.Client.get is mocked in unit tests
+    if not results and DDGS is not None and not is_mocked:
         simplified = _simplify_search_query(clean_query)
         queries_to_try = [clean_query]
         if simplified and simplified.lower() != clean_query.lower():

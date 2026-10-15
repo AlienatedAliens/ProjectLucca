@@ -1,0 +1,85 @@
+{
+  "benchmark": "Exhaustive_Neurosymbolic_Factorial_Audit",
+  "model_tag": "Tier0-26B",
+  "patch_id": "patch-v1.1-hybrid",
+  "split": "minimal",
+  "timestamp_utc": "2026-10-14T20:49:43.326425+00:00",
+  "footprint_telemetry": {
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+      "total_vram_mib": 16303.0,
+      "peak_vram_used_mib": 14722.0,
+      "min_vram_used_mib": 14576.0,
+      "mean_vram_used_mib": 14710.9,
+      "peak_temperature_c": 57.0
+    },
+    "ram": {
+      "total_ram_mb": 64943.1,
+      "peak_ram_used_mb": 44559.0,
+      "min_ram_used_mb": 35630.7,
+      "peak_vmmem_wsl2_mb": 126.7,
+      "peak_llama_server_ram_mb": 23621.5
+    },
+    "samples_count": 40,
+    "duration_s": 80.0
+  },
+  "arm_summaries": {
+    "arm_d": {
+      "passed": 0,
+      "total": 1,
+      "pass_rate": 0.0,
+      "wilson_ci_95": [
+        0.0,
+        0.7934500192691468
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 133666.76950000692,
+      "avg_total_tokens": 12511.0
+    }
+  },
+  "differential_matrix": {
+    "arm_d": {
+      "baseline_patch": "patch-v1.0-baseline",
+      "rescues_f_to_p": [],
+      "regressions_p_to_f": [],
+      "ties": 1,
+      "discordant_total": 0,
+      "p_value_twosided": 1.0
+    }
+  },
+  "records": [
+    {
+      "task_id": "CompleteShapeMinimal",
+      "concept": "CompleteShape",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.1-hybrid",
+      "arm": "Arm_D_Hybrid",
+      "success": false,
+      "method": "HYBRID_FAILED",
+      "failure_code": "TRAIN_UNSAT",
+      "failure_detail": null,
+      "synthesized_program": null,
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 133003.90610000613,
+        "cpu_hole_enumeration_ms": 147.23169999342645,
+        "sandbox_execution_ms": 0.0,
+        "total_elapsed_ms": 133666.76950000692,
+        "prompt_tokens": 8657,
+        "completion_tokens": 3854,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 0.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 9,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    }
+  ]
+}

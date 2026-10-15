@@ -46,8 +46,21 @@ class LLMSettings(BaseModel):
     mode: Literal["audio", "transcript", "vision"] = "vision"
     host: str = "127.0.0.1"
     port: int = 8080
-    ctx: int = 32768
+    ctx: int = 131072
     kv_type: str = "q8_0"
+    kv_type_k: str = "q8_0"
+    kv_type_v: str = "q8_0"
+    ngl: int = 18  # RTX 5080 WDDM-safe layer budget (Rule 01)
+    # Speculative Decoding configuration:
+    # "none", "draft-simple", "ngram-mod", "draft-simple,ngram-mod"
+    spec_type: str = "ngram-mod"
+    draft_model: str | None = None
+    draft_ngl: int | None = None
+    draft_n_max: int = 3
+    draft_kv_type_k: str = "q8_0"
+    draft_kv_type_v: str = "q4_0"
+    cpu_moe: bool = False
+    moe_expert_cache_mib: int | None = None
     # RAM budget for the llama-server prompt prefix cache (--cache-ram, MiB).
     # Bounded to 4 GiB: the 8 GiB default thrashed and crashed under the WO-8
     # battery workload (60 distinct low-similarity prompts). Production turns
@@ -62,11 +75,12 @@ class LLMSettings(BaseModel):
     # Templates without a thinking channel ignore the kwarg harmlessly.
     enable_thinking: bool | None = False
     narration_prefer_digits: bool = True
-    # Canonical brain per D-BRAIN-05 v2 (GGUF-embedded chat template via
-    # --jinja). The previous brain is deprecated and retained for rollback only.
-    model: str = "llm/gemma-4-12b-heretic-Q6_K.gguf"
-    mmproj: str = "llm/gemma-4-12b-heretic-mmproj-f16.gguf"
-    text_model: str = "llm/gemma-4-12b-heretic-Q6_K.gguf"
+    # Canonical brain: 26B-A4B MoE (4B active params) per Tier 0 upgrade.
+    # GGUF-embedded chat template via --jinja. The previous 12B brain is
+    # deprecated and retained for rollback only.
+    model: str = "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf"
+    mmproj: str | None = None  # None for Tier 0 26B-A4B MoE; set to 12b-mmproj if rolling back to 12B
+    text_model: str = "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf"
     # llama-server binary, relative to LUCCA_HOME or absolute. Forked builds
     # (e.g. PrismML ternary kernels) are selected here, never by code.
     server_bin: str = "app/llama-server/llama-server.exe"
@@ -82,7 +96,7 @@ class LLMSettings(BaseModel):
     # strictly to defend the user from external prompt injection and host system damage.
     tts_safety_guard_mode: Literal["off", "edge_tiers", "all"] = "off"
 
-    @field_validator("chat_template_file", "chat_template", "display_name", mode="before")
+    @field_validator("chat_template_file", "chat_template", "display_name", "draft_model", mode="before")
     @classmethod
     def _blank_to_none(cls, v: object) -> object:
         if isinstance(v, str) and (not v.strip() or v.strip().lower() in ("none", "null")):
@@ -179,7 +193,8 @@ class SandboxSettings(BaseModel):
     wsl_distro: str = "Ubuntu"
     file_mem_mb: int = 768
     web_mem_mb: int = 512
-    allow_render: bool = False
+    allow_render: bool = True
+    searxng_url: str = "http://127.0.0.1:8888/search"
 
 
 class IPCSettings(BaseModel):

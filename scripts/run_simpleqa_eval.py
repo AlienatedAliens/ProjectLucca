@@ -52,7 +52,17 @@ ABSTAIN_PATTERNS = [
 ]
 
 
-def query_llm(prompt: str) -> str:
+def query_llm(prompt: str, tool_augmented: bool = False) -> str:
+    research_context = ""
+    if tool_augmented:
+        try:
+            from lucca.sandbox.research_tool import research_topic
+            _, research_summary = research_topic(prompt, max_sources=3)
+            if research_summary:
+                research_context = f"\n\n[Research Dossier]\n{research_summary}\n\nBased on the verified research dossier above, answer the question accurately and concisely."
+        except Exception as e:
+            print(f"(research failed: {e}) ", end="", flush=True)
+
     messages = [
         {
             "role": "system",
@@ -61,7 +71,7 @@ def query_llm(prompt: str) -> str:
                 "If you are not certain of the exact answer, explicitly say 'I do not know' rather than guessing."
             ),
         },
-        {"role": "user", "content": prompt},
+        {"role": "user", "content": prompt + research_context},
     ]
     payload = {
         "messages": messages,
@@ -101,7 +111,7 @@ def grade_response(response: str, target: str) -> str:
     return "INCORRECT"
 
 
-def run_benchmark(limit: int = 50, seed: int = 42) -> None:
+def run_benchmark(limit: int = 50, seed: int = 42, tool_augmented: bool = False) -> None:
     with open(DATA_FILE, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
 
@@ -125,7 +135,7 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
 
         t0 = time.perf_counter()
         try:
-            resp = query_llm(q)
+            resp = query_llm(q, tool_augmented=tool_augmented)
             lat = time.perf_counter() - t0
             verdict = grade_response(resp, tgt)
         except Exception as exc:
@@ -154,7 +164,7 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
     accuracy = (n_correct / n * 100.0)
 
     print("\n" + "=" * 60)
-    print("SIMPLEQA BENCHMARK SUMMARY")
+    print(f"SIMPLEQA BENCHMARK SUMMARY ({'TOOL-AUGMENTED' if tool_augmented else 'CLOSED-BOOK'})")
     print("=" * 60)
     print(f"Total Questions:         {n}")
     print(f"Correct Answers:         {n_correct} ({accuracy:.1f}%)")
@@ -163,10 +173,12 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
     print(f"Factual Precision:       {precision:.1f}% [Correct / Attempted]")
     print("=" * 60)
 
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"simpleqa_benchmark_{int(time.time())}.json"
+    prefix = "simpleqa_tool_augmented" if tool_augmented else "simpleqa_benchmark"
+    out_file = REPO_ROOT / "logs" / "test_reports" / f"{prefix}_{int(time.time())}.json"
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "OpenAI_SimpleQA_Calibration",
+        "mode": "tool_augmented" if tool_augmented else "closed_book",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_questions": n,
         "correct": n_correct,
@@ -185,5 +197,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="OpenAI SimpleQA Benchmark Runner")
     parser.add_argument("--limit", type=int, default=50, help="Number of questions (default: 50)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
+    parser.add_argument("--tool-augmented", action="store_true", help="Enable research_topic tool augmentation")
     args = parser.parse_args()
-    run_benchmark(limit=args.limit, seed=args.seed)
+    run_benchmark(limit=args.limit, seed=args.seed, tool_augmented=args.tool_augmented)

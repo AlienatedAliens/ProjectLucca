@@ -35,10 +35,12 @@ from lucca.sandbox.rpc import DockerRPCTransport
 from lucca.sandbox.schemas import (
     EXTRA_TOOL_SCHEMAS,
     TOOL_ARG_SCHEMAS,
+    ApplyPatchArgs,
     ArtifactVerifyArgs,
     CalcMathArgs,
     ContainerWorldArgs,
     FetchUrlArgs,
+    GrepTreeArgs,
     InboxHandoffArgs,
     LaunchAppArgs,
     MemoryCommitArgs,
@@ -46,12 +48,16 @@ from lucca.sandbox.schemas import (
     NoteReadArgs,
     NoteWriteArgs,
     PreflightResult,
+    ResearchTopicArgs,
+    RunPytestArgs,
     ScheduleEventArgs,
     SearchWebArgs,
     SysInfoArgs,
+    ViewSliceArgs,
 )
 from lucca.sandbox.artifact_tool import verify_artifact
 from lucca.sandbox.clipboard_tool import read_clipboard_text
+from lucca.sandbox.research_tool import research_topic
 from lucca.sandbox.schedule_tool import schedule_event
 from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.system_tools import get_system_metrics, list_running_processes
@@ -586,7 +592,13 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
-                if parsed_search.target_entity is not None:
+                if parsed_search.queries and len(parsed_search.queries) > 1:
+                    structured, content = research_topic(
+                        query=" ".join(parsed_search.queries),
+                        max_sources=min(parsed_search.max_results, 5),
+                        target_entity=parsed_search.target_entity,
+                    )
+                elif parsed_search.target_entity is not None:
                     structured, content = search_web(
                         query=parsed_search.query,
                         max_results=parsed_search.max_results,
@@ -615,7 +627,43 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
 
-        # 4c. Arithmetic Tool
+        # 4c. Deep Autonomous Research Tool
+        if tool_name in ("research", "research_topic"):
+            try:
+                parsed_res = ResearchTopicArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = research_topic(
+                    query=parsed_res.query,
+                    max_sources=parsed_res.max_sources,
+                    target_entity=parsed_res.target_entity,
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=bool(structured.get("ok", True)),
+                    exit_code=0 if structured.get("ok", True) else 1,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=0.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("research_tool_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=0.0,
+                )
+
+        # 4d. Arithmetic Tool
         if tool_name == "calc_math":
             try:
                 parsed_math = CalcMathArgs.model_validate(args)
@@ -1423,6 +1471,152 @@ class SandboxService:
                         stderr=str(exc),
                         elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                     )
+
+        # 8c. SWE-bench & Code Investigation Tools
+        if tool_name == "grep_tree":
+            t0 = time.perf_counter()
+            try:
+                parsed_grep = GrepTreeArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = self.file_tool.grep_tree(
+                    pattern=parsed_grep.pattern,
+                    dir_path=parsed_grep.dir_path,
+                    max_hits=parsed_grep.max_hits,
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("grep_tree_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        if tool_name == "view_slice":
+            t0 = time.perf_counter()
+            try:
+                parsed_slice = ViewSliceArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = self.file_tool.view_slice(
+                    path=parsed_slice.path,
+                    start_line=parsed_slice.start_line,
+                    end_line=parsed_slice.end_line,
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("view_slice_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        if tool_name == "apply_patch":
+            t0 = time.perf_counter()
+            try:
+                parsed_patch = ApplyPatchArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = self.file_tool.apply_patch(
+                    path=parsed_patch.path,
+                    target_chunk=parsed_patch.target_chunk,
+                    replacement_chunk=parsed_patch.replacement_chunk,
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=True,
+                    exit_code=0,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("apply_patch_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+
+        if tool_name == "run_pytest":
+            t0 = time.perf_counter()
+            try:
+                parsed_pt = RunPytestArgs.model_validate(args)
+            except ValidationError as exc:
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=f"invalid_arguments: {exc}",
+                    elapsed_ms=0.0,
+                )
+            try:
+                structured, content = self.file_tool.run_pytest(
+                    test_path=parsed_pt.test_path,
+                    cwd=parsed_pt.cwd,
+                    timeout=parsed_pt.timeout,
+                )
+                exit_code = int(structured.get("exit_code", 0))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=(exit_code == 0),
+                    exit_code=exit_code,
+                    structured=structured,
+                    content=content,
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("run_pytest_failed", error=str(exc))
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    stderr=str(exc),
+                    elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                )
 
         # 9. File Tools via RPC
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)

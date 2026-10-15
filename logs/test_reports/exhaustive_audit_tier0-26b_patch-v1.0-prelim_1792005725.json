@@ -1,0 +1,165 @@
+{
+  "benchmark": "Exhaustive_Neurosymbolic_Factorial_Audit",
+  "model_tag": "Tier0-26B",
+  "patch_id": "patch-v1.0-prelim",
+  "split": "minimal",
+  "timestamp_utc": "2026-10-14T19:22:05.308882+00:00",
+  "footprint_telemetry": {
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+      "total_vram_mib": 16303.0,
+      "peak_vram_used_mib": 14718.0,
+      "min_vram_used_mib": 14576.0,
+      "mean_vram_used_mib": 14695.7,
+      "peak_temperature_c": 54.0
+    },
+    "ram": {
+      "total_ram_mb": 64943.1,
+      "peak_ram_used_mb": 43350.3,
+      "min_ram_used_mb": 35511.0,
+      "peak_vmmem_wsl2_mb": 126.7,
+      "peak_llama_server_ram_mb": 23418.2
+    },
+    "samples_count": 13,
+    "duration_s": 26.0
+  },
+  "arm_summaries": {
+    "arm_a": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "wilson_ci_95": [
+        0.20654998073085312,
+        1.0
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 18868.16220000037,
+      "avg_total_tokens": 1417.0
+    },
+    "arm_b": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "wilson_ci_95": [
+        0.20654998073085312,
+        1.0
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 12641.009999999369,
+      "avg_total_tokens": 2416.0
+    },
+    "arm_c": {
+      "passed": 0,
+      "total": 1,
+      "pass_rate": 0.0,
+      "wilson_ci_95": [
+        0.0,
+        0.7934500192691468
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 1,
+      "avg_latency_ms": 4080.929499999911,
+      "avg_total_tokens": 530.0
+    }
+  },
+  "records": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.0-prelim",
+      "arm": "Arm_A_Control",
+      "success": true,
+      "method": "DIRECT",
+      "failure_code": null,
+      "failure_detail": null,
+      "synthesized_program": null,
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 18867.5121999986,
+        "cpu_hole_enumeration_ms": 0.0,
+        "sandbox_execution_ms": 0.0,
+        "total_elapsed_ms": 18868.16220000037,
+        "prompt_tokens": 1031,
+        "completion_tokens": 386,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 0.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 0,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    },
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.0-prelim",
+      "arm": "Arm_B_Python",
+      "success": true,
+      "method": "DYNAMIC_PYTHON",
+      "failure_code": null,
+      "failure_detail": null,
+      "synthesized_program": "def get_center_coordinate (grid ):\n    \"\"\"\n    Calculates the center coordinate (row, col) of a 2D grid.\n    For grids with even dimensions, it returns the floor of the midpoint.\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n    return rows //2 ,cols //2\n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Identifies the geometric center of the grid and sets that pixel to color 2.\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n    center_row ,center_col =rows //2 ,cols //2 \n\n    # Create a copy to avoid mutating the original input if desired, \n    # though standard practice for these tasks often allows direct modification.\n    new_grid =[row [:]for row in grid ]\n    new_grid [center_row ][center_col ]=2 \n\n    return new_grid",
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 12177.959100001317,
+        "cpu_hole_enumeration_ms": 0.0,
+        "sandbox_execution_ms": 185.991100002866,
+        "total_elapsed_ms": 12641.009999999369,
+        "prompt_tokens": 2173,
+        "completion_tokens": 243,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 159.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 0,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    },
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.0-prelim",
+      "arm": "Arm_C_MicroScheme",
+      "success": false,
+      "method": "GBNF_SCHEME_HOLE_ENUM",
+      "failure_code": "HOLE_UNSAT",
+      "failure_detail": "No valid parameter binding satisfied demonstrations",
+      "synthesized_program": null,
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 4046.9878999974753,
+        "cpu_hole_enumeration_ms": 33.793800001149066,
+        "sandbox_execution_ms": 0.0,
+        "total_elapsed_ms": 4080.929499999911,
+        "prompt_tokens": 449,
+        "completion_tokens": 81,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 0.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 72,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    }
+  ]
+}

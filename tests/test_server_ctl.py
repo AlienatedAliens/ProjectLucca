@@ -250,3 +250,73 @@ def test_verify_model_files_missing_manifest(tmp_path: Path) -> None:
     cfg = LLMSettings(model="models/llm/missing.gguf")
     with pytest.raises(FileNotFoundError):
         verify_model_files(cfg, tmp_path)
+
+
+def test_build_launch_command_speculative_decoding(tmp_path: Path) -> None:
+    """Verifies launch command construction for ngram, draft model, and both."""
+    llama_dir = tmp_path / "app" / "llama-server"
+    llama_dir.mkdir(parents=True)
+    (llama_dir / "llama-server.exe").touch()
+
+    model_dir = tmp_path / "models" / "llm"
+    model_dir.mkdir(parents=True)
+    (model_dir / "target.gguf").touch()
+    (model_dir / "draft.gguf").touch()
+
+    # 1. N-Gram only
+    cfg_ngram = LLMSettings(
+        model="models/llm/target.gguf",
+        spec_type="ngram-mod",
+        kv_type_k="q8_0",
+        kv_type_v="q4_0",
+        ngl=24,
+    )
+    cmd1 = build_launch_command(cfg_ngram, tmp_path)
+    assert "--spec-type" in cmd1
+    assert "ngram-mod" in cmd1
+    assert "--cache-type-k" in cmd1 and "q8_0" in cmd1
+    assert "--cache-type-v" in cmd1 and "q4_0" in cmd1
+    assert "--n-gpu-layers" in cmd1 and "24" in cmd1
+    assert "--spec-draft-model" not in cmd1
+
+    # 2. Draft model only
+    cfg_draft = LLMSettings(
+        model="models/llm/target.gguf",
+        spec_type="draft-simple",
+        draft_model="models/llm/draft.gguf",
+        draft_ngl=99,
+        draft_n_max=4,
+        draft_kv_type_k="q8_0",
+        draft_kv_type_v="q4_0",
+        cpu_moe=True,
+        moe_expert_cache_mib=4096,
+    )
+    cmd2 = build_launch_command(cfg_draft, tmp_path)
+    assert "--spec-type" in cmd2
+    assert "draft-simple" in cmd2
+    assert "--spec-draft-model" in cmd2
+    assert str(model_dir / "draft.gguf") in cmd2
+    assert "--spec-draft-ngl" in cmd2 and "99" in cmd2
+    assert "--spec-draft-n-max" in cmd2 and "4" in cmd2
+    assert "--spec-draft-type-k" in cmd2 and "q8_0" in cmd2
+    assert "--spec-draft-type-v" in cmd2 and "q4_0" in cmd2
+    assert "--cpu-moe" in cmd2
+    assert "--moe-expert-cache-mib" in cmd2 and "4096" in cmd2
+
+    # 3. Both (draft-simple,ngram-mod)
+    cfg_both = LLMSettings(
+        model="models/llm/target.gguf",
+        spec_type="draft-simple,ngram-mod",
+        draft_model="models/llm/draft.gguf",
+    )
+    cmd3 = build_launch_command(cfg_both, tmp_path)
+    assert "--spec-type" in cmd3
+    assert "draft-simple,ngram-mod" in cmd3
+    assert "--spec-draft-model" in cmd3
+
+
+def test_derive_quant_from_filename_dotted() -> None:
+    from lucca.brain.server_ctl import _derive_quant_from_filename
+    assert _derive_quant_from_filename("gemma-4-26B-A4B-it-heretic.Q6_K.gguf") == "Q6_K"
+    assert _derive_quant_from_filename("model-f16.gguf") == "F16"
+    assert _derive_quant_from_filename("unknown-model.gguf") == "UNKNOWN"

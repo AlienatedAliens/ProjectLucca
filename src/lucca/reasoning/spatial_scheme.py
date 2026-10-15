@@ -369,6 +369,105 @@ def prim_restore_periodic_pattern(args: list[SchemeValue]) -> SchemeValue:
     return _to_scheme_grid(restore_periodic_pattern(grid, period_r=pr, period_c=pc))
 
 
+def prim_replace_color(args: list[SchemeValue]) -> SchemeValue:
+    """(replace-color grid [:from from-color] [:to to-color]) or (replace-color grid from-c to-c)"""
+    if not args:
+        return []
+    grid = _coerce_grid(args[0])
+    from_c: int = 0
+    to_c: int = 0
+    if len(args) == 3 and not any(isinstance(x, (Keyword, Symbol)) and str(x).startswith(":") for x in args[1:3]):
+        from_c = _to_int(args[1], 0)
+        to_c = _to_int(args[2], 0)
+    else:
+        i = 1
+        while i < len(args):
+            kw = _to_kw_str(args[i])
+            if kw in ("from", "old", "src") and i + 1 < len(args):
+                from_c = _to_int(args[i + 1], 0)
+                i += 2
+            elif kw in ("to", "new", "dst") and i + 1 < len(args):
+                to_c = _to_int(args[i + 1], 0)
+                i += 2
+            else:
+                i += 1
+    return _to_scheme_grid([[to_c if c == from_c else c for c in row] for row in grid])
+
+
+def prim_set_pixel(args: list[SchemeValue]) -> SchemeValue:
+    """(set-pixel grid coords [:color color])"""
+    if not args:
+        return []
+    grid = [row[:] for row in _coerce_grid(args[0])]
+    if len(args) < 2:
+        return _to_scheme_grid(grid)
+    coords = args[1]
+    r, c = 0, 0
+    if isinstance(coords, (list, tuple)) and len(coords) >= 2:
+        r, c = _to_int(coords[0]), _to_int(coords[1])
+    color = 0
+    i = 2
+    while i < len(args):
+        kw = _to_kw_str(args[i])
+        if kw in ("color", "fill", "val", "to") and i + 1 < len(args):
+            color = _to_int(args[i + 1], 0)
+            i += 2
+        else:
+            i += 1
+    if 0 <= r < len(grid) and 0 <= c < len(grid[0]):
+        grid[r][c] = color
+    return _to_scheme_grid(grid)
+
+
+def prim_crop_bbox(args: list[SchemeValue]) -> SchemeValue:
+    """(crop-bbox grid bbox) where bbox is (min_r, min_c, max_r, max_c) or (min_r, max_r, min_c, max_c)"""
+    if not args:
+        return []
+    grid = _coerce_grid(args[0])
+    if len(args) < 2:
+        return _to_scheme_grid(grid)
+    bbox = args[1]
+    if isinstance(bbox, (list, tuple)) and len(bbox) >= 4:
+        v = [_to_int(x) for x in bbox[:4]]
+        r0, c0, r1, c1 = v[0], v[1], v[2], v[3]
+        if r1 < r0:
+            r0, r1 = v[0], v[1]
+            c0, c1 = v[2], v[3]
+        r0 = max(0, min(r0, len(grid) - 1))
+        r1 = max(0, min(r1, len(grid) - 1))
+        c0 = max(0, min(c0, len(grid[0]) - 1))
+        c1 = max(0, min(c1, len(grid[0]) - 1))
+        sub = [grid[r][min(c0, c1):max(c0, c1)+1] for r in range(min(r0, r1), max(r0, r1)+1)]
+        return _to_scheme_grid(sub)
+    return _to_scheme_grid(grid)
+
+
+def prim_fill_mask(args: list[SchemeValue]) -> SchemeValue:
+    """(fill-mask grid mask [:color color])"""
+    if not args:
+        return []
+    grid = [row[:] for row in _coerce_grid(args[0])]
+    if len(args) < 2:
+        return _to_scheme_grid(grid)
+    mask = args[1]
+    color = 0
+    i = 2
+    while i < len(args):
+        kw = _to_kw_str(args[i])
+        if kw in ("color", "fill", "val", "to") and i + 1 < len(args):
+            color = _to_int(args[i + 1], 0)
+            i += 2
+        else:
+            i += 1
+    if isinstance(mask, list):
+        for r, row in enumerate(mask):
+            if r < len(grid) and isinstance(row, list):
+                for c, val in enumerate(row):
+                    if c < len(grid[r]) and (val is True or val == 1 or str(val).lower() in ("#t", "true")):
+                        grid[r][c] = color
+    return _to_scheme_grid(grid)
+
+
 SPATIAL_SCHEME_PRIMITIVES: Final[
     dict[str, Callable[[list[SchemeValue]], SchemeValue]]
 ] = {
@@ -389,6 +488,10 @@ SPATIAL_SCHEME_PRIMITIVES: Final[
     "denoise": prim_denoise,
     "restore-periodic-pattern": prim_restore_periodic_pattern,
     "periodic-restore": prim_restore_periodic_pattern,
+    "replace-color": prim_replace_color,
+    "set-pixel": prim_set_pixel,
+    "crop-bbox": prim_crop_bbox,
+    "fill-mask": prim_fill_mask,
 }
 
 
@@ -427,8 +530,8 @@ def make_spatial_scheme_env(
 def evaluate_spatial_sketch(
     sketch: SchemeNode | str,
     input_grid: list[list[int]],
-    gas_limit: int = 1000,
-    timeout_ms: float = 50.0,
+    gas_limit: int = 3000,
+    timeout_ms: float = 300.0,
     hole_bindings: dict[str, SchemeValue] | None = None,
     macro_registry: MacroRegistry | None = None,
 ) -> list[list[int]]:
@@ -562,6 +665,10 @@ def compile_dynamic_sketch_grammar(
         "order-columns-by-height",
         "restore-periodic-pattern",
         "periodic-restore",
+        "replace-color",
+        "set-pixel",
+        "crop-bbox",
+        "fill-mask",
     ]
     if active_primitives:
         for p in active_primitives:

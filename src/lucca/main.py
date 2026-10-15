@@ -217,7 +217,7 @@ class Supervisor:
             memory_store = MemoryStore(
                 db=db,
                 master_key=master_key,
-                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
+                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device=None)),
             )
         except (MemoryError, RuntimeError) as exc:
             logger.error("Embedding model initialization failed: %s", exc)

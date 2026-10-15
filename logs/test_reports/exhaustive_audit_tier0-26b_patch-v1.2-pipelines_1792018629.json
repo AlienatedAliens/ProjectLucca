@@ -1,0 +1,76 @@
+{
+  "benchmark": "Exhaustive_Neurosymbolic_Factorial_Audit",
+  "model_tag": "Tier0-26B",
+  "patch_id": "patch-v1.2-pipelines",
+  "split": "minimal",
+  "timestamp_utc": "2026-10-14T22:57:09.491913+00:00",
+  "footprint_telemetry": {
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+      "total_vram_mib": 16303.0,
+      "peak_vram_used_mib": 14718.0,
+      "min_vram_used_mib": 14690.0,
+      "mean_vram_used_mib": 14696.8,
+      "peak_temperature_c": 48.0
+    },
+    "ram": {
+      "total_ram_mb": 64943.1,
+      "peak_ram_used_mb": 41977.5,
+      "min_ram_used_mb": 41735.8,
+      "peak_vmmem_wsl2_mb": 126.1,
+      "peak_llama_server_ram_mb": 22642.7
+    },
+    "samples_count": 5,
+    "duration_s": 10.0
+  },
+  "arm_summaries": {
+    "arm_d": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "wilson_ci_95": [
+        0.20654998073085312,
+        1.0
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 11353.367600000638,
+      "avg_total_tokens": 2213.0
+    }
+  },
+  "differential_matrix": {},
+  "records": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.2-pipelines",
+      "arm": "Arm_D_Hybrid",
+      "success": true,
+      "method": "DYNAMIC_SCHEME_HYBRID",
+      "failure_code": null,
+      "failure_detail": null,
+      "synthesized_program": "(set-pixel input (get-center-pixel input) :color ?hole-color) | binding: {'?hole-color': 2} | helper: get_center_pixel",
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 10507.813800002623,
+        "cpu_hole_enumeration_ms": 27.082299995527137,
+        "sandbox_execution_ms": 0.04640000406652689,
+        "total_elapsed_ms": 11353.367600000638,
+        "prompt_tokens": 1975,
+        "completion_tokens": 238,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 0.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 62,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    }
+  ]
+}

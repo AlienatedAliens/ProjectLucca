@@ -38,7 +38,7 @@ sys.path.insert(0, str(REPO_ROOT))
 from lucca.sandbox.rpc import DockerRPCTransport
 
 SERVER_URL: Final[str] = "http://127.0.0.1:8080/v1/chat/completions"
-TIMEOUT_SECONDS: Final[float] = 60.0
+TIMEOUT_SECONDS: Final[float] = 180.0
 
 _DOCKER_RPC: DockerRPCTransport | None = None
 

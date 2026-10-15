@@ -1,0 +1,544 @@
+{
+  "benchmark": "ConceptARC_DynamicMacro",
+  "model_tag": "Tier2-E4B",
+  "mode": "minimal",
+  "timestamp_utc": "2026-10-14T18:43:39.279189+00:00",
+  "total_tasks": 5,
+  "arm_a_control": {
+    "passed": 1,
+    "pass_rate": 0.2,
+    "wilson_ci_95": [
+      0.036224213478337486,
+      0.6244646659732546
+    ]
+  },
+  "arm_b_dynamic": {
+    "passed": 1,
+    "pass_rate": 0.2,
+    "wilson_ci_95": [
+      0.036224213478337486,
+      0.6244646659732546
+    ],
+    "dynamic_macro_wins": 0,
+    "fallback_wins": 1
+  },
+  "tasks": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "arm_a_success": true,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": null,
+      "arm_b_success": true,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "SYNTHESIS_TRAIN_UNSAT",
+      "elapsed_ms": 41559.66669999907
+    },
+    {
+      "task_id": "CompleteShapeMinimal",
+      "concept": "CompleteShape",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4
+        ],
+        [
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          0,
+          4,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "VALUE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4
+        ],
+        [
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          4,
+          0,
+          4,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "VALUE_MISMATCH",
+      "elapsed_ms": 60048.724800002674
+    },
+    {
+      "task_id": "CountMinimal",
+      "concept": "Count",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "SHAPE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "SHAPE_MISMATCH",
+      "elapsed_ms": 65024.364400000195
+    },
+    {
+      "task_id": "ExtractObjectsMinimal",
+      "concept": "ExtractObjects",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": null,
+      "arm_a_failure_reason": "PARSE_ERROR_NO_GRID_DETECTED",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": null,
+      "arm_b_failure_reason": "PARSE_ERROR_NO_GRID_DETECTED",
+      "elapsed_ms": 69864.21859999973
+    },
+    {
+      "task_id": "FilledNotFilledMinimal",
+      "concept": "FilledNotFilled",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          4,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          4,
+          4,
+          0,
+          4,
+          4,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "VALUE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          4,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          4,
+          4,
+          0,
+          4,
+          4,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          4,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "VALUE_MISMATCH",
+      "elapsed_ms": 73279.75430000151
+    }
+  ]
+}

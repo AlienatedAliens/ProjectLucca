@@ -12,7 +12,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 
 2. **Strict Hardware Budget Discipline:**
-   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` (`D-BRAIN-05` v2; `enable_thinking=false` mandatory for companion tiers, thinking reserved for explicit deep reasoning) with 16K context baseline / 32K context v1.3.0 default (`src/lucca/core/config.py`), Q8_0 KV cache, and Flash Attention. Dedicated compute mode frees dGPU from desktop DWM allocations.
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` (Tier 0 canonical brain; MoE 4B active params, `ngl=18` WDDM-safe, 128K context, `--spec-type ngram-mod`, Q8_0 KV cache, Flash Attention). `enable_thinking=false` mandatory for companion tiers; thinking reserved for explicit deep reasoning. The previous 12B brain is deprecated and retained for rollback only.
    - **iGPU**: Intel(R) Graphics (Arrow Lake-HX Xe-LPG) driving Windows desktop display and UI, completely offloading display tasks from the RTX 5080.
    - **Intel NPU**: Intel(R) AI Boost NPU (`PCI\VEN_8086&DEV_AD1D`) accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`). **Never attempt to run NPU workloads inside WSL2 or Docker.**
    - **System RAM**: 64 GB DDR5-5600 shared pool. WSL2 memory clamped to 4.5 GB (`4608MB`) via `.wslconfig`.
@@ -20,7 +20,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 
 3. **Three-Tier Execution Architecture (`D-ARCH-05`):**
    - **`REFLEX`**: Strictly restricted to critical emergency/safety commands (`shutdown`, `pause`, `mute`, `stop`, `halt`) via `EMERGENCY_REFLEX_PATTERN`. Bypasses neural inference and speaks canned confirmation in $<150\text{ms}$.
-   - **`ACT_THEN_NARRATE`**: Standard procedural rules execute deterministically in the sandbox, then prompt the companion brain (Gemma-4 12B) to narrate results in Lucca's companion voice without robotic canned responses.
+   - **`ACT_THEN_NARRATE`**: Standard procedural rules execute deterministically in the sandbox, then prompt the companion brain to narrate results in Lucca's companion voice without robotic canned responses.
    - **`FULL_LOOP`**: Open-ended conversation and multi-step tool calls with convergence-based tool loop (runaway cap M=8), intermediate verbal thinking cues (`D-BRAIN-03`), and strict grounded narration contracts (`D-BRAIN-04`).
 
 4. **Symbolic Rule Engine & Safe Induction:**
@@ -39,6 +39,11 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - Python 3.12+ managed with `uv`. Formatted and checked with `ruff`.
    - **Zero `Any` Invariant (`D-AUD-01`)**: Strictly typed interfaces; verified by `tests/test_static_gates.py`.
    - Pydantic v2 schemas for all cross-boundary IPC and data contracts (`src/lucca/core/schemas.py`).
+
+7. **Comparative Rigor & Modern Benchmark Sourcing (`Rule 05`):**
+   - Strictly prohibited from using obsolete 2023–2024 baselines (GPT-4, Claude 3.5 Sonnet, Gemini 1.5, raw MMLU/GSM8K) for comparative claims.
+   - Mandatory live sourcing of late-2026 frontier models (Claude Opus 5/5.5, GPT-5.6/6 Astra, Gemini 3.8/4-Argon, DeepSeek-V4-Pro) and modern agentic harnesses (SWE-bench Pro/Verified, GAIA, OSWorld, WebArena, ARC-AGI-2/3, FrontierMath) before writing comparisons.
+   - Parity disclosure: strictly separate bare token prediction from test-time compute (CoT) and agentic scaffolding (Z3/SymPy/Docker CEGIS vs OpenHands/Devin/Claude Code).
 
 ---
 
@@ -62,8 +67,9 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ---
 
 ## 4. Key Settled Facts Every Agent Must Know
-- **Multi-Scale LLM Substrate**: Served via `llama-server.exe` across 3 validated edge tiers:
-  - **Gemma 4 12B Unified** (`gemma-4-12b-heretic-Q6_K.gguf`): 9,972 MiB VRAM (61.2%), TTFT 286.9 ms, 37.18 tok/s. Used for complex symbolic escalation.
+- **Multi-Scale LLM Substrate**: Served via `llama-server.exe` across 4 validated tiers:
+  - **Gemma 4 26B A4B Tier 0** (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`): MoE (4B active params), `ngl=18`, 128K context, `--spec-type ngram-mod`. Canonical brain for `FULL_LOOP` and deliberation-lane reasoning.
+  - **Gemma 4 12B Unified** (`gemma-4-12b-heretic-Q6_K.gguf`): 9,972 MiB VRAM (61.2%), TTFT 286.9 ms, 37.18 tok/s. Rollback tier; retained for compatibility.
   - **Gemma 4 E4B Sovereign Core** (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`): 4,382 MiB VRAM (26.9%), TTFT 86.1 ms, 80.76–103.0 tok/s. Default desktop core.
   - **Gemma 4 E2B Ultra-Edge** (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`): 2,260 MiB VRAM (13.9%), TTFT 73.2 ms, 126.1–169.1 tok/s. Low-power companion.
 - **Dynamic Task Router**:

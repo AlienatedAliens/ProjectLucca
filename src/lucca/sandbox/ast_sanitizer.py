@@ -109,7 +109,7 @@ def _normalize_tokens(code: str) -> str:
         return tokenize.untokenize(new_tokens)
     except Exception as exc:
         err_str = str(exc)
-        _noisy = ("line continuation", "unterminated string", "unindent", "unexpected EOF", "syntax")
+        _noisy = ("line continuation", "unterminated string", "unindent", "unexpected eof", "syntax")
         if not any(n in err_str.lower() for n in _noisy):
             logger.debug("tokenize_normalization_fallback", error=err_str)
         return code
@@ -469,8 +469,8 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
             try:
                 last_expr_code = ast.unparse(tree.body[-1].value)
                 code = code + f"\nprint({last_expr_code})"
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("ast_unparse_last_expr_failed", error=str(exc))
         elif "solve" in assigned_names and any(isinstance(stmt, ast.FunctionDef) and stmt.name == "solve" for stmt in tree.body):
             code = code + "\nprint(solve())"
         elif "main" in assigned_names and any(isinstance(stmt, ast.FunctionDef) and stmt.name == "main" for stmt in tree.body):

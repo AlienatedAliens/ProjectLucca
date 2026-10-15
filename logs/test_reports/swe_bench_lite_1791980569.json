@@ -1,0 +1,143 @@
+{
+  "benchmark": "SWE-bench Lite Curated (5 tasks)",
+  "timestamp_utc": "2026-10-14T12:22:49.536835+00:00",
+  "model": "gemma-4-26B-A4B-it-heretic",
+  "harness": "Lucca Multi-Turn Sandbox (grep_tree, view_slice, apply_patch, run_pytest)",
+  "tasks_evaluated": 1,
+  "tasks_solved": 1,
+  "solve_rate_pct": 100.0,
+  "task_results": [
+    {
+      "task_id": "swe_01_requests_empty_params",
+      "repo": "psf/requests-like",
+      "resolved": true,
+      "final_exit_code": 0,
+      "final_test_output": "============================= test session starts =============================\nplatform win32 -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0 -- C:\\Projects\\ProjectLucca\\.venv\\Scripts\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Projects\\ProjectLucca\nconfigfile: pyproject.toml\nplugins: anyio-4.15.1, hypothesis-6.168.0, asyncio-1.4.0, cov-7.1.0, timeout-2.4.0\nasyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scop",
+      "elapsed_seconds": 28.04,
+      "turns_used": 8,
+      "trajectory": [
+        {
+          "turn": 1,
+          "llm_reply": "<|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|><|channel>thought\n<channel|>"
+        },
+        {
+          "turn": 2,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"grep_tree\", \"args\": {\"pattern\": \"encode_query_params\", \"dir_path\": \".\", \"max_hits\": 5}}\n```",
+          "tool_call": {
+            "tool": "grep_tree",
+            "args": {
+              "pattern": "encode_query_params",
+              "dir_path": ".",
+              "max_hits": 5
+            }
+          },
+          "tool_result": {
+            "ok": true,
+            "exit_code": 0,
+            "output_preview": "PROBLEM.txt:1: When encoding URL query parameters using `encode_query_params(params: dict[str, Any])`, if a value is None, the parameter should be omitted entirely. If a value is empty string (''), it should be included as 'key='. Currently, encode_query_params serializes None as the literal string "
+          }
+        },
+        {
+          "turn": 3,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"view_slice\", \"args\": {\"path\": \"src/myurl/params.py\", \"start_line\": 1, \"end_line\": 20}}\n```",
+          "tool_call": {
+            "tool": "view_slice",
+            "args": {
+              "path": "src/myurl/params.py",
+              "start_line": 1,
+              "end_line": 20
+            }
+          },
+          "tool_result": {
+            "ok": true,
+            "exit_code": 0,
+            "output_preview": "[src/myurl/params.py lines 1-20 of 23]\n   1 | from __future__ import annotations\n   2 | from typing import Any\n   3 | import urllib.parse\n   4 | \n   5 | def encode_query_params(params: dict[str, Any]) -> str:\n   6 |     \"\"\"Encodes dictionary into a URL query string.\n   7 |     Rules:\n   8 |     - If"
+          }
+        },
+        {
+          "turn": 4,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"view_slice\", \"args\": {\"path\": \"src/myurl/params.py\", \"start_line\": 20, \"end_line\": 23}}\n```",
+          "tool_call": {
+            "tool": "view_slice",
+            "args": {
+              "path": "src/myurl/params.py",
+              "start_line": 20,
+              "end_line": 23
+            }
+          },
+          "tool_result": {
+            "ok": true,
+            "exit_code": 0,
+            "output_preview": "[src/myurl/params.py lines 20-23 of 23]\n  20 |         else:\n  21 |             v = urllib.parse.quote_plus(str(val))\n  22 |             pairs.append(f\"{k}={v}\")\n  23 |     return \"&\".join(pairs)"
+          }
+        },
+        {
+          "turn": 5,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"view_slice\", \"args\": {\"path\": \"tests/test_params.py\", \"start_line\": 1, \"end_line\": 20}}\n```",
+          "tool_call": {
+            "tool": "view_slice",
+            "args": {
+              "path": "tests/test_params.py",
+              "start_line": 1,
+              "end_line": 20
+            }
+          },
+          "tool_result": {
+            "ok": true,
+            "exit_code": 0,
+            "output_preview": "[tests/test_params.py lines 1-17 of 17]\n   1 | import sys\n   2 | from pathlib import Path\n   3 | sys.path.insert(0, str(Path(__file__).parent.parent / \"src\"))\n   4 | \n   5 | from myurl.params import encode_query_params\n   6 | \n   7 | def test_regular_params():\n   8 |     assert encode_query_params({"
+          }
+        },
+        {
+          "turn": 6,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"run_pytest\", \"args\": {\"test_path\": \"tests/test_params.py\", \"cwd\": \".\"}}\n```",
+          "tool_call": {
+            "tool": "run_pytest",
+            "args": {
+              "test_path": "tests/test_params.py",
+              "cwd": "."
+            }
+          },
+          "tool_result": {
+            "ok": false,
+            "exit_code": 1,
+            "output_preview": "ERROR (exit_code 1): ============================= test session starts =============================\nplatform win32 -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0 -- C:\\Projects\\ProjectLucca\\.venv\\Scripts\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Projects\\ProjectLucc"
+          }
+        },
+        {
+          "turn": 7,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"apply_patch\", \"args\": {\"path\": \"src/myurl/params.py\", \"target_chunk\": \"        else:\\n            v = urllib.parse.quote_plus(str(val))\\n            pairs.append(f\\\"{k}={v}\\\")\", \"replacement_chunk\": \"        else:\\n            if val is not None:\\n                v = urllib.parse.quote_plus(str(val))\\n                pairs.append(f\\\"{k}={v}\\\")\"}}\n```",
+          "tool_call": {
+            "tool": "apply_patch",
+            "args": {
+              "path": "src/myurl/params.py",
+              "target_chunk": "        else:\n            v = urllib.parse.quote_plus(str(val))\n            pairs.append(f\"{k}={v}\")",
+              "replacement_chunk": "        else:\n            if val is not None:\n                v = urllib.parse.quote_plus(str(val))\n                pairs.append(f\"{k}={v}\")"
+            }
+          },
+          "tool_result": {
+            "ok": true,
+            "exit_code": 0,
+            "output_preview": "Successfully applied patch to 'src/myurl/params.py'."
+          }
+        },
+        {
+          "turn": 8,
+          "llm_reply": "|thought\n|```tool\n{\"tool\": \"run_pytest\", \"args\": {\"test_path\": \"tests/test_params.py\", \"cwd\": \".\"}}\n```",
+          "tool_call": {
+            "tool": "run_pytest",
+            "args": {
+              "test_path": "tests/test_params.py",
+              "cwd": "."
+            }
+          },
+          "tool_result": {
+            "ok": true,
+            "exit_code": 0,
+            "output_preview": "============================= test session starts =============================\nplatform win32 -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0 -- C:\\Projects\\ProjectLucca\\.venv\\Scripts\\python.exe\ncachedir: .pytest_cache\nhypothesis profile 'default'\nrootdir: C:\\Projects\\ProjectLucca\nconfigfile: pyproje"
+          }
+        }
+      ]
+    }
+  ]
+}

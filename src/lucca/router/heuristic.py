@@ -67,6 +67,70 @@ SEMANTIC_INTENT_ANCHORS: Final[dict[str, tuple[str, ...]]] = {
         "do you recall what i told you last week",
         "what did i tell you earlier",
     ),
+    "science_research": (
+        "what is the mechanism of action of",
+        "explain the chemical reaction between",
+        "how does photosynthesis work",
+        "what causes this biological phenomenon",
+        "describe the physics of",
+        "how does benzene resist electrophilic addition",
+        "what is the crystal structure and lattice parameters of",
+        "explain the spectroscopic properties and absorption bands of",
+    ),
+    "math_computation": (
+        "calculate the integral of",
+        "find the roots of the polynomial",
+        "what is the sum of this series",
+        "prove that this equation has a solution",
+        "how many ways can you arrange",
+        "solve the system of linear equations",
+        "calculate the eigenvalues and determinant of the matrix",
+        "compute the prime factors and greatest common divisor",
+        "evaluate the logarithmic or trigonometric expression",
+        "find the numerical and algebraic solution to the formula",
+    ),
+    "logic_constraints": (
+        "solve this logic puzzle",
+        "given these constraints find the solution",
+        "if a implies b and b implies c then",
+        "which of these statements is consistent",
+        "find the truth assignment satisfying these conditions",
+    ),
+    "code_generation": (
+        "write a function that",
+        "debug this python code",
+        "implement an algorithm for",
+        "what does this code do",
+    ),
+    "factual_lookup": (
+        "who invented",
+        "when did",
+        "what year was",
+        "where was the first",
+    ),
+    "code_repair": (
+        "diagnose and fix the bug in this python file",
+        "apply a patch to resolve the failing test",
+        "grep the codebase for the error message",
+        "inspect the traceback and fix the code",
+        "run pytest on the test suite to verify",
+        "view lines of this module to find the bug",
+        "find the syntax or runtime error in the repository",
+        "repair the failing unit test in the package",
+        "investigate the issue in the codebase",
+        "fix the regression in the repository",
+    ),
+    "spatial_grid": (
+        "transform this arc grid",
+        "rotate the 2D grid matrix 90 degrees",
+        "flood fill the enclosed shape with color",
+        "apply gravity drop to the falling objects",
+        "solve this concept arc visual reasoning task",
+        "align the shapes to the left bounding box",
+        "find the connected components and sort by size",
+        "detect repeating patterns in the 2d array",
+        "predict the output grid from input demonstration grids",
+    ),
 }
 
 EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile(
@@ -132,7 +196,14 @@ _ACTION_LIT: Final[dict[str, Literal["RULE", "LLM", "CLARIFY"]]] = {
 INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     "file_read": "self",
     "file_write": "self",
+    "code_repair": "code",
+    "spatial_grid": "formal_reasoning",
     "web_fetch": "information",
+    "science_research": "information",
+    "factual_lookup": "information",
+    "math_computation": "formal_reasoning",
+    "logic_constraints": "formal_reasoning",
+    "code_generation": "code",
     "memory_query": "cognitive_core",
     "chit_chat": "companion",
     "launch_app": "self",
@@ -201,6 +272,57 @@ MATHEMATICAL_SYMPY_PATTERN: Final[re.Pattern[str]] = re.compile(
     re.IGNORECASE,
 )
 
+SPATIAL_GRID_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"arc(?:-agi)?|"
+    r"concept\s*arc|"
+    r"grid\s*transformation|"
+    r"flood\s*fill|"
+    r"gravity\s*drop|"
+    r"rotate\s*(?:the\s*)?grid|"
+    r"crop\s*grid|"
+    r"bounding\s*box|"
+    r"connected\s*components|"
+    r"2d\s*(?:grid|array)|"
+    r"demonstration\s*grids?|"
+    r"input\s*grid|output\s*grid"
+    r")\b",
+    re.IGNORECASE,
+)
+
+CODE_REPAIR_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"swe[-_]?bench|"
+    r"pytest|"
+    r"apply\s*patch|"
+    r"run\s*pytest|"
+    r"grep\s*tree|"
+    r"view\s*slice|"
+    r"failing\s*(?:unit\s*)?test|"
+    r"diagnose\s*and\s*fix|"
+    r"fix\s*(?:the\s*)?regression|"
+    r"reproduce\s*(?:the\s*)?issue|"
+    r"failing\s*test\s*suite"
+    r")\b",
+    re.IGNORECASE,
+)
+
+WEB_SEARCH_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b("
+    r"search\s*(?:the\s*)?web|"
+    r"web\s*search|"
+    r"look\s*(?:up\s+)?online|"
+    r"google\s*search|"
+    r"latest\s*news|"
+    r"current\s*events|"
+    r"searxng|"
+    r"check\s+(?:other\s+)?(?:web)?sites|"
+    r"check\s+online|"
+    r"sources\s+online"
+    r")\b",
+    re.IGNORECASE,
+)
+
 
 def map_intent_to_category(
     intent: str,
@@ -247,6 +369,8 @@ class HeuristicRouter:
         self.db_write_failures: int = 0
         self.embed_worker = embed_worker
         self._anchor_embeddings: dict[str, list[list[float]]] | None = None
+        self._anchor_matrix: np.ndarray | None = None
+        self._anchor_labels: list[str] | None = None
         if retention_files is not None:
             self.retention_files = retention_files
         else:
@@ -258,15 +382,25 @@ class HeuristicRouter:
         self._load_intents_config(config_path)
 
     def _get_anchor_embeddings(self) -> dict[str, list[list[float]]]:
-        if self._anchor_embeddings is not None:
+        if self._anchor_embeddings is not None and self._anchor_matrix is not None:
             return self._anchor_embeddings
-        if self.embed_worker is None or getattr(self.embed_worker, "compiled", None) is None:
+        if self.embed_worker is None:
+            return {}
+        if hasattr(self.embed_worker, "compiled") and self.embed_worker.compiled is None:
             return {}
         res: dict[str, list[list[float]]] = {}
+        all_vecs: list[list[float]] = []
+        all_labels: list[str] = []
         for intent, phrases in SEMANTIC_INTENT_ANCHORS.items():
             vecs, _, _ = self.embed_worker.embed_text(list(phrases))
             res[intent] = vecs
+            for v in vecs:
+                all_vecs.append(v)
+                all_labels.append(intent)
         self._anchor_embeddings = res
+        if all_vecs:
+            self._anchor_matrix = np.array(all_vecs, dtype=np.float32)
+            self._anchor_labels = all_labels
         return res
 
     def _load_intents_config(self, config_path: Path | str | None) -> None:
@@ -425,7 +559,7 @@ class HeuristicRouter:
             r"dig\s+(?:deeper|further|more)|"
             r"search\s+(?:again|more|harder|further)|"
             r"find\s+(?:more|other|different)\s+(?:sources?|results?|information|info)|"
-            r"check\s+(?:other|more|different)\s+(?:sources?|sites?|places?)|"
+            r"check\s+(?:other|more|different)\s+(?:sources?|sites?|websites?|places?)|"
             r"look\s+for\s+(?:more|other|alternative|different)\s+(?:sources?|info|information)"
             r")\b"
         )
@@ -441,23 +575,24 @@ class HeuristicRouter:
         if len(text.split()) <= 1 and text:
             return "clarify", 0.40, entities
 
-        # 8. Semantic Embedding Classification (Anchor Similarity)
+        # 8. Semantic Embedding Classification (Vectorized Anchor Dot-Product)
         # Evaluates cosine similarity against intent anchors when regex yields unknown
         anchors = self._get_anchor_embeddings()
-        if anchors and self.embed_worker is not None:
+        if (
+            anchors
+            and self._anchor_matrix is not None
+            and self._anchor_labels
+            and self.embed_worker is not None
+        ):
             try:
                 q_vecs, _, _ = self.embed_worker.embed_text([text])
                 if q_vecs and any(abs(v) > 1e-6 for v in q_vecs[0]):
-                    qv = np.array(q_vecs[0], dtype=np.float64)
-                    best_sim = -1.0
-                    best_intent: str | None = None
-                    for intent_name, anchor_vecs in anchors.items():
-                        for av in anchor_vecs:
-                            sim = float(np.dot(qv, np.array(av, dtype=np.float64)))
-                            if sim > best_sim:
-                                best_sim = sim
-                                best_intent = intent_name
-                    if best_intent and best_sim >= 0.65:
+                    qv = np.array(q_vecs[0], dtype=np.float32)
+                    sims = np.dot(self._anchor_matrix, qv)
+                    best_idx = int(np.argmax(sims))
+                    best_sim = float(sims[best_idx])
+                    best_intent = self._anchor_labels[best_idx]
+                    if best_intent and best_sim >= 0.28:
                         return best_intent, float(min(best_sim, 0.95)), entities
             except Exception as exc:  # noqa: BLE001
                 logger.debug("semantic_intent_classification_failed", error=str(exc))
@@ -590,6 +725,8 @@ class HeuristicRouter:
                     effective_tier = "E2B"
                 elif "e4b" in cfg_model:
                     effective_tier = "E4B"
+                elif "26b" in cfg_model or "a4b" in cfg_model:
+                    effective_tier = "26B"
                 else:
                     effective_tier = "12B"
             except (AttributeError, KeyError, ValueError, TypeError):
@@ -604,21 +741,73 @@ class HeuristicRouter:
         exposed_libraries: list[str] = []
 
         if action_lit == "LLM":
-            has_cw = bool(CONTAINER_WORLD_PATTERN.search(text_lower))
-            has_z3 = bool(COMBINATORIAL_SMT_PATTERN.search(text_lower))
-            has_soft = bool(SOFT_LOGIC_PATTERN.search(text_lower))
-            has_sympy = bool(MATHEMATICAL_SYMPY_PATTERN.search(text_lower))
+            regex_cw = bool(CONTAINER_WORLD_PATTERN.search(text_lower))
+            regex_spatial = bool(SPATIAL_GRID_PATTERN.search(text_lower))
+            regex_code = bool(CODE_REPAIR_PATTERN.search(text_lower))
+            regex_z3 = bool(COMBINATORIAL_SMT_PATTERN.search(text_lower))
+            regex_sympy = bool(MATHEMATICAL_SYMPY_PATTERN.search(text_lower))
+            regex_soft = bool(SOFT_LOGIC_PATTERN.search(text_lower))
+            regex_web = bool(WEB_SEARCH_PATTERN.search(text_lower))
+
+            has_cw = regex_cw
+            has_spatial_grid = regex_spatial or (intent == "spatial_grid")
+            has_code_repair = regex_code or (intent == "code_repair")
+            has_z3 = regex_z3 or (intent == "logic_constraints")
+            has_soft = regex_soft
+            has_sympy = regex_sympy or (intent == "math_computation")
+            has_science = (intent == "science_research") or any(
+                k in text_lower
+                for k in (
+                    "mechanism",
+                    "chemical reaction",
+                    "photosynthesis",
+                    "spectroscopy",
+                    "lattice",
+                    "biochemical",
+                    "electrophilic",
+                    "orbital",
+                    "quantum state",
+                    "half-life",
+                )
+            )
+            has_web_search = regex_web or (intent in ("web_fetch", "factual_lookup"))
 
             if has_cw:
                 exposed_libraries.append("container_world")
+            if has_spatial_grid:
+                exposed_libraries.append("arc_primitives")
+            if has_code_repair:
+                exposed_libraries.append("swe_bench")
             if has_z3:
                 exposed_libraries.append("z3")
             if has_sympy:
                 exposed_libraries.append("sympy")
+            if (has_science or has_web_search) and "research" not in exposed_libraries:
+                exposed_libraries.append("research")
 
             if has_cw:
                 reasoning_domain = "spatial_relocation"
                 solver_tool = "container_world"
+                thinking_mode = "direct"
+            elif has_spatial_grid:
+                reasoning_domain = "spatial_grid"
+                solver_tool = "arc_primitives"
+                thinking_mode = "thinking"
+            elif has_code_repair:
+                reasoning_domain = "code_repair"
+                solver_tool = "apply_patch"
+                thinking_mode = "thinking"
+            elif regex_z3 and not regex_sympy:
+                reasoning_domain = "combinatorial_smt"
+                solver_tool = "z3_smt"
+                thinking_mode = "direct"
+            elif regex_sympy and not regex_z3:
+                reasoning_domain = "mathematics"
+                solver_tool = "sympy_sandbox"
+                thinking_mode = "direct"
+            elif has_sympy:
+                reasoning_domain = "mathematics"
+                solver_tool = "sympy_sandbox"
                 thinking_mode = "direct"
             elif has_z3:
                 reasoning_domain = "combinatorial_smt"
@@ -630,17 +819,30 @@ class HeuristicRouter:
                     thinking_mode = "direct"  # Avoid 36.7% overthinking collapse on 12B
                 else:
                     thinking_mode = "thinking"  # Capture 23% -> 63% thinking lift on edge tiers
-            elif has_sympy:
-                reasoning_domain = "mathematics"
-                solver_tool = "sympy_sandbox"
-                thinking_mode = "direct"
+            elif has_science:
+                reasoning_domain = "science_research"
+                solver_tool = "research_topic"
+                thinking_mode = "thinking"
+            elif has_web_search:
+                reasoning_domain = "web_search"
+                solver_tool = "search_web"
+                thinking_mode = "thinking"
 
         route_action = RouteAction(action_lit)
 
         # D-DUAL-01: Deliberation lane detection.
         # A turn is routed to the deliberation lane (multi-second budget, floor-hold TTS cue)
-        # when it is a hard reasoning problem: math/SMT/spatial/soft_logic + (>= 15 words or multi-lobe).
-        DELIBERATION_DOMAINS = {"mathematics", "combinatorial_smt", "soft_logic", "spatial_relocation"}
+        # when it is a hard reasoning problem: math/SMT/spatial/soft_logic/science + (>= 15 words or multi-lobe).
+        DELIBERATION_DOMAINS = {
+            "mathematics",
+            "combinatorial_smt",
+            "soft_logic",
+            "spatial_relocation",
+            "science_research",
+            "spatial_grid",
+            "code_repair",
+            "web_search",
+        }
         word_count = len(text_lower.split())
         deliberation_lane = (
             reasoning_domain in DELIBERATION_DOMAINS

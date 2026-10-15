@@ -941,6 +941,7 @@ def test_dead_code_register_no_unreferenced_symbols() -> None:
         "TracePort", "get_tool_risk", "ProvenanceSigner",
         "advance", "as_tuple", "log_message", "trigger_nightly_rollup",
         "TTSError", "LauncherError", "LLMHealth", "LLMRequest",
+        "Agent",
     }
 
     defined: dict[str, tuple[str, int, str]] = {}

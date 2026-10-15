@@ -132,7 +132,7 @@ def run_benchmark_command(name: str, args: list[str], timeout_s: float = 1800.0)
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Master Re-Benchmarking Orchestrator")
-    parser.add_argument("--tier", choices=["12B", "E4B", "E2B", "12b", "e4b", "e2b"], default="12B", help="Active model tier")
+    parser.add_argument("--tier", choices=["26B", "12B", "E4B", "E2B", "26b", "12b", "e4b", "e2b"], default="26B", help="Active model tier")
     parser.add_argument(
         "--arms",
         choices=["all", "compound", "direct_compound"],

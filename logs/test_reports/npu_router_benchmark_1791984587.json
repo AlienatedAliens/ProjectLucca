@@ -1,0 +1,1334 @@
+{
+  "timestamp": 1791984585.057404,
+  "total_queries": 30,
+  "npu": {
+    "device": "NPU",
+    "domain_accuracy_pct": 96.66666666666667,
+    "solver_accuracy_pct": 96.66666666666667,
+    "latency_p50_ms": 3.360200000315672,
+    "latency_p95_ms": 3.551210000478022,
+    "vector_dot_us": 4.850000065440933,
+    "items": [
+      {
+        "query": "Diagnose and fix the bug in this python module where pytest is failing with an AttributeError.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 3.5327999994478887,
+        "all_latencies_ms": [
+          3.623200000220095,
+          3.472499998679268,
+          3.4916000004159287,
+          3.5634000014397316,
+          3.5327999994478887
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Apply a patch to fix the regression in the requests library tests.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 3.44779999977618,
+        "all_latencies_ms": [
+          3.5969000000477536,
+          3.48899999880814,
+          3.44779999977618,
+          3.369300000485964,
+          3.3387000003131106
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Grep the tree for the traceback and run pytest to verify the issue is resolved.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 3.4459999988030177,
+        "all_latencies_ms": [
+          3.660200000012992,
+          3.4459999988030177,
+          3.381200000148965,
+          3.4486999993532663,
+          3.415199998926255
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Inspect lines of marshmallow schema to fix the failing test suite.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 3.398900000320282,
+        "all_latencies_ms": [
+          3.4914999996544793,
+          3.398900000320282,
+          3.378899999006535,
+          3.45980000020063,
+          3.374699999767472
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Investigate the failing unit test in the flask routing engine.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 3.3988999985012924,
+        "all_latencies_ms": [
+          3.3988999985012924,
+          3.52999999995518,
+          3.4403999998176005,
+          3.332300000693067,
+          3.335700001116493
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Transform this concept arc visual reasoning task by flood filling the enclosed shape.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 3.34619999921415,
+        "all_latencies_ms": [
+          3.420900000492111,
+          3.34619999921415,
+          3.3523000001878245,
+          3.3325000003969762,
+          3.333099999508704
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Rotate the 2D grid matrix 90 degrees counter-clockwise.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 3.340000001117005,
+        "all_latencies_ms": [
+          3.3810000004450558,
+          3.311000000394415,
+          3.3351999991282355,
+          3.421600000365288,
+          3.340000001117005
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Apply gravity drop to the falling objects in the demonstration grids.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 3.393199998754426,
+        "all_latencies_ms": [
+          3.393199998754426,
+          3.3438999998907093,
+          3.356899998834706,
+          3.412100000787177,
+          3.4005999987130053
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Extract the connected components and sort them by size in the 2d array.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 3.4152999996877043,
+        "all_latencies_ms": [
+          3.436699998928816,
+          3.440099999352242,
+          3.4152999996877043,
+          3.390600000784616,
+          3.3511999990878394
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Solve this ARC-AGI pattern given the input grid and output grid examples.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 3.3851999996841187,
+        "all_latencies_ms": [
+          3.3671000001049833,
+          3.387500000826549,
+          3.3765000007406343,
+          3.3851999996841187,
+          3.4113999990950106
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Search the web for the latest financial reports of Nvidia for fiscal 2026.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.1157000006060116,
+        "all_latencies_ms": [
+          0.1554000009491574,
+          0.1235999989148695,
+          0.1157000006060116,
+          0.11409999933675863,
+          0.11390000145183876
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Look up online what the current population and GDP of Tokyo are.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.11360000098648015,
+        "all_latencies_ms": [
+          0.1599000006535789,
+          0.1235999989148695,
+          0.11360000098648015,
+          0.10089999886986334,
+          0.09899999895424116
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Perform a web search using searxng to find recent clinical trials on mRNA vaccines.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.13029999900027178,
+        "all_latencies_ms": [
+          0.15889999849605374,
+          0.13140000010025688,
+          0.13029999900027178,
+          0.11540000014065299,
+          0.11319999975967221
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Check other websites and sources online for details on the Artemis mission.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.11389999963284936,
+        "all_latencies_ms": [
+          0.16379999942728318,
+          0.1236000007338589,
+          0.11389999963284936,
+          0.10819999988598283,
+          0.10619999920891132
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Find more information on the web about the James Webb telescope discovery.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.1080999991245335,
+        "all_latencies_ms": [
+          0.17590000061318278,
+          0.11249999988649506,
+          0.1080999991245335,
+          0.10480000128154643,
+          0.1038999998854706
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Solve the zebra puzzle with five houses of different colors and nationalities.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "mathematics",
+        "expected_solver": "z3_smt",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "z3",
+          "sympy"
+        ],
+        "p50_latency_ms": 3.3813999998528743,
+        "all_latencies_ms": [
+          3.404400000363239,
+          3.34139999904437,
+          3.390199999557808,
+          3.3474000010755844,
+          3.3813999998528743
+        ],
+        "domain_match": false,
+        "solver_match": false
+      },
+      {
+        "query": "Einstein's puzzle: who owns the fish given these constraints?",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 3.328399998281384,
+        "all_latencies_ms": [
+          3.31220000043686,
+          3.330699999423814,
+          3.3022000006894814,
+          3.347399999256595,
+          3.328399998281384
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Find an assignment that can satisfy the following constraints using z3 smt solver.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 3.3600000006117625,
+        "all_latencies_ms": [
+          3.4036999986710725,
+          3.410299999814015,
+          3.3590000002732268,
+          3.35090000044147,
+          3.3600000006117625
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "On an island of knights and knaves, A says B is a knave and B says A is a liar.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 3.4304000000702217,
+        "all_latencies_ms": [
+          4.237900000589434,
+          3.4362000005785376,
+          3.3848000002763,
+          3.4304000000702217,
+          3.378899999006535
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Determine which house the green house is next to in this logic grid puzzle.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 3.472800000963616,
+        "all_latencies_ms": [
+          3.472800000963616,
+          3.4230999990541022,
+          3.51799999953073,
+          3.4887000001617707,
+          3.4438000002410263
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Solve the system of equations 2*x + 3*y = 12 and x - y = 1.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 3.521599999658065,
+        "all_latencies_ms": [
+          3.45259999994596,
+          3.4338000004936475,
+          3.521599999658065,
+          3.5705999998754123,
+          3.5368000008020317
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Calculate the eigenvalues and determinant of the 3x3 matrix using sympy.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 3.524600000673672,
+        "all_latencies_ms": [
+          3.5630000002129236,
+          3.524600000673672,
+          3.4337000015511876,
+          3.4219999997731065,
+          4.043499999170308
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Compute the prime factors and gcd of 1024 and 768.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 3.3582000014575897,
+        "all_latencies_ms": [
+          3.3582000014575897,
+          3.3136999991256744,
+          3.3131000000139466,
+          3.3593999996810453,
+          3.380599999218248
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Find the sum of the squares of all the items in the list given sum is 30.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 3.3868999998958316,
+        "all_latencies_ms": [
+          3.3822999994299607,
+          3.3868999998958316,
+          3.4829000014724443,
+          3.4570999996503815,
+          3.3569999995961552
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Evaluate the expression \\log_2(x / (y*z)) given the polynomial roots.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 3.360999999131309,
+        "all_latencies_ms": [
+          3.360999999131309,
+          3.326099998957943,
+          3.3249999996769475,
+          3.415099999983795,
+          3.437199999098084
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Hello Lucca, how are you doing today?",
+        "expected_domain": null,
+        "actual_domain": null,
+        "expected_solver": null,
+        "actual_solver": null,
+        "actual_thinking": "adaptive",
+        "deliberation_lane": false,
+        "exposed_libraries": [],
+        "p50_latency_ms": 0.07969999933266081,
+        "all_latencies_ms": [
+          0.11890000132552814,
+          0.08729999899514951,
+          0.07969999933266081,
+          0.07560000085504726,
+          0.07389999882434495
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Good morning! Thanks so much for your help.",
+        "expected_domain": null,
+        "actual_domain": null,
+        "expected_solver": null,
+        "actual_solver": null,
+        "actual_thinking": "adaptive",
+        "deliberation_lane": false,
+        "exposed_libraries": [],
+        "p50_latency_ms": 0.09679999857326038,
+        "all_latencies_ms": [
+          0.12199999946460593,
+          0.09679999857326038,
+          0.08920000072976109,
+          0.08209999941755086,
+          0.1506000007793773
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Lucca stop right now!",
+        "expected_domain": null,
+        "actual_domain": null,
+        "expected_solver": null,
+        "actual_solver": null,
+        "actual_thinking": "adaptive",
+        "deliberation_lane": false,
+        "exposed_libraries": [],
+        "p50_latency_ms": 3.2798999982333044,
+        "all_latencies_ms": [
+          3.3522000012453645,
+          3.2798999982333044,
+          3.27839999954449,
+          3.2243999994534533,
+          3.2983999990392476
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Where would Danny look to find the earphones given the story?",
+        "expected_domain": "spatial_relocation",
+        "actual_domain": "spatial_relocation",
+        "expected_solver": "container_world",
+        "actual_solver": "container_world",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "container_world"
+        ],
+        "p50_latency_ms": 3.355599999849801,
+        "all_latencies_ms": [
+          3.360400000019581,
+          3.355599999849801,
+          3.3392999994248385,
+          3.3554999990883516,
+          3.4087999993062112
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Who moved the keys from the kitchen to the desk while Alice was away?",
+        "expected_domain": "spatial_relocation",
+        "actual_domain": "spatial_relocation",
+        "expected_solver": "container_world",
+        "actual_solver": "container_world",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "container_world"
+        ],
+        "p50_latency_ms": 3.380699999979697,
+        "all_latencies_ms": [
+          3.335900000820402,
+          3.34610000027169,
+          3.380699999979697,
+          3.393000000869506,
+          3.4054999996442348
+        ],
+        "domain_match": true,
+        "solver_match": true
+      }
+    ]
+  },
+  "cpu": {
+    "device": "CPU",
+    "domain_accuracy_pct": 96.66666666666667,
+    "solver_accuracy_pct": 96.66666666666667,
+    "latency_p50_ms": 4.790449999745761,
+    "latency_p95_ms": 5.737840000256255,
+    "vector_dot_us": 10.806666675004331,
+    "items": [
+      {
+        "query": "Diagnose and fix the bug in this python module where pytest is failing with an AttributeError.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 5.234800000835094,
+        "all_latencies_ms": [
+          5.590400000073714,
+          5.148000000190223,
+          5.703299999368028,
+          4.849100001592888,
+          5.234800000835094
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Apply a patch to fix the regression in the requests library tests.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 5.040000000008149,
+        "all_latencies_ms": [
+          4.375500000605825,
+          4.789500000697444,
+          5.337599999620579,
+          5.040000000008149,
+          5.126399999426212
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Grep the tree for the traceback and run pytest to verify the issue is resolved.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 5.818400000862312,
+        "all_latencies_ms": [
+          5.040699999881326,
+          4.374899999675108,
+          5.818400000862312,
+          7.676600000195322,
+          7.707099999606726
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Inspect lines of marshmallow schema to fix the failing test suite.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 4.775399998834473,
+        "all_latencies_ms": [
+          4.689400000643218,
+          5.125499999849126,
+          4.775399998834473,
+          4.906000000119093,
+          4.717699999673641
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Investigate the failing unit test in the flask routing engine.",
+        "expected_domain": "code_repair",
+        "actual_domain": "code_repair",
+        "expected_solver": "apply_patch",
+        "actual_solver": "apply_patch",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "swe_bench"
+        ],
+        "p50_latency_ms": 4.551500000161468,
+        "all_latencies_ms": [
+          4.551500000161468,
+          5.166599999938626,
+          4.445099999429658,
+          5.2164000007906,
+          4.454599999007769
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Transform this concept arc visual reasoning task by flood filling the enclosed shape.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 4.808300000149757,
+        "all_latencies_ms": [
+          4.615199999534525,
+          4.808300000149757,
+          4.507199999352451,
+          4.8349999997299165,
+          5.2407000002858695
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Rotate the 2D grid matrix 90 degrees counter-clockwise.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 4.628900000170688,
+        "all_latencies_ms": [
+          4.289099999368773,
+          4.800300001079449,
+          4.628900000170688,
+          5.015899998397799,
+          4.578699999910896
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Apply gravity drop to the falling objects in the demonstration grids.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 4.850299999816343,
+        "all_latencies_ms": [
+          4.850299999816343,
+          5.10029999895778,
+          4.495600000154809,
+          4.486999998334795,
+          4.95740000042133
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Extract the connected components and sort them by size in the 2d array.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 4.630400000678492,
+        "all_latencies_ms": [
+          5.864699998710421,
+          5.228099998930702,
+          4.574899998260662,
+          4.630400000678492,
+          4.549100000076578
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Solve this ARC-AGI pattern given the input grid and output grid examples.",
+        "expected_domain": "spatial_grid",
+        "actual_domain": "spatial_grid",
+        "expected_solver": "arc_primitives",
+        "actual_solver": "arc_primitives",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "arc_primitives"
+        ],
+        "p50_latency_ms": 5.205200001000776,
+        "all_latencies_ms": [
+          5.462799999804702,
+          5.205200001000776,
+          5.171499999050866,
+          5.827599999975064,
+          4.687000000558328
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Search the web for the latest financial reports of Nvidia for fiscal 2026.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.1328999987890711,
+        "all_latencies_ms": [
+          0.22139999964565504,
+          0.1328999987890711,
+          0.11840000115626026,
+          0.14039999950909987,
+          0.11930000073334668
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Look up online what the current population and GDP of Tokyo are.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.10760000077425502,
+        "all_latencies_ms": [
+          0.21220000053290278,
+          0.11810000069090165,
+          0.10760000077425502,
+          0.10090000068885274,
+          0.0990999997156905
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Perform a web search using searxng to find recent clinical trials on mRNA vaccines.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.12849999984609894,
+        "all_latencies_ms": [
+          0.22110000099928584,
+          0.14069999997445848,
+          0.12849999984609894,
+          0.12140000035287812,
+          0.12229999992996454
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Check other websites and sources online for details on the Artemis mission.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.11840000115626026,
+        "all_latencies_ms": [
+          0.2184999993914971,
+          0.12849999984609894,
+          0.11840000115626026,
+          0.11409999933675863,
+          0.1128999992943136
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Find more information on the web about the James Webb telescope discovery.",
+        "expected_domain": "web_search",
+        "actual_domain": "web_search",
+        "expected_solver": "search_web",
+        "actual_solver": "search_web",
+        "actual_thinking": "thinking",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "research"
+        ],
+        "p50_latency_ms": 0.11640000047918875,
+        "all_latencies_ms": [
+          0.20790000053239055,
+          0.12790000073437113,
+          0.11640000047918875,
+          0.11169999925186858,
+          0.10840000140888151
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Solve the zebra puzzle with five houses of different colors and nationalities.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "mathematics",
+        "expected_solver": "z3_smt",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "z3",
+          "sympy"
+        ],
+        "p50_latency_ms": 4.84379999943485,
+        "all_latencies_ms": [
+          4.84379999943485,
+          4.688699998951051,
+          5.329200001142453,
+          4.3007999993278645,
+          5.632099999274942
+        ],
+        "domain_match": false,
+        "solver_match": false
+      },
+      {
+        "query": "Einstein's puzzle: who owns the fish given these constraints?",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 5.053300001236494,
+        "all_latencies_ms": [
+          4.94309999885445,
+          5.053300001236494,
+          5.233500000031199,
+          5.334400000720052,
+          4.875700000411598
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Find an assignment that can satisfy the following constraints using z3 smt solver.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 5.009999998947023,
+        "all_latencies_ms": [
+          4.791499999555526,
+          4.618200000550132,
+          5.074900000181515,
+          5.689399999027955,
+          5.009999998947023
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "On an island of knights and knaves, A says B is a knave and B says A is a liar.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 4.943199999615899,
+        "all_latencies_ms": [
+          4.943199999615899,
+          4.791399998794077,
+          5.337099999451311,
+          4.605300000548596,
+          5.788899999970454
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Determine which house the green house is next to in this logic grid puzzle.",
+        "expected_domain": "combinatorial_smt",
+        "actual_domain": "combinatorial_smt",
+        "expected_solver": "z3_smt",
+        "actual_solver": "z3_smt",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "z3"
+        ],
+        "p50_latency_ms": 4.9385000002075685,
+        "all_latencies_ms": [
+          5.1898000001529,
+          4.88740000037069,
+          4.9385000002075685,
+          4.421399999046116,
+          5.229200000030687
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Solve the system of equations 2*x + 3*y = 12 and x - y = 1.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 5.007699999623583,
+        "all_latencies_ms": [
+          5.007699999623583,
+          4.67199999911827,
+          5.3360999991127755,
+          4.779599999892525,
+          5.081400000563008
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Calculate the eigenvalues and determinant of the 3x3 matrix using sympy.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 4.777399999511545,
+        "all_latencies_ms": [
+          5.443000000013853,
+          4.619399998773588,
+          4.9862999985634815,
+          4.599199999574921,
+          4.777399999511545
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Compute the prime factors and gcd of 1024 and 768.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 5.046700000093551,
+        "all_latencies_ms": [
+          5.14629999997851,
+          5.058900000221911,
+          5.046700000093551,
+          4.33809999958612,
+          4.786100000274018
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Find the sum of the squares of all the items in the list given sum is 30.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": true,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 4.956700000548153,
+        "all_latencies_ms": [
+          5.766100000982988,
+          4.743399998915265,
+          5.154700000275625,
+          4.5980000013514655,
+          4.956700000548153
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Evaluate the expression \\log_2(x / (y*z)) given the polynomial roots.",
+        "expected_domain": "mathematics",
+        "actual_domain": "mathematics",
+        "expected_solver": "sympy_sandbox",
+        "actual_solver": "sympy_sandbox",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "sympy"
+        ],
+        "p50_latency_ms": 5.210000001170556,
+        "all_latencies_ms": [
+          5.210000001170556,
+          4.895000000033178,
+          5.328500001269276,
+          5.213599999478902,
+          5.0461999999242835
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Hello Lucca, how are you doing today?",
+        "expected_domain": null,
+        "actual_domain": null,
+        "expected_solver": null,
+        "actual_solver": null,
+        "actual_thinking": "adaptive",
+        "deliberation_lane": false,
+        "exposed_libraries": [],
+        "p50_latency_ms": 0.09970000064640772,
+        "all_latencies_ms": [
+          0.19070000053034164,
+          0.09970000064640772,
+          0.10880000081670005,
+          0.0822000001790002,
+          0.07689999983995222
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Good morning! Thanks so much for your help.",
+        "expected_domain": null,
+        "actual_domain": null,
+        "expected_solver": null,
+        "actual_solver": null,
+        "actual_thinking": "adaptive",
+        "deliberation_lane": false,
+        "exposed_libraries": [],
+        "p50_latency_ms": 0.1461000010749558,
+        "all_latencies_ms": [
+          0.1788000008673407,
+          0.10199999996984843,
+          0.18850000014936086,
+          0.1461000010749558,
+          0.11160000030940864
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Lucca stop right now!",
+        "expected_domain": null,
+        "actual_domain": null,
+        "expected_solver": null,
+        "actual_solver": null,
+        "actual_thinking": "adaptive",
+        "deliberation_lane": false,
+        "exposed_libraries": [],
+        "p50_latency_ms": 5.053599999882863,
+        "all_latencies_ms": [
+          5.053599999882863,
+          5.178399998840177,
+          4.5243999993545,
+          5.08570000056352,
+          4.65500000063912
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Where would Danny look to find the earphones given the story?",
+        "expected_domain": "spatial_relocation",
+        "actual_domain": "spatial_relocation",
+        "expected_solver": "container_world",
+        "actual_solver": "container_world",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "container_world"
+        ],
+        "p50_latency_ms": 4.99630000012985,
+        "all_latencies_ms": [
+          5.619399998977315,
+          5.02270000106364,
+          4.51710000015737,
+          4.99630000012985,
+          4.462099999727798
+        ],
+        "domain_match": true,
+        "solver_match": true
+      },
+      {
+        "query": "Who moved the keys from the kitchen to the desk while Alice was away?",
+        "expected_domain": "spatial_relocation",
+        "actual_domain": "spatial_relocation",
+        "expected_solver": "container_world",
+        "actual_solver": "container_world",
+        "actual_thinking": "direct",
+        "deliberation_lane": false,
+        "exposed_libraries": [
+          "container_world"
+        ],
+        "p50_latency_ms": 4.820399999516667,
+        "all_latencies_ms": [
+          4.820399999516667,
+          5.632800000967109,
+          4.784700000527664,
+          5.98340000033204,
+          4.551500000161468
+        ],
+        "domain_match": true,
+        "solver_match": true
+      }
+    ]
+  }
+}

@@ -491,3 +491,151 @@ class SafeFileTool:
                 "ok": False,
                 "error": str(exc),
             }, str(exc)
+
+    def _resolve_path(self, p: str) -> Path:
+        clean = (p or "").strip().replace("\\", "/")
+        if clean in (".", "", "./"):
+            return Path(self.workspace_root).resolve()
+        return validate_rel_path(clean, self.workspace_root)
+
+    def grep_tree(
+        self,
+        pattern: str,
+        dir_path: str = ".",
+        max_hits: int = 100,
+    ) -> tuple[dict[str, object], str]:
+        """Recursively searches code tree for regex pattern, returning file:line:matched_content."""
+        target_dir = self._resolve_path(dir_path)
+        if not target_dir.is_dir():
+            raise SandboxPathError("not_a_directory", f"Path '{dir_path}' is not a directory")
+
+        try:
+            rx = re.compile(pattern, re.IGNORECASE)
+        except re.error as err:
+            raise SandboxPathError("invalid_regex", f"Invalid regex pattern '{pattern}': {err}") from err
+
+        hits: list[dict[str, object]] = []
+        snippets: list[str] = []
+        for root, dirs, files in os.walk(str(target_dir)):
+            dirs[:] = [
+                d for d in dirs
+                if not d.startswith(".") and d not in ("__pycache__", "venv", ".venv", "node_modules", ".git")
+            ]
+            for fname in files:
+                if fname.startswith("."):
+                    continue
+                fpath = Path(root) / fname
+                try:
+                    rel_p = str(fpath.relative_to(self.workspace_root)).replace("\\", "/")
+                    content = fpath.read_text(encoding="utf-8", errors="replace")
+                    for line_no, line in enumerate(content.splitlines(), start=1):
+                        if rx.search(line):
+                            hits.append({"file": rel_p, "line": line_no, "text": line.strip()})
+                            snippets.append(f"{rel_p}:{line_no}: {line.strip()}")
+                            if len(hits) >= max_hits:
+                                return {
+                                    "hits": hits,
+                                    "count": len(hits),
+                                    "truncated": True,
+                                }, "\n".join(snippets)
+                except (OSError, UnicodeDecodeError):
+                    continue
+
+        return {"hits": hits, "count": len(hits), "truncated": False}, "\n".join(snippets)
+
+    def view_slice(
+        self,
+        path: str,
+        start_line: int = 1,
+        end_line: int = 100,
+    ) -> tuple[dict[str, object], str]:
+        """Reads a slice of lines from a file with 1-indexed line numbers."""
+        target_file = self._resolve_path(path)
+        if not target_file.is_file():
+            raise SandboxPathError("not_a_file", f"Path '{path}' is not a file")
+
+        content = target_file.read_text(encoding="utf-8", errors="replace")
+        all_lines = content.splitlines()
+        total_lines = len(all_lines)
+
+        s = max(1, start_line)
+        e = min(total_lines, max(s, end_line))
+        slice_lines = all_lines[s - 1 : e]
+
+        formatted = [f"{s + i:4d} | {line}" for i, line in enumerate(slice_lines)]
+        header = f"[{path} lines {s}-{e} of {total_lines}]\n"
+        body = "\n".join(formatted)
+
+        return {
+            "path": path,
+            "start_line": s,
+            "end_line": e,
+            "total_lines": total_lines,
+            "count": len(slice_lines),
+        }, header + body
+
+    def apply_patch(
+        self,
+        path: str,
+        target_chunk: str,
+        replacement_chunk: str,
+    ) -> tuple[dict[str, object], str]:
+        """Atomically replaces single unambiguous target_chunk with replacement_chunk in file."""
+        target_file = self._resolve_path(path)
+        if not target_file.is_file():
+            raise SandboxPathError("not_a_file", f"Path '{path}' is not a file")
+
+        content = target_file.read_text(encoding="utf-8", errors="replace")
+        occurrences = content.count(target_chunk)
+        if occurrences == 0:
+            raise SandboxPathError("patch_target_not_found", f"Target chunk not found in '{path}'")
+        if occurrences > 1:
+            raise SandboxPathError(
+                "patch_ambiguous",
+                f"Target chunk found {occurrences} times in '{path}'; must be unique",
+            )
+
+        new_content = content.replace(target_chunk, replacement_chunk, 1)
+        self.write_file(path, new_content, mode="overwrite")
+        return {
+            "path": path,
+            "applied": True,
+            "replaced_bytes": len(target_chunk),
+            "new_bytes": len(replacement_chunk),
+        }, f"Successfully applied patch to '{path}'."
+
+    def run_pytest(
+        self,
+        test_path: str = "",
+        cwd: str = ".",
+        timeout: int = 60,
+    ) -> tuple[dict[str, object], str]:
+        """Runs pytest on test_path in the specified workspace directory."""
+        target_dir = self._resolve_path(cwd)
+        cmd = [sys.executable, "-m", "pytest", "-v"]
+        if test_path.strip():
+            cmd.append(test_path.strip())
+
+        t0 = time.perf_counter()
+        try:
+            proc = subprocess.run(
+                cmd,
+                cwd=str(target_dir),
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            elapsed = (time.perf_counter() - t0) * 1000.0
+            out = proc.stdout + ("\n" + proc.stderr if proc.stderr else "")
+            return {
+                "exit_code": proc.returncode,
+                "passed": proc.returncode == 0,
+                "elapsed_ms": elapsed,
+            }, out[:MAX_PYTHON_STDOUT]
+        except subprocess.TimeoutExpired:
+            return {
+                "exit_code": -1,
+                "passed": False,
+                "error": "timeout",
+            }, f"pytest execution timed out after {timeout}s"

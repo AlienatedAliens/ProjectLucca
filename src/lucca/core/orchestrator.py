@@ -397,7 +397,7 @@ class Orchestrator:
             self.memory_store = MemoryStore(
                 db=self.db,
                 master_key=effective_key,
-                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
+                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device=None)),
             )
 
         if hasattr(self, "router") and hasattr(self.router, "embed_worker"):

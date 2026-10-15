@@ -1,0 +1,114 @@
+{
+  "benchmark": "ConceptARC_DynamicMacro",
+  "model_tag": "Tier0-26B",
+  "mode": "minimal",
+  "timestamp_utc": "2026-10-14T18:19:12.553179+00:00",
+  "total_tasks": 1,
+  "arm_a_control": {
+    "passed": 1,
+    "pass_rate": 1.0,
+    "wilson_ci_95": [
+      0.20654998073085312,
+      1.0
+    ]
+  },
+  "arm_b_dynamic": {
+    "passed": 1,
+    "pass_rate": 1.0,
+    "wilson_ci_95": [
+      0.20654998073085312,
+      1.0
+    ],
+    "dynamic_macro_wins": 1,
+    "fallback_wins": 0
+  },
+  "tasks": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "arm_a_success": true,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": null,
+      "arm_b_success": true,
+      "arm_b_method": "DYNAMIC_MACRO_SYNTHESIS",
+      "arm_b_synthesized_code": "def get_grid_center (grid ):\n    \"\"\"\n    Calculates the integer coordinates of the geometric center of the grid.\n    For even dimensions, it returns the floor of the midpoint to maintain consistency.\n    \"\"\"\n    rows ,cols =grid .shape \n    center_row =rows //2 \n    center_col =cols //2 \n    return (center_row ,center_col )\n\ndef place_pixel (grid ,coords ,color ):\n    \"\"\"\n    Places a single pixel of a specific color at the given coordinates.\n    \"\"\"\n    new_grid =grid .copy ()\n    r ,c =coords \n    new_grid [r ,c ]=color \n    return new_grid\n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Transforms the grid by placing a single pixel of color 2 at the \n    geometric center of the grid.\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n\n    # Calculate the geometric center (floor of midpoint)\n    center_row =rows //2 \n    center_col =cols //2 \n\n    # Create a copy of the grid to maintain shape invariant and avoid mutation\n    new_grid =[row [:]for row in grid ]\n\n    # Place the pixel at the center with color 2\n    new_grid [center_row ][center_col ]=2 \n\n    return new_grid",
+      "arm_b_train_passed": true,
+      "arm_b_repair_rounds": 0,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": null,
+      "elapsed_ms": 56452.19350000116
+    }
+  ]
+}

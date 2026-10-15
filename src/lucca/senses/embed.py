@@ -52,18 +52,28 @@ class EmbedWorker:
         else:
             # Primary: NPU static 128; Fallback: CPU
             target_dev = "NPU" if "NPU" in devices else "CPU"
+
         model = core.read_model(xml_path)
+        try:
+            if target_dev == "NPU":
+                model.reshape(
+                    {"input_ids": [1, 128], "attention_mask": [1, 128], "token_type_ids": [1, 128]}
+                )
+                self.device = "NPU"
+            else:
+                self.device = "CPU"
 
-        if target_dev == "NPU":
-            model.reshape(
-                {"input_ids": [1, 128], "attention_mask": [1, 128], "token_type_ids": [1, 128]}
-            )
-            self.device = "NPU"
-        else:
-            self.device = "CPU"
-
-        self.compiled = core.compile_model(model, target_dev)
-        self.infer_request = self.compiled.create_infer_request()
+            self.compiled = core.compile_model(model, target_dev)
+            self.infer_request = self.compiled.create_infer_request()
+        except Exception as exc:  # noqa: BLE001
+            if target_dev != "CPU":
+                logger.warning("embed_npu_compile_failed_falling_back_to_cpu", error=str(exc))
+                model = core.read_model(xml_path)
+                self.device = "CPU"
+                self.compiled = core.compile_model(model, "CPU")
+                self.infer_request = self.compiled.create_infer_request()
+            else:
+                raise
 
         # Load tokenizer: prefer tokenizers.Tokenizer from tokenizer.json
         tok_json = MODEL_DIR / "tokenizer.json"

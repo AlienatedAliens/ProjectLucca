@@ -75,7 +75,12 @@ def query_llm(
     max_tokens: int = 512,
     temperature: float = 0.0,
     enable_thinking: bool = False,
+    research_context: str = "",
 ) -> str:
+    full_prompt = prompt
+    if research_context:
+        full_prompt = f"{prompt}\n\n[Scientific Literature Findings]\n{research_context}\n\nUse the findings above to rigorously verify physical constants, reaction pathways, and equations."
+
     messages = [
         {
             "role": "system",
@@ -84,7 +89,7 @@ def query_llm(
                 "Solve the scientific question carefully and conclude with your final answer as (A), (B), (C), or (D)."
             ),
         },
-        {"role": "user", "content": prompt},
+        {"role": "user", "content": full_prompt},
     ]
     payload = {
         "messages": messages,
@@ -125,7 +130,7 @@ def extract_answer(text: str) -> str | None:
     return None
 
 
-def run_benchmark(limit: int = 50, seed: int = 42) -> None:
+def run_benchmark(limit: int = 50, seed: int = 42, tool_augmented: bool = False) -> None:
     dataset = load_gpqa_dataset(sample_limit=limit, seed=seed)
     print("==========================================================================", flush=True)
     print("=== PROJECT LUCCA: GPQA DIAMOND SCIENTIFIC REASONING BENCHMARK ===", flush=True)
@@ -165,10 +170,24 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
 
         print(f"[{idx:02d}/{len(dataset):02d}] [{domain}] {rec_id}... ", end="", flush=True)
 
+        research_summary = ""
+        if tool_augmented:
+            try:
+                from lucca.sandbox.research_tool import research_topic
+                _, research_summary = research_topic(q_text, max_sources=2)
+            except Exception as e:
+                print(f"(research failed: {e}) ", end="", flush=True)
+
         # 1. Direct
         t0 = time.perf_counter()
         try:
-            d_out = query_llm(prompt, max_tokens=2048, temperature=0.0, enable_thinking=False)
+            d_out = query_llm(
+                prompt,
+                max_tokens=2048,
+                temperature=0.0,
+                enable_thinking=False,
+                research_context=research_summary,
+            )
             d_sec = time.perf_counter() - t0
             d_pred = extract_answer(d_out)
             d_ok = (d_pred == correct_letter)
@@ -178,7 +197,13 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
         # 2. Thinking
         t0 = time.perf_counter()
         try:
-            th_out = query_llm(prompt, max_tokens=2048, temperature=0.6, enable_thinking=True)
+            th_out = query_llm(
+                prompt,
+                max_tokens=2048,
+                temperature=0.6,
+                enable_thinking=True,
+                research_context=research_summary,
+            )
             th_sec = time.perf_counter() - t0
             th_pred = extract_answer(th_out)
             th_ok = (th_pred == correct_letter)
@@ -205,7 +230,7 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
 
     # Domain Breakdown
     print("\n" + "=" * 60)
-    print("DOMAIN ACCURACY BREAKDOWN")
+    print(f"DOMAIN ACCURACY BREAKDOWN ({'TOOL-AUGMENTED' if tool_augmented else 'CLOSED-BOOK'})")
     print("=" * 60)
     domains = sorted(list(set(r.domain for r in results)))
     for dom in domains:
@@ -221,10 +246,12 @@ def run_benchmark(limit: int = 50, seed: int = 42) -> None:
     print(f"TOTAL: Direct = {total_d}/{n} ({total_d/n*100:.1f}%) | Thinking = {total_th}/{n} ({total_th/n*100:.1f}%)")
     print("=" * 60)
 
-    out_file = REPO_ROOT / "logs" / "test_reports" / f"gpqa_diamond_{int(time.time())}.json"
+    prefix = "gpqa_diamond_tool_augmented" if tool_augmented else "gpqa_diamond"
+    out_file = REPO_ROOT / "logs" / "test_reports" / f"{prefix}_{int(time.time())}.json"
     out_file.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "benchmark": "GPQA_Diamond_Stratified",
+        "mode": "tool_augmented" if tool_augmented else "closed_book",
         "evaluated_at": datetime.now(UTC).isoformat(),
         "total_problems": n,
         "direct_passed": total_d,
@@ -241,5 +268,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GPQA Diamond Benchmark Runner")
     parser.add_argument("--limit", type=int, default=30, help="Number of questions (default: 30)")
     parser.add_argument("--seed", type=int, default=42, help="Sampling seed")
+    parser.add_argument("--tool-augmented", action="store_true", help="Enable research_topic tool augmentation")
     args = parser.parse_args()
-    run_benchmark(limit=args.limit, seed=args.seed)
+    run_benchmark(limit=args.limit, seed=args.seed, tool_augmented=args.tool_augmented)

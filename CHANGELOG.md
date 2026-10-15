@@ -5,6 +5,26 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.43.0] — 2026-10-15
+
+### Added
+- **Tier 0 Flagship MoE Integration & 128k Context Architecture (`models/MANIFEST.json`, `src/lucca/brain/server_ctl.py`):**
+  - Integrated `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` operating at a 128,000-token context window (`-c 131072`) with 18 offloaded layers (`-ngl 18`), Q8_0 KV cache, and N-gram speculative decoding (`--spec-type ngram-mod`).
+  - Validated resident GPU footprint: 14,576 MiB resident, 1,428 MiB headroom on NVIDIA RTX 5080 Laptop GPU (16,303 MiB ceiling).
+- **Four-Tier Neurosymbolic Benchmark Audit Harness (`scripts/run_exhaustive_neurosymbolic_audit.py`):**
+  - Implemented 4-arm publication-grade factorial evaluation harness: Arm A (Direct Control), Arm B (Dynamic Imperative Python in Docker), Arm C (GBNF MicroScheme Functional S-Expressions), Arm D (Unified Neurosymbolic Hybrid).
+  - Built-in live telemetry: prompt/completion token accounting, prefill/generation/CPU/sandbox latency profiling, GPU VRAM peak/temperature monitoring, AST complexity depth, and formal differential regression matrices vs. prior baselines.
+- **Universal Compositional Pipeline Synthesis (Patch v1.1 & v1.2, `src/lucca/reasoning/spatial_scheme.py`, `src/lucca/reasoning/scheme/parser.py`):**
+  - Expanded MicroScheme with discrete combinators: `set-pixel`, `crop-bbox`, `replace-color`, `fill-mask`.
+  - Implemented polymorphic dynamic Python-to-Scheme primitive bridge (`make_dynamic_scheme_primitive`) supporting coordinates, bounding boxes, boolean masks, 2D grids, and integers.
+  - Achieved depth $\ge 2$ compositional pipeline synthesis on `CenterMinimal` (`(set-pixel input (get-center-pixel input) :color ?hole-color)`) across **all four resident model profiles** (26B down to 2B), reducing latency by 64%–77% with 0% syntax errors.
+  - Implemented dual candidate validation (composite helper + standalone candidate) to eliminate helper import/declaration collisions.
+  - Achieved 43.8% (7/16) on Tier 0 (+12.6 pp lift over standalone Python at 31.2%) and rescued `CompleteShapeMinimal` and `InsideOutsideMinimal`.
+- **Lifelong Macro Accumulation Library (`data/learned_macros.json`):**
+  - Dynamic registration of verified helper functions and lifelong macro persistence, enabling cross-task vocabulary reuse.
+- **Master 4-Tier Evaluation Matrix & Documentation:**
+  - Published comprehensive benchmark documentation in `PROJECT_LUCCA_FOUR_TIER_MASTER_BENCHMARK_MATRIX.md` and `REASONING_SYSTEMS_LISP_VS_PYTHON_EMPIRICAL_AUDIT_PLAN.md`.
+
 ## [1.42.0] — 2026-10-13
 
 ### Added

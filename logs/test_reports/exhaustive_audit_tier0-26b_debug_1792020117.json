@@ -1,0 +1,76 @@
+{
+  "benchmark": "Exhaustive_Neurosymbolic_Factorial_Audit",
+  "model_tag": "Tier0-26B",
+  "patch_id": "debug",
+  "split": "minimal",
+  "timestamp_utc": "2026-10-14T23:21:57.113748+00:00",
+  "footprint_telemetry": {
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+      "total_vram_mib": 16303.0,
+      "peak_vram_used_mib": 14754.0,
+      "min_vram_used_mib": 14754.0,
+      "mean_vram_used_mib": 14754.0,
+      "peak_temperature_c": 56.0
+    },
+    "ram": {
+      "total_ram_mb": 64943.1,
+      "peak_ram_used_mb": 46676.2,
+      "min_ram_used_mb": 45761.7,
+      "peak_vmmem_wsl2_mb": 126.4,
+      "peak_llama_server_ram_mb": 26095.8
+    },
+    "samples_count": 15,
+    "duration_s": 30.0
+  },
+  "arm_summaries": {
+    "arm_d": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "wilson_ci_95": [
+        0.20654998073085312,
+        1.0
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 48159.414200003084,
+      "avg_total_tokens": 7420.0
+    }
+  },
+  "differential_matrix": {},
+  "records": [
+    {
+      "task_id": "FilledNotFilledMinimal",
+      "concept": "FilledNotFilled",
+      "tier": "Tier0-26B",
+      "patch_id": "debug",
+      "arm": "Arm_D_Hybrid",
+      "success": true,
+      "method": "PYTHON_FALLBACK",
+      "failure_code": null,
+      "failure_detail": null,
+      "synthesized_program": "def get_connected_components (grid ):\n    \"\"\"\n    Identifies all connected components of non-zero pixels in the grid.\n    Returns a list of sets, where each set contains the (r, c) coordinates \n    of a single connected component.\n    \"\"\"\n    rows =len (grid )\n    cols =len (grid [0 ])\n    visited =set ()\n    components =[]\n\n    for r in range (rows ):\n        for c in range (cols ):\n            if grid [r ][c ]!=0 and (r ,c )not in visited :\n            # Start a new BFS/DFS to find the component\n                component =set ()\n                stack =[(r ,c )]\n                visited .add ((r ,c ))\n\n                while stack :\n                    curr_r ,curr_c =stack .pop ()\n                    component .add ((curr_r ,curr_c ))\n\n                    # Check 4-connectivity (up, down, left, right)\n                    for dr ,dc in [(0 ,1 ),(0 ,-1 ),(1 ,0 ),(-1 ,0 )]:\n                        nr ,nc =curr_r +dr ,curr_c +dc \n                        if 0 <=nr <rows and 0 <=nc <cols :\n                            if grid [nr ][nc ]!=0 and (nr ,nc )not in visited :\n                                visited .add ((nr ,nc ))\n                                stack .append ((nr ,nc ))\n                components .append (component )\n    return components\n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    rows =len (grid )\n    cols =len (grid [0 ])\n\n    def get_connected_components (grid ):\n        visited =set ()\n        components =[]\n        for r in range (rows ):\n            for c in range (cols ):\n                if grid [r ][c ]!=0 and (r ,c )not in visited :\n                    component =set ()\n                    stack =[(r ,c )]\n                    visited .add ((r ,c ))\n                    while stack :\n                        curr_r ,curr_c =stack .pop ()\n                        component .add ((curr_r ,curr_c ))\n                        for dr ,dc in [(0 ,1 ),(0 ,-1 ),(1 ,0 ),(-1 ,0 )]:\n                            nr ,nc =curr_r +dr ,curr_c +dc \n                            if 0 <=nr <rows and 0 <=nc <cols :\n                                if grid [nr ][nc ]!=0 and (nr ,nc )not in visited :\n                                    visited .add ((nr ,nc ))\n                                    stack .append ((nr ,nc ))\n                    components .append (component )\n        return components \n\n    components =get_connected_components (grid )\n    retained_pixels =set ()\n\n    for component in components :\n    # To check if a component has a hollow center (enclosed 0s),\n    # we check if any 0-pixel is completely surrounded by this component.\n    # A simpler way: if we flood-fill from the boundary of the grid, \n    # any 0-pixel not reached is \"enclosed\".\n\n    # However, the task defines \"hollow center\" as an interior area of 0s.\n    # We can check this by seeing if the component \"traps\" any 0s.\n    # We use a local flood fill from the grid edges to find all \"exterior\" 0s.\n\n        is_hollow =False \n        # Find bounding box of component to limit search\n        min_r =min (r for r ,c in component )\n        max_r =max (r for r ,c in component )\n        min_c =min (c for r ,c in component )\n        max_c =max (c for r ,c in component )\n\n        # A component is hollow if there is a 0-pixel inside its bounding box \n        # that cannot reach the grid boundary without passing through the component.\n        # We check all 0s within the bounding box.\n        for r in range (min_r ,max_r +1 ):\n            for c in range (min_c ,max_c +1 ):\n                if grid [r ][c ]==0 and (r ,c )not in component :\n                # Check if this 0 is enclosed by the component\n                # We use BFS to see if this 0 can reach the edge\n                    q =[(r ,c )]\n                    visited_zero ={(r ,c )}\n                    enclosed =True \n                    idx =0 \n                    while idx <len (q ):\n                        curr_r ,curr_c =q [idx ]\n                        idx +=1 \n                        if curr_r ==0 or curr_r ==rows -1 or curr_c ==0 or curr_c ==cols -1 :\n                            enclosed =False \n                            break \n                        for dr ,dc in [(0 ,1 ),(0 ,-1 ),(1 ,0 ),(-1 ,0 )]:\n                            nr ,nc =curr_r +dr ,curr_c +dc \n                            if 0 <=nr <rows and 0 <=nc <cols :\n                                if grid [nr ][nc ]==0 and (nr ,nc )not in visited_zero and (nr ,nc )not in component :\n                                    visited_zero .add ((nr ,nc ))\n                                    q .append ((nr ,nc ))\n                    if enclosed :\n                        is_hollow =True \n                        break \n            if is_hollow :break \n\n        if is_hollow :\n            retained_pixels .update (component )\n\n    new_grid =[[0 for _ in range (cols )]for _ in range (rows )]\n    for r ,c in retained_pixels :\n        new_grid [r ][c ]=grid [r ][c ]\n\n    return new_grid",
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 47739.94500000845,
+        "cpu_hole_enumeration_ms": 68.79969999135938,
+        "sandbox_execution_ms": 4.525899996224325,
+        "total_elapsed_ms": 48159.414200003084,
+        "prompt_tokens": 5590,
+        "completion_tokens": 1830,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 0,
+        "ast_node_count": 0,
+        "complexity_cost": 1003.0,
+        "mdl_bits": 0.0,
+        "candidates_evaluated": 112,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    }
+  ]
+}

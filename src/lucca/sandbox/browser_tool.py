@@ -102,6 +102,13 @@ class HeadlessBrowserTool:
                     blocked_subresources: list[str] = []
 
                     def _ssrf_route_interceptor(route: Route) -> None:
+                        # 1. Drop heavy non-document assets for fast text scraping
+                        resource_type = route.request.resource_type
+                        if resource_type in ("image", "media", "font", "stylesheet"):
+                            route.abort("blockedbyclient")
+                            return
+
+                        # 2. SSRF enforcement for dynamic fetch/scripts
                         req_url = route.request.url
                         try:
                             is_valid, _ = validate_url_ssrf(req_url)
@@ -109,8 +116,13 @@ class HeadlessBrowserTool:
                                 blocked_subresources.append(req_url)
                                 route.abort("blockedbyclient")
                                 return
-                        except Exception as exc:  # noqa: BLE001 — fail closed: any validator error blocks
-                            logger.debug("browser_ssrf_validation_error", error=str(exc))
+                        except SandboxPathError:
+                            # Subresource failed SSRF, query length, or resolution; block silently
+                            blocked_subresources.append(req_url)
+                            route.abort("blockedbyclient")
+                            return
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("browser_subresource_intercept_failed", error=str(exc))
                             blocked_subresources.append(req_url)
                             route.abort("blockedbyclient")
                             return

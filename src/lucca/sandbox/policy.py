@@ -41,6 +41,8 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "search_web": Risk.NETWORK,
     "fetch_url": Risk.NETWORK,
     "browse_page": Risk.NETWORK,
+    "research": Risk.NETWORK,
+    "research_topic": Risk.NETWORK,
     "query_capabilities": Risk.READ,
     "get_task_status": Risk.READ,
     "list_tasks": Risk.READ,
@@ -65,6 +67,10 @@ TOOL_RISK_MAP: dict[str, Risk] = {
     "inbox_handoff": Risk.WRITE,
     "screenshot_capture": Risk.READ,
     "self_history_search": Risk.READ,
+    "grep_tree": Risk.READ,
+    "view_slice": Risk.READ,
+    "apply_patch": Risk.WRITE,
+    "run_pytest": Risk.WRITE,
 }
 
 
@@ -266,7 +272,7 @@ class SequenceGuard:
         """
         import urllib.parse
         # 1. Single-turn sequence checks
-        network_tools = ("fetch_url", "search_web", "browse_page")
+        network_tools = ("fetch_url", "search_web", "browse_page", "research", "research_topic")
         private_read_tools = ("read_file", "note_read", "memory_search", "clipboard_read")
         side_effect_tools = (
             "write_file",

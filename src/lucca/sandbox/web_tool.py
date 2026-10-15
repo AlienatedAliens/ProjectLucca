@@ -25,8 +25,8 @@ except Exception as exc:
 
 from lucca.core.exceptions import SandboxPathError
 
-MAX_URL_LEN: int = 2048
-MAX_QUERY_LEN: int = 1024
+MAX_URL_LEN: int = 4096
+MAX_QUERY_LEN: int = 2048
 MAX_BODY_BYTES: int = 2 * 1024 * 1024  # 2 MiB
 MAX_REDIRECTS: int = 8
 DEFAULT_MAX_CHARS: int = 20000
@@ -163,6 +163,14 @@ def fetch_url(
     max_chars: int = DEFAULT_MAX_CHARS,
     allow_render: bool = False,
 ) -> tuple[dict[str, JsonValue], str]:
+    if not allow_render:
+        try:
+            from lucca.core.config import get_config  # noqa: PLC0415
+
+            allow_render = bool(getattr(getattr(get_config(), "sandbox", None), "allow_render", False))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("allow_render_config_read_error", error=str(exc))
+
     if render:
         if not allow_render:
             raise SandboxPathError(
@@ -285,6 +293,25 @@ def fetch_url(
         html_str = raw_body.decode("latin1", errors="replace")
 
     text = extract_readable_text(html_str)
+
+    # Dynamic JS rendering fallback for SPAs / JS-gated websites
+    if allow_render and ("html" in content_type.lower()) and (
+        len(text.strip()) < 150
+        or any(
+            marker in text.lower()
+            for marker in ("enable javascript", "javascript is required", "need to enable javascript")
+        )
+    ):
+        try:
+            from lucca.sandbox.browser_tool import render_page  # noqa: PLC0415
+
+            rendered_struct, rendered_text = render_page(url=str(resp.url), max_chars=max_chars)
+            if rendered_text and len(rendered_text.strip()) > len(text.strip()):
+                rendered_struct["fallback_from_static"] = True
+                return rendered_struct, rendered_text
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("browser_render_fallback_failed", url=str(resp.url), error=str(exc))
+
     truncated = len(text) > max_chars
     if truncated:
         text = text[:max_chars]

@@ -1,0 +1,85 @@
+{
+  "benchmark": "Exhaustive_Neurosymbolic_Factorial_Audit",
+  "model_tag": "Tier0-26B",
+  "patch_id": "patch-v1.1-hybrid",
+  "split": "minimal",
+  "timestamp_utc": "2026-10-14T20:50:17.932524+00:00",
+  "footprint_telemetry": {
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5080 Laptop GPU",
+      "total_vram_mib": 16303.0,
+      "peak_vram_used_mib": 14722.0,
+      "min_vram_used_mib": 14722.0,
+      "mean_vram_used_mib": 14722.0,
+      "peak_temperature_c": 53.0
+    },
+    "ram": {
+      "total_ram_mb": 64943.1,
+      "peak_ram_used_mb": 45678.5,
+      "min_ram_used_mb": 44924.2,
+      "peak_vmmem_wsl2_mb": 126.7,
+      "peak_llama_server_ram_mb": 24063.7
+    },
+    "samples_count": 4,
+    "duration_s": 8.0
+  },
+  "arm_summaries": {
+    "arm_d": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "wilson_ci_95": [
+        0.20654998073085312,
+        1.0
+      ],
+      "syntax_error_rate": 0.0,
+      "hole_unsat_count": 0,
+      "avg_latency_ms": 3852.4860000034096,
+      "avg_total_tokens": 526.0
+    }
+  },
+  "differential_matrix": {
+    "arm_d": {
+      "baseline_patch": "patch-v1.0-baseline",
+      "rescues_f_to_p": [],
+      "regressions_p_to_f": [],
+      "ties": 1,
+      "discordant_total": 0,
+      "p_value_twosided": 1.0
+    }
+  },
+  "records": [
+    {
+      "task_id": "ExtractObjectsMinimal",
+      "concept": "ExtractObjects",
+      "tier": "Tier0-26B",
+      "patch_id": "patch-v1.1-hybrid",
+      "arm": "Arm_D_Hybrid",
+      "success": true,
+      "method": "SCHEME_NATIVE",
+      "failure_code": null,
+      "failure_detail": null,
+      "synthesized_program": "(crop-to-content input) | binding: {}",
+      "telemetry": {
+        "llm_prefill_ms": 0.0,
+        "llm_generation_ms": 3549.2785000024014,
+        "cpu_hole_enumeration_ms": 285.8109000007971,
+        "sandbox_execution_ms": 0.04569999873638153,
+        "total_elapsed_ms": 3852.4860000034096,
+        "prompt_tokens": 465,
+        "completion_tokens": 61,
+        "gpu_vram_peak_mib": 0.0,
+        "gpu_power_w": 0.0,
+        "gpu_temp_c": 0.0,
+        "host_ram_mb": 0.0,
+        "ast_depth": 2,
+        "ast_node_count": 3,
+        "complexity_cost": 2.0,
+        "mdl_bits": 3.0,
+        "candidates_evaluated": 1,
+        "is_metamorphic_invariant": false,
+        "repair_rounds": 0
+      }
+    }
+  ]
+}

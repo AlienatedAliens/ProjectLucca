@@ -1,0 +1,686 @@
+{
+  "benchmark": "ConceptARC_DynamicMacro",
+  "model_tag": "Tier3-E2B",
+  "mode": "minimal",
+  "timestamp_utc": "2026-10-14T18:47:41.482957+00:00",
+  "total_tasks": 5,
+  "arm_a_control": {
+    "passed": 0,
+    "pass_rate": 0.0,
+    "wilson_ci_95": [
+      0.0,
+      0.43448146575265334
+    ]
+  },
+  "arm_b_dynamic": {
+    "passed": 1,
+    "pass_rate": 0.2,
+    "wilson_ci_95": [
+      0.036224213478337486,
+      0.6244646659732546
+    ],
+    "dynamic_macro_wins": 1,
+    "fallback_wins": 0
+  },
+  "tasks": [
+    {
+      "task_id": "CenterMinimal",
+      "concept": "Center",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": null,
+      "arm_a_failure_reason": "PARSE_ERROR_NO_GRID_DETECTED",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": null,
+      "arm_b_failure_reason": "PARSE_ERROR_NO_GRID_DETECTED",
+      "elapsed_ms": 34586.52639999855
+    },
+    {
+      "task_id": "CompleteShapeMinimal",
+      "concept": "CompleteShape",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "SHAPE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "SHAPE_MISMATCH",
+      "elapsed_ms": 45824.657999997726
+    },
+    {
+      "task_id": "CountMinimal",
+      "concept": "Count",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "SHAPE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          2,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "SHAPE_MISMATCH",
+      "elapsed_ms": 42254.81800000125
+    },
+    {
+      "task_id": "ExtractObjectsMinimal",
+      "concept": "ExtractObjects",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          4,
+          4,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          4,
+          4,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "SHAPE_MISMATCH",
+      "arm_b_success": false,
+      "arm_b_method": "INTERNAL_FALLBACK",
+      "arm_b_synthesized_code": null,
+      "arm_b_train_passed": false,
+      "arm_b_repair_rounds": 2,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          4,
+          4,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          0,
+          0,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          4,
+          4,
+          4,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": "SHAPE_MISMATCH",
+      "elapsed_ms": 40741.3317999999
+    },
+    {
+      "task_id": "FilledNotFilledMinimal",
+      "concept": "FilledNotFilled",
+      "arm_a_success": false,
+      "arm_a_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          3,
+          3,
+          3,
+          3,
+          3,
+          3,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_a_failure_reason": "VALUE_MISMATCH",
+      "arm_b_success": true,
+      "arm_b_method": "DYNAMIC_MACRO_SYNTHESIS",
+      "arm_b_synthesized_code": "def get_largest_component (grid ,color ):\n    \"\"\"Identifies the coordinates of the largest contiguous region of a specific color.\"\"\"\n    binary_mask =(np .array (grid )==color ).astype (int )\n    labeled_array ,num_features =label (binary_mask )\n    if num_features ==0 :\n        return np .array ([])\n\n        # Find the size of each component\n    component_sizes =np .bincount (labeled_array .flatten ())\n    # Index 0 is the background, so we ignore it\n    largest_label =np .argmax (component_sizes [1 :])+1 \n\n    coords =np .argwhere (labeled_array ==largest_label )\n    return coords \n\ndef fill_bounding_box_interior (grid ,coords ):\n    \"\"\"\n    Fills the bounding box of the provided coordinates with the color \n    of the first coordinate, but only if the cell is 'interior' \n    (surrounded by the shape's boundary).\n    In these examples, it effectively fills gaps within the \n    outermost boundary of the largest component.\n    \"\"\"\n    grid_array =np .array (grid )\n    if coords .size ==0 :\n        return grid_array \n\n    min_r ,min_c =coords .min (axis =0 )\n    max_r ,max_c =coords .max (axis =0 )\n    color =grid_array [coords [0 ][0 ],coords [0 ][1 ]]\n\n    # Create a mask of the bounding box\n    for r in range (min_r ,max_r +1 ):\n        for c in range (min_c ,max_c +1 ):\n        # If the cell is 0 and is surrounded by the shape's color \n        # or is part of a 'hole' within the bounding box, fill it.\n        # For these specific examples, filling the bounding box \n        # while respecting the outer limits works.\n            if grid_array [r ,c ]==0 :\n            # Check if it's an internal hole (simple heuristic: \n            # if it's not on the edge of the bounding box)\n                if not (r ==min_r or r ==max_r or c ==min_c or c ==max_c ):\n                    grid_array [r ,c ]=color \n\ndef get_bounding_box (grid ):\n    \"\"\"\n    Identifies the smallest bounding box containing all non-zero elements.\n    Returns (min_row, min_col, max_row, max_col) or None if grid is empty.\n    \"\"\"\n    coords =np .argwhere (grid !=0 )\n    if coords .size ==0 :\n        return None \n    min_r ,min_c =coords .min (axis =0 )\n    max_r ,max_c =coords .max (axis =0 )\n    return (min_r ,min_c ,max_r ,max_c )\n\ndef crop_to_bounding_box (grid ):\n    \"\"\"\n    Crops the input grid to the smallest bounding box containing non-zero pixels.\n    Returns the cropped numpy array.\n    \"\"\"\n    bbox =get_bounding_box (grid )\n    if bbox is None :\n        return np .array ([[]])\n    min_r ,min_c ,max_r ,max_c =bbox \n    return grid [min_r :max_r +1 ,min_c :max_c +1 ]\n\ndef get_connected_components (grid ):\n    \"\"\"\n    Identifies distinct connected components of non-zero pixels.\n    Returns a list of arrays, where each array contains the coordinates \n    of a single component.\n    \"\"\"\n    mask =(grid !=0 ).astype (int )\n    labeled_array ,num_features =label (mask )\n    components =[]\n    for i in range (1 ,num_features +1 ):\n        component_mask =(labeled_array ==i )\n        coords =np .argwhere (component_mask )\n        components .append (coords )\n    return components \n\ndef has_internal_hole (component_coords ):\n    \"\"\"\n    Determines if a connected component of non-zero pixels encloses \n    at least one 'hole' (a region of 0s completely surrounded by the component).\n    \"\"\"\n    # Create a local bounding box to minimize computation\n    min_r ,min_c =component_coords .min (axis =0 )\n    max_r ,max_c =component_coords .max (axis =0 )\n\n    # Extract the sub-grid\n    sub_grid =np .zeros ((max_r -min_r +1 ,max_c -min_c +1 ),dtype =int )\n    for r ,c in component_coords :\n        sub_grid [r -min_r ,c -min_c ]=1 \n\n        # binary_fill_holes fills 0s that are surrounded by 1s\n    filled ,num_holes =binary_fill_holes (sub_grid )\n\n    # A hole exists if the filled area is larger than the original component area\n    # (i.e., there were 0s that got filled)\n    return np .sum (filled )>np .sum (sub_grid )\n\ndef find_connected_components(grid: np.ndarray) -> list[np.ndarray]:\n    \"\"\"\n    Segments the grid into connected components based on non-zero values.\n    Returns a list of boolean masks, where each mask represents a connected component.\n    \"\"\"\n    rows, cols = grid.shape\n    visited = np.zeros((rows, cols), dtype=bool)\n    components = []\n\n    for r in range(rows):\n        for c in range(cols):\n            if grid[r, c] != 0 and not visited[r, c]:\n                component_mask = np.zeros_like(grid, dtype=bool)\n                stack = [(r, c)]\n                visited[r, c] = True\n\n                while stack:\n                    curr_r, curr_c = stack.pop()\n                    component_mask[curr_r, curr_c] = True\n\n                    for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                        nr, nc = curr_r + dr, curr_c + dc\n                        if 0 <= nr < rows and 0 <= nc < cols and \\\n                           grid[nr, nc] != 0 and not visited[nr, nc]:\n                            visited[nr, nc] = True\n                            stack.append((nr, nc))\n\n                if np.any(component_mask):\n                    components.append(component_mask)\n    return components\n\ndef get_bounding_box(mask: np.ndarray) -> tuple[int, int, int, int] | None:\n    \"\"\"\n    Calculates the bounding box (min_r, min_c, max_r, max_c) for a given mask.\n    Returns None if the mask is empty.\n    \"\"\"\n    rows, cols = mask.shape\n    if not np.any(mask):\n        return None\n\n    coords = np.argwhere(mask)\n    min_r = np.min(coords[:, 0])\n    min_c = np.min(coords[:, 1])\n    max_r = np.max(coords[:, 0])\n    max_c = np.max(coords[:, 1])\n\n    return min_r, min_c, max_r, max_c\n\ndef extract_inner_boundary(grid: np.ndarray, component_mask: np.ndarray) -> np.ndarray:\n    \"\"\"\n    Extracts the inner boundary layer of a connected component.\n    This function implements the core logic: if the structure is a frame, it keeps the frame; \n    if it's\n\"\"\"\n\nimport numpy as np \nfrom scipy .ndimage import label \n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Transforms the grid based on the operational hypothesis:\n    1. Identify connected components (non-zero values).\n    2. If a component forms a hollow frame, preserve the frame and zero out the interior.\n    3. If a component is a solid block, zero out the entire structure (as per Example 2).\n    4. Preserve all non-zero colors.\n    \"\"\"\n    grid_np =np .array (grid )\n    rows ,cols =grid_np .shape \n\n    # 1. Find all connected components\n    components =find_connected_components (grid_np )\n\n    # Initialize the output grid to zeros\n    output_grid =np .zeros_like (grid_np )\n\n    for component_mask in components :\n    # Get coordinates of the current component\n        coords =np .argwhere (component_mask )\n        component_size =len (coords )\n\n        if component_size ==0 :\n            continue \n\n            # 2. Determine if the structure is a frame or a solid block\n\n            # Get the bounding box of the component\n        bbox =get_bounding_box (component_mask )\n        min_r ,min_c ,max_r ,max_c =bbox \n\n        # Check if the component fills its entire bounding box (Solid Block)\n        # The bounding box size is (max_r - min_r + 1) * (max_c - min_c + 1)\n        bbox_area =(max_r -min_r +1 )*(max_c -min_c +1 )\n\n        is_solid_block =(component_size ==bbox_area )\n\n        if is_solid_block :\n        # Rule: If the structure is a solid block, zero out the interior (and the structure itself)\n        # Based on Example 2, solid blocks are reduced to zero.\n            pass # output_grid remains 0 in this region\n        else :\n        # Rule: If it's not a solid block, it's a frame or a structure with holes.\n        # We preserve the structure, which implies retaining all non-zero values.\n        # The logic derived from Example 1 and 3 suggests that if it's not a perfect solid block, \n        # we keep the structure as is, as the transformation seems to be about eliminating \n        # *solid* regions, not extracting frames from complex shapes unless the frame is explicitly required.\n\n        # For the specific examples provided:\n        # Ex 1 (Frame): Preserved.\n        # Ex 2 (Solid Block): Zeroed out.\n        # Ex 3 (Frame/Frame-like with internal 0s): Preserved.\n\n        # Since the hypothesis suggests extracting the inner boundary layer for frames, \n        # but Example 1 shows the *entire* structure preserved, we adopt the simpler interpretation:\n        # Only zero out components that are purely solid blocks.\n\n        # Copy the component structure to the output grid\n            output_grid [component_mask ]=grid_np [component_mask ]\n\n            # Convert back to list of lists\n    return output_grid .tolist ()\n\n    # Note: The helper functions provided in the prompt are assumed to be available \n    # (e.g., numpy is imported, and the functions like find_connected_components, \n    # get_bounding_box are defined or imported correctly in the execution environment).",
+      "arm_b_train_passed": true,
+      "arm_b_repair_rounds": 0,
+      "arm_b_predicted_grid": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          5,
+          5,
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          5,
+          5,
+          5,
+          5,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "arm_b_failure_reason": null,
+      "elapsed_ms": 32894.95410000018
+    }
+  ]
+}

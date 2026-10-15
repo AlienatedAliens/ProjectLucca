@@ -126,3 +126,81 @@ def test_routing_shared_python_workspace_and_deliberation_lane() -> None:
     cw_direct.place("Alice", "box", "kitchen", observed_by=["Alice", "Bob"])
     cw_direct.move("Bob", "box", "attic", observed_by=["Bob"])
     assert cw_direct.query("Alice", "box") == "kitchen"
+
+
+def test_routing_spatial_grid_arc() -> None:
+    router = HeuristicRouter()
+    queries = [
+        "Transform this concept arc visual reasoning task by flood filling the shapes.",
+        "Rotate the 2D grid matrix 90 degrees counter-clockwise.",
+        "Apply gravity drop to the falling objects in the demonstration grids.",
+        "Solve this ARC-AGI task given the input grid and output grid examples.",
+    ]
+    for q in queries:
+        dec = router.route(transcript=q)
+        assert dec.action == RouteAction.LLM
+        assert dec.solver_tool == "arc_primitives"
+        assert dec.reasoning_domain == "spatial_grid"
+        assert dec.thinking_mode == "thinking"
+        assert "arc_primitives" in dec.exposed_libraries
+
+
+def test_routing_code_repair_swe_bench() -> None:
+    router = HeuristicRouter()
+    queries = [
+        "Diagnose and fix the failing unit test in the requests library using pytest.",
+        "Apply a patch to resolve the failing test suite in the marshmallow repository.",
+        "Grep the tree for the traceback and run pytest to verify the bug fix.",
+        "Investigate the issue in the codebase and reproduce the issue.",
+    ]
+    for q in queries:
+        dec = router.route(transcript=q)
+        assert dec.action == RouteAction.LLM
+        assert dec.solver_tool == "apply_patch"
+        assert dec.reasoning_domain == "code_repair"
+        assert dec.thinking_mode == "thinking"
+        assert "swe_bench" in dec.exposed_libraries
+
+
+def test_routing_web_search_searxng() -> None:
+    router = HeuristicRouter()
+    queries = [
+        "Search the web for the latest financial reports of Nvidia.",
+        "Look up online what the population of Tokyo is in 2026.",
+        "Perform a web search using searxng for recent quantum computing discoveries.",
+    ]
+    for q in queries:
+        dec = router.route(transcript=q)
+        assert dec.action == RouteAction.LLM
+        assert dec.solver_tool == "search_web"
+        assert dec.reasoning_domain == "web_search"
+        assert dec.thinking_mode == "thinking"
+        assert "research" in dec.exposed_libraries
+
+
+def test_semantic_anchor_vectorized_classification() -> None:
+    from unittest.mock import MagicMock
+    from lucca.senses.embed import EmbedWorker
+
+    mock_worker = MagicMock(spec=EmbedWorker)
+
+    def fake_embed(texts: list[str]) -> tuple[list[list[float]], int, float]:
+        vecs: list[list[float]] = []
+        for t in texts:
+            tl = t.lower()
+            if any(w in tl for w in ("grid", "flood fill", "gravity drop", "concept arc", "blocks")):
+                vecs.append([0.0, 1.0, 0.0, 0.0])
+            elif any(w in tl for w in ("pytest", "patch", "traceback", "repair")):
+                vecs.append([0.0, 0.0, 1.0, 0.0])
+            else:
+                vecs.append([1.0, 0.0, 0.0, 0.0])
+        return vecs, 4, 0.5
+
+    mock_worker.embed_text = fake_embed
+    router = HeuristicRouter(embed_worker=mock_worker)
+
+    # Colloquial spatial query without regex keywords
+    intent, conf, _ = router.classify_intent("can you shift these colored blocks downward")
+    assert intent == "spatial_grid"
+    assert conf >= 0.28
+
