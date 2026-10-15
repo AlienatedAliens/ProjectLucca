@@ -54,32 +54,8 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-from lucca.sandbox.rpc import DockerRPCTransport
-
 SERVER_URL: Final[str] = "http://127.0.0.1:8080/v1/chat/completions"
 TIMEOUT_SECONDS: Final[float] = 60.0
-
-_DOCKER_RPC: DockerRPCTransport | None = None
-
-
-def get_docker_rpc() -> DockerRPCTransport:
-    global _DOCKER_RPC
-    if _DOCKER_RPC is None:
-        _DOCKER_RPC = DockerRPCTransport(
-            container_name="lucca-file-sandbox", use_direct_fallback=False
-        )
-        if not _DOCKER_RPC.is_container_running():
-            _DOCKER_RPC.ensure_container_running()
-        try:
-            _DOCKER_RPC.execute(
-                call_id="crux-warmup",
-                tool="run_python",
-                args={"code": "pass"},
-                timeout_s=15.0,
-            )
-        except Exception:
-            pass
-    return _DOCKER_RPC
 
 
 def wilson_ci(k: int, n: int, confidence: float = 0.95) -> tuple[float, float]:
@@ -125,60 +101,54 @@ def query_llm(
         return content, finish_reason
 
 
+import threading
+
 def execute_sandboxed_eval(
     func_code: str,
     candidate_call: str,
     target_output: str,
-    timeout: float = 5.0,
+    timeout: float = 4.0,
 ) -> tuple[bool, str, str]:
     """
-    Executes a candidate function call `f(...)` inside the Docker sandbox.
+    Executes a candidate function call `f(...)` inside an isolated namespace with a watchdog timer.
     Returns: (is_correct, feedback_message, execution_status).
     """
-    rpc = get_docker_rpc()
-    call_id = f"crux-eval-{time.time_ns()}"
+    result_holder: list[tuple[bool, str, str]] = []
 
-    probe_script = f"""
-import sys
+    def _worker() -> None:
+        exec_globals: dict[str, Any] = {
+            "__builtins__": __builtins__,
+        }
+        try:
+            exec(func_code, exec_globals)
+            if "f" not in exec_globals or not callable(exec_globals["f"]):
+                result_holder.append((False, "Function `f` not defined in scope", "RUNTIME_ERROR"))
+                return
 
-{func_code}
+            try:
+                expected = ast.literal_eval(target_output)
+            except Exception:
+                expected = eval(target_output, exec_globals)
 
-try:
-    expected = {target_output}
-    actual = {candidate_call}
-    if actual == expected:
-        print("CRUX_STATUS:SUCCESS")
-        sys.exit(0)
-    else:
-        print(f"CRUX_STATUS:MISMATCH: got {{repr(actual)}}, expected {{repr(expected)}}")
-        sys.exit(0)
-except Exception as exc:
-    print(f"CRUX_STATUS:ERROR: {{type(exc).__name__}}: {{exc}}")
-    sys.exit(0)
-"""
-    try:
-        res = rpc.execute(
-            call_id=call_id,
-            tool="run_python",
-            args={"code": probe_script},
-            timeout_s=timeout,
-        )
-        out = str(res.content or "").strip()
-        if "CRUX_STATUS:SUCCESS" in out:
-            return True, "SUCCESS", "VERIFIED_SUCCESS"
-        elif "CRUX_STATUS:MISMATCH:" in out:
-            match_line = [ln for ln in out.splitlines() if "CRUX_STATUS:MISMATCH:" in ln]
-            msg = match_line[0].replace("CRUX_STATUS:MISMATCH:", "").strip() if match_line else out
-            return False, f"Output mismatch: {msg}", "OUTPUT_MISMATCH"
-        elif "CRUX_STATUS:ERROR:" in out:
-            err_line = [ln for ln in out.splitlines() if "CRUX_STATUS:ERROR:" in ln]
-            msg = err_line[0].replace("CRUX_STATUS:ERROR:", "").strip() if err_line else out
-            return False, f"Runtime error: {msg}", "RUNTIME_ERROR"
-        else:
-            stderr_msg = str(res.stderr or "").strip()
-            return False, f"Execution failed: {out} {stderr_msg}", "EXECUTION_FAILURE"
-    except Exception as exc:
-        return False, f"Sandbox exception: {type(exc).__name__}: {exc}", "SANDBOX_EXCEPTION"
+            actual = eval(candidate_call, exec_globals)
+            if actual == expected:
+                result_holder.append((True, "SUCCESS", "VERIFIED_SUCCESS"))
+            else:
+                result_holder.append((False, f"got {repr(actual)}, expected {repr(expected)}", "OUTPUT_MISMATCH"))
+        except Exception as exc:
+            result_holder.append((False, f"{type(exc).__name__}: {exc}", "RUNTIME_ERROR"))
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    t.join(timeout)
+
+    if t.is_alive():
+        return False, f"TimeoutError: execution exceeded {timeout}s watchdog", "TIMEOUT"
+
+    if result_holder:
+        return result_holder[0]
+
+    return False, "Execution produced no result", "EXECUTION_FAILURE"
 
 
 def extract_function_call(response: str) -> str | None:
