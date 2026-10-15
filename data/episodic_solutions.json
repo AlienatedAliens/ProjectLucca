@@ -1,0 +1,22 @@
+[
+  {
+    "task_id": "CenterMinimal",
+    "task_hash": "2e9971d1908f278a",
+    "invariant_signature": "shapes:preserve,preserve,preserve|pal:+1,+1,+1",
+    "code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Analyzes the input grid and places a single pixel of color 2 (red) \n    at the exact center of the grid.\n\n    Based on the demonstrations:\n    - Demo 1: 7x7 input -> Output has 2 at [3, 3] (center)\n    - Demo 2: 3x3 input -> Output has 2 at [1, 1] (center)\n    - Demo 3: 9x9 input -> Output has 2 at [4, 4] (center)\n\n    The transformation is an invariant spatial mapping that places a red pixel \n    at the geometric center of the provided grid.\n    \"\"\"\n    import copy \n\n    # Get dimensions of the grid\n    rows =len (grid )\n    if rows ==0 :\n        return grid \n    cols =len (grid [0 ])\n\n    # Create a deep copy of the input grid to avoid mutating the original\n    new_grid =copy .deepcopy (grid )\n\n    # Calculate the center indices\n    # For odd-sized grids (as seen in demos), integer division gives the center\n    center_row =rows //2 \n    center_col =cols //2 \n\n    # Place the red pixel (color 2) at the center\n    new_grid [center_row ][center_col ]=2 \n\n    return new_grid",
+    "method": "CEGIS_UNSHACKLED",
+    "turns_taken": 1,
+    "verified_at": "2026-10-15T06:03:56.310438+00:00",
+    "train_demonstrations_count": 3
+  },
+  {
+    "task_id": "AboveBelow1",
+    "task_hash": "f01f12eabd9acdf7",
+    "invariant_signature": "shapes:preserve,preserve,preserve|pal:subset,subset,subset",
+    "code": "import numpy as np \n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    \"\"\"\n    Analyzes the input grid to identify a 'divider' row (a row that acts as a \n    separator) and removes all non-zero colored objects located below that divider row.\n    \"\"\"\n    # Diagnosis: The previous code failed because it identified the FIRST row \n    # containing any non-zero element as the divider. In Demo 1, the first \n    # non-zero row was the yellow object at row 1, but the divider was the \n    # red line at row 6. The divider is actually the row that is a solid \n    # horizontal line (often a pattern like [8,0,8,0...] or [3,3,3...]) \n    # that separates objects above from objects below.\n\n    grid_np =np .array (grid )\n    rows ,cols =grid_np .shape \n\n    divider_row_idx =-1 \n\n    # A divider row in these tasks is a row that is \"full\" or \"patterned\" \n    # across the width, distinguishing it from small objects.\n    # We look for a row where the number of non-zero elements is high \n    # relative to the width, or specifically a row that is a single color \n    # or a repeating pattern.\n    for r in range (rows ):\n        row_data =grid_np [r ]\n        non_zero_indices =np .where (row_data !=0 )[0 ]\n\n        if len (non_zero_indices )==0 :\n            continue \n\n            # Check if the row is a solid line of a single color\n        unique_vals =np .unique (row_data [non_zero_indices ])\n        if len (unique_vals )==1 :\n        # If it's a solid line of non-zero color, it's a strong candidate\n        # In Demo 1, row 6 is [2,2,2...], in Demo 2, row 2 is [3,3,3...]\n            if len (non_zero_indices )>cols *0.8 :# High density\n                divider_row_idx =r \n                break \n\n                # Check for the specific pattern seen in Demo 3: [8, 0, 8, 0...]\n                # This is a row where non-zero elements are spread out but frequent.\n        if len (non_zero_indices )>0 and len (non_zero_indices )%2 ==0 :\n        # Check if it's a pattern like 8,0,8,0\n            is_pattern =True \n            for i in range (len (non_zero_indices )-1 ):\n                if non_zero_indices [i +1 ]-non_zero_indices [i ]!=2 :\n                    is_pattern =False \n                    break \n            if is_pattern and len (non_zero_indices )>cols *0.3 :\n                divider_row_idx =r \n                break \n\n    if divider_row_idx ==-1 :\n        return grid \n\n        # Create output: Keep everything up to and including the divider row.\n        # Everything below the divider row becomes 0.\n    output_grid =np .zeros_like (grid_np )\n    output_grid [:divider_row_idx +1 ,:]=grid_np [:divider_row_idx +1 ,:]\n\n    return output_grid .tolist ()",
+    "method": "CEGIS_UNSHACKLED",
+    "turns_taken": 2,
+    "verified_at": "2026-10-15T06:05:14.470676+00:00",
+    "train_demonstrations_count": 3
+  }
+]
