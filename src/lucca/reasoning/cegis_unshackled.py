@@ -36,9 +36,20 @@ import scipy.ndimage
 
 import structlog
 
+from lucca.reasoning import spatial_anchors
 from lucca.sandbox.preflight import extract_python_code
 
 logger = structlog.get_logger(__name__)
+
+
+def extract_hypothesis(text: str) -> str | None:
+    """Extracts structured hypothesis block from model response if present."""
+    m = re.search(r"(?:HYPOTHESIS|Hypothesis):?\s*(.+?)(?=```python|```|$)", text, re.DOTALL | re.IGNORECASE)
+    if m:
+        cleaned = m.group(1).strip()
+        return cleaned if len(cleaned) > 10 else None
+    return None
+
 
 # ARC Standard Palette (0-9)
 ARC_PALETTE_NAMES: Final[dict[int, str]] = {
@@ -368,7 +379,7 @@ def execute_unshackled_python(
     """
     t0 = time.perf_counter()
 
-    # Clean execution namespace with general scientific tools
+    # Clean execution namespace with general scientific tools & spatial anchors
     exec_globals: dict[str, Any] = {
         "np": np,
         "numpy": np,
@@ -378,6 +389,22 @@ def execute_unshackled_python(
         "collections": sys.modules.get("collections"),
         "math": sys.modules.get("math"),
         "copy": sys.modules.get("copy"),
+        # General Spatial Anchors & Image Processing Utilities
+        "spatial": spatial_anchors,
+        "bbox": spatial_anchors.bbox,
+        "crop": spatial_anchors.crop,
+        "centroid": spatial_anchors.centroid,
+        "connected_components": spatial_anchors.connected_components,
+        "is_identical_shape": spatial_anchors.is_identical_shape,
+        "rot90": spatial_anchors.rot90,
+        "flip_h": spatial_anchors.flip_h,
+        "flip_v": spatial_anchors.flip_v,
+        "flood_fill": spatial_anchors.flood_fill,
+        "find_cavities": spatial_anchors.find_cavities,
+        "color_counts": spatial_anchors.color_counts,
+        "canvas": spatial_anchors.canvas,
+        "paste": spatial_anchors.paste,
+        "Component": spatial_anchors.Component,
     }
 
     result_holder: list[Any] = []
@@ -467,6 +494,8 @@ class CEGISTurn:
     execution_error: str | None
     prompt_used: str
     elapsed_ms: float
+    hypothesis: str | None = None
+    is_backtrack: bool = False
 
 
 @dataclass(frozen=True)
@@ -544,9 +573,9 @@ class UnshackledCEGISEngine:
         task_data: dict[str, Any],
         hint: str | None = None,
         temperature: float = 0.2,
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str | None, str]:
         """
-        Synthesizes initial candidate Python program (Turn 1).
+        Synthesizes initial candidate Python program (Turn 1) using Hypothesis-First Abduction.
         Provides unrestricted scientific libraries and zero handcoded benchmark DSL functions.
         """
         train_pairs: list[dict[str, list[list[int]]]] = task_data.get("train", [])
@@ -562,14 +591,32 @@ class UnshackledCEGISEngine:
             "Analyze the following input-output grid demonstrations carefully:",
             "",
             train_desc,
+            "Format Requirement (Hypothesis-First):",
+            "Begin your response with a concise HYPOTHESIS block before emitting code:",
+            "HYPOTHESIS:",
+            "- Background Color: <int> (<name>)",
+            "- Canvas Sizing: <same_as_input | fixed HxW | cropped | expanded>",
+            "- Objects & Topology: <individual pixels | 4-connected | 8-connected | cavities | lines>",
+            "- Core Transformation Invariant: <1-2 sentences clearly stating the spatial rule>",
+            "- Algorithmic Recipe: <step 1, step 2, step 3>",
+            "",
+            "Available Pre-Imported Spatial Utilities (Zero-Boilerplate Image Processing):",
+            "- `connected_components(arr, connectivity=8, background=0)`: returns list of Component objects with `.color`, `.mask`, `.bbox`, `.area`, `.centroid`, `.cropped_mask()`",
+            "- `bbox(mask)`: returns (min_r, min_c, max_r, max_c, h, w) or None",
+            "- `crop(arr, bbox_tuple)`: crops subgrid corresponding to bbox",
+            "- `centroid(mask)`: returns (mean_r, mean_c)",
+            "- `is_identical_shape(mask_a, mask_b)`: returns True if two binary shapes are identical under translation",
+            "- `find_cavities(arr, background_val=0)`: returns boolean mask of enclosed interior voids",
+            "- `flood_fill(arr, start_r, start_c, fill_val)`: 4-way flood fill",
+            "- `rot90(arr, k=1)`, `flip_h(arr)`, `flip_v(arr)`: symmetry transformations",
+            "- `canvas(h, w, fill_val=0)`: returns fresh numpy canvas of shape (h, w)",
+            "- `paste(base, patch, top_r, left_c, transparent_val=None)`: pastes patch onto base grid",
+            "",
             "Specifications & Rules:",
             "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` that solves this transformation.",
-            "2. You may write any necessary helper functions or use numpy, scipy.ndimage, itertools, and math.",
+            "2. STRONGLY PREFERRED: Use the pre-imported spatial utilities (`connected_components`, `find_cavities`, `bbox`, `crop`, `is_identical_shape`, `paste`) instead of writing manual BFS/DFS loops. Do NOT write manual BFS queues or flood-fills from scratch; call the built-in utilities.",
             "3. The grid values are integers 0-9 representing discrete colors (0=black, 1=blue, 2=red, 3=green, 4=yellow, 5=gray, 6=magenta, 7=orange, 8=cyan, 9=maroon).",
-            "4. Object Connectivity: Objects can be 4-connected (orthogonal neighbors) or 8-connected (orthogonal + diagonal). You can use `scipy.ndimage.label(arr, structure=np.ones((3,3)))` for 8-connected components, or `structure=np.array([[0,1,0],[1,1,1],[0,1,0]])` for 4-connected components.",
-            "5. Relational Invariants: When multiple objects exist, consider relations between them: identical shape templates (comparing bounding-box-cropped binary masks across colors to find same vs different shapes), relative object sizes/areas, enclosure, or alignments.",
-            "6. Boundary Conditions: Be careful with canvas boundaries (row 0 to H-1, col 0 to W-1) to avoid stopping one cell early or overshooting.",
-            "7. Return ONLY executable Python code inside a single ```python ... ``` block. Do NOT write extensive text essays inside comments or docstrings; prioritize clean, complete, fully closed Python code.",
+            "4. Return executable Python code inside a single ```python ... ``` block. Prioritize clean, complete, fully closed Python code.",
         ]
 
         if hint:
@@ -580,11 +627,12 @@ class UnshackledCEGISEngine:
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
-            max_tokens=2048,
+            max_tokens=3072,
         )
 
         code = extract_python_code(response_text)
-        return code, prompt
+        hypothesis = extract_hypothesis(response_text)
+        return code, hypothesis, prompt
 
     def verify_candidate(
         self,
@@ -619,7 +667,8 @@ class UnshackledCEGISEngine:
         err_msg: str | None,
         turn_num: int,
         temperature: float = 0.25,
-    ) -> tuple[str, str]:
+        prior_hypothesis: str | None = None,
+    ) -> tuple[str, str | None, str]:
         """
         Synthesizes a repaired program using structured counterexample diffs (Turn 2..K).
         """
@@ -638,15 +687,17 @@ class UnshackledCEGISEngine:
             f"Your previous Python code failed on Demonstration {failing_idx + 1}.",
             "",
             f"Previous Code Attempt:\n```python\n{prior_code}\n```",
-            "",
-            "### Failure Diagnostic:",
         ]
+
+        if prior_hypothesis:
+            repair_prompt_lines.append(f"\nPrevious Hypothesis:\n{prior_hypothesis}\n")
+
+        repair_prompt_lines.append("### Failure Diagnostic:")
 
         if err_msg:
             repair_prompt_lines.append(f"- Execution Runtime Error: {err_msg}")
         elif diff:
             repair_prompt_lines.append(diff.format_counterexample_prompt(max_examples=16))
-            # Include small ASCII side-by-side snippet
             outcome = execute_unshackled_python(prior_code, failing_pair["input"])
             if outcome.success and outcome.output_grid:
                 side_by_side = render_grid_side_by_side(
@@ -663,11 +714,10 @@ class UnshackledCEGISEngine:
             "Instructions for Repair:",
             "1. Keep any diagnosis comment strictly under 2 lines (# Diagnosis: ...). Do NOT write lengthy text essays in docstrings or comments.",
             "2. Prioritize writing complete, fully closed code: make sure all loops, brackets, and functions are complete before returning.",
-            "3. Check connectivity: if diagonal pixels touch to form shapes, use 8-connectivity (`scipy.ndimage.label(arr, structure=np.ones((3,3)))`).",
-            "4. Check relational invariants: if objects are being filtered or matched, check whether the criterion is identical binary shape templates (cropping components to bounding boxes and comparing boolean shapes across colors).",
-            "5. Modify your logic so that it satisfies Demonstration 1, 2, ... and ALL others simultaneously.",
-            "6. Ensure `def transform(grid: list[list[int]]) -> list[list[int]]:` is robust and handles canvas boundaries properly.",
-            "7. Return ONLY executable Python code inside a single ```python ... ``` block.",
+            "3. STRONGLY PREFERRED: Use spatial utilities (`connected_components`, `find_cavities`, `bbox`, `crop`, `is_identical_shape`, `paste`) instead of writing manual BFS/DFS loops. Do NOT write manual BFS queues from scratch.",
+            "4. Modify your logic so that it satisfies Demonstration 1, 2, ... and ALL others simultaneously.",
+            "5. Ensure `def transform(grid: list[list[int]]) -> list[list[int]]:` is robust and handles canvas boundaries properly.",
+            "6. Return ONLY executable Python code inside a single ```python ... ``` block. Prioritize clean, complete, fully closed Python code.",
         ])
 
         prompt = "\n".join(repair_prompt_lines)
@@ -675,11 +725,91 @@ class UnshackledCEGISEngine:
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
-            max_tokens=2048,
+            max_tokens=3072,
         )
 
         code = extract_python_code(response_text)
-        return code, prompt
+        hypothesis = extract_hypothesis(response_text)
+        return code, hypothesis, prompt
+
+    def synthesize_backtrack_turn(
+        self,
+        task_data: dict[str, Any],
+        turn_num: int,
+        failed_hypotheses: list[str],
+        prior_error: str | None = None,
+        temperature: float = 0.35,
+    ) -> tuple[str, str | None, str]:
+        """
+        Synthesizes a fresh candidate from scratch when previous branches reached an impasse.
+        Discards the failed code branch and forces the model to explore an alternative hypothesis.
+        """
+        train_pairs: list[dict[str, list[list[int]]]] = task_data.get("train", [])
+        train_desc = self._format_train_examples(train_pairs)
+
+        system_prompt = (
+            "You are an expert algorithmic programmer and neurosymbolic reasoning engine.\n"
+            "Your previous hypothesis failed completely. You must formulate a fresh, alternative conceptual hypothesis "
+            "and implement a brand-new transformation function from scratch."
+        )
+
+        user_prompt_lines: list[str] = [
+            f"### CLEAN-SLATE BACKTRACKING (TURN {turn_num}):",
+            "The previous code branch failed completely across all demonstrations (0 passed).",
+            "CRITICAL: Discard the previous approach completely. Do NOT attempt to patch it.",
+            "",
+            "Previous Failed Hypotheses:",
+        ]
+        for idx, h in enumerate(failed_hypotheses, start=1):
+            user_prompt_lines.append(f"- Hypothesis {idx}: {h}")
+
+        if prior_error:
+            user_prompt_lines.append(f"\nObserved Failure: {prior_error}")
+
+        user_prompt_lines.extend([
+            "",
+            "Formulate a FRESH, ALTERNATIVE hypothesis from scratch.",
+            "Consider whether:",
+            "- Background color was misidentified (e.g. non-zero background or inverted foreground).",
+            "- Connectivity is 8-connected instead of 4-connected (or vice-versa).",
+            "- The rule depends on enclosed cavities, hollow shapes, or spatial order (top-to-bottom / size).",
+            "- The output canvas has different dimensions or is a crop of a specific bounding box.",
+            "- The transformation is rotational or reflective symmetry.",
+            "",
+            "Format Requirement (Hypothesis-First):",
+            "Begin with a fresh HYPOTHESIS block before the code:",
+            "HYPOTHESIS:",
+            "- Background Color: <int> (<name>)",
+            "- Canvas Sizing: <same_as_input | fixed HxW | cropped | expanded>",
+            "- Objects & Topology: <individual pixels | 4-connected | 8-connected | cavities | lines>",
+            "- Core Transformation Invariant: <1-2 sentences clearly stating the fresh rule>",
+            "- Algorithmic Recipe: <step 1, step 2, step 3>",
+            "",
+            "Available Pre-Imported Spatial Utilities:",
+            "- `connected_components(arr, connectivity=8, background=0)`: returns list of Component objects",
+            "- `bbox(mask)`, `crop(arr, bbox_tuple)`, `centroid(mask)`, `is_identical_shape(mask_a, mask_b)`",
+            "- `find_cavities(arr, background_val=0)`, `flood_fill(arr, r, c, fill_val)`",
+            "- `rot90(arr, k=1)`, `flip_h(arr)`, `flip_v(arr)`, `canvas(h, w, fill_val=0)`, `paste(...)`",
+            "",
+            "All Training Demonstrations for Reference:",
+            train_desc,
+            "Specifications & Rules:",
+            "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` that solves this transformation.",
+            "2. STRONGLY PREFERRED: Use built-in spatial utilities (`connected_components`, `find_cavities`, `bbox`, `is_identical_shape`) instead of manual BFS loops.",
+            "3. Return executable Python code inside a single ```python ... ``` block. Prioritize clean, complete, fully closed Python code.",
+        ])
+
+        prompt = "\n".join(user_prompt_lines)
+        response_text = self.query_llm(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=3072,
+        )
+
+        code = extract_python_code(response_text)
+        hypothesis = extract_hypothesis(response_text)
+        return code, hypothesis, prompt
 
     def run_cegis_loop(
         self,
@@ -698,27 +828,51 @@ class UnshackledCEGISEngine:
 
         traces: list[CEGISTurn] = []
         current_code: str = ""
+        current_hypothesis: str | None = None
         turn_idx = 1
         limit_turns = effective_max_turns
+        consecutive_zero_passes = 0
 
         while turn_idx <= limit_turns:
             turn_t0 = time.perf_counter()
 
             if turn_idx == 1:
-                code, prompt = self.synthesize_turn_1(task_data, hint=hint, temperature=0.2)
+                code, hypo, prompt = self.synthesize_turn_1(task_data, hint=hint, temperature=0.2)
+                is_backtrack = False
             else:
                 last_trace = traces[-1]
-                code, prompt = self.synthesize_repair_turn(
-                    prior_code=current_code,
-                    task_data=task_data,
-                    failing_idx=last_trace.first_failure_idx or 0,
-                    diff=last_trace.failure_diff,
-                    err_msg=last_trace.execution_error,
-                    turn_num=turn_idx,
-                    temperature=0.2 + (min(turn_idx, 5) * 0.05),
+                should_backtrack = (
+                    consecutive_zero_passes >= 1
+                    and (turn_idx >= 3 or last_trace.execution_error is not None)
                 )
+                if should_backtrack:
+                    failed_hypos = [t.hypothesis for t in traces if t.hypothesis]
+                    if not failed_hypos and current_hypothesis:
+                        failed_hypos = [current_hypothesis]
+                    code, hypo, prompt = self.synthesize_backtrack_turn(
+                        task_data=task_data,
+                        turn_num=turn_idx,
+                        failed_hypotheses=failed_hypos,
+                        prior_error=last_trace.execution_error or (f"Cell diff on demo {last_trace.first_failure_idx + 1}" if last_trace.failure_diff else None),
+                        temperature=0.35,
+                    )
+                    is_backtrack = True
+                else:
+                    code, hypo, prompt = self.synthesize_repair_turn(
+                        prior_code=current_code,
+                        task_data=task_data,
+                        failing_idx=last_trace.first_failure_idx or 0,
+                        diff=last_trace.failure_diff,
+                        err_msg=last_trace.execution_error,
+                        turn_num=turn_idx,
+                        temperature=0.2 + (min(turn_idx, 5) * 0.05),
+                        prior_hypothesis=current_hypothesis,
+                    )
+                    is_backtrack = False
 
             current_code = code
+            if hypo:
+                current_hypothesis = hypo
             turn_elapsed = (time.perf_counter() - turn_t0) * 1000.0
 
             if not code or not code.strip():
@@ -733,14 +887,22 @@ class UnshackledCEGISEngine:
                         execution_error="No executable Python code extracted from LLM response.",
                         prompt_used=prompt,
                         elapsed_ms=turn_elapsed,
+                        hypothesis=current_hypothesis,
+                        is_backtrack=is_backtrack,
                     )
                 )
+                consecutive_zero_passes += 1
                 turn_idx += 1
                 continue
 
             all_passed, passed_count, fail_idx, fail_diff, err_msg = self.verify_candidate(
                 code, train_pairs
             )
+
+            if passed_count == 0:
+                consecutive_zero_passes += 1
+            else:
+                consecutive_zero_passes = 0
 
             traces.append(
                 CEGISTurn(
@@ -753,6 +915,8 @@ class UnshackledCEGISEngine:
                     execution_error=err_msg,
                     prompt_used=prompt,
                     elapsed_ms=turn_elapsed,
+                    hypothesis=current_hypothesis,
+                    is_backtrack=is_backtrack,
                 )
             )
 
@@ -762,6 +926,7 @@ class UnshackledCEGISEngine:
                 passed=passed_count,
                 total=total_examples,
                 all_passed=all_passed,
+                is_backtrack=is_backtrack,
                 elapsed_ms=turn_elapsed,
             )
 

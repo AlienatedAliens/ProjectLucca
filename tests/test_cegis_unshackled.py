@@ -116,3 +116,51 @@ def test_render_grid_ansi_and_side_by_side() -> None:
     assert "--- EXPECTED ---" in side_by_side
     assert "--- PREDICTED ---" in side_by_side
     assert "--- DIFF MASK ---" in side_by_side
+
+
+def test_execute_unshackled_python_with_spatial_anchors() -> None:
+    code = """
+def transform(grid):
+    arr = np.array(grid)
+    comps = connected_components(arr, connectivity=8, background=0)
+    out = canvas(arr.shape[0], arr.shape[1], fill_val=0)
+    for c in comps:
+        # Fill cavities if any
+        cavs = find_cavities(arr, background_val=0)
+        out[c.mask] = c.color
+        out[cavs] = 4 # yellow fill
+    return out.tolist()
+"""
+    grid_in = [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 0, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+    ]
+    outcome = execute_unshackled_python(code, grid_in)
+    assert outcome.success is True
+    assert outcome.output_grid is not None
+    assert outcome.output_grid[2][2] == 4  # Cavity filled with yellow!
+    assert outcome.output_grid[1][1] == 1
+
+
+def test_extract_hypothesis() -> None:
+    from lucca.reasoning.cegis_unshackled import extract_hypothesis
+
+    response = """
+HYPOTHESIS:
+- Background Color: 0 (black)
+- Objects: Blue hollow square
+- Invariant: Fill the center cavity with yellow
+
+```python
+def transform(grid):
+    return grid
+```
+"""
+    hypo = extract_hypothesis(response)
+    assert hypo is not None
+    assert "Background Color: 0" in hypo
+    assert "Fill the center cavity with yellow" in hypo
+

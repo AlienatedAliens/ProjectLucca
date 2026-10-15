@@ -169,6 +169,7 @@ class ReasoningREPL:
         self.active_task_path: Path | None = None
         self.active_task_data: dict[str, Any] | None = None
         self.candidate_code: str | None = None
+        self.candidate_hypothesis: str | None = None
         self.candidate_scheme: str | None = None
         self.latest_cegis_result: CEGISRunResult | None = None
         self.history: list[str] = []
@@ -194,6 +195,7 @@ class ReasoningREPL:
             self.active_task_path = path
             self.active_task_data = data
             self.candidate_code = None
+            self.candidate_hypothesis = None
             self.candidate_scheme = None
             self.latest_cegis_result = None
 
@@ -385,7 +387,7 @@ class ReasoningREPL:
 
         print(f"\nSynthesizing candidate transformation for \033[1;36m{self.active_task_id}\033[0m...")
         t0 = time.perf_counter()
-        code, prompt = self.engine.synthesize_turn_1(self.active_task_data, hint=hint)
+        code, hypo, prompt = self.engine.synthesize_turn_1(self.active_task_data, hint=hint)
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
         if not code or not code.strip():
@@ -393,7 +395,10 @@ class ReasoningREPL:
             return
 
         self.candidate_code = code
+        self.candidate_hypothesis = hypo
         print(f"Generated Turn 1 Code ({elapsed_ms:.2f} ms):")
+        if hypo:
+            print(f"\033[1;33mAbduced Spatial Hypothesis:\033[0m\n{hypo}\n")
         self.print_code()
         self.verify_candidate()
 
@@ -426,13 +431,14 @@ class ReasoningREPL:
             print(f"Discrepancy: {fail_diff.summary_message}")
 
         t0 = time.perf_counter()
-        repaired_code, _ = self.engine.synthesize_repair_turn(
+        repaired_code, hypo, _ = self.engine.synthesize_repair_turn(
             prior_code=self.candidate_code,
             task_data=self.active_task_data,
             failing_idx=fail_idx or 0,
             diff=fail_diff,
             err_msg=err_msg,
             turn_num=turn_num,
+            prior_hypothesis=self.candidate_hypothesis,
         )
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -441,7 +447,36 @@ class ReasoningREPL:
             return
 
         self.candidate_code = repaired_code
+        if hypo:
+            self.candidate_hypothesis = hypo
         print(f"Synthesized Repaired Code ({elapsed_ms:.2f} ms):")
+        self.print_code()
+        self.verify_candidate()
+
+    def backtrack_cegis(self) -> None:
+        """Triggers a clean-slate backtrack turn, discarding failed code and seeking a fresh hypothesis."""
+        if not self.active_task_data:
+            print("No active task loaded. Use `load <task>` first.")
+            return
+
+        print(f"\n--- Clean-Slate Backtracking for \033[1;36m{self.active_task_id}\033[0m ---")
+        failed_hypos = [self.candidate_hypothesis] if self.candidate_hypothesis else []
+        t0 = time.perf_counter()
+        code, hypo, _ = self.engine.synthesize_backtrack_turn(
+            task_data=self.active_task_data,
+            turn_num=2,
+            failed_hypotheses=failed_hypos,
+            temperature=0.35,
+        )
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if not code or not code.strip():
+            print("\033[1;31mBacktrack Failed: No executable Python extracted.\033[0m")
+            return
+        self.candidate_code = code
+        self.candidate_hypothesis = hypo
+        print(f"Synthesized Fresh Candidate via Backtracking ({elapsed_ms:.2f} ms):")
+        if hypo:
+            print(f"\033[1;33mNew Spatial Hypothesis:\033[0m\n{hypo}\n")
         self.print_code()
         self.verify_candidate()
 
@@ -672,11 +707,13 @@ class ReasoningREPL:
         """Prints current session status."""
         task_str = f"\033[1;36m{self.active_task_id}\033[0m" if self.active_task_id else "None"
         code_str = f"Available ({len(self.candidate_code.splitlines())} lines)" if self.candidate_code else "None"
+        hypo_str = f"Available ({len(self.candidate_hypothesis.splitlines())} lines)" if self.candidate_hypothesis else "None"
         cache_stats = self.cache.stats()
 
         print("\n=== Lucca Reasoning REPL Status ===")
         print(f"  Active Task:     {task_str}")
         print(f"  Candidate Code:  {code_str}")
+        print(f"  Spatial Hypo:    {hypo_str}")
         print(f"  LLM Server:      {self.server_url}")
         print(f"  Episodic Cache:  {cache_stats['total_solutions']} solutions indexed")
         print()
@@ -696,9 +733,11 @@ Visualization:
   diff [train_idx]              Side-by-side Input, Expected, Predicted, and Diff Mask
 
 Evaluation & Induction:
-  induce [hint]                 Synthesize Turn 1 candidate code using Unshackled Tool Induction
+  induce [hint]                 Synthesize Turn 1 candidate code using Hypothesis-First Induction
   step                          Run 1 turn of Counterexample-Guided Inductive Synthesis (CEGIS)
-  auto [max_turns]              Run full autonomous CEGIS loop until 100% verified
+  backtrack                     Clean-slate backtrack: discard failed branch and seek fresh hypothesis
+  auto [max_turns]              Run full autonomous CEGIS loop with adaptive backtracking
+  hypothesis                    Display active spatial transformation hypothesis
   verify                        Verify current candidate code against all training examples
   test                          Execute candidate code on unseen test inputs
   code                          Display current candidate code with line numbers
@@ -720,8 +759,8 @@ General:
     def run_interactive(self) -> None:
         """Starts the interactive read-eval-print loop."""
         print("\033[1;35m" + "=" * 60)
-        print("  Project Lucca — General Reasoning & CEGIS REPL (v1.44.0)")
-        print("  Autonomous Tool Induction & Multi-Domain Program Synthesis")
+        print("  Project Lucca — General Reasoning & CEGIS REPL (v1.45.0)")
+        print("  Abductive Induction, Spatial Anchors & Adaptive CEGIS")
         print("=" * 60 + "\033[0m")
         print("Type `help` for command list, or `load CenterMinimal` to get started.\n")
 
@@ -781,6 +820,13 @@ General:
                 self.induce_turn_1(hint=hint)
             elif cmd == "step":
                 self.step_cegis()
+            elif cmd == "backtrack":
+                self.backtrack_cegis()
+            elif cmd == "hypothesis":
+                if self.candidate_hypothesis:
+                    print(f"\n\033[1;33m=== Active Spatial Hypothesis ===\033[0m\n{self.candidate_hypothesis}\n")
+                else:
+                    print("No spatial hypothesis currently active.")
             elif cmd == "auto":
                 max_t = int(args[0]) if args and args[0].isdigit() else 4
                 self.auto_cegis(max_turns=max_t)

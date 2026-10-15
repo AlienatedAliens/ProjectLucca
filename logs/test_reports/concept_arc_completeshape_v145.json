@@ -1,0 +1,59 @@
+{
+  "benchmark": "ConceptARC",
+  "version": "1.44.0",
+  "timestamp": "2026-10-15T15:27:24.424654+00:00",
+  "total_tasks": 2,
+  "train_solved": 1,
+  "train_accuracy": 0.5,
+  "train_wilson_95_ci": [
+    0.09453148796027494,
+    0.905468512039725
+  ],
+  "test_solved": 0,
+  "test_accuracy": 0.0,
+  "test_wilson_95_ci": [
+    0.0,
+    0.6576188570228346
+  ],
+  "cache_hits": 0,
+  "total_elapsed_ms": 295652.60880000005,
+  "avg_task_ms": 147826.30440000002,
+  "by_concept": {
+    "CompleteShape": {
+      "tasks_evaluated": 2,
+      "train_solved": 1,
+      "train_accuracy": 0.5,
+      "test_solved": 0,
+      "test_accuracy": 0.0,
+      "test_wilson_95_ci": [
+        0.0,
+        0.6576188570228346
+      ],
+      "avg_task_ms": 147826.30440000002
+    }
+  },
+  "records": [
+    {
+      "task_id": "CompleteShape1",
+      "concept": "CompleteShape",
+      "train_solved": true,
+      "test_solved": false,
+      "turns_taken": 3,
+      "from_cache": false,
+      "elapsed_ms": 158752.53100000008,
+      "error_summary": null,
+      "code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    if not grid or not grid [0 ]:\n        return grid \n\n    H =len (grid )\n    W =len (grid [0 ])\n\n    # Create a copy to avoid mutating the original input\n    new_grid =[row [:]for row in grid ]\n\n    # Find the vertical extent of all non-zero pixels\n    min_r =H \n    max_r =-1 \n    for r in range (H ):\n        for c in range (W ):\n            if grid [r ][c ]!=0 :\n                if r <min_r :\n                    min_r =r \n                if r >max_r :\n                    max_r =r \n\n                    # If the grid is empty, return it\n    if max_r ==-1 :\n        return new_grid \n\n        # The transformation is a vertical reflection (top-to-bottom symmetry)\n        # We iterate through the rows and try to mirror them from the bottom part of the shape\n    for r in range (min_r ,max_r +1 ):\n    # Calculate the reflected row index within the bounding box of the shape\n    # The center of the shape is (min_r + max_r) / 2\n    # The reflection of r is: min_r + max_r - r\n        r_ref =min_r +max_r -r \n\n        # We only care about mirroring if the reflected row is within the shape bounds\n        if min_r <=r_ref <=max_r :\n        # Check each column\n            for c in range (W ):\n            # If the current pixel is 0 but the reflected pixel is non-zero,\n            # and the reflected pixel is part of a pattern, fill it.\n            # We use the color of the reflected pixel.\n                if grid [r ][c ]==0 and grid [r_ref ][c ]!=0 :\n                # Check if this is a valid \"completion\". \n                # In Demo 1, row 2 is filled by row 8.\n                # In Demo 2, row 5 is filled by row 0.\n                    new_grid [r ][c ]=grid [r_ref ][c ]\n\n                    # Second pass: sometimes the reflection itself needs to be applied to the other side\n                    # (i.e., if we filled row 2 from row 8, we might need to ensure row 8 is consistent, \n                    # though in these demos the source is already complete).\n                    # Let's refine: the rule is likely \"make the shape vertically symmetric\".\n\n                    # Re-run the logic to ensure symmetry is fully applied\n    for r in range (min_r ,max_r +1 ):\n        r_ref =min_r +max_r -r \n        if min_r <=r_ref <=max_r :\n            for c in range (W ):\n                if new_grid [r ][c ]==0 and new_grid [r_ref ][c ]!=0 :\n                    new_grid [r ][c ]=new_grid [r_ref ][c ]\n                elif new_grid [r_ref ][c ]==0 and new_grid [r ][c ]!=0 :\n                # This handles cases where the bottom is the template\n                    pass \n\n    return new_grid"
+    },
+    {
+      "task_id": "CompleteShape10",
+      "concept": "CompleteShape",
+      "train_solved": false,
+      "test_solved": false,
+      "turns_taken": 3,
+      "from_cache": false,
+      "elapsed_ms": 136900.07779999997,
+      "error_summary": "Failed to satisfy 100% of demonstrations after 3 turns.",
+      "code": "import numpy as np \n\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    grid_np =np .array (grid )\n    rows ,cols =grid_np .shape \n\n    # Find the color of the object (assuming only one non-zero color exists)\n    unique_colors =np .unique (grid_np )\n    object_color =None \n    for color in unique_colors :\n        if color !=0 :\n            object_color =color \n            break \n\n    if object_color is None :\n        return grid \n\n        # Create a mask of the background\n    background_mask =(grid_np ==0 )\n\n    # We want to find all 0-pixels that cannot reach the boundary.\n    # We can do this by performing a flood fill from all boundary 0-pixels.\n    # Any 0-pixel not reached by this flood fill is an internal cavity.\n\n    reachable_from_boundary =np .zeros_like (background_mask ,dtype =bool )\n\n    # Stack of pixels to visit for flood fill\n    stack =[]\n\n    # Initialize stack with all 0-pixels on the boundary\n    for r in range (rows ):\n        if grid_np [r ,0 ]==0 :\n            stack .append ((r ,0 ))\n            reachable_from_boundary [r ,0 ]=True \n        if grid_np [r ,cols -1 ]==0 :\n            stack .append ((r ,cols -1 ))\n            reachable_from_boundary [r ,cols -1 ]=True \n\n    for c in range (cols ):\n        if grid_np [0 ,c ]==0 :\n            if not reachable_from_boundary [0 ,c ]:\n                stack .append ((0 ,c ))\n                reachable_from_boundary [0 ,c ]=True \n        if grid_np [rows -1 ,c ]==0 :\n            if not reachable_from_boundary [rows -1 ,c ]:\n                stack .append ((rows -1 ,c ))\n                reachable_from_boundary [rows -1 ,c ]=True \n\n                # Standard BFS/DFS to find all reachable 0-pixels\n    while stack :\n        curr_r ,curr_c =stack .pop ()\n\n        # Check 4-neighbors\n        for dr ,dc in [(-1 ,0 ),(1 ,0 ),(0 ,-1 ),(0 ,1 )]:\n            nr ,nc =curr_r +dr ,curr_c +dc \n            if 0 <=nr <rows and 0 <=nc <cols :\n                if grid_np [nr ,nc ]==0 and not reachable_from_boundary [nr ,nc ]:\n                    reachable_from_boundary [nr ,nc ]=True \n                    stack .append ((nr ,nc ))\n\n                    # The cavities are the 0-pixels that are NOT reachable from the boundary\n    output_grid =grid_np .copy ()\n    cavity_mask =background_mask &(~reachable_from_boundary )\n    output_grid [cavity_mask ]=object_color \n\n    return output_grid .tolist ()"
+    }
+  ]
+}
