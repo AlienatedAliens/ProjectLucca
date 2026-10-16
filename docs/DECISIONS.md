@@ -450,5 +450,79 @@
   5. **Hardware Budget Invariant:** $\Delta\text{VRAM} = 0\,\text{MB}$ strictly enforced on dGPU. CPU-only execution on Intel Core Ultra host threads.
 - **Status:** Ratified & Enforced (`src/lucca/reasoning/consolidation.py`, `src/lucca/evaluation/in_d_grader.py`, `tests/test_wo34_proactive_reflection.py`, `logs/test_reports/personhood/in_d_latest.json`).
 
+### D-REAS-13 — Relational Mereotopological Kernel & Discrete Topological Invariants (Organ A) (v1.46.0) *(ratified 2026-10-16)*
+- **Decision:** Formalizes the separation between continuous spatial approximations and discrete qualitative mereotopology to eliminate the 22% ConceptARC relational ceiling and prevent benchmark-tuning:
+  1. **Four-Way Relation Disambiguation:** Strictly prohibits any monolithic `is_inside` catch-all predicate. Formally separates:
+     - `during`: Allen 1D interval containment (closed integer ranges for grids, real bounds for $\mathbb{R}$).
+     - `part_of`: Exact spatial subset ($A \subseteq B$).
+     - `in_cavity`: Discrete grid cavity enclosure via 4-connected border-complement flood-fill ($A \subseteq \text{holes}(B) \land A \cap B = \emptyset$).
+     - `scope_contains`: Lexical AST containment (Carrier 3, deferred).
+  2. **Discrete vs. Continuous Meets Boundary Contract:** Closed discrete intervals require $e_A + 1 == s_B$; continuous intervals require $e_A == s_B$. Discrete intervals are typed strictly as `int`.
+  3. **Data-Frozen Composition Table & Literature Diff:** The canonical $13 \times 13 = 169$ entry Allen composition table is frozen in data and verified:
+     - **Zero Literature Diff:** Programmatically audited across all 169 cells against Table 1 of James F. Allen (1983), *"Maintaining Knowledge about Temporal Intervals"*, Communications of the ACM 26(11): 832–843 via `scripts/audit_allen_169_literature.py`. Confirmed 100% exact symbolic match across all 169 cells, including:
+       - `STARTS ∘ BEFORE` $\to$ `{BEFORE}`
+       - `STARTED_BY ∘ BEFORE` $\to$ `{BEFORE, MEETS, OVERLAPS, FINISHED_BY, CONTAINS}` ($si \circ < = \{<, m, o, fi, di\}$)
+       - `OVERLAPS ∘ DURING` $\to$ `{DURING, OVERLAPS, STARTS}`
+       - `MEETS ∘ OVERLAPS` $\to$ `{BEFORE}`
+       - `DURING ∘ CONTAINS` $\to$ $\mathbf{U}$ (all 13 relations)
+       - `CONVERSE(MEETS)` $\equiv$ `MET_BY`, `CONVERSE(STARTS)` $\equiv$ `STARTED_BY`, `CONVERSE(FINISHES)` $\equiv$ `FINISHED_BY`.
+     - **Synthetic Soundness:** Verified across 2,000 random triples $(\text{rel}(I, K) \in \text{compose}(\text{rel}(I, J), \text{rel}(J, K)))$.
+  4. **The Anti-Benchmax Acceptance Gate:** The relational kernel must contain zero benchmark references. Acceptance is gated exclusively on synthetic unit generators ($10^3$ intervals, $10^3$ holed masks with puncture tests) and the mandatory U-shape concavity disagreement test (`in_cavity == False` while `bbox_during == True`).
+  5. **Induction Wiring Invariant & Live Probe:** Synthesizer prompts and execution namespaces are injected with pre-imported relational operators (`in_cavity`, `above`, `below`, `left_of`, `right_of`, `part_of`); raw 40-line `grid[i][j]` index loops are strictly deprecated. Empirically validated on live silicon (`scripts/probe_relational_induction_live.py`) across 6 runs: 0% bbox fallbacks, 83.3% relational primitive emission on closed rings and open concavities.
+   7. **Locked ConceptARC InsideOutside Benchmark Sweep:** Evaluated full 10-task corpus with episodic cache disabled on Tier 0 silicon (`scripts/run_concept_arc_full.py --concepts InsideOutside --disable-cache`). Solved **2 / 10 (20.0%)** on held-out test sets (`InsideOutside2` in 4 turns, `InsideOutside3` in 2 turns; Wilson 95% CI `[5.7% - 51.0%]`, mean latency 155.8s). Zero syntax truncations, zero numpy rank crashes. Established that remaining failures stem from multi-container combinatorial scene bindings and linear prompt history trapping rather than topological blindness.
+- **Status:** Ratified & Enforced (`src/lucca/reasoning/relational/sorts.py`, `src/lucca/reasoning/relational/allen.py`, `src/lucca/reasoning/relational/mereo.py`, `src/lucca/reasoning/relational/realize_grid.py`, `src/lucca/reasoning/relational/realize_real.py`, `src/lucca/reasoning/cegis_unshackled.py`, `src/lucca/reasoning/spatial_anchors.py`, `tests/reasoning/relational/`, `logs/test_reports/probe_relational_induction_live.json`, `logs/test_reports/concept_arc_inside_outside_organ_a.json`).
 
+### D-REAS-14 — The "Show Me the Code" Principle: Source-Level Verification of Architectural Lift (v1.46.0) *(ratified 2026-10-16)*
+- **Context:** Following the 2/10 (20.0%) pass on the locked ConceptARC `InsideOutside` benchmark, superficial metrics initially appeared to license groundbreaking on Organ B (`search/`). However, rigorous source-code inspection of the two passing programs (`InsideOutside2` and `InsideOutside3`) revealed that neither task invoked `in_cavity` or mereotopological primitives; task 2 solved via manual 1D collinearity arithmetic, and task 3 solved via a 30-line manual BFS queue and an axis-aligned bounding box (`min_r < y_r < max_r`). Organ A had scored zero points on the benchmark scoreboard because the prompt allowed the LLM to relapse into training-distribution boilerplate.
+- **Decision:**
+  1. **Causal Source Attribution:** When a benchmark metric shifts, inspect the emitted source code of all passing tasks before attributing lift to any architectural subsystem. A metric shift proves only *that* an outcome changed, never *what* caused it.
+  2. **No Architectural Expansion Without Causal Verification:** Expansion into search harnesses, meta-trees, or new packages is strictly frozen until the generator demonstrably and naturally emits the intended primitives on the target benchmark.
+  3. **Remediation Order:** Prompt inversion (primitives in top 20 lines), contextual heuristic banning (banning `min/max` bounding boxes for enclosure queries, banning single-container `max(..., key=len)` assumptions), and lightweight in-process Best-of-$K$ sampling ($K \in \{2, 4\}$) must precede any multi-file architectural refactor.
+- **Status:** Ratified & Enforced (`src/lucca/reasoning/cegis_unshackled.py`, `docs/DECISIONS.md`).
 
+### D-REAS-15 — Mereotopological Competence Boundary & Anti-Benchmax Principle (v1.46.2) *(ratified 2026-10-17)*
+- **Context:** Following prompt inversion and Best-of-$K$ sampling ($K=8$, low-T schedule $T \in [0.1, 0.5]$) in `cegis_unshackled.py`, the locked ConceptARC `InsideOutside` benchmark ($N=10$, cache disabled) on Tier 0 silicon (`gemma-4-26B`) yielded a verified **5 / 10 (50.0%)** train pass and **4 / 10 (40.0%)** held-out test pass (`InsideOutside2`, `InsideOutside4`, `InsideOutside5`, `InsideOutside7`), Wilson 95% CI `[16.8% - 68.7%]`, mean latency 369.4s. 100% of winning source files invoke verified Organ A primitives (`in_cavity`, `extract_cavities`, `is_between`) with zero bounding-box cheats.
+- **Decision:**
+  1. **Mereotopological Competence:** Organ A's qualitative spatial primitives (`in_cavity`, `part_of`, `is_between`, Allen interval calculus) are verified on physical silicon for discrete, closed-boundary entities.
+  2. **Topological Veracity vs. Visual Gap-Closing:** On discrete integer grids with open boundaries (e.g. U-shapes with gaps) or disconnected pixels, `in_cavity` returns `False`. This is the topologically correct outcome. Pixel-level Gestalt continuation is an out-of-scope perceptual grouping problem, not a mereotopological defect.
+  3. **Prohibition of Ad-Hoc Filters:** Adding dataset-specific heuristics (e.g., `in_concavity`, morphological dilation/closing with arbitrary kernel sizes) to satisfy open-cup benchmarks constitutes benchmaxxing and is strictly forbidden.
+  4. **Empirical AST Mutator Verification:** The domain-agnostic AST mutators in `cegis_unshackled.py` demonstrated genuine programmatic repair on live silicon: on `InsideOutside4`, the mutator inverted `if in_cavity(...)` to `if not in_cavity(...)`, rescuing the candidate from 0/4 to 4/4 train pass and unlocking a 100% held-out test pass without human intervention.
+  5. **Final Locked Baseline & Archival:** ConceptARC `InsideOutside` is permanently locked at **4 / 10 (40.0%)** held-out test pass (5/10 train pass). The task runner for `InsideOutside` is archived from the active development loop.
+  6. **Preservation of the Spatial Faculty:** Spatial and relational reasoning remains permanently in Lucca's core as callable, unit-tested tools (`spatial_anchors.py`, `relational/`). Evaluation shifts to real-world domains where spatial and interval logic naturally apply (event sequences, episodic memory timestamps via Allen calculus, and structured code hierarchies).
+- **Status:** Ratified & Enforced (`src/lucca/reasoning/spatial_anchors.py`, `src/lucca/reasoning/cegis_unshackled.py`, `tests/reasoning/test_cegis_ast_mutators.py`, `logs/test_reports/concept_arc_inside_outside_k8.json`, `docs/DECISIONS.md`).
+
+### D-MEM-10 — Qualitative Temporal Memory Retrieval via Allen Interval Algebra (v1.46.3) *(ratified 2026-10-17)*
+- **Context:** Following the ratification of D-REAS-13 (169-cell verified Allen interval algebra) and D-REAS-15 (closure of ARC benchmark), project focus pivoted to sovereign companion capabilities. Episodic memory queries in natural dialogue frequently involve qualitative temporal relationships ("what did we discuss before X?", "what was true during 2024?", "events overlapping interval Y") rather than pure semantic text similarity or strict Unix timestamp cutoffs (`since`).
+- **Decision:**
+  1. **Allen Interval Algebra Bridge:** Bridge `src/lucca/reasoning/relational/allen.py` (`relation_1d`, `AllenRelation`, `Interval1D`) directly into `src/lucca/memory/retrieval.py` (`HybridRetriever`) and `src/lucca/core/schemas.py` (`RetrievalQuery`).
+  2. **Two-Clock Disambiguation:** Disambiguate the two fundamentally different temporal dimensions in episodic memory:
+     - **Interaction Clock (`created_at`):** When dialogue occurred (*"What did we discuss before the benchmark?"*). Default clock for conversational queries.
+     - **World Fact Clock (`[valid_from, valid_to)`):** When a world fact was valid in reality (*"Who lived in Melbourne during 2024?"*).
+     Explicitly specified via `RetrievalQuery.temporal_clock: Literal["created_at", "valid_time"]`.
+  3. **Qualitative Relations:** Implemented `_eval_temporal_constraint` supporting four intuitive qualitative constraints:
+     - `before`: Event interval is strictly before or meets anchor (`AllenRelation.BEFORE`, `MEETS`).
+     - `after`: Event interval is strictly after or met by anchor (`AllenRelation.AFTER`, `MET_BY`).
+     - `during`: Event interval is contained within or equals anchor (`AllenRelation.DURING`, `STARTS`, `FINISHES`, `EQUALS`).
+     - `overlaps`: Event interval overlaps or intersects anchor (`rel not in (BEFORE, AFTER, MEETS, MET_BY)`).
+  4. **Degenerate Point Event Handling:** Point events (`evt_start == evt_end`) are nudged by $10^{-6}\text{s}$ to guarantee robust continuous interval algebra evaluation without topological singularities.
+  5. **Pure Temporal Candidate Fallback:** When sparse and dense text ranks are empty (e.g. empty `query_text`), candidate selection falls back to the most recent memories (`ORDER BY created_at DESC LIMIT MAX_CANDIDATES * 2`) to ensure pure temporal queries succeed.
+  6. **Historical Validity Preservation:** When querying the `valid_time` clock, facts with non-null `valid_to` (historical facts whose validity has ended) are preserved and evaluated against the anchor interval, even if `include_superseded` is False.
+  7. **Anti-Cathedral Invariant:** Temporal filtering is implemented directly in-process in `src/lucca/memory/retrieval.py` with zero new packages, maintaining zero external dependencies and strict zero-`Any` typing per `D-AUD-01`.
+- **Status:** Ratified & Enforced (`src/lucca/core/schemas.py`, `src/lucca/memory/retrieval.py`, `src/lucca/core/cascade.py`, `tests/test_temporal_retrieval.py`).
+
+### D-MEM-11 — Natural Dialogue Temporal Extraction & Empirical LongMemEval Verification (v1.46.4) *(ratified 2026-10-17)*
+- **Context:** Following the ratification of D-MEM-10 (Allen interval algebra in `HybridRetriever`), qualitative temporal filtering required callers to manually construct structured `RetrievalQuery` objects with pre-calculated `Interval1D` anchors. Conversational turns in daily companion dialogue arrive as natural language queries (*"What was my role in 2024?"*, *"What recipe ideas did we discuss before the benchmark?"*). To be fully autonomous and sovereign, the retrieval engine must parse temporal cues and resolve conversational anchors automatically without external NLP services.
+- **Decision:**
+  1. **In-Process Dialogue Surface Extraction (`extract_temporal_constraints`):**
+     - Calendar Years: Matches patterns like `in 2024`, `during 2023` and binds a 1-year interval $[T_{\text{start}}, T_{\text{end}})$ on the `valid_time` clock with constraint `during`.
+     - Relative Conversational Windows: Resolves `yesterday`, `today`, `last week`, `last month`, `earlier today`, and `previously` into precise timestamp boundaries on the `created_at` clock.
+     - Conversational Event Anchors: Resolves relational clauses (`before [the] <topic>`, `after [the] <topic>`) by executing a fast SQLite look-behind (`SELECT created_at FROM memories WHERE content LIKE ... ORDER BY created_at ASC/DESC LIMIT 1`) to dynamically ground the event's exact point in time as the anchor interval.
+  2. **Query Lexical Sanitization (`_clean_temporal_query`):** Strips temporal phrases from the user prompt before passing it to BM25 sparse matching and dense vector embeddings, stripping extraneous whitespace while strictly preserving punctuation (`What was my role ?` $\to$ `What was my role?`), avoiding query contamination.
+  3. **Universal Transparent Hooking:** Extracted temporal constraints are hooked directly into `HybridRetriever.search` when `query.temporal_anchor is None`. Every retrieval surface—including `EpistemicSearchCascade`, console chat, and background daemons—transparently receives temporal filtering without bespoke caller middleware.
+  4. **Empirical Verification on Live Silicon (`logs/test_reports/longmemeval_pipeline_26B_TEMPORAL_AUDIT_1792178121.json`):**
+     - Evaluated live on resident Tier 0 silicon (`gemma-4-26B`) across LongMemEval's `temporal-reasoning` subset.
+     - **Accuracy:** Bare History Truncation = **1 / 5 (20.0%)** vs. Lucca Compound Memory Pipeline = **4 / 5 (80.0%)** (**+60.0 pp net lift**).
+     - **Discordant Pairs:** $b = 0, c = 3$ (zero regressions, 3 net rescues).
+     - **Recall@k:** 5 / 5 (100.0%) for compound pipeline.
+     - **Latency:** Average hybrid retrieval latency = **9.8 ms** (comfortably within the 15–40 ms budget; $\Delta\text{VRAM} = 0\,\text{MB}$).
+- **Status:** Ratified & Enforced (`src/lucca/memory/retrieval.py`, `src/lucca/memory/store.py`, `src/lucca/ports.py`, `tests/test_temporal_retrieval.py`, `scripts/run_longmemeval_pipeline_benchmark.py`).

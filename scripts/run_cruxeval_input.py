@@ -341,10 +341,12 @@ def evaluate_cruxeval_input_problem(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="CRUXEval-Input Benchmark & CEGIS Verification Ladder")
-    parser.add_argument("--split", choices=["dev", "sealed", "smoke"], default="dev",
-                        help="Data split: smoke (10 items), dev (50 items, samples 0-49), sealed (100 items, samples 50-149)")
+    parser.add_argument("--split", choices=["dev", "sealed", "smoke", "full"], default="dev",
+                        help="Data split: smoke (10 items), dev (50 items), sealed (100 items), full (all items)")
+    parser.add_argument("--limit", type=int, default=None, help="Optional item limit")
     parser.add_argument("--max-turns", type=int, default=3, help="Maximum repair turns for Arm B CEGIS")
     parser.add_argument("--output-json", type=str, default="", help="Path to write JSON report")
+    parser.add_argument("--no-resume", action="store_true", help="Do not resume from existing checkpoint")
     args = parser.parse_args()
 
     crux_file = REPO_ROOT / "data" / "benchmarks" / "cruxeval" / "data" / "cruxeval.jsonl"
@@ -359,23 +361,82 @@ def main() -> None:
         dataset = all_items[:10]
     elif args.split == "dev":
         dataset = all_items[:50]
-    else:  # sealed
+    elif args.split == "sealed":
         dataset = all_items[50:150]
+    else:  # full
+        dataset = all_items
+
+    if args.limit is not None:
+        dataset = dataset[:args.limit]
+
+    out_path = Path(args.output_json) if args.output_json else REPO_ROOT / "logs" / "test_reports" / f"cruxeval_input_{args.split}_{time.time_ns() // 1_000_000}.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    results: list[CruxInputProblemResult] = []
+    completed_ids: set[str] = set()
+
+    if not args.no_resume and out_path.exists():
+        try:
+            cached_data = json.loads(out_path.read_text(encoding="utf-8"))
+            for p in cached_data.get("problems", []):
+                results.append(CruxInputProblemResult(**p))
+                completed_ids.add(p["problem_id"])
+            print(f"[RESUME] Loaded {len(completed_ids)} completed problems from {out_path.name}")
+        except Exception as exc:
+            print(f"[RESUME WARNING] Failed to load checkpoint: {exc}")
 
     print(f"=== CRUXEval-Input Benchmark Runner (WO-35.6) ===")
     print(f"Split: {args.split} ({len(dataset)} items) | Max CEGIS Turns: {args.max_turns}")
     print(f"Server URL: {SERVER_URL}")
     print(f"Start Time: {datetime.now(UTC).isoformat()}\n")
 
-    results: list[CruxInputProblemResult] = []
-    a_wins = 0
-    b_wins = 0
-    one_shot_wins = 0
-    repaired_wins = 0
+    a_wins = sum(1 for r in results if r.arm_a_success)
+    b_wins = sum(1 for r in results if r.arm_b_success)
+    one_shot_wins = sum(1 for r in results if r.arm_b_method == "ONE_SHOT_VERIFIED")
+    repaired_wins = sum(1 for r in results if r.arm_b_method == "REPAIRED_PROGRAM")
+
+    def save_checkpoint() -> None:
+        n_cur = len(results)
+        ci_a = wilson_ci(a_wins, n_cur)
+        ci_b = wilson_ci(b_wins, n_cur)
+        disc_10 = sum(1 for r in results if r.arm_a_success and not r.arm_b_success)
+        disc_01 = sum(1 for r in results if not r.arm_a_success and r.arm_b_success)
+        p_val = binomtest(disc_01, disc_10 + disc_01, 0.5, alternative="two-sided").pvalue if (disc_10 + disc_01) > 0 else 1.0
+
+        report_data = {
+            "benchmark": "CRUXEval-Input",
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "split": args.split,
+            "total_problems": n_cur,
+            "max_turns": args.max_turns,
+            "summary": {
+                "arm_a_passed": a_wins,
+                "arm_a_rate": a_wins / n_cur if n_cur > 0 else 0.0,
+                "arm_a_ci_95": list(ci_a),
+                "arm_b_passed": b_wins,
+                "arm_b_rate": b_wins / n_cur if n_cur > 0 else 0.0,
+                "arm_b_ci_95": list(ci_b),
+                "one_shot_passed": one_shot_wins,
+                "repaired_passed": repaired_wins,
+                "net_lift_pp": (b_wins - a_wins) / n_cur * 100.0 if n_cur > 0 else 0.0,
+                "cegis_rescue_pp": repaired_wins / n_cur * 100.0 if n_cur > 0 else 0.0,
+                "discordant_pairs": [disc_10, disc_01],
+                "mcnemar_p_value": p_val,
+            },
+            "problems": [asdict(r) for r in results],
+        }
+        tmp = out_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(report_data, indent=2), encoding="utf-8")
+        tmp.replace(out_path)
 
     for idx, item in enumerate(dataset, 1):
+        p_id = item.get("id", f"sample_{idx-1}")
+        if p_id in completed_ids:
+            continue
+
         res = evaluate_cruxeval_input_problem(item, max_turns=args.max_turns)
         results.append(res)
+        completed_ids.add(res.problem_id)
 
         if res.arm_a_success:
             a_wins += 1
@@ -398,11 +459,11 @@ def main() -> None:
         if not res.arm_b_success and res.arm_b_failure_stage:
             print(f"      -> Failure stage: {res.arm_b_failure_stage}")
 
+        save_checkpoint()
+
     n = len(results)
     ci_a = wilson_ci(a_wins, n)
     ci_b = wilson_ci(b_wins, n)
-
-    # McNemar discordant pairs
     disc_10 = sum(1 for r in results if r.arm_a_success and not r.arm_b_success)
     disc_01 = sum(1 for r in results if not r.arm_a_success and r.arm_b_success)
     p_val = binomtest(disc_01, disc_10 + disc_01, 0.5, alternative="two-sided").pvalue if (disc_10 + disc_01) > 0 else 1.0
@@ -419,35 +480,6 @@ def main() -> None:
     print(f"CEGIS Repair Rescue Lift:     +{repaired_wins/n*100:.1f} pp (rescued {repaired_wins} problems that failed one-shot)")
     print(f"Discordant Pairs (A:B):       {disc_10}:{disc_01}")
     print(f"Exact McNemar Two-Sided p:    {p_val:.4f}")
-
-    # Save JSON report
-    report_data = {
-        "benchmark": "CRUXEval-Input",
-        "timestamp_utc": datetime.now(UTC).isoformat(),
-        "split": args.split,
-        "total_problems": n,
-        "max_turns": args.max_turns,
-        "summary": {
-            "arm_a_passed": a_wins,
-            "arm_a_rate": a_wins / n,
-            "arm_a_ci_95": list(ci_a),
-            "arm_b_passed": b_wins,
-            "arm_b_rate": b_wins / n,
-            "arm_b_ci_95": list(ci_b),
-            "one_shot_passed": one_shot_wins,
-            "repaired_passed": repaired_wins,
-            "net_lift_pp": (b_wins - a_wins) / n * 100.0,
-            "cegis_rescue_pp": repaired_wins / n * 100.0,
-            "discordant_pairs": [disc_10, disc_01],
-            "mcnemar_p_value": p_val,
-        },
-        "problems": [asdict(r) for r in results],
-    }
-
-    out_path = Path(args.output_json) if args.output_json else REPO_ROOT / "logs" / "test_reports" / f"cruxeval_input_{args.split}_{time.time_ns() // 1_000_000}.json"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(report_data, f, indent=2)
     print(f"\nSealed report written to: {out_path}")
 
 

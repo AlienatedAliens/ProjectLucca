@@ -1,0 +1,185 @@
+{
+  "timestamp_utc": "2026-10-16T08:46:35.379724+00:00",
+  "results": [
+    {
+      "fixture_name": "u_shape_rotated_concavity",
+      "run_idx": 1,
+      "temperature": 0.1,
+      "emitted_code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    import numpy as np\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =8 ,background =0 )\n    for i in range (len (components )):\n        for j in range (len (components )):\n            if i ==j :\n                continue\n            inner =components [i ]\n            container =components [j ]\n            if in_cavity (inner ,container ):\n                return [[int (inner .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: fixed 1x1\n- Objects & Topology: Connected components of non-zero colors.\n- Core Transformation Invariant: Identify if there is a component (the \"inner object\") that is strictly enclosed within the cavity of another component (the \"container\"). If such a relationship exists, return the color of the inner object; otherwise, return 0.\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Iterate through all pairs of components (a, b). 3. Check if component 'a' is strictly enclosed within the cavity of component 'b' using `in_cavity(a, b)`. 4. If true, return the color of component 'a' as a 1x1 grid. 5. If no such pair exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          0
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 9845.216699992307
+    },
+    {
+      "fixture_name": "u_shape_rotated_concavity",
+      "run_idx": 2,
+      "temperature": 0.2,
+      "emitted_code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    import numpy as np\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =8 ,background =0 )\n    for i in range (len (components )):\n        for j in range (len (components )):\n            if i ==j :\n                continue\n            comp_a =components [i ]\n            comp_b =components [j ]\n            if in_cavity (comp_a ,comp_b ):\n                return [[int (comp_a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: fixed 1x1\n- Objects & Topology: Connected components of non-zero colors\n- Core Transformation Invariant: Identify if there is a component (the \"object\") that is strictly enclosed within the cavity of another component (the \"container\"). If such a relationship exists, return the color of the enclosed object as a 1x1 grid; otherwise, return [[0]].\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Check every pair of components (a, b) to see if component 'a' is strictly inside the cavity of component 'b'. 3. If found, return the color of 'a' in a 1x1 grid. 4. If no such enclosure exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          0
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 6064.417900008266
+    },
+    {
+      "fixture_name": "u_shape_rotated_concavity",
+      "run_idx": 3,
+      "temperature": 0.35,
+      "emitted_code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    import numpy as np\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =8 ,background =0 )\n    for i ,comp_a in enumerate (components ):\n        for j ,comp_b in enumerate (components ):\n            if i ==j :\n                continue\n            if in_cavity (comp_a ,comp_b ):\n                return [[int (comp_a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: fixed 1x1\n- Objects & Topology: 4-connected or 8-connected components of non-zero colors.\n- Core Transformation Invariant: Identify if there is a component (the \"inner object\") that is strictly enclosed within the cavity of another component (the \"container\"). If such a relationship exists, return the color of the inner object; otherwise, return 0.\n- Algorithmic Recipe: 1. Find all connected components of non-zero colors. 2. Check every pair of components (a, b) to see if component 'a' is strictly inside the cavity of component 'b' using `in_cavity`. 3. If found, return the color of 'a' as a 1x1 grid. 4. If no such enclosure exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          0
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 8011.156599997776
+    },
+    {
+      "fixture_name": "u_shape_blob_on_outer_arm",
+      "run_idx": 1,
+      "temperature": 0.1,
+      "emitted_code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    import numpy as np\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =8 ,background =0 )\n    for i in range (len (components )):\n        for j in range (len (components )):\n            if i ==j :\n                continue\n            comp_a =components [i ]\n            comp_b =components [j ]\n            if in_cavity (comp_a ,comp_b ):\n                return [[int (comp_a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: 1x1\n- Objects & Topology: 4-connected or 8-connected components of non-zero colors.\n- Core Transformation Invariant: Identify if there is a component (the \"encloser\") that contains another component (the \"enclosed\") strictly within its hollow cavity. If such a relationship exists, return the color of the enclosed component as a 1x1 grid; otherwise, return [[0]].\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Check every pair of components (a, b) to see if component 'a' is strictly inside the cavity of component 'b' using `in_cavity`. 3. If found, return the color of 'a' in a 1x1 grid. 4. If no such containment exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          0
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 6541.980599999079
+    },
+    {
+      "fixture_name": "u_shape_blob_on_outer_arm",
+      "run_idx": 2,
+      "temperature": 0.2,
+      "emitted_code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    import numpy as np\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =8 ,background =0 )\n    for i in range (len (components )):\n        for j in range (len (components )):\n            if i ==j :\n                continue\n            comp_a =components [i ]\n            comp_b =components [j ]\n            if in_cavity (comp_a .mask ,comp_b .mask ):\n                return [[int (comp_a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: 1x1\n- Objects & Topology: 4-connected or 8-connected colored components\n- Core Transformation Invariant: Identify if there is a component (the \"enclosure\") that contains another component (the \"contained\") strictly within its hollow cavity. If such a relationship exists, return the color of the contained component as a 1x1 grid; otherwise, return [[0]].\n- Algorithmic Recipe: 1. Find all connected components in the grid. 2. Check every pair of components (a, b) to see if component 'a' is strictly inside the cavity of component 'b' using `in_cavity`. 3. If found, return the color of component 'a' in a 1x1 grid. 4. If no such containment exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          0
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 6489.952899995842
+    },
+    {
+      "fixture_name": "u_shape_blob_on_outer_arm",
+      "run_idx": 3,
+      "temperature": 0.35,
+      "emitted_code": "def transform (grid :list [list [int ]])->list [list [int ]]:\n    import numpy as np\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =8 ,background =0 )\n    for i in range (len (components )):\n        for j in range (len (components )):\n            if i ==j :\n                continue\n            comp_a =components [i ]\n            comp_b =components [j ]\n            if in_cavity (comp_a ,comp_b ):\n                return [[int (comp_a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: 1x1\n- Objects & Topology: Connected components of non-zero colors.\n- Core Transformation Invariant: Identify if any object (component) is strictly enclosed within the cavity of another object. If such an enclosure exists, return the color of the enclosed object as a 1x1 grid; otherwise, return [[0]].\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Check all pairs of components (a, b) to see if `in_cavity(a, b)` is true. 3. If true, return the color of component `a` as a 1x1 grid. 4. If no such pair exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          0
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 7792.721000005258
+    },
+    {
+      "fixture_name": "compound_ring_and_u_shape",
+      "run_idx": 1,
+      "temperature": 0.1,
+      "emitted_code": "import numpy as np\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =4 ,background =0 )\n    for a in components :\n        for b in components :\n            if a ==b :\n                continue\n            if in_cavity (a ,b ):\n                return [[int (a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: fixed 1x1\n- Objects & Topology: 4-connected components of non-zero colors\n- Core Transformation Invariant: Identify a component that is strictly enclosed within the cavity of another component. If such a relationship exists, return the color of the enclosed component.\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Check every pair of components (a, b) to see if component 'a' is strictly inside the cavity of component 'b'. 3. If found, return the color of 'a' as a 1x1 grid. 4. If no such enclosure exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          6
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 11479.947400002857
+    },
+    {
+      "fixture_name": "compound_ring_and_u_shape",
+      "run_idx": 2,
+      "temperature": 0.2,
+      "emitted_code": "import numpy as np\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    grid_arr =np .array (grid )\n    components =connected_components (grid_arr ,connectivity =4 ,background =0 )\n    for a in components :\n        for b in components :\n            if a ==b :\n                continue\n            if in_cavity (a ,b ):\n                return [[int (a .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: fixed 1x1\n- Objects & Topology: 4-connected components of non-zero colors\n- Core Transformation Invariant: Identify a component that is strictly enclosed within the cavity of another component. If such a relationship exists, return the color of the enclosed component.\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Check all pairs of components (a, b) to see if component 'a' is contained within the cavity of component 'b'. 3. If found, return the color of 'a' as a 1x1 grid. 4. If no such enclosure exists, return [[0]].",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          6
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 6188.158400007524
+    },
+    {
+      "fixture_name": "compound_ring_and_u_shape",
+      "run_idx": 3,
+      "temperature": 0.35,
+      "emitted_code": "import numpy as np\ndef transform (grid :list [list [int ]])->list [list [int ]]:\n    arr =np .array (grid )\n    components =connected_components (arr ,connectivity =4 ,background =0 )\n    for container in components :\n        for candidate in components :\n            if container ==candidate :\n                continue\n            if in_cavity (candidate ,container ):\n                return [[int (candidate .color )]]\n    return [[0 ]]",
+      "emitted_hypothesis": "- Background Color: 0 (black)\n- Canvas Sizing: fixed 1x1\n- Objects & Topology: 4-connected components of non-zero colors\n- Core Transformation Invariant: Identify a large \"container\" component that forms a hollow boundary (cavity) and find the single component strictly enclosed within that cavity. Return the color of that enclosed component.\n- Algorithmic Recipe: 1. Find all connected components of non-zero pixels. 2. Identify a component that acts as a container (has a cavity). 3. Find the component that is strictly inside that cavity. 4. Return the color of the enclosed component.",
+      "uses_in_cavity": true,
+      "uses_relational_primitives": true,
+      "uses_bbox_fallback": false,
+      "uses_raw_index_loops": false,
+      "execution_success": true,
+      "test_passed": true,
+      "predicted_output": [
+        [
+          6
+        ]
+      ],
+      "execution_error": null,
+      "elapsed_ms": 7907.4343999964185
+    }
+  ]
+}

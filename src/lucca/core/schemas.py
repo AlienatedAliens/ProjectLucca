@@ -451,6 +451,9 @@ class RetrievalQuery(BaseModel):
     include_superseded: bool = False
     kinds: list[str] | None = None
     since: float | None = None
+    temporal_anchor: tuple[float, float] | None = None  # (start_s, end_s)
+    temporal_relation: Literal["before", "after", "during", "overlaps"] | None = None
+    temporal_clock: Literal["created_at", "valid_time"] = "created_at"
 
 
 class MemoryHit(BaseModel):

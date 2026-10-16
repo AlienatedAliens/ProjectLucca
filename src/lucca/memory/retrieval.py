@@ -6,10 +6,12 @@ Spec 04 §6, Spec 10
 import base64
 import hashlib
 import hmac
+from datetime import UTC, datetime
 import json
+import re
 import sqlite3
 import time
-from typing import Final
+from typing import Final, Literal, cast
 
 import sqlite_vec
 import structlog
@@ -28,6 +30,8 @@ from lucca.memory.db import DatabaseManager
 from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
 from lucca.memory.tokens import build_fts_query, subtokens
 from lucca.ports import EmbeddingPort
+from lucca.reasoning.relational.allen import AllenRelation, relation_1d
+from lucca.reasoning.relational.sorts import Interval1D
 
 logger = structlog.get_logger(__name__)
 
@@ -190,6 +194,202 @@ def format_memory_context(
     return "\n".join(lines)
 
 
+def _eval_temporal_constraint(
+    created_at: float,
+    valid_from: float,
+    valid_to: float | None,
+    anchor: tuple[float, float],
+    relation: str,
+    clock: str = "created_at",
+) -> bool:
+    """
+    Evaluates qualitative temporal relation between a memory event and an anchor interval.
+
+    Clocks:
+    - 'created_at': Interaction / dialogue time (when the conversation event took place).
+    - 'valid_time': World fact validity span [valid_from, valid_to).
+    """
+    if clock == "valid_time":
+        evt_start = valid_from
+        evt_end = valid_to if valid_to is not None else time.time()
+        if evt_end < evt_start:
+            evt_end = evt_start
+    else:  # default 'created_at' (interaction time)
+        evt_start = created_at
+        evt_end = created_at
+
+    anchor_start, anchor_end = anchor
+    if anchor_start > anchor_end:
+        anchor_start, anchor_end = anchor_end, anchor_start
+
+    # Continuous interval degenerate protection: nudge end slightly for point events
+    if evt_start == evt_end:
+        evt_end = evt_start + 1e-6
+    if anchor_start == anchor_end:
+        anchor_end = anchor_start + 1e-6
+
+    evt_interval = Interval1D(start=evt_start, end=evt_end, kind="continuous")
+    anchor_interval = Interval1D(start=anchor_start, end=anchor_end, kind="continuous")
+
+    rel = relation_1d(evt_interval, anchor_interval)
+
+    if relation == "before":
+        return rel in (AllenRelation.BEFORE, AllenRelation.MEETS)
+    elif relation == "after":
+        return rel in (AllenRelation.AFTER, AllenRelation.MET_BY)
+    elif relation == "during":
+        return rel in (
+            AllenRelation.DURING,
+            AllenRelation.STARTS,
+            AllenRelation.FINISHES,
+            AllenRelation.EQUALS,
+        )
+    elif relation == "overlaps":
+        return rel not in (
+            AllenRelation.BEFORE,
+            AllenRelation.AFTER,
+            AllenRelation.MEETS,
+            AllenRelation.MET_BY,
+        )
+    return False
+
+
+def _clean_temporal_query(s: str) -> str:
+    cleaned = re.sub(r"\s+", " ", s).strip()
+    return re.sub(r"\s+([?.!,])", r"\1", cleaned).strip()
+
+
+def extract_temporal_constraints(
+    query_text: str,
+    now: float | None = None,
+    db: DatabaseManager | None = None,
+) -> tuple[
+    str,
+    tuple[float, float] | None,
+    Literal["before", "after", "during", "overlaps"] | None,
+    Literal["created_at", "valid_time"],
+]:
+    """
+    Extracts qualitative temporal relations and anchor intervals from query text.
+
+    Supports:
+    1. Calendar years: 'during 2024', 'in 2024' -> valid_time clock.
+    2. Relative conversational periods: 'yesterday', 'today', 'last week', 'last month',
+       'last hour', 'earlier' -> created_at clock.
+    3. Conversational event anchors: 'before [the] <topic>', 'after [the] <topic>'
+       resolved via SQLite memory lookup.
+
+    Returns: (cleaned_query_text, temporal_anchor, temporal_relation, temporal_clock)
+    """
+    current_time = now if now is not None else time.time()
+    clean = query_text.strip()
+    if not clean:
+        return clean, None, None, "created_at"
+
+    # 1. Calendar year: "in 2024", "during 2024" -> valid_time clock
+    year_match = re.search(r"\b(?:in|during)\s+(20\d\d)\b", clean, re.IGNORECASE)
+    if year_match:
+        yr = int(year_match.group(1))
+        t_start = datetime(yr, 1, 1, tzinfo=UTC).timestamp()
+        t_end = datetime(yr + 1, 1, 1, tzinfo=UTC).timestamp()
+        stripped = re.sub(r"\b(?:in|during)\s+20\d\d\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "valid_time"
+
+    # 2. Relative time anchors -> created_at clock
+    dt_now = datetime.fromtimestamp(current_time, tz=UTC)
+    start_of_today = datetime(dt_now.year, dt_now.month, dt_now.day, tzinfo=UTC).timestamp()
+
+    # Yesterday
+    if re.search(r"\byesterday\b", clean, re.IGNORECASE):
+        t_start = start_of_today - 86400.0
+        t_end = start_of_today
+        stripped = re.sub(r"\byesterday\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Today / earlier today
+    if re.search(r"\b(?:earlier today|today)\b", clean, re.IGNORECASE):
+        t_start = start_of_today
+        t_end = current_time
+        stripped = re.sub(r"\b(?:earlier today|today)\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Last week / past week
+    if re.search(r"\b(?:last week|past week)\b", clean, re.IGNORECASE):
+        t_start = current_time - 7 * 86400.0
+        t_end = current_time
+        stripped = re.sub(r"\b(?:last week|past week)\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Last month / past month
+    if re.search(r"\b(?:last month|past month)\b", clean, re.IGNORECASE):
+        t_start = current_time - 30 * 86400.0
+        t_end = current_time
+        stripped = re.sub(r"\b(?:last month|past month)\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Last hour / past hour
+    if re.search(r"\b(?:last hour|past hour)\b", clean, re.IGNORECASE):
+        t_start = current_time - 3600.0
+        t_end = current_time
+        stripped = re.sub(r"\b(?:last hour|past hour)\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Earlier / previously
+    if re.search(r"\b(?:earlier|previously)\b", clean, re.IGNORECASE):
+        t_start = 0.0
+        t_end = max(0.0, current_time - 60.0)
+        stripped = re.sub(r"\b(?:earlier|previously)\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "before", "created_at"
+
+    # 3. Conversational event anchors: "before/after [the] <topic>"
+    if db is not None:
+        m_rel = re.search(
+            r"\b(before|after)\s+(?:the\s+)?([a-zA-Z0-9_\-]+)\b", clean, re.IGNORECASE
+        )
+        if m_rel:
+            rel_word = m_rel.group(1).lower()
+            target_word = m_rel.group(2).strip()
+            excluded_stop_words = {
+                "that", "then", "this", "it", "we", "i", "you", "me", "us", "them", "him", "her",
+            }
+            if target_word.lower() not in excluded_stop_words:
+                try:
+                    with db.read_cursor() as cur:
+                        cur.execute(
+                            """
+                            SELECT created_at FROM memories
+                            WHERE content LIKE ? AND forgotten_at IS NULL
+                            ORDER BY created_at DESC LIMIT 1
+                            """,
+                            (f"%{target_word}%",),
+                        )
+                        row = cur.fetchone()
+                        if row is not None:
+                            t_anchor = float(row[0])
+                            rel_type: Literal["before", "after"] = (
+                                "before" if rel_word == "before" else "after"
+                            )
+                            stripped = re.sub(
+                                rf"\b{rel_word}\s+(?:the\s+)?{re.escape(target_word)}\b",
+                                "",
+                                clean,
+                                flags=re.IGNORECASE,
+                            ).strip()
+                            cleaned = _clean_temporal_query(stripped)
+                            return cleaned or clean, (t_anchor, t_anchor), rel_type, "created_at"
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("temporal_event_anchor_lookup_failed", error=str(exc))
+
+    return clean, None, None, "created_at"
+
+
 class HybridRetriever:
     """
     Executes hybrid retrieval combining dense cosine KNN (sqlite-vec)
@@ -277,6 +477,21 @@ class HybridRetriever:
     ) -> list[MemoryHit]:
         current_time = now if now is not None else time.time()
 
+        # Qualitative temporal constraint extraction from dialogue text (if not already specified)
+        if q.temporal_anchor is None:
+            clean_text, anchor, rel, clock = extract_temporal_constraints(
+                q.query_text, now=current_time, db=self.db
+            )
+            if anchor is not None and rel is not None:
+                q = q.model_copy(
+                    update={
+                        "query_text": clean_text,
+                        "temporal_anchor": anchor,
+                        "temporal_relation": rel,
+                        "temporal_clock": clock,
+                    }
+                )
+
         # 1. Dense search (KNN via sqlite-vec)
         dense_ranks: dict[int, int] = {}
         query_vec = None
@@ -331,7 +546,16 @@ class HybridRetriever:
             if self.quarantined_memory_ids:
                 all_candidate_ids -= set(self.quarantined_memory_ids)
             if not all_candidate_ids:
-                return []
+                if q.temporal_anchor is not None:
+                    cur.execute(
+                        "SELECT memory_id FROM memories WHERE forgotten_at IS NULL ORDER BY created_at DESC LIMIT ?",
+                        (MAX_CANDIDATES * 2,),
+                    )
+                    all_candidate_ids = {int(row[0]) for row in cur.fetchall()}
+                    if self.quarantined_memory_ids:
+                        all_candidate_ids -= set(self.quarantined_memory_ids)
+                if not all_candidate_ids:
+                    return []
 
             rrf_scores: dict[int, float] = {}
             for mid in all_candidate_ids:
@@ -340,6 +564,8 @@ class HybridRetriever:
                     score += 1.0 / (RRF_K_CONST + dense_ranks[mid])
                 if mid in sparse_ranks:
                     score += 1.0 / (RRF_K_CONST + sparse_ranks[mid])
+                if not dense_ranks and not sparse_ranks:
+                    score = 1.0
                 rrf_scores[mid] = score
 
             # Sort candidates descending by RRF score
@@ -479,8 +705,8 @@ class HybridRetriever:
                 # - forgotten_at IS NULL (always exclude forgotten memories)
                 if forgotten_at is not None:
                     continue
-                # - valid_to IS NULL unless include_superseded is True
-                if valid_to is not None and not q.include_superseded:
+                # - valid_to IS NULL unless include_superseded is True or querying valid_time clock
+                if valid_to is not None and not q.include_superseded and q.temporal_clock != "valid_time":
                     continue
                 # - kind filter
                 if q.kinds is not None and kind not in q.kinds:
@@ -488,6 +714,18 @@ class HybridRetriever:
                 # - since timestamp filter
                 if q.since is not None and created_at < q.since:
                     continue
+
+                # - Qualitative temporal interval filter (Allen interval algebra)
+                if q.temporal_anchor is not None and q.temporal_relation is not None:
+                    if not _eval_temporal_constraint(
+                        created_at=created_at,
+                        valid_from=float(r["valid_from"]),
+                        valid_to=float(valid_to) if valid_to is not None else None,
+                        anchor=q.temporal_anchor,
+                        relation=q.temporal_relation,
+                        clock=q.temporal_clock,
+                    ):
+                        continue
 
                 grounding_el = True
                 try:
@@ -826,7 +1064,7 @@ def search_decision_records(
                     features=features,
                     decision=decision,
                     router_version=str(r["router_version"]),
-                    executed_path=str(r["executed_path"]),
+                    executed_path=cast(Literal["RULE", "LLM", "CLARIFY"], str(r["executed_path"])),
                     tool_calls=tool_calls,
                     tool_ok=bool(r["tool_ok"]) if r["tool_ok"] is not None else None,
                     llm_first_token_ms=(

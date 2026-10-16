@@ -218,6 +218,7 @@ def synthesize_z3_with_llm(p: dict[str, Any]) -> tuple[str | None, bool, str | N
 def main() -> None:
     parser = argparse.ArgumentParser(description="ZebraLogic Difficulty Sweep Benchmark")
     parser.add_argument("--samples-per-tier", type=int, default=5, help="Puzzles per tier (default: 5)")
+    parser.add_argument("--output", type=str, default=None, help="Explicit output JSON path")
     args = parser.parse_args()
     k: int = args.samples_per_tier
 
@@ -297,9 +298,9 @@ def main() -> None:
         print(f"Tier {t_name} ({states:>10,d} states): Direct {d_p:2d}/{len(t_res)} ({d_p/len(t_res)*100:4.1f}%) | Think {th_p:2d}/{len(t_res)} ({th_p/len(t_res)*100:4.1f}%) | OracleZ3 {orc_p:2d}/{len(t_res)} ({orc_p/len(t_res)*100:4.1f}%) | LLM_Z3 {llm_p:2d}/{len(t_res)} ({llm_p/len(t_res)*100:4.1f}%, Syntax={llm_syn}/{len(t_res)})", flush=True)
 
     out_dir = REPO_ROOT / "logs" / "test_reports"
-    out_dir.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
-    out_file = out_dir / f"zebra_logic_sweep_{ts}.json"
+    out_file = Path(args.output) if args.output else out_dir / f"zebra_logic_sweep_{ts}.json"
+    out_file.parent.mkdir(parents=True, exist_ok=True)
     out_data = {
         "benchmark": "ZebraLogic_Difficulty_Sweep",
         "timestamp_utc": datetime.now(UTC).isoformat(),

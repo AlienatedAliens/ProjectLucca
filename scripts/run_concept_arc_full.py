@@ -109,6 +109,8 @@ def run_concept_arc_benchmark(
     resume: bool = True,
     output_path: Path = DEFAULT_OUTPUT_PATH,
     server_url: str = "http://127.0.0.1:8080/v1/chat/completions",
+    disable_cache: bool = False,
+    k_samples: int = 4,
 ) -> dict[str, Any]:
     """
     Executes the full ConceptARC benchmark sweep across selected cognitive concepts.
@@ -118,7 +120,7 @@ def run_concept_arc_benchmark(
         raise FileNotFoundError(f"ConceptARC corpus directory not found at: {corpus_dir}")
 
     target_concepts = concepts or ALL_CONCEPTS
-    engine = UnshackledCEGISEngine(server_url=server_url, max_turns=max_turns)
+    engine = UnshackledCEGISEngine(server_url=server_url, max_turns=max_turns, k_samples=k_samples)
     cache = EpisodicSolutionCache()
 
     checkpoint_data = load_checkpoint(output_path) if resume else {"records": []}
@@ -165,7 +167,7 @@ def run_concept_arc_benchmark(
         test_pairs = task_data.get("test", [])
 
         # 1. Check Episodic Solution Cache
-        cached = cache.lookup(task_data)
+        cached = None if disable_cache else cache.lookup(task_data)
         from_cache = False
         final_code: str | None = None
         train_solved = False
@@ -201,14 +203,15 @@ def run_concept_arc_benchmark(
             err_summary = res.error_summary
 
             if train_solved and final_code:
-                # Store in cache
-                cache.store(
-                    task_id=task_id,
-                    task_data=task_data,
-                    code=final_code,
-                    method="CEGIS_UNSHACKLED",
-                    turns_taken=turns_taken,
-                )
+                # Store in cache if caching enabled
+                if not disable_cache:
+                    cache.store(
+                        task_id=task_id,
+                        task_data=task_data,
+                        code=final_code,
+                        method="CEGIS_UNSHACKLED",
+                        turns_taken=turns_taken,
+                    )
                 # Verify on test ground truth
                 if test_pairs and "output" in test_pairs[0]:
                     out = execute_unshackled_python(final_code, test_pairs[0]["input"], timeout_s=3.0)
@@ -367,6 +370,14 @@ def main() -> None:
         "--server-url", type=str, default="http://127.0.0.1:8080/v1/chat/completions",
         help="LLM completions endpoint"
     )
+    parser.add_argument(
+        "--disable-cache", action="store_true",
+        help="Disable episodic solution cache lookup and persistence (force pure synthesis)"
+    )
+    parser.add_argument(
+        "--k-samples", "-k", type=int, default=4,
+        help="Best-of-K candidate sampling per CEGIS turn (default: 4)"
+    )
 
     args = parser.parse_args()
 
@@ -379,6 +390,8 @@ def main() -> None:
         resume=not args.no_resume,
         output_path=Path(args.output),
         server_url=args.server_url,
+        disable_cache=args.disable_cache,
+        k_samples=args.k_samples,
     )
 
 

@@ -181,6 +181,7 @@ def run_pipeline_benchmark(
     direct_cap: int = 512,
     thinking_cap: int = 2048,
     enable_thinking: bool = False,
+    question_types: list[str] | None = None,
 ) -> None:
     print("==========================================================================", flush=True)
     print("=== PROJECT LUCCA: LongMemEval FULL PIPELINE BENCHMARK (Compound vs Bare) ===", flush=True)
@@ -191,7 +192,7 @@ def run_pipeline_benchmark(
     print(f"Dataset: {DATA_FILE.name} (limit={limit_per_type} per type, seed={seed})\n", flush=True)
 
     data = json.load(open(DATA_FILE, encoding="utf-8"))
-    types = ["knowledge-update", "temporal-reasoning", "multi-session"]
+    types = question_types or ["knowledge-update", "temporal-reasoning", "multi-session"]
 
     rng = random.Random(seed)
     selected_items: list[dict[str, Any]] = []
@@ -264,7 +265,7 @@ def run_pipeline_benchmark(
             db.migrate()
             store = MemoryStore(db=db, master_key=TEST_MASTER_KEY, embedding_port=embed_port)
 
-            has_answer_by_mid: dict[int, bool] = {}
+            has_answer_by_mid: dict[int | str, bool] = {}
 
             # Ingest all sessions into Lucca store
             for s_idx, (dt_str, s_turns) in enumerate(zip(dates, sessions), start=1):
@@ -451,6 +452,7 @@ if __name__ == "__main__":
     parser.add_argument("--direct-cap", type=int, default=512, help="Direct token cap (default: 512)")
     parser.add_argument("--thinking-cap", type=int, default=2048, help="Thinking token cap (default: 2048)")
     parser.add_argument("--thinking", action="store_true", help="Enable extended thinking")
+    parser.add_argument("--types", nargs="+", default=None, help="Filter by question types (e.g. temporal-reasoning)")
     args = parser.parse_args()
 
     run_pipeline_benchmark(
@@ -461,4 +463,5 @@ if __name__ == "__main__":
         direct_cap=args.direct_cap,
         thinking_cap=args.thinking_cap,
         enable_thinking=args.thinking,
+        question_types=args.types,
     )

@@ -214,6 +214,8 @@ def main() -> int:
     parser.add_argument("--samples", type=int, default=10, help="Number of problems to evaluate")
     parser.add_argument("--offset", type=int, default=0, help="Starting problem offset")
     parser.add_argument("--indices", type=str, default="", help="Comma-separated 1-based indices (e.g. 1,2,3)")
+    parser.add_argument("--output", type=str, default=None, help="Explicit output JSON path")
+    parser.add_argument("--no-resume", action="store_true", help="Do not resume from existing checkpoint")
     args = parser.parse_args()
 
     if not DATA_FILE.exists():
@@ -232,23 +234,66 @@ def main() -> int:
         selected_items = [(idx + 1, item) for idx, item in enumerate(all_items[start:end], start=start)]
 
     math_grammar = GRAMMAR_FILE.read_text(encoding="utf-8")
+    out_file = Path(args.output) if args.output else Path(f"logs/test_reports/math500_sketch_eval_{int(time.time())}.json")
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+
+    results: list[MathTaskResult] = []
+    completed_indices: set[int] = set()
+
+    if not args.no_resume and out_file.exists():
+        try:
+            cached_data = json.loads(out_file.read_text(encoding="utf-8"))
+            for t in cached_data.get("tasks", []):
+                results.append(MathTaskResult(**t))
+                completed_indices.add(t["index"])
+            print(f"[RESUME] Loaded {len(completed_indices)} previously evaluated problems from {out_file.name}")
+        except Exception as exc:
+            print(f"[RESUME WARNING] Failed to load checkpoint: {exc}")
 
     print(f"=== Starting MATH-500 Neurosymbolic Evaluation ({len(selected_items)} problems) ===")
     print(f"Target Server: {SERVER_URL}")
     print(f"Time: {datetime.now(UTC).isoformat()}\n")
 
-    results: list[MathTaskResult] = []
-    arm_a_wins = 0
-    arm_b_wins = 0
-    cas_wins = 0
+    arm_a_wins = sum(1 for r in results if r.arm_a_success)
+    arm_b_wins = sum(1 for r in results if r.arm_b_success)
+    cas_wins = sum(1 for r in results if r.arm_b_method == "MATHCAS_SKETCH" and r.arm_b_success)
+
+    def save_checkpoint() -> None:
+        tot = len(results)
+        ci_a = wilson_ci(arm_a_wins, tot)
+        ci_b = wilson_ci(arm_b_wins, tot)
+        rep = {
+            "benchmark": "MATH-500",
+            "timestamp_utc": datetime.now(UTC).isoformat(),
+            "total_problems": tot,
+            "arm_a_control": {
+                "passed": arm_a_wins,
+                "pass_rate": arm_a_wins / tot if tot > 0 else 0.0,
+                "wilson_ci_95": list(ci_a),
+            },
+            "arm_b_augmented": {
+                "passed": arm_b_wins,
+                "pass_rate": arm_b_wins / tot if tot > 0 else 0.0,
+                "wilson_ci_95": list(ci_b),
+                "mathcas_wins": cas_wins,
+            },
+            "tasks": [asdict(r) for r in results],
+        }
+        tmp = out_file.with_suffix(".tmp")
+        tmp.write_text(json.dumps(rep, indent=2), encoding="utf-8")
+        tmp.replace(out_file)
 
     for step_num, (orig_idx, item) in enumerate(selected_items, 1):
+        if orig_idx in completed_indices:
+            continue
+
         subj = item.get("subject", "math")
         lvl = item.get("level", 0)
         print(f"[{step_num}/{len(selected_items)}] Evaluating Problem #{orig_idx} ({subj}, Level {lvl}) ... ", end="", flush=True)
 
         res = evaluate_problem(item, orig_idx, math_grammar)
         results.append(res)
+        completed_indices.add(orig_idx)
 
         if res.arm_a_success:
             arm_a_wins += 1
@@ -264,6 +309,9 @@ def main() -> int:
             print(f"   MathCAS Sketch: {res.arm_b_sketch[:100]}")
         print(f"   Expected: {res.expected_answer} | Pred A: {res.arm_a_predicted} | Pred B: {res.arm_b_predicted}")
 
+        # Atomic checkpoint after every task
+        save_checkpoint()
+
     total_n = len(results)
     ci_a = wilson_ci(arm_a_wins, total_n)
     ci_b = wilson_ci(arm_b_wins, total_n)
@@ -276,27 +324,6 @@ def main() -> int:
     print(f"Arm B (Augmented Agent):  {arm_b_wins}/{total_n} ({arm_b_wins/total_n*100:.1f}%) | Wilson 95% CI: [{ci_b[0]*100:.1f}%, {ci_b[1]*100:.1f}%]")
     print(f"  • MathCAS Sketch Wins:  {cas_wins}/{total_n} ({cas_wins/total_n*100:.1f}%)")
     print(f"Absolute Scaffold Lift (B - A): +{(arm_b_wins - arm_a_wins)/total_n*100:.1f} percentage points")
-
-    out_file = Path(f"logs/test_reports/math500_sketch_eval_{int(time.time())}.json")
-    out_file.parent.mkdir(parents=True, exist_ok=True)
-    report_data = {
-        "benchmark": "MATH-500",
-        "timestamp_utc": datetime.now(UTC).isoformat(),
-        "total_problems": total_n,
-        "arm_a_control": {
-            "passed": arm_a_wins,
-            "pass_rate": arm_a_wins / total_n,
-            "wilson_ci_95": list(ci_a),
-        },
-        "arm_b_augmented": {
-            "passed": arm_b_wins,
-            "pass_rate": arm_b_wins / total_n,
-            "wilson_ci_95": list(ci_b),
-            "mathcas_wins": cas_wins,
-        },
-        "tasks": [asdict(r) for r in results],
-    }
-    out_file.write_text(json.dumps(report_data, indent=2), encoding="utf-8")
     print(f"\n[REPORT SEALED] Saved report to {out_file}")
     return 0
 

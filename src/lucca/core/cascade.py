@@ -15,7 +15,7 @@ import time
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 import structlog
 import ulid
@@ -1428,7 +1428,13 @@ class EpistemicSearchCascade:
     # ------------------------------------------------------------------------
     # Substrate 2: Cryptographic Episodic Memory (15–40ms target)
     # ------------------------------------------------------------------------
-    def query_substrate_2_memory(self, query_text: str) -> list[EvidenceItem]:
+    def query_substrate_2_memory(
+        self,
+        query_text: str,
+        temporal_anchor: tuple[float, float] | None = None,
+        temporal_relation: Literal["before", "after", "during", "overlaps"] | None = None,
+        temporal_clock: Literal["created_at", "valid_time"] = "created_at",
+    ) -> list[EvidenceItem]:
         """Queries memory store for semantic/episodic facts with provenance."""
         items: list[EvidenceItem] = []
         if not self.memory_store or not query_text.strip():
@@ -1436,7 +1442,14 @@ class EpistemicSearchCascade:
 
         self._last_recollections: list[str] = []
         try:
-            q = RetrievalQuery(query_text=query_text.strip(), k=8, include_superseded=True)
+            q = RetrievalQuery(
+                query_text=query_text.strip(),
+                k=8,
+                include_superseded=True,
+                temporal_anchor=temporal_anchor,
+                temporal_relation=temporal_relation,
+                temporal_clock=temporal_clock,
+            )
             res = self.memory_store.search(q)
             raw_hits: list[MemoryHit] = res if isinstance(res, list) else []
 

@@ -13,9 +13,10 @@ Zero Handcoded Benchmark Primitives:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, Sequence, cast
 
 import numpy as np
+import numpy.typing as npt
 import scipy.ndimage
 
 
@@ -24,7 +25,7 @@ class Component:
     """A single connected object in a 2D grid."""
 
     color: int
-    mask: np.ndarray  # Boolean 2D array of same shape as original grid
+    mask: npt.NDArray[np.bool_]  # Boolean 2D array of same shape as original grid
     min_r: int
     min_c: int
     max_r: int
@@ -39,12 +40,12 @@ class Component:
         """Returns (min_r, min_c, max_r, max_c, height, width)."""
         return (self.min_r, self.min_c, self.max_r, self.max_c, self.height, self.width)
 
-    def cropped_mask(self) -> np.ndarray:
+    def cropped_mask(self) -> npt.NDArray[np.bool_]:
         """Returns the binary mask cropped tightly to its bounding box."""
         return self.mask[self.min_r : self.max_r + 1, self.min_c : self.max_c + 1]
 
 
-def bbox(mask: np.ndarray) -> tuple[int, int, int, int, int, int] | None:
+def bbox(mask: npt.NDArray[np.generic]) -> tuple[int, int, int, int, int, int] | None:
     """
     Computes tight bounding box of all non-zero/True pixels in a 2D mask.
     Returns: (min_r, min_c, max_r, max_c, height, width) or None if mask is empty.
@@ -61,7 +62,7 @@ def bbox(mask: np.ndarray) -> tuple[int, int, int, int, int, int] | None:
     return (min_r, min_c, max_r, max_c, height, width)
 
 
-def centroid(mask: np.ndarray) -> tuple[float, float] | None:
+def centroid(mask: npt.NDArray[np.generic]) -> tuple[float, float] | None:
     """
     Computes center of mass (mean_row, mean_col) of non-zero pixels.
     Returns None if mask is empty.
@@ -73,9 +74,9 @@ def centroid(mask: np.ndarray) -> tuple[float, float] | None:
 
 
 def crop(
-    arr: np.ndarray,
+    arr: npt.NDArray[np.generic],
     bounds: tuple[int, int, int, int, int, int] | tuple[int, int, int, int],
-) -> np.ndarray:
+) -> npt.NDArray[np.generic]:
     """
     Crops a sub-grid using bounding box coordinates.
     Accepts (min_r, min_c, max_r, max_c) or (min_r, min_c, max_r, max_c, height, width).
@@ -85,28 +86,29 @@ def crop(
 
 
 def connected_components(
-    arr: np.ndarray,
+    arr: npt.NDArray[np.generic] | Sequence[Sequence[int]],
     connectivity: int = 8,
     background: int = 0,
 ) -> list[Component]:
     """
     Identifies all connected components for non-background colors in a 2D integer grid.
-    
+
     Args:
-        arr: 2D integer array (H, W).
+        arr: 2D integer array or list of lists (H, W).
         connectivity: 4 (orthogonal) or 8 (orthogonal + diagonal).
         background: Value considered background to ignore (default 0).
     """
+    grid_arr = np.asarray(arr)
     if connectivity == 8:
-        struct = np.ones((3, 3), dtype=bool)
+        struct: npt.NDArray[np.bool_] = np.ones((3, 3), dtype=bool)
     else:
         struct = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], dtype=bool)
 
-    unique_colors = [int(c) for c in np.unique(arr) if c != background]
+    unique_colors = [int(c) for c in np.unique(grid_arr) if c != background]
     components: list[Component] = []
 
     for color in unique_colors:
-        color_mask = (arr == color)
+        color_mask = (grid_arr == color)
         labeled_arr, num_features = scipy.ndimage.label(color_mask, structure=struct)
         for feat_id in range(1, num_features + 1):
             comp_mask = (labeled_arr == feat_id)
@@ -133,7 +135,7 @@ def connected_components(
     return components
 
 
-def is_identical_shape(mask_a: np.ndarray, mask_b: np.ndarray) -> bool:
+def is_identical_shape(mask_a: npt.NDArray[np.generic], mask_b: npt.NDArray[np.generic]) -> bool:
     """
     Tests whether two binary masks have the exact same shape template under translation.
     Crops both to their bounding boxes and tests array equality.
@@ -149,27 +151,27 @@ def is_identical_shape(mask_a: np.ndarray, mask_b: np.ndarray) -> bool:
     return bool(np.array_equal(cropped_a, cropped_b))
 
 
-def rot90(arr: np.ndarray, k: int = 1) -> np.ndarray:
+def rot90(arr: npt.NDArray[np.generic], k: int = 1) -> npt.NDArray[np.generic]:
     """Rotates grid 90 degrees counter-clockwise k times."""
     return np.ascontiguousarray(np.rot90(arr, k=k))
 
 
-def flip_h(arr: np.ndarray) -> np.ndarray:
+def flip_h(arr: npt.NDArray[np.generic]) -> npt.NDArray[np.generic]:
     """Flips grid horizontally (left-to-right mirror)."""
     return np.ascontiguousarray(np.fliplr(arr))
 
 
-def flip_v(arr: np.ndarray) -> np.ndarray:
+def flip_v(arr: npt.NDArray[np.generic]) -> npt.NDArray[np.generic]:
     """Flips grid vertically (upside-down mirror)."""
     return np.ascontiguousarray(np.flipud(arr))
 
 
 def flood_fill(
-    arr: np.ndarray,
+    arr: npt.NDArray[np.generic],
     start_r: int,
     start_c: int,
     fill_val: int,
-) -> np.ndarray:
+) -> npt.NDArray[np.generic]:
     """
     Standard 4-way flood fill starting from (start_r, start_c).
     Fills all connected pixels matching the starting pixel's color with fill_val.
@@ -199,7 +201,7 @@ def flood_fill(
     return out
 
 
-def find_cavities(arr: np.ndarray, background_val: int = 0) -> np.ndarray:
+def find_cavities(arr: npt.NDArray[np.generic], background_val: int = 0) -> npt.NDArray[np.bool_]:
     """
     Identifies enclosed interior cavities (voids) in a grid.
     Returns a boolean mask of pixels that match background_val but cannot
@@ -237,27 +239,27 @@ def find_cavities(arr: np.ndarray, background_val: int = 0) -> np.ndarray:
                     queue.append((nr, nc))
 
     # Cavities are background pixels that cannot reach the boundary
-    return bg_mask & (~reachable_from_boundary)
+    return cast(npt.NDArray[np.bool_], np.logical_and(bg_mask, ~reachable_from_boundary))
 
 
-def color_counts(arr: np.ndarray) -> dict[int, int]:
+def color_counts(arr: npt.NDArray[np.generic]) -> dict[int, int]:
     """Returns frequency count of each discrete color in the grid."""
     unique, counts = np.unique(arr, return_counts=True)
     return {int(u): int(c) for u, c in zip(unique, counts)}
 
 
-def canvas(height: int, width: int, fill_val: int = 0) -> np.ndarray:
+def canvas(height: int, width: int, fill_val: int = 0) -> npt.NDArray[np.int_]:
     """Constructs a fresh 2D numpy canvas of specified dimensions filled with fill_val."""
     return np.full((height, width), fill_val, dtype=int)
 
 
 def paste(
-    base: np.ndarray,
-    patch: np.ndarray,
+    base: npt.NDArray[np.generic],
+    patch: npt.NDArray[np.generic],
     top_r: int,
     left_c: int,
     transparent_val: int | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.generic]:
     """
     Pastes patch onto base grid starting at (top_r, left_c), clipping to base boundaries.
     If transparent_val is given, pixels matching transparent_val in patch are not pasted.

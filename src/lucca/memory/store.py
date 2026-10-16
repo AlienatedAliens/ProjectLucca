@@ -351,9 +351,9 @@ class MemoryStore:
                     raise
                 raise MemoryCommitFailed(f"Memory commit transaction failed: {exc}") from exc
 
-    def search(self, q: RetrievalQuery) -> list[MemoryHit]:
+    def search(self, q: RetrievalQuery, now: float | None = None) -> list[MemoryHit]:
         """Hybrid retrieval query."""
-        return self.retriever.search(q)
+        return self.retriever.search(q, now=now)
 
     def supersede(
         self,
