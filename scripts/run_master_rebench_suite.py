@@ -170,7 +170,7 @@ def main() -> int:
         # Phase 2: Frontier Tool & Language
         (2, "BFCL v3 Function Calling (N=20)", "DEV", ["scripts/run_bfcl_benchmark.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 400.0),
         (2, "GPQA Diamond Stratified (N=15)", "DEV", ["scripts/run_gpqa_diamond_benchmark.py", "--limit", "15"], 1600.0),
-        (2, "OpenAI SimpleQA Factual Precision (N=20)", "DEV", ["scripts/run_simpleqa_eval.py", "--limit", "20"], 400.0),
+        (2, "OpenAI SimpleQA Factual Precision (N=20)", "DEV", ["scripts/run_simpleqa_eval.py", "--limit", "20", "--tool-augmented"], 600.0),
 
         # Phase 3: Mathematical Formalization & Algorithmic Logic
         (3, "MATH-500 Held-Out (N=30)", "DEV", ["scripts/run_modern_2024_benchmarks.py", "--benchmark", "math500", "--samples", "30", "--feedback"], 600.0),

@@ -133,7 +133,16 @@ def _resolve_searxng_url() -> str:
     except Exception as exc:  # noqa: BLE001
         logger.debug("searxng_config_read_error", error=str(exc))
 
-    # In WSL2 NAT mode, Windows connects to WSL services via WSL's hyper-v IP
+    # 1. First probe standard local endpoint (Docker port mapping on Windows host)
+    try:
+        import urllib.request as _urllib_req  # noqa: PLC0415
+        with _urllib_req.urlopen(SEARXNG_DEFAULT_URL.replace("/search", "/"), timeout=0.8) as _probe:
+            if _probe.status in (200, 302, 301):
+                return SEARXNG_DEFAULT_URL
+    except Exception:
+        pass
+
+    # 2. In WSL2 NAT mode, Windows connects to WSL services via WSL's hyper-v IP
     try:
         import subprocess as _sp  # noqa: PLC0415
 
