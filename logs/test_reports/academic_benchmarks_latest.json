@@ -1,368 +1,316 @@
 {
-  "timestamp": "20260930T050204Z",
-  "model": "llm/gemma-4-12b-heretic-Q6_K.gguf",
-  "samples_configured": 10,
+  "timestamp": "20261017T082635Z",
+  "model": "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
+  "samples_configured": 30,
   "benchmarks": {
-    "bbh": {
-      "benchmark": "BigBench_Hard_Subsets",
-      "total": 40,
-      "passed": 39,
-      "accuracy_pct": 97.5,
-      "elapsed_s": 277.79,
-      "subsets": {
-        "boolean_expressions": {
-          "title": "Boolean Logic Evaluation",
-          "total": 10,
-          "passed": 10,
-          "accuracy_pct": 100.0,
-          "results": [
-            {
-              "idx": 1,
-              "input": "not ( True ) and ( True ) is",
-              "target": "False",
-              "predicted": "false",
-              "passed": true,
-              "latency_s": 2.492
-            },
-            {
-              "idx": 2,
-              "input": "True and not not ( not False ) is",
-              "target": "True",
-              "predicted": "true",
-              "passed": true,
-              "latency_s": 3.563
-            },
-            {
-              "idx": 3,
-              "input": "not True or False or ( False ) is",
-              "target": "False",
-              "predicted": "false",
-              "passed": true,
-              "latency_s": 2.92
-            },
-            {
-              "idx": 4,
-              "input": "False or not ( True ) and False is",
-              "target": "False",
-              "predicted": "false",
-              "passed": true,
-              "latency_s": 3.132
-            },
-            {
-              "idx": 5,
-              "input": "True or not False and True and False is",
-              "target": "True",
-              "predicted": "true",
-              "passed": true,
-              "latency_s": 4.105
-            },
-            {
-              "idx": 6,
-              "input": "False or not not not False and True is",
-              "target": "True",
-              "predicted": "true",
-              "passed": true,
-              "latency_s": 4.707
-            },
-            {
-              "idx": 7,
-              "input": "not True and ( False or True ) is",
-              "target": "False",
-              "predicted": "false",
-              "passed": true,
-              "latency_s": 2.915
-            },
-            {
-              "idx": 8,
-              "input": "True and not False or ( True ) is",
-              "target": "True",
-              "predicted": "true",
-              "passed": true,
-              "latency_s": 3.065
-            },
-            {
-              "idx": 9,
-              "input": "not True or ( False and True ) is",
-              "target": "False",
-              "predicted": "false",
-              "passed": true,
-              "latency_s": 2.905
-            },
-            {
-              "idx": 10,
-              "input": "not True or ( True or False ) is",
-              "target": "True",
-              "predicted": "true",
-              "passed": true,
-              "latency_s": 2.993
-            }
-          ]
+    "humaneval": {
+      "benchmark": "HumanEval",
+      "total": 30,
+      "passed": 27,
+      "pass_at_1_pct": 90.0,
+      "elapsed_s": 36.48,
+      "results": [
+        {
+          "task_id": "HumanEval/0",
+          "entry_point": "has_close_elements",
+          "prompt": "from typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef has_close_elements(numbers: List[float], threshold: float) -> bool:\n    \"\"\" Check if in given list of numbers, are any two numbers closer to each other than\n    given threshold.\n    >>> has_close_elements([1.0, 2.0, 3.0], 0.5)\n    False\n    >>> has_close_elements([1.0, 2.8, 3.0, 4.0, 5.0, 2.0], 0.3)\n    True\n    \"\"\"\n    n = len(numbers)\n    if n < 2:\n        return False\n\n    for i in range(n):\n        for j in range(i + 1, n):\n            if abs(numbers[i] - numbers[j]) < threshold:\n                return True\n    return False",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.268
         },
-        "geometric_shapes": {
-          "title": "Geometric Shape Classification",
-          "total": 10,
-          "passed": 9,
-          "accuracy_pct": 90.0,
-          "results": [
-            {
-              "idx": 1,
-              "input": "This SVG path element <path d=\"M 55.57,80.69 L 57.38,65.80 M 57.38,65.80 L 48.90,57.46 M 48.90,57.46 L 45.58,47.78 M 45.58,47.78 L 53.25,36.07 L 66.29,48.90 L 78.69,61.09 L 55.57,80.69\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(B)",
-              "predicted": "(B)",
-              "passed": true,
-              "latency_s": 10.691
-            },
-            {
-              "idx": 2,
-              "input": "This SVG path element <path d=\"M 30.17,45.97 L 58.79,40.36 L 18.10,15.70 M 18.10,15.70 L 30.17,45.97\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(J)",
-              "predicted": "(J)",
-              "passed": true,
-              "latency_s": 9.379
-            },
-            {
-              "idx": 3,
-              "input": "This SVG path element <path d=\"M 21.10,97.94 L 22.14,97.44 L 10.48,73.34 L 9.43,73.84 L 21.10,97.94\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle\n(K) trapezoid",
-              "target": "(K)",
-              "predicted": "(D)",
-              "passed": false,
-              "latency_s": 15.482
-            },
-            {
-              "idx": 4,
-              "input": "This SVG path element <path d=\"M 12.64,60.32 L 16.36,27.35\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(E)",
-              "predicted": "(E)",
-              "passed": true,
-              "latency_s": 8.26
-            },
-            {
-              "idx": 5,
-              "input": "This SVG path element <path d=\"M 90.54,84.19 L 72.03,34.41 L 33.90,48.59 M 33.90,48.59 L 52.41,98.37 M 52.41,98.37 L 90.54,84.19\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle\n(K) trapezoid",
-              "target": "(K)",
-              "predicted": "(K)",
-              "passed": true,
-              "latency_s": 20.485
-            },
-            {
-              "idx": 6,
-              "input": "This SVG path element <path d=\"M 2.10,61.72 L 38.86,44.98 M 38.86,44.98 L 65.79,63.32 L 39.63,11.62 L 21.25,37.04 M 21.25,37.04 L 31.13,38.33 L 2.10,61.72\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(C)",
-              "predicted": "(C)",
-              "passed": true,
-              "latency_s": 13.167
-            },
-            {
-              "idx": 7,
-              "input": "This SVG path element <path d=\"M 52.00,72.00 L 3.00,95.00 L 53.00,30.00 L 52.00,72.00\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(J)",
-              "predicted": "(J)",
-              "passed": true,
-              "latency_s": 10.578
-            },
-            {
-              "idx": 8,
-              "input": "This SVG path element <path d=\"M 4.12,72.94 L 38.85,35.38 M 38.85,35.38 L 50.28,77.12 L 30.89,80.59 M 30.89,80.59 L 31.43,90.13 L 22.93,92.01 M 22.93,92.01 L 4.12,72.94\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(C)",
-              "predicted": "(C)",
-              "passed": true,
-              "latency_s": 11.296
-            },
-            {
-              "idx": 9,
-              "input": "This SVG path element <path d=\"M 22.06,65.18 L 22.58,64.52 L 7.52,52.61 L 7.00,53.26 L 22.06,65.18\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle\n(K) trapezoid",
-              "target": "(K)",
-              "predicted": "(K)",
-              "passed": true,
-              "latency_s": 20.366
-            },
-            {
-              "idx": 10,
-              "input": "This SVG path element <path d=\"M 76.00,30.00 L 58.00,25.00 L 42.00,26.00 L 41.00,41.00 L 47.00,54.00 L 76.00,30.00\"/> draws a\nOptions:\n(A) circle\n(B) heptagon\n(C) hexagon\n(D) kite\n(E) line\n(F) octagon\n(G) pentagon\n(H) rectangle\n(I) sector\n(J) triangle",
-              "target": "(G)",
-              "predicted": "(G)",
-              "passed": true,
-              "latency_s": 9.077
-            }
-          ]
+        {
+          "task_id": "HumanEval/1",
+          "entry_point": "separate_paren_groups",
+          "prompt": "from typing import List\n\n\ndef separate_paren_groups(paren_string: str) -> List[str]:\n    \"\"\" Input to this function is a string containing multiple groups of nested parentheses. Your goal is to\n    separate those group into separate strings and return the list of those.\n    Separate groups are balanced (each open brace is properly closed) and not nested within each other\n    Ignore any spaces in the input string.\n    >>> separate_paren_groups('( ) (( )) (( )( ))')\n    ['()', '(())', '(()())']\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef separate_paren_groups(paren_string: str) -> List[str]:\n    \"\"\" Input to this function is a string containing multiple groups of nested parentheses. Your goal is to\n    separate those group into separate strings and return the list of those.\n    Separate groups are balanced (each open brace is properly closed) and not nested within each other\n    Ignore any spaces in the input string.\n    >>> separate_paren_groups('( ) (( )) (( )( ))')\n    ['()', '(())', '(()())']\n    \"\"\"\n    # Remove spaces from the input string\n    s = paren_string.replace(\" \", \"\")\n\n    groups = []\n    balance = 0\n    current_group_start = 0\n\n    for i, char in enumerate(s):\n        if char == '(':\n            balance += 1\n        elif char == ')':\n            balance -= 1\n\n        if balance == 0 and char == ')':\n            # Found a balanced group\n            group = s[current_group_start : i + 1]\n            groups.append(group)\n            current_group_start = i + 1\n\n    return groups",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.569
         },
-        "tracking_shuffled_objects_three_objects": {
-          "title": "Object Position Permutation Tracking",
-          "total": 10,
-          "passed": 10,
-          "accuracy_pct": 100.0,
-          "results": [
-            {
-              "idx": 1,
-              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Ulysses, Bob gets Frankenstein, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Claire and Bob swap books. Then, Bob and Alice swap books. Finally, Claire and Bob swap books. At the end of the semester, Bob has\nOptions:\n(A) Ulysses\n(B) Frankenstein\n(C) Lolita",
-              "target": "(B)",
-              "predicted": "(B)",
-              "passed": true,
-              "latency_s": 5.039
-            },
-            {
-              "idx": 2,
-              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Hound of the Baskervilles, Bob gets The Odyssey, and Claire gets Catch-22.\nAs the semester proceeds, they start trading around the new books. First, Claire and Alice swap books. Then, Bob and Claire swap books. Finally, Alice and Bob swap books. At the end of the semester, Alice has\nOptions:\n(A) Hound of the Baskervilles\n(B) The Odyssey\n(C) Catch-22",
-              "target": "(A)",
-              "predicted": "(A)",
-              "passed": true,
-              "latency_s": 6.82
-            },
-            {
-              "idx": 3,
-              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Frankenstein, Bob gets Catch-22, and Claire gets Ulysses.\nAs the semester proceeds, they start trading around the new books. First, Bob and Alice swap books. Then, Alice and Claire swap books. Finally, Claire and Bob swap books. At the end of the semester, Alice has\nOptions:\n(A) Frankenstein\n(B) Catch-22\n(C) Ulysses",
-              "target": "(C)",
-              "predicted": "(C)",
-              "passed": true,
-              "latency_s": 5.937
-            },
-            {
-              "idx": 4,
-              "input": "Alice, Bob, and Claire are dancers at a square dance. At the start of a song, they each have a partner: Alice is dancing with Helga, Bob is dancing with Lola, and Claire is dancing with Ophelia.\nThroughout the song, the dancers often trade partners. First, Alice and Bob switch partners. Then, Bob and Claire switch partners. Finally, Alice and Bob switch partners. At the end of the dance, Alice is dancing with\nOptions:\n(A) Helga\n(B) Lola\n(C) Ophelia",
-              "target": "(C)",
-              "predicted": "(C)",
-              "passed": true,
-              "latency_s": 5.706
-            },
-            {
-              "idx": 5,
-              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Frankenstein, Bob gets The Odyssey, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Alice and Claire swap books. Then, Bob and Alice swap books. Finally, Claire and Bob swap books. At the end of the semester, Bob has\nOptions:\n(A) Frankenstein\n(B) The Odyssey\n(C) Lolita",
-              "target": "(A)",
-              "predicted": "(A)",
-              "passed": true,
-              "latency_s": 5.413
-            },
-            {
-              "idx": 6,
-              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets Catch-22, Bob gets Moby Dick, and Claire gets The Great Gatsby.\nAs the semester proceeds, they start trading around the new books. First, Claire and Bob swap books. Then, Claire and Alice swap books. Finally, Bob and Claire swap books. At the end of the semester, Alice has\nOptions:\n(A) Catch-22\n(B) Moby Dick\n(C) The Great Gatsby",
-              "target": "(B)",
-              "predicted": "(B)",
-              "passed": true,
-              "latency_s": 6.756
-            },
-            {
-              "idx": 7,
-              "input": "Alice, Bob, and Claire are dancers at a square dance. At the start of a song, they each have a partner: Alice is dancing with Izzi, Bob is dancing with Melissa, and Claire is dancing with Lola.\nThroughout the song, the dancers often trade partners. First, Claire and Alice switch partners. Then, Bob and Claire switch partners. Finally, Alice and Bob switch partners. At the end of the dance, Alice is dancing with\nOptions:\n(A) Izzi\n(B) Melissa\n(C) Lola",
-              "target": "(A)",
-              "predicted": "(A)",
-              "passed": true,
-              "latency_s": 5.897
-            },
-            {
-              "idx": 8,
-              "input": "Alice, Bob, and Claire are friends and avid readers who occasionally trade books. At the start of the semester, they each buy one new book: Alice gets The Great Gatsby, Bob gets The Odyssey, and Claire gets Lolita.\nAs the semester proceeds, they start trading around the new books. First, Alice and Bob swap books. Then, Alice and Claire swap books. Finally, Bob and Claire swap books. At the end of the semester, Claire has\nOptions:\n(A) The Great Gatsby\n(B) The Odyssey\n(C) Lolita",
-              "target": "(A)",
-              "predicted": "(A)",
-              "passed": true,
-              "latency_s": 6.294
-            },
-            {
-              "idx": 9,
-              "input": "Alice, Bob, and Claire are playing a game. At the start of the game, they are each holding a ball: Alice has a brown ball, Bob has a red ball, and Claire has a white ball.\nAs the game progresses, pairs of players trade balls. First, Claire and Bob swap balls. Then, Bob and Alice swap balls. Finally, Claire and Alice swap balls. At the end of the game, Bob has the\nOptions:\n(A) brown ball\n(B) red ball\n(C) white ball",
-              "target": "(A)",
-              "predicted": "(A)",
-              "passed": true,
-              "latency_s": 4.933
-            },
-            {
-              "idx": 10,
-              "input": "Alice, Bob, and Claire are playing a game. At the start of the game, they are each holding a ball: Alice has a yellow ball, Bob has a brown ball, and Claire has a green ball.\nAs the game progresses, pairs of players trade balls. First, Bob and Claire swap balls. Then, Bob and Alice swap balls. Finally, Bob and Claire swap balls. At the end of the game, Alice has the\nOptions:\n(A) yellow ball\n(B) brown ball\n(C) green ball",
-              "target": "(C)",
-              "predicted": "(C)",
-              "passed": true,
-              "latency_s": 5.742
-            }
-          ]
+        {
+          "task_id": "HumanEval/2",
+          "entry_point": "truncate_number",
+          "prompt": "\n\ndef truncate_number(number: float) -> float:\n    \"\"\" Given a positive floating point number, it can be decomposed into\n    and integer part (largest integer smaller than given number) and decimals\n    (leftover part always smaller than 1).\n\n    Return the decimal part of the number.\n    >>> truncate_number(3.5)\n    0.5\n    \"\"\"\n",
+          "completion": "def truncate_number(number: float) -> float:\n    \"\"\" Given a positive floating point number, it can be decomposed into\n    and integer part (largest integer smaller than given number) and decimals\n    (leftover part always smaller than 1).\n\n    Return the decimal part of the number.\n    >>> truncate_number(3.5)\n    0.5\n    \"\"\"\n    return number - int(number)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.606
         },
-        "dyck_languages": {
-          "title": "Bracket Nesting & Closure",
-          "total": 10,
-          "passed": 10,
-          "accuracy_pct": 100.0,
-          "results": [
-            {
-              "idx": 1,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ [",
-              "target": "] ]",
-              "predicted": "] ]",
-              "passed": true,
-              "latency_s": 0.195
-            },
-            {
-              "idx": 2,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < [ [",
-              "target": "] ] >",
-              "predicted": "] ] >",
-              "passed": true,
-              "latency_s": 0.152
-            },
-            {
-              "idx": 3,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: { < { { [ ] } } { < [ { { < > } } [ ( ) ( ) ] [ [ [ [ ( { < ( < ( [ ] ) > ) > } ) ] ] ] ] ] ( ) ( [ ] { } ) > } > [ { ( ( ) ) } ]",
-              "target": "}",
-              "predicted": "56. `[` (Stack",
-              "passed": true,
-              "latency_s": 20.306
-            },
-            {
-              "idx": 4,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < [ ] { < ( ) > } [ ] ( { }",
-              "target": ") >",
-              "predicted": ") >",
-              "passed": true,
-              "latency_s": 4.241
-            },
-            {
-              "idx": 5,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < ( ( ( < > ) ) ( { { } [ { } ] [ ] < ( ) > } ) )",
-              "target": ">",
-              "predicted": ">",
-              "passed": true,
-              "latency_s": 10.182
-            },
-            {
-              "idx": 6,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: ( [ [ [ { } ] ] { < [ < [ { } ] > ] > }",
-              "target": "] )",
-              "predicted": "] )",
-              "passed": true,
-              "latency_s": 7.249
-            },
-            {
-              "idx": 7,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: ( { { } }",
-              "target": ")",
-              "predicted": ")",
-              "passed": true,
-              "latency_s": 0.148
-            },
-            {
-              "idx": 8,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: < ( ( ( [ { } ] )",
-              "target": ") ) >",
-              "predicted": ") ) ) >",
-              "passed": true,
-              "latency_s": 4.056
-            },
-            {
-              "idx": 9,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ < > ] [ [ < > ]",
-              "target": "]",
-              "predicted": "] ]",
-              "passed": true,
-              "latency_s": 2.799
-            },
-            {
-              "idx": 10,
-              "input": "Complete the rest of the sequence, making sure that the parentheses are closed properly. Input: [ ] ( [ [ { < { { ( < > [ ] ) } } < > > } ] ] { }",
-              "target": ")",
-              "predicted": ")",
-              "passed": true,
-              "latency_s": 8.306
-            }
-          ]
+        {
+          "task_id": "HumanEval/3",
+          "entry_point": "below_zero",
+          "prompt": "from typing import List\n\n\ndef below_zero(operations: List[int]) -> bool:\n    \"\"\" You're given a list of deposit and withdrawal operations on a bank account that starts with\n    zero balance. Your task is to detect if at any point the balance of account fallls below zero, and\n    at that point function should return True. Otherwise it should return False.\n    >>> below_zero([1, 2, 3])\n    False\n    >>> below_zero([1, 2, -4, 5])\n    True\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef below_zero(operations: List[int]) -> bool:\n    \"\"\" You're given a list of deposit and withdrawal operations on a bank account that starts with\n    zero balance. Your task is to detect if at any point the balance of account fallls below zero, and\n    at that point function should return True. Otherwise it should return False.\n    >>> below_zero([1, 2, 3])\n    False\n    >>> below_zero([1, 2, -4, 5])\n    True\n    \"\"\"\n    balance = 0\n    for operation in operations:\n        balance += operation\n        if balance < 0:\n            return True\n    return False",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.969
+        },
+        {
+          "task_id": "HumanEval/4",
+          "entry_point": "mean_absolute_deviation",
+          "prompt": "from typing import List\n\n\ndef mean_absolute_deviation(numbers: List[float]) -> float:\n    \"\"\" For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef mean_absolute_deviation(numbers: List[float]) -> float:\n    \"\"\" For a given list of input numbers, calculate Mean Absolute Deviation\n    around the mean of this dataset.\n    Mean Absolute Deviation is the average absolute difference between each\n    element and a centerpoint (mean in this case):\n    MAD = average | x - x_mean |\n    >>> mean_absolute_deviation([1.0, 2.0, 3.0, 4.0])\n    1.0\n    \"\"\"\n    if not numbers:\n        return 0.0\n\n    mean = sum(numbers) / len(numbers)\n\n    absolute_deviations = [abs(x - mean) for x in numbers]\n\n    mad = sum(absolute_deviations) / len(numbers)\n    return mad",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.101
+        },
+        {
+          "task_id": "HumanEval/5",
+          "entry_point": "intersperse",
+          "prompt": "from typing import List\n\n\ndef intersperse(numbers: List[int], delimeter: int) -> List[int]:\n    \"\"\" Insert a number 'delimeter' between every two consecutive elements of input list `numbers'\n    >>> intersperse([], 4)\n    []\n    >>> intersperse([1, 2, 3], 4)\n    [1, 4, 2, 4, 3]\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef intersperse(numbers: List[int], delimeter: int) -> List[int]:\n    \"\"\" Insert a number 'delimeter' between every two consecutive elements of input list `numbers'\n    >>> intersperse([], 4)\n    []\n    >>> intersperse([1, 2, 3], 4)\n    [1, 4, 2, 4, 3]\n    \"\"\"\n    if not numbers:\n        return []\n\n    result = [numbers[0]]\n    for i in range(1, len(numbers)):\n        result.append(delimeter)\n        result.append(numbers[i])\n    return result",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.919
+        },
+        {
+          "task_id": "HumanEval/6",
+          "entry_point": "parse_nested_parens",
+          "prompt": "from typing import List\n\n\ndef parse_nested_parens(paren_string: str) -> List[int]:\n    \"\"\" Input to this function is a string represented multiple groups for nested parentheses separated by spaces.\n    For each of the group, output the deepest level of nesting of parentheses.\n    E.g. (()()) has maximum two levels of nesting while ((())) has three.\n\n    >>> parse_nested_parens('(()()) ((())) () ((())()())')\n    [2, 3, 1, 3]\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef parse_nested_parens(paren_string: str) -> List[int]:\n    \"\"\" Input to this function is a string represented multiple groups for nested parentheses separated by spaces.\n    For each of the group, output the deepest level of nesting of parentheses.\n    E.g. (()()) has maximum two levels of nesting while ((())) has three.\n\n    >>> parse_nested_parens('(()()) ((())) () ((())()())')\n    [2, 3, 1, 3]\n    \"\"\"\n    groups = paren_string.split(' ')\n    results = []\n\n    for group in groups:\n        max_depth = 0\n        current_depth = 0\n        for char in group:\n            if char == '(':\n                current_depth += 1\n                if current_depth > max_depth:\n                    max_depth = current_depth\n            elif char == ')':\n                current_depth -= 1\n        results.append(max_depth)\n\n    return results",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.42
+        },
+        {
+          "task_id": "HumanEval/7",
+          "entry_point": "filter_by_substring",
+          "prompt": "from typing import List\n\n\ndef filter_by_substring(strings: List[str], substring: str) -> List[str]:\n    \"\"\" Filter an input list of strings only for ones that contain given substring\n    >>> filter_by_substring([], 'a')\n    []\n    >>> filter_by_substring(['abc', 'bacd', 'cde', 'array'], 'a')\n    ['abc', 'bacd', 'array']\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef filter_by_substring(strings: List[str], substring: str) -> List[str]:\n    \"\"\" Filter an input list of strings only for ones that contain given substring\n    >>> filter_by_substring([], 'a')\n    []\n    >>> filter_by_substring(['abc', 'bacd', 'cde', 'array'], 'a')\n    ['abc', 'bacd', 'array']\n    \"\"\"\n    return [s for s in strings if substring in s]",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.733
+        },
+        {
+          "task_id": "HumanEval/8",
+          "entry_point": "sum_product",
+          "prompt": "from typing import List, Tuple\n\n\ndef sum_product(numbers: List[int]) -> Tuple[int, int]:\n    \"\"\" For a given list of integers, return a tuple consisting of a sum and a product of all the integers in a list.\n    Empty sum should be equal to 0 and empty product should be equal to 1.\n    >>> sum_product([])\n    (0, 1)\n    >>> sum_product([1, 2, 3, 4])\n    (10, 24)\n    \"\"\"\n",
+          "completion": "from typing import List, Tuple\n\n\ndef sum_product(numbers: List[int]) -> Tuple[int, int]:\n    \"\"\" For a given list of integers, return a tuple consisting of a sum and a product of all the integers in a list.\n    Empty sum should be equal to 0 and empty product should be equal to 1.\n    >>> sum_product([])\n    (0, 1)\n    >>> sum_product([1, 2, 3, 4])\n    (10, 24)\n    \"\"\"\n    total_sum = 0\n    total_product = 1\n    for number in numbers:\n        total_sum += number\n        total_product *= number\n    return (total_sum, total_product)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.03
+        },
+        {
+          "task_id": "HumanEval/9",
+          "entry_point": "rolling_max",
+          "prompt": "from typing import List, Tuple\n\n\ndef rolling_max(numbers: List[int]) -> List[int]:\n    \"\"\" From a given list of integers, generate a list of rolling maximum element found until given moment\n    in the sequence.\n    >>> rolling_max([1, 2, 3, 2, 3, 4, 2])\n    [1, 2, 3, 3, 3, 4, 4]\n    \"\"\"\n",
+          "completion": "from typing import List, Tuple\n\n\ndef rolling_max(numbers: List[int]) -> List[int]:\n    \"\"\" From a given list of integers, generate a list of rolling maximum element found until given moment\n    in the sequence.\n    >>> rolling_max([1, 2, 3, 2, 3, 4, 2])\n    [1, 2, 3, 3, 3, 4, 4]\n    \"\"\"\n    if not numbers:\n        return []\n\n    result = []\n    current_max = numbers[0]\n    result.append(current_max)\n\n    for i in range(1, len(numbers)):\n        current_number = numbers[i]\n        current_max = max(current_number, current_max)\n        result.append(current_max)\n\n    return result",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.19
+        },
+        {
+          "task_id": "HumanEval/10",
+          "entry_point": "make_palindrome",
+          "prompt": "\n\ndef is_palindrome(string: str) -> bool:\n    \"\"\" Test if given string is a palindrome \"\"\"\n    return string == string[::-1]\n\n\ndef make_palindrome(string: str) -> str:\n    \"\"\" Find the shortest palindrome that begins with a supplied string.\n    Algorithm idea is simple:\n    - Find the longest postfix of supplied string that is a palindrome.\n    - Append to the end of the string reverse of a string prefix that comes before the palindromic suffix.\n    >>> make_palindrome('')\n    ''\n    >>> make_palindrome('cat')\n    'catac'\n    >>> make_palindrome('cata')\n    'catac'\n    \"\"\"\n",
+          "completion": "def make_palindrome(string: str) -> str:\n    \"\"\" Find the shortest palindrome that begins with a supplied string.\n    Algorithm idea is simple:\n    - Find the longest postfix of supplied string that is a palindrome.\n    - Append to the end of the string reverse of a string prefix that comes before the palindromic suffix.\n    >>> make_palindrome('')\n    ''\n    >>> make_palindrome('cat')\n    'catac'\n    >>> make_palindrome('cata')\n    'catac'\n    \"\"\"\n    n = len(string)\n    if n == 0:\n        return \"\"\n\n    # Find the longest suffix of 'string' that is a palindrome.\n    # We are looking for the longest suffix string[i:] such that string[i:] is a palindrome.\n    # The part we need to reverse and prepend is string[:i].\n    \n    longest_pal_suffix_start_index = n\n    for i in range(n):\n        suffix = string[i:]\n        if suffix == suffix[::-1]:\n            longest_pal_suffix_start_index = i\n            break\n    \n    # The prefix that needs to be reversed and appended is string[:longest_pal_suffix_start_index]\n    prefix_to_reverse = string[:longest_pal_suffix_start_index]\n    \n    return string + prefix_to_reverse[::-1]",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.829
+        },
+        {
+          "task_id": "HumanEval/11",
+          "entry_point": "string_xor",
+          "prompt": "from typing import List\n\n\ndef string_xor(a: str, b: str) -> str:\n    \"\"\" Input are two strings a and b consisting only of 1s and 0s.\n    Perform binary XOR on these inputs and return result also as a string.\n    >>> string_xor('010', '110')\n    '100'\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef string_xor(a: str, b: str) -> str:\n    \"\"\" Input are two strings a and b consisting only of 1s and 0s.\n    Perform binary XOR on these inputs and return result also as a string.\n    >>> string_xor('010', '110')\n    '100'\n    \"\"\"\n    result = []\n    for char_a, char_b in zip(a, b):\n        if char_a != char_b:\n            result.append('1')\n        else:\n            result.append('0')\n    return \"\".join(result)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.926
+        },
+        {
+          "task_id": "HumanEval/12",
+          "entry_point": "longest",
+          "prompt": "from typing import List, Optional\n\n\ndef longest(strings: List[str]) -> Optional[str]:\n    \"\"\" Out of list of strings, return the longest one. Return the first one in case of multiple\n    strings of the same length. Return None in case the input list is empty.\n    >>> longest([])\n\n    >>> longest(['a', 'b', 'c'])\n    'a'\n    >>> longest(['a', 'bb', 'ccc'])\n    'ccc'\n    \"\"\"\n",
+          "completion": "from typing import List, Optional\n\n\ndef longest(strings: List[str]) -> Optional[str]:\n    \"\"\" Out of list of strings, return the longest one. Return the first one in case of multiple\n    strings of the same length. Return None in case the input list is empty.\n    >>> longest([])\n\n    >>> longest(['a', 'b', 'c'])\n    'a'\n    >>> longest(['a', 'bb', 'ccc'])\n    'ccc'\n    \"\"\"\n    if not strings:\n        return None\n\n    longest_str = strings[0]\n    max_length = len(strings[0])\n\n    for s in strings[1:]:\n        if len(s) > max_length:\n            max_length = len(s)\n            longest_str = s\n    \n    return longest_str",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.15
+        },
+        {
+          "task_id": "HumanEval/13",
+          "entry_point": "greatest_common_divisor",
+          "prompt": "\n\ndef greatest_common_divisor(a: int, b: int) -> int:\n    \"\"\" Return a greatest common divisor of two integers a and b\n    >>> greatest_common_divisor(3, 5)\n    1\n    >>> greatest_common_divisor(25, 15)\n    5\n    \"\"\"\n",
+          "completion": "def greatest_common_divisor(a: int, b: int) -> int:\n    \"\"\" Return a greatest common divisor of two integers a and b\n    >>> greatest_common_divisor(3, 5)\n    1\n    >>> greatest_common_divisor(25, 15)\n    5\n    \"\"\"\n    while b:\n        a, b = b, a % b\n    return abs(a)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.621
+        },
+        {
+          "task_id": "HumanEval/14",
+          "entry_point": "all_prefixes",
+          "prompt": "from typing import List\n\n\ndef all_prefixes(string: str) -> List[str]:\n    \"\"\" Return list of all prefixes from shortest to longest of the input string\n    >>> all_prefixes('abc')\n    ['a', 'ab', 'abc']\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef all_prefixes(string: str) -> List[str]:\n    \"\"\" Return list of all prefixes from shortest to longest of the input string\n    >>> all_prefixes('abc')\n    ['a', 'ab', 'abc']\n    \"\"\"\n    prefixes = []\n    for i in range(1, len(string) + 1):\n        prefixes.append(string[:i])\n    return prefixes",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.594
+        },
+        {
+          "task_id": "HumanEval/15",
+          "entry_point": "string_sequence",
+          "prompt": "\n\ndef string_sequence(n: int) -> str:\n    \"\"\" Return a string containing space-delimited numbers starting from 0 upto n inclusive.\n    >>> string_sequence(0)\n    '0'\n    >>> string_sequence(5)\n    '0 1 2 3 4 5'\n    \"\"\"\n",
+          "completion": "def string_sequence(n: int) -> str:\n    \"\"\" Return a string containing space-delimited numbers starting from 0 upto n inclusive.\n    >>> string_sequence(0)\n    '0'\n    >>> string_sequence(5)\n    '0 1 2 3 4 5'\n    \"\"\"\n    if n < 0:\n        return \"\"\n    return \" \".join(map(str, range(n + 1)))",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.653
+        },
+        {
+          "task_id": "HumanEval/16",
+          "entry_point": "count_distinct_characters",
+          "prompt": "\n\ndef count_distinct_characters(string: str) -> int:\n    \"\"\" Given a string, find out how many distinct characters (regardless of case) does it consist of\n    >>> count_distinct_characters('xyzXYZ')\n    3\n    >>> count_distinct_characters('Jerry')\n    4\n    \"\"\"\n",
+          "completion": "def count_distinct_characters(string: str) -> int:\n    \"\"\" Given a string, find out how many distinct characters (regardless of case) does it consist of\n    >>> count_distinct_characters('xyzXYZ')\n    3\n    >>> count_distinct_characters('Jerry')\n    4\n    \"\"\"\n    return len(set(string.lower()))",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.514
+        },
+        {
+          "task_id": "HumanEval/17",
+          "entry_point": "parse_music",
+          "prompt": "from typing import List\n\n\ndef parse_music(music_string: str) -> List[int]:\n    \"\"\" Input to this function is a string representing musical notes in a special ASCII format.\n    Your task is to parse this string and return list of integers corresponding to how many beats does each\n    not last.\n\n    Here is a legend:\n    'o' - whole note, lasts four beats\n    'o|' - half note, lasts two beats\n    '.|' - quater note, lasts one beat\n\n    >>> parse_music('o o| .| o| o| .| .| .| .| o o')\n    [4, 2, 1, 2, 2, 1, 1, 1, 1, 4, 4]\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef parse_music(music_string: str) -> List[int]:\n    \"\"\" Input to this function is a string representing musical notes in a special ASCII format.\n    Your task is to parse this string and return list of integers corresponding to how many beats does each\n    not last.\n\n    Here is a legend:\n    'o' - whole note, lasts four beats\n    'o|' - half note, lasts two beats\n    '.|' - quater note, lasts one beat\n\n    >>> parse_music('o o| .| o| o| .| .| .| .| o o')\n    [4, 2, 1, 2, 2, 1, 1, 1, 1, 4, 4]\n    \"\"\"\n    beats = []\n    i = 0\n    n = len(music_string)\n    while i < n:\n        if music_string[i] == 'o':\n            beats.append(4)\n            i += 1\n        elif music_string[i:i+2] == 'o|':\n            beats.append(2)\n            i += 2\n        elif music_string[i:i+2] == '.|':\n            beats.append(1)\n            i += 2\n        else:\n            # Handle potential errors or unexpected characters if necessary,\n            # but based on the problem description, we assume valid input.\n            # For robustness, we might skip or raise an error.\n            # For this problem, we assume the input strictly follows the pattern.\n            i += 1  # Move past any unexpected single character if it exists, though it shouldn't.\n    return beats",
+          "exit_code": 1,
+          "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 40, in <module>\n  File \"<stdin>\", line 38, in check\nAssertionError\n",
+          "passed": false,
+          "llm_latency_s": 2.27
+        },
+        {
+          "task_id": "HumanEval/18",
+          "entry_point": "how_many_times",
+          "prompt": "\n\ndef how_many_times(string: str, substring: str) -> int:\n    \"\"\" Find how many times a given substring can be found in the original string. Count overlaping cases.\n    >>> how_many_times('', 'a')\n    0\n    >>> how_many_times('aaa', 'a')\n    3\n    >>> how_many_times('aaaa', 'aa')\n    3\n    \"\"\"\n",
+          "completion": "def how_many_times(string: str, substring: str) -> int:\n    \"\"\" Find how many times a given substring can be found in the original string. Count overlaping cases.\n    >>> how_many_times('', 'a')\n    0\n    >>> how_many_times('aaa', 'a')\n    3\n    >>> how_many_times('aaaa', 'aa')\n    3\n    \"\"\"\n    if not substring:\n        return 0\n    count = 0\n    n = len(string)\n    m = len(substring)\n    for i in range(n - m + 1):\n        if string[i:i+m] == substring:\n            count += 1\n    return count",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.055
+        },
+        {
+          "task_id": "HumanEval/19",
+          "entry_point": "sort_numbers",
+          "prompt": "from typing import List\n\n\ndef sort_numbers(numbers: str) -> str:\n    \"\"\" Input is a space-delimited string of numberals from 'zero' to 'nine'.\n    Valid choices are 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight' and 'nine'.\n    Return the string with numbers sorted from smallest to largest\n    >>> sort_numbers('three one five')\n    'one three five'\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef sort_numbers(numbers: str) -> str:\n    \"\"\" Input is a space-delimited string of numberals from 'zero' to 'nine'.\n    Valid choices are 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight' and 'nine'.\n    Return the string with numbers sorted from smallest to largest\n    >>> sort_numbers('three one five')\n    'one three five'\n    \"\"\"\n    number_map = {\n        'zero': 0,\n        'one': 1,\n        'two': 2,\n        'three': 3,\n        'four': 4,\n        'five': 5,\n        'six': 6,\n        'seven': 7,\n        'eight': 8,\n        'nine': 9\n    }\n\n    # Split the string into a list of number strings\n    number_list = numbers.split()\n\n    # Convert the number strings to their integer values\n    # We assume the input only contains valid number strings as per the docstring\n    numeric_list = [number_map[num] for num in number_list]\n\n    # Sort the list of integers\n    sorted_numeric_list = sorted(numeric_list)\n\n    # Map the sorted integers back to their corresponding string representations\n    sorted_number_list = [list(number_map.keys())[i] for i in sorted_numeric_list]\n\n    # Join the sorted strings with spaces\n    return ' '.join(sorted_number_list)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 2.062
+        },
+        {
+          "task_id": "HumanEval/20",
+          "entry_point": "find_closest_elements",
+          "prompt": "from typing import List, Tuple\n\n\ndef find_closest_elements(numbers: List[float]) -> Tuple[float, float]:\n    \"\"\" From a supplied list of numbers (of length at least two) select and return two that are the closest to each\n    other and return them in order (smaller number, larger number).\n    >>> find_closest_elements([1.0, 2.0, 3.0, 4.0, 5.0, 2.2])\n    (2.0, 2.2)\n    >>> find_closest_elements([1.0, 2.0, 3.0, 4.0, 5.0, 2.0])\n    (2.0, 2.0)\n    \"\"\"\n",
+          "completion": "from typing import List, Tuple\n\n\ndef find_closest_elements(numbers: List[float]) -> Tuple[float, float]:\n    \"\"\" From a supplied list of numbers (of length at least two) select and return two that are the closest to each\n    other and return them in order (smaller number, larger number).\n    >>> find_closest_elements([1.0, 2.0, 3.0, 4.0, 5.0, 2.2])\n    (2.0, 2.2)\n    >>> find_closest_elements([1.0, 2.0, 3.0, 4.0, 5.0, 2.0])\n    (2.0, 2.0)\n    \"\"\"\n    if len(numbers) < 2:\n        raise ValueError(\"Input list must contain at least two numbers.\")\n\n    min_diff = float('inf')\n    closest_pair = (0.0, 0.0)\n\n    for i in range(len(numbers)):\n        for j in range(i + 1, len(numbers)):\n            num1 = numbers[i]\n            num2 = numbers[j]\n            diff = abs(num1 - num2)\n\n            if diff < min_diff:\n                min_diff = diff\n                closest_pair = (min(num1, num2), max(num1, num2))\n            elif diff == min_diff:\n                current_pair = (min(num1, num2), max(num1, num2))\n                # If differences are equal, the problem statement doesn't specify tie-breaking.\n                # We stick to the first pair found with the minimum difference, or if we want\n                # to be deterministic, we could compare lexicographically.\n                # For simplicity and based on the examples, we only update on strictly smaller diff.\n                # If the requirement implies returning *any* pair with the minimum difference,\n                # the current logic is fine. If it implies a specific tie-breaker (like smaller sum),\n                # that would need to be added.\n                pass\n\n    return closest_pair",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 2.859
+        },
+        {
+          "task_id": "HumanEval/21",
+          "entry_point": "rescale_to_unit",
+          "prompt": "from typing import List\n\n\ndef rescale_to_unit(numbers: List[float]) -> List[float]:\n    \"\"\" Given list of numbers (of at least two elements), apply a linear transform to that list,\n    such that the smallest number will become 0 and the largest will become 1\n    >>> rescale_to_unit([1.0, 2.0, 3.0, 4.0, 5.0])\n    [0.0, 0.25, 0.5, 0.75, 1.0]\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef rescale_to_unit(numbers: List[float]) -> List[float]:\n    \"\"\" Given list of numbers (of at least two elements), apply a linear transform to that list,\n    such that the smallest number will become 0 and the largest will become 1\n    >>> rescale_to_unit([1.0, 2.0, 3.0, 4.0, 5.0])\n    [0.0, 0.25, 0.5, 0.75, 1.0]\n    \"\"\"\n    if not numbers:\n        return []\n\n    min_val = min(numbers)\n    max_val = max(numbers)\n\n    if max_val == min_val:\n        # If all numbers are the same, they should all map to 0 (or 1, depending on convention,\n        # but mapping to 0 is consistent with the smallest becoming 0).\n        return [0.0] * len(numbers)\n\n    rescaled = []\n    for num in numbers:\n        # Linear transformation formula: (x - min) / (max - min)\n        scaled_value = (num - min_val) / (max_val - min_val)\n        rescaled.append(scaled_value)\n\n    return rescaled",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.783
+        },
+        {
+          "task_id": "HumanEval/22",
+          "entry_point": "filter_integers",
+          "prompt": "from typing import List, Any\n\n\ndef filter_integers(values: List[Any]) -> List[int]:\n    \"\"\" Filter given list of any python values only for integers\n    >>> filter_integers(['a', 3.14, 5])\n    [5]\n    >>> filter_integers([1, 2, 3, 'abc', {}, []])\n    [1, 2, 3]\n    \"\"\"\n",
+          "completion": "from typing import List, Any\n\n\ndef filter_integers(values: List[Any]) -> List[int]:\n    \"\"\" Filter given list of any python values only for integers\n    >>> filter_integers(['a', 3.14, 5])\n    [5]\n    >>> filter_integers([1, 2, 3, 'abc', {}, []])\n    [1, 2, 3]\n    \"\"\"\n    return [v for v in values if isinstance(v, int)]",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.734
+        },
+        {
+          "task_id": "HumanEval/23",
+          "entry_point": "strlen",
+          "prompt": "\n\ndef strlen(string: str) -> int:\n    \"\"\" Return length of given string\n    >>> strlen('')\n    0\n    >>> strlen('abc')\n    3\n    \"\"\"\n",
+          "completion": "def strlen(string: str) -> int:\n    \"\"\" Return length of given string\n    >>> strlen('')\n    0\n    >>> strlen('abc')\n    3\n    \"\"\"\n    return len(string)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.32
+        },
+        {
+          "task_id": "HumanEval/24",
+          "entry_point": "largest_divisor",
+          "prompt": "\n\ndef largest_divisor(n: int) -> int:\n    \"\"\" For a given number n, find the largest number that divides n evenly, smaller than n\n    >>> largest_divisor(15)\n    5\n    \"\"\"\n",
+          "completion": "def largest_divisor(n: int) -> int:\n    \"\"\" For a given number n, find the largest number that divides n evenly, smaller than n\n    >>> largest_divisor(15)\n    5\n    \"\"\"\n    if n <= 1:\n        # Depending on requirements, this case might need specific handling.\n        # For n=1, there are no divisors smaller than n. Returning 1 or raising an error might be options.\n        # Given the context of finding a divisor *smaller* than n, and n > 1 is implied for a meaningful result,\n        # we'll assume n > 1 based on the example. If n=1, the largest divisor smaller than 1 doesn't exist in positive integers.\n        # For simplicity and based on typical constraints, we'll proceed assuming n > 1 for the main logic.\n        # If n=1, the loop below won't run, and we'd need a default return. Let's assume n >= 2 based on the problem intent.\n        pass\n\n    for i in range(1, n):\n        if n % i == 0:\n            return i\n    \n    # This line should theoretically not be reached if n > 1, as n-1 is always a divisor if n is prime,\n    # or we will find a divisor before reaching n-1.\n    # If n is prime, the loop will find n-1 is not a divisor, but it will find 1.\n    # Wait, if n is prime, the only divisors are 1 and n. The largest divisor smaller than n is 1.\n    # The loop starts at i=1, so it will return 1 if n is prime.\n    return 1",
+          "exit_code": 1,
+          "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 20, in <module>\n  File \"<stdin>\", line 17, in check\nAssertionError\n",
+          "passed": false,
+          "llm_latency_s": 2.262
+        },
+        {
+          "task_id": "HumanEval/25",
+          "entry_point": "factorize",
+          "prompt": "from typing import List\n\n\ndef factorize(n: int) -> List[int]:\n    \"\"\" Return list of prime factors of given integer in the order from smallest to largest.\n    Each of the factors should be listed number of times corresponding to how many times it appeares in factorization.\n    Input number should be equal to the product of all factors\n    >>> factorize(8)\n    [2, 2, 2]\n    >>> factorize(25)\n    [5, 5]\n    >>> factorize(70)\n    [2, 5, 7]\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef factorize(n: int) -> List[int]:\n    \"\"\" Return list of prime factors of given integer in the order from smallest to largest.\n    Each of the factors should be listed number of times corresponding to how many times it appeares in factorization.\n    Input number should be equal to the product of all factors\n    >>> factorize(8)\n    [2, 2, 2]\n    >>> factorize(25)\n    [5, 5]\n    >>> factorize(70)\n    [2, 5, 7]\n    \"\"\"\n    factors = []\n    d = 2\n    temp_n = n\n    while d * d <= temp_n:\n        while temp_n % d == 0:\n            factors.append(d)\n            temp_n //= d\n        d += 1\n    if temp_n > 1:\n        factors.append(temp_n)\n    return factors",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 1.398
+        },
+        {
+          "task_id": "HumanEval/26",
+          "entry_point": "remove_duplicates",
+          "prompt": "from typing import List\n\n\ndef remove_duplicates(numbers: List[int]) -> List[int]:\n    \"\"\" From a list of integers, remove all elements that occur more than once.\n    Keep order of elements left the same as in the input.\n    >>> remove_duplicates([1, 2, 3, 2, 4])\n    [1, 3, 4]\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef remove_duplicates(numbers: List[int]) -> List[int]:\n    \"\"\" From a list of integers, remove all elements that occur more than once.\n    Keep order of elements left the same as in the input.\n    >>> remove_duplicates([1, 2, 3, 2, 4])\n    [1, 3, 4]\n    \"\"\"\n    seen = set()\n    result = []\n    for num in numbers:\n        if num not in seen:\n            result.append(num)\n            seen.add(num)\n    return result",
+          "exit_code": 1,
+          "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 22, in <module>\n  File \"<stdin>\", line 21, in check\nAssertionError\n",
+          "passed": false,
+          "llm_latency_s": 0.89
+        },
+        {
+          "task_id": "HumanEval/27",
+          "entry_point": "flip_case",
+          "prompt": "\n\ndef flip_case(string: str) -> str:\n    \"\"\" For a given string, flip lowercase characters to uppercase and uppercase to lowercase.\n    >>> flip_case('Hello')\n    'hELLO'\n    \"\"\"\n",
+          "completion": "def flip_case(string: str) -> str:\n    \"\"\" For a given string, flip lowercase characters to uppercase and uppercase to lowercase.\n    >>> flip_case('Hello')\n    'hELLO'\n    \"\"\"\n    result = []\n    for char in string:\n        if char.islower():\n            result.append(char.upper())\n        elif char.isupper():\n            result.append(char.lower())\n        else:\n            result.append(char)\n    return \"\".join(result)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.734
+        },
+        {
+          "task_id": "HumanEval/28",
+          "entry_point": "concatenate",
+          "prompt": "from typing import List\n\n\ndef concatenate(strings: List[str]) -> str:\n    \"\"\" Concatenate list of strings into a single string\n    >>> concatenate([])\n    ''\n    >>> concatenate(['a', 'b', 'c'])\n    'abc'\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef concatenate(strings: List[str]) -> str:\n    \"\"\" Concatenate list of strings into a single string\n    >>> concatenate([])\n    ''\n    >>> concatenate(['a', 'b', 'c'])\n    'abc'\n    \"\"\"\n    return \"\".join(strings)",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.461
+        },
+        {
+          "task_id": "HumanEval/29",
+          "entry_point": "filter_by_prefix",
+          "prompt": "from typing import List\n\n\ndef filter_by_prefix(strings: List[str], prefix: str) -> List[str]:\n    \"\"\" Filter an input list of strings only for ones that start with a given prefix.\n    >>> filter_by_prefix([], 'a')\n    []\n    >>> filter_by_prefix(['abc', 'bcd', 'cde', 'array'], 'a')\n    ['abc', 'array']\n    \"\"\"\n",
+          "completion": "from typing import List\n\n\ndef filter_by_prefix(strings: List[str], prefix: str) -> List[str]:\n    \"\"\" Filter an input list of strings only for ones that start with a given prefix.\n    >>> filter_by_prefix([], 'a')\n    []\n    >>> filter_by_prefix(['abc', 'bcd', 'cde', 'array'], 'a')\n    ['abc', 'array']\n    \"\"\"\n    return [s for s in strings if s.startswith(prefix)]",
+          "exit_code": 0,
+          "stderr": "",
+          "passed": true,
+          "llm_latency_s": 0.7
         }
-      }
+      ]
     }
   }
 }
