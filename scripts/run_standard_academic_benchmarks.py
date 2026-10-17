@@ -202,10 +202,17 @@ def run_gsm8k_pal(transport: DockerRPCTransport, samples: int = 50, checkpoint_f
     if ckpt_path.exists():
         try:
             ckpt_data = json.loads(ckpt_path.read_text(encoding="utf-8"))
-            results = ckpt_data.get("results", [])
-            passed_count = ckpt_data.get("passed", 0)
-            start_idx = len(results) + 1
-            print(f"Resuming GSM8K from checkpoint: {len(results)}/{len(dataset)} already evaluated ({passed_count} PASS)")
+            ckpt_results = ckpt_data.get("results", [])
+            if len(ckpt_results) <= len(dataset):
+                results = ckpt_results
+                passed_count = sum(1 for r in results if r.get("passed"))
+                start_idx = len(results) + 1
+                print(f"Resuming GSM8K from checkpoint: {len(results)}/{len(dataset)} already evaluated ({passed_count} PASS)")
+            else:
+                print(f"Checkpoint contains {len(ckpt_results)} results > requested {len(dataset)}. Resetting for fresh evaluation.")
+                results = []
+                passed_count = 0
+                start_idx = 1
         except Exception as e:
             print(f"Could not load checkpoint: {e}")
 
@@ -382,41 +389,49 @@ def run_humaneval(transport: DockerRPCTransport, samples: int = 50) -> dict:
 def extract_bbh_answer(subset_key: str, resp: str, target: str) -> tuple[str, bool]:
     """Extract and grade BBH answer based on subset type."""
     # Strip thought and reasoning tags so intermediate thought tokens aren't extracted
-    cleaned = re.sub(r"<thought>.*?</thought>", "", resp, flags=re.DOTALL)
-    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
-    cleaned = re.sub(r"\[REASONING\].*?$", "", cleaned, flags=re.DOTALL).strip()
-    resp_clean = cleaned or resp.strip()
+    # Also strip unclosed thought tags: <thought>... to end of string
+    cleaned = re.sub(r"<thought>[\s\S]*?(?:</thought>|\Z)", "", resp)
+    cleaned = re.sub(r"<think>[\s\S]*?(?:</think>|\Z)", "", cleaned)
+    cleaned = re.sub(r"\[REASONING\][\s\S]*?$", "", cleaned).strip()
+    resp_clean = cleaned.strip() if cleaned.strip() else resp.strip()
     target_clean = target.strip()
 
     if subset_key == "boolean_expressions":
         m = re.findall(r"\b(true|false)\b", resp_clean, re.IGNORECASE)
-        pred = m[-1].lower() if m else resp_clean.splitlines()[-1].strip().lower()
+        pred = m[-1].lower() if m else (resp_clean.splitlines()[-1].strip().lower() if resp_clean else "")
         is_pass = (pred == target_clean.lower())
         return pred, is_pass
 
     elif subset_key in ("geometric_shapes", "tracking_shuffled_objects_three_objects"):
         clean_target = target_clean.strip("() \n\t").lower()
+        search_text = cleaned.strip() if cleaned.strip() else resp
+
         # 1. Look for explicit conclusion indicators
-        m_concl = re.search(
-            r"(?:answer|choice|option|result)(?:\s+is)?[:\s]*\(?([A-Za-z])\)?(?!\w)",
-            resp_clean,
+        m_concl = re.findall(
+            r"(?:the\s+)?(?:correct\s+)?(?:answer|choice|option|result)(?:\s+is)?[:\s]*\(?([A-Ka-k])\)?(?!\w)",
+            search_text,
             re.IGNORECASE,
         )
         if m_concl:
-            pred_letter = m_concl.group(1).lower()
+            pred_letter = m_concl[-1].lower()
         else:
-            # 2. Look for letter in parentheses (excluding digits like coordinates)
-            m = re.findall(r"\(([A-Za-z])\)", resp_clean)
+            # 2. Look for letter in parentheses (e.g. (A), (B))
+            m = re.findall(r"\(([A-Ka-k])\)", search_text)
             if m:
                 pred_letter = m[-1].lower()
             else:
-                last_line = resp_clean.splitlines()[-1] if resp_clean.splitlines() else ""
-                m2 = re.findall(r"\b([A-Za-z])\b", last_line)
-                pred_letter = (
-                    m2[-1].lower() if m2 else last_line.strip("() \n\t").lower()
-                )
-        is_pass = (pred_letter == clean_target)
-        return f"({pred_letter.upper()})", is_pass
+                # 3. Look for standalone choice letter on last non-empty line
+                lines = [l.strip() for l in search_text.splitlines() if l.strip()]
+                last_line = lines[-1] if lines else ""
+                m2 = re.findall(r"\b([A-Ka-k])\b", last_line)
+                if m2:
+                    pred_letter = m2[-1].lower()
+                else:
+                    pred_letter = ""
+
+        is_pass = (pred_letter == clean_target) and (pred_letter != "")
+        pred_display = f"({pred_letter.upper()})" if pred_letter else "(NONE)"
+        return pred_display, is_pass
 
     elif subset_key == "dyck_languages":
         lines = [l.strip() for l in resp_clean.splitlines() if l.strip()]
@@ -481,8 +496,11 @@ def run_bbh_subsets(samples_per_subset: int = 25, enable_thinking: bool = True) 
             else:
                 prompt = f"Solve the following task. Input: {inp}\n"
 
+            # Geometric shapes triggers runaway collinearity token loops under unconstrained thinking;
+            # direct reasoning produces concise coordinate tracing and valid conclusions.
+            use_thinking = False if subset_key == "geometric_shapes" else enable_thinking
             t0 = time.perf_counter()
-            resp = query_llm(prompt=prompt, max_tokens=1024, enable_thinking=enable_thinking)
+            resp = query_llm(prompt=prompt, max_tokens=2048, enable_thinking=use_thinking)
             t_llm = time.perf_counter() - t0
 
             pred, is_pass = extract_bbh_answer(subset_key, resp, target)

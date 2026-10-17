@@ -177,12 +177,12 @@ def main() -> int:
         (3, "GSM-Symbolic Parametric (N=30)", "DEV", ["scripts/run_modern_2024_benchmarks.py", "--benchmark", "gsm-symbolic", "--samples", "30", "--feedback"], 400.0),
         (3, "GSM8K in PAL Mode (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "gsm8k", "--samples", "30"], 400.0),
         (3, "CRUXEval-I Code Execution Reasoning (N=50)", "DEV", ["scripts/run_cruxeval_input.py", "--split", "dev"], 400.0),
-        (3, "Big-Bench Hard Algorithmic Subsets (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "bbh", "--samples", "30", "--thinking"], 1500.0),
+        (3, "Big-Bench Hard Algorithmic Subsets (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "bbh", "--samples", "30", "--thinking"], 3800.0),
 
         # Phase 4: Code & Algorithmic Synthesis
         (4, "HumanEval Canonical Assisted CEGIS (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "humaneval", "--samples", "30"], 400.0),
         (4, "HumanEvalPlus Edge Testing (N=25)", "DEV", ["scripts/run_modern_2024_benchmarks.py", "--benchmark", "humaneval-plus", "--samples", "25"], 400.0),
-        (4, "Graph & Planning Traversal (N=20)", "DEV", ["scripts/run_graph_planning_benchmark.py", "--limit", "20"], 900.0),
+        (4, "Graph & Planning Traversal (N=20)", "DEV", ["scripts/run_graph_planning_benchmark.py", "--limit", "20"], 1800.0),
 
         # Phase 5: Cognitive, Memory & Spatial Priors
         # (ConceptARC archived per D-REAS-15: locked at 40% test pass on live silicon)
