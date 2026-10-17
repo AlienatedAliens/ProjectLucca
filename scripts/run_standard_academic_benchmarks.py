@@ -381,7 +381,11 @@ def run_humaneval(transport: DockerRPCTransport, samples: int = 50) -> dict:
 
 def extract_bbh_answer(subset_key: str, resp: str, target: str) -> tuple[str, bool]:
     """Extract and grade BBH answer based on subset type."""
-    resp_clean = resp.strip()
+    # Strip thought and reasoning tags so intermediate thought tokens aren't extracted
+    cleaned = re.sub(r"<thought>.*?</thought>", "", resp, flags=re.DOTALL)
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r"\[REASONING\].*?$", "", cleaned, flags=re.DOTALL).strip()
+    resp_clean = cleaned or resp.strip()
     target_clean = target.strip()
 
     if subset_key == "boolean_expressions":
@@ -392,26 +396,41 @@ def extract_bbh_answer(subset_key: str, resp: str, target: str) -> tuple[str, bo
 
     elif subset_key in ("geometric_shapes", "tracking_shuffled_objects_three_objects"):
         clean_target = target_clean.strip("() \n\t").lower()
-        m = re.findall(r"\(([A-Za-z0-9])\)", resp_clean)
-        if m:
-            pred_letter = m[-1].lower()
+        # 1. Look for explicit conclusion indicators
+        m_concl = re.search(
+            r"(?:answer|choice|option|result)(?:\s+is)?[:\s]*\(?([A-Za-z])\)?(?!\w)",
+            resp_clean,
+            re.IGNORECASE,
+        )
+        if m_concl:
+            pred_letter = m_concl.group(1).lower()
         else:
-            m2 = re.findall(r"\b([A-Za-z0-9])\b", resp_clean.splitlines()[-1])
-            pred_letter = m2[-1].lower() if m2 else resp_clean.splitlines()[-1].strip("() \n\t").lower()
+            # 2. Look for letter in parentheses (excluding digits like coordinates)
+            m = re.findall(r"\(([A-Za-z])\)", resp_clean)
+            if m:
+                pred_letter = m[-1].lower()
+            else:
+                last_line = resp_clean.splitlines()[-1] if resp_clean.splitlines() else ""
+                m2 = re.findall(r"\b([A-Za-z])\b", last_line)
+                pred_letter = (
+                    m2[-1].lower() if m2 else last_line.strip("() \n\t").lower()
+                )
         is_pass = (pred_letter == clean_target)
         return f"({pred_letter.upper()})", is_pass
 
     elif subset_key == "dyck_languages":
         lines = [l.strip() for l in resp_clean.splitlines() if l.strip()]
         last_line = lines[-1] if lines else ""
-        last_line = re.sub(r"^(?:Answer|Output|Sequence|Result)\s*:\s*", "", last_line, flags=re.IGNORECASE).strip()
+        last_line = re.sub(
+            r"^(?:Answer|Output|Sequence|Result)\s*:\s*", "", last_line, flags=re.IGNORECASE
+        ).strip()
         is_pass = (last_line == target_clean) or (target_clean in resp_clean)
         return last_line, is_pass
 
     return resp_clean, False
 
 
-def run_bbh_subsets(samples_per_subset: int = 25) -> dict:
+def run_bbh_subsets(samples_per_subset: int = 25, enable_thinking: bool = True) -> dict:
     """Evaluate Big-Bench Hard algorithmic subsets."""
     subsets = [
         ("boolean_expressions", "Boolean Logic Evaluation"),
@@ -431,7 +450,7 @@ def run_bbh_subsets(samples_per_subset: int = 25) -> dict:
             examples = examples[:samples_per_subset]
 
         print(f"\n=======================================================", flush=True)
-        print(f"Running BBH: {title} ({len(examples)} examples)", flush=True)
+        print(f"Running BBH: {title} ({len(examples)} examples | Thinking: {enable_thinking})", flush=True)
         print(f"=======================================================", flush=True)
 
         sub_passed = 0
@@ -463,7 +482,7 @@ def run_bbh_subsets(samples_per_subset: int = 25) -> dict:
                 prompt = f"Solve the following task. Input: {inp}\n"
 
             t0 = time.perf_counter()
-            resp = query_llm(prompt=prompt, max_tokens=1024, enable_thinking=False)
+            resp = query_llm(prompt=prompt, max_tokens=1024, enable_thinking=enable_thinking)
             t_llm = time.perf_counter() - t0
 
             pred, is_pass = extract_bbh_answer(subset_key, resp, target)
@@ -524,6 +543,8 @@ def main():
                         help="Benchmark to execute (default: all)")
     parser.add_argument("--samples", type=int, default=30,
                         help="Number of samples to run per benchmark (default: 30 for fast academic validation)")
+    parser.add_argument("--thinking", action="store_true", default=False,
+                        help="Enable native thinking mode for reasoning")
     args = parser.parse_args()
 
     cfg = get_config()
@@ -539,6 +560,7 @@ def main():
         "timestamp": time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
         "model": cfg.llm.model,
         "samples_configured": args.samples,
+        "thinking_enabled": args.thinking,
         "benchmarks": {},
     }
 
@@ -557,7 +579,7 @@ def main():
         save_report()
 
     if args.benchmark in ("bbh", "all"):
-        final_report["benchmarks"]["bbh"] = run_bbh_subsets(samples_per_subset=args.samples)
+        final_report["benchmarks"]["bbh"] = run_bbh_subsets(samples_per_subset=args.samples, enable_thinking=args.thinking)
         save_report()
 
     print(f"\n=======================================================", flush=True)
