@@ -169,7 +169,7 @@ def main() -> int:
 
         # Phase 2: Frontier Tool & Language
         (2, "BFCL v3 Function Calling (N=20)", "DEV", ["scripts/run_bfcl_benchmark.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 400.0),
-        (2, "GPQA Diamond Stratified (N=15)", "DEV", ["scripts/run_gpqa_diamond_benchmark.py", "--limit", "15"], 1600.0),
+        (2, "GPQA Diamond Stratified (N=15)", "DEV", ["scripts/run_gpqa_diamond_benchmark.py", "--limit", "15", "--tool-augmented"], 1600.0),
         (2, "OpenAI SimpleQA Factual Precision (N=20)", "DEV", ["scripts/run_simpleqa_eval.py", "--limit", "20", "--tool-augmented"], 600.0),
 
         # Phase 3: Mathematical Formalization & Algorithmic Logic
@@ -177,7 +177,7 @@ def main() -> int:
         (3, "GSM-Symbolic Parametric (N=30)", "DEV", ["scripts/run_modern_2024_benchmarks.py", "--benchmark", "gsm-symbolic", "--samples", "30", "--feedback"], 400.0),
         (3, "GSM8K in PAL Mode (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "gsm8k", "--samples", "30"], 400.0),
         (3, "CRUXEval-I Code Execution Reasoning (N=50)", "DEV", ["scripts/run_cruxeval_input.py", "--split", "dev"], 400.0),
-        (3, "Big-Bench Hard Algorithmic Subsets (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "bbh", "--samples", "30"], 1500.0),
+        (3, "Big-Bench Hard Algorithmic Subsets (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "bbh", "--samples", "30", "--thinking"], 1500.0),
 
         # Phase 4: Code & Algorithmic Synthesis
         (4, "HumanEval Canonical Assisted CEGIS (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "humaneval", "--samples", "30"], 400.0),
