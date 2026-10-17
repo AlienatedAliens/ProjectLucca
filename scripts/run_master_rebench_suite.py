@@ -141,6 +141,8 @@ def main() -> int:
     )
     parser.add_argument("--repeats", type=int, default=1, help="Repetitions per suite for non-deterministic sampling")
     parser.add_argument("--start-phase", type=int, default=1, help="Starting phase (1-6)")
+    parser.add_argument("--start-suite", type=int, default=1, help="Starting suite index (1-23)")
+    parser.add_argument("--resume", action="store_true", help="Resume from existing checkpoint if present")
     parser.add_argument("--dry-run", action="store_true", help="Print plan without running")
     args = parser.parse_args()
 
@@ -161,13 +163,13 @@ def main() -> int:
         # Phase 1: Exact Symbolic & Neurosymbolic
         (1, "Curated Parametric Hard Suite (N=25)", "DEV", ["scripts/run_sealed_parametric_suite.py", "--dataset", "data/benchmarks/sealed_parametric_v139_hard_suite.json", "--limit-per-suite", "5", "--model-tag", f"{tier_tag}_REBENCH", "--arms", args.arms], sealed_timeout),
         (1, "Curated Parametric Standard Suite (N=25)", "DEV", ["scripts/run_sealed_parametric_suite.py", "--dataset", "data/benchmarks/sealed_parametric_v138_suite.json", "--limit-per-suite", "5", "--model-tag", f"{tier_tag}_REBENCH", "--arms", args.arms], sealed_timeout),
-        (1, "ZebraLogic Difficulty Sweep (8 Grids)", "DEV", ["scripts/run_zebra_logic_sweep.py", "--samples-per-tier", "5"], 1500.0),
-        (1, "AIME 2024 CAS Diagnostic (N=10)", "DEV", ["scripts/run_aime_sympy_diagnostic.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 2000.0),
-        (1, "MuSR Compound Soft Reasoning (N=30)", "DEV", ["scripts/run_musr_compound_benchmark.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 2400.0),
+        (1, "ZebraLogic Difficulty Sweep (8 Grids)", "DEV", ["scripts/run_zebra_logic_sweep.py", "--samples-per-tier", "5"], 2000.0),
+        (1, "AIME 2024 CAS Diagnostic (N=10)", "DEV", ["scripts/run_aime_sympy_diagnostic.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 2700.0),
+        (1, "MuSR Compound Soft Reasoning (N=30)", "DEV", ["scripts/run_musr_compound_benchmark.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 2700.0),
 
         # Phase 2: Frontier Tool & Language
         (2, "BFCL v3 Function Calling (N=20)", "DEV", ["scripts/run_bfcl_benchmark.py", "--limit", "10", "--model-tag", f"{tier_tag}_REBENCH"], 400.0),
-        (2, "GPQA Diamond Stratified (N=15)", "DEV", ["scripts/run_gpqa_diamond_benchmark.py", "--limit", "15"], 1200.0),
+        (2, "GPQA Diamond Stratified (N=15)", "DEV", ["scripts/run_gpqa_diamond_benchmark.py", "--limit", "15"], 1600.0),
         (2, "OpenAI SimpleQA Factual Precision (N=20)", "DEV", ["scripts/run_simpleqa_eval.py", "--limit", "20"], 400.0),
 
         # Phase 3: Mathematical Formalization & Algorithmic Logic
@@ -175,7 +177,7 @@ def main() -> int:
         (3, "GSM-Symbolic Parametric (N=30)", "DEV", ["scripts/run_modern_2024_benchmarks.py", "--benchmark", "gsm-symbolic", "--samples", "30", "--feedback"], 400.0),
         (3, "GSM8K in PAL Mode (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "gsm8k", "--samples", "30"], 400.0),
         (3, "CRUXEval-I Code Execution Reasoning (N=50)", "DEV", ["scripts/run_cruxeval_input.py", "--split", "dev"], 400.0),
-        (3, "Big-Bench Hard Algorithmic Subsets (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "bbh", "--samples", "30"], 1200.0),
+        (3, "Big-Bench Hard Algorithmic Subsets (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "bbh", "--samples", "30"], 1500.0),
 
         # Phase 4: Code & Algorithmic Synthesis
         (4, "HumanEval Canonical Assisted CEGIS (N=30)", "DEV", ["scripts/run_standard_academic_benchmarks.py", "--benchmark", "humaneval", "--samples", "30"], 400.0),
@@ -195,24 +197,42 @@ def main() -> int:
         (6, "Personhood & Self-Identity Contrastive Battery", "DEV", ["scripts/run_contrastive_battery.py"], 400.0),
     ]
 
-    selected_suites = [s for s in suite_definitions if s[0] >= args.start_phase]
-    print(f"[+] Total Benchmark Suites to run: {len(selected_suites)} across Phases {args.start_phase}..6\n", flush=True)
+    indexed_suites: list[tuple[int, int, str, str, list[str], float]] = [
+        (idx, s[0], s[1], s[2], s[3], s[4]) for idx, s in enumerate(suite_definitions, start=1)
+    ]
+    selected_suites = [
+        s for s in indexed_suites if s[0] >= args.start_suite and s[1] >= args.start_phase
+    ]
+    print(f"[+] Total Benchmark Suites to run: {len(selected_suites)} (starting from suite {args.start_suite}, phase {args.start_phase})\n", flush=True)
 
     if args.dry_run:
-        for phase, name, split_type, cmd_args, timeout in selected_suites:
-            print(f"  [Phase {phase} | {split_type}] {name} -> python {' '.join(cmd_args)} (timeout: {timeout:.0f}s)")
+        for s_idx, phase, name, split_type, cmd_args, timeout in selected_suites:
+            print(f"  [{s_idx:02d}/23 | Phase {phase} | {split_type}] {name} -> python {' '.join(cmd_args)} (timeout: {timeout:.0f}s)")
         return 0
 
+    checkpoint_file = REPORTS_DIR / f"rebench_{tier_tag}_checkpoint.json"
     results: list[dict[str, object]] = []
+
+    if (args.resume or args.start_suite > 1) and checkpoint_file.exists():
+        try:
+            prior_data = json.loads(checkpoint_file.read_text(encoding="utf-8"))
+            if isinstance(prior_data, list):
+                # Filter out any prior results that will be re-run in selected_suites
+                rerun_names = {s[2] for s in selected_suites}
+                results = [r for r in prior_data if r.get("name") not in rerun_names]
+                print(f"[*] Resumed from checkpoint: loaded {len(results)} prior completed suite(s).", flush=True)
+        except Exception as exc:
+            print(f"[!] Warning: failed to load checkpoint ({exc}), starting clean.", flush=True)
+
     total_start = time.perf_counter()
 
     for repeat_idx in range(1, args.repeats + 1):
         if args.repeats > 1:
             print(f"\n{'*'*78}\n>>> REPEAT ITERATION {repeat_idx} / {args.repeats}\n{'*'*78}", flush=True)
 
-        for idx, (phase, name, split_type, cmd_args, timeout) in enumerate(selected_suites, start=1):
+        for s_idx, phase, name, split_type, cmd_args, timeout in selected_suites:
             iter_label = f" (Rep {repeat_idx}/{args.repeats})" if args.repeats > 1 else ""
-            print(f"\n>>> Running [{idx}/{len(selected_suites)}] (Phase {phase} | {split_type}){iter_label}: {name} ...", flush=True)
+            print(f"\n>>> Running [{s_idx}/23] (Phase {phase} | {split_type}){iter_label}: {name} ...", flush=True)
             t_cmd_start = time.time()
             ok, elapsed, snip = run_benchmark_command(name, cmd_args, timeout_s=timeout)
 
@@ -226,7 +246,8 @@ def main() -> int:
             except Exception:
                 pass
 
-            results.append({
+            res_entry: dict[str, object] = {
+                "suite_idx": s_idx,
                 "phase": phase,
                 "name": name,
                 "split_type": split_type,
@@ -236,7 +257,14 @@ def main() -> int:
                 "command": " ".join(cmd_args),
                 "child_report": child_report_path,
                 "tail_snippet": snip,
-            })
+            }
+            results.append(res_entry)
+
+            # Save checkpoint after each suite
+            try:
+                checkpoint_file.write_text(json.dumps(results, indent=2), encoding="utf-8")
+            except Exception as ckpt_err:
+                print(f"[!] Warning: could not write checkpoint: {ckpt_err}", flush=True)
 
     total_elapsed = time.perf_counter() - total_start
     total_pass = sum(1 for r in results if bool(r.get("ok")))
