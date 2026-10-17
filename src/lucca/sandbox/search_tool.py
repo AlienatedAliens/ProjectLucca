@@ -118,42 +118,62 @@ def _simplify_search_query(q: str) -> str:
     return " ".join(words[:8])
 
 
-from functools import lru_cache
+def _probe_searxng_endpoint(candidate_url: str, timeout: float = 0.5) -> bool:
+    """Fast probe to determine if a SearXNG candidate endpoint is alive and accepting traffic."""
+    try:
+        import urllib.request as _urllib_req  # noqa: PLC0415
+
+        probe_target = candidate_url.split("?")[0].replace("/search", "/")
+        with _urllib_req.urlopen(probe_target, timeout=timeout) as probe:
+            return probe.status in (200, 301, 302)
+    except Exception:
+        return False
 
 
-@lru_cache(maxsize=1)
-def _resolve_searxng_url() -> str:
-    """Resolves SearXNG endpoint, checking config, WSL hyper-v dynamic IP, or localhost."""
+_RESOLVED_SEARXNG_URL: str | None = None
+
+
+def _resolve_searxng_url(force_refresh: bool = False) -> str:
+    """
+    Dynamically and robustly resolves an active SearXNG endpoint.
+    Probes localhost, loopback, and WSL NAT hyper-v dynamic IP with live health checks.
+    """
+    global _RESOLVED_SEARXNG_URL
+    if (
+        not force_refresh
+        and _RESOLVED_SEARXNG_URL
+        and _probe_searxng_endpoint(_RESOLVED_SEARXNG_URL, timeout=0.3)
+    ):
+        return _RESOLVED_SEARXNG_URL
+
     try:
         from lucca.core.config import get_config  # noqa: PLC0415
 
         cfg_url = getattr(getattr(get_config(), "sandbox", None), "searxng_url", None)
         if cfg_url and "127.0.0.1" not in cfg_url and "localhost" not in cfg_url:
-            return cfg_url
+            if _probe_searxng_endpoint(cfg_url, timeout=0.5):
+                _RESOLVED_SEARXNG_URL = cfg_url
+                return cfg_url
     except Exception as exc:  # noqa: BLE001
         logger.debug("searxng_config_read_error", error=str(exc))
 
-    # 1. First probe standard local endpoint (Docker port mapping on Windows host)
-    try:
-        import urllib.request as _urllib_req  # noqa: PLC0415
-        with _urllib_req.urlopen(SEARXNG_DEFAULT_URL.replace("/search", "/"), timeout=0.8) as _probe:
-            if _probe.status in (200, 302, 301):
-                return SEARXNG_DEFAULT_URL
-    except Exception:
-        pass
+    # Candidate endpoints in order of preference
+    candidates: list[str] = [
+        SEARXNG_DEFAULT_URL,
+        "http://localhost:8888/search",
+    ]
 
-    # 2. In WSL2 NAT mode, Windows connects to WSL services via WSL's hyper-v IP
+    # Dynamically discover WSL NAT IP if on Windows
     try:
         import subprocess as _sp  # noqa: PLC0415
 
         wsl_out = _sp.check_output(
             ["wsl.exe", "-e", "sh", "-c", "hostname -I"],
             text=True,
-            timeout=4.0,
+            timeout=2.0,
         ).strip().split()
-        if wsl_out:
-            wsl_ip = wsl_out[0]
-            return f"http://{wsl_ip}:8888/search"
+        for ip in wsl_out:
+            candidates.append(f"http://{ip}:8888/search")
     except Exception as exc:  # noqa: BLE001
         logger.debug("searxng_wsl_hostname_resolution_failed", error=str(exc))
 
@@ -165,10 +185,16 @@ def _resolve_searxng_url() -> str:
             if "00-15-5d" in line.lower() and "dynamic" in line.lower():
                 parts = line.split()
                 if parts:
-                    return f"http://{parts[0]}:8888/search"
+                    candidates.append(f"http://{parts[0]}:8888/search")
     except Exception as exc:  # noqa: BLE001
         logger.debug("searxng_arp_resolution_failed", error=str(exc))
 
+    for cand in candidates:
+        if _probe_searxng_endpoint(cand, timeout=0.4):
+            _RESOLVED_SEARXNG_URL = cand
+            return cand
+
+    _RESOLVED_SEARXNG_URL = SEARXNG_DEFAULT_URL
     return SEARXNG_DEFAULT_URL
 
 
@@ -181,44 +207,51 @@ def _search_searxng(
     url = searxng_url or _resolve_searxng_url()
 
     results: list[dict[str, str]] = []
-    try:
-        import json as _json  # noqa: PLC0415
-        import urllib.request as _urllib_req  # noqa: PLC0415
+    for retry in range(2):
+        try:
+            import json as _json  # noqa: PLC0415
+            import urllib.request as _urllib_req  # noqa: PLC0415
 
-        encoded_params = urllib.parse.urlencode({"q": query, "format": "json"})
-        sep = "&" if "?" in url else "?"
-        full_url = f"{url}{sep}{encoded_params}"
-        req = _urllib_req.Request(
-            full_url,
-            headers={
-                "User-Agent": USER_AGENT,
-                "X-Forwarded-For": "127.0.0.1",
-                "X-Real-IP": "127.0.0.1",
-            },
-        )
-        with _urllib_req.urlopen(req, timeout=SEARCH_TIMEOUT_S) as resp:
-            if resp.status == 200:
-                raw_bytes = resp.read()
-                data = _json.loads(raw_bytes.decode("utf-8", errors="replace"))
-                raw_results = data.get("results", [])
-                for item in raw_results:
-                    title = str(item.get("title", "")).strip()
-                    snippet = str(item.get("content") or item.get("snippet") or "").strip()
-                    link = str(item.get("url", "")).strip()
-                    if title or snippet:
-                        results.append(
-                            {
-                                "title": title or "Web Result",
-                                "snippet": snippet or "No snippet preview available.",
-                                "url": link,
-                            }
-                        )
-                    if len(results) >= max_results:
-                        break
-            else:
-                logger.debug("searxng_search_non_200", status=resp.status, url=url)
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("searxng_search_unavailable", error=str(exc), url=url)
+            encoded_params = urllib.parse.urlencode({"q": query, "format": "json"})
+            sep = "&" if "?" in url else "?"
+            full_url = f"{url}{sep}{encoded_params}"
+            req = _urllib_req.Request(
+                full_url,
+                headers={
+                    "User-Agent": USER_AGENT,
+                    "X-Forwarded-For": "127.0.0.1",
+                    "X-Real-IP": "127.0.0.1",
+                },
+            )
+            with _urllib_req.urlopen(req, timeout=SEARCH_TIMEOUT_S) as resp:
+                if resp.status == 200:
+                    raw_bytes = resp.read()
+                    data = _json.loads(raw_bytes.decode("utf-8", errors="replace"))
+                    raw_results = data.get("results", [])
+                    for item in raw_results:
+                        title = str(item.get("title", "")).strip()
+                        snippet = str(item.get("content") or item.get("snippet") or "").strip()
+                        link = str(item.get("url", "")).strip()
+                        if title or snippet:
+                            results.append(
+                                {
+                                    "title": title or "Web Result",
+                                    "snippet": snippet or "No snippet preview available.",
+                                    "url": link,
+                                }
+                            )
+                        if len(results) >= max_results:
+                            break
+                    return results
+                else:
+                    logger.debug("searxng_search_non_200", status=resp.status, url=url)
+                    break
+        except Exception as exc:  # noqa: BLE001
+            if retry == 0 and not searxng_url:
+                url = _resolve_searxng_url(force_refresh=True)
+                continue
+            logger.debug("searxng_search_unavailable", error=str(exc), url=url)
+            break
     return results
 
 
