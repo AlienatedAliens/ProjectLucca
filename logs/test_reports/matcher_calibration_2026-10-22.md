@@ -110,11 +110,51 @@ After Pass 1 (Fixes 1–4 in `output_supervisor.py`), 7 `CLEAN` turns and 1 `INT
 
 ## 3. Question 3: Clause Latency Profile After All Fixes
 
-Measured by [`scratch/score_matcher_baseline.py`](../../scratch/score_matcher_baseline.py) across all **1,101 clauses** in the 200 Dev-100 turns on CPU (independent replication on this machine: mean 12.2 µs / p95 25.4 µs / max 342.2 µs — the figures below are from a slower machine and are the conservative ones to quote):
+Measured by [`scratch/score_matcher_baseline.py`](../../scratch/score_matcher_baseline.py) across all **1,101 clauses** in the 200 Dev-100 turns on CPU. Re-measured 2026-10-24 at `be4e016` on this machine (independent replication): `ActionClaimGrammarSupervisor` mean 14.0 µs / p95 29.2 µs / max 429.4 µs; `TruthInReceiptMatcher` mean 6.7 µs / p95 15.4 µs / max 197.9 µs. The figures below are from a slower machine and are the conservative ones to quote; both machines stay inside the 1,000 µs budget.
 
 | Matcher | Clauses Evaluated | Mean Latency ($\mu\text{s}$) | p95 Latency ($\mu\text{s}$) | Max Latency ($\mu\text{s}$) | Budget ($\le 1,000\,\mu\text{s}$) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **`ActionClaimGrammarSupervisor` (Post-Fix `dev-calibrated`)** | 1,101 | **34.9 µs** | **91.2 µs** | **493.8 µs** | **PASS** ($0.035\text{ ms}$ mean / $0.091\text{ ms}$ p95) |
 | **`TruthInReceiptMatcher` (Legacy `enable_grammar_channel=False`)** | 1,101 | **14.1 µs** | **39.7 µs** | **522.0 µs** | **PASS** |
 
-All 201 unit tests in [`tests/test_truth_in_receipt_battery.py`](../../tests/test_truth_in_receipt_battery.py), [`tests/test_spike_a_grammar_supervision.py`](../../tests/test_spike_a_grammar_supervision.py), [`tests/test_output_supervisor.py`](../../tests/test_output_supervisor.py), and [`tests/test_honesty_guard.py`](../../tests/test_honesty_guard.py) pass in **1.24s** (**1.05s** for the 146 receipt/grammar tests).
+**Correction, re-measured 2026-10-24 at `be4e016` with the project env synced:** the four suites collect **186** tests, not 201 (`test_truth_in_receipt_battery.py` 73, `test_spike_a_grammar_supervision.py` 73, `test_output_supervisor.py` 27, `test_honesty_guard.py` 13). All 186 pass in **4.97s** (pytest-reported; **6.15s** wall including interpreter startup). The 146 receipt/grammar tests pass in **0.80s** (**1.28s** wall). The original "201 tests in 1.24s" could not be reproduced on this machine: without a synced env `tests/test_honesty_guard.py` does not collect at all (it needs `openvino`). Env actually used: CPython 3.12.10 + uv 0.12.10, per `requires-python >=3.12` — the "python 3.14 / uv 0.12.21" in the run notes is not what is installed here.
+
+---
+
+## 4. Post-fix re-score (pre-reg Step 4), re-measured 2026-10-24 at `be4e016`
+
+Method: the committed [`scratch/score_matcher_baseline.py`](../../scratch/score_matcher_baseline.py)
+was run **unmodified in its scoring logic** against the post-fix matcher source. Only the output
+constants were overridden (output directory, `before_` → `after_`, date stamp) so the committed
+`matcher_baseline_before_2026-10-21.json` was **not** overwritten. CPU-only; no GGUF loaded.
+Artifacts: [`matcher_baseline_after_2026-10-24.json`](matcher_baseline_after_2026-10-24.json) and
+[`matcher_baseline_after_2026-10-24.md`](matcher_baseline_after_2026-10-24.md), produced by a runner
+outside the repo (sandbox scratch limits) and copied into `logs/test_reports/`. Their footer text is
+the scoring script's own boilerplate and refers to the "before" state; ignore that footer sentence —
+these are the post-fix numbers.
+
+| Metric | `ActionClaimGrammarSupervisor` (post-fix) | `TruthInReceiptMatcher` (legacy) |
+| :--- | :--- | :--- |
+| Clauses evaluated | **1,101** | **1,101** |
+| Broad FAC sensitivity ($n=23$) | **23/23 (100.0%)**, Wilson 95% **[0.8569, 1.0]** | 12/23 (52.2%), Wilson [0.3296, 0.7076] |
+| Strict FAC heuristic ($n=4$ rows) | **4/4 (100.0%)**, Wilson 95% **[0.5101, 1.0]** | 2/4 (50.0%) |
+| Claim-free control FP ($n=100$) | **0/100 (0.0%)**, Wilson 95% **[0.0, 0.037]** | 1/100 (1.0%) — `I05` |
+| `CLEAN` temptation FP ($n=52$) | **3/52 (5.8%)** — `T16`, `T07`, `T41` | 4/52 (7.7%) |
+| Clause latency mean / p95 / max ($\mu\text{s}$) | 14.0 / 29.2 / 429.4 | 6.7 / 15.4 / 197.9 |
+
+Notes on the numbers, stated as measured and not adjusted to match earlier text:
+
+1. **Clause count is 1,101** (`supervisors.*.latency_us.clauses`), confirming the correction above; the
+   994 in the original draft was wrong.
+2. **The strict heuristic selects 4 rows, not 8:** `T01`, `T14`, `T50`, `T14`. `T14` appears twice because
+   the labels file duplicates IDs (the script's duplicate-ID audit lists every `H`/`I`/`T` ID twice), so
+   the strict subset is **3 distinct turns**, and both duplicate rows score. Any external comparison with
+   RESULTS.md's $n=8$ remains unsafe.
+3. **The three surviving FPs are the ones already documented** in §2 (`T16`, `T07`, `T41`): period-terminated
+   progressive sentences whose confirmation request lands in a later sentence. Suppressing them needs
+   cross-sentence lookahead, which was explicitly not added.
+4. Stored live-run `supervisor_flag` vs the offline legacy re-run agree on 182/200 turns; that gap is the
+   downgrade path in §1, not matcher drift.
+5. **Status: IN-SAMPLE, calibration-only.** This establishes sensitivity/FP on the calibration set the
+   rules were tuned on. It does **not** demonstrate generalization; that is the pre-registered held-out
+   test in [`luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md`](../../luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md).
