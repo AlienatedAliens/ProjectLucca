@@ -145,7 +145,10 @@ PAST_CONTEXT_PATTERN = re.compile(
     r"records?\s+(?:from|show|showing|indicate)|my\s+records|"
     r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
     r"in\s+our\s+history|histor(?:y|ical)\s+records?|"
-    r"during\s+our\s+last|from\s+a\s+few\s+days"
+    r"during\s+our\s+last|from\s+a\s+few\s+days|"
+    r"back\s+when|first\s+written|originally\s+written|"
+    r"my\s+architecture\s+is|architecture\s+is\s+more\s+about|"
+    r"designed\s+as\s+a|built\s+for"
     r")\b",
     re.IGNORECASE,
 )
@@ -201,6 +204,18 @@ class CoherenceClaim(BaseModel, frozen=True):
     breach_description: str | None = None
 
 
+def format_tool_receipts_for_nli(receipts: Sequence[ToolReceipt]) -> str:
+    """Formats verified tool execution receipts into a structured NLI premise string (SPIKE-A / Milestone 36.6)."""
+    ok_lines = [
+        f"Tool {r.resolved_tool} succeeded with args {r.args} and output: {r.output or ''}"
+        for r in receipts
+        if r.ok and r.resolved_tool
+    ]
+    if not ok_lines:
+        return "No tools were executed successfully this turn."
+    return "; ".join(ok_lines)
+
+
 def detect_ungrounded_action_claims(
     narration: str,
     receipts: Sequence[ToolReceipt],
@@ -242,14 +257,46 @@ def detect_ungrounded_action_claims(
         if PAST_CONTEXT_PATTERN.search(clause):
             continue
 
+        # 0b. Structured GBNF action-claim tags (SPIKE-A): [ACTION: <verb> <target>] or <action_claim ...>
+        tag_match = re.search(
+            r"(?:\[(?:action|action_claim)\s*:\s*([a-z_]+)\s+([^\]]+)\]|"
+            r"<action_claim(?:\s+verb=[\"']([a-z_]+)[\"']\s+target=[\"']([^\"']+)[\"']|"
+            r">\s*([a-z_]+)\s+([^<]+)</action_claim>))",
+            clause,
+            re.IGNORECASE,
+        )
+        if tag_match:
+            v_tag = (tag_match.group(1) or tag_match.group(3) or tag_match.group(5) or "").strip().lower()
+            matched_verb = v_tag
+            if v_tag in ("save", "saved", "write", "wrote", "create", "created", "modify", "modified", "update", "updated", "copy", "copied", "move", "moved"):
+                detected_family = "save"
+            elif v_tag in ("launch", "launched", "open", "opened", "start", "started", "close", "closed", "reboot", "rebooted"):
+                detected_family = "launch"
+            elif v_tag in ("search", "searched", "lookup", "looked_up"):
+                detected_family = "search"
+            elif v_tag in ("fetch", "fetched", "send", "sent", "upload", "uploaded", "post", "posted"):
+                detected_family = "fetch"
+            elif v_tag in ("read",):
+                detected_family = "read"
+            elif v_tag in ("delete", "deleted", "remove", "removed"):
+                detected_family = "delete"
+            elif v_tag in ("run", "ran", "execute", "executed", "install", "installed", "process", "processed"):
+                detected_family = "run"
+            else:
+                detected_family = "save"
+
         # 1. Active first-person action claims
         # e.g., "I saved it", "I launched Notepad", "I fetched the page", "I ran the script"
-        active_match = re.search(
-            r"\b(?:i(?:'ve| have)?)\s+(?:just\s+)?"
-            r"(saved|wrote|written|updated|launched|opened|started|searched|"
-            r"looked up|fetched|read|deleted|removed|ran|executed|created|"
-            r"checked|committed|invoked|recalled|queried)\b",
-            clause,
+        active_match = (
+            None
+            if detected_family
+            else re.search(
+                r"\b(?:i(?:'ve| have)?)\s+(?:just\s+|already\s+|successfully\s+)?"
+                r"(saved|wrote|written|updated|modified|copied|moved|launched|opened|started|closed|searched|"
+                r"looked up|fetched|uploaded|sent|posted|read|deleted|removed|ran|executed|installed|processed|rebooted|booked|placed|created|"
+                r"checked|committed|invoked|recalled|queried)\b",
+                clause,
+            )
         )
         if active_match:
             # Negation guard: a negation/uncertainty token preceding the verb
@@ -260,19 +307,19 @@ def detect_ungrounded_action_claims(
                 continue
             v = active_match.group(1)
             matched_verb = v
-            if v in ("saved", "wrote", "written", "created", "updated"):
+            if v in ("saved", "wrote", "written", "created", "updated", "modified", "copied", "moved", "placed"):
                 detected_family = "save"
-            elif v in ("launched", "opened", "started"):
+            elif v in ("launched", "opened", "started", "closed", "rebooted"):
                 detected_family = "launch"
             elif v in ("searched", "looked up"):
                 detected_family = "search"
-            elif v == "fetched":
+            elif v in ("fetched", "uploaded", "sent", "posted", "booked"):
                 detected_family = "fetch"
             elif v == "read":
                 detected_family = "read"
             elif v in ("deleted", "removed"):
                 detected_family = "delete"
-            elif v in ("ran", "executed"):
+            elif v in ("ran", "executed", "installed", "processed"):
                 detected_family = "run"
             elif v in ("checked", "recalled", "queried"):
                 detected_family = "memory_search"
@@ -304,11 +351,10 @@ def detect_ungrounded_action_claims(
                 matched_verb = "launch"
             elif (
                 re.search(
-                    r"\b(?:search(?:ed)?|looking up|looked up)\b.*?"
+                    r"\b(?:searched|searching|looking up|looked up)\b.*?"
                     r"\b(?:web|online|documentation|docs)\b",
                     clause,
                 )
-                or re.search(r"\b(?:web|online)\b.*?\bsearch\b", clause)
                 or re.search(r"\bsearch is complete\b", clause)
                 or re.search(r"\b(?:completed|finished)\b.*?\bsearch\b", clause)
                 or re.search(r"\bsearch\b.*?\b(?:completed|finished)\b", clause)
@@ -334,7 +380,13 @@ def detect_ungrounded_action_claims(
             elif re.search(
                 r"\b(?:scripts?|code|python|benchmarks?|simulations?)\b.*?\b(?:executed|ran)\b",
                 clause,
-            ) or re.search(r"\b(?:executing|running)\b.*?\b(?:scripts?|code|python)\b", clause):
+            ) or (
+                re.search(r"\b(?:executing|running)\b.*?\b(?:scripts?|code|python)\b", clause)
+                and not re.search(
+                    r"\b(?:all|the|any|your|these|those|background|processes?|find(?:ing)?)\s+(?:processes?\s+)?(?:executing|running)\b",
+                    clause,
+                )
+            ):
                 detected_family = "run"
                 matched_verb = "run"
             elif re.search(
@@ -361,20 +413,58 @@ def detect_ungrounded_action_claims(
             allowed_tools = tool_family_map.get(detected_family, frozenset())
             is_grounded = bool(allowed_tools & successful_tools)
 
-            # Semantic verification: tool receipt premise entails narration hypothesis (Spec §3.3)
-            if not is_grounded and verifier is not None:
-                for r in receipts:
-                    if r.ok:
+            # Post-turn NLI receipt entailment & contradiction check (Spec §3.3, Milestone 36.6 SPIKE-A)
+            if verifier is not None:
+                ok_receipts = [r for r in receipts if r.ok]
+                if not is_grounded and ok_receipts:
+                    for r in ok_receipts:
                         r_summary = f"Tool {r.resolved_tool} succeeded with args {r.args} and output: {r.output or ''}"
                         try:
                             v_res = verifier.check_consistency(
                                 premise=r_summary, hypothesis=clause
                             )
-                            if not v_res.degraded and v_res.label == VerifierLabel.ENTAILMENT:
+                            if not v_res.degraded and v_res.label in (
+                                VerifierLabel.ENTAILMENT,
+                                VerifierLabel.CONSISTENT,
+                            ):
                                 is_grounded = True
                                 break
                         except Exception as exc:  # noqa: BLE001
                             logger.debug("coherence_verifier_eval_failed", error=str(exc))
+                    if not is_grounded and len(ok_receipts) > 1:
+                        combined_premise = format_tool_receipts_for_nli(ok_receipts)
+                        try:
+                            v_comb = verifier.check_consistency(
+                                premise=combined_premise, hypothesis=clause
+                            )
+                            if not v_comb.degraded and v_comb.label in (
+                                VerifierLabel.ENTAILMENT,
+                                VerifierLabel.CONSISTENT,
+                            ):
+                                is_grounded = True
+                        except Exception as exc:  # noqa: BLE001
+                            logger.debug("coherence_verifier_combined_eval_failed", error=str(exc))
+                elif is_grounded and ok_receipts:
+                    # Verify that the tool receipts do not explicitly contradict the claimed target/action
+                    contradicted_all = True
+                    checked_any = False
+                    for r in ok_receipts:
+                        if r.resolved_tool in allowed_tools:
+                            r_summary = f"Tool {r.resolved_tool} succeeded with args {r.args} and output: {r.output or ''}"
+                            try:
+                                v_res = verifier.check_consistency(
+                                    premise=r_summary, hypothesis=clause
+                                )
+                                if not v_res.degraded:
+                                    checked_any = True
+                                    if v_res.label != VerifierLabel.CONTRADICTION:
+                                        contradicted_all = False
+                                        break
+                            except Exception as exc:  # noqa: BLE001
+                                logger.debug("coherence_verifier_contradiction_check_failed", error=str(exc))
+                                contradicted_all = False
+                    if checked_any and contradicted_all:
+                        is_grounded = False
 
             breach_desc = None
             if not is_grounded:

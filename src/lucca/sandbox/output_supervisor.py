@@ -325,6 +325,23 @@ EXPANDED_STEM_MAP: dict[str, str] = {
     "killed": "kill",
     "cleared": "clear",
     "set": "set",
+    "downloaded": "download",
+    "purged": "purge",
+    "scheduled": "schedule",
+    "committed": "commit",
+    "pushed": "push",
+    "reset": "reset",
+    "renewed": "renew",
+    "cleaned": "clean",
+    "scanned": "scan",
+    "synced": "sync",
+    "configured": "configure",
+    "encrypted": "encrypt",
+    "patched": "patch",
+    "disabled": "disable",
+    "transferred": "transfer",
+    "ordered": "order",
+    "loaded": "load",
     # Participles
     "deleting": "delete",
     "creating": "create",
@@ -358,6 +375,23 @@ EXPANDED_STEM_MAP: dict[str, str] = {
     "restarting": "restart",
     "killing": "kill",
     "clearing": "clear",
+    "downloading": "download",
+    "purging": "purge",
+    "scheduling": "schedule",
+    "committing": "commit",
+    "pushing": "push",
+    "resetting": "reset",
+    "renewing": "renew",
+    "cleaning": "clean",
+    "scanning": "scan",
+    "syncing": "sync",
+    "configuring": "configure",
+    "encrypting": "encrypt",
+    "patching": "patch",
+    "disabling": "disable",
+    "transferring": "transfer",
+    "ordering": "order",
+    "loading": "load",
 }
 
 STRUCTURED_ACTION_TAG_REGEX = re.compile(
@@ -367,7 +401,9 @@ STRUCTURED_ACTION_TAG_REGEX = re.compile(
     re.IGNORECASE,
 )
 
-_PAST_VERBS_PATTERN = "|".join(sorted(EXPANDED_STEM_MAP.keys(), key=len, reverse=True))
+_PAST_VERBS_PATTERN = "|".join(
+    sorted([k for k in EXPANDED_STEM_MAP if not k.endswith("ing")], key=len, reverse=True)
+)
 _PARTICIPLE_VERBS_PATTERN = "|".join(
     sorted([k for k in EXPANDED_STEM_MAP if k.endswith("ing")], key=len, reverse=True)
 )
@@ -385,7 +421,7 @@ _FUTURE_INTENT_PATTERN = re.compile(
 _NEGATION_PREFIX_PATTERN = re.compile(
     r"\b(?:no|not|never|don't|do\s+not|didn't|did\s+not|haven't|have\s+not|without|denied|"
     r"cannot|can't|won't|unable\s+to|refuse\s+to|don't\s+have|do\s+not\s+have|"
-    r"can't\s+directly|cannot\s+directly)\b",
+    r"can't\s+directly|cannot\s+directly|if|when|whether|unless)\b",
     re.IGNORECASE,
 )
 
@@ -412,14 +448,47 @@ _INITIATING_ACTION_REGEX = re.compile(
 )
 
 _PASSIVE_ACTION_REGEX = re.compile(
-    rf"\b([a-zA-Z0-9_\-./\\ ]+?)\s+"
+    rf"^(?:(?:the|a|an|your|my|our|all)\s+)?([a-zA-Z0-9_\-./\\]+(?:\s+[a-zA-Z0-9_\-./\\]+){{0,3}})\s+"
     rf"(?:was|were|is|are|has\s+been|have\s+been)\s+"
     rf"({_PAST_VERBS_PATTERN})\b",
     re.IGNORECASE,
 )
 
 _TELEGRAPHIC_ACTION_REGEX = re.compile(
-    rf"\b([a-zA-Z0-9_\-./\\ ]+?)\s+({_PAST_VERBS_PATTERN})(?:\s+(?:for|to|at|in|on|from|now|as\s+requested|tomorrow)[^.!?]*)?[\.!]?$",
+    rf"^(?:(?:the|a|an|your|my|our|all)\s+)?([a-zA-Z0-9_\-./\\]+(?:\s+[a-zA-Z0-9_\-./\\]+){{0,3}})\s+({_PAST_VERBS_PATTERN})(?:\s+(?:for|to|at|in|on|from|now|as\s+requested|tomorrow)[^.!?]*)?[\.!]?$",
+    re.IGNORECASE,
+)
+
+_NON_CLAIM_SUBJECT_PREFIX = re.compile(
+    r"^(?:when|if|how|whether|where|why|while|unless|ensure|make\s+sure|"
+    r"you|they|he|she|we|who|which|that|what|or|and|but|because|since|although)\b",
+    re.IGNORECASE,
+)
+
+# A concrete host/file-like target: path separators, drive letters, file
+# extensions, ports, or common system-resource nouns. Passive and
+# telegraphic frames only count as action claims when the object is a
+# concrete system resource; abstract noun phrases ("an employment contract
+# is terminated", "nested objects are copied", "missing formatting") are
+# generic prose about the world, not claims about actions on this machine.
+_HOST_FILE_TARGET_PATTERN = re.compile(
+    r"(?:"
+    r"[\\/]|"  # path separator
+    r"(?<!\be)(?<!\bi)\.[A-Za-z0-9]{2,5}\b|"  # file extension (.txt, .git, .py; not e.g./i.e.)
+    r"\b[a-zA-Z]:"  # drive letter (C:)
+    r"|:\d{2,5}\b"  # port (:3000, :8080)
+    r"|\b\d{1,3}(?:\.\d{1,3}){3}\b"  # IPv4 address
+    r"|\b(?:files?|folders?|director(?:y|ies)|dirs?|drives?|disks?|volumes?|"
+    r"ports?|packages?|repos?(?:itor(?:y|ies))?|branch(?:es)?|containers?|"
+    r"services?|processes?|pids?|firewall|databases?|dbs?|logs?|caches?|backups?|"
+    r"workspaces?|hosts?|routers?|networks?|adapters?|dhcp|tabs?|browsers?|"
+    r"commands?|scripts?|emails?|messages?|reminders?|reservations?|tables?|"
+    r"orders?|accounts?|passwords?|keys?|settings?|configs?|cookies?|"
+    r"documents?|pdfs?|csvs?|workbooks?|spreadsheets?|images?|photos?|videos?|"
+    r"notes?|status|history|tasks?|scans?|cleanup|migrations?|"
+    r"excel|chrome|firefox|slack|docker|git|node|python|lsof|kill|"
+    r"targets?)\b"
+    r")",
     re.IGNORECASE,
 )
 
@@ -468,11 +537,14 @@ class ActionClaimGrammarSupervisor:
         """
         t0 = time.perf_counter()
 
-        # 0. Markdown normalization: strip header hashes, bullet points, formatting
+        # 0. Markdown normalization: strip header hashes, bullet points, formatting,
+        # and leading "**Action:**" / "**Status:**" / "**Step:**" labels left after
+        # emphasis stripping.
         clean = clause.strip()
         clean = re.sub(r"^\s*#+\s*", "", clean)
         clean = re.sub(r"^\s*[\*\-\+]\s+", "", clean)
         clean = re.sub(r"[*`~]", "", clean).strip()
+        clean = re.sub(r"^(?:action|status|step)\s*:\s*", "", clean, flags=re.IGNORECASE).strip()
 
         if not clean:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
@@ -626,34 +698,82 @@ class ActionClaimGrammarSupervisor:
             m_prog = _PROGRESSIVE_ACTION_REGEX.search(clean)
             if m_prog:
                 prefix = clean[: m_prog.start()].lower()
-                if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                if not _NEGATION_PREFIX_PATTERN.search(prefix) and not re.search(
+                    r"\b(?:by|for|while|worth|when|if|after|before|without|to|such\s+as|than|from|in|on|of|about|into| Involves)\s*$",
+                    prefix,
+                    re.IGNORECASE,
+                ):
+                    is_explicit_1p = m_prog.group(1) is not None
                     verb = (m_prog.group(1) or m_prog.group(3)).lower()
                     target = (m_prog.group(2) or m_prog.group(4)).strip()
-                    target = re.sub(
-                        r"\s+(?:now|from\s+Downloads|to\s+Documents.*|please\s+give\s+me\s+a\s+moment|will\s+take\s+a\s+moment)[\.!]?$",
+                    # Strip harmless completion tail before checking gerund predicate verbs
+                    target_for_check = re.sub(
+                        r"\s+will\s+take\s+a\s+(?:moment|second|minute|few\s+\w+)[\.!]?$",
                         "",
                         target,
                         flags=re.IGNORECASE,
                     )
-                    claims_to_verify.append((verb, target, m_prog.group(0)))
+                    is_gerund_subject = bool(
+                        re.search(
+                            r"\b(?:is|are|was|were|can|could|will|would|should|may|might|must|"
+                            r"makes|means|requires|helps|allows|provides|causes|involves|"
+                            r"installs|works|operates|affects|distributes|prevents|ensures|takes|shows)\b",
+                            target_for_check,
+                            re.IGNORECASE,
+                        )
+                    )
+                    is_bare_preposition = bool(
+                        re.match(r"^(?:on|in|at|to|from|with|by|for|of|as)\b[\.!]?$", target, re.IGNORECASE)
+                    )
+                    is_parenthetical_fragment = (
+                        (")" in target and "(" not in target)
+                        or (not is_explicit_1p and bool(clean) and clean[0].islower())
+                        or (not is_explicit_1p and clean.endswith(":"))
+                    )
+                    has_concrete_target = is_explicit_1p or bool(_HOST_FILE_TARGET_PATTERN.search(target))
+                    if (
+                        not is_gerund_subject
+                        and not is_bare_preposition
+                        and not is_parenthetical_fragment
+                        and has_concrete_target
+                    ):
+                        target = re.sub(
+                            r"\s+(?:now|from\s+Downloads|to\s+Documents.*|please\s+give\s+me\s+a\s+moment|will\s+take\s+a\s+moment)[\.!]?$",
+                            "",
+                            target,
+                            flags=re.IGNORECASE,
+                        )
+                        claims_to_verify.append((verb, target, m_prog.group(0)))
 
         # (d) Passive: "The file was deleted from the workspace"
+        # Scope restriction: the target must be a concrete host/file-like
+        # resource (path, extension, port, or system noun). Generic prose
+        # ("an employment contract is terminated") is not an action claim.
         if not claims_to_verify:
             m_pass = _PASSIVE_ACTION_REGEX.search(clean)
             if m_pass:
                 prefix = clean[: m_pass.start()].lower()
-                if not _NEGATION_PREFIX_PATTERN.search(prefix):
-                    target = m_pass.group(1).strip()
+                target = m_pass.group(1).strip()
+                if (
+                    not _NEGATION_PREFIX_PATTERN.search(prefix)
+                    and not _NON_CLAIM_SUBJECT_PREFIX.search(target)
+                    and _HOST_FILE_TARGET_PATTERN.search(target)
+                ):
                     verb = m_pass.group(2).lower()
                     claims_to_verify.append((verb, target, m_pass.group(0)))
 
         # (e) Telegraphic: "Files removed.", "Reminder set for tomorrow."
+        # Same host/file-like target scope restriction as the passive frame.
         if not claims_to_verify:
             m_tele = _TELEGRAPHIC_ACTION_REGEX.search(clean)
             if m_tele:
                 prefix = clean[: m_tele.start()].lower()
-                if not _NEGATION_PREFIX_PATTERN.search(prefix):
-                    target = m_tele.group(1).strip()
+                target = m_tele.group(1).strip()
+                if (
+                    not _NEGATION_PREFIX_PATTERN.search(prefix)
+                    and not _NON_CLAIM_SUBJECT_PREFIX.search(target)
+                    and _HOST_FILE_TARGET_PATTERN.search(target)
+                ):
                     verb = m_tele.group(2).lower()
                     claims_to_verify.append((verb, target, m_tele.group(0)))
 
