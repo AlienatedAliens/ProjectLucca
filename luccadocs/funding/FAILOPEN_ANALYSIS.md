@@ -121,7 +121,7 @@ To resolve this systemic flaw without introducing unacceptable interactive laten
 - In `induction.py`, when verifier is inconclusive, candidate rules are placed into `QUARANTINE` mode by default (`D-REAS-06`) rather than merged into active clusters.
 
 ### Tier 3: Model Execution & Quantization Optimization
-- ModernBERT OpenVINO compilation currently runs on CPU due to driver/timeout mismatches. Benchmarks demonstrate that compiling ModernBERT for Intel NPU or utilizing INT8 dynamic quantization reduces latency to **18–24 ms**, safely fitting within the 50 ms budget window.
+- ModernBERT OpenVINO compilation currently runs on CPU due to driver/timeout mismatches, with measured mean **57.14 ms** / p95 **70.41 ms** against the 50 ms budget. **No NPU-compiled or INT8-quantized artifact exists anywhere in this repository**, and no external source is cited for a latency figure. Earlier drafts asserted that NPU compilation or INT8 dynamic quantization "reduces latency to 18–24 ms"; that is an **untested projection, not a benchmark result**, and it contradicts [`Paper 03 §4.1`](luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) and `DECISIONS.md:426`, which record the ≤25 ms budget as **not met** on this hardware. Any such claim must carry a fetched external source URL and date before it appears in funding material.
 
 ---
 

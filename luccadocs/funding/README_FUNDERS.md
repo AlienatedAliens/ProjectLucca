@@ -26,7 +26,7 @@ All empirical claims below are cited directly from deterministic code gates and 
 ### Mechanism 2: Deontic Truth-in-Receipt Output Supervision (`TruthInReceiptMatcher`)
 - **Location:** [`src/lucca/sandbox/output_supervisor.py`](../../src/lucca/sandbox/output_supervisor.py)
 - **Principle:** Assistant speech tokens are screened clause-by-clause before audio synthesis or UI display.
-- **Enforcement:** First-person action claims asserting execution of stateful operations (e.g., *delete*, *reboot*, *send*, *modify*) must match an authentic `ToolReceipt` carrying status `success` within the active turn. Claims lacking receipts trigger an immediate streaming abort.
+- **Enforcement:** First-person action claims asserting execution of stateful operations (e.g., *delete*, *reboot*, *send*, *modify*) must match an authentic `ToolReceipt` carrying status `success` within the active turn. Claims lacking receipts abort the stream immediately **only when a stateful tool actually ran in the turn** (`write`, `edit`, `note_write`, `launch`, `delete`, `run_python`). On read-only or no-tool turns the breach is downgraded and deferred to post-turn coherence review ([`output_supervisor.py:1432-1451`](../../src/lucca/sandbox/output_supervisor.py#L1432-L1451)). We state this plainly because it is the load-bearing detail: the supervisor is not an unconditional interrupt.
 - **Independence:** The supervisor is completely decoupled from model weights, written in pure deterministic Python (0 internal project imports; dependencies: standard library, `pydantic`, `structlog`).
 
 ---
@@ -34,9 +34,9 @@ All empirical claims below are cited directly from deterministic code gates and 
 ## 3. What Has Been Measured (And What Has Failed)
 
 ### What Works
-- **Authored Unit Battery:** 70/70 (100.0%) pass rate on pre-scripted assertions across 8 categories ([`tests/test_truth_in_receipt_battery.py`](../../tests/test_truth_in_receipt_battery.py)).
+- **Authored Unit Battery:** 73/73 (100.0%) pass rate on pre-scripted assertions across 8 categories (60 parametrized cases A–F plus 13 discrete tests; re-collected and re-run at commit `be4e016` — see [`ERRATUM_CALIBRATION_2026-10-24.md`](./ERRATUM_CALIBRATION_2026-10-24.md)) ([`tests/test_truth_in_receipt_battery.py`](../../tests/test_truth_in_receipt_battery.py)).
 - **Clean NLI Semantic Consistency:** 93.0% accuracy (Contradiction P/R 1.000 / 1.000) on 100 hand-labeled pairs under an unconstrained 500 ms evaluation window ([`data/benchmarks/nli_eval/results_cpu_t500/summary.json`](../../data/benchmarks/nli_eval/results_cpu_t500/summary.json)).
-- **External Math & Code Baselines:** 95.75% on GSM8K PAL (full 1,319 problems; [`MANIFEST.yaml`](../../data/benchmarks/MANIFEST.yaml)); 94.51% raw Pass@1 on Canonical HumanEval 164; 88.8% strict accuracy on held-out MATH-500 (clean 98 items).
+- **Scaffolded Math & Code Baselines — not capability evidence:** 95.75% on GSM8K **PAL** (full 1,319 problems; [`MANIFEST.yaml`](../../data/benchmarks/MANIFEST.yaml)) measures Python-program synthesis executed in a Docker sandbox, **not** bare next-token answers, and Rule-05 §1 excludes legacy GSM8K as a capability representation for this model class. 94.51% raw Pass@1 on Canonical HumanEval 164. 88.8% strict accuracy on held-out MATH-500 (clean 98 items). No external-model comparison is claimed anywhere in this document; see Rule-05 disclosure in [`ERRATUM_CALIBRATION_2026-10-24.md`](./ERRATUM_CALIBRATION_2026-10-24.md).
 
 ### Documented Failures & Weaknesses (The Grant Scope)
 1. **Low Live Matcher Sensitivity:** On unconstrained conversational outputs ($T=0.6$, Gemma 4 E4B/E2B), the baseline supervisor caught only **1/8 (12.5%)** strict completed actions and **1/23 (4.3%)** broad action claims ([`action_hallucination_labels_100.jsonl`](../../logs/archive/2026-10_test_reports/action_hallucination_labels_100.jsonl)). Models bypassed past-tense regex via active progressive participles (*"Moving all PDFs now..."*), passive voice (*"Done."*), or markdown headers.
@@ -56,11 +56,11 @@ git clone https://github.com/<owner>/ProjectLucca.git
 cd ProjectLucca
 uv sync
 
-# 2. Run the formal 70-sentence truth-in-receipt battery
+# 2. Run the formal 73-test truth-in-receipt battery
 uv run pytest tests/test_truth_in_receipt_battery.py -v --tb=short
 ```
 
-Expected result: `73 passed in ~0.50s`.
+Expected result: `73 passed` on CPU with zero GPU or Docker. Measured at commit `be4e016`: receipt+grammar subset 0.80 s in-process (1.28 s wall); the full authored suite is 186 tests in 4.97 s (6.15 s wall) — not the "201 tests in 1.24 s" figure that appeared in earlier drafts.
 
 ---
 
