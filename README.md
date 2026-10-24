@@ -1,7 +1,7 @@
 # Project Lucca — Standalone Neuro-Symbolic Desktop Companion
 
-> **State of the Union:** 100% Complete & Production Frozen on Native Workstation Silicon  
-> **Release Artifact:** `dist/Lucca/Lucca.exe` (25.9 MB standalone Windows executable)  
+> **State of the Union:** Sovereign Local-First Desktop Companion & Neurosymbolic Research Engine (`v1.45.0` / `WO-36`, runs 100% locally on workstation silicon and shows its cryptographic receipts)
+> **Release Artifact:** `dist/Lucca/Lucca.exe` (25.9 MB standalone Windows executable)
 > **Target Workstation:** MSI Vector 16 HX AI (Intel Core Ultra 9 275HX, NVIDIA GeForce RTX 5080 Laptop GPU 16GB VRAM, 64GB DDR5 Host RAM)  
 > **Primary Runtime Home:** `C:\ProjectLucca` | **Source Repository:** `C:\Projects\ProjectLucca`
 
@@ -23,7 +23,7 @@ Lucca executes completely offline on native workstation silicon with **zero clou
                                              ▼
                      ┌───────────────────────────────────────────────┐
                      │          SENSES & AUDIO SUBSYSTEM             │
-                     │  • Intel NPU / OpenVINO Faster-Whisper ASR    │
+                     │  • Faster-Whisper ASR (dGPU CUDA float16)     │
                      │  • Push-to-Talk & Energy VAD (<50ms barge-in) │
                      │  • Shared-memory atomic circular ring buffers │
                      └───────────────────────┬───────────────────────┘
@@ -92,6 +92,13 @@ Lucca executes completely offline on native workstation silicon with **zero clou
 - **Visual Pipeline Debugger Trace Horizon (`ui/pipeline_debugger/index.html`):** Real-time web schematic (`http://localhost:8765`) dynamically tracking all 9 cascade tanks for both benchmark matrices and live companion conversation turns.
 - **3-Stage Mathematical CAS Grader:** Fast-path LaTeX normalization $\to$ 5-point random numeric evaluation $\to$ sandboxed SymPy algebraic simplification enforced by a strict 2.0s worker thread timeout to prevent hanging.
 
+### 7. Sovereign Cognitive Unification & Two-Cadence Inner Life (Work Order 36 / v1.46.5)
+- **Unified Cognitive Outcome Sink (`cognitive_sink.py`):** Closes the loop between live CEGIS solver outcomes (`PythonCEGISEngine`, `UnshackledCEGISEngine`, `Orchestrator`), continuous affective states (`AffectiveODEMachine` `EUREKA_DISCOVERY` / `TASK_SUCCESS` / `TOOL_FAILURE`), proof traces (`ReasoningContext.proof_trace()`), and episodic precedent recall (`EpisodeRecall`).
+- **Two-Cadence Inner Life & Homeostatic Drives (`reflection.py`):** Integrates 60s `IdlePulse` passes (wired to `VerifierWorker` NLI consistency and `distill_contradiction_to_proposition()`) and `DreamRetrospective` passes (wired to `RuleInducer`, `RuleLifecycleManager`, and offline shadow replay into `QUARANTINE` per `D-REAS-06`), governed by `CoherenceDrive` and `CompetenceDrive`.
+- **Semantic User Knowledge Modeling v2 & Goal-Biased Recall (`user_model.py`, `active_goals.py`):** OpenVINO NLI entailment boosting (>0.60) and contradiction rejection coupled with 384-D cosine similarity and an active shared goal ledger (`ActiveGoalManager`) wired into `HybridRetriever`, `EpisodeRecall`, and `Orchestrator`.
+- **Constitutional Kernel & Sovereign Sight (`constitutional.py`, `screenshot_tool.py`):** Deterministic SHA-256 fingerprint (`constitutional_hash`) bound into every `DecisionRecord`, paired with verified epistemic prosody modulation and Windows 11 WinRT `Windows.Media.Ocr.OcrEngine` text extraction.
+- **Neurosymbolic Precision & Verification Spikes:** SymPy `.coeff()` auto-expansion rewrite, AIME combinatorics token ceiling (`max_tokens=1536`), `ContainerWorld` implicit room co-presence (`set_room_occupants()`) and `tell()`, relative date extraction, Organ A topological `GridDiff` + expanded spatial AST mutators, `zebra_constraints.gbnf` Edge Z3 compiler, `SPIKE-A` post-turn NLI receipt entailment, `SPIKE-B` `blind_classifier_only` routing mode, and BFCL `<tool_fit_check>` guard via `VerifierWorker`.
+
 ---
 
 ## 3. Physical Hardware Placement
@@ -150,7 +157,7 @@ All measurements were obtained directly from live execution on native workstatio
 
 ## 5. Quickstart Guide
 
-> For the complete, claim-by-claim capabilities manual, 24-tool inventory, epistemic cascade breakdown, and 12-step verification protocol, see the **[Comprehensive User Guide (`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`)](./docs/USER_GUIDE_WHAT_LUCCA_DOES.md)**.
+> For the complete, claim-by-claim capabilities manual, 24-tool inventory, epistemic cascade breakdown, and 12-step verification protocol, see the **[Comprehensive User Guide (`luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`)](./luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md)**.
 
 ### Option A: Launch Pre-Built Standalone Executable (Recommended)
 You can run Project Lucca directly from the standalone compiled distribution:
@@ -191,50 +198,50 @@ python packaging/build_exe.py
 
 ---
 
-## 6. Master Documentation Index (`docs/`)
+## 6. Master Documentation Index (`luccadocs/`)
 
-The repository adheres to strict truth-in-documentation governance (`docs/README.md`):
+The repository adheres to strict truth-in-documentation governance (`luccadocs/README.md`):
 
 | Document | Purpose |
 | :--- | :--- |
-| [`docs/README.md`](./docs/README.md) | **Governance & Documentation Master Index**: Three-tier documentation lifecycle and full roadmap status. |
-| [`docs/LUCCA_V135_1_ARCHITECTURE.md`](./docs/LUCCA_V135_1_ARCHITECTURE.md) | **Master System Architecture (v1.35.6-stable)**: Multi-scale compound neurosymbolic edge architecture (12B, E4B, E2B), persistent SQLite memory quarantine, Truth-in-Receipt output supervision, and dynamic task router. |
-| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | **Milestone 1–7 Foundation Architecture**: Process topology, IPC, MicroScheme runtime, memory, sandbox, and packaging hierarchy. |
-| [`docs/DECISIONS.md`](./docs/DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-ROUT-02`). |
-| [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) | **Neural Model Strategy**: Multi-scale Gemma 4 deployment (12B, E4B, E2B), dynamic router, VRAM clamp, and KV-cache architecture. |
-| [`docs/specs/COMPOUND_REASONING_100_SPEC.md`](./docs/specs/COMPOUND_REASONING_100_SPEC.md) | **Compound Reasoning 100-Problem Benchmark (`SPEC-BENCH-100-v1.0`)**: 10 cognitive domains (kinematics, logic grids, algebra, epistemics) evaluated end-to-end. |
-| [`docs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md`](./docs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md) | **Archived Engineering Walkthrough**: Chronological logs for Milestones 1–7 with raw silicon scorecards (archived per WO-14). |
-| [`docs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md`](./docs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"* (archived). |
-| [`docs/archive/2026-09_milestone_specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./docs/archive/2026-09_milestone_specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | **Capability Status Map**: Exhaustive classification of all system capabilities against verified reality (archived). |
-| [`docs/archive/`](./docs/archive/) | **Historical Archives**: Deprecated pre-audit specs, earlier exploratory notes, and legacy drafts. |
+| [`luccadocs/README.md`](./luccadocs/README.md) | **Governance & Documentation Master Index**: Three-tier documentation lifecycle and full roadmap status. |
+| [`luccadocs/LUCCA_V135_1_ARCHITECTURE.md`](./luccadocs/archive/2026-10_architecture_snapshots/LUCCA_V135_1_ARCHITECTURE.md) | **Master System Architecture (v1.35.6-stable)**: Multi-scale compound neurosymbolic edge architecture (12B, E4B, E2B), persistent SQLite memory quarantine, Truth-in-Receipt output supervision, and dynamic task router. |
+| [`luccadocs/ARCHITECTURE.md`](./luccadocs/ARCHITECTURE.md) | **Milestone 1–7 Foundation Architecture**: Process topology, IPC, MicroScheme runtime, memory, sandbox, and packaging hierarchy. |
+| [`luccadocs/DECISIONS.md`](./luccadocs/DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-ROUT-02`). |
+| [`luccadocs/MODEL_STRATEGY.md`](./luccadocs/MODEL_STRATEGY.md) | **Neural Model Strategy**: Multi-scale Gemma 4 deployment (12B, E4B, E2B), dynamic router, VRAM clamp, and KV-cache architecture. |
+| [`luccadocs/specs/COMPOUND_REASONING_100_SPEC.md`](./luccadocs/specs/COMPOUND_REASONING_100_SPEC.md) | **Compound Reasoning 100-Problem Benchmark (`SPEC-BENCH-100-v1.0`)**: 10 cognitive domains (kinematics, logic grids, algebra, epistemics) evaluated end-to-end. |
+| [`luccadocs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md`](./luccadocs/archive/2026-09_handovers/IMPLEMENTATION_WALKTHROUGH.md) | **Archived Engineering Walkthrough**: Chronological logs for Milestones 1–7 with raw silicon scorecards (archived per WO-14). |
+| [`luccadocs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md`](./luccadocs/archive/2026-09_milestone_specs/NEUROSYMBOLIC_RESEARCH_PAPER.md) | **Formal Academic Paper**: *"Project Lucca: A Sub-450ms Neuro-Symbolic Cognitive Architecture for Local Voice Agents"* (archived). |
+| [`luccadocs/archive/2026-09_milestone_specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`](./luccadocs/archive/2026-09_milestone_specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md) | **Capability Status Map**: Exhaustive classification of all system capabilities against verified reality (archived). |
+| [`luccadocs/archive/`](./luccadocs/archive/) | **Historical Archives**: Deprecated pre-audit specs, earlier exploratory notes, and legacy drafts. |
 
-### 6.1 Subsystem Reference Manuals Corpus (`docs/subsystems/`)
+### 6.1 Subsystem Reference Manuals Corpus (`luccadocs/subsystems/`)
 
 Exhaustive deep-dive architectural specifications, Mermaid dataflow diagrams, state machines, and API contracts for all 8 subsystems in `src/lucca/`:
 
 | Manual | Subsystem | Core Technical Focus |
 | :--- | :--- | :--- |
-| [`docs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md`](./docs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md) | **Core Orchestrator & Cascade** | Three-tier execution, Belnap FOUR bilattice, speculative BDI validation (<35μs), and 8-substrate search cascade. |
-| [`docs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md`](./docs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md) | **Neural Brain & Streaming Demuxer** | Multi-scale deployment (12B, E4B, E2B), Prompt Frontier Suffix (8.58x prefill speedup), 32K context allocation, and streaming demuxer. |
-| [`docs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md`](./docs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md) | **Symbolic Reasoning & Formal Proofs** | MicroScheme LISP interpreter (1,000 gas limit), Microsoft Z3 SMT prover (SAT/contingency/path proofs), and Babble/Stitch e-graph macro synthesis. |
-| [`docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md`](./docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md) | **Deontic Sandbox & Structural Compiler** | Persistent Docker RPC daemon (7.8ms P50), stdin code streaming over `ARG_MAX`, 4-stage tolerant AST extractor (0.0% empty residual), Tier 1 preflight compiler, 2-turn feedback loop (85.11% recovery), and Truth-in-Receipt output supervision. |
-| [`docs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md`](./docs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md) | **Cryptographic Memory & Epistemology** | SQLite WAL + `sqlite-vec` (Intel NPU) + FTS5 BM25, HKDF HMAC-SHA256 two-stage verification, persistent SQLite memory quarantine, and bi-temporal supersession. |
-| [`docs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md`](./docs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md) | **Voice Senses & Full-Duplex Audio** | Zero-copy shared-memory ring buffers, faster-whisper ASR (CUDA float16), acoustic hygiene filters, Kokoro-82M ONNX TTS, anime formant filter DSP, and sub-50ms barge-in WASAPI abort. |
-| [`docs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md`](./docs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md) | **Routing & Conformal Calibration** | Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage $\ge 0.95$), dynamic task router ($\text{Router}(M, T)$), and replay-protected HMAC confirmation nonces. |
-| [`docs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md`](./docs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md) | **Desktop UI & Visual Pipeline Debugger** | Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765. |
+| [`luccadocs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md`](./luccadocs/subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md) | **Core Orchestrator & Cascade** | Three-tier execution, Belnap FOUR bilattice, speculative BDI validation (<35μs), and 8-substrate search cascade. |
+| [`luccadocs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md`](./luccadocs/subsystems/02_NEURAL_BRAIN_AND_STREAMING.md) | **Neural Brain & Streaming Demuxer** | Multi-scale deployment (12B, E4B, E2B), Prompt Frontier Suffix (8.58x prefill speedup), 32K context allocation, and streaming demuxer. |
+| [`luccadocs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md`](./luccadocs/subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md) | **Symbolic Reasoning & Formal Proofs** | MicroScheme LISP interpreter (1,000 gas limit), Microsoft Z3 SMT prover (SAT/contingency/path proofs), and Babble/Stitch e-graph macro synthesis. |
+| [`luccadocs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md`](./luccadocs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md) | **Deontic Sandbox & Structural Compiler** | Persistent Docker RPC daemon (7.8ms P50), stdin code streaming over `ARG_MAX`, 4-stage tolerant AST extractor (0.0% empty residual), Tier 1 preflight compiler, 2-turn feedback loop (85.11% recovery), and Truth-in-Receipt output supervision. |
+| [`luccadocs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md`](./luccadocs/subsystems/05_EPIDEMIOLOGY_AND_CRYPTOGRAPHIC_MEMORY.md) | **Cryptographic Memory & Epistemology** | SQLite WAL + `sqlite-vec` (Intel NPU) + FTS5 BM25, HKDF HMAC-SHA256 two-stage verification, persistent SQLite memory quarantine, and bi-temporal supersession. |
+| [`luccadocs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md`](./luccadocs/subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md) | **Voice Senses & Full-Duplex Audio** | Zero-copy shared-memory ring buffers, faster-whisper ASR (CUDA float16), acoustic hygiene filters, Kokoro-82M ONNX TTS, anime formant filter DSP, and sub-50ms barge-in WASAPI abort. |
+| [`luccadocs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md`](./luccadocs/subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md) | **Routing & Conformal Calibration** | Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage $\ge 0.95$), dynamic task router ($\text{Router}(M, T)$), and replay-protected HMAC confirmation nonces. |
+| [`luccadocs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md`](./luccadocs/subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md) | **Desktop UI & Visual Pipeline Debugger** | Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765. |
 
-### 6.2 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)
+### 6.2 Research Papers & Technical Reports (`luccadocs/research/papers/`)
 
-Six standalone, peer-review caliber research papers formalizing Project Lucca's theoretical advances:
+Two submission candidates and four technical reports. Each states its evidence type and carries an explicit "What Is NOT Claimed" section. See [`luccadocs/research/README.md`](./luccadocs/research/README.md) for status and the work required before each can be submitted.
 
-| Paper ID | Target Venue | Paper Title & Scope |
+| ID | Status | Title & Scope |
 | :--- | :--- | :--- |
-| **Paper 1** | **JAIR / NeurIPS 2026** | [`docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md`](./docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md)<br>Empirical evaluation of a sovereign 12B edge agent on formal multi-domain cognition, competition math (MATH-500: 75.80%), and adversarial code synthesis (HumanEval-Plus: 91.46%). |
-| **Paper 2** | **IEEE ICASSP / MMSys 2026** | [`docs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md`](./docs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md)<br>Acoustic loopback optimization, zero-copy shared memory architecture, and sub-50ms WASAPI interruption cancellation on consumer edge silicon. |
-| **Paper 3** | **AIJ / KR 2026** | [`docs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md`](./docs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md)<br>Bounded epistemic bilattices, Belnap $\mathcal{FOUR}$ paraconsistent truth tracking, cryptographic tamper-proofing, and autobiographical memory split. |
-| **Paper 4** | **ACM POPL / ASE 2026** | [`docs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md`](./docs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md)<br>Compiled muscle memory: syntactic anti-unification over SQLite execution traces into verified MicroScheme LISP macros guarded by Microsoft Z3 SMT proofs. |
-| **Paper 5** | **IEEE S&P / USENIX Security 2026** | [`docs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md`](./docs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md)<br>Non-parametric split-conformal coverage bounds ($\ge 0.95$), sub-35μs speculative BDI deontic validation, and streaming token supervision against social engineering attacks. |
-| **Paper 6** | **NeurIPS / ICLR 2026** | [`docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`](./docs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md)<br>Scale Inversion, Compound Parity, and Deconfounded Scaffolding: Gemma 4 at 2B, 4.5B, and 12B on Edge Mathematics and System Tasks. |
+| **Paper 06** | **Primary submission candidate** (short paper / workshop) | [`06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`](./luccadocs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md)<br>When does code offload help a small local model on competition math? Paired within-model comparisons of PAL, Thinking, and Direct on three community fine-tunes of Gemma 4. |
+| **Paper 03** | **Secondary submission candidate** (systems / trustworthy-agents workshop) | [`03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md)<br>Provenance-gated memory: separating what the agent said from what it may treat as true, with signed envelopes and database-enforced grounding flags. |
+| **TR-01** | Overview / benchmark index | [`01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md`](./luccadocs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md)<br>Architecture overview and an index of every benchmark run, with artifact pointers and caveats. |
+| **TR-02** | Technical report | [`02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md`](./luccadocs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md)<br>Barge-in latency, test-enforced audio ring concurrency (`ADR-0009`), and prefix-preserving prompt suffixing. |
+| **TR-04** | Technical report (design note) | [`04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md`](./luccadocs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md)<br>A gated lifecycle for agent-authored rules: Z3-checked admission, quarantine, shadow evaluation, human promotion, single-strike demotion. |
+| **TR-05** | Technical report (threat model) | [`05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md`](./luccadocs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md)<br>Threat model and layered policy enforcement for local agent tool use; results are on authored suites, no external red-team. |
 
 ---
 

@@ -18,5 +18,6 @@ This directory stores benchmark evaluation files used across Project Lucca evalu
 
 ### Competition Mathematics
 * **Source Repository**: `HuggingFaceTB/MATH` (commit `140a673`)
-* `data/benchmarks/math_fresh_heldout_500.jsonl`: SHA-256 `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38`
+* `data/benchmarks/math_fresh_heldout_500.jsonl`: SHA-256 `834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308` *(v1.35+ normalized; initial v1.3 pre-normalization export had SHA-256 `834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38`, see `data/benchmarks/MANIFEST.yaml` `drift_note`)*
+* `data/benchmarks/math_b4_sealed_100.jsonl`: SHA-256 `14c8af21a5172473cb50e858eb839a66554f4cddde9730e953e2989ce282100b`
 * `data/benchmarks/math500_test.jsonl`: SHA-256 `989cf8b975bc5d888126b86df2206ef4507b5db50426b3e70cfebf47b2c0f6f4`

@@ -100,3 +100,6 @@ scratch/
 # local caches and binary state (added 2026-10-24)
 *.sqlite
 *.pyc
+
+PITCH_EMAIL.txt
+

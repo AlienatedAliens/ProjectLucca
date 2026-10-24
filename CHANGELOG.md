@@ -5,6 +5,54 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [1.46.5] — 2026-10-18
+
+### Added
+- **Sovereign Cognitive Unification & Cognitive Outcome Sink (Milestone 36.1, Spec 04 §4):**
+  - Implemented `CognitiveOutcomeSink` (`src/lucca/core/cognitive_sink.py`) unifying CEGIS multi-turn outcome propagation across `PythonCEGISEngine`, `UnshackledCEGISEngine`, and `Orchestrator.synthesize_code_with_preflight()`.
+  - Signs `Provenance.ASSISTANT_ACTION` receipts via `create_tool_result_signer()` and `resolve_or_create_master_key()`.
+  - Dynamically computes and delivers `AffectSignal3D.EUREKA_DISCOVERY` (2+ turn repair), `TASK_SUCCESS`, and `TOOL_FAILURE` to `AffectiveODEMachine` with valence, arousal, and dominance trajectories while keeping evidential weight at `0.0`.
+  - Injects `ProofTraceStep` steps directly into `ReasoningContext.proof_trace()` and records multi-turn repair episodes into `EpisodeRecall` and SQLite `execution_triples`.
+- **Static Gate Hardening, Tier 0 Residency & Sandbox Sync (Milestones 36.1 & 36.6, D-AUD-01, D-AUD-13):**
+  - Eradicated all `Any` annotations across `cegis_unshackled.py`, `repl_loop.py`, and `relational/mereo.py` (strict zero-`Any` compliance).
+  - Replaced host `exec()` calls with isolated Docker sandbox RPC execution (`execute_unshackled_python()` / `execute_unshackled_python_batch()`) inside `lucca-file-sandbox` with automated `/tmp/lucca_runtime` host module synchronization.
+  - Optimized Tier 0 (`26B-A4B MoE`) defaults in `LLMSettings` (`ctx=32768`, `ngl=28`, `q8_0` KV cache).
+  - Enforced zero silent broad excepts and zero unreferenced public symbols across all `src/lucca` modules.
+- **Semantic UserModel v2 & Goal-Biased Recall (Milestone 36.2, Spec D-REAS-09):**
+  - Upgraded `UserModel` (`src/lucca/core/user_model.py`) with hybrid ModernBERT OpenVINO NLI entailment boosting (`> 0.60`), contradiction rejection, and 384-D dense cosine similarity ranking while preserving Trap 1.
+  - Added `ActiveGoalManager` (`src/lucca/core/active_goals.py`) and migration `0009_active_goals_and_learning_events.sql` wired into `HybridRetriever`, `EpisodeRecall`, and `Orchestrator` for goal-biased memory and episode retrieval.
+  - Upgraded `EpisodeRecall` with 384-D dense cosine similarity while preserving Trap 2 ($\le 2$ episodes, $\le 800$ characters).
+- **Two-Cadence Inner Life & Homeostatic Drives (Milestone 36.3, Spec 11 §4):**
+  - Implemented `CoherenceDrive` (prioritizing Belnap $\top$ contradictions) and `CompetenceDrive` (prioritizing multi-turn CEGIS repairs).
+  - Wired `IdlePulse` (60s NPU/CPU background pass) to `VerifierWorker` NLI consistency, `quarantine_rejected_distillate()`, `distill_contradiction_to_proposition()`, and `Orchestrator.maybe_run_idle_pulse()`.
+  - Wired `DreamRetrospective` to `RuleInducer`, `RuleLifecycleManager`, offline shadow replay (`replay_candidate`), and `ASSISTANT_BELIEF` vs `TOOL_VERIFIED`/`USER_EXPLICIT` conflict auditing into `QUARANTINE` per `D-REAS-06`.
+  - Surfaced receipt-backed `learning_events` and `review_queue` summaries in `TurnPipeline` Waking Continuity notes upon inter-session gaps $\ge 30\text{ min}$.
+- **Constitutional Kernel & Sovereign Sensory Fallbacks (Milestone 36.4, Spec 01 §2):**
+  - Implemented `compute_constitutional_hash()` (`src/lucca/core/constitutional.py`) computing deterministic SHA-256 fingerprint over core safety invariants and bound to `DecisionRecord`.
+  - Implemented epistemic prosody modulation in TTS (`CHECKED_FORMALIZATION_AGREED` vs `SPECULATION`) and epistemic UI themes (`epistemic_verified`, `epistemic_speculation`).
+  - Implemented Sovereign Sight CPU OCR text extraction (`extract_ocr_from_image`) via native Windows 11 WinRT `Windows.Media.Ocr.OcrEngine`.
+- **Neurosymbolic Precision, Organ A Diagnostics & Verification Spikes (Milestones 36.5 & 36.6):**
+  - Implemented SymPy `.coeff()` auto-expansion AST rewrite in `src/lucca/sandbox/ast_sanitizer.py` and `max_tokens=1536` token ceiling for AIME/combinatorics in `HeuristicRouter` and `PythonCEGISEngine`.
+  - Added `set_room_occupants()` implicit room co-presence witness updates and 3/4-arg `tell()` to `ContainerWorld` and RPC prelude.
+  - Extended `extract_temporal_constraints()` with relative date anchors (`N days/weeks/months/hours ago`, `last night`, `this morning`).
+  - Upgraded `compute_detailed_grid_diff()` with Organ A topological diagnostics (component count discrepancies, shape-matched translation offsets `(dr, dc)`, and `extract_cavities()` enclosure mismatches) and expanded `generate_ast_mutants()` with directional swaps (`above`/`below`, `left_of`/`right_of`, `flip_h`/`flip_v`), positional connectivity (`4`/`8`), and sort `reverse` toggling.
+  - Added `config/grammars/zebra_constraints.gbnf` and deterministic JSON $\to$ Python Z3 constraint compiler (`compile_zebra_json_to_z3_python`, `solve_zebra_constraints`) in `src/lucca/reasoning/smt_verifier.py`.
+  - Implemented `SPIKE-A` post-turn NLI receipt entailment/contradiction verification in `src/lucca/core/coherence.py`, `SPIKE-B` `blind_classifier_only` routing mode in `HeuristicRouter` (`evaluate_blind_classifier_routing`), and BFCL `<tool_fit_check>` guard via `VerifierWorker`.
+
+### Tested & Verified
+- 100% green across 24/24 static architectural gates in `tests/test_static_gates.py`.
+- 100% green across all Work Order 36 unit suites:
+  - `tests/test_cognitive_sink.py` (3/3 passed)
+  - `tests/test_user_model_v2.py` (5/5 passed)
+  - `tests/test_user_model.py` (8/8 passed)
+  - `tests/test_episode_recall.py` (9/9 passed)
+  - `tests/test_inner_life.py` (4/4 passed)
+  - `tests/test_milestone_36_4.py` (4/4 passed)
+  - `tests/test_milestone_36_5.py` (5/5 passed)
+  - `tests/test_tool_shortlister.py` (22/22 passed)
+  - `tests/test_temporal_retrieval.py` (6/6 passed)
+  - Comprehensive battery suite: 129/129 passed in 17.19s with zero regressions.
+
 ## [1.46.4] — 2026-10-17
 
 ### Added
@@ -90,7 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Strict zero-`Any` typing enforced and verified clean via `mypy`.
 
 ### Fixed & Ratified
-- **Mereotopological Competence Boundary Ratification (`docs/DECISIONS.md`, `D-REAS-15`):**
+- **Mereotopological Competence Boundary Ratification (`luccadocs/DECISIONS.md`, `D-REAS-15`):**
   - Ratified `D-REAS-15`, establishing the formal boundary between symbolic mereotopology (Organ A) and perceptual grouping.
   - Proved that `in_cavity` correctly returning `False` on open U-shaped concavities is mathematically sound, and that adding ad-hoc gap-closing filters (`in_concavity(gap_size=2)`) constitutes benchmaxxing.
   - Locked ConceptARC `InsideOutside` baseline at **3 / 10 (30.0%)** with verified Organ A API calls in 100% of winning source files.
@@ -105,7 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Discrete Mereotopology on Grids (`mereo.py`):** Deployed `part_of` (exact subset $A \subseteq B$), `externally_connected` (4/8-connected contact), `partially_overlaps`, and `in_cavity` (topological cavity enclosure via border-complement 4-connected flood-fill). Proved `in_cavity ≠ bbox_during` on open U-shapes, eliminating the 22% spatial failure mode.
   - **Multi-Carrier Realizations (`realize_real.py`, `realize_grid.py`):** Built continuous $\mathbb{R}$ interval containment (`during_real`, `point_in_interval`) and discrete grid interval projections (`above`, `below`, `left_of`, `right_of`, `bbox_during`). Built universal `to_grid_region` coercing `GridRegion`, `spatial_anchors.Component`, and 2D numpy masks seamlessly.
   - **Synthetic Unit Test Battery (`tests/reasoning/relational/`):** 12 comprehensive unit tests executing in 0.42s with zero benchmark dataset strings: covers 13 relations, converse symmetry, composition soundness, closed ring cavity invariants across 1,000 random holed masks, puncture tests, and the U-shape concavity disagreement invariant. Mypy clean with 0 issues.
-  - **Programmatic Allen 1983 CACM 169-Cell Verification (`scripts/audit_allen_169_literature.py`, `docs/DECISIONS.md`):** Developed machine-certified audit script diffing all 169 composition pairs against Table 1 of Allen (CACM 1983): established 100% symbolic equivalence (0 mismatches), rigorously validating `STARTS ∘ BEFORE = {BEFORE}` and `STARTED_BY ∘ BEFORE = {BEFORE, MEETS, OVERLAPS, FINISHED_BY, CONTAINS}`.
+  - **Programmatic Allen 1983 CACM 169-Cell Verification (`scripts/audit_allen_169_literature.py`, `luccadocs/DECISIONS.md`):** Developed machine-certified audit script diffing all 169 composition pairs against Table 1 of Allen (CACM 1983): established 100% symbolic equivalence (0 mismatches), rigorously validating `STARTS ∘ BEFORE = {BEFORE}` and `STARTED_BY ∘ BEFORE = {BEFORE, MEETS, OVERLAPS, FINISHED_BY, CONTAINS}`.
   - **Induction Engine Relational Wiring & Prompt Hygiene (`src/lucca/reasoning/cegis_unshackled.py`):** Injected relational kernel primitives (`in_cavity`, `part_of`, `above`, `below`, `left_of`, `right_of`) into `execute_unshackled_python` with global pre-binding, AST comment/docstring stripping (`strip_comments_and_docstrings`), hard token budgeting (1,024 max), and strict "False is legal" topological invariance contracts.
   - **Live Relational Induction Probe on Silicon (`scripts/probe_relational_induction_live.py`, `logs/test_reports/probe_relational_induction_live.json`):** Evaluated live Tier 0 (`gemma-4-26B`) induction across 6 passes on closed rings vs open U-shapes: achieved **6 / 6 PASS (100.0%)** on both source code and predicted output (3/3 Ring `[[1]]`, 3/3 U-shape `[[0]]`). 100% natural emission of `in_cavity(...)`, 0% AABB `bbox` regressions, zero comment runaway, and ~8.4s mean synthesis latency. Proved model adherence to topological invariants over axis-aligned approximations.
   - **Model 4 Adversarial "Ugly Fixtures" Stress Battery (`scripts/probe_relational_induction_live.py`):** Subjected Organ A induction to Model 4's three adversarial falsification stress tests across 9 live passes on Tier 0 silicon ($T \in [0.1, 0.2, 0.35]$):
@@ -204,7 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `Agent` alias to `container_world.py`, `rpc.py`, and `ast_sanitizer.py` preflight imports, preventing `ImportError` on edge agent queries.
   - Aligned `test_ast_sanitizer.py` with v1.40 AST auto-print synthesis rules (`print(solve())`).
 - **Master 3-Tier Technical Evaluation Report & Audit Provenance:**
-  - Published comprehensive living documentation in `docs/research/2026-10-13_three_tier_master_benchmark_audit_v141.md` and conversation artifact `PROJECT_LUCCA_THREE_TIER_MASTER_BENCHMARK_MATRIX.md`.
+  - Published comprehensive living documentation in `luccadocs/research/2026-10-13_three_tier_master_benchmark_audit_v141.md` and conversation artifact `PROJECT_LUCCA_THREE_TIER_MASTER_BENCHMARK_MATRIX.md`.
 
 ---
 
@@ -255,7 +303,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Pre-Emptive Docker Worker Warmup (`DockerRPCTransport.warmup()`, `src/lucca/sandbox/rpc.py`):**
   - Pre-warms persistent stdio worker bridge to `lucca-toolsrv --loop`, eliminating the 3.5s cold-start spawn penalty down to **<9 ms** per invocation.
 - **Second-Order Epistemic Engine:** Implemented $B_{\text{observer}}(B_{\text{target}}(p))$ tracking in `ContainerWorld` and injected into `_CONTAINER_WORLD_PRELUDE`.
-- **Comprehensive Audit Artifact:** Published `docs/audit/V10_FULL_RESULTS_REVIEW_AND_IMPROVEMENT_AUDIT.md`.
+- **Comprehensive Audit Artifact:** Published `luccadocs/audit/V10_FULL_RESULTS_REVIEW_AND_IMPROVEMENT_AUDIT.md`.
 
 ---
 
@@ -421,7 +469,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Authoritative Metrics Record (`data/metrics/TEST_METRICS.yaml`):**
   - Single source of truth for test-suite and static-gate counts (record `metrics-2026-10-05`: 1,199 passed / 67 deselected; 24 static gates). Active docs now cite the record; historical dated figures in CHANGELOG/plans/archive are preserved as historical records.
 - **Documentation & Substrate Alignment:**
-  - Aligned System Architecture Specification (`docs/LUCCA_V135_1_ARCHITECTURE.md`) and research papers to release `v1.35.6-stable`, updating version metadata, scorecard headers, and commit provenance.
+  - Aligned System Architecture Specification (`luccadocs/LUCCA_V135_1_ARCHITECTURE.md`) and research papers to release `v1.35.6-stable`, updating version metadata, scorecard headers, and commit provenance.
   - Freshly verified full test suite: 1,198 passed, 0 failed, 67 deselected (100% green).
 
 ---
@@ -482,7 +530,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Master Key Persistence Hardening:**
   - Master keys generated via `secrets.token_bytes(32)` and persisted to `data/keys/master.key` with `0600` permissions. Removed all public dev fallback keys (`b"0123456789..."`) from `main.py`, `service.py`, `signer_factory.py`, and `admin.py`.
 - **System Architecture Specification v1.35.2:**
-  - Authored `docs/LUCCA_V135_1_ARCHITECTURE.md` establishing the multi-scale compound neurosymbolic edge architecture.
+  - Authored `luccadocs/LUCCA_V135_1_ARCHITECTURE.md` establishing the multi-scale compound neurosymbolic edge architecture.
 
 ---
 
@@ -569,12 +617,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Domain Accuracy (CAS): Counting & Probability **94.44% (68/72)**, Number Theory **94.37% (67/71)**, Prealgebra **85.92% (61/71)**, Algebra **84.72% (61/72)**, Geometry **70.83% (51/72)**, Intermediate Algebra **69.01% (49/71)**, Precalculus **52.11% (37/71)**.
     - Autonomous Recovery: 33 error triggers intercepted $\to$ **18 successful Turn-2 recoveries (54.55% recovery rate)**.
     - Tolerant AST Extraction Residual: **0 / 500 empty code drops (0.0% residual)**, establishing a cumulative 0.0% residual across 600 audited competition problems.
-- **Master Architecture Reference Maps & Section 10 (`docs/ARCHITECTURE.md`):**
+- **Master Architecture Reference Maps & Section 10 (`luccadocs/ARCHITECTURE.md`):**
   - Authored comprehensive Section 10 in the master architecture specification featuring three exhaustive Mermaid diagrams:
     1. Complete End-to-End System Topology and Dataflow across all 8 subsystems (Capture $\to$ Routing $\to$ Orchestration $\to$ Neural Brain $\to$ Symbolic Reasoning $\to$ Deontic Sandbox $\to$ Cryptographic Memory $\to$ Desktop UI/Debugger).
     2. Two-Tier Neurosymbolic Execution and AST Compilation Lifecycle sequence diagram.
     3. Belnap Paraconsistent Epistemic Bilattice ($\mathbf{T}, \mathbf{F}, \mathbf{B}, \bot$) and cryptographic provenance state machine.
-- **Dedicated Subsystem Reference Manuals Corpus (`docs/subsystems/`):**
+- **Dedicated Subsystem Reference Manuals Corpus (`luccadocs/subsystems/`):**
   - Authored 8 standalone deep-dive reference manuals with Mermaid flowcharts, state machines, and API contracts:
     1. `01_CORE_ORCHESTRATION_AND_CASCADE.md`: Three-tier execution, unified turn pipeline, speculative BDI validation (<35μs), Belnap $\mathcal{FOUR}$ bilattice, and 8-substrate search cascade.
     2. `02_NEURAL_BRAIN_AND_STREAMING.md`: Gemma-4 12B Heretic Q6_K on RTX 5080 Laptop GPU, Prompt Frontier Suffix (8.58x KV speedup), 32K context allocation, and streaming demuxer.
@@ -584,7 +632,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     6. `06_VOICE_SENSES_AND_AUDIO_PIPELINE.md`: Zero-copy shared-memory ring buffers, faster-whisper ASR (CUDA float16), acoustic hygiene filters, Kokoro-82M ONNX TTS, anime formant filter DSP, and sub-50ms barge-in WASAPI abort.
     7. `07_ROUTING_AND_CONFORMAL_CALIBRATION.md`: Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage $\ge 0.95$), and replay-protected HMAC confirmation nonces.
     8. `08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md`: Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765.
-- **Frontier Research & Engineering Papers Corpus (`docs/research/papers/`):**
+- **Frontier Research & Engineering Papers Corpus (`luccadocs/research/papers/`):**
   - Outlined 5 peer-review caliber research papers ready for conference submission:
     1. `01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md` (Target: JAIR / NeurIPS 2026).
     2. `02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md` (Target: IEEE ICASSP / MMSys 2026).
@@ -633,7 +681,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Scientific Integrity Corrections (Research Papers):**
   - Renamed "Big-Bench Hard (BBH) | 92.40% (924/1,000)" to "**BBH-4 Algorithmic Composite (4/27 subsets):** 92.40%" in both research papers to prevent reviewer misinterpretation of the partial result as a full 27-subset score.
   - Added "BBH Full 27-Subset Suite (Pending)" row to comparative tables with DeepMind's published 53.0% BBEH baseline and `*(Run pending)*` for the Lucca compound score.
-  - Files corrected: `docs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md` and `docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md`.
+  - Files corrected: `luccadocs/research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md` and `luccadocs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md`.
 
 ### Changed
 - **Log Archive:** All 130+ ephemeral timestamped JSON benchmark run reports moved from `logs/test_reports/` root to `logs/test_reports/v1.3/`. Root now contains only permanent summary files and the baseline archive.
@@ -649,7 +697,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Neural Core Foundation (Gemma 4 12B Exclusivity):** All formal benchmarks across all three tracks were conducted **exclusively on `gemma-4-12b-heretic-Q6_K`** (12.4B parameters). Early exploratory pre-benchmark spikes evaluated alternative open-weight architectures (such as Mistral-NeMo-12B), but Gemma 4 was selected as the sole neural foundation for all formal benchmarking due to its GQA KV-cache efficiency on 16 GiB hardware and superior AST code synthesis for deterministic tool calling. Zero benchmark results were collected on Mistral or any other model weights.
   - **Track 3 Modern Benchmark Execution (2024–2025 Robustness Suites on 16K Baseline):**
     - **Apple GSM-Symbolic ($N = 100$ Canonical Evaluation Slice):** **100.0% accuracy (100 / 100)** in 527.4s via Program-Aided Language (PAL) mode in Docker (`modern_benchmarks_2024_20260929T173711Z.json`). Zero calculation slips or variance under altered constants.
-    - **EvalPlus HumanEval-Plus (Full Canonical 164 Tasks, $>120,000$ Adversarial Test Inputs):** **91.46% pass@1 (150 / 164)** in 1,016.8s (`modern_benchmarks_2024_20260929T174613Z.json`), outperforming published frontier monolithic baselines GPT-4o (86.6%) and Claude 3.5 Sonnet (88.5%). Phase 4 autonomous Docker preflight self-correction loop caught and fixed 10 separate failing tasks live in-flight.
+    - **EvalPlus HumanEval-Plus (Full Canonical 164 Tasks, $>120,000$ Adversarial Test Inputs):** **91.46% pass@1 (150 / 164)** in 1,016.8s (`modern_benchmarks_2024_20260929T174613Z.json`; manifest record `humaneval_plus_v1_35_6`). Phase 4 autonomous Docker preflight self-correction loop caught and fixed 10 separate failing tasks live in-flight.
     - **MATH-500 (100-Problem Stratified Subset across Levels 1–5 and 7 Subjects):** **77.0% exact match (77 / 100)** in 1,149.7s (`modern_benchmarks_2024_20260929T180321Z.json`). 7 additional problems verified as mathematically identical syntax representations, yielding an **84.0% semantic derivation rate** (and 87.0% with base notation subscripts). Achieved 69.6% on Olympiad Level 5 problems.
   - **Autonomous Docker Preflight Verification (WO-26d):**
     - Implemented autonomous pre-execution verification loop evaluating candidate code strictly against assertions extracted from the problem prompt's docstring examples (zero exposure or leakage of hidden/adversarial benchmark test cases).
@@ -685,7 +733,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
         - Dyck Bracket Languages: **86.40% (216 / 250)**
         - Geometric Shapes: **84.00% (210 / 250)**
   - Staged and verified control parameter scale ablation model `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` (6,217,260,896 bytes, ~4B effective parameters) in `C:\ProjectLucca\models\llm\` for parameter scale isolation (secondary control vs. compound system ablation on the primary 12B weights).
-  - Aligned comparative literature baselines with published peer-reviewed frontier architectures (Claude 3.5 Sonnet, GPT-4o, Llama 3 70B, Qwen 2.5 32B Coder) and documented failure case audits (BBH depth-7 RoPE parity slips, SVG arc label ambiguities, HumanEval bisection tolerances).
+  - Documented failure case audits across BBH depth-7 RoPE parity slips, SVG arc label ambiguities, and HumanEval bisection tolerances.
 
 ---
 
@@ -884,9 +932,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Strips markdown asterisks, backticks, bullet dashes, raw URLs, and headers before passing tokens to Kokoro-82M TTS.
 - **Full 138-Claim Documentation Alignment:**
   - `README.md`: Corrected hardware placement table to reflect that only embeddings run on NPU; ASR runs on dGPU CUDA float16 (+555 MiB VRAM); TTS/VAD run on CPU. Separated regex classification ($6.4\,\mu\text{s}$) from physical WASAPI audio abort ($20\text{--}50\,\text{ms}$).
-  - `docs/ARCHITECTURE.md`: Clarified normative stage budgets with explicit footnotes; aligned ASR running baseline to CUDA float16; downgraded fixture-only induction and telemetry claims to `Enforced (Unit Tested; 0 Production Rows)`.
-  - `docs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`: Updated capability statuses to reflect tested reality.
-  - `docs/DECISIONS.md`: Aligned canonical decision records (D-AUD-11, D-AUD-15, D-REAS-06, D-REAS-07, D-SUP-01).
+  - `luccadocs/ARCHITECTURE.md`: Clarified normative stage budgets with explicit footnotes; aligned ASR running baseline to CUDA float16; downgraded fixture-only induction and telemetry claims to `Enforced (Unit Tested; 0 Production Rows)`.
+  - `luccadocs/specs/TECHNICAL_RESPONSE_AND_CAPABILITY_STATUS_MAP.md`: Updated capability statuses to reflect tested reality.
+  - `luccadocs/DECISIONS.md`: Aligned canonical decision records (D-AUD-11, D-AUD-15, D-REAS-06, D-REAS-07, D-SUP-01).
 
 ### Verified
 - **Full Pytest Regression Suite:** 418 passed in 86.24s (100% green).

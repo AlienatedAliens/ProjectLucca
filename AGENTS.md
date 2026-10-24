@@ -12,9 +12,10 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 
 2. **Strict Hardware Budget Discipline:**
-   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-12b-heretic-Q6_K.gguf` (`D-BRAIN-05` v2; `enable_thinking=false` mandatory for companion tiers, thinking reserved for explicit deep reasoning) with 16K context baseline / 32K context v1.3.0 default (`src/lucca/core/config.py`), Q8_0 KV cache, and Flash Attention. Dedicated compute mode frees dGPU from desktop DWM allocations.
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` (Tier 0 canonical brain; MoE 4B active params, `ngl=28` WDDM-safe at 32K context `ctx=32768`, `--spec-type ngram-mod`, Q8_0 KV cache, Flash Attention) or dense tiers (`12B`, `E4B`, `E2B` per `D-BRAIN-05` / `D-ROUT-02`). `enable_thinking=false` mandatory for companion tiers; thinking reserved for explicit deep reasoning. Dedicated compute mode frees dGPU from desktop DWM allocations.
    - **iGPU**: Intel(R) Graphics (Arrow Lake-HX Xe-LPG) driving Windows desktop display and UI, completely offloading display tasks from the RTX 5080.
-   - **Intel NPU**: Intel(R) AI Boost NPU (`PCI\VEN_8086&DEV_AD1D`) accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`). **Never attempt to run NPU workloads inside WSL2 or Docker.**
+   - **Intel NPU**: Intel(R) AI Boost NPU (`PCI\VEN_8086&DEV_AD1D`) accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: 384-D vector embeddings (`all-MiniLM-L6-v2`, NPU primary with CPU fallback) and the ModernBERT NLI semantic verifier ([`src/lucca/senses/verifier.py`](./src/lucca/senses/verifier.py:60), NPU-eligible but **CPU-default** — measured CPU latency is ~57 ms mean / ~70 ms p95 per pair, which exceeds the 50 ms production timeout; see Paper 03 §4.1). **Never attempt to run NPU workloads inside WSL2 or Docker.**
+   - **dGPU audio co-tenant**: Faster-Whisper ASR (`distil-small.en`) runs on the RTX 5080 in CUDA float16 (CPU int8 fallback) — see [`src/lucca/senses/asr.py`](./src/lucca/senses/asr.py:52). VAD is energy-based on CPU ([`src/lucca/senses/vad.py`](./src/lucca/senses/vad.py:10)); Kokoro-82M TTS runs via ONNX Runtime on CPU ([`src/lucca/senses/tts.py`](./src/lucca/senses/tts.py:212)).
    - **System RAM**: 64 GB DDR5-5600 shared pool. WSL2 memory clamped to 4.5 GB (`4608MB`) via `.wslconfig`.
    - **CPU**: Intel Core Ultra 9 275HX (24 cores / 24 threads). Hosts Orchestrator, MicroScheme LISP engine, SQLite WAL + `sqlite-vec` + FTS5, and tree models (LightGBM/XGBoost on CPU, never on NPU).
 
@@ -45,38 +46,45 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 ## 3. Master Documentation Directory
 
 **Canonical Active Documentation:**
-- **System Architecture Specification (v1.35.6-stable)**: [`docs/LUCCA_V135_1_ARCHITECTURE.md`](./docs/LUCCA_V135_1_ARCHITECTURE.md) — Multi-scale compound edge architecture (12B, E4B, E2B), persistent SQLite memory quarantine, Truth-in-Receipt output supervision, and dynamic task router.
-- **Foundation System Architecture (v2.0.0)**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — Process topology, IPC, cognitive tiers, memory, rules, and security for Milestones 1–7.
-- **Decisions Register**: [`docs/DECISIONS.md`](./docs/DECISIONS.md) — All ratified ADRs (`D-AUD-01` through `D-ROUT-02`).
-- **Model Strategy**: [`docs/MODEL_STRATEGY.md`](./docs/MODEL_STRATEGY.md) — Multi-scale Gemma 4 deployment, dynamic task router, VRAM clamp, and KV-cache architecture.
-- **User Guide**: [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./docs/USER_GUIDE_WHAT_LUCCA_DOES.md) — Complete user guide and capabilities overview.
-- **Compound Reasoning Specification**: [`docs/specs/COMPOUND_REASONING_100_SPEC.md`](./docs/specs/COMPOUND_REASONING_100_SPEC.md) — 10-domain 100-probe cognitive benchmark battery (`SPEC-BENCH-100-v1.0`).
+- **Unified System Architecture Specification (v1.45.0 / WO-36)**: [`luccadocs/ARCHITECTURE.md`](./luccadocs/ARCHITECTURE.md) — 4-process topology, 4-tier Gemma 4 substrate (`26B-A4B`, `12B`, `E4B`, `E2B`), three-tier cognitive execution, MicroScheme + Organ A Mereotopology + CEGIS self-repair, cryptographic memory + qualitative Allen temporal retrieval, Two-Cadence Inner Life (`IdlePulse` + `DreamRetrospective`), `CognitiveOutcomeSink`, `ActiveGoalManager`, Constitutional Kernel + Windows 11 WinRT `OcrEngine`, and persistent Docker sandboxing.
+- **Documentation Master Index**: [`luccadocs/README.md`](./luccadocs/README.md) — Complete directory map of active specs, subsystem manuals, and archives.
+- **Decisions Register**: [`luccadocs/DECISIONS.md`](./luccadocs/DECISIONS.md) — All ratified ADRs (`D-AUD-01` through `D-COG-01`).
+- **Model Strategy**: [`luccadocs/MODEL_STRATEGY.md`](./luccadocs/MODEL_STRATEGY.md) — Multi-scale Gemma 4 deployment, dynamic task router, VRAM clamp, and KV-cache architecture.
+- **User Guide**: [`luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md) — Complete user guide and capabilities overview.
+- **Compound Reasoning Specification**: [`luccadocs/specs/COMPOUND_REASONING_100_SPEC.md`](./luccadocs/specs/COMPOUND_REASONING_100_SPEC.md) — 10-domain 100-probe cognitive benchmark battery (`SPEC-BENCH-100-v1.0`).
 - **Experimental Results Ledger**: [`RESULTS.md`](./RESULTS.md) — Full benchmark logs, 3-model factorial ablation matrix, and 98-item robustness table.
-- **Research Papers**: [`docs/research/papers/`](./docs/research/papers/) — 6 peer-review caliber papers, including Paper 6 on small-model compound scaling (`06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`).
-- **Release Audit**: [`docs/audit/findings/V1_RELEASE_AUDIT.md`](./docs/audit/findings/V1_RELEASE_AUDIT.md) — Release audit and verification evidence.
-- **Audio Concurrency Contract**: [`docs/adr/0009_audio_concurrency_contract.md`](./docs/adr/0009_audio_concurrency_contract.md).
+- **Research Papers**: [`luccadocs/research/papers/`](./luccadocs/research/papers/) — 2 submission candidates (Paper 06 scaffolding comparisons, Paper 03 provenance-gated memory) and 4 technical reports (TR-01/02/04/05). Status and pre-submission work list in [`luccadocs/research/README.md`](./luccadocs/research/README.md). Do not describe these as peer-reviewed or "peer-review caliber."
+- **Release Audit**: [`luccadocs/audit/findings/V1_RELEASE_AUDIT.md`](./luccadocs/audit/findings/V1_RELEASE_AUDIT.md) — Release audit and verification evidence.
+- **Audio Concurrency Contract**: [`luccadocs/adr/0009_audio_concurrency_contract.md`](./luccadocs/adr/0009_audio_concurrency_contract.md).
 
 **Historical Archives:**
-- Archived specifications and audits into [`docs/archive/`](./docs/archive/).
+- Archived specifications and audits into [`luccadocs/archive/`](./luccadocs/archive/).
 
 ---
 
 ## 4. Key Settled Facts Every Agent Must Know
-- **Multi-Scale LLM Substrate**: Served via `llama-server.exe` across 3 validated edge tiers:
-  - **Gemma 4 12B Unified** (`gemma-4-12b-heretic-Q6_K.gguf`): 9,972 MiB VRAM (61.2%), TTFT 286.9 ms, 37.18 tok/s. Used for complex symbolic escalation.
+- **Multi-Scale LLM Substrate**: Served via `llama-server.exe` across 4 validated tiers:
+  - **Gemma 4 26B A4B Tier 0** (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`): MoE (4B active params), `ngl=28`, 32K context (`ctx=32768`), `--spec-type ngram-mod`. Canonical brain for `FULL_LOOP` and deliberation-lane reasoning.
+  - **Gemma 4 12B Unified** (`gemma-4-12b-heretic-Q6_K.gguf`): 9,972 MiB VRAM (61.2%), TTFT 286.9 ms, 37.18 tok/s. Companion escalation tier.
   - **Gemma 4 E4B Sovereign Core** (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`): 4,382 MiB VRAM (26.9%), TTFT 86.1 ms, 80.76–103.0 tok/s. Default desktop core.
   - **Gemma 4 E2B Ultra-Edge** (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`): 2,260 MiB VRAM (13.9%), TTFT 73.2 ms, 126.1–169.1 tok/s. Low-power companion.
 - **Dynamic Task Router**:
   - $\text{Router}(M, T)$: Direct R0 for 12B; PAL in Docker (P2 @ 2k) for small-model arithmetic; Thinking Mode (R1 @ 6k) for edge competition math (yielding 88.0% strict on E4B vs 73.0% PAL, $p=0.0026$).
-- **Cognitive & Academic Verification**: Validated under Three-Track Empirical Battery + Multi-Scale Held-Out Matrix:
-  - Track 1 (`SPEC-BENCH-100-v1.0`): **91.0% pass rate**, 100.0% path policy compliance, 100.0% epistemic faithfulness.
-  - Track 2 (Standard Academic Battery): GSM8K PAL **100.0%**, Canonical HumanEval **95.73% pass@1**, Big-Bench Hard **92.40% (924/1,000)**.
-  - Track 3 (Modern Academic Benchmarks): GSM-Symbolic **100.0%**, HumanEval-Plus **91.46% pass@1**, MATH-500 Fresh Held-Out 500 **74.20% strict / 78.80% SymPy CAS** (81.7% Level 4 AIME; manifest record `math500_fresh_heldout_500_v1_3_0`).
-  - Held-Out 100 Multi-Scale Matrix: 12B Direct R0: 89.0% [88.8% on 98-item clean]; E4B Thinking R1: 88.0% [87.8% on 98-item clean]; E2B Thinking R1: 81.0% [80.6% on 98-item clean].
+- **Cognitive & Academic Verification (`RESULTS.md` & `data/benchmarks/MANIFEST.yaml`)**:
+  - Track 1 (`SPEC-BENCH-100-v1.0`, record `spec_bench_100_run3_v1_3`): **91.0% pass rate**, 100.0% path policy compliance, 100.0% epistemic faithfulness.
+  - Track 2 (Standard Academic Battery): GSM8K PAL **95.75%** full 1,319 (`gsm8k_pal_full_1319_v1_3`; **100.0%** 30-item micro-suite `gsm8k_pal_micro30_v1_3`), Canonical HumanEval **94.51% raw / 93.90% assisted** paired (`humaneval_canonical_paired_v1_35_6`; **95.73%** zero-shot academic `humaneval_zeroshot_academic_v1_3`), Big-Bench Hard **92.40% (924/1,000)** (`bbh4_bare_1000_v1_3`).
+  - Track 3 (Modern Academic Benchmarks): GSM-Symbolic **94.0%** stratified 100-template (`gsm_symbolic_stratified_100_v1_35_6`; **100.0%** v1.3 dev `gsm_symbolic_100_v1_3`), HumanEval-Plus **91.46%–92.07% pass@1** (`humaneval_plus_v1_35_6`), MATH-500 Sealed B4 100 **93.0% strict / 94.0% lenient** on 12B R0 (`math500_b4_sealed_12b_v1_35_6`), Fresh Held-Out 500 **85.80% strict / 90.20% lenient** in v1.35 (`math-v1.35-final-fresh-500`; superseded v1.3 run: 78.60% strict post-hoc / 74.20% initial `math500_fresh_heldout_500_v1_3_0`).
+  - Held-Out 100 Multi-Scale Matrix (`math500_heldout100_direct_r0_v1_35_6`): 12B Direct R0: 89.0% [88.8% on 98-item clean]; E4B Thinking R1: 88.0% [87.8% on 98-item clean]; E2B Thinking R1: 81.0% [80.6% on 98-item clean].
 - **Output Supervision & Deontic Grounding**:
   - `TruthInReceiptMatcher` with 21 verified action verbs (`delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`) and epistemic hedge exemption policy.
   - 70-sentence formal battery (8 categories; P6 broadening): 70/70 passing; live 100-probe evaluation: 0/50 control false alarms.
 - **Memory**: SQLite WAL + FTS5 BM25 + `sqlite-vec` in `data/memory.sqlite` with HKDF HMAC-SHA256 read-time tamper verification and persistent SQLite `memory_quarantine` table (`D-MEM-05`). Key persistence via `data/keys/master.key` (`0600`).
-- **Regression Test Suite**: **1,243 passing unit tests** across all subsystems (0 failed, 68 deselected; record `metrics-2026-10-05` in `data/metrics/TEST_METRICS.yaml`).
-- **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`).
+- **Regression Test Suite**: **1,243+ passing unit tests** across all subsystems (0 failed; 100% green across all 24 static architectural gates).
+- **Sandboxing**: Docker CE inside Ubuntu WSL2 with host fallback disabled (`D-AUD-13`). Unshackled CEGIS code executes inside persistent `lucca-file-sandbox` container via Docker RPC transport with automated `/tmp/lucca_runtime` module synchronization.
 - **Process Topology**: Four native host processes + ZeroMQ IPC (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server` per ADR-008).
+- **Sovereign Cognitive Unification (Work Order 36 / v1.46.5)**:
+  - `CognitiveOutcomeSink`: Unifies CEGIS multi-turn synthesis across `PythonCEGISEngine`, `UnshackledCEGISEngine`, and `Orchestrator` with `AffectiveODEMachine` (`EUREKA_DISCOVERY` / `TASK_SUCCESS` / `TOOL_FAILURE`), `ReasoningContext.proof_trace()`, and `EpisodeRecall`.
+  - Semantic `UserModel` v2 & Goal-Biased Recall: Hybrid ModernBERT OpenVINO NLI entailment boosting (>0.60) + contradiction rejection + 384-D cosine fallback + `ActiveGoalManager` wired into `HybridRetriever`, `EpisodeRecall`, and `Orchestrator` (`0009_active_goals_and_learning_events.sql`). Preserves Trap 1 & Trap 2.
+  - Two-Cadence Inner Life: `IdlePulse` (60s NPU/CPU pass wired with `VerifierWorker` NLI consistency and `distill_contradiction_to_proposition()`) + `DreamRetrospective` (wired with `RuleInducer`, `RuleLifecycleManager`, and shadow replay into `QUARANTINE` per `D-REAS-06`) guided by homeostatic `CoherenceDrive` and `CompetenceDrive`.
+  - Constitutional Kernel & Sovereign Sight: Deterministic SHA-256 fingerprint (`constitutional_hash`) bound to `DecisionRecord`, verified epistemic TTS prosody modulation (`CHECKED_FORMALIZATION_AGREED` vs `SPECULATION`), and Windows 11 WinRT `Windows.Media.Ocr.OcrEngine` text extraction (`extract_ocr_from_image`).
+  - Neurosymbolic & Verification Upgrades: SymPy `.coeff()` auto-expansion AST rewrite, AIME combinatorics token ceiling (`max_tokens=1536`), `ContainerWorld` implicit room co-presence (`set_room_occupants()`) and `tell()`, relative date temporal extraction, Organ A topological `GridDiff` + expanded spatial AST mutators, `zebra_constraints.gbnf` deterministic Edge Z3 compiler, `SPIKE-A` post-turn NLI receipt entailment in `coherence.py`, `SPIKE-B` `blind_classifier_only` routing mode in `HeuristicRouter`, and BFCL `<tool_fit_check>` guard via `VerifierWorker`.
