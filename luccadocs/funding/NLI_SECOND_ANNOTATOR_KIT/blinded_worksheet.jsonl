@@ -1,0 +1,100 @@
+{"item_number": 1, "pair_id": "nli-043", "premise": "The meeting is scheduled for Tuesday at 3 PM.", "hypothesis": "There is a meeting on Tuesday.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 2, "pair_id": "nli-042", "premise": "The user's GPU is an NVIDIA GeForce RTX 5080 with 16 GB of VRAM.", "hypothesis": "The user has an NVIDIA GPU.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 3, "pair_id": "nli-092", "premise": "The user paid the invoice on Monday.", "hypothesis": "The invoice amount was large.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 4, "pair_id": "nli-010", "premise": "The file report.pdf was deleted yesterday.", "hypothesis": "The file report.pdf still exists in the folder.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 5, "pair_id": "nli-066", "premise": "The temperature setting is 22 degrees Celsius.", "hypothesis": "The thermostat is set above 20 degrees.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 6, "pair_id": "nli-051", "premise": "The user takes the train to work on weekdays.", "hypothesis": "The user commutes to work.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 7, "pair_id": "nli-002", "premise": "The user's primary code editor is VS Code.", "hypothesis": "The user's primary code editor is Vim.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 8, "pair_id": "nli-071", "premise": "The user prefers email notifications.", "hypothesis": "The user checked email this morning.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 9, "pair_id": "nli-016", "premise": "The server is running on port 8080.", "hypothesis": "The server is running on port 9090.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 10, "pair_id": "nli-079", "premise": "The user's name is Marcus.", "hypothesis": "Marcus is a common name.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 11, "pair_id": "nli-074", "premise": "The backup completed successfully at 02:00.", "hypothesis": "The backup took less than an hour.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 12, "pair_id": "nli-011", "premise": "The user's timezone is UTC+8.", "hypothesis": "The user's timezone is UTC-5.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 13, "pair_id": "nli-056", "premise": "The user speaks French fluently and some German.", "hypothesis": "The user speaks French.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 14, "pair_id": "nli-057", "premise": "The user owns a cat named Whiskers.", "hypothesis": "The user has a pet.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 15, "pair_id": "nli-073", "premise": "The meeting is scheduled for Tuesday at 3 PM.", "hypothesis": "The user will attend the meeting.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 16, "pair_id": "nli-046", "premise": "The user lives in Seattle, Washington.", "hypothesis": "The user lives in Washington State.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 17, "pair_id": "nli-049", "premise": "The user's name is Marcus and he goes by Marc.", "hypothesis": "The user's name is Marcus.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 18, "pair_id": "nli-093", "premise": "The user's laptop is a MacBook Pro.", "hypothesis": "The laptop is under warranty.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 19, "pair_id": "nli-077", "premise": "The script runs on Python 3.12.", "hypothesis": "The script was written last month.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 20, "pair_id": "nli-038", "premise": "The temperature setting is 22 degrees.", "hypothesis": "The thermostat is set to 18 degrees.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 21, "pair_id": "nli-031", "premise": "The user's phone number ends in 4821.", "hypothesis": "The user's phone number ends in 7390.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 22, "pair_id": "nli-022", "premise": "The installed package version is 2.3.1.", "hypothesis": "The installed package version is 1.9.0.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 23, "pair_id": "nli-033", "premise": "The user has two siblings.", "hypothesis": "The user is an only child.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 24, "pair_id": "nli-097", "premise": "The user's timezone is UTC+8.", "hypothesis": "The user wakes up at 7 AM.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 25, "pair_id": "nli-081", "premise": "The user takes the train to work.", "hypothesis": "The user's commute is long.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 26, "pair_id": "nli-050", "premise": "The server is running on port 8080.", "hypothesis": "Port 8080 is in use by the server.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 27, "pair_id": "nli-084", "premise": "The disk has 120 GB of free space.", "hypothesis": "The disk is an SSD.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 28, "pair_id": "nli-027", "premise": "The user speaks French fluently.", "hypothesis": "The user cannot speak French.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 29, "pair_id": "nli-088", "premise": "The task completed in under five minutes.", "hypothesis": "The task was scheduled automatically.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 30, "pair_id": "nli-034", "premise": "The API returns JSON responses.", "hypothesis": "The API only returns XML.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 31, "pair_id": "nli-009", "premise": "The user lives in Seattle.", "hypothesis": "The user lives in Boston.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 32, "pair_id": "nli-048", "premise": "The database contains 1,243 test records.", "hypothesis": "The database has more than 1,200 records.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 33, "pair_id": "nli-060", "premise": "The API returns JSON responses for all endpoints.", "hypothesis": "The API returns structured data.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 34, "pair_id": "nli-064", "premise": "The deployment went to production at 09:00.", "hypothesis": "The deployment reached production.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 35, "pair_id": "nli-075", "premise": "The user is vegetarian.", "hypothesis": "The user likes pasta.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 36, "pair_id": "nli-045", "premise": "The user is vegetarian and avoids all meat.", "hypothesis": "The user does not eat beef.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 37, "pair_id": "nli-099", "premise": "The user disabled automatic updates.", "hypothesis": "The user's system is secure.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 38, "pair_id": "nli-053", "premise": "The user prefers dark mode on all devices.", "hypothesis": "The user prefers dark mode.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 39, "pair_id": "nli-086", "premise": "The user speaks French.", "hypothesis": "The user has visited France.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 40, "pair_id": "nli-013", "premise": "The user disabled automatic updates.", "hypothesis": "Automatic updates are enabled on the user's machine.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 41, "pair_id": "nli-037", "premise": "The user paid the invoice on Monday.", "hypothesis": "The invoice remains unpaid.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 42, "pair_id": "nli-024", "premise": "The disk has 120 GB of free space.", "hypothesis": "The disk has less than 50 GB of free space.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 43, "pair_id": "nli-040", "premise": "The deployment went to production.", "hypothesis": "The deployment was rolled back before reaching production.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 44, "pair_id": "nli-041", "premise": "The user prefers email notifications over push notifications.", "hypothesis": "The user likes email notifications.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 45, "pair_id": "nli-019", "premise": "The user finished reading the report.", "hypothesis": "The user has not started reading the report.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 46, "pair_id": "nli-067", "premise": "The user's timezone is UTC+8, Asia/Shanghai.", "hypothesis": "The user is in a timezone ahead of UTC.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 47, "pair_id": "nli-062", "premise": "The user paid the invoice on Monday, three days early.", "hypothesis": "The invoice has been paid.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 48, "pair_id": "nli-061", "premise": "The user exercises every morning before work.", "hypothesis": "The user exercises regularly.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 49, "pair_id": "nli-008", "premise": "The project deadline is October 30.", "hypothesis": "The project deadline is November 15.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 50, "pair_id": "nli-035", "premise": "The user exercises every morning.", "hypothesis": "The user never exercises in the morning.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 51, "pair_id": "nli-100", "premise": "The file report.pdf was deleted yesterday.", "hypothesis": "The user needed the disk space.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 52, "pair_id": "nli-047", "premise": "The script runs on Python 3.12 or later.", "hypothesis": "The script is compatible with Python 3.13.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 53, "pair_id": "nli-003", "premise": "The user has 64 GB of system RAM.", "hypothesis": "The user's machine has 32 GB of RAM.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 54, "pair_id": "nli-052", "premise": "The user finished reading the 40-page report.", "hypothesis": "The report is 40 pages long.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 55, "pair_id": "nli-017", "premise": "The user takes the train to work.", "hypothesis": "The user drives to work every day.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 56, "pair_id": "nli-039", "premise": "The user's laptop is a MacBook Pro.", "hypothesis": "The user's laptop is a ThinkPad.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 57, "pair_id": "nli-059", "premise": "The user has two siblings, both older.", "hypothesis": "The user has at least one sibling.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 58, "pair_id": "nli-069", "premise": "The user disabled automatic updates last week.", "hypothesis": "The user changed update settings.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 59, "pair_id": "nli-023", "premise": "The user works remotely on Fridays.", "hypothesis": "The user is always in the office on Fridays.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 60, "pair_id": "nli-063", "premise": "The user's laptop is a MacBook Pro with an M3 chip.", "hypothesis": "The user's laptop is made by Apple.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 61, "pair_id": "nli-025", "premise": "The user's birthday is March 12.", "hypothesis": "The user was born in September.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 62, "pair_id": "nli-006", "premise": "The backup completed successfully at 02:00.", "hypothesis": "The backup failed with an error.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 63, "pair_id": "nli-007", "premise": "The user is vegetarian.", "hypothesis": "The user eats chicken regularly.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 64, "pair_id": "nli-068", "premise": "The package version is 2.3.1.", "hypothesis": "The package is at version 2.3.1.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 65, "pair_id": "nli-083", "premise": "The user prefers dark mode.", "hypothesis": "Dark mode saves battery on OLED screens.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 66, "pair_id": "nli-020", "premise": "The battery is fully charged.", "hypothesis": "The battery is at ten percent.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 67, "pair_id": "nli-080", "premise": "The server is running on port 8080.", "hypothesis": "The server was restarted recently.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 68, "pair_id": "nli-044", "premise": "The backup completed successfully at 02:00.", "hypothesis": "The backup finished.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 69, "pair_id": "nli-091", "premise": "The user exercises every morning.", "hypothesis": "The user is in good health.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 70, "pair_id": "nli-021", "premise": "The user prefers dark mode.", "hypothesis": "The user always uses light mode.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 71, "pair_id": "nli-001", "premise": "The user prefers email notifications over push notifications.", "hypothesis": "The user prefers push notifications over email notifications.", "domain": "user_preference", "annotator_label": ""}
+{"item_number": 72, "pair_id": "nli-096", "premise": "The temperature setting is 22 degrees.", "hypothesis": "It is winter outside.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 73, "pair_id": "nli-058", "premise": "The task completed in under five minutes.", "hypothesis": "The task was completed quickly.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 74, "pair_id": "nli-094", "premise": "The deployment went to production.", "hypothesis": "Users noticed the new feature.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 75, "pair_id": "nli-054", "premise": "The disk has 120 GB of free space.", "hypothesis": "The disk has at least 100 GB free.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 76, "pair_id": "nli-090", "premise": "The API returns JSON responses.", "hypothesis": "The API is well documented.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 77, "pair_id": "nli-026", "premise": "The build passed all tests.", "hypothesis": "Three tests failed in the build.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 78, "pair_id": "nli-072", "premise": "The user's GPU is an NVIDIA GeForce RTX 5080.", "hypothesis": "The GPU drivers are up to date.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 79, "pair_id": "nli-085", "premise": "The build passed all tests.", "hypothesis": "The build was fast.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 80, "pair_id": "nli-078", "premise": "The database contains 1,243 test records.", "hypothesis": "The records are all recent.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 81, "pair_id": "nli-065", "premise": "The user works remotely on Fridays.", "hypothesis": "The user does not commute to the office every Friday.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 82, "pair_id": "nli-030", "premise": "The report was sent to Alice.", "hypothesis": "The report was sent to Bob instead of Alice.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 83, "pair_id": "nli-028", "premise": "The container was stopped at noon.", "hypothesis": "The container has been running since this morning.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 84, "pair_id": "nli-089", "premise": "The user has two siblings.", "hypothesis": "The user's siblings live nearby.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 85, "pair_id": "nli-098", "premise": "The package version is 2.3.1.", "hypothesis": "Version 2.3.1 was released in October.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 86, "pair_id": "nli-005", "premise": "The meeting is scheduled for Tuesday at 3 PM.", "hypothesis": "The meeting is scheduled for Wednesday at 3 PM.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 87, "pair_id": "nli-055", "premise": "The build passed all 1,243 tests.", "hypothesis": "No tests failed in the build.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 88, "pair_id": "nli-076", "premise": "The user lives in Seattle.", "hypothesis": "The user enjoys rainy weather.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 89, "pair_id": "nli-012", "premise": "The script runs on Python 3.12.", "hypothesis": "The script requires Python 2.7.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 90, "pair_id": "nli-070", "premise": "The file report.pdf was deleted yesterday.", "hypothesis": "The user deleted report.pdf.", "domain": "tool_result", "annotator_label": ""}
+{"item_number": 91, "pair_id": "nli-087", "premise": "The user owns a cat.", "hypothesis": "The cat is sleeping right now.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 92, "pair_id": "nli-014", "premise": "The database contains 1,243 test records.", "hypothesis": "The database contains fewer than 1,000 test records.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 93, "pair_id": "nli-018", "premise": "The model was trained on English text only.", "hypothesis": "The model supports multilingual training data.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 94, "pair_id": "nli-029", "premise": "The user owns a cat.", "hypothesis": "The user is allergic to cats and has none.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 95, "pair_id": "nli-032", "premise": "The task completed in under five minutes.", "hypothesis": "The task took over two hours to complete.", "domain": "numeric", "annotator_label": ""}
+{"item_number": 96, "pair_id": "nli-036", "premise": "The window is open.", "hypothesis": "The window is closed and locked.", "domain": "state", "annotator_label": ""}
+{"item_number": 97, "pair_id": "nli-095", "premise": "The user works remotely on Fridays.", "hypothesis": "The user's office is 20 minutes away.", "domain": "schedule", "annotator_label": ""}
+{"item_number": 98, "pair_id": "nli-004", "premise": "The user's GPU is an NVIDIA GeForce RTX 5080.", "hypothesis": "The user's GPU is made by AMD.", "domain": "system_fact", "annotator_label": ""}
+{"item_number": 99, "pair_id": "nli-015", "premise": "The user's name is Marcus.", "hypothesis": "The user's name is Daniel.", "domain": "user_fact", "annotator_label": ""}
+{"item_number": 100, "pair_id": "nli-082", "premise": "The user finished reading the report.", "hypothesis": "The user agreed with the report.", "domain": "user_fact", "annotator_label": ""}

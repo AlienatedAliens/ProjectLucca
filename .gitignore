@@ -96,3 +96,7 @@ showcase/
 # Scratch directory
 scratch/
 
+
+# local caches and binary state (added 2026-10-24)
+*.sqlite
+*.pyc
