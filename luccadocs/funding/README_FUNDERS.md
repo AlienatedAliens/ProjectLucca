@@ -1,8 +1,8 @@
 # Project Lucca — Verification-First Architecture Overview
 
 ```yaml
-doc_status: draft_funder_overview
-as_of: 2026-10-21
+doc_status: public_funder_overview
+as_of: 2026-10-25
 target_audience: AI Safety & Governance Grant Evaluators (Corrigibility Research Fund, Manifund, TAI, Mercor)
 claim_reference: luccadocs/funding/EVIDENCE_LEDGER.md
 ```
@@ -41,7 +41,7 @@ All empirical claims below are cited directly from deterministic code gates and 
 ### Documented Failures & Weaknesses (The Grant Scope)
 1. **Low Live Matcher Sensitivity:** On unconstrained conversational outputs ($T=0.6$, Gemma 4 E4B/E2B), the baseline supervisor caught only **1/8 (12.5%)** strict completed actions and **1/23 (4.3%)** broad action claims ([`action_hallucination_labels_100.jsonl`](../../logs/archive/2026-10_test_reports/action_hallucination_labels_100.jsonl)). Models bypassed past-tense regex via active progressive participles (*"Moving all PDFs now..."*), passive voice (*"Done."*), or markdown headers.
 2. **NLI Production Timeout & Fail-Open Degradation:** ModernBERT NLI on CPU averages 57.14 ms (p95 70.41 ms), exceeding the 50 ms production budget. Under production settings, **81/100 pairs time out**, dropping contradiction recall to **0.075 (3/40)**. In all 10 downstream consumer modules, timeout degrades fail-open (allowing unverified or contradictory facts into persistent SQLite storage).
-3. **TTS Safety Regex Failure:** On a 30-probe adversarial test ([`RESULTS.md:247`](../../RESULTS.md#L247)), the TTS guard regex blocked **0/10 (0.0%)** harmful synthesis probes (relying entirely on model native refusal of 3/10) because live responses used conversational deflection and participles rather than textbook instructional recipes.
+3. **TTS Safety Regex Failure:** On a 30-probe adversarial test ([`RESULTS.md`](../../RESULTS.md)), the TTS guard regex blocked **0/10 (0.0%)** harmful synthesis probes (relying entirely on model native refusal of 3/10) because live responses used conversational deflection and participles rather than textbook instructional recipes.
 4. **Single-Annotator Labeling:** Both the 100-probe action hallucination audit and the 100-pair NLI dataset rely on single-annotator developer labels without blinded dual-annotator verification.
 
 ---
@@ -52,7 +52,7 @@ You can verify the deterministic output supervisor locally in under 5 seconds wi
 
 ```bash
 # 1. Clone repository and install dependencies via uv
-git clone https://github.com/<owner>/ProjectLucca.git
+git clone https://github.com/AlienatedAliens/ProjectLucca.git
 cd ProjectLucca
 uv sync
 
