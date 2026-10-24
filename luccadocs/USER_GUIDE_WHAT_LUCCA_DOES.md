@@ -10,11 +10,11 @@
 
 Lucca is an uncensored voice companion and research engineer that runs entirely on your laptop. You hold a key, talk, release; she listens, thinks, speaks. Her personality and conversation come from a 4-tier local Gemma 4 model family (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf` Tier 0 MoE at `ctx=32768` / `ngl=28`, `gemma-4-12b-heretic-Q6_K.gguf` Tier 1, `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` Tier 2, or `Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf` Tier 3, `models/MANIFEST.json`) hosted locally on your GPU. Around that model sits a set of deterministic guards and reflexes that decide *when the model is allowed to act*, *what tools to dispatch*, and *what it is allowed to remember*. She can read and write files in one sandboxed folder, execute symbolic calculations via persistent containerized SymPy, track physical objects through space via ContainerWorld, solve combinatorial constraints via Z3 (`zebra_constraints.gbnf`), search and fetch the web with exfiltration barriers, extract screen text via Windows 11 WinRT `OcrEngine`, and repair her own code in multi-turn CEGIS loops (`PythonCEGISEngine` and `UnshackledCEGISEngine` wired to `CognitiveOutcomeSink`). Her conversational tone is completely uncensored, with defense focused strictly on protecting your PC from destructive commands and prompt injections.
 
-> **Under the hood.** Four native Windows processes ([`docs/ARCHITECTURE.md`](./ARCHITECTURE.md)) communicate over ZeroMQ: `lucca-core` (orchestrator, MicroScheme rule engine, Z3, SQLite), `lucca-audio` (PTT, Silero VAD, faster-whisper ASR, Kokoro-82M TTS), `lucca-ui` (PyQt6 sprite/tray/settings), and native `llama-server.exe` running on dedicated RTX 5080 compute with display rendering offloaded to Intel iGPU. Tools execute in Docker CE inside WSL2 (`lucca-file-sandbox`) connected via a persistent stdio bridge (`PersistentDockerWorker`, <2ms latency, with `/tmp/lucca_runtime` module synchronization). Spec of record: [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md).
+> **Under the hood.** Four native Windows processes ([`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md)) communicate over ZeroMQ: `lucca-core` (orchestrator, MicroScheme rule engine, Z3, SQLite), `lucca-audio` (PTT, Silero VAD, faster-whisper ASR, Kokoro-82M TTS), `lucca-ui` (PyQt6 sprite/tray/settings), and native `llama-server.exe` running on dedicated RTX 5080 compute with display rendering offloaded to Intel iGPU. Tools execute in Docker CE inside WSL2 (`lucca-file-sandbox`) connected via a persistent stdio bridge (`PersistentDockerWorker`, <2ms latency, with `/tmp/lucca_runtime` module synchronization). Spec of record: [`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ### 0.1 v1.0 through v1.45.0 (WO-36) Status
 
-As of v1.45.0 ([`docs/ARCHITECTURE.md`](./ARCHITECTURE.md)), the complete sovereign compound cognitive pipeline is fully wired and verified:
+As of v1.45.0 ([`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md)), the complete sovereign compound cognitive pipeline is fully wired and verified:
 - **Sub-Second Real-Time Voice Turnaround:** Complete conversational turn latency averages **783.6 ms** (992 $\mu\text{s}$ heuristic routing, 22 ms persistent container execution, <1 ms SQLite-vec retrieval, and 776 ms Kokoro 24kHz synthesis at 0.201 RTF).
 - **Dynamic Neurosymbolic Routing:** Instant dispatch for competition math (`sympy_sandbox`), physical relocation tracking (`container_world`), and logic puzzles (`z3_smt`).
 - **CEGIS Multi-Turn Traceback Self-Repair:** Autonomous container exception feedback delivers a $2\times$ empirical lift on AIME 2024 competition math (20% $\to$ 40%) and rescues failing code on CRUXEval-Input with **strictly zero regressions** across all 3 model tiers.
@@ -32,7 +32,7 @@ As of v1.45.0 ([`docs/ARCHITECTURE.md`](./ARCHITECTURE.md)), the complete sovere
    # or, from source:
    .venv\Scripts\python.exe -m lucca.admin env-check
    ```
-   Ten checks (`src/lucca/core/env_check.py`): system RAM budget (>=3.5 GB free on 64 GB physical DDR5-5600 host), dGPU VRAM budget (≤12.8 GB VRAM per `docs/MODEL_STRATEGY.md`), Intel NPU via OpenVINO, `sqlite-vec`, `.wslconfig` clamp, Docker CE in WSL2, `LUCCA_HOME` layout, model pins & SHA-256 manifests, audio ring buffer health (zero underruns), and WSL subsystem responsiveness. All green = go.
+   Ten checks (`src/lucca/core/env_check.py`): system RAM budget (>=3.5 GB free on 64 GB physical DDR5-5600 host), dGPU VRAM budget (≤12.8 GB VRAM per `luccadocs/MODEL_STRATEGY.md`), Intel NPU via OpenVINO, `sqlite-vec`, `.wslconfig` clamp, Docker CE in WSL2, `LUCCA_HOME` layout, model pins & SHA-256 manifests, audio ring buffer health (zero underruns), and WSL subsystem responsiveness. All green = go.
 
 ### 1.2 Launch
 ```powershell
@@ -220,7 +220,7 @@ Work Order 28 eliminated legacy ad-hoc regular expressions in code extraction an
 |---|---|---|---|
 | **Added independently** | **True.** A capability is a directory (`meta_info.json`, `plan.scm`, golden traces, backup/recover docs). `lucca-admin skills register <dir>` runs static validation, Z3, and the golden traces, and refuses on any failure. Native tools are one `ToolSchema` + one dispatcher branch, capped at 24 tools (`src/lucca/core/capabilities.py:MAX_REGISTRY_TOOLS`) and partitioned into 6 categories with deterministic shortlisting (≤12 tools per turn). | same | same |
 | **Tested independently** | **True.** Each package carries its own traces; the frozen regression harness re-runs prior behaviour; the 30-ACTIVE rule cap in `src/lucca/reasoning/lifecycle.py` forces retirement decisions. | **Stronger:** every candidate is *replayed* against your real past turns before it may shadow live. | — |
-| **Improved independently** | **Mechanically true, empirically unproven.** Induction from your history (N≥3 recurrences per `src/lucca/reasoning/induction.py:MIN_FREQUENCY_THRESHOLD`) → QUARANTINE → shadow evaluation (5 distinct clusters per `src/lucca/reasoning/lifecycle.py` `len(rule.success_clusters) >= 5`, 0 errors) → *you* promote via CLI. As of 2026-09-26 the production log holds 21 genuine usage decisions (provenance-verified), the N≥3 floor is crossed, and the **first live induction ran**: it produced **0 clusters** — the exact-match clustering treats near-duplicate phrasings of the same request as distinct, so fuzzy clustering is the identified next fix (`docs/V2_BACKLOG.md`). | Replay-before-shadow + contrastive logging (what the rule *would* have done vs. what the model did) + Wilson/McNemar statistics (`src/lucca/reasoning/stats.py`). Still unproven until you generate the turns. | L3: induction viewer with plain-English diffs and one-click promote; **acceptance = one rule Lucca induced herself completes the full lifecycle.** T4: circuit breaker auto-demotes a rule that fails >10% over 10 turns (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
+| **Improved independently** | **Mechanically true, empirically unproven.** Induction from your history (N≥3 recurrences per `src/lucca/reasoning/induction.py:MIN_FREQUENCY_THRESHOLD`) → QUARANTINE → shadow evaluation (5 distinct clusters per `src/lucca/reasoning/lifecycle.py` `len(rule.success_clusters) >= 5`, 0 errors) → *you* promote via CLI. As of 2026-09-26 the production log holds 21 genuine usage decisions (provenance-verified), the N≥3 floor is crossed, and the **first live induction ran**: it produced **0 clusters** — the exact-match clustering treats near-duplicate phrasings of the same request as distinct, so fuzzy clustering is the identified next fix (`luccadocs/V2_BACKLOG.md`). | Replay-before-shadow + contrastive logging (what the rule *would* have done vs. what the model did) + Wilson/McNemar statistics (`src/lucca/reasoning/stats.py`). Still unproven until you generate the turns. | L3: induction viewer with plain-English diffs and one-click promote; **acceptance = one rule Lucca induced herself completes the full lifecycle.** T4: circuit breaker auto-demotes a rule that fails >10% over 10 turns (`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`). |
 
 **Test it yourself (Claim A):**
 1. Copy `config/skills/self-health-v1/` to `config/skills/my-test-v1/`, change the id everywhere and the trigger to `(transcript-has? "banana check")`.
@@ -238,14 +238,14 @@ Work Order 28 eliminated legacy ad-hoc regular expressions in code extraction an
 | Reflex (regex, <150 ms per `src/lucca/router/heuristic.py:EMERGENCY_REFLEX_PATTERN`, `tests/test_router.py`) | pattern match on emergency words | short-circuits everything |
 | Rule engine (MicroScheme, µs) | deterministic, formally verified condition→plan; **bounded forward-chaining**: rules can `(assert ...)` signed facts and fire on each other's conclusions in-turn (D-REAS-09, `tests/test_concert_layer.py`) | → model via `yield-to-core`; ← model via `invoke_skill` |
 | Epistemic cascade (8 substrates per `src/lucca/core/cascade.py:EpistemicSubstrate`) | evidence fusion (Belnap FOUR), tiered trust, honest abstention | → model as grounded context + directives |
-| Language model (Gemma 4 12B per `models/MANIFEST.json`, `docs/MODEL_STRATEGY.md`) | open-ended language, planning, tool selection, **the face** | → tools; ← rule yields, cascade context, memory hits, affect stance |
+| Language model (Gemma 4 12B per `models/MANIFEST.json`, `luccadocs/MODEL_STRATEGY.md`) | open-ended language, planning, tool selection, **the face** | → tools; ← rule yields, cascade context, memory hits, affect stance |
 | Sandbox & policy (Docker, Z3, BDI, taint) | deontic: what may happen at all | ← model/rule tool calls; → results back to model for narration |
 | Output supervisor | streaming clause classifier | ← model's speech, before it plays |
 | Affect ODE | continuous state → discrete stance | → prompt suffix, TTS prosody |
 | Memory (provenance-gated) | signed, retrievable facts | ← your speech only; → cascade & `memory_search` |
 
-**How true is "bidirectional"?** True in 4 concrete directions you can observe (`docs/ARCHITECTURE.md`): rule→model (`yield-to-core`), model→rule (`invoke_skill`), model→tool→model (`ACT_THEN_NARRATE` narration of results), cascade→model (grounding). **Where the metaphor overstates today:**
-- A rule **cannot read a tool's result** inside the same plan (rules are pure `State → Plan`); it sees `last_tool`/`last_tool_ok` on the *next* turn. L4 adds orchestrator-side intermediate validation, not rule-side result reading — deliberately (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`).
+**How true is "bidirectional"?** True in 4 concrete directions you can observe (`luccadocs/ARCHITECTURE.md`): rule→model (`yield-to-core`), model→rule (`invoke_skill`), model→tool→model (`ACT_THEN_NARRATE` narration of results), cascade→model (grounding). **Where the metaphor overstates today:**
+- A rule **cannot read a tool's result** inside the same plan (rules are pure `State → Plan`); it sees `last_tool`/`last_tool_ok` on the *next* turn. L4 adds orchestrator-side intermediate validation, not rule-side result reading — deliberately (`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`).
 - "Each with its own kind of intelligence": the rule layer is deterministic pattern-matching until induction produces rules *from you*. The "learned" intelligence of that layer is, today, 0 rules deep. That is the honest state; L2/L3 exist to change it.
 - The **concert layer** (D-REAS-09) and **reasoning rungs** (WO-20–WO-23) are wired: rules assert signed facts, chain deductions with signed proof traces (`MAX_CHAIN_DEPTH = 8`), defeasible beliefs carry Toulmin conditions corroborated via Walton argumentation schemes (authority, sign, analogy, consequence, precedent), practical planning decomposes multi-action sequences, and diagnostic self-reasoning evaluates internal telemetry against real fault models.
 - Most tool-call skills yield on voice (see §2.5), so on a raw voice turn the layer often *annotates* rather than *acts*.
@@ -284,17 +284,17 @@ Work Order 28 eliminated legacy ad-hoc regular expressions in code extraction an
 | 2-Tier Neurosymbolic Execution Feedback Loop | **Shipped (WO-28 Phase 3)** | Sub-millisecond Turn-1 compiler preflight + 2-turn execution feedback recovering 85.11% of baseline runtime crashes (40/47 dev failure traces recovered). |
 | Visual Pipeline Debugger & Live Flow Horizon | **Shipped (WO-28 Spec 32)** | Real-time web schematic on `http://localhost:8765` (`ui/pipeline_debugger/index.html`) tracking all 9 cascade tanks for both benchmark matrices and live companion conversation turns. |
 | 3-Stage Mathematical CAS Equivalence Grader | **Shipped (WO-28 Phase 4)** | LaTeX normalization $\to$ 5-point random numeric check $\to$ 2.0s worker thread SymPy CAS in `scripts/run_modern_2024_benchmarks.py` (`tests/test_cas_grading.py`). |
-| Learning a habit from you and proposing a shortcut | Shipped (Jaccard phrasing clustering, threshold 0.6, `src/lucca/reasoning/induction.py`); learned-skill count NOT YET MEASURED | L2 (replay/statistics) → L3 (viewer + operator approval). Needs real usage turns since 2026-09-26 to produce an IN-D count (`docs/V2_BACKLOG.md`; personhood probe battery IN-D). |
+| Learning a habit from you and proposing a shortcut | Shipped (Jaccard phrasing clustering, threshold 0.6, `src/lucca/reasoning/induction.py`); learned-skill count NOT YET MEASURED | L2 (replay/statistics) → L3 (viewer + operator approval). Needs real usage turns since 2026-09-26 to produce an IN-D count (`luccadocs/V2_BACKLOG.md`; personhood probe battery IN-D). |
 | Sovereign Cognitive Unification (`CognitiveOutcomeSink`, `ActiveGoalManager`, `IdlePulse` + `DreamRetrospective`, Constitutional Kernel, WinRT `OcrEngine`) | **Shipped (WO-36, D-COG-01, v1.45.0)** | Live in `src/lucca/core/cognitive_sink.py`, `src/lucca/core/active_goals.py`, `src/lucca/memory/reflection.py`, `src/lucca/core/constitutional.py`, and `src/lucca/sandbox/screenshot_tool.py`. |
-| Storing facts *she* infers about you without quotes | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`docs/V2_BACKLOG.md`). |
-| Continuous open-mic listening, multi-user voiceprint separation | Deferred to v2 | Requires continuous NPU VAD and speaker diarization (`docs/V2_BACKLOG.md` §1.7). |
-| Secondary offline reflect brain (Bonsai Slot-2 C1b) | Deferred | Post-v1.0 ablation gate (`docs/V2_BACKLOG.md` §1.5). |
+| Storing facts *she* infers about you without quotes | Disabled (fail-closed) | After an ADR on an unprompted `USER_DERIVED` extraction path (`luccadocs/V2_BACKLOG.md`). |
+| Continuous open-mic listening, multi-user voiceprint separation | Deferred to v2 | Requires continuous NPU VAD and speaker diarization (`luccadocs/V2_BACKLOG.md` §1.7). |
+| Secondary offline reflect brain (Bonsai Slot-2 C1b) | Deferred | Post-v1.0 ablation gate (`luccadocs/V2_BACKLOG.md` §1.5). |
 
 ---
 
 ## 5. How to begin — a protocol that is also the evidence the roadmap needs
 
-Every acceptance test from L2 onward is defined on **real turns**. The fastest way to "finish" is to use her. Recommended onboarding protocol (`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`):
+Every acceptance test from L2 onward is defined on **real turns**. The fastest way to "finish" is to use her. Recommended onboarding protocol (`luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`):
 
 - **Session 1 — orientation.** Run §3 tests 1–12 once. Note anything that surprised you (that is a finding).
 - **Session 2 — your real work.** Ask her things you actually want: explain code, summarise a file you drop in `workspace`, convert units, search something, take notes. Repeat the *same kinds* of requests you would naturally repeat — recurrence is what induction looks for. Log what she gets wrong in casual use, not just in the adversarial session.
@@ -310,12 +310,12 @@ After ~50 turns (`tests/test_l2_replay_and_contrastive.py`) the L2 replay gate b
 - **Visual Pipeline Debugger:** Open `http://localhost:8765` in any browser to inspect the live 9-tank hydraulic cascade in real-time (`ui/pipeline_debugger/index.html`). Every turn lights up the dataflow schematic, showing exact durations, inputs, outputs, and self-correction diffs if a sandbox error occurred.
 - Every refusal is logged with a reason code (`policy_violation`, `provenance_violation`, `confirmation_required`, `skill_not_in_manifest`, `schema_not_registered`, `invalid_arguments`, …). The code tells you which layer said no.
 - `python -m lucca.admin rules list` / `skills list` show exactly which rules are ACTIVE and firing.
-- Findings go in [`docs/audit/findings/`](./audit/findings/) using the template; that is how the last three gates caught real defects.
+- Findings go in [`luccadocs/audit/findings/`](./audit/findings/) using the template; that is how the last three gates caught real defects.
 
 ### 6.1 Deep-Dive Architecture & Subsystem Reference Manuals
 For exhaustive architectural specs, dataflow diagrams, API contracts, and formal research foundations:
-- **Master Architecture Specification:** [`docs/ARCHITECTURE.md`](./ARCHITECTURE.md) (includes Section 10 End-to-End System Diagrams).
-- **Subsystem Reference Manuals (`docs/subsystems/`):**
+- **Master Architecture Specification:** [`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md) (includes Section 10 End-to-End System Diagrams).
+- **Subsystem Reference Manuals (`luccadocs/subsystems/`):**
   - [01 Core Orchestration & Cascade](./subsystems/01_CORE_ORCHESTRATION_AND_CASCADE.md)
   - [02 Neural Brain & Streaming](./subsystems/02_NEURAL_BRAIN_AND_STREAMING.md)
   - [03 Symbolic Reasoning & Verification](./subsystems/03_SYMBOLIC_REASONING_AND_VERIFICATION.md)
@@ -324,7 +324,7 @@ For exhaustive architectural specs, dataflow diagrams, API contracts, and formal
   - [06 Voice Senses & Audio Pipeline](./subsystems/06_VOICE_SENSES_AND_AUDIO_PIPELINE.md)
   - [07 Routing & Conformal Calibration](./subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md)
   - [08 Desktop UI & Pipeline Debugger](./subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md)
-- **Frontier Research & Systems Papers (`docs/research/papers/`):**
+- **Frontier Research & Systems Papers (`luccadocs/research/papers/`):**
   - [Paper 1: Compound Neurosymbolic AI vs. Monolithic LLMs](./research/papers/01_COMPOUND_NEUROSYMBOLIC_AI_VS_MONOLITHIC_LLMS.md) (JAIR / NeurIPS 2026)
   - [Paper 2: Sub-50ms Barge-In and Zero-Copy Audio](./research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md) (IEEE ICASSP / MMSys 2026)
   - [Paper 3: Paraconsistent Bilattices and Cryptographic Envelopes](./research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) (AIJ / KR 2026)

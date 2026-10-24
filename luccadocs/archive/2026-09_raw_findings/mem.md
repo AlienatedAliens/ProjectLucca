@@ -1,7 +1,7 @@
 # Findings — MEM (`src/lucca/memory/**` including migrations)
 
 **Subtask:** S2c · **Method:** static line-by-line + S1 dynamic evidence · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md`, delta-characterised in [`../03b_BASELINE_DELTA.md`](../03b_BASELINE_DELTA.md) (memory modules: **unchanged since S0**) · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `docs/audit/evidence/`. Core/brain findings cross-referenced by ID.
+**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `luccadocs/audit/evidence/`. Core/brain findings cross-referenced by ID.
 
 **Severity totals: S0 = 0 · S1 = 1 · S2 = 8 · S3 = 8 · S4 = 2 · total = 19.**
 
@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` (rows 32–41; T1). LOC = non-blank lines, S0 metric (verified unchanged by `03b_BASELINE_DELTA.md`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` (rows 32–41; T1). LOC = non-blank lines, S0 metric (verified unchanged by `03b_BASELINE_DELTA.md`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % | Tests exercising it |
 |---|---:|---|---|---|---|---:|---|
@@ -300,7 +300,7 @@ The ASR confidence control (Spec 12 §4 residual risk: "Whisper mis-hearing beco
 | **Title** | `KNOWN_DEV_KEYS` is dead: the TM-13 known-dev-key control is unimplemented |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/memory/signers.py:16-23`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:33` |
+| **Location** | `src/lucca/memory/signers.py:16-23`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:33` |
 | **Status** | OPEN |
 
 **Evidence**

@@ -105,7 +105,7 @@ Candidate Execution Traces (MicroScheme ASTs)
 ## 6. Execution Disposition & Verification Receipts (2026-10-09)
 
 - **Status:** **Shipped & Verified.**
-- **Ratification:** `D-REAS-10` ratified in `docs/DECISIONS.md`.
+- **Ratification:** `D-REAS-10` ratified in `luccadocs/DECISIONS.md`.
 - **Shipped Modules:**
   1. Module 4: `config/grammars/scheme_sketch.gbnf`
   2. Module 7: `src/lucca/reasoning/cost.py`

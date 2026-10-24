@@ -4,7 +4,7 @@
 **Version:** 1.1.2 (supersedes 1.1.1; adopts the reviewer's frozen-prefix + category-suffix design, retires `format_skill_tools`)
 **Date:** 2026-09-21
 **Author:** Zoo (Fable 5.1)
-**Evidence base:** `docs/research/studio_roadmap_r2/` (T0 citation audit, Q1–Q7 tracks, SYNTHESIS.md); 7 verified preprints read in full; code evidence from `src/lucca/core/schemas.py`, `src/lucca/reasoning/scheme/prims.py`, `src/lucca/core/orchestrator.py`, `src/lucca/brain/prompt_builder.py`
+**Evidence base:** `luccadocs/research/studio_roadmap_r2/` (T0 citation audit, Q1–Q7 tracks, SYNTHESIS.md); 7 verified preprints read in full; code evidence from `src/lucca/core/schemas.py`, `src/lucca/reasoning/scheme/prims.py`, `src/lucca/core/orchestrator.py`, `src/lucca/brain/prompt_builder.py`
 **Depends on:** D-BRAIN-05 v2 (Gemma-4 primary, ratified), config-driven brain selection, first authored rule in QUARANTINE (`calc-open-with-expr-v1`, shadow telemetry live)
 
 ---

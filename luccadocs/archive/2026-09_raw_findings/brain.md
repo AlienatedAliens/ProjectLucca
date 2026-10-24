@@ -1,7 +1,7 @@
 # Findings — BRAIN (`src/lucca/brain/**`, `config/persona.toml`, `config/intents.toml`)
 
 **Subtask:** S2b · **Method:** static line-by-line + S1 dynamic evidence · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md`, **with a post-S1 mutation of all five brain modules accepted by the audit owner and recorded as F-BRAIN-008** · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; nothing outside `docs/audit/` touched; every finding cites `file:line` in the tree as it exists at S2b write time, or an artefact under `docs/audit/evidence/`. Archived specs are cited as *claims*; code truth wins. Core findings are cross-referenced by ID, not restated.
+**Rules honoured:** findings-only; nothing outside `luccadocs/audit/` touched; every finding cites `file:line` in the tree as it exists at S2b write time, or an artefact under `luccadocs/audit/evidence/`. Archived specs are cited as *claims*; code truth wins. Core findings are cross-referenced by ID, not restated.
 
 **Severity totals: S0 = 1 · S1 = 6 · S2 = 24 · S3 = 15 · S4 = 2 · total = 48.**
 
@@ -13,7 +13,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` (T1, `-m "not hw and not soak"`, 02_EVIDENCE_INDEX row 25). **Caveat:** the coverage run predates the tree mutation; percentages and miss-ranges describe the pre-mutation files and are reproduced for orientation only.
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` (T1, `-m "not hw and not soak"`, 02_EVIDENCE_INDEX row 25). **Caveat:** the coverage run predates the tree mutation; percentages and miss-ranges describe the pre-mutation files and are reproduced for orientation only.
 
 | File | LOC (now) | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % (pre-mutation) | Tests exercising it |
 |---|---:|---|---|---|---|---:|---|
@@ -253,7 +253,7 @@ Input `"Wait... really? Yes!"` (20 chars), first chunk: `.` at index 4 completes
 
 | Source | Exe path | `--flash-attn` | `--log-format json` | `--mmproj` |
 |---|---|---|---|---|
-| ADR-001 canonical (`docs/archive/…/08_adr/ADR-001_inference_engine.md:28-41`) | `$LUCCA_HOME\…\llama-server.exe` (path not pinned) | bare flag | **present** | present, 2nd arg |
+| ADR-001 canonical (`luccadocs/archive/…/08_adr/ADR-001_inference_engine.md:28-41`) | `$LUCCA_HOME\…\llama-server.exe` (path not pinned) | bare flag | **present** | present, 2nd arg |
 | SKILL.md §4 (`.agents/skills/lucca-pipeline/SKILL.md`) | `app\bin\llama-server.exe` | bare flag | absent | present, 2nd arg |
 | Code now (`server_ctl.py:252-285`) | `app\llama-server\llama-server.exe` | `on` (explicit value) | **absent** | appended **last**, only if `mode == "audio"` and file exists |
 | Code at S1 (artefact `S1_15a_launch_cmd_from_code.txt`, row 27) | `app\llama-server\…` | `on` | **present** | appended last |
@@ -401,7 +401,7 @@ Charter §5 invariant 5: "zero `Any` in public interfaces" — any violation is 
 | **Title** | The deployed "Ultravox" backbone is a stock Llama-3.1-8B-Instruct downloaded from a different repo and renamed; ADR-001's S10 verification was never performed |
 | **Severity** | S1 — High |
 | **Category** | CORRECTNESS |
-| **Location** | `scripts/download_llm_models.py:31-47`; `docs/audit/evidence/S1_07c_models_manifest.txt`; `docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:65` |
+| **Location** | `scripts/download_llm_models.py:31-47`; `luccadocs/audit/evidence/S1_07c_models_manifest.txt`; `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:65` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -422,7 +422,7 @@ if not backbone_target.exists():
     if downloaded_file.exists() and downloaded_file != backbone_target:
         downloaded_file.rename(backbone_target)
 ```
-Artefact: `docs/audit/evidence/S1_07c_models_manifest.txt` (02_EVIDENCE_INDEX row 13) — on-disk file `ultravox-v0_5-llama-3_1-8b-Q6_K.gguf`, 6 596 011 424 B, sha256 `33981adf…a587`, no manifest to compare against.
+Artefact: `luccadocs/audit/evidence/S1_07c_models_manifest.txt` (02_EVIDENCE_INDEX row 13) — on-disk file `ultravox-v0_5-llama-3_1-8b-Q6_K.gguf`, 6 596 011 424 B, sha256 `33981adf…a587`, no manifest to compare against.
 
 **What is wrong / assumed / missing**
 
@@ -442,7 +442,7 @@ The audio-native mode (ADR-001 Option B, the product default `llm.mode = "audio"
 1. In `scripts/download_llm_models.py`: replace the backbone block (`:31-47`) with a download of `repo_id="ggml-org/ultravox-v0_5-llama-3_1-8b-GGUF"`, `filename="ultravox-v0_5-llama-3_1-8b-Q6_K.gguf"`, no rename. Before: bartowski file renamed to the Ultravox name. After: the ggml-org Ultravox file under its own name.
 2. In the same file, after each `hf_hub_download`, compute sha256 and compare against a new `C:\ProjectLucca\models\MANIFEST.json` entry (see F-BRAIN-003 step 1); exit non-zero on mismatch. Before: no verification. After: fail-closed verification.
 3. Re-run the ADR-001 S10 spike as specified (cascade mode, same backbone file, latency delta recorded, ≥ 18/20 text tool-call validity) against the ggml-org backbone and record results in `logs\phase0_llm.json`.
-4. If the project deliberately keeps the stock backbone (ADR-001 :65 permits it *after* S10), record the decision in `docs/13_decisions_log.md` with the S10 numbers, and rename the on-disk file to its true identity (`Meta-Llama-3.1-8B-Instruct-Q6_K.gguf`) so config, logs, and audits stop claiming "Ultravox".
+4. If the project deliberately keeps the stock backbone (ADR-001 :65 permits it *after* S10), record the decision in `luccadocs/13_decisions_log.md` with the S10 numbers, and rename the on-disk file to its true identity (`Meta-Llama-3.1-8B-Instruct-Q6_K.gguf`) so config, logs, and audits stop claiming "Ultravox".
 
 **Verification test**
 
@@ -464,7 +464,7 @@ The audio-native mode (ADR-001 Option B, the product default `llm.mode = "audio"
 | **Title** | No sha256 verification of model weights at download, launch, or boot; the threat model's only supply-chain mitigation is unimplemented |
 | **Severity** | S1 — High |
 | **Category** | SECURITY |
-| **Location** | `scripts/download_llm_models.py:16-47`; `src/lucca/brain/server_ctl.py:309-327`; `docs/audit/evidence/S1_07c_models_manifest.txt`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:3,72` |
+| **Location** | `scripts/download_llm_models.py:16-47`; `src/lucca/brain/server_ctl.py:309-327`; `luccadocs/audit/evidence/S1_07c_models_manifest.txt`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:3,72` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -483,7 +483,7 @@ else:
     if not model_gguf.exists():
         raise FileNotFoundError(f"Model GGUF file not found at: {model_gguf}")
 ```
-(existence is the only check). Artefact: `docs/audit/evidence/S1_07c_models_manifest.txt` (row 13) — `MANIFEST.json` **absent**; sha256 of the four model files recorded with "no expected values to compare".
+(existence is the only check). Artefact: `luccadocs/audit/evidence/S1_07c_models_manifest.txt` (row 13) — `MANIFEST.json` **absent**; sha256 of the four model files recorded with "no expected values to compare".
 
 **What is wrong / assumed / missing**
 
@@ -524,7 +524,7 @@ Every turn of the shipped product executes unverified 6.6 GB weights. The threat
 | **Title** | The system prompt and `query_capabilities` describe machinery that does not exist; measured wrong-tool selection in T3 |
 | **Severity** | S1 — High |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/brain/prompt_builder.py:47-91`; `src/lucca/sandbox/service.py:144-215`; `docs/audit/evidence/S1_30_T3_hw.txt` |
+| **Location** | `src/lucca/brain/prompt_builder.py:47-91`; `src/lucca/sandbox/service.py:144-215`; `luccadocs/audit/evidence/S1_30_T3_hw.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -542,7 +542,7 @@ Every turn of the shipped product executes unverified 6.6 GB weights. The threat
     "You can answer directly with pride, technical precision, and inventor excitement, "
     "or call query_capabilities to check live status!"
 ```
-Artefact: `docs/audit/evidence/S1_30_T3_hw.txt` (row 56) — `test_live_phase1_tool_call_turn`: `assert tool_name == "launch_app"` → got `'query_capabilities'`, executed `[('query_capabilities', {'category': 'all'})]`.
+Artefact: `luccadocs/audit/evidence/S1_30_T3_hw.txt` (row 56) — `test_live_phase1_tool_call_turn`: `assert tool_name == "launch_app"` → got `'query_capabilities'`, executed `[('query_capabilities', {'category': 'all'})]`.
 
 **What is wrong / assumed / missing**
 
@@ -704,7 +704,7 @@ Barge-in is the product's core interaction (Spec 10: key-down → silence ≤ 30
 | **Title** | The Spike-02 suite records unmeasured constants and failing checks as PASS in the Phase-0 sign-off artefact |
 | **Severity** | S1 — High |
 | **Category** | TESTING |
-| **Location** | `scripts/run_spike02_suite.py:117-124`; `scripts/run_spike02_suite.py:126-138`; `scripts/run_spike02_suite.py:319-356`; `scripts/run_spike02_suite.py:358-393`; `docs/audit/evidence/S1_36_spike02.txt` |
+| **Location** | `scripts/run_spike02_suite.py:117-124`; `scripts/run_spike02_suite.py:126-138`; `scripts/run_spike02_suite.py:319-356`; `scripts/run_spike02_suite.py:358-393`; `luccadocs/audit/evidence/S1_36_spike02.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -726,7 +726,7 @@ results["S1"] = {
         abort_latencies.append(abort_dur_ms)
         print(f"  Abort {i + 1:2d}: status={rel_resp.status_code}, duration={abort_dur_ms:.2f} ms")
 ```
-(status never asserted). Artefact: `docs/audit/evidence/S1_36_spike02.txt` (row 67) — S8 abort HTTP **501 ×10** yet section PASS; S1 "Cold startup: ~42.5s [PASS]" against an already-running server; the same `42.5` appears in the pre-audit report from 2026-09-17 (`S1_31_reports/ProjectLucca_logs/phase0_llm.json`).
+(status never asserted). Artefact: `luccadocs/audit/evidence/S1_36_spike02.txt` (row 67) — S8 abort HTTP **501 ×10** yet section PASS; S1 "Cold startup: ~42.5s [PASS]" against an already-running server; the same `42.5` appears in the pre-audit report from 2026-09-17 (`S1_31_reports/ProjectLucca_logs/phase0_llm.json`).
 
 **What is wrong / assumed / missing**
 
@@ -773,12 +773,12 @@ Charter §5 invariant 3 (phased build discipline): a phase may proceed only when
 | **Title** | The frozen tree mutated mid-audit: `server_ctl.py` changed after the S1 capture, `main.py`/`test_s1_startup.py` after S0, outside any recorded decision |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `src/lucca/brain/server_ctl.py:258-285, 320-327`; `src/lucca/main.py:123-133`; `scripts/test_s1_startup.py`; `docs/audit/03b_BASELINE_DELTA.md` |
+| **Location** | `src/lucca/brain/server_ctl.py:258-285, 320-327`; `src/lucca/main.py:123-133`; `scripts/test_s1_startup.py`; `luccadocs/audit/03b_BASELINE_DELTA.md` |
 | **Status** | OPEN |
 
 **Evidence**
 
-Corrected re-inventory (2026-09-18T06:04–06:21Z, per this finding's own remediation step 2): artefacts `docs/audit/evidence/S2b_01_git_status.txt` (HEAD `ed14f6b` unchanged; in-scope porcelain identical to S0 except `scripts/test_s1_startup.py` newly `M`) and `docs/audit/evidence/S2b_02_line_counts.txt` (S0's own non-blank-line metric). Delta vs S0 across 110 in-scope text files: **107 unchanged**, three changed:
+Corrected re-inventory (2026-09-18T06:04–06:21Z, per this finding's own remediation step 2): artefacts `luccadocs/audit/evidence/S2b_01_git_status.txt` (HEAD `ed14f6b` unchanged; in-scope porcelain identical to S0 except `scripts/test_s1_startup.py` newly `M`) and `luccadocs/audit/evidence/S2b_02_line_counts.txt` (S0's own non-blank-line metric). Delta vs S0 across 110 in-scope text files: **107 unchanged**, three changed:
 
 | Path | S0 → now (non-blank lines) | Timing evidence |
 |---|---|---|
@@ -790,7 +790,7 @@ Corrected re-inventory (2026-09-18T06:04–06:21Z, per this finding's own remedi
 
 **What is wrong / assumed / missing**
 
-The audit charter freezes `src/`, `tests/`, `config/`, `scripts/` for the audit window (Charter §3.1) and mandates "stop and report" on observed change (§3.4). Three in-scope files changed anyway — `server_ctl.py` demonstrably between S1 (01:08Z) and S2b (04:22Z), in exactly the file S1 had just measured defects in. The changes are genuine improvements (they fix F-CORE-012's mechanism), but they were made outside any recorded decision, with no commit, no note in `docs/audit/`, and no re-baseline. The freeze is unenforced — no mechanism (branch protection, audit-window tag, re-baseline trigger) prevents it.
+The audit charter freezes `src/`, `tests/`, `config/`, `scripts/` for the audit window (Charter §3.1) and mandates "stop and report" on observed change (§3.4). Three in-scope files changed anyway — `server_ctl.py` demonstrably between S1 (01:08Z) and S2b (04:22Z), in exactly the file S1 had just measured defects in. The changes are genuine improvements (they fix F-CORE-012's mechanism), but they were made outside any recorded decision, with no commit, no note in `luccadocs/audit/`, and no re-baseline. The freeze is unenforced — no mechanism (branch protection, audit-window tag, re-baseline trigger) prevents it.
 
 **Why it matters**
 
@@ -803,9 +803,9 @@ An audit whose evidence base can move underneath it cannot be re-run or independ
 
 **Proposed remediation**
 
-1. Record this event in `docs/14_blockers.md` (when writable): tree mutated during the audit freeze window; `server_ctl.py` after S1, `main.py` + `scripts/test_s1_startup.py` after S0; S2a/S2b audited the post-change tree.
-2. ~~Re-run the S0 inventory~~ — **done** by this finding's own remediation: `docs/audit/03b_BASELINE_DELTA.md` + evidence `S2b_01_git_status.txt`, `S2b_02_line_counts.txt`; register both in `02_EVIDENCE_INDEX.md`.
-3. Adopt an audit-window rule: no edits to frozen trees except through a declared "fix-forward" event that triggers re-baseline; add the rule to `docs/audit/00_AUDIT_CHARTER.md` §3.1.
+1. Record this event in `luccadocs/14_blockers.md` (when writable): tree mutated during the audit freeze window; `server_ctl.py` after S1, `main.py` + `scripts/test_s1_startup.py` after S0; S2a/S2b audited the post-change tree.
+2. ~~Re-run the S0 inventory~~ — **done** by this finding's own remediation: `luccadocs/audit/03b_BASELINE_DELTA.md` + evidence `S2b_01_git_status.txt`, `S2b_02_line_counts.txt`; register both in `02_EVIDENCE_INDEX.md`.
+3. Adopt an audit-window rule: no edits to frozen trees except through a declared "fix-forward" event that triggers re-baseline; add the rule to `luccadocs/audit/00_AUDIT_CHARTER.md` §3.1.
 4. For the two fixed defects (`--log-format json`, DEVNULL stderr), verify the fix has a regression test (it does not — see F-BRAIN-029) and file the missing test there.
 
 **Verification test**
@@ -891,7 +891,7 @@ Spec 12 Z1: model output is untrusted and must be schema-validated at the bounda
 | **Title** | Tool name and arguments are never validated against the tool schema before execution; READ-risk hallucinations auto-execute |
 | **Severity** | S2 — Medium |
 | **Category** | SECURITY |
-| **Location** | `src/lucca/brain/llm_client.py:139-146`; `src/lucca/brain/toolcall_demux.py:76-89`; `src/lucca/sandbox/policy.py:33-41`; `docs/audit/evidence/S1_30_T3_hw.txt` |
+| **Location** | `src/lucca/brain/llm_client.py:139-146`; `src/lucca/brain/toolcall_demux.py:76-89`; `src/lucca/sandbox/policy.py:33-41`; `luccadocs/audit/evidence/S1_30_T3_hw.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -902,7 +902,7 @@ def classify_risk(tool_name: str) -> Risk:
     """Classifies risk tier for a tool."""
     return TOOL_RISK_MAP.get(tool_name, Risk.WRITE)
 ```
-Artefact: `docs/audit/evidence/S1_30_T3_hw.txt` (row 56) — `query_capabilities{'category': 'all'}` executed for an "open calculator" utterance with no user gate (READ risk auto-executes; `orchestrator.py:650` only gates WRITE/LAUNCH).
+Artefact: `luccadocs/audit/evidence/S1_30_T3_hw.txt` (row 56) — `query_capabilities{'category': 'all'}` executed for an "open calculator" utterance with no user gate (READ risk auto-executes; `orchestrator.py:650` only gates WRITE/LAUNCH).
 
 **What is wrong / assumed / missing**
 
@@ -942,7 +942,7 @@ Spec 12 Z1→Z0 boundary: "schema-validated" model output. The validation layer 
 | **Title** | Memory block in the system prompt has no delimiters, no per-hit cap, no count cap, and no untrusted/data marking |
 | **Severity** | S2 — Medium |
 | **Category** | SECURITY |
-| **Location** | `src/lucca/brain/prompt_builder.py:629-634`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/10_latency_trace_and_budgets.md:64`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:22` |
+| **Location** | `src/lucca/brain/prompt_builder.py:629-634`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/10_latency_trace_and_budgets.md:64`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:22` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -994,7 +994,7 @@ TM-02 (indirect prompt injection) and the §3.3 surface table: this is the one d
 | **Title** | No context token budgeting or truncation anywhere in prompt assembly (Spec 10 §4 unimplemented) |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/brain/prompt_builder.py:611-657`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/10_latency_trace_and_budgets.md:58-71` |
+| **Location** | `src/lucca/brain/prompt_builder.py:611-657`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/10_latency_trace_and_budgets.md:58-71` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1102,7 +1102,7 @@ The implementation prompt's WI-2.8 requires "call `set_persona()` so changes app
 | **Title** | Abort's slot-release endpoint returns HTTP 501 on the installed build; abort relies solely on connection close, and nothing verifies generation stopped |
 | **Severity** | S2 — Medium |
 | **Category** | RELIABILITY |
-| **Location** | `src/lucca/brain/llm_client.py:193-198`; `docs/audit/evidence/S1_36_spike02.txt`; `docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:55` |
+| **Location** | `src/lucca/brain/llm_client.py:193-198`; `luccadocs/audit/evidence/S1_36_spike02.txt`; `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:55` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1116,7 +1116,7 @@ The implementation prompt's WI-2.8 requires "call `set_persona()` so changes app
         except (httpx.HTTPError, OSError) as exc:
             logger.debug("llm_abort_slot_release_error", error=str(exc))
 ```
-Artefact: `docs/audit/evidence/S1_36_spike02.txt` (row 67) — S8 abort probes: HTTP **501** ×10, p50 31.49 ms, reported PASS.
+Artefact: `luccadocs/audit/evidence/S1_36_spike02.txt` (row 67) — S8 abort probes: HTTP **501** ×10, p50 31.49 ms, reported PASS.
 
 **What is wrong / assumed / missing**
 
@@ -1301,7 +1301,7 @@ The latency/trace model (Spec 10) and any future cost/quality analysis depend on
 | **Title** | Newline boundaries are not implemented: `\n` is not a candidate, `\n\n` is not a boundary, and newlines are never collapsed |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/brain/chunker.py:86-88`; `src/lucca/brain/chunker.py:189`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:27,32,38` |
+| **Location** | `src/lucca/brain/chunker.py:86-88`; `src/lucca/brain/chunker.py:189`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:27,32,38` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1355,7 +1355,7 @@ Spec'd behaviour missing on a common reply shape; interacts with F-BRAIN-005 (su
 | **Title** | `idle_flush_ms = 350` (stalled-stream flush) is not implemented |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/brain/chunker.py:120-127`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:56` |
+| **Location** | `src/lucca/brain/chunker.py:120-127`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:56` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1411,7 +1411,7 @@ Spec'd latency behaviour absent with no mechanical test (Charter §4 S2 definiti
 | **Title** | Chunker lifecycle is wrong across turns: `flush()` does not reset, and one shared chunker serves every turn |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/brain/chunker.py:125-127`; `src/lucca/core/orchestrator.py:84`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:60-70` |
+| **Location** | `src/lucca/brain/chunker.py:125-127`; `src/lucca/core/orchestrator.py:84`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:60-70` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1462,7 +1462,7 @@ The first-chunk fast path (24–90 chars, Spec 10 S3 budget) only ever works on 
 | **Title** | The normaliser runs per-delta, so markdown links, emphasis, and URLs spanning delta boundaries survive into speech |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/brain/chunker.py:120-123`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:22` |
+| **Location** | `src/lucca/brain/chunker.py:120-123`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:22` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1512,7 +1512,7 @@ The companion speaks raw markdown URLs and asterisks aloud — the exact TTS-pro
 | **Title** | Chunker test suite misses the broken spec cases: T-CHK-06 (ellipsis), T-CHK-11 (idle flush), T-CHK-13 (first-chunk latency), T-CHK-14 (numbered lists), and the 30-stream demux gate |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `tests/test_chunker.py:14-164`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:72-89` |
+| **Location** | `tests/test_chunker.py:14-164`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/08_streaming_chunker_spec.md:72-89` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1557,18 +1557,18 @@ Charter §4 S2: a spec'd behaviour with no mechanical test. The chunker is on th
 | **Title** | ADR-001's canonical launch still specifies `--log-format json`, which the installed binary rejects; the code drifted without an ADR update |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:40`; `src/lucca/brain/server_ctl.py:258-285`; `docs/audit/evidence/S1_15_llama_server.stderr.log` |
+| **Location** | `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:40`; `src/lucca/brain/server_ctl.py:258-285`; `luccadocs/audit/evidence/S1_15_llama_server.stderr.log` |
 | **Status** | OPEN |
 
 **Evidence**
 
-`docs/archive/…/ADR-001_inference_engine.md:40`
+`luccadocs/archive/…/ADR-001_inference_engine.md:40`
 ```
   --no-webui `
   --jinja `
   --log-format json
 ```
-Artefact: `docs/audit/evidence/S1_15_llama_server.stderr.log` (row 30) — `error: invalid argument: --log-format` from build 11026. Current code (`server_ctl.py:258-285`) emits no `--log-format`.
+Artefact: `luccadocs/audit/evidence/S1_15_llama_server.stderr.log` (row 30) — `error: invalid argument: --log-format` from build 11026. Current code (`server_ctl.py:258-285`) emits no `--log-format`.
 
 **What is wrong / assumed / missing**
 
@@ -1724,7 +1724,7 @@ Resource leak per restart plus log-loss exactly when diagnostics are needed. S1 
 | **Title** | The mmproj on disk is f16 content renamed to a `Q8_0` filename; the VRAM budget basis is wrong |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `scripts/download_llm_models.py:11-23`; `docs/audit/evidence/S1_07c_models_manifest.txt`; `docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:12,23` |
+| **Location** | `scripts/download_llm_models.py:11-23`; `luccadocs/audit/evidence/S1_07c_models_manifest.txt`; `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:12,23` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1745,7 +1745,7 @@ if not mmproj_target.exists():
     if downloaded_file.exists() and downloaded_file != mmproj_target:
         downloaded_file.rename(mmproj_target)
 ```
-Artefact: `docs/audit/evidence/S1_07c_models_manifest.txt` (row 13) — on-disk `…-Q8_0.gguf` is 1 379 512 224 B (≈ 1.28 GiB, f16-size); ADR-001 budgets Q8_0 at ≈ 0.74 GB.
+Artefact: `luccadocs/audit/evidence/S1_07c_models_manifest.txt` (row 13) — on-disk `…-Q8_0.gguf` is 1 379 512 224 B (≈ 1.28 GiB, f16-size); ADR-001 budgets Q8_0 at ≈ 0.74 GB.
 
 **What is wrong / assumed / missing**
 
@@ -1842,7 +1842,7 @@ A config file that operators can edit with the expectation of changing behaviour
 | **Title** | `scripts/test_s1_startup.py` false-passes against a pre-existing server, drifts from the code-computed command, and never reads the child's stdout |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `scripts/test_s1_startup.py:6-57`; `docs/audit/evidence/S1_33_startup_script.txt` |
+| **Location** | `scripts/test_s1_startup.py:6-57`; `luccadocs/audit/evidence/S1_33_startup_script.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1864,7 +1864,7 @@ for _ in range(120):
         pass
     time.sleep(0.5)
 ```
-Artefact: `docs/audit/evidence/S1_33_startup_script.txt` (row 64) — `Launching llama-server... Server ready: True in 0.07s` with a server already running.
+Artefact: `luccadocs/audit/evidence/S1_33_startup_script.txt` (row 64) — `Launching llama-server... Server ready: True in 0.07s` with a server already running.
 
 **What is wrong / assumed / missing**
 
@@ -1904,7 +1904,7 @@ This was the Phase-0 startup measurement (ADR-001 S1 ≤ 60 s cold). It cannot f
 | **Title** | `test_server_ctl` asserts the command's contents but not its executability: the binary-rejected flag shipped green |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `tests/test_server_ctl.py:16-116`; `docs/audit/evidence/S1_15b_llm_start_health.txt` |
+| **Location** | `tests/test_server_ctl.py:16-116`; `luccadocs/audit/evidence/S1_15b_llm_start_health.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1920,7 +1920,7 @@ This was the Phase-0 startup measurement (ADR-001 S1 ≤ 60 s cold). It cannot f
     # In text mode, --mmproj should NOT be present even if file existed
     assert "--mmproj" not in cmd
 ```
-Artefact: `docs/audit/evidence/S1_15b_llm_start_health.txt` (row 29) — the code-computed command exited the real binary with code 1; all T1 tests passed throughout.
+Artefact: `luccadocs/audit/evidence/S1_15b_llm_start_health.txt` (row 29) — the code-computed command exited the real binary with code 1; all T1 tests passed throughout.
 
 **What is wrong / assumed / missing**
 
@@ -2860,7 +2860,7 @@ The loader prefers the deployed file and falls back to a **cwd-relative** repo p
 | **Title** | Assumption to confirm: the +136 MiB VRAM growth across the S1 session (8098 → 8234 MiB) is benign caching, not a leak |
 | **Severity** | S4 — Info |
 | **Category** | ASSUMPTION |
-| **Location** | `docs/audit/evidence/S1_16b_gpu_after_llm.txt`; `docs/audit/evidence/S1_36_spike02.txt`; `docs/audit/evidence/S1_37_shutdown.txt` |
+| **Location** | `luccadocs/audit/evidence/S1_16b_gpu_after_llm.txt`; `luccadocs/audit/evidence/S1_36_spike02.txt`; `luccadocs/audit/evidence/S1_37_shutdown.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -2904,7 +2904,7 @@ The S4 VRAM gate (≤ 9 728 MB) has ~1.5 GiB headroom; a per-activity leak of th
 | **Title** | Question: does closing the HTTP connection actually stop server-side generation within the barge-in budget on build 11026? |
 | **Severity** | S4 — Info |
 | **Category** | ASSUMPTION |
-| **Location** | `src/lucca/brain/llm_client.py:183-198`; `docs/audit/evidence/S1_36_spike02.txt` |
+| **Location** | `src/lucca/brain/llm_client.py:183-198`; `luccadocs/audit/evidence/S1_36_spike02.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -2919,7 +2919,7 @@ The S4 VRAM gate (≤ 9 728 MB) has ~1.5 GiB headroom; a per-activity leak of th
                 logger.debug("llm_abort_client_close_error", error=str(exc))
             self.active_client = None
 ```
-Artefact: `docs/audit/evidence/S1_36_spike02.txt` (row 67) — the explicit release endpoint 501s ×10, so connection close is the only live mechanism.
+Artefact: `luccadocs/audit/evidence/S1_36_spike02.txt` (row 67) — the explicit release endpoint 501s ×10, so connection close is the only live mechanism.
 
 **What is wrong / assumed / missing**
 
@@ -2958,12 +2958,12 @@ Spec 10's barge-in gate (slot idle ≤ 100 ms) is unverifiable until this is mea
 | **Title** | NeMo server-side tool parser non-engagement + conversational over-calling |
 | **Severity** | S1 — High |
 | **Category** | CORRECTNESS |
-| **Location** | `docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md:50-54`; `src/lucca/brain/toolcall_demux.py` |
+| **Location** | `luccadocs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md:50-54`; `src/lucca/brain/toolcall_demux.py` |
 | **Status** | OPEN |
 
 **Evidence**
 
-`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md:50-54` (Brain Candidate Bake-Off §4.1):
+`luccadocs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md:50-54` (Brain Candidate Bake-Off §4.1):
 > 1. **Server-side parser not engaged.** With `--jinja --chat-template-file templates/mistral_nemo.jinja` on b11026, NeMo emits `[TOOL_CALLS][{…}]` as plain content (`finish_reason=stop`, no `tool_calls`). Lucca survives only via `ToolCallDemux`.
 > 2. **Over-calling on conversation.** "How are you feeling today?" → `[{"name":"launch_app",…}]`; "Capital of France?" → `[{"name":"search_web",…}]`. The demux parses these → Lucca would act instead of answer. Neither candidate exhibited this in 60+ calls.
 
@@ -2997,7 +2997,7 @@ Spurious tool dispatch on casual dialogue disrupts companion conversation and ri
 - **Threshold:** 0 hallucinated tool calls
 - **Command:** `& .venv\Scripts\python.exe scripts\probe_brain_candidate.py --name nemo --max-tokens 1024`
 
-**Cross-references:** D-BRAIN-05, F-BRAIN-009, F-BRAIN-010, `docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`
+**Cross-references:** D-BRAIN-05, F-BRAIN-009, F-BRAIN-010, `luccadocs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`
 
 ---
 

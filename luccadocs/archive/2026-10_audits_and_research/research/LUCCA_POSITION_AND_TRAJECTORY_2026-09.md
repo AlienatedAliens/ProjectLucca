@@ -13,7 +13,7 @@
 | Subsystem | State | Evidence |
 |---|---|---|
 | Source base | 100 Python modules, ~32,800 lines under `src/lucca/` | **[VERIFIED]** filesystem count |
-| Test base | 94 test files, 648 test functions under `tests/` | **[VERIFIED]** AST count; [DOCUMENTED] 649 non-HW passing per `docs/audit/findings/V1_RELEASE_AUDIT.md` |
+| Test base | 94 test files, 648 test functions under `tests/` | **[VERIFIED]** AST count; [DOCUMENTED] 649 non-HW passing per `luccadocs/audit/findings/V1_RELEASE_AUDIT.md` |
 | Native tool registry | 19 tools, `MAX_REGISTRY_TOOLS = 19` (raised 18→19 by WO-17 `calc_math`) | **[VERIFIED]** `src/lucca/core/capabilities.py:33` |
 | LISP skill library | 15 shipped MicroScheme skills; 12 model-callable (`expose_as_tool=True`), 3 reactive-only | **[VERIFIED]** `config/skills/*/meta_info.json` |
 | Grounded `memory_commit` | Live since WO-9 A2 (ADR-010); commits `USER_DERIVED` facts grounded in the current turn's signed `USER_EXPLICIT` transcript; refuses model-authored content by design | **[VERIFIED]** `src/lucca/core/orchestrator.py:2813`, 21 tests in `tests/test_grounded_memory_commit.py` |
@@ -36,7 +36,7 @@ A skeptical frontier-model reviewer examined the project across several rounds (
 
 **Legitimate criticisms (confirmed this session):**
 - **Version drift**: `pyproject.toml` says `0.2.0`; docs say v1.0.0/v2.0.0. **[VERIFIED]**
-- **Tool-count drift**: WO-17 raised the cap to 19; `docs/README.md:86`, `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`, `V1_RELEASE_AUDIT.md:51`, and two lines of the user guide still say 18. **[VERIFIED]** — and `tests/test_static_gates.py` does not cross-check doc-claimed counts against the registry constant. Gap in the static gates.
+- **Tool-count drift**: WO-17 raised the cap to 19; `luccadocs/README.md:86`, `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`, `V1_RELEASE_AUDIT.md:51`, and two lines of the user guide still say 18. **[VERIFIED]** — and `tests/test_static_gates.py` does not cross-check doc-claimed counts against the registry constant. Gap in the static gates.
 - **Orchestrator size**: `src/lucca/core/orchestrator.py` is 3,213 lines, the largest file in the tree. Real debt. **[VERIFIED]**
 - **Evidence base is internal**: all validation is self-authored; the induction loop has zero production rows.
 
@@ -58,9 +58,9 @@ A skeptical frontier-model reviewer examined the project across several rounds (
 
 1. **Doc/code drift** (version string, tool count) — one-commit fixes plus a static-gate test asserting docs cite live constants.
 2. **Orchestrator decomposition** — 3,213-line god-object; schedule as a work order.
-3. **Egress verification** — an archived audit (`docs/archive/2026-09_raw_findings/sbx.md`) found `sandbox/egress.py` had no live caller at that time. Must be re-verified before "blocks RFC1918/host gateway" appears in any external claim.
+3. **Egress verification** — an archived audit (`luccadocs/archive/2026-09_raw_findings/sbx.md`) found `sandbox/egress.py` had no live caller at that time. Must be re-verified before "blocks RFC1918/host gateway" appears in any external claim.
 4. **Zero production induction rows** — resolves only through dogfooding volume.
-5. **Single-user, Windows-only, PTT-only, 12B ceiling** — structural limits, correctly deferred in `docs/V2_BACKLOG.md`.
+5. **Single-user, Windows-only, PTT-only, 12B ceiling** — structural limits, correctly deferred in `luccadocs/V2_BACKLOG.md`.
 
 ---
 
@@ -79,8 +79,8 @@ The field is converging on Lucca's territory at roughly one near-neighbor paper 
 Ordered by cost-to-credibility ratio:
 
 1. **Head-to-head comparison study.** 10–15 representative requests ("what did you do last session", "remember my sister is Maya", fetch-then-write) run against Lucca, Operit/Aura, and a frontier assistant, with receipts checked. Lucca's advantage is verifiability; the study is designed so the advantage appears as measured fact. Publish transcript pairs.
-2. **One external benchmark.** BFCL for tool-calling — the architecture (frozen ≤19-tool prefix + category manifest) was designed against BFCL's known failure mode (`docs/research/studio_roadmap_r2/Q4_small_model_tool_use.md`). A respectable 12B local score is both validation and a citable design result.
-3. **Extract the provenance library.** `src/lucca/memory/` (gate, signers, bi-temporal store) as a standalone package with the hallucination-write benchmark as its demo. Already flagged in `docs/archive/2026-09-17_pre_phase4_audit/17_project_summary_and_positioning.md` as "a plausible standalone artefact." Adoption is the external validation that cannot be argued with.
+2. **One external benchmark.** BFCL for tool-calling — the architecture (frozen ≤19-tool prefix + category manifest) was designed against BFCL's known failure mode (`luccadocs/research/studio_roadmap_r2/Q4_small_model_tool_use.md`). A respectable 12B local score is both validation and a citable design result.
+3. **Extract the provenance library.** `src/lucca/memory/` (gate, signers, bi-temporal store) as a standalone package with the hallucination-write benchmark as its demo. Already flagged in `luccadocs/archive/2026-09-17_pre_phase4_audit/17_project_summary_and_positioning.md` as "a plausible standalone artefact." Adoption is the external validation that cannot be argued with.
 4. **Dogfood.** Daily use generates production induction rows and decision-log volume — the literal trigger conditions for three v2 backlog items.
 5. **Related-work table + short write-up.** VASO, ANNEAL, MEMIR, MemLineage, Gubernaut vs. the Lucca design. Posted where agent-security and local-model communities read.
 
@@ -99,11 +99,11 @@ Eight candidate directions were generated from pairwise products of existing sub
 | 7 | Epistemic prosody (Kokoro prosody encodes calibrated confidence class) | **HALF EXISTS** | Uncertainty prosody is established in speech synthesis (Szekely et al., Interspeech 2017). Open claim: prosody driven by a *verified* epistemic state (Belnap/conformal) rather than text-inferred uncertainty. **[SEARCHED]** |
 | 8 | Verifiable inter-agent testimony (signed provenance envelopes as A2A/MCP payload; eligibility semantics applied to sender claims) | **UNCHECKED** | A2A provenance is self-asserted; Lucca's would be verifiable. Serialization exercise on existing envelopes. |
 
-**Process note:** candidates 4–6, 8 require a full T0 citation-audit pass (the `docs/research/studio_roadmap_r2/` methodology) before any investment or public claim.
+**Process note:** candidates 4–6, 8 require a full T0 citation-audit pass (the `luccadocs/research/studio_roadmap_r2/` methodology) before any investment or public claim.
 
 ### 2.4 The v2 Backlog as Research Program
 
-`docs/V2_BACKLOG.md` items, re-read as research opportunities rather than feature debt:
+`luccadocs/V2_BACKLOG.md` items, re-read as research opportunities rather than feature debt:
 
 - **§1.5 C1b (Bonsai slot-2 Reflect)** — a *publishable replication* of XConf's Recall-vs-Reflect ablation on ≥100 of Lucca's own graded episodes (McNemar, p < 0.05). Replications of fresh results are scarce and valued; the trigger is already written.
 - **§1.3 NLI validator on NPU** — a MiniCheck-class cross-encoder checking every memory commit in ≤30 ms on Intel NPU would be the first edge-deployed neural fact-checker in a consumer companion.
@@ -142,7 +142,7 @@ Even fully executed, this trajectory does not make Lucca "the best AI." It makes
 | Grounded `memory_commit` live | Read `orchestrator.py:2813`, counted tests | Confirmed; 21 tests incl. stale-transcript and invalid-predicate refusals |
 | Orchestrator 3,213 lines | Line count | Confirmed; largest file in tree |
 | 648 test functions / 94 files | AST count of `tests/test_*.py` | Confirmed |
-| Docs say 18 tools in ≥4 places | Regex over `docs/` | Confirmed (README, roadmap, audit, user guide ×2) |
+| Docs say 18 tools in ≥4 places | Regex over `luccadocs/` | Confirmed (README, roadmap, audit, user guide ×2) |
 | Conformal × Belnap novelty | Nia quick search | No counterexample found |
 | Affect-homeostat novelty | Nia quick search | SCOOPED: Gubernaut (2607.24339), Aegis |
 | Breach-learning novelty | Nia quick search | Crowded (MARCH, Honest Lying); differentiable on signed-receipt artifact |

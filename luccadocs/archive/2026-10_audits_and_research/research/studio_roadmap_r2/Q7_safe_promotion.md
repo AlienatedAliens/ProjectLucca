@@ -1,8 +1,8 @@
 # Research Deep Dive: Q7 — Safe Promotion & Governance of Learned Procedures
 
-**Document:** `docs/research/studio_roadmap_r2/Q7_safe_promotion.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/Q7_safe_promotion.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Access Date:** 2026-09-21  
 **Status:** Complete — Ready for Review  
 

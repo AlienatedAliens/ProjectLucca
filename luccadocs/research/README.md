@@ -7,7 +7,7 @@ release_baseline: v1.45.0 (WO-36)
 verification: artifact-sourced (RESULTS.md, V1_RELEASE_AUDIT.md & data/benchmarks/MANIFEST.yaml)
 ```
 
-This directory holds two **submission candidates** and four **technical reports**. None has been peer-reviewed. Each document states its evidence type up front and ends with a "What Is NOT Claimed" section. Historical research notes are in [`docs/archive/2026-10_audits_and_research/research/`](../archive/2026-10_audits_and_research/research/).
+This directory holds two **submission candidates** and four **technical reports**. None has been peer-reviewed. Each document states its evidence type up front and ends with a "What Is NOT Claimed" section. Historical research notes are in [`luccadocs/archive/2026-10_audits_and_research/research/`](../archive/2026-10_audits_and_research/research/).
 
 ---
 

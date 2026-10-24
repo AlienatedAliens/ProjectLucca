@@ -1,9 +1,9 @@
 # Work Order 20 — The Concert Layer (Execution Manual)
 
-**Status:** Planned (pending owner ratification of [`docs/adr/0010_d_reas_09_concert_layer.md`](../docs/adr/0010_d_reas_09_concert_layer.md))
+**Status:** Planned (pending owner ratification of [`luccadocs/adr/0010_d_reas_09_concert_layer.md`](../luccadocs/adr/0010_d_reas_09_concert_layer.md))
 **Date:** 2026-09-26
 **Audience:** an implementing agent with no prior context. Every phase lists exact files, exact actions, **functional** acceptance criteria (behavioral, not just "suite green"), traps, and STOP gates. **STOP** means halt and report to the owner — do not improvise.
-**Golden rules:** one phase = one commit; run `uv run python -m pytest tests/ -q -m "not tier2 and not hw and not soak"` after every step (baseline: **707 passed, 0 failed**); never edit `docs/archive/`; never "fix forward" from a red suite — revert and re-read.
+**Golden rules:** one phase = one commit; run `uv run python -m pytest tests/ -q -m "not tier2 and not hw and not soak"` after every step (baseline: **707 passed, 0 failed**); never edit `luccadocs/archive/`; never "fix forward" from a red suite — revert and re-read.
 
 ---
 

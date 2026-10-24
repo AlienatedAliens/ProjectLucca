@@ -274,7 +274,7 @@ The wiring programme (F-ARCH-001) introduces persisted state into a system whose
 | **Title** | The audit-freeze process failed silently: the tree mutated mid-audit with no commit, attribution, or re-baseline trigger |
 | **Severity** | S3 — Low |
 | **Category** | ARCH |
-| **Location** | Consolidates: F-BRAIN-008 (three files changed post-S0/post-S1), F-TEST-009 (TEST-side instance), `docs/audit/03b_BASELINE_DELTA.md`, Charter §3.1/§3.4 |
+| **Location** | Consolidates: F-BRAIN-008 (three files changed post-S0/post-S1), F-TEST-009 (TEST-side instance), `luccadocs/audit/03b_BASELINE_DELTA.md`, Charter §3.1/§3.4 |
 | **Status** | OPEN |
 
 **What is wrong**

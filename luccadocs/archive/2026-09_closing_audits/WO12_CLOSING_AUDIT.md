@@ -12,7 +12,7 @@
 
 ## 1. Executive Summary
 
-Work Order 12 (WO-12) executed the ratified Autobiographical Memory and Self-Model completion plan (`plans/2026-09-23_wo12_belief_model_completion.md`), auditing and verifying the full realization of Spec `docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md` (D-MEM-04).
+Work Order 12 (WO-12) executed the ratified Autobiographical Memory and Self-Model completion plan (`plans/2026-09-23_wo12_belief_model_completion.md`), auditing and verifying the full realization of Spec `luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md` (D-MEM-04).
 
 Rather than duplicating work already landed in prior sprints, WO-12 conducted an exhaustive code-path, test-path, and live-evidence audit (WO-12.0), elevated formal Spec §3 metric acceptance gates into named live hardware test gates (WO-12.1), completed the full architectural separation of the turn lifecycle into `TurnPipeline` (WO-12.2), resolved Finding G3 via digit-narration research and configuration adoption (WO-12.3), established the empirical baseline and design sketch for Fault Mode C plausible-wrong handling (WO-12.4), and proved multi-turn spoken revision announcements adhering to Spec §7 Decision 4 on live local silicon (WO-12.5).
 
@@ -54,8 +54,8 @@ Spec `AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md` §3 defines quantitative accept
 
 | Finding / Item | Prior Status | WO-12 Investigation & Action | Resolution Artifact | Final Status |
 |---|---|---|---|:---:|
-| **G3: Digit vs Word-Form Narration** | CARRIED from WO-11 | 10 live arithmetic probes on Gemma 4 12B. Word-form slipped on $1300/8$ (`one hundred sixty-two point five` vs `175`). Digits achieved $10/10$ ($100\%$). Added `narration_prefer_digits=True` to `LLMSettings` and `PersonaConfig`. | `docs/audit/findings/WO12_3_G3_DIGIT_NARRATION_RESEARCH.md`<br>`logs/test_reports/g3_digit_narration_20260923T112803Z.json` | **CLOSED & ADOPTED** |
-| **Fault Mode C: `plausible_wrong` Handling** | UNSTUDIED | Evaluated 10 plausible-wrong tool outputs. Found 60% blind acceptance (scalar/arithmetic outputs trusted due to D-HON-01 grounding prompt) and 40% flagged (factual dates/physical limits). Designed Pre-Narration Sanity-Check Guard. | `docs/audit/findings/WO12_4_FAULT_MODE_C_RESEARCH.md` | **CARRIED & RATIFIED FOR WO-13** |
+| **G3: Digit vs Word-Form Narration** | CARRIED from WO-11 | 10 live arithmetic probes on Gemma 4 12B. Word-form slipped on $1300/8$ (`one hundred sixty-two point five` vs `175`). Digits achieved $10/10$ ($100\%$). Added `narration_prefer_digits=True` to `LLMSettings` and `PersonaConfig`. | `luccadocs/audit/findings/WO12_3_G3_DIGIT_NARRATION_RESEARCH.md`<br>`logs/test_reports/g3_digit_narration_20260923T112803Z.json` | **CLOSED & ADOPTED** |
+| **Fault Mode C: `plausible_wrong` Handling** | UNSTUDIED | Evaluated 10 plausible-wrong tool outputs. Found 60% blind acceptance (scalar/arithmetic outputs trusted due to D-HON-01 grounding prompt) and 40% flagged (factual dates/physical limits). Designed Pre-Narration Sanity-Check Guard. | `luccadocs/audit/findings/WO12_4_FAULT_MODE_C_RESEARCH.md` | **CARRIED & RATIFIED FOR WO-13** |
 
 ---
 

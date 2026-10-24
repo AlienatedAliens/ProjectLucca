@@ -22,7 +22,7 @@ verification: artifact-sourced (RESULTS.md & logs/test_reports/)
 
 Full-duplex conversational voice companions operating locally on consumer hardware face three competing requirements: (1) sub-50ms physical barge-in interruption without stale audio leakage or race conditions, (2) sub-800ms end-to-end conversational turnaround without invalidating the LLM's prompt KV cache across turns, and (3) zero GPU VRAM contention between speech perception/synthesis and 32K-context neural deliberation.
 
-While early audio-native architectures (such as `Ultravox v0.5 8B` receiving raw base64 `input_audio` directly inside `llama-server.exe`) reduce Time-To-First-Token (TTFT) in isolation, our architectural audit ([`docs/MODEL_STRATEGY.md`](../../../docs/MODEL_STRATEGY.md:52)) demonstrated that audio-native ingestion suffers from a fatal **Pre-Processing Blindspot**:
+While early audio-native architectures (such as `Ultravox v0.5 8B` receiving raw base64 `input_audio` directly inside `llama-server.exe`) reduce Time-To-First-Token (TTFT) in isolation, our architectural audit ([`luccadocs/MODEL_STRATEGY.md`](../../../luccadocs/MODEL_STRATEGY.md:52)) demonstrated that audio-native ingestion suffers from a fatal **Pre-Processing Blindspot**:
 1. **Inability to Query Turn-Specific Memory Before Prefill:** Without an explicit text transcript prior to LLM invocation, hybrid retrieval (`sqlite-vec` + `FTS5 BM25`) and goal-biased episode recall cannot condition the prompt on what the user just asked.
 2. **Loss of Sub-Millisecond Symbolic Reflexes:** Emergency safety commands (`stop`, `halt`, `pause`, `mute`, `shutdown` under `EMERGENCY_REFLEX_PATTERN`) and deterministic MicroScheme procedures cannot intercept the turn before invoking multi-billion parameter neural inference.
 3. **Provenance & Injection Gap:** Raw audio embeddings bypass transcript-level `USER_EXPLICIT` cryptographic signing (`UserSpeechSigner`) and sanitization.
@@ -62,7 +62,7 @@ flowchart TD
     end
 ```
 
-### 2.1 Resolving Pre-Audit Concurrency Hazards (`docs/adr/0009_audio_concurrency_contract.md`)
+### 2.1 Resolving Pre-Audit Concurrency Hazards (`luccadocs/adr/0009_audio_concurrency_contract.md`)
 Prior to `ADR-0009` (`F-ARCH-006`), concurrent audio capture, TTS synthesis, and barge-in cancellation exhibited six structural race conditions (`F-SENS-002`, `F-SENS-003`, `F-BRAIN-006`, `F-CORE-011`, `F-CORE-014`, `F-CORE-015`, `F-CORE-017`). Project Lucca now enforces five invariants, each backed by a static gate (`tests/test_static_gates.py::test_audio_concurrency_contract_exists`) and the unit/race tests listed in the last column. These are test-enforced contracts; no model checking or formal proof has been performed.
 
 | Invariant ID | Contract (Test-Enforced) | Code Implementation | Regression Test |
@@ -96,7 +96,7 @@ To preserve 100% prefix KV-cache residency while retaining affective responsiven
 
 All measurements were collected on the target MSI Vector 16 HX AI workstation (`Intel Core Ultra 9 275HX`, `Intel AI Boost NPU`, `NVIDIA RTX 5080 Laptop GPU`):
 
-### 4.1 End-to-End Cascade & Barge-In Latency Breakdown (`docs/MODEL_STRATEGY.md` §5)
+### 4.1 End-to-End Cascade & Barge-In Latency Breakdown (`luccadocs/MODEL_STRATEGY.md` §5)
 
 **Measurement provenance.** The barge-in and slot-release figures come from an $N=50$ instrumented session on the target laptop. Only the summary statistics below were retained; the per-trial distribution (P50/P95/max) for the speaker-drain measurement was not archived and is listed as *not available*. Ranges (e.g., `~140–180 ms`) are observed spreads across development sessions, not controlled-trial percentiles. A re-run that archives per-trial timestamps is required before any of these figures are used in a submission.
 

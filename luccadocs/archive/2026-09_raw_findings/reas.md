@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` rows 43–49. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` rows 43–49. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % | Tests exercising it |
 |---|---:|---|---|---|---|---:|---|
@@ -119,7 +119,7 @@ Charter §5 invariant 5. Practical: `evaluate_expr` is the boundary through whic
 | **Title** | Rule state machine has no persistence: every restart forgets all rules, snapshots, and regression cases |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/reasoning/lifecycle.py:91-94`; `src/lucca/memory/migrations/0001_init.sql` (no rules tables); `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:31` (TM-11 lists `rule_evaluations`) |
+| **Location** | `src/lucca/reasoning/lifecycle.py:91-94`; `src/lucca/memory/migrations/0001_init.sql` (no rules tables); `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:31` (TM-11 lists `rule_evaluations`) |
 | **Status** | OPEN |
 
 **Evidence**

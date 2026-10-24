@@ -4,14 +4,14 @@
 doc_status: draft_funder_overview
 as_of: 2026-10-21
 target_audience: AI Safety & Governance Grant Evaluators (Corrigibility Research Fund, Manifund, TAI, Mercor)
-claim_reference: docs/funding/EVIDENCE_LEDGER.md
+claim_reference: luccadocs/funding/EVIDENCE_LEDGER.md
 ```
 
 ## 1. Executive Summary
 
 Project Lucca is an experimental, local-first neurosymbolic companion architecture operating on consumer desktop hardware. Its primary technical focus is **mechanistic epistemic grounding and safety supervision**: ensuring an autonomous local agent cannot hallucinate execution of unverified side effects, commit ungrounded model output to long-term memory, or perform un-sandboxed host mutations.
 
-All empirical claims below are cited directly from deterministic code gates and public benchmark artifacts documented in [`docs/funding/EVIDENCE_LEDGER.md`](./EVIDENCE_LEDGER.md).
+All empirical claims below are cited directly from deterministic code gates and public benchmark artifacts documented in [`luccadocs/funding/EVIDENCE_LEDGER.md`](./EVIDENCE_LEDGER.md).
 
 ---
 
@@ -66,4 +66,4 @@ Expected result: `73 passed in ~0.50s`.
 
 ## 5. Companion Persona, Voice & UI Context
 
-Project Lucca bundles this safety harness into a resident desktop companion featuring push-to-talk voice, animated retro UI, and affective state dynamics. Details regarding persona mechanics, Kokoro TTS audio pipelines, and UI integration are documented separately in the [Project Lucca User Guide](../../docs/USER_GUIDE_WHAT_LUCCA_DOES.md).
+Project Lucca bundles this safety harness into a resident desktop companion featuring push-to-talk voice, animated retro UI, and affective state dynamics. Details regarding persona mechanics, Kokoro TTS audio pipelines, and UI integration are documented separately in the [Project Lucca User Guide](../../luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md).

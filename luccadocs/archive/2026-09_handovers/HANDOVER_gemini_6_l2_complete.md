@@ -3,7 +3,7 @@
 **To:** Zoo (Fable 5.1, architect) & Project Lucca Team  
 **From:** Gemini (implementation)  
 **Date:** 2026-09-21  
-**Spec of record:** [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) v1.1.2 §6.2, §9, §13  
+**Spec of record:** [`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) v1.1.2 §6.2, §9, §13  
 **Scope Delivered:** Ladder rung **L2** (Dream-RSI Replay-Before-Shadow, Contrastive Shadow Logging, Wilson/McNemar Telemetry Statistics, Orchestrator Wiring, Admin CLI & LISP Studio UI).
 
 ---

@@ -38,7 +38,7 @@
 
 ### A3. Authored Battery and Controls
 - **Answer:** **CONFIRMED.** The authored test battery contains 70 sentences across 8 categories (Categories A–D baseline; Categories E–H added during Paper 06 broadening), implemented in `tests/test_truth_in_receipt_battery.py` (73 tests passing). The 50 live controls are located in `data/benchmarks/action_hallucination_battery_100.json` (25 honest completion + 25 conversational idioms). 0/50 false positives confirmed.
-- **Evidence:** `tests/test_truth_in_receipt_battery.py:1-350`, `data/benchmarks/action_hallucination_battery_100.json`, `docs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md:97-125`.
+- **Evidence:** `tests/test_truth_in_receipt_battery.py:1-350`, `data/benchmarks/action_hallucination_battery_100.json`, `luccadocs/research/papers/05_CONFORMAL_ABSTENTION_AND_SPECULATIVE_BDI_VERIFICATION.md:97-125`.
 - **Confidence:** **Verified.**
 - **Caveats:** High circularity risk: Categories E–H were written specifically to verify the fix after observing earlier test failures. Furthermore, the 50 live controls contain zero action claims by design, meaning 0/50 FP only verifies that the supervisor does not trigger on non-action text; it does not measure false rejection on legitimate action statements. (Resolution of the A3 inconsistency: the controls are 25 honest completion + 25 idioms, and they contain zero action claims — both statements are true; the honest-completion prompts are capability questions that do not elicit action assertions.)
 
@@ -50,7 +50,7 @@
 
 ### A5. NLI Verifier
 - **Answer:** **CONFIRMED.** 100 hand-labeled pairs in `data/benchmarks/nli_eval/pairs_v1.jsonl` (40 Contradiction / 30 Entailment / 30 Neutral), single-annotator (repo owner). Clean 500 ms run (`results_cpu_t500/summary.json`): 93.0% acc, Contradiction P/R 1.000/1.000. Production 50 ms run (`results/summary.json`): 18.0% acc, 81/100 degraded/timed out, effective contradiction recall 0.075, mean latency 57.14 ms, p95 70.41 ms. Pairs are simple single-slot attribute contradictions. In production, `timeout_ms = 50.0` (`src/lucca/senses/verifier.py:70`). All 10 downstream consumers fail open on timeout/UNCERTAIN.
-- **Evidence:** `data/benchmarks/nli_eval/pairs_v1.jsonl`, `data/benchmarks/nli_eval/results_cpu_t500/summary.json`, `data/benchmarks/nli_eval/results/summary.json`, `src/lucca/senses/verifier.py:70`, `docs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md:§4.1`.
+- **Evidence:** `data/benchmarks/nli_eval/pairs_v1.jsonl`, `data/benchmarks/nli_eval/results_cpu_t500/summary.json`, `data/benchmarks/nli_eval/results/summary.json`, `src/lucca/senses/verifier.py:70`, `luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md:§4.1`.
 - **Confidence:** **Verified.**
 - **Caveats:** Single-annotator; simple synthetic pairs; catastrophic fail-open architecture under production latency clamp.
 
@@ -104,25 +104,25 @@
 ## 4. Not Found List
 
 1. **Fresh Live Sensitivity Measurement Post-v1.41:** We searched `logs/`, `data/benchmarks/`, `RESULTS.md`, and git history for any live evaluation re-run of `TruthInReceiptMatcher` after commit `defadaee` (v1.41 participle hardening). **NOT FOUND.** The fix has never been evaluated on unseen live companion traffic.
-2. **20-Vector Defensive Prompt-Injection Battery (`D-SEC-05`):** While `D-SEC-05` is ratified in `docs/DECISIONS.md`, no 20-probe dataset, test script, or execution artifact exists in the repository. Looked in `tests/`, `data/benchmarks/`, `scripts/`, and `logs/`.
+2. **20-Vector Defensive Prompt-Injection Battery (`D-SEC-05`):** While `D-SEC-05` is ratified in `luccadocs/DECISIONS.md`, no 20-probe dataset, test script, or execution artifact exists in the repository. Looked in `tests/`, `data/benchmarks/`, `scripts/`, and `logs/`.
 3. **Independent 12B Thinking Sampled Replication:** We searched for a 12B thinking sampled run with an independent random seed. **NOT FOUND.** Both `run1` and `run2` used `seed=42`.
 
 ---
 
 ## 5. Part B Deliverables Summary
 
-All requested preparation materials have been created under `docs/funding/`:
+All requested preparation materials have been created under `luccadocs/funding/`:
 
-1. [`docs/funding/EVIDENCE_LEDGER.md`](file:///c:/Projects/ProjectLucca/docs/funding/EVIDENCE_LEDGER.md): Comprehensive public claims ledger with sample size $N$, results, Wilson 95% CIs, suite type, annotator count, artifact paths, and known caveats.
-2. [`docs/funding/README_FUNDERS.md`](file:///c:/Projects/ProjectLucca/docs/funding/README_FUNDERS.md): Verification-first 1-page overview of Project Lucca, its two core defense mechanisms, documented failures, and local reproduction instructions.
-3. [`docs/funding/PREREG_MATCHER_SENSITIVITY.md`](file:///c:/Projects/ProjectLucca/docs/funding/PREREG_MATCHER_SENSITIVITY.md): Rigorous pre-registration protocol (250 prompts, 3 models, power calculations, dual blinded annotators, SHA-256 fingerprint: `b13951b8a1909d009b0040014f09140295539d989e87fdfc0deb503d74db5877`).
-4. [`docs/funding/NLI_SECOND_ANNOTATOR_KIT/`](file:///c:/Projects/ProjectLucca/docs/funding/NLI_SECOND_ANNOTATOR_KIT/):
+1. [`luccadocs/funding/EVIDENCE_LEDGER.md`](file:///c:/Projects/ProjectLucca/luccadocs/funding/EVIDENCE_LEDGER.md): Comprehensive public claims ledger with sample size $N$, results, Wilson 95% CIs, suite type, annotator count, artifact paths, and known caveats.
+2. [`luccadocs/funding/README_FUNDERS.md`](file:///c:/Projects/ProjectLucca/luccadocs/funding/README_FUNDERS.md): Verification-first 1-page overview of Project Lucca, its two core defense mechanisms, documented failures, and local reproduction instructions.
+3. [`luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md`](file:///c:/Projects/ProjectLucca/luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md): Rigorous pre-registration protocol (250 prompts, 3 models, power calculations, dual blinded annotators, SHA-256 fingerprint: `b13951b8a1909d009b0040014f09140295539d989e87fdfc0deb503d74db5877`).
+4. [`luccadocs/funding/NLI_SECOND_ANNOTATOR_KIT/`](file:///c:/Projects/ProjectLucca/luccadocs/funding/NLI_SECOND_ANNOTATOR_KIT/):
    - `blinded_worksheet.jsonl` & `blinded_worksheet.csv`: 100 evaluation pairs with gold labels stripped, randomized with `seed=42`.
    - `ANNOTATION_GUIDELINES.md`: Comprehensive 3-class labeling instructions and edge cases.
    - `score_agreement.py`: Automated inter-annotator evaluation script computing Cohen's $\kappa$, confusion matrices, and per-class metrics.
-5. [`docs/funding/FAILOPEN_ANALYSIS.md`](file:///c:/Projects/ProjectLucca/docs/funding/FAILOPEN_ANALYSIS.md): Comprehensive audit of all 10 consumer modules failing open on NLI timeout, with concrete fail-closed remediations.
-6. [`docs/funding/EXTRACTION_PLAN.md`](file:///c:/Projects/ProjectLucca/docs/funding/EXTRACTION_PLAN.md): Complete standalone library plan for `agent-provenance-guard` with public API, schema decoupling, and 38-hour work breakdown.
-7. [`docs/funding/REPO_CLEANUP_PROPOSAL.md`](file:///c:/Projects/ProjectLucca/docs/funding/REPO_CLEANUP_PROPOSAL.md): Repository hygiene roadmap detailing asset removal, CC0 replacements, clean public snapshot strategy, and path normalization.
+5. [`luccadocs/funding/FAILOPEN_ANALYSIS.md`](file:///c:/Projects/ProjectLucca/luccadocs/funding/FAILOPEN_ANALYSIS.md): Comprehensive audit of all 10 consumer modules failing open on NLI timeout, with concrete fail-closed remediations.
+6. [`luccadocs/funding/EXTRACTION_PLAN.md`](file:///c:/Projects/ProjectLucca/luccadocs/funding/EXTRACTION_PLAN.md): Complete standalone library plan for `agent-provenance-guard` with public API, schema decoupling, and 38-hour work breakdown.
+7. [`luccadocs/funding/REPO_CLEANUP_PROPOSAL.md`](file:///c:/Projects/ProjectLucca/luccadocs/funding/REPO_CLEANUP_PROPOSAL.md): Repository hygiene roadmap detailing asset removal, CC0 replacements, clean public snapshot strategy, and path normalization.
 
 ---
 
@@ -157,4 +157,4 @@ All requested preparation materials have been created under `docs/funding/`:
 
 - **Analysis Baseline Git Commit:** `84f244751ad7dd0db8ab0eaedd097029bc7cdd51`
 - **Analysis Baseline Branch:** `master`
-- **Files Modified:** **NONE.** All pre-existing repository code, documentation, benchmarks, and test suites remain untouched. All new files were written exclusively under `docs/funding/`.
+- **Files Modified:** **NONE.** All pre-existing repository code, documentation, benchmarks, and test suites remain untouched. All new files were written exclusively under `luccadocs/funding/`.

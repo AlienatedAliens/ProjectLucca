@@ -9,7 +9,7 @@ verification: manual
 ```
 
 **Purpose:** Replace the unanchored capability-inventory percentages in
-[`docs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md`](../research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md)
+[`luccadocs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md`](../research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md)
 (~80% / ~50% / ~85% / ~75%) with **measurable** instruments: four fixed probe
 batteries, one per functional aspect, each with a frozen probe set, a seeded
 fixture protocol, and a **mechanical grader** (no LLM judge, no holistic

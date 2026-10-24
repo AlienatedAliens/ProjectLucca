@@ -2,8 +2,8 @@
 
 **Status:** Canonical Active Architecture Specification (`v1.45.0-stable` / Work Order 36)
 **Version:** 2.3.0
-**Updated:** October 18, 2026 (Historical version snapshots archived in [`docs/archive/2026-10_architecture_snapshots/`](./archive/2026-10_architecture_snapshots/))
-**Charter Reference:** Ratified per D-AUD-01 through D-COG-01 (`docs/DECISIONS.md`)
+**Updated:** October 18, 2026 (Historical version snapshots archived in [`luccadocs/archive/2026-10_architecture_snapshots/`](./archive/2026-10_architecture_snapshots/))
+**Charter Reference:** Ratified per D-AUD-01 through D-COG-01 (`luccadocs/DECISIONS.md`)
 
 > [!IMPORTANT]
 > **Single Canonical Architecture Specification (`v1.45.0`)**: This document is the unified source of architectural truth for Project Lucca across all milestones (Milestones 1–7 through Work Order 36), covering the 4-tier Gemma 4 neural substrate (`26B-A4B`, `12B`, `E4B`, `E2B`), three-tier cognitive execution, MicroScheme + Organ A Mereotopology + CEGIS self-repair, cryptographic memory + qualitative Allen temporal retrieval, Two-Cadence Inner Life (`IdlePulse` + `DreamRetrospective`), `CognitiveOutcomeSink`, `ActiveGoalManager`, Constitutional Kernel + Windows 11 WinRT `OcrEngine`, and persistent Docker container sandboxing.
@@ -81,8 +81,8 @@
     - [10.1 End-to-End System Dataflow & Subsystem Topology](#101-end-to-end-system-dataflow--subsystem-topology)
     - [10.2 Two-Tier Neurosymbolic Execution & Compilation Lifecycle](#102-two-tier-neurosymbolic-execution--compilation-lifecycle)
     - [10.3 Belnap Paraconsistent Epistemic Bilattice & Provenance Envelopes](#103-belnap-paraconsistent-epistemic-bilattice--provenance-envelopes)
-    - [10.4 Dedicated Subsystem Reference Manuals Corpus (`docs/subsystems/`)](#104-dedicated-subsystem-reference-manuals-corpus-docssubsystems)
-    - [10.5 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)](#105-frontier-research--engineering-papers-corpus-docsresearchpapers)
+    - [10.4 Dedicated Subsystem Reference Manuals Corpus (`luccadocs/subsystems/`)](#104-dedicated-subsystem-reference-manuals-corpus-docssubsystems)
+    - [10.5 Frontier Research & Engineering Papers Corpus (`luccadocs/research/papers/`)](#105-frontier-research--engineering-papers-corpus-docsresearchpapers)
 
 ---
 
@@ -787,7 +787,7 @@ stateDiagram-v2
     SQLiteStore --> [*]: Commit Completed
 ```
 
-### 10.4 Dedicated Subsystem Reference Manuals Corpus (`docs/subsystems/`)
+### 10.4 Dedicated Subsystem Reference Manuals Corpus (`luccadocs/subsystems/`)
 
 The deep-dive internal mechanics, API schemas, error codes, and thread topologies of every subsystem are exhaustively detailed in dedicated reference manuals:
 
@@ -802,7 +802,7 @@ The deep-dive internal mechanics, API schemas, error codes, and thread topologie
 | [07 Reference](./subsystems/07_ROUTING_AND_CONFORMAL_CALIBRATION.md) | **Routing & Conformal Calibration** | Sub-150ms emergency reflex fast path, heuristic intent classification, non-parametric split-conformal abstention (coverage $\ge 0.95$), and replay-protected HMAC confirmation nonces. | `src/lucca/router/heuristic.py`, `embed.py`, `calibration.py` |
 | [08 Reference](./subsystems/08_UI_DIAGNOSTICS_AND_PIPELINE_DEBUGGER.md) | **Desktop UI & Visual Pipeline Debugger** | Dual-mode PyQt6 companion sprite and system tray lifecycle, 10-tab settings HUD, Commorose radial menu, and real-time 9-tank Visual Pipeline Debugger on port 8765. | `src/lucca/ui/companion_sprite.py`, `settings_dialog.py`, `scripts/serve_pipeline_debugger.py` |
 
-### 10.5 Frontier Research & Engineering Papers Corpus (`docs/research/papers/`)
+### 10.5 Frontier Research & Engineering Papers Corpus (`luccadocs/research/papers/`)
 
 Project Lucca's theoretical advances, empirical benchmarks, and system innovations are formalized into five publication-ready research papers:
 

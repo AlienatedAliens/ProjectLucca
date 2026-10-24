@@ -1,8 +1,8 @@
 # Research Deep Dive: Q6 — Small-Sample Evaluation & Single-User Statistics
 
-**Document:** `docs/research/studio_roadmap_r2/Q6_small_n_evaluation.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/Q6_small_n_evaluation.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Access Date:** 2026-09-21  
 **Status:** Complete — Ready for Review  
 

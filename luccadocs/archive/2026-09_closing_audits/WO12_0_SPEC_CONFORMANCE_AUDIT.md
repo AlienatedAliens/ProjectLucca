@@ -15,7 +15,7 @@
 
 This audit executes Phase **WO-12.0** of the WO-12 Master Plan (`plans/2026-09-23_wo12_belief_model_completion.md`).
 The purpose of WO-12.0 is to mechanically verify whether the deliverables specified in
-[`docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](../../specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md)
+[`luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](../../specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md)
 (ratified as `D-MEM-04`) and claimed as "landed" during prior work orders (WO-8, WO-9, and A1)
 are genuinely implemented across three indispensable legs:
 1. **Concrete Code Path:** Exact source files, classes, methods, and line numbers in `src/lucca/`.
@@ -114,7 +114,7 @@ The spec records four binding owner decisions in §7. Here is the mechanical ver
 ## 4. Key Discoveries and Calibration Notes
 
 1. **Alignment of the 5 Flags:**
-   Earlier handover documentation (`docs/HANDOVER_gemini_7_a1_complete.md` §1.4) listed slightly different flag descriptions from an exploratory draft (e.g., confidence ranges). However, the actual source code in `src/lucca/memory/reflection.py:139-168` is **100% faithful to the ratified Spec §7 Decision 4**. There is zero divergence between spec and code.
+   Earlier handover documentation (`luccadocs/HANDOVER_gemini_7_a1_complete.md` §1.4) listed slightly different flag descriptions from an exploratory draft (e.g., confidence ranges). However, the actual source code in `src/lucca/memory/reflection.py:139-168` is **100% faithful to the ratified Spec §7 Decision 4**. There is zero divergence between spec and code.
 
 2. **Hardware Metric Calibration on Gemma-4 12B:**
    Inspection of `logs/test_reports/a1_live_introspective_20260922T214602Z.json` reveals:

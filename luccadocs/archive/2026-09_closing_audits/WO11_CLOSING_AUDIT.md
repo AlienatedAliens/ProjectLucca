@@ -93,15 +93,15 @@ Implemented in `tests/fakes/fault_injecting_sandbox.py` with 7 dedicated unit te
 ## 7. Doctrine & ADR Audit
 
 1. **`D-HON-01 — Verified Source Priority Invariant`:**
-   - Formalized in `docs/DECISIONS.md`.
+   - Formalized in `luccadocs/DECISIONS.md`.
    - Priority hierarchy established: External Verified Source strictly supersedes ungrounded parametric memory, transcript echo, and unverified estimation.
    - Computational domain: mandatory execution via verified tools (`run_python`); guessing barred on tool error.
    - Memory domain: verified store current value (`valid_from` supersession) takes strict precedence over transcript echo.
    - Persona exemption: subjective stances and conversational warmth explicitly preserved.
 2. **Active Documentation Consistency:**
    - `AGENTS.md` and `GEMINI.md`: $M=8$ runaway cap, Gemma-4 canonical brain, 4-Process topology aligned.
-   - `docs/ARCHITECTURE.md`: $M=4$ active round cap, Gemma-4 12B primary brain aligned.
-   - `docs/DECISIONS.md`: `D-BRAIN-05 v2`, `D-HON-01`, and tier caps aligned.
+   - `luccadocs/ARCHITECTURE.md`: $M=4$ active round cap, Gemma-4 12B primary brain aligned.
+   - `luccadocs/DECISIONS.md`: `D-BRAIN-05 v2`, `D-HON-01`, and tier caps aligned.
    - CI staleness lint (`test_active_docs_staleness_lint`): 0 hits across all 4 active docs.
 
 ---

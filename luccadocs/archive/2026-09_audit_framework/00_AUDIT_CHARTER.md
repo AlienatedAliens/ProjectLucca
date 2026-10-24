@@ -3,7 +3,7 @@
 **Status:** ACTIVE
 **Opened:** 2026-09-17 (UTC)
 **Baseline:** git HEAD `ed14f6b44fc233c94f01c9f9f3c1f68619e026e7` on `master`, dirty working tree (see [`03_BASELINE.md`](03_BASELINE.md))
-**Archived predecessor docs:** [`docs/archive/2026-09-17_pre_phase4_audit/ARCHIVE_INDEX.md`](../archive/2026-09-17_pre_phase4_audit/ARCHIVE_INDEX.md)
+**Archived predecessor docs:** [`luccadocs/archive/2026-09-17_pre_phase4_audit/ARCHIVE_INDEX.md`](../archive/2026-09-17_pre_phase4_audit/ARCHIVE_INDEX.md)
 
 ---
 
@@ -46,9 +46,9 @@ Everything under:
 
 ### 3.1 Findings-only
 
-**No file under `src/`, `tests/`, `docker/`, `scripts/`, `config/`, or `packaging/` may be modified, created, or deleted by any audit subtask.** Root files (`pyproject.toml`, `uv.lock`, `Lucca.spec`, `launch_lucca.bat`, `.env.example`, `.gitignore`, `README.md`, `AGENTS.md`, `GEMINI.md`) and `.agents/` are equally frozen. The only writable locations during the audit are `docs/audit/**`.
+**No file under `src/`, `tests/`, `docker/`, `scripts/`, `config/`, or `packaging/` may be modified, created, or deleted by any audit subtask.** Root files (`pyproject.toml`, `uv.lock`, `Lucca.spec`, `launch_lucca.bat`, `.env.example`, `.gitignore`, `README.md`, `AGENTS.md`, `GEMINI.md`) and `.agents/` are equally frozen. The only writable locations during the audit are `luccadocs/audit/**`.
 
-Auditors may *run* code (tests, static gates, scripts) to produce evidence, provided execution does not mutate the frozen trees. Any artefact produced must land under `docs/audit/evidence/` and be registered in [`02_EVIDENCE_INDEX.md`](02_EVIDENCE_INDEX.md).
+Auditors may *run* code (tests, static gates, scripts) to produce evidence, provided execution does not mutate the frozen trees. Any artefact produced must land under `luccadocs/audit/evidence/` and be registered in [`02_EVIDENCE_INDEX.md`](02_EVIDENCE_INDEX.md).
 
 ### 3.2 No threshold edits
 
@@ -71,7 +71,7 @@ The archived `ADR-010` (64 GB system-RAM upgrade) is **forward-looking only**. A
 
 ### 3.4 Evidence rule
 
-**Every finding must cite either a `file:line` (or `file:line-line`) location in the frozen tree, or an evidence artefact path under `docs/audit/evidence/`.** Both are preferred.
+**Every finding must cite either a `file:line` (or `file:line-line`) location in the frozen tree, or an evidence artefact path under `luccadocs/audit/evidence/`.** Both are preferred.
 
 - "Appears to", "seems to", "probably", "likely" **without an accompanying citation are disallowed.** If the auditor cannot confirm, the item is filed at severity S4 (Info) with category ASSUMPTION and an explicit question.
 - Verbatim code excerpts in the `Evidence` field must be copied, not paraphrased.
@@ -160,17 +160,17 @@ One findings file per area lives under [`findings/`](findings/README.md). Every 
 
 ## 8. Evidence and artefacts
 
-- All produced artefacts (test logs, static-gate output, measurements, generated inventories) are stored under `docs/audit/evidence/` and registered in `02_EVIDENCE_INDEX.md` with producer subtask, exact command, and UTC timestamp.
+- All produced artefacts (test logs, static-gate output, measurements, generated inventories) are stored under `luccadocs/audit/evidence/` and registered in `02_EVIDENCE_INDEX.md` with producer subtask, exact command, and UTC timestamp.
 - Artefacts are append-only. Re-running a command produces a new artefact with a new timestamp; the old one is not overwritten.
 - Test tiers referenced in findings follow the project convention: **T0** static (ruff/mypy/import-linter), **T1** unit (no hardware, fakes), **T2** integration (real IPC/DB/containers, no hardware models), **T3** hardware-in-the-loop (`hw` marker). Soak (T4) is out of audit scope unless a finding specifically requires it.
 
 ## 9. Decisions already made (do not re-ask)
 
-1. All pre-audit `docs/` content is archived read-only; a fresh docs set will be written later from code truth.
+1. All pre-audit `luccadocs/` content is archived read-only; a fresh docs set will be written later from code truth.
 2. The audit is findings-only (§3.1).
 3. Hardware truth is §3.3; `ADR-010` is forward-looking only.
 4. All "extra" features are shipped, first-class, in scope (§2.1).
 
 ## 10. Known stale references at audit start
 
-`AGENTS.md` and `.agents/skills/lucca-pipeline/SKILL.md` reference `docs/…` paths that now resolve only under `docs/archive/2026-09-17_pre_phase4_audit/`. These files are frozen for the audit; the stale paths are to be handled by a later subtask and should be recorded as a `DOCS` finding when the `TEST`/`DRIFT` area is audited.
+`AGENTS.md` and `.agents/skills/lucca-pipeline/SKILL.md` reference `luccadocs/…` paths that now resolve only under `luccadocs/archive/2026-09-17_pre_phase4_audit/`. These files are frozen for the audit; the stale paths are to be handled by a later subtask and should be recorded as a `DOCS` finding when the `TEST`/`DRIFT` area is audited.

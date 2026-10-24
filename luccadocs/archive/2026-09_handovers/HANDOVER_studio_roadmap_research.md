@@ -34,7 +34,7 @@ Three deliverables:
 
 ---
 
-## 2. STUDIO CAPABILITY ROADMAP (governance doc — Zoo will also save as `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)
+## 2. STUDIO CAPABILITY ROADMAP (governance doc — Zoo will also save as `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)
 
 ### 2.1 LISP Studio — Definition of Done
 *"A user can teach Lucca a new procedural habit in under 5 minutes, watch it shadow, and promote it with one click — with a full audit trail."*
@@ -109,7 +109,7 @@ For each question: give the answer, 2–3 sources with URLs, and a one-line "so 
 
 ## 4. Rules
 
-- Zoo owns: `docs/DECISIONS.md`, `docs/audit/evidence/*`, `docs/specs/*` (Zoo will write the roadmap spec separately).
+- Zoo owns: `luccadocs/DECISIONS.md`, `luccadocs/audit/evidence/*`, `luccadocs/specs/*` (Zoo will write the roadmap spec separately).
 - Gemini: implement §2 rungs **only after** research answers land and Zoo approves the ladder order. For now: research (§3) + the two quick wins below.
 - **H6 (do first, 15 min):** Investigate TTFT p95 = 5,238 ms in `ratification_h1.json` — identify which turn(s) and whether it's first-turn warm-up. Append per-turn TTFT list to §5.
 - **H6b (do second, 30 min):** Implement seed skill #1 (`calc-open-with-expr`) as a real registered rule in QUARANTINE mode via `lucca-admin`, prove it shadows on a live turn, append the `lucca-admin rules list` output.

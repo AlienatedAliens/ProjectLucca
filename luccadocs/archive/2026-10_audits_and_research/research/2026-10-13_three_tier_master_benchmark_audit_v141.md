@@ -4,8 +4,8 @@
 doc_status: canonical
 as_of: 2026-10-13
 supersedes:
-  - docs/research/STATE_OF_THE_UNION_2026-10.md
-  - docs/research/2026-10-03_gemma4_e4b_vs_12b_compound_ablation.md
+  - luccadocs/research/STATE_OF_THE_UNION_2026-10.md
+  - luccadocs/research/2026-10-03_gemma4_e4b_vs_12b_compound_ablation.md
 superseded_by: []
 verification: code-cited
 ```

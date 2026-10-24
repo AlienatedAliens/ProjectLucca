@@ -40,7 +40,7 @@ Ordered by severity, then by ID. Every finding re-reviewed per Charter §3.5 (lo
 | **Title** | Phase 1–4 subsystems are specified, partially built, and not instantiated: the architecture exists as components, not as a system |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/core/orchestrator.py` (no router/memory/reasoning imports); `src/lucca/reasoning/lifecycle.py:85-94`; `src/lucca/router/heuristic.py:55`; `src/lucca/memory/store.py:43`; `docs/archive/2026-09-17_pre_phase4_audit/11_phase_plan_v2.md` §Phases 3–4 |
+| **Location** | `src/lucca/core/orchestrator.py` (no router/memory/reasoning imports); `src/lucca/reasoning/lifecycle.py:85-94`; `src/lucca/router/heuristic.py:55`; `src/lucca/memory/store.py:43`; `luccadocs/archive/2026-09-17_pre_phase4_audit/11_phase_plan_v2.md` §Phases 3–4 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -85,7 +85,7 @@ The audit's single largest structural finding: every subsystem-specific remediat
 | **Title** | The threat model's control matrix is aspirational: 8 of 18 controls are absent or non-binding on the shipped path |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:19-38`; owning findings per row of the divergence matrix |
+| **Location** | `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:19-38`; owning findings per row of the divergence matrix |
 | **Status** | OPEN |
 
 **Evidence**
@@ -130,7 +130,7 @@ A threat model whose control column is not traceable to code is a security docum
 | **Title** | The canonical latency budget cannot be measured by the shipped instrumentation, and the boot path reports fabricated measurements |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/core/trace.py:14-60`; `src/lucca/core/orchestrator.py:333,469`; `scripts/run_spike02_suite.py:117-124`; `src/lucca/ui/speech_bubble.py:99`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/10_latency_trace_and_budgets.md` §1–2 |
+| **Location** | `src/lucca/core/trace.py:14-60`; `src/lucca/core/orchestrator.py:333,469`; `scripts/run_spike02_suite.py:117-124`; `src/lucca/ui/speech_bubble.py:99`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/10_latency_trace_and_budgets.md` §1–2 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -176,7 +176,7 @@ Every latency claim in every document is currently unfalsifiable; the Phase-1 si
 | **Title** | The provenance chain is correct at both ends and open in the middle: the invariant holds vacuously and fails at the one live path |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/memory/gate.py:54-135`; `src/lucca/memory/signers.py`; `src/lucca/memory/manager.py:84-150`; `src/lucca/senses/asr.py:54-118`; `docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-006_provenance_tiers_and_signers.md` |
+| **Location** | `src/lucca/memory/gate.py:54-135`; `src/lucca/memory/signers.py`; `src/lucca/memory/manager.py:84-150`; `src/lucca/senses/asr.py:54-118`; `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-006_provenance_tiers_and_signers.md` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -221,7 +221,7 @@ This is the audit's core-invariant finding family; the remediation order matters
 | **Title** | The ADR-001 model-supply chain delivers a renamed substitute with no verification, contradicting the ADR's own identity claim |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `scripts/download_llm_models.py:11-47`; `docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:22-23,65`; `docs/audit/evidence/S1_07c_models_manifest.txt` |
+| **Location** | `scripts/download_llm_models.py:11-47`; `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-001_inference_engine.md:22-23,65`; `luccadocs/audit/evidence/S1_07c_models_manifest.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -266,7 +266,7 @@ The owner has ratified Option A (true ggml-org backbone + manifest, D-AUD-05) �
 | **Title** | The system prompt, capability manifest, UI surfaces, and sample assets jointly advertise a system that does not exist |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/brain/prompt_builder.py:47-91`; `src/lucca/sandbox/service.py:144-215`; `src/lucca/ui/app.py:125-130`; `src/lucca/ui/settings_dialog.py:272-273,2258,2331`; `docs/audit/findings/brain.md` F-BRAIN-004 |
+| **Location** | `src/lucca/brain/prompt_builder.py:47-91`; `src/lucca/sandbox/service.py:144-215`; `src/lucca/ui/app.py:125-130`; `src/lucca/ui/settings_dialog.py:272-273,2258,2331`; `luccadocs/audit/findings/brain.md` F-BRAIN-004 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -310,7 +310,7 @@ This is the mechanism behind the measured wrong-tool failure and the root cause 
 | **Title** | The documented configuration contract (five sources, canonical defaults, env names) is not the implemented contract |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/core/config.py:132-177`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/11_observability_config_and_lifecycle.md` §1; `docs/audit/findings/core.md` §5 |
+| **Location** | `src/lucca/core/config.py:132-177`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/11_observability_config_and_lifecycle.md` §1; `luccadocs/audit/findings/core.md` §5 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -355,7 +355,7 @@ Configuration is the operator's only lever on a local-first product; a documente
 | **Title** | The shutdown and supervision contract (Spec 01 §7) is unimplemented at every layer: UI, supervisor, and process teardown |
 | **Severity** | S2 — Medium |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/main.py:129-162`; `src/lucca/ui/app.py:471-478`; `src/lucca/senses/npu_proc.py` (no stop); `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/01_process_topology_and_ipc.md` §7; `docs/audit/evidence/S1_37_shutdown.txt` |
+| **Location** | `src/lucca/main.py:129-162`; `src/lucca/ui/app.py:471-478`; `src/lucca/senses/npu_proc.py` (no stop); `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/01_process_topology_and_ipc.md` §7; `luccadocs/audit/evidence/S1_37_shutdown.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -399,7 +399,7 @@ Data-loss risk scales with the remediation programme: F-DRIFT-001 wires persiste
 | **Title** | The docs set is structurally unreachable from the code it documents: paths, component names, and ports in AGENTS/SKILL reference a layout that never existed |
 | **Severity** | S3 — Low |
 | **Category** | DOCS |
-| **Location** | `AGENTS.md`; `.agents/skills/lucca-pipeline/SKILL.md` §4; `docs/archive/2026-09-17_pre_phase4_audit/` (whole set); `docs/audit/00_AUDIT_CHARTER.md` §10 |
+| **Location** | `AGENTS.md`; `.agents/skills/lucca-pipeline/SKILL.md` §4; `luccadocs/archive/2026-09-17_pre_phase4_audit/` (whole set); `luccadocs/audit/00_AUDIT_CHARTER.md` §10 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -444,7 +444,7 @@ Operator trust and onboarding: the first four commands an operator runs per the 
 | **Title** | The ADR corpus itself is incomplete and inconsistent with the shipped decisions (ADR-009 cited but missing; ADR-001 command drift; ADR-010 forward-looking-only trap) |
 | **Severity** | S3 — Low |
 | **Category** | DOCS |
-| **Location** | `docs/audit/03_BASELINE.md:103` (commit `b75ce27` cites ADR-009); `docs/archive/2026-09-17_pre_phase4_audit/08_adr/` (ADR-001…008, 010 — no 009); `ADR-001_inference_engine.md:40` (`--log-format json`, F-BRAIN-023); `ADR-010` (64 GB upgrade — forward-looking, Charter §3.3) |
+| **Location** | `luccadocs/audit/03_BASELINE.md:103` (commit `b75ce27` cites ADR-009); `luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/` (ADR-001…008, 010 — no 009); `ADR-001_inference_engine.md:40` (`--log-format json`, F-BRAIN-023); `ADR-010` (64 GB upgrade — forward-looking, Charter §3.3) |
 | **Status** | OPEN |
 
 **Evidence**

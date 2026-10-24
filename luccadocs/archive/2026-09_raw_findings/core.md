@@ -1,7 +1,7 @@
 # Findings — CORE (`src/lucca/core/**`, `main.py`, `admin.py`, `ports.py`)
 
 **Subtask:** S2a · **Method:** static line-by-line + S1 dynamic evidence · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md` · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; nothing outside `docs/audit/` touched; every finding cites `file:line` or an artefact under `docs/audit/evidence/`. Archived specs are cited as *claims*; code truth wins.
+**Rules honoured:** findings-only; nothing outside `luccadocs/audit/` touched; every finding cites `file:line` or an artefact under `luccadocs/audit/evidence/`. Archived specs are cited as *claims*; code truth wins.
 
 **Severity totals: S0 = 1 · S1 = 12 · S2 = 24 · S3 = 21 · S4 = 3 · total = 61.**
 
@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` (T1, `-m "not hw and not soak"`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` (T1, `-m "not hw and not soak"`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Inbound callers | Outbound dependencies | Cov % | Tests exercising it |
 |---|---:|---|---|---|---|---:|---|
@@ -51,13 +51,13 @@ Doubles read: `tests/fakes/fake_llm.py` (sync generator `stream_turn`, `abort()`
 
 ### 2.2 Runtime supervision, heartbeat, restart
 
-- `Supervisor.run_forever` (`main.py:129-140`): every 1 s, for each child `if not p.is_alive(): sys.stderr.write(...)`. **No restart, no backoff, no DEGRADED state, no exit.** Observed: `WARNING: Child process 'ui' exited with code 0.` ≥ 807 lines in `docs/audit/evidence/S1_24_lucca_main.stderr.log:2-808` (S1_SUMMARY §2.14 says 25×; the artefact contains far more — one line per second for the remaining ~13.5 min of the session).
+- `Supervisor.run_forever` (`main.py:129-140`): every 1 s, for each child `if not p.is_alive(): sys.stderr.write(...)`. **No restart, no backoff, no DEGRADED state, no exit.** Observed: `WARNING: Child process 'ui' exited with code 0.` ≥ 807 lines in `luccadocs/audit/evidence/S1_24_lucca_main.stderr.log:2-808` (S1_SUMMARY §2.14 says 25×; the artefact contains far more — one line per second for the remaining ~13.5 min of the session).
 - `Orchestrator._heartbeat_loop` (`orchestrator.py:687-689`): `while self.running: time.sleep(2.0)` — **no `sys.ping` is ever sent**; `SysPingPayload`/`SysPongPayload` (`ipc_schemas.py:195-201`) are dead types. ADR-008 "health-checks each every 2 s over ZMQ ping; restarts with exponential backoff" is not implemented.
 - `ctl_sock` (ROUTER, `orchestrator.py:71,118`) is bound but **never read or written** anywhere in `orchestrator.py`.
 
 ### 2.3 Shutdown
 
-- Only trigger: `KeyboardInterrupt` in `run_forever` (`main.py:139-140`). No `signal.signal(SIGTERM/SIGBREAK)`, no `SetConsoleCtrlHandler`, no reaction to `ui` child exit ("Quit Lucca"), no `WM_CLOSE`. Observed: graceful `taskkill` left supervisor + 2 children alive after 10 s (`docs/audit/evidence/S1_37_shutdown.txt`).
+- Only trigger: `KeyboardInterrupt` in `run_forever` (`main.py:139-140`). No `signal.signal(SIGTERM/SIGBREAK)`, no `SetConsoleCtrlHandler`, no reaction to `ui` child exit ("Quit Lucca"), no `WM_CLOSE`. Observed: graceful `taskkill` left supervisor + 2 children alive after 10 s (`luccadocs/audit/evidence/S1_37_shutdown.txt`).
 - Order (`main.py:142-162`): `orchestrator.stop()` → for each child `terminate()` (Windows `TerminateProcess`), `join(2.0)`, `kill()` → `llama_proc.terminate()` only if *we* spawned it. Spec 01 §7 order (`ui.state offline` → `play.abort` → stop turns → flush SQLite ≤ 5 s → `VACUUM INTO` → SIGTERM children 3 s → llama) is not implemented; no SQLite exists in core to flush.
 - `Orchestrator.stop()` (`orchestrator.py:691-703`): sets `running=False`, releases confirm event, aborts + joins active turn ≤ 1 s, closes sockets `linger=0`, destroys context. Ingest thread blocked in `recv()` (`:178`) is only released by `ctx.destroy` raising `ZMQError` — relies on daemon thread teardown.
 
@@ -346,7 +346,7 @@ Charter §5 invariant 5: "zero `Any` in public interfaces" — any violation is 
 | **Title** | ASR and TTS inference execute inside the core process; the `lucca-npu` child is not on the turn path (ADR-008 role assignment not implemented) |
 | **Severity** | S1 — High |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/core/orchestrator.py:39-46`; `src/lucca/core/orchestrator.py:80-97`; `src/lucca/core/orchestrator.py:354-356`; `src/lucca/core/orchestrator.py:551-559`; `src/lucca/main.py:79-81`; `docs/audit/evidence/S1_25_process_table.txt` |
+| **Location** | `src/lucca/core/orchestrator.py:39-46`; `src/lucca/core/orchestrator.py:80-97`; `src/lucca/core/orchestrator.py:354-356`; `src/lucca/core/orchestrator.py:551-559`; `src/lucca/main.py:79-81`; `luccadocs/audit/evidence/S1_25_process_table.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -378,11 +378,11 @@ Charter §5 invariant 5: "zero `Any` in public interfaces" — any violation is 
             asr_res = self.asr.transcribe(pcm_samples)
             transcribed_text = asr_res.text.strip()
 ```
-Artefact: `docs/audit/evidence/S1_25_process_table.txt` (registered in 02_EVIDENCE_INDEX.md, row 51): supervisor PID 9120 WS **870.1 MB**, child 40824 WS **865.4 MB**, both "Not Responding".
+Artefact: `luccadocs/audit/evidence/S1_25_process_table.txt` (registered in 02_EVIDENCE_INDEX.md, row 51): supervisor PID 9120 WS **870.1 MB**, child 40824 WS **865.4 MB**, both "Not Responding".
 
 **What is wrong / assumed / missing**
 
-ADR-008 (`docs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-008_process_topology.md:15-16`) assigns Whisper/Kokoro/embeddings to `lucca-npu` and forbids `lucca-core` from doing inference; Spec 01 §4 routes `asr.transcribe`/`tts.synthesize` over `ctl`. The code constructs `TTSWorker` (loads Kokoro ONNX, `senses/tts.py:146`) and `ASRWorker` inside the supervisor/core process and calls them synchronously from the turn thread. `main.py:79-81` still spawns an `NPUProcess` child that subscribes to the bus, so model weights are loaded twice on a 16 GB host. Code truth: single-process inference. Which side is right: the ADR, because its rationale (GIL contention, crash isolation, RAM caps ≤ 900 MB core) still holds on the current hardware; the observed 870 MB core WS is at the cap before any memory subsystem exists.
+ADR-008 (`luccadocs/archive/2026-09-17_pre_phase4_audit/08_adr/ADR-008_process_topology.md:15-16`) assigns Whisper/Kokoro/embeddings to `lucca-npu` and forbids `lucca-core` from doing inference; Spec 01 §4 routes `asr.transcribe`/`tts.synthesize` over `ctl`. The code constructs `TTSWorker` (loads Kokoro ONNX, `senses/tts.py:146`) and `ASRWorker` inside the supervisor/core process and calls them synchronously from the turn thread. `main.py:79-81` still spawns an `NPUProcess` child that subscribes to the bus, so model weights are loaded twice on a 16 GB host. Code truth: single-process inference. Which side is right: the ADR, because its rationale (GIL contention, crash isolation, RAM caps ≤ 900 MB core) still holds on the current hardware; the observed 870 MB core WS is at the cap before any memory subsystem exists.
 
 **Why it matters**
 
@@ -494,7 +494,7 @@ Phase 3/4 sign-off (Charter §5.3) is claimed for subsystems that are not reacha
 | **Title** | Emoji `print()` in the PTT handlers raises `UnicodeEncodeError` on non-UTF-8 stdout and prevents the turn thread from starting |
 | **Severity** | S1 — High |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/core/orchestrator.py:247`; `src/lucca/core/orchestrator.py:302-309`; `src/lucca/core/orchestrator.py:185-186`; `docs/audit/evidence/S1_24_lucca_main.log:28-46` |
+| **Location** | `src/lucca/core/orchestrator.py:247`; `src/lucca/core/orchestrator.py:302-309`; `src/lucca/core/orchestrator.py:185-186`; `luccadocs/audit/evidence/S1_24_lucca_main.log:28-46` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -510,7 +510,7 @@ Phase 3/4 sign-off (Charter §5.3) is claimed for subsystems that are not reacha
         self.active_turn_thread = t
         t.start()
 ```
-Artefact: `docs/audit/evidence/S1_24_lucca_main.log:28-31` (row 49)
+Artefact: `luccadocs/audit/evidence/S1_24_lucca_main.log:28-31` (row 49)
 ```
 2026-09-18 08:53:40 [warning  ] ingest_loop_unexpected_error   error="'charmap' codec can't encode characters in position 8-9: character maps to <undefined>"
 [AUDIO] PTT Released (2094ms, speech: 1040ms)
@@ -557,7 +557,7 @@ Main-path failure of the shipped voice loop whenever the launcher's stdout is no
 | **Title** | Supervisor never restarts, degrades, or exits when a child process dies; heartbeat loop is a no-op |
 | **Severity** | S1 — High |
 | **Category** | RELIABILITY |
-| **Location** | `src/lucca/main.py:129-140`; `src/lucca/core/orchestrator.py:687-689`; `docs/audit/evidence/S1_24_lucca_main.stderr.log:2-808` |
+| **Location** | `src/lucca/main.py:129-140`; `src/lucca/core/orchestrator.py:687-689`; `luccadocs/audit/evidence/S1_24_lucca_main.stderr.log:2-808` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -622,7 +622,7 @@ A dead audio child means PTT never arrives and the product is silently deaf; a d
 | **Title** | Shutdown is triggered only by `KeyboardInterrupt`; `WM_CLOSE`/`taskkill`/UI Quit leave core and children running |
 | **Severity** | S1 — High |
 | **Category** | RELIABILITY |
-| **Location** | `src/lucca/main.py:139-140`; `src/lucca/main.py:165-179`; `docs/audit/evidence/S1_37_shutdown.txt` |
+| **Location** | `src/lucca/main.py:139-140`; `src/lucca/main.py:165-179`; `luccadocs/audit/evidence/S1_37_shutdown.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -632,7 +632,7 @@ A dead audio child means PTT never arrives and the product is silently deaf; a d
         except KeyboardInterrupt:
             self.shutdown()
 ```
-Artefact: `docs/audit/evidence/S1_37_shutdown.txt` (row 70): after graceful `taskkill /PID 9120`, supervisor 9120 and children 40824, 39664 all still alive at +10 s; `taskkill /F /T` required.
+Artefact: `luccadocs/audit/evidence/S1_37_shutdown.txt` (row 70): after graceful `taskkill /PID 9120`, supervisor 9120 and children 40824, 39664 all still alive at +10 s; `taskkill /F /T` required.
 
 **What is wrong / assumed / missing**
 
@@ -674,7 +674,7 @@ Operators (and the S1 harness) cannot stop the app gracefully; force-kill skips 
 | **Title** | An LLM stream with zero `TokenDelta` events is accepted as a successful turn (empty reply, no notice, no log) |
 | **Severity** | S1 — High |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/core/orchestrator.py:393-455`; `docs/audit/evidence/S1_30_T3_hw.txt:10-15` |
+| **Location** | `src/lucca/core/orchestrator.py:393-455`; `luccadocs/audit/evidence/S1_30_T3_hw.txt:10-15` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -695,7 +695,7 @@ Operators (and the S1 harness) cannot stop the app gracefully; force-kill skips 
             # Record turn in history
             if full_response_text and not trace.interrupted:
 ```
-Artefact: `docs/audit/evidence/S1_30_T3_hw.txt:13-15` (row 56): `tokens_out=0, chunks=0 … interrupted=False`; captured stdout `[User] "Thank you."` / `[Lucca] ` (empty).
+Artefact: `luccadocs/audit/evidence/S1_30_T3_hw.txt:13-15` (row 56): `tokens_out=0, chunks=0 … interrupted=False`; captured stdout `[User] "Thank you."` / `[Lucca] ` (empty).
 
 **What is wrong / assumed / missing**
 
@@ -736,7 +736,7 @@ Main-path defect observed live in T3 (`test_live_phase1_conversational_turn`). W
 | **Title** | Trace timestamps use `time.monotonic_ns()` (≈ 15.6 ms granularity on Windows/CPython 3.12) and are stored as absolute values, invalidating sub-50 ms stage budgets |
 | **Severity** | S1 — High |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/core/orchestrator.py:333,414,427,446,469,553,558`; `src/lucca/core/trace.py:21-37`; `docs/audit/evidence/S1_30_T3_hw.txt:13` |
+| **Location** | `src/lucca/core/orchestrator.py:333,414,427,446,469,553,558`; `src/lucca/core/trace.py:21-37`; `luccadocs/audit/evidence/S1_30_T3_hw.txt:13` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -745,7 +745,7 @@ Main-path defect observed live in T3 (`test_live_phase1_conversational_turn`). W
 ```python
         trace.t_llm_sent = time.monotonic_ns()
 ```
-Artefact: `docs/audit/evidence/S1_30_T3_hw.txt:13` — `t_postturn_done=180044109000000` (exact multiple of 1 000 000 ns; ≈ 50.0 h since boot).
+Artefact: `luccadocs/audit/evidence/S1_30_T3_hw.txt:13` — `t_postturn_done=180044109000000` (exact multiple of 1 000 000 ns; ≈ 50.0 h since boot).
 
 **What is wrong / assumed / missing**
 
@@ -844,7 +844,7 @@ Spec 10 §2 stage budgets and the Phase-1 latency gate are unmeasurable; the per
 | **Title** | ASR runs sequentially before the LLM request in audio mode instead of in parallel (Spec 01 §6 DISPATCH) |
 | **Severity** | S1 — High |
 | **Category** | PERFORMANCE |
-| **Location** | `src/lucca/core/orchestrator.py:352-407`; `docs/audit/evidence/S1_35_bench_asr.txt` |
+| **Location** | `src/lucca/core/orchestrator.py:352-407`; `luccadocs/audit/evidence/S1_35_bench_asr.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -864,7 +864,7 @@ Spec 10 §2 stage budgets and the Phase-1 latency gate are unmeasurable; the per
             print("[Lucca] ", end="", flush=True)
             for event in self.llm.stream_turn(
 ```
-Artefact: `docs/audit/evidence/S1_35_bench_asr.txt` (row 66): ASR p50 1443 ms (GPU.0) / 1522 ms (CPU) for a 1.32 s clip.
+Artefact: `luccadocs/audit/evidence/S1_35_bench_asr.txt` (row 66): ASR p50 1443 ms (GPU.0) / 1522 ms (CPU) for a 1.32 s clip.
 
 **What is wrong / assumed / missing**
 
@@ -965,7 +965,7 @@ Barge-in is the flagship real-time feature; the race yields audio from the abort
 | **Title** | llama-server spawn failure is downgraded to a warning, its stderr is discarded, and boot then dies after a blind 60 s wait with `exit 5` |
 | **Severity** | S1 — High |
 | **Category** | RELIABILITY |
-| **Location** | `src/lucca/main.py:107-127`; `docs/audit/evidence/S1_15_llama_server.stderr.log`; `docs/audit/evidence/S1_15b_llm_start_health.txt` |
+| **Location** | `src/lucca/main.py:107-127`; `luccadocs/audit/evidence/S1_15_llama_server.stderr.log`; `luccadocs/audit/evidence/S1_15b_llm_start_health.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -989,7 +989,7 @@ Barge-in is the flagship real-time feature; the race yields audio from the abort
         sys.stderr.write("FATAL: llama-server failed to respond on /health within 60s.\n")
         sys.exit(5)
 ```
-Artefact: `docs/audit/evidence/S1_15_llama_server.stderr.log` (row 30): `error: invalid argument: --log-format`; server exited code 1 after 2.63 s (`S1_15b_llm_start_health.txt`, row 29).
+Artefact: `luccadocs/audit/evidence/S1_15_llama_server.stderr.log` (row 30): `error: invalid argument: --log-format`; server exited code 1 after 2.63 s (`S1_15b_llm_start_health.txt`, row 29).
 
 **What is wrong / assumed / missing**
 
@@ -1031,7 +1031,7 @@ Main-path boot on a clean machine (no pre-running server) fails after 60 s with 
 | **Title** | Configuration does not fail closed in `prod` mode when `LUCCA_MASTER_KEY` is unset |
 | **Severity** | S1 — High |
 | **Category** | SECURITY |
-| **Location** | `src/lucca/core/config.py:15-16`; `src/lucca/core/config.py:155`; `src/lucca/core/config.py:175-177`; `docs/audit/evidence/S1_06_lucca_home_tree.txt` |
+| **Location** | `src/lucca/core/config.py:15-16`; `src/lucca/core/config.py:155`; `src/lucca/core/config.py:175-177`; `luccadocs/audit/evidence/S1_06_lucca_home_tree.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1040,7 +1040,7 @@ Main-path boot on a clean machine (no pre-running server) fails after 60 s with 
 ```python
     master_key: str | None = Field(default=None, alias="LUCCA_MASTER_KEY")
 ```
-Artefact: `docs/audit/evidence/S1_06_lucca_home_tree.txt` (row 10): `LUCCA_MASTER_KEY=UNSET`; `docs/audit/evidence/S1_15a_launch_cmd_from_code.txt` (row 27): `env.mode=prod`; `docs/audit/evidence/S1_10_admin_env_check.txt:17`: `[SUCCESS] All Spike 0.1 environment criteria passed!`
+Artefact: `luccadocs/audit/evidence/S1_06_lucca_home_tree.txt` (row 10): `LUCCA_MASTER_KEY=UNSET`; `luccadocs/audit/evidence/S1_15a_launch_cmd_from_code.txt` (row 27): `env.mode=prod`; `luccadocs/audit/evidence/S1_10_admin_env_check.txt:17`: `[SUCCESS] All Spike 0.1 environment criteria passed!`
 
 **What is wrong / assumed / missing**
 
@@ -1247,7 +1247,7 @@ A WRITE/LAUNCH tool can run on an utterance the user did not intend as consent �
 | **Title** | TTS synthesis blocks the LLM streaming thread with no queue or back-pressure |
 | **Severity** | S2 — Medium |
 | **Category** | PERFORMANCE |
-| **Location** | `src/lucca/core/orchestrator.py:423-431`; `src/lucca/core/orchestrator.py:551-559`; `docs/audit/evidence/S1_34_bench_tts.txt` |
+| **Location** | `src/lucca/core/orchestrator.py:423-431`; `src/lucca/core/orchestrator.py:551-559`; `luccadocs/audit/evidence/S1_34_bench_tts.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1264,7 +1264,7 @@ A WRITE/LAUNCH tool can run on an utterance the user did not intend as consent �
             trace.t_tts_first_done = time.monotonic_ns()
         trace.chunks += 1
 ```
-Artefact: `docs/audit/evidence/S1_34_bench_tts.txt` (row 65): Kokoro CPU p50 328.7 ms, p95 393.3 ms per clause.
+Artefact: `luccadocs/audit/evidence/S1_34_bench_tts.txt` (row 65): Kokoro CPU p50 328.7 ms, p95 393.3 ms per clause.
 
 **What is wrong / assumed / missing**
 
@@ -1516,7 +1516,7 @@ The documented developer path (repo-local `.lucca_home`, D-08) is unreachable, a
 | **Title** | `check_lucca_home` creates missing directories and always passes; it never verifies models or `MANIFEST.json` |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/core/env_check.py:140-157`; `docs/audit/evidence/S1_07c_models_manifest.txt` |
+| **Location** | `src/lucca/core/env_check.py:140-157`; `luccadocs/audit/evidence/S1_07c_models_manifest.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1536,7 +1536,7 @@ The documented developer path (repo-local `.lucca_home`, D-08) is unreachable, a
         msg += f" (initialized directories: {', '.join(created)})"
     return True, msg
 ```
-Artefact: `docs/audit/evidence/S1_07c_models_manifest.txt` (row 13): `MANIFEST.json` → `File Not Found`; `S1_10_admin_env_check.txt:15`: `[PASS] LUCCA_HOME Layout`.
+Artefact: `luccadocs/audit/evidence/S1_07c_models_manifest.txt` (row 13): `MANIFEST.json` → `File Not Found`; `S1_10_admin_env_check.txt:15`: `[PASS] LUCCA_HOME Layout`.
 
 **What is wrong / assumed / missing**
 
@@ -1576,7 +1576,7 @@ The single pre-flight gate cannot detect the most common install failure (missin
 | **Title** | `.wslconfig` check is a substring match that accepts keys WSL rejects and commented-out lines |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/core/env_check.py:105-115`; `docs/audit/evidence/S1_05b_wsl_docker_state.txt` |
+| **Location** | `src/lucca/core/env_check.py:105-115`; `luccadocs/audit/evidence/S1_05b_wsl_docker_state.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1592,7 +1592,7 @@ The single pre-flight gate cannot detect the most common install failure (missin
     ]
     missing = [desc for target, desc in checks if target not in content]
 ```
-Artefact: `docs/audit/evidence/S1_05b_wsl_docker_state.txt` (row 9): WSL prints `Unknown key 'wsl2.pageReporting'`, `Unknown key 'wsl2.autoMemoryReclaim'`, `Unknown key 'wsl2.sparseVhd'` on every invocation while the check reports PASS.
+Artefact: `luccadocs/audit/evidence/S1_05b_wsl_docker_state.txt` (row 9): WSL prints `Unknown key 'wsl2.pageReporting'`, `Unknown key 'wsl2.autoMemoryReclaim'`, `Unknown key 'wsl2.sparseVhd'` on every invocation while the check reports PASS.
 
 **What is wrong / assumed / missing**
 
@@ -1741,7 +1741,7 @@ Spec 01 §7 steps 1–4 and Spec 11 §7 require: master-key presence in prod, `P
 | **Title** | `lucca-admin` exits 0 on unknown commands and treats `--help` as an unknown command |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/admin.py:11-25`; `docs/audit/evidence/S1_32b_admin_help_and_exitcodes.txt:7-20` |
+| **Location** | `src/lucca/admin.py:11-25`; `luccadocs/audit/evidence/S1_32b_admin_help_and_exitcodes.txt:7-20` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -1754,7 +1754,7 @@ Spec 01 §7 steps 1–4 and Spec 11 §7 require: master-key presence in prod, `P
     else:
         print(f"Unknown command '{cmd}'. Use 'lucca-admin help'")
 ```
-Artefact: `docs/audit/evidence/S1_32b_admin_help_and_exitcodes.txt:7-8,16-17` (row 63): `Unknown command '--help'` … `EXIT_CODE_--help=0`; `Unknown command 'definitely-not-a-command'` … `EXIT_CODE_bogus=0`.
+Artefact: `luccadocs/audit/evidence/S1_32b_admin_help_and_exitcodes.txt:7-8,16-17` (row 63): `Unknown command '--help'` … `EXIT_CODE_--help=0`; `Unknown command 'definitely-not-a-command'` … `EXIT_CODE_bogus=0`.
 
 **What is wrong / assumed / missing**
 
@@ -1793,7 +1793,7 @@ None — behaviour fully determined by the code.
 | **Title** | `lucca-admin` advertises nine subcommands that do not exist |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/admin.py:13-19`; `docs/audit/evidence/S1_32_admin_latency.txt`; `docs/audit/evidence/S1_20_sandbox_verify.txt` |
+| **Location** | `src/lucca/admin.py:13-19`; `luccadocs/audit/evidence/S1_32_admin_latency.txt`; `luccadocs/audit/evidence/S1_20_sandbox_verify.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -2070,7 +2070,7 @@ UX honesty (Charter §6 UX): the user is offered controls with no effect. Proven
 | **Title** | `EventName` enum is unused; log events are free-form strings and no per-process JSON log files are written |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/core/events.py:9-77`; `src/lucca/core/orchestrator.py:48`; `src/lucca/core/orchestrator.py:186,216,238,459,634,653,670`; `src/lucca/core/config.py:123-126`; `docs/audit/evidence/S1_31_reports_harvest.txt` |
+| **Location** | `src/lucca/core/events.py:9-77`; `src/lucca/core/orchestrator.py:48`; `src/lucca/core/orchestrator.py:186,216,238,459,634,653,670`; `src/lucca/core/config.py:123-126`; `luccadocs/audit/evidence/S1_31_reports_harvest.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -2083,7 +2083,7 @@ logger = structlog.get_logger(__name__)
 ```python
                 logger.warning("ingest_loop_unexpected_error", error=str(exc))
 ```
-Artefact: `docs/audit/evidence/S1_31_reports_harvest.txt` (row 57): `C:\ProjectLucca\logs` contains only `phase0_llm.json`, `traces.jsonl`, `resource_sessions\…` — no `core-YYYYMMDD.jsonl`.
+Artefact: `luccadocs/audit/evidence/S1_31_reports_harvest.txt` (row 57): `C:\ProjectLucca\logs` contains only `phase0_llm.json`, `traces.jsonl`, `resource_sessions\…` — no `core-YYYYMMDD.jsonl`.
 
 **What is wrong / assumed / missing**
 
@@ -2175,7 +2175,7 @@ None — fully determined by code.
 | **Title** | Core imports concrete adapters directly; `lucca.ports` is unused by core and the import boundary is unenforced |
 | **Severity** | S2 — Medium |
 | **Category** | MAINTAINABILITY |
-| **Location** | `src/lucca/core/orchestrator.py:17-46`; `src/lucca/ports.py:1-5`; `pyproject.toml:56-93`; `docs/audit/evidence/S1_11d_lint_imports.txt` |
+| **Location** | `src/lucca/core/orchestrator.py:17-46`; `src/lucca/ports.py:1-5`; `pyproject.toml:56-93`; `luccadocs/audit/evidence/S1_11d_lint_imports.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -2188,7 +2188,7 @@ Spec 02 (`lucca.ports`)
 All external boundaries are accessed strictly through these Protocols.
 """
 ```
-Artefact: `docs/audit/evidence/S1_11d_lint_imports.txt` (row 21): `lint-imports` → `Could not read any configuration`.
+Artefact: `luccadocs/audit/evidence/S1_11d_lint_imports.txt` (row 21): `lint-imports` → `Could not read any configuration`.
 
 **What is wrong / assumed / missing**
 
@@ -2289,12 +2289,12 @@ None — gap is in the tests as written.
 | **Title** | `main.py`, `admin.py`, `core/env_check.py`, `core/events.py` have 0 % test coverage |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `docs/audit/evidence/S1_14_coverage.txt:15,24,25,31`; `src/lucca/main.py`; `src/lucca/admin.py`; `src/lucca/core/env_check.py`; `src/lucca/core/events.py` |
+| **Location** | `luccadocs/audit/evidence/S1_14_coverage.txt:15,24,25,31`; `src/lucca/main.py`; `src/lucca/admin.py`; `src/lucca/core/env_check.py`; `src/lucca/core/events.py` |
 | **Status** | OPEN |
 
 **Evidence**
 
-Artefact: `docs/audit/evidence/S1_14_coverage.txt:15,24,25,31` (row 25)
+Artefact: `luccadocs/audit/evidence/S1_14_coverage.txt:15,24,25,31` (row 25)
 ```
 src\lucca\admin.py                           14     14     0%   6-29
 src\lucca\core\env_check.py                 121    121     0%   6-193
@@ -2392,12 +2392,12 @@ None.
 | **Title** | Supervisor writes an identical stderr warning every second for a dead child (log flood) |
 | **Severity** | S3 — Low |
 | **Category** | MAINTAINABILITY |
-| **Location** | `src/lucca/main.py:133-138`; `docs/audit/evidence/S1_24_lucca_main.stderr.log:2-808` |
+| **Location** | `src/lucca/main.py:133-138`; `luccadocs/audit/evidence/S1_24_lucca_main.stderr.log:2-808` |
 | **Status** | OPEN |
 
 **Evidence**
 
-Artefact: `docs/audit/evidence/S1_24_lucca_main.stderr.log:2-4` (row 50)
+Artefact: `luccadocs/audit/evidence/S1_24_lucca_main.stderr.log:2-4` (row 50)
 ```
 WARNING: Child process 'ui' exited with code 0.
 WARNING: Child process 'ui' exited with code 0.

@@ -11,7 +11,7 @@
 > - **Milestone 5 (Affective ODE & Prompt Frontier Suffix):** Completed in commit `1d0a48d`.  
 > - **Milestone 6 (E-Graph Anti-Unification & Z3 SMT):** Completed in commit `c04e44a`.  
 > - **Milestone 7 (Standalone Packaging & System Tray):** Completed in commit `b1b36e3`.  
-> For the living, canonical system architecture, consult [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) and [`README.md`](../../README.md).
+> For the living, canonical system architecture, consult [`luccadocs/ARCHITECTURE.md`](../ARCHITECTURE.md) and [`README.md`](../../README.md).
 
 **Date**: 2026-09-20  
 **Target System**: Project Lucca (Mistral-Nemo 12B Abliterated Q6_K on NVIDIA RTX 5080 Laptop GPU, 16 GB GDDR7)  

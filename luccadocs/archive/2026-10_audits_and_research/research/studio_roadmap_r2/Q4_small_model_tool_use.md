@@ -1,8 +1,8 @@
 # Research Deep Dive: Q4 — Small-Model Tool Use & Context Discipline
 
-**Document:** `docs/research/studio_roadmap_r2/Q4_small_model_tool_use.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/Q4_small_model_tool_use.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Access Date:** 2026-09-21  
 **Status:** Complete — Ready for Review  
 

@@ -1,6 +1,6 @@
 # 01 — Finding Template
 
-Every finding in `docs/audit/findings/*.md` **must** use the block below verbatim: same field names, same order, no fields omitted. Fields that genuinely do not apply are filled with `None — <one-line reason>`, never left blank or deleted.
+Every finding in `luccadocs/audit/findings/*.md` **must** use the block below verbatim: same field names, same order, no fields omitted. Fields that genuinely do not apply are filled with `None — <one-line reason>`, never left blank or deleted.
 
 Rules that govern the template are in [`00_AUDIT_CHARTER.md`](00_AUDIT_CHARTER.md) §3–§7. Key constraints repeated here for the author:
 
@@ -8,7 +8,7 @@ Rules that govern the template are in [`00_AUDIT_CHARTER.md`](00_AUDIT_CHARTER.m
 - **Severity** ∈ `S0`, `S1`, `S2`, `S3`, `S4` (Charter §4).
 - **Category** — exactly one of `INVARIANT`, `CORRECTNESS`, `SECURITY`, `PERFORMANCE`, `RELIABILITY`, `TESTING`, `SPEC-DRIFT`, `ASSUMPTION`, `INCOMPLETE`, `MAINTAINABILITY`, `UX`, `DOCS` (Charter §6).
 - **Location** — `path:line` or `path:start-end`; multiple ranges separated by `;`. Paths are repo-relative. If the evidence is an artefact rather than code, put the artefact path here too.
-- **Evidence** — verbatim excerpt(s) in a fenced code block, or an artefact path under `docs/audit/evidence/`. Paraphrase is not evidence. "Appears to" without evidence is disallowed (Charter §3.4).
+- **Evidence** — verbatim excerpt(s) in a fenced code block, or an artefact path under `luccadocs/audit/evidence/`. Paraphrase is not evidence. "Appears to" without evidence is disallowed (Charter §3.4).
 - **Proposed remediation** — numbered, atomic steps a weaker model (target: GLM 5.3 Flash) can execute **without judgement calls**. Each step names the exact file, the exact function/class/constant, what the behaviour is *before* and what it must be *after*. If a step needs a decision, the decision is made here, in the finding — not deferred to the implementer.
 - **Verification test** — mechanical: concrete input, concrete expected output, explicit threshold (if numeric), and tier `T0` / `T1` / `T2` / `T3`. A verification that requires a human to "look and see" is not acceptable below S4.
 - **Status** — new findings are `DRAFT` until re-reviewed per Charter §3.5, then `OPEN`. Later programmes may move to `ACCEPTED`, `REJECTED`, `FIXED`, `VERIFIED`; the audit itself only produces `OPEN`.
@@ -35,7 +35,7 @@ Rules that govern the template are in [`00_AUDIT_CHARTER.md`](00_AUDIT_CHARTER.m
 ```python
 <verbatim excerpt — copied, not retyped; keep original indentation>
 ```
-<and/or> Artefact: `docs/audit/evidence/<artefact-file>` (registered in 02_EVIDENCE_INDEX.md, row <n>)
+<and/or> Artefact: `luccadocs/audit/evidence/<artefact-file>` (registered in 02_EVIDENCE_INDEX.md, row <n>)
 
 **What is wrong / assumed / missing**
 
@@ -43,7 +43,7 @@ Rules that govern the template are in [`00_AUDIT_CHARTER.md`](00_AUDIT_CHARTER.m
 
 **Why it matters**
 
-<Link to the thing this threatens: Charter §5 invariant number, archived spec section (path under docs/archive/…), threat-model item, hardware-truth row, or user-facing consequence. State the concrete consequence, e.g. "untrusted page body can be committed as USER_DERIVED", "WSL2 exceeds 4.5 GB under X", "test passes without exercising Y".>
+<Link to the thing this threatens: Charter §5 invariant number, archived spec section (path under luccadocs/archive/…), threat-model item, hardware-truth row, or user-facing consequence. State the concrete consequence, e.g. "untrusted page body can be committed as USER_DERIVED", "WSL2 exceeds 4.5 GB under X", "test passes without exercising Y".>
 
 **Questions this raises**
 

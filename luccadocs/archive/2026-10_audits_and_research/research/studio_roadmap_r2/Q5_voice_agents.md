@@ -1,8 +1,8 @@
 # Research Deep Dive: Q5 — Open-Source Voice Agents & Real-Time Audio Concurrency
 
-**Document:** `docs/research/studio_roadmap_r2/Q5_voice_agents.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/Q5_voice_agents.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Access Date:** 2026-09-21  
 **Status:** Complete — Ready for Review  
 
@@ -89,7 +89,7 @@ This deep dive examines how leading open-source streaming voice frameworks—spe
 ---
 
 ### F-Q5-6: Comparing Architectural Tiers: Lucca vs. Pipecat & LiveKit
-- **Source(s):** Comparative architectural analysis of Lucca (`docs/ARCHITECTURE.md`) vs. LiveKit Agents / Pipecat, accessed 2026-09-21.
+- **Source(s):** Comparative architectural analysis of Lucca (`luccadocs/ARCHITECTURE.md`) vs. LiveKit Agents / Pipecat, accessed 2026-09-21.
 - **Read:** Source code and architecture documentation.
 - **Mechanism:**
   - *Pipecat / LiveKit:* Flat, homogeneous pipeline. Every user utterance travels through VAD $\rightarrow$ STT $\rightarrow$ LLM $\rightarrow$ TTS. Tool calling is handled as an asynchronous mid-generation callback from the primary LLM.

@@ -1,8 +1,8 @@
 # Research Deep Dive: Q3 — Classic Cognitive Architectures & Modern Hybrid Agents
 
-**Document:** `docs/research/studio_roadmap_r2/Q3_cognitive_architectures.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/Q3_cognitive_architectures.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Access Date:** 2026-09-21  
 **Status:** Complete — Ready for Review  
 

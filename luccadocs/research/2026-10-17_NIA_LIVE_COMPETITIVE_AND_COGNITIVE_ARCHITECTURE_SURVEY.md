@@ -27,7 +27,7 @@ Instead, live search across 2025–2026 repositories and preprints shows a small
 
 ### 2.1 `trubnikov/qca-cycle` ("QCA + SES: A Portable Cognitive Layer" / Ocean)
 - **Source:** `https://github.com/trubnikov/qca-cycle` (inspected live via `tracer`)
-- **Core Thesis:** *"Persistent identity and growing memory for any LLM agent. The LLM is a swappable CPU; the personality is your data."* (Independently arrived at the exact same "Qness / swappable brain" philosophy as Project Lucca's `D-BRAIN-05` and [`docs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md`](PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md:126)).
+- **Core Thesis:** *"Persistent identity and growing memory for any LLM agent. The LLM is a swappable CPU; the personality is your data."* (Independently arrived at the exact same "Qness / swappable brain" philosophy as Project Lucca's `D-BRAIN-05` and [`luccadocs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md`](PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md:126)).
 - **How It Works:**
   1. **SES (`kernel.ses.json`):** Immutable, SHA-256-signed "fractal kernel" (axioms + attractor + guardrails) injected into every reasoning cycle, paired with a typed state graph (`SUPPORTS` / `REFINES` / `CONTRADICTS`).
   2. **Neurochemistry State:** 4 continuous variables (`dopamine`, `pain`, `adrenaline`, `serotonin`) with real temporal half-lives that persist across sessions.
@@ -60,7 +60,7 @@ Instead, live search across 2025–2026 repositories and preprints shows a small
 ---
 
 ### 2.3 `rsxshx/agidb` ("agidb v2.0 / v2.1: Cognitive Substrate for Autonomous Agents")
-- **Source:** `https://github.com/rsxshx/agidb` (`docs/product/overview.md` and `docs/spec/tech-spec.md`, inspected live via `tracer`)
+- **Source:** `https://github.com/rsxshx/agidb` (`luccadocs/product/overview.md` and `luccadocs/spec/tech-spec.md`, inspected live via `tracer`)
 - **Core Thesis:** An embedded local substrate built around **seven first-class cognitive types**: `Sensory`, `WorkingMemory`, `Episode`, `SemanticAtom`, `Procedure`, `Goal` (state machines), `Belief` (revisable with audit), and a `SelfModel` (`LearningEventId` + `SelfVectorSnapshot`).
 - **How It Works:**
   - Uses 8,192-bit Hyperdimensional Computing (HDC) bit-vectors alongside bitemporal storage (`valid_from`, `valid_to`, `tx_from`, `tx_to`).

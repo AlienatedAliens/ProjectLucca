@@ -23,12 +23,12 @@ All quantitative gates, static invariant tests, and live hardware batteries have
 
 | Phase | Deliverable | Primary Artifacts | Status | Quantitative Verification |
 |---|---|---|---|---|
-| **WO-13.0** | Specification & Contracts (`D-META-01`) | [`docs/DECISIONS.md`](../DECISIONS.md) | **COMPLETE** | `test_active_docs_staleness_lint` passed. ADR ratified. |
+| **WO-13.0** | Specification & Contracts (`D-META-01`) | [`luccadocs/DECISIONS.md`](../DECISIONS.md) | **COMPLETE** | `test_active_docs_staleness_lint` passed. ADR ratified. |
 | **WO-13.1** | Pre-Narration Sanity-Check Guard | `src/lucca/core/sanity_guard.py` | **COMPLETE** | `tests/test_sanity_guard.py` (11/11 passed in 0.18s, $<200\,\mu\text{s}$ execution). |
 | **WO-13.2** | Proactive Epistemic Confidence Calibration | `src/lucca/core/schemas.py`, `retrieval.py`, `prompt_builder.py` | **COMPLETE** | `tests/test_confidence_calibration.py` (5/5 passed). Zero-`Any` typing. |
 | **WO-13.3** | Difficulty-Aware Dynamic Thinking | `src/lucca/core/turn_pipeline.py`, `llm_client.py` | **COMPLETE** | `tests/test_dynamic_thinking.py` (8/8 passed). KV-cache benchmark documented. |
 | **WO-13.4** | Persona-Under-Pressure Adversarial Battery | `scripts/probe_persona_under_pressure_hw.py` | **COMPLETE** | `logs/test_reports/persona_pressure_hw_20260923T124713Z.json` (4/4 passed live, 100%). |
-| **WO-13.5** | Closing Audit & Go/No-Go | [`docs/audit/findings/WO13_CLOSING_AUDIT.md`](WO13_CLOSING_AUDIT.md) | **COMPLETE** | 640+ test suite green, zero-`Any` static gates green, ruff clean. |
+| **WO-13.5** | Closing Audit & Go/No-Go | [`luccadocs/audit/findings/WO13_CLOSING_AUDIT.md`](WO13_CLOSING_AUDIT.md) | **COMPLETE** | 640+ test suite green, zero-`Any` static gates green, ruff clean. |
 
 ---
 

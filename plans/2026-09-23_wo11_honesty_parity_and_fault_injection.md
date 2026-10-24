@@ -1,7 +1,7 @@
 # WO-11 — Honesty Parity, Fault Injection & Verified-Source Priority
 
 **Date:** 2026-09-23 · **Status:** APPROVED FOR EXECUTION
-**Provenance:** WO-10 live capability assessment ([`CAPABILITY_FACT_FINDING_2026-09.md`](../docs/audit/findings/CAPABILITY_FACT_FINDING_2026-09.md)), external architectural audit (orchestrator divergence), consolidated review cycle (three-way: this agent, two external reviewers).
+**Provenance:** WO-10 live capability assessment ([`CAPABILITY_FACT_FINDING_2026-09.md`](../luccadocs/audit/findings/CAPABILITY_FACT_FINDING_2026-09.md)), external architectural audit (orchestrator divergence), consolidated review cycle (three-way: this agent, two external reviewers).
 **Supersedes:** nothing. **References:** D-HON-01 (new, this WO), ADR-006, D-MEM-03/04, D-ARCH-05, D-AUD-13.
 
 ---
@@ -176,7 +176,7 @@ Pattern-copied from the A4 promise guard (per-round state inspection → re-prom
 
 **Scope:**
 - Full battery rerun: Docker-enabled computation probes, fault-injection category, verified-source category, all nine original categories.
-- Amend [`CAPABILITY_FACT_FINDING_2026-09.md`](../docs/audit/findings/CAPABILITY_FACT_FINDING_2026-09.md): (a) note F11/F13 were voice-only during the WO-10 run (battery drives `_run_text_turn`); (b) explicit methodology caveat (self-authored probes, self-adjudicated, N=50 — gap-finding instrument, not a benchmark score); (c) before/after deltas for G1/G2/G4 retests; (d) the auditor-arithmetic anecdote as standing evidence for verified constants.
+- Amend [`CAPABILITY_FACT_FINDING_2026-09.md`](../luccadocs/audit/findings/CAPABILITY_FACT_FINDING_2026-09.md): (a) note F11/F13 were voice-only during the WO-10 run (battery drives `_run_text_turn`); (b) explicit methodology caveat (self-authored probes, self-adjudicated, N=50 — gap-finding instrument, not a benchmark score); (c) before/after deltas for G1/G2/G4 retests; (d) the auditor-arithmetic anecdote as standing evidence for verified constants.
 - Add staleness lint to CI: grep active docs (`AGENTS.md`, `GEMINI.md`, `ARCHITECTURE.md`, `DECISIONS.md`) for known-superseded terms (`M=3`, `NeMo` as primary, `Chroma` as live).
 
 **Testing metrics (gates):**
@@ -214,7 +214,7 @@ Pattern-copied from the A4 promise guard (per-round state inspection → re-prom
 5. **Doctrine audit:** D-HON-01 text final; DECISIONS.md updated; AGENTS.md/GEMINI.md consistent with code (staleness lint green).
 6. **Go/No-Go for WO-12 (D-MEM-04 belief model):** written recommendation with rationale.
 
-**Milestone M7 — *Audited, not just finished:*" a written audit document (`docs/audit/findings/WO11_CLOSING_AUDIT.md`) exists that a cold reader could use to reconstruct what was broken, what was done, what was verified, and what remains — without reading any chat history.
+**Milestone M7 — *Audited, not just finished:*" a written audit document (`luccadocs/audit/findings/WO11_CLOSING_AUDIT.md`) exists that a cold reader could use to reconstruct what was broken, what was done, what was verified, and what remains — without reading any chat history.
 
 ---
 

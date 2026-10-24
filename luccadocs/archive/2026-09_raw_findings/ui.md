@@ -1,7 +1,7 @@
 # Findings — UI (`src/lucca/ui/**`, `assets/**`)
 
 **Subtask:** S2h · **Method:** static line-by-line (targeted for the 2,466-line `settings_dialog.py`) + S1 dynamic evidence · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md`, delta in [`../03b_BASELINE_DELTA.md`](../03b_BASELINE_DELTA.md) (UI modules: **unchanged since S0**) · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `docs/audit/evidence/`. Cross-area findings cross-referenced by ID.
+**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `luccadocs/audit/evidence/`. Cross-area findings cross-referenced by ID.
 
 **Severity totals: S0 = 0 · S1 = 1 · S2 = 5 · S3 = 8 · S4 = 1 · total = 15.**
 
@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` rows 74–82. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` rows 74–82. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % | Tests |
 |---|---:|---|---|---|---|---:|---|
@@ -95,7 +95,7 @@ Fabricated telemetry displayed to the user — the most visible member of the ho
 | **Title** | The UI process exits without notifying core: the supervisor logs a dead-child warning every second for the rest of the session |
 | **Severity** | S1 — High |
 | **Category** | RELIABILITY |
-| **Location** | `src/lucca/ui/app.py:471-478`; `src/lucca/main.py` (Supervisor loop); `docs/audit/evidence/S1_24_lucca_main.stderr.log`; `docs/audit/findings/core.md` F-CORE-005/006 |
+| **Location** | `src/lucca/ui/app.py:471-478`; `src/lucca/main.py` (Supervisor loop); `luccadocs/audit/evidence/S1_24_lucca_main.stderr.log`; `luccadocs/audit/findings/core.md` F-CORE-005/006 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -199,7 +199,7 @@ Same portability defect family, now with a user-facing surface (FOLDERS/CODEBASE
 | **Title** | The commorose CODEBASE action and help text advertise "read-only codebase inspection" that no tool provides |
 | **Severity** | S2 — Medium |
 | **Category** | UX |
-| **Location** | `src/lucca/ui/app.py:125-130`; `src/lucca/ui/settings_dialog.py:2258,2331`; `docs/audit/findings/brain.md` F-BRAIN-004 |
+| **Location** | `src/lucca/ui/app.py:125-130`; `src/lucca/ui/settings_dialog.py:2258,2331`; `luccadocs/audit/findings/brain.md` F-BRAIN-004 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -254,7 +254,7 @@ The implementation prompt's mission ("every claim the UI makes must be verifiabl
 | **Title** | The settings dialog's rule editor and diagnostics tabs present fictional machinery as live |
 | **Severity** | S2 — Medium |
 | **Category** | UX |
-| **Location** | `src/lucca/ui/settings_dialog.py:272-273,2300-2302`; `docs/audit/findings/reas.md` F-REAS-003 |
+| **Location** | `src/lucca/ui/settings_dialog.py:272-273,2300-2302`; `luccadocs/audit/findings/reas.md` F-REAS-003 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -354,7 +354,7 @@ The "UI is alive but deaf" state is indistinguishable from a hung core for the u
 | **Title** | The settings dialog's model switch persists config but the running core never reloads it |
 | **Severity** | S3 — Low |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/ui/app.py:387`; `src/lucca/core/orchestrator.py:198-222`; `docs/audit/findings/core.md` F-CORE-057 |
+| **Location** | `src/lucca/ui/app.py:387`; `src/lucca/core/orchestrator.py:198-222`; `luccadocs/audit/findings/core.md` F-CORE-057 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -402,7 +402,7 @@ Dead-field traffic on the control channel; misleads future maintainers into beli
 | **Title** | `settings_dialog.py` is 2,466 lines / 120 KB — ~14 % of all `src/` lines in one module |
 | **Severity** | S3 — Low |
 | **Category** | MAINTAINABILITY |
-| **Location** | `src/lucca/ui/settings_dialog.py:1-2466`; `docs/audit/03_BASELINE.md:194` |
+| **Location** | `src/lucca/ui/settings_dialog.py:1-2466`; `luccadocs/audit/03_BASELINE.md:194` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -545,7 +545,7 @@ GUI hitch on HUD close; small but on the interaction path.
 | **Title** | The sprite's `degraded` theme is unreachable: no component ever emits the state |
 | **Severity** | S3 — Low |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/ui/states.py:60-67`; `docs/audit/findings/core.md` §3.1 (`degraded` never assigned) |
+| **Location** | `src/lucca/ui/states.py:60-67`; `luccadocs/audit/findings/core.md` §3.1 (`degraded` never assigned) |
 | **Status** | OPEN |
 
 **Evidence**
@@ -682,7 +682,7 @@ Lip-flap driven by raw RMS: background noise and sibilants produce jitter; there
 | **Title** | The settings dialog constructs `MemoryManager()` against the production database on open, with failures silently swallowed |
 | **Severity** | S2 — Medium |
 | **Category** | RELIABILITY |
-| **Location** | `src/lucca/ui/settings_dialog.py:254-257`; `docs/audit/findings/mem.md` F-MEM-001/F-MEM-013 |
+| **Location** | `src/lucca/ui/settings_dialog.py:254-257`; `luccadocs/audit/findings/mem.md` F-MEM-001/F-MEM-013 |
 | **Status** | OPEN |
 
 **Evidence**

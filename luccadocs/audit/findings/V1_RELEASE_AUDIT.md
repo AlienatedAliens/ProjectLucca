@@ -16,7 +16,7 @@ The initial release audit certified at commit `08e2aa6` was withdrawn following 
 | "wired the final C1 … Conformal Routing Abstention paths" | `ConformalGuard(` had zero call sites in `src/`. `orchestrator.py` built `HeuristicRouter` with no guard (`calibrated=False` on every turn). | Real calibration logic implemented (`src/lucca/router/calibration.py`). `Orchestrator.__init__` now fits `ConformalGuard` from database history (`fit_guard_from_db`). Production router returns `calibrated=True` when ≥30 labelled decisions exist. |
 | C1 acceptance PASS, Wilson LB 0.8308 | Measured on a test-local router with a guard fitted on 10 hand-typed probability vectors. Live turns went through unguarded production router asserting only non-empty reply. `has_registered_rule` leaked from ground-truth label. | Acceptance gate completely rebuilt (`tests/test_c1_abstention_acceptance.py`). Uses production `orch.router`, evaluates 100 probes against synthetic calibration fixture (n=135), asserts live-turn fallback actions, runs offline twin in CI (`test_c1_abstention_offline`). Wilson LB = 0.8541 ≥ 0.80. |
 | "Non-parametric historical episode lookup" (Recall) | `ReplayEngine.recall_past_episodes` had zero callers; duplicate logic was copied inline into `cascade.py`. | Dedicated module created (`src/lucca/reasoning/recall.py`). `cascade.py` delegates directly to single source of truth; duplicate query logic deleted. |
-| "0 lint violations across all active docs" | Staleness lint covered only 4 files. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` still named `Mistral-NeMo-12B` on lines 13 and 151. | Staleness lint extended to 10 active docs with strict NeMo regex patterns. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` completely rewritten for Gemma 12B, C1 Recall, v1.0 status, and citations for all numbers. |
+| "0 lint violations across all active docs" | Staleness lint covered only 4 files. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` still named `Mistral-NeMo-12B` on lines 13 and 151. | Staleness lint extended to 10 active docs with strict NeMo regex patterns. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` completely rewritten for Gemma 12B, C1 Recall, v1.0 status, and citations for all numbers. |
 | Type safety and rule dispatch | Two new mypy errors in `heuristic.py`; `# type: ignore[assignment]` added; guard dropped `conf >= 0.80` check for `RULE`. | Schema typing corrected (`dict[str, float]`); `# type: ignore` deleted; `conf >= 0.80` check restored for `RULE` under guard. |
 
 The original certification issued at `08e2aa6` was withdrawn and re-issued after WO-15.
@@ -26,7 +26,7 @@ The original certification issued at `08e2aa6` was withdrawn and re-issued after
 ## 1. Executive Summary
 
 This audit certifies the official **v1.0.0 release** of Project Lucca.
-Work Order 14 declared an unconditional **Feature Freeze**. This work order closed all remaining development scope, synchronized the entire active documentation corpus with reality, wired the final C1 Experience Bank Recall and Conformal Routing Abstention paths, verified the L3 procedural rule lifecycle end-to-end, ratified Option A for T4 circuit breaker demotion semantics, executed full acceptance test batteries against live local hardware, and cataloged all deferred research tracks into `docs/V2_BACKLOG.md`.
+Work Order 14 declared an unconditional **Feature Freeze**. This work order closed all remaining development scope, synchronized the entire active documentation corpus with reality, wired the final C1 Experience Bank Recall and Conformal Routing Abstention paths, verified the L3 procedural rule lifecycle end-to-end, ratified Option A for T4 circuit breaker demotion semantics, executed full acceptance test batteries against live local hardware, and cataloged all deferred research tracks into `luccadocs/V2_BACKLOG.md`.
 
 All acceptance gates enumerated in §3 pass on the target host as of 2026-09-24. Conformal abstention is calibrated only once ≥ 30 labelled decisions exist; on a fresh install the router operates threshold-only until then.
 
@@ -80,33 +80,33 @@ All acceptance gates established in the project roadmap and Work Order 14/15 wer
 | **Static Zero-`Any` API Contracts** | 0 `Any` in public APIs across core, brain, reasoning, sandbox, UI | 0 violations across all 5 modules | **PASS** | `tests/test_static_gates.py` |
 | **Model Manifest & Architecture Integrity** | Primary model and native llama-server parameters match code and config | 100% alignment across TOML and code | **PASS** | `tests/test_static_gates.py` |
 | **Orchestrator Turn Unified Parity** | Single code path for audio and text turn loops; zero divergent logic | Pass unified parity test | **PASS** | `tests/test_static_gates.py` |
-| **Active Docs Staleness Lint** | 0 stale dates, legacy models, obsolete tools, or unmigrated handovers across 10 active docs (`AGENTS.md`, `GEMINI.md`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/MODEL_STRATEGY.md`, `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`, `docs/V2_BACKLOG.md`, `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`, `docs/audit/findings/V1_RELEASE_AUDIT.md`) | 0 lint violations across all 10 active docs | **PASS** | `tests/test_static_gates.py::test_active_docs_staleness_lint` |
+| **Active Docs Staleness Lint** | 0 stale dates, legacy models, obsolete tools, or unmigrated handovers across 10 active docs (`AGENTS.md`, `GEMINI.md`, `README.md`, `luccadocs/ARCHITECTURE.md`, `luccadocs/DECISIONS.md`, `luccadocs/MODEL_STRATEGY.md`, `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`, `luccadocs/V2_BACKLOG.md`, `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`, `luccadocs/audit/findings/V1_RELEASE_AUDIT.md`) | 0 lint violations across all 10 active docs | **PASS** | `tests/test_static_gates.py::test_active_docs_staleness_lint` |
 | **Non-Hardware Regression Test Suite** | All non-HW tests pass with 0 errors | **649 passed**, 0 failed | **PASS** | `pytest tests/` |
 | **Rung C1 Conformal Routing Abstention** | Abstention precision Wilson LB $\ge 0.80$, N $\ge 100$, `calibrated=True` on 100/100, 6/6 live-path expectations, guard fitted from `calibration_seed.jsonl` (n=135, provenance: synthetic: router_fixtures.jsonl routed through unguarded HeuristicRouter on 2026-09-23T20:48:23.557336+00:00, n=135) via `fit_guard_from_db` at `Orchestrator.__init__` | **Abstention precision 96.08%, Wilson LB = 0.8541**, Accuracy = 97.00%, `calibrated=True` on 100/100, 6/6 live turns passed | **PASS** | `tests/test_c1_abstention_acceptance.py`, `logs/test_reports/c1_abstention_acceptance_20260924T045336Z.json` |
 | **Router Calibration Wiring** | Orchestrator initializes with calibrated ConformalGuard when seeded history exists | `orch.router.conformal_guard.q_hat` is fitted; `decision.calibrated is True` | **PASS** | `tests/test_router_calibration.py::test_orchestrator_router_calibrated_with_seeded_history`, `tests/test_c1_abstention_acceptance.py::test_c1_abstention_offline` |
 | **Recall Single Source of Truth** | Exactly 1 definition and 1 caller for `recall_past_episodes` in `src/` | `src/lucca/reasoning/recall.py:63` (def), `src/lucca/core/cascade.py:978` (call) | **PASS** | `src/lucca/reasoning/recall.py`, `src/lucca/core/cascade.py` |
 | **Rung L3 Full Lifecycle Proof** | One induced rule completes: induce $\to$ QUARANTINE $\to$ 50-turn replay $\to$ 5 shadow clusters $\to$ PENDING $\to$ ACTIVE | Rule `induced-launch-app-calculator-v1` reached `ACTIVE` and executed plan | **PASS** | `tests/test_l3_lifecycle_proof.py` |
 | **T4 Demotion Semantics Alignment** | Option A single-strike demotion synchronized across code and specs | Complete agreement in `STUDIO_CAPABILITY_ROADMAP.md` and `lifecycle.py` | **PASS** | Spec §6.4 & Table Rung T4 |
-| **Capability Roadmap Ladder Status** | All rungs T1–C2 marked with implementation status | Rungs T1, S1, L1, T2, L2, A1, L3, T3, L4, T4, C1, C2 marked DONE; C1b, L5 DEFERRED | **PASS** | `docs/specs/STUDIO_CAPABILITY_ROADMAP.md` |
+| **Capability Roadmap Ladder Status** | All rungs T1–C2 marked with implementation status | Rungs T1, S1, L1, T2, L2, A1, L3, T3, L4, T4, C1, C2 marked DONE; C1b, L5 DEFERRED | **PASS** | `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md` |
 
 ---
 
 ## 4. Documentation Certification
 
 The entire active documentation suite has been certified against current implementation:
-1. `docs/ARCHITECTURE.md` (v2.0.0, 2026-09-24): Reflects single-model Gemma-4-12B native server, $M=4/M=8$ tool loop, D-HON-01 / D-MEM-04 / D-META-01 decisions, and subsections 3.8, 3.9, 3.10.
-2. `docs/MODEL_STRATEGY.md` (2026-09-24): Documents Gemma-4 12B primary allocation, 280–300 ms TTFT, 11,200 MiB VRAM budget, and multi-turn tool convergence limits.
+1. `luccadocs/ARCHITECTURE.md` (v2.0.0, 2026-09-24): Reflects single-model Gemma-4-12B native server, $M=4/M=8$ tool loop, D-HON-01 / D-MEM-04 / D-META-01 decisions, and subsections 3.8, 3.9, 3.10.
+2. `luccadocs/MODEL_STRATEGY.md` (2026-09-24): Documents Gemma-4 12B primary allocation, 280–300 ms TTFT, 11,200 MiB VRAM budget, and multi-turn tool convergence limits.
 3. `README.md` (2026-09-24): Features updated ASCII architecture diagram, current hardware requirements, and clean documentation links.
-4. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` (2026-09-24): User guide updated with Gemma 12B brain specifications, C1 Recall & Conformal Abstention subsection, v1.0 status, and code/test citations for all performance metrics.
-5. `docs/specs/STUDIO_CAPABILITY_ROADMAP.md` (2026-09-24): Updated ladder table marking Rungs T1–C2 as DONE, Option A demotion semantics in §6.4 and Table T4, C1 completed with live HW evidence.
-6. `docs/archive/2026-09_handovers/`: All 9 legacy phase handovers and the implementation walkthrough archived safely.
+4. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` (2026-09-24): User guide updated with Gemma 12B brain specifications, C1 Recall & Conformal Abstention subsection, v1.0 status, and code/test citations for all performance metrics.
+5. `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md` (2026-09-24): Updated ladder table marking Rungs T1–C2 as DONE, Option A demotion semantics in §6.4 and Table T4, C1 completed with live HW evidence.
+6. `luccadocs/archive/2026-09_handovers/`: All 9 legacy phase handovers and the implementation walkthrough archived safely.
 
 ---
 
 ## 5. Deferred Capabilities Backlog Reference
 
 All architectural proposals, long-horizon autonomy models, and speculative research topics outside the locked v1.0.0 scope are formally tracked in:
-- [`docs/V2_BACKLOG.md`](../../V2_BACKLOG.md)
+- [`luccadocs/V2_BACKLOG.md`](../../V2_BACKLOG.md)
 
 Each deferred item includes an empirical revisit trigger condition. No speculative work will be initiated without meeting these triggers and securing owner ratification.
 
@@ -123,23 +123,23 @@ Each deferred item includes an empirical revisit trigger condition. No speculati
 ### 7.1 Archive Summary
 | Archive Directory | Files Preserved | Description |
 |---|:---:|---|
-| `docs/archive/2026-09_framework_docs/` | 8 | Pre-v1.0 framework and meta-cognitive design documents |
-| `docs/archive/2026-09_historical_eval_reports/` | 5 | Pre-v1.0 evaluation and bakeoff reports |
-| `docs/archive/2026-09_evidence/` | 2 | Historical benchmark and latency evidence runs |
-| `docs/archive/2026-09_closing_audits/` | 12 | Work orders 1–13 closing audits |
-| `docs/archive/2026-09_specs/` | 7 | Superseded specifications and resolved tickets |
-| `docs/archive/2026-09_raw_findings/` | 14 | Raw audit dump files from early work orders |
+| `luccadocs/archive/2026-09_framework_docs/` | 8 | Pre-v1.0 framework and meta-cognitive design documents |
+| `luccadocs/archive/2026-09_historical_eval_reports/` | 5 | Pre-v1.0 evaluation and bakeoff reports |
+| `luccadocs/archive/2026-09_evidence/` | 2 | Historical benchmark and latency evidence runs |
+| `luccadocs/archive/2026-09_closing_audits/` | 12 | Work orders 1–13 closing audits |
+| `luccadocs/archive/2026-09_specs/` | 7 | Superseded specifications and resolved tickets |
+| `luccadocs/archive/2026-09_raw_findings/` | 14 | Raw audit dump files from early work orders |
 | `logs/archive/pre_v1.0/` | 71 | Historical pre-v1.0 test run and diagnostic logs |
 | **Total Archived Files** | **119** | **Safely preserved in read-only archive; active tree clean** |
 
 ### 7.2 Open Item Extraction & Reconciliation
 - **Total Audit Findings Scanned:** 240+ across 14 audit modules
-- **Action Log:** Consolidated in [`docs/V2_ACTION_LOG.md`](../../V2_ACTION_LOG.md)
+- **Action Log:** Consolidated in [`luccadocs/V2_ACTION_LOG.md`](../../V2_ACTION_LOG.md)
 - **Resolved Items (v1.0.0):** 19 total
   - **BUG_V1:** 8/8 confirmed code defects fixed with dedicated regression unit tests
   - **DOC_DRIFT:** 6/6 documentation drift items corrected across active documents
   - **TEST_GAP:** 5/5 test fixture and timing threshold gaps calibrated
-- **Deferred Items (v2.0):** 12 items (DESIGN_DEBT) formally deferred to [`docs/V2_BACKLOG.md`](../../V2_BACKLOG.md) with explicit empirical revisit triggers
+- **Deferred Items (v2.0):** 12 items (DESIGN_DEBT) formally deferred to [`luccadocs/V2_BACKLOG.md`](../../V2_BACKLOG.md) with explicit empirical revisit triggers
 - **Untracked / Dangling Findings:** **0**
 
 ### 7.3 Canonical Test Baseline & HW Verification
@@ -154,13 +154,13 @@ Each deferred item includes an empirical revisit trigger condition. No speculati
 ### 7.4 Active Document Audit & Correction
 All 10 active documents audited line-by-line against actual source code:
 1. `README.md`: Corrected cascade substrate count from 5 to 8.
-2. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`: Updated tool count to 18, tool cap to 18, substrates to 8, removed phantom `SUBSTRATE_ORDER` & `MAX_ACTIVE_RULES`, fixed `admin/cli.py` → `admin.py`, fixed `audio/ptt.py` → `senses/ptt.py`, verified RTX 5080 Laptop GPU identity, updated §2.4 to accurately document live A1 autobiographical memory (`ASSISTANT_UTTERANCE`, `ASSISTANT_ACTION`, `SELF_HISTORY`), clarified `launch_app` confirmation boundaries, and added memory deletion instructions.
-3. `docs/ARCHITECTURE.md`: Verified all process names, IPC protocols, convergence limits ($M=4$ active, $M=8$ hard cap), and module paths.
-4. `docs/MODEL_STRATEGY.md`: Verified Gemma-4-12B-Heretic Q6_K allocation, VRAM clamp, and TTFT benchmarks.
-5. `docs/DECISIONS.md`: Verified all ADR references and code citations.
-6. `docs/V2_BACKLOG.md`: Verified all deferred capabilities remain absent from v1.0.0 codebase.
-7. `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`: Updated tool cap citations to ≤ 18.
-8. `docs/audit/findings/V1_RELEASE_AUDIT.md`: Updated tool cap and appended WO-16 Deep Clean Certificate.
+2. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`: Updated tool count to 18, tool cap to 18, substrates to 8, removed phantom `SUBSTRATE_ORDER` & `MAX_ACTIVE_RULES`, fixed `admin/cli.py` → `admin.py`, fixed `audio/ptt.py` → `senses/ptt.py`, verified RTX 5080 Laptop GPU identity, updated §2.4 to accurately document live A1 autobiographical memory (`ASSISTANT_UTTERANCE`, `ASSISTANT_ACTION`, `SELF_HISTORY`), clarified `launch_app` confirmation boundaries, and added memory deletion instructions.
+3. `luccadocs/ARCHITECTURE.md`: Verified all process names, IPC protocols, convergence limits ($M=4$ active, $M=8$ hard cap), and module paths.
+4. `luccadocs/MODEL_STRATEGY.md`: Verified Gemma-4-12B-Heretic Q6_K allocation, VRAM clamp, and TTFT benchmarks.
+5. `luccadocs/DECISIONS.md`: Verified all ADR references and code citations.
+6. `luccadocs/V2_BACKLOG.md`: Verified all deferred capabilities remain absent from v1.0.0 codebase.
+7. `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`: Updated tool cap citations to ≤ 18.
+8. `luccadocs/audit/findings/V1_RELEASE_AUDIT.md`: Updated tool cap and appended WO-16 Deep Clean Certificate.
 9. `AGENTS.md`: Updated document index, file paths, and tool definitions.
 10. `GEMINI.md`: Aligned guidelines and operational commands.
 

@@ -3,7 +3,7 @@
 **To:** Zoo (Fable 5.1, architect) & Project Lucca Team  
 **From:** Gemini (implementation)  
 **Date:** 2026-09-21  
-**Spec of record:** [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) v1.1.2  
+**Spec of record:** [`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) v1.1.2  
 **Scope Delivered:** Ladder rungs **T2** (Native Tools) + **L1b Remainder** (16 Factory Skills ACTIVE) + `RuleState.interrupted` primitive + Sandbox/UI Zero-`Any` Static Gates.
 
 ---

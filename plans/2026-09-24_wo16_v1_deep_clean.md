@@ -3,7 +3,7 @@
 > **Date:** 2026-09-24
 > **Executor:** Gemini (delegated)
 > **Reviewer:** User (manual review at each STOP gate)
-> **Scope:** No new features. Archive stale docs/logs, re-run ALL tests as functional checks, audit every active document line-by-line against code, compile all open findings, fix all confirmed bugs.
+> **Scope:** No new features. Archive stale luccadocs/logs, re-run ALL tests as functional checks, audit every active document line-by-line against code, compile all open findings, fix all confirmed bugs.
 > **Working Directory:** `C:\Projects\ProjectLucca`
 > **Branch:** `master`
 > **Starting Commit:** `b6fc285` (current `v1.0.0` tag)
@@ -31,19 +31,19 @@
 Run these commands:
 
 ```powershell
-mkdir docs/archive/2026-09_audit_framework -ErrorAction SilentlyContinue
-mkdir docs/archive/2026-09_eval_reports -ErrorAction SilentlyContinue
-mkdir docs/archive/2026-09_evidence -ErrorAction SilentlyContinue
-mkdir docs/archive/2026-09_raw_findings -ErrorAction SilentlyContinue
-mkdir docs/archive/2026-09_closing_audits -ErrorAction SilentlyContinue
-mkdir docs/archive/2026-09_milestone_specs -ErrorAction SilentlyContinue
-mkdir docs/archive/2026-09_tickets -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_audit_framework -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_eval_reports -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_evidence -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_raw_findings -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_closing_audits -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_milestone_specs -ErrorAction SilentlyContinue
+mkdir luccadocs/archive/2026-09_tickets -ErrorAction SilentlyContinue
 mkdir logs/archive/pre_v1.0 -ErrorAction SilentlyContinue
 ```
 
 **FUNCTIONAL CHECK:** All 8 directories exist on disk. Verify with:
 ```powershell
-Get-ChildItem docs/archive/ -Directory | Select-Object Name
+Get-ChildItem luccadocs/archive/ -Directory | Select-Object Name
 Get-ChildItem logs/archive/ -Directory | Select-Object Name
 ```
 Expected: 8 archive directories (including the pre-existing `2026-09_handovers`).
@@ -55,20 +55,20 @@ Expected: 8 archive directories (including the pre-existing `2026-09_handovers`)
 These are the WO-8 audit charter, template, evidence index, baseline, and gap analysis docs. They describe the audit *process*, not v1.0 *truth*.
 
 ```powershell
-git mv docs/audit/00_AUDIT_CHARTER.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/01_FINDING_TEMPLATE.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/02_EVIDENCE_INDEX.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/03_BASELINE.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/03b_BASELINE_DELTA.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/04_OWNER_DECISIONS.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md docs/archive/2026-09_audit_framework/
-git mv docs/audit/COGNITIVE_LOOP_MAP.md docs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/00_AUDIT_CHARTER.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/01_FINDING_TEMPLATE.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/02_EVIDENCE_INDEX.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/03_BASELINE.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/03b_BASELINE_DELTA.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/04_OWNER_DECISIONS.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md luccadocs/archive/2026-09_audit_framework/
+git mv luccadocs/audit/COGNITIVE_LOOP_MAP.md luccadocs/archive/2026-09_audit_framework/
 ```
 
 **FUNCTIONAL CHECK:** 8 files moved. Verify:
 ```powershell
-(Get-ChildItem docs/archive/2026-09_audit_framework/ -File).Count  # Must be exactly 8
-Test-Path docs/audit/00_AUDIT_CHARTER.md  # Must be False
+(Get-ChildItem luccadocs/archive/2026-09_audit_framework/ -File).Count  # Must be exactly 8
+Test-Path luccadocs/audit/00_AUDIT_CHARTER.md  # Must be False
 ```
 
 ---
@@ -76,17 +76,17 @@ Test-Path docs/audit/00_AUDIT_CHARTER.md  # Must be False
 ### Milestone 1.3 — Archive Historical Eval Reports
 
 ```powershell
-git mv docs/audit/COMPREHENSIVE_100_EVAL_REPORT.md docs/archive/2026-09_eval_reports/
-git mv docs/audit/DIAGNOSTIC_EVAL_V2_REPORT.md docs/archive/2026-09_eval_reports/
-git mv docs/eval/COMPREHENSIVE_100_EVAL_REPORT.md docs/archive/2026-09_eval_reports/COMPREHENSIVE_100_EVAL_REPORT_eval.md
-git mv docs/eval/DIAGNOSTIC_EVAL_V2_REPORT.md docs/archive/2026-09_eval_reports/DIAGNOSTIC_EVAL_V2_eval.md
-git mv docs/eval/LIVE_AI_VERIFICATION_REPORT.md docs/archive/2026-09_eval_reports/
+git mv luccadocs/audit/COMPREHENSIVE_100_EVAL_REPORT.md luccadocs/archive/2026-09_eval_reports/
+git mv luccadocs/audit/DIAGNOSTIC_EVAL_V2_REPORT.md luccadocs/archive/2026-09_eval_reports/
+git mv luccadocs/eval/COMPREHENSIVE_100_EVAL_REPORT.md luccadocs/archive/2026-09_eval_reports/COMPREHENSIVE_100_EVAL_REPORT_eval.md
+git mv luccadocs/eval/DIAGNOSTIC_EVAL_V2_REPORT.md luccadocs/archive/2026-09_eval_reports/DIAGNOSTIC_EVAL_V2_eval.md
+git mv luccadocs/eval/LIVE_AI_VERIFICATION_REPORT.md luccadocs/archive/2026-09_eval_reports/
 ```
 
-**FUNCTIONAL CHECK:** 5 files moved. The `docs/eval/` directory should be empty (only `__pycache__` or empty). Verify:
+**FUNCTIONAL CHECK:** 5 files moved. The `luccadocs/eval/` directory should be empty (only `__pycache__` or empty). Verify:
 ```powershell
-(Get-ChildItem docs/archive/2026-09_eval_reports/ -File).Count  # Must be 5
-Get-ChildItem docs/eval/ -File -Filter "*.md"  # Must return nothing
+(Get-ChildItem luccadocs/archive/2026-09_eval_reports/ -File).Count  # Must be 5
+Get-ChildItem luccadocs/eval/ -File -Filter "*.md"  # Must return nothing
 ```
 
 > [!WARNING]
@@ -97,13 +97,13 @@ Get-ChildItem docs/eval/ -File -Filter "*.md"  # Must return nothing
 ### Milestone 1.4 — Archive Historical Evidence
 
 ```powershell
-git mv docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md docs/archive/2026-09_evidence/
-git mv docs/audit/evidence/S1_SUMMARY.md docs/archive/2026-09_evidence/
+git mv luccadocs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md luccadocs/archive/2026-09_evidence/
+git mv luccadocs/audit/evidence/S1_SUMMARY.md luccadocs/archive/2026-09_evidence/
 ```
 
 **FUNCTIONAL CHECK:** 2 files moved.
 ```powershell
-Get-ChildItem docs/audit/evidence/ -File -Filter "*.md" | Select-Object Name  # Should be empty
+Get-ChildItem luccadocs/audit/evidence/ -File -Filter "*.md" | Select-Object Name  # Should be empty
 ```
 
 ---
@@ -115,29 +115,29 @@ These are the massive (40–216 KB) raw audit findings from WO-8. They contain r
 Files where ALL findings are resolved (safe to archive now):
 ```powershell
 # WO-8 work product findings (all resolved per AUDIT_REMEDIATION_LOG.md)
-git mv docs/audit/findings/WO8_WP4_findings_2026-09-21.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO8_WP5_findings_2026-09-22.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO8_WP5-5_findings_2026-09-22.md docs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO8_WP4_findings_2026-09-21.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO8_WP5_findings_2026-09-22.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO8_WP5-5_findings_2026-09-22.md luccadocs/archive/2026-09_closing_audits/
 
 # WO-11, WO-12, WO-13 closing audits (all resolved)
-git mv docs/audit/findings/WO11_CLOSING_AUDIT.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO12_CLOSING_AUDIT.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO13_CLOSING_AUDIT.md docs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO11_CLOSING_AUDIT.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO12_CLOSING_AUDIT.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO13_CLOSING_AUDIT.md luccadocs/archive/2026-09_closing_audits/
 
 # WO-12 research sub-reports (all resolved)
-git mv docs/audit/findings/WO12_0_SPEC_CONFORMANCE_AUDIT.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO12_3_G3_DIGIT_NARRATION_RESEARCH.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO12_4_FAULT_MODE_C_RESEARCH.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO12_5_SPOKEN_REVISION_VERIFICATION.md docs/archive/2026-09_closing_audits/
-git mv docs/audit/findings/WO13_4_PERSONA_UNDER_PRESSURE.md docs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO12_0_SPEC_CONFORMANCE_AUDIT.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO12_3_G3_DIGIT_NARRATION_RESEARCH.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO12_4_FAULT_MODE_C_RESEARCH.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO12_5_SPOKEN_REVISION_VERIFICATION.md luccadocs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/WO13_4_PERSONA_UNDER_PRESSURE.md luccadocs/archive/2026-09_closing_audits/
 
 # Fully-resolved fuzzing report
-git mv docs/audit/findings/extended_fuzzing_audit_report.md docs/archive/2026-09_closing_audits/
+git mv luccadocs/audit/findings/extended_fuzzing_audit_report.md luccadocs/archive/2026-09_closing_audits/
 ```
 
 **FUNCTIONAL CHECK:**
 ```powershell
-(Get-ChildItem docs/archive/2026-09_closing_audits/ -File).Count  # Must be exactly 12
+(Get-ChildItem luccadocs/archive/2026-09_closing_audits/ -File).Count  # Must be exactly 12
 ```
 
 ---
@@ -145,21 +145,21 @@ git mv docs/audit/findings/extended_fuzzing_audit_report.md docs/archive/2026-09
 ### Milestone 1.6 — Archive Stale Specs, Reports & Miscellaneous
 
 ```powershell
-git mv docs/specs/MILESTONE_1_MEASUREMENT_PLAN.md docs/archive/2026-09_milestone_specs/
-git mv docs/specs/MILESTONE_4_IMPLEMENTATION_PLAN.md docs/archive/2026-09_milestone_specs/
-git mv docs/specs/NEUROSYMBOLIC_REMEDIATION_STRATEGY.md docs/archive/2026-09_milestone_specs/
-git mv docs/RECON_REPORT.md docs/archive/2026-09_milestone_specs/
-git mv docs/AUDIT_REMEDIATION_LOG.md docs/archive/2026-09_milestone_specs/
-git mv docs/NEUROSYMBOLIC_RESEARCH_PAPER.md docs/archive/2026-09_milestone_specs/
+git mv luccadocs/specs/MILESTONE_1_MEASUREMENT_PLAN.md luccadocs/archive/2026-09_milestone_specs/
+git mv luccadocs/specs/MILESTONE_4_IMPLEMENTATION_PLAN.md luccadocs/archive/2026-09_milestone_specs/
+git mv luccadocs/specs/NEUROSYMBOLIC_REMEDIATION_STRATEGY.md luccadocs/archive/2026-09_milestone_specs/
+git mv luccadocs/RECON_REPORT.md luccadocs/archive/2026-09_milestone_specs/
+git mv luccadocs/AUDIT_REMEDIATION_LOG.md luccadocs/archive/2026-09_milestone_specs/
+git mv luccadocs/NEUROSYMBOLIC_RESEARCH_PAPER.md luccadocs/archive/2026-09_milestone_specs/
 
 # Resolved ticket
-git mv docs/tickets/TICKET-REAS-001_counterfactual_shadow_audit.md docs/archive/2026-09_tickets/
+git mv luccadocs/tickets/TICKET-REAS-001_counterfactual_shadow_audit.md luccadocs/archive/2026-09_tickets/
 ```
 
 **FUNCTIONAL CHECK:**
 ```powershell
-(Get-ChildItem docs/archive/2026-09_milestone_specs/ -File).Count  # Must be 6
-(Get-ChildItem docs/archive/2026-09_tickets/ -File).Count  # Must be 1
+(Get-ChildItem luccadocs/archive/2026-09_milestone_specs/ -File).Count  # Must be 6
+(Get-ChildItem luccadocs/archive/2026-09_tickets/ -File).Count  # Must be 1
 ```
 
 ---
@@ -183,7 +183,7 @@ Write-Host "Archived: $pre, Remaining: $post"
 
 ### Milestone 1.8 — Add README Markers to Research & Archive
 
-Create `docs/research/README.md`:
+Create `luccadocs/research/README.md`:
 ```markdown
 # Research Reference (Read-Only)
 
@@ -219,7 +219,7 @@ Present to the user:
 1. Count of files archived per directory
 2. `git status` output (must be clean)
 3. `git diff --stat HEAD~1..HEAD` output
-4. List of files remaining in `docs/audit/findings/` (should be: `V1_RELEASE_AUDIT.md`, `WO15_EVIDENCE.md`, `README.md`, `adjacent_defects_diagnostic_summary.md`, plus the 11 raw module dumps that still need Phase 2 extraction)
+4. List of files remaining in `luccadocs/audit/findings/` (should be: `V1_RELEASE_AUDIT.md`, `WO15_EVIDENCE.md`, `README.md`, `adjacent_defects_diagnostic_summary.md`, plus the 11 raw module dumps that still need Phase 2 extraction)
 
 **Wait for user approval before Phase 2.**
 
@@ -227,7 +227,7 @@ Present to the user:
 
 ## Phase 2 — Open Item Extraction
 
-**Goal:** Read every remaining un-archived audit finding document. Extract ALL findings that are still open/unresolved. Produce a single consolidated `docs/V2_ACTION_LOG.md`.
+**Goal:** Read every remaining un-archived audit finding document. Extract ALL findings that are still open/unresolved. Produce a single consolidated `luccadocs/V2_ACTION_LOG.md`.
 
 ---
 
@@ -235,7 +235,7 @@ Present to the user:
 
 The following files contain a mix of resolved and open findings. For each file, read the ENTIRE document and classify every finding.
 
-**Files to process (these remain in `docs/audit/findings/`):**
+**Files to process (these remain in `luccadocs/audit/findings/`):**
 
 | File | Size | Known Open Count (from Agent 1 research) |
 |---|---|---|
@@ -261,7 +261,7 @@ The following files contain a mix of resolved and open findings. For each file, 
 3. For each finding, determine if it is RESOLVED or OPEN by checking:
    - Does the finding text say "RESOLVED", "FIXED", "CLOSED"?
    - Does the finding cite a commit hash?
-   - Cross-reference against `docs/archive/2026-09_milestone_specs/AUDIT_REMEDIATION_LOG.md` for resolution status
+   - Cross-reference against `luccadocs/archive/2026-09_milestone_specs/AUDIT_REMEDIATION_LOG.md` for resolution status
 4. Record all OPEN findings
 
 **FUNCTIONAL CHECK per file:** Report the counts: `"File X: N total findings, M resolved, K open. Open IDs: [list]"`
@@ -283,7 +283,7 @@ For each open finding extracted in 2.1, classify it as one of:
 
 ### Milestone 2.3 — Write V2_ACTION_LOG.md
 
-Create `docs/V2_ACTION_LOG.md` with the following structure:
+Create `luccadocs/V2_ACTION_LOG.md` with the following structure:
 
 ```markdown
 # v1.0 Action Log — Open Findings & Bug Tracker
@@ -304,7 +304,7 @@ Create `docs/V2_ACTION_LOG.md` with the following structure:
 ## Items
 
 ### [ITEM-001] <title>
-- **Source:** `docs/audit/findings/<file>.md`, Finding <ID>
+- **Source:** `luccadocs/audit/findings/<file>.md`, Finding <ID>
 - **Classification:** BUG_V1 | DOC_DRIFT | DESIGN_DEBT | TEST_GAP
 - **Severity:** Critical | High | Medium | Low
 - **Feature Area:** core | router | sandbox | memory | audio | ui | reasoning
@@ -324,27 +324,27 @@ Create `docs/V2_ACTION_LOG.md` with the following structure:
 Now that open items have been extracted, archive all remaining raw module dumps:
 
 ```powershell
-git mv docs/audit/findings/arch.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/brain.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/core.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/drift.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/mem.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/reas.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/rout.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/sbx.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/sens.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/test.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/ui.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/COGNITIVE_AUDIT_2026-09.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/CAPABILITY_FACT_FINDING_2026-09.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/adjacent_defects_diagnostic_summary.md docs/archive/2026-09_raw_findings/
-git mv docs/audit/findings/adjacent_defects_diagnostic_results.json docs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/arch.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/brain.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/core.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/drift.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/mem.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/reas.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/rout.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/sbx.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/sens.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/test.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/ui.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/CAPABILITY_FACT_FINDING_2026-09.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/adjacent_defects_diagnostic_summary.md luccadocs/archive/2026-09_raw_findings/
+git mv luccadocs/audit/findings/adjacent_defects_diagnostic_results.json luccadocs/archive/2026-09_raw_findings/
 ```
 
 **FUNCTIONAL CHECK:**
 ```powershell
-# After archiving, docs/audit/findings/ should contain ONLY these files:
-Get-ChildItem docs/audit/findings/ -File | Select-Object Name
+# After archiving, luccadocs/audit/findings/ should contain ONLY these files:
+Get-ChildItem luccadocs/audit/findings/ -File | Select-Object Name
 # Expected: V1_RELEASE_AUDIT.md, WO15_EVIDENCE.md, README.md
 ```
 
@@ -360,10 +360,10 @@ git commit -m "WO-16 Phase 2: Open item extraction — V2_ACTION_LOG.md created,
 ### 🛑 STOP & REVIEW — Phase 2
 
 Present to the user:
-1. Full contents of `docs/V2_ACTION_LOG.md`
+1. Full contents of `luccadocs/V2_ACTION_LOG.md`
 2. Classification summary table (BUG_V1 / DOC_DRIFT / DESIGN_DEBT / TEST_GAP counts)
 3. The list of BUG_V1 items specifically — these will be fixed in Phase 5
-4. `docs/audit/findings/` directory listing (should have only 3 files)
+4. `luccadocs/audit/findings/` directory listing (should have only 3 files)
 
 **Wait for user approval before Phase 3.**
 
@@ -475,13 +475,13 @@ Present to the user:
 > [!CAUTION]
 > **KNOWN ERRORS THAT MUST BE FOUND AND FIXED.** If the executor does NOT find and fix ALL of the following, the audit has failed and must be re-done:
 >
-> 1. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` says "**15** sandboxed tools" — actual count in `capabilities.py` is **18** (count the `name=` assignments in `get_default_native_tools()`)
-> 2. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` says "capped at **16**" — actual cap is `MAX_REGISTRY_TOOLS = 18` at `capabilities.py:34`
-> 3. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` says "**7** cascade substrates" — actual count in `cascade.py` `EpistemicSubstrate` enum is **8** (TELEMETRY=0 through SELF_HISTORY=7)
-> 4. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` references `cascade.py:SUBSTRATE_ORDER` — this constant **does not exist** in the source
-> 5. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` references `lifecycle.py:MAX_ACTIVE_RULES` — this constant **does not exist** in the source
+> 1. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` says "**15** sandboxed tools" — actual count in `capabilities.py` is **18** (count the `name=` assignments in `get_default_native_tools()`)
+> 2. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` says "capped at **16**" — actual cap is `MAX_REGISTRY_TOOLS = 18` at `capabilities.py:34`
+> 3. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` says "**7** cascade substrates" — actual count in `cascade.py` `EpistemicSubstrate` enum is **8** (TELEMETRY=0 through SELF_HISTORY=7)
+> 4. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` references `cascade.py:SUBSTRATE_ORDER` — this constant **does not exist** in the source
+> 5. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` references `lifecycle.py:MAX_ACTIVE_RULES` — this constant **does not exist** in the source
 > 6. `README.md` line 35 says "5-Substrate Epistemic Search Cascade" — actual is **8** substrates
-> 7. `docs/specs/STUDIO_CAPABILITY_ROADMAP.md` multiple lines reference "≤16 native tools" — actual cap is **18**
+> 7. `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md` multiple lines reference "≤16 native tools" — actual cap is **18**
 
 ---
 
@@ -544,14 +544,14 @@ For **each** of the 10 active documents, perform:
 
 **Documents to audit (in order):**
 
-1. **`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`** — Highest priority. Contains the known errors above.
+1. **`luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`** — Highest priority. Contains the known errors above.
 2. **`README.md`** — Root project README; references substrate count, architecture diagram, model name
-3. **`docs/ARCHITECTURE.md`** — Process names, module paths, convergence limits, tool caps
-4. **`docs/MODEL_STRATEGY.md`** — Model filename, quantization, VRAM budget, TTFT
-5. **`docs/DECISIONS.md`** — ADR references, cited code paths
-6. **`docs/V2_BACKLOG.md`** — Deferred items must NOT be implemented in current code
-7. **`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`** — Status column, tool cap references
-8. **`docs/audit/findings/V1_RELEASE_AUDIT.md`** — Gate verdicts, evidence file paths
+3. **`luccadocs/ARCHITECTURE.md`** — Process names, module paths, convergence limits, tool caps
+4. **`luccadocs/MODEL_STRATEGY.md`** — Model filename, quantization, VRAM budget, TTFT
+5. **`luccadocs/DECISIONS.md`** — ADR references, cited code paths
+6. **`luccadocs/V2_BACKLOG.md`** — Deferred items must NOT be implemented in current code
+7. **`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`** — Status column, tool cap references
+8. **`luccadocs/audit/findings/V1_RELEASE_AUDIT.md`** — Gate verdicts, evidence file paths
 9. **`AGENTS.md`** — File paths, class names
 10. **`GEMINI.md`** — Instructions, file paths
 
@@ -618,7 +618,7 @@ Present to the user:
 
 ### Milestone 5.1 — Triage BUG_V1 Items
 
-Read `docs/V2_ACTION_LOG.md`. List every item where `Classification: BUG_V1` or `Classification: TEST_GAP`.
+Read `luccadocs/V2_ACTION_LOG.md`. List every item where `Classification: BUG_V1` or `Classification: TEST_GAP`.
 
 For each item:
 1. Read the referenced code location
@@ -662,16 +662,16 @@ uv run python -m pytest tests/ --ignore=tests/test_*live_hw.py -q --tb=short
 ### Milestone 5.3 — Mark Deferred Items in V2_BACKLOG.md
 
 For every item in `V2_ACTION_LOG.md` classified as `DESIGN_DEBT`:
-1. Verify it already has a corresponding entry in `docs/V2_BACKLOG.md`
+1. Verify it already has a corresponding entry in `luccadocs/V2_BACKLOG.md`
 2. If not, add it with a trigger condition
 3. Cross-reference: `V2_ACTION_LOG.md` gets `Resolution Path: Tracked in V2_BACKLOG.md`
 
 **FUNCTIONAL CHECK:**
 ```powershell
 # Count DESIGN_DEBT items in ACTION_LOG
-Select-String -Path docs/V2_ACTION_LOG.md -Pattern "DESIGN_DEBT" | Measure-Object
+Select-String -Path luccadocs/V2_ACTION_LOG.md -Pattern "DESIGN_DEBT" | Measure-Object
 # Count entries in V2_BACKLOG
-Select-String -Path docs/V2_BACKLOG.md -Pattern "^###|^- " | Measure-Object
+Select-String -Path luccadocs/V2_BACKLOG.md -Pattern "^###|^- " | Measure-Object
 # V2_BACKLOG must have at least as many entries as DESIGN_DEBT items
 ```
 
@@ -716,7 +716,7 @@ Present to the user:
 
 ### Milestone 6.1 — Update V1_RELEASE_AUDIT.md
 
-Add a new section to `docs/audit/findings/V1_RELEASE_AUDIT.md`:
+Add a new section to `luccadocs/audit/findings/V1_RELEASE_AUDIT.md`:
 
 ```markdown
 ## 5. WO-16 Deep Clean Certificate (2026-09-24)
@@ -800,7 +800,7 @@ Present to the user:
 
 ---
 
-## Appendix A — Files That Must Remain in `docs/audit/findings/` After WO-16
+## Appendix A — Files That Must Remain in `luccadocs/audit/findings/` After WO-16
 
 Only these files should remain (not archived):
 
@@ -817,13 +817,13 @@ The staleness linter enforces these 10 files. If any file is renamed or removed,
 1. `AGENTS.md`
 2. `GEMINI.md`
 3. `README.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/DECISIONS.md`
-6. `docs/MODEL_STRATEGY.md`
-7. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`
-8. `docs/V2_BACKLOG.md`
-9. `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`
-10. `docs/audit/findings/V1_RELEASE_AUDIT.md`
+4. `luccadocs/ARCHITECTURE.md`
+5. `luccadocs/DECISIONS.md`
+6. `luccadocs/MODEL_STRATEGY.md`
+7. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`
+8. `luccadocs/V2_BACKLOG.md`
+9. `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`
+10. `luccadocs/audit/findings/V1_RELEASE_AUDIT.md`
 
 ## Appendix C — Known Errors the Executor MUST Find
 

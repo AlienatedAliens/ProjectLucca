@@ -17,8 +17,8 @@ In-scope entries are **identical to S0** (same 34 tracked-modified + 19 untracke
 | Path | S0 (2026-09-17T23:54Z) | Now | Explanation |
 |---|---|---|---|
 | `scripts/test_s1_startup.py` | not listed (unmodified, tracked) | `M` | **new post-S0 modification** (see §3) |
-| `docs/…` pre-audit files | untracked `?? docs/IMPLEMENTATION_PROMPT_…`, `?? docs/UI_USER_GUIDE.md` | `D` (deleted from tracking; content in `docs/archive/…`, unchanged) | S0's own archive move (§7) |
-| `docs/archive/`, `docs/audit/` | absent | `??` (untracked) | audit artefacts, expected |
+| `luccadocs/…` pre-audit files | untracked `?? luccadocs/IMPLEMENTATION_PROMPT_…`, `?? luccadocs/UI_USER_GUIDE.md` | `D` (deleted from tracking; content in `luccadocs/archive/…`, unchanged) | S0's own archive move (§7) |
+| `luccadocs/archive/`, `luccadocs/audit/` | absent | `??` (untracked) | audit artefacts, expected |
 
 ## 3. Line-count deltas vs S0 (S0 metric, non-blank lines)
 

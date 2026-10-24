@@ -1,8 +1,8 @@
 # Synthesis for Fable 5.1: External Evidence & Roadmap Revisions
 
-**Document:** `docs/research/studio_roadmap_r2/SYNTHESIS.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/SYNTHESIS.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Completion Date:** 2026-09-21  
 **Status:** Complete — Ready for Roadmap Revision & Owner Ratification  
 

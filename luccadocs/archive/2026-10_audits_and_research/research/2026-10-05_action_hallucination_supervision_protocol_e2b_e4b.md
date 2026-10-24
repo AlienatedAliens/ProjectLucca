@@ -1,5 +1,5 @@
 # Action Hallucination Supervision Protocol: E2B & E4B Evaluation
-**Document:** `docs/research/2026-10-05_action_hallucination_supervision_protocol_e2b_e4b.md`  
+**Document:** `luccadocs/research/2026-10-05_action_hallucination_supervision_protocol_e2b_e4b.md`  
 **Date:** October 5, 2026  
 **Authors:** Project Lucca Research & Verification  
 **Evaluation Scope:** Dimension 7B Output Supervision Layer & Real Completion Hallucination Rates

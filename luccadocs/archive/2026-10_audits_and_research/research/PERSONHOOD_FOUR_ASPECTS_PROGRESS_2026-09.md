@@ -4,7 +4,7 @@
 doc_status: superseded
 as_of: 2026-09-26
 supersedes: []
-superseded_by: [docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md]
+superseded_by: [luccadocs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md]
 verification: manual
 ```
 
@@ -48,7 +48,7 @@ Four functional aspects of personhood, originally posited in external discussion
 | Self-contradiction detection | `COHERENCE_BREACH` provenance class — spoken claims vs. actual receipts recorded as first-class evidence (`src/lucca/core/coherence.py`) |
 
 ### In flight
-- Diagnostic self-reasoning (symptom→cause about her own stack) — WO-22+; needs accumulated fault history (`docs/V2_BACKLOG.md` §1.13).
+- Diagnostic self-reasoning (symptom→cause about her own stack) — WO-22+; needs accumulated fault history (`luccadocs/V2_BACKLOG.md` §1.13).
 
 ### Score: **~80% of the buildable aspect.** What exists is architecturally grounded introspection — reading and reporting actual state with receipts. Missing: failure-mode introspection (needs operational history to author fault models).
 
@@ -79,7 +79,7 @@ Four functional aspects of personhood, originally posited in external discussion
 |---|---|
 | Unified decision stream | Heuristic router + conformal calibration integrate ASR text, lexical matching, and symbolic execution into one routing decision (`src/lucca/router/`, `src/lucca/router/calibration.py`) |
 | Action and inhibition bound by policy | Two-phase confirmation with single-use HMAC tokens (`src/lucca/sandbox/policy.py`, `ConfirmationTokenGuard`) |
-| Subsystems compensate, not compete | The concert layer (D-REAS-09): LLM proposes, LISP validates and signs — division of labor, not rivalry (`docs/adr/0010_d_reas_09_concert_layer.md`) |
+| Subsystems compensate, not compete | The concert layer (D-REAS-09): LLM proposes, LISP validates and signs — division of labor, not rivalry (`luccadocs/adr/0010_d_reas_09_concert_layer.md`) |
 | Organism-grade integration in code | WO-18 decomposition: orchestrator 3,471 → 2,437 lines into single-responsibility services (SignerFactory, MemoryCommitService, BeliefService, ConfirmationManager, SpeechOutputManager) with static parity gates (`tests/test_static_gates.py`) |
 | Self-audit | `COHERENCE_BREACH` on claim/receipt mismatch — the organism notices its own disunity |
 

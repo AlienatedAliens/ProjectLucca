@@ -3,8 +3,8 @@
 **Status:** Planned (pending owner ratification)
 **Date:** 2026-09-25
 **Audience:** an implementing agent with no prior context. Every step lists exact files, exact actions, verification, and rollback. **STOP** means halt and ask the owner.
-**Findings source:** [`docs/audit/findings/FEATURESET_AUDIT_2026-09.md`](../docs/audit/findings/FEATURESET_AUDIT_2026-09.md) (F-FEAT-01…07)
-**Golden rules:** one phase = one commit; run `uv run python -m pytest tests/ -q -m "not tier2 and not hw and not soak"` after every step; never edit `docs/archive/`; never "fix forward" from a red suite — revert and re-read.
+**Findings source:** [`luccadocs/audit/findings/FEATURESET_AUDIT_2026-09.md`](../luccadocs/audit/findings/FEATURESET_AUDIT_2026-09.md) (F-FEAT-01…07)
+**Golden rules:** one phase = one commit; run `uv run python -m pytest tests/ -q -m "not tier2 and not hw and not soak"` after every step; never edit `luccadocs/archive/`; never "fix forward" from a red suite — revert and re-read.
 
 ---
 
@@ -93,7 +93,7 @@ Unit tests: `system_tools` metrics functions (mock `psutil`/`nvidia-smi` subproc
 WO-19a (now) ──> WO-18a ──> WO-19b (after WO-18c) ──> WO-19c ──> WO-19e/f (anytime)
 ```
 
-**Parity invariant:** 680-test suite green at every commit boundary; `docs/audit/baseline.json` updated at completion.
+**Parity invariant:** 680-test suite green at every commit boundary; `luccadocs/audit/baseline.json` updated at completion.
 
 ---
 
@@ -144,7 +144,7 @@ Current green baseline is **696 passed** (not 680), 20 static gates, 7/7 import 
 | # | Check | How |
 |---|---|---|
 | 1 | **Scope audit** | `git show --stat <hash>` — every changed file must be in the phase manifest. Anything else → **bounce**. |
-| 2 | **Diff read** | Full diff. Bounce on: behavior changes in a refactor phase, deleted/weakened tests, unjustified `type: ignore`/`noqa`, `docs/archive/` edits. |
+| 2 | **Diff read** | Full diff. Bounce on: behavior changes in a refactor phase, deleted/weakened tests, unjustified `type: ignore`/`noqa`, `luccadocs/archive/` edits. |
 | 3 | **Independent verify** | Re-run the phase's Verify commands; outputs must match the package. |
 | 4 | **Trap audit** | Check each listed trap against the diff (e.g., WO-19a: orchestrator-side `memory_commit`/`invoke_skill` validation actually present; refusal shape unchanged; WO-19b: no Qt/Pydantic false-positive deletions). |
 | 5 | **Gate quality** | New static gates must include their positive control (proof the gate can fail). |

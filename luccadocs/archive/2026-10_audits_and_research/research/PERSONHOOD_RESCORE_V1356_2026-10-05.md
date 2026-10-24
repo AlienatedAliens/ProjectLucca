@@ -3,7 +3,7 @@
 ```yaml
 doc_status: canonical
 as_of: 2026-10-05
-supersedes: [docs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md]
+supersedes: [luccadocs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md]
 superseded_by: []
 verification: code-cited
 ```
@@ -39,7 +39,7 @@ estimates from a code reading, with no fixed probe set, no mechanical grader,
 and no confidence interval. They are retired as scores. Below: what is
 *measured* today (mechanical graders that already exist in the repo), and what
 is explicitly **NOT YET MEASURED** pending the probe batteries defined in
-[`docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`](../specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md).
+[`luccadocs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`](../specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md).
 
 ### Introspective Accuracy
 
@@ -50,7 +50,7 @@ is explicitly **NOT YET MEASURED** pending the probe batteries defined in
 | Capability self-report grounding | **Gate (static)** — registry-derived reporting with abstention on unavailability | `src/lucca/core/capabilities.py`; static gate `test_capability_claims_real` |
 | Reasoning-trace fidelity | **NOT YET MEASURED** — requires battery IA-C | SPEC-PERSONHOOD §1 |
 | Metrics honesty (numeric tolerance) | **NOT YET MEASURED** — requires battery IA-B | SPEC-PERSONHOOD §1 |
-| Failure-mode introspection | **NOT YET MEASURED** — needs accumulated fault history (WO-22+) | `docs/V2_BACKLOG.md` §1.13 |
+| Failure-mode introspection | **NOT YET MEASURED** — needs accumulated fault history (WO-22+) | `luccadocs/V2_BACKLOG.md` §1.13 |
 
 ### Individuation
 

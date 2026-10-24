@@ -9,7 +9,7 @@ verification: code-cited
 ```
 
 **Responds to:** the 18-question adversarial self-audit of
-[`docs/research/STATE_OF_THE_UNION_2026-10.md`](../../docs/research/STATE_OF_THE_UNION_2026-10.md)
+[`luccadocs/research/STATE_OF_THE_UNION_2026-10.md`](../../luccadocs/research/STATE_OF_THE_UNION_2026-10.md)
 and
 [`plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md`](../../plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md).
 Format: (a) findings per question with command evidence, (b) change list,
@@ -22,17 +22,17 @@ repository on 2026-10-05.
 
 ### A1. Supervisor sensitivity (1/23) vs the 0/50-only presentations — CONFIRMED, fixed
 
-`git grep -n -E "1/23|4\.3%|0/50|false.abort" -- docs/ plans/ RESULTS.md README.md`:
+`git grep -n -E "1/23|4\.3%|0/50|false.abort" -- luccadocs/ plans/ RESULTS.md README.md`:
 
 - **Correctly reported (both halves):** `RESULTS.md:76-78` (full stratum table:
   1/8 strict = 12.5%, 1/23 broad = 4.3%, 0/50 controls with the caveat);
-  `docs/LUCCA_V135_1_ARCHITECTURE.md:151-154` (same table plus the explicit
+  `luccadocs/LUCCA_V135_1_ARCHITECTURE.md:151-154` (same table plus the explicit
   "confirms only that the matcher is inactive on text devoid of action
   claims" disclosure and the four escape-mode classes);
-  `docs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md:158`.
-- **0/50-only (fixed):** `README.md:145`; `docs/DECISIONS.md:354`
+  `luccadocs/subsystems/04_DEONTIC_SANDBOX_AND_COMPILER.md:158`.
+- **0/50-only (fixed):** `README.md:145`; `luccadocs/DECISIONS.md:354`
   (D-SEC-05 §4); the SotU §3.6 row (before this audit).
-- Escape modes (from `docs/LUCCA_V135_1_ARCHITECTURE.md:166-170`): active
+- Escape modes (from `luccadocs/LUCCA_V135_1_ARCHITECTURE.md:166-170`): active
   progressive participles 12, passive/telegraphic confirmations 6, markdown
   action headers 2, unlisted verb lemmas (`opened`, `launched`) 2.
 
@@ -132,7 +132,7 @@ SPIKE-A + Battery v2 attached; the "nine findings, zero open" claims in
 
 ### B6. Re-verification of three F-items (fresh commands)
 
-- **F3** — `git grep "fuzzy clustering next" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md`
+- **F3** — `git grep "fuzzy clustering next" -- luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`
   → line 283 hit confirmed. **Holds.** (Now fixed — see change list.)
 - **F4** — `data/benchmarks/MANIFEST.yaml:147`: `git_dirty: true` on
   `math500_heldout100_direct_r0_v1_35_6`. **Holds.**
@@ -184,7 +184,7 @@ is a loop that runs, not an engine."
 C5 added: IN-D, AC-A, IA-B grader criteria committed with hash recorded in
 the run envelope *before* baselines; same rule for the widened contrastive
 battery (B3). The contrastive regrade is cited as the anti-pattern.
-(Where the criteria live: `docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`
+(Where the criteria live: `luccadocs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`
 defines the batteries; the freeze rule requires the grader *code* committed
 and hashed, not just the spec.)
 
@@ -244,8 +244,8 @@ exists to fix. Advisory §4 updated with this.
 | Claim | Where | Value | Authoritative source | Status |
 |---|---|---|---|---|
 | Test count | `CHANGELOG.md:39` | "record metrics-2026-10-05: 1,199/67" | `data/metrics/TEST_METRICS.yaml`: 1,243/68 | CHANGELOG misquotes its own record — historical entry, left as-is per the record's own policy; active docs cite the YAML |
-| Supervisor battery size | `docs/LUCCA_V135_1_ARCHITECTURE.md:145` | "Formal 40-Sentence Battery" | `tests/test_truth_in_receipt_battery.py`: 70 | **still stale** — registered in later-findings follow-up (A10 sweep) |
-| E2B discordant ratio | `docs/DECISIONS.md` D-ROUT-02 | 22:2 | artifacts: 24:4 | **fixed** (dated correction note) |
+| Supervisor battery size | `luccadocs/LUCCA_V135_1_ARCHITECTURE.md:145` | "Formal 40-Sentence Battery" | `tests/test_truth_in_receipt_battery.py`: 70 | **still stale** — registered in later-findings follow-up (A10 sweep) |
+| E2B discordant ratio | `luccadocs/DECISIONS.md` D-ROUT-02 | 22:2 | artifacts: 24:4 | **fixed** (dated correction note) |
 | E2B p-value | D-ROUT-02 | 0.0002 | exact McNemar 24:4 = 1.8×10⁻⁴ | **stands** |
 | HumanEval canonical | papers/01, NEUROSYMBOLIC, USER_GUIDE | 95.73% (157/164) | artifacts: 94.51% raw / 93.90% assisted | **USER_GUIDE fixed; papers flagged (A12)** |
 | HumanEval-Plus | USER_GUIDE, papers | 91.46% (150/164) | newest artifact: 92.07% (151/164); older artifact unlocated | **USER_GUIDE fixed; manifest record missing (A12)** |
@@ -269,13 +269,13 @@ exists to fix. Advisory §4 updated with this.
 
 | File | Change |
 |---|---|
-| `docs/research/STATE_OF_THE_UNION_2026-10.md` | P7 → partially closed; net-effect paragraph; HumanEval rows rebuilt (4 rows incl. NOT-SOURCED); E2B discordant correction; §3.6 sensitivity/control split + regrade-provenance paragraph; §5.4 rewritten with measured escape modes; §6.1 honesty boundaries; §8 closing |
+| `luccadocs/research/STATE_OF_THE_UNION_2026-10.md` | P7 → partially closed; net-effect paragraph; HumanEval rows rebuilt (4 rows incl. NOT-SOURCED); E2B discordant correction; §3.6 sensitivity/control split + regrade-provenance paragraph; §5.4 rewritten with measured escape modes; §6.1 honesty boundaries; §8 closing |
 | `plans/2026-10-05_pre_wo30_shoring_and_ladder_resequencing.md` | F8 strengthened; F13–F16 added; A10–A13 added; B2 labeling protocol; C5 freeze rule; WO-30 utility gate; WO-31 B4 checkpoint; SPIKE-A named deliverable; frozen scope + commit order; §5 B4 scoping |
 | `README.md` | supervisor row: sensitivity + controls caveat |
-| `docs/DECISIONS.md` | D-SEC-05 Amendment §5 (sensitivity + escape modes + Battery v2); D-ROUT-02 dated correction (24:4, p = 1.8×10⁻⁴) |
-| `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` | line 17 HumanEval figures corrected/retracted; line 283 fuzzy-clustering drift fixed |
+| `luccadocs/DECISIONS.md` | D-SEC-05 Amendment §5 (sensitivity + escape modes + Battery v2); D-ROUT-02 dated correction (24:4, p = 1.8×10⁻⁴) |
+| `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` | line 17 HumanEval figures corrected/retracted; line 283 fuzzy-clustering drift fixed |
 | `plans/2026-10-05_LATER_FINDINGS.md` | created (frozen-scope overflow: A5, A8, C2) |
-| `docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md` | this document |
+| `luccadocs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md` | this document |
 | `scratch/audit_q2_q3_checks.py`, `scratch/audit_q2_diag.py`, `scratch/audit_q2_diag2.py`, `scratch/audit_q2_diag3.py`, `scratch/audit_q3b_q7_checks.py`, `scratch/audit_plus_check.py` | audit tooling (reproducible commands) |
 
 ## Could not be verified — resolution log

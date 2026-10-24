@@ -1,7 +1,7 @@
 # Findings — SBX (`src/lucca/sandbox/**`, `docker/**`, `scripts/wsl/**`)
 
 **Subtask:** S2f · **Method:** static line-by-line + S1 dynamic evidence · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md`, delta in [`../03b_BASELINE_DELTA.md`](../03b_BASELINE_DELTA.md) (sandbox modules: **unchanged since S0**) · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `docs/audit/evidence/`. Cross-area findings cross-referenced by ID.
+**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `luccadocs/audit/evidence/`. Cross-area findings cross-referenced by ID.
 
 **Severity totals: S0 = 0 · S1 = 1 · S2 = 4 · S3 = 9 · S4 = 1 · total = 15.**
 
@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` rows 53–62. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` rows 53–62. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % | Tests |
 |---|---:|---|---|---|---|---:|---|
@@ -56,7 +56,7 @@ Ordered by severity, then by ID. Every finding re-reviewed per Charter §3.5 (lo
 | **Title** | The direct host fallback is the production default: file tools and arbitrary `run_python` execute unconfined on the host, and Windows has no resource limits |
 | **Severity** | S1 — High |
 | **Category** | SECURITY |
-| **Location** | `src/lucca/sandbox/service.py:36-37`; `src/lucca/sandbox/rpc.py:34,67-68,191-310`; `src/lucca/sandbox/file_tool.py:14-17,289-314`; `docs/audit/evidence/S1_22b_container_ports_mounts_app_running.txt` |
+| **Location** | `src/lucca/sandbox/service.py:36-37`; `src/lucca/sandbox/rpc.py:34,67-68,191-310`; `src/lucca/sandbox/file_tool.py:14-17,289-314`; `luccadocs/audit/evidence/S1_22b_container_ports_mounts_app_running.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -117,7 +117,7 @@ The sandbox is the substrate of TM-03…TM-08; on the default path it does not e
 | **Title** | The ADR-004 container architecture is unimplemented: no code ever creates the sandboxes, and web fetch runs host-side |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/sandbox/container_spec.py:20-108`; `src/lucca/sandbox/egress.py:35-55`; `src/lucca/sandbox/service.py:118-141`; `docs/audit/evidence/S1_22_container_ports_mounts.txt` |
+| **Location** | `src/lucca/sandbox/container_spec.py:20-108`; `src/lucca/sandbox/egress.py:35-55`; `src/lucca/sandbox/service.py:118-141`; `luccadocs/audit/evidence/S1_22_container_ports_mounts.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -230,7 +230,7 @@ TM-03b/TM-04 name host-side resolver checks as a control; this finding shows the
 
 **What is wrong / assumed / missing**
 
-`SimpleHTTPRequestHandler` serves files from the **current working directory** of the process. The verifier binds the host's LAN IP (reachable from the WSL host per step 2's positive control — and from anything else on the LAN) and serves for the full verification duration (~10–20 s including container pulls/timeout waits). Run from the repo root (the normal case), it exposes `src/**`, `config/**`, `docs/**` — the entire source tree including `config/persona.toml` and any local uncommitted files — to every LAN peer for the window. Expected: a handler returning a fixed string (`do_GET` → 200 "lucca-egress-probe"), serving nothing from disk.
+`SimpleHTTPRequestHandler` serves files from the **current working directory** of the process. The verifier binds the host's LAN IP (reachable from the WSL host per step 2's positive control — and from anything else on the LAN) and serves for the full verification duration (~10–20 s including container pulls/timeout waits). Run from the repo root (the normal case), it exposes `src/**`, `config/**`, `luccadocs/**` — the entire source tree including `config/persona.toml` and any local uncommitted files — to every LAN peer for the window. Expected: a handler returning a fixed string (`do_GET` → 200 "lucca-egress-probe"), serving nothing from disk.
 
 **Why it matters**
 
@@ -367,7 +367,7 @@ The egress matrix is the mechanical verification for TM-04; a claimed-but-absent
 | **Title** | `MAX_TOOL_CALLS_PER_TURN` (Spec 12 §3) is not enforced by `SequenceGuard` |
 | **Severity** | S3 — Low |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/sandbox/policy.py:61-94`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:52,60` |
+| **Location** | `src/lucca/sandbox/policy.py:61-94`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:52,60` |
 | **Status** | OPEN |
 
 **Evidence**

@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-23 · **Status:** RATIFIED VERIFICATION
 **Artifact:** `logs/test_reports/spoken_revision_hw_20260923T114248Z.json`
-**Spec:** `docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md` (§7 Decision 4)
+**Spec:** `luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md` (§7 Decision 4)
 **Milestone M5:** *No silent self-model changes, ever.*
 
 ---

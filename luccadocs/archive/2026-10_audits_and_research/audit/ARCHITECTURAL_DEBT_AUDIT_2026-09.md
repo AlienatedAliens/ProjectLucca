@@ -4,7 +4,7 @@
 **Date:** 2026-09-25
 **Scope:** Full `src/lucca/` tree (100 modules, 32,756 lines), import graph, port contracts, exception handling, god objects, test-hook leakage
 **Method:** AST-based automated analysis (`scratch/audit_import_graph.py`, `scratch/audit_exceptions.py`, `scratch/audit_except_shapes.py`) + import-linter run + manual verification of all load-bearing claims
-**Prior art:** Builds on `docs/archive/2026-09_raw_findings/arch.md` (F-ARCH series); does not repeat resolved findings
+**Prior art:** Builds on `luccadocs/archive/2026-09_raw_findings/arch.md` (F-ARCH series); does not repeat resolved findings
 
 ---
 

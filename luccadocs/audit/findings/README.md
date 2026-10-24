@@ -13,7 +13,7 @@ One file per audit area. Each file is created by the subtask that audits that ar
 | `senses.md` | `F-SENS-NNN` | `src/lucca/senses/**` (asr, audio_proc, dsp_chain, embed, npu_proc, ptt, ring_buffer, tts, vad) |
 | `ui.md` | `F-UI-NNN` | `src/lucca/ui/**` (app, commorose, input_bar, settings_dialog, speech_bubble, sprite, states, telemetry_hud, theme), `assets/**`, `config/persona.toml` as consumed by the UI |
 | `tests_and_build.md` | `F-TEST-NNN` | `tests/**` (modules, fakes, fixtures), `pyproject.toml` (pytest/ruff/mypy config, scripts, dependencies), `uv.lock`, `packaging/**`, `Lucca.spec`, `launch_lucca.bat`, `scripts/**` other than `scripts/wsl/` |
-| `doc_drift.md` | `F-DRIFT-NNN` | Divergences between the implementation and the archived spec set under `docs/archive/2026-09-17_pre_phase4_audit/`, plus stale in-repo references (`README.md`, `AGENTS.md`, `GEMINI.md`, `.agents/skills/lucca-pipeline/SKILL.md`) |
+| `doc_drift.md` | `F-DRIFT-NNN` | Divergences between the implementation and the archived spec set under `luccadocs/archive/2026-09-17_pre_phase4_audit/`, plus stale in-repo references (`README.md`, `AGENTS.md`, `GEMINI.md`, `.agents/skills/lucca-pipeline/SKILL.md`) |
 | `architecture.md` | `F-ARCH-NNN` | Cross-cutting structural findings raised via the recursive-review step (Charter §3.5, question 5): module boundaries, dependency direction, process topology, IPC contracts, shared state, lifecycle |
 
 ## Conventions

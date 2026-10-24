@@ -1,8 +1,8 @@
 # User Guide Truth Audit — Claim-by-Claim Verification
 
-**Status:** Complete; fixes applied to `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` and `docs/DECISIONS.md`
+**Status:** Complete; fixes applied to `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` and `luccadocs/DECISIONS.md`
 **Date:** 2026-09-25
-**Subject:** [`docs/USER_GUIDE_WHAT_LUCCA_DOES.md`](../../USER_GUIDE_WHAT_LUCCA_DOES.md) — whose own rule (line 5) is: *"Every claim below is either observable by you in a live session or points at the file that implements it."*
+**Subject:** [`luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`](../../USER_GUIDE_WHAT_LUCCA_DOES.md) — whose own rule (line 5) is: *"Every claim below is either observable by you in a live session or points at the file that implements it."*
 **Method:** mechanical verification script (`scratch/audit_userguide_claims.py`) + manual constant/symbol chase for every citation the script could not resolve + Nia improvement research pass.
 **Verdict legend:** **VERIFIED** (claim matches code) · **STALE** (was true once; code moved on) · **WRONG** (claim contradicts code, or cites a symbol that never existed)
 
@@ -33,7 +33,7 @@
 
 | # | Document | Claim | Code truth |
 |---|---|---|---|
-| X1 | `docs/DECISIONS.md` D-CASC-01 | Substrates `TELEMETRY=0, WORKSPACE=1, MEMORY=2, REASONING=3, SENSES=4, SYSTEM=5, WEB_FLOOR=6, SELF_HISTORY=7` | Code ([`cascade.py:50-57`](../../../src/lucca/core/cascade.py:50)) and the user guide agree: `WEB=3, ABSTENTION=4, SELF=5, CAPABILITIES=6`. **DECISIONS.md is the stale document** — the guide was right. |
+| X1 | `luccadocs/DECISIONS.md` D-CASC-01 | Substrates `TELEMETRY=0, WORKSPACE=1, MEMORY=2, REASONING=3, SENSES=4, SYSTEM=5, WEB_FLOOR=6, SELF_HISTORY=7` | Code ([`cascade.py:50-57`](../../../src/lucca/core/cascade.py:50)) and the user guide agree: `WEB=3, ABSTENTION=4, SELF=5, CAPABILITIES=6`. **DECISIONS.md is the stale document** — the guide was right. |
 
 ## 3. VERIFIED claims (sample of the pass)
 

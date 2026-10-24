@@ -1,7 +1,7 @@
 # WO-12 — Belief Model Completion Audit & turn_pipeline Extraction
 
 **Date:** 2026-09-23 · **Status:** DRAFT FOR APPROVAL
-**Provenance:** WO-11 closing audit (`docs/audit/findings/WO11_CLOSING_AUDIT.md`) issued **GO for WO-12**. Spec: [`docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](../docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) (D-MEM-04).
+**Provenance:** WO-11 closing audit (`luccadocs/audit/findings/WO11_CLOSING_AUDIT.md`) issued **GO for WO-12**. Spec: [`luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](../luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) (D-MEM-04).
 
 ---
 
@@ -83,7 +83,7 @@ Scoping review (2026-09-23) found most of D-MEM-04 already landed during WO-8/WO
 
 **Scope:** deliberate investigation of `plausible_wrong` tool output handling — can the model cross-check tool results against parametric knowledge before asserting? Feeds future sanity-check guard design.
 
-**Gate:** research note in `docs/audit/findings/` with measured accept/flag rates across 10 plausible-wrong probes; design sketch for a sanity-check nudge if accepted-rate is high.
+**Gate:** research note in `luccadocs/audit/findings/` with measured accept/flag rates across 10 plausible-wrong probes; design sketch for a sanity-check nudge if accepted-rate is high.
 
 **Milestone M4 — *The hardest honesty boundary, measured.***
 

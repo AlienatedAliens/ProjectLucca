@@ -8,7 +8,7 @@
 
 ## 1. Context (read first)
 
-The 2026-09-21 brain bake-off ([`docs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`](BRAIN_BAKEOFF_2026-09-21.md)) selected **Gemma-4-12B-Heretic Q6_K** as companion brain. The owner then required: **no model names, server binaries, or chat templates hard-coded anywhere in `src/`** — everything derives from config.
+The 2026-09-21 brain bake-off ([`luccadocs/audit/evidence/BRAIN_BAKEOFF_2026-09-21.md`](BRAIN_BAKEOFF_2026-09-21.md)) selected **Gemma-4-12B-Heretic Q6_K** as companion brain. The owner then required: **no model names, server binaries, or chat templates hard-coded anywhere in `src/`** — everything derives from config.
 
 Refactor is **~80% complete**. All source changes are in place; what remains is lint cleanup, one failing static-gate test, and verification runs.
 

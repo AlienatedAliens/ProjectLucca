@@ -59,7 +59,7 @@ This backlog explicitly documents all architectural proposals, speculative resea
 ### 1.9 WO-21 — Defeasible Reasoning Rung (ACTIVE — next work order)
 - **Scope:** Source-conditioned beliefs (`conditions` carried on INFERRED conclusions, Toulmin rebuttal slot); corroboration engine implemented as Walton argumentation-scheme critical questions (authority/sign/analogy/consequence/precedent); confidence → subjective-logic opinions (belief/disbelief/uncertainty) or banded v1; standards-of-proof policy table (balance ≥ 0.5 / clear-and-convincing ≥ 0.75 / beyond-reasonable-doubt ≥ 0.95) gating consumers; web-fact ratification flow (user confirms → `USER_DERIVED` with source metadata; domain whitelist as friction reducer, never trust elevator); theory-of-mind stub (track what the user has been told/confirmed via SELF_HISTORY); case-based-reasoning stub (retrieve similar past episodes on recurrence).
 - **v1.0 Baseline:** WO-20 concert layer (D-REAS-09): hard-premise deduction + existence-checked abduction; `conditions` schema hook ratified 2026-09-26.
-- **Trigger to Revisit:** Already triggered — owner ratified 2026-09-26. Research grounding: `docs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`.
+- **Trigger to Revisit:** Already triggered — owner ratified 2026-09-26. Research grounding: `luccadocs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`.
 
 ### 1.10 Fuzzy Clustering for Rule Induction
 - **Scope:** Replace exact-match clustering in the induction pipeline with near-duplicate-aware clustering (embedding or edit-distance based) so paraphrased repetitions of the same request form clusters.
@@ -98,7 +98,7 @@ This backlog explicitly documents all architectural proposals, speculative resea
 
 ### 1.17 Sovereign Cognitive Unification & Two-Cadence Inner Life *(GRADUATED & RATIFIED in v1.45.0 / WO-36 via D-COG-01)*
 - **Scope:** Unification of CEGIS multi-turn synthesis with 3D PAD affective dynamics, working memory proof traces, and episodic recall (`CognitiveOutcomeSink`), semantic `UserModel` v2 + `ActiveGoalManager` goal-biased recall, Two-Cadence Inner Life (`IdlePulse` + `DreamRetrospective` governed by `CoherenceDrive` and `CompetenceDrive`), Constitutional Kernel SHA-256 fingerprint (`constitutional_hash`), Organ A topological `GridDiff`, and Edge Z3 constraint compiler (`zebra_constraints.gbnf`).
-- **Status (2026-10-18):** Graduated in Release v1.45.0 (`WO-36`, ratified under `D-COG-01` in `docs/DECISIONS.md`).
+- **Status (2026-10-18):** Graduated in Release v1.45.0 (`WO-36`, ratified under `D-COG-01` in `luccadocs/DECISIONS.md`).
 
 ---
 

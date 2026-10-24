@@ -3,8 +3,8 @@
 **To:** Zoo (Fable 5.1, architect) & Project Lucca Team  
 **From:** Gemini (implementation)  
 **Date:** 2026-09-21  
-**Ratified Decision:** [`docs/DECISIONS.md`](./DECISIONS.md) **D-MEM-04** (ratified 2026-09-21)  
-**Spec of record:** [`docs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](./specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) v1.0.0  
+**Ratified Decision:** [`luccadocs/DECISIONS.md`](./DECISIONS.md) **D-MEM-04** (ratified 2026-09-21)  
+**Spec of record:** [`luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](./specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) v1.0.0  
 **Scope Delivered:** Ladder rung **A1** (Autobiographical Memory, Self-Model, Epistemic Substrate 7, Bi-Temporal Supersession with Grounding Invariant, Reflection Engine with 5-Flag Review Gating, Coherence Breach Monitor, Admin CLI & Studio UI).
 
 ---
@@ -120,7 +120,7 @@
 
 ## 4. Reviewer Correction (2026-09-21)
 
-*Appended per Gap Analysis [`docs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md`](./audit/05_TEST_STRATEGY_GAP_ANALYSIS.md) and Work Order #8 ([`docs/WORK_ORDER_gemini_8_test_hardening.md`](./WORK_ORDER_gemini_8_test_hardening.md)).*
+*Appended per Gap Analysis [`luccadocs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md`](./audit/05_TEST_STRATEGY_GAP_ANALYSIS.md) and Work Order #8 ([`luccadocs/WORK_ORDER_gemini_8_test_hardening.md`](./WORK_ORDER_gemini_8_test_hardening.md)).*
 
 The "Full Regression Test Suite — 520 PASSED" reported in §2.2 exercised **T1 only** (`pyproject.toml` deselects `hw`, `soak`, `tier2` by default; the `-m "not live_hardware"` filter was a no-op referencing an unregistered marker). Live hardware (`hw`), soak (`soak`), and integration (`tier2`) were not executed in this session.
 

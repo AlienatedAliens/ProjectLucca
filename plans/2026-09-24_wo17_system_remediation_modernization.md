@@ -117,7 +117,7 @@ _DEMONYMS: Final[frozenset[str]] = frozenset({"australian", "american", "british
 
 **Amendments from review (rows 11, 13 + ADR hygiene):**
 
-1. **ADR-010 supersession (mandatory).** The comment at `schemas.py:265–269` states the closed vocabulary is "deliberately NOT config-editable — widening this set changes what can be laundered into long-term memory" (WO-9 A2 / ADR-010). Solution B is defensible because the real security boundary is quote-grounding, but a new ADR must be ratified in `docs/DECISIONS.md` formally superseding ADR-010's closed-vocabulary clause and restating the invariant as: *predicate vocabulary is open; grounding (verbatim quote + USER_DERIVED signature) is the laundering boundary.* Without this, `tests/test_static_gates.py` and future audits will flag the drift.
+1. **ADR-010 supersession (mandatory).** The comment at `schemas.py:265–269` states the closed vocabulary is "deliberately NOT config-editable — widening this set changes what can be laundered into long-term memory" (WO-9 A2 / ADR-010). Solution B is defensible because the real security boundary is quote-grounding, but a new ADR must be ratified in `luccadocs/DECISIONS.md` formally superseding ADR-010's closed-vocabulary clause and restating the invariant as: *predicate vocabulary is open; grounding (verbatim quote + USER_DERIVED signature) is the laundering boundary.* Without this, `tests/test_static_gates.py` and future audits will flag the drift.
 2. **Negation & reported-speech guards (row 11).** Extend the skip logic alongside `_HYPOTHETICAL_MARKERS` with:
    - a negation window check: `not|n't|never|no longer` appearing between the trigger phrase and the capture group voids the candidate (fixes "My name is not Sean" → `is_named: "not"`);
    - reported-speech markers: `he said|she told|they said|my friend said|quote` void the candidate (fixes attribution blindness).
@@ -284,9 +284,9 @@ self._tts_queue: queue.Queue[...] = queue.Queue(maxsize=32)
 
 | Amendment | File | Rationale |
 |-----------|------|-----------|
-| New ADR superseding ADR-010's closed-vocabulary clause; restates the laundering boundary as quote-grounding + `USER_DERIVED` signature under an open predicate vocabulary | `docs/DECISIONS.md` | Phase 2 changes what can enter long-term memory; the invariant must be re-ratified, not just re-coded |
-| Confirmation binding decision: wire `ConfirmationTokenManager` into the voice flow OR ratify regex-only confirmation | `docs/DECISIONS.md` | `policy.py:68` is currently dead code; the live flow diverges from Milestone 2 §2.7 |
-| `human_confirmed` provenance split (Phase 4) documented as a TM-03 refinement | `docs/DECISIONS.md` + `docs/ARCHITECTURE.md` | Prevents future regressions where internal auto-confirm is mistaken for a human grant |
+| New ADR superseding ADR-010's closed-vocabulary clause; restates the laundering boundary as quote-grounding + `USER_DERIVED` signature under an open predicate vocabulary | `luccadocs/DECISIONS.md` | Phase 2 changes what can enter long-term memory; the invariant must be re-ratified, not just re-coded |
+| Confirmation binding decision: wire `ConfirmationTokenManager` into the voice flow OR ratify regex-only confirmation | `luccadocs/DECISIONS.md` | `policy.py:68` is currently dead code; the live flow diverges from Milestone 2 §2.7 |
+| `human_confirmed` provenance split (Phase 4) documented as a TM-03 refinement | `luccadocs/DECISIONS.md` + `luccadocs/ARCHITECTURE.md` | Prevents future regressions where internal auto-confirm is mistaken for a human grant |
 
 ## 4. Codebase Invariant & Static Gate Verification
 

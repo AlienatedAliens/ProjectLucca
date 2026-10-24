@@ -5,7 +5,7 @@ description: Operational skill for developing, running diagnostics, and testing 
 
 # Project Lucca Operational Skill
 
-Authoritative references: [`docs/DECISIONS.md`](../../../docs/DECISIONS.md), [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md), [`docs/MODEL_STRATEGY.md`](../../../docs/MODEL_STRATEGY.md). If a command here disagrees with those documents, the documents win.
+Authoritative references: [`luccadocs/DECISIONS.md`](../../../luccadocs/DECISIONS.md), [`luccadocs/ARCHITECTURE.md`](../../../luccadocs/ARCHITECTURE.md), [`luccadocs/MODEL_STRATEGY.md`](../../../luccadocs/MODEL_STRATEGY.md). If a command here disagrees with those documents, the documents win.
 
 ## 1. Environment verification
 

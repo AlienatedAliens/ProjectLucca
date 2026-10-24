@@ -3,11 +3,11 @@
 **Status:** Planned (pending owner ratification)
 **Date:** 2026-09-25
 **Audience:** an implementing agent with no prior context. Every step lists exact files, exact actions, verification commands, and rollback. If a step says **STOP**, halt and ask the owner — do not improvise.
-**Inputs:** [`docs/audit/findings/ARCHITECTURAL_DEBT_AUDIT_2026-09.md`](../docs/audit/findings/ARCHITECTURAL_DEBT_AUDIT_2026-09.md) (F-ARCH-101…107)
+**Inputs:** [`luccadocs/audit/findings/ARCHITECTURAL_DEBT_AUDIT_2026-09.md`](../luccadocs/audit/findings/ARCHITECTURAL_DEBT_AUDIT_2026-09.md) (F-ARCH-101…107)
 **Golden rules:**
 1. **One phase = one commit.** Never mix phases in a commit.
 2. After **every** step, run: `uv run python -m pytest tests/ -q -m "not tier2 and not hw and not soak"`. If anything fails that passed before your change, revert your change (`git checkout -- .`) and re-read the step. Do not "fix forward."
-3. **Never edit anything under `docs/archive/`.** Ever.
+3. **Never edit anything under `luccadocs/archive/`.** Ever.
 4. Do not refactor beyond the step's manifest. If you notice something else wrong, write it down; don't fix it.
 
 ---
@@ -124,7 +124,7 @@ Orchestrator ≤ 1,500 lines (`(Get-Content src/lucca/core/orchestrator.py | Mea
 
 ## Phase 6 — Process hardening (continuous)
 
-Land with each phase: promote `scratch/audit_*.py` → `scripts/` with positive controls; add ratchet gates (orchestrator line ceiling, silent-except ceiling = 0 after Phase 3, dead-port count = 0 after Phase 2); create `docs/audit/baseline.json` after Phase 4; file findings into `docs/V2_ACTION_LOG.md`.
+Land with each phase: promote `scratch/audit_*.py` → `scripts/` with positive controls; add ratchet gates (orchestrator line ceiling, silent-except ceiling = 0 after Phase 3, dead-port count = 0 after Phase 2); create `luccadocs/audit/baseline.json` after Phase 4; file findings into `luccadocs/V2_ACTION_LOG.md`.
 
 ---
 
@@ -153,7 +153,7 @@ Land with each phase: promote `scratch/audit_*.py` → `scripts/` with positive 
 | # | Check | How |
 |---|---|---|
 | 1 | **Scope audit** | `git show --stat <hash>` — every changed file must appear in the phase's change manifest. Any file outside the manifest → **bounce**. |
-| 2 | **Diff read** | Read the full diff. Look for: behavior changes disguised as refactors, deleted tests, weakened assertions, new `type: ignore`/`noqa` without justification, any edit under `docs/archive/` → **bounce**. |
+| 2 | **Diff read** | Read the full diff. Look for: behavior changes disguised as refactors, deleted tests, weakened assertions, new `type: ignore`/`noqa` without justification, any edit under `luccadocs/archive/` → **bounce**. |
 | 3 | **Independent verify** | Re-run the phase's Verify commands yourself. Outputs must match the package. |
 | 4 | **Trap audit** | Re-read the phase's Traps section and check each one against the diff specifically (e.g., Phase 1: `AsyncIterator` still in `ports.py`; `SpeechLLMPort` still async; zero `iscoroutine` in `src/`). |
 | 5 | **Gate quality** | For any new static gate: does it have its positive control (does the test prove the test can fail)? Comment it out mentally — would anything catch the regression it guards? |

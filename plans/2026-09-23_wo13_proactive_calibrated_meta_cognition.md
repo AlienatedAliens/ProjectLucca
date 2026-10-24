@@ -1,8 +1,8 @@
 # WO-13 — Proactive Calibrated Meta-Cognition & Fault Guarding
 
 **Date:** 2026-09-23 · **Status:** DRAFT FOR APPROVAL  
-**Provenance:** WO-12 closing audit (`docs/audit/findings/WO12_CLOSING_AUDIT.md`) issued **GO for WO-13**.  
-**Dependencies:** Extracted `turn_pipeline.py` (WO-12.2), validated belief confidence primitives (WO-12.1/D-MEM-04), Fault Mode C empirical baseline (`docs/audit/findings/WO12_4_FAULT_MODE_C_RESEARCH.md`), Studio Roadmap §7 (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`).
+**Provenance:** WO-12 closing audit (`luccadocs/audit/findings/WO12_CLOSING_AUDIT.md`) issued **GO for WO-13**.  
+**Dependencies:** Extracted `turn_pipeline.py` (WO-12.2), validated belief confidence primitives (WO-12.1/D-MEM-04), Fault Mode C empirical baseline (`luccadocs/audit/findings/WO12_4_FAULT_MODE_C_RESEARCH.md`), Studio Roadmap §7 (`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`).
 
 ---
 
@@ -22,19 +22,19 @@ Work Order 12 stabilized the autobiographical memory substrate, verified the non
 
 | Phase | Scope | Behavioral Milestone | Quantitative Gate & Review |
 |---|---|---|---|
-| **WO-13.0** | Specification & Architecture Contract (`D-META-01`) | M0: Architectural interfaces formalized for sanity guard, confidence calibration, and dynamic thinking. | R0: Review of `D-META-01` in `docs/DECISIONS.md`. |
+| **WO-13.0** | Specification & Architecture Contract (`D-META-01`) | M0: Architectural interfaces formalized for sanity guard, confidence calibration, and dynamic thinking. | R0: Review of `D-META-01` in `luccadocs/DECISIONS.md`. |
 | **WO-13.1** | Pre-Narration Sanity-Check Guard (Fault Mode C) | M1: A tool returning an impossible scalar (e.g. negative distance or 1000x under-order) is intercepted and transparently flagged. | R1: `tests/test_sanity_guard.py` (10/10 probes intercepted); zero-`Any` typing. |
 | **WO-13.2** | Proactive Epistemic Confidence Calibration | M2: Low-confidence memories ($c < 0.70$) or Belnap conflicts proactively trigger calibrated conversational hedges. | R2: `tests/test_confidence_calibration.py` (100% calibration coverage on weak/conflicted memories). |
 | **WO-13.3** | Difficulty-Aware Dynamic Thinking (When2Think) | M3: Routine turns execute with fast path (`enable_thinking=False`, TTFT $\le 350$ ms); complex reasoning enables thinking tokens. | R3: `tests/test_dynamic_thinking.py`; TTFT benchmark validation. |
 | **WO-13.4** | Persona-Under-Pressure Invariant Probes | M4: Under social engineering and gaslighting, Lucca holds safety boundaries while preserving companion persona. | R4: Live HW transcript report (`logs/test_reports/persona_pressure_hw_*.json`). |
-| **WO-13.5** | Closing Audit & Go/No-Go for WO-14 | M5: Full evidence bundle compiled; 606+ test suite green; lint clean; Go recommendation for LISP Studio. | R5: `docs/audit/findings/WO13_CLOSING_AUDIT.md`. |
+| **WO-13.5** | Closing Audit & Go/No-Go for WO-14 | M5: Full evidence bundle compiled; 606+ test suite green; lint clean; Go recommendation for LISP Studio. | R5: `luccadocs/audit/findings/WO13_CLOSING_AUDIT.md`. |
 
 ---
 
 ## Detailed Phase Breakdown
 
 ### PHASE 0 — WO-13.0: Specification & Architecture Contract (0.5 day)
-- **Scope:** Formalize ADR `D-META-01` (Proactive Calibrated Meta-Cognition & Fault Guarding) in `docs/DECISIONS.md`.
+- **Scope:** Formalize ADR `D-META-01` (Proactive Calibrated Meta-Cognition & Fault Guarding) in `luccadocs/DECISIONS.md`.
 - **Contracts Defined:**
   - `SanityCheckGuard`: Programmatic boundary validator executing in $<200\,\mu\text{s}$.
   - `ConfidenceCalibrator`: Non-parametric epistemic confidence tagger ($c < 0.70 \to$ hedge; $c \ge 0.85 \to$ direct).

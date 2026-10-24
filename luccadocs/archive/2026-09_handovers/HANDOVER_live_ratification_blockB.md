@@ -10,7 +10,7 @@
 
 Previous handoff ([`HANDOFF_brain_config_refactor.md`](HANDOFF_brain_config_refactor.md)) was completed and **independently verified by Zoo**: 50/50 tests, mypy --strict clean on the 3 core files, ruff clean, GGUF relocated to `C:\ProjectLucca\models\llm\`, GPU released. Your `_blank_to_none` extension was reviewed and accepted.
 
-ADR **D-BRAIN-05 v2** is now written in [`docs/DECISIONS.md`](DECISIONS.md) (Gemma-4 primary, NeMo deprecated, Bonsai slot-2 pending fork ADR). Its status is *"Ratified (evidence-gated) — live hw voice-session ratification pending."* Your job is to close that gate, then start Block B.
+ADR **D-BRAIN-05 v2** is now written in [`luccadocs/DECISIONS.md`](DECISIONS.md) (Gemma-4 primary, NeMo deprecated, Bonsai slot-2 pending fork ADR). Its status is *"Ratified (evidence-gated) — live hw voice-session ratification pending."* Your job is to close that gate, then start Block B.
 
 ### Key facts
 
@@ -54,7 +54,7 @@ Run H1's script. Append the summary JSON + any traceback to §5. If the orchestr
 
 ### H4 — F-BRAIN finding file `[ ]`
 
-Append to `docs/audit/findings/brain.md` a finding: *"F-BRAIN-01: NeMo server-side tool parser non-engagement + conversational over-calling"* — evidence from bake-off §4.1, repro command, and the note that Gemma-4 does not exhibit it. Use the existing finding template style in that file.
+Append to `luccadocs/audit/findings/brain.md` a finding: *"F-BRAIN-01: NeMo server-side tool parser non-engagement + conversational over-calling"* — evidence from bake-off §4.1, repro command, and the note that Gemma-4 does not exhibit it. Use the existing finding template style in that file.
 
 ### H5 — T0 gate `[ ]`
 
@@ -77,7 +77,7 @@ All green (pre-existing mypy errors in `capabilities.py`/`toolcall_demux.py` are
 
 ## 4. Rules
 
-- Never edit `docs/DECISIONS.md` or `docs/audit/evidence/*` — Zoo owns governance.
+- Never edit `luccadocs/DECISIONS.md` or `luccadocs/audit/evidence/*` — Zoo owns governance.
 - Never edit orchestrator logic to make a test pass. If something is genuinely broken, append the traceback to §5 and mark `[!]`.
 - One llama-server at a time. Stop it when done. Never bind anything but 127.0.0.1.
 - Do not edit §1–§4 of this file.
@@ -125,7 +125,7 @@ All green (pre-existing mypy errors in `capabilities.py`/`toolcall_demux.py` are
   - pytest tests/test_tool_whitelist.py: 1 passed in 0.08s.
 
 [2026-09-21 06:36] Gemini — task H4: DONE.
-  - Appended finding F-BRAIN-01 to docs/audit/findings/brain.md.
+  - Appended finding F-BRAIN-01 to luccadocs/audit/findings/brain.md.
   - Title: "F-BRAIN-01: NeMo server-side tool parser non-engagement + conversational over-calling".
   - Includes bake-off §4.1 evidence, repro commands, root cause analysis on b11026 template parser failure, and Gemma-4 zero-hallucination contrast.
 

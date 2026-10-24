@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-29  
 **Audience:** An implementing agent with no prior context. Every phase lists exact files, exact actions, **functional** acceptance criteria (behavioral, not just "suite green"), traps, and STOP gates. **STOP** means halt and report to the owner — do not improvise.  
-**Golden rules:** One phase = one commit; tag layer in commit body (`[layer: memory]`, `[layer: routing]`, etc.); run `uv run python -m pytest -q -m "not tier2 and not hw and not soak"` after every step (baseline recorded in Phase 0; re-verify before your first commit); never edit `docs/archive/`; never edit an existing migration file — new schema changes are new migration files only; never "fix forward" from a red suite — revert and re-read.  
+**Golden rules:** One phase = one commit; tag layer in commit body (`[layer: memory]`, `[layer: routing]`, etc.); run `uv run python -m pytest -q -m "not tier2 and not hw and not soak"` after every step (baseline recorded in Phase 0; re-verify before your first commit); never edit `luccadocs/archive/`; never edit an existing migration file — new schema changes are new migration files only; never "fix forward" from a red suite — revert and re-read.  
 **Provenance:** Follows the Senior Empirical Audit of Track 1 (`SPEC-BENCH-100-v1.0`), Track 2 (OpenAI GSM8K 1,319, HumanEval 164, Big-Bench Hard 1,000), live desktop voice companion telemetry from 2026-09-29, and external architectural reviewer ratification.
 
 ---
@@ -190,7 +190,7 @@
 |---|---|---|
 | `scripts/run_wo26_acceptance_battery.py` (new) | Consolidated runner executing: (1) Unit test regression gate, (2) The 7 remediated HumanEval tasks + siblings, (3) Live slang lookup verification, (4) Timezone precision test via `zoneinfo`, (5) Speech interiority isolation test. | `[layer: runner]` |
 | `compound_benchmark_audit_review.md` | Fix numerical slip: correct GSM8K runtime from 4.8s/task to 2.0s/task ($2,628.4\text{s} / 1,319\text{ tasks} = 1.99\text{s/task}$). | `[layer: doc]` |
-| `docs/specs/WO26_ACCEPTANCE_REPORT.md` (new) | Final audit report documenting before/after metrics and SPEC-100 regression baseline. | `[layer: doc]` |
+| `luccadocs/specs/WO26_ACCEPTANCE_REPORT.md` (new) | Final audit report documenting before/after metrics and SPEC-100 regression baseline. | `[layer: doc]` |
 
 **Functional Acceptance:**
 - 100% of acceptance battery tests pass.

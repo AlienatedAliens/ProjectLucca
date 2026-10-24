@@ -115,10 +115,10 @@ This plan formally specifies **Release v1.35.7**, which delivers:
 - **Negative test (required fixture):** `test_v1357_provenance_negative.py` asserts an unsigned distillate is rejected by `ProvenanceGate` (mirrors the `test_d_reas_06_negative.py` convention).
 
 ### Phase 5: Documentation & Milestone Release
-- Ratify `D-MEM-08` in `docs/DECISIONS.md`.
+- Ratify `D-MEM-08` in `luccadocs/DECISIONS.md`.
 - Bump `__version__ = "1.35.7"` in `src/lucca/__init__.py`.
 - Document in `CHANGELOG.md` under `[1.35.7]`.
-- Update `docs/V2_BACKLOG.md` (active work-order tracking) and `plans/AUDIT_REGISTER.md` (register counts cited in the prerequisites line must stay honest as new findings close).
+- Update `luccadocs/V2_BACKLOG.md` (active work-order tracking) and `plans/AUDIT_REGISTER.md` (register counts cited in the prerequisites line must stay honest as new findings close).
 - Cross-link WO-33's envelope to this plan (Belnap substrate) per the cross-work-order note in §4 Phase 3.
 
 ---

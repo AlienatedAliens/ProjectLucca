@@ -1,7 +1,7 @@
 # Work Order 15 — v1.0 Release Remediation
 
 **Status:** OPEN
-**Supersedes:** the certification claims in `docs/audit/findings/V1_RELEASE_AUDIT.md` made by commit `08e2aa6`
+**Supersedes:** the certification claims in `luccadocs/audit/findings/V1_RELEASE_AUDIT.md` made by commit `08e2aa6`
 **Tag policy:** `v1.0.0` currently points at `08e2aa6`. It is NOT to be pushed. It will be deleted and re-created at the end of Phase 7 only if every gate below is green.
 **Assignee:** Gemini (Antigravity)
 **Reviewer:** Owner, using the Evidence file produced by this WO
@@ -17,7 +17,7 @@ The review of `08e2aa6` found that the release audit certified things the code d
 | "wired the final C1 … Conformal Routing Abstention paths" | `ConformalGuard(` has zero call sites in `src/`. `orchestrator.py:320` builds `HeuristicRouter(db=..., log_path=...)` with no guard. Production router returns `calibrated=False` on every turn. |
 | C1 acceptance PASS, Wilson LB 0.8308 | Measured on a test-local router with a guard fitted on **10 hand-typed probability vectors**. The 5 "live" turns went through the unguarded production router and only asserted a non-empty reply. `has_registered_rule` was derived from the probe's own ground-truth label. |
 | "Non-parametric historical episode lookup" (Recall) | `ReplayEngine.recall_past_episodes` has zero callers. Its logic was duplicated inline into `cascade.py`. |
-| "0 lint violations across all active docs" | The lint covers 4 files. `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` still says the brain is `Mistral-NeMo-12B` (lines 13, 151). The WO-14 plan's own Phase 1 gate required that file be rewritten; it was not touched. |
+| "0 lint violations across all active docs" | The lint covers 4 files. `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` still says the brain is `Mistral-NeMo-12B` (lines 13, 151). The WO-14 plan's own Phase 1 gate required that file be rewritten; it was not touched. |
 | — | Two new mypy errors at `heuristic.py:310` and `:359` (`list[float]` annotation vs `dict[str, float]` schema); a `# type: ignore[assignment]` added at `:320`. |
 | — | With a guard present, `heuristic.py:300` silently drops the `conf >= 0.80` requirement for `RULE`. Latent because unwired; would fire `RULE` at `conf=0.61` if wired as-is. |
 
@@ -27,12 +27,12 @@ The pattern was: implement something adjacent to the requirement, write a test t
 
 ## 1. Rules of engagement (binding)
 
-1. **Evidence file.** Create `docs/audit/findings/WO15_EVIDENCE.md` at the start. For every phase, paste the exact command and its **verbatim** output under a heading `## Phase N — <name>`. No summaries, no paraphrase, no "output omitted". If output exceeds 200 lines, paste the first 40 and last 40 with a line count.
+1. **Evidence file.** Create `luccadocs/audit/findings/WO15_EVIDENCE.md` at the start. For every phase, paste the exact command and its **verbatim** output under a heading `## Phase N — <name>`. No summaries, no paraphrase, no "output omitted". If output exceeds 200 lines, paste the first 40 and last 40 with a line count.
 2. **No self-authored gates.** Do not add, weaken, or reinterpret any gate in this document. If a gate is impossible, stop and write `BLOCKED: <reason>` in the Evidence file under that phase. Do not proceed to a later phase.
 3. **Red before green.** Where this WO says "must fail first", run the test, paste the failing output, then make the change, then paste the passing output. A phase with only the green output is incomplete.
 4. **Forbidden constructs** in any file touched by this WO: `# type: ignore`, `# noqa: S110`, `except Exception: pass`, `pytest.skip` (except for the single llama-server health check in `hw`-marked tests), printing a verdict string before the corresponding `assert`.
 5. **"Wired" has one meaning.** A symbol is wired only if `git grep` shows a call site inside `src/lucca/core/orchestrator.py` or `src/lucca/core/turn_pipeline.py` or a module they import at construction time. A test constructing the symbol is not wiring.
-6. **Do not edit** `docs/audit/findings/V1_RELEASE_AUDIT.md` until Phase 6. **Do not touch** the git tag until Phase 7.
+6. **Do not edit** `luccadocs/audit/findings/V1_RELEASE_AUDIT.md` until Phase 6. **Do not touch** the git tag until Phase 7.
 7. **Shell.** The terminal in this workspace is `cmd.exe`. Use `&&` for chaining, `findstr` not `grep`/`Select-String`, `type` not `cat`, `dir /b` not `ls`. `git grep` works everywhere.
 8. Commit after each phase with message `WO-15 Phase N: <name>`. Do not squash.
 
@@ -396,16 +396,16 @@ Metric targets (unchanged from roadmap): N ≥ 100, abstention-precision Wilson 
 
 ## 7. PHASE 5 — Docs and lint coverage
 
-**Files:** `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`, `tests/test_static_gates.py`
+**Files:** `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`, `tests/test_static_gates.py`
 
 ### 7.1 Extend the lint (must fail first)
 
 In `test_active_docs_staleness_lint` (`tests/test_static_gates.py:327`), extend `active_docs` to:
 ```
 AGENTS.md, GEMINI.md, README.md,
-docs/ARCHITECTURE.md, docs/DECISIONS.md, docs/MODEL_STRATEGY.md,
-docs/USER_GUIDE_WHAT_LUCCA_DOES.md, docs/V2_BACKLOG.md,
-docs/specs/STUDIO_CAPABILITY_ROADMAP.md, docs/audit/findings/V1_RELEASE_AUDIT.md
+luccadocs/ARCHITECTURE.md, luccadocs/DECISIONS.md, luccadocs/MODEL_STRATEGY.md,
+luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md, luccadocs/V2_BACKLOG.md,
+luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md, luccadocs/audit/findings/V1_RELEASE_AUDIT.md
 ```
 Add forbidden patterns (NeMo may still be *mentioned* as deprecated/rollback in MODEL_STRATEGY — these patterns target NeMo-as-running-brain only):
 ```python
@@ -415,12 +415,12 @@ Add forbidden patterns (NeMo may still be *mentioned* as deprecated/rollback in 
 ```
 Run the lint. **It must fail** on `USER_GUIDE_WHAT_LUCCA_DOES.md:13` and `:151`. Paste the red output. If it does not fail, the patterns are wrong — fix them before proceeding.
 
-### 7.2 Rewrite `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`
+### 7.2 Rewrite `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`
 
 Required content changes (keep the document's existing owner-facing tone and structure):
 1. Every brain reference → `gemma-4-12b-heretic-Q6_K.gguf` via native `llama-server.exe`, 16K ctx, ≤ 12.5 GB VRAM, `enable_thinking=false` on companion tiers.
 2. New subsection **"Recall and knowing when not to guess (C1)"** stating exactly: (a) past episodes are looked up from `decisions`/`execution_triples` by token overlap — no LLM call; (b) the router abstains to the full brain when heuristic confidence < 0.60; (c) once ≥ 30 labelled turns exist in `decisions`, a split-conformal guard is fitted at startup from that history and abstention becomes calibrated (`calibrated=True` in telemetry); before that it is threshold-only. Cite `src/lucca/router/calibration.py`, `src/lucca/reasoning/recall.py`, `tests/test_c1_abstention_acceptance.py`.
-3. A **"v1.0 status"** paragraph: what is on the live path, what is deferred to `docs/V2_BACKLOG.md`.
+3. A **"v1.0 status"** paragraph: what is on the live path, what is deferred to `luccadocs/V2_BACKLOG.md`.
 4. Every number in the doc (TTFT, VRAM, context, M=4/M=8, N≥3 induction, 5 clusters, 0.60 threshold, 30 min samples) must be followed by a parenthetical citing the file/test that establishes it. A number without a citation is a lint failure for the reviewer.
 
 Then re-run the lint; paste green.
@@ -430,9 +430,9 @@ Then re-run the lint; paste green.
 ```
 uv run python -m pytest tests/test_static_gates.py::test_active_docs_staleness_lint -q     (BEFORE rewrite -> must show 2 violations in USER_GUIDE)
 uv run python -m pytest tests/test_static_gates.py::test_active_docs_staleness_lint -q     (AFTER  rewrite -> pass)
-git grep -n -i "nemo" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+git grep -n -i "nemo" -- luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md
    -> expected: no output
-git grep -n -c "" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+git grep -n -c "" -- luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md
    -> paste line count (sanity: the file was rewritten, not gutted; expect within ±40% of the original 190-ish lines)
 ```
 
@@ -440,7 +440,7 @@ git grep -n -c "" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
 
 ## 8. PHASE 6 — Audit amendment
 
-**Files:** `docs/audit/findings/V1_RELEASE_AUDIT.md`, `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`
+**Files:** `luccadocs/audit/findings/V1_RELEASE_AUDIT.md`, `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`
 
 1. Insert a new **§0 "Amendment (WO-15)"** at the top of `V1_RELEASE_AUDIT.md` containing the table from §0 of this WO (claim vs reality at `08e2aa6`) and a one-line statement that the original certification was withdrawn and re-issued after WO-15.
 2. Rewrite §3 rows:
@@ -451,16 +451,16 @@ git grep -n -c "" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
    - Add row **"Recall single source of truth"** → evidence: the `git grep -n "recall_past_episodes" -- src/` output from Phase 3 (2 lines).
 3. §1 Executive Summary: delete "Project Lucca is complete, locked, fully tested, and certified for production use on the target host hardware." Replace with: "All acceptance gates enumerated in §3 pass on the target host as of <date>. Conformal abstention is calibrated only once ≥ 30 labelled decisions exist; on a fresh install the router operates threshold-only until then."
 4. §2 item 7: state the startup-fit behaviour and the threshold-only fallback explicitly.
-5. `docs/specs/STUDIO_CAPABILITY_ROADMAP.md` C1 row: point evidence at the new test names and the Phase 4 report path.
+5. `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md` C1 row: point evidence at the new test names and the Phase 4 report path.
 
 ### 8.1 Evidence block
 
 ```
-git grep -n "certified for production use" -- docs/
+git grep -n "certified for production use" -- luccadocs/
    -> expected: no output
-git grep -n "Amendment (WO-15)" -- docs/audit/findings/V1_RELEASE_AUDIT.md
+git grep -n "Amendment (WO-15)" -- luccadocs/audit/findings/V1_RELEASE_AUDIT.md
    -> expected: 1 hit
-git grep -n "test_orchestrator_router_calibrated_with_seeded_history\|test_c1_abstention_offline" -- docs/audit/findings/V1_RELEASE_AUDIT.md docs/specs/STUDIO_CAPABILITY_ROADMAP.md
+git grep -n "test_orchestrator_router_calibrated_with_seeded_history\|test_c1_abstention_offline" -- luccadocs/audit/findings/V1_RELEASE_AUDIT.md luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md
    -> expected: ≥ 2 hits
 uv run python -m pytest tests/test_static_gates.py -q
    -> expected: pass (audit file is now in the lint set)
@@ -525,8 +525,8 @@ Paste all output. Do not push.
 | 4 | No label leakage | `git grep -n "category in (" -- tests/test_c1_abstention_acceptance.py` → none | |
 | 5 | Verdict after asserts | line number of `VERDICT` > line numbers of `assert prec_lb`/`assert acc_lb` | |
 | 6 | Lint covers user guide | `git grep -n "USER_GUIDE_WHAT_LUCCA_DOES" -- tests/test_static_gates.py` → 1 hit | |
-| 7 | User guide names Gemma | `git grep -n -i "nemo" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md` → none | |
-| 8 | Evidence file complete | `docs/audit/findings/WO15_EVIDENCE.md` has 7 `## Phase` headings, each with ≥ 1 verbatim command block, and every "must fail first" gate shows red then green | |
+| 7 | User guide names Gemma | `git grep -n -i "nemo" -- luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` → none | |
+| 8 | Evidence file complete | `luccadocs/audit/findings/WO15_EVIDENCE.md` has 7 `## Phase` headings, each with ≥ 1 verbatim command block, and every "must fail first" gate shows red then green | |
 | 9 | No forbidden constructs | `git grep -n "type: ignore\|noqa: S110\|pytest.skip" -- src/lucca/router src/lucca/reasoning/recall.py tests/test_c1_abstention_acceptance.py tests/test_router_calibration.py` → only the single llama-server skip | |
 | 10 | Tag | `git tag -n1 v1.0.0` points at the WO-15 commit; `git ls-remote --tags origin` shows it was never pushed at `08e2aa6` | |
 

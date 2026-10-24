@@ -2,8 +2,8 @@
 
 **Date:** 2026-09-28  
 **Audience:** An implementing agent with no prior context. Every phase lists exact files, exact actions, **functional** acceptance criteria (behavioral, not just "suite green"), traps, and STOP gates. **STOP** means halt and report to the owner — do not improvise.  
-**Golden rules:** One phase = one commit; run `uv run python -m pytest -q -m "not tier2 and not hw and not soak"` after every step (baseline: **997 passed, 8 failed** — verified 2026-09-28; re-run before your first commit); never edit `docs/archive/`; never edit an existing migration file; never "fix forward" from a red suite — revert and re-read.  
-**Provenance:** Follows the live 10-problem diagnostic test failure (3.5/10), the ghost memory leak analysis, and the 100-problem specification defined in `docs/specs/COMPOUND_REASONING_100_SPEC.md`.
+**Golden rules:** One phase = one commit; run `uv run python -m pytest -q -m "not tier2 and not hw and not soak"` after every step (baseline: **997 passed, 8 failed** — verified 2026-09-28; re-run before your first commit); never edit `luccadocs/archive/`; never edit an existing migration file; never "fix forward" from a red suite — revert and re-read.  
+**Provenance:** Follows the live 10-problem diagnostic test failure (3.5/10), the ghost memory leak analysis, and the 100-problem specification defined in `luccadocs/specs/COMPOUND_REASONING_100_SPEC.md`.
 
 ---
 
@@ -129,7 +129,7 @@
 **Manifest:**
 | File | Action |
 |---|---|
-| `docs/specs/COMPOUND_REASONING_100_BENCHMARK_RESULTS.md` (new) | Full audit report comparing initial score (35%) vs. Phase 3 baseline vs. remediated score. |
+| `luccadocs/specs/COMPOUND_REASONING_100_BENCHMARK_RESULTS.md` (new) | Full audit report comparing initial score (35%) vs. Phase 3 baseline vs. remediated score. |
 | Targeted components | Apply specific prompt/router tunings for lagging categories. |
 | `scripts/deploy_to_workstation.py` | Sync verified code to production workstation target `C:\ProjectLucca`. |
 

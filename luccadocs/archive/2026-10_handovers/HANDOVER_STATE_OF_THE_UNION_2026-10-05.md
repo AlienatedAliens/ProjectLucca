@@ -22,8 +22,8 @@ verification: code-cited
 > scanner checked only top-level `passed` fields. The supervisor's live
 > result is now reported with both halves (sensitivity 1/23 broad / 1/8
 > strict; 0/50 false aborts on action-free controls only). See
-> `docs/research/STATE_OF_THE_UNION_2026-10.md` and
-> `docs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md`.
+> `luccadocs/research/STATE_OF_THE_UNION_2026-10.md` and
+> `luccadocs/audit/findings/ADVERSARIAL_AUDIT_RESPONSE_2026-10-05.md`.
 
 **Your mission:** write a **State of the Union document** for Project Lucca
 covering (1) a full progress review, (2) the complete current capability
@@ -35,7 +35,7 @@ verified, which traps to avoid, and the writing discipline you must follow.
 
 ## 1. The one rule that governs everything you write
 
-[`D-DOC-01`](../docs/DECISIONS.md) (Document Envelope Convention) is ratified.
+[`D-DOC-01`](../luccadocs/DECISIONS.md) (Document Envelope Convention) is ratified.
 Your SotU document MUST:
 
 1. Carry the YAML envelope header (like this file).
@@ -60,8 +60,8 @@ Your SotU document MUST:
 | Tier | Members | Policy |
 |---|---|---|
 | Ground truth | `src/`, `tests/`, `config/`, `data/` | Always current; wins any disagreement |
-| Canonical living docs (~12) | `README.md`, `docs/LUCCA_V135_1_ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/MODEL_STRATEGY.md`, `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`, `RESULTS.md`, `docs/subsystems/` | Current intent; status prose drift-prone — verify against ground truth |
-| Dated evidence | `docs/archive/`, `handover/`, `plans/`, `*_2026-09*` files | Receipts, not status. True as-of their envelope date |
+| Canonical living docs (~12) | `README.md`, `luccadocs/LUCCA_V135_1_ARCHITECTURE.md`, `luccadocs/DECISIONS.md`, `luccadocs/MODEL_STRATEGY.md`, `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`, `RESULTS.md`, `luccadocs/subsystems/` | Current intent; status prose drift-prone — verify against ground truth |
+| Dated evidence | `luccadocs/archive/`, `handover/`, `plans/`, `*_2026-09*` files | Receipts, not status. True as-of their envelope date |
 
 **Verification commands** (run these; don't trust prose):
 ```
@@ -128,13 +128,13 @@ Your SotU document MUST:
 ### 3.3 What is NOT yet measured (say this plainly)
 
 - **Personhood probe batteries** — defined in
-  [`docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`](../docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md)
+  [`luccadocs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`](../luccadocs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md)
   (IA-40, IN-30, FC-30, AC-30) but **not implemented**. The September
   percentages (~80/50/85/75%) are RETIRED as capability-inventory judgments —
-  the re-score ([`docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md`](../docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md))
+  the re-score ([`luccadocs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md`](../luccadocs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md))
   reports measured-or-NOT-YET-MEASURED only.
 - **Clean held-out ablation run** — the 2026-10-04 protocol
-  ([`docs/research/2026-10-04_pal_off_factorial_ablation_protocol.md`](../docs/research/2026-10-04_pal_off_factorial_ablation_protocol.md))
+  ([`luccadocs/research/2026-10-04_pal_off_factorial_ablation_protocol.md`](../luccadocs/research/2026-10-04_pal_off_factorial_ablation_protocol.md))
   is designed but not yet executed (multi-hour multi-arm campaign).
 - **In-the-wild intent classifier** for routing (SPIKE-B).
 - **Grammar-constrained ACTION-CLAIM decoding** (SPIKE-A).
@@ -150,8 +150,8 @@ Your SotU document MUST:
    comparisons, not a factorial design. Don't reintroduce the old framing.
 3. **September personhood percentages.** Retired. If you quote them at all,
    quote them as retired judgments superseded by the re-score.
-4. **Stale docs.** `docs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md`
-   is envelope-marked `superseded`. Several `docs/archive/` and old handover
+4. **Stale docs.** `luccadocs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md`
+   is envelope-marked `superseded`. Several `luccadocs/archive/` and old handover
    files contain pre-remediation claims — check envelopes before citing.
 5. **Supervisor scope qualifier (P7).** The Truth-in-Receipt matcher is a
    regex/DFA with documented false-negative scope (passive voice,
@@ -181,7 +181,7 @@ Your SotU document MUST:
 ## 6. Grant landscape (what exists, what's missing)
 
 The compiled evidence base and sequencing live in
-[`docs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md`](../docs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md).
+[`luccadocs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md`](../luccadocs/research/GRANT_PREP_EVIDENCE_COMPILATION_2026-10-05.md).
 Summary:
 
 - **Manifund (AST safety & tool sandboxing):** evidence base is COMPLETE
@@ -225,6 +225,6 @@ and respect the sequencing decision.
 7. Roadmap: WO-29/30/31 (with the Part-3-is-the-engine reconsideration note),
    V2 backlog highlights.
 
-Write the SotU to `docs/research/STATE_OF_THE_UNION_2026-10.md` with a full
+Write the SotU to `luccadocs/research/STATE_OF_THE_UNION_2026-10.md` with a full
 D-DOC-01 envelope. Good luck — the receipts are on your side.
 

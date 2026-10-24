@@ -1,6 +1,6 @@
 # 03 — Audit Baseline
 
-Captured by subtask **S0** on **2026-09-17T23:54Z – 2026-09-17T23:57Z (UTC)** from `c:\Projects\ProjectLucca`, shell `powershell.exe` (Windows PowerShell 5.1, invoked from cmd). Nothing was committed, staged, or modified outside `docs/`. All commands below are read-only with respect to the frozen trees.
+Captured by subtask **S0** on **2026-09-17T23:54Z – 2026-09-17T23:57Z (UTC)** from `c:\Projects\ProjectLucca`, shell `powershell.exe` (Windows PowerShell 5.1, invoked from cmd). Nothing was committed, staged, or modified outside `luccadocs/`. All commands below are read-only with respect to the frozen trees.
 
 Line counts use `(Get-Content <file> | Measure-Object -Line).Lines`. Byte sizes are `FileInfo.Length`. `__pycache__/` directories (12 under `src/` + `tests/`) and their `.pyc` contents are excluded from the inventory as build artefacts. Binary files are listed with size but no line count.
 
@@ -16,7 +16,7 @@ $ git branch --show-current
 master
 ```
 
-## 2. Working tree status (`git status --porcelain`, captured **before** the `docs/` archive move)
+## 2. Working tree status (`git status --porcelain`, captured **before** the `luccadocs/` archive move)
 
 ```
  M config/persona.toml
@@ -56,8 +56,8 @@ master
 ?? Lucca.spec
 ?? assets/icon.ico
 ?? assets/icon.png
-?? docs/IMPLEMENTATION_PROMPT_2026-09-17_persona_llm_ui.md
-?? docs/UI_USER_GUIDE.md
+?? luccadocs/IMPLEMENTATION_PROMPT_2026-09-17_persona_llm_ui.md
+?? luccadocs/UI_USER_GUIDE.md
 ?? launch_lucca.bat
 ?? packaging/
 ?? scripts/create_desktop_shortcut.ps1
@@ -78,7 +78,7 @@ master
 
 **Interpretation.** The working tree is **dirty**: 34 tracked files modified, 21 untracked paths. The audit target is the on-disk tree (HEAD + these uncommitted changes), not HEAD alone. Several in-scope "extra" features exist **only** as untracked files (`server_ctl.py`, `memory/manager.py`, `system_tools.py`, `dsp_chain.py`, `commorose.py`, `telemetry_hud.py`, `theme.py`, `packaging/`, `Lucca.spec`, `launch_lucca.bat`) — they have never been committed. Any later subtask that finds the tree differs from this listing must stop and report.
 
-The two `?? docs/…` entries were untracked at capture time and have since been moved (untracked → untracked) into `docs/archive/2026-09-17_pre_phase4_audit/`; all other tracked `docs/**` files now show as renames/deletions in `git status` because of the archive move performed by S0.
+The two `?? luccadocs/…` entries were untracked at capture time and have since been moved (untracked → untracked) into `luccadocs/archive/2026-09-17_pre_phase4_audit/`; all other tracked `luccadocs/**` files now show as renames/deletions in `git status` because of the archive move performed by S0.
 
 ## 3. Recent history (`git log --oneline -20`)
 
@@ -326,7 +326,7 @@ Test modules: 22. Fake adapters: 3. JSONL fixtures: 5 (255 records total). WAV f
 | `uv.lock` | 1 | 1,989 |
 | **Grand total, everything measured** | **132** | **22,854** |
 
-Binary files (not counted): 24 WAV fixtures under `tests/fixtures/`. Not inventoried: `assets/` (icons + sprite PNGs), `.agents/`, `.vscode/`, caches, `.venv/`, `build/`, `dist/`, `docs/`.
+Binary files (not counted): 24 WAV fixtures under `tests/fixtures/`. Not inventoried: `assets/` (icons + sprite PNGs), `.agents/`, `.vscode/`, caches, `.venv/`, `build/`, `dist/`, `luccadocs/`.
 
 ## 6. `pyproject.toml` — verbatim extracts (read-only)
 
@@ -365,8 +365,8 @@ Only two markers are registered: `hw` and `soak`. There is no marker for tier (T
 
 ## 7. Archive operation record (performed by S0)
 
-- Destination: `docs/archive/2026-09-17_pre_phase4_audit/`
-- Items moved: 2 directories (`08_adr/`, `09_developer_spec/`) + 26 loose `.md` files → **47 files, 512,415 bytes**, relative structure preserved. Zero move failures. `docs/` contained only `archive/` afterwards.
+- Destination: `luccadocs/archive/2026-09-17_pre_phase4_audit/`
+- Items moved: 2 directories (`08_adr/`, `09_developer_spec/`) + 26 loose `.md` files → **47 files, 512,415 bytes**, relative structure preserved. Zero move failures. `luccadocs/` contained only `archive/` afterwards.
 - `ARCHIVE_INDEX.md` generated (UTF-8, no BOM) with SHA-256 for all 47 files; index timestamp `2026-09-17T23:56:15Z`.
 - Read-only attribute applied to all 48 files in the archive (47 + index); verified `IsReadOnly = True` on 48/48.
 - Anomaly: the first index generation used the default (ANSI) encoding for reading headings and produced mojibake for em-dashes; it was regenerated with `-Encoding UTF8` and rewritten before the read-only pass. No archived source file was touched.

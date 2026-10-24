@@ -1,9 +1,9 @@
 # Cognitive Audit — Findings Register (WO-9)
 
 **Date:** 2026-09-22
-**Charter:** [`docs/audit/00_AUDIT_CHARTER.md`](../00_AUDIT_CHARTER.md)
+**Charter:** [`luccadocs/audit/00_AUDIT_CHARTER.md`](../00_AUDIT_CHARTER.md)
 **Plan:** [`plans/2026-09-22_reasoning_loop_remediation_and_audit.md`](../../../plans/2026-09-22_reasoning_loop_remediation_and_audit.md)
-**Companion map:** [`docs/audit/COGNITIVE_LOOP_MAP.md`](../COGNITIVE_LOOP_MAP.md)
+**Companion map:** [`luccadocs/audit/COGNITIVE_LOOP_MAP.md`](../COGNITIVE_LOOP_MAP.md)
 
 ## Remediation status (WO-9 Phase A, 2026-09-22)
 

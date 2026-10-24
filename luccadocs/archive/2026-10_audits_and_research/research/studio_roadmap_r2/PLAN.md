@@ -1,8 +1,8 @@
 # Research Plan: External Evidence for Lucca's Studio Capability Roadmap
 
-**Document:** `docs/research/studio_roadmap_r2/PLAN.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/PLAN.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Owner Gate:** Human approval required before Phase 1 commences  
 **Date:** 2026-09-21  
 
@@ -41,10 +41,10 @@ Every piece of evidence evaluated in this research brief must be strictly filter
 
 ## 2. Track 0: Roadmap Citation Audit Plan
 
-**Goal:** Audit all citations in `docs/specs/STUDIO_CAPABILITY_ROADMAP.md` (the 8 curated local PDFs and Section 8 references) to verify authenticity, extract exact figures, and assess support strength.
+**Goal:** Audit all citations in `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md` (the 8 curated local PDFs and Section 8 references) to verify authenticity, extract exact figures, and assess support strength.
 
 ### 2.1 Target Documents & Exact Claims to Verify
-Local PDF files are pre-staged in `docs/`:
+Local PDF files are pre-staged in `luccadocs/`:
 1. **arXiv:2609.02749 (`2609.02749v1.pdf` — AREX-Skill):**
    - *Roadmap Attribution:* 3-layer skill package format; tool execution decoupling.
    - *Verification Target:* Verify exact package format, schema definitions, and empirical tool-use results.
@@ -78,7 +78,7 @@ Local PDF files are pre-staged in `docs/`:
 
 ### 2.2 Extraction & Audit Methodology
 - Parse local PDFs using Python PDF extraction scripts (`pypdf` / `pdfminer`) to verify exact text, tables, formulas, and references.
-- Output file: `docs/research/studio_roadmap_r2/T0_citation_audit.md`.
+- Output file: `luccadocs/research/studio_roadmap_r2/T0_citation_audit.md`.
 
 ---
 
@@ -236,40 +236,40 @@ Local PDF files are pre-staged in `docs/`:
 
 ```
 Phase 0: Research Plan & Ground Rules
-  └── File: docs/research/studio_roadmap_r2/PLAN.md (THIS FILE)
+  └── File: luccadocs/research/studio_roadmap_r2/PLAN.md (THIS FILE)
   └── GATE: Stop and obtain human operator sign-off.
 
 Phase 1: Track 0 — Roadmap Citation Audit
-  └── File: docs/research/studio_roadmap_r2/T0_citation_audit.md
+  └── File: luccadocs/research/studio_roadmap_r2/T0_citation_audit.md
   └── Direct text extraction from 8 local PDFs + Section 8 papers.
   └── GATE: Stop for review.
 
 Phase 2: Deep Dives — Q1 to Q3 (Planning, Libraries, Cognition)
   └── Files:
-      ├── docs/research/studio_roadmap_r2/Q1_result_aware_planning.md
-      ├── docs/research/studio_roadmap_r2/Q2_skill_libraries.md
-      └── docs/research/studio_roadmap_r2/Q3_cognitive_architectures.md
+      ├── luccadocs/research/studio_roadmap_r2/Q1_result_aware_planning.md
+      ├── luccadocs/research/studio_roadmap_r2/Q2_skill_libraries.md
+      └── luccadocs/research/studio_roadmap_r2/Q3_cognitive_architectures.md
   └── GATE: Stop for review.
 
 Phase 3: Deep Dives — Q4 to Q7 (Small Models, Voice, Eval, Safety)
   └── Files:
-      ├── docs/research/studio_roadmap_r2/Q4_small_model_tool_use.md
-      ├── docs/research/studio_roadmap_r2/Q5_voice_agents.md
-      ├── docs/research/studio_roadmap_r2/Q6_small_n_evaluation.md
-      └── docs/research/studio_roadmap_r2/Q7_safe_promotion.md
+      ├── luccadocs/research/studio_roadmap_r2/Q4_small_model_tool_use.md
+      ├── luccadocs/research/studio_roadmap_r2/Q5_voice_agents.md
+      ├── luccadocs/research/studio_roadmap_r2/Q6_small_n_evaluation.md
+      └── luccadocs/research/studio_roadmap_r2/Q7_safe_promotion.md
   └── GATE: Stop for review.
 
 Phase 4: Synthesis & Roadmap Impact for Fable 5.1
   └── Files:
-      ├── docs/research/studio_roadmap_r2/SYNTHESIS.md (<=10 line core summary, Rung Impact Matrix T1..C2)
-      └── docs/research/studio_roadmap_r2/INDEX.md (Master navigation index)
+      ├── luccadocs/research/studio_roadmap_r2/SYNTHESIS.md (<=10 line core summary, Rung Impact Matrix T1..C2)
+      └── luccadocs/research/studio_roadmap_r2/INDEX.md (Master navigation index)
 ```
 
 ---
 
 ## 5. Phase 0 Report
 
-- **Done:** Formulated complete research plan covering Track 0 and Questions Q1–Q7 with refined sub-questions, targeted primary/disconfirming searches, hardware transfer criteria, and evidence rubrics. Confirmed presence of all 8 local PDFs in `docs/`.
+- **Done:** Formulated complete research plan covering Track 0 and Questions Q1–Q7 with refined sub-questions, targeted primary/disconfirming searches, hardware transfer criteria, and evidence rubrics. Confirmed presence of all 8 local PDFs in `luccadocs/`.
 - **Not done:** Execution of Track 0 and literature searches (blocked awaiting human approval).
 - **Evidence:** Verified existence of local PDF files in `c:\Projects\ProjectLucca\docs\`:
   - `2609.02749v1.pdf`, `2609.11873v2.pdf`, `2609.13770v1.pdf`, `2609.14857v1.pdf`

@@ -89,7 +89,7 @@
 
 **Sequencing:** WO-19a is independent and S1 — it can land **before** WO-18a (it is a security gap, not a refactor). WO-19b/c after WO-18a (smaller diff). WO-19d rides WO-18c. WO-19e anytime.
 
-**Process doctrine applies:** every gate ships with positive controls; every accepted state gets a ratchet (validator-registry gate, dead-code gate, scheme-coverage gate); `docs/audit/baseline.json` updated at completion.
+**Process doctrine applies:** every gate ships with positive controls; every accepted state gets a ratchet (validator-registry gate, dead-code gate, scheme-coverage gate); `luccadocs/audit/baseline.json` updated at completion.
 
 ## Verification
 

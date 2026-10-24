@@ -12,7 +12,7 @@
 
 During extended benchmark evaluation runs of Track 3 (MATH-500, HumanEval-Plus, GSM-Symbolic), compute resources on the primary neural deliberation engine (`llama-server.exe` on NVIDIA RTX 5080 Laptop GPU) are fully engaged. This document establishes a formal, systematic audit covering four pillars of codebase health:
 
-1. **Recursive Active Documentation Sweep:** Exhaustive review of all non-archived, non-screenshot documentation files across `docs/`, `.agents/`, and root indexes. Remediates dead links, stale version numbers, hardware contradictions, and model claims.
+1. **Recursive Active Documentation Sweep:** Exhaustive review of all non-archived, non-screenshot documentation files across `luccadocs/`, `.agents/`, and root indexes. Remediates dead links, stale version numbers, hardware contradictions, and model claims.
 2. **Codebase Janitorial & Structural Hygiene:** File and folder organization, evaluation artifact preservation, `.gitignore` discipline, and scratch/test script classification.
 3. **Deep Subsystem Code Audit:** Code review across `src/lucca/` (Brain/LLM Client, Core Orchestrator, Sandbox/Docker RPC, Memory/Retrieval, and Neurosymbolic Reasoning), identifying concrete optimization and modularization opportunities.
 4. **Frontier Academic Literature & Systems Research (2024–2026):** State-of-the-art survey across arXiv and GitHub focusing on test-time compute scaling, execution feedback loops, Belnap 4-valued evidential bilattices, and KV-cache compression on consumer silicon.
@@ -22,12 +22,12 @@ During extended benchmark evaluation runs of Track 3 (MATH-500, HumanEval-Plus, 
 ## 2. Section A: Recursive Active Documentation Sweep
 
 ### 2.1 Scope & Exclusion Boundaries
-- **Audited (Active):** Root indexes (`README.md`, `USER_GUIDE.md`, `AGENTS.md`, `GEMINI.md`, `CHANGELOG.md`), core architecture specs (`docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, `docs/MODEL_STRATEGY.md`, `docs/README.md`, `docs/USER_GUIDE_WHAT_LUCCA_DOES.md`), research specs (`docs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md`, `docs/research/LUCCA_REASONING_CAPABILITY.md`), and specification roadmaps (`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`, `docs/specs/WO26_ACCEPTANCE_REPORT.md`).
-- **Excluded (Historical/Evidence):** `docs/archive/` (frozen historical records), `docs/audit/evidence/` (raw console dumps and terminal logs), and binary screenshot assets.
+- **Audited (Active):** Root indexes (`README.md`, `USER_GUIDE.md`, `AGENTS.md`, `GEMINI.md`, `CHANGELOG.md`), core architecture specs (`luccadocs/ARCHITECTURE.md`, `luccadocs/DECISIONS.md`, `luccadocs/MODEL_STRATEGY.md`, `luccadocs/README.md`, `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`), research specs (`luccadocs/research/NEUROSYMBOLIC_RESEARCH_PAPER.md`, `luccadocs/research/LUCCA_REASONING_CAPABILITY.md`), and specification roadmaps (`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`, `luccadocs/specs/WO26_ACCEPTANCE_REPORT.md`).
+- **Excluded (Historical/Evidence):** `luccadocs/archive/` (frozen historical records), `luccadocs/audit/evidence/` (raw console dumps and terminal logs), and binary screenshot assets.
 
 ### 2.2 Silicon Ground Truth Lockdown
 An empirical scan of active files revealed latent hardware confabulations from earlier drafts, which were systematically corrected:
-- **Host CPU:** Verified silicon is **Intel Core Ultra 9 275HX** (Arrow Lake, 24 cores / 24 threads). Replaced stale reference to `AMD Ryzen 9 9945HX` in [`docs/specs/WO26_ACCEPTANCE_REPORT.md`](../specs/WO26_ACCEPTANCE_REPORT.md#L10).
+- **Host CPU:** Verified silicon is **Intel Core Ultra 9 275HX** (Arrow Lake, 24 cores / 24 threads). Replaced stale reference to `AMD Ryzen 9 9945HX` in [`luccadocs/specs/WO26_ACCEPTANCE_REPORT.md`](../specs/WO26_ACCEPTANCE_REPORT.md#L10).
 - **Host Display iGPU:** Windows 11 desktop and DWM compositor run on **Intel(R) Graphics iGPU** (driver 32.0.101.6629). Replaced stale reference to `AMD Radeon 610M` in [`CHANGELOG.md`](../../CHANGELOG.md#L15).
 - **Dedicated Compute Mode:** Mobile **NVIDIA GeForce RTX 5080 Laptop GPU** (16.0 GB GDDR7, Blackwell sm_120) runs with `Disp.A: Off`, ensuring 100% of physical VRAM is reserved for neural deliberation without desktop window compositor interference.
 - **NPU Substrate:** Integrated **Intel(R) AI Boost NPU** (`PCI\VEN_8086&DEV_AD1D`) dedicated to OpenVINO local INT8 voice DSP, VAD, and vector embeddings.
@@ -38,7 +38,7 @@ An empirical scan of active files revealed latent hardware confabulations from e
 
 ### 2.4 Relative Markdown Cross-Reference Validation
 A recursive AST link scanner evaluated all relative links across the 14 core active documentation files:
-- **Findings:** Identified 18 broken relative links in [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](../specs/STUDIO_CAPABILITY_ROADMAP.md) pointing to `../src/...` instead of `../../src/...`, and 2 broken links in [`docs/DECISIONS.md`](../DECISIONS.md#L128) pointing to an unarchived path for `BRAIN_BAKEOFF_2026-09-21.md`.
+- **Findings:** Identified 18 broken relative links in [`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`](../specs/STUDIO_CAPABILITY_ROADMAP.md) pointing to `../src/...` instead of `../../src/...`, and 2 broken links in [`luccadocs/DECISIONS.md`](../DECISIONS.md#L128) pointing to an unarchived path for `BRAIN_BAKEOFF_2026-09-21.md`.
 - **Resolution:** Corrected all 20 link targets. Core active documentation link health now stands at **100% (0 broken links)**.
 
 ---

@@ -59,5 +59,5 @@ For each item, assume the **Premise is strictly true**. Choose exactly one label
 3. Save the completed file as `completed_worksheet.csv` (or `.jsonl`).
 4. Run the agreement calculation script:
    ```bash
-   uv run python docs/funding/NLI_SECOND_ANNOTATOR_KIT/score_agreement.py --input docs/funding/NLI_SECOND_ANNOTATOR_KIT/completed_worksheet.csv
+   uv run python luccadocs/funding/NLI_SECOND_ANNOTATOR_KIT/score_agreement.py --input luccadocs/funding/NLI_SECOND_ANNOTATOR_KIT/completed_worksheet.csv
    ```

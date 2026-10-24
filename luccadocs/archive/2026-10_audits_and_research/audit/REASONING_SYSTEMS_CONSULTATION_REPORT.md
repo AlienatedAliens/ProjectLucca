@@ -262,7 +262,7 @@ We invite the consulting AI to analyze the above architecture and empirical comp
 * **What execution substrate or intermediate representation** (e.g. MicroScheme S-expressions vs. Python scratchpad) offers the cleanest unification across our symbolic lobes?
 
 ---
-*Report compiled directly from live workstation telemetry and test reports in `C:\Projects\ProjectLucca\logs\test_reports\` and `docs/research/`.*
+*Report compiled directly from live workstation telemetry and test reports in `C:\Projects\ProjectLucca\logs\test_reports\` and `luccadocs/research/`.*
 
 ---
 

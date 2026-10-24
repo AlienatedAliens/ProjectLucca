@@ -4,8 +4,8 @@
 **Executor:** Gemini (Antigravity)
 **Date issued:** 2026-09-21T17:05Z
 **Baseline commit:** `9506ced`
-**Source analysis:** [`docs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md`](./audit/05_TEST_STRATEGY_GAP_ANALYSIS.md) — read it first; every work package below cites a finding ID from it.
-**Deliverable on completion:** `docs/HANDOVER_gemini_8_test_hardening.md` + committed code/tests + `logs/test_reports/*.json` artefacts. Zoo reviews against §9 of this document.
+**Source analysis:** [`luccadocs/audit/05_TEST_STRATEGY_GAP_ANALYSIS.md`](./audit/05_TEST_STRATEGY_GAP_ANALYSIS.md) — read it first; every work package below cites a finding ID from it.
+**Deliverable on completion:** `luccadocs/HANDOVER_gemini_8_test_hardening.md` + committed code/tests + `logs/test_reports/*.json` artefacts. Zoo reviews against §9 of this document.
 
 ---
 
@@ -54,10 +54,10 @@ Execute in order. WP-2 is a prerequisite for WP-3 (the live tests will fail with
 - Acceptance: `wsl -d Ubuntu -- docker info --format "{{.ServerVersion}}"` prints the version with **no** `wsl:` warnings; `uv run lucca-admin env-check` green.
 
 ### 2.4 Manifest consistency
-- [`models/MANIFEST.json:52`](../models/MANIFEST.json:52) still labels `gemma-4-12b-heretic-Q6_K.gguf` as `CANDIDATE … not ratified (D-BRAIN-05 unchanged)` while `AGENTS.md`/`GEMINI.md` state D-BRAIN-05 v2 ratified it as primary. Update the `status` string to match `docs/DECISIONS.md` (do not change the sha256). The live tests in WP-3/5/6 must use this file; the supervisor must start it via [`start_server`](../src/lucca/brain/server_ctl.py) with the same flags the tests use — record any divergence.
+- [`models/MANIFEST.json:52`](../models/MANIFEST.json:52) still labels `gemma-4-12b-heretic-Q6_K.gguf` as `CANDIDATE … not ratified (D-BRAIN-05 unchanged)` while `AGENTS.md`/`GEMINI.md` state D-BRAIN-05 v2 ratified it as primary. Update the `status` string to match `luccadocs/DECISIONS.md` (do not change the sha256). The live tests in WP-3/5/6 must use this file; the supervisor must start it via [`start_server`](../src/lucca/brain/server_ctl.py) with the same flags the tests use — record any divergence.
 
 ### 2.5 Documentation correction
-- In [`docs/HANDOVER_gemini_7_a1_complete.md`](./HANDOVER_gemini_7_a1_complete.md), append a dated "Reviewer correction" block: replace "Full Regression Test Suite — 520 PASSED" with the §2 tier table from the gap analysis and the status line *"Implemented — T1/T2 green — T3/T4 not attempted — see WO-8."* Do not rewrite history above the block.
+- In [`luccadocs/HANDOVER_gemini_7_a1_complete.md`](./HANDOVER_gemini_7_a1_complete.md), append a dated "Reviewer correction" block: replace "Full Regression Test Suite — 520 PASSED" with the §2 tier table from the gap analysis and the status line *"Implemented — T1/T2 green — T3/T4 not attempted — see WO-8."* Do not rewrite history above the block.
 
 ---
 
@@ -244,7 +244,7 @@ If the model path or template differs from the above, use `models/MANIFEST.json`
 
 ## 10. WP-7 — Handover format & Zoo review checklist
 
-Create `docs/HANDOVER_gemini_8_test_hardening.md` with, in this order:
+Create `luccadocs/HANDOVER_gemini_8_test_hardening.md` with, in this order:
 
 1. **Tier table** — one row per command in §9: exact command, collected/passed/failed/xfailed/skipped, duration, path of the `logs/test_reports/*.json` artefact.
 2. **Per-WP status** — done / partial / blocked, with commit hashes.

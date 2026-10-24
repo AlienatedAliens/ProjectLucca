@@ -66,7 +66,7 @@
 
 ## Open follow-ups owned by this file
 
-- Write D-AUD-01…06 into `docs/13_decisions_log.md` when the post-audit docs set is writable (the current log is archived read-only).
+- Write D-AUD-01…06 into `luccadocs/13_decisions_log.md` when the post-audit docs set is writable (the current log is archived read-only).
 - UI subtask: inventory Chrono Trigger dependencies in `ui/` + `assets/` (per D-AUD-03) before the UI area audit closes.
 - Remediation programme: task #1 = D-AUD-05; task #2 = D-AUD-06 spike; both before any persona rewrite (D-AUD-03) so the persona is compiled against the final model choice.
 

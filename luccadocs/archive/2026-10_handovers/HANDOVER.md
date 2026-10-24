@@ -76,7 +76,7 @@ She operates 100% offline with zero cloud dependencies, zero external telemetry,
 
 The work happening on the `v1.35` branch is **NOT** converting Lucca into a competition math bot. 
 
-Rather, competition math (MATH-500) and coding benchmarks (HumanEval, GSM-Symbolic) constitute **Track 2 and Track 3 of Lucca's empirical verification suite** (see `README.md` §4 and `docs/USER_GUIDE_WHAT_LUCCA_DOES.md` §0.1). They stress-test:
+Rather, competition math (MATH-500) and coding benchmarks (HumanEval, GSM-Symbolic) constitute **Track 2 and Track 3 of Lucca's empirical verification suite** (see `README.md` §4 and `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md` §0.1). They stress-test:
 - The **Program-Aided Language (PAL)** neuro-symbolic pipeline.
 - The **Docker RPC execution turbine** (`lucca-toolsrv`).
 - The **2-Turn Execution Feedback Governor** (automatic error traceback recovery).

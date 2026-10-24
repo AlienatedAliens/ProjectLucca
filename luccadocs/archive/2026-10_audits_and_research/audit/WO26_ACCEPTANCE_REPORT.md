@@ -200,4 +200,4 @@ Following WO-26 ratification, the full canonical Track 3 modern benchmark batter
 
 **Sign-off:** Project Lucca Architecture, Engineering & Senior Academic Review  
 **Verdict:** **RATIFIED — ALL WO-26 PHASES AND TRACK 3 BENCHMARKS SATISFIED**  
-**Archive Reference:** `docs/specs/WO26_ACCEPTANCE_REPORT.md` (v1.2)
+**Archive Reference:** `luccadocs/specs/WO26_ACCEPTANCE_REPORT.md` (v1.2)

@@ -160,7 +160,7 @@ All extracted functionality is already backed by existing regression suites in P
 | **Phase 3: Receipt Supervisor** | Port `output_supervisor.py` into `supervision/supervisor.py` and modularize `verbs.py`. | Self-contained regex & AST deontic receipt supervisor | 6 hours |
 | **Phase 4: Test Suite Porting** | Port and adapt all 73 receipt tests and provenance unit tests. Add property-based testing (`hypothesis`). | 100% green test suite (~120 tests), 0 `Any` typing | 8 hours |
 | **Phase 5: Framework Adapters** | Implement lightweight middleware hooks for LangChain and OpenAI/Anthropic client wrappers. | `agent_guard.adapters.langchain`, `agent_guard.adapters.openai` | 8 hours |
-| **Phase 6: Documentation & Examples** | Author verification-focused documentation, threat model, API reference, and 3 runnable examples. | `README.md`, `docs/THREAT_MODEL.md`, `examples/` | 6 hours |
+| **Phase 6: Documentation & Examples** | Author verification-focused documentation, threat model, API reference, and 3 runnable examples. | `README.md`, `luccadocs/THREAT_MODEL.md`, `examples/` | 6 hours |
 | **Total Effort** | | | **38 hours (~1 week full-time)** |
 
 ---

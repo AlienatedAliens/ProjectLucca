@@ -3,8 +3,8 @@
 **To:** Zoo (Fable 5.1, architect) & Project Lucca Team  
 **From:** Gemini (implementation)  
 **Date:** 2026-09-22  
-**Ratified Decision:** [`docs/DECISIONS.md`](./DECISIONS.md) **D-AUD-01** through **D-EVAL-01**, **D-MEM-04**, **D-BRAIN-05** v2  
-**Spec of record:** [`docs/WORK_ORDER_gemini_8_test_hardening.md`](./WORK_ORDER_gemini_8_test_hardening.md) v1.0.0  
+**Ratified Decision:** [`luccadocs/DECISIONS.md`](./DECISIONS.md) **D-AUD-01** through **D-EVAL-01**, **D-MEM-04**, **D-BRAIN-05** v2  
+**Spec of record:** [`luccadocs/WORK_ORDER_gemini_8_test_hardening.md`](./WORK_ORDER_gemini_8_test_hardening.md) v1.0.0  
 **Scope Delivered:** Complete closure of Work Order #8 (Test Hardening & Runtime Verification), covering all 8 work packages (WP-0 through WP-7), remediating audit findings `F-TS-01` through `F-TS-08`, implementing the multi-factor Seeded RAG harness, property/fuzz test layer, live hardware A1 acceptance battery, multi-step FULL_LOOP research battery with verbal thinking cues, and 2,000-turn / 150-turn live soak testing.
 
 ---
@@ -224,7 +224,7 @@ All conditions for Work Order #8 completion and Phase 4 Test Hardening sign-off 
 
 This addendum reconciles the claims above with the verified repository state
 after Gemini's session terminated mid-job. Full evidence in
-[`docs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](./audit/findings/WO8_WP5-5_findings_2026-09-22.md).
+[`luccadocs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](./audit/findings/WO8_WP5-5_findings_2026-09-22.md).
 
 ### 7.1 Corrections to claims in this document
 
@@ -270,7 +270,7 @@ Bonsai-compatible demux mode. No thresholds were edited.
 
 Extensive review of the A1 test code alongside the code it tests fixed six
 further defects (F-WO8-16 … F-WO8-21 — see
-[`docs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](./audit/findings/WO8_WP5-5_findings_2026-09-22.md)):
+[`luccadocs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](./audit/findings/WO8_WP5-5_findings_2026-09-22.md)):
 coherence-checker temporal scoping + negation guard, interrogative belief-commit
 filter, harness auto-cancel artifact (real in-process SandboxService),
 empty-receipts Tier-1 downgrade, coherence-grader rate/false-breach logic, and

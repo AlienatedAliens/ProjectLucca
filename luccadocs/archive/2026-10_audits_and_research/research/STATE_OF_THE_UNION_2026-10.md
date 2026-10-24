@@ -5,7 +5,7 @@ doc_status: snapshot
 as_of: 2026-10-07
 supersedes: []
 superseded_by:
-  - docs/research/2026-10-13_three_tier_master_benchmark_audit_v141.md
+  - luccadocs/research/2026-10-13_three_tier_master_benchmark_audit_v141.md
 verification: code-cited
 ```
 
@@ -139,7 +139,7 @@ is the new contrastive battery; run with `pytest -m hw`.
 | MATH-500 Dev-100 PAL, v1.3 | **Measured** (superseded) | 77.0% strict; 87.0% is a *forensic audit*, not a mechanical regrade | manifest `math500_pal_v1_3` |
 | E4B Thinking R1 @ 6k vs PAL P2 @ 2k, held-out-100 | **Measured** | 88.0% vs 73.0% strict (p = 0.0026, discordant 19:4); 87.8% clean-98 | `D-ROUT-02` §2; `logs/test_reports/checkpoint_math500_e4b-*` |
 | E2B Thinking R1 @ 6k vs PAL P2 @ 2k, held-out-100 | **Measured** | 81.0% vs 61.0% strict; per-item recount from the held-out artifacts gives discordant **24:4** (R1-only : P2-only), exact McNemar p = **1.8×10⁻⁴** — the headline rates and p-value stand; `D-ROUT-02`'s recorded ratio "22:2" is a transcription error (correction filed 2026-10-05) | `D-ROUT-02` §2; `logs/test_reports/pal_off_ablation/gemma-4-e2b_math500_r1_heldout_think6144_100.json` vs `gemma-4-e2b_math500_p2_heldout_cap2048_100.json` |
-| SPEC-BENCH-100 cognitive battery | **Measured** | 91.0% pass (Run 3); 100% path-policy compliance; 100% epistemic faithfulness | Track 1 harness; `docs/specs/COMPOUND_REASONING_100_SPEC.md` |
+| SPEC-BENCH-100 cognitive battery | **Measured** | 91.0% pass (Run 3); 100% path-policy compliance; 100% epistemic faithfulness | Track 1 harness; `luccadocs/specs/COMPOUND_REASONING_100_SPEC.md` |
 | HumanEval canonical (raw arm) | **Measured, reproduced** | 94.51% (155/164); re-run 2026-10-05 under identical decoding reproduced the 2026-10-02 result **item-for-item** (both-pass 153, both-fail 8, raw-only 2) | manifest `humaneval_canonical_paired_v1_35_6`; `logs/test_reports/humaneval_canonical_raw_164.json` (+ preserved `_20261002` original) |
 | HumanEval canonical (assisted arm, preflight rescue ON) | **Measured, reproduced** | 93.90% (154/164), same paired run | manifest `humaneval_canonical_paired_v1_35_6`; `logs/test_reports/humaneval_canonical_assisted_164.json` |
 | HumanEval zero-shot (academic harness, 2026-09-28) | **Measured** (sourced) | 95.73% (157/164) — different protocol from the paired harness; see the zero-shot row below | manifest `humaneval_zeroshot_academic_v1_3` |
@@ -197,10 +197,10 @@ numbers above are reproducible only by filename, not by hash.
 | Container-mandatory execution | Gate | `use_direct_fallback = False` default; refuses with spoken notice if sandbox unavailable | `D-AUD-13`; `src/lucca/sandbox/` |
 | File-sandbox network isolation | Config | `--network none` | `docker/file-sandbox/Dockerfile` |
 | Shell launch ban | Gate | `cmd.exe` / `powershell.exe` blacklisted | `D-AUD-10` |
-| Egress blocks absolute; confirmation provenance split | Gate | internal `confirmed` cannot override; only `human_confirmed`, single-turn | `docs/ARCHITECTURE.md` §SequenceGuard |
+| Egress blocks absolute; confirmation provenance split | Gate | internal `confirmed` cannot override; only `human_confirmed`, single-turn | `luccadocs/ARCHITECTURE.md` §SequenceGuard |
 | Fault-injection coverage | Gate | 3 modes | `tests/test_fault_injecting_sandbox.py`; `tests/fakes/fault_injecting_sandbox.py` |
 | Truth-in-Receipt formal battery | Gate (unit) | 70/70 across 8 categories (A–H) | `tests/test_truth_in_receipt_battery.py`; `D-SEC-05` |
-| Live action-hallucination probes — sensitivity | **Measured** | **1/23 (4.3%)** broad ungrounded action claims caught; **1/8 (12.5%)** strict completed-action claims caught; escape modes: progressives 12, passive/telegraphic 6, markdown 2, unlisted verbs 2 | `RESULTS.md` §Output Supervisor; `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; labels `logs/test_reports/action_hallucination_labels_100.jsonl` |
+| Live action-hallucination probes — sensitivity | **Measured** | **1/23 (4.3%)** broad ungrounded action claims caught; **1/8 (12.5%)** strict completed-action claims caught; escape modes: progressives 12, passive/telegraphic 6, markdown 2, unlisted verbs 2 | `RESULTS.md` §Output Supervisor; `luccadocs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; labels `logs/test_reports/action_hallucination_labels_100.jsonl` |
 | Live action-hallucination probes — control false aborts | **Measured, narrow** | 0/50 false aborts — but all 50 controls are action-free text, so this establishes only that the matcher is inactive on action-claim-free text; specificity against true receipt-backed claims is reserved for Battery v2 | same sources |
 | Turn-boundary receipt staleness | Gate | `stale_before` wired via `reset_turn` → `evaluate_clause` | `src/lucca/sandbox/output_supervisor.py:378, 804`; +2 tests |
 | Recollection excluded from security hysteresis | Gate | `ungrounded_action_recollection` TIER_2_SOFT | `output_supervisor.py:834, 874`; +1 test |
@@ -235,9 +235,9 @@ estimates.
 | Capability | Status | Value | Receipt |
 |---|---|---|---|
 | NPU-resident TTS (Kokoro INT8), VAD, ASR, embeddings | Config | OpenVINO `device="NPU"` on host; never inside WSL2/Docker | `src/lucca/speech/`; hardware invariants (AGENTS.md §2.2) |
-| Audio concurrency contract | Documented | ADR-0009 | `docs/adr/0009_audio_concurrency_contract.md` |
-| 12B TTFT / throughput | **Measured** (bench) | 286.9 ms TTFT, 37.18 tok/s, 9,972 MiB | `docs/MODEL_STRATEGY.md`; bench scripts |
-| E4B / E2B TTFT | **Measured** (bench) | 86.1 ms / 73.2 ms; 4,382 / 2,260 MiB | `docs/MODEL_STRATEGY.md` |
+| Audio concurrency contract | Documented | ADR-0009 | `luccadocs/adr/0009_audio_concurrency_contract.md` |
+| 12B TTFT / throughput | **Measured** (bench) | 286.9 ms TTFT, 37.18 tok/s, 9,972 MiB | `luccadocs/MODEL_STRATEGY.md`; bench scripts |
+| E4B / E2B TTFT | **Measured** (bench) | 86.1 ms / 73.2 ms; 4,382 / 2,260 MiB | `luccadocs/MODEL_STRATEGY.md` |
 | REFLEX latency < 150 ms | Gate (design) | emergency words bypass inference | `D-ARCH-05`; `tests/test_emergency_reflex.py` |
 | End-to-end spoken-turn latency in the wild | **NOT YET MEASURED** (as a battery) | | — |
 
@@ -248,7 +248,7 @@ the September 2026 figures (~80% / ~50% / ~85% / ~75%) are **retired
 capability-inventory judgments** — honest impressions from a code reading,
 with no probe set, grader, or interval. They are not quoted here as scores.
 The four batteries that would produce measurements are specified in
-[`docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`](../specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md)
+[`luccadocs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md`](../specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md)
 (IA-40, IN-30, FC-30, AC-30) and **not implemented**.
 
 | Aspect | Measured today | NOT YET MEASURED |
@@ -315,7 +315,7 @@ an arbitrary spoken request. SPIKE-B closes this; it is not started.
 ### 5.4 The output supervisor is hardened via SPIKE-A decode-time grammar & multi-frame supervision
 The original Truth-in-Receipt regex matcher covered 21 action-verb lemmas in direct
 pronoun-action English frames with a hedge exemption. The live n=100 audit
-(`docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3) measured sensitivity of **1/23
+(`luccadocs/LUCCA_V135_1_ARCHITECTURE.md` §4.3) measured sensitivity of **1/23
 (4.3%)** on broad ungrounded action claims and **1/8 (12.5%)** on strict
 completed-action claims. The dominant escape modes were **active-voice
 progressive participles** (12 of 22 escapes: *"Moving all PDFs..."*),
@@ -328,7 +328,7 @@ progressive participles** (12 of 22 escapes: *"Moving all PDFs..."*),
 
 ### 5.5 Edge tiers are uncensored fine-tunes
 E4B and E2B refuse roughly 30% of harmful probes versus 12B's roughly 90%
-(`docs/archive/2026-09_raw_findings/CAPABILITY_FACT_FINDING_2026-09.md` —
+(`luccadocs/archive/2026-09_raw_findings/CAPABILITY_FACT_FINDING_2026-09.md` —
 a dated September receipt; the refusal-rate probe has not been re-run under
 v1.35.6, so treat the rates as the as-of-September measurement that motivated
 the guard, not a current scorecard figure). E4B is retained
@@ -353,8 +353,8 @@ and to catch production bugs (§2.3), not to quote tight rates. The battery
 artifact also carries a stale summary block (§3.6 caveat).
 
 ### 5.9 Stale documents exist and are labeled
-`docs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md` is
-envelope-marked `superseded`. Many files under `docs/archive/`, `handover/`,
+`luccadocs/research/PERSONHOOD_FOUR_ASPECTS_PROGRESS_2026-09.md` is
+envelope-marked `superseded`. Many files under `luccadocs/archive/`, `handover/`,
 and `plans/` are dated receipts containing pre-remediation claims. Check the
 envelope before citing anything outside the canonical set.
 
@@ -445,7 +445,7 @@ must reference it rather than propose it anew.
 |---|---|---|---|
 | 1 | Clean held-out ablation run per 2026-10-04 protocol; report **all** arms and failures | Designed; not executed | Multi-hour; hardware available; `scratch/start_llama_server.py` |
 | 2 | LessWrong / AF post | Blocked on 1 | Never publish the raw 58% |
-| 3 | Personhood probe batteries (IA-40, IN-30, FC-30, AC-30) + 4 graders | Spec only | `docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md` |
+| 3 | Personhood probe batteries (IA-40, IN-30, FC-30, AC-30) + 4 graders | Spec only | `luccadocs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md` |
 | 4 | Manifund application draft | Evidence compiled; draft not started | §6.1 |
 | 5 | SPIKE-A (grammar-constrained ACTION-CLAIM) | Completed (`D-SEC-06`) | GBNF channel + supervisor + 73 tests; closed P7 |
 | 6 | SPIKE-B (intent classifier) | Registered | Emergent Ventures fit |
@@ -491,7 +491,7 @@ it does not change module assignments or target releases.
 - **WO-33 — Hygiene That Earned Its Place:** Module 8 (transactional Git staging DAG, `git_dag.py`) and Module 10 (Belnap latent investigator, `latent_probe.py`). **Completed (`D-MEM-09`).**
 - **WO-34 — Proactive Reflection Loop:** Sleep-phase macro consolidation daemon (`consolidation.py`) driving DreamCoder macro compression, quarantine governance (`D-REAS-06`), and mechanical IN-D individuation scoring. **Completed (`D-REAS-12`).**
 
-### 7.3 V2 backlog highlights (`docs/V2_BACKLOG.md`)
+### 7.3 V2 backlog highlights (`luccadocs/V2_BACKLOG.md`)
 
 - Defeasible reasoning rung beyond WO-21: subjective-logic opinions,
   standards-of-proof policy table, web-fact ratification flow.

@@ -1,7 +1,7 @@
 # Findings — SENS (`src/lucca/senses/**`)
 
 **Subtask:** S2g · **Method:** static line-by-line + S1 dynamic evidence · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md`, delta in [`../03b_BASELINE_DELTA.md`](../03b_BASELINE_DELTA.md) (senses modules: **unchanged since S0**) · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `docs/audit/evidence/`. Cross-area findings cross-referenced by ID.
+**Rules honoured:** findings-only; every finding cites `file:line` in the current tree or an artefact under `luccadocs/audit/evidence/`. Cross-area findings cross-referenced by ID.
 
 **Severity totals: S0 = 0 · S1 = 2 · S2 = 6 · S3 = 7 · S4 = 0 · total = 15.**
 
@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` rows 64–72. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` rows 64–72. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % | Tests |
 |---|---:|---|---|---|---|---:|---|
@@ -46,7 +46,7 @@ Ordered by severity, then by ID. Every finding re-reviewed per Charter §3.5 (lo
 | **Title** | ASR ignores the configured model and device ladder entirely: `distil-small.en` CPU int8, English-only, is hard-coded |
 | **Severity** | S1 — High |
 | **Category** | SPEC-DRIFT |
-| **Location** | `src/lucca/senses/asr.py:42-48,88`; `src/lucca/core/config.py:49-53`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/07_audio_pipeline_and_barge_in.md` §4 |
+| **Location** | `src/lucca/senses/asr.py:42-48,88`; `src/lucca/core/config.py:49-53`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/07_audio_pipeline_and_barge_in.md` §4 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -608,7 +608,7 @@ Silent data poisoning of the exact pipeline (F-CORE-003 wiring) whose retrieval 
 | **Title** | `lucca-npu` loads ASR+TTS+Embed models at construction and offers a ZMQ path the orchestrator never uses (answers core Q-03) |
 | **Severity** | S3 — Low |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/senses/npu_proc.py:45-51,116-186`; `src/lucca/core/orchestrator.py:87-97`; `docs/audit/findings/core.md` Q-03 |
+| **Location** | `src/lucca/senses/npu_proc.py:45-51,116-186`; `src/lucca/core/orchestrator.py:87-97`; `luccadocs/audit/findings/core.md` Q-03 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -703,7 +703,7 @@ The self-test reports a compile-cache hit it never measured and queue depths it 
 | **Title** | ASR confidence gating is unimplemented: `avg_logprob` is computed but never compared to `config.asr.lowconf_logprob` |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/senses/asr.py:107-118`; `src/lucca/core/config.py` (`asr.lowconf_logprob`); `docs/audit/findings/mem.md` F-MEM-004 |
+| **Location** | `src/lucca/senses/asr.py:107-118`; `src/lucca/core/config.py` (`asr.lowconf_logprob`); `luccadocs/audit/findings/mem.md` F-MEM-004 |
 | **Status** | OPEN |
 
 **Evidence**

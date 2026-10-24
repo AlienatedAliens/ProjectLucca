@@ -96,14 +96,14 @@ Measured across 50 recurrent procedural invocations, comparing the time for the 
 | **Tokens for plan step** | ~240 | 0 | Narration tokens are still spent afterwards. |
 | **Precondition & path check** | Sampled | Z3-checked at admission (§2.2) | Z3 checks the rule's precondition and path arguments against the stated constraints; it does not prove properties of arbitrary plan bodies. |
 
-### 3.2 End-to-End L1–L4 & T4 Verification Battery (`docs/audit/findings/V1_RELEASE_AUDIT.md`)
+### 3.2 End-to-End L1–L4 & T4 Verification Battery (`luccadocs/audit/findings/V1_RELEASE_AUDIT.md`)
 
 | Capability Rung | Verification Target | Measured Result | Verification Test / Artifact |
 | :--- | :--- | :---: | :--- |
 | **Rung L1b: Shipped Skill Corpus** | 15 active MicroScheme skill packages (`config/skills/`), each with `plan.scm`, `meta_info.json`, `golden_traces.jsonl`, `backup.md`, `recover.md` | **15 / 15 Active Skills Verified** (`MAX_ACTIVE_RULES = 30`) | `tests/test_l1b_all_skills.py` |
 | **Rung L2: Dream-RSI Replay & Contrastive Gate** | Offline historical replay ($\ge 50$ turns, 0 errors, 0 misfires) + contrastive negative-twin shadow evaluation | **100% Pass on Positive & Negative Twins** | `tests/test_l2_replay_and_contrastive.py` |
 | **Rung L3: Full Graduated Lifecycle Proof** | Complete end-to-end induction: `induce -> Z3 SMT -> QUARANTINE -> 50-turn replay -> 5 shadow clusters -> PENDING_APPROVAL -> operator approve -> ACTIVE` | **Verified (`induced-launch-app-calculator-v1` reached `ACTIVE` and executed plan)** | `tests/test_l3_lifecycle_proof.py`, `V1_RELEASE_AUDIT.md` §3 |
-| **Rung T4: Option A Single-Strike Circuit Breaker** | Any single runtime failure on an `ACTIVE` rule immediately demotes it back to `QUARANTINE` | **100% Immediate Demotion Verified** | `tests/test_lifecycle.py`, `docs/specs/STUDIO_CAPABILITY_ROADMAP.md` §6.4 |
+| **Rung T4: Option A Single-Strike Circuit Breaker** | Any single runtime failure on an `ACTIVE` rule immediately demotes it back to `QUARANTINE` | **100% Immediate Demotion Verified** | `tests/test_lifecycle.py`, `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md` §6.4 |
 | **Two-Cadence Inner Life (`WO-36`)** | `IdlePulse` (60s NLI + distillation) + `DreamRetrospective` (`CoherenceDrive` & `CompetenceDrive` + `learning_events`) | **Verified (`0009_active_goals_and_learning_events.sql`)** | `tests/test_inner_life.py`, `tests/test_cognitive_sink.py` |
 
 ---

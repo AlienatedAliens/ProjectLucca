@@ -477,7 +477,7 @@ Verbatim Output:
 
 Command:
 ```
-git grep -n -i "nemo" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+git grep -n -i "nemo" -- luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md
 ```
 
 Verbatim Output:
@@ -485,12 +485,12 @@ Verbatim Output:
 
 Command:
 ```
-git grep -c "^" -- docs/USER_GUIDE_WHAT_LUCCA_DOES.md
+git grep -c "^" -- luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md
 ```
 
 Verbatim Output:
 ```
-docs/USER_GUIDE_WHAT_LUCCA_DOES.md:226
+luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:226
 ```
 
 ---
@@ -501,7 +501,7 @@ docs/USER_GUIDE_WHAT_LUCCA_DOES.md:226
 
 Command:
 ```
-git grep -n "certified for production use" -- docs/
+git grep -n "certified for production use" -- luccadocs/
 ```
 
 Verbatim Output:
@@ -509,24 +509,24 @@ Verbatim Output:
 
 Command:
 ```
-git grep -n "Amendment (WO-15)" -- docs/audit/findings/V1_RELEASE_AUDIT.md
+git grep -n "Amendment (WO-15)" -- luccadocs/audit/findings/V1_RELEASE_AUDIT.md
 ```
 
 Verbatim Output:
 ```
-docs/audit/findings/V1_RELEASE_AUDIT.md:10:## 0. Amendment (WO-15)
+luccadocs/audit/findings/V1_RELEASE_AUDIT.md:10:## 0. Amendment (WO-15)
 ```
 
 Command:
 ```
-git grep -n -E "test_orchestrator_router_calibrated_with_seeded_history|test_c1_abstention_offline" -- docs/audit/findings/V1_RELEASE_AUDIT.md docs/specs/STUDIO_CAPABILITY_ROADMAP.md
+git grep -n -E "test_orchestrator_router_calibrated_with_seeded_history|test_c1_abstention_offline" -- luccadocs/audit/findings/V1_RELEASE_AUDIT.md luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md
 ```
 
 Verbatim Output:
 ```
-docs/audit/findings/V1_RELEASE_AUDIT.md:17:| C1 acceptance PASS, Wilson LB 0.8308 | Measured on a test-local router with a guard fitted on 10 hand-typed probability vectors. Live turns went through unguarded production router asserting only non-empty reply. `has_registered_rule` leaked from ground-truth label. | Acceptance gate completely rebuilt (`tests/test_c1_abstention_acceptance.py`). Uses production `orch.router`, evaluates 100 probes against synthetic calibration fixture (n=135), asserts live-turn fallback actions, runs offline twin in CI (`test_c1_abstention_offline`). Wilson LB = 0.8541 ≥ 0.80. |
-docs/audit/findings/V1_RELEASE_AUDIT.md:86:| **Router Calibration Wiring** | Orchestrator initializes with calibrated ConformalGuard when seeded history exists | `orch.router.conformal_guard.q_hat` is fitted; `decision.calibrated is True` | **PASS** | `tests/test_router_calibration.py::test_orchestrator_router_calibrated_with_seeded_history`, `tests/test_c1_abstention_acceptance.py::test_c1_abstention_offline` |
-docs/specs/STUDIO_CAPABILITY_ROADMAP.md:322:| **C1** | **DONE** | Experience bank: episode store + Recall + router abstention | Episode store and Recall path live (`src/lucca/reasoning/recall.py`). Conformal abstention verified in WO-14 / WO-15. **Abstention precision: Wilson 95% lower bound ≥ 0.80 at N≥100 graded turns** (achieved 96.08%, Wilson LB = 0.8541 on N=100 turns in `tests/test_c1_abstention_acceptance.py::test_c1_conformal_abstention_acceptance` and offline twin `test_c1_abstention_offline`; report: `logs/test_reports/c1_abstention_acceptance_20260924T045336Z.json`); no LLM call in the Recall path |
+luccadocs/audit/findings/V1_RELEASE_AUDIT.md:17:| C1 acceptance PASS, Wilson LB 0.8308 | Measured on a test-local router with a guard fitted on 10 hand-typed probability vectors. Live turns went through unguarded production router asserting only non-empty reply. `has_registered_rule` leaked from ground-truth label. | Acceptance gate completely rebuilt (`tests/test_c1_abstention_acceptance.py`). Uses production `orch.router`, evaluates 100 probes against synthetic calibration fixture (n=135), asserts live-turn fallback actions, runs offline twin in CI (`test_c1_abstention_offline`). Wilson LB = 0.8541 ≥ 0.80. |
+luccadocs/audit/findings/V1_RELEASE_AUDIT.md:86:| **Router Calibration Wiring** | Orchestrator initializes with calibrated ConformalGuard when seeded history exists | `orch.router.conformal_guard.q_hat` is fitted; `decision.calibrated is True` | **PASS** | `tests/test_router_calibration.py::test_orchestrator_router_calibrated_with_seeded_history`, `tests/test_c1_abstention_acceptance.py::test_c1_abstention_offline` |
+luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md:322:| **C1** | **DONE** | Experience bank: episode store + Recall + router abstention | Episode store and Recall path live (`src/lucca/reasoning/recall.py`). Conformal abstention verified in WO-14 / WO-15. **Abstention precision: Wilson 95% lower bound ≥ 0.80 at N≥100 graded turns** (achieved 96.08%, Wilson LB = 0.8541 on N=100 turns in `tests/test_c1_abstention_acceptance.py::test_c1_conformal_abstention_acceptance` and offline twin `test_c1_abstention_offline`; report: `logs/test_reports/c1_abstention_acceptance_20260924T045336Z.json`); no LLM call in the Recall path |
 ```
 
 Command:
@@ -766,7 +766,7 @@ Date:   Thu Sep 24 06:32:27 2026 +0800
 
     WO-15: v1.0 remediation — conformal guard wired + DB-calibrated, recall deduplicated, user guide + lint coverage, audit amended
 
- docs/audit/findings/WO15_EVIDENCE.md               |  206 +++
+ luccadocs/audit/findings/WO15_EVIDENCE.md               |  206 +++
  ...utobiographical_coherence_20260923T221802Z.json |   10 +
  ...ance_functional_coherence_20260923T221640Z.json |   11 +
  ...uation_stance_consistency_20260923T221640Z.json |   71 +

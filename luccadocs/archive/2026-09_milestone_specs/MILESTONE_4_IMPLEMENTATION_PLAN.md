@@ -3,7 +3,7 @@
 > [!NOTE]
 > **MILESTONE EXECUTION COMPLETE & RATIFIED**  
 > This implementation plan was 100% executed and verified on native workstation silicon in Milestone 4 (Commit `6b1a34d`).  
-> Ratified under `D-ARB-01` and `D-SUP-01` in [`docs/DECISIONS.md`](../DECISIONS.md) and fully documented in [`docs/IMPLEMENTATION_WALKTHROUGH.md`](../IMPLEMENTATION_WALKTHROUGH.md) Section 7.
+> Ratified under `D-ARB-01` and `D-SUP-01` in [`luccadocs/DECISIONS.md`](../DECISIONS.md) and fully documented in [`luccadocs/IMPLEMENTATION_WALKTHROUGH.md`](../IMPLEMENTATION_WALKTHROUGH.md) Section 7.
 
 **Closing Commit:** `6b1a34d`  
 **Status:** Completed & Ratified

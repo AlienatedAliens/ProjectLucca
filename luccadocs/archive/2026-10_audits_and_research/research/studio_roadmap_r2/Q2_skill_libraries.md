@@ -1,8 +1,8 @@
 # Research Deep Dive: Q2 — Skill-Library Learning Under Sparse Data
 
-**Document:** `docs/research/studio_roadmap_r2/Q2_skill_libraries.md`  
+**Document:** `luccadocs/research/studio_roadmap_r2/Q2_skill_libraries.md`  
 **Author:** Antigravity (Gemini)  
-**Consumer:** Fable 5.1 (author of `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
+**Consumer:** Fable 5.1 (author of `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`)  
 **Audit & Access Date:** 2026-09-21  
 **Status:** Complete — Ready for Review  
 
@@ -98,7 +98,7 @@ The literature spanning Voyager (2023), DreamCoder (2021), LILO (2023), and the 
 ---
 
 ### F-Q2-7 (Disconfirming / Negative Result): Small-N Single-User History Leads to Extreme Overfitting
-- **Source(s):** *Personal Agent Adaptation under Sparse User Interaction: Failure Modes and Risk Analysis*, IEEE Trans. AI / Lucca Audit Findings (`docs/audit/findings/`), accessed 2026-09-21.
+- **Source(s):** *Personal Agent Adaptation under Sparse User Interaction: Failure Modes and Risk Analysis*, IEEE Trans. AI / Lucca Audit Findings (`luccadocs/audit/findings/`), accessed 2026-09-21.
 - **Read:** Full text and empirical logs.
 - **Mechanism:** When a personal companion attempts to induce symbolic rules from a single user's interaction stream ($N < 5$), the induction engine inevitably binds to idiosyncratic surface phrasings (e.g., specific typos, unique slang, or accidental timestamps). If promoted to `ACTIVE`, these hyper-specific rules trigger false-positive intercepts on unrelated user commands.
 - **Evidence Grade:** **E1.** Observed across personal assistant and dialog system deployments.

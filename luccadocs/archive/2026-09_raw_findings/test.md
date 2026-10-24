@@ -1,7 +1,7 @@
 # Findings — TEST (`tests/**`, `pyproject.toml`, `packaging/**`, `Lucca.spec`, `launch_lucca.bat`, `.env.example`, non-WSL `scripts/**`)
 
 **Subtask:** S2i · **Method:** static line-by-line + S1 dynamic evidence (tier runs, coverage, static gates) · **Baseline:** HEAD `ed14f6b` + working tree per `03_BASELINE.md`, delta in [`../03b_BASELINE_DELTA.md`](../03b_BASELINE_DELTA.md) (`scripts/test_s1_startup.py` changed post-S0 — see F-TEST-009) · **Written:** 2026-09-18 (UTC)
-**Rules honoured:** findings-only; every finding cites `file:line` or an artefact under `docs/audit/evidence/`. Cross-area findings cross-referenced by ID.
+**Rules honoured:** findings-only; every finding cites `file:line` or an artefact under `luccadocs/audit/evidence/`. Cross-area findings cross-referenced by ID.
 
 **Severity totals: S0 = 0 · S1 = 2 · S2 = 6 · S3 = 7 · S4 = 0 · total = 15.**
 
@@ -36,7 +36,7 @@ Ordered by severity, then by ID. Every finding re-reviewed per Charter §3.5 (lo
 | **Title** | The `tier2` marker is unregistered: the entire T2 integration tier silently selects nothing |
 | **Severity** | S1 — High |
 | **Category** | TESTING |
-| **Location** | `pyproject.toml:101-104`; `docs/audit/evidence/S1_13_T2_tier2.txt` |
+| **Location** | `pyproject.toml:101-104`; `luccadocs/audit/evidence/S1_13_T2_tier2.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -88,7 +88,7 @@ Every area audit found integration seams that only a T2 tier could cover (orches
 | **Title** | `import-linter` is a dev dependency with no configuration: the declared architecture boundaries are unenforced |
 | **Severity** | S1 — High |
 | **Category** | TESTING |
-| **Location** | `pyproject.toml:40`; `docs/audit/evidence/S1_11d_lint_imports.txt`; `docs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:21` (TM-01 cites "import-linter") |
+| **Location** | `pyproject.toml:40`; `luccadocs/audit/evidence/S1_11d_lint_imports.txt`; `luccadocs/archive/2026-09-17_pre_phase4_audit/09_developer_spec/12_threat_model.md:21` (TM-01 cites "import-linter") |
 | **Status** | OPEN |
 
 **Evidence**
@@ -134,7 +134,7 @@ Charter §5.1's type-level defence (TM-01: "import-linter; AST allow-list") is h
 | **Title** | `pyproject.toml` disables every static gate that would have caught the audit's S0 findings |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `pyproject.toml:62,64-71,73-77`; `docs/audit/findings/core.md` F-CORE-001/054; `docs/audit/findings/brain.md` F-BRAIN-001 |
+| **Location** | `pyproject.toml:62,64-71,73-77`; `luccadocs/audit/findings/core.md` F-CORE-001/054; `luccadocs/audit/findings/brain.md` F-BRAIN-001 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -233,7 +233,7 @@ The packaging story is untested end-to-end: no test builds the exe, none runs it
 | **Title** | `launch_lucca.bat` and `Lucca.spec` hard-code the repo path and the two launch mechanisms disagree |
 | **Severity** | S2 — Medium |
 | **Category** | MAINTAINABILITY |
-| **Location** | `launch_lucca.bat:3`; `Lucca.spec:5-8,35`; `docs/audit/evidence/S1_SUMMARY.md` observation 28 |
+| **Location** | `launch_lucca.bat:3`; `Lucca.spec:5-8,35`; `luccadocs/audit/evidence/S1_SUMMARY.md` observation 28 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -282,7 +282,7 @@ The first-run experience on any machine other than the dev box is undefined; and
 | **Title** | `.env.example` documents the retired architecture (vLLM, caps_lock, HMAC secret) and none of the current keys |
 | **Severity** | S3 — Low |
 | **Category** | DOCS |
-| **Location** | `.env.example:1-20`; `docs/audit/findings/core.md` F-CORE-050 |
+| **Location** | `.env.example:1-20`; `luccadocs/audit/findings/core.md` F-CORE-050 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -332,7 +332,7 @@ Operator-facing configuration documentation that is 100 % stale; copying it conf
 | **Title** | `conftest.py` provides no `LUCCA_HOME` isolation: tests share and mutate the production tree |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `tests/conftest.py:1-22`; `tests/test_turn_loop.py` (traces via real `LUCCA_HOME`); `docs/audit/findings/core.md` A-23 |
+| **Location** | `tests/conftest.py:1-22`; `tests/test_turn_loop.py` (traces via real `LUCCA_HOME`); `luccadocs/audit/findings/core.md` A-23 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -384,7 +384,7 @@ def _isolated_lucca_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Ite
 | **Title** | No T0 gate is runnable as documented: `uv run lint` does not exist and no CI/pre-commit wiring exists |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `pyproject.toml:45-47` (scripts section has only lucca/lucca-admin); `docs/audit/evidence/S1_11_T0_lint.txt`; `.agents/skills/lucca-pipeline/SKILL.md` §2 |
+| **Location** | `pyproject.toml:45-47` (scripts section has only lucca/lucca-admin); `luccadocs/audit/evidence/S1_11_T0_lint.txt`; `.agents/skills/lucca-pipeline/SKILL.md` §2 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -429,7 +429,7 @@ Gates that require remembering to run them manually do not run; the audit found 
 | **Title** | `scripts/test_s1_startup.py` changed after the S0 baseline without a commit, record, or test |
 | **Severity** | S3 — Low |
 | **Category** | TESTING |
-| **Location** | `scripts/test_s1_startup.py`; `docs/audit/03b_BASELINE_DELTA.md` §3; `docs/audit/findings/brain.md` F-BRAIN-008 |
+| **Location** | `scripts/test_s1_startup.py`; `luccadocs/audit/03b_BASELINE_DELTA.md` §3; `luccadocs/audit/findings/brain.md` F-BRAIN-008 |
 | **Status** | OPEN |
 
 **Evidence**
@@ -473,7 +473,7 @@ Uncommitted, unattributed changes to the frozen tree during an audit; recorded h
 | **Title** | The hw test tier writes no machine-readable reports, breaking the sign-off bundle contract |
 | **Severity** | S2 — Medium |
 | **Category** | TESTING |
-| **Location** | `tests/test_phase1_live_hw.py`; `tests/test_phase2_live_hw.py`; `docs/archive/2026-09-17_pre_phase4_audit/10_testing_matrix_v2.md` §1/§4; `docs/audit/evidence/S1_31_reports_harvest.txt` |
+| **Location** | `tests/test_phase1_live_hw.py`; `tests/test_phase2_live_hw.py`; `luccadocs/archive/2026-09-17_pre_phase4_audit/10_testing_matrix_v2.md` §1/§4; `luccadocs/audit/evidence/S1_31_reports_harvest.txt` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -519,7 +519,7 @@ Charter §5.3's phased discipline requires green sign-off bundles; hardware gate
 | **Title** | The fakes bypass the real SENS workers, so the voice pipeline has no test below the hardware tier |
 | **Severity** | S3 — Low |
 | **Category** | TESTING |
-| **Location** | `tests/fakes/fake_llm.py`; `tests/fakes/fake_asr.py:1-20`; `tests/fakes/fake_tts.py`; `docs/audit/findings/sens.md` (tts 32 %, audio_proc/npu_proc/ptt/vad 0 %) |
+| **Location** | `tests/fakes/fake_llm.py`; `tests/fakes/fake_asr.py:1-20`; `tests/fakes/fake_tts.py`; `luccadocs/audit/findings/sens.md` (tts 32 %, audio_proc/npu_proc/ptt/vad 0 %) |
 | **Status** | OPEN |
 
 **Evidence**
@@ -707,7 +707,7 @@ Informational: toolchain availability differs by install path; consolidation is 
 | **Title** | The two T3 hardware failures are recorded only as console output — no blocker, no report, no gate |
 | **Severity** | S3 — Low |
 | **Category** | TESTING |
-| **Location** | `docs/audit/evidence/S1_30_T3_hw.txt`; `tests/test_phase1_live_hw.py`; `docs/audit/04_OWNER_DECISIONS.md` |
+| **Location** | `luccadocs/audit/evidence/S1_30_T3_hw.txt`; `tests/test_phase1_live_hw.py`; `luccadocs/audit/04_OWNER_DECISIONS.md` |
 | **Status** | OPEN |
 
 **Evidence**
@@ -716,7 +716,7 @@ Artefact: `S1_30_T3_hw.txt` (row 56) — `test_live_phase1_conversational_turn` 
 
 **What is wrong / assumed / missing**
 
-The audit's failure-handling convention ("never edit a threshold to pass; record the measured value in `docs/14_blockers.md` and stop" — AGENTS.md) has no target: `docs/14_blockers.md` is archived read-only, and the hw failures live only in this audit's evidence. Expected per the project's own rule: a blocker row per failed hardware gate.
+The audit's failure-handling convention ("never edit a threshold to pass; record the measured value in `luccadocs/14_blockers.md` and stop" — AGENTS.md) has no target: `luccadocs/14_blockers.md` is archived read-only, and the hw failures live only in this audit's evidence. Expected per the project's own rule: a blocker row per failed hardware gate.
 
 **Why it matters**
 
@@ -728,7 +728,7 @@ Two real-hardware main-path failures currently survive only inside audit documen
 
 **Proposed remediation**
 
-1. In the post-audit docs programme: create `docs/14_blockers.md` rows for both T3 failures citing `S1_30` and the owning findings (F-CORE-007, F-BRAIN-004).
+1. In the post-audit docs programme: create `luccadocs/14_blockers.md` rows for both T3 failures citing `S1_30` and the owning findings (F-CORE-007, F-BRAIN-004).
 2. Structural fix via F-TEST-010 (hw reports) so future failures are machine-recorded.
 3. No code change in this audit.
 

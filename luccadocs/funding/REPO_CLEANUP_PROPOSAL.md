@@ -122,7 +122,7 @@ LUCCA_DATA = Path(os.environ.get("LUCCA_DATA", LUCCA_ROOT / "data"))
 ### Affected Categories to Batch-Replace:
 1. **Source Code (`src/lucca/`):** Replace default path strings in `config.py`, `verifier.py`, and `ports.py`.
 2. **Benchmark Scripts (`scripts/`):** Use `argparse` with defaults resolving relative to repository root (`Path(__file__).resolve().parents[1]`).
-3. **Documentation (`docs/`):** Update markdown links to use repo-relative paths (`./docs/...`) rather than Windows URI schemes (`file:///c:/...`).
+3. **Documentation (`luccadocs/`):** Update markdown links to use repo-relative paths (`./luccadocs/...`) rather than Windows URI schemes (`file:///c:/...`).
 
 ---
 

@@ -3,7 +3,7 @@
 **Generated:** 2026-09-24 (WO-16 Phase 2, updated Phase 5)  
 **Source:** Exhaustive scan of all WO-8 through WO-15 audit findings across 14 audit modules  
 **Review Baseline:** Commit `b6fc285` (`v1.0.0`)  
-**Current Resolution State:** 19 Resolved (8 BUG_V1, 6 DOC_DRIFT, 5 TEST_GAP), 12 Deferred to `docs/V2_BACKLOG.md` (DESIGN_DEBT)
+**Current Resolution State:** 19 Resolved (8 BUG_V1, 6 DOC_DRIFT, 5 TEST_GAP), 12 Deferred to `luccadocs/V2_BACKLOG.md` (DESIGN_DEBT)
 
 ---
 
@@ -13,7 +13,7 @@
 |---|:---:|:---:|:---:|---|
 | **BUG_V1** | **8** | 8 | 0 | All fixed & verified with regression tests in Phase 5 |
 | **DOC_DRIFT** | **6** | 6 | 0 | All corrected across 10 active docs in Phase 4 |
-| **DESIGN_DEBT** | **12** | 0 | 12 | Tracked in `docs/V2_BACKLOG.md` with explicit triggers |
+| **DESIGN_DEBT** | **12** | 0 | 12 | Tracked in `luccadocs/V2_BACKLOG.md` with explicit triggers |
 | **TEST_GAP** | **5** | 5 | 0 | All calibrated & verified in Phase 5 |
 | **Total Items** | **31** | **19** | **12** | **100% Tracked & Reconciled (0 Untracked / 0 Unresolved)** |
 
@@ -22,7 +22,7 @@
 ## 2. Items Catalog
 
 ### [ITEM-001] Router Known Apps Whitelist Leak
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-003`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-003`
 - **Classification:** BUG_V1
 - **Severity:** Medium
 - **Feature Area:** router
@@ -33,7 +33,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-002] Greedy 1-2 Word Candidate App Matcher
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-004`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-004`
 - **Classification:** BUG_V1
 - **Severity:** Medium
 - **Feature Area:** router
@@ -44,7 +44,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-003] Labeler Negation Priority Inversion
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-006`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-006`
 - **Classification:** BUG_V1
 - **Severity:** Low
 - **Feature Area:** router
@@ -55,7 +55,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-004] RouterPort Protocol Signature Mismatch
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-007`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-007`
 - **Classification:** BUG_V1
 - **Severity:** Low
 - **Feature Area:** router
@@ -66,7 +66,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-005] Decision SQLite Write Errors Swallowed Without Telemetry Counter
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-009`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-009`
 - **Classification:** BUG_V1
 - **Severity:** Low
 - **Feature Area:** router
@@ -77,7 +77,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-006] Dead Conjunct in Heuristic Clarify Probability Branch
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-011`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-011`
 - **Classification:** BUG_V1
 - **Severity:** Low
 - **Feature Area:** router
@@ -88,7 +88,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-007] Silent Fallback on Whitelist Parse Error
-- **Source:** `docs/audit/findings/sbx.md`, Finding `F-SBX-013`
+- **Source:** `luccadocs/audit/findings/sbx.md`, Finding `F-SBX-013`
 - **Classification:** BUG_V1
 - **Severity:** Low
 - **Feature Area:** sandbox
@@ -99,7 +99,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-008] Long URL Validation in Web Sandbox
-- **Source:** `docs/audit/findings/adjacent_defects_diagnostic_summary.md`, Defect `M5-11`
+- **Source:** `luccadocs/audit/findings/adjacent_defects_diagnostic_summary.md`, Defect `M5-11`
 - **Classification:** BUG_V1
 - **Severity:** Medium
 - **Feature Area:** sandbox
@@ -110,7 +110,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-009] Test Fixture q09 Action Receipt Framing Gap
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F21`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F21`
 - **Classification:** TEST_GAP
 - **Severity:** Low
 - **Feature Area:** test
@@ -121,7 +121,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-010] Windows Shutdown Handler Contention in Test Tier
-- **Source:** `docs/audit/findings/WO8_WP4_findings_2026-09-21.md`, Finding `F-WO8-07`
+- **Source:** `luccadocs/audit/findings/WO8_WP4_findings_2026-09-21.md`, Finding `F-WO8-07`
 - **Classification:** TEST_GAP
 - **Severity:** Low
 - **Feature Area:** test
@@ -132,51 +132,51 @@
 - **Status:** RESOLVED
 
 ### [ITEM-011] Native Tool Count and Registry Cap Inconsistency
-- **Source:** Known Error Checklist #1 & #2, `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`
+- **Source:** Known Error Checklist #1 & #2, `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`
 - **Classification:** DOC_DRIFT
 - **Severity:** Medium
 - **Feature Area:** docs
 - **Description:** Documentation stated "15 sandboxed tools... capped at 16". The actual implementation in `src/lucca/core/capabilities.py` defines 18 tools and sets `MAX_REGISTRY_TOOLS = 18`.
-- **Code Location:** `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`, `docs/specs/STUDIO_CAPABILITY_ROADMAP.md`
+- **Code Location:** `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`, `luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`
 - **User-Visible Impact:** Confusing capability reporting in user guide and specifications.
 - **Resolution Path:** Corrected in WO-16 Phase 4 to 18 native tools and cap 18 across all active documents.
 - **Status:** RESOLVED
 
 ### [ITEM-012] Epistemic Substrate Count Documentation Drift
-- **Source:** Known Error Checklist #3 & #6, `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`, `README.md`
+- **Source:** Known Error Checklist #3 & #6, `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`, `README.md`
 - **Classification:** DOC_DRIFT
 - **Severity:** Medium
 - **Feature Area:** docs
 - **Description:** Documentation stated "7 cascade substrates" (or "5-Substrate" in README). The actual code enum `EpistemicSubstrate` in `src/lucca/core/cascade.py:49-56` defines 8 substrates (`TELEMETRY=0` through `SELF_HISTORY=7`).
-- **Code Location:** `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`, `README.md:35`
+- **Code Location:** `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`, `README.md:35`
 - **User-Visible Impact:** Inaccurate architectural description.
 - **Resolution Path:** Corrected in WO-16 Phase 4 to 8 cascade substrates across all active documents.
 - **Status:** RESOLVED
 
 ### [ITEM-013] Non-Existent Code Constants Cited in Documentation
-- **Source:** Known Error Checklist #4 & #5, `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`
+- **Source:** Known Error Checklist #4 & #5, `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`
 - **Classification:** DOC_DRIFT
 - **Severity:** Medium
 - **Feature Area:** docs
-- **Description:** `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` cited `src/lucca/core/cascade.py:SUBSTRATE_ORDER` and `src/lucca/reasoning/lifecycle.py:MAX_ACTIVE_RULES`. Neither constant exists by that name in the source code.
-- **Code Location:** `docs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`
+- **Description:** `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17` cited `src/lucca/core/cascade.py:SUBSTRATE_ORDER` and `src/lucca/reasoning/lifecycle.py:MAX_ACTIVE_RULES`. Neither constant exists by that name in the source code.
+- **Code Location:** `luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md:17`
 - **User-Visible Impact:** Broken code citations in documentation.
 - **Resolution Path:** Corrected in WO-16 Phase 4: removed phantom citations and cited actual code constructs (`EpistemicSubstrate` enum and rule lifecycle manager).
 - **Status:** RESOLVED
 
 ### [ITEM-014] Configuration Sources Documentation Mismatch
-- **Source:** `docs/audit/findings/drift.md`, Finding `F-DRIFT-007`
+- **Source:** `luccadocs/audit/findings/drift.md`, Finding `F-DRIFT-007`
 - **Classification:** DOC_DRIFT
 - **Severity:** Low
 - **Feature Area:** docs
 - **Description:** Documentation in `ARCHITECTURE.md` advertised 5 layered configuration sources (CLI, env, TOML, .env, defaults) whereas code only loads environment variables and Pydantic defaults.
-- **Code Location:** `docs/ARCHITECTURE.md`
+- **Code Location:** `luccadocs/ARCHITECTURE.md`
 - **User-Visible Impact:** User expectation of TOML configuration loading.
 - **Resolution Path:** Corrected in WO-16 Phase 4 to match actual configuration hierarchy.
 - **Status:** RESOLVED
 
 ### [ITEM-015] Stale File Paths and Commands in AGENTS.md / SKILL.md
-- **Source:** `docs/audit/findings/drift.md`, Finding `F-DRIFT-009`
+- **Source:** `luccadocs/audit/findings/drift.md`, Finding `F-DRIFT-009`
 - **Classification:** DOC_DRIFT
 - **Severity:** Low
 - **Feature Area:** docs
@@ -187,18 +187,18 @@
 - **Status:** RESOLVED
 
 ### [ITEM-016] Missing Architecture Decision Record ADR-009
-- **Source:** `docs/audit/findings/drift.md`, Finding `F-DRIFT-010`
+- **Source:** `luccadocs/audit/findings/drift.md`, Finding `F-DRIFT-010`
 - **Classification:** DOC_DRIFT
 - **Severity:** Low
 - **Feature Area:** docs
-- **Description:** ADR-0009 was cited in commit messages and docs but was saved as `docs/adr/0009_audio_concurrency_contract.md`.
-- **Code Location:** `docs/DECISIONS.md`, `docs/adr/`
+- **Description:** ADR-0009 was cited in commit messages and docs but was saved as `luccadocs/adr/0009_audio_concurrency_contract.md`.
+- **Code Location:** `luccadocs/DECISIONS.md`, `luccadocs/adr/`
 - **User-Visible Impact:** Broken link reference.
 - **Resolution Path:** Verified and reconciled in WO-16 Phase 4.
 - **Status:** RESOLVED
 
 ### [ITEM-017] ACT_THEN_NARRATE Multi-Action Output Aggregation
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F11`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F11`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Medium
 - **Feature Area:** core
@@ -209,7 +209,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-018] Transcript Normalization Divergence (Router vs Rule Engine)
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F12`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F12`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** core
@@ -220,29 +220,29 @@
 - **Status:** IN WO-23
 
 ### [ITEM-019] Dedicated CLARIFY Action Handler
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F13`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F13`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** core
 - **Description:** `RouteAction.CLARIFY` routes to `FULL_LOOP` with a hint rather than having a distinct sub-50ms conversational reflex handler.
 - **Code Location:** `src/lucca/core/orchestrator.py`
 - **User-Visible Impact:** Clarification queries invoke the 12B model instead of a fast conversational reflex.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.1 (dedicated clarify reflex).
+- **Resolution Path:** Tracked in `luccadocs/V2_BACKLOG.md` §1.1 (dedicated clarify reflex).
 - **Status:** DEFERRED
 
 ### [ITEM-020] Dynamic Model-Callable Async Task Initiation
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F15`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F15`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Medium
 - **Feature Area:** brain
 - **Description:** The asynchronous task subsystem exists and executes in background workers, but the primary LLM does not have a direct tool to initiate long-running autonomous background tasks.
 - **Code Location:** `src/lucca/brain/`
 - **User-Visible Impact:** Background tasks must be triggered via code or rule procedures.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.6 (autonomous async task invocation).
+- **Resolution Path:** Tracked in `luccadocs/V2_BACKLOG.md` §1.6 (autonomous async task invocation).
 - **Status:** DEFERRED
 
 ### [ITEM-021] In-Session Live Retrieval of DecisionRecord / TurnTrace
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F19`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F19`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** memory
@@ -253,7 +253,7 @@
 - **Status:** RESOLVED
 
 ### [ITEM-022] Configuration-Driven Behavioral Heuristics
-- **Source:** `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F20`
+- **Source:** `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md`, Finding `F20`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** core
@@ -264,7 +264,7 @@
 - **Status:** DEFERRED
 
 ### [ITEM-023] Decision Records JSONL Rotation & Pruning
-- **Source:** `docs/audit/findings/rout.md`, Finding `F-ROUT-008`
+- **Source:** `luccadocs/audit/findings/rout.md`, Finding `F-ROUT-008`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** router
@@ -275,51 +275,51 @@
 - **Status:** IN WO-23
 
 ### [ITEM-024] Process Topology Refactor (In-Process vs Independent NPU)
-- **Source:** `docs/audit/findings/core.md`, Finding `F-CORE-002`
+- **Source:** `luccadocs/audit/findings/core.md`, Finding `F-CORE-002`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** core
 - **Description:** ASR and TTS execute in the core process with multi-threading, while `lucca-npu` serves as a parallel process. A full separation where all neural audio models run exclusively in `lucca-npu` was specified in early ADR-008.
 - **Code Location:** `src/lucca/main.py`, `src/lucca/core/orchestrator.py`
 - **User-Visible Impact:** No — voice pipeline functions with sub-second latency as built.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.7 (process topology clean-up).
+- **Resolution Path:** Tracked in `luccadocs/V2_BACKLOG.md` §1.7 (process topology clean-up).
 - **Status:** DEFERRED (Note: `clipboard_read` and `inbox_handoff` registered in WO-24 Phase 0; Class C confirmation enforced via existing ConfirmationManager reuse).
 
 ### [ITEM-025] SSRF DNS-Rebinding TOCTOU Hardening
-- **Source:** `docs/audit/findings/sbx.md`, Finding `F-SBX-003`
+- **Source:** `luccadocs/audit/findings/sbx.md`, Finding `F-SBX-003`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Medium
 - **Feature Area:** sandbox
 - **Description:** SSRF validation checks the resolved IP before HTTP request dispatch. A malicious DNS server changing IPs between resolution and fetch could permit DNS rebinding.
 - **Code Location:** `src/lucca/sandbox/service.py`
 - **User-Visible Impact:** Low in offline desktop setting; security hardening for web tool.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.6 (pinned IP socket fetch).
+- **Resolution Path:** Tracked in `luccadocs/V2_BACKLOG.md` §1.6 (pinned IP socket fetch).
 - **Status:** DEFERRED (Note: `schedule_event` and `artifact_verify` registered in WO-24 Phase 0 under workspace sandbox security).
 
 ### [ITEM-026] EnergyVAD Hysteresis for Continuous Voice Streaming
-- **Source:** `docs/audit/findings/sens.md`, Finding `F-SENS-016`
+- **Source:** `luccadocs/audit/findings/sens.md`, Finding `F-SENS-016`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** senses
 - **Description:** EnergyVAD has fixed thresholds without hysteresis or hangover frames, which is sufficient for PTT but causes utterance splitting in continuous open-mic environments.
 - **Code Location:** `src/lucca/senses/ring_buffer.py`
 - **User-Visible Impact:** None in v1.0 (PTT is the primary mode); relevant for v2 open-mic.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.7 (Open-mic VAD replacing PTT).
+- **Resolution Path:** Tracked in `luccadocs/V2_BACKLOG.md` §1.7 (Open-mic VAD replacing PTT).
 - **Status:** DEFERRED
 
 ### [ITEM-027] Threat Model Matrix Mechanical CI Test ID Tagging
-- **Source:** `docs/audit/findings/drift.md`, Finding `F-DRIFT-002`
+- **Source:** `luccadocs/audit/findings/drift.md`, Finding `F-DRIFT-002`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** test
 - **Description:** The threat model matrix describes 24 security controls; individual test cases do not yet embed machine-readable `@threat_control_id` decorators in test reports.
 - **Code Location:** `tests/`
 - **User-Visible Impact:** Documentation/traceability only.
-- **Resolution Path:** Tracked in `docs/V2_BACKLOG.md` §1.6 (security control test traceability).
+- **Resolution Path:** Tracked in `luccadocs/V2_BACKLOG.md` §1.6 (security control test traceability).
 - **Status:** DEFERRED
 
 ### [ITEM-028] Voice Narration Markdown Sanitization Enhancement
-- **Source:** `docs/audit/findings/adjacent_defects_diagnostic_summary.md`, Defect `M6-01..20`
+- **Source:** `luccadocs/audit/findings/adjacent_defects_diagnostic_summary.md`, Defect `M6-01..20`
 - **Classification:** DESIGN_DEBT
 - **Severity:** Low
 - **Feature Area:** brain

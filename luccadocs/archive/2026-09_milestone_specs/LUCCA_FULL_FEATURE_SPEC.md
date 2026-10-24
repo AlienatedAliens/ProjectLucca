@@ -9,7 +9,7 @@
 > - **Epistemic Cascade:** 5-substrate search and Belnap bilattice with 0/25 confabulations (`D-CASC-01`, Commit `b7a66d8`).  
 > - **Speculative BDI & Output Supervision:** Sub-32μs pre-dispatch jailing and <35μs streaming abort (`D-ARB-01`, `D-SUP-01`, Commit `6b1a34d`).  
 > - **Standalone Executable:** Standalone PyInstaller frozen release (`D-PKG-01`, Commit `b1b36e3`).  
-> For living canonical architecture, consult [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) and [`README.md`](../../README.md).
+> For living canonical architecture, consult [`luccadocs/ARCHITECTURE.md`](../ARCHITECTURE.md) and [`README.md`](../../README.md).
 
 **Date:** 2026-09-19  
 **Status:** **Archived Historical Specification — Baseline Evaluation**  

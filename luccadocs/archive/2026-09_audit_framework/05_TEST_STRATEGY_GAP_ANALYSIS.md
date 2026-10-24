@@ -4,7 +4,7 @@
 **Date:** 2026-09-21T17:00Z
 **Baseline commit:** `9506ced` (Rung A1 delivered)
 **Trigger:** Owner question after A1 sign-off — *"Do we actually have live tests and fuzz tests for all of the new systems? Should we not be testing seeded RAG, multi-step thinking, research abilities? Where are we now?"*
-**Companion document:** [`docs/WORK_ORDER_gemini_8_test_hardening.md`](../WORK_ORDER_gemini_8_test_hardening.md) — the executable work order derived from this analysis.
+**Companion document:** [`luccadocs/WORK_ORDER_gemini_8_test_hardening.md`](../WORK_ORDER_gemini_8_test_hardening.md) — the executable work order derived from this analysis.
 
 Method: every claim below is backed by a file:line reference or a command that was run on 2026-09-21. No coverage number here is estimated.
 
@@ -46,7 +46,7 @@ The A1 session also ran `uv run pytest -m "not live_hardware"`. **`live_hardware
 Severity: **S1** blocks ratification · **S2** must close before the next ladder rung · **S3** hygiene.
 
 ### F-TS-01 (S2) — Test-tier reporting is misleading by default
-- **Evidence:** §2 above; [`docs/HANDOVER_gemini_7_a1_complete.md`](../HANDOVER_gemini_7_a1_complete.md) reports "Full Regression Test Suite … 520 PASSED" without tier qualification.
+- **Evidence:** §2 above; [`luccadocs/HANDOVER_gemini_7_a1_complete.md`](../HANDOVER_gemini_7_a1_complete.md) reports "Full Regression Test Suite … 520 PASSED" without tier qualification.
 - **Gap:** No CI-style tier table is produced; phantom marker names pass silently (`pytest` warns on unknown `-m` expressions only under `--strict-markers`).
 - **Required:** `--strict-markers` in `addopts`; every handover carries a per-tier table with the exact command and count; add `net` marker for tests requiring egress.
 
@@ -135,4 +135,4 @@ Severity: **S1** blocks ratification · **S2** must close before the next ladder
 
 - A1 status changed from "Complete & Verified" to **"Implemented — T1/T2 green — T3/T4 not attempted — 2 functional gaps (F-TS-03, F-TS-04)"**.
 - Ladder does **not** advance to L3 until Work Order #8 closes and this reviewer signs the resulting handover.
-- All findings are transcribed as work packages in [`docs/WORK_ORDER_gemini_8_test_hardening.md`](../WORK_ORDER_gemini_8_test_hardening.md).
+- All findings are transcribed as work packages in [`luccadocs/WORK_ORDER_gemini_8_test_hardening.md`](../WORK_ORDER_gemini_8_test_hardening.md).

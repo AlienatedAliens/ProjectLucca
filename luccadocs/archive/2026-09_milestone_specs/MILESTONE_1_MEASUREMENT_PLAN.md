@@ -3,7 +3,7 @@
 > [!NOTE]
 > **MILESTONE EXECUTION COMPLETE & RATIFIED**  
 > This measurement protocol was 100% executed and verified on native workstation silicon in Milestone 1 (Commit `3837ff7`).  
-> All raw data files reside at `data/eval/milestone1_baseline/`. See [`docs/IMPLEMENTATION_WALKTHROUGH.md`](../IMPLEMENTATION_WALKTHROUGH.md) Section 1 for the verified scorecards.
+> All raw data files reside at `data/eval/milestone1_baseline/`. See [`luccadocs/IMPLEMENTATION_WALKTHROUGH.md`](../IMPLEMENTATION_WALKTHROUGH.md) Section 1 for the verified scorecards.
 
 **Document Version:** 1.1.0  
 **Date:** September 20, 2026  

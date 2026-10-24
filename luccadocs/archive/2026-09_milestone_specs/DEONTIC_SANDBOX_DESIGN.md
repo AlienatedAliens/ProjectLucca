@@ -6,7 +6,7 @@
 > - **Non-destructive Win32 handle inspection** (`OPEN_EXISTING` before `TRUNCATE`), hard link rejection (`nNumberOfLinks > 1`), and `TaintFlags` persistent tracking: Completed and verified in commit `5976b7e` (Milestone 2).  
 > - **WSL2 container isolation** (`lucca/file-sandbox`, `--network none`, strict mount jailing): Completed and verified in commit `5976b7e`.  
 > - **Persistent Docker RPC worker** (`lucca-toolsrv --loop`, $6.87\,\text{ms}$ P50) and in-container zombie process reaping: Completed and verified in commit `d5fe8cc` (Option A).  
-> For living canonical architecture, consult [`docs/ARCHITECTURE.md`](../ARCHITECTURE.md) (Section 6) and [`docs/DECISIONS.md`](../DECISIONS.md) (`D-AUD-13`, `D-SAND-04`).
+> For living canonical architecture, consult [`luccadocs/ARCHITECTURE.md`](../ARCHITECTURE.md) (Section 6) and [`luccadocs/DECISIONS.md`](../DECISIONS.md) (`D-AUD-13`, `D-SAND-04`).
 
 **Document Version:** 1.2.0  
 **Date:** September 20, 2026  

@@ -2,8 +2,8 @@
 
 **Date:** 2026-09-27
 **Audience:** an implementing agent with no prior context. Every phase lists exact files, exact actions, **functional** acceptance criteria (behavioral, not just "suite green"), traps, and STOP gates. **STOP** means halt and report to the owner — do not improvise.
-**Golden rules:** one phase = one commit; run `uv run python -m pytest -q -m "not tier2 and not hw and not soak"` after every step (baseline: **874 passed, 0 failed**); never edit `docs/archive/`; never edit an existing migration file — new schema changes are **new migration files only**; never "fix forward" from a red suite — revert and re-read.
-**Research grounding:** [`docs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`](../docs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md) (practical reasoning/BDI, diagnostic reasoning, bounded rationality). Backlog: [`docs/V2_BACKLOG.md`](../docs/V2_BACKLOG.md) §1.13.
+**Golden rules:** one phase = one commit; run `uv run python -m pytest -q -m "not tier2 and not hw and not soak"` after every step (baseline: **874 passed, 0 failed**); never edit `luccadocs/archive/`; never edit an existing migration file — new schema changes are **new migration files only**; never "fix forward" from a red suite — revert and re-read.
+**Research grounding:** [`luccadocs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`](../luccadocs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md) (practical reasoning/BDI, diagnostic reasoning, bounded rationality). Backlog: [`luccadocs/V2_BACKLOG.md`](../luccadocs/V2_BACKLOG.md) §1.13.
 
 ---
 

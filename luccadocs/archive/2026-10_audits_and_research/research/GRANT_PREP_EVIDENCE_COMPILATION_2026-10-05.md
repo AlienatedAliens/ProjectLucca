@@ -28,8 +28,8 @@ nothing here is aspirational without a work order attached.
 | All tool execution sandboxed | Docker CE inside Ubuntu WSL2; direct host execution fallback **disabled by default** | `D-AUD-13`; `src/lucca/sandbox/` |
 | Network isolation for file ops | `--network none` on file-sandbox containers | `docker/file-sandbox/Dockerfile`; user guide §1.1 |
 | Shell ban on app launching | `cmd.exe` / `powershell.exe` strictly blacklisted from application launching | `D-AUD-10` |
-| Exfiltration prevention | SequenceGuard egress blocks are absolute — no human or internal confirmation can override | `D-SEC` confirmation family; `docs/ARCHITECTURE.md` §SequenceGuard |
-| Confirmation provenance split | Internal `confirmed` cannot override sequence blocks; only explicit human grant (`human_confirmed`) can, and only for single-turn blocks | `docs/ARCHITECTURE.md` §Confirmation Provenance Split |
+| Exfiltration prevention | SequenceGuard egress blocks are absolute — no human or internal confirmation can override | `D-SEC` confirmation family; `luccadocs/ARCHITECTURE.md` §SequenceGuard |
+| Confirmation provenance split | Internal `confirmed` cannot override sequence blocks; only explicit human grant (`human_confirmed`) can, and only for single-turn blocks | `luccadocs/ARCHITECTURE.md` §Confirmation Provenance Split |
 | Fault-injection testing | `FaultInjectingSandbox` with 3 distinct modes used in the test battery | `tests/test_fault_injecting_sandbox.py` |
 
 ### 1.2 Dispatch validation
@@ -46,7 +46,7 @@ nothing here is aspirational without a work order attached.
 |---|---|---|
 | Truth-in-Receipt matcher | Claims of stateful side effects must match verified ToolReceipts; 21 action verbs; hedge exemption policy | `D-SEC-05`; `src/lucca/sandbox/output_supervisor.py` |
 | Formal battery | **70-sentence** scripted battery across 8 categories (broadened 2026-10-05: stale-receipt, failed-status, markdown, passive/multilingual characterization) | `tests/test_truth_in_receipt_battery.py` (70/70) |
-| Live probe evidence | 100-probe action-hallucination battery; sensitivity **1/23 (4.3%)** broad / **1/8 (12.5%)** strict on ungrounded claims (single-annotator evaluation); 0/50 false aborts on action-free controls (controls contain no action claims — specificity vs receipt-backed claims reserved for Battery v2) | `RESULTS.md` §Output Supervisor; `docs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; `logs/test_reports/` |
+| Live probe evidence | 100-probe action-hallucination battery; sensitivity **1/23 (4.3%)** broad / **1/8 (12.5%)** strict on ungrounded claims (single-annotator evaluation); 0/50 false aborts on action-free controls (controls contain no action claims — specificity vs receipt-backed claims reserved for Battery v2) | `RESULTS.md` §Output Supervisor; `luccadocs/LUCCA_V135_1_ARCHITECTURE.md` §4.3; `logs/test_reports/` |
 | Provenance gate | `LLM_NARRATION` unconditionally rejected; only authorized domain signers commit memory | ADR-006; `D-MEM-06` split (2026-10-05) |
 | Coherence self-audit | Claim/receipt mismatch recorded as `COHERENCE_BREACH` first-class evidence | `src/lucca/core/coherence.py` |
 
@@ -73,7 +73,7 @@ deselected, 24/24 static architectural gates (record `metrics-2026-10-05`,
    and every spoken action claim passes a mechanically verified gate, with the
    supervisor itself under active empirical improvement.*
 3. **Clean held-out ablation run** (per
-   [`docs/research/2026-10-04_pal_off_factorial_ablation_protocol.md`](2026-10-04_pal_off_factorial_ablation_protocol.md))
+   [`luccadocs/research/2026-10-04_pal_off_factorial_ablation_protocol.md`](2026-10-04_pal_off_factorial_ablation_protocol.md))
    — results feed the LTFF application and the standalone LessWrong/AF post;
    the raw confounded 58% figure is **not** publishable (paper 06 §5.1).
 4. **LTFF application** — after the clean run produces quotable, enveloped results.
@@ -106,7 +106,7 @@ measure-before/after story for a speed-focused funder.
 ## 4. Supervisor-improvement work already in flight (do not re-plan)
 
 The action-hallucination supervision protocol
-([`docs/research/2026-10-05_action_hallucination_supervision_protocol_e2b_e4b.md`](2026-10-05_action_hallucination_supervision_protocol_e2b_e4b.md))
+([`luccadocs/research/2026-10-05_action_hallucination_supervision_protocol_e2b_e4b.md`](2026-10-05_action_hallucination_supervision_protocol_e2b_e4b.md))
 is **already in flight** as of 2026-10-05: it measures whether E2B/E4B
 actually hallucinate ungrounded side effects in unconstrained turns and whether
 the supervisor catches them without false-aborting. Grant applications must
@@ -125,5 +125,5 @@ the *extension* of that protocol, not a replacement.
 - All benchmark numbers cited in any application must carry a manifest record
   ID from `data/benchmarks/MANIFEST.yaml` (sequencing decision §2.1).
 - Personhood-adjacent claims must follow the re-score discipline
-  ([`docs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md`](PERSONHOOD_RESCORE_V1356_2026-10-05.md)):
+  ([`luccadocs/research/PERSONHOOD_RESCORE_V1356_2026-10-05.md`](PERSONHOOD_RESCORE_V1356_2026-10-05.md)):
   measured-or-NOT-YET-MEASURED, never an estimated percentage.

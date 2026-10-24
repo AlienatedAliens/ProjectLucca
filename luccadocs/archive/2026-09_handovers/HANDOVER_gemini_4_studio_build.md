@@ -3,7 +3,7 @@
 **To:** Gemini (implementation)
 **From:** Zoo (Fable 5.1, architect)
 **Date:** 2026-09-21
-**Spec of record:** [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) **v1.1.2** — read it fully before writing any code. Where this handover and the spec disagree, the spec wins; flag the disagreement in the worklog instead of guessing.
+**Spec of record:** [`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) **v1.1.2** — read it fully before writing any code. Where this handover and the spec disagree, the spec wins; flag the disagreement in the worklog instead of guessing.
 **Scope:** Ladder rungs **T1 → S1 → L1a → L1b-pilot** (§9, §13). Nothing else. T2 tools, L2 telemetry UI, L3 viewer, T3, L4, T4, C1, C2 are **out of scope**.
 
 ---
@@ -25,7 +25,7 @@ The first draft of this handover was written against the spec, not the code. Zoo
 
 ## 0. Read-first list (in order)
 
-1. [`docs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) v1.1.2 — especially §2 (taxonomy), §2.4 (frozen prefix + category suffix), §3 (skill package), §4.1–4.2 (expressibility), §5 (S1 contract), §9 (ladder acceptance tests), §13 (sequencing).
+1. [`luccadocs/specs/STUDIO_CAPABILITY_ROADMAP.md`](./specs/STUDIO_CAPABILITY_ROADMAP.md) v1.1.2 — especially §2 (taxonomy), §2.4 (frozen prefix + category suffix), §3 (skill package), §4.1–4.2 (expressibility), §5 (S1 contract), §9 (ladder acceptance tests), §13 (sequencing).
 2. [`src/lucca/core/schemas.py`](../src/lucca/core/schemas.py) — `RuleState` (lines 286–299), `ToolSchema`, `Risk`, `Plan`.
 3. [`src/lucca/reasoning/scheme/prims.py`](../src/lucca/reasoning/scheme/prims.py) — the 14 state predicates (lines 358–373) and plan constructors (lines 376–498).
 4. [`src/lucca/brain/prompt_builder.py`](../src/lucca/brain/prompt_builder.py) — `TOOL_DEFINITIONS` (657–750), `format_skill_tools` (753–788, being retired), `get_all_tool_definitions` (791–808), `format_stance_suffix` (811–815, the Prompt Frontier Suffix mechanism you will reuse).

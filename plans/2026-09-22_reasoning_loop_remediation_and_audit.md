@@ -108,9 +108,9 @@ Rationale: passive extraction (A3) gives baseline recall without user effort; ex
 ### A8. Gates + live re-verification
 - `ruff`, `tests/test_static_gates.py`, T0–T2 tiers, targeted `@hw` re-run of A1 introspective battery.
 - Live smoke script replicating the Sean transcript end-to-end (voice-confirm → fact committed → "What is my name?" answered from `USER_DERIVED` record) — record in `logs/test_reports/`.
-- Append F-WO8-26..34 to [`docs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](../docs/audit/findings/WO8_WP5-5_findings_2026-09-22.md).
+- Append F-WO8-26..34 to [`luccadocs/audit/findings/WO8_WP5-5_findings_2026-09-22.md`](../luccadocs/audit/findings/WO8_WP5-5_findings_2026-09-22.md).
 
-### Items added by the Phase B audit (see docs/audit/findings/COGNITIVE_AUDIT_2026-09.md)
+### Items added by the Phase B audit (see luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md)
 
 ### A10. Memory-tab live refresh (F17)
 - Publish `mem.commit` / `mem.reject` on the bus from the orchestrator commit wrappers (event types already defined in `events.py`, never emitted).
@@ -147,7 +147,7 @@ Purpose: stop finding these one log at a time. Trace each pathway end-to-end, do
 ### B1. Turn lifecycle & routing map
 - Trace `_on_ptt_released` / `_on_user_text` → `_run_turn` / `_run_text_turn` → router → tier dispatch → `_finalize_turn`. Document every early-return and every state transition.
 - Audit `Router` tier selection: what actually forces REFLEX vs ACT_THEN_NARRATE vs FULL_LOOP; how `is_follow_up` heuristics and `TOOLLESS_INTENTS` gate tools (hard-coded keyword lists at [`orchestrator.py:2398-2441`](../src/lucca/core/orchestrator.py:2398) are a smell — assess).
-- Deliverable: `docs/audit/COGNITIVE_LOOP_MAP.md` with a sequence diagram per tier.
+- Deliverable: `luccadocs/audit/COGNITIVE_LOOP_MAP.md` with a sequence diagram per tier.
 
 ### B2. Tool surface truthfulness audit
 - For every tool in `capabilities.py` and every skill in `config/skills/`: does the dispatcher exist, does it require confirmation, can it succeed under default config (Docker present/absent, `use_direct_fallback=False`)? Flag every "advertised but impossible" case (F2 is the first).
@@ -174,7 +174,7 @@ Purpose: stop finding these one log at a time. Trace each pathway end-to-end, do
 - Deliverable: prompt-contract diffs.
 
 ### B7. Ranked findings register + roadmap
-- Consolidate B1–B6 into `docs/audit/findings/COGNITIVE_AUDIT_2026-09.md` using the finding template, severity-ranked, each with a repro and a proposed fix.
+- Consolidate B1–B6 into `luccadocs/audit/findings/COGNITIVE_AUDIT_2026-09.md` using the finding template, severity-ranked, each with a repro and a proposed fix.
 - Propose follow-on work orders (WO-9 candidates).
 
 ---

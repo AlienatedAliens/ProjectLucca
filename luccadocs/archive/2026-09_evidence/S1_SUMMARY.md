@@ -1,7 +1,7 @@
 # S1 — Dynamic Evidence Capture: Summary
 
 **Producer:** subtask S1 (Debug mode) · **Window:** 2026-09-18T00:08Z → 2026-09-18T01:08Z (UTC) · **Host:** `MSI`, Windows 11, cmd.exe shell, cwd `C:\Projects\ProjectLucca`
-**Scope rule honoured:** no file under `src/ tests/ config/ docker/ scripts/ packaging/`, root config, or `.agents/` was modified. `git status --porcelain` of the frozen trees returns the same 51 in-scope entries as the S0 baseline (34 modified + 19 in-scope untracked, `assets/` excluded from the pathspec). All artefacts live in `docs/audit/evidence/`.
+**Scope rule honoured:** no file under `src/ tests/ config/ docker/ scripts/ packaging/`, root config, or `.agents/` was modified. `git status --porcelain` of the frozen trees returns the same 51 in-scope entries as the S0 baseline (34 modified + 19 in-scope untracked, `assets/` excluded from the pathspec). All artefacts live in `luccadocs/audit/evidence/`.
 **Method:** every command was run through `S1_run.ps1` (writes UTC start/end, exact command, merged stdout+stderr, exit code, duration; appends a row to `S1_command_log.csv`), or through the purpose-built scripts `S1_llm_probe.ps1`, `S1_app_capture.ps1`, `S1_shutdown.ps1`, `S1_ps_helpers.ps1` (all retained as artefacts). Artefacts are append-only; a re-run always got a new suffix (`b`, `c`).
 
 This document records measurements only. No severity or interpretation is assigned.

@@ -127,7 +127,7 @@ None advertised provenance-typed memory, formal rule verification, or a non-grou
 ## 4. Verification to-do before public use
 
 1. Look up IDs for MemLineage, Memward, AGEL-Comp, DecoVer; read MEMIR, MemLineage, and ANNEAL in full.
-2. Fill `docs/12a_prior_art_verification.md` for every `Survey-R` row you rely on (Soar, ACT-R, Voyager, Reflexion, DreamCoder).
+2. Fill `luccadocs/12a_prior_art_verification.md` for every `Survey-R` row you rely on (Soar, ACT-R, Voyager, Reflexion, DreamCoder).
 3. Verify WASABI / Becker-Asano or drop it.
 4. Search the areas in §1.5 and §1.8.
 5. Get a human review of T0.

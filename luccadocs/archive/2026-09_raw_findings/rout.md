@@ -9,7 +9,7 @@
 
 ## 1. Module map
 
-Coverage from `docs/audit/evidence/S1_14_coverage.txt` rows 50–52. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
+Coverage from `luccadocs/audit/evidence/S1_14_coverage.txt` rows 50–52. LOC = non-blank lines (S0 metric, verified unchanged by `03b_BASELINE_DELTA.md`).
 
 | File | LOC | Public symbols | Responsibilities (as-built) | Live callers in product path? | Outbound dependencies | Cov % | Tests exercising it |
 |---|---:|---|---|---|---|---:|---|
@@ -71,7 +71,7 @@ Ordered by severity, then by ID. Every finding re-reviewed per Charter §3.5 (lo
 | **Title** | The Phase-4 router is entirely unwired: decision/label tables can never populate and the Phase-6 data gate is permanently blocked |
 | **Severity** | S2 — Medium |
 | **Category** | INCOMPLETE |
-| **Location** | `src/lucca/router/heuristic.py:55`; `src/lucca/router/labeler.py:188-195`; `src/lucca/core/orchestrator.py` (no router import); `docs/archive/2026-09-17_pre_phase4_audit/13_decisions_log.md` (commit `b75ce27` claims "complete Phase 4 Executive Router") |
+| **Location** | `src/lucca/router/heuristic.py:55`; `src/lucca/router/labeler.py:188-195`; `src/lucca/core/orchestrator.py` (no router import); `luccadocs/archive/2026-09-17_pre_phase4_audit/13_decisions_log.md` (commit `b75ce27` claims "complete Phase 4 Executive Router") |
 | **Status** | OPEN |
 
 **Evidence**
@@ -172,7 +172,7 @@ Combined with F-ROUT-001 this means the shipped "Executive Router" cannot execut
 | **Title** | The launch lexicon advertises apps the tool whitelist forbids (`cmd`, `powershell`, `code`, `vscode`) |
 | **Severity** | S2 — Medium |
 | **Category** | CORRECTNESS |
-| **Location** | `src/lucca/router/heuristic.py:27-42`; `config/intents.toml:7`; `config/tool_whitelist.toml:4-32`; `docs/audit/evidence/S1_12_T1_unit.txt` (T1 log: `launch_not_whitelisted app=cmd`, `app=powershell`) |
+| **Location** | `src/lucca/router/heuristic.py:27-42`; `config/intents.toml:7`; `config/tool_whitelist.toml:4-32`; `luccadocs/audit/evidence/S1_12_T1_unit.txt` (T1 log: `launch_not_whitelisted app=cmd`, `app=powershell`) |
 | **Status** | OPEN |
 
 **Evidence**
