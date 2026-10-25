@@ -78,6 +78,8 @@ data/*cookies*.txt
 docs/*.pdf
 docs/**/*.pdf
 !docs/paper.pdf
+!docs/papers/*.pdf
+!papers/**/*.pdf
 
 # Local logs
 logs/*.log
