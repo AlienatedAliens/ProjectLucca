@@ -30,7 +30,9 @@ import structlog
 
 from lucca.brain.prompt_builder import (
     build_narration_messages,
+    get_all_tool_definitions,
 )
+from lucca.core.affect import AffectSignal
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
@@ -56,6 +58,7 @@ from lucca.core.trace import TurnTrace, now_ns
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
 from lucca.senses.ring_buffer import FLAG_ABORT, FLAG_EOS
+from lucca.core.visual_session import VisualSessionStore
 
 if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
@@ -386,6 +389,7 @@ class TurnInput:
     vad_speech_ms: float = 1000.0
     current_audio_b64: str | None = None
     current_text: str | None = None
+    image_b64: str | None = None
 
 
 class TurnPipeline:
@@ -393,6 +397,27 @@ class TurnPipeline:
     Stateful execution pipeline executing the unified turn life-cycle.
     Maintains 100% behavioral parity across voice and text modalities.
     """
+
+    _VISION_QUERY_PATTERNS: tuple[re.Pattern[str], ...] = (
+        re.compile(
+            r"\b(in (the |this |that )?(image|screenshot|picture|photo|capture|frame)|"
+            r"what (do you |can you |did you )?(see|spot|notice|observe|look at)|"
+            r"describe (what|it|that|the)|"
+            r"(look at|examine|inspect) (it|that|this|the image)|"
+            r"what (does it|do I|does that) look like|"
+            r"(what|who|where|how many) (is|are|do you see) (in|on|there))\b",
+            re.IGNORECASE,
+        ),
+    )
+
+    def _is_vision_query(self, text: str) -> bool:
+        """Returns True only if the query specifically requires visual inspection."""
+        if not text:
+            return False
+        for pat in self._VISION_QUERY_PATTERNS:
+            if pat.search(text):
+                return True
+        return False
 
     def __init__(self, orchestrator: Orchestrator) -> None:
         self.orch = orchestrator
@@ -708,6 +733,60 @@ class TurnPipeline:
             except Exception as exc:  # noqa: BLE001
                 logger.debug("episode_recall_hints_error", error=str(exc))
 
+        # WO-36 Milestone 36.2: First-Class Shared Active Goals Prompt Injection
+        active_goals = getattr(self.orch, "active_goals", None)
+        if active_goals is not None:
+            try:
+                goal_ctx = active_goals.get_goal_context_prompt(limit=3)
+                if goal_ctx:
+                    goal_block = f"[Shared Active Goals]\n{goal_ctx}"
+                    epistemic_ctx = f"{epistemic_ctx}\n\n{goal_block}" if epistemic_ctx else goal_block
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("active_goals_context_error", error=str(exc))
+
+        # WO-36 Milestone 36.3: Waking Continuity Note on Session Gap >= 30 min (AffectSignal.LONG_GAP)
+        last_turn_ts = getattr(self.orch, "last_turn_timestamp", None)
+        now_ts = time.time()
+        if isinstance(last_turn_ts, (int, float)) and (now_ts - float(last_turn_ts)) >= 1800.0:
+            gap_minutes = int((now_ts - float(last_turn_ts)) / 60.0)
+            if hasattr(self.orch, "affect_tracker") and self.orch.affect_tracker is not None:
+                try:
+                    self.orch.affect_tracker.record_signal(
+                        AffectSignal.LONG_GAP, custom_cause="welcoming return after absence"
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("affect_long_gap_signal_failed", error=str(exc))
+
+            overnight_details: list[str] = []
+            db_mgr = getattr(self.orch, "db", None)
+            if db_mgr is not None:
+                try:
+                    with db_mgr.read_cursor() as cur:
+                        cur.execute(
+                            "SELECT event_type, topic FROM learning_events WHERE created_at > ? ORDER BY created_at DESC LIMIT 3",
+                            (last_turn_ts,),
+                        )
+                        l_rows = cur.fetchall()
+                        if l_rows:
+                            items_str = ", ".join(f"{r[0]}:{r[1]}" for r in l_rows)
+                            overnight_details.append(f"idle/dream learning events ({len(l_rows)}): {items_str}")
+                        cur.execute(
+                            "SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING'"
+                        )
+                        rq_row = cur.fetchone()
+                        if rq_row and int(rq_row[0]) > 0:
+                            overnight_details.append(f"pending review items: {int(rq_row[0])}")
+                except Exception as db_err:  # noqa: BLE001
+                    logger.debug("waking_continuity_db_query_failed", error=str(db_err))
+
+            extra_suffix = f" Overnight summary: {'; '.join(overnight_details)}." if overnight_details else ""
+            continuity_note = (
+                f"[Waking Continuity Note: {gap_minutes} minutes elapsed since last turn. "
+                f"Resuming collaborative workspace; state and active goals preserved.{extra_suffix}]"
+            )
+            epistemic_ctx = f"{epistemic_ctx}\n\n{continuity_note}" if epistemic_ctx else continuity_note
+        self.orch.last_turn_timestamp = now_ts
+
         # D-DUAL-01 & D-REAS-10: Deliberation lane floor-hold cue & shared workspace hint
         if route_decision is not None:
             if (
@@ -728,6 +807,27 @@ class TurnPipeline:
                     "and `from container_world import ContainerWorld` in a single Python script.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{ws_hint}" if epistemic_ctx else ws_hint
+            elif route_decision.reasoning_domain == "sympy_sandbox":
+                dom_hint = (
+                    "[Neurosymbolic Domain Directive (sympy_sandbox): Use `calc_math` for direct "
+                    "arithmetic or `run_python` with `import sympy as sp` in the sandbox to solve "
+                    "equations, combinatorics, or calculus exactly before narrating the result.]"
+                )
+                epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
+            elif route_decision.reasoning_domain == "container_world":
+                dom_hint = (
+                    "[Neurosymbolic Domain Directive (container_world): For object relocation or "
+                    "Theory-of-Mind tracking, invoke `run_python` using `ContainerWorld` (`world = "
+                    "ContainerWorld(); world.set_room_occupants(...); world.move(...); world.tell(...)`) "
+                    "to compute exact locations and agent beliefs.]"
+                )
+                epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
+            elif route_decision.reasoning_domain == "z3_smt":
+                dom_hint = (
+                    "[Neurosymbolic Domain Directive (z3_smt): For constraint logic or Zebra puzzles, "
+                    "invoke `run_python` with `import z3` to formalize constraints and solve via `z3.Solver()`.]"
+                )
+                epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
 
         # WO-10.3 (F13): CLARIFY gets a brief-question directive
         if route_decision is not None and route_decision.action == RouteAction.CLARIFY:
@@ -812,6 +912,40 @@ class TurnPipeline:
         self.reset_turn_state()
         self.orch.current_turn_transcript = user_text
         decision_id: str | None = None
+        # WO-37 Phase 1: Sticky Session Image
+        _new_image = inp.image_b64 or getattr(self.orch, "_pending_image_b64", None)
+        if _new_image:
+            eff_image_b64: str | None = _new_image
+        else:
+            _store: VisualSessionStore | None = getattr(self.orch, "visual_session", None)
+            _active = _store.get_active() if _store is not None else None
+            if _active is not None and self._is_vision_query(user_text):
+                eff_image_b64 = _store.load_b64(_active) if _store is not None else None
+                if eff_image_b64:
+                    logger.debug("visual_session_reloaded", image_id=_active.image_id,
+                                 path=str(_active.path))
+            else:
+                eff_image_b64 = None
+
+        self.orch.current_turn_image_b64 = eff_image_b64
+        if hasattr(self.orch, "_pending_image_b64"):
+            self.orch._pending_image_b64 = None
+
+        # Epistemic Vision Guard
+        if eff_image_b64 is None and self._is_vision_query(user_text):
+            _store = getattr(self.orch, "visual_session", None)
+            if _store is None or _store.count == 0:
+                _refusal = (
+                    "I don't have an active image in our session to look at right now. "
+                    "Could you attach or capture one using the camera button?"
+                )
+                self.orch._speak_text(trace, _refusal)
+                self.orch._publish_caption(_refusal, source="assistant", is_final=True)
+                self.orch.history.append({"role": "user", "content": user_text or "[Voice]"})
+                self.orch.history.append({"role": "assistant", "content": _refusal})
+                self.orch.play_ring.set_flag(FLAG_EOS)
+                self.orch._finalize_turn(trace, decision_id)
+                return
 
         if trace.interrupted:
             return
@@ -1057,11 +1191,36 @@ class TurnPipeline:
             )
             return
 
+        if eff_image_b64:
+            if turn_tools is None:
+                active_rules = [
+                    r for r in self.orch.rule_engine.rules.values() if r.status == "ACTIVE"
+                ]
+                turn_tools = get_all_tool_definitions(active_rules)
+
+            def _is_screenshot(t: object) -> bool:
+                if isinstance(t, dict):
+                    fn = t.get("function")
+                    if isinstance(fn, dict) and fn.get("name") == "screenshot_capture":
+                        return True
+                    if t.get("name") == "screenshot_capture":
+                        return True
+                fn = getattr(t, "function", None)
+                if fn is not None:
+                    if getattr(fn, "name", None) == "screenshot_capture":
+                        return True
+                if getattr(t, "name", None) == "screenshot_capture":
+                    return True
+                return False
+
+            turn_tools = [t for t in turn_tools if not _is_screenshot(t)]
+
         self.orch._stream_llm_speech(
             trace=trace,
             user_msg=user_text or "[Voice audio]",
             decision_id=decision_id,
             current_audio_b64=inp.current_audio_b64,
+            current_image_b64=eff_image_b64,
             current_text=current_text,
             memories=mem_hits,
             epistemic_context=epistemic_ctx,

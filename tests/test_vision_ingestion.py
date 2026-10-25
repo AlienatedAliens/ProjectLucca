@@ -317,3 +317,478 @@ def test_handle_screenshot_capture_orchestrator_error_path() -> None:
     assert "display not available" in (res.stderr or "")
     # _pending_image_b64 must NOT be set on failure (TRAP 3)
     assert getattr(orch, "_pending_image_b64", None) is None
+
+
+# ---------------------------------------------------------------------------
+# 8. User-attached screen image flow through prompt builder and llm_client
+# ---------------------------------------------------------------------------
+def test_build_messages_with_attached_image() -> None:
+    from lucca.brain.prompt_builder import build_messages
+
+    fake_b64 = _fake_b64_jpeg()
+    msgs = build_messages(current_text="Look at this screen", current_image_b64=fake_b64)
+    user_msgs = [m for m in msgs if m.role == "user"]
+    assert len(user_msgs) == 1
+    assert user_msgs[0].image_b64 == fake_b64
+
+
+def test_llm_client_stream_turn_with_attached_image() -> None:
+    from lucca.brain.llm_client import LLMClient
+
+    client = LLMClient(base_url="http://localhost:9999")
+    fake_b64 = _fake_b64_jpeg()
+
+    captured_payload: dict[str, Any] = {}
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def _mock_stream(method: str, url: str, **kwargs: Any) -> Any:
+        nonlocal captured_payload
+        captured_payload = kwargs.get("json", {})
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.iter_lines.return_value = [
+            'data: {"choices": [{"delta": {"content": "I see it"}}]}',
+            "data: [DONE]",
+        ]
+        mock_resp.close = MagicMock()
+        yield mock_resp
+
+    with patch.object(client.http_client, "stream", side_effect=_mock_stream):
+        events = list(
+            client.stream_turn(current_text="Do you see yourself?", current_image_b64=fake_b64)
+        )
+
+    assert len(events) > 0
+    msgs = captured_payload.get("messages", [])
+    user_msgs = [m for m in msgs if m.get("role") == "user"]
+    assert len(user_msgs) >= 1
+    last_user = user_msgs[-1]
+    assert isinstance(last_user["content"], list)
+    image_blocks = [c for c in last_user["content"] if c.get("type") == "image_url"]
+    assert len(image_blocks) == 1
+    assert image_blocks[0]["image_url"]["url"] == f"data:image/jpeg;base64,{fake_b64}"
+
+
+def test_turn_pipeline_with_attached_image_suppresses_screenshot_tool() -> None:
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.trace import TurnTrace
+    from lucca.core.turn_pipeline import TurnInput, TurnPipeline
+
+    orch = object.__new__(Orchestrator)
+    orch.sandbox = MagicMock()
+    orch.output_supervisor = MagicMock()
+    orch.play_ring = MagicMock()
+    orch.db = None
+    orch.prev_decision_record = None
+    orch.active_detected_words = []
+    orch.cascade = MagicMock()
+    orch.cascade.classify_intent.return_value = (False, [], None)
+    orch.rule_engine = MagicMock()
+    orch.rule_engine.evaluate.return_value = []
+    orch.router = MagicMock()
+    orch.router.classify_intent.return_value = ("chit_chat", 0.9, {})
+    orch.router.route.return_value = None
+    orch.router.last_decision_record = None
+    orch.history = []
+    orch.executed_tools = []
+    orch._search_memories = MagicMock(return_value=[])
+    orch._pending_image_b64 = "staged-image-data"
+    orch._stream_llm_speech = MagicMock()
+    orch.session_id = "test-session"
+
+    pipeline = TurnPipeline(orch)
+    fake_trace = TurnTrace(
+        trace_id="test-trace",
+        session_id="test-session",
+        origin="text",
+        mode="vision",
+    )
+    inp = TurnInput(
+        user_text="What is on my screen?",
+        trace=fake_trace,
+        origin="text",
+        image_b64="direct-image-data",
+    )
+
+    fake_tools = [
+        MagicMock(name="screenshot_capture"),
+        MagicMock(name="search_web"),
+    ]
+    fake_tools[0].name = "screenshot_capture"
+    fake_tools[1].name = "search_web"
+
+    with patch.object(pipeline, "detect_follow_up_and_gate_tools", return_value=fake_tools):
+        pipeline.run(inp)
+
+    # 1. _pending_image_b64 on orch was cleared
+    assert getattr(orch, "_pending_image_b64", None) is None
+    # 2. _stream_llm_speech was called with current_image_b64="direct-image-data"
+    assert orch._stream_llm_speech.called
+    kwargs = orch._stream_llm_speech.call_args.kwargs
+    assert kwargs.get("current_image_b64") == "direct-image-data"
+    # 3. screenshot_capture tool was suppressed from tools
+    passed_tools = kwargs.get("tools", [])
+    assert len(passed_tools) == 1
+    assert passed_tools[0].name == "search_web"
+
+
+def test_stream_llm_speech_strips_screenshot_tool_when_image_present() -> None:
+    from lucca.core.capabilities import get_default_native_tools, tool_schema_to_definition
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.trace import TurnTrace
+
+    orch = object.__new__(Orchestrator)
+    orch._maybe_speak_pending_updates = MagicMock()
+    orch._publish_bus = MagicMock()
+    orch.output_supervisor = MagicMock()
+    orch.affect_tracker = MagicMock()
+    orch.affect_tracker.get_prompt_suffix_tag.return_value = ""
+    orch.bdi_validator = MagicMock()
+    orch.history = []
+    orch.execute_tools = True
+    orch.rule_engine = MagicMock()
+    orch.rule_engine.rules = {}
+    orch._cancel_token = MagicMock()
+    orch._cancel_token.is_set.return_value = False
+    orch.speech_output = MagicMock()
+    orch.play_ring = MagicMock()
+    orch._finalize_turn = MagicMock()
+
+    captured_tools: list[Any] = []
+
+    def _mock_stream_turn(**kwargs: Any) -> Any:
+        nonlocal captured_tools
+        captured_tools = kwargs.get("tools", [])
+        return iter([])
+
+    orch.llm = MagicMock()
+    orch.llm.stream_turn = _mock_stream_turn
+
+    fake_trace = TurnTrace(trace_id="t1", session_id="s1")
+
+    # Pass all 24 tools
+    all_tools = [tool_schema_to_definition(t) for t in get_default_native_tools().values()]
+    assert any(
+        getattr(getattr(t, "function", None), "name", None) == "screenshot_capture"
+        for t in all_tools
+    )
+
+    orch._stream_llm_speech(
+        trace=fake_trace,
+        user_msg="Look at this",
+        decision_id=None,
+        current_image_b64="some-image-b64",
+        tools=all_tools,
+    )
+
+    assert not any(
+        getattr(getattr(t, "function", None), "name", None) == "screenshot_capture"
+        for t in captured_tools
+    )
+
+
+def test_morning_turn_zero_vision_query_no_greeting_hijack() -> None:
+    """Morning turn zero vision query must NOT be hijacked by time-greeting-v1 rule."""
+    from lucca.reasoning.lifecycle import RuleLifecycleManager
+    from lucca.core.schemas import RuleState
+    from lucca.core.trace import TurnTrace
+
+    rlm = RuleLifecycleManager(skills_dir="config/skills")
+    state = RuleState(
+        user_text="Can you see yourself in this image?",
+        intent="unknown",
+        hour_local=7,
+        session_turns=0,
+    )
+    outcomes = rlm.evaluate(state, mode="active")
+    fired_ids = [o.rule_id for o in outcomes if o.fired]
+    assert "time-greeting-v1" not in fired_ids
+
+    # Confirmation bypass test with current_turn_image_b64
+    from lucca.core.orchestrator import Orchestrator
+
+    orch = object.__new__(Orchestrator)
+    orch.sandbox = MagicMock()
+    orch.sandbox.check_confirmation_needed.return_value = True
+    orch.execute_tools = True
+    orch.current_turn_image_b64 = "test-image-bytes"
+    orch._pending_image_b64 = None
+    orch.current_turn_tool_spoken = []
+    orch.current_turn_tool_ok = True
+    orch.executed_tools = []
+    orch.current_turn_tool_calls = []
+    orch.rule_engine = MagicMock()
+    orch.rule_engine.rules = {}
+    orch._record_tool_receipt = MagicMock()
+    fake_trace = TurnTrace(trace_id="t-bypass", session_id="s1")
+    with patch.object(orch, "_request_confirmation", return_value=False) as mock_req:
+        res = orch._handle_tool_call(fake_trace, "screenshot_capture", {}, speak=False)
+        mock_req.assert_not_called()
+        assert res.ok is True
+        assert res.structured is not None and res.structured.get("width") == 1280
+        assert orch._pending_image_b64 == "test-image-bytes"
+
+
+def test_turn_pipeline_run_with_image_input() -> None:
+    """Verifies TurnPipeline.run executes end-to-end with an image without import or runtime errors."""
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.schemas import RouteAction, RouteDecision, RuleState
+    from lucca.core.trace import TurnTrace
+    from lucca.core.turn_pipeline import TurnInput, TurnPipeline
+
+    orch = object.__new__(Orchestrator)
+    orch.config = MagicMock()
+    orch.db = None
+    orch.session_id = "test-session"
+    orch.prev_decision_record = None
+    orch.prev_turn_ts = None
+    orch.history = []
+    orch.sandbox = MagicMock()
+    orch.output_supervisor = MagicMock()
+    orch.play_ring = MagicMock()
+    orch._pending_image_b64 = "initial-pending-b64"
+    orch.rule_engine = MagicMock()
+    orch.rule_engine.rules = {}
+    orch.rule_engine.evaluate.return_value = []
+    orch._build_rule_state = MagicMock(return_value=RuleState(
+        transcript="Can you see yourself in the image?",
+        transcript_lower="can you see yourself in the image?",
+        intent="unknown",
+        hour_local=12,
+        session_turns=0,
+    ))
+    orch.router = MagicMock()
+    orch.router.route.return_value = RouteDecision(
+        action=RouteAction.LLM,
+        prediction_set=[RouteAction.LLM],
+        elapsed_us=100,
+        intent="unknown",
+        confidence=0.5,
+        entities={},
+    )
+    orch.cascade = MagicMock()
+    orch.cascade.classify_intent.return_value = (False, [], None)
+    orch.router.last_decision_record = None
+    orch.execute_tools = True
+    orch._stream_llm_speech = MagicMock()
+    orch._search_memories = MagicMock(return_value=[])
+    orch.last_turn_timestamp = None
+    orch._neutralize_context_attractors = MagicMock(return_value=[])
+
+    pipeline = TurnPipeline(orch)
+    trace = TurnTrace(trace_id="t-img-pipe", session_id="test-session")
+    inp = TurnInput(
+        trace=trace,
+        origin="text",
+        user_text="Can you see yourself in the image?",
+        image_b64="turn-img-b64",
+    )
+
+    pipeline.run(inp)
+
+    orch._stream_llm_speech.assert_called_once()
+    call_kwargs = orch._stream_llm_speech.call_args.kwargs
+    assert call_kwargs["current_image_b64"] == "turn-img-b64"
+    tools_passed = call_kwargs["tools"]
+    assert tools_passed is not None
+    assert not any(
+        getattr(getattr(t, "function", None), "name", None) == "screenshot_capture"
+        for t in tools_passed
+    )
+    assert orch.current_turn_image_b64 == "turn-img-b64"
+
+
+def test_multiturn_sticky_image_continuity(tmp_path: Any) -> None:
+    """WO-37 Phase 1: verifies sticky session image reload on follow-up vision turns."""
+    from pathlib import Path
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.schemas import RouteAction, RouteDecision, RuleState
+    from lucca.core.trace import TurnTrace
+    from lucca.core.turn_pipeline import TurnInput, TurnPipeline
+    from lucca.core.visual_session import VisualSessionStore
+
+    store_dir = Path(tmp_path) / "sessions" / "images"
+    vstore = VisualSessionStore(store_dir)
+    raw_b64 = _fake_b64_jpeg()
+
+    orch = object.__new__(Orchestrator)
+    orch.config = MagicMock()
+    orch.db = None
+    orch.session_id = "test-multiturn-session"
+    orch.prev_decision_record = None
+    orch.prev_turn_ts = None
+    orch.history = []
+    orch.sandbox = MagicMock()
+    orch.output_supervisor = MagicMock()
+    orch.play_ring = MagicMock()
+    orch._pending_image_b64 = None
+    orch.visual_session = vstore
+    orch.rule_engine = MagicMock()
+    orch.rule_engine.rules = {}
+    orch.rule_engine.evaluate.return_value = []
+    orch._build_rule_state = MagicMock(return_value=RuleState(
+        transcript="Can you see yourself in the image?",
+        transcript_lower="can you see yourself in the image?",
+        intent="unknown",
+        hour_local=12,
+        session_turns=0,
+    ))
+    orch.router = MagicMock()
+    orch.router.route.return_value = RouteDecision(
+        action=RouteAction.LLM,
+        prediction_set=[RouteAction.LLM],
+        elapsed_us=100,
+        intent="unknown",
+        confidence=0.5,
+        entities={},
+    )
+    orch.cascade = MagicMock()
+    orch.cascade.classify_intent.return_value = (False, [], None)
+    orch.router.last_decision_record = None
+    orch.execute_tools = True
+    orch._stream_llm_speech = MagicMock()
+    orch._search_memories = MagicMock(return_value=[])
+    orch.last_turn_timestamp = None
+    orch._neutralize_context_attractors = MagicMock(return_value=[])
+    orch._finalize_turn = MagicMock()
+
+    pipeline = TurnPipeline(orch)
+
+    # Turn 1: Attach image & ask vision question
+    vstore.store_image(raw_b64, description="user_upload")
+    trace1 = TurnTrace(trace_id="t1", session_id="test-multiturn-session")
+    inp1 = TurnInput(
+        trace=trace1,
+        origin="text",
+        user_text="Can you see yourself in the image?",
+        image_b64=raw_b64,
+    )
+    pipeline.run(inp1)
+
+    orch._stream_llm_speech.assert_called_once()
+    assert orch._stream_llm_speech.call_args.kwargs["current_image_b64"] == raw_b64
+    assert orch.current_turn_image_b64 == raw_b64
+
+    # Turn 2: Follow-up question with NO new image, but visual query ("What does it look like?")
+    orch._stream_llm_speech.reset_mock()
+    orch._build_rule_state.return_value = RuleState(
+        transcript="What does it look like?",
+        transcript_lower="what does it look like?",
+        intent="unknown",
+        hour_local=12,
+        session_turns=1,
+    )
+    trace2 = TurnTrace(trace_id="t2", session_id="test-multiturn-session")
+    inp2 = TurnInput(
+        trace=trace2,
+        origin="text",
+        user_text="What does it look like?",
+        image_b64=None,
+    )
+    pipeline.run(inp2)
+
+    orch._stream_llm_speech.assert_called_once()
+    # Image must be reloaded from visual session store!
+    assert orch._stream_llm_speech.call_args.kwargs["current_image_b64"] == raw_b64
+    assert orch.current_turn_image_b64 == raw_b64
+
+    # Turn 3: Follow-up question with NO new image and NON-vision query ("Tell me a joke")
+    orch._stream_llm_speech.reset_mock()
+    orch._build_rule_state.return_value = RuleState(
+        transcript="Tell me a joke",
+        transcript_lower="tell me a joke",
+        intent="unknown",
+        hour_local=12,
+        session_turns=2,
+    )
+    trace3 = TurnTrace(trace_id="t3", session_id="test-multiturn-session")
+    inp3 = TurnInput(
+        trace=trace3,
+        origin="text",
+        user_text="Tell me a joke",
+        image_b64=None,
+    )
+    pipeline.run(inp3)
+
+    orch._stream_llm_speech.assert_called_once()
+    assert orch._stream_llm_speech.call_args.kwargs["current_image_b64"] is None
+    assert orch.current_turn_image_b64 is None
+
+
+def test_vision_guard_no_image(tmp_path: Any) -> None:
+    """WO-37 Phase 1: verifies Epistemic Vision Guard halts turn with refusal if store empty."""
+    from pathlib import Path
+    from lucca.core.orchestrator import Orchestrator
+    from lucca.core.trace import TurnTrace
+    from lucca.core.turn_pipeline import TurnInput, TurnPipeline
+    from lucca.core.visual_session import VisualSessionStore
+
+    store_dir = Path(tmp_path) / "sessions" / "images"
+    vstore = VisualSessionStore(store_dir)
+
+    orch = object.__new__(Orchestrator)
+    orch.config = MagicMock()
+    orch.db = None
+    orch.session_id = "test-guard-session"
+    orch.prev_decision_record = None
+    orch.prev_turn_ts = None
+    orch.history = []
+    orch.sandbox = MagicMock()
+    orch.output_supervisor = MagicMock()
+    orch.play_ring = MagicMock()
+    orch._pending_image_b64 = None
+    orch.visual_session = vstore
+    orch._speak_text = MagicMock()
+    orch._publish_caption = MagicMock()
+    orch._finalize_turn = MagicMock()
+    orch._stream_llm_speech = MagicMock()
+
+    pipeline = TurnPipeline(orch)
+
+    # User asks vision query with no image in store
+    trace = TurnTrace(trace_id="t-guard", session_id="test-guard-session")
+    inp = TurnInput(
+        trace=trace,
+        origin="text",
+        user_text="What do you see in the screenshot?",
+        image_b64=None,
+    )
+    pipeline.run(inp)
+
+    # LLM must NEVER be called
+    orch._stream_llm_speech.assert_not_called()
+    orch._speak_text.assert_called_once()
+    spoken_text = orch._speak_text.call_args.args[1]
+    assert "don't have an active image in our session" in spoken_text
+    assert orch.history[-1]["content"] == spoken_text
+    orch._finalize_turn.assert_called_once()
+
+    # Now verify UI_CLEAR_IMAGE behavior
+    raw_b64 = _fake_b64_jpeg()
+    vstore.store_image(raw_b64)
+    assert vstore.count == 1
+    vstore.clear()
+    assert vstore.count == 0
+
+    orch._speak_text.reset_mock()
+    orch._finalize_turn.reset_mock()
+    trace2 = TurnTrace(trace_id="t-guard-2", session_id="test-guard-session")
+    inp2 = TurnInput(
+        trace=trace2,
+        origin="text",
+        user_text="Describe what you see in this picture",
+        image_b64=None,
+    )
+    pipeline.run(inp2)
+
+    orch._stream_llm_speech.assert_not_called()
+    orch._speak_text.assert_called_once()
+    assert "don't have an active image" in orch._speak_text.call_args.args[1]
+    orch._finalize_turn.assert_called_once()
+
+
+
+
+
