@@ -94,7 +94,7 @@ logs/test_reports/*_test/
 showcase/
 
 # Scratch directory
-scratch/
+scratch*/
 
 
 # local caches and binary state (added 2026-10-24)

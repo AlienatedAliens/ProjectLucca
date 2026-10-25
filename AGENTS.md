@@ -12,7 +12,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 
 2. **Strict Hardware Budget Discipline:**
-   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` (Tier 0 canonical brain; MoE 4B active params, `ngl=28` WDDM-safe at 32K context `ctx=32768`, `--spec-type ngram-mod`, Q8_0 KV cache, Flash Attention) or dense tiers (`12B`, `E4B`, `E2B` per `D-BRAIN-05` / `D-ROUT-02`). `enable_thinking=false` mandatory for companion tiers; thinking reserved for explicit deep reasoning. Dedicated compute mode frees dGPU from desktop DWM allocations.
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` (Tier 0 canonical brain; MoE 4B active params, `ngl=99`, `--cpu-moe`, `--moe-cache-mib 6144`, `--load-mode none`, 128K context `ctx=131072`, `--spec-type ngram-mod`, Q8_0 KV cache, Flash Attention, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` native vision). `enable_thinking=false` mandatory for companion tiers; thinking reserved for explicit deep reasoning. Dedicated compute mode frees dGPU from desktop DWM allocations.
    - **iGPU**: Intel(R) Graphics (Arrow Lake-HX Xe-LPG) driving Windows desktop display and UI, completely offloading display tasks from the RTX 5080.
    - **Intel NPU**: Intel(R) AI Boost NPU (`PCI\VEN_8086&DEV_AD1D`) accessed natively on Windows 11 via OpenVINO (`device="NPU"`). Workloads: 384-D vector embeddings (`all-MiniLM-L6-v2`, NPU primary with CPU fallback) and the ModernBERT NLI semantic verifier ([`src/lucca/senses/verifier.py`](./src/lucca/senses/verifier.py:60), NPU-eligible but **CPU-default** — measured CPU latency is ~57 ms mean / ~70 ms p95 per pair, which exceeds the 50 ms production timeout; see Paper 03 §4.1). **Never attempt to run NPU workloads inside WSL2 or Docker.**
    - **dGPU audio co-tenant**: Faster-Whisper ASR (`distil-small.en`) runs on the RTX 5080 in CUDA float16 (CPU int8 fallback) — see [`src/lucca/senses/asr.py`](./src/lucca/senses/asr.py:52). VAD is energy-based on CPU ([`src/lucca/senses/vad.py`](./src/lucca/senses/vad.py:10)); Kokoro-82M TTS runs via ONNX Runtime on CPU ([`src/lucca/senses/tts.py`](./src/lucca/senses/tts.py:212)).
@@ -40,6 +40,11 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - Python 3.12+ managed with `uv`. Formatted and checked with `ruff`.
    - **Zero `Any` Invariant (`D-AUD-01`)**: Strictly typed interfaces; verified by `tests/test_static_gates.py`.
    - Pydantic v2 schemas for all cross-boundary IPC and data contracts (`src/lucca/core/schemas.py`).
+
+7. **Comparative Rigor & Modern Benchmark Sourcing (`Rule 05`):**
+   - Strictly prohibited from using obsolete 2023–2024 baselines (GPT-4, Claude 3.5 Sonnet, Gemini 1.5, raw MMLU/GSM8K) for comparative claims.
+   - Mandatory live sourcing of late-2026 frontier models (Claude Opus 5/5.5, GPT-5.6/6 Astra, Gemini 3.8/4-Argon, DeepSeek-V4-Pro) and modern agentic harnesses (SWE-bench Pro/Verified, GAIA, OSWorld, WebArena, ARC-AGI-2/3, FrontierMath) before writing comparisons.
+   - Parity disclosure: strictly separate bare token prediction from test-time compute (CoT) and agentic scaffolding (Z3/SymPy/Docker CEGIS vs OpenHands/Devin/Claude Code).
 
 ---
 
