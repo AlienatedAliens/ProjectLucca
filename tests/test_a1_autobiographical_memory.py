@@ -44,6 +44,7 @@ from lucca.memory.signers import (
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.stats import wilson_score_interval
 from lucca.senses.embed import LocalEmbeddingPort
+from tests.fakes.fake_asr import FakeASR
 from tests.fakes.fake_llm import FakeLLM
 from tests.fakes.fake_tts import FakeTTS
 
@@ -458,7 +459,7 @@ def test_functional_coherence_mismatch_detection_and_breach_commit(
             Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=10)),
         ]
     )
-    orch = Orchestrator(tts=FakeTTS, llm=fake_llm, memory_store=mem_store)
+    orch = Orchestrator(tts=FakeTTS, asr=FakeASR, llm=fake_llm, memory_store=mem_store)
 
     try:
         # Pre-turn: executed tools list is empty

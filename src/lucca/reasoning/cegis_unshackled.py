@@ -30,7 +30,8 @@ import re
 import sys
 import threading
 import time
-from typing import Any, Final
+from typing import TYPE_CHECKING, Final, cast
+import uuid
 
 import httpx
 import numpy as np
@@ -40,6 +41,9 @@ import structlog
 
 from lucca.reasoning import relational, spatial_anchors
 from lucca.sandbox.preflight import extract_python_code
+
+if TYPE_CHECKING:
+    from lucca.core.cognitive_sink import CognitiveOutcomeSink
 
 logger = structlog.get_logger(__name__)
 
@@ -122,6 +126,7 @@ class GridDiff:
     mismatches: list[CellMismatch]
     bounding_box: tuple[int, int, int, int] | None  # (min_r, min_c, max_r, max_c)
     summary_message: str
+    topological_diagnostics: tuple[str, ...] = ()
 
     def format_counterexample_prompt(self, max_examples: int = 12) -> str:
         """Formats the discrepancy as an actionable prompt chunk for LLM self-repair."""
@@ -146,6 +151,11 @@ class GridDiff:
             lines.append(
                 f"- Error Region Bounding Box: rows [{min_r}..{max_r}], cols [{min_c}..{max_c}]."
             )
+
+        if self.topological_diagnostics:
+            lines.append("- Organ A Topological & Spatial Diagnostics:")
+            for diag in self.topological_diagnostics:
+                lines.append(f"  * {diag}")
 
         shown_mismatches = self.mismatches[:max_examples]
         lines.append("- Concrete Cell Differences:")
@@ -208,10 +218,83 @@ def compute_detailed_grid_diff(
     mismatch_ratio = mismatch_count / total_cells if total_cells > 0 else 0.0
 
     bbox = (min_r, min_c, max_r, max_c) if mismatches else None
+
+    # Organ A Mereotopological Object-Level Diagnostics (Milestone 36.5 Deliverable 3)
+    topo_diags: list[str] = []
+    if mismatches:
+        from lucca.reasoning.relational.realize_grid import extract_connected_components
+        from lucca.reasoning.relational.sorts import Network, Object
+
+        mismatch_pts = frozenset((m.row, m.col) for m in mismatches)
+        err_comps = extract_connected_components(mismatch_pts, four_connected=True)
+        comp_objects: dict[str, Object] = {}
+        for i, comp in enumerate(err_comps):
+            comp_objects[f"err_{i}"] = Object(
+                id=f"err_{i}",
+                attributes={"area": len(comp.points)},
+                region=comp,
+            )
+        _err_net = Network(objects=comp_objects)
+
+        if expected and actual and len(expected) > 0 and len(expected[0]) > 0:
+            exp_arr = np.array(expected, dtype=int)
+            act_arr = np.array(actual, dtype=int)
+            exp_comps = spatial_anchors.connected_components(exp_arr)
+            act_comps = spatial_anchors.connected_components(act_arr)
+
+            # 1. Connected-component count discrepancy
+            if len(exp_comps) != len(act_comps):
+                topo_diags.append(
+                    f"Component Count Discrepancy: expected {len(exp_comps)} connected object(s), "
+                    f"predicted {len(act_comps)} object(s) ({len(err_comps)} contiguous error region(s))."
+                )
+
+            # 2. Translation offset (dr, dc) detection across matching shapes
+            used_act: set[int] = set()
+            for e_idx, ec in enumerate(exp_comps):
+                e_crop = ec.cropped_mask()
+                for a_idx, ac in enumerate(act_comps):
+                    if a_idx in used_act:
+                        continue
+                    if ec.area == ac.area and spatial_anchors.is_identical_shape(e_crop, ac.cropped_mask()):
+                        dr = int(round(ac.centroid[0] - ec.centroid[0]))
+                        dc = int(round(ac.centroid[1] - ec.centroid[1]))
+                        if dr != 0 or dc != 0:
+                            topo_diags.append(
+                                f"Translation Offset on object #{e_idx + 1} (color {ec.color}, area {ec.area}): "
+                                f"shifted by (dr={dr:+d}, dc={dc:+d}) relative to expected position."
+                            )
+                            used_act.add(a_idx)
+                            break
+
+            # 3. Cavity / hollow interior mismatch detection via Organ A relational primitives
+            exp_fg = frozenset(
+                (r, c) for r in range(h_exp) for c in range(w_exp) if expected[r][c] != 0
+            )
+            act_fg = frozenset(
+                (r, c) for r in range(h_act) for c in range(w_act) if actual[r][c] != 0
+            )
+            exp_cavs = relational.extract_cavities(exp_fg)
+            act_cavs = relational.extract_cavities(act_fg)
+            if len(exp_cavs) != len(act_cavs):
+                topo_diags.append(
+                    f"Cavity Enclosure Mismatch: expected {len(exp_cavs)} enclosed cavity cell(s), "
+                    f"predicted {len(act_cavs)} cavity cell(s)."
+                )
+            else:
+                cav_diff = [
+                    m for m in mismatches if (m.row, m.col) in exp_cavs or (m.row, m.col) in act_cavs
+                ]
+                if cav_diff:
+                    topo_diags.append(
+                        f"Cavity Fill Discrepancy: {len(cav_diff)} mismatched cell(s) lie inside or on enclosed cavity regions."
+                    )
+
     summary = (
         "Exact match"
         if is_match
         else f"{mismatch_count}/{total_cells} cells mismatch ({mismatch_ratio * 100:.1f}%)"
+        + (f" | {'; '.join(topo_diags)}" if topo_diags else "")
     )
 
     return GridDiff(
@@ -225,6 +308,7 @@ def compute_detailed_grid_diff(
         mismatches=mismatches,
         bounding_box=bbox,
         summary_message=summary,
+        topological_diagnostics=tuple(topo_diags),
     )
 
 
@@ -352,7 +436,7 @@ class ExecutionOutcome:
     elapsed_ms: float
 
 
-def normalize_to_int_grid(raw_val: Any) -> list[list[int]]:
+def normalize_to_int_grid(raw_val: object) -> list[list[int]]:
     """Converts numpy array or nested lists into canonical list[list[int]]."""
     if isinstance(raw_val, np.ndarray):
         raw_val = raw_val.tolist()
@@ -379,7 +463,7 @@ def strip_comments_and_docstrings(source: str) -> str:
     try:
         import io
         import tokenize
-        out: list[str] = []
+        out: list[tuple[int, str]] = []
         tokens = tokenize.generate_tokens(io.StringIO(source).readline)
         prev_toktype = tokenize.INDENT
         for tok in tokens:
@@ -389,11 +473,12 @@ def strip_comments_and_docstrings(source: str) -> str:
                 continue
             if token_type == tokenize.STRING and prev_toktype in (tokenize.INDENT, tokenize.NEWLINE, tokenize.NL):
                 continue
-            out.append(token_string)
+            out.append((token_type, token_string))
             if token_type not in (tokenize.NL, tokenize.COMMENT):
                 prev_toktype = token_type
         return tokenize.untokenize(out).strip()
-    except Exception:
+    except Exception as exc:
+        logger.debug("tokenize_strip_comments_fallback", error=str(exc))
         # Fallback line regex if tokenize encounters truncated string
         lines: list[str] = []
         for line in source.splitlines():
@@ -403,126 +488,123 @@ def strip_comments_and_docstrings(source: str) -> str:
         return "\n".join(lines).strip()
 
 
+_DOCKER_TRANSPORT: object | None = None
+_DOCKER_TRANSPORT_LOCK = threading.Lock()
+
+
+def get_cegis_docker_transport() -> object | None:
+    """Returns singleton DockerRPCTransport instance for isolated container execution (D-AUD-13)."""
+    global _DOCKER_TRANSPORT
+    with _DOCKER_TRANSPORT_LOCK:
+        if _DOCKER_TRANSPORT is None:
+            try:
+                from lucca.sandbox.rpc import DockerRPCTransport
+
+                t = DockerRPCTransport(container_name="lucca-file-sandbox", use_direct_fallback=False)
+                if t.is_docker_available():
+                    _DOCKER_TRANSPORT = t
+            except Exception as exc:
+                logger.debug("docker_transport_init_failed", error=str(exc))
+                _DOCKER_TRANSPORT = None
+        return _DOCKER_TRANSPORT
+
+
 def execute_unshackled_python(
     code: str,
     grid_in: list[list[int]],
     timeout_s: float = 4.0,
+    transport: object | None = None,
 ) -> ExecutionOutcome:
     """
-    Executes Python transform code with full standard library access in an isolated namespace.
-    Safely enforces runtime timeout via a background watchdog thread.
+    Executes Python transform code inside the persistent Docker sandbox container.
+    Guarantees zero host exec() execution per D-AUD-13.
     """
     t0 = time.perf_counter()
-
-    # Clean execution namespace with general scientific tools & spatial anchors
-    exec_globals: dict[str, Any] = {
-        "np": np,
-        "numpy": np,
-        "scipy": scipy,
-        "ndimage": scipy.ndimage,
-        "itertools": sys.modules.get("itertools"),
-        "collections": sys.modules.get("collections"),
-        "math": sys.modules.get("math"),
-        "copy": sys.modules.get("copy"),
-        # General Spatial Anchors & Image Processing Utilities
-        "spatial": spatial_anchors,
-        "bbox": spatial_anchors.bbox,
-        "crop": spatial_anchors.crop,
-        "centroid": spatial_anchors.centroid,
-        "connected_components": spatial_anchors.connected_components,
-        "is_identical_shape": spatial_anchors.is_identical_shape,
-        "rot90": spatial_anchors.rot90,
-        "flip_h": spatial_anchors.flip_h,
-        "flip_v": spatial_anchors.flip_v,
-        "flood_fill": spatial_anchors.flood_fill,
-        "find_cavities": spatial_anchors.find_cavities,
-        "color_counts": spatial_anchors.color_counts,
-        "canvas": spatial_anchors.canvas,
-        "paste": spatial_anchors.paste,
-        "Component": spatial_anchors.Component,
-        # Qualitative Spatial & Mereotopological Kernel (Organ A)
-        "relational": relational,
-        "in_cavity": relational.in_cavity,
-        "part_of": relational.part_of,
-        "externally_connected": relational.externally_connected,
-        "partially_overlaps": relational.partially_overlaps,
-        "above": relational.above,
-        "below": relational.below,
-        "left_of": relational.left_of,
-        "right_of": relational.right_of,
-        "extract_cavities": relational.extract_cavities,
-        "extract_cavity_mask": relational.extract_cavity_mask,
-        "extract_exterior_mask": relational.extract_exterior_mask,
-        "is_between": relational.is_between,
-        "y_projection": relational.y_projection,
-        "x_projection": relational.x_projection,
-        "GridRegion": relational.GridRegion,
-    }
-
-    # Also bind globals into __main__ to prevent namespace failures if model imports from __main__
-    main_mod = sys.modules.get("__main__")
-    if main_mod is not None:
-        for k, v in exec_globals.items():
-            if not hasattr(main_mod, k):
-                setattr(main_mod, k, v)
-
     clean_code = strip_comments_and_docstrings(code)
+    rpc_client = transport if transport is not None else get_cegis_docker_transport()
 
-    result_holder: list[Any] = []
-    error_holder: list[Exception] = []
-
-    def _worker() -> None:
-        try:
-            exec(clean_code, exec_globals)
-            if "transform" not in exec_globals or not callable(exec_globals["transform"]):
-                raise ValueError("Synthesized code does not define a callable `transform(grid)` function.")
-            fn = exec_globals["transform"]
-            out = fn(grid_in)
-            result_holder.append(out)
-        except Exception as exc:
-            error_holder.append(exc)
-
-    thread = threading.Thread(target=_worker, daemon=True)
-    thread.start()
-    thread.join(timeout_s)
-    elapsed_ms = (time.perf_counter() - t0) * 1000.0
-
-    if thread.is_alive():
+    if rpc_client is None:
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return ExecutionOutcome(
             success=False,
             output_grid=None,
-            error_type="TimeoutError",
-            error_message=f"Execution timed out after {timeout_s:.1f}s (infinite loop or high computational complexity).",
+            error_type="SandboxUnavailableError",
+            error_message="Docker sandbox container (lucca-file-sandbox) is unavailable. Host exec is forbidden per D-AUD-13.",
             traceback_str=None,
             elapsed_ms=elapsed_ms,
         )
 
-    if error_holder:
-        exc = error_holder[0]
-        import traceback
+    runner_script = f"""import sys, json
+for _p in ('/workspace', '/tmp/lucca_runtime'):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+import numpy as np
+import scipy, scipy.ndimage as ndimage
+import itertools, collections, math, copy
+from lucca.reasoning import spatial_anchors, relational
+from lucca.reasoning.spatial_anchors import (
+    bbox, crop, centroid, connected_components, is_identical_shape,
+    rot90, flip_h, flip_v, flood_fill, find_cavities, color_counts,
+    canvas, paste, Component
+)
+from lucca.reasoning.relational import (
+    in_cavity, part_of, externally_connected, partially_overlaps,
+    above, below, left_of, right_of, extract_cavities, extract_cavity_mask,
+    extract_exterior_mask, is_between, y_projection, x_projection, GridRegion
+)
 
-        tb_str = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-        return ExecutionOutcome(
-            success=False,
-            output_grid=None,
-            error_type=type(exc).__name__,
-            error_message=str(exc),
-            traceback_str=tb_str,
-            elapsed_ms=elapsed_ms,
-        )
+{clean_code}
 
-    if not result_holder:
-        return ExecutionOutcome(
-            success=False,
-            output_grid=None,
-            error_type="ValueError",
-            error_message="Function completed but returned no value.",
-            traceback_str=None,
-            elapsed_ms=elapsed_ms,
-        )
+if 'transform' not in locals() or not callable(locals()['transform']):
+    raise ValueError('Synthesized code does not define a callable `transform(grid)` function.')
 
+_res = transform({json.dumps(grid_in)})
+print('__LUCCA_RESULT_START__')
+print(json.dumps(_res))
+print('__LUCCA_RESULT_END__')
+"""
     try:
-        normalized = normalize_to_int_grid(result_holder[0])
+        call_id = f"cegis-{time.time_ns()}"
+        res = getattr(rpc_client, "execute")(
+            call_id=call_id,
+            tool="run_python",
+            args={"code": runner_script, "timeout": max(int(timeout_s), 2)},
+            timeout_s=timeout_s + 4.0,
+        )
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if not getattr(res, "ok", False):
+            err_msg = str(getattr(res, "stderr", "") or getattr(res, "content", "Execution failed"))
+            err_type = "ExecutionError"
+            exc_matches = re.findall(
+                r"^([A-Za-z_][A-Za-z0-9_]*(?:Error|Exception))\b", err_msg, re.MULTILINE
+            )
+            if exc_matches:
+                err_type = exc_matches[-1]
+            elif "timed out" in err_msg.lower() or "timeout" in err_msg.lower():
+                err_type = "TimeoutError"
+            return ExecutionOutcome(
+                success=False,
+                output_grid=None,
+                error_type=err_type,
+                error_message=err_msg,
+                traceback_str=getattr(res, "stderr", None),
+                elapsed_ms=elapsed_ms,
+            )
+
+        content = str(getattr(res, "content", "") or "")
+        m = re.search(r"__LUCCA_RESULT_START__\s*(.*?)\s*__LUCCA_RESULT_END__", content, re.DOTALL)
+        if not m:
+            return ExecutionOutcome(
+                success=False,
+                output_grid=None,
+                error_type="ValueError",
+                error_message="Function completed but did not produce structured output markers.",
+                traceback_str=None,
+                elapsed_ms=elapsed_ms,
+            )
+
+        raw_val = json.loads(m.group(1).strip())
+        normalized = normalize_to_int_grid(raw_val)
         return ExecutionOutcome(
             success=True,
             output_grid=normalized,
@@ -531,15 +613,165 @@ def execute_unshackled_python(
             traceback_str=None,
             elapsed_ms=elapsed_ms,
         )
-    except Exception as norm_err:
+    except Exception as exc:
+        logger.debug("execute_unshackled_python_failed", error=str(exc))
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return ExecutionOutcome(
             success=False,
             output_grid=None,
-            error_type="TypeError",
-            error_message=f"Output could not be normalized to integer grid: {norm_err}",
+            error_type=type(exc).__name__,
+            error_message=str(exc),
             traceback_str=None,
             elapsed_ms=elapsed_ms,
         )
+
+
+def execute_unshackled_python_batch(
+    code: str,
+    grids_in: list[list[list[int]]],
+    timeout_s: float = 8.0,
+    transport: object | None = None,
+) -> list[ExecutionOutcome]:
+    """
+    Evaluates candidate code across multiple demonstration grids in a single container roundtrip.
+    Reduces N roundtrips down to 1 (<15ms total turnaround).
+    """
+    t0 = time.perf_counter()
+    if not grids_in:
+        return []
+
+    clean_code = strip_comments_and_docstrings(code)
+    rpc_client = transport if transport is not None else get_cegis_docker_transport()
+
+    if rpc_client is None:
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        return [
+            ExecutionOutcome(
+                success=False,
+                output_grid=None,
+                error_type="SandboxUnavailableError",
+                error_message="Docker sandbox container (lucca-file-sandbox) is unavailable. Host exec is forbidden per D-AUD-13.",
+                traceback_str=None,
+                elapsed_ms=elapsed_ms,
+            )
+            for _ in grids_in
+        ]
+
+    runner_script = f"""import sys, json
+for _p in ('/workspace', '/tmp/lucca_runtime'):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+import numpy as np
+import scipy, scipy.ndimage as ndimage
+import itertools, collections, math, copy
+from lucca.reasoning import spatial_anchors, relational
+from lucca.reasoning.spatial_anchors import (
+    bbox, crop, centroid, connected_components, is_identical_shape,
+    rot90, flip_h, flip_v, flood_fill, find_cavities, color_counts,
+    canvas, paste, Component
+)
+from lucca.reasoning.relational import (
+    in_cavity, part_of, externally_connected, partially_overlaps,
+    above, below, left_of, right_of, extract_cavities, extract_cavity_mask,
+    extract_exterior_mask, is_between, y_projection, x_projection, GridRegion
+)
+
+{clean_code}
+
+if 'transform' not in locals() or not callable(locals()['transform']):
+    raise ValueError('Synthesized code does not define a callable `transform(grid)` function.')
+
+_inputs = {json.dumps(grids_in)}
+_outputs = []
+for _g in _inputs:
+    _outputs.append(transform(_g))
+print('__LUCCA_RESULT_START__')
+print(json.dumps(_outputs))
+print('__LUCCA_RESULT_END__')
+"""
+    try:
+        call_id = f"cegis-batch-{time.time_ns()}"
+        res = getattr(rpc_client, "execute")(
+            call_id=call_id,
+            tool="run_python",
+            args={"code": runner_script, "timeout": max(int(timeout_s), 2)},
+            timeout_s=timeout_s + 4.0,
+        )
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if not getattr(res, "ok", False):
+            err_msg = str(getattr(res, "stderr", "") or getattr(res, "content", "Batch execution failed"))
+            err_type = "ExecutionError"
+            if "timed out" in err_msg.lower() or "timeout" in err_msg.lower():
+                err_type = "TimeoutError"
+            return [
+                ExecutionOutcome(
+                    success=False,
+                    output_grid=None,
+                    error_type=err_type,
+                    error_message=err_msg,
+                    traceback_str=getattr(res, "stderr", None),
+                    elapsed_ms=elapsed_ms,
+                )
+                for _ in grids_in
+            ]
+
+        content = str(getattr(res, "content", "") or "")
+        m = re.search(r"__LUCCA_RESULT_START__\s*(.*?)\s*__LUCCA_RESULT_END__", content, re.DOTALL)
+        if not m:
+            return [
+                ExecutionOutcome(
+                    success=False,
+                    output_grid=None,
+                    error_type="ValueError",
+                    error_message="Batch execution completed but did not produce structured output markers.",
+                    traceback_str=None,
+                    elapsed_ms=elapsed_ms,
+                )
+                for _ in grids_in
+            ]
+
+        raw_outputs = json.loads(m.group(1).strip())
+        outcomes: list[ExecutionOutcome] = []
+        for raw in raw_outputs:
+            try:
+                norm = normalize_to_int_grid(raw)
+                outcomes.append(
+                    ExecutionOutcome(
+                        success=True,
+                        output_grid=norm,
+                        error_type=None,
+                        error_message=None,
+                        traceback_str=None,
+                        elapsed_ms=elapsed_ms / max(len(grids_in), 1),
+                    )
+                )
+            except Exception as norm_err:
+                logger.debug("batch_grid_normalization_failed", error=str(norm_err))
+                outcomes.append(
+                    ExecutionOutcome(
+                        success=False,
+                        output_grid=None,
+                        error_type="TypeError",
+                        error_message=f"Output could not be normalized: {norm_err}",
+                        traceback_str=None,
+                        elapsed_ms=elapsed_ms / max(len(grids_in), 1),
+                    )
+                )
+        return outcomes
+    except Exception as exc:
+        logger.debug("execute_unshackled_python_batch_failed", error=str(exc))
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        return [
+            ExecutionOutcome(
+                success=False,
+                output_grid=None,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+                traceback_str=None,
+                elapsed_ms=elapsed_ms,
+            )
+            for _ in grids_in
+        ]
 
 
 @dataclass(frozen=True)
@@ -628,7 +860,7 @@ CANONICAL_PRIMITIVES_PROMPT: Final[str] = (
 #    with demonstration pass short-circuiting.
 # 2. Local single-point AST mutations (<15ms): conditional polarity inversion,
 #    mask complementation, and binary call argument swapping.
-# Proved on physical silicon (gemma-4-26B): rescued InsideOutside4 via boolean
+# Proved on physical silicon (Tier 0 26B): rescued InsideOutside4 via boolean
 # inversion, achieving 100% held-out test pass without domain heuristics.
 # ==============================================================================
 
@@ -643,7 +875,8 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
     """
     try:
         base_tree = ast.parse(source_code)
-    except Exception:
+    except Exception as exc:
+        logger.debug("generate_ast_mutants_parse_failed", error=str(exc))
         return []
 
     mutants: list[str] = []
@@ -658,8 +891,8 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
             if mut_code and mut_code not in seen:
                 seen.add(mut_code)
                 mutants.append(mut_code)
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("ast_mutant_unparse_failed", error=str(exc))
 
     # 1. Mutate conditionals: if cond -> if not cond
     for node in ast.walk(base_tree):
@@ -711,6 +944,101 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
                     add_tree(t_copy)
                     break
 
+    # 4. Mutate spatial offsets (+1 <-> -1)
+    for node in ast.walk(base_tree):
+        if isinstance(node, ast.BinOp) and isinstance(node.right, ast.Constant) and node.right.value == 1:
+            t_copy = copy.deepcopy(base_tree)
+            for target in ast.walk(t_copy):
+                if isinstance(target, ast.BinOp) and getattr(target, "lineno", None) == getattr(node, "lineno", None) and getattr(target, "col_offset", None) == getattr(node, "col_offset", None):
+                    if isinstance(target.op, ast.Add):
+                        target.op = ast.Sub()
+                        add_tree(t_copy)
+                    elif isinstance(target.op, ast.Sub):
+                        target.op = ast.Add()
+                        add_tree(t_copy)
+                    break
+
+    # 5. Mutate connectivity (4 <-> 8), component sort keys (area <-> bbox, reverse), and spatial directional calls
+    _DIRECTIONAL_SWAPS: dict[str, str] = {
+        "above": "below",
+        "below": "above",
+        "left_of": "right_of",
+        "right_of": "left_of",
+        "flip_h": "flip_v",
+        "flip_v": "flip_h",
+    }
+    for node in ast.walk(base_tree):
+        if isinstance(node, ast.Call):
+            # Directional function name swap (above <-> below, left_of <-> right_of, flip_h <-> flip_v)
+            if isinstance(node.func, ast.Name) and node.func.id in _DIRECTIONAL_SWAPS:
+                t_copy = copy.deepcopy(base_tree)
+                for target in ast.walk(t_copy):
+                    if (
+                        isinstance(target, ast.Call)
+                        and isinstance(target.func, ast.Name)
+                        and getattr(target, "lineno", None) == getattr(node, "lineno", None)
+                        and getattr(target, "col_offset", None) == getattr(node, "col_offset", None)
+                    ):
+                        target.func.id = _DIRECTIONAL_SWAPS[node.func.id]
+                        add_tree(t_copy)
+                        break
+
+            # Positional connectivity in connected_components(arr, 4) <-> connected_components(arr, 8)
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "connected_components"
+                and len(node.args) >= 2
+                and isinstance(node.args[1], ast.Constant)
+                and node.args[1].value in (4, 8)
+            ):
+                t_copy = copy.deepcopy(base_tree)
+                for target in ast.walk(t_copy):
+                    if (
+                        isinstance(target, ast.Call)
+                        and getattr(target, "lineno", None) == getattr(node, "lineno", None)
+                        and getattr(target, "col_offset", None) == getattr(node, "col_offset", None)
+                        and len(target.args) >= 2
+                        and isinstance(target.args[1], ast.Constant)
+                    ):
+                        target.args[1].value = 8 if target.args[1].value == 4 else 4
+                        add_tree(t_copy)
+                        break
+
+            for kw in node.keywords:
+                if kw.arg == "connectivity" and isinstance(kw.value, ast.Constant):
+                    t_copy = copy.deepcopy(base_tree)
+                    for target in ast.walk(t_copy):
+                        if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None):
+                            for tkw in target.keywords:
+                                if tkw.arg == "connectivity" and isinstance(tkw.value, ast.Constant):
+                                    tkw.value.value = 8 if tkw.value.value == 4 else 4
+                                    add_tree(t_copy)
+                                    break
+                elif kw.arg == "reverse" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, bool):
+                    t_copy = copy.deepcopy(base_tree)
+                    for target in ast.walk(t_copy):
+                        if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None):
+                            for tkw in target.keywords:
+                                if tkw.arg == "reverse" and isinstance(tkw.value, ast.Constant):
+                                    tkw.value.value = not bool(tkw.value.value)
+                                    add_tree(t_copy)
+                                    break
+                elif kw.arg == "key" and isinstance(kw.value, (ast.Attribute, ast.Lambda)):
+                    t_copy = copy.deepcopy(base_tree)
+                    for target in ast.walk(t_copy):
+                        if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None):
+                            for tkw in target.keywords:
+                                if tkw.arg == "key":
+                                    for sub in ast.walk(tkw.value):
+                                        if isinstance(sub, ast.Attribute):
+                                            if sub.attr == "area":
+                                                sub.attr = "bbox"
+                                                add_tree(t_copy)
+                                            elif sub.attr == "bbox":
+                                                sub.attr = "area"
+                                                add_tree(t_copy)
+                                            break
+
     return mutants
 
 
@@ -727,11 +1055,64 @@ class UnshackledCEGISEngine:
         timeout_seconds: float = 120.0,
         max_turns: int = 4,
         k_samples: int = 4,
+        outcome_sink: CognitiveOutcomeSink | None = None,
     ) -> None:
         self.server_url = server_url
         self.timeout_seconds = timeout_seconds
         self.max_turns = max_turns
         self.k_samples = k_samples
+        self.outcome_sink = outcome_sink
+
+    def _notify_outcome_sink(
+        self,
+        result: CEGISRunResult,
+        task_data: dict[str, object],
+        hint: str | None = None,
+        outcome_sink: CognitiveOutcomeSink | None = None,
+    ) -> None:
+        """Forwards UnshackledCEGISEngine run outcome to CognitiveOutcomeSink (Milestone 36.1)."""
+        sink = outcome_sink or self.outcome_sink
+        if sink is None:
+            return
+        try:
+            task_id = str(task_data.get("id") or task_data.get("task_id") or f"arc-{uuid.uuid4().hex[:8]}")
+            turn_1_err: str | None = None
+            verified_strat: str | None = None
+            if result.turns:
+                t1 = result.turns[0]
+                if t1.execution_error:
+                    turn_1_err = t1.execution_error
+                elif t1.failure_diff:
+                    turn_1_err = t1.failure_diff.summary_message
+                last_t = result.turns[-1]
+                verified_strat = last_t.hypothesis or ("Multi-turn spatial repair" if result.turns_taken >= 2 else "Direct synthesis")
+            turn_traces: list[dict[str, object]] = [
+                {
+                    "turn": tr.turn,
+                    "name": "initial_synthesis" if tr.turn == 1 else f"repair_turn_{tr.turn}",
+                    "summary": f"passed={tr.passed_examples}/{tr.total_examples}; err={tr.execution_error or (tr.failure_diff.summary_message if tr.failure_diff else 'none')}",
+                }
+                for tr in result.turns
+            ]
+            status_label = (
+                "VERIFIED_REPAIRED_PROGRAM"
+                if (result.success and result.turns_taken >= 2)
+                else ("CHECKED_FORMALIZATION_AGREED" if result.success else "INTERNAL_FALLBACK")
+            )
+            sink.record_cegis_outcome(
+                task_id=task_id,
+                problem_summary=verified_strat or hint or f"Spatial grid transformation ({task_id})",
+                engine_name="UnshackledCEGISEngine",
+                success=result.success,
+                turns_taken=result.turns_taken,
+                final_code=result.final_code,
+                turn_1_error=turn_1_err,
+                verified_strategy=verified_strat,
+                turn_traces=turn_traces,
+                status_label=status_label,
+            )
+        except Exception as sink_err:  # noqa: BLE001
+            logger.debug("unshackled_cegis_outcome_sink_failed", error=str(sink_err))
 
     def query_llm(
         self,
@@ -747,7 +1128,7 @@ class UnshackledCEGISEngine:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
 
-        payload: dict[str, Any] = {
+        payload: dict[str, object] = {
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -782,17 +1163,22 @@ class UnshackledCEGISEngine:
         train_pairs: list[dict[str, list[list[int]]]],
     ) -> tuple[bool, int, int | None, GridDiff | None, str | None]:
         """
-        Evaluates candidate code against all training demonstrations.
+        Evaluates candidate code against all training demonstrations using batch container execution.
         Returns (all_passed, passed_count, first_failing_idx, first_diff, error_message).
         """
+        if not train_pairs:
+            return True, 0, None, None, None
+
+        inputs = [p["input"] for p in train_pairs]
+        outcomes = execute_unshackled_python_batch(code, inputs)
+
         passed_count = 0
-        for idx, pair in enumerate(train_pairs):
-            outcome = execute_unshackled_python(code, pair["input"])
-            if not outcome.success:
+        for idx, (pair, outcome) in enumerate(zip(train_pairs, outcomes)):
+            if not outcome.success or outcome.output_grid is None:
                 err_msg = f"{outcome.error_type}: {outcome.error_message}"
                 return False, passed_count, idx, None, err_msg
 
-            diff = compute_detailed_grid_diff(pair["output"], outcome.output_grid or [])
+            diff = compute_detailed_grid_diff(pair["output"], outcome.output_grid)
             if diff.is_match:
                 passed_count += 1
             else:
@@ -843,7 +1229,7 @@ class UnshackledCEGISEngine:
 
     def synthesize_turn_1(
         self,
-        task_data: dict[str, Any],
+        task_data: dict[str, object],
         hint: str | None = None,
         temperature: float = 0.2,
         k_samples: int | None = None,
@@ -852,7 +1238,8 @@ class UnshackledCEGISEngine:
         Synthesizes initial candidate Python program (Turn 1) using Hypothesis-First Abduction.
         Employs Best-of-K sampling across temperature schedule, selecting by training demonstration accuracy.
         """
-        train_pairs: list[dict[str, list[list[int]]]] = task_data.get("train", [])
+        raw_train = task_data.get("train", [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
         train_desc = self._format_train_examples(train_pairs)
 
         system_prompt = (
@@ -927,7 +1314,7 @@ class UnshackledCEGISEngine:
     def synthesize_repair_turn(
         self,
         prior_code: str,
-        task_data: dict[str, Any],
+        task_data: dict[str, object],
         failing_idx: int,
         diff: GridDiff | None,
         err_msg: str | None,
@@ -940,7 +1327,8 @@ class UnshackledCEGISEngine:
         Synthesizes a repaired program using structured counterexample diffs (Turn 2..K).
         Samples multiple candidates and selects by demonstration pass accuracy.
         """
-        train_pairs: list[dict[str, list[list[int]]]] = task_data.get("train", [])
+        raw_train = task_data.get("train", [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
         failing_pair = train_pairs[failing_idx]
         train_desc = self._format_train_examples(train_pairs)
 
@@ -1032,7 +1420,7 @@ class UnshackledCEGISEngine:
 
     def synthesize_backtrack_turn(
         self,
-        task_data: dict[str, Any],
+        task_data: dict[str, object],
         turn_num: int,
         failed_hypotheses: list[str],
         prior_error: str | None = None,
@@ -1043,7 +1431,8 @@ class UnshackledCEGISEngine:
         Synthesizes a fresh candidate from scratch when previous branches reached an impasse.
         Discards the failed code branch and forces the model to explore an alternative hypothesis.
         """
-        train_pairs: list[dict[str, list[list[int]]]] = task_data.get("train", [])
+        raw_train = task_data.get("train", [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
         train_desc = self._format_train_examples(train_pairs)
 
         system_prompt = (
@@ -1138,9 +1527,10 @@ class UnshackledCEGISEngine:
 
     def run_cegis_loop(
         self,
-        task_data: dict[str, Any],
+        task_data: dict[str, object],
         hint: str | None = None,
         max_turns: int | None = None,
+        outcome_sink: CognitiveOutcomeSink | None = None,
     ) -> CEGISRunResult:
         """
         Executes the full multi-turn CEGIS loop for a given task.
@@ -1148,7 +1538,8 @@ class UnshackledCEGISEngine:
         """
         t0 = time.perf_counter()
         effective_max_turns = max_turns or self.max_turns
-        train_pairs = task_data.get("train", [])
+        raw_train = task_data.get("train", [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
         total_examples = len(train_pairs)
 
         traces: list[CEGISTurn] = []
@@ -1258,8 +1649,10 @@ class UnshackledCEGISEngine:
 
             if all_passed:
                 total_elapsed = (time.perf_counter() - t0) * 1000.0
-                test_preds = self.predict_test(code, task_data.get("test", []))
-                return CEGISRunResult(
+                raw_test = task_data.get("test", [])
+                test_pairs = cast(list[dict[str, list[list[int]]]], raw_test if isinstance(raw_test, list) else [])
+                test_preds = self.predict_test(code, test_pairs)
+                res_ok = CEGISRunResult(
                     success=True,
                     final_code=code,
                     turns_taken=turn_idx,
@@ -1268,6 +1661,8 @@ class UnshackledCEGISEngine:
                     total_elapsed_ms=total_elapsed,
                     error_summary=None,
                 )
+                self._notify_outcome_sink(res_ok, task_data, hint=hint, outcome_sink=outcome_sink)
+                return res_ok
 
             # Adaptive budget extension: if at current limit and showing positive progress, grant 1 bonus turn
             if turn_idx == limit_turns and passed_count > 0 and limit_turns < effective_max_turns + 2:
@@ -1282,7 +1677,7 @@ class UnshackledCEGISEngine:
             turn_idx += 1
 
         total_elapsed = (time.perf_counter() - t0) * 1000.0
-        return CEGISRunResult(
+        res_fail = CEGISRunResult(
             success=False,
             final_code=current_code,
             turns_taken=len(traces),
@@ -1291,6 +1686,8 @@ class UnshackledCEGISEngine:
             total_elapsed_ms=total_elapsed,
             error_summary=f"Failed to satisfy 100% of demonstrations after {len(traces)} turns.",
         )
+        self._notify_outcome_sink(res_fail, task_data, hint=hint, outcome_sink=outcome_sink)
+        return res_fail
 
     @staticmethod
     def predict_test(

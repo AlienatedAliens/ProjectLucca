@@ -34,6 +34,7 @@ class PathsSettings(BaseModel):
     cache: str = "cache"
     tmp: str = "tmp"
     notes: str = "notes"
+    sessions_images: str = "data/sessions/images"
 
 
 class LLMSettings(BaseModel):
@@ -46,11 +47,11 @@ class LLMSettings(BaseModel):
     mode: Literal["audio", "transcript", "vision"] = "vision"
     host: str = "127.0.0.1"
     port: int = 8080
-    ctx: int = 131072
+    ctx: int = 65536
     kv_type: str = "q8_0"
     kv_type_k: str = "q8_0"
     kv_type_v: str = "q8_0"
-    ngl: int = 18  # RTX 5080 WDDM-safe layer budget (Rule 01)
+    ngl: int = 99  # All base & attention layers resident on dGPU
     # Speculative Decoding configuration:
     # "none", "draft-simple", "ngram-mod", "draft-simple,ngram-mod"
     spec_type: str = "ngram-mod"
@@ -59,8 +60,9 @@ class LLMSettings(BaseModel):
     draft_n_max: int = 3
     draft_kv_type_k: str = "q8_0"
     draft_kv_type_v: str = "q4_0"
-    cpu_moe: bool = False
-    moe_expert_cache_mib: int | None = None
+    cpu_moe: bool = True
+    moe_expert_cache_mib: int | None = 7680  # 7.5 GB VRAM LRU cache for active MoE experts
+    ubatch: int = 2048  # Physical micro-batch size for tensor core saturation and full 1120 vision tokens
     # RAM budget for the llama-server prompt prefix cache (--cache-ram, MiB).
     # Bounded to 4 GiB: the 8 GiB default thrashed and crashed under the WO-8
     # battery workload (60 distinct low-similarity prompts). Production turns
@@ -79,7 +81,7 @@ class LLMSettings(BaseModel):
     # GGUF-embedded chat template via --jinja. The previous 12B brain is
     # deprecated and retained for rollback only.
     model: str = "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf"
-    mmproj: str | None = None  # None for Tier 0 26B-A4B MoE; set to 12b-mmproj if rolling back to 12B
+    mmproj: str | None = "llm/mmproj-gemma-4-26B-A4B-it-BF16.gguf"
     text_model: str = "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf"
     # llama-server binary, relative to LUCCA_HOME or absolute. Forked builds
     # (e.g. PrismML ternary kernels) are selected here, never by code.

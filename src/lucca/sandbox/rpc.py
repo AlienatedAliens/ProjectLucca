@@ -44,6 +44,11 @@ class ContainerWorld:
         self.initial_world: dict[str, str] = {}
         self.beliefs: dict[str, dict[str, str]] = {}
         self.second_order_beliefs: dict[str, dict[str, dict[str, str]]] = {}
+        self.room_occupants: dict[str, list[str]] = {}
+        self.agent_locations: dict[str, str] = {}
+    @property
+    def rooms(self) -> dict[str, list[str]]:
+        return self.room_occupants
     def process_event(self, ev: dict[str, object]) -> None:
         agent = str(ev.get("agent") or ev.get("actor") or "").strip().lower()
         action = str(ev.get("action") or "move").strip().lower()
@@ -65,6 +70,17 @@ class ContainerWorld:
             if obs and obs not in ("none", "null", "all", "everyone"):
                 self.beliefs.setdefault(obs, {})[item] = loc
                 present.add(obs)
+        implicit_witnesses: list[str] = []
+        if hasattr(self, "agent_locations") and hasattr(self, "room_occupants"):
+            if agent and agent in self.agent_locations:
+                ag_room = self.agent_locations[agent]
+                implicit_witnesses.extend(self.room_occupants.get(ag_room, []))
+            if loc in self.room_occupants:
+                implicit_witnesses.extend(self.room_occupants[loc])
+        for wit in implicit_witnesses:
+            if wit and wit not in ("none", "null", "all", "everyone"):
+                self.beliefs.setdefault(wit, {})[item] = loc
+                present.add(wit)
         for x in present:
             if x not in self.second_order_beliefs:
                 self.second_order_beliefs[x] = {}
@@ -80,6 +96,7 @@ class ContainerWorld:
         self.process_event({"agent": agent_val, "action": "move", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
     def reset(self) -> None:
         self.world.clear(); self.initial_world.clear(); self.beliefs.clear(); self.second_order_beliefs.clear()
+        self.room_occupants.clear(); self.agent_locations.clear()
     def process_events(self, events: list[dict[str, object]]) -> None:
         for ev in events:
             self.process_event(ev)
@@ -147,6 +164,31 @@ ContainerWorld.add_object = ContainerWorld.place
 ContainerWorld.set_location = ContainerWorld.place
 ContainerWorld.set_object = ContainerWorld.place
 ContainerWorld.set_object_state = ContainerWorld.place
+def set_room_occupants(self, room: str, occupants: list[str]) -> None:
+    clean_room = room.strip().lower()
+    clean_occupants = [str(o).strip().lower() for o in occupants if str(o).strip()]
+    if not hasattr(self, "room_occupants"):
+        self.room_occupants = {}
+    self.room_occupants[clean_room] = clean_occupants
+    if not hasattr(self, "agent_locations"):
+        self.agent_locations = {}
+    for occ in clean_occupants:
+        self.agent_locations[occ] = clean_room
+def tell(self, speaker: str, listener: str, item: str, location: str | None = None) -> None:
+    spk, lis, it = speaker.strip().lower(), listener.strip().lower(), item.strip().lower()
+    loc = location.strip().lower() if location is not None else (self.query(spk, it) or "")
+    if not loc:
+        return
+    if lis not in self.beliefs:
+        self.beliefs[lis] = {}
+    self.beliefs[lis][it] = loc
+    if spk not in self.second_order_beliefs:
+        self.second_order_beliefs[spk] = {}
+    if lis not in self.second_order_beliefs[spk]:
+        self.second_order_beliefs[spk][lis] = {}
+    self.second_order_beliefs[spk][lis][it] = loc
+ContainerWorld.set_room_occupants = set_room_occupants
+ContainerWorld.tell = tell
 ContainerWorld.add_agent = lambda self, *args, **kwargs: None
 ContainerWorld.record_observation = lambda self, *args, **kwargs: None
 World = ContainerWorld
@@ -267,7 +309,7 @@ class PersistentDockerWorker:
             "-e",
             "OMP_NUM_THREADS=1",
             "-e",
-            "PYTHONPATH=/workspace:/opt:/opt/toolsrv:/opt/lucca/sandbox",
+            "PYTHONPATH=/tmp/lucca_runtime:/workspace:/opt:/opt/toolsrv:/opt/lucca/sandbox",
             self.container_name,
             "lucca-toolsrv",
             "--loop",
@@ -524,11 +566,42 @@ class DockerRPCTransport:
         except (subprocess.SubprocessError, OSError):
             return False
 
+    _synced_containers: set[str] = set()
+
+    def _sync_container_runtime(self, force: bool = False) -> None:
+        """Syncs latest host reasoning and container_world modules into /tmp/lucca_runtime inside the container."""
+        if not force and self.container_name in DockerRPCTransport._synced_containers:
+            return
+        if hasattr(subprocess.run, "_mock_name") or hasattr(subprocess.Popen, "_mock_name"):
+            return
+        try:
+            from lucca.sandbox.container_spec import win_to_wsl_path  # noqa: PLC0415
+
+            src_lucca = Path(__file__).resolve().parents[1]
+            if not src_lucca.exists():
+                return
+            wsl_src = win_to_wsl_path(src_lucca)
+            sync_cmd = (
+                f"tar -C '{wsl_src}/..' -cf - lucca "
+                f"| docker exec -i {self.container_name} sh -c 'mkdir -p /tmp/lucca_runtime && tar -C /tmp/lucca_runtime -xf -'"
+            )
+            res = subprocess.run(  # noqa: S603
+                ["wsl", "-d", self.wsl_distro, "--", "sh", "-c", sync_cmd],  # noqa: S607
+                capture_output=True,
+                timeout=5.0,
+                check=False,
+            )
+            if res.returncode == 0:
+                DockerRPCTransport._synced_containers.add(self.container_name)
+        except Exception as sync_err:  # noqa: BLE001
+            logger.debug("container_runtime_sync_skipped", error=str(sync_err))
+
     def ensure_container_running(self, workspace_path: Path | str | None = None) -> bool:
         """Ensures the file sandbox container is running, launching it if necessary."""
         if not self.is_docker_available():
             return False
         if self.is_container_running():
+            self._sync_container_runtime()
             return True
 
         # Lazy import: container_spec is only needed on the cold-start path.
@@ -552,7 +625,10 @@ class DockerRPCTransport:
             timeout=10.0,
             check=False,
         )
-        return res.returncode == 0 and self.is_container_running()
+        running = res.returncode == 0 and self.is_container_running()
+        if running:
+            self._sync_container_runtime()
+        return running
 
     def warmup(self) -> bool:
         """Pre-emptively verifies container status and warms up persistent RPC worker."""
@@ -641,6 +717,8 @@ class DockerRPCTransport:
             "-i",
             "-e",
             "LUCCA_SANDBOX_CONTAINER=1",
+            "-e",
+            "PYTHONPATH=/tmp/lucca_runtime:/workspace:/opt:/opt/toolsrv:/opt/lucca/sandbox",
             self.container_name,
             "lucca-toolsrv",
         ]

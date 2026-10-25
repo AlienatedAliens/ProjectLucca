@@ -21,6 +21,7 @@ def _isolated_lucca_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Ite
     for sub in ("models", "data", "workspace", "inbox", "logs", "cache", "tmp"):
         (home / sub).mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("LUCCA_HOME", str(home))
+    monkeypatch.setenv("HF_HUB_OFFLINE", "1")
     get_config.cache_clear()
     yield home
     get_config.cache_clear()

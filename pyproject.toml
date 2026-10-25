@@ -1,6 +1,6 @@
 [project]
 name = "project-lucca"
-version = "1.45.0.dev0"
+version = "1.45.0"
 description = "Local-first sandboxed desktop companion with real-time voice, four-process topology, and compiled symbolic reasoning"
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
@@ -38,6 +38,8 @@ dependencies = [
     "absl-py>=2.5.1",
     "immutabledict>=4.3.1",
     "nltk>=3.10.3",
+    "sympy>=1.14.0",
+    "tzdata>=2026.5",
 ]
 
 [project.optional-dependencies]

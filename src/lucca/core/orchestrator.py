@@ -66,6 +66,7 @@ from lucca.core.corroboration import (
     detect_premise_scheme,
     extract_receipt_source,
 )
+from lucca.core.cognitive_sink import CognitiveOutcomeSink
 from lucca.core.episode_recall import EpisodeRecall
 from lucca.core.ipc_schemas import (
     Envelope,
@@ -130,7 +131,10 @@ from lucca.core.turn_pipeline import (
     normalize_spelled_words,
     synthesize_plan_narration,
 )
+from lucca.core.active_goals import ActiveGoalManager
+from lucca.core.tool_shortlister import check_tool_fit
 from lucca.core.user_model import UserModel
+from lucca.core.visual_session import VisualArtifact, VisualSessionStore
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
@@ -397,7 +401,7 @@ class Orchestrator:
             self.memory_store = MemoryStore(
                 db=self.db,
                 master_key=effective_key,
-                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device=None)),
+                embedding_port=LocalEmbeddingPort(worker=EmbedWorker(device="CPU")),
             )
 
         if hasattr(self, "router") and hasattr(self.router, "embed_worker"):
@@ -439,9 +443,11 @@ class Orchestrator:
         self.active_detected_words: list[str] = []
         self.assistant_signer: AssistantUtteranceSigner | None = None
         self.breach_signer: CoherenceBreachSigner | None = None
-        self.action_signer: ToolResultSigner | None = None
+        self.action_signer: ToolResultSigner | None = self.signer_factory.tool_result()
 
-        # Autobiographical Reflection Engine (Spec §7, D-MEM-04, WP-2)
+        verifier_inst = getattr(self, "verifier", None)
+
+        # Autobiographical Reflection Engine (Spec §7, D-MEM-04, WP-2 & WO-36 Milestone 36.3)
         if reflection_engine is not None:
             self.reflection_engine: ReflectionEngine | None = reflection_engine
         elif self.memory_store is not None and hasattr(self.memory_store, "db"):
@@ -449,12 +455,18 @@ class Orchestrator:
                 db=self.memory_store.db,
                 store=self.memory_store,
                 master_key=effective_key,
+                rule_engine=self.rule_engine,
+                verifier=verifier_inst,
+                llm=self.llm,
             )
         elif self.db is not None and self.memory_store is not None:
             self.reflection_engine = ReflectionEngine(
                 db=self.db,
                 store=self.memory_store,
                 master_key=effective_key,
+                rule_engine=self.rule_engine,
+                verifier=verifier_inst,
+                llm=self.llm,
             )
         else:
             self.reflection_engine = None
@@ -474,12 +486,42 @@ class Orchestrator:
         self._last_ratified_claim: str | None = None
         self.cross_reference_search_fn: object = None
 
-        # WO-21 Phase 4: Theory of Mind User Model & CBR Episode Recall
-        self.user_model = UserModel(db=self.db)
-        self.episode_recall = EpisodeRecall(db=self.db)
+        # WO-36 Milestone 36.2: First-Class Shared Active Goal State Machine
+        self.active_goals = ActiveGoalManager(db=self.db)
+        if self.memory_store is not None and hasattr(self.memory_store, "retriever"):
+            self.memory_store.retriever.active_goals = self.active_goals
+
+        # WO-21 Phase 4 & WO-36: Semantic Theory of Mind User Model & Goal-Biased CBR Episode Recall
+        embed_port = getattr(self.memory_store, "embedding_port", None) if self.memory_store else None
+        self.user_model = UserModel(db=self.db, embedder=embed_port, verifier=verifier_inst)
+        self.episode_recall = EpisodeRecall(
+            db=self.db,
+            embedder=embed_port,
+            active_goals=self.active_goals,
+        )
 
         # WO-22 Phase 2: Diagnostic Self-Reasoning Engine (Fault Model v1)
         self.diagnosis_engine = DiagnosisEngine(db=self.db)
+
+        # WO-36: Sovereign Cognitive Outcome Sink (Milestone 36.1)
+        self.cognitive_sink = CognitiveOutcomeSink(
+            action_signer=self.action_signer,
+            reasoning_context=self.current_reasoning_context,
+            episode_recall=self.episode_recall,
+            affect_machine=self.affect_tracker.ode_machine if self.affect_tracker else None,
+            db=self.db,
+        )
+
+        # WO-36 Milestone 36.3: Two-Cadence Inner Life & Waking Continuity
+        self.last_turn_timestamp: float = time.time()
+        self._last_idle_pulse_ts: float = 0.0
+        self.idle_pulse = getattr(self.reflection_engine, "idle_pulse", None)
+        self.dream_retrospective = getattr(self.reflection_engine, "dream_retrospective", None)
+
+        # WO-37 Phase 0: Local Session Image Cache
+        self._pending_image_b64: str | None = None
+        _img_store_dir = self.config.home_dir / self.config.paths.data / "sessions" / "images"
+        self.visual_session: VisualSessionStore = VisualSessionStore(_img_store_dir)
 
     @property
     def signer_factory(self) -> SignerFactory:
@@ -825,6 +867,18 @@ class Orchestrator:
             elif env.type == "ui.user_text":
                 p_text = UIUserTextPayload.model_validate(env.payload)
                 self._on_user_text(env.ts_ns, p_text.text, p_text.image_b64)
+            elif env.type == "ui.attach_image":
+                raw_img = env.payload.get("image_b64") if isinstance(env.payload, dict) else None
+                if raw_img and isinstance(raw_img, str):
+                    self._pending_image_b64 = raw_img
+                    if hasattr(self, "visual_session") and self.visual_session is not None:
+                        self.visual_session.store_image(b64_jpeg=raw_img, description="user_upload")
+                    logger.info("ui_image_attached_to_session", size_bytes=len(raw_img))
+            elif env.type == "ui.clear_image":
+                self._pending_image_b64 = None
+                if hasattr(self, "visual_session") and self.visual_session is not None:
+                    self.visual_session.clear()
+                logger.debug("ui_image_cleared_from_session")
             elif env.type == "ui.config_update":
                 p_cfg = UIConfigUpdatePayload.model_validate(env.payload)
                 if p_cfg.voice:
@@ -872,7 +926,7 @@ class Orchestrator:
             elif env.type == "audio.playback_done":
                 if self.active_trace and self.active_trace.trace_id == env.trace_id:
                     self.active_trace.t_playback_done = env.ts_ns
-            elif env.type in ("ui.talk_press", "ui.talk_release"):
+            elif env.type in ("ui.talk_press", "ui.talk_release", "audio.rms"):
                 self._publish_bus(env)
             elif env.type == "ui.confirm_result":
                 p_conf = UIConfirmResultPayload.model_validate(env.payload)
@@ -1045,6 +1099,8 @@ class Orchestrator:
 
         if image_b64:
             self._pending_image_b64 = image_b64
+            if hasattr(self, "visual_session") and self.visual_session is not None:
+                self.visual_session.store_image(b64_jpeg=image_b64, description="user_upload")
 
         trace_id = str(ulid.ULID())
         trace = TurnTrace(
@@ -2226,6 +2282,23 @@ class Orchestrator:
             self._check_contradictions(committed_user_id, user_transcript_text, trace)
             # WO-9 A3: passive fact extraction from the user's own words
             self._maybe_extract_facts(trace)
+            # WO-36 Milestone 36.2: Extract explicit user goal declarations into ActiveGoalManager
+            active_goals_mgr = getattr(self, "active_goals", None)
+            if active_goals_mgr is not None:
+                goal_m = re.search(
+                    r"\b(?:my\s+goal\s+is\s+to|our\s+goal\s+is\s+to|let'?s\s+set\s+a\s+goal\s+to)\s+([^.!?\n]+)",
+                    user_transcript_text,
+                    re.IGNORECASE,
+                )
+                if goal_m:
+                    try:
+                        active_goals_mgr.create_goal(
+                            title=goal_m.group(1).strip(),
+                            provenance=Provenance.USER_EXPLICIT,
+                            provenance_envelope_id=committed_user_id,
+                        )
+                    except Exception as goal_err:  # noqa: BLE001
+                        logger.debug("active_goal_extract_failed", error=str(goal_err))
 
         if decision_id:
             try:
@@ -2342,8 +2415,30 @@ class Orchestrator:
     def _maybe_speak_pending_updates(self, trace: TurnTrace) -> None:
         self.beliefs.maybe_speak_pending_updates(trace)
 
+    def maybe_run_idle_pulse(self, now: float | None = None) -> object | None:
+        """Executes IdlePulse (60s cadence) when orchestrator is idle (WO-36 Milestone 36.3)."""
+        if not getattr(self.config.reflection, "enabled", True):
+            return None
+        pulse_engine = getattr(self, "idle_pulse", None) or (
+            getattr(self.reflection_engine, "idle_pulse", None) if self.reflection_engine else None
+        )
+        if pulse_engine is None:
+            return None
+        current_time = now if now is not None else time.time()
+        idle_sec = float(getattr(self.config.reflection, "idle_seconds", 60))
+        last_turn = getattr(self, "last_turn_timestamp", 0.0)
+        last_pulse = getattr(self, "_last_idle_pulse_ts", 0.0)
+        if (current_time - last_turn) >= idle_sec and (current_time - last_pulse) >= idle_sec:
+            try:
+                res = pulse_engine.pulse(now=current_time)
+                self._last_idle_pulse_ts = current_time
+                return res
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("idle_pulse_execution_failed", error=str(exc))
+        return None
+
     def maybe_run_nightly_rollup(self, now: float | None = None) -> int:
-        """Executes nightly roll-up if due and records persistent timestamp."""
+        """Executes nightly roll-up and DreamRetrospective if due and records persistent timestamp."""
         if not self.reflection_engine:
             return 0
         current_time = now if now is not None else time.time()
@@ -2385,6 +2480,7 @@ class Orchestrator:
         decision_id: str | None,
         messages: list[ChatMessage] | None = None,
         current_audio_b64: str | None = None,
+        current_image_b64: str | None = None,
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
         tools: list[object] | None = None,
@@ -2425,6 +2521,32 @@ class Orchestrator:
                 tools = get_all_tool_definitions(active_rules)
             else:
                 tools = []
+
+        # If an image is already attached to this turn, strip screenshot_capture
+        # so the model never attempts to capture screen or trigger confirmation prompts.
+        turn_has_image = bool(
+            current_image_b64
+            or getattr(self, "_pending_image_b64", None)
+            or getattr(self, "current_turn_image_b64", None)
+        )
+        if turn_has_image and tools:
+            def _is_screenshot_tool(t: object) -> bool:
+                if isinstance(t, dict):
+                    fn = t.get("function")
+                    if isinstance(fn, dict) and fn.get("name") == "screenshot_capture":
+                        return True
+                    if t.get("name") == "screenshot_capture":
+                        return True
+                fn = getattr(t, "function", None)
+                if fn is not None:
+                    if getattr(fn, "name", None) == "screenshot_capture":
+                        return True
+                if getattr(t, "name", None) == "screenshot_capture":
+                    return True
+                return False
+
+            tools = [t for t in tools if not _is_screenshot_tool(t)]
+            logger.info("screenshot_tool_suppressed_image_in_context", remaining_tools=len(tools))
 
         # Seed session-scoped allowed URLs from conversation history & epistemic context
         history_urls: list[str] = []
@@ -2474,6 +2596,8 @@ class Orchestrator:
             self.history.append({"role": "assistant", "content": refusal})
 
         current_stance = self.affect_tracker.get_prompt_suffix_tag()
+        first_python_err: str | None = None
+        python_turns_taken: int = 0
 
         try:
             for round_num in range(1, max_rounds + 1):
@@ -2504,6 +2628,7 @@ class Orchestrator:
 
                 for event in self.llm.stream_turn(
                     current_audio_b64=current_audio_b64 if round_num == 1 else None,
+                    current_image_b64=current_image_b64 if round_num == 1 else None,
                     current_text=current_text or user_msg,
                     history=self.history,
                     memories=memories,
@@ -2598,15 +2723,61 @@ class Orchestrator:
                             )
                             continue
 
+                        # BFCL <tool_fit_check> guard via VerifierWorker (WO-36 §36.5)
+                        verifier_inst = getattr(self, "verifier", None)
+                        if user_msg and verifier_inst is not None:
+                            if not check_tool_fit(tool_name, user_msg, verifier=verifier_inst):
+                                round_failed_tools.append(tool_name)
+                                logger.warning(
+                                    "tool_fit_guard_rejected",
+                                    tool=tool_name,
+                                    query=user_msg[:80],
+                                )
+                                content_str = (
+                                    f"<tool_fit_check> Tool '{tool_name}' rejected: "
+                                    "query does not require this tool."
+                                )
+                                scratchpad_buffer.add_assistant_tool_call(
+                                    call_id=call_id,
+                                    tool_name=tool_name,
+                                    tool_args=tool_args,
+                                )
+                                scratchpad_buffer.add_tool_result(
+                                    call_id=call_id,
+                                    tool_name=tool_name,
+                                    raw_output=content_str,
+                                    is_error=True,
+                                )
+                                continue
+
                         # Emit verbal thinking cue before tool execution (Proposal I)
                         cue = self._select_verbal_cue(tool_name)
-                        print(f'\n[Lucca Cue] 💬 "{cue}"', flush=True)
+                        print(f'\n[Lucca Cue] "{cue}"', flush=True)
                         self._speak_text(trace, cue)
 
                         # Execute tool
                         tool_res = self._handle_tool_call(trace, tool_name, tool_args, speak=False)
 
                         if tool_res is not None:
+                            if tool_name == "run_python":
+                                python_turns_taken += 1
+                                if not tool_res.ok and first_python_err is None:
+                                    first_python_err = str(tool_res.stderr or tool_res.content or "ExecutionError")
+                                elif tool_res.ok and getattr(self, "cognitive_outcome_sink", None) is not None:
+                                    try:
+                                        self.cognitive_outcome_sink.record_cegis_outcome(
+                                            task_id=f"turn-{trace.trace_id[:8]}",
+                                            problem_summary=user_msg[:120] if user_msg else "run_python execution",
+                                            engine_name="OrchestratorRunPython",
+                                            success=True,
+                                            turns_taken=python_turns_taken,
+                                            final_code=str(tool_args.get("code", "")),
+                                            turn_1_error=first_python_err,
+                                            verified_strategy="Multi-round tool loop repair" if python_turns_taken >= 2 else "Direct run_python",
+                                            status_label="VERIFIED_REPAIRED_PROGRAM" if python_turns_taken >= 2 else "CHECKED_FORMALIZATION_AGREED",
+                                        )
+                                    except Exception as sink_err:  # noqa: BLE001
+                                        logger.debug("run_python_outcome_sink_failed", error=str(sink_err))
                             if not tool_res.ok:
                                 round_failed_tools.append(tool_name)
                             if tool_res.ok:
@@ -3029,6 +3200,22 @@ class Orchestrator:
 
         # If passed or fail-open honored (timeout/unavailable), return candidate
         if preflight_res.success or preflight_res.fail_open or max_repair_rounds <= 0:
+            sink = getattr(self, "cognitive_sink", None)
+            if sink is not None:
+                try:
+                    sink.record_cegis_outcome(
+                        task_id=trace.trace_id if trace else f"preflight-{ulid.ULID()}",
+                        problem_summary=prompt.strip()[:120],
+                        engine_name="PreflightCEGIS",
+                        success=preflight_res.success,
+                        turns_taken=1,
+                        final_code=code_candidate,
+                        turn_1_error=preflight_res.error_msg,
+                        status_label="VERIFIED_PROGRAM" if preflight_res.success else "INTERNAL_FALLBACK",
+                        reasoning_context=getattr(self, "current_reasoning_context", None),
+                    )
+                except Exception as sink_err:  # noqa: BLE001
+                    logger.debug("preflight_sink_record_failed", error=str(sink_err))
             return code_candidate, preflight_res
 
         # 1-Shot Self-Repair Loop
@@ -3063,6 +3250,23 @@ class Orchestrator:
         repaired_res = self.sandbox.preflight_verify_code(
             code=repaired_code, docstring_examples=docstring_examples
         )
+        sink = getattr(self, "cognitive_sink", None)
+        if sink is not None:
+            try:
+                sink.record_cegis_outcome(
+                    task_id=trace.trace_id if trace else f"preflight-{ulid.ULID()}",
+                    problem_summary=prompt.strip()[:120],
+                    engine_name="PreflightCEGIS",
+                    success=repaired_res.success,
+                    turns_taken=2,
+                    final_code=repaired_code,
+                    turn_1_error=preflight_res.error_msg,
+                    verified_strategy="Preflight assertion self-repair",
+                    status_label="VERIFIED_REPAIRED_PROGRAM" if repaired_res.success else "INTERNAL_FALLBACK",
+                    reasoning_context=getattr(self, "current_reasoning_context", None),
+                )
+            except Exception as sink_err:  # noqa: BLE001
+                logger.debug("preflight_repair_sink_record_failed", error=str(sink_err))
         return repaired_code, repaired_res
 
     def _stream_code_synthesis(
@@ -3254,14 +3458,16 @@ class Orchestrator:
         if trace.interrupted or self._cancel_token.is_set():
             return
 
+        pending_img = getattr(self, "_pending_image_b64", None)
         turn_input = TurnInput(
             user_text=transcribed_text,
             trace=trace,
             origin="voice",
-            mode="transcript" if is_trans_mode else "audio",
+            mode="vision" if pending_img else ("transcript" if is_trans_mode else "audio"),
             vad_speech_ms=p.vad_speech_ms,
             current_audio_b64=llm_audio,
             current_text=llm_text,
+            image_b64=pending_img,
         )
         self.turn_pipeline.run(turn_input)
 
@@ -3274,13 +3480,15 @@ class Orchestrator:
         self._cancel_token.clear()
         if trace.interrupted or self._cancel_token.is_set():
             return
+        pending_img = getattr(self, "_pending_image_b64", None)
         turn_input = TurnInput(
             user_text=user_text,
             trace=trace,
             origin="text",
-            mode="transcript",
+            mode="vision" if pending_img else "transcript",
             vad_speech_ms=1000.0,
             current_text=user_text,
+            image_b64=pending_img,
         )
         self.turn_pipeline.run(turn_input)
 
@@ -3419,48 +3627,72 @@ class Orchestrator:
         Policy: this handler is reached only AFTER confirmation gate (Class C, target='shared').
         Output is stamped TOOL_CONTENT_UNTRUSTED (content= not structured=) per TRAP 2.
         """
-        try:
-            from lucca.sandbox.screenshot_tool import capture_screenshot  # noqa: PLC0415
+        already_staged = getattr(self, "_pending_image_b64", None) or getattr(self, "current_turn_image_b64", None)
+        if already_staged:
+            b64 = already_staged
+            width, height = 1280, 800
+            ocr_text = None
+        else:
+            try:
+                from lucca.sandbox.screenshot_tool import capture_screenshot_with_ocr_fallback  # noqa: PLC0415
 
-            b64, width, height = capture_screenshot()
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("screenshot_capture_failed", error=str(exc))
-            self._record_tool_receipt(
-                name="screenshot_capture",
-                call_id=call_id,
-                args=args,
-                ok=False,
-                output=None,
-                error=str(exc),
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                content=None,
-                stderr=f"screenshot_capture failed: {exc}",
-                elapsed_ms=0.0,
-            )
+                llm_cfg = getattr(getattr(self, "config", None), "llm", None)
+                mmproj_obj = getattr(llm_cfg, "mmproj", None) if llm_cfg else None
+                b64, width, height, ocr_text = capture_screenshot_with_ocr_fallback(mmproj=mmproj_obj)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("screenshot_capture_failed", error=str(exc))
+                self._record_tool_receipt(
+                    name="screenshot_capture",
+                    call_id=call_id,
+                    args=args,
+                    ok=False,
+                    output=None,
+                    error=str(exc),
+                )
+                return ToolResult(
+                    call_id=call_id,
+                    ok=False,
+                    exit_code=1,
+                    content=None,
+                    stderr=f"screenshot_capture failed: {exc}",
+                    elapsed_ms=0.0,
+                )
 
         size_kb = round(len(b64) * 3 / 4 / 1024, 1)
         # Stage the image for the next LLM narration call.
         # TRAP 3: _pending_image_b64 is read-and-cleared by llm_client on every call.
         self._pending_image_b64: str | None = b64
+        if hasattr(self, "visual_session") and self.visual_session is not None:
+            self.visual_session.store_image(b64_jpeg=b64, description="screenshot")
+
+        has_real_ocr = bool(ocr_text and "no text detected" not in ocr_text.lower())
+        receipt_output = f"[screenshot captured: {width}x{height}, {size_kb}KB]"
+        if has_real_ocr and ocr_text:
+            receipt_output = f"{receipt_output} {ocr_text}"
 
         self._record_tool_receipt(
             name="screenshot_capture",
             call_id=call_id,
             args=args,
             ok=True,
-            output=f"[screenshot captured: {width}x{height}, {size_kb}KB]",
+            output=receipt_output,
             error=None,
         )
+        content_msg = (
+            f"[screenshot captured: {ocr_text}]"
+            if (has_real_ocr and ocr_text)
+            else "[screenshot captured]"
+        )
+        struct_data: dict[str, JsonValue] = {"width": width, "height": height, "size_kb": size_kb}
+        if ocr_text:
+            struct_data["ocr_text"] = ocr_text
+
         # content= (not structured=) guarantees TOOL_CONTENT_UNTRUSTED provenance
         return ToolResult(
             call_id=call_id,
             ok=True,
-            content="[screenshot captured]",
-            structured={"width": width, "height": height, "size_kb": size_kb},
+            content=content_msg,
+            structured=struct_data,
             elapsed_ms=0.0,
         )
 
@@ -4295,31 +4527,36 @@ class Orchestrator:
         # Check confirmation requirement (WRITE / LAUNCH)
         human_confirmed = False
         if self.sandbox.check_confirmation_needed(name):
-            confirmed = self._request_confirmation(trace, name, args)
-            if not confirmed:
-                logger.info("tool_execution_cancelled_by_user", tool=name)
-                cancel_msg = "Cancelled."
-                print(f"[Lucca] {cancel_msg}", flush=True)
-                if speak:
-                    self._speak_text(trace, cancel_msg)
-                    self.current_turn_tool_spoken.append(cancel_msg)
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error="cancelled by user",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-3,
-                    stderr="cancelled by user",
-                    elapsed_ms=0.0,
-                )
-            human_confirmed = True
+            already_staged = getattr(self, "_pending_image_b64", None) or getattr(self, "current_turn_image_b64", None)
+            if name == "screenshot_capture" and already_staged:
+                logger.info("screenshot_confirmation_bypassed_user_pre_attached")
+                human_confirmed = True
+            else:
+                confirmed = self._request_confirmation(trace, name, args)
+                if not confirmed:
+                    logger.info("tool_execution_cancelled_by_user", tool=name)
+                    cancel_msg = "Cancelled."
+                    print(f"[Lucca] {cancel_msg}", flush=True)
+                    if speak:
+                        self._speak_text(trace, cancel_msg)
+                        self.current_turn_tool_spoken.append(cancel_msg)
+                    self.current_turn_tool_ok = False
+                    self._record_tool_receipt(
+                        name=name,
+                        call_id=call_id,
+                        args=args,
+                        ok=False,
+                        output=None,
+                        error="cancelled by user",
+                    )
+                    return ToolResult(
+                        call_id=call_id,
+                        ok=False,
+                        exit_code=-3,
+                        stderr="cancelled by user",
+                        elapsed_ms=0.0,
+                    )
+                human_confirmed = True
 
         # WO-9 A2 (ADR-010): grounded memory_commit — orchestrator-side dispatch
         # because it must cite the current-turn USER_EXPLICIT transcript payload.
@@ -4553,6 +4790,9 @@ class Orchestrator:
                     payload={},
                 )
                 self._publish_bus(env)
+                if self.state == "idle":
+                    self.maybe_run_idle_pulse()
+                    self.maybe_run_nightly_rollup()
             except Exception as exc:  # noqa: BLE001
                 logger.debug("heartbeat_ping_error", error=str(exc))
             time.sleep(2.0)

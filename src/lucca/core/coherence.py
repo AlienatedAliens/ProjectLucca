@@ -357,7 +357,7 @@ def detect_ungrounded_action_claims(
                 )
                 or re.search(r"\bsearch is complete\b", clause)
                 or re.search(r"\b(?:completed|finished)\b.*?\bsearch\b", clause)
-                or re.search(r"\bsearch\b.*?\b(?:completed|finished)\b", clause)
+                or re.search(r"\bsearch\b.*?\b(?:completed|finished|performed|conducted|done)\b", clause)
                 or re.search(r"\bsearch\b.*?\breturned results\b", clause)
             ):
                 detected_family = "search"

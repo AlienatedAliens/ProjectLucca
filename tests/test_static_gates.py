@@ -213,7 +213,7 @@ def test_audio_concurrency_contract_exists() -> None:
     per-resource ownership, permitted blocking, and barge-in invariants.
     """
     repo_root = Path(__file__).parent.parent
-    adr_path = repo_root / "docs" / "adr" / "0009_audio_concurrency_contract.md"
+    adr_path = repo_root / "luccadocs" / "adr" / "0009_audio_concurrency_contract.md"
     assert adr_path.exists(), f"ADR-0009 missing at {adr_path}"
 
     content = adr_path.read_text(encoding="utf-8")
@@ -328,15 +328,15 @@ def test_active_docs_staleness_lint() -> None:
         repo_root / "AGENTS.md",
         repo_root / "GEMINI.md",
         repo_root / "README.md",
-        repo_root / "docs" / "README.md",
-        repo_root / "docs" / "ARCHITECTURE.md",
-        repo_root / "docs" / "DECISIONS.md",
-        repo_root / "docs" / "MODEL_STRATEGY.md",
-        repo_root / "docs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
-        repo_root / "docs" / "V2_BACKLOG.md",
-        repo_root / "docs" / "specs" / "STUDIO_CAPABILITY_ROADMAP.md",
-        repo_root / "docs" / "audit" / "findings" / "V1_RELEASE_AUDIT.md",
-        repo_root / "docs" / "adr" / "0009_audio_concurrency_contract.md",
+        repo_root / "luccadocs" / "README.md",
+        repo_root / "luccadocs" / "ARCHITECTURE.md",
+        repo_root / "luccadocs" / "DECISIONS.md",
+        repo_root / "luccadocs" / "MODEL_STRATEGY.md",
+        repo_root / "luccadocs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
+        repo_root / "luccadocs" / "V2_BACKLOG.md",
+        repo_root / "luccadocs" / "specs" / "STUDIO_CAPABILITY_ROADMAP.md",
+        repo_root / "luccadocs" / "audit" / "findings" / "V1_RELEASE_AUDIT.md",
+        repo_root / "luccadocs" / "adr" / "0009_audio_concurrency_contract.md",
     ]
 
     violations: list[str] = []
@@ -439,8 +439,8 @@ def test_registry_tool_count_consistency() -> None:
     # Active docs must cite the live count in their positive claims.
     doc_claims: list[tuple[str, int]] = []
     doc_paths = [
-        repo_root / "docs" / "README.md",
-        repo_root / "docs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
+        repo_root / "luccadocs" / "README.md",
+        repo_root / "luccadocs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
     ]
     for doc_path in doc_paths:
         text = doc_path.read_text(encoding="utf-8")
@@ -464,14 +464,14 @@ def test_package_version_matches_release_baseline() -> None:
     assert pkg_match, "package version not found in pyproject.toml"
     pkg_version = pkg_match.group(1)
 
-    docs_readme = (repo_root / "docs" / "README.md").read_text(encoding="utf-8")
+    docs_readme = (repo_root / "luccadocs" / "README.md").read_text(encoding="utf-8")
     baseline_match = re.search(r"Git Baseline:\*\* Project Lucca\s+v(\d+\.\d+\.\d+)", docs_readme)
-    assert baseline_match, "release baseline version not found in docs/README.md"
+    assert baseline_match, "release baseline version not found in luccadocs/README.md"
     baseline_version = baseline_match.group(1)
 
     assert pkg_version == baseline_version, (
         f"pyproject.toml version {pkg_version} does not match the release baseline "
-        f"v{baseline_version} cited in docs/README.md. Bump one or the other."
+        f"v{baseline_version} cited in luccadocs/README.md. Bump one or the other."
     )
 
 
