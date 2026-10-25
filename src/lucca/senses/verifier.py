@@ -23,8 +23,43 @@ from lucca.core.schemas import VerificationResult, VerifierLabel
 
 logger = structlog.get_logger(__name__)
 
-VERIFIER_MINILM_DIR = Path(r"C:\ProjectLucca\models\verifier_minilm")
-DEFAULT_VERIFIER_DIR = VERIFIER_MINILM_DIR
+import os
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _resolve_verifier_model_dir() -> Path:
+    """Resolve verifier model directory from environment or repo root, or raise FileNotFoundError."""
+    env_dir = os.environ.get("LUCCA_VERIFIER_MODEL_DIR")
+    if env_dir:
+        p = Path(env_dir)
+        if p.exists():
+            return p
+        raise FileNotFoundError(
+            f"LUCCA_VERIFIER_MODEL_DIR specified directory does not exist: '{p}'. "
+            "Please download cross-encoder/nli-MiniLM2-L6-H768 or set a valid path."
+        )
+
+    default_path = REPO_ROOT / "models" / "verifier_minilm"
+    if default_path.exists():
+        return default_path
+
+    export_script = REPO_ROOT / "scripts" / "export_nli_minilm.py"
+    msg = (
+        f"Verifier model directory not found at '{default_path}'. "
+        "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
+    )
+    if export_script.exists():
+        msg += f" Alternatively, generate it locally by running: python {export_script.relative_to(REPO_ROOT)}"
+    raise FileNotFoundError(msg)
+
+
+try:
+    DEFAULT_VERIFIER_DIR = _resolve_verifier_model_dir()
+except FileNotFoundError:
+    DEFAULT_VERIFIER_DIR = REPO_ROOT / "models" / "verifier_minilm"
+
+VERIFIER_MINILM_DIR = DEFAULT_VERIFIER_DIR
 
 
 class BoundedLRUPairCache:
@@ -72,7 +107,19 @@ class VerifierWorker:
         timeout_ms: float = 50.0,
         cache_capacity: int = 1024,
     ) -> None:
-        self.model_dir = model_dir or DEFAULT_VERIFIER_DIR
+        if model_dir is not None:
+            self.model_dir = Path(model_dir)
+            if not self.model_dir.exists():
+                export_script = REPO_ROOT / "scripts" / "export_nli_minilm.py"
+                msg = (
+                    f"Verifier model directory not found at '{self.model_dir}'. "
+                    "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
+                )
+                if export_script.exists():
+                    msg += f" Alternatively, generate it locally by running: python {export_script.relative_to(REPO_ROOT)}"
+                raise FileNotFoundError(msg)
+        else:
+            self.model_dir = _resolve_verifier_model_dir()
         self.timeout_ms = timeout_ms
         self._requested_device = device
         self.device = "CPU"

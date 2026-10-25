@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents</title>
+<style>
+  @page {
+    size: letter;
+    margin: 0.65in 0.6in 0.65in 0.6in;
+  }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 9.5pt;
+    line-height: 1.25;
+    color: #000;
+    margin: 0;
+    padding: 0;
+  }
+  .title-block {
+    text-align: center;
+    margin-bottom: 14pt;
+  }
+  h1.title {
+    font-size: 15pt;
+    font-weight: bold;
+    margin: 0 0 6pt 0;
+    line-height: 1.2;
+  }
+  .author {
+    font-size: 11pt;
+    font-weight: bold;
+    margin-bottom: 2pt;
+  }
+  .affiliation {
+    font-size: 9.5pt;
+    font-style: italic;
+    color: #333;
+    margin-bottom: 2pt;
+  }
+  .orcid {
+    font-size: 8.5pt;
+    font-family: "Courier New", Courier, monospace;
+    color: #1a0dab;
+  }
+  .date {
+    font-size: 9pt;
+    margin-top: 3pt;
+    color: #555;
+  }
+  .columns {
+    column-count: 2;
+    column-gap: 18pt;
+    text-align: justify;
+  }
+  .abstract-box {
+    margin: 0 14pt 12pt 14pt;
+    font-size: 8.5pt;
+    line-height: 1.25;
+  }
+  .abstract-heading {
+    font-weight: bold;
+    font-style: italic;
+    display: inline;
+  }
+  h2 {
+    font-size: 10pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 9pt 0 3pt 0;
+    border-bottom: 0.5pt solid #000;
+    padding-bottom: 1pt;
+    break-after: avoid;
+  }
+  h3 {
+    font-size: 9pt;
+    font-weight: bold;
+    font-style: italic;
+    margin: 7pt 0 2pt 0;
+    break-after: avoid;
+  }
+  p {
+    margin: 0 0 5pt 0;
+    text-indent: 10pt;
+  }
+  p.no-indent {
+    text-indent: 0;
+  }
+  ul, ol {
+    margin: 2pt 0 5pt 0;
+    padding-left: 13pt;
+  }
+  li {
+    margin-bottom: 2pt;
+    font-size: 8.5pt;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6pt 0;
+    font-size: 7.5pt;
+    break-inside: avoid;
+  }
+  th, td {
+    padding: 2.5pt 3pt;
+    border-top: 0.5pt solid #000;
+    border-bottom: 0.5pt solid #000;
+    text-align: left;
+  }
+  th {
+    font-weight: bold;
+    background-color: #f8f8f8;
+  }
+  .caption {
+    font-size: 7.5pt;
+    font-style: italic;
+    text-align: center;
+    margin-top: 2pt;
+    margin-bottom: 5pt;
+  }
+  code {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 8pt;
+    background: #f4f4f4;
+    padding: 0 1pt;
+  }
+  .equation {
+    text-align: center;
+    margin: 4pt 0;
+    font-family: "Times New Roman", Times, serif;
+    font-style: italic;
+    font-size: 8.5pt;
+  }
+  .math {
+    font-style: italic;
+    font-family: "Times New Roman", Times, serif;
+  }
+  .references {
+    font-size: 7.5pt;
+    line-height: 1.2;
+    padding-left: 12pt;
+  }
+  .references li {
+    font-size: 7.5pt;
+    margin-bottom: 3pt;
+  }
+</style>
+</head>
+<body>
+
+<div class="title-block">
+  <h1 class="title">Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents</h1>
+  <div class="author">Sean Maxwell</div>
+  <div class="affiliation">Independent Researcher</div>
+  <div class="orcid">ORCID: 0009-0004-0133-0463 &bull; Project Lucca</div>
+  <div class="date">October 2026</div>
+</div>
+
+<div class="abstract-box">
+  <p class="no-indent">
+    <span class="abstract-heading">Abstract&mdash;</span>Autonomous agents driven by Large Language Models (LLMs) operating in extended multi-session settings suffer from two systemic failure modes: (1) <em>recursive hallucination compounding</em>, wherein unverified model-originated narration is committed to long-term memory and subsequently retrieved as established truth; and (2) <em>fabricated action claims</em>, wherein agents assert execution of irreversible real-world side effects without verified tool execution. We present the architecture and mechanical evaluation of <strong>Project Lucca</strong>, an open-source (GNU AGPLv3), local-first neuro-symbolic agent architecture designed for strict epistemic grounding. Lucca enforces two primary defenses: (1) a <strong>Six-Signer Cryptographic Provenance Gate</strong> that requires domain-separated HKDF HMAC-SHA256 signatures for persistent memory commits, enforcing an epistemic invariant at the database schema level that separates conversational continuity from factual grounding eligibility; and (2) a <strong>Deontic Truth-in-Receipt Output Supervisor</strong> that screens generated speech tokens against deterministic execution receipts before user presentation. We evaluate these mechanisms across an authored 73-test deterministic unit battery, a 100-probe live action-hallucination testbed across edge models (Gemma 4 E2B/E4B), and analyze documented production failure modes under compute constraints.
+  </p>
+</div>
+
+<div class="columns">
+
+  <h2>1. Introduction</h2>
+  <p>Modern agentic architectures delegate state tracking and memory synthesis to neural context windows and vector-based Retrieval-Augmented Generation (RAG). In sustained, multi-turn deployment, this unconstrained feedback loop induces <em>epistemic corruption</em>:</p>
+  <ul>
+    <li><strong>Recursive Self-Poisoning:</strong> When an LLM confabulates a premise, standard naive memory architectures commit this unverified neural generation to the vector database. In subsequent turns, the agent retrieves its own prior hallucinations as authoritative historical evidence. User-originated misinformation enters the trusted tier (<code>USER_EXPLICIT</code>) and is an open boundary problem.</li>
+    <li><strong>Unverified Side Effects:</strong> In tool-augmented environments, models frequently produce first-person past-tense declarative claims (e.g., <em>"I deleted the corrupted directory"</em>) while failing to invoke or verify the underlying system API.</li>
+    <li><strong>Classical Inconsistency:</strong> Under classical two-valued logic (<span class="math">A &and; &not;A &vdash; B</span>), conflicting factual premises cause standard semantic parsers to catastrophically degrade, unable to isolate local contradictions.</li>
+  </ul>
+  <p>To isolate these vulnerabilities, we design <strong>Project Lucca</strong>, a neuro-symbolic framework decoupling conversational generation from state mutation and truth grounding. The core thesis of Lucca is that <em>neural model output must never be permitted to authorize its own persistence or certify its own actions</em>. Truth grounding is enforced deterministically by cryptographic envelopes and database-level constraints.</p>
+
+  <h2>2. Cryptographic Provenance Gate</h2>
+  <p>Standard cognitive architectures allow any output token stream with high semantic novelty to enter the agent's long-term memory graph. Lucca enforces an architectural firewall: freeform model narration (<code>LLM_NARRATION</code>) possesses no signing authority and is structurally rejected by design.</p>
+
+  <h3>2.1 Domain-Separated Cryptographic Envelopes</h3>
+  <p>Every candidate memory item must present an authentic cryptographic envelope signed via domain-separated HKDF HMAC-SHA256 derivation (<code>ProvenanceGate</code>) [2]:</p>
+  <div class="equation">
+    <span class="math">K<sub>domain</sub> = HKDF-Expand(HKDF-Extract(salt, K<sub>master</sub>), DomainInfo, L)</span>
+  </div>
+  <p>This architecture implements an information-flow control lattice [3] where signing keys are granted exclusively to six scoped deterministic signers:</p>
+  <ul>
+    <li><code>UserSpeechSigner</code>: Authenticates direct, explicit user utterances (<code>USER_EXPLICIT</code>).</li>
+    <li><code>DerivedFactSigner</code>: Authenticates verbatim extracted text spans from explicit user input.</li>
+    <li><code>ToolResultSigner</code>: Authenticates tool execution receipts and verified environmental side effects (<code>TOOL_VERIFIED</code>).</li>
+    <li><code>LispAssertionSigner</code>: Signs symbolic predicates verified via the deterministic Scheme/Lisp promotion gate.</li>
+    <li><code>CoherenceBreachSigner</code>: Logs verified semantic contradictions and invariant violations for audit.</li>
+    <li><code>AssistantUtteranceSigner</code>: Signs assistant dialogue tokens for conversational recall only.</li>
+  </ul>
+  <p>Untrusted external content (<code>TOOL_CONTENT_UNTRUSTED</code>, such as scraped web text or raw file data) cannot receive a persistent signature and is restricted to ephemeral context. Memory read-time HMAC verification isolates tampered rows into a persistent quarantine table.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Signer / Tier</th>
+        <th>Mem.</th>
+        <th>Gnd.</th>
+        <th>Grounding Rule</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>USER_EXPLICIT</code></td>
+        <td>1</td>
+        <td>1</td>
+        <td>High Epistemic Priority</td>
+      </tr>
+      <tr>
+        <td><code>USER_DERIVED</code></td>
+        <td>1</td>
+        <td>1</td>
+        <td>Verbatim Span Bound</td>
+      </tr>
+      <tr>
+        <td><code>TOOL_VERIFIED</code></td>
+        <td>1</td>
+        <td>1</td>
+        <td>Deterministic Receipt</td>
+      </tr>
+      <tr>
+        <td><code>LISP_ASSERTION</code></td>
+        <td>1</td>
+        <td>1</td>
+        <td>Formal Symbolic Proof</td>
+      </tr>
+      <tr>
+        <td><code>COHERENCE_BREACH</code></td>
+        <td>1</td>
+        <td>1</td>
+        <td>Structural Audit Log</td>
+      </tr>
+      <tr>
+        <td><code>ASSISTANT_UTTERANCE /</code><br/><code>ASSISTANT_BELIEF</code></td>
+        <td>1</td>
+        <td><strong>0</strong></td>
+        <td>Narrative Continuity Only</td>
+      </tr>
+      <tr>
+        <td><code>LLM_NARRATION</code></td>
+        <td><strong>0</strong></td>
+        <td><strong>0</strong></td>
+        <td><strong>Hard Rejection (No Signer)</strong></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="caption">Table 1: Memory tiers, storage eligibility (Mem.), and grounding eligibility (Gnd.).</div>
+
+  <h3>2.2 The Epistemic Grounding Invariant</h3>
+  <p>To prevent model-originated self-poisoning without sacrificing multi-turn conversational coherence, Lucca separates <em>what the agent said</em> from <em>what the agent treats as true</em>. SQLite triggers enforce the invariant at the storage engine layer: rows with provenance <code>ASSISTANT_UTTERANCE</code> or <code>ASSISTANT_BELIEF</code> have <code>grounding_eligible = 0</code>. The agent can retrieve what it previously told the user, but the query engine deterministically excludes these records when assembling factual context.</p>
+
+  <h2>3. Deontic Output Supervision</h2>
+  <p>To detect fabricated action claims, Lucca introduces the <strong>TruthInReceiptMatcher</strong> (<code>output_supervisor.py</code>). The supervisor screens assistant speech tokens before synthesis or UI display.</p>
+  <p>During an active turn, if the model asserts a first-person stateful operation (e.g., file modification, system configuration, deletion, process execution), the supervisor matches the asserted lemma against an active, verified <code>ToolReceipt</code> bearing status <code>success</code>. If an action claim is detected without an authentic matching receipt, generation aborts immediately if a stateful tool executed. On read-only turns, the breach is downgraded and deferred to post-turn coherence review, preventing false aborts on figurative speech.</p>
+
+  <h2>4. Four-Valued Evidential Representation</h2>
+  <p>To prevent classical logical explosion when tracking evolving or contradictory claims, Lucca employs Nuel Belnap's four-valued evidential bilattice [1]:</p>
+  <div class="equation">
+    <span class="math">FOUR = &lang;{None, True, False, Both}, &le;<sub>k</sub>, &le;<sub>t</sub>&rang;</span>
+  </div>
+  <p>Belief states are tracked via independent positive (<span class="math">e<sup>+</sup></span>) and negative (<span class="math">e<sup>-</sup></span>) evidence counters. Contradictions (<span class="math">Both = &top;</span>) do not invalidate the knowledge graph; instead, an embedded Natural Language Inference (NLI) verifier detects the semantic conflict, marks the belief state as conflicted, and triggers an explicit resolution dialogue.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Evaluation Metric</th>
+        <th>N</th>
+        <th>Result</th>
+        <th>Wilson 95% CI</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Authored deterministic tests<br/><em>(not a random sample)</em></td>
+        <td>73</td>
+        <td>73/73 (100%)</td>
+        <td>&mdash;</td>
+        <td>Passed</td>
+      </tr>
+      <tr>
+        <td>Live strict sensitivity<br/><em>(single annotator, not blind)</em></td>
+        <td>8</td>
+        <td>1/8 (12.5%)</td>
+        <td>[2.2%, 47.1%]</td>
+        <td>Identified flaw</td>
+      </tr>
+      <tr>
+        <td>Live broad FAC sensitivity<br/><em>(single annotator, not blind)</em></td>
+        <td>23</td>
+        <td>1/23 (4.3%)</td>
+        <td>[0.8%, 21.0%]</td>
+        <td>Identified flaw</td>
+      </tr>
+      <tr>
+        <td>Conversational controls</td>
+        <td>50</td>
+        <td>0/50 FP (0.0%)</td>
+        <td>[0.0%, 7.1%]</td>
+        <td>Passed</td>
+      </tr>
+      <tr>
+        <td>Clean NLI accuracy (500ms, ModernBERT)</td>
+        <td>100</td>
+        <td>93/100 (93.0%)</td>
+        <td>[86.3%, 96.6%]</td>
+        <td>Passed</td>
+      </tr>
+      <tr>
+        <td>Production NLI accuracy (MiniLM-L6)<br/><em>(in-sample, 12.2ms mean latency)</em></td>
+        <td>100</td>
+        <td>91/100 (91.0%)</td>
+        <td>[83.8%, 95.2%]</td>
+        <td>Passed</td>
+      </tr>
+      <tr>
+        <td>Production contradiction recall (MiniLM)</td>
+        <td>40</td>
+        <td>39/40 (97.5%)</td>
+        <td>[87.1%, 99.6%]</td>
+        <td>Passed</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="caption">Table 2: Empirical evaluation ledger of Project Lucca mechanisms.</div>
+
+  <h2>5. Empirical Evaluation & Identified Flaws</h2>
+  <p>On the authored formal unit battery, the supervisor achieved 73/73 (100.0%) coverage across pre-scripted assertions. However, on unconstrained live conversational outputs (<span class="math">T=0.6</span>, Gemma 4 E2B/E4B, evaluated by a single non-blind annotator), the baseline supervisor caught only 1/8 (12.5%) strict completed actions and 1/23 (4.3%) broad action claims. Models systematically bypassed past-tense regex rules via active progressive participles, passive confirmations, and markdown formatting. While an in-sample grammar supervisor re-score caught 20/23 broad claims (87.0%), it produced a 13.2% false-alarm rate on clean controls; held-out evaluation of a hardened grammar supervisor is planned.</p>
+  <p>Furthermore, while an unconstrained ModernBERT NLI baseline achieved 93.0% accuracy on 100 hand-labeled pairs under an unconstrained 500ms window, CPU execution averaged 57.14ms (p95 70.41ms). Under a strict 50ms production budget, 81/100 pairs timed out, causing downstream consumers to fail open and allowing contradictory facts into storage.</p>
+  <p>A lighter cross-encoder (<code>nli-MiniLM2-L6-H768</code>) was committed on 2026-10-25; empirical benchmark evaluation on 2026-10-26 confirmed that p95 latency dropped to 14.4ms on CPU (0/100 timeouts, mean 12.2ms), at a cost of about 2.0 percentage points of accuracy (93.0% &rarr; 91.0%) and 2.5 percentage points of contradiction recall (40/40 &rarr; 39/40, one miss in 40). Note that this 100-pair evaluation set was hand-labeled by a single annotator, is in-sample (not held out), and the MiniLM model was selected after observing ModernBERT's latency failure on this exact set. Hardware-accelerated NPU pipelines and GBNF grammars remain untested hypotheses for future work to address live regex evasion.</p>
+
+  <h2>6. Conclusion</h2>
+  <p>We describe two mechanisms for keeping an agent's memory and action reports checkable. The memory gate's invariants hold by construction and are covered by authored tests, but we have not measured their effect on long-horizon self-poisoning. The unhardened receipt matcher failed on live output (1/8 strict, 1/23 broad). The baseline ModernBERT verifier failed at the 50 ms budget (81/100 timeouts); a lighter cross-encoder (MiniLM-L6) removed the timeouts on an in-sample, hand-labeled 100-pair set, but consumer fail-open refactoring and out-of-sample evaluation remain.</p>
+
+  <h2>Appendix: Capability Benchmarks</h2>
+  <p>The following benchmarks evaluate base-model generation capabilities, not internal safety mechanisms:</p>
+  <ul>
+    <li><strong>Canonical HumanEval 164:</strong> Pass@1 raw: 155/164 (94.51%, 95% CI [89.9%, 97.1%]); assisted: 154/164 (93.90%). Evaluates 12B resident model code generation under deterministic sampling.</li>
+    <li><strong>Held-Out MATH-500 (N=98):</strong> 87/98 clean items (88.8%, 95% CI [81.0%, 93.7%]). Clean-98 excludes 2 leaked items (indices 14, 72) from earlier exploratory runs, evaluated under deterministic greedy decoding (<span class="math">T=0.0</span>, seed=42).</li>
+  </ul>
+
+  <h2>References</h2>
+  <ol class="references">
+    <li>N. D. Belnap, "A useful four-valued logic," in <em>Modern Uses of Multiple-Valued Logic</em>, J. M. Dunn and G. Epstein, Eds. Dordrecht: D. Reidel, 1977, pp. 5&ndash;37.</li>
+    <li>H. Krawczyk and P. Eronen, "HMAC-based Extract-and-Expand Key Derivation Function (HKDF)," RFC 5869, May 2010.</li>
+    <li>D. E. Denning, "A lattice model of secure information flow," <em>Communications of the ACM</em>, vol. 19, no. 5, pp. 236&ndash;243, 1976.</li>
+  </ol>
+
+</div>
+
+</body>
+</html>
