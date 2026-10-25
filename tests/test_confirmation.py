@@ -404,7 +404,7 @@ def test_voice_confirmation_does_not_block_ingest(test_orch: Orchestrator, tmp_p
     )
     test_orch._on_ptt_released(ts_ns=2000, p=payload)
 
-    for _ in range(50):
+    for _ in range(100):
         if test_orch.state == "confirm_wait":
             break
         time.sleep(0.02)

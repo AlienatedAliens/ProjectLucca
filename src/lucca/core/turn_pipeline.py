@@ -398,25 +398,91 @@ class TurnPipeline:
     Maintains 100% behavioral parity across voice and text modalities.
     """
 
-    _VISION_QUERY_PATTERNS: tuple[re.Pattern[str], ...] = (
+    _DIRECT_VISION_PATTERNS: tuple[re.Pattern[str], ...] = (
+        # Explicit media nouns
         re.compile(
-            r"\b(in (the |this |that )?(image|screenshot|picture|photo|capture|frame)|"
-            r"what (do you |can you |did you )?(see|spot|notice|observe|look at)|"
-            r"describe (what|it|that|the)|"
-            r"(look at|examine|inspect) (it|that|this|the image)|"
-            r"what (does it|do I|does that) look like|"
-            r"(what|who|where|how many) (is|are|do you see) (in|on|there))\b",
+            r"\b(in|on|from) (the |this |that )?(image|screenshot|picture|photo|capture|frame|screen|display)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(this|the|that) (image|screenshot|picture|photo|capture|frame)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(look at|examine|inspect|check out|describe) (this|that|the|it|my screen)\b",
+            re.IGNORECASE,
+        ),
+        # Direct perception questions
+        re.compile(
+            r"\b(can|could|do|are) you (see|spot|notice|observe|view|glance|read)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bwhat (do you|can you|did you|are you|are you able to) (see|spot|notice|observe|look at|looking at)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\btell me what you (see|spot|notice|observe)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bwhat('s| is| does) (on|in) (the|my|this) (screen|display|image|photo|picture)\b",
+            re.IGNORECASE,
+        ),
+        # Appearance and visual attributes
+        re.compile(
+            r"\bwhat (do you|does it|do i|does that|does he|does she) look like\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bdescribe (what|how|the) (you|it|that|this) looks? like\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bwhat colou?r (is|are)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\bwhat (are you|am i|is he|is she) wearing\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(read|what does) (the text|the badge|the label|the sign|the screen say)\b",
             re.IGNORECASE,
         ),
     )
 
-    def _is_vision_query(self, text: str) -> bool:
-        """Returns True only if the query specifically requires visual inspection."""
+    _CONTINUITY_PATTERNS: tuple[re.Pattern[str], ...] = (
+        re.compile(r"\b(where is (it|that|the)|where are (they|the))\b", re.IGNORECASE),
+        re.compile(r"\bwhich (one|part|side|half)\b", re.IGNORECASE),
+        re.compile(
+            r"\b(on the (left|right|top|bottom|side|edge)|in the (middle|center|background|foreground|corner))\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(is it|are they) (on the|in the|near|next to|above|below)\b",
+            re.IGNORECASE,
+        ),
+        re.compile(
+            r"\b(tell me more about it|what else (is there|do you see|can you see))\b",
+            re.IGNORECASE,
+        ),
+        re.compile(r"\b(how many|who is that|what about the)\b", re.IGNORECASE),
+    )
+
+    _VISION_QUERY_PATTERNS = _DIRECT_VISION_PATTERNS
+
+    def _is_vision_query(self, text: str, has_active_image: bool = False) -> bool:
+        """Returns True if the query requires visual inspection (or follow-up if image is active)."""
         if not text:
             return False
-        for pat in self._VISION_QUERY_PATTERNS:
+        for pat in self._DIRECT_VISION_PATTERNS:
             if pat.search(text):
                 return True
+        if has_active_image:
+            for pat in self._CONTINUITY_PATTERNS:
+                if pat.search(text):
+                    return True
         return False
 
     def __init__(self, orchestrator: Orchestrator) -> None:
@@ -653,6 +719,7 @@ class TurnPipeline:
                 trace=trace,
                 user_msg=user_text or "[Voice audio]",
                 decision_id=decision_id,
+                current_image_b64=getattr(self.orch, "current_turn_image_b64", None),
                 messages=narration_msgs,
                 enable_thinking=enable_thinking,
                 grammar=action_claim_grammar,
@@ -912,18 +979,27 @@ class TurnPipeline:
         self.reset_turn_state()
         self.orch.current_turn_transcript = user_text
         decision_id: str | None = None
-        # WO-37 Phase 1: Sticky Session Image
+        # WO-37 Phase 1 & Remediation: Sticky Session Image & Auto-store
         _new_image = inp.image_b64 or getattr(self.orch, "_pending_image_b64", None)
+        _store: VisualSessionStore | None = getattr(self.orch, "visual_session", None)
+
         if _new_image:
             eff_image_b64: str | None = _new_image
+            if _store is not None:
+                try:
+                    _store.store_image(_new_image, description="user_upload")
+                except Exception as _store_err:  # noqa: BLE001
+                    logger.debug("visual_session_store_failed", error=str(_store_err))
         else:
-            _store: VisualSessionStore | None = getattr(self.orch, "visual_session", None)
             _active = _store.get_active() if _store is not None else None
-            if _active is not None and self._is_vision_query(user_text):
+            if _active is not None and self._is_vision_query(user_text, has_active_image=True):
                 eff_image_b64 = _store.load_b64(_active) if _store is not None else None
                 if eff_image_b64:
-                    logger.debug("visual_session_reloaded", image_id=_active.image_id,
-                                 path=str(_active.path))
+                    logger.debug(
+                        "visual_session_reloaded",
+                        image_id=_active.image_id,
+                        path=str(_active.path),
+                    )
             else:
                 eff_image_b64 = None
 
@@ -931,9 +1007,8 @@ class TurnPipeline:
         if hasattr(self.orch, "_pending_image_b64"):
             self.orch._pending_image_b64 = None
 
-        # Epistemic Vision Guard
-        if eff_image_b64 is None and self._is_vision_query(user_text):
-            _store = getattr(self.orch, "visual_session", None)
+        # Epistemic Vision Guard: honest refusal if query requires vision but no image is present
+        if eff_image_b64 is None and self._is_vision_query(user_text, has_active_image=False):
             if _store is None or _store.count == 0:
                 _refusal = (
                     "I don't have an active image in our session to look at right now. "

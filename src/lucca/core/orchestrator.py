@@ -7,6 +7,7 @@ import base64
 import io
 import json
 import os
+from pathlib import Path
 import queue
 import re
 import sys
@@ -169,6 +170,7 @@ from lucca.senses.ring_buffer import (
     get_playback_ring,
 )
 from lucca.senses.tts import TTSWorker
+from lucca.senses.verifier import VerifierWorker
 
 logger = structlog.get_logger(__name__)
 
@@ -243,6 +245,7 @@ class Orchestrator:
         affect_tracker: AffectTracker | None = None,
         reflection_engine: ReflectionEngine | None = None,
         clock: ClockPort | None = None,
+        verifier: VerifierWorker | None = None,
     ) -> None:
         self.config = get_config()
         self._clock = clock if clock is not None else self._default_clock
@@ -445,7 +448,24 @@ class Orchestrator:
         self.breach_signer: CoherenceBreachSigner | None = None
         self.action_signer: ToolResultSigner | None = self.signer_factory.tool_result()
 
-        verifier_inst = getattr(self, "verifier", None)
+        # MiniLM NLI Semantic Verifier Subsystem (Spec 04 §3, Spec 11 §4, WO-37 Phase 2)
+        if verifier is not None:
+            self.verifier: VerifierWorker | None = verifier
+        else:
+            try:
+                v_cfg = getattr(self.config, "verifier", None)
+                v_dir = (
+                    Path(getattr(v_cfg, "model_dir", r"C:\ProjectLucca\models\verifier_minilm"))
+                    if v_cfg
+                    else Path(r"C:\ProjectLucca\models\verifier_minilm")
+                )
+                v_timeout = float(getattr(v_cfg, "timeout_ms", 50.0)) if v_cfg else 50.0
+                self.verifier = VerifierWorker(model_dir=v_dir, timeout_ms=v_timeout)
+            except Exception as _v_exc:
+                logger.debug("orchestrator_verifier_init_skipped", error=str(_v_exc))
+                self.verifier = None
+
+        verifier_inst = self.verifier
 
         # Autobiographical Reflection Engine (Spec §7, D-MEM-04, WP-2 & WO-36 Milestone 36.3)
         if reflection_engine is not None:

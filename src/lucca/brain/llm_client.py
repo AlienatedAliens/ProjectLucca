@@ -192,6 +192,7 @@ class LLMClient:
     def stream_turn(
         self,
         current_audio_b64: str | None = None,
+        current_image_b64: str | None = None,
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
         history: list[dict[str, str]] | None = None,
@@ -224,6 +225,7 @@ class LLMClient:
                 memories=memories,
                 history=history,
                 current_audio_b64=current_audio_b64,
+                current_image_b64=current_image_b64,
                 current_text=current_text,
                 tool_messages=tool_messages,
                 epistemic_context=epistemic_context,
@@ -244,7 +246,7 @@ class LLMClient:
         #   4. image_b64 is cleared (set to None) unconditionally — including error paths — because
         #      clearing happens before the HTTP stream is opened.
         # Text-only path is completely unchanged when no message carries image_b64.
-        _image_b64_to_inject: str | None = None
+        _image_b64_to_inject: str | None = current_image_b64
         for _msg in eff_messages:
             if getattr(_msg, "image_b64", None):
                 _image_b64_to_inject = _msg.image_b64
@@ -275,6 +277,23 @@ class LLMClient:
                     break
 
         eff_tools = tools if tools is not None else TOOL_DEFINITIONS
+        if _image_b64_to_inject is not None and eff_tools:
+            def _is_screenshot(t: object) -> bool:
+                if isinstance(t, dict):
+                    fn = t.get("function")
+                    if isinstance(fn, dict) and fn.get("name") == "screenshot_capture":
+                        return True
+                    if t.get("name") == "screenshot_capture":
+                        return True
+                fn = getattr(t, "function", None)
+                if fn is not None:
+                    if getattr(fn, "name", None) == "screenshot_capture":
+                        return True
+                if getattr(t, "name", None) == "screenshot_capture":
+                    return True
+                return False
+
+            eff_tools = [t for t in eff_tools if not _is_screenshot(t)]
         prepared_messages: list[dict[str, JsonValue]] = []
         for i, m in enumerate(eff_messages):
             dumped = m.model_dump(exclude_none=True)
