@@ -148,7 +148,7 @@ We describe two mechanisms for keeping an agent's memory and action reports chec
 The following benchmarks evaluate base-model generation capabilities and scaffolding, not the internal safety or epistemic mechanisms described in this paper:
 \begin{itemize}
     \item \textbf{Canonical HumanEval 164:} Pass@1 raw: 155/164 (94.51\%, 95\% CI [89.9\%, 97.1\%]); assisted: 154/164 (93.90\%). Evaluates 12B resident model code generation under deterministic sampling.
-    \item \textbf{Held-Out MATH-500 ($N=98$):} 87/98 clean items (88.8\%, 95\% CI [81.0\%, 93.7\%]). Note: Clean-98 excludes 2 leaked items (indices 14, 72) from earlier exploratory runs, evaluated under deterministic greedy decoding ($T=0.0$, \texttt{seed=42}).
+    \item \textbf{MATH-500 (clean subset, $N=98$):} 87/98 clean items (88.8\%, 95\% CI [81.0\%, 93.7\%]). Note: Clean-98 excludes 2 leaked items (indices 14, 72) from earlier exploratory runs, evaluated under deterministic greedy decoding ($T=0.0$, \texttt{seed=42}).
 \end{itemize}
 
 \begin{thebibliography}{9}

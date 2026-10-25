@@ -337,7 +337,7 @@
   <p>The following benchmarks evaluate base-model generation capabilities, not internal safety mechanisms:</p>
   <ul>
     <li><strong>Canonical HumanEval 164:</strong> Pass@1 raw: 155/164 (94.51%, 95% CI [89.9%, 97.1%]); assisted: 154/164 (93.90%). Evaluates 12B resident model code generation under deterministic sampling.</li>
-    <li><strong>Held-Out MATH-500 (N=98):</strong> 87/98 clean items (88.8%, 95% CI [81.0%, 93.7%]). Clean-98 excludes 2 leaked items (indices 14, 72) from earlier exploratory runs, evaluated under deterministic greedy decoding (<span class="math">T=0.0</span>, seed=42).</li>
+    <li><strong>MATH-500 (clean subset, N=98):</strong> 87/98 clean items (88.8%, 95% CI [81.0%, 93.7%]). Clean-98 excludes 2 leaked items (indices 14, 72) from earlier exploratory runs, evaluated under deterministic greedy decoding (<span class="math">T=0.0</span>, seed=42).</li>
   </ul>
 
   <h2>References</h2>
