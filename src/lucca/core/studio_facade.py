@@ -246,7 +246,7 @@ class StudioFacade:
             provenance=Provenance.USER_EXPLICIT,
             kind=kind,
             content=content,
-            structured={"source": "operator_seed"},
+            structured={"source": "operator_seed", "importance": importance},
             trace_id="operator-seed-trace",
             session_id="operator-seed-session",
             created_at=now,

@@ -301,7 +301,7 @@ def test_build_launch_command_speculative_decoding(tmp_path: Path) -> None:
     assert "--spec-draft-type-k" in cmd2 and "q8_0" in cmd2
     assert "--spec-draft-type-v" in cmd2 and "q4_0" in cmd2
     assert "--cpu-moe" in cmd2
-    assert "--moe-expert-cache-mib" in cmd2 and "4096" in cmd2
+    assert "--moe-cache-mib" in cmd2 and "4096" in cmd2
 
     # 3. Both (draft-simple,ngram-mod)
     cfg_both = LLMSettings(

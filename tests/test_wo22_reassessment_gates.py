@@ -24,9 +24,11 @@ import pytest
 
 REPO_ROOT = Path(__file__).parent.parent
 
-WO22_PLAN = REPO_ROOT / "plans" / "2026-09-27_wo22_practical_reasoning.md"
-V2_BACKLOG = REPO_ROOT / "docs" / "V2_BACKLOG.md"
-V2_ACTION_LOG = REPO_ROOT / "docs" / "V2_ACTION_LOG.md"
+WO22_PLAN = REPO_ROOT / "plans" / "archive" / "2026-09-27_wo22_practical_reasoning.md"
+V2_BACKLOG = REPO_ROOT / "luccadocs" / "V2_BACKLOG.md"
+V2_ACTION_LOG = (
+    REPO_ROOT / "luccadocs" / "archive" / "2026-10_architecture_snapshots" / "V2_ACTION_LOG.md"
+)
 
 USER_MODEL_STUB = REPO_ROOT / "src" / "lucca" / "core" / "user_model.py"
 EPISODE_RECALL_STUB = REPO_ROOT / "src" / "lucca" / "core" / "episode_recall.py"
