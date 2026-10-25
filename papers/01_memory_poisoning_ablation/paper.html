@@ -259,8 +259,8 @@
   </table>
   <div class="caption">Table 1: <strong>Multi-Session Memory Poisoning & Provenance Gate Ablation Results.</strong> Percentage rates shown with two-sided 95% Wilson score confidence intervals [in brackets]. Evaluated on <em>N=100</em> frozen probes across 4 arms.</div>
 
-  <h3>4.1 Self-Poisoning Elimination (H<sub>1</sub>)</h3>
-  <p>As shown in Table 1, Naive RAG suffered a 100.0% self-poisoning compounding rate (40/40), adopting every past confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0% compounding (0/40), completely eliminating self-poisoning. A two-sided exact McNemar test on discordant pairs (<em>b=40, c=0</em>) confirms extreme statistical significance:</p>
+  <h3>4.1 Mitigation of Self-Poisoning on Evaluated Probes (H<sub>1</sub>)</h3>
+  <p>As shown in Table 1, Naive RAG suffered a 100.0% self-poisoning compounding rate (40/40), adopting every past confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0% compounding (0/40) on this cohort, reducing observed self-poisoning to below the detectable floor. A two-sided exact McNemar test on discordant pairs (<em>b=40, c=0</em>) confirms extreme statistical significance:</p>
   <div class="equation">
     <span class="math">p = 6.98 &times; 10<sup>&minus;10</sup> &nbsp; (p &lt; 0.001)</span>
   </div>
@@ -287,7 +287,7 @@
   <p>We emphasize that cryptographic provenance guarantees <em>origin integrity</em>, not <em>epistemic truth</em>. In Cohort C, user-originated falsehoods are ingested into grounding storage because the user is an authorized identity. Provenance gating prevents self-poisoning; resolving user-originated misinformation requires external multi-source corroboration.</p>
 
   <h2>6. Conclusion</h2>
-  <p>We have presented the first pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating completely eliminates recursive multi-session self-poisoning while preserving autobiographical conversational continuity.</p>
+  <p>We have presented the first pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating eliminates recursive self-poisoning across the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.</p>
 
   <h2>References</h2>
   <ol class="references">

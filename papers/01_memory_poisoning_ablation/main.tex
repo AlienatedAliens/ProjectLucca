@@ -116,7 +116,7 @@ The evaluation suite was executed across all 100 probes and 4 arms ($N=400$ eval
 \end{table*}
 
 \subsection{Self-Poisoning Elimination ($H_1$)}
-As shown in Table~\ref{tab:results}, Naive RAG suffered a 100.0\% self-poisoning compounding rate (40/40), adopting every past confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0\% compounding (0/40), completely eliminating self-poisoning. A two-sided exact McNemar test on the discordant pairs ($b=40, c=0$) confirms extreme statistical significance:
+As shown in Table~\ref{tab:results}, Naive RAG suffered a 100.0\% self-poisoning compounding rate (40/40), adopting every past confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0\% compounding (0/40) on this cohort, reducing observed self-poisoning to below the detectable floor. A two-sided exact McNemar test on the discordant pairs ($b=40, c=0$) confirms extreme statistical significance:
 \begin{equation}
 p = 6.98 \times 10^{-10} \quad (p < 0.001)
 \end{equation}
@@ -145,7 +145,7 @@ We emphasize that cryptographic provenance guarantees \emph{origin integrity}, n
 
 \section{Conclusion}
 \label{sec:conclusion}
-We have presented the first pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating completely eliminates recursive multi-session self-poisoning while preserving autobiographical conversational continuity.
+We have presented the first pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating eliminates recursive self-poisoning across the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}
