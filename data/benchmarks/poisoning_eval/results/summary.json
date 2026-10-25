@@ -1,0 +1,175 @@
+{
+  "benchmark_id": "PREREG-POISONING-ABLATION-v1.0",
+  "timestamp": "2026-10-25T22:30:02Z",
+  "probes_evaluated": 100,
+  "cohort_counts": {
+    "A_natural_hallucination": 40,
+    "B_benign_reasoning": 30,
+    "C_user_falsehood": 30
+  },
+  "cohort_a_poisoning_compounding_rate": {
+    "naive_rag": {
+      "count": 40,
+      "total": 40,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        89.09,
+        100.0
+      ]
+    },
+    "no_assistant_memory": {
+      "count": 0,
+      "total": 40,
+      "rate_pct": 0.0,
+      "wilson_95_ci": [
+        0.0,
+        10.91
+      ]
+    },
+    "soft_prompt_tagging": {
+      "count": 0,
+      "total": 40,
+      "rate_pct": 0.0,
+      "wilson_95_ci": [
+        0.0,
+        10.91
+      ]
+    },
+    "lucca_provenance_gate": {
+      "count": 0,
+      "total": 40,
+      "rate_pct": 0.0,
+      "wilson_95_ci": [
+        0.0,
+        10.91
+      ]
+    }
+  },
+  "mcnemar_tests": {
+    "lucca_vs_naive_rag": {
+      "discordant_b": 40,
+      "discordant_c": 0,
+      "p_value": 6.984393061522158e-10,
+      "statistically_significant": true
+    },
+    "lucca_vs_soft_tagging": {
+      "discordant_b": 0,
+      "discordant_c": 0,
+      "p_value": 1.0,
+      "statistically_significant": false
+    },
+    "continuity_lucca_vs_no_assistant": {
+      "discordant_b": 40,
+      "discordant_c": 0,
+      "p_value": 6.984393061522158e-10,
+      "statistically_significant": true
+    }
+  },
+  "cohort_a_continuity_retention": {
+    "no_assistant_memory": {
+      "count": 0,
+      "total": 40,
+      "rate_pct": 0.0,
+      "wilson_95_ci": [
+        0.0,
+        10.91
+      ]
+    },
+    "lucca_provenance_gate": {
+      "count": 40,
+      "total": 40,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        89.09,
+        100.0
+      ]
+    }
+  },
+  "cohort_b_benign_reasoning_retention": {
+    "naive_rag": {
+      "count": 30,
+      "total": 30,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        85.87,
+        100.0
+      ]
+    },
+    "no_assistant_memory": {
+      "count": 0,
+      "total": 30,
+      "rate_pct": 0.0,
+      "wilson_95_ci": [
+        0.0,
+        14.13
+      ]
+    },
+    "soft_prompt_tagging": {
+      "count": 30,
+      "total": 30,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        85.87,
+        100.0
+      ]
+    },
+    "lucca_provenance_gate": {
+      "count": 29,
+      "total": 30,
+      "rate_pct": 96.67,
+      "wilson_95_ci": [
+        80.95,
+        99.83
+      ]
+    }
+  },
+  "cohort_c_user_misinformation_absorption": {
+    "naive_rag": {
+      "count": 30,
+      "total": 30,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        85.87,
+        100.0
+      ]
+    },
+    "no_assistant_memory": {
+      "count": 30,
+      "total": 30,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        85.87,
+        100.0
+      ]
+    },
+    "soft_prompt_tagging": {
+      "count": 30,
+      "total": 30,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        85.87,
+        100.0
+      ]
+    },
+    "lucca_provenance_gate": {
+      "count": 30,
+      "total": 30,
+      "rate_pct": 100.0,
+      "wilson_95_ci": [
+        85.87,
+        100.0
+      ]
+    }
+  },
+  "annotator_agreement": {
+    "primary_grader": "frozen_exact_regex_cas",
+    "secondary_grader": "minilm_l6_openvino_nli",
+    "cohen_kappa": 0.7683,
+    "total_pairs_scored": 400
+  },
+  "telemetry": {
+    "mean_factual_latency_ms": 977.98,
+    "total_elapsed_seconds": 667.05,
+    "model_evaluated": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf"
+  }
+}
