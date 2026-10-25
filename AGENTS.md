@@ -46,6 +46,14 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - Mandatory live sourcing of late-2026 frontier models (Claude Opus 5/5.5, GPT-5.6/6 Astra, Gemini 3.8/4-Argon, DeepSeek-V4-Pro) and modern agentic harnesses (SWE-bench Pro/Verified, GAIA, OSWorld, WebArena, ARC-AGI-2/3, FrontierMath) before writing comparisons.
    - Parity disclosure: strictly separate bare token prediction from test-time compute (CoT) and agentic scaffolding (Z3/SymPy/Docker CEGIS vs OpenHands/Devin/Claude Code).
 
+8. **Agent Governance, Repo Hygiene & Documentation Truthfulness:**
+   - **No Superlatives or Unverified Labels:** Never use "Verified" on benchmark rows unless independently reproduced by a third party outside the author's workstation. Use "Author-measured", "Self-measured", or "Unit-tested".
+   - **No Modifying Measured Data:** Never alter measured results, raw benchmark logs, or test outcomes to improve documentation. Change explanatory wording and report caveats.
+   - **Evidence Citations:** Any PR changing a documented metric must link directly to the source artifact, dataset hash, and execution script.
+   - **No Root Scratch Folders:** Never create ad-hoc `scratch_*` folders in repository root. Ephemeral test files belong in the configured artifact scratch directory or gitignored `scratch/`.
+   - **No Autonomous Safety Weakening:** Agents are strictly forbidden from weakening promotion gates, disabling sandbox isolation, adding shell binaries to allowlists, or auto-promoting quarantined rules.
+   - **AI-Assisted Development Disclosure:** Contributions by AI agents are subject to human review and must be disclosed in pull requests and commit descriptions.
+
 ---
 
 ## 3. Master Documentation Directory

@@ -50,6 +50,8 @@ The following documents form the **authoritative, active documentation corpus** 
 | [`luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md`](./specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md) | **Autobiographical Memory Specification**: Rung A1 self-model, `ASSISTANT_ACTION` vs `ASSISTANT_UTTERANCE` provenance split, and evidence-gated belief revisions. |
 | [`luccadocs/adr/0009_audio_concurrency_contract.md`](./adr/0009_audio_concurrency_contract.md) | **Audio Concurrency Contract**: Shared-memory ring buffer concurrency, push-to-talk state transitions, and sub-50ms barge-in abort mechanics. |
 | [`luccadocs/audit/findings/V1_RELEASE_AUDIT.md`](./audit/findings/V1_RELEASE_AUDIT.md) | **Release Audit & Verification Certificate**: Verification evidence across static gates, regression tests, C1 split-conformal abstention, and A1 introspective accuracy. |
+| [`luccadocs/GLOSSARY.md`](./GLOSSARY.md) | **System Glossary**: Plain-English definitions of cognitive architecture terms (Reflex, Act-Then-Narrate, Full Loop, Mereotopology, CEGIS, Bilattices, Tanks, Spikes). |
+| [`luccadocs/security/THREAT_MODEL.md`](./security/THREAT_MODEL.md) | **Threat Model & Security Architecture**: Formal threat taxonomy, sandbox boundaries, ungrounded action supervision, and test-verified security invariants. |
 
 ### 2.2 Subsystem Reference Manuals (`luccadocs/subsystems/`)
 | Document | Subsystem & Scope |
