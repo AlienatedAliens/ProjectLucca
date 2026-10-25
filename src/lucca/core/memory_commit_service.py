@@ -36,8 +36,31 @@ STANCE_MARKERS: tuple[str, ...] = (
 )
 
 
+_TOPIC_STOPWORDS: frozenset[str] = frozenset({
+    "it", "that", "this", "so", "about", "about it", "about that",
+    "about this", "of it", "of that", "the same", "as much",
+    "much", "quite", "very", "really", "honestly",
+})
+
+
+def _clean_truncate(s: str, max_len: int = 40) -> str:
+    s = s.strip()
+    if len(s) <= max_len:
+        return s
+    cut = s[:max_len]
+    if " " in cut:
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.strip(" ,:.-")
+
+
 def _extract_stance_topic(text: str) -> str:
-    """Extracts candidate topic string from a first-person stance utterance (Spec §7, WP-2)."""
+    """Extracts candidate topic from a first-person stance utterance (Spec §7, WP-2).
+
+    Applies a stopword/pronoun filter: idiomatic phrases like 'when I think about it'
+    do not produce topics like 'about it'. Falls back to the pre-marker clause (the
+    main subject) or full text[:40] if no meaningful candidate is found.
+    Truncates cleanly on word boundaries (<=40 chars).
+    """
     lower = text.lower()
     for marker in STANCE_MARKERS:
         if marker in lower:
@@ -45,9 +68,23 @@ def _extract_stance_topic(text: str) -> str:
             sub = text[idx + len(marker) :].strip(" ,:.-")
             if sub:
                 clause = re.split(r"[.!?;\n]+", sub)[0].strip()
-                if clause:
-                    return clause[:40].strip()
-    return text[:40].strip()
+                candidate = _clean_truncate(clause, 40)
+                if candidate and candidate.lower() not in _TOPIC_STOPWORDS:
+                    words = candidate.lower().split()
+                    if not all(w in _TOPIC_STOPWORDS for w in words):
+                        return candidate
+    # Fallback: use the pre-marker clause (the main subject of the sentence)
+    for marker in STANCE_MARKERS:
+        if marker in lower:
+            pre = text[: lower.find(marker)].strip(" ,:.-")
+            if pre:
+                pre = re.sub(r"\b(when|if|while|as|because|since|that|and|or|but)\s*$", "", pre, flags=re.IGNORECASE).strip(" ,:.-")
+                if pre:
+                    clause = re.split(r"[.!?;\n]+", pre)[-1].strip()
+                    candidate = _clean_truncate(clause, 40)
+                    if candidate and candidate.lower() not in _TOPIC_STOPWORDS:
+                        return candidate
+    return _clean_truncate(text, 40)
 
 
 _DEMONYMS: Final[frozenset[str]] = frozenset(
@@ -292,6 +329,34 @@ _PASSIVE_FACT_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
         "origin_is",
         re.compile(
             r"\b(?:i'm from|i am from|originally from)\s+([A-Za-z\s\-']{2,40}?)(?:[.,!?;]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "visited_location",
+        re.compile(
+            r"\b(?:we were|i was)\s+(?:on\s+holiday|on\s+vacation|traveling|travelling|staying)\s+in\s+([A-Za-z][A-Za-z\s\-']{2,40}?)(?:[.,!?;]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "has_partner",
+        re.compile(
+            r"\bmy\s+(?:girlfriend|boyfriend|wife|husband|partner|fiance|fiancee)\s+is\s+([A-Za-z0-9][A-Za-z0-9\s\-']{2,50}?)(?:[.,!?;]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "prefers",
+        re.compile(
+            r"\b(?:i\s+prefer|my\s+favou?rite\s+\w+\s+is)\s+([A-Za-z0-9][A-Za-z0-9\s\-']{2,50}?)(?:[.,!?;]|$)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "planning_to",
+        re.compile(
+            r"\b(?:i'm\s+thinking\s+of|i\s+am\s+thinking\s+of|i\s+plan\s+to|i'm\s+planning\s+to)\s+([A-Za-z0-9][A-Za-z0-9\s\-']{3,60}?)(?:[.,!?;]|$)",
             re.IGNORECASE,
         ),
     ),
