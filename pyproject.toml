@@ -55,6 +55,9 @@ dev = [
     "faster-whisper>=1.0.0",
     "jiwer>=3.0.0",
 ]
+export = [
+    "optimum-intel>=2.2.0",
+]
 
 [project.scripts]
 lucca-admin = "lucca.admin:main"

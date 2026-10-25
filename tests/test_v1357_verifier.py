@@ -115,24 +115,28 @@ def test_verifier_decision_policy_thresholds() -> None:
         mock_req.infer.return_value = {"logits": np.array(logits, dtype=np.float32)}
         return mock_req
 
+    def make_mapped_logits(ent: float, neu: float, con: float) -> list[float]:
+        arr = [0.0, 0.0, 0.0]
+        arr[worker.label_map["entailment"]] = ent
+        arr[worker.label_map["neutral"]] = neu
+        arr[worker.label_map["contradiction"]] = con
+        return arr
+
     # Case 1: High entailment (> 0.60) -> ENTAILMENT
-    # Softmax of [5.0, 0.0, 0.0] gives entailment ~ 0.98
-    worker.infer_request = make_infer_result([5.0, 0.0, 0.0])
+    worker.infer_request = make_infer_result(make_mapped_logits(5.0, 0.0, 0.0))
     res = worker.check_consistency(premise="p1", hypothesis="h1")
     assert res.label == VerifierLabel.ENTAILMENT
     assert res.entailment_prob > 0.60
     assert res.degraded is False
 
     # Case 2: High contradiction (> 0.60) -> CONTRADICTION
-    # Softmax of [0.0, 0.0, 5.0] gives contradiction ~ 0.98
-    worker.infer_request = make_infer_result([0.0, 0.0, 5.0])
+    worker.infer_request = make_infer_result(make_mapped_logits(0.0, 0.0, 5.0))
     res = worker.check_consistency(premise="p2", hypothesis="h2")
     assert res.label == VerifierLabel.CONTRADICTION
     assert res.contradiction_prob > 0.60
 
     # Case 3: High neutral (> 0.60) -> NEUTRAL
-    # Softmax of [0.0, 5.0, 0.0] gives neutral ~ 0.98
-    worker.infer_request = make_infer_result([0.0, 5.0, 0.0])
+    worker.infer_request = make_infer_result(make_mapped_logits(0.0, 5.0, 0.0))
     res = worker.check_consistency(premise="p3", hypothesis="h3")
     assert res.label == VerifierLabel.NEUTRAL
     assert res.neutral_prob > 0.60
@@ -140,13 +144,13 @@ def test_verifier_decision_policy_thresholds() -> None:
     # Case 4: Ambiguous entailment inside uncertainty band [0.40, 0.60] -> UNCERTAIN
     # e.g. Logits that produce ~0.50 entailment, 0.30 neutral, 0.20 contradiction
     # ln(0.50) = -0.693, ln(0.30) = -1.204, ln(0.20) = -1.609
-    worker.infer_request = make_infer_result([-0.693, -1.204, -1.609])
+    worker.infer_request = make_infer_result(make_mapped_logits(-0.693, -1.204, -1.609))
     res = worker.check_consistency(premise="p4", hypothesis="h4")
     assert res.label == VerifierLabel.UNCERTAIN
     assert 0.40 <= res.entailment_prob <= 0.60
 
     # Case 5: Ambiguous contradiction inside uncertainty band [0.40, 0.60] -> UNCERTAIN
-    worker.infer_request = make_infer_result([-1.609, -1.204, -0.693])
+    worker.infer_request = make_infer_result(make_mapped_logits(-1.609, -1.204, -0.693))
     res = worker.check_consistency(premise="p5", hypothesis="h5")
     assert res.label == VerifierLabel.UNCERTAIN
     assert 0.40 <= res.contradiction_prob <= 0.60
@@ -225,7 +229,11 @@ def test_g_v1357_verifier_neg_gate() -> None:
 
     # Sub-test 1: Near-paraphrase -> ENTAILMENT
     mock_req = MagicMock()
-    mock_req.infer.return_value = {"logits": np.array([3.0, 0.5, -2.0], dtype=np.float32)}
+    logits = [0.0, 0.0, 0.0]
+    logits[worker.label_map["entailment"]] = 3.0
+    logits[worker.label_map["neutral"]] = 0.5
+    logits[worker.label_map["contradiction"]] = -2.0
+    mock_req.infer.return_value = {"logits": np.array(logits, dtype=np.float32)}
     worker.infer_request = mock_req
 
     res_paraphrase = worker.check_consistency(

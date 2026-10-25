@@ -1,8 +1,9 @@
 """
-Project Lucca — Semantic Verifier Subsystem (ModernBERT NLI on Intel NPU/CPU)
-Spec 04 §3, Spec 11 §4, Release v1.35.7 (Phase 2)
+Project Lucca — Semantic Verifier Subsystem (MiniLM-L6 NLI on Intel CPU/NPU)
+Spec 04 §3, Spec 11 §4, Release v1.35.7 (Phase 2), WO-37 Phase 2
 """
 
+import json
 import threading
 import time
 import unicodedata
@@ -22,7 +23,8 @@ from lucca.core.schemas import VerificationResult, VerifierLabel
 
 logger = structlog.get_logger(__name__)
 
-DEFAULT_VERIFIER_DIR = Path(r"C:\ProjectLucca\models\verifier")
+VERIFIER_MINILM_DIR = Path(r"C:\ProjectLucca\models\verifier_minilm")
+DEFAULT_VERIFIER_DIR = VERIFIER_MINILM_DIR
 
 
 class BoundedLRUPairCache:
@@ -85,6 +87,17 @@ class VerifierWorker:
     def _init_model(self) -> None:
         xml_path = self.model_dir / "openvino_model.xml"
         tok_path = self.model_dir / "tokenizer.json"
+
+        self.label_map: dict[str, int] = {"contradiction": 0, "entailment": 1, "neutral": 2}
+        config_path = self.model_dir / "config.json"
+        if config_path.exists():
+            try:
+                cfg = json.loads(config_path.read_text(encoding="utf-8"))
+                id2label = cfg.get("id2label", {})
+                if id2label:
+                    self.label_map = {str(v).lower(): int(k) for k, v in id2label.items()}
+            except Exception as exc:
+                logger.debug("verifier_config_read_failed", error=str(exc))
 
         # Load fast Rust tokenizer
         if Tokenizer is not None and tok_path.exists():
@@ -209,10 +222,14 @@ class VerifierWorker:
             exp_logits = np.exp(logits - np.max(logits))
             probs = exp_logits / np.sum(exp_logits)
 
-            # ModernBERT NLI label mapping: 0: entailment, 1: neutral, 2: contradiction
-            entailment_prob = float(probs[0])
-            neutral_prob = float(probs[1])
-            contradiction_prob = float(probs[2])
+            # MiniLM NLI label mapping: 0: contradiction, 1: entailment, 2: neutral
+            ent_idx = self.label_map.get("entailment", 1)
+            neu_idx = self.label_map.get("neutral", 2)
+            con_idx = self.label_map.get("contradiction", 0)
+
+            entailment_prob = float(probs[ent_idx])
+            neutral_prob = float(probs[neu_idx])
+            contradiction_prob = float(probs[con_idx])
 
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
 

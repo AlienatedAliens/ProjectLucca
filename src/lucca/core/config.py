@@ -218,6 +218,11 @@ class LogSettings(BaseModel):
     decision_retention_files: int = 14
 
 
+class VerifierSettings(BaseModel):
+    model_dir: str = r"C:\ProjectLucca\models\verifier_minilm"
+    timeout_ms: float = 50.0
+
+
 class LuccaConfig(BaseSettings):
     """
     Unified Application Configuration
@@ -247,6 +252,7 @@ class LuccaConfig(BaseSettings):
     ipc: IPCSettings = Field(default_factory=IPCSettings)
     ui: UISettings = Field(default_factory=UISettings)
     log: LogSettings = Field(default_factory=LogSettings)
+    verifier: VerifierSettings = Field(default_factory=VerifierSettings)
 
     master_key: str | None = Field(default=None, alias="LUCCA_MASTER_KEY")
 
