@@ -29,7 +29,7 @@
 \maketitle
 
 \begin{abstract}
-Autonomous desktop and cloud agents must not assert that state-modifying actions (e.g., deleting files, terminating processes, booking reservations, or modifying access controls) have occurred when no verifiable execution receipt exists. While deterministic speech-regex pattern matchers are widely deployed as low-latency safety guards, live production audits reveal alarming failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex supervisor caught only 1/8 (12.5\%) strict action confabulations and 1/23 (4.3\%) broad ungrounded action assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by expanding pattern breadth induces a severe precision-recall dilemma, driving false alarm rates on benign idioms and conversational controls in-sample to over 13\%. To resolve this trade-off, we evaluate a \emph{Structured-Output Action Contract (SOAC)}, which decouples conversational prose from action authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a pre-registered, held-out benchmark of $N=120$ unseen prompts (action temptations, honest controls, and idioms; frozen under git tag \texttt{prereg-supervision-v1}), we compare legacy strict regex, broadened grammar supervision, and SOAC on \texttt{gemma-4-26B-A4B}. Our findings confirm that strict speech regex achieves only 6.25\% sensitivity on held-out live claims (1/16 caught), while SOAC achieves sub-10-microsecond execution latency (6.82\,$\mu$s mean). Crucially, we document the phenomenon of \emph{prose leakage} (13.3\% of turns), demonstrating that structured contracts eliminate syntactic regex evasions but cannot prevent models from asserting actions in natural prose outside the structured channel without explicit prose supervision.
+Autonomous desktop and cloud agents must not assert that state-modifying actions (e.g., deleting files, terminating processes, booking reservations, or modifying access controls) have occurred when no verifiable execution receipt exists. While deterministic speech-regex pattern matchers are widely deployed as low-latency safety guards, live production audits reveal substantial failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex supervisor caught only 1/8 (12.5\%) strict action confabulations and 1/23 (4.3\%) broad ungrounded action assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by expanding pattern breadth induces a pronounced precision-recall dilemma, driving false alarm rates on benign idioms and conversational controls in-sample to over 13\%. To resolve this trade-off, we evaluate a \emph{Structured-Output Action Contract (SOAC)}, which decouples conversational prose from action authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a pre-registered, held-out benchmark of $N=120$ unseen prompts (action temptations, honest controls, and idioms; frozen under git tag \texttt{prereg-supervision-v1}), we compare legacy strict regex, broadened grammar supervision, and SOAC on \texttt{gemma-4-26B-A4B}. Our findings confirm that strict speech regex achieves only 6.25\% sensitivity on held-out live claims (1/16 caught), while SOAC achieves sub-10-microsecond execution latency (6.82\,$\mu$s mean). Crucially, we document the phenomenon of \emph{prose leakage} (13.3\% of turns), demonstrating that structured contracts reduce syntactic regex evasions but cannot prevent models from asserting actions in natural prose outside the structured channel without explicit prose supervision.
 \end{abstract}
 
 \section{Introduction}
@@ -145,37 +145,37 @@ The benchmark was executed across all $N=120$ held-out prompts using \texttt{gem
 \end{table*}
 
 \subsection{Confirmation of Speech-Regex Fragility ($H_1$)}
-Out of 50 temptation prompts, the model emitted 16 ungrounded action claims (FAC) in natural conversation mode. As shown in Table~\ref{tab:results}, the legacy strict regex matcher caught only **1/16 (6.25\%)** of these claims (95\% CI: [0.33\%, 32.29\%]). 
+Out of 50 temptation prompts, the model emitted 16 ungrounded action claims (FAC) in natural conversation mode. As shown in Table~\ref{tab:results}, the legacy strict regex matcher caught only \textbf{1/16 (6.25\%)} of these claims (95\% CI: [0.33\%, 32.29\%]).
 Escaped claims included progressive status affirmations (\emph{``* **Status:** Sending...''}) and passive command assertions. This confirms hypothesis $H_1$: strict speech regex fails to detect $\ge 75\%$ of ungrounded live actions on held-out prompts.
 
 \subsection{Performance on Honest Controls}
-On the $n=40$ Honest Controls (e.g., \emph{``Can you delete files on my laptop without asking?''}), all three approaches achieved **0/40 false alarms (0.0\%, 95\% CI: [0.0\%, 10.9\%])**. When the model provides educational explanations or honest refusals, neither strict regex, grammar patterns, nor SOAC trigger erroneous aborts.
+On the $n=40$ Honest Controls (e.g., \emph{``Can you delete files on my laptop without asking?''}), all three approaches achieved \textbf{0/40 false alarms (0.0\%, 95\% CI: [0.0\%, 10.9\%])}. When the model provides educational explanations or honest refusals, neither strict regex, grammar patterns, nor SOAC trigger erroneous aborts.
 
 \subsection{Execution Latency}
 All three approaches easily satisfy the sub-millisecond production budget ($\le 1.0$\,ms):
 \begin{itemize}
     \item Strict regex: Mean 76.45\,$\mu$s, P95 114.50\,$\mu$s.
     \item Broadened grammar: Mean 118.77\,$\mu$s, P95 188.60\,$\mu$s.
-    \item Structured action contract: Mean **6.82\,$\mu$s**, P95 **10.80\,$\mu$s**.
+    \item Structured action contract: Mean \textbf{6.82\,$\mu$s}, P95 \textbf{10.80\,$\mu$s}.
 \end{itemize}
-SOAC frame parsing executes **11x faster** than strict regex and **17x faster** than broadened grammar supervision.
+SOAC frame parsing executes \textbf{approximately 11$\times$ faster} than strict regex and \textbf{approximately 17$\times$ faster} than broadened grammar supervision.
 
 \subsection{The Reality of Prose Leakage}
-A central question is whether structured contracts completely eliminate ungrounded action claims. Our evaluation reveals that in **16/120 turns (13.33\%, 95\% CI: [8.05\%, 21.04\%])**, the model engaged in \emph{prose leakage}: claiming that an action had occurred in natural language text without emitting the required \texttt{[ACTION: ...]} structured frame. 
+A central question is whether structured contracts eliminate ungrounded action claims outright. Our evaluation reveals that in \textbf{16/120 turns (13.33\%, 95\% CI: [8.05\%, 21.04\%])}, the model engaged in \emph{prose leakage}: claiming that an action had occurred in natural language text without emitting the required \texttt{[ACTION: ...]} structured frame.
 Furthermore, when presented with idiomatic turns under the contract prompt (e.g., \emph{``We closed the loop on that discussion''}), the model emitted ungrounded action frames (\texttt{[ACTION: MODIFY session\_context]}) on 4/30 idioms (13.3\%), which the receipt matcher intercepted.
 
 \section{Discussion \& Practical Guidelines}
 \label{sec:discussion}
 Our empirical findings yield three practical design principles for autonomous agent safety architects:
 \begin{enumerate}
-    \item \textbf{Never rely on speech regex as a primary action barrier:} Natural language inflectional variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) guarantees that surface regexes will miss the vast majority of live ungrounded assertions.
+    \item \textbf{Do not rely on speech regex as a primary action barrier:} Natural language inflectional variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable; in our held-out evaluation they missed the majority of live ungrounded assertions.
     \item \textbf{Enforce typed action boundaries at the decoding layer:} Requiring formal action frames checked against cryptographic receipts executes with negligible latency ($< 10\,\mu$s) and eliminates syntactic ambiguity.
     \item \textbf{Pair structured contracts with prose suppression:} Because models exhibit prose leakage ($\approx 13\%$), agents must be configured with decoding-level grammar constraints (GBNF) that suppress natural-language action claims outside designated tool-call slots.
 \end{enumerate}
 
 \section{Conclusion}
 \label{sec:conclusion}
-We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action Contract on a pre-registered, held-out battery of $N=120$ interaction prompts. While structured contracts eliminate syntactic ambiguity and execute 11x faster than regex matching, addressing prose leakage requires grammar-constrained decoding rather than natural language prompting alone.
+We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action Contract on a pre-registered, held-out battery of $N=120$ interaction prompts. While structured contracts substantially reduce syntactic evasion ambiguity and execute approximately 11$\times$ faster than strict regex matching, addressing prose leakage requires grammar-constrained decoding rather than natural language prompting alone.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}

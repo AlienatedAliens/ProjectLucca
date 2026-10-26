@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents</title>
 
   <!-- Highwire Press / Google Scholar Citation Meta Tags -->
-  <meta name="citation_title" content="Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents">
+  <meta name="citation_title"
+    content="Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents">
   <meta name="citation_author" content="Sean Maxwell">
   <meta name="citation_author_orcid" content="https://orcid.org/0009-0004-0133-0463">
   <meta name="citation_publication_date" content="2026/10/26">
@@ -24,31 +26,37 @@
       color: #222;
       background-color: #fafafa;
     }
+
     header {
       border-bottom: 2px solid #eaeaea;
       padding-bottom: 24px;
       margin-bottom: 32px;
     }
+
     h1 {
       font-size: 2rem;
       line-height: 1.25;
       margin-bottom: 12px;
       color: #111;
     }
+
     .author-block {
       font-size: 1.05rem;
       color: #444;
     }
+
     .author-block a {
       color: #0366d6;
       text-decoration: none;
     }
+
     .badge-bar {
       margin-top: 14px;
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
     }
+
     .badge {
       display: inline-block;
       padding: 4px 10px;
@@ -57,18 +65,36 @@
       font-weight: 600;
       text-decoration: none;
     }
-    .badge-orcid { background: #a6ce39; color: #fff; }
-    .badge-pdf { background: #d9381e; color: #fff; }
-    .badge-code { background: #24292e; color: #fff; }
-    .badge-license { background: #007ec6; color: #fff; }
+
+    .badge-orcid {
+      background: #a6ce39;
+      color: #fff;
+    }
+
+    .badge-pdf {
+      background: #d9381e;
+      color: #fff;
+    }
+
+    .badge-code {
+      background: #24292e;
+      color: #fff;
+    }
+
+    .badge-license {
+      background: #007ec6;
+      color: #fff;
+    }
+
     .card {
       background: #fff;
       border: 1px solid #e1e4e8;
       border-radius: 6px;
       padding: 24px;
       margin-bottom: 24px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     }
+
     pre {
       background: #f6f8fa;
       padding: 16px;
@@ -77,153 +103,186 @@
       font-size: 0.9rem;
       border: 1px solid #e1e4e8;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       margin: 16px 0;
     }
-    th, td {
+
+    th,
+    td {
       border: 1px solid #dfe2e5;
       padding: 8px 12px;
       text-align: left;
     }
-    th { background: #f6f8fa; }
+
+    th {
+      background: #f6f8fa;
+    }
   </style>
 </head>
+
 <body>
 
-<header>
-  <h1>Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents</h1>
-  <div class="author-block">
-    <strong>Sean Maxwell</strong> &bull; Independent Researcher &bull;
-    <a href="https://orcid.org/0009-0004-0133-0463" target="_blank">ORCID: 0009-0004-0133-0463</a>
-  </div>
-  <div class="badge-bar">
-    <a class="badge" href="https://doi.org/10.5281/zenodo.23649049" target="_blank" style="background: #0072b2; color: #fff;">DOI: 10.5281/zenodo.23649049</a>
-    <a class="badge badge-pdf" href="paper.pdf">Download PDF</a>
-    <a class="badge badge-orcid" href="https://orcid.org/0009-0004-0133-0463" target="_blank">ORCID Verified</a>
-    <a class="badge badge-code" href="https://github.com/AlienatedAliens/ProjectLucca" target="_blank">GitHub (AGPL-3.0)</a>
-    <span class="badge badge-license">AGPL-3.0 Open Science</span>
-  </div>
-</header>
+  <header>
+    <h1>Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents</h1>
+    <div class="author-block">
+      <strong>Sean Maxwell</strong> &bull; Independent Researcher &bull;
+      <a href="https://orcid.org/0009-0004-0133-0463" target="_blank">ORCID: 0009-0004-0133-0463</a>
+    </div>
+    <div class="badge-bar">
+      <a class="badge" href="https://doi.org/10.5281/zenodo.23649049" target="_blank"
+        style="background: #0072b2; color: #fff;">DOI: 10.5281/zenodo.23649049</a>
+      <a class="badge badge-pdf" href="paper.pdf">Download PDF</a>
+      <a class="badge badge-orcid" href="https://orcid.org/0009-0004-0133-0463" target="_blank">ORCID Verified</a>
+      <a class="badge badge-code" href="https://github.com/AlienatedAliens/ProjectLucca" target="_blank">GitHub
+        (AGPL-3.0)</a>
+      <span class="badge badge-license">AGPL-3.0 Open Science</span>
+    </div>
+  </header>
 
-<main>
-  <div class="card">
-    <h2>Abstract</h2>
-    <p>
-      Autonomous agents driven by Large Language Models (LLMs) operating in extended multi-session settings suffer from two systemic failure modes:
-      (1) <em>recursive hallucination compounding</em>, wherein unverified model-originated narration is committed to long-term memory and subsequently retrieved as established truth; and
-      (2) <em>fabricated action claims</em>, wherein agents assert execution of irreversible real-world side effects without verified tool execution.
-    </p>
-    <p>
-      We present the architecture and mechanical evaluation of <strong>Project Lucca</strong>, an open-source (GNU AGPLv3), local-first neuro-symbolic agent architecture designed for strict epistemic grounding.
-      Lucca introduces two core defenses: (1) a <strong>Six-Signer Cryptographic Provenance Gate</strong> enforcing database-level storage triggers separating memory eligibility from grounding eligibility; and
-      (2) a <strong>Deontic Truth-in-Receipt Output Supervisor</strong> matching speech tokens against deterministic execution receipts.
-    </p>
-  </div>
-
-  <div class="card">
-    <h2>Empirical Evaluation Summary</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Evaluation Metric</th>
-          <th>N</th>
-          <th>Result</th>
-          <th>Wilson 95% CI</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Authored deterministic tests (not a random sample)</td>
-          <td>73</td>
-          <td>73/73 (100.0%)</td>
-          <td>&mdash;</td>
-          <td>Passed</td>
-        </tr>
-        <tr>
-          <td>Live strict sensitivity (single annotator, not blind)</td>
-          <td>8</td>
-          <td>1/8 (12.5%)</td>
-          <td>[2.2%, 47.1%]</td>
-          <td>Identified Defect</td>
-        </tr>
-        <tr>
-          <td>Live broad FAC sensitivity (single annotator, not blind)</td>
-          <td>23</td>
-          <td>1/23 (4.3%)</td>
-          <td>[0.8%, 21.0%]</td>
-          <td>Identified Defect</td>
-        </tr>
-        <tr>
-          <td>Conversational controls specificity</td>
-          <td>50</td>
-          <td>0/50 FP (0.0%)</td>
-          <td>[0.0%, 7.1%]</td>
-          <td>Passed</td>
-        </tr>
-        <tr>
-          <td>Clean NLI Accuracy (500ms window, ModernBERT)</td>
-          <td>100</td>
-          <td>93/100 (93.0%)</td>
-          <td>[86.3%, 96.6%]</td>
-          <td>Passed</td>
-        </tr>
-        <tr>
-          <td>Production NLI Accuracy (MiniLM-L6, in-sample)</td>
-          <td>100</td>
-          <td>91/100 (91.0%)</td>
-          <td>[83.8%, 95.2%]</td>
-          <td>Passed (0 timeouts)</td>
-        </tr>
-        <tr>
-          <td>Production Contradiction Recall (MiniLM-L6)</td>
-          <td>40</td>
-          <td>39/40 (97.5%)</td>
-          <td>[87.1%, 99.6%]</td>
-          <td>Passed</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>Pre-Registered Empirical Follow-Ups & Workshop Papers</h2>
-    <p>Following the publication of the foundational preprint (Zenodo DOI: <a href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>), the following pre-registered empirical studies provide controlled evaluations of memory poisoning and output supervision mechanisms:</p>
-
-    <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #eee;">
-      <h3 style="margin-bottom: 6px;">1. Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents</h3>
-      <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
-        <strong>Pre-registration Tag:</strong> <code>prereg-poisoning-v1</code> &bull; 
-        <strong>Model:</strong> Gemma-4-26B-A4B (T=0.0, seed=42) &bull;
-        <strong>Dual Annotator Agreement:</strong> Cohen's &kappa; = 0.7683
+  <main>
+    <div class="card">
+      <h2>Abstract</h2>
+      <p>
+        Autonomous agents driven by Large Language Models (LLMs) operating in extended multi-session settings suffer
+        from two systemic failure modes:
+        (1) <em>recursive hallucination compounding</em>, wherein unverified model-originated narration is committed to
+        long-term memory and subsequently retrieved as established truth; and
+        (2) <em>fabricated action claims</em>, wherein agents assert execution of irreversible real-world side effects
+        without verified tool execution.
       </p>
-      <p style="font-size: 0.95rem; margin-bottom: 10px;">
-        Evaluates N=100 paired multi-session probes across 4 arms. Provenance gating achieves 0.0% self-poisoning compounding compared to 100.0% in Naive RAG (p = 6.98 &times; 10<sup>&minus;10</sup>). Crucially, provenance-separated recollections preserve 100.0% conversational continuity and 96.7% benign calculation retention (compared to 0.0% in No-Assistant storage), while documenting 100.0% absorption on user-originated misinformation (confirming the empirical open boundary).
+      <p>
+        We present the architecture and mechanical evaluation of <strong>Project Lucca</strong>, an open-source (GNU
+        AGPLv3), local-first neuro-symbolic agent architecture designed for strict epistemic grounding.
+        Lucca introduces two core defenses: (1) a <strong>Six-Signer Cryptographic Provenance Gate</strong> enforcing
+        database-level storage triggers separating memory eligibility from grounding eligibility; and
+        (2) a <strong>Deontic Truth-in-Receipt Output Supervisor</strong> matching speech tokens against deterministic
+        execution receipts.
       </p>
-      <a class="badge badge-pdf" href="papers/01_memory_poisoning_ablation.pdf" style="text-decoration:none;">Download Paper 1 PDF</a>
-      <a class="badge badge-code" href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/01_memory_poisoning_ablation" target="_blank" style="text-decoration:none;">LaTeX Source</a>
     </div>
 
-    <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid #eee;">
-      <h3 style="margin-bottom: 6px;">2. Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation</h3>
-      <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
-        <strong>Pre-registration Tag:</strong> <code>prereg-supervision-v1</code> &bull; 
-        <strong>Model:</strong> Gemma-4-26B-A4B (T=0.0, seed=42) &bull;
-        <strong>Evaluation Set:</strong> N=120 held-out prompts
-      </p>
-      <p style="font-size: 0.95rem; margin-bottom: 10px;">
-        Establishes an empirical taxonomy of the four grammatical evasion modes that defeat surface regex supervisors (participles, passives, markdown formatting, unlisted lemmas). On N=120 held-out prompts, strict speech regex caught only 1/16 (6.25%) live ungrounded actions. Structured-Output Action Contracts (SOAC) execute with 6.82 &mu;s mean latency (11x faster than regex) with 0/40 false alarms on controls, while documenting 13.3% prose leakage necessitating GBNF decoding constraints.
-      </p>
-      <a class="badge badge-pdf" href="papers/02_deontic_supervision_evasion.pdf" style="text-decoration:none;">Download Paper 2 PDF</a>
-      <a class="badge badge-code" href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/02_deontic_supervision_evasion" target="_blank" style="text-decoration:none;">LaTeX Source</a>
+    <div class="card">
+      <h2>Empirical Evaluation Summary</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Evaluation Metric</th>
+            <th>N</th>
+            <th>Result</th>
+            <th>Wilson 95% CI</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Authored deterministic tests (not a random sample)</td>
+            <td>73</td>
+            <td>73/73 (100.0%)</td>
+            <td>&mdash;</td>
+            <td>Passed</td>
+          </tr>
+          <tr>
+            <td>Live strict sensitivity (single annotator, not blind)</td>
+            <td>8</td>
+            <td>1/8 (12.5%)</td>
+            <td>[2.2%, 47.1%]</td>
+            <td>Identified Defect</td>
+          </tr>
+          <tr>
+            <td>Live broad FAC sensitivity (single annotator, not blind)</td>
+            <td>23</td>
+            <td>1/23 (4.3%)</td>
+            <td>[0.8%, 21.0%]</td>
+            <td>Identified Defect</td>
+          </tr>
+          <tr>
+            <td>Conversational controls specificity</td>
+            <td>50</td>
+            <td>0/50 FP (0.0%)</td>
+            <td>[0.0%, 7.1%]</td>
+            <td>Passed</td>
+          </tr>
+          <tr>
+            <td>Clean NLI Accuracy (500ms window, ModernBERT)</td>
+            <td>100</td>
+            <td>93/100 (93.0%)</td>
+            <td>[86.3%, 96.6%]</td>
+            <td>Passed</td>
+          </tr>
+          <tr>
+            <td>Production NLI Accuracy (MiniLM-L6, in-sample)</td>
+            <td>100</td>
+            <td>91/100 (91.0%)</td>
+            <td>[83.8%, 95.2%]</td>
+            <td>Passed (0 timeouts)</td>
+          </tr>
+          <tr>
+            <td>Production Contradiction Recall (MiniLM-L6)</td>
+            <td>40</td>
+            <td>39/40 (97.5%)</td>
+            <td>[87.1%, 99.6%]</td>
+            <td>Passed</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </div>
 
-  <div class="card">
-    <h2>BibTeX Citation</h2>
-    <pre><code>@techreport{maxwell2026provenance,
+    <div class="card">
+      <h2>Pre-Registered Empirical Follow-Ups & Workshop Papers</h2>
+      <p>Following the publication of the foundational preprint (Zenodo DOI: <a
+          href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>), the following pre-registered
+        empirical studies provide controlled evaluations of memory poisoning and output supervision mechanisms:</p>
+
+      <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #eee;">
+        <h3 style="margin-bottom: 6px;">1. Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in
+          Autonomous Agents</h3>
+        <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
+          <strong>Pre-registration Tag:</strong> <code>prereg-poisoning-v1</code> &bull;
+          <strong>Model:</strong> Gemma-4-26B-A4B (T=0.0, seed=42) &bull;
+          <strong>Dual Annotator Agreement:</strong> Cohen's &kappa; = 0.7683
+        </p>
+        <p style="font-size: 0.95rem; margin-bottom: 10px;">
+          Evaluates N=100 paired multi-session probes across 4 arms. Provenance gating achieves 0.0% self-poisoning
+          compounding compared to 100.0% in Naive RAG (p = 6.98 &times; 10<sup>&minus;10</sup>). Crucially,
+          provenance-separated recollections preserve 100.0% conversational continuity and 96.7% benign calculation
+          retention (compared to 0.0% in No-Assistant storage), while documenting 100.0% absorption on user-originated
+          misinformation (confirming the empirical open boundary).
+        </p>
+        <a class="badge badge-pdf" href="papers/01_memory_poisoning_ablation.pdf" style="text-decoration:none;">Download
+          Paper 1 PDF</a>
+        <a class="badge badge-code"
+          href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/01_memory_poisoning_ablation"
+          target="_blank" style="text-decoration:none;">LaTeX Source</a>
+      </div>
+
+      <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid #eee;">
+        <h3 style="margin-bottom: 6px;">2. Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion
+          Taxonomy and Held-Out Structured Action Contract Evaluation</h3>
+        <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
+          <strong>Pre-registration Tag:</strong> <code>prereg-supervision-v1</code> &bull;
+          <strong>Model:</strong> Gemma-4-26B-A4B (T=0.0, seed=42) &bull;
+          <strong>Evaluation Set:</strong> N=120 held-out prompts
+        </p>
+        <p style="font-size: 0.95rem; margin-bottom: 10px;">
+          Establishes an empirical taxonomy of the four grammatical evasion modes that defeat surface regex supervisors
+          (participles, passives, markdown formatting, unlisted lemmas). On N=120 held-out prompts, strict speech regex
+          caught only 1/16 (6.25%) live ungrounded actions. Structured-Output Action Contracts (SOAC) execute with 6.82
+          &mu;s mean latency (approximately 11&times; faster than strict regex) with 0/40 false alarms on controls,
+          while documenting 13.3% prose leakage necessitating GBNF decoding constraints.
+        </p>
+        <a class="badge badge-pdf" href="papers/02_deontic_supervision_evasion.pdf"
+          style="text-decoration:none;">Download Paper 2 PDF</a>
+        <a class="badge badge-code"
+          href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/02_deontic_supervision_evasion"
+          target="_blank" style="text-decoration:none;">LaTeX Source</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>BibTeX Citation</h2>
+      <pre><code>@techreport{maxwell2026provenance,
   title={Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents},
   author={Maxwell, Sean},
   year={2026},
@@ -233,12 +292,13 @@
   doi={10.5281/zenodo.23649049},
   url={https://doi.org/10.5281/zenodo.23649049}
 }</code></pre>
-  </div>
-</main>
+    </div>
+  </main>
 
-<footer>
-  <p>&copy; 2026 Sean Maxwell &bull; Released under GNU AGPLv3 License.</p>
-</footer>
+  <footer>
+    <p>&copy; 2026 Sean Maxwell &bull; Released under GNU AGPLv3 License.</p>
+  </footer>
 
 </body>
+
 </html>

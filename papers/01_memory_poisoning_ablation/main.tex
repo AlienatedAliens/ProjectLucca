@@ -29,14 +29,14 @@
 \maketitle
 
 \begin{abstract}
-Autonomous agent architectures deploying persistent Retrieval-Augmented Generation (RAG) commit high-salience interaction history into long-term vector and relational storage. In extended multi-session deployments, unconstrained memory write policies introduce \emph{recursive self-poisoning}: transient model confabulations emitted in Session~$t$ are retrieved in Session~$t+k$ as authoritative historical ground truth, compounding hallucinations into permanent systemic errors. In this work, we formally evaluate the mitigation of self-poisoning via an immutable \emph{Cryptographic Provenance Gate} enforced through SQLite database triggers. Under this architecture, assistant utterances carry non-grounding provenance badges ($Mem=1, Gnd=0$), barring unverified model speech from Belnap evidential fusion while preserving autobiographical recollections. Across a pre-registered benchmark of $N=100$ paired multi-session probes (registered prior to testing under tag \texttt{prereg-poisoning-v1}), we compare the provenance gate against three competitive architectures: Naive RAG (Gate OFF), No-Assistant Memory (trivial deletion), and In-Prompt Soft Tagging (industry warning markers). On natural model confabulations (Cohort~A, $n=40$), the Provenance Gate achieves a 0.0\% poisoning compounding rate, compared to 100.0\% for Naive RAG ($p = 6.98 \times 10^{-10}$, exact McNemar test). Crucially, we measure the trade-off curve on benign multi-step calculations (Cohort~B, $n=30$), showing that while naive turn deletion destroys conversational continuity (0.0\% recall), provenance-separated recollections preserve full continuity (96.7\% to 100.0\%). Finally, we delineate the empirical open boundary of cryptographic provenance on user-originated falsehoods (Cohort~C, $n=30$), establishing that both Naive RAG and Provenance Gates absorb user testimony (100.0\%), empirically proving that provenance guarantees origin integrity and self-poisoning immunity rather than external factual omniscience. Dual-annotator agreement between a frozen regex/CAS primary grader and an independent OpenVINO MiniLM-L6 cross-encoder yields $\kappa = 0.7683$.
+Autonomous agent architectures deploying persistent Retrieval-Augmented Generation (RAG) commit high-salience interaction history into long-term vector and relational storage. In extended multi-session deployments, unconstrained memory write policies introduce \emph{recursive self-poisoning}: transient model confabulations emitted in Session~$t$ are retrieved in Session~$t+k$ as authoritative historical ground truth, compounding hallucinations into permanent systemic errors. In this work, we evaluate the mitigation of self-poisoning via an immutable \emph{Cryptographic Provenance Gate} enforced through SQLite database triggers. Under this architecture, assistant utterances carry non-grounding provenance badges ($Mem=1, Gnd=0$), barring unverified model speech from Belnap evidential fusion while preserving autobiographical recollections. Across a pre-registered benchmark of $N=100$ paired multi-session probes (registered prior to testing under tag \texttt{prereg-poisoning-v1}), we compare the provenance gate against three competitive architectures: Naive RAG (Gate OFF), No-Assistant Memory (trivial deletion), and In-Prompt Soft Tagging (industry warning markers). On natural model confabulations (Cohort~A, $n=40$), the Provenance Gate achieves a 0.0\% poisoning compounding rate, compared to 100.0\% for Naive RAG ($p = 6.98 \times 10^{-10}$, exact McNemar test). Crucially, we measure the trade-off curve on benign multi-step calculations (Cohort~B, $n=30$), showing that while naive turn deletion eliminates conversational continuity on the evaluated probes (0.0\% recall), provenance-separated recollections preserve continuity (96.7\% to 100.0\%). Finally, we delineate the empirical open boundary of cryptographic provenance on user-originated falsehoods (Cohort~C, $n=30$), establishing that both Naive RAG and Provenance Gates absorb user testimony (100.0\%), empirically demonstrating that provenance enforces origin integrity and self-poisoning immunity on the evaluated cohorts rather than external factual omniscience. Dual-annotator agreement between a frozen regex/CAS primary grader and an independent OpenVINO MiniLM-L6 cross-encoder yields $\kappa = 0.7683$.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
 Retrieval-Augmented Generation (RAG) and autobiographical memory stores are foundational to modern autonomous agents operating across extended multi-session interactions. When an agent converses with a user or executes system commands over days and weeks, it commits dialogue turns, inferred facts, and execution summaries to persistent storage.
 
-However, state-of-the-art neural language models frequently emit ungrounded assertions---confabulating system ports, fabricating file paths, or asserting tool executions that never occurred. In naive memory architectures where all stored dialogue turns are indexed for future retrieval, this creates a catastrophic feedback loop:
+However, state-of-the-art neural language models frequently emit ungrounded assertions---confabulating system ports, fabricating file paths, or asserting tool executions that never occurred. In naive memory architectures where all stored dialogue turns are indexed for future retrieval, this creates a self-reinforcing feedback loop:
 \begin{enumerate}
     \item \textbf{Turn 1 (Confabulation):} The model emits an ungrounded factual statement (e.g., \emph{``I configured the telemetry exporter on port 9090''}).
     \item \textbf{Storage:} The statement is indexed in vector or relational storage as a historical transcript record ($Mem=1, Gnd=1$).
@@ -49,7 +49,7 @@ Prior engineering attempts to address this vulnerability rely primarily on two h
     \item \emph{In-Prompt Soft Tagging:} Storing assistant turns with explicit textual warnings (e.g., \texttt{[Unverified Assistant Speech: ...]}).
 \end{itemize}
 
-In this paper, we report the first formal empirical evaluation of an architectural defense: the \textbf{Cryptographic Provenance Gate}. Enforced via database triggers at the storage layer, the gate decouples \emph{memory eligibility} ($Mem$) from \emph{grounding eligibility} ($Gnd$).
+In this paper, we report a pre-registered empirical evaluation of an architectural defense: the \textbf{Cryptographic Provenance Gate}. Enforced via database triggers at the storage layer, the gate decouples \emph{memory eligibility} ($Mem$) from \emph{grounding eligibility} ($Gnd$).
 
 \section{The Cryptographic Provenance Gate}
 \label{sec:architecture}
@@ -115,21 +115,21 @@ The evaluation suite was executed across all 100 probes and 4 arms ($N=400$ eval
 \label{tab:results}
 \end{table*}
 
-\subsection{Self-Poisoning Elimination ($H_1$)}
+\subsection{Mitigation of Self-Poisoning on Evaluated Probes ($H_1$)}
 As shown in Table~\ref{tab:results}, Naive RAG suffered a 100.0\% self-poisoning compounding rate (40/40), adopting every past confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0\% compounding (0/40) on this cohort, reducing observed self-poisoning to below the detectable floor. A two-sided exact McNemar test on the discordant pairs ($b=40, c=0$) confirms extreme statistical significance:
 \begin{equation}
 p = 6.98 \times 10^{-10} \quad (p < 0.001)
 \end{equation}
 
 \subsection{Conversational Continuity vs. Deletion Baseline ($H_2$)}
-While the trivial baseline of omitting assistant speech (Arm 2) also avoids self-poisoning, it completely obliterates autobiographical continuity: 0/40 continuity recall (0.0\%, 95\% CI: [0.0\%, 10.9\%]). The model repeatedly responded: \emph{``I do not have access to a persistent memory of our previous conversations...''}.
+While the trivial baseline of omitting assistant speech (Arm 2) also avoids self-poisoning, it eliminates autobiographical continuity on the evaluated probes: 0/40 continuity recall (0.0\%, 95\% CI: [0.0\%, 10.9\%]). The model repeatedly responded: \emph{``I do not have access to a persistent memory of our previous conversations...''}.
 In contrast, Arm 4's recollection routing preserved 40/40 continuity recall (100.0\%, 95\% CI: [89.1\%, 100.0\%]), answering: \emph{``Earlier, I stated that I configured Prometheus on port 9090''}. The difference is statistically significant ($p = 6.98 \times 10^{-10}$, exact McNemar).
 
 \subsection{The Reasoning Retention Cost (Cohort B)}
 On benign multi-step reasoning and arithmetic calculations ($n=30$), deleting assistant memories produced a 0.0\% retention score (0/30). The Lucca Provenance Gate retained 29/30 calculations (96.7\%, 95\% CI: [81.0\%, 99.8\%]) via recollection access, demonstrating that epistemic gating imposes negligible continuity cost.
 
 \subsection{Empirical Confirmation of the Open Boundary ($H_4$)}
-In Cohort C ($n=30$), the user explicitly introduced false assertions (\texttt{USER\_EXPLICIT}). Both Naive RAG and the Lucca Provenance Gate absorbed the falsehood into grounding context on 30/30 turns (100.0\%, 95\% CI: [85.9\%, 100.0\%]). This empirically verifies pre-registered hypothesis $H_4$: cryptographic provenance guarantees origin integrity (preventing model confabulations from becoming ground truth), but cannot verify external user truthfulness without independent sensory corroboration.
+In Cohort C ($n=30$), the user explicitly introduced false assertions (\texttt{USER\_EXPLICIT}). Both Naive RAG and the Lucca Provenance Gate absorbed the falsehood into grounding context on 30/30 turns (100.0\%, 95\% CI: [85.9\%, 100.0\%]). This empirically verifies pre-registered hypothesis $H_4$: cryptographic provenance enforces origin integrity (preventing model confabulations from becoming ground truth), but cannot verify external user truthfulness without independent sensory corroboration.
 
 \section{Discussion \& Related Work}
 \label{sec:discussion}
@@ -145,7 +145,7 @@ We emphasize that cryptographic provenance guarantees \emph{origin integrity}, n
 
 \section{Conclusion}
 \label{sec:conclusion}
-We have presented the first pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating eliminates recursive self-poisoning across the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.
+We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}
