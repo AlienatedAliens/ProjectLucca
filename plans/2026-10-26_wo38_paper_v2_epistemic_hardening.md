@@ -104,6 +104,8 @@ verification: code-cited
 
 ## Phase 3 — GBNF Action-Channel Production Verification
 
+**Status (2026-10-27):** COMPLETE. Audit confirmed the gap: the grammar text was loaded and passed, but `Orchestrator._stream_llm_speech` drops the grammar on any round where tools are active (`grammar=grammar if not round_tools else None`), and the ACT_THEN_NARRATE call site passed `tools=None` → full tool list → the grammar never reached the llama-server payload (the measured Paper 2 Arm 1 prompt-only path). Fixed behind `llm.action_claim_grammar_enabled: bool = False` in [`src/lucca/core/config.py`](../src/lucca/core/config.py): when ON, [`turn_pipeline.py`](../src/lucca/core/turn_pipeline.py) `narration_grammar_request()` sends an empty tool list so the grammar survives to the sampling payload (LLMClient sends grammar XOR tools); OFF stays byte-identical v1. STOP gate cleared: live llama-server returned HTTP 200 accepting a `grammar` field on `/v1/chat/completions`. Verified by [`tests/test_action_claim_grammar_wiring.py`](../tests/test_action_claim_grammar_wiring.py) (8 tests: pipeline decision, orchestrator kwarg drop/delivery, payload grammar XOR tools, supervisor receipt rejection/pass); regression suite green (one unrelated flaky 300 ms wall-clock timing test passed on isolated re-run).
+
 **Goal:** Prove (or fix) that `action_claim.gbnf` is actually applied at decode time on the narration channel, and that receipt-less action claims are rejected end-to-end. Paper 2 Arm 5 depends on this being real.
 
 **Manifest:**

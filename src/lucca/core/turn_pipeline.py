@@ -34,7 +34,7 @@ from lucca.brain.prompt_builder import (
 )
 from lucca.core.affect import AffectSignal
 from lucca.core.cascade import EpistemicSubstrate
-from lucca.core.config import load_heuristics
+from lucca.core.config import get_config, load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
 from lucca.core.proof_policy import is_cross_reference_command
 from lucca.core.sanity_guard import SanityCheckGuard
@@ -64,6 +64,22 @@ if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
 
 logger = structlog.get_logger(__name__)
+
+
+def action_claim_grammar_enabled() -> bool:
+    """
+    WO-38 Phase 3: operator flag ``llm.action_claim_grammar_enabled``, read at
+    call time so env/toml config precedence applies. Default False keeps the
+    ACT_THEN_NARRATE narration request byte-identical to v1 (Paper 2 Arm 1
+    prompt-only SOAC reproduction). Enabling the decode-time GBNF channel is an
+    explicit operator config decision (Rule 08); config errors fail closed to
+    the v1 path.
+    """
+    try:
+        return bool(get_config().llm.action_claim_grammar_enabled)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("action_claim_grammar_flag_config_error", error=str(exc))
+        return False
 
 
 def aggregate_plan_narration_summary(
@@ -714,7 +730,7 @@ class TurnPipeline:
                 intent="act_then_narrate",
             )
             trace.enable_thinking = enable_thinking
-            action_claim_grammar = self.get_action_claim_grammar()
+            narration_tools, action_claim_grammar = self.narration_grammar_request()
             self.orch._stream_llm_speech(
                 trace=trace,
                 user_msg=user_text or "[Voice audio]",
@@ -722,14 +738,42 @@ class TurnPipeline:
                 current_image_b64=getattr(self.orch, "current_turn_image_b64", None),
                 messages=narration_msgs,
                 enable_thinking=enable_thinking,
+                tools=narration_tools,
                 grammar=action_claim_grammar,
             )
         except Exception as e:  # noqa: BLE001
             logger.error("act_then_narrate_error", error=str(e))
             self.orch._finalize_turn(trace, decision_id)
 
+    def narration_grammar_request(self) -> tuple[list[object] | None, str | None]:
+        """
+        Sampling-request decision for the ACT_THEN_NARRATE narration channel
+        (WO-38 Phase 3 audit finding).
+
+        v1 behavior (flag OFF): the grammar text is loaded and passed, but the
+        orchestrator drops it on every round where tools are active
+        (``grammar if not round_tools``), so with ``execute_tools=True`` and
+        ``tools=None`` the grammar never reaches the llama-server payload. That
+        prompt-only path is the Paper 2 Arm 1 reproduction and stays
+        byte-identical when the flag is off.
+
+        Flag ON: returns an empty tool list so ``round_tools`` stays empty and
+        the grammar actually reaches the sampling payload (LLMClient sends
+        grammar XOR tools). The FULL_LOOP creative channel is untouched (TRAP 9).
+        """
+        grammar = self.get_action_claim_grammar()
+        if action_claim_grammar_enabled():
+            return [], grammar
+        return None, grammar
+
     def get_action_claim_grammar(self) -> str | None:
-        """Loads decode-time GBNF grammar for action claim channel (SPIKE-A / D-SEC-06)."""
+        """
+        Loads decode-time GBNF grammar for action claim channel (SPIKE-A / D-SEC-06).
+
+        WO-38 Phase 3: whether this text actually reaches the llama-server
+        sampling payload is decided by :meth:`narration_grammar_request` and the
+        operator flag ``llm.action_claim_grammar_enabled``.
+        """
         grammar_path = Path("config/grammars/action_claim.gbnf")
         if grammar_path.exists():
             try:

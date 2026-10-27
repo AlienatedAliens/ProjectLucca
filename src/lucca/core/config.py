@@ -77,6 +77,12 @@ class LLMSettings(BaseModel):
     # Templates without a thinking channel ignore the kwarg harmlessly.
     enable_thinking: bool | None = False
     narration_prefer_digits: bool = True
+    # WO-38 Phase 3: decode-time GBNF action-claim channel (SPIKE-A / D-SEC-06).
+    # When True, the ACT_THEN_NARRATE narration call sends action_claim.gbnf as a
+    # sampling grammar instead of tool schemas (LLMClient sends grammar XOR tools).
+    # Default False keeps v1 behavior byte-identical (Paper 2 Arm 1 reproduction);
+    # enabling is an operator config decision (Rule 08: no autonomous gate changes).
+    action_claim_grammar_enabled: bool = False
     # Canonical brain: 26B-A4B MoE (4B active params) per Tier 0 upgrade.
     # GGUF-embedded chat template via --jinja. The previous 12B brain is
     # deprecated and retained for rollback only.
