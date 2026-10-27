@@ -20,7 +20,6 @@ from lucca.core.exceptions import (
     ProvenanceRejected,
 )
 from lucca.core.schemas import (
-    GROUNDING_ELIGIBLE,
     Admitted,
     Edge,
     MemoryHit,
@@ -32,7 +31,7 @@ from lucca.core.schemas import (
 from lucca.memory.db import DatabaseManager
 from lucca.memory.entities import resolve_entity
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
-from lucca.memory.gate import ProvenanceGate
+from lucca.memory.gate import ProvenanceGate, resolve_grounding_eligible
 from lucca.memory.retrieval import HybridRetriever
 from lucca.memory.tokens import subtokens
 from lucca.ports import EmbeddingPort
@@ -115,7 +114,9 @@ class MemoryStore:
                 tool_call_id = signed_payload.tool.call_id if signed_payload.tool else None
                 tool_exit_code = signed_payload.tool.exit_code if signed_payload.tool else None
 
-                grounding_eligible = 1 if signed_payload.provenance in GROUNDING_ELIGIBLE else 0
+                grounding_eligible = resolve_grounding_eligible(
+                    signed_payload.provenance, signed_payload.content, self.db
+                )
                 cursor.execute(
                     """
                     INSERT INTO provenance_envelopes(

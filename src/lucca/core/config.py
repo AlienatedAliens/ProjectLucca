@@ -172,6 +172,11 @@ class MemorySettings(BaseModel):
     backup_daily: bool = True
     form_beliefs: bool = True
     rollup_hour_local: int = 3
+    # WO-38 Phase 2: operator-gated corroboration requirement for USER_EXPLICIT
+    # admission into Belnap grounding context. Default False preserves the
+    # frozen v1 behavior (Paper 1 Cohort C reproduction); enabling is an
+    # explicit operator config decision (Rule 08: no autonomous gate changes).
+    user_explicit_requires_corroboration: bool = False
 
 
 class RouterSettings(BaseModel):

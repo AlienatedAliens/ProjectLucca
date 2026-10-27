@@ -15,9 +15,9 @@ from pathlib import Path
 from typing import Any, Literal, cast
 
 from lucca.core.config import get_config
-from lucca.core.schemas import GROUNDING_ELIGIBLE, Provenance, UnsignedPayload
+from lucca.core.schemas import Provenance, UnsignedPayload
 from lucca.memory.db import DatabaseManager
-from lucca.memory.gate import ProvenanceGate
+from lucca.memory.gate import ProvenanceGate, resolve_grounding_eligible
 from lucca.memory.signers import BaseProvenanceSigner, UserSpeechSigner
 
 logger = logging.getLogger(__name__)
@@ -176,7 +176,9 @@ class MemoryManager:
         admitted_payload = admitted.payload
 
         conn = self.db.get_writer()
-        grounding_el = 1 if admitted_payload.provenance in GROUNDING_ELIGIBLE else 0
+        grounding_el = resolve_grounding_eligible(
+            admitted_payload.provenance, content, self.db
+        )
         try:
             conn.execute("BEGIN IMMEDIATE")
             # 1. Insert provenance envelope
@@ -277,7 +279,9 @@ class MemoryManager:
         admitted_payload = admitted.payload
 
         conn = self.db.get_writer()
-        grounding_el = 1 if admitted_payload.provenance in GROUNDING_ELIGIBLE else 0
+        grounding_el = resolve_grounding_eligible(
+            admitted_payload.provenance, new_content, self.db
+        )
         try:
             conn.execute("BEGIN IMMEDIATE")
 

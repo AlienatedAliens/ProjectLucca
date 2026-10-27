@@ -12,9 +12,11 @@ from typing import Final
 
 import structlog
 
+from lucca.core.config import get_config
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import (
     FACT_PREDICATES,
+    GROUNDING_ELIGIBLE,
     MEMORY_ELIGIBLE,
     Admitted,
     LLMNarration,
@@ -26,6 +28,73 @@ from lucca.core.schemas import (
 from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
 
 logger = structlog.get_logger(__name__)
+
+
+def is_content_corroborated(db: object, content: str) -> bool:
+    """
+    WO-38 Phase 2: non-blocking independent-corroboration lookup backing the
+    operator flag ``memory.user_explicit_requires_corroboration``.
+
+    Mirrors the AUTHORITY critical question Q2 ("Is the claim corroborated by an
+    independent grounding-eligible fact?", see core/corroboration.py): the claim is
+    corroborated when a currently-valid, grounding-eligible memory row whose
+    provenance is not USER_EXPLICIT matches the content. Any lookup failure
+    returns True so admission fails open to the frozen v1 behavior (TRAP 7).
+    """
+    if db is None or not hasattr(db, "read_cursor"):
+        return True
+    claim = content.strip()
+    if not claim:
+        return True
+    try:
+        with db.read_cursor() as cur:
+            cur.execute(
+                """
+                SELECT 1
+                FROM memories m
+                JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                WHERE e.grounding_eligible = 1
+                  AND e.provenance <> ?
+                  AND m.valid_to IS NULL
+                  AND (m.content = ? OR m.content = ? OR m.content LIKE ?)
+                LIMIT 1
+                """,
+                (Provenance.USER_EXPLICIT.value, claim, claim.lower(), f"%{claim.lower()}%"),
+            )
+            return cur.fetchone() is not None
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("user_explicit_corroboration_lookup_failed", error=str(exc))
+        return True
+
+
+def user_explicit_requires_corroboration() -> bool:
+    """Operator flag, read at commit time so config precedence (env/toml) applies."""
+    try:
+        return bool(get_config().memory.user_explicit_requires_corroboration)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("memory_corroboration_flag_config_error", error=str(exc))
+        return False
+
+
+def resolve_grounding_eligible(provenance: Provenance, content: str, db: object) -> int:
+    """
+    Grounding-eligibility decision shared by every write path (store.commit,
+    MemoryManager.add_memory, MemoryManager.update_memory).
+
+    Class membership in GROUNDING_ELIGIBLE is the frozen v1 invariant (TRAP 5);
+    the corroboration requirement is a flag-gated runtime downgrade applied only
+    to USER_EXPLICIT, never to USER_DERIVED or other classes (TRAP 6).
+    """
+    if provenance not in GROUNDING_ELIGIBLE:
+        return 0
+    if (
+        provenance is Provenance.USER_EXPLICIT
+        and user_explicit_requires_corroboration()
+        and not is_content_corroborated(db, content)
+    ):
+        logger.warning("user_explicit_uncorroborated_belnap_deferred", content_sha=content[:40])
+        return 0
+    return 1
 
 # Baseline predicate set; open predicates validated via is_valid_predicate (WO-17 Phase 2).
 PREDICATES: Final[frozenset[str]] = FACT_PREDICATES
