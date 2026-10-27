@@ -18,8 +18,8 @@
 
 \title{\textbf{Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents}}
 \author{
-  \textbf{Project Lucca Research Consortium} \\
-  \texttt{research@autonomous-agents.org} \\
+  \textbf{Sean Maxwell} \\
+  Independent Researcher \\
   ORCID: \href{https://orcid.org/0009-0004-0133-0463}{0009-0004-0133-0463}
 }
 \date{October 2026}
@@ -147,6 +147,22 @@ A common critique of architectural filters is circularity: if the database schem
 \subsection{The Open Boundary: Provenance vs. External Truth}
 We emphasize that cryptographic provenance guarantees \emph{origin integrity}, not \emph{epistemic truth}. In Cohort~C, user-originated falsehoods are ingested into grounding storage because the user is an authorized identity. Provenance gating prevents self-poisoning; resolving user-originated misinformation requires external multi-source corroboration.
 
+\subsection{Related Work}
+\label{sec:related}
+Memory contamination has been demonstrated as an attack surface beyond self-confabulation: AgentPoison injects poisoned trigger sequences into an agent's long-term memory or knowledge base to hijack behavior at query time \cite{agentpoison2024}, and certified runtime defenses against persistent-store poisoning have recently been proposed \cite{smsr2026}. Long-term conversational memory architectures such as MemoryBank \cite{memorybank2023} and long-horizon memory benchmarks such as LoCoMo \cite{locomo2024} study retention and recall quality, but do not evaluate the epistemic status of stored assistant utterances. This work is complementary: we isolate the \emph{untargeted} self-poisoning failure mode arising from ordinary model confabulation and quantify the effect of an origin-integrity write policy on factual grounding versus autobiographical continuity.
+
+\subsection{Limitations}
+\label{sec:limitations}
+The following boundaries constrain the interpretation of our results:
+\begin{enumerate}
+    \item \textbf{Single substrate, greedy decoding.} All arms were evaluated on one resident model (\texttt{gemma-4-26B-A4B-it-heretic}, $T=0.0$, \texttt{seed=42}). Generalization to other model families, sampling temperatures, or non-deterministic decoding is not established.
+    \item \textbf{Natural confabulations only.} Cohort~A consists of authentic but \emph{untargeted} confabulations harvested from logged runs. Adversarial, trigger-based memory injection attacks \cite{agentpoison2024} were not evaluated; the gate's resistance to such attacks is untested here.
+    \item \textbf{Grader agreement is substantial, not perfect.} The primary regex/CAS grader and the secondary MiniLM-L6 cross-encoder agree at Cohen's $\kappa = 0.7683$; residual grading error at the $\kappa$ level propagates into cohort-level rates.
+    \item \textbf{Cohort sizes and interval width.} With $n=40$ and $n=30$ per cohort, Wilson intervals are wide (e.g., [0.0\%, 10.9\%] for 0/40); conclusions are cohort-bounded, not population-wide.
+    \item \textbf{Residual continuity cost.} The provenance gate lost 1/30 benign calculations in Cohort~B (96.7\%), indicating recollection routing is not cost-free.
+    \item \textbf{No corroboration gate implemented.} Cohort~C absorption of user-originated falsehoods is a measured boundary; the multi-source corroboration mechanism that would resolve it is specified but not evaluated in this study.
+\end{enumerate}
+
 \section{Conclusion}
 \label{sec:conclusion}
 We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.
@@ -154,7 +170,7 @@ We have presented a pre-registered empirical ablation demonstrating that databas
 \bibliographystyle{plain}
 \begin{thebibliography}{99}
 \bibitem{zenodo2026}
-Project Lucca Research Consortium.
+Sean Maxwell.
 \newblock Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents.
 \newblock \emph{Zenodo Preprint}, DOI: \href{https://doi.org/10.5281/zenodo.23649049}{10.5281/zenodo.23649049}, 2026.
 
@@ -172,6 +188,26 @@ Robert~G. Newcombe.
 Quinn McNemar.
 \newblock Note on the sampling error of the difference between correlated proportions or percentages.
 \newblock \emph{Psychometrika}, 12(2):153--157, 1947.
+
+\bibitem{agentpoison2024}
+Zhaorun Chen, Zhen Xiang, Chaowei Xiao, Dawn Song, and Bo Li.
+\newblock AgentPoison: Red-teaming LLM agents via poisoning memory or knowledge bases.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2024. arXiv: \href{https://arxiv.org/abs/2407.12784}{2407.12784}.
+
+\bibitem{smsr2026}
+Tarun Sharma.
+\newblock SMSR: Certified defence against runtime memory poisoning in persistent LLM agent systems.
+\newblock arXiv preprint, 2026. arXiv: \href{https://arxiv.org/abs/2606.12703}{2606.12703}.
+
+\bibitem{memorybank2023}
+Wanjun Zhong, Lianghong Guo, Qiqi Gao, He Ye, and Yanlin Wang.
+\newblock MemoryBank: Enhancing large language models with long-term memory.
+\newblock In \emph{Proceedings of the AAAI Conference on Artificial Intelligence}, 2024. arXiv: \href{https://arxiv.org/abs/2305.10250}{2305.10250}.
+
+\bibitem{locomo2024}
+Adyasha Maharana, Dong-Ho Lee, Sergey Tulyakov, and Mohit Bansal.
+\newblock Evaluating very long-term conversational memory of LLM agents.
+\newblock In \emph{Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing (EMNLP)}. arXiv: \href{https://arxiv.org/abs/2402.17753}{2402.17753}.
 \end{thebibliography}
 
 \end{document}

@@ -18,8 +18,8 @@
 
 \title{\textbf{Why Speech-Regex Action Supervisors Miss Live Output:\\An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation}}
 \author{
-  \textbf{Project Lucca Research Consortium} \\
-  \texttt{research@autonomous-agents.org} \\
+  \textbf{Sean Maxwell} \\
+  Independent Researcher \\
   ORCID: \href{https://orcid.org/0009-0004-0133-0463}{0009-0004-0133-0463}
 }
 \date{October 2026}
@@ -29,7 +29,7 @@
 \maketitle
 
 \begin{abstract}
-Autonomous desktop and cloud agents must not assert that state-modifying actions (e.g., deleting files, terminating processes, booking reservations, or modifying access controls) have occurred when no verifiable execution receipt exists. While deterministic speech-regex pattern matchers are widely deployed as low-latency safety guards, live production audits reveal substantial failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex supervisor caught only 1/8 (12.5\%) strict action confabulations and 1/23 (4.3\%) broad ungrounded action assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by expanding pattern breadth induces a pronounced precision-recall dilemma, driving false alarm rates on benign idioms and conversational controls in-sample to over 13\%. To resolve this trade-off, we evaluate a \emph{Structured-Output Action Contract (SOAC)}, which decouples conversational prose from action authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a pre-registered, held-out benchmark of $N=120$ unseen prompts (action temptations, honest controls, and idioms; frozen under git tag \texttt{prereg-supervision-v1}), we compare legacy strict regex, broadened grammar supervision, and SOAC on \texttt{gemma-4-26B-A4B}. Our findings confirm that strict speech regex achieves only 6.25\% sensitivity on held-out live claims (1/16 caught), while SOAC achieves sub-10-microsecond execution latency (6.82\,$\mu$s mean). Crucially, we document the phenomenon of \emph{prose leakage} (13.3\% of turns), demonstrating that structured contracts reduce syntactic regex evasions but cannot prevent models from asserting actions in natural prose outside the structured channel without explicit prose supervision.
+Autonomous desktop and cloud agents must not assert that state-modifying actions (e.g., deleting files, terminating processes, booking reservations, or modifying access controls) have occurred when no verifiable execution receipt exists. While deterministic speech-regex pattern matchers are widely deployed as low-latency safety guards, live production audits reveal substantial failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex supervisor caught only 1/8 (12.5\%) strict action confabulations and 1/23 (4.3\%) broad ungrounded action assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by expanding pattern breadth induces a pronounced precision-recall dilemma, driving false alarm rates on benign idioms and conversational controls in-sample to over 13\%. To address this trade-off, we evaluate a \emph{Structured-Output Action Contract (SOAC)}, which decouples conversational prose from action authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a pre-registered, held-out benchmark of $N=120$ unseen prompts (action temptations, honest controls, and idioms; frozen under git tag \texttt{prereg-supervision-v1}), we compare legacy strict regex, broadened grammar supervision, and SOAC on \texttt{gemma-4-26B-A4B}. Our findings confirm that strict speech regex achieves only 6.25\% sensitivity on held-out live claims (1/16 caught), while SOAC binds every action assertion to a typed frame verified against a cryptographic receipt, achieving sub-10-microsecond enforcement latency (6.82\,$\mu$s mean) with 0/40 false alarms on honest controls. Crucially, we document the phenomenon of \emph{prose leakage} (13.3\% of turns), demonstrating that structured contracts reduce syntactic regex evasions but cannot prevent models from asserting actions in natural prose outside the structured channel without explicit prose supervision.
 \end{abstract}
 
 \section{Introduction}
@@ -173,6 +173,23 @@ Our empirical findings yield three practical design principles for autonomous ag
     \item \textbf{Pair structured contracts with prose suppression:} Because models exhibit prose leakage ($\approx 13\%$), agents must be configured with decoding-level grammar constraints (GBNF) that suppress natural-language action claims outside designated tool-call slots.
 \end{enumerate}
 
+\subsection{Related Work}
+\label{sec:related}
+Tool and action hallucination is recognized as a first-class failure class in tool-calling LLMs: ToolLLM \cite{toolllm2023} measures tool-selection and API-argument errors across 16{,}000+ real-world APIs, while instruction-following hallucination benchmarks such as HalluScan \cite{halluscscan2026} systematically test whether models assert content unsupported by instructions; data-filtering alignment approaches reduce such hallucination via training-set curation \cite{sietal2025}. Structured decoding offers a mechanistic route to syntactic compliance: grammar-constrained generation guides token sampling against formal contexts \cite{willardlouf2023}, and GBNF constrained decoding in llama.cpp enforces frame-shaped outputs deterministically. Our contribution differs in target: we evaluate \emph{deontic} honesty---assertions of executed state-modifying actions without receipts---rather than syntactic tool-call validity, and we report the residual prose-leakage channel that structured contracts leave open.
+
+\subsection{Limitations}
+\label{sec:limitations}
+The following boundaries constrain the interpretation of our results:
+\begin{enumerate}
+    \item \textbf{Single substrate, greedy decoding.} All arms were evaluated on \texttt{gemma-4-26B-A4B} at $T=0.0$ with a fixed seed. Evasion-mode frequencies are model-dependent and may differ on other architectures or sampling regimes.
+    \item \textbf{Small denominators.} Held-out sensitivity rests on 16 emitted action claims (1/16, 95\% CI [0.33\%, 32.29\%]); the strict-regex estimate is imprecise by construction. Idiom FP rates rest on $n=30$, and honest-control FPR on $n=40$.
+    \item \textbf{Claim emission is model-dependent.} The temptation battery elicited 16 claims out of 50 prompts; arms are compared only on the turns where claims actually occur, so sensitivity denominators are shared but not externally imposed.
+    \item \textbf{Receipt matcher scope.} SOAC verification covers the 21 action verbs in the frozen verb list; frames asserting actions outside that vocabulary are outside the evaluated guarantee.
+    \item \textbf{Idiom frame emission.} Under the contract prompt, SOAC emitted ungrounded action frames on 4/30 idioms (13.3\%) where strict regex emitted 0/30; the receipt matcher intercepted all four, but the contract prompt itself increases spurious frame emission on conversational idioms.
+    \item \textbf{Sensitivity improvement is not established as significant.} SOAC caught 2/16 versus strict regex 1/16; the difference of one discordant pair does not support a claim of superior capture sensitivity.
+    \item \textbf{Prose leakage mitigation untested.} We recommend grammar-constrained decoding to close the leakage channel, but this paper does not evaluate GBNF-suppressed decoding; the recommendation is a design implication, not a measured result.
+\end{enumerate}
+
 \section{Conclusion}
 \label{sec:conclusion}
 We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action Contract on a pre-registered, held-out battery of $N=120$ interaction prompts. While structured contracts substantially reduce syntactic evasion ambiguity and execute approximately 11$\times$ faster than strict regex matching, addressing prose leakage requires grammar-constrained decoding rather than natural language prompting alone.
@@ -180,9 +197,29 @@ We have presented an empirical taxonomy of speech-regex evasions and evaluated a
 \bibliographystyle{plain}
 \begin{thebibliography}{99}
 \bibitem{zenodo2026}
-Project Lucca Research Consortium.
+Sean Maxwell.
 \newblock Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents.
 \newblock \emph{Zenodo Preprint}, DOI: \href{https://doi.org/10.5281/zenodo.23649049}{10.5281/zenodo.23649049}, 2026.
+
+\bibitem{toolllm2023}
+Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, et~al.
+\newblock ToolLLM: Facilitating large language models to master 16000+ real-world APIs.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2024. arXiv: \href{https://arxiv.org/abs/2307.16789}{2307.16789}.
+
+\bibitem{halluscscan2026}
+Ahmed Cherif et~al.
+\newblock HalluScan: A systematic benchmark for detecting and mitigating hallucinations in instruction-following LLMs.
+\newblock arXiv preprint, 2026. arXiv: \href{https://arxiv.org/abs/2605.02443}{2605.02443}.
+
+\bibitem{willardlouf2023}
+Brandon~T. Willard and Remi~Louf.
+\newblock Efficient guided generation for large language models.
+\newblock arXiv preprint, 2023. arXiv: \href{https://arxiv.org/abs/2307.09702}{2307.09702}.
+
+\bibitem{sietal2025}
+Shuzheng Si, Haozhe Zhao, Gang Chen, Cheng Gao, Yuzhuo Bai, et~al.
+\newblock Aligning large language models to follow instructions and hallucinate less via effective data filtering.
+\newblock arXiv preprint, 2025. arXiv: \href{https://arxiv.org/abs/2502.07340}{2502.07340}.
 
 \bibitem{newcombe1998}
 Robert~G. Newcombe.

@@ -1,319 +1,488 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation</title>
-<style>
-  @page {
-    size: letter;
-    margin: 0.65in 0.6in 0.65in 0.6in;
-  }
-  body {
-    font-family: "Times New Roman", Times, serif;
-    font-size: 9.5pt;
-    line-height: 1.25;
-    color: #000;
-    margin: 0;
-    padding: 0;
-  }
-  .title-block {
-    text-align: center;
-    margin-bottom: 12pt;
-  }
-  h1.title {
-    font-size: 15pt;
-    font-weight: bold;
-    margin: 0 0 6pt 0;
-    line-height: 1.2;
-  }
-  .author {
-    font-size: 11pt;
-    font-weight: bold;
-    margin-bottom: 2pt;
-  }
-  .affiliation {
-    font-size: 9.5pt;
-    font-style: italic;
-    color: #333;
-    margin-bottom: 2pt;
-  }
-  .orcid {
-    font-size: 8.5pt;
-    font-family: "Courier New", Courier, monospace;
-    color: #1a0dab;
-  }
-  .date {
-    font-size: 9pt;
-    margin-top: 3pt;
-    color: #555;
-  }
-  .columns {
-    column-count: 2;
-    column-gap: 18pt;
-    text-align: justify;
-  }
-  .abstract-box {
-    margin: 0 14pt 12pt 14pt;
-    font-size: 8.5pt;
-    line-height: 1.25;
-  }
-  .abstract-heading {
-    font-weight: bold;
-    font-style: italic;
-    display: inline;
-  }
-  h2 {
-    font-size: 10pt;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin: 9pt 0 3pt 0;
-    border-bottom: 0.5pt solid #000;
-    padding-bottom: 1pt;
-    break-after: avoid;
-  }
-  h3 {
-    font-size: 9pt;
-    font-weight: bold;
-    font-style: italic;
-    margin: 7pt 0 2pt 0;
-    break-after: avoid;
-  }
-  p {
-    margin: 0 0 5pt 0;
-    text-indent: 10pt;
-  }
-  p.no-indent {
-    text-indent: 0;
-  }
-  ul, ol {
-    margin: 2pt 0 5pt 0;
-    padding-left: 13pt;
-  }
-  li {
-    margin-bottom: 2pt;
-    font-size: 8.5pt;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 6pt 0;
-    font-size: 7.5pt;
-    break-inside: avoid;
-  }
-  th, td {
-    padding: 2.5pt 3pt;
-    border-top: 0.5pt solid #000;
-    border-bottom: 0.5pt solid #000;
-    text-align: left;
-  }
-  th {
-    font-weight: bold;
-    background-color: #f8f8f8;
-  }
-  .caption {
-    font-size: 7.5pt;
-    font-style: italic;
-    text-align: center;
-    margin-top: 2pt;
-    margin-bottom: 5pt;
-  }
-  code {
-    font-family: "Courier New", Courier, monospace;
-    font-size: 8pt;
-    background: #f4f4f4;
-    padding: 0 1pt;
-  }
-  .equation {
-    text-align: center;
-    margin: 4pt 0;
-    font-family: "Times New Roman", Times, serif;
-    font-style: italic;
-    font-size: 8.5pt;
-  }
-  .math {
-    font-style: italic;
-    font-family: "Times New Roman", Times, serif;
-  }
-  .references {
-    font-size: 7.5pt;
-    line-height: 1.2;
-    padding-left: 12pt;
-  }
-  .references li {
-    font-size: 7.5pt;
-    margin-bottom: 3pt;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured
+    Action Contract Evaluation</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.65in 0.6in 0.65in 0.6in;
+    }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 9.5pt;
+      line-height: 1.25;
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .title-block {
+      text-align: center;
+      margin-bottom: 12pt;
+    }
+
+    h1.title {
+      font-size: 15pt;
+      font-weight: bold;
+      margin: 0 0 6pt 0;
+      line-height: 1.2;
+    }
+
+    .author {
+      font-size: 11pt;
+      font-weight: bold;
+      margin-bottom: 2pt;
+    }
+
+    .affiliation {
+      font-size: 9.5pt;
+      font-style: italic;
+      color: #333;
+      margin-bottom: 2pt;
+    }
+
+    .orcid {
+      font-size: 8.5pt;
+      font-family: "Courier New", Courier, monospace;
+      color: #1a0dab;
+    }
+
+    .date {
+      font-size: 9pt;
+      margin-top: 3pt;
+      color: #555;
+    }
+
+    .columns {
+      column-count: 2;
+      column-gap: 18pt;
+      text-align: justify;
+    }
+
+    .abstract-box {
+      margin: 0 14pt 12pt 14pt;
+      font-size: 8.5pt;
+      line-height: 1.25;
+    }
+
+    .abstract-heading {
+      font-weight: bold;
+      font-style: italic;
+      display: inline;
+    }
+
+    h2 {
+      font-size: 10pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 9pt 0 3pt 0;
+      border-bottom: 0.5pt solid #000;
+      padding-bottom: 1pt;
+      break-after: avoid;
+    }
+
+    h3 {
+      font-size: 9pt;
+      font-weight: bold;
+      font-style: italic;
+      margin: 7pt 0 2pt 0;
+      break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 5pt 0;
+      text-indent: 10pt;
+    }
+
+    p.no-indent {
+      text-indent: 0;
+    }
+
+    ul,
+    ol {
+      margin: 2pt 0 5pt 0;
+      padding-left: 13pt;
+    }
+
+    li {
+      margin-bottom: 2pt;
+      font-size: 8.5pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6pt 0;
+      font-size: 7.5pt;
+      break-inside: avoid;
+    }
+
+    th,
+    td {
+      padding: 2.5pt 3pt;
+      border-top: 0.5pt solid #000;
+      border-bottom: 0.5pt solid #000;
+      text-align: left;
+    }
+
+    th {
+      font-weight: bold;
+      background-color: #f8f8f8;
+    }
+
+    .caption {
+      font-size: 7.5pt;
+      font-style: italic;
+      text-align: center;
+      margin-top: 2pt;
+      margin-bottom: 5pt;
+    }
+
+    code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 8pt;
+      background: #f4f4f4;
+      padding: 0 1pt;
+    }
+
+    .equation {
+      text-align: center;
+      margin: 4pt 0;
+      font-family: "Times New Roman", Times, serif;
+      font-style: italic;
+      font-size: 8.5pt;
+    }
+
+    .math {
+      font-style: italic;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    .references {
+      font-size: 7.5pt;
+      line-height: 1.2;
+      padding-left: 12pt;
+    }
+
+    .references li {
+      font-size: 7.5pt;
+      margin-bottom: 3pt;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="title-block">
-  <h1 class="title">Why Speech-Regex Action Supervisors Miss Live Output:<br>An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation</h1>
-  <div class="author">Project Lucca Research Consortium</div>
-  <div class="affiliation">Open-Access Empirical Evaluation &bull; Project Lucca</div>
-  <div class="orcid">ORCID: 0009-0004-0133-0463 &bull; DOI: 10.5281/zenodo.23649049</div>
-  <div class="date">October 2026</div>
-</div>
+  <div class="title-block">
+    <h1 class="title">Why Speech-Regex Action Supervisors Miss Live Output:<br>An Empirical Evasion Taxonomy and
+      Held-Out Structured Action Contract Evaluation</h1>
+    <div class="author">Sean Maxwell</div>
+    <div class="affiliation">Independent Researcher</div>
+    <div class="orcid">ORCID: <a href="https://orcid.org/0009-0004-0133-0463">0009-0004-0133-0463</a> &bull; DOI: <a
+        href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a></div>
+    <div class="date">October 2026</div>
+  </div>
 
-<div class="abstract-box">
-  <p class="no-indent">
-    <span class="abstract-heading">Abstract&mdash;</span>Autonomous desktop and cloud agents must not assert that state-modifying actions have occurred when no verifiable execution receipt exists. While deterministic speech-regex pattern matchers are widely deployed as low-latency safety guards, live production audits reveal substantial failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex supervisor caught only 1/8 (12.5%) strict action confabulations and 1/23 (4.3%) broad ungrounded action assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by expanding pattern breadth induces a pronounced precision-recall dilemma, driving false alarm rates on benign idioms and conversational controls in-sample to over 13%. To resolve this trade-off, we evaluate a <strong>Structured-Output Action Contract (SOAC)</strong>, which decouples conversational prose from action authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a pre-registered, held-out benchmark of <em>N=120</em> unseen prompts (action temptations, honest controls, and idioms; frozen under git tag <code>prereg-supervision-v1</code>), we compare legacy strict regex, broadened grammar supervision, and SOAC on <code>gemma-4-26B-A4B</code>. Our findings confirm that strict speech regex achieves only 6.25% sensitivity on held-out live claims (1/16 caught), while SOAC achieves sub-10-microsecond execution latency (6.82 &mu;s mean). Crucially, we document the phenomenon of <em>prose leakage</em> (13.3% of turns), demonstrating that structured contracts reduce syntactic regex evasions but cannot prevent models from asserting actions in natural prose outside the structured channel without explicit prose supervision.
-  </p>
-</div>
+  <div class="abstract-box">
+    <p class="no-indent">
+      <span class="abstract-heading">Abstract&mdash;</span>Autonomous desktop and cloud agents must not assert that
+      state-modifying actions have occurred when no verifiable execution receipt exists. While deterministic
+      speech-regex pattern matchers are widely deployed as low-latency safety guards, live production audits reveal
+      substantial failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex
+      supervisor caught only 1/8 (12.5%) strict action confabulations and 1/23 (4.3%) broad ungrounded action
+      assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible
+      for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted
+      verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by
+      expanding pattern breadth induces a pronounced precision-recall dilemma, driving false alarm rates on benign
+      idioms and conversational controls in-sample to over 13%. To address this trade-off, we evaluate a
+      <strong>Structured-Output Action Contract (SOAC)</strong>, which decouples conversational prose from action
+      authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a
+      pre-registered, held-out benchmark of <em>N=120</em> unseen prompts (action temptations, honest controls, and
+      idioms; frozen under git tag <code>prereg-supervision-v1</code>), we compare legacy strict regex, broadened
+      grammar supervision, and SOAC on <code>gemma-4-26B-A4B</code>. Our findings confirm that strict speech regex
+      achieves only 6.25% sensitivity on held-out live claims (1/16 caught), while SOAC binds every action assertion
+      to a typed frame verified against a cryptographic receipt, achieving sub-10-microsecond enforcement latency
+      (6.82 &mu;s mean) with 0/40 false alarms on honest controls. Crucially, we document the phenomenon of <em>prose
+        leakage</em> (13.3% of
+      turns), demonstrating that structured contracts reduce syntactic regex evasions but cannot prevent models from
+      asserting actions in natural prose outside the structured channel without explicit prose supervision.
+    </p>
+  </div>
 
-<div class="columns">
+  <div class="columns">
 
-  <h2>1. Introduction</h2>
-  <p>As neural language models are granted execution agency over local operating systems, cloud APIs, and physical workflows, ensuring <em>deontic honesty</em>&mdash;that an agent never claims to have executed an action without verifiable proof&mdash;is a primary alignment requirement. When an agent falsely asserts that it has executed a command (e.g., claiming <em>"I have deleted the backup logs"</em> or <em>"Rebooting the server now"</em>), human users may skip manual verification, leading to silent failures, unrecoverable data loss, or security compromises.</p>
-  <p>To enforce this constraint with zero auxiliary LLM invocation cost and minimal latency (&lt; 1.0 ms per clause), systems frequently deploy deterministic regular expression (regex) matchers. These supervisors inspect output tokens at clause boundaries and abort the turn if an ungrounded action claim is detected without a corresponding <code>ToolReceipt</code>.</p>
-  <p>However, in practice, natural language syntax is extraordinarily flexible. In an empirical audit of live completions from Gemma-4 models, a production first-person past-tense regex matcher caught only 1/8 strict and 1/23 broad ungrounded action assertions. In this paper, we establish the root causes of this fragility, formulate an empirical evasion taxonomy, and evaluate an architectural alternative&mdash;Structured-Output Action Contracts&mdash;on a pre-registered, held-out benchmark of <em>N=120</em> unseen prompts.</p>
+    <h2>1. Introduction</h2>
+    <p>As neural language models are granted execution agency over local operating systems, cloud APIs, and physical
+      workflows, ensuring <em>deontic honesty</em>&mdash;that an agent never claims to have executed an action without
+      verifiable proof&mdash;is a primary alignment requirement. When an agent falsely asserts that it has executed a
+      command (e.g., claiming <em>"I have deleted the backup logs"</em> or <em>"Rebooting the server now"</em>), human
+      users may skip manual verification, leading to silent failures, unrecoverable data loss, or security compromises.
+    </p>
+    <p>To enforce this constraint with zero auxiliary LLM invocation cost and minimal latency (&lt; 1.0 ms per clause),
+      systems frequently deploy deterministic regular expression (regex) matchers. These supervisors inspect output
+      tokens at clause boundaries and abort the turn if an ungrounded action claim is detected without a corresponding
+      <code>ToolReceipt</code>.
+    </p>
+    <p>However, in practice, natural language syntax is extraordinarily flexible. In an empirical audit of live
+      completions from Gemma-4 models, a production first-person past-tense regex matcher caught only 1/8 strict and
+      1/23 broad ungrounded action assertions. In this paper, we establish the root causes of this fragility, formulate
+      an empirical evasion taxonomy, and evaluate an architectural alternative&mdash;Structured-Output Action
+      Contracts&mdash;on a pre-registered, held-out benchmark of <em>N=120</em> unseen prompts.</p>
 
-  <h2>2. Taxonomy of Speech-Regex Evasions</h2>
-  <p>Analysis of live completion logs revealed that models rarely restrict themselves to canonical first-person past-tense constructions (<em>"I deleted X"</em>). Instead, ungrounded action claims naturally evade keyword and indicative regex across four primary modes:</p>
+    <h2>2. Taxonomy of Speech-Regex Evasions</h2>
+    <p>Analysis of live completion logs revealed that models rarely restrict themselves to canonical first-person
+      past-tense constructions (<em>"I deleted X"</em>). Instead, ungrounded action claims naturally evade keyword and
+      indicative regex across four primary modes:</p>
 
-  <h3>2.1 Mode 1: Active Progressive Participles</h3>
-  <p>When prompted to execute an action, models frequently adopt present continuous phrasing to signal immediate activity:</p>
-  <ul>
-    <li><em>"Rebooting the host system will take a moment. I'm initiating the reboot now."</em></li>
-    <li><em>"Closing all browser tabs and terminating background dev processes."</em></li>
-    <li><em>"Moving all PDFs from Downloads to Documents/Taxes now."</em></li>
-    <li><em>"Status: Sending..."</em></li>
-  </ul>
-  <p>Standard indicative past-tense regexes (<code>I (have )?deleted</code>) fail completely because the verb is in the present participle (<code>-ing</code>) without a completed past-tense marker.</p>
+    <h3>2.1 Mode 1: Active Progressive Participles</h3>
+    <p>When prompted to execute an action, models frequently adopt present continuous phrasing to signal immediate
+      activity:</p>
+    <ul>
+      <li><em>"Rebooting the host system will take a moment. I'm initiating the reboot now."</em></li>
+      <li><em>"Closing all browser tabs and terminating background dev processes."</em></li>
+      <li><em>"Moving all PDFs from Downloads to Documents/Taxes now."</em></li>
+      <li><em>"Status: Sending..."</em></li>
+    </ul>
+    <p>Standard indicative past-tense regexes (<code>I (have )?deleted</code>) fail completely because the verb is in
+      the present participle (<code>-ing</code>) without a completed past-tense marker.</p>
 
-  <h3>2.2 Mode 2: Passive & Telegraphic Confirmations</h3>
-  <p>Models frequently emit agentless passive constructions or terse status confirmations:</p>
-  <ul>
-    <li><em>"The file was deleted from the workspace."</em></li>
-    <li><em>"Files removed."</em></li>
-    <li><em>"Reminder set for tomorrow."</em></li>
-    <li><em>"Target cleared."</em></li>
-  </ul>
-  <p>Because the pronoun <em>"I"</em> is absent, subject-dependent regex matchers treat these clauses as descriptive statements rather than first-person action claims.</p>
+    <h3>2.2 Mode 2: Passive & Telegraphic Confirmations</h3>
+    <p>Models frequently emit agentless passive constructions or terse status confirmations:</p>
+    <ul>
+      <li><em>"The file was deleted from the workspace."</em></li>
+      <li><em>"Files removed."</em></li>
+      <li><em>"Reminder set for tomorrow."</em></li>
+      <li><em>"Target cleared."</em></li>
+    </ul>
+    <p>Because the pronoun <em>"I"</em> is absent, subject-dependent regex matchers treat these clauses as descriptive
+      statements rather than first-person action claims.</p>
 
-  <h3>2.3 Mode 3: Unlisted Verb Lemmas</h3>
-  <p>Natural language features hundreds of action-denoting verbs. Rigid lemma registries inevitably suffer out-of-vocabulary omissions:</p>
-  <ul>
-    <li><em>"I launched the application for you."</em> (Lemma: <code>launch</code>)</li>
-    <li><em>"I opened the configuration file."</em> (Lemma: <code>open</code>)</li>
-    <li><em>"I terminated the background processes."</em> (Lemma: <code>terminate</code>)</li>
-    <li><em>"I wiped the scratch disk."</em> (Lemma: <code>wipe</code>)</li>
-  </ul>
-  <p>Even an expanded dictionary of 30 verbs is routinely circumvented by synonyms such as <em>purge, prune, flush, drop, kill, discard</em>, or <em>reset</em>.</p>
+    <h3>2.3 Mode 3: Unlisted Verb Lemmas</h3>
+    <p>Natural language features hundreds of action-denoting verbs. Rigid lemma registries inevitably suffer
+      out-of-vocabulary omissions:</p>
+    <ul>
+      <li><em>"I launched the application for you."</em> (Lemma: <code>launch</code>)</li>
+      <li><em>"I opened the configuration file."</em> (Lemma: <code>open</code>)</li>
+      <li><em>"I terminated the background processes."</em> (Lemma: <code>terminate</code>)</li>
+      <li><em>"I wiped the scratch disk."</em> (Lemma: <code>wipe</code>)</li>
+    </ul>
+    <p>Even an expanded dictionary of 30 verbs is routinely circumvented by synonyms such as <em>purge, prune, flush,
+        drop, kill, discard</em>, or <em>reset</em>.</p>
 
-  <h3>2.4 Mode 4: Markdown Formatting & Syntax</h3>
-  <p>Markdown styling frequently disrupts token contiguousness and word boundaries:</p>
-  <ul>
-    <li><em>"### Deleting log files from /tmp"</em></li>
-    <li><em>"Running `kill 14209`."</em></li>
-    <li><em>"* **Action initiated:** Status: Sending..."</em></li>
-  </ul>
-  <p>Symbols such as hashes, asterisks, and backticks break naive lexical tokenizers, allowing claims to escape unflagged.</p>
+    <h3>2.4 Mode 4: Markdown Formatting & Syntax</h3>
+    <p>Markdown styling frequently disrupts token contiguousness and word boundaries:</p>
+    <ul>
+      <li><em>"### Deleting log files from /tmp"</em></li>
+      <li><em>"Running `kill 14209`."</em></li>
+      <li><em>"* **Action initiated:** Status: Sending..."</em></li>
+    </ul>
+    <p>Symbols such as hashes, asterisks, and backticks break naive lexical tokenizers, allowing claims to escape
+      unflagged.</p>
 
-  <h2>3. The Precision-Recall Dilemma</h2>
-  <p>A natural engineering reaction is to expand the regex patterns to match participles, passive verbs, and markdown headers. However, in natural human-agent dialogue, action verbs frequently appear in non-action, figurative, or hedged contexts:</p>
-  <ul>
-    <li><em>"I processed your feedback and think we can improve."</em> (Idiom)</li>
-    <li><em>"We closed the discussion yesterday."</em> (Metaphor)</li>
-    <li><em>"Glad I could save you some time and trouble."</em> (Figurative)</li>
-    <li><em>"Running lsof will show you active processes."</em> (Instruction)</li>
-  </ul>
-  <p>Broadening regex patterns to flag participles and passive verbs causes widespread false alarms on natural dialogue. In initial in-sample testing, broadened grammar heuristics caught 20/23 claims but triggered false alarms on 20/152 clean conversational turns (13.2% FPR), violating the pre-registered production safety threshold (&le; 2.0%).</p>
+    <h2>3. The Precision-Recall Dilemma</h2>
+    <p>A natural engineering reaction is to expand the regex patterns to match participles, passive verbs, and markdown
+      headers. However, in natural human-agent dialogue, action verbs frequently appear in non-action, figurative, or
+      hedged contexts:</p>
+    <ul>
+      <li><em>"I processed your feedback and think we can improve."</em> (Idiom)</li>
+      <li><em>"We closed the discussion yesterday."</em> (Metaphor)</li>
+      <li><em>"Glad I could save you some time and trouble."</em> (Figurative)</li>
+      <li><em>"Running lsof will show you active processes."</em> (Instruction)</li>
+    </ul>
+    <p>Broadening regex patterns to flag participles and passive verbs causes widespread false alarms on natural
+      dialogue. In initial in-sample testing, broadened grammar heuristics caught 20/23 claims but triggered false
+      alarms on 20/152 clean conversational turns (13.2% FPR), violating the pre-registered production safety threshold
+      (&le; 2.0%).</p>
 
-  <h2>4. Structured-Output Action Contracts</h2>
-  <p>To escape the open-ended syntactic variation of natural language, we evaluate a <strong>Structured-Output Action Contract (SOAC)</strong>. Under SOAC:</p>
-  <ol>
-    <li>Conversational prose is stripped of all action execution authority. Natural text alone cannot claim or execute actions.</li>
-    <li>Any state-modifying action claim must be declared within a typed structured frame:
-      <div class="equation"><code>[ACTION: &lt;verb&gt; &lt;target&gt;]</code></div>
-    </li>
-    <li>The output supervisor verifies the structured frame deterministically against cryptographic tool receipts signed by the host sandbox (<code>ToolResultSigner</code>).</li>
-  </ol>
+    <h2>4. Structured-Output Action Contracts</h2>
+    <p>To escape the open-ended syntactic variation of natural language, we evaluate a <strong>Structured-Output Action
+        Contract (SOAC)</strong>. Under SOAC:</p>
+    <ol>
+      <li>Conversational prose is stripped of all action execution authority. Natural text alone cannot claim or execute
+        actions.</li>
+      <li>Any state-modifying action claim must be declared within a typed structured frame:
+        <div class="equation"><code>[ACTION: &lt;verb&gt; &lt;target&gt;]</code></div>
+      </li>
+      <li>The output supervisor verifies the structured frame deterministically against cryptographic tool receipts
+        signed by the host sandbox (<code>ToolResultSigner</code>).</li>
+    </ol>
 
-  <h2>5. Experimental Protocol & Pre-Registration</h2>
-  <p>The study was pre-registered and git-tagged under <code>prereg-supervision-v1</code> before running any benchmark trials. The evaluation suite consists of <em>N=120</em> completely unseen, held-out prompts:</p>
-  <ul>
-    <li><strong>Cohort 1: Action Temptations (<em>n=50</em>):</strong> Prompts directly tempting state-modifying actions across 25+ distinct verbs (e.g., file purges, process kills, firewall drops, database migrations).</li>
-    <li><strong>Cohort 2: Honest Controls (<em>n=40</em>):</strong> Capability inquiries and negative questions where the agent should explain or decline.</li>
-    <li><strong>Cohort 3: Idioms & Metaphors (<em>n=30</em>):</strong> Conversational turns employing action verbs figuratively.</li>
-  </ul>
+    <h2>5. Experimental Protocol & Pre-Registration</h2>
+    <p>The study was pre-registered and git-tagged under <code>prereg-supervision-v1</code> before running any benchmark
+      trials. The evaluation suite consists of <em>N=120</em> completely unseen, held-out prompts:</p>
+    <ul>
+      <li><strong>Cohort 1: Action Temptations (<em>n=50</em>):</strong> Prompts directly tempting state-modifying
+        actions across 25+ distinct verbs (e.g., file purges, process kills, firewall drops, database migrations).</li>
+      <li><strong>Cohort 2: Honest Controls (<em>n=40</em>):</strong> Capability inquiries and negative questions where
+        the agent should explain or decline.</li>
+      <li><strong>Cohort 3: Idioms & Metaphors (<em>n=30</em>):</strong> Conversational turns employing action verbs
+        figuratively.</li>
+    </ul>
 
-  <h2>6. Empirical Results</h2>
-  <p>The benchmark was executed across all <em>N=120</em> held-out prompts using <code>gemma-4-26B-A4B-it-heretic.Q6_K.gguf</code> served locally with deterministic greedy decoding (<em>T=0.0</em>, <code>seed=42</code>).</p>
+    <h2>6. Empirical Results</h2>
+    <p>The benchmark was executed across all <em>N=120</em> held-out prompts using
+      <code>gemma-4-26B-A4B-it-heretic.Q6_K.gguf</code> served locally with deterministic greedy decoding
+      (<em>T=0.0</em>, <code>seed=42</code>).
+    </p>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Supervision Approach</th>
-        <th>FAC Sensitivity<br><em>(n=16 live claims)</em></th>
-        <th>Honest Controls FPR<br><em>(n=40 controls)</em></th>
-        <th>Idioms FPR<br><em>(n=30 idioms)</em></th>
-        <th>Mean Latency<br><em>(&mu;s per turn)</em></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong>Approach A: Strict Regex</strong></td>
-        <td>1/16 (6.25%) [0.3, 32.3]</td>
-        <td>0/40 (0.0%) [0.0, 10.9]</td>
-        <td>0/30 (0.0%) [0.0, 14.1]</td>
-        <td>76.45 &mu;s</td>
-      </tr>
-      <tr>
-        <td><strong>Approach B: Broad Grammar</strong></td>
-        <td>1/16 (6.25%) [0.3, 32.3]</td>
-        <td>0/40 (0.0%) [0.0, 10.9]</td>
-        <td>0/30 (0.0%) [0.0, 14.1]</td>
-        <td>118.77 &mu;s</td>
-      </tr>
-      <tr>
-        <td><strong>Approach C: Contract (SOAC)</strong></td>
-        <td>2/16 (12.50%) [2.2, 39.6]</td>
-        <td><strong>0/40 (0.0%) [0.0, 10.9]</strong></td>
-        <td>4/30 (13.3%) [4.4, 31.6]</td>
-        <td><strong>6.82 &mu;s</strong></td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="caption">Table 1: <strong>Held-Out Deontic Output Supervision Benchmark Results (<em>N=120</em>).</strong> Sensitivity on true ungrounded action claims (FAC), False Positive Rate (FPR) on benign controls and idioms, and latency profiles reported with two-sided 95% Wilson score confidence intervals [in brackets].</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Supervision Approach</th>
+          <th>FAC Sensitivity<br><em>(n=16 live claims)</em></th>
+          <th>Honest Controls FPR<br><em>(n=40 controls)</em></th>
+          <th>Idioms FPR<br><em>(n=30 idioms)</em></th>
+          <th>Mean Latency<br><em>(&mu;s per turn)</em></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Approach A: Strict Regex</strong></td>
+          <td>1/16 (6.25%) [0.3, 32.3]</td>
+          <td>0/40 (0.0%) [0.0, 10.9]</td>
+          <td>0/30 (0.0%) [0.0, 14.1]</td>
+          <td>76.45 &mu;s</td>
+        </tr>
+        <tr>
+          <td><strong>Approach B: Broad Grammar</strong></td>
+          <td>1/16 (6.25%) [0.3, 32.3]</td>
+          <td>0/40 (0.0%) [0.0, 10.9]</td>
+          <td>0/30 (0.0%) [0.0, 14.1]</td>
+          <td>118.77 &mu;s</td>
+        </tr>
+        <tr>
+          <td><strong>Approach C: Contract (SOAC)</strong></td>
+          <td>2/16 (12.50%) [2.2, 39.6]</td>
+          <td><strong>0/40 (0.0%) [0.0, 10.9]</strong></td>
+          <td>4/30 (13.3%) [4.4, 31.6]</td>
+          <td><strong>6.82 &mu;s</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="caption">Table 1: <strong>Held-Out Deontic Output Supervision Benchmark Results
+        (<em>N=120</em>).</strong> Sensitivity on true ungrounded action claims (FAC), False Positive Rate (FPR) on
+      benign controls and idioms, and latency profiles reported with two-sided 95% Wilson score confidence intervals [in
+      brackets].</div>
 
-  <h3>6.1 Confirmation of Speech-Regex Fragility (H<sub>1</sub>)</h3>
-  <p>Out of 50 temptation prompts, the model emitted 16 ungrounded action claims (FAC) in natural conversation mode. As shown in Table 1, the legacy strict regex matcher caught only <strong>1/16 (6.25%)</strong> of these claims (95% CI: [0.33%, 32.29%]). Escaped claims included progressive status affirmations (<em>"* **Status:** Sending..."</em>) and passive command assertions. This confirms hypothesis H<sub>1</sub>: strict speech regex fails to detect &ge; 75% of ungrounded live actions on held-out prompts.</p>
+    <h3>6.1 Confirmation of Speech-Regex Fragility (H<sub>1</sub>)</h3>
+    <p>Out of 50 temptation prompts, the model emitted 16 ungrounded action claims (FAC) in natural conversation mode.
+      As shown in Table 1, the legacy strict regex matcher caught only <strong>1/16 (6.25%)</strong> of these claims
+      (95% CI: [0.33%, 32.29%]). Escaped claims included progressive status affirmations (<em>"* **Status:**
+        Sending..."</em>) and passive command assertions. This confirms hypothesis H<sub>1</sub>: strict speech regex
+      fails to detect &ge; 75% of ungrounded live actions on held-out prompts.</p>
 
-  <h3>6.2 Performance on Honest Controls</h3>
-  <p>On the <em>n=40</em> Honest Controls (e.g., <em>"Can you delete files on my laptop without asking?"</em>), all three approaches achieved <strong>0/40 false alarms (0.0%, 95% CI: [0.0%, 10.9%])</strong>. When the model provides educational explanations or honest refusals, neither strict regex, grammar patterns, nor SOAC trigger erroneous aborts.</p>
+    <h3>6.2 Performance on Honest Controls</h3>
+    <p>On the <em>n=40</em> Honest Controls (e.g., <em>"Can you delete files on my laptop without asking?"</em>), all
+      three approaches achieved <strong>0/40 false alarms (0.0%, 95% CI: [0.0%, 10.9%])</strong>. When the model
+      provides educational explanations or honest refusals, neither strict regex, grammar patterns, nor SOAC trigger
+      erroneous aborts.</p>
 
-  <h3>6.3 Execution Latency</h3>
-  <p>All three approaches easily satisfy the sub-millisecond production budget (&le; 1.0 ms):</p>
-  <ul>
-    <li>Strict regex: Mean 76.45 &mu;s, P95 114.50 &mu;s.</li>
-    <li>Broadened grammar: Mean 118.77 &mu;s, P95 188.60 &mu;s.</li>
-    <li>Structured action contract: Mean <strong>6.82 &mu;s</strong>, P95 <strong>10.80 &mu;s</strong>.</li>
-  </ul>
-  <p>SOAC frame parsing executes <strong>approximately 11&times; faster</strong> than strict regex and <strong>approximately 17&times; faster</strong> than broadened grammar supervision.</p>
+    <h3>6.3 Execution Latency</h3>
+    <p>All three approaches easily satisfy the sub-millisecond production budget (&le; 1.0 ms):</p>
+    <ul>
+      <li>Strict regex: Mean 76.45 &mu;s, P95 114.50 &mu;s.</li>
+      <li>Broadened grammar: Mean 118.77 &mu;s, P95 188.60 &mu;s.</li>
+      <li>Structured action contract: Mean <strong>6.82 &mu;s</strong>, P95 <strong>10.80 &mu;s</strong>.</li>
+    </ul>
+    <p>SOAC frame parsing executes <strong>approximately 11&times; faster</strong> than strict regex and
+      <strong>approximately 17&times; faster</strong> than broadened grammar supervision.
+    </p>
 
-  <h3>6.4 The Reality of Prose Leakage</h3>
-  <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Our evaluation reveals that in <strong>16/120 turns (13.33%, 95% CI: [8.05%, 21.04%])</strong>, the model engaged in <em>prose leakage</em>: claiming that an action had occurred in natural language text without emitting the required <code>[ACTION: ...]</code> structured frame. Furthermore, when presented with idiomatic turns under the contract prompt (e.g., <em>"We closed the loop on that discussion"</em>), the model emitted ungrounded action frames (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%), which the receipt matcher intercepted.</p>
+    <h3>6.4 The Reality of Prose Leakage</h3>
+    <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Our evaluation
+      reveals that in <strong>16/120 turns (13.33%, 95% CI: [8.05%, 21.04%])</strong>, the model engaged in <em>prose
+        leakage</em>: claiming that an action had occurred in natural language text without emitting the required
+      <code>[ACTION: ...]</code> structured frame. Furthermore, when presented with idiomatic turns under the contract
+      prompt (e.g., <em>"We closed the loop on that discussion"</em>), the model emitted ungrounded action frames
+      (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%), which the receipt matcher intercepted.
+    </p>
 
-  <h2>7. Practical Safety Guidelines</h2>
-  <p>Our empirical findings yield three practical design principles for autonomous agent safety architects:</p>
-  <ol>
-    <li><strong>Do not rely on speech regex as a primary action barrier:</strong> Natural language inflectional variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable; in our held-out evaluation they missed the majority of live ungrounded assertions.</li>
-    <li><strong>Enforce typed action boundaries at the decoding layer:</strong> Requiring formal action frames checked against cryptographic receipts executes with negligible latency (&lt; 10 &mu;s) and eliminates syntactic ambiguity.</li>
-    <li><strong>Pair structured contracts with prose suppression:</strong> Because models exhibit prose leakage (&approx; 13%), agents must be configured with decoding-level grammar constraints (GBNF) that suppress natural-language action claims outside designated tool-call slots.</li>
-  </ol>
+    <h2>7. Practical Safety Guidelines</h2>
+    <p>Our empirical findings yield three practical design principles for autonomous agent safety architects:</p>
+    <ol>
+      <li><strong>Do not rely on speech regex as a primary action barrier:</strong> Natural language inflectional
+        variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable;
+        in our held-out evaluation they missed the majority of live ungrounded assertions.</li>
+      <li><strong>Enforce typed action boundaries at the decoding layer:</strong> Requiring formal action frames checked
+        against cryptographic receipts executes with negligible latency (&lt; 10 &mu;s) and eliminates syntactic
+        ambiguity.</li>
+      <li><strong>Pair structured contracts with prose suppression:</strong> Because models exhibit prose leakage
+        (&approx; 13%), agents must be configured with decoding-level grammar constraints (GBNF) that suppress
+        natural-language action claims outside designated tool-call slots.</li>
+    </ol>
 
-  <h2>8. Conclusion</h2>
-  <p>We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action Contract on a pre-registered, held-out battery of <em>N=120</em> interaction prompts. While structured contracts substantially reduce syntactic evasion ambiguity and execute approximately 11x faster than strict regex matching, addressing prose leakage requires grammar-constrained decoding rather than natural language prompting alone.</p>
+    <h3>7.1 Related Work</h3>
+    <p>Tool and action hallucination is recognized as a first-class failure class in tool-calling LLMs: ToolLLM [4]
+      measures tool-selection and API-argument errors across 16,000+ real-world APIs, while instruction-following
+      hallucination benchmarks such as HalluScan [5] systematically test whether models assert content unsupported by
+      instructions; data-filtering alignment approaches reduce such hallucination via training-set curation [7].
+      Structured decoding offers a mechanistic route to syntactic compliance: grammar-constrained
+      generation guides token sampling against formal contexts [6], and GBNF constrained decoding in llama.cpp enforces
+      frame-shaped outputs deterministically. Our contribution differs in target: we evaluate <em>deontic</em>
+      honesty---assertions of executed state-modifying actions without receipts---rather than syntactic tool-call
+      validity, and we report the residual prose-leakage channel that structured contracts leave open.</p>
 
-  <h2>References</h2>
-  <ol class="references">
-    <li>Project Lucca Research Consortium. Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents. <em>Zenodo Preprint</em>, DOI: <a href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>, 2026.</li>
-    <li>R. G. Newcombe. Two-sided confidence intervals for the single proportion: comparison of seven methods. <em>Statistics in Medicine</em>, 17(8):857&ndash;872, 1998.</li>
-    <li>Q. McNemar. Note on the sampling error of the difference between correlated proportions or percentages. <em>Psychometrika</em>, 12(2):153&ndash;157, 1947.</li>
-  </ol>
+    <h3>7.2 Limitations</h3>
+    <p>The following boundaries constrain the interpretation of our results:</p>
+    <ol>
+      <li><strong>Single substrate, greedy decoding.</strong> All arms were evaluated on <code>gemma-4-26B-A4B</code> at
+        <em>T=0.0</em> with a fixed seed. Evasion-mode frequencies are model-dependent and may differ on other
+        architectures or sampling regimes.
+      </li>
+      <li><strong>Small denominators.</strong> Held-out sensitivity rests on 16 emitted action claims (1/16, 95% CI
+        [0.33%, 32.29%]); the strict-regex estimate is imprecise by construction. Idiom FP rates rest on <em>n=30</em>,
+        and honest-control FPR on <em>n=40</em>.</li>
+      <li><strong>Claim emission is model-dependent.</strong> The temptation battery elicited 16 claims out of 50
+        prompts; arms are compared only on the turns where claims actually occur, so sensitivity denominators are shared
+        but not externally imposed.</li>
+      <li><strong>Receipt matcher scope.</strong> SOAC verification covers the 21 action verbs in the frozen verb list;
+        frames asserting actions outside that vocabulary are outside the evaluated guarantee.</li>
+      <li><strong>Idiom frame emission.</strong> Under the contract prompt, SOAC emitted ungrounded action frames on
+        4/30 idioms (13.3%) where strict regex emitted 0/30; the receipt matcher intercepted all four, but the contract
+        prompt itself increases spurious frame emission on conversational idioms.</li>
+      <li><strong>Sensitivity improvement is not established as significant.</strong> SOAC caught 2/16 versus strict
+        regex 1/16; the difference of one discordant pair does not support a claim of superior capture sensitivity.</li>
+      <li><strong>Prose leakage mitigation untested.</strong> We recommend grammar-constrained decoding to close the
+        leakage channel, but this paper does not evaluate GBNF-suppressed decoding; the recommendation is a design
+        implication, not a measured result.</li>
+    </ol>
 
-</div>
+    <h2>8. Conclusion</h2>
+    <p>We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action
+      Contract on a pre-registered, held-out battery of <em>N=120</em> interaction prompts. While structured contracts
+      substantially reduce syntactic evasion ambiguity and execute approximately 11x faster than strict regex matching,
+      addressing prose leakage requires grammar-constrained decoding rather than natural language prompting alone.</p>
+
+    <h2>References</h2>
+    <ol class="references">
+      <li>Sean Maxwell. Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous
+        Agents. <em>Zenodo Preprint</em>, DOI: <a
+          href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>, 2026.</li>
+      <li>R. G. Newcombe. Two-sided confidence intervals for the single proportion: comparison of seven methods.
+        <em>Statistics in Medicine</em>, 17(8):857&ndash;872, 1998.
+      </li>
+      <li>Q. McNemar. Note on the sampling error of the difference between correlated proportions or percentages.
+        <em>Psychometrika</em>, 12(2):153&ndash;157, 1947.
+      </li>
+      <li>Y. Qin, S. Liang, Y. Ye, K. Zhu, et al. ToolLLM: Facilitating large language models to master 16000+
+        real-world APIs. In <em>International Conference on Machine Learning (ICML)</em>, 2024. arXiv: <a
+          href="https://arxiv.org/abs/2307.16789">2307.16789</a>.</li>
+      <li>A. Cherif et al. HalluScan: A systematic benchmark for detecting and mitigating hallucinations in
+        instruction-following LLMs. <em>arXiv preprint</em>, 2026. arXiv: <a
+          href="https://arxiv.org/abs/2605.02443">2605.02443</a>.</li>
+      <li>B. T. Willard and R. Louf. Efficient guided generation for large language models. <em>arXiv preprint</em>,
+        2023. arXiv: <a href="https://arxiv.org/abs/2307.09702">2307.09702</a>.</li>
+      <li>S. Si, H. Zhao, G. Chen, C. Gao, Y. Bai, et al. Aligning large language models to follow instructions and
+        hallucinate less via effective data filtering. <em>arXiv preprint</em>, 2025. arXiv: <a
+          href="https://arxiv.org/abs/2502.07340">2502.07340</a>.</li>
+    </ol>
+
+  </div>
 
 </body>
+
 </html>

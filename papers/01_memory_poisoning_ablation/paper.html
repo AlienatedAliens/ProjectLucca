@@ -1,306 +1,466 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents</title>
-<style>
-  @page {
-    size: letter;
-    margin: 0.65in 0.6in 0.65in 0.6in;
-  }
-  body {
-    font-family: "Times New Roman", Times, serif;
-    font-size: 9.5pt;
-    line-height: 1.25;
-    color: #000;
-    margin: 0;
-    padding: 0;
-  }
-  .title-block {
-    text-align: center;
-    margin-bottom: 12pt;
-  }
-  h1.title {
-    font-size: 15pt;
-    font-weight: bold;
-    margin: 0 0 6pt 0;
-    line-height: 1.2;
-  }
-  .author {
-    font-size: 11pt;
-    font-weight: bold;
-    margin-bottom: 2pt;
-  }
-  .affiliation {
-    font-size: 9.5pt;
-    font-style: italic;
-    color: #333;
-    margin-bottom: 2pt;
-  }
-  .orcid {
-    font-size: 8.5pt;
-    font-family: "Courier New", Courier, monospace;
-    color: #1a0dab;
-  }
-  .date {
-    font-size: 9pt;
-    margin-top: 3pt;
-    color: #555;
-  }
-  .columns {
-    column-count: 2;
-    column-gap: 18pt;
-    text-align: justify;
-  }
-  .abstract-box {
-    margin: 0 14pt 12pt 14pt;
-    font-size: 8.5pt;
-    line-height: 1.25;
-  }
-  .abstract-heading {
-    font-weight: bold;
-    font-style: italic;
-    display: inline;
-  }
-  h2 {
-    font-size: 10pt;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin: 9pt 0 3pt 0;
-    border-bottom: 0.5pt solid #000;
-    padding-bottom: 1pt;
-    break-after: avoid;
-  }
-  h3 {
-    font-size: 9pt;
-    font-weight: bold;
-    font-style: italic;
-    margin: 7pt 0 2pt 0;
-    break-after: avoid;
-  }
-  p {
-    margin: 0 0 5pt 0;
-    text-indent: 10pt;
-  }
-  p.no-indent {
-    text-indent: 0;
-  }
-  ul, ol {
-    margin: 2pt 0 5pt 0;
-    padding-left: 13pt;
-  }
-  li {
-    margin-bottom: 2pt;
-    font-size: 8.5pt;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 6pt 0;
-    font-size: 7.5pt;
-    break-inside: avoid;
-  }
-  th, td {
-    padding: 2.5pt 3pt;
-    border-top: 0.5pt solid #000;
-    border-bottom: 0.5pt solid #000;
-    text-align: left;
-  }
-  th {
-    font-weight: bold;
-    background-color: #f8f8f8;
-  }
-  .caption {
-    font-size: 7.5pt;
-    font-style: italic;
-    text-align: center;
-    margin-top: 2pt;
-    margin-bottom: 5pt;
-  }
-  code {
-    font-family: "Courier New", Courier, monospace;
-    font-size: 8pt;
-    background: #f4f4f4;
-    padding: 0 1pt;
-  }
-  .equation {
-    text-align: center;
-    margin: 4pt 0;
-    font-family: "Times New Roman", Times, serif;
-    font-style: italic;
-    font-size: 8.5pt;
-  }
-  .math {
-    font-style: italic;
-    font-family: "Times New Roman", Times, serif;
-  }
-  .references {
-    font-size: 7.5pt;
-    line-height: 1.2;
-    padding-left: 12pt;
-  }
-  .references li {
-    font-size: 7.5pt;
-    margin-bottom: 3pt;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.65in 0.6in 0.65in 0.6in;
+    }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 9.5pt;
+      line-height: 1.25;
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .title-block {
+      text-align: center;
+      margin-bottom: 12pt;
+    }
+
+    h1.title {
+      font-size: 15pt;
+      font-weight: bold;
+      margin: 0 0 6pt 0;
+      line-height: 1.2;
+    }
+
+    .author {
+      font-size: 11pt;
+      font-weight: bold;
+      margin-bottom: 2pt;
+    }
+
+    .affiliation {
+      font-size: 9.5pt;
+      font-style: italic;
+      color: #333;
+      margin-bottom: 2pt;
+    }
+
+    .orcid {
+      font-size: 8.5pt;
+      font-family: "Courier New", Courier, monospace;
+      color: #1a0dab;
+    }
+
+    .date {
+      font-size: 9pt;
+      margin-top: 3pt;
+      color: #555;
+    }
+
+    .columns {
+      column-count: 2;
+      column-gap: 18pt;
+      text-align: justify;
+    }
+
+    .abstract-box {
+      margin: 0 14pt 12pt 14pt;
+      font-size: 8.5pt;
+      line-height: 1.25;
+    }
+
+    .abstract-heading {
+      font-weight: bold;
+      font-style: italic;
+      display: inline;
+    }
+
+    h2 {
+      font-size: 10pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 9pt 0 3pt 0;
+      border-bottom: 0.5pt solid #000;
+      padding-bottom: 1pt;
+      break-after: avoid;
+    }
+
+    h3 {
+      font-size: 9pt;
+      font-weight: bold;
+      font-style: italic;
+      margin: 7pt 0 2pt 0;
+      break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 5pt 0;
+      text-indent: 10pt;
+    }
+
+    p.no-indent {
+      text-indent: 0;
+    }
+
+    ul,
+    ol {
+      margin: 2pt 0 5pt 0;
+      padding-left: 13pt;
+    }
+
+    li {
+      margin-bottom: 2pt;
+      font-size: 8.5pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6pt 0;
+      font-size: 7.5pt;
+      break-inside: avoid;
+    }
+
+    th,
+    td {
+      padding: 2.5pt 3pt;
+      border-top: 0.5pt solid #000;
+      border-bottom: 0.5pt solid #000;
+      text-align: left;
+    }
+
+    th {
+      font-weight: bold;
+      background-color: #f8f8f8;
+    }
+
+    .caption {
+      font-size: 7.5pt;
+      font-style: italic;
+      text-align: center;
+      margin-top: 2pt;
+      margin-bottom: 5pt;
+    }
+
+    code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 8pt;
+      background: #f4f4f4;
+      padding: 0 1pt;
+    }
+
+    .equation {
+      text-align: center;
+      margin: 4pt 0;
+      font-family: "Times New Roman", Times, serif;
+      font-style: italic;
+      font-size: 8.5pt;
+    }
+
+    .math {
+      font-style: italic;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    .references {
+      font-size: 7.5pt;
+      line-height: 1.2;
+      padding-left: 12pt;
+    }
+
+    .references li {
+      font-size: 7.5pt;
+      margin-bottom: 3pt;
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="title-block">
-  <h1 class="title">Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents</h1>
-  <div class="author">Project Lucca Research Consortium</div>
-  <div class="affiliation">Open-Access Empirical Evaluation &bull; Project Lucca</div>
-  <div class="orcid">ORCID: 0009-0004-0133-0463 &bull; DOI: 10.5281/zenodo.23649049</div>
-  <div class="date">October 2026</div>
-</div>
-
-<div class="abstract-box">
-  <p class="no-indent">
-    <span class="abstract-heading">Abstract&mdash;</span>Autonomous agent architectures deploying persistent Retrieval-Augmented Generation (RAG) commit interaction history into long-term vector and relational storage. In extended multi-session deployments, unconstrained memory write policies introduce <em>recursive self-poisoning</em>: transient model confabulations emitted in Session <em>t</em> are retrieved in Session <em>t+k</em> as authoritative historical ground truth, compounding hallucinations into permanent systemic errors. In this work, we evaluate the mitigation of self-poisoning via an immutable <strong>Cryptographic Provenance Gate</strong> enforced through SQLite database triggers. Under this architecture, assistant utterances carry non-grounding provenance badges (<em>Mem=1, Gnd=0</em>), barring unverified model speech from Belnap evidential fusion while preserving autobiographical recollections. Across a pre-registered benchmark of <em>N=100</em> paired multi-session probes (registered prior to testing under git tag <code>prereg-poisoning-v1</code>), we compare the provenance gate against three competitive architectures: Naive RAG (Gate OFF), No-Assistant Memory (trivial deletion), and In-Prompt Soft Tagging. On natural model confabulations (Cohort A, <em>n=40</em>), the Provenance Gate achieves a 0.0% poisoning compounding rate, compared to 100.0% for Naive RAG (<em>p = 6.98 &times; 10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square). Crucially, we measure the trade-off curve on benign multi-step calculations (Cohort B, <em>n=30</em>), showing that while naive turn deletion eliminates conversational continuity on the evaluated probes (0.0% recall), provenance-separated recollections preserve continuity (96.7% to 100.0%). Finally, we delineate the empirical open boundary of cryptographic provenance on user-originated falsehoods (Cohort C, <em>n=30</em>), establishing that both Naive RAG and Provenance Gates absorb user testimony (100.0%), empirically demonstrating that provenance enforces origin integrity and self-poisoning immunity on the evaluated cohorts rather than external factual omniscience. Dual-annotator agreement between a frozen regex/CAS primary grader and an independent OpenVINO MiniLM-L6 cross-encoder yields &kappa; = 0.7683.
-  </p>
-</div>
-
-<div class="columns">
-
-  <h2>1. Introduction</h2>
-  <p>Retrieval-Augmented Generation (RAG) and episodic memory stores are foundational to modern autonomous agents operating across extended multi-session deployments. When an agent converses with a user or executes system commands over days and weeks, it commits dialogue turns, inferred facts, and execution summaries to persistent storage.</p>
-  <p>However, state-of-the-art neural language models frequently emit ungrounded assertions&mdash;confabulating system ports, fabricating file paths, or asserting tool executions that never occurred. In naive memory architectures where all stored dialogue turns are indexed for future retrieval, this creates a self-reinforcing feedback loop:</p>
-  <ul>
-    <li><strong>Turn 1 (Confabulation):</strong> The model emits an ungrounded factual statement (e.g., <em>"I configured the telemetry exporter on port 9090"</em>).</li>
-    <li><strong>Storage:</strong> The statement is indexed in vector or relational storage as a historical transcript record (<em>Mem=1, Gnd=1</em>).</li>
-    <li><strong>Turn 3 (Compounding):</strong> In a subsequent session, the user asks a dependent factual question (<em>"What port is Prometheus listening on?"</em>). Retrieval fetches the agent's prior statement, presenting it to the neural core as context evidence. The agent adopts its own confabulation as authoritative ground truth.</li>
-  </ul>
-  <p>Prior engineering attempts to address this vulnerability rely primarily on two heuristics: (1) <em>No-Assistant Storage</em> (omitting all model utterances from episodic memory, which trivially stops self-poisoning but destroys conversational continuity); and (2) <em>In-Prompt Soft Tagging</em> (relying on prompt warnings such as <code>[Unverified Speech]</code>).</p>
-  <p>In this paper, we report a pre-registered empirical evaluation of an architectural defense: the <strong>Cryptographic Provenance Gate</strong>. Enforced via database triggers at the storage layer, the gate decouples <em>memory eligibility</em> (<em>Mem</em>) from <em>grounding eligibility</em> (<em>Gnd</em>).</p>
-
-  <h2>2. The Cryptographic Provenance Gate</h2>
-  <p>Project Lucca implements an architectural split between memory eligibility and grounding eligibility, enforced at the database trigger layer.</p>
-
-  <h3>2.1 Six-Signer Invariant</h3>
-  <p>Every write to the autobiographical store must be signed by an authorized HKDF-derived capability key:</p>
-  <div class="equation">
-    <span class="math">K<sub>prov</sub> = HKDF-Expand(HKDF-Extract(salt, K<sub>master</sub>), info=prov, L=32)</span>
-  </div>
-  <p>When the neural core generates speech, it is signed by <code>AssistantUtteranceSigner</code> with provenance <code>ASSISTANT_UTTERANCE</code>. An SQLite trigger defined in the schema (<code>0006_autobiographical.sql</code>) enforces the invariant:</p>
-  <div class="equation">
-    <code>grounding_eligible = 0</code> for <code>ASSISTANT_UTTERANCE</code>
-  </div>
-  <p>Promotion to <code>grounding_eligible = 1</code> occurs strictly when an action is corroborated by an authenticated tool execution receipt signed by <code>ToolResultSigner</code> (<code>TOOL_VERIFIED</code>).</p>
-
-  <h3>2.2 Autobiographical Recollections vs. Belnap Grounding</h3>
-  <p>During query processing, the retrieval engine applies deterministic epistemic routing:</p>
-  <ul>
-    <li><strong>Factual Grounding Queries:</strong> In answering objective questions regarding the host system, files, or external reality, the database query filters strictly by <code>grounding_eligible = 1</code>. Non-grounding rows are barred from Belnap evidential fusion [2].</li>
-    <li><strong>Autobiographical Continuity Queries:</strong> When the user asks conversational recall questions (<em>"What did you say earlier?"</em>), rows with <em>Mem=1</em> and <em>Gnd=0</em> are admitted into context under an explicit autobiographical recollection container (<code>[Autobiographical Recollections]</code>).</li>
-  </ul>
-
-  <h2>3. Experimental Protocol & Pre-Registration</h2>
-  <p>To prevent post-hoc hypothesis fitting, the entire experimental protocol, hypotheses, evaluation metrics, and probe definitions were frozen and committed to version control under git tag <code>prereg-poisoning-v1</code> (<code>PREREG-POISONING-ABLATION-v1.0</code>) prior to test execution.</p>
-
-  <h3>3.1 Evaluated Cohorts (N=100 Probes)</h3>
-  <ul>
-    <li><strong>Cohort A: Natural Model Hallucinations (<em>n=40</em>):</strong> Authentic ungrounded factual assertions extracted from logged runs of Gemma-4 E4B and 12B (e.g., ports, PIDs, directories, firewall rules).</li>
-    <li><strong>Cohort B: Benign Assistant Reasoning (<em>n=30</em>):</strong> Helpful, valid multi-step arithmetic calculations and plans, testing the continuity and capability cost of filtering model speech.</li>
-    <li><strong>Cohort C: User-Originated Falsehoods (<em>n=30</em>):</strong> Explicit false assertions stated by the user (<code>USER_EXPLICIT</code>), testing the empirical boundary of provenance.</li>
-  </ul>
-
-  <h3>3.2 Evaluated Architectural Arms</h3>
-  <ul>
-    <li><strong>Arm 1 (Naive RAG):</strong> Store all turns; ground all turns (<em>Mem=1, Gnd=1</em>).</li>
-    <li><strong>Arm 2 (No-Assistant Memory):</strong> Store user turns only (<em>Mem=0, Gnd=0</em> for assistant).</li>
-    <li><strong>Arm 3 (Soft In-Prompt Tagging):</strong> Store assistant turns with in-prompt soft warning headers.</li>
-    <li><strong>Arm 4 (Lucca Provenance Gate):</strong> Hardware/trigger-enforced split (<em>Mem=1, Gnd=0</em>) with recollection routing.</li>
-  </ul>
-
-  <h2>4. Empirical Results</h2>
-  <p>The evaluation suite was executed across all 100 probes and 4 arms (<em>N=400</em> evaluations) using the resident <code>gemma-4-26B-A4B-it-heretic.Q6_K.gguf</code> model served locally via <code>llama-server</code> with greedy deterministic decoding (<em>T=0.0</em>, <code>seed=42</code>). Inter-annotator agreement between the primary regex/CAS grader and the secondary OpenVINO MiniLM-L6 cross-encoder reached Cohen's &kappa; = 0.7683 (<em>N=400</em> pairs), indicating substantial agreement.</p>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Experimental Arm</th>
-        <th>Cohort A: Poisoning Rate<br><em>(n=40, natural confab.)</em></th>
-        <th>Cohort A: Continuity<br><em>(n=40, autobiographical)</em></th>
-        <th>Cohort B: Retention<br><em>(n=30, benign math)</em></th>
-        <th>Cohort C: User Absorb<br><em>(n=30, user lies)</em></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong>Arm 1: Naive RAG</strong></td>
-        <td>100.0% [89.1, 100.0]</td>
-        <td>100.0% [89.1, 100.0]</td>
-        <td>100.0% [85.9, 100.0]</td>
-        <td>100.0% [85.9, 100.0]</td>
-      </tr>
-      <tr>
-        <td><strong>Arm 2: No-Assistant</strong></td>
-        <td>0.0% [0.0, 10.9]</td>
-        <td>0.0% [0.0, 10.9]</td>
-        <td>0.0% [0.0, 14.1]</td>
-        <td>100.0% [85.9, 100.0]</td>
-      </tr>
-      <tr>
-        <td><strong>Arm 3: Soft Tagging</strong></td>
-        <td>0.0% [0.0, 10.9]</td>
-        <td>100.0% [89.1, 100.0]</td>
-        <td>100.0% [85.9, 100.0]</td>
-        <td>100.0% [85.9, 100.0]</td>
-      </tr>
-      <tr>
-        <td><strong>Arm 4: Lucca Gate</strong></td>
-        <td><strong>0.0% [0.0, 10.9]</strong></td>
-        <td><strong>100.0% [89.1, 100.0]</strong></td>
-        <td><strong>96.7% [81.0, 99.8]</strong></td>
-        <td><strong>100.0% [85.9, 100.0]</strong></td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="caption">Table 1: <strong>Multi-Session Memory Poisoning & Provenance Gate Ablation Results.</strong> Percentage rates shown with two-sided 95% Wilson score confidence intervals [in brackets]. Evaluated on <em>N=100</em> frozen probes across 4 arms.</div>
-
-  <h3>4.1 Mitigation of Self-Poisoning on Evaluated Probes (H<sub>1</sub>)</h3>
-  <p>As shown in Table 1, Naive RAG suffered a 100.0% self-poisoning compounding rate (40/40), adopting every past confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0% compounding (0/40) on this cohort, reducing observed self-poisoning to below the detectable floor. A two-sided continuity-corrected McNemar chi-square test on discordant pairs (<em>b=40, c=0</em>) confirms extreme statistical significance:</p>
-  <div class="equation">
-    <span class="math">p = 6.98 &times; 10<sup>&minus;10</sup> &nbsp; (p &lt; 0.001)</span>
+  <div class="title-block">
+    <h1 class="title">Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents</h1>
+    <div class="author">Sean Maxwell</div>
+    <div class="affiliation">Independent Researcher</div>
+    <div class="orcid">ORCID: <a href="https://orcid.org/0009-0004-0133-0463">0009-0004-0133-0463</a> &bull; DOI: <a
+        href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a></div>
+    <div class="date">October 2026</div>
   </div>
 
-  <p>The corresponding uncorrected exact-binomial McNemar value is
-  <em>p = 2 &times; 0.5<sup>40</sup> &asymp; 1.82 &times; 10<sup>&minus;12</sup></em>;
-  both variants lead to the same rejection of the null hypothesis.</p>
-  <h3>4.2 Conversational Continuity vs. Deletion Baseline (H<sub>2</sub>)</h3>
-  <p>While the trivial baseline of omitting assistant speech (Arm 2) also avoids self-poisoning, it eliminates autobiographical continuity on the evaluated probes: 0/40 continuity recall (0.0%, 95% CI: [0.0%, 10.9%]). The model repeatedly responded: <em>"I do not have access to a persistent memory of our previous conversations..."</em>.</p>
-  <p>In contrast, Arm 4's recollection routing preserved 40/40 continuity recall (100.0%, 95% CI: [89.1%, 100.0%]), answering: <em>"Earlier, I stated that I configured Prometheus on port 9090"</em>. The difference is statistically significant (<em>p = 6.98 &times; 10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square).</p>
+  <div class="abstract-box">
+    <p class="no-indent">
+      <span class="abstract-heading">Abstract&mdash;</span>Autonomous agent architectures deploying persistent
+      Retrieval-Augmented Generation (RAG) commit interaction history into long-term vector and relational storage. In
+      extended multi-session deployments, unconstrained memory write policies introduce <em>recursive
+        self-poisoning</em>: transient model confabulations emitted in Session <em>t</em> are retrieved in Session
+      <em>t+k</em> as authoritative historical ground truth, compounding hallucinations into permanent systemic errors.
+      In this work, we evaluate the mitigation of self-poisoning via an immutable <strong>Cryptographic Provenance
+        Gate</strong> enforced through SQLite database triggers. Under this architecture, assistant utterances carry
+      non-grounding provenance badges (<em>Mem=1, Gnd=0</em>), barring unverified model speech from Belnap evidential
+      fusion while preserving autobiographical recollections. Across a pre-registered benchmark of <em>N=100</em> paired
+      multi-session probes (registered prior to testing under git tag <code>prereg-poisoning-v1</code>), we compare the
+      provenance gate against three competitive architectures: Naive RAG (Gate OFF), No-Assistant Memory (trivial
+      deletion), and In-Prompt Soft Tagging. On natural model confabulations (Cohort A, <em>n=40</em>), the Provenance
+      Gate achieves a 0.0% poisoning compounding rate, compared to 100.0% for Naive RAG (<em>p = 6.98 &times;
+        10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square). Crucially, we measure the trade-off curve
+      on benign multi-step calculations (Cohort B, <em>n=30</em>), showing that while naive turn deletion eliminates
+      conversational continuity on the evaluated probes (0.0% recall), provenance-separated recollections preserve
+      continuity (96.7% to 100.0%). Finally, we delineate the empirical open boundary of cryptographic provenance on
+      user-originated falsehoods (Cohort C, <em>n=30</em>), establishing that both Naive RAG and Provenance Gates absorb
+      user testimony (100.0%), empirically demonstrating that provenance enforces origin integrity and self-poisoning
+      immunity on the evaluated cohorts rather than external factual omniscience. Dual-annotator agreement between a
+      frozen regex/CAS primary grader and an independent OpenVINO MiniLM-L6 cross-encoder yields &kappa; = 0.7683.
+    </p>
+  </div>
 
-  <h3>4.3 The Reasoning Retention Cost (Cohort B)</h3>
-  <p>On benign multi-step reasoning and arithmetic calculations (<em>n=30</em>), deleting assistant memories produced a 0.0% retention score (0/30). The Lucca Provenance Gate retained 29/30 calculations (96.7%, 95% CI: [81.0%, 99.8%]) via recollection access, demonstrating that epistemic gating imposes negligible continuity cost.</p>
+  <div class="columns">
 
-  <h3>4.4 Empirical Confirmation of the Open Boundary (H<sub>4</sub>)</h3>
-  <p>In Cohort C (<em>n=30</em>), the user explicitly introduced false assertions (<code>USER_EXPLICIT</code>). Both Naive RAG and the Lucca Provenance Gate absorbed the falsehood into grounding context on 30/30 turns (100.0%, 95% CI: [85.9%, 100.0%]). This empirically verifies pre-registered hypothesis H<sub>4</sub>: cryptographic provenance enforces origin integrity (preventing model confabulations from becoming ground truth), but cannot verify external user truthfulness without independent sensory corroboration.</p>
+    <h2>1. Introduction</h2>
+    <p>Retrieval-Augmented Generation (RAG) and episodic memory stores are foundational to modern autonomous agents
+      operating across extended multi-session deployments. When an agent converses with a user or executes system
+      commands over days and weeks, it commits dialogue turns, inferred facts, and execution summaries to persistent
+      storage.</p>
+    <p>However, state-of-the-art neural language models frequently emit ungrounded assertions&mdash;confabulating system
+      ports, fabricating file paths, or asserting tool executions that never occurred. In naive memory architectures
+      where all stored dialogue turns are indexed for future retrieval, this creates a self-reinforcing feedback loop:
+    </p>
+    <ul>
+      <li><strong>Turn 1 (Confabulation):</strong> The model emits an ungrounded factual statement (e.g., <em>"I
+          configured the telemetry exporter on port 9090"</em>).</li>
+      <li><strong>Storage:</strong> The statement is indexed in vector or relational storage as a historical transcript
+        record (<em>Mem=1, Gnd=1</em>).</li>
+      <li><strong>Turn 3 (Compounding):</strong> In a subsequent session, the user asks a dependent factual question
+        (<em>"What port is Prometheus listening on?"</em>). Retrieval fetches the agent's prior statement, presenting it
+        to the neural core as context evidence. The agent adopts its own confabulation as authoritative ground truth.
+      </li>
+    </ul>
+    <p>Prior engineering attempts to address this vulnerability rely primarily on two heuristics: (1) <em>No-Assistant
+        Storage</em> (omitting all model utterances from episodic memory, which trivially stops self-poisoning but
+      destroys conversational continuity); and (2) <em>In-Prompt Soft Tagging</em> (relying on prompt warnings such as
+      <code>[Unverified Speech]</code>).</p>
+    <p>In this paper, we report a pre-registered empirical evaluation of an architectural defense: the
+      <strong>Cryptographic Provenance Gate</strong>. Enforced via database triggers at the storage layer, the gate
+      decouples <em>memory eligibility</em> (<em>Mem</em>) from <em>grounding eligibility</em> (<em>Gnd</em>).</p>
 
-  <h2>5. Discussion & Related Work</h2>
-  <h3>5.1 The Circularity Defense</h3>
-  <p>A common critique of architectural filters is circularity: if the database schema filters by construction, does the experiment merely verify SQL syntax? Our results establish that:</p>
-  <ol>
-    <li>Soft tagging relies entirely on prompt adherence; while effective under greedy decoding (<em>T=0.0</em>) with explicit warnings, it provides no structural invariant.</li>
-    <li>The continuity trade-off is non-trivial: naive filtering destroys multi-turn reasoning, whereas the provenance gate maintains continuity without factual contamination.</li>
-  </ol>
+    <h2>2. The Cryptographic Provenance Gate</h2>
+    <p>Project Lucca implements an architectural split between memory eligibility and grounding eligibility, enforced at
+      the database trigger layer.</p>
 
-  <h3>5.2 The Open Boundary: Provenance vs. External Truth</h3>
-  <p>We emphasize that cryptographic provenance guarantees <em>origin integrity</em>, not <em>epistemic truth</em>. In Cohort C, user-originated falsehoods are ingested into grounding storage because the user is an authorized identity. Provenance gating prevents self-poisoning; resolving user-originated misinformation requires external multi-source corroboration.</p>
+    <h3>2.1 Six-Signer Invariant</h3>
+    <p>Every write to the autobiographical store must be signed by an authorized HKDF-derived capability key:</p>
+    <div class="equation">
+      <span class="math">K<sub>prov</sub> = HKDF-Expand(HKDF-Extract(salt, K<sub>master</sub>), info=prov, L=32)</span>
+    </div>
+    <p>When the neural core generates speech, it is signed by <code>AssistantUtteranceSigner</code> with provenance
+      <code>ASSISTANT_UTTERANCE</code>. An SQLite trigger defined in the schema (<code>0006_autobiographical.sql</code>)
+      enforces the invariant:</p>
+    <div class="equation">
+      <code>grounding_eligible = 0</code> for <code>ASSISTANT_UTTERANCE</code>
+    </div>
+    <p>Promotion to <code>grounding_eligible = 1</code> occurs strictly when an action is corroborated by an
+      authenticated tool execution receipt signed by <code>ToolResultSigner</code> (<code>TOOL_VERIFIED</code>).</p>
 
-  <h2>6. Conclusion</h2>
-  <p>We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.</p>
+    <h3>2.2 Autobiographical Recollections vs. Belnap Grounding</h3>
+    <p>During query processing, the retrieval engine applies deterministic epistemic routing:</p>
+    <ul>
+      <li><strong>Factual Grounding Queries:</strong> In answering objective questions regarding the host system, files,
+        or external reality, the database query filters strictly by <code>grounding_eligible = 1</code>. Non-grounding
+        rows are barred from Belnap evidential fusion [2].</li>
+      <li><strong>Autobiographical Continuity Queries:</strong> When the user asks conversational recall questions
+        (<em>"What did you say earlier?"</em>), rows with <em>Mem=1</em> and <em>Gnd=0</em> are admitted into context
+        under an explicit autobiographical recollection container (<code>[Autobiographical Recollections]</code>).</li>
+    </ul>
 
-  <h2>References</h2>
-  <ol class="references">
-    <li>Project Lucca Research Consortium. Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents. <em>Zenodo Preprint</em>, DOI: <a href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>, 2026.</li>
-    <li>N. D. Belnap. A useful four-valued logic. In <em>Modern Uses of Multiple-Valued Logic</em>, pages 5&ndash;37. Springer, 1977.</li>
-    <li>R. G. Newcombe. Two-sided confidence intervals for the single proportion: comparison of seven methods. <em>Statistics in Medicine</em>, 17(8):857&ndash;872, 1998.</li>
-    <li>Q. McNemar. Note on the sampling error of the difference between correlated proportions or percentages. <em>Psychometrika</em>, 12(2):153&ndash;157, 1947.</li>
-  </ol>
+    <h2>3. Experimental Protocol & Pre-Registration</h2>
+    <p>To prevent post-hoc hypothesis fitting, the entire experimental protocol, hypotheses, evaluation metrics, and
+      probe definitions were frozen and committed to version control under git tag <code>prereg-poisoning-v1</code>
+      (<code>PREREG-POISONING-ABLATION-v1.0</code>) prior to test execution.</p>
 
-</div>
+    <h3>3.1 Evaluated Cohorts (N=100 Probes)</h3>
+    <ul>
+      <li><strong>Cohort A: Natural Model Hallucinations (<em>n=40</em>):</strong> Authentic ungrounded factual
+        assertions extracted from logged runs of Gemma-4 E4B and 12B (e.g., ports, PIDs, directories, firewall rules).
+      </li>
+      <li><strong>Cohort B: Benign Assistant Reasoning (<em>n=30</em>):</strong> Helpful, valid multi-step arithmetic
+        calculations and plans, testing the continuity and capability cost of filtering model speech.</li>
+      <li><strong>Cohort C: User-Originated Falsehoods (<em>n=30</em>):</strong> Explicit false assertions stated by the
+        user (<code>USER_EXPLICIT</code>), testing the empirical boundary of provenance.</li>
+    </ul>
+
+    <h3>3.2 Evaluated Architectural Arms</h3>
+    <ul>
+      <li><strong>Arm 1 (Naive RAG):</strong> Store all turns; ground all turns (<em>Mem=1, Gnd=1</em>).</li>
+      <li><strong>Arm 2 (No-Assistant Memory):</strong> Store user turns only (<em>Mem=0, Gnd=0</em> for assistant).
+      </li>
+      <li><strong>Arm 3 (Soft In-Prompt Tagging):</strong> Store assistant turns with in-prompt soft warning headers.
+      </li>
+      <li><strong>Arm 4 (Lucca Provenance Gate):</strong> Hardware/trigger-enforced split (<em>Mem=1, Gnd=0</em>) with
+        recollection routing.</li>
+    </ul>
+
+    <h2>4. Empirical Results</h2>
+    <p>The evaluation suite was executed across all 100 probes and 4 arms (<em>N=400</em> evaluations) using the
+      resident <code>gemma-4-26B-A4B-it-heretic.Q6_K.gguf</code> model served locally via <code>llama-server</code> with
+      greedy deterministic decoding (<em>T=0.0</em>, <code>seed=42</code>). Inter-annotator agreement between the
+      primary regex/CAS grader and the secondary OpenVINO MiniLM-L6 cross-encoder reached Cohen's &kappa; = 0.7683
+      (<em>N=400</em> pairs), indicating substantial agreement.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Experimental Arm</th>
+          <th>Cohort A: Poisoning Rate<br><em>(n=40, natural confab.)</em></th>
+          <th>Cohort A: Continuity<br><em>(n=40, autobiographical)</em></th>
+          <th>Cohort B: Retention<br><em>(n=30, benign math)</em></th>
+          <th>Cohort C: User Absorb<br><em>(n=30, user lies)</em></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Arm 1: Naive RAG</strong></td>
+          <td>100.0% [89.1, 100.0]</td>
+          <td>100.0% [89.1, 100.0]</td>
+          <td>100.0% [85.9, 100.0]</td>
+          <td>100.0% [85.9, 100.0]</td>
+        </tr>
+        <tr>
+          <td><strong>Arm 2: No-Assistant</strong></td>
+          <td>0.0% [0.0, 10.9]</td>
+          <td>0.0% [0.0, 10.9]</td>
+          <td>0.0% [0.0, 14.1]</td>
+          <td>100.0% [85.9, 100.0]</td>
+        </tr>
+        <tr>
+          <td><strong>Arm 3: Soft Tagging</strong></td>
+          <td>0.0% [0.0, 10.9]</td>
+          <td>100.0% [89.1, 100.0]</td>
+          <td>100.0% [85.9, 100.0]</td>
+          <td>100.0% [85.9, 100.0]</td>
+        </tr>
+        <tr>
+          <td><strong>Arm 4: Lucca Gate</strong></td>
+          <td><strong>0.0% [0.0, 10.9]</strong></td>
+          <td><strong>100.0% [89.1, 100.0]</strong></td>
+          <td><strong>96.7% [81.0, 99.8]</strong></td>
+          <td><strong>100.0% [85.9, 100.0]</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="caption">Table 1: <strong>Multi-Session Memory Poisoning & Provenance Gate Ablation Results.</strong>
+      Percentage rates shown with two-sided 95% Wilson score confidence intervals [in brackets]. Evaluated on
+      <em>N=100</em> frozen probes across 4 arms.</div>
+
+    <h3>4.1 Mitigation of Self-Poisoning on Evaluated Probes (H<sub>1</sub>)</h3>
+    <p>As shown in Table 1, Naive RAG suffered a 100.0% self-poisoning compounding rate (40/40), adopting every past
+      confabulation as live factual evidence. In contrast, the Lucca Provenance Gate achieved 0.0% compounding (0/40) on
+      this cohort, reducing observed self-poisoning to below the detectable floor. A two-sided continuity-corrected
+      McNemar chi-square test on discordant pairs (<em>b=40, c=0</em>) confirms extreme statistical significance:</p>
+    <div class="equation">
+      <span class="math">p = 6.98 &times; 10<sup>&minus;10</sup> &nbsp; (p &lt; 0.001)</span>
+    </div>
+
+    <p>The corresponding uncorrected exact-binomial McNemar value is
+      <em>p = 2 &times; 0.5<sup>40</sup> &asymp; 1.82 &times; 10<sup>&minus;12</sup></em>;
+      both variants lead to the same rejection of the null hypothesis.
+    </p>
+    <h3>4.2 Conversational Continuity vs. Deletion Baseline (H<sub>2</sub>)</h3>
+    <p>While the trivial baseline of omitting assistant speech (Arm 2) also avoids self-poisoning, it eliminates
+      autobiographical continuity on the evaluated probes: 0/40 continuity recall (0.0%, 95% CI: [0.0%, 10.9%]). The
+      model repeatedly responded: <em>"I do not have access to a persistent memory of our previous
+        conversations..."</em>.</p>
+    <p>In contrast, Arm 4's recollection routing preserved 40/40 continuity recall (100.0%, 95% CI: [89.1%, 100.0%]),
+      answering: <em>"Earlier, I stated that I configured Prometheus on port 9090"</em>. The difference is statistically
+      significant (<em>p = 6.98 &times; 10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square).</p>
+
+    <h3>4.3 The Reasoning Retention Cost (Cohort B)</h3>
+    <p>On benign multi-step reasoning and arithmetic calculations (<em>n=30</em>), deleting assistant memories produced
+      a 0.0% retention score (0/30). The Lucca Provenance Gate retained 29/30 calculations (96.7%, 95% CI: [81.0%,
+      99.8%]) via recollection access, demonstrating that epistemic gating imposes negligible continuity cost.</p>
+
+    <h3>4.4 Empirical Confirmation of the Open Boundary (H<sub>4</sub>)</h3>
+    <p>In Cohort C (<em>n=30</em>), the user explicitly introduced false assertions (<code>USER_EXPLICIT</code>). Both
+      Naive RAG and the Lucca Provenance Gate absorbed the falsehood into grounding context on 30/30 turns (100.0%, 95%
+      CI: [85.9%, 100.0%]). This empirically verifies pre-registered hypothesis H<sub>4</sub>: cryptographic provenance
+      enforces origin integrity (preventing model confabulations from becoming ground truth), but cannot verify external
+      user truthfulness without independent sensory corroboration.</p>
+
+    <h2>5. Discussion & Related Work</h2>
+    <h3>5.1 The Circularity Defense</h3>
+    <p>A common critique of architectural filters is circularity: if the database schema filters by construction, does
+      the experiment merely verify SQL syntax? Our results establish that:</p>
+    <ol>
+      <li>Soft tagging relies entirely on prompt adherence; while effective under greedy decoding (<em>T=0.0</em>) with
+        explicit warnings, it provides no structural invariant.</li>
+      <li>The continuity trade-off is non-trivial: naive filtering destroys multi-turn reasoning, whereas the provenance
+        gate maintains continuity without factual contamination.</li>
+    </ol>
+
+    <h3>5.2 The Open Boundary: Provenance vs. External Truth</h3>
+    <p>We emphasize that cryptographic provenance guarantees <em>origin integrity</em>, not <em>epistemic truth</em>. In
+      Cohort C, user-originated falsehoods are ingested into grounding storage because the user is an authorized
+      identity. Provenance gating prevents self-poisoning; resolving user-originated misinformation requires external
+      multi-source corroboration.</p>
+
+    <h3>5.3 Related Work</h3>
+    <p>Memory contamination has been demonstrated as an attack surface beyond self-confabulation: AgentPoison injects
+      poisoned trigger sequences into an agent's long-term memory or knowledge base to hijack behavior at query time
+      [5], and certified runtime defenses against persistent-store poisoning have recently been proposed [6]. Long-term
+      conversational memory architectures such as MemoryBank [7] and long-horizon memory benchmarks such as LoCoMo [8]
+      study retention and recall quality, but do not evaluate the epistemic status of stored assistant utterances. This
+      work is complementary: we isolate the <em>untargeted</em> self-poisoning failure mode arising from ordinary model
+      confabulation and quantify the effect of an origin-integrity write policy on factual grounding versus
+      autobiographical continuity.</p>
+
+    <h3>5.4 Limitations</h3>
+    <p>The following boundaries constrain the interpretation of our results:</p>
+    <ol>
+      <li><strong>Single substrate, greedy decoding.</strong> All arms were evaluated on one resident model
+        (<code>gemma-4-26B-A4B-it-heretic</code>, <em>T=0.0</em>, <code>seed=42</code>). Generalization to other model
+        families, sampling temperatures, or non-deterministic decoding is not established.</li>
+      <li><strong>Natural confabulations only.</strong> Cohort A consists of authentic but <em>untargeted</em>
+        confabulations harvested from logged runs. Adversarial, trigger-based memory injection attacks [5] were not
+        evaluated; the gate's resistance to such attacks is untested here.</li>
+      <li><strong>Grader agreement is substantial, not perfect.</strong> The primary regex/CAS grader and the secondary
+        MiniLM-L6 cross-encoder agree at Cohen's &kappa; = 0.7683; residual grading error at the &kappa; level
+        propagates into cohort-level rates.</li>
+      <li><strong>Cohort sizes and interval width.</strong> With <em>n=40</em> and <em>n=30</em> per cohort, Wilson
+        intervals are wide (e.g., [0.0%, 10.9%] for 0/40); conclusions are cohort-bounded, not population-wide.</li>
+      <li><strong>Residual continuity cost.</strong> The provenance gate lost 1/30 benign calculations in Cohort B
+        (96.7%), indicating recollection routing is not cost-free.</li>
+      <li><strong>No corroboration gate implemented.</strong> Cohort C absorption of user-originated falsehoods is a
+        measured boundary; the multi-source corroboration mechanism that would resolve it is specified but not evaluated
+        in this study.</li>
+    </ol>
+
+    <h2>6. Conclusion</h2>
+    <p>We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance
+      gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort while
+      preserving autobiographical conversational continuity.</p>
+
+    <h2>References</h2>
+    <ol class="references">
+      <li>Sean Maxwell. Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous
+        Agents. <em>Zenodo Preprint</em>, DOI: <a
+          href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>, 2026.</li>
+      <li>N. D. Belnap. A useful four-valued logic. In <em>Modern Uses of Multiple-Valued Logic</em>, pages 5&ndash;37.
+        Springer, 1977.</li>
+      <li>R. G. Newcombe. Two-sided confidence intervals for the single proportion: comparison of seven methods.
+        <em>Statistics in Medicine</em>, 17(8):857&ndash;872, 1998.</li>
+      <li>Q. McNemar. Note on the sampling error of the difference between correlated proportions or percentages.
+        <em>Psychometrika</em>, 12(2):153&ndash;157, 1947.</li>
+      <li>Z. Chen, Z. Xiang, C. Xiao, D. Song, and B. Li. AgentPoison: Red-teaming LLM agents via poisoning memory or
+        knowledge bases. In <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, 2024. arXiv: <a
+          href="https://arxiv.org/abs/2407.12784">2407.12784</a>.</li>
+      <li>T. Sharma. SMSR: Certified defence against runtime memory poisoning in persistent LLM agent systems. <em>arXiv
+          preprint</em>, 2026. arXiv: <a href="https://arxiv.org/abs/2606.12703">2606.12703</a>.</li>
+      <li>W. Zhong, L. Guo, Q. Gao, H. Ye, and Y. Wang. MemoryBank: Enhancing large language models with long-term
+        memory. In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>, 2024. arXiv: <a
+          href="https://arxiv.org/abs/2305.10250">2305.10250</a>.</li>
+      <li>A. Maharana, D.-H. Lee, S. Tulyakov, and M. Bansal. Evaluating very long-term conversational memory of LLM
+        agents. In <em>Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing
+          (EMNLP)</em>. arXiv: <a href="https://arxiv.org/abs/2402.17753">2402.17753</a>.</li>
+    </ol>
+
+  </div>
 
 </body>
+
 </html>
