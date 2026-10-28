@@ -199,12 +199,12 @@ The following boundaries constrain the interpretation of our results:
     \item \textbf{Receipt matcher scope.} SOAC verification covers the 21 action verbs in the frozen verb list; frames asserting actions outside that vocabulary are outside the evaluated guarantee.
     \item \textbf{Idiom frame emission.} Under the contract prompt, SOAC emitted ungrounded action frames on 4/30 idioms (13.3\%) where strict regex emitted 0/30; the receipt matcher intercepted all four, but the contract prompt itself increases spurious frame emission on conversational idioms.
     \item \textbf{Sensitivity improvement is not established as significant.} SOAC caught 2/16 versus strict regex 1/16; the difference of one discordant pair does not support a claim of superior capture sensitivity.
-    \item \textbf{Prose leakage mitigation untested.} We recommend grammar-constrained decoding to close the leakage channel, but this paper does not evaluate GBNF-suppressed decoding; the recommendation is a design implication, not a measured result.
+    \item \textbf{Grammar-constrained decoding alone does not close the leakage channel.} Study~V2 measured decode-time GBNF constraints on the \texttt{[ACTION: ...]} frame channel (Approach~D): prose leakage was 17/120 (14.17\%, 95\% CI: [8.71\%, 21.99\%]), statistically indistinguishable from prompt-only SOAC (McNemar $b=3, c=5$, $p = 0.7237$), and the decision rule ($\le 2/120$) was unfulfilled. Constraining the structured frame format at the sampling layer does not suppress natural-language action claims in the surrounding prose stream; active post-turn NLI receipt entailment (SPIKE-A) remains mandatory as an epistemic backstop.
 \end{enumerate}
 
 \section{Conclusion}
 \label{sec:conclusion}
-We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action Contract on a pre-registered, held-out battery of $N=120$ interaction prompts. While structured contracts substantially reduce syntactic evasion ambiguity and execute approximately 11$\times$ faster than strict regex matching, addressing prose leakage requires grammar-constrained decoding rather than natural language prompting alone.
+We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action Contract on a pre-registered, held-out battery of $N=120$ interaction prompts. While structured contracts substantially reduce syntactic evasion ambiguity and execute approximately 11$\times$ faster than strict regex matching, our pre-registered v2 evaluation demonstrates that decode-time grammar constraints on the structured frame channel do not close the prose-leakage path ($17/120$ residual leakage); active post-turn receipt entailment remains mandatory as an epistemic runtime backstop.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}

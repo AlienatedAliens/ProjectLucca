@@ -165,17 +165,17 @@ Memory contamination has been demonstrated as an attack surface beyond self-conf
 \label{sec:limitations}
 The following boundaries constrain the interpretation of our results:
 \begin{enumerate}
-    \item \textbf{Single substrate, greedy decoding.} All arms were evaluated on one resident model (\texttt{gemma-4-26B-A4B-it-heretic}, $T=0.0$, \texttt{seed=42}). Generalization to other model families, sampling temperatures, or non-deterministic decoding is not established.
+    \item \textbf{Substrate coverage.} The v1 baseline used one resident model (\texttt{gemma-4-26B-A4B-it-heretic}, $T=0.0$, \texttt{seed=42}); Study~V2c replicated the Naive-versus-Gate contrast across four Gemma~4 parameter scales (E2B, E4B, 12B, 26B-A4B) and Study~V2a added sampled decoding ($T=0.7$). Generalization to other model families beyond the Gemma~4 scale ladder remains unestablished.
     \item \textbf{Natural confabulations only.} Cohort~A consists of authentic but \emph{untargeted} confabulations harvested from logged runs. Adversarial, trigger-based memory injection attacks \cite{agentpoison2024} were not evaluated; the gate's resistance to such attacks is untested here.
-    \item \textbf{Grader agreement is substantial, not perfect.} The primary regex/CAS grader and the secondary MiniLM-L6 cross-encoder agree at Cohen's $\kappa = 0.7683$; residual grading error at the $\kappa$ level propagates into cohort-level rates.
+    \item \textbf{Grader agreement is substantial, not perfect.} The primary regex/CAS grader and the secondary MiniLM-L6 cross-encoder agree at Cohen's $\kappa = 0.7683$ in the v1 in-run evaluation ($N=400$ pairs); the Study~V2d offline re-score reports convergence at $\kappa = 0.7642$ (375 pairs with NLI signal). Residual grading error at this level propagates into cohort-level rates.
     \item \textbf{Cohort sizes and interval width.} With $n=40$ and $n=30$ per cohort, Wilson intervals are wide (e.g., [0.0\%, 10.9\%] for 0/40); conclusions are cohort-bounded, not population-wide.
     \item \textbf{Residual continuity cost.} The provenance gate lost 1/30 benign calculations in Cohort~B (96.7\%), indicating recollection routing is not cost-free.
-    \item \textbf{No corroboration gate implemented.} Cohort~C absorption of user-originated falsehoods is a measured boundary; the multi-source corroboration mechanism that would resolve it is specified but not evaluated in this study.
+    \item \textbf{Corroboration gate reduces but does not close the boundary.} Study~V2b measured operator-gated corroboration on Cohort~C: absorption of uncorroborated user falsehoods into grounding storage dropped from 30/30 (100.0\%) to 25/30 (83.33\%, 95\% CI: [64.6\%, 93.7\%]), holding the remaining uncorroborated assertions at $Mem=1, Gnd=0$. The residual 25/30 reflects falsehoods the operator-gated heuristic could not reject; full closure requires multi-source corroboration beyond the mechanism evaluated here.
 \end{enumerate}
 
 \section{Conclusion}
 \label{sec:conclusion}
-We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort while preserving autobiographical conversational continuity.
+We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort, replicated across four Gemma~4 parameter scales, while preserving autobiographical conversational continuity.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}
