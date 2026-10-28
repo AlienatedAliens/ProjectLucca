@@ -181,8 +181,8 @@ These empirical findings demonstrate that decode-time grammar constraints on too
 Our empirical findings yield three practical design principles for autonomous agent safety architects:
 \begin{enumerate}
     \item \textbf{Do not rely on speech regex as a primary action barrier:} Natural language inflectional variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable; in our held-out evaluation they missed the majority of live ungrounded assertions.
-    \item \textbf{Enforce typed action boundaries at the decoding layer:} Requiring formal action frames checked against cryptographic receipts executes with negligible latency ($< 10\,\mu$s) and eliminates syntactic ambiguity.
-    \item \textbf{Pair structured contracts with prose suppression:} Because models exhibit prose leakage ($\approx 13\%$), agents must be configured with decoding-level grammar constraints (GBNF) that suppress natural-language action claims outside designated tool-call slots.
+    \item \textbf{Bind action authority to structured frames, not prose:} Requiring formal action frames checked against cryptographic receipts removes syntactic ambiguity from the action channel and executes with negligible enforcement latency ($< 10\,\mu$s). Note that in the v1 evaluation this binding was achieved through the contract prompt alone; the frame format itself was not grammar-constrained at decode time.
+    \item \textbf{Frame-channel grammar constraints do not suppress prose leakage:} Models continue to exhibit prose leakage ($\approx 13\%$ of turns). Our pre-registered v2 evaluation shows that decode-time GBNF constraints on the structured frame channel do not reduce leakage in the surrounding prose stream (17/120 under Approach~D versus 15/120 under prompt-only SOAC; McNemar $p = 0.7237$). Effective mitigation therefore requires post-turn verification -- the receipt matcher plus NLI entailment (SPIKE-A) -- rather than decode-time suppression alone.
 \end{enumerate}
 
 \subsection{Related Work}

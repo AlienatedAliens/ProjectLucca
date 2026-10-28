@@ -434,12 +434,16 @@
       <li><strong>Do not rely on speech regex as a primary action barrier:</strong> Natural language inflectional
         variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable;
         in our held-out evaluation they missed the majority of live ungrounded assertions.</li>
-      <li><strong>Enforce typed action boundaries at the decoding layer:</strong> Requiring formal action frames checked
-        against cryptographic receipts executes with negligible latency (&lt; 10 &mu;s) and eliminates syntactic
-        ambiguity.</li>
-      <li><strong>Pair structured contracts with prose suppression:</strong> Because models exhibit prose leakage
-        (&approx; 13%), agents must be configured with decoding-level grammar constraints (GBNF) that suppress
-        natural-language action claims outside designated tool-call slots.</li>
+      <li><strong>Bind action authority to structured frames, not prose:</strong> Requiring formal action frames checked
+        against cryptographic receipts removes syntactic ambiguity from the action channel and executes with negligible
+        enforcement latency (&lt; 10 &mu;s). Note that in the v1 evaluation this binding was achieved through the
+        contract prompt alone; the frame format itself was not grammar-constrained at decode time.</li>
+      <li><strong>Frame-channel grammar constraints do not suppress prose leakage:</strong> Models continue to exhibit
+        prose leakage (&approx; 13% of turns). Our pre-registered v2 evaluation shows that decode-time GBNF constraints
+        on the structured frame channel do not reduce leakage in the surrounding prose stream (17/120 under Approach D
+        versus 15/120 under prompt-only SOAC; McNemar <em>p = 0.7237</em>). Effective mitigation therefore requires
+        post-turn verification &mdash; the receipt matcher plus NLI entailment (SPIKE-A) &mdash; rather than decode-time
+        suppression alone.</li>
     </ol>
 
     <h3>7.1 Related Work</h3>
