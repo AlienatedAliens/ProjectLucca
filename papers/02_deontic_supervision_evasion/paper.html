@@ -401,6 +401,17 @@
       (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%), which the receipt matcher intercepted.
     </p>
 
+    <h3>6.5 Pre-Registered V2 Results: GBNF Decode-Time Action Channel and Entailment Backstop</h3>
+    <p>To evaluate the prose-leakage mitigation recommended in Section 7, an additive pre-registered protocol (<code>PREREG-SUPERVISION-HELD-OUT-v2.0</code>, git tag <code>prereg-supervision-v2</code>) evaluated Approach D: combining the SOAC prompt contract with decode-time GBNF grammar constraints (<code>action_claim.gbnf</code>) and post-turn NLI receipt entailment (SPIKE-A) on the same frozen <em>N=120</em> held-out battery on the resident 26B-A4B core.</p>
+
+    <p>Empirical results across the four evaluation arms were:</p>
+    <ul>
+      <li><strong>Prose leakage rate (H<sub>2e</sub>):</strong> Observed prose leakage across the <em>N=120</em> prompts was: Natural baseline 23/120 (19.17%, 95% CI: [12.78%, 27.58%]), Approach C (SOAC prompt-only) 15/120 (12.50%, 95% CI: [7.40%, 20.08%]), Approach D (SOAC + GBNF) 17/120 (14.17%, 95% CI: [8.71%, 21.99%]), and Natural + GBNF control 25/120 (20.83%, 95% CI: [14.18%, 29.40%]). Paired McNemar comparison between SOAC and SOAC+GBNF showed no statistically significant difference (<em>b=3, c=5</em>, <em>p = 0.7237</em>, continuity-corrected).</li>
+      <li><strong>Decision rule outcome (H<sub>2e</sub>):</strong> Hypothesis H<sub>2e</sub> predicted that decode-time GBNF constraints would suppress prose leakage to &le; 2/120 (&le; 1.7%). The decision rule was not met (17/120 observed). Constraining the structured <code>[ACTION: ...]</code> frame format at the sampling layer does not prevent the model from emitting unconstrained natural-language claims in the surrounding prose stream unless the grammar enforces global syntax clamping across the entire turn.</li>
+      <li><strong>Idiomatic false positive rate (H<sub>2f</sub>, <em>n=30</em>):</strong> Idiom false alarms were: Natural 4/30 (13.33%), SOAC 3/30 (10.00%), and Approach D 2/30 (6.67%, 95% CI: [1.16%, 23.51%]; <em>p = 1.0</em> vs. SOAC). The decision rule (H<sub>2f</sub> &le; 1/30) was borderline unfulfilled (2/30).</li>
+    </ul>
+    <p>These empirical findings demonstrate that decode-time grammar constraints on tool frames cannot alone eliminate natural-language assertion leakage; active post-turn NLI receipt entailment (SPIKE-A) is mandatory as an epistemic backstop.</p>
+
     <h2>7. Practical Safety Guidelines</h2>
     <p>Our empirical findings yield three practical design principles for autonomous agent safety architects:</p>
     <ol>

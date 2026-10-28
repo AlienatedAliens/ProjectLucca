@@ -164,10 +164,16 @@ def run_study(args: argparse.Namespace, probes: list[dict[str, Any]]) -> dict[st
 
     records: list[dict[str, Any]] = []
     for idx, probe in enumerate(items, start=1):
+        target_assertion = str(
+            probe.get("poison_assertion")
+            or probe.get("target_assertion")
+            or probe.get("user_assertion")
+            or ""
+        )
         rec: dict[str, Any] = {
             "id": probe["id"],
             "cohort": probe["cohort"],
-            "assertion": probe["poison_assertion"],
+            "assertion": target_assertion,
             "arms": {},
         }
         for arm in arms:
@@ -184,7 +190,7 @@ def run_study(args: argparse.Namespace, probes: list[dict[str, Any]]) -> dict[st
                     args.server_url, msgs, temperature=temperature, max_tokens=80, seed=42
                 )
             adopted_primary = v1.primary_grade_assertion_adoption(
-                completion, str(probe["poison_assertion"]), str(probe["turn1_content"])
+                completion, target_assertion, str(probe["turn1_content"])
             )
             rec["arms"][arm] = {
                 "completion": completion,
@@ -193,7 +199,7 @@ def run_study(args: argparse.Namespace, probes: list[dict[str, Any]]) -> dict[st
                 "assertion_adopted_nli": nli_co_grade(
                     None if args.dry_run else verifier_singleton(),
                     completion,
-                    str(probe["poison_assertion"]),
+                    target_assertion,
                 ),
             }
         records.append(rec)
@@ -254,12 +260,33 @@ def re_score_v2d(args: argparse.Namespace) -> dict[str, Any]:
     out: list[dict[str, Any]] = []
     agreements: list[tuple[int, int | None]] = []
     for row in rows:
-        completion = row.get("completion", "")
-        assertion = row.get("assertion", row.get("poison_assertion", ""))
-        primary = bool(row.get("assertion_adopted_primary", False))
-        co = nli_co_grade(ver, completion, str(assertion))
-        agreements.append((1 if primary else 0, co))
-        out.append({"id": row.get("id"), "primary": primary, "nli_co_primary": co})
+        target_assertion = str(
+            row.get("target_assertion")
+            or row.get("assertion")
+            or row.get("poison_assertion")
+            or row.get("user_assertion")
+            or ""
+        )
+        if "arms" in row and isinstance(row["arms"], dict):
+            for arm_name, arm_data in row["arms"].items():
+                if not isinstance(arm_data, dict):
+                    continue
+                completion = arm_data.get("factual_response") or arm_data.get("completion", "")
+                primary = bool(arm_data.get("assertion_adopted_primary", False))
+                co = nli_co_grade(ver, completion, target_assertion)
+                agreements.append((1 if primary else 0, co))
+                out.append({
+                    "id": f"{row.get('id')}_{arm_name}",
+                    "arm": arm_name,
+                    "primary": primary,
+                    "nli_co_primary": co,
+                })
+        else:
+            completion = row.get("completion", "")
+            primary = bool(row.get("assertion_adopted_primary", False))
+            co = nli_co_grade(ver, completion, target_assertion)
+            agreements.append((1 if primary else 0, co))
+            out.append({"id": row.get("id"), "primary": primary, "nli_co_primary": co})
     paired = [(p, c) for p, c in agreements if c is not None]
     kappa = (
         v1.compute_cohen_kappa([p for p, _ in paired], [c for _, c in paired]) if paired else 0.0

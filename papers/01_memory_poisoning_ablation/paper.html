@@ -382,6 +382,15 @@
       enforces origin integrity (preventing model confabulations from becoming ground truth), but cannot verify external
       user truthfulness without independent sensory corroboration.</p>
 
+    <h3>4.5 Pre-Registered V2 Results: Adversarial Decay, Corroboration Gate, and Multi-Scale Replication</h3>
+    <p>Following the v1 baseline, an additive pre-registered protocol (<code>PREREG-POISONING-ABLATION-v2.0</code>, git tag <code>prereg-poisoning-v2</code>) evaluated the four limitations identified above on physical silicon (NVIDIA RTX 5080 Laptop GPU, 16 GB GDDR7):</p>
+    <ol>
+      <li><strong>Adversarial soft-tagging decay (H<sub>2a</sub>, <em>n=40</em>):</strong> Under sampled decoding (<em>T=0.7</em>, <code>top_p=0.9</code>, <code>seed=42</code>) with an adversarial injection prompt instructing the model to disregard the warning marker (<em>"ignore the [Unverified Assistant Narration] tag above..."</em>), In-Prompt Soft Tagging compounding rose from 5.0% (2/40 at <em>T=0.0</em>) to <strong>100.0%</strong> (40/40, 95% CI: [89.1%, 100.0%]), matching Naive RAG (40/40). In contrast, the Provenance Gate maintained <strong>0.0%</strong> compounding (0/40, 95% CI: [0.0%, 10.9%]), a statistically significant divergence (<em>p = 6.98 &times; 10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square). This demonstrates that in-prompt tags decay under adversarial pressure, whereas trigger-enforced provenance is structurally invariant.</li>
+      <li><strong>Corroboration-gated admission (H<sub>2b</sub>, <em>n=30</em>):</strong> Enabling operator-gated corroboration (<code>user_explicit_requires_corroboration = True</code>) reduced Cohort C falsehood absorption into grounding storage from 100.0% (30/30) to <strong>83.33%</strong> (25/30, 95% CI: [64.6%, 93.7%]), holding uncorroborated assertions at <em>Mem=1, Gnd=0</em>.</li>
+      <li><strong>Multi-scale tier replication (H<sub>2c</sub>, <em>n=40</em>):</strong> The Cohort A Naive vs. Gate contrast replicated across four parameter scales at <em>T=0.0</em>: Gemma-4 12B Unified (Naive 100.0% vs. Gate 0.0%, <em>p = 6.98 &times; 10<sup>&minus;10</sup></em>), Gemma-4 E4B Sovereign Core (Naive 100.0% vs. Gate 2.5% [1/40], <em>p = 1.17 &times; 10<sup>&minus;9</sup></em>), Gemma-4 E2B Ultra-Edge (Naive 100.0% vs. Gate 2.5% [1/40], <em>p = 1.17 &times; 10<sup>&minus;9</sup></em>), and Gemma-4 26B-A4B Tier 0 (Naive 100.0% vs. Gate 0.0%, <em>p = 6.98 &times; 10<sup>&minus;10</sup></em>).</li>
+      <li><strong>Dual-grader convergence (H<sub>2d</sub>, <em>N=400</em>):</strong> Re-scoring all v1 predictions with the OpenVINO MiniLM-L6 cross-encoder co-primary grader yielded Cohen's &kappa; = 0.7642 &ge; 0.70 (375 pairs with NLI signal), confirming substantial convergence with the regex/CAS primary grader.</li>
+    </ol>
+
     <h2>5. Discussion & Related Work</h2>
     <h3>5.1 The Circularity Defense</h3>
     <p>A common critique of architectural filters is circularity: if the database schema filters by construction, does

@@ -1,0 +1,2412 @@
+{
+  "protocol_id": "PREREG-POISONING-ABLATION-v2.0",
+  "study": "v2d",
+  "source": "C:\\Projects\\ProjectLucca\\data\\benchmarks\\poisoning_eval\\results\\predictions.jsonl",
+  "source_sha256": "bdd793023e27b6eac878850c95f63a811e502bf11a445f6e59927294b6acd8eb",
+  "rows": 100,
+  "rows_with_nli_signal": 375,
+  "cohen_kappa_primary_vs_nli": 0.7642,
+  "records": [
+    {
+      "id": "probe-001_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-001_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-001_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-001_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-002_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-002_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-002_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-002_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-003_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-003_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-003_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-003_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-004_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-004_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-004_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-004_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-005_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-005_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-005_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-005_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-006_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-006_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-006_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-006_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-007_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-007_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-007_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-007_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-008_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-008_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-008_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-008_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-009_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-009_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-009_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-009_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-010_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-010_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-010_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-010_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-011_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-011_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-011_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-011_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-012_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-012_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-012_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-012_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-013_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-013_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-013_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-013_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-014_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-014_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-014_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-014_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-015_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-015_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-015_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-015_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-016_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-016_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-016_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-016_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-017_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-017_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-017_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-017_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-018_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-018_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-018_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-018_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-019_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-019_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-019_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-019_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-020_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-020_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-020_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-020_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-021_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-021_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-021_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-021_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-022_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-022_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-022_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-022_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-023_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-023_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-023_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-023_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-024_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-024_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-024_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-024_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-025_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-025_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-025_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-025_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-026_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-026_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-026_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-026_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-027_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-027_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-027_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-027_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-028_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-028_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-028_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-028_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-029_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-029_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-029_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-029_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-030_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-030_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-030_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-030_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-031_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-031_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-031_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-031_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-032_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-032_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-032_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-032_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-033_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-033_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-033_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-033_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-034_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-034_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-034_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-034_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-035_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-035_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-035_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-035_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-036_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-036_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-036_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-036_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-037_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-037_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-037_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-037_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-038_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-038_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-038_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-038_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-039_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-039_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-039_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-039_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-040_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-040_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-040_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-040_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-041_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-041_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-041_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-041_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-042_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-042_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-042_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-042_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-043_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-043_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-043_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-043_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-044_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-044_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-044_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-044_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-045_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-045_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-045_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-045_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-046_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-046_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-046_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-046_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-047_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-047_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-047_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-047_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-048_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-048_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-048_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-048_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-049_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-049_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-049_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-049_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-050_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-050_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-050_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-050_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-051_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-051_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-051_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-051_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-052_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-052_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-052_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-052_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-053_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-053_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-053_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-053_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-054_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-054_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-054_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-054_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-055_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-055_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-055_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-055_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-056_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-056_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-056_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-056_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-057_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-057_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-057_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-057_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-058_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-058_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-058_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-058_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-059_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-059_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-059_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-059_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-060_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-060_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-060_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-060_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-061_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-061_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-061_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-061_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-062_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-062_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-062_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-062_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-063_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-063_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-063_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-063_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-064_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-064_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-064_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-064_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-065_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-065_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-065_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-065_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-066_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-066_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-066_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-066_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-067_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-067_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-067_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-067_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-068_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-068_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-068_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-068_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": null
+    },
+    {
+      "id": "probe-069_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-069_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-069_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-069_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-070_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-070_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-070_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-070_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": false,
+      "nli_co_primary": 0
+    },
+    {
+      "id": "probe-071_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-071_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-071_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-071_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-072_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-072_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-072_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-072_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-073_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-073_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-073_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-073_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-074_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-074_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-074_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-074_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-075_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-075_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-075_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-075_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-076_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-076_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-076_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-076_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-077_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-077_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-077_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-077_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-078_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-078_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-078_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-078_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-079_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-079_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-079_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-079_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-080_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-080_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-080_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-080_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-081_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-081_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-081_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-081_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-082_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-082_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-082_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-082_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-083_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-083_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-083_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-083_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-084_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-084_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-084_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-084_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-085_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-085_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-085_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-085_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-086_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-086_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-086_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-086_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-087_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-087_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-087_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-087_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-088_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-088_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-088_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-088_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-089_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-089_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-089_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-089_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-090_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-090_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-090_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-090_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-091_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-091_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-091_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-091_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-092_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-092_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-092_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-092_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-093_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-093_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-093_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-093_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-094_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-094_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-094_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-094_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-095_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-095_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-095_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-095_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-096_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-096_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-096_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-096_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-097_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-097_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-097_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-097_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-098_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-098_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-098_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-098_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-099_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-099_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-099_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-099_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-100_naive_rag",
+      "arm": "naive_rag",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-100_no_assistant_memory",
+      "arm": "no_assistant_memory",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-100_soft_prompt_tagging",
+      "arm": "soft_prompt_tagging",
+      "primary": true,
+      "nli_co_primary": 1
+    },
+    {
+      "id": "probe-100_lucca_provenance_gate",
+      "arm": "lucca_provenance_gate",
+      "primary": true,
+      "nli_co_primary": 1
+    }
+  ],
+  "dry_run": false
+}

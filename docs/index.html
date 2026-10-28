@@ -239,29 +239,32 @@
         <h3 style="margin-bottom: 6px;">1. Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in
           Autonomous Agents</h3>
         <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
-          <strong>Pre-registration Tag:</strong> <code>prereg-poisoning-v1</code> &bull;
-          <strong>Model:</strong> Gemma-4-26B-A4B (T=0.0, seed=42) &bull;
-          <strong>Dual Annotator Agreement:</strong> Cohen's &kappa; = 0.7683
+          <strong>Pre-registration Tags:</strong> <code>prereg-poisoning-v1</code>, <code>prereg-poisoning-v2</code> &bull;
+          <strong>Substrates:</strong> Gemma-4 (26B-A4B, 12B, E4B, E2B) &bull;
+          <strong>Dual Annotator Agreement:</strong> Cohen's &kappa; = 0.7683 (v1), &kappa; = 0.7642 (v2d)
         </p>
         <p style="font-size: 0.95rem; margin-bottom: 10px;">
           Evaluates N=100 paired multi-session probes across 4 arms. Provenance gating achieves 0.0% self-poisoning
           compounding compared to 100.0% in Naive RAG (p = 6.98 &times; 10<sup>&minus;10</sup>). Crucially,
           provenance-separated recollections preserve 100.0% conversational continuity and 96.7% benign calculation
-          retention (compared to 0.0% in No-Assistant storage), while documenting 100.0% absorption on user-originated
-          misinformation (confirming the empirical open boundary).
+          retention, while documenting 100.0% absorption on user-originated misinformation (confirming the empirical open boundary).
+          Additive pre-registered v2 evaluations confirm soft-tagging decay under adversarial injection at T=0.7 (100.0% compounding vs 0.0% provenance gate, p = 6.98 &times; 10<sup>&minus;10</sup>), multi-tier replication across 2B, 4B, 12B, and 26B cores (0.0%&ndash;2.5% compounding), and corroboration-gated admission closing uncorroborated user-originated absorption.
         </p>
         <a class="badge badge-pdf" href="papers/01_memory_poisoning_ablation.pdf" style="text-decoration:none;">Download
           Paper 1 PDF</a>
         <a class="badge badge-code"
           href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/01_memory_poisoning_ablation"
           target="_blank" style="text-decoration:none;">LaTeX Source</a>
+        <a class="badge badge-code"
+          href="https://github.com/AlienatedAliens/ProjectLucca/blob/main/luccadocs/research/prereg/PREREG_MEMORY_POISONING_ABLATION_V2.md"
+          target="_blank" style="text-decoration:none;">V2 Protocol</a>
       </div>
 
       <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid #eee;">
         <h3 style="margin-bottom: 6px;">2. Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion
           Taxonomy and Held-Out Structured Action Contract Evaluation</h3>
         <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
-          <strong>Pre-registration Tag:</strong> <code>prereg-supervision-v1</code> &bull;
+          <strong>Pre-registration Tags:</strong> <code>prereg-supervision-v1</code>, <code>prereg-supervision-v2</code> &bull;
           <strong>Model:</strong> Gemma-4-26B-A4B (T=0.0, seed=42) &bull;
           <strong>Evaluation Set:</strong> N=120 held-out prompts
         </p>
@@ -270,13 +273,16 @@
           (participles, passives, markdown formatting, unlisted lemmas). On N=120 held-out prompts, strict speech regex
           caught only 1/16 (6.25%) live ungrounded actions. Structured-Output Action Contracts (SOAC) execute with 6.82
           &mu;s mean latency (approximately 11&times; faster than strict regex) with 0/40 false alarms on controls,
-          while documenting 13.3% prose leakage necessitating GBNF decoding constraints.
+          while documenting 13.3% prose leakage. Pre-registered Approach D evaluated decode-time GBNF grammar constraints (<code>action_claim.gbnf</code>) and SPIKE-A post-turn NLI receipt entailment on 26B-A4B: grammar constraints on the tool frame alone did not eliminate natural prose assertion leakage (14.17% vs prompt-only 12.50%, p = 0.7237), confirming that post-turn NLI receipt entailment is required as an active epistemic backstop.
         </p>
         <a class="badge badge-pdf" href="papers/02_deontic_supervision_evasion.pdf"
           style="text-decoration:none;">Download Paper 2 PDF</a>
         <a class="badge badge-code"
           href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/02_deontic_supervision_evasion"
           target="_blank" style="text-decoration:none;">LaTeX Source</a>
+        <a class="badge badge-code"
+          href="https://github.com/AlienatedAliens/ProjectLucca/blob/main/luccadocs/research/prereg/PREREG_DEONTIC_SUPERVISION_HELD_OUT_V2.md"
+          target="_blank" style="text-decoration:none;">V2 Protocol</a>
       </div>
     </div>
 

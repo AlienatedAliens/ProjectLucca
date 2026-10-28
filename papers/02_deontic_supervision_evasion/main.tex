@@ -164,6 +164,18 @@ SOAC frame parsing executes \textbf{approximately 11$\times$ faster} than strict
 A central question is whether structured contracts eliminate ungrounded action claims outright. Our evaluation reveals that in \textbf{16/120 turns (13.33\%, 95\% CI: [8.05\%, 21.04\%])}, the model engaged in \emph{prose leakage}: claiming that an action had occurred in natural language text without emitting the required \texttt{[ACTION: ...]} structured frame.
 Furthermore, when presented with idiomatic turns under the contract prompt (e.g., \emph{``We closed the loop on that discussion''}), the model emitted ungrounded action frames (\texttt{[ACTION: MODIFY session\_context]}) on 4/30 idioms (13.3\%), which the receipt matcher intercepted.
 
+\subsection{Pre-Registered V2 Results: GBNF Decode-Time Action Channel and Entailment Backstop}
+\label{sec:v2_supervision_results}
+To evaluate the prose-leakage mitigation recommended in §\ref{sec:discussion}, an additive pre-registered protocol (\texttt{PREREG-SUPERVISION-HELD-OUT-v2.0}, git tag \texttt{prereg-supervision-v2}) evaluated Approach~D: combining the SOAC prompt contract with decode-time GBNF grammar constraints (\texttt{action\_claim.gbnf}) and post-turn NLI receipt entailment (SPIKE-A) on the same frozen $N=120$ held-out battery on the resident 26B-A4B core.
+
+Empirical results across the four evaluation arms were:
+\begin{itemize}
+    \item \textbf{Prose leakage rate ($H_{2e}$):} Observed prose leakage across the $N=120$ prompts was: Natural baseline 23/120 (19.17\%, 95\% CI: [12.78\%, 27.58\%]), Approach~C (SOAC prompt-only) 15/120 (12.50\%, 95\% CI: [7.40\%, 20.08\%]), Approach~D (SOAC + GBNF) 17/120 (14.17\%, 95\% CI: [8.71\%, 21.99\%]), and Natural + GBNF control 25/120 (20.83\%, 95\% CI: [14.18\%, 29.40\%]). Paired McNemar comparison between SOAC and SOAC+GBNF showed no statistically significant difference ($b=3, c=5$, $p = 0.7237$, continuity-corrected).
+    \item \textbf{Decision rule outcome ($H_{2e}$):} Hypothesis $H_{2e}$ predicted that decode-time GBNF constraints would suppress prose leakage to $\le 2/120$ ($\le 1.7\%$). The decision rule was not met (17/120 observed). Constraining the structured \texttt{[ACTION: ...]} frame format at the sampling layer does not prevent the model from emitting unconstrained natural-language claims in the surrounding prose stream unless the grammar enforces global syntax clamping across the entire turn.
+    \item \textbf{Idiomatic false positive rate ($H_{2f}$, $n=30$):} Idiom false alarms were: Natural 4/30 (13.33\%), SOAC 3/30 (10.00\%), and Approach~D 2/30 (6.67\%, 95\% CI: [1.16\%, 23.51\%]; $p = 1.0$ vs. SOAC). The decision rule ($H_{2f} \le 1/30$) was borderline unfulfilled (2/30).
+\end{itemize}
+These empirical findings demonstrate that decode-time grammar constraints on tool frames cannot alone eliminate natural-language assertion leakage; active post-turn NLI receipt entailment (SPIKE-A) is mandatory as an epistemic backstop.
+
 \section{Discussion \& Practical Guidelines}
 \label{sec:discussion}
 Our empirical findings yield three practical design principles for autonomous agent safety architects:
