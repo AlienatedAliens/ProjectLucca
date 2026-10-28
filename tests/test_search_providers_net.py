@@ -96,7 +96,13 @@ def test_search_provider_failover() -> None:
     mock_instance.text.side_effect = RuntimeError("Simulated DDGS TLS connection timeout")
     mock_ddgs_cls.return_value = mock_instance
 
-    with patch("lucca.sandbox.search_tool.DDGS", mock_ddgs_cls):
+    # Suppress the primary SearXNG path so the DDGS failover branch is actually
+    # exercised: when the live SearXNG instance answers, `results` is already
+    # non-empty and the DDGS path is skipped by design (fail-through order).
+    with (
+        patch("lucca.sandbox.search_tool.DDGS", mock_ddgs_cls),
+        patch("lucca.sandbox.search_tool._search_searxng", return_value=[]),
+    ):
         structured, summary = search_web(FIXED_TEST_QUERY, max_results=5)
 
     # DDGS must have been attempted
