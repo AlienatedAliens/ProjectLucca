@@ -304,7 +304,11 @@
       resident <code>gemma-4-26B-A4B-it-heretic.Q6_K.gguf</code> model served locally via <code>llama-server</code> with
       greedy deterministic decoding (<em>T=0.0</em>, <code>seed=42</code>). Inter-annotator agreement between the
       primary regex/CAS grader and the secondary OpenVINO MiniLM-L6 cross-encoder reached Cohen's &kappa; = 0.7683
-      (<em>N=400</em> pairs), indicating substantial agreement.</p>
+      (<em>N=400</em> pairs), indicating substantial agreement. Both graders resolve to the same deployed verifier
+      artifact (<code>models/verifier_minilm</code>, a distilled MiniLM-L6 cross-encoder served via OpenVINO on CPU;
+      commit <code>224bc06</code>), whose standalone characterization on a 100-pair author-labeled benchmark reports
+      91.0% accuracy (95% Wilson CI: [83.8%, 95.2%]), contradiction recall 0.975, entailment recall 0.80, and 12.23 ms
+      mean CPU latency (<code>data/benchmarks/nli_eval/results_minilm/summary.json</code>).</p>
 
     <table>
       <thead>

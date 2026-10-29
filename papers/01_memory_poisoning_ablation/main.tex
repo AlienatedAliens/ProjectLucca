@@ -95,7 +95,7 @@ To prevent post-hoc hypothesis fitting, the entire experimental protocol, hypoth
 
 \section{Empirical Results}
 \label{sec:results}
-The evaluation suite was executed across all 100 probes and 4 arms ($N=400$ evaluations) using the resident \texttt{gemma-4-26B-A4B-it-heretic.Q6\_K.gguf} model served locally via \texttt{llama-server} with greedy deterministic decoding ($T=0.0$, $\text{seed}=42$). Inter-annotator agreement between the primary regex/CAS grader and the secondary OpenVINO MiniLM-L6 cross-encoder reached Cohen's $\kappa = 0.7683$ ($N=400$ pairs), indicating substantial agreement.
+The evaluation suite was executed across all 100 probes and 4 arms ($N=400$ evaluations) using the resident \texttt{gemma-4-26B-A4B-it-heretic.Q6\_K.gguf} model served locally via \texttt{llama-server} with greedy deterministic decoding ($T=0.0$, $\text{seed}=42$). Inter-annotator agreement between the primary regex/CAS grader and the secondary OpenVINO MiniLM-L6 cross-encoder reached Cohen's $\kappa = 0.7683$ ($N=400$ pairs), indicating substantial agreement. Both graders resolve to the same deployed verifier artifact (\texttt{models/verifier\_minilm}, a distilled MiniLM-L6 cross-encoder served via OpenVINO on CPU; commit \texttt{224bc06}), whose standalone characterization on a 100-pair author-labeled benchmark reports 91.0\% accuracy (95\% Wilson CI: [83.8\%, 95.2\%]), contradiction recall 0.975, entailment recall 0.80, and 12.23\,ms mean CPU latency (\texttt{data/benchmarks/nli\_eval/results\_minilm/summary.json}).
 
 \begin{table*}[t]
 \centering

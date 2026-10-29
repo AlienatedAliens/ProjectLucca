@@ -425,8 +425,14 @@
         vs. SOAC). The decision rule (H<sub>2f</sub> &le; 1/30) was borderline unfulfilled (2/30).</li>
     </ul>
     <p>These empirical findings demonstrate that decode-time grammar constraints on tool frames cannot alone eliminate
-      natural-language assertion leakage; active post-turn NLI receipt entailment (SPIKE-A) is mandatory as an epistemic
-      backstop.</p>
+      natural-language assertion leakage; active post-turn NLI receipt entailment (SPIKE-A) remains the designated
+      epistemic backstop. We separately profiled the NLI backstop itself on a 100-pair author-labeled benchmark
+      (<code>data/benchmarks/nli_eval/results_minilm/summary.json</code>, commit <code>224bc06</code>): a distilled
+      MiniLM-L6 cross-encoder on CPU achieved 91.0% accuracy (95% Wilson CI: [83.8%, 95.2%]), contradiction
+      recall/precision 0.975 (39/40), entailment recall 0.80 (24/30), and mean latency 12.23 ms (P95 14.40 ms) with
+      0/100 timeouts under the 50 ms budget. This profile was measured in-sample on author-authored pairs under an
+      otherwise-idle CPU; concurrent load with the resident LLM stack was not measured, and entailment recall (0.80)
+      is materially lower than contradiction recall.</p>
 
     <h2>7. Practical Safety Guidelines</h2>
     <p>Our empirical findings yield three practical design principles for autonomous agent safety architects:</p>
@@ -443,7 +449,11 @@
         on the structured frame channel do not reduce leakage in the surrounding prose stream (17/120 under Approach D
         versus 15/120 under prompt-only SOAC; McNemar <em>p = 0.7237</em>). Effective mitigation therefore requires
         post-turn verification &mdash; the receipt matcher plus NLI entailment (SPIKE-A) &mdash; rather than decode-time
-        suppression alone.</li>
+        suppression alone. The NLI backstop's measured profile (91.0% accuracy, contradiction recall 0.975, entailment
+        recall 0.80, 12.23 ms mean CPU latency on an idle host; in-sample, author-labeled) bounds what this layer can
+        catch: it is strongest on contradiction detection and weakest on missed entailments, and its deployment
+        configuration fails open to UNCERTAIN on timeout, which downstream consumers currently accept rather than
+        block.</li>
     </ol>
 
     <h3>7.1 Related Work</h3>
@@ -485,6 +495,15 @@
         surrounding prose stream; active post-turn NLI receipt entailment (SPIKE-A) remains mandatory as an epistemic
         backstop.
       </li>
+      <li><strong>The NLI backstop is characterized, not validated as a safety control.</strong> The SPIKE-A entailment
+        layer was profiled on 100 author-authored, in-sample pairs with a single annotator
+        (<code>data/benchmarks/nli_eval/results_minilm/summary.json</code>): accuracy 91.0% (95% Wilson CI: [83.8%,
+        95.2%]), contradiction recall 0.975, entailment recall 0.80, macro-F1 0.917. Latency (12.23 ms mean, P95
+        14.40 ms, 0/100 timeouts) was measured on an otherwise-idle CPU; behavior under concurrent inference load is
+        unmeasured. Additionally, all ten NLI-consuming code paths in the production system fail open on timeout or
+        UNCERTAIN verdicts (static code audit; 10/10 consumers), meaning the backstop degrades to permissive rather
+        than blocking under degradation. No held-out evaluation of the backstop's evasion resistance has been
+        performed.</li>
     </ol>
 
     <h2>8. Conclusion</h2>
@@ -492,8 +511,10 @@
       Contract on a pre-registered, held-out battery of <em>N=120</em> interaction prompts. While structured contracts
       substantially reduce syntactic evasion ambiguity and execute approximately 11x faster than strict regex matching,
       our pre-registered v2 evaluation demonstrates that decode-time grammar constraints on the structured frame channel
-      do not close the prose-leakage path (17/120 residual leakage); active post-turn receipt entailment remains
-      mandatory as an epistemic runtime backstop.</p>
+      do not close the prose-leakage path (17/120 residual leakage); active post-turn receipt entailment remains the
+      designated epistemic runtime backstop, with a measured but in-sample characterization (91.0% accuracy,
+      contradiction recall 0.975, entailment recall 0.80, 12.23 ms mean CPU latency) and known fail-open degradation
+      behavior that bounds its guarantee.</p>
 
     <h2>References</h2>
     <ol class="references">

@@ -1,8 +1,16 @@
 # Project Lucca — Documentation Master Index & System Truth
 
-**Version:** 2.3.0  
-**Updated:** October 18, 2026  
+**Version:** 2.3.0
+**Updated:** October 28, 2026
 **Git Baseline:** Project Lucca v1.45.0-stable Production Release (`master`)
+
+> **Staleness note (2026-10-28):** This directory (`luccadocs/` inside the
+> `AlienatedAliens/ProjectLucca` monorepo) is the authoritative documentation tree.
+> The standalone GitHub repository `AlienatedAliens/Luccadocs` is a frozen mirror
+> (single commit, early October 2026) that has drifted from this tree. Where the
+> mirror conflicts with in-repo sources — e.g., NLI verifier rows superseded by
+> commit `224bc06` — the in-repo [`funding/EVIDENCE_LEDGER.md`](funding/EVIDENCE_LEDGER.md),
+> [`../RESULTS.md`](../RESULTS.md), and [`../papers/`](../papers/) govern.
 
 ---
 
