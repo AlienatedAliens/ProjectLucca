@@ -99,10 +99,11 @@ class LLMSettings(BaseModel):
     chat_template: str | None = None
     # Human-readable brain name for self-awareness prompts. None = derived from filename.
     display_name: str | None = None
-    # TTS output safety guard: Defaults to "off" per owner architectural decision.
-    # The user owns the system and holds agency over queries; safety guards exist
-    # strictly to defend the user from external prompt injection and host system damage.
-    tts_safety_guard_mode: Literal["off", "edge_tiers", "all"] = "off"
+    # Sovereignty covenant (owner decision, 2026-10): the TTS content screen
+    # (TTSSafetyGuard) has been removed from the codebase entirely. Safety
+    # defenses guard *actions* (sandbox, tool whitelist, SequenceGuard, output
+    # supervisor) against external threats and accidents; nothing screens what
+    # the user says or what Lucca says back.
 
     @field_validator("chat_template_file", "chat_template", "display_name", "draft_model", mode="before")
     @classmethod

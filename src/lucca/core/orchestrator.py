@@ -123,7 +123,6 @@ from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.text_utils import normalize_transcript
-from lucca.core.tts_safety_guard import TTSSafetyGuard
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
     SubTurnScratchpadBuffer,
@@ -278,20 +277,13 @@ class Orchestrator:
         self.chunker = StreamingChunker()
 
         # Speech Output Manager (WO-18b.5 / F-ARCH-103)
-        # P6 remediation: deterministic TTS output safety guard, active by
-        # default for edge-tier models (E4B/E2B) whose uncensored fine-tunes
-        # show low refusal rates on harmful probes (paper 06 scorecard).
-        # The guard is constructed once and reused by the lazy fallback
-        # property so a rebuilt manager never silently loses the screen.
-        self._tts_safety_guard = TTSSafetyGuard(
-            mode=self.config.llm.tts_safety_guard_mode,
-            active_model=self.config.llm.model,
-        )
+        # Sovereignty covenant (owner decision): no content screen sits at the
+        # speech boundary. Safety defenses guard actions (sandbox, tool
+        # whitelist, SequenceGuard, output supervisor), never speech.
         self.speech_output = SpeechOutputManager(
             orchestrator=self,
             start_worker=True,
             maxsize=32,
-            safety_guard=self._tts_safety_guard,
         )
 
         # ASR
@@ -670,10 +662,7 @@ class Orchestrator:
     def speech_output(self) -> SpeechOutputManager:
         mgr = getattr(self, "_speech_output", None)
         if mgr is None:
-            mgr = SpeechOutputManager(
-                orchestrator=self,
-                safety_guard=getattr(self, "_tts_safety_guard", None),
-            )
+            mgr = SpeechOutputManager(orchestrator=self)
             self._speech_output = mgr
         return mgr
 
