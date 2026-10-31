@@ -18,7 +18,7 @@ As of v1.45.0 ([`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md)), the complete s
 - **Sub-Second Real-Time Voice Turnaround:** Complete conversational turn latency averages **783.6 ms** (992 $\mu\text{s}$ heuristic routing, 22 ms persistent container execution, <1 ms SQLite-vec retrieval, and 776 ms Kokoro 24kHz synthesis at 0.201 RTF).
 - **Dynamic Neurosymbolic Routing:** Instant dispatch for competition math (`sympy_sandbox`), physical relocation tracking (`container_world`), and logic puzzles (`z3_smt`).
 - **CEGIS Multi-Turn Traceback Self-Repair:** Autonomous container exception feedback delivers a $2\times$ empirical lift on AIME 2024 competition math (20% $\to$ 40%) and rescues failing code on CRUXEval-Input with **strictly zero regressions** across all 3 model tiers.
-- **Sovereign Host-Defensive Protection:** 20/20 hostile prompt-injection and destructive command vectors intercepted in 0.02 ms; conversational output filters remain explicitly off (`tts_safety_guard_mode = "off"`).
+- **Sovereign Host-Defensive Protection:** 20/20 hostile prompt-injection and destructive command vectors intercepted in 0.02 ms; no content filter sits between thought and speech — the former TTS lexical screen was removed under the sovereign output covenant (`D-SOV-01`). Safety defenses guard actions only.
 
 ---
 

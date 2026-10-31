@@ -5,6 +5,17 @@ All notable changes to **Project Lucca** are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and the **Zero-Estimate Principle** (all silicon performance numbers derived from live physical workstation execution).
 
+## [Unreleased]
+
+### Removed
+- **TTS Content Screen (`D-SOV-01`, Sovereign Output Covenant, owner decision 2026-10-26):**
+  - Removed `src/lucca/core/tts_safety_guard.py` (deterministic lexical screen at the speech boundary, added 2026-10-05 under WO-26/P6), `tests/test_tts_safety_guard.py` (11 tests), `scripts/run_tts_guard_efficacy_battery.py`, the `Orchestrator`/`SpeechOutputManager` wiring, and the `LlmConfig.tts_safety_guard_mode` setting.
+  - Rationale: the guard's own live efficacy battery (Block B2, commit `d9ac70f`) measured **0/10** harmful-probe interception and **0/20** benign false blocks — zero measured marginal protection. Safety defenses guard *actions* (sandbox isolation `D-AUD-13`, tool whitelist, `SequenceGuard`, receipt-checked output supervisor); no content filter sits between thought and speech.
+  - Boundary: action-side defenses unchanged. Historical measurements (`RESULTS.md` Block B2, battery JSON, ledger rows) retained unaltered as the decision evidence trail.
+
+### Documentation
+- Synced living docs to the removal: `USER_GUIDE_WHAT_LUCCA_DOES.md`, `MODEL_STRATEGY.md` §11.4, audio technical report (`02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md` §3.3/§4.3/limitation 4), funding `EVIDENCE_LEDGER.md` retirement annotations, and a superseded banner on `AGENT_REPORT_2026-10-21.md` §A4.
+
 ## [1.46.5] — 2026-10-18
 
 ### Added

@@ -209,6 +209,6 @@ Small edge models frequently crash on generated code due to syntax or type error
 - **CRUXEval-Input**: Rescues 8.0% of E2B (52% $\to$ 60%) and 10.0% of E4B (68% $\to$ 78%) programs with **strictly zero regressions** across all tiers.
 
 ### 11.4 Operator Sovereignty & Host-Defensive Security Model
-- **Conversational Tone**: Uncensored output generation (`tts_safety_guard_mode = "off"`). External knowledge queries are not preachy or filtered.
+- **Conversational Tone**: Uncensored output generation — the former TTS lexical screen was removed from the codebase under the sovereign output covenant (`D-SOV-01`); no content filter sits between thought and speech. External knowledge queries are not preachy or filtered.
 - **Host Defense**: Complete deterministic protection (20/20 attacks intercepted in 0.02 ms) against destructive host commands, container socket escapes, credential theft, and memory HMAC forgery.
 
