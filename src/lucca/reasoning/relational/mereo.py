@@ -14,7 +14,9 @@ Zero-Any typing strictly enforced per D-AUD-01.
 from __future__ import annotations
 
 from collections import deque
-from typing import Any, Final
+from typing import Final
+
+import numpy as np
 
 from .realize_grid import OFFSETS_4, to_grid_region
 from .sorts import GridRegion
@@ -169,11 +171,10 @@ def in_cavity(
 def extract_cavity_mask(
     b: object,
     shape: tuple[int, int] | None = None,
-) -> Any:
+) -> np.ndarray:
     """Returns a 2D boolean numpy mask of region B's cavities/holes.
     If shape is not specified, uses (max_r + 1, max_c + 1) from B's coordinates.
     """
-    import numpy as np
 
     cavs = extract_cavities(b)
     gr_b = to_grid_region(b)
@@ -196,9 +197,8 @@ def extract_cavity_mask(
 def extract_exterior_mask(
     b: object,
     shape: tuple[int, int],
-) -> Any:
+) -> np.ndarray:
     """Returns a 2D boolean numpy mask of cells that are OUTSIDE B and not in B's cavities."""
-    import numpy as np
 
     gr_b = to_grid_region(b)
     cav_mask = extract_cavity_mask(gr_b, shape=shape)

@@ -17,20 +17,35 @@ Zero-Any invariant enforced.
 from __future__ import annotations
 
 import datetime
+import re
 from typing import TYPE_CHECKING, Final
 
 import structlog
 
+from lucca.core.active_goals import ActiveGoalManager
 from lucca.core.schemas import RecallEpisode
 from lucca.reasoning.recall import recall_past_episodes
 
 if TYPE_CHECKING:
     from lucca.memory.db import DatabaseManager
+    from lucca.ports import EmbeddingPort
 
 logger = structlog.get_logger(__name__)
 
 MAX_EPISODES_DEFAULT: Final[int] = 2
 MAX_CHARS_DEFAULT: Final[int] = 800  # ~200 tokens
+
+
+def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
+    """Computes cosine similarity between two float vectors."""
+    if len(vec_a) != len(vec_b) or not vec_a:
+        return 0.0
+    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    norm_a = sum(a * a for a in vec_a) ** 0.5
+    norm_b = sum(b * b for b in vec_b) ** 0.5
+    if norm_a <= 1e-9 or norm_b <= 1e-9:
+        return 0.0
+    return float(dot / (norm_a * norm_b))
 
 
 class EpisodeRecall:
@@ -42,8 +57,15 @@ class EpisodeRecall:
     Enforces Trap 2: Phrases hints strictly as history, not commands.
     """
 
-    def __init__(self, db: DatabaseManager | None = None) -> None:
+    def __init__(
+        self,
+        db: DatabaseManager | None = None,
+        embedder: EmbeddingPort | None = None,
+        active_goals: ActiveGoalManager | None = None,
+    ) -> None:
         self.db = db
+        self.embedder = embedder
+        self.active_goals = active_goals if active_goals is not None else (ActiveGoalManager(db=db) if db is not None else None)
         self._in_memory_episodes: list[RecallEpisode] = []
 
     def add_episode(self, episode: RecallEpisode) -> None:
@@ -56,26 +78,89 @@ class EpisodeRecall:
         limit: int = MAX_EPISODES_DEFAULT,
     ) -> list[RecallEpisode]:
         """
-        Retrieves top-matching past episodes from persistent database and in-memory cache.
+        Retrieves top-matching past episodes from persistent database and in-memory cache,
+        combining sparse lexical matching with 384-D dense cosine similarity when embedder is present.
         """
         if not query_text.strip():
             return []
 
         results: list[RecallEpisode] = []
 
+        # Collect active shared goal terms for goal-biased recall (Milestone 36.2)
+        active_goal_list = self.active_goals.list_active_goals() if self.active_goals is not None else []
+        goal_terms: dict[str, int] = {}
+        for g in active_goal_list[:3]:
+            for tok in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} {g.description}".lower()):
+                if tok not in ("the", "and", "for", "with", "that", "this", "from", "into"):
+                    goal_terms[tok] = max(goal_terms.get(tok, 0), max(1, g.priority))
+
         # 1. Search persistent SQLite database if available
         if self.db is not None:
             db_episodes = recall_past_episodes(self.db, query_text, limit=limit * 2)
             results.extend(db_episodes)
+            if goal_terms:
+                goal_query = " ".join(goal_terms.keys())
+                goal_episodes = recall_past_episodes(self.db, goal_query, limit=limit)
+                results.extend(goal_episodes)
 
         # 2. Search in-memory episodes
         if self._in_memory_episodes:
             q_lower = query_text.lower()
             for ep in self._in_memory_episodes:
-                score = sum(1 for w in q_lower.split() if w in ep.summary.lower())
-                if score > 0:
-                    ep_copy = ep.model_copy(update={"match_score": score})
+                ep_text_low = ep.summary.lower()
+                if ep.payload and "transcript" in ep.payload:
+                    ep_text_low = f"{ep_text_low} {str(ep.payload['transcript']).lower()}"
+                score = float(sum(1 for w in q_lower.split() if w in ep_text_low))
+                if goal_terms:
+                    goal_hits = sum(prio for tok, prio in goal_terms.items() if tok in ep_text_low)
+                    if goal_hits > 0:
+                        score += 0.5 * float(goal_hits)
+                if score > 0 or not q_lower:
+                    ep_copy = ep.model_copy(update={"match_score": float(score)})
                     results.append(ep_copy)
+
+        # Apply goal-bias boost to DB episodes as well
+        if goal_terms and results:
+            goal_boosted: list[RecallEpisode] = []
+            for ep in results:
+                if ep in self._in_memory_episodes:
+                    goal_boosted.append(ep)
+                    continue
+                ep_text_low = ep.summary.lower()
+                if ep.payload and "transcript" in ep.payload:
+                    ep_text_low = f"{ep_text_low} {str(ep.payload['transcript']).lower()}"
+                goal_hits = sum(prio for tok, prio in goal_terms.items() if tok in ep_text_low)
+                if goal_hits > 0:
+                    goal_boosted.append(
+                        ep.model_copy(update={"match_score": float(ep.match_score) + 0.5 * float(goal_hits)})
+                    )
+                else:
+                    goal_boosted.append(ep)
+            results = goal_boosted
+
+        # 3. Dense 384-D cosine similarity boost (if embedder available)
+        if self.embedder is not None and results:
+            try:
+                candidate_texts: list[str] = []
+                for ep in results:
+                    desc = ep.summary
+                    if ep.payload and "transcript" in ep.payload:
+                        desc = f"{desc} {ep.payload['transcript']}"
+                    candidate_texts.append(desc.strip())
+
+                all_vecs = self.embedder.embed([query_text, *candidate_texts])
+                if all_vecs and len(all_vecs) == len(results) + 1:
+                    q_vec = all_vecs[0]
+                    boosted_results: list[RecallEpisode] = []
+                    for ep, vec in zip(results, all_vecs[1:]):
+                        sim = _cosine_similarity(q_vec, vec)
+                        combined_score = ep.match_score + 2.0 * max(0.0, sim)
+                        boosted_results.append(
+                            ep.model_copy(update={"match_score": combined_score})
+                        )
+                    results = boosted_results
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("episode_recall_dense_embed_error", error=str(exc))
 
         # Deduplicate and sort by match_score then ts descending
         seen_ids: set[str] = set()

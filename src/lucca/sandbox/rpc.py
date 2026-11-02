@@ -36,186 +36,28 @@ from lucca.sandbox.schemas import (
 logger = structlog.get_logger(__name__)
 
 
-_CONTAINER_WORLD_PRELUDE = '''
-import sys as _sys, types as _types
-class ContainerWorld:
-    def __init__(self) -> None:
-        self.world: dict[str, str] = {}
-        self.initial_world: dict[str, str] = {}
-        self.beliefs: dict[str, dict[str, str]] = {}
-        self.second_order_beliefs: dict[str, dict[str, dict[str, str]]] = {}
-        self.room_occupants: dict[str, list[str]] = {}
-        self.agent_locations: dict[str, str] = {}
-    @property
-    def rooms(self) -> dict[str, list[str]]:
-        return self.room_occupants
-    def process_event(self, ev: dict[str, object]) -> None:
-        agent = str(ev.get("agent") or ev.get("actor") or "").strip().lower()
-        action = str(ev.get("action") or "move").strip().lower()
-        item = str(ev.get("item") or "").strip().lower()
-        loc = str(ev.get("location") or ev.get("dst") or ev.get("to_loc") or "").strip().lower()
-        raw_obs = ev.get("observed_by") or []
-        obs_list = [str(o).strip().lower() for o in raw_obs if o] if isinstance(raw_obs, list) else []
-        if not item or not loc:
-            return
-        if item not in self.initial_world or action in ("initial", "start", "starting", "located"):
-            self.initial_world.setdefault(item, loc)
-        if action in ("initial", "start", "starting", "located", "move", "place", "put", "relocate", "transfer", "set", "leave", "drop"):
-            self.world[item] = loc
-        present = set()
-        if agent and agent not in ("none", "null", "all", "everyone"):
-            self.beliefs.setdefault(agent, {})[item] = loc
-            present.add(agent)
-        for obs in obs_list:
-            if obs and obs not in ("none", "null", "all", "everyone"):
-                self.beliefs.setdefault(obs, {})[item] = loc
-                present.add(obs)
-        implicit_witnesses: list[str] = []
-        if hasattr(self, "agent_locations") and hasattr(self, "room_occupants"):
-            if agent and agent in self.agent_locations:
-                ag_room = self.agent_locations[agent]
-                implicit_witnesses.extend(self.room_occupants.get(ag_room, []))
-            if loc in self.room_occupants:
-                implicit_witnesses.extend(self.room_occupants[loc])
-        for wit in implicit_witnesses:
-            if wit and wit not in ("none", "null", "all", "everyone"):
-                self.beliefs.setdefault(wit, {})[item] = loc
-                present.add(wit)
-        for x in present:
-            if x not in self.second_order_beliefs:
-                self.second_order_beliefs[x] = {}
-            for y in present:
-                if y not in self.second_order_beliefs[x]:
-                    self.second_order_beliefs[x][y] = {}
-                self.second_order_beliefs[x][y][item] = loc
-    def place(self, arg1: str | None, arg2: str, arg3: str | None = None, observed_by: list[str] | None = None, actor: str | None = None) -> None:
-        agent_val, item_val, loc_val = ((actor or ""), (arg1 or ""), arg2) if arg3 is None else ((arg1 or actor or ""), arg2, arg3)
-        self.process_event({"agent": agent_val, "action": "place", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
-    def move(self, arg1: str | None, arg2: str, arg3: str | None = None, observed_by: list[str] | None = None, actor: str | None = None) -> None:
-        agent_val, item_val, loc_val = ((actor or ""), (arg1 or ""), arg2) if arg3 is None else ((arg1 or actor or ""), arg2, arg3)
-        self.process_event({"agent": agent_val, "action": "move", "item": item_val, "location": loc_val, "observed_by": observed_by or []})
-    def reset(self) -> None:
-        self.world.clear(); self.initial_world.clear(); self.beliefs.clear(); self.second_order_beliefs.clear()
-        self.room_occupants.clear(); self.agent_locations.clear()
-    def process_events(self, events: list[dict[str, object]]) -> None:
-        for ev in events:
-            self.process_event(ev)
-    def query(self, target_agent: str | None, item: str) -> str | None:
-        t_item = item.strip().lower()
-        if target_agent:
-            ag = target_agent.strip().lower()
-            if ag in self.beliefs:
-                if t_item in self.beliefs[ag]:
-                    return self.beliefs[ag][t_item]
-                for k, v in self.beliefs[ag].items():
-                    if t_item in k or k in t_item:
-                        return v
-            if t_item in self.initial_world:
-                return self.initial_world[t_item]
-            for k, v in self.initial_world.items():
-                if t_item in k or k in t_item:
-                    return v
-        if t_item in self.world:
-            return self.world[t_item]
-        for k, v in self.world.items():
-            if t_item in k or k in t_item:
-                return v
-        return None
-    def query_second_order(self, observer_agent: str, target_agent: str, item: str) -> str | None:
-        obs = observer_agent.strip().lower()
-        tgt = target_agent.strip().lower()
-        t_item = item.strip().lower()
-        if obs == tgt:
-            return self.query(obs, t_item)
-        if obs in self.second_order_beliefs and tgt in self.second_order_beliefs[obs]:
-            if t_item in self.second_order_beliefs[obs][tgt]:
-                return self.second_order_beliefs[obs][tgt][t_item]
-            for k, v in self.second_order_beliefs[obs][tgt].items():
-                if t_item in k or k in t_item:
-                    return v
-        if t_item in self.initial_world:
-            return self.initial_world[t_item]
-        for k, v in self.initial_world.items():
-            if t_item in k or k in t_item:
-                return v
-        return self.query(None, t_item)
-    def query_recursive(self, agent_chain: list[str], item: str) -> str | None:
-        if not agent_chain:
-            return self.query(None, item)
-        if len(agent_chain) == 1:
-            return self.query(agent_chain[0], item)
-        if len(agent_chain) == 2:
-            return self.query_second_order(agent_chain[0], agent_chain[1], item)
-        obs, sub = agent_chain[0].strip().lower(), agent_chain[1:]
-        first = self.query_second_order(obs, sub[0], item)
-        return first if len(sub) == 1 else self.query_recursive(sub, item)
-ContainerWorld.query_recursive = ContainerWorld.query_recursive
-ContainerWorld.query_nth = ContainerWorld.query_recursive
-ContainerWorld.belief_chain = ContainerWorld.query_recursive
-ContainerWorld.put = ContainerWorld.place
-ContainerWorld.relocate = ContainerWorld.move
-ContainerWorld.ask = ContainerWorld.query
-ContainerWorld.query_2nd = ContainerWorld.query_second_order
-ContainerWorld.belief_of_belief = ContainerWorld.query_second_order
-ContainerWorld.query_nested = ContainerWorld.query_second_order
-ContainerWorld.set_object_location = ContainerWorld.place
-ContainerWorld.place_object = ContainerWorld.place
-ContainerWorld.add_object = ContainerWorld.place
-ContainerWorld.set_location = ContainerWorld.place
-ContainerWorld.set_object = ContainerWorld.place
-ContainerWorld.set_object_state = ContainerWorld.place
-def set_room_occupants(self, room: str, occupants: list[str]) -> None:
-    clean_room = room.strip().lower()
-    clean_occupants = [str(o).strip().lower() for o in occupants if str(o).strip()]
-    if not hasattr(self, "room_occupants"):
-        self.room_occupants = {}
-    self.room_occupants[clean_room] = clean_occupants
-    if not hasattr(self, "agent_locations"):
-        self.agent_locations = {}
-    for occ in clean_occupants:
-        self.agent_locations[occ] = clean_room
-def tell(self, speaker: str, listener: str, item: str, location: str | None = None) -> None:
-    spk, lis, it = speaker.strip().lower(), listener.strip().lower(), item.strip().lower()
-    loc = location.strip().lower() if location is not None else (self.query(spk, it) or "")
-    if not loc:
-        return
-    if lis not in self.beliefs:
-        self.beliefs[lis] = {}
-    self.beliefs[lis][it] = loc
-    if spk not in self.second_order_beliefs:
-        self.second_order_beliefs[spk] = {}
-    if lis not in self.second_order_beliefs[spk]:
-        self.second_order_beliefs[spk][lis] = {}
-    self.second_order_beliefs[spk][lis][it] = loc
-ContainerWorld.set_room_occupants = set_room_occupants
-ContainerWorld.tell = tell
-ContainerWorld.add_agent = lambda self, *args, **kwargs: None
-ContainerWorld.record_observation = lambda self, *args, **kwargs: None
-World = ContainerWorld
-KnowledgeBase = ContainerWorld
-BeliefTracker = ContainerWorld
-class Agent:
-    def __init__(self, name: str = "", *args, **kwargs) -> None:
-        self.name = str(name)
-    def __str__(self) -> str:
-        return self.name
-    def __repr__(self) -> str:
-        return f"Agent({self.name!r})"
-_cw_mod = _types.ModuleType("container_world")
-_cw_mod.ContainerWorld = ContainerWorld
-_cw_mod.World = ContainerWorld
-_cw_mod.KnowledgeBase = ContainerWorld
-_cw_mod.BeliefTracker = ContainerWorld
-_cw_mod.Agent = Agent
-_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"]
-_sys.modules["container_world"] = _cw_mod
-'''
-
 def _inject_shared_workspace_prelude(code: str) -> str:
-    """Injects ContainerWorld module shim into sandboxed Python code when referenced (D-REAS-10)."""
+    """Loads canonical ContainerWorld module from single-source container_world.py when explicitly requested."""
     if any(k in code for k in ("ContainerWorld", "container_world", "World", "KnowledgeBase", "BeliefTracker")):
         if "class ContainerWorld" not in code:
-            return _CONTAINER_WORLD_PRELUDE + "\n" + code
+            cw_path = Path(__file__).with_name("container_world.py")
+            if cw_path.is_file():
+                cw_src = cw_path.read_text(encoding="utf-8").replace("from __future__ import annotations", "")
+                clean_code = code.replace("from __future__ import annotations", "")
+                shim = (
+                    "from __future__ import annotations\n"
+                    "import sys as _sys, types as _types\n"
+                    f"{cw_src}\n"
+                    '_cw_mod = _types.ModuleType("container_world")\n'
+                    "_cw_mod.ContainerWorld = ContainerWorld\n"
+                    "_cw_mod.World = World\n"
+                    "_cw_mod.KnowledgeBase = KnowledgeBase\n"
+                    "_cw_mod.BeliefTracker = BeliefTracker\n"
+                    "_cw_mod.Agent = Agent\n"
+                    '_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"]\n'
+                    '_sys.modules["container_world"] = _cw_mod\n'
+                )
+                return shim + "\n" + clean_code
     return code
 
 
@@ -572,8 +414,6 @@ class DockerRPCTransport:
         """Syncs latest host reasoning and container_world modules into /tmp/lucca_runtime inside the container."""
         if not force and self.container_name in DockerRPCTransport._synced_containers:
             return
-        if hasattr(subprocess.run, "_mock_name") or hasattr(subprocess.Popen, "_mock_name"):
-            return
         try:
             from lucca.sandbox.container_spec import win_to_wsl_path  # noqa: PLC0415
 
@@ -820,9 +660,9 @@ class DockerRPCTransport:
         effective_timeout_s = (
             timeout_s if timeout_s is not None else (15.0 if tool == "run_python" else 5.0)
         )
+
         if tool == "run_python" and isinstance(args.get("code"), str):
-            args = dict(args)
-            args["code"] = _inject_shared_workspace_prelude(str(args["code"]))
+            args = {**args, "code": _inject_shared_workspace_prelude(str(args["code"]))}
 
         if self.use_direct_fallback:
             return self._execute_direct(call_id, tool, args, t0)
@@ -840,14 +680,17 @@ class DockerRPCTransport:
                         elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                     )
 
-                if not self.is_container_running() and not self.ensure_container_running():
-                    return ToolResult(
-                        call_id=call_id,
-                        ok=False,
-                        exit_code=-2,
-                        stderr="sandbox unavailable: container could not be started",
-                        elapsed_ms=(time.perf_counter() - t0) * 1000.0,
-                    )
+                if not self.is_container_running():
+                    if not self.ensure_container_running():
+                        return ToolResult(
+                            call_id=call_id,
+                            ok=False,
+                            exit_code=-2,
+                            stderr="sandbox unavailable: container could not be started",
+                            elapsed_ms=(time.perf_counter() - t0) * 1000.0,
+                        )
+                else:
+                    self._sync_container_runtime()
 
             try:
                 res_dict = worker.execute(

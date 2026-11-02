@@ -379,11 +379,11 @@ def test_mcts_synthesize_single_hole() -> None:
 
 
 def test_mcts_synthesize_multi_hole() -> None:
-    """Verifies MCTS expansion and synthesis across multiple open holes."""
-    engine = ASTHoleMCTSEngine(MCTSConfig(max_iterations=150, cpu_threads=4))
+    """Verifies MCTS expansion and synthesis across multiple open holes without oracle literals."""
+    engine = ASTHoleMCTSEngine(MCTSConfig(max_iterations=300, cpu_threads=4))
 
     sketch = parse_expr("(* (?hole a) (?hole b))")
-    res = engine.synthesize(sketch, goal=54, candidate_literals=[2, 27])
+    res = engine.synthesize(sketch, goal=54)
 
     assert res.success is True
     assert res.canonical_code is not None
@@ -446,13 +446,13 @@ def test_mcts_node_operations() -> None:
 # ==============================================================================
 
 
-def test_gate_g_wo31_paired_comparison() -> None:
+def test_gate_g_wo31_paired_comparison(tmp_path: Path) -> None:
     """
     Enforces G-WO31-PAIRED:
     1. Evaluates all 43 labeled Bucket C reasoning failure items.
     2. Measures Engine-OFF (0/43 resolved in frozen baseline) vs Engine-ON.
     3. Confirms non-zero task resolution (>= 15 items resolved) within CPU budget.
-    4. Writes complete paired comparison artifact to logs/test_reports.
+    4. Writes complete paired comparison artifact to tmp_path.
     """
     assert len(BUCKET_C_REASONING_ITEMS) == 43, "Must test exactly the 43 Bucket C items"
 
@@ -481,16 +481,14 @@ def test_gate_g_wo31_paired_comparison() -> None:
         except Exception:
             gt_val = None
 
-        nums = [int(n) for n in re.findall(r"\b\d+\b", expr_str)]
-
         resolved = False
         synth_code: str | None = None
         explored_nodes = 0
 
         if isinstance(parsed, list) and len(parsed) >= 2 and gt_val is not None:
-            # Create sketch with hole at last argument position
+            # Create sketch with hole at last argument position (without passing oracle literals)
             sketch = parsed[:-1] + [parse_expr("(?hole h1)")]
-            res = engine.synthesize(sketch, goal=gt_val, candidate_literals=nums)
+            res = engine.synthesize(sketch, goal=gt_val)
             if res.success:
                 resolved = True
                 synth_code = res.canonical_code
@@ -520,7 +518,7 @@ def test_gate_g_wo31_paired_comparison() -> None:
     )
 
     # Acceptance Criteria 3: Versioned artifact saved
-    reports_dir = Path(__file__).parent.parent / "logs" / "test_reports"
+    reports_dir = tmp_path / "test_reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     report_file = reports_dir / "wo31_paired_comparison_report.json"
 

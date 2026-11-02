@@ -174,9 +174,9 @@ def test_flag_on_does_not_affect_user_derived(
 def test_flag_on_corroboration_lookup_failure_fails_open(
     test_db: DatabaseManager, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """TRAP 7: with no usable DB handle the lookup passes and v1 eligibility is kept."""
+    """WO-39 Milestone 2.1: with no usable DB handle the lookup fails CLOSED (grounding_eligible = 0)."""
     _set_flag(monkeypatch, True)
-    assert resolve_grounding_eligible(Provenance.USER_EXPLICIT, "any claim", None) == 1
+    assert resolve_grounding_eligible(Provenance.USER_EXPLICIT, "any claim", None) == 0
 
 
 def test_manager_add_memory_respects_flag(

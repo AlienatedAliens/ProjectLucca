@@ -151,18 +151,39 @@ def evaluate_task_compound(
 
     # Determine code prompt based on required lobes
     import_header = []
+    api_docs = ""
     if "container_world" in required_lobes:
         import_header.append("from container_world import ContainerWorld, World, Agent")
+        api_docs = (
+            "ContainerWorld API:\n"
+            "  w = ContainerWorld()\n"
+            "  w.place(None, item, location, observed_by=[...])   # record initial placement witnessed by observed_by agents\n"
+            "  w.move(agent, item, location, observed_by=[...])   # record item move by agent witnessed only by observed_by agents\n"
+            "  w.tell(speaker, listener, item, location)          # speaker informs listener of item location\n"
+            "  w.query(agent, item) -> str                        # 1st-order belief (or None for ground-truth physical location)\n"
+            "  w.query_second_order(observer, target, item) -> str # 2nd-order belief: what observer believes target thinks\n"
+            "  w.query_recursive([a1, a2, ...], item) -> str      # k-order belief chain\n\n"
+        )
     if "sympy" in required_lobes:
         import_header.append("import sympy\nfrom sympy import *")
     if "z3" in required_lobes:
-        import_header.append("import z3\nfrom z3 import *")
+        import_header.append(
+            "import z3\nfrom z3 import *\n"
+            "try:\n"
+            "    z3.Solver.sat = z3.sat\n"
+            "    z3.Solver.unsat = z3.unsat\n"
+            "    z3.IntNumRef.__int__ = lambda self: self.as_long()\n"
+            "    z3.IntNumRef.__index__ = lambda self: self.as_long()\n"
+            "except Exception:\n"
+            "    pass"
+        )
 
     header_str = "\n".join(import_header)
     instructions = (
         f"You are Project Lucca's neurosymbolic synthesis engine. Solve the following problem by writing a clean, "
         f"executable Python script.\n"
         f"Available modules: {', '.join(required_lobes) if required_lobes else 'standard library'}.\n"
+        f"{api_docs}"
         f"Write ONLY executable Python code inside a ```python ``` code block. "
         f"Do NOT write multi-line docstrings or narrative explanations. "
         f"Print ONLY the final answer on stdout with print(final_answer).\n\n"

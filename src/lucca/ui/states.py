@@ -64,4 +64,27 @@ THEMES: dict[str, AvatarTheme] = {
         mouth_color="#713F12",
         pulse_speed=0.04,
     ),
+    "epistemic_verified": AvatarTheme(
+        primary_color="#0284C7",  # Sky Blue / Sapphire
+        glow_color="#38BDF8",
+        eye_color="#FFFFFF",
+        mouth_color="#0369A1",
+        pulse_speed=0.07,
+    ),
+    "epistemic_speculation": AvatarTheme(
+        primary_color="#7C3AED",  # Violet
+        glow_color="#A78BFA",
+        eye_color="#EDE9FE",
+        mouth_color="#6D28D9",
+        pulse_speed=0.035,
+    ),
 }
+
+
+def get_epistemic_theme(epistemic_status: str) -> AvatarTheme:
+    """Returns visual avatar sprite theme mapped to verified epistemic status (Milestone 36.4)."""
+    if epistemic_status == "CHECKED_FORMALIZATION_AGREED":
+        return THEMES["epistemic_verified"]
+    if epistemic_status == "SPECULATION":
+        return THEMES["epistemic_speculation"]
+    return THEMES["speaking"]

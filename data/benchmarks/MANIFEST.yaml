@@ -16,7 +16,7 @@ datasets:
     sha256_current: 834405faef2b3059a92a728450850280d188a06412008007be3b91f9831bc308
     sha256_at_v1_3_runs: 834405fa038936ef114b0358e0a4f5b5c928ce60170067a9cf60759f27918a38
     n_items: 500
-    primary_slice: lines 1-100 (held-out-100; problems 101-500 unrun, reserved)
+    primary_slice: lines 1-100 (held-out-100 for R0/P2/R1 arm comparisons; problems 101-500 not run under those arms, but all 500 were run once under the v1.35 PAL-with-feedback harness - see RESULTS.md row math-v1.35-final-fresh-500 - so they are not an untouched reserve)
     exposure_disclosure: 'Exploratory prompt inspection touched problems 15 and 73
       (zero-indexed 14, 72) per handover/V135_CONTAMINATION_AUDIT.md. No harness or
       prompt change was made in response. Clean 98-item subset reproducible via scripts/recompute_heldout_98.py.

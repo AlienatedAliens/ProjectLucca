@@ -3,15 +3,15 @@
 
 ```yaml
 doc_status: canonical
-as_of: 2026-10-19
-release_baseline: v1.45.0 (WO-36)
+as_of: 2026-11-03
+release_baseline: v1.47.0 (WO-39)
 submission_status: technical_report (design note; no induction-quality evaluation exists yet)
 related_adrs: [ADR-007, D-REAS-05, D-REAS-06, D-SEC-04, D-COG-01]
 verification: artifact-sourced (V1_RELEASE_AUDIT.md, tests/test_l3_lifecycle_proof.py & in_d_latest.json)
 ```
 
 **Authors:** Project Lucca Program Synthesis, Formal Verification & Cognitive Architecture Group
-**Date:** October 19, 2026 (`v1.45.0` / `WO-36` Baseline)
+**Date:** November 3, 2026 (`v1.47.0` / `WO-39` Baseline)
 **Hardware Platform:** Intel Core Ultra 9 275HX (24 cores, Host CPU LISP + Microsoft Z3 `libz3.dll`) + Intel AI Boost NPU (`OpenVINO`) + SQLite WAL (`execution_triples` & `learning_events`)
 
 **Contribution type and retitling note.** This report describes the *safety lifecycle* through which an agent-proposed rule must pass before it can act, and the mechanical proof that the lifecycle works end-to-end on one synthetic rule. It was previously titled as an equality-saturation / rule-induction paper. That title overstated the evidence: the e-graph anti-unification component exists and is unit-tested, but **no evaluation of induction quality** (compression ratio, generalization, false-trigger rate on a recurring workload) has been run, and the count of organically induced production rules is zero (`IN-D = 0`). The retitled report claims only what the lifecycle tests demonstrate.
@@ -81,6 +81,13 @@ Every candidate MicroScheme rule $R = \langle \text{Pre}_R(S), \text{Plan}_R(S) 
 
 ### 2.3 Edge Z3 GBNF Constraint Compiler for 2B–4.5B Models (`WO-36` Milestone 36.5.2)
 Beyond rule verification, [`src/lucca/reasoning/smt_verifier.py`](../../../src/lucca/reasoning/smt_verifier.py:1) includes a deterministic constraint compiler paired with `config/grammars/zebra_constraints.gbnf`. When solving $5 \times 5$ Einstein/Zebra logic grids on small edge models (`Gemma 4 E2B` and `E4B`), grammar-constrained decoding forces the LLM to emit valid relational JSON (`left_of`, `adjacent`, `at_pos`, `same_house`), which `smt_verifier.py` compiles directly into Z3 `Distinct` and arithmetic constraints, eliminating Python Z3 syntax errors on small parameter scales.
+
+### 2.4 `WO-39` (2026-11-03) Implementation & Decontamination Sync: Organs 3 & 4
+In `WO-39` (Total Decontamination & Bicameral Mind Restoration), the symbolic rule induction, skill library, and neurosymbolic synthesis layers were upgraded:
+1. **`DreamRetrospective` Real Trace & Impasse Extraction (`src/lucca/memory/reflection.py`):** Replaced placeholder `:code "print(1)"` stub rules in `DreamRetrospective` with real execution trace mining from `execution_triples` and waking impasse resolution from `Orchestrator.impasse_backlog`.
+2. **`RuleInductionEngine` Wired to `DreamCoderMiner` + `EGraph` (`src/lucca/reasoning/induction.py`):** `RuleInductionEngine` invokes `DreamCoderMiner` (`compression.py`) and `EGraph.extract_best` (`egraph.py`) using the structural description length objective `cost_fn` (`cost.py`). `DreamCoderMiner` expands synthesized `(defmacro ...)` forms prior to Z3 verification (`SMTVerifier`), and `SMTVerifier` verifies arithmetic/division safety (`divisor != 0`).
+3. **`SkillLibrary` Shadow Sandbox, AST Symbol Grounding, NARS & ACT-R (`src/lucca/reasoning/skills.py`):** Candidate skills must pass `_check_ast_symbol_grounding` (rejecting ungrounded identifiers) and `verify_in_shadow_sandbox` (isolated execution over test cases). Active/quarantined skills track OpenNARS $(w^+, w^-)$ evidence counts and are retrieved via ACT-R base-level + contextual spreading activation ($B_i = \ln \sum t_j^{-d} + \sum W_k S_{ki}$).
+4. **MCTS + Koza GP Crossover & Thread-Safe Z3 Abduction (`mcts.py` & `abduction.py`):** `ASTHoleMCTSEngine` was decontaminated to `UNIVERSAL_NUMERIC_CONSTANTS = [0, 1, 2, 3, -1]` and augmented with Koza GP subtree crossover and mutation over `test_cases`, while `BackwardAbductionSolver.solve_holes_z3` solves symbolic holes across all `test_cases` simultaneously using thread-isolated Z3 contexts.
 
 ---
 

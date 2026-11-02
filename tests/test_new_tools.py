@@ -265,6 +265,24 @@ def test_schedule_event_functional(tmp_path: Path):
     parsed_ulid = ulid.ULID.from_str(event_id)
     assert str(parsed_ulid) == event_id
 
+    # Verify persistent storage in SQLite and due-event claiming
+    pending = service.list_scheduled_events(status="PENDING")
+    assert len(pending) == 1
+    assert pending[0].event_id == event_id
+    assert pending[0].event_name == "Team Standup"
+    assert pending[0].message == "Weekly review"
+
+    # Not due before due_ts
+    assert service.claim_due_events(now=pending[0].due_ts - 60.0) == []
+
+    # Claimed and marked FIRED once due_ts is reached
+    claimed = service.claim_due_events(now=pending[0].due_ts + 1.0)
+    assert len(claimed) == 1
+    assert claimed[0].event_id == event_id
+    assert claimed[0].status == "FIRED"
+    assert service.list_scheduled_events(status="PENDING") == []
+    assert len(service.list_scheduled_events(status="FIRED")) == 1
+
     # Negative control: invalid datetime
     res_bad_dt = service.execute_tool(
         call_id="call-se-2",
@@ -331,6 +349,14 @@ def test_orchestrator_action_descriptions_and_confirmation_hooks(tmp_path: Path)
         )
         assert res_se.ok is True
         assert "Doctor" in (res_se.content or "")
+
+        # Verify orchestrator fires due scheduled events and queues spoken reminder
+        fired_msgs = orch.maybe_fire_due_events(now=1791000000.0)
+        assert len(fired_msgs) == 1
+        assert "Reminder: Doctor." in fired_msgs[0]
+        assert any("Reminder: Doctor." in u for u in orch.pending_spoken_updates)
+        assert orch.maybe_fire_due_events(now=1791000000.0) == []
+        assert len(orch.sandbox.list_scheduled_events(status="fired")) == 1
 
         # Test artifact_verify through orchestrator handler
         (ws / "doc.txt").write_text("Hello doc")

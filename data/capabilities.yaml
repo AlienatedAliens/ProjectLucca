@@ -1,0 +1,460 @@
+# Project Lucca — Machine-Readable Capability Register (SPEC-CAP-REG-v1.0)
+# Mirror of luccadocs/specs/CAPABILITY_REGISTER.md.
+# Enforced by tests/test_static_gates.py:
+#   1. Advertise gate: every tool in get_default_native_tools() maps to >=1 capability;
+#      any capability with stub: true must not have advertised tools.
+#   2. Doc-consistency gate: capability rungs referenced in living docs may not exceed YAML rungs.
+#   3. Evidence gate: any row at L3 or L4 must cite >=1 existing artifact path on disk.
+#   4. Tool-count gate: total tools mapped across capabilities equals len(get_default_native_tools()).
+
+schema_version: 1
+
+capabilities:
+  # --- Presence & Voice ---
+  - id: CAP-VOICE
+    job: push-to-talk conversation in her voice
+    maturity: L3
+    maturity_basis: author-measured
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: script
+      ref: scripts/bench_turn_latency.py
+      criteria: p95 first-speech <= 1500 ms on E4B tier
+    evidence:
+      - luccadocs/research/papers/02_SUB_50MS_BARGE_IN_AND_ZERO_COPY_AUDIO.md
+      - data/benchmarks/turn_latency/summary.json
+      - scripts/bench_turn_latency.py
+      - src/lucca/senses/ptt.py
+    failure_modes:
+      - ASR mis-transcribe on crosstalk
+      - TTS underrun
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-REFLEX
+    job: emergency stop reflex
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: test
+      ref: tests/test_router.py
+      criteria: emergency reflex pattern matches < 150 ms without LLM invocation
+    evidence:
+      - src/lucca/router/heuristic.py
+      - tests/test_router.py
+    failure_modes:
+      - false negative on non-canonical stop phrasing
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-PRESENCE
+    job: be available ambiently on workstation
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: script
+      ref: src/lucca/core/env_check.py
+      criteria: env_check green + unattended 8 h session log
+    evidence:
+      - src/lucca/core/env_check.py
+    failure_modes:
+      - requires push-to-talk (open-mic wake word deferred)
+      - requires WSL2 Docker and llama-server running
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  # --- Memory & Self-Knowledge ---
+  - id: CAP-MEM-U
+    job: remember what the user told her
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - memory_search
+      - memory_commit
+    acceptance:
+      kind: test
+      ref: tests/test_a1_autobiographical_memory.py
+      criteria: signed USER_EXPLICIT commits retrievable via FTS5 + sqlite-vec
+    evidence:
+      - tests/test_a1_autobiographical_memory.py
+      - luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md
+    failure_modes:
+      - lexical/semantic retrieval miss on paraphrases
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-MEM-S
+    job: remember what she said and did
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - self_history_search
+    acceptance:
+      kind: test
+      ref: tests/test_a1_acceptance_hw.py
+      criteria: SELF_HISTORY substrate answers action queries from signed receipts with grounding_eligible=0 on speech
+    evidence:
+      - tests/test_a1_acceptance_hw.py
+      - luccadocs/specs/AUTOBIOGRAPHICAL_MEMORY_AND_SELF_MODEL.md
+    failure_modes:
+      - unlogged host side effects outside tool receipts
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-ABSTAIN
+    job: refuse to invent the past or self
+    maturity: L3
+    maturity_basis: author-measured
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: test
+      ref: tests/test_c1_abstention_acceptance.py
+      criteria: Wilson 95% LB >= 0.80 on N=100 abstention fixture
+    evidence:
+      - src/lucca/router/calibration.py
+      - tests/test_c1_abstention_acceptance.py
+    failure_modes:
+      - threshold drift before 30 labeled turns accumulate
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-KNOWYOU
+    job: know user preferences, goals, and confirmed facts
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: ledger
+      ref: src/lucca/core/user_model.py
+      criteria: 30-day dogfood log showing recalled preferences with Trap 1 provenance enforcement
+    evidence:
+      - src/lucca/core/user_model.py
+      - src/lucca/core/active_goals.py
+    failure_modes:
+      - cold-start until sufficient USER_EXPLICIT history accumulates
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-LEARN
+    job: learn procedural skills from repetition into quarantine
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - invoke_skill
+    acceptance:
+      kind: ledger
+      ref: src/lucca/reasoning/induction.py
+      criteria: first operator-promoted rule after 5 shadow clusters with 0 errors
+    evidence:
+      - luccadocs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md
+      - src/lucca/reasoning/induction.py
+    failure_modes:
+      - 0 production-promoted rules to date
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  # --- Doing Things ---
+  - id: CAP-WORK
+    job: file and notes work in sandboxed workspace folder
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - read_file
+      - write_file
+      - list_dir
+      - search_text
+      - note_write
+      - note_read
+    acceptance:
+      kind: test
+      ref: tests/test_persistent_rpc.py
+      criteria: workspace path-confined CRUD with confirmation gate on write ops
+    evidence:
+      - src/lucca/sandbox/service.py
+      - tests/test_persistent_rpc.py
+    failure_modes:
+      - Docker sandbox unavailable fails closed on container-routed ops
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-CODE
+    job: run Python safely inside persistent Docker container
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - run_python
+      - run_python_async
+    acceptance:
+      kind: test
+      ref: tests/test_persistent_rpc.py
+      criteria: executes in lucca-file-sandbox with use_direct_fallback=False
+    evidence:
+      - src/lucca/sandbox/rpc.py
+      - src/lucca/sandbox/tasks.py
+    failure_modes:
+      - returns policy_violation when Docker CE in WSL2 is stopped
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-MATH
+    job: competition and symbolic math with verification
+    maturity: L3
+    maturity_basis: author-measured
+    stub: false
+    risk_class: A
+    tools:
+      - calc_math
+    acceptance:
+      kind: artifact
+      ref: RESULTS.md
+      criteria: GSM8K PAL and MATH-500 author-measured artifacts in MANIFEST.yaml
+    evidence:
+      - RESULTS.md
+      - data/benchmarks/MANIFEST.yaml
+    failure_modes:
+      - sandbox timeout on unfactored symbolic expressions
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-LOGIC
+    job: formal constraint solving and spatial state tracking
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: test
+      ref: src/lucca/reasoning/smt_verifier.py
+      criteria: Z3 SMT + zebra_constraints.gbnf + ContainerWorld unit suites green
+    evidence:
+      - src/lucca/reasoning/smt_verifier.py
+      - src/lucca/reasoning/relational/allen.py
+    failure_modes:
+      - natural-language-to-constraint compilation mismatch
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-RESEARCH
+    job: web search and URL fetching with taint and exfiltration guards
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: B
+    tools:
+      - search_web
+      - fetch_url
+    acceptance:
+      kind: test
+      ref: src/lucca/sandbox/search_tool.py
+      criteria: SequenceGuard blocks read_file->fetch_url exfiltration; bodies stamped TOOL_CONTENT_UNTRUSTED
+    evidence:
+      - src/lucca/sandbox/search_tool.py
+      - src/lucca/sandbox/web_tool.py
+    failure_modes:
+      - upstream search rate limits or network offline
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-SEE
+    job: see the screen and images via WinRT OCR and multimodal projector
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: C
+    tools:
+      - screenshot_capture
+    acceptance:
+      kind: test
+      ref: src/lucca/core/visual_session.py
+      criteria: Class C confirmation-gated capture + WinRT OcrEngine + mmproj injection
+    evidence:
+      - src/lucca/core/visual_session.py
+    failure_modes:
+      - OCR degradation on dense non-text UI layouts
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-HOST
+    job: narrow confirmation-gated host actions (launch allowlist, clipboard, inbox)
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: C
+    tools:
+      - launch_app
+      - clipboard_read
+      - inbox_handoff
+    acceptance:
+      kind: test
+      ref: tests/test_static_gates.py
+      criteria: shell binaries blacklisted (D-AUD-10); Class C confirmation required
+    evidence:
+      - src/lucca/sandbox/policy.py
+      - tests/test_static_gates.py
+    failure_modes:
+      - intentionally excludes GUI automation, email, and calendar
+    competitor_refs: []
+    target_maturity_v2: L2
+
+  - id: CAP-REMIND
+    job: persistent reminders and scheduled events
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - schedule_event
+    acceptance:
+      kind: test
+      ref: tests/test_new_tools.py
+      criteria: persists to SQLite scheduled_events and fires via Orchestrator.maybe_fire_due_events
+    evidence:
+      - src/lucca/sandbox/schedule_tool.py
+      - tests/test_new_tools.py
+    failure_modes:
+      - fires only while lucca-core process is running
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  # --- Proactivity & Interiority ---
+  - id: CAP-PROACT
+    job: background coherence reflection and waking-continuity notes
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: test
+      ref: tests/test_inner_life.py
+      criteria: IdlePulse (60 s NLI coherence) and DreamRetrospective unit suites green
+    evidence:
+      - src/lucca/memory/reflection.py
+      - tests/test_inner_life.py
+    failure_modes:
+      - proactive speech limited to waking-continuity and due reminders
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-AFFECT
+    job: mood-shaped voice prosody via 3D PAD ODE state machine
+    maturity: L2
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: test
+      ref: src/lucca/core/affect.py
+      criteria: PAD ODE transitions bound to CognitiveOutcomeSink and TTS prosody modulation
+    evidence:
+      - src/lucca/core/affect.py
+      - src/lucca/core/cognitive_sink.py
+    failure_modes:
+      - subjective prosody perception across speakers
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  # --- Honesty & Safety ---
+  - id: CAP-HONEST
+    job: never claim an unexecuted action happened
+    maturity: L2
+    maturity_basis: author-measured
+    stub: false
+    risk_class: A
+    tools:
+      - artifact_verify
+    acceptance:
+      kind: artifact
+      ref: papers/02_deontic_supervision_evasion/main.tex
+      criteria: classifier supervisor shadow-mode ledger >= 30 days with FP <= 2%
+    evidence:
+      - src/lucca/sandbox/output_supervisor.py
+      - papers/02_deontic_supervision_evasion/main.tex
+    failure_modes:
+      - regex supervisor caught 1/16 held-out evasive prose claims; GBNF prose leakage 14.17%
+    competitor_refs: []
+    target_maturity_v2: L3
+
+  - id: CAP-SELFINFO
+    job: accurate self-knowledge of tools, model, and hardware telemetry
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools:
+      - query_capabilities
+      - sys_info
+      - self_metrics
+    acceptance:
+      kind: test
+      ref: tests/test_capabilities.py
+      criteria: capabilities substrate answers from live registry and abstains if unavailable
+    evidence:
+      - src/lucca/core/capabilities.py
+      - src/lucca/core/cascade.py
+    failure_modes:
+      - freeform LLM answer if router bypasses capabilities substrate
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-PRIVACY
+    job: local-only execution with zero cloud telemetry in product path
+    maturity: L3
+    maturity_basis: unit-tested
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: script
+      ref: luccadocs/ARCHITECTURE.md
+      criteria: 30-day egress audit confirming zero external sockets outside opt-in web tools
+    evidence:
+      - luccadocs/ARCHITECTURE.md
+    failure_modes:
+      - user-initiated search_web / fetch_url makes outbound HTTPS requests by design
+    competitor_refs: []
+    target_maturity_v2: L4
+
+  - id: CAP-SAFE-ACT
+    job: intercept destructive commands and prompt injections
+    maturity: L3
+    maturity_basis: author-measured
+    stub: false
+    risk_class: A
+    tools: []
+    acceptance:
+      kind: test
+      ref: luccadocs/security/THREAT_MODEL.md
+      criteria: policy gates, sequence guard, single-use HMAC confirmation tokens, 20/20 authored injection suite
+    evidence:
+      - luccadocs/security/THREAT_MODEL.md
+      - src/lucca/sandbox/policy.py
+    failure_modes:
+      - self-authored red-team suite; no external third-party red-team yet
+    competitor_refs: []
+    target_maturity_v2: L3
+

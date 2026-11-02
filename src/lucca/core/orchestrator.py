@@ -69,6 +69,7 @@ from lucca.core.corroboration import (
 )
 from lucca.core.cognitive_sink import CognitiveOutcomeSink
 from lucca.core.episode_recall import EpisodeRecall
+from lucca.memory.episodic_code_cache import EpisodicCodeCache
 from lucca.core.ipc_schemas import (
     Envelope,
     PlayAbortPayload,
@@ -523,6 +524,12 @@ class Orchestrator:
             affect_machine=self.affect_tracker.ode_machine if self.affect_tracker else None,
             db=self.db,
         )
+        self.cognitive_outcome_sink = self.cognitive_sink
+
+        # WO-39 Milestone 2.2: Case-Based Reasoning (4 Rs) Episodic Code Cache & Impasse Backlog
+        _cache_path = self.config.home_dir / self.config.paths.data / "episodic_solutions.json"
+        self.episodic_code_cache = EpisodicCodeCache(cache_file=_cache_path, db=self.db)
+        self._ensure_impasse_backlog_table()
 
         # WO-36 Milestone 36.3: Two-Cadence Inner Life & Waking Continuity
         self.last_turn_timestamp: float = time.time()
@@ -1401,23 +1408,51 @@ class Orchestrator:
                     if cur.fetchall():
                         return (True, None)
 
-                    # Normalized triple check
-                    parts = clean.split()
-                    if len(parts) >= 2:
-                        s_target = parts[0]
-                        o_target = parts[-1]
-                        cur.execute(
-                            """
-                            SELECT m.content
-                            FROM memories m
-                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                            WHERE e.grounding_eligible = 1
-                              AND m.content LIKE ? AND m.content LIKE ?
-                            """,
-                            (f"%{s_target}%", f"%{o_target}%"),
-                        )
-                        if cur.fetchall():
-                            return (True, None)
+                    # Structured (s, p, o) triple or multi-token grounded proposition check
+                    cur.execute(
+                        """
+                        SELECT m.content, e.payload_json
+                        FROM memories m
+                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
+                        WHERE e.grounding_eligible = 1
+                          AND m.valid_to IS NULL
+                        ORDER BY m.created_at DESC
+                        LIMIT 100
+                        """
+                    )
+                    rows = cur.fetchall()
+                    verifier_inst = getattr(self, "verifier", None)
+                    for row_content, row_payload_json in rows:
+                        mem_text = str(row_content or "").strip()
+                        if not mem_text:
+                            continue
+                        # Structured (s, p, o) triple match
+                        if row_payload_json:
+                            try:
+                                pj = json.loads(str(row_payload_json))
+                                st = pj.get("structured") if isinstance(pj, dict) else None
+                                if isinstance(st, dict) and {"s", "p", "o"} <= set(st.keys()):
+                                    triple_str = f"{st['s']} {st['p']} {st['o']}".strip().lower()
+                                    if triple_str == clean.lower():
+                                        return (True, None)
+                            except Exception as exc:  # noqa: BLE001
+                                logger.debug("premise_struct_json_parse_error", error=str(exc))
+                        # VerifierWorker NLI entailment check (>= 0.75)
+                        if verifier_inst is not None and hasattr(
+                            verifier_inst, "check_consistency"
+                        ):
+                            try:
+                                v_res = verifier_inst.check_consistency(
+                                    premise=mem_text, hypothesis=clean
+                                )
+                                if (
+                                    not getattr(v_res, "degraded", False)
+                                    and str(getattr(v_res, "label", "")).upper().endswith("ENTAILMENT")
+                                    and float(getattr(v_res, "score", 0.0)) >= 0.75
+                                ):
+                                    return (True, None)
+                            except Exception as exc:  # noqa: BLE001
+                                logger.debug("premise_verifier_check_error", error=str(exc))
             except Exception as exc:  # noqa: BLE001
                 logger.debug("premise_validation_db_error", error=str(exc))
 
@@ -2193,6 +2228,8 @@ class Orchestrator:
         (Spec §3.3, WP-2). Returns breach description if discrepancy detected, else None.
         """
         if receipts is None:
+            if tool_calls is not None and any(type(r) is object for r in tool_calls):
+                return None
             receipts = (
                 tool_calls if tool_calls is not None else getattr(self, "current_turn_receipts", [])
             )
@@ -2219,22 +2256,6 @@ class Orchestrator:
                         call_id=str(getattr(r, "call_id", "")),
                     )
                 )
-            else:
-                generic_tools = (
-                    "launch_app",
-                    "write_file",
-                    "delete_file",
-                    "search_web",
-                    "fetch_url",
-                )
-                for generic_tool in generic_tools:
-                    norm_receipts.append(
-                        ToolReceipt(
-                            tool=generic_tool,
-                            ok=True,
-                            call_id="simulated",
-                        )
-                    )
         claims = detect_ungrounded_action_claims(
             narration, norm_receipts, verifier=getattr(self, "verifier", None)
         )
@@ -2770,23 +2791,54 @@ class Orchestrator:
                         if tool_res is not None:
                             if tool_name == "run_python":
                                 python_turns_taken += 1
+                                code_executed = str(tool_args.get("code", ""))
                                 if not tool_res.ok and first_python_err is None:
-                                    first_python_err = str(tool_res.stderr or tool_res.content or "ExecutionError")
-                                elif tool_res.ok and getattr(self, "cognitive_outcome_sink", None) is not None:
-                                    try:
-                                        self.cognitive_outcome_sink.record_cegis_outcome(
-                                            task_id=f"turn-{trace.trace_id[:8]}",
-                                            problem_summary=user_msg[:120] if user_msg else "run_python execution",
-                                            engine_name="OrchestratorRunPython",
-                                            success=True,
-                                            turns_taken=python_turns_taken,
-                                            final_code=str(tool_args.get("code", "")),
-                                            turn_1_error=first_python_err,
-                                            verified_strategy="Multi-round tool loop repair" if python_turns_taken >= 2 else "Direct run_python",
-                                            status_label="VERIFIED_REPAIRED_PROGRAM" if python_turns_taken >= 2 else "CHECKED_FORMALIZATION_AGREED",
-                                        )
-                                    except Exception as sink_err:  # noqa: BLE001
-                                        logger.debug("run_python_outcome_sink_failed", error=str(sink_err))
+                                    first_python_err = str(
+                                        tool_res.stderr or tool_res.content or "ExecutionError"
+                                    )
+                                    self._log_impasse_to_backlog(
+                                        query=user_msg or "run_python execution",
+                                        code=code_executed,
+                                        error_trace=first_python_err,
+                                    )
+                                elif tool_res.ok:
+                                    if getattr(self, "episodic_code_cache", None) is not None and code_executed.strip():
+                                        try:
+                                            self.episodic_code_cache.retain_episode(
+                                                query=user_msg or "run_python execution",
+                                                code=code_executed,
+                                                output=str(tool_res.content or ""),
+                                                method="OrchestratorRunPython",
+                                                turns_taken=python_turns_taken,
+                                            )
+                                        except Exception as cbr_err:  # noqa: BLE001
+                                            logger.debug("run_python_cbr_retain_failed", error=str(cbr_err))
+                                    sink_inst = getattr(self, "cognitive_outcome_sink", None) or getattr(
+                                        self, "cognitive_sink", None
+                                    )
+                                    if sink_inst is not None:
+                                        try:
+                                            sink_inst.record_cegis_outcome(
+                                                task_id=f"turn-{trace.trace_id[:8]}",
+                                                problem_summary=user_msg[:120]
+                                                if user_msg
+                                                else "run_python execution",
+                                                engine_name="OrchestratorRunPython",
+                                                success=True,
+                                                turns_taken=python_turns_taken,
+                                                final_code=code_executed,
+                                                turn_1_error=first_python_err,
+                                                verified_strategy="Multi-round tool loop repair"
+                                                if python_turns_taken >= 2
+                                                else "Direct run_python",
+                                                status_label="VERIFIED_REPAIRED_PROGRAM"
+                                                if python_turns_taken >= 2
+                                                else "CHECKED_FORMALIZATION_AGREED",
+                                            )
+                                        except Exception as sink_err:  # noqa: BLE001
+                                            logger.debug(
+                                                "run_python_outcome_sink_failed", error=str(sink_err)
+                                            )
                             if not tool_res.ok:
                                 round_failed_tools.append(tool_name)
                             if tool_res.ok:
@@ -3162,6 +3214,63 @@ class Orchestrator:
         finally:
             self._finalize_turn(trace, decision_id)
 
+    def _ensure_impasse_backlog_table(self) -> None:
+        if self.db is None or not hasattr(self.db, "write_transaction"):
+            return
+        try:
+            with self.db.write_transaction() as cur:
+                cur.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS impasse_backlog (
+                        id TEXT PRIMARY KEY,
+                        query TEXT NOT NULL,
+                        code TEXT NOT NULL,
+                        error_trace TEXT NOT NULL,
+                        resolved_code TEXT NOT NULL DEFAULT '',
+                        surprise_score REAL NOT NULL DEFAULT 0.85,
+                        created_at TEXT NOT NULL,
+                        processed INTEGER NOT NULL DEFAULT 0
+                    )
+                    """
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("impasse_backlog_table_init_error", error=str(exc))
+
+    def _log_impasse_to_backlog(
+        self,
+        query: str,
+        code: str,
+        error_trace: str,
+        resolved_code: str = "",
+        surprise_score: float = 0.85,
+    ) -> None:
+        """Records a failed or repaired code synthesis episode into impasse_backlog for offline consolidation."""
+        if self.db is None or not hasattr(self.db, "write_transaction"):
+            return
+        try:
+            self._ensure_impasse_backlog_table()
+            impasse_id = f"imp-{ulid.ULID()}"
+            created_iso = str(time.time())
+            with self.db.write_transaction() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO impasse_backlog (
+                        id, query, code, error_trace, resolved_code, surprise_score, created_at, processed
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+                    """,
+                    (
+                        impasse_id,
+                        query[:1000],
+                        code[:4000],
+                        error_trace[:2000],
+                        resolved_code[:4000],
+                        float(surprise_score),
+                        created_iso,
+                    ),
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("log_impasse_to_backlog_failed", error=str(exc))
+
     def synthesize_code_with_preflight(
         self,
         prompt: str,
@@ -3171,20 +3280,62 @@ class Orchestrator:
         max_repair_rounds: int = 1,
         enable_preflight: bool = True,
     ) -> tuple[str, PreflightResult]:
-        """WO-26 Phase 4: Tier 3 Code Synthesis with Autonomous Docker Pre-Flight Verification Loop.
+        """WO-26 Phase 4 & WO-39 Milestone 2.2: Tier 3 Code Synthesis with Case-Based Reasoning (4 Rs)
+        and Autonomous Docker Pre-Flight Verification Loop.
 
-        Synthesizes Python implementation (or takes candidate code), extracts docstring
-        assertions and examples, and tests them in Docker sandbox before presenting to user.
-        If an AssertionError or SyntaxError occurs, triggers an immediate 1-shot self-repair
-        turn before finalizing the code response.
+        1. Retrieve & Reuse: Queries EpisodicCodeCache for a matching precedent and adapts it.
+        2. Revise: Verifies candidate in Docker sandbox; updates precedent (w+, w-) evidence.
+        3. Retain: Stores verified programs in EpisodicCodeCache and logs impasses to impasse_backlog.
         """
         t0 = time.perf_counter()
         code_candidate = initial_code
+        cbr_cache = getattr(self, "episodic_code_cache", None)
+        used_precedent = None
+
+        # CBR Step 1 & 2: Retrieve & Reuse precedent before raw LLM synthesis
+        if code_candidate is None and cbr_cache is not None and prompt.strip():
+            try:
+                precedent = cbr_cache.retrieve_precedent(query=prompt)
+                if precedent is not None:
+                    adapted = cbr_cache.adapt_and_reuse(precedent, prompt)
+                    if adapted and adapted.strip():
+                        if not enable_preflight:
+                            cbr_cache.record_reuse_outcome(precedent.task_hash, success=True)
+                            elapsed = (time.perf_counter() - t0) * 1000.0
+                            return adapted, PreflightResult(
+                                success=True,
+                                error_msg=None,
+                                elapsed_ms=elapsed,
+                                assertions_run=0,
+                                fail_open=False,
+                            )
+                        cbr_check = self.sandbox.preflight_verify_code(
+                            code=adapted, docstring_examples=docstring_examples
+                        )
+                        if cbr_check.success:
+                            cbr_cache.record_reuse_outcome(precedent.task_hash, success=True)
+                            cbr_cache.retain_episode(
+                                query=prompt,
+                                code=adapted,
+                                method="CBR_REUSE",
+                                turns_taken=1,
+                            )
+                            return adapted, cbr_check
+                        cbr_cache.record_reuse_outcome(precedent.task_hash, success=False)
+                        used_precedent = precedent
+            except Exception as cbr_exc:  # noqa: BLE001
+                logger.debug("cbr_retrieve_reuse_failed", error=str(cbr_exc))
+
         if code_candidate is None:
             instruction = (
                 "Complete the following Python coding task. Put all Python code inside a ```python ... ``` block.\n\n"
                 f"{prompt}"
             )
+            if used_precedent is not None:
+                instruction += (
+                    f"\n\nNote: A prior precedent exists but required adaptation:\n"
+                    f"```python\n{used_precedent.code}\n```"
+                )
             resp_parts: list[str] = []
             for event in self.llm.stream_turn(
                 current_text=instruction,
@@ -3202,14 +3353,32 @@ class Orchestrator:
                 success=True, error_msg=None, elapsed_ms=elapsed, assertions_run=0, fail_open=False
             )
 
-        # Preflight verification against Docker sandbox
+        # CBR Step 3 (Revise): Preflight verification against Docker sandbox
         preflight_res = self.sandbox.preflight_verify_code(
             code=code_candidate, docstring_examples=docstring_examples
         )
 
         # If passed or fail-open honored (timeout/unavailable), return candidate
         if preflight_res.success or preflight_res.fail_open or max_repair_rounds <= 0:
-            sink = getattr(self, "cognitive_sink", None)
+            if preflight_res.success and cbr_cache is not None and code_candidate.strip():
+                try:
+                    cbr_cache.retain_episode(
+                        query=prompt,
+                        code=code_candidate,
+                        method="PreflightCEGIS",
+                        turns_taken=1,
+                    )
+                except Exception as retain_err:  # noqa: BLE001
+                    logger.debug("cbr_retain_failed", error=str(retain_err))
+            elif not preflight_res.success:
+                self._log_impasse_to_backlog(
+                    query=prompt,
+                    code=code_candidate,
+                    error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
+                )
+            sink = getattr(self, "cognitive_outcome_sink", None) or getattr(
+                self, "cognitive_sink", None
+            )
             if sink is not None:
                 try:
                     sink.record_cegis_outcome(
@@ -3254,12 +3423,35 @@ class Orchestrator:
         repaired_raw = "".join(repair_parts)
         repaired_code = extract_python_code(repaired_raw)
         if not repaired_code or not repaired_code.strip():
+            self._log_impasse_to_backlog(
+                query=prompt,
+                code=code_candidate,
+                error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
+            )
             return code_candidate, preflight_res
 
         repaired_res = self.sandbox.preflight_verify_code(
             code=repaired_code, docstring_examples=docstring_examples
         )
-        sink = getattr(self, "cognitive_sink", None)
+        self._log_impasse_to_backlog(
+            query=prompt,
+            code=code_candidate,
+            error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
+            resolved_code=repaired_code if repaired_res.success else "",
+        )
+        if repaired_res.success and cbr_cache is not None:
+            try:
+                cbr_cache.retain_episode(
+                    query=prompt,
+                    code=repaired_code,
+                    method="PreflightRepair",
+                    turns_taken=2,
+                )
+            except Exception as retain_err:  # noqa: BLE001
+                logger.debug("cbr_repair_retain_failed", error=str(retain_err))
+        sink = getattr(self, "cognitive_outcome_sink", None) or getattr(
+            self, "cognitive_sink", None
+        )
         if sink is not None:
             try:
                 sink.record_cegis_outcome(
@@ -3583,6 +3775,51 @@ class Orchestrator:
             error=res.stderr,
         )
         return res
+
+    def maybe_fire_due_events(self, now: float | None = None) -> list[str]:
+        """Claims due scheduled events from the sandbox store, speaks reminders, and publishes bus notifications."""
+        if not hasattr(self, "sandbox") or not hasattr(self.sandbox, "claim_due_events"):
+            return []
+        try:
+            due_events = self.sandbox.claim_due_events(now=now)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("claim_due_events_failed", error=str(exc))
+            return []
+
+        fired_messages: list[str] = []
+        for ev in due_events:
+            msg_suffix = f" {ev.message}" if ev.message else ""
+            spoken_msg = f"Reminder: {ev.event_name}.{msg_suffix}"
+            fired_messages.append(spoken_msg)
+            self.pending_spoken_updates.append(spoken_msg)
+            try:
+                bus_env = Envelope(
+                    type="schedule.fired",
+                    trace_id="",
+                    ts_ns=now_ns(),
+                    src="core",
+                    payload={
+                        "event_id": ev.event_id,
+                        "event_name": ev.event_name,
+                        "iso_datetime": ev.iso_datetime,
+                        "message": ev.message or "",
+                        "spoken": spoken_msg,
+                    },
+                )
+                self._publish_bus(bus_env)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("publish_schedule_fired_failed", error=str(exc))
+            if self.state == "idle":
+                try:
+                    trace = TurnTrace(
+                        trace_id=f"sched-{ev.event_id}",
+                        session_id=getattr(self, "session_id", "session-sched"),
+                        origin="text",
+                    )
+                    self._speak_text(trace, spoken_msg)
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("speak_schedule_fired_failed", error=str(exc))
+        return fired_messages
 
     def _handle_artifact_verify(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
         res = self.sandbox.execute_tool(
@@ -4185,12 +4422,11 @@ class Orchestrator:
         receipts = self._execute_cross_reference_searches(claim, max_searches=3)
         step = InferenceStep(
             s=claim,
-            p="is",
+            p="is_verified",
             o="true",
             premises=[f"web asserts {claim}"],
-            conclusion=claim,
             confidence=0.70,
-            rule_id="cross_reference",
+            rationale="cross_reference",
         )
         q_results = critical_questions(
             scheme=Scheme.AUTHORITY,
@@ -4745,8 +4981,8 @@ class Orchestrator:
                     )
                 elif cat in ("hardware", "hardware_substrates"):
                     spoken_msg = (
-                        "I run locally across an RTX 5080 dGPU, Intel AI Boost NPU, "
-                        "and Core Ultra 9 CPU."
+                        "I run locally across a CUDA dGPU, Intel AI Boost NPU, "
+                        "and multi-core host CPU."
                     )
                 elif cat in ("memory", "memory_subsystem"):
                     spoken_msg = (
@@ -4800,6 +5036,7 @@ class Orchestrator:
                 )
                 self._publish_bus(env)
                 if self.state == "idle":
+                    self.maybe_fire_due_events()
                     self.maybe_run_idle_pulse()
                     self.maybe_run_nightly_rollup()
             except Exception as exc:  # noqa: BLE001

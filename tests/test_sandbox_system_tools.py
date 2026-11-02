@@ -73,10 +73,10 @@ def test_query_nvidia_gpu_metrics_failure_fallback() -> None:
     with patch("subprocess.run", side_effect=FileNotFoundError("nvidia-smi not found")):
         metrics = query_nvidia_gpu_metrics()
         assert metrics["available"] is False
-        assert metrics["name"] == "NVIDIA GPU"
-        assert metrics["total_gb"] == 16.0
+        assert metrics["name"] == "UNKNOWN"
+        assert metrics["total_gb"] == 0.0
         assert metrics["used_gb"] == 0.0
-        assert metrics["free_gb"] == 16.0
+        assert metrics["free_gb"] == 0.0
         assert metrics["utilization_pct"] == 0.0
 
     # Also test non-zero return code
@@ -91,6 +91,8 @@ def test_query_nvidia_gpu_metrics_failure_fallback() -> None:
     with patch("subprocess.run", return_value=mock_res_err):
         metrics_err = query_nvidia_gpu_metrics()
         assert metrics_err["available"] is False
+        assert metrics_err["name"] == "UNKNOWN"
+        assert metrics_err["total_gb"] == 0.0
 
 
 def test_get_lucca_process_footprint() -> None:
@@ -134,12 +136,12 @@ def test_get_system_metrics_structure() -> None:
     assert "npu" in metrics
     npu = metrics["npu"]
     assert isinstance(npu, dict)
-    assert npu["active"] is True
+    assert isinstance(npu["active"], bool)
 
     assert "igpu" in metrics
     igpu = metrics["igpu"]
     assert isinstance(igpu, dict)
-    assert igpu["active"] is False
+    assert isinstance(igpu["active"], bool)
 
 
 def test_get_system_metrics_caching() -> None:

@@ -512,9 +512,11 @@ def is_same_source(source_a: str, source_b: str) -> bool:
 
 def extract_receipt_source(r: object) -> str:
     """Extracts publisher/domain/source identity from a receipt (WO-21 Phase 2 Trap 1)."""
-    # 1. Direct source attribute
-    if hasattr(r, "source") and r.source:
-        return str(r.source).strip()
+    # 1. Direct source / source_id attribute
+    if hasattr(r, "source_id") and getattr(r, "source_id", None):
+        return str(getattr(r, "source_id")).strip()
+    if hasattr(r, "source") and getattr(r, "source", None):
+        return str(getattr(r, "source")).strip()
     # 2. URL argument in args
     args = getattr(r, "args", {}) or {}
     if isinstance(args, dict):
@@ -542,17 +544,167 @@ def extract_receipt_source(r: object) -> str:
     return tool_name
 
 
+def extract_receipt_signer_type(r: object) -> str:
+    """Extracts signer_type or provenance class from a receipt or envelope if present."""
+    for attr in ("signer_type", "provenance", "signer_id"):
+        val = getattr(r, attr, None)
+        if val:
+            return str(val).strip()
+    structured = getattr(r, "structured", None)
+    if isinstance(structured, dict):
+        for key in ("signer_type", "provenance", "signer_id"):
+            val = structured.get(key)
+            if val:
+                return str(val).strip()
+    return ""
+
+
+def verify_source_independence(
+    source_a: str,
+    source_b: str,
+    signer_type_a: str = "",
+    signer_type_b: str = "",
+) -> bool:
+    """Checks whether two sources are genuinely independent in provenance."""
+    sa = source_a.strip()
+    sb = source_b.strip()
+    if not sa or not sb:
+        return False
+    if is_same_source(sa, sb):
+        return False
+    ta = signer_type_a.strip().upper()
+    tb = signer_type_b.strip().upper()
+    if ta and tb and ta == tb and ta in ("USER_EXPLICIT", "UNVERIFIED", "SELF"):
+        return False
+    return True
+
+
+_CORROB_STOPWORDS: Final[frozenset[str]] = frozenset(
+    {
+        "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
+        "to", "of", "in", "on", "at", "for", "with", "by", "that", "this",
+        "it", "as", "and", "or", "from", "asserts",
+    }
+)
+
+_RE_NEGATION_POLARITY: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:"
+    r"not|no|never|none|neither|nor|cannot|without|false|untrue|"
+    r"not_[a-z0-9_]+|does_not_[a-z0-9_]+|"
+    r"disput\w*|refut\w*|contradict\w*|debunk\w*|revers\w*|invalid\w*|vacat\w*|abrogat\w*|"
+    r"overturn\w*|supersed\w*|unratified|non[\-\s]?binding|"
+    r"inapplicable|incongruent|implausible|unreliable|unrelated|coincidental|spurious|"
+    r"dissimilar|unlike"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_RE_ADVERSATIVE_DEFEATER: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:"
+    r"alternativ\w+|countervail\w+|competing|conflicting|contrary|"
+    r"disparit\w+|distinguish\w+|outweigh\w+|prevent\w+|throttl\w+|"
+    r"side\s+effect\w*|adverse|drawback\w*|fallback|split"
+    r")\b"
+    r"|\b(?:differs?|difference\w*|distinct\w*)\b",
+    re.IGNORECASE,
+)
+
+
+def _tokenize_proposition(text: str) -> list[str]:
+    norm = re.sub(r"[^\w\s.]", " ", text.lower().replace("_", " ").replace("-", " "))
+    return [t for t in norm.split() if len(t) > 1 and t not in _CORROB_STOPWORDS]
+
+
+def _check_verifier_nli(
+    verifier: SemanticVerifierPort | None,
+    premise: str,
+    hypothesis: str,
+) -> tuple[VerifierLabel | None, float]:
+    """Queries SemanticVerifierPort / VerifierWorker for NLI entailment or contradiction."""
+    if verifier is None or not premise.strip() or not hypothesis.strip():
+        return (None, 0.0)
+    try:
+        if hasattr(verifier, "check_consistency"):
+            res = verifier.check_consistency(premise=premise, hypothesis=hypothesis)
+            if not getattr(res, "degraded", False):
+                score = float(getattr(res, "score", getattr(res, "confidence", 0.85)))
+                return (res.label, score)
+        elif hasattr(verifier, "verify"):
+            raw = verifier.verify(premise, hypothesis)  # type: ignore[attr-defined]
+            if isinstance(raw, (int, float)):
+                sc = float(raw)
+                if sc >= 0.75:
+                    return (VerifierLabel.ENTAILMENT, sc)
+                if sc <= 0.25:
+                    return (VerifierLabel.CONTRADICTION, 1.0 - sc)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("corroboration_nli_check_error", error=str(exc))
+    return (None, 0.0)
+
+
+def compute_proposition_alignment(
+    claim: str,
+    candidate_text: str,
+    step: InferenceStep | None = None,
+    verifier: SemanticVerifierPort | None = None,
+) -> tuple[bool, float, bool]:
+    """Computes structural entity/predicate alignment, NLI entailment, and polarity conflict."""
+    cand_clean = candidate_text.strip()
+    claim_clean = claim.strip()
+    if not cand_clean or not claim_clean:
+        return (False, 0.0, False)
+
+    cand_lower = cand_clean.lower()
+    claim_lower = claim_clean.lower()
+
+    nli_label, nli_score = _check_verifier_nli(verifier, cand_clean, claim_clean)
+    if nli_label == VerifierLabel.CONTRADICTION and nli_score >= 0.60:
+        return (False, nli_score, True)
+
+    claim_neg = bool(_RE_NEGATION_POLARITY.search(claim_lower))
+    cand_neg = bool(_RE_NEGATION_POLARITY.search(cand_lower))
+    has_conflict = (claim_neg != cand_neg) or bool(_RE_ADVERSATIVE_DEFEATER.search(cand_lower))
+
+    claim_tokens = set(_tokenize_proposition(claim_lower))
+    cand_tokens = set(_tokenize_proposition(cand_lower))
+    if step is not None:
+        s_toks = set(_tokenize_proposition(step.s))
+        o_toks = set(_tokenize_proposition(step.o))
+        p_toks = set(_tokenize_proposition(step.p))
+        entity_tokens = s_toks | o_toks
+    else:
+        entity_tokens = claim_tokens
+        p_toks = set()
+
+    overlap = len(claim_tokens & cand_tokens) / max(1, len(claim_tokens))
+    entity_overlap = (
+        len(entity_tokens & cand_tokens) / max(1, len(entity_tokens))
+        if entity_tokens
+        else overlap
+    )
+    pred_overlap = len(p_toks & cand_tokens) / max(1, len(p_toks)) if p_toks else overlap
+
+    combined_score = max(overlap, 0.7 * entity_overlap + 0.3 * pred_overlap)
+    if claim_lower in cand_lower:
+        combined_score = max(combined_score, 0.95)
+    if nli_label == VerifierLabel.ENTAILMENT:
+        combined_score = max(combined_score, nli_score)
+
+    is_aligned = (combined_score >= 0.50) and not has_conflict
+    return (is_aligned, combined_score, has_conflict)
+
+
 def _evaluate_authority_questions(
     step: InferenceStep,
     store: object = None,
     receipts: Sequence[object] = (),
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
     """Evaluates Walton Argument from Position to Know / Authority critical questions.
-    (WO-21 Phase 2).
+    (WO-21 Phase 2 / WO-39 Milestone 2.1).
     """
     results: list[CriticalQuestionResult] = []
 
-    # Parse attributed premise(s)
     attributed_pairs: list[tuple[str, str]] = []
     for prem in step.premises:
         attr_match = re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE)
@@ -560,7 +712,6 @@ def _evaluate_authority_questions(
             attributed_pairs.append((attr_match.group(1).strip(), attr_match.group(2).strip()))
 
     if not attributed_pairs:
-        # Fallback to evaluating the step conclusion directly
         asserting_source = "unspecified"
         claim = f"{step.s} {step.p} {step.o}".strip()
     else:
@@ -569,10 +720,9 @@ def _evaluate_authority_questions(
     claim_lower = claim.lower()
     source_lower = asserting_source.lower()
 
-    # -------------------------------------------------------------------------
     # Q1: Does a signed receipt prove the source asserted the claim?
-    # -------------------------------------------------------------------------
     q1_matches: list[str] = []
+    primary_signer_type = ""
     for r in receipts:
         ok = getattr(r, "ok", True)
         if not ok:
@@ -585,9 +735,11 @@ def _evaluate_authority_questions(
             + str(getattr(r, "structured", "") or "")
         ).lower()
         r_source = extract_receipt_source(r).lower()
+        is_aligned, _, has_conflict = compute_proposition_alignment(
+            claim, text, step=step, verifier=verifier
+        )
 
-        # Check if text contains the claim and matches the asserting source
-        if claim_lower in text:
+        if (claim_lower in text or is_aligned) and not has_conflict:
             if (
                 source_lower in text
                 or source_lower in r_source
@@ -596,6 +748,8 @@ def _evaluate_authority_questions(
             ):
                 cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
                 q1_matches.append(cid)
+                if not primary_signer_type:
+                    primary_signer_type = extract_receipt_signer_type(r)
 
     if q1_matches:
         results.append(
@@ -622,16 +776,14 @@ def _evaluate_authority_questions(
             )
         )
 
-    # -------------------------------------------------------------------------
     # Q2: Is the claim corroborated by an independent grounding-eligible fact?
-    # -------------------------------------------------------------------------
     corrob_entry_ids: list[str] = []
     independent_sources: list[str] = []
     seen_sources: list[str] = (
         [asserting_source] if (asserting_source and asserting_source != "unspecified") else []
     )
+    seen_signer_types: list[str] = [primary_signer_type] if primary_signer_type else []
 
-    # Check store for independent grounding-eligible memories
     if store is not None:
         db = getattr(store, "db", None)
         if db is not None and hasattr(db, "read_cursor"):
@@ -651,25 +803,46 @@ def _evaluate_authority_questions(
                     for row in cur.fetchall():
                         eid, content, signer, payload_json_str = row
                         src = signer or "store"
+                        row_signer_type = str(signer or "")
                         if payload_json_str:
                             try:
                                 pj = json.loads(payload_json_str)
+                                struct_dict = pj.get("structured") if isinstance(pj, dict) else None
                                 src = (
-                                    pj.get("structured", {}).get("source")
-                                    or pj.get("signer_id")
+                                    (struct_dict.get("source") if isinstance(struct_dict, dict) else None)
+                                    or (pj.get("signer_id") if isinstance(pj, dict) else None)
                                     or src
+                                )
+                                row_signer_type = str(
+                                    pj.get("provenance") or pj.get("signer_id") or row_signer_type
                                 )
                             except Exception as exc:  # noqa: BLE001
                                 logger.debug("payload_json_parse_error", error=str(exc))
                         src_str = str(src).strip()
-                        if src_str and not any(is_same_source(src_str, s) for s in seen_sources):
+                        is_aligned, _, has_conflict = compute_proposition_alignment(
+                            claim, str(content or ""), step=step, verifier=verifier
+                        )
+                        if (
+                            src_str
+                            and (claim_lower in str(content or "").lower() or is_aligned)
+                            and not has_conflict
+                            and all(
+                                verify_source_independence(
+                                    src_str,
+                                    s,
+                                    row_signer_type,
+                                    seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                                )
+                                for idx, s in enumerate(seen_sources)
+                            )
+                        ):
                             seen_sources.append(src_str)
+                            seen_signer_types.append(row_signer_type)
                             independent_sources.append(src_str)
                             corrob_entry_ids.append(str(eid))
             except Exception as exc:  # noqa: BLE001
                 logger.debug("corroboration_db_lookup_failed", error=str(exc))
 
-    # Check other receipts with independent sources
     for r in receipts:
         r_text = (
             str(getattr(r, "output", "") or "")
@@ -679,26 +852,27 @@ def _evaluate_authority_questions(
             + str(getattr(r, "structured", "") or "")
         ).lower()
         r_source = extract_receipt_source(r).strip()
+        r_signer = extract_receipt_signer_type(r)
         if (
             not r_source
             or r_source.lower() in ("fetch_url", "web_search", "search_web", "tool")
-            or any(is_same_source(r_source, s) for s in seen_sources)
+            or not all(
+                verify_source_independence(
+                    r_source,
+                    s,
+                    r_signer,
+                    seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                )
+                for idx, s in enumerate(seen_sources)
+            )
         ):
             continue
-        is_dispute = any(
-            m in r_text
-            for m in (
-                "dispute",
-                "disputed by",
-                "refute",
-                "refuted by",
-                "contradict",
-                "false claim",
-                "debunk",
-            )
+        is_aligned, _, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
         )
-        if claim_lower in r_text and not is_dispute:
+        if (claim_lower in r_text or is_aligned) and not has_conflict:
             seen_sources.append(r_source)
+            seen_signer_types.append(r_signer)
             independent_sources.append(r_source)
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             corrob_entry_ids.append(cid)
@@ -732,14 +906,11 @@ def _evaluate_authority_questions(
             )
         )
 
-    # -------------------------------------------------------------------------
     # Q3: Is the claim disputed by any grounding-eligible fact?
-    # -------------------------------------------------------------------------
     dispute_entry_ids: list[str] = []
     dispute_sources: list[str] = []
     dispute_details: list[str] = []
 
-    # Check store for active conflicting facts
     if store is not None:
         db = getattr(store, "db", None)
         if db is not None and hasattr(db, "read_cursor"):
@@ -787,7 +958,6 @@ def _evaluate_authority_questions(
             except Exception as exc:  # noqa: BLE001
                 logger.debug("dispute_db_lookup_failed", error=str(exc))
 
-    # Check receipts for explicit disputes
     for r in receipts:
         r_text = (
             str(getattr(r, "output", "") or "")
@@ -796,23 +966,14 @@ def _evaluate_authority_questions(
             + " "
             + str(getattr(r, "structured", "") or "")
         ).lower()
-        if (
-            f"disputes {claim_lower}" in r_text
-            or f"refutes {claim_lower}" in r_text
-            or f"not {claim_lower}" in r_text
-            or f"does_not_{step.p}" in r_text
-            or any(
-                m in r_text
-                for m in (
-                    "dispute",
-                    "disputed by",
-                    "refute",
-                    "refuted by",
-                    "false claim",
-                    "debunked",
-                    "contradicts",
-                )
-            )
+        _, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if has_conflict and (
+            align_score >= 0.25
+            or claim_lower in r_text
+            or (step.s and step.s.lower() in r_text)
+            or bool(_RE_NEGATION_POLARITY.search(r_text))
         ):
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             src = str(getattr(r, "source", "") or getattr(r, "tool", "") or "receipt")
@@ -852,13 +1013,9 @@ def _evaluate_sign_questions(
     step: InferenceStep,
     store: object = None,
     receipts: Sequence[object] = (),
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
-    """Evaluates Walton Argument from Sign critical questions (WO-23 Phase 1).
-
-    CQ1: Does the observed sign reliably correlate with the claimed condition?
-    CQ2: Is the observed sign corroborated by an independent grounding-eligible source?
-    CQ3: Is there an alternative explanation or contradicting fact that disputes the sign?
-    """
+    """Evaluates Walton Argument from Sign critical questions (WO-23 Phase 1 / WO-39)."""
     results: list[CriticalQuestionResult] = []
     sign = step.s.strip()
     condition = step.o.strip()
@@ -866,7 +1023,7 @@ def _evaluate_sign_questions(
     sign_lower = sign.lower()
     cond_lower = condition.lower()
 
-    # CQ1: Observation & correlation check
+    # CQ1: Observation & correlation check via entity/predicate alignment & NLI
     q1_matches: list[str] = []
     q1_failed = False
     for r in receipts:
@@ -881,24 +1038,21 @@ def _evaluate_sign_questions(
         if not ok:
             q1_failed = True
             break
-        if any(
-            bad in r_text
-            for bad in (
-                "spurious correlation",
-                "does not correlate",
-                "unreliable indicator",
-                "no correlation",
-                "coincidental",
-                "unrelated",
-            )
+        is_aligned, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if bool(_RE_NEGATION_POLARITY.search(r_text)) and not bool(
+            _RE_ADVERSATIVE_DEFEATER.search(r_text)
         ):
             q1_failed = True
             break
         if (
-            sign_lower in r_text
+            is_aligned
+            or align_score >= 0.35
+            or sign_lower in r_text
             or cond_lower in r_text
             or any(p.lower() in r_text for p in step.premises)
-        ):
+        ) and not has_conflict:
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             q1_matches.append(cid)
 
@@ -953,9 +1107,11 @@ def _evaluate_sign_questions(
     # CQ2: Independent grounding-eligible corroboration
     independent_sources: list[str] = []
     seen_sources: list[str] = []
+    seen_signer_types: list[str] = []
     corrob_entry_ids: list[str] = []
     if receipts:
         seen_sources.append(extract_receipt_source(receipts[0]))
+        seen_signer_types.append(extract_receipt_signer_type(receipts[0]))
 
     if store is not None:
         db = getattr(store, "db", None)
@@ -975,19 +1131,33 @@ def _evaluate_sign_questions(
                     for row in cur.fetchall():
                         eid, content, signer, payload_json_str = row
                         src = signer or "store"
+                        row_signer_type = str(signer or "")
                         if payload_json_str:
                             try:
                                 pj = json.loads(payload_json_str)
+                                struct_dict = pj.get("structured") if isinstance(pj, dict) else None
                                 src = (
-                                    pj.get("structured", {}).get("source")
-                                    or pj.get("signer_id")
+                                    (struct_dict.get("source") if isinstance(struct_dict, dict) else None)
+                                    or (pj.get("signer_id") if isinstance(pj, dict) else None)
                                     or src
+                                )
+                                row_signer_type = str(
+                                    pj.get("provenance") or pj.get("signer_id") or row_signer_type
                                 )
                             except Exception as exc:  # noqa: BLE001
                                 logger.debug("sign_payload_parse_error", error=str(exc))
                         src_str = str(src).strip()
-                        if src_str and not any(is_same_source(src_str, s) for s in seen_sources):
+                        if src_str and all(
+                            verify_source_independence(
+                                src_str,
+                                s,
+                                row_signer_type,
+                                seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                            )
+                            for idx, s in enumerate(seen_sources)
+                        ):
                             seen_sources.append(src_str)
+                            seen_signer_types.append(row_signer_type)
                             independent_sources.append(src_str)
                             corrob_entry_ids.append(str(eid))
             except Exception as exc:  # noqa: BLE001
@@ -1002,14 +1172,27 @@ def _evaluate_sign_questions(
             + str(getattr(r, "structured", "") or "")
         ).lower()
         r_source = extract_receipt_source(r).strip()
+        r_signer = extract_receipt_signer_type(r)
         if (
             not r_source
             or r_source.lower() in ("fetch_url", "web_search", "search_web", "tool")
-            or any(is_same_source(r_source, s) for s in seen_sources)
+            or not all(
+                verify_source_independence(
+                    r_source,
+                    s,
+                    r_signer,
+                    seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                )
+                for idx, s in enumerate(seen_sources)
+            )
         ):
             continue
-        if sign_lower in r_text or cond_lower in r_text:
+        is_aligned, _, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if (sign_lower in r_text or cond_lower in r_text or is_aligned) and not has_conflict:
             seen_sources.append(r_source)
+            seen_signer_types.append(r_signer)
             independent_sources.append(r_source)
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             corrob_entry_ids.append(cid)
@@ -1055,19 +1238,14 @@ def _evaluate_sign_questions(
             + " "
             + str(getattr(r, "structured", "") or "")
         ).lower()
-        if any(
-            w in r_text
-            for w in (
-                "alternative explanation",
-                "alternative cause",
-                "dispute",
-                "refute",
-                "contradict",
-                "not caused by",
-                "actually caused by",
-                "false sign",
-                "debunk",
-            )
+        _, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if has_conflict and (
+            align_score >= 0.20
+            or sign_lower in r_text
+            or cond_lower in r_text
+            or bool(_RE_ADVERSATIVE_DEFEATER.search(r_text))
         ):
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             src = extract_receipt_source(r)
@@ -1140,15 +1318,11 @@ def _evaluate_analogy_questions(
     receipts: Sequence[object] = (),
     verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
-    """Evaluates Walton Argument from Analogy critical questions (WO-23 Phase 1).
-
-    CQ1: Are the two cases relevantly similar in the respects that matter for the claim?
-    CQ2: Are there critical differences between the cases that defeat the analogy?
-    CQ3: Are the facts of the source case independently corroborated?
-    """
+    """Evaluates Walton Argument from Analogy critical questions (WO-23 Phase 1 / WO-39)."""
     results: list[CriticalQuestionResult] = []
     case_a = step.s.strip()
     case_b = step.o.strip()
+    claim = f"{step.s} {step.p} {step.o}".strip()
     case_a_lower = case_a.lower()
     case_b_lower = case_b.lower()
     asserting_source = ""
@@ -1158,7 +1332,7 @@ def _evaluate_analogy_questions(
             asserting_source = m.group(1).strip()
             break
 
-    # CQ1: Relevant similarity check (bidirectional entailment via SemanticVerifierPort)
+    # CQ1: Relevant similarity check (bidirectional entailment & structural alignment)
     q1_matches: list[str] = []
     q1_failed = False
     if verifier is not None and case_a and case_b:
@@ -1178,6 +1352,7 @@ def _evaluate_analogy_questions(
                     q1_matches.append("semantic_entailment")
         except Exception as exc:  # noqa: BLE001
             logger.debug("analogy_verifier_eval_failed", error=str(exc))
+
     for r in receipts:
         r_text = (
             str(getattr(r, "output", "") or "")
@@ -1190,27 +1365,21 @@ def _evaluate_analogy_questions(
         if not ok:
             q1_failed = True
             break
-        if any(
-            bad in r_text
-            for bad in (
-                "not similar",
-                "dissimilar",
-                "irrelevant comparison",
-                "false equivalence",
-                "no similarity",
-                "unlike",
-            )
+        is_aligned, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if bool(_RE_NEGATION_POLARITY.search(r_text)) and not bool(
+            _RE_ADVERSATIVE_DEFEATER.search(r_text)
         ):
             q1_failed = True
             break
         if (
-            any(
-                sim in r_text
-                for sim in ("similar", "relevantly similar", "analogous", "parallel", "comparable")
-            )
+            is_aligned
+            or align_score >= 0.35
+            or bool(_RE_ANALOGY.search(r_text))
             or (case_a_lower in r_text and case_b_lower in r_text)
             or any(p.lower() in r_text for p in step.premises)
-        ):
+        ) and not has_conflict:
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             q1_matches.append(cid)
 
@@ -1278,18 +1447,11 @@ def _evaluate_analogy_questions(
             + " "
             + str(getattr(r, "structured", "") or "")
         ).lower()
-        if any(
-            d in r_text
-            for d in (
-                "critical difference",
-                "defeating difference",
-                "material difference",
-                "crucial distinction",
-                "different architecture",
-                "differs significantly",
-                "fundamental difference",
-                "distinct mechanism",
-            )
+        _, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if has_conflict and (
+            bool(_RE_ADVERSATIVE_DEFEATER.search(r_text)) or align_score >= 0.20
         ):
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             src = extract_receipt_source(r)
@@ -1310,17 +1472,17 @@ def _evaluate_analogy_questions(
                         SELECT m.entry_id, m.content, e.signer_id FROM memories m
                         JOIN provenance_envelopes e ON m.entry_id = e.entry_id
                         WHERE e.grounding_eligible = 1 AND m.valid_to IS NULL
-                          AND (m.content LIKE '%difference%' OR m.content LIKE '%differs%')
                           AND (m.content LIKE ? OR m.content LIKE ?)
                         """,
                         (f"%{case_a_lower}%", f"%{case_b_lower}%"),
                     )
                     for row in cur.fetchall():
                         eid, content, signer = row
-                        if str(eid) not in diff_entry_ids:
-                            diff_entry_ids.append(str(eid))
-                            diff_sources.append(str(signer or "memory"))
-                            diff_details.append(f"{content}")
+                        if bool(_RE_ADVERSATIVE_DEFEATER.search(str(content or ""))):
+                            if str(eid) not in diff_entry_ids:
+                                diff_entry_ids.append(str(eid))
+                                diff_sources.append(str(signer or "memory"))
+                                diff_details.append(f"{content}")
             except Exception as exc:  # noqa: BLE001
                 logger.debug("analogy_q2_db_error", error=str(exc))
 
@@ -1356,6 +1518,7 @@ def _evaluate_analogy_questions(
     seen_sources: list[str] = (
         [asserting_source] if (asserting_source and asserting_source != "unspecified") else []
     )
+    seen_signer_types: list[str] = []
     corrob_entry_ids: list[str] = []
 
     if store is not None:
@@ -1376,19 +1539,33 @@ def _evaluate_analogy_questions(
                     for row in cur.fetchall():
                         eid, content, signer, payload_json_str = row
                         src = signer or "store"
+                        row_signer_type = str(signer or "")
                         if payload_json_str:
                             try:
                                 pj = json.loads(payload_json_str)
+                                struct_dict = pj.get("structured") if isinstance(pj, dict) else None
                                 src = (
-                                    pj.get("structured", {}).get("source")
-                                    or pj.get("signer_id")
+                                    (struct_dict.get("source") if isinstance(struct_dict, dict) else None)
+                                    or (pj.get("signer_id") if isinstance(pj, dict) else None)
                                     or src
+                                )
+                                row_signer_type = str(
+                                    pj.get("provenance") or pj.get("signer_id") or row_signer_type
                                 )
                             except Exception as exc:  # noqa: BLE001
                                 logger.debug("analogy_payload_parse_error", error=str(exc))
                         src_str = str(src).strip()
-                        if src_str and not any(is_same_source(src_str, s) for s in seen_sources):
+                        if src_str and all(
+                            verify_source_independence(
+                                src_str,
+                                s,
+                                row_signer_type,
+                                seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                            )
+                            for idx, s in enumerate(seen_sources)
+                        ):
                             seen_sources.append(src_str)
+                            seen_signer_types.append(row_signer_type)
                             independent_sources.append(src_str)
                             corrob_entry_ids.append(str(eid))
             except Exception as exc:  # noqa: BLE001
@@ -1403,19 +1580,33 @@ def _evaluate_analogy_questions(
             + str(getattr(r, "structured", "") or "")
         ).lower()
         r_source = extract_receipt_source(r).strip()
+        r_signer = extract_receipt_signer_type(r)
         if (
             not r_source
             or r_source.lower() in ("fetch_url", "web_search", "search_web", "tool")
-            or any(is_same_source(r_source, s) for s in seen_sources)
+            or not all(
+                verify_source_independence(
+                    r_source,
+                    s,
+                    r_signer,
+                    seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                )
+                for idx, s in enumerate(seen_sources)
+            )
         ):
             continue
         case_b_clean = case_b_lower.replace("_", " ")
+        is_aligned, _, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
         if (
-            case_b_lower in r_text
+            is_aligned
+            or case_b_lower in r_text
             or case_b_clean in r_text
             or any(w in r_text for w in re.split(r"[_\s]+", case_b_lower) if len(w) > 2)
-        ):
+        ) and not has_conflict:
             seen_sources.append(r_source)
+            seen_signer_types.append(r_signer)
             independent_sources.append(r_source)
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             corrob_entry_ids.append(cid)
@@ -1455,16 +1646,13 @@ def _evaluate_consequence_questions(
     step: InferenceStep,
     store: object = None,
     receipts: Sequence[object] = (),
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
-    """Evaluates Walton Argument from Consequences critical questions (WO-23 Phase 1).
-
-    CQ1: Does the claimed consequence plausibly follow from the action?
-    CQ2: Are there countervailing consequences that outweigh the claimed outcome?
-    CQ3: Is there independent empirical evidence or precedent confirming the consequence?
-    """
+    """Evaluates Walton Argument from Consequences critical questions (WO-23 Phase 1 / WO-39)."""
     results: list[CriticalQuestionResult] = []
     action = step.s.strip()
     consequence = step.o.strip()
+    claim = f"{step.s} {step.p} {step.o}".strip()
     action_lower = action.lower()
     conseq_lower = consequence.lower()
     asserting_source = ""
@@ -1489,36 +1677,21 @@ def _evaluate_consequence_questions(
         if not ok:
             q1_failed = True
             break
-        if any(
-            bad in r_text
-            for bad in (
-                "does not follow",
-                "implausible",
-                "unrelated consequence",
-                "no causal link",
-                "broken chain",
-                "will not cause",
-                "cannot produce",
-            )
+        is_aligned, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if bool(_RE_NEGATION_POLARITY.search(r_text)) and not bool(
+            _RE_ADVERSATIVE_DEFEATER.search(r_text)
         ):
             q1_failed = True
             break
         if (
-            any(
-                c in r_text
-                for c in (
-                    "leads to",
-                    "causes",
-                    "results in",
-                    "produces",
-                    "will cause",
-                    "consequence",
-                    "triggers",
-                )
-            )
+            is_aligned
+            or align_score >= 0.35
+            or bool(_RE_CONSEQUENCE.search(r_text))
             or (action_lower in r_text and conseq_lower in r_text)
             or any(p.lower() in r_text for p in step.premises)
-        ):
+        ) and not has_conflict:
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             q1_matches.append(cid)
 
@@ -1583,19 +1756,11 @@ def _evaluate_consequence_questions(
             + " "
             + str(getattr(r, "structured", "") or "")
         ).lower()
-        if any(
-            c in r_text
-            for c in (
-                "countervailing consequence",
-                "countervailing",
-                "unintended consequence",
-                "side effect",
-                "adverse outcome",
-                "outweighed by",
-                "drawback",
-                "severe negative impact",
-                "harm outweighs",
-            )
+        _, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if has_conflict and (
+            bool(_RE_ADVERSATIVE_DEFEATER.search(r_text)) or align_score >= 0.20
         ):
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             src = extract_receipt_source(r)
@@ -1613,21 +1778,17 @@ def _evaluate_consequence_questions(
                         SELECT m.entry_id, m.content, e.signer_id FROM memories m
                         JOIN provenance_envelopes e ON m.entry_id = e.entry_id
                         WHERE e.grounding_eligible = 1 AND m.valid_to IS NULL
-                          AND (
-                              m.content LIKE '%countervailing%'
-                              OR m.content LIKE '%side effect%'
-                              OR m.content LIKE '%adverse%'
-                          )
                           AND m.content LIKE ?
                         """,
                         (f"%{action_lower}%",),
                     )
                     for row in cur.fetchall():
                         eid, content, signer = row
-                        if str(eid) not in counter_entry_ids:
-                            counter_entry_ids.append(str(eid))
-                            counter_sources.append(str(signer or "memory"))
-                            counter_details.append(f"{content}")
+                        if bool(_RE_ADVERSATIVE_DEFEATER.search(str(content or ""))):
+                            if str(eid) not in counter_entry_ids:
+                                counter_entry_ids.append(str(eid))
+                                counter_sources.append(str(signer or "memory"))
+                                counter_details.append(f"{content}")
             except Exception as exc:  # noqa: BLE001
                 logger.debug("consequence_q2_db_error", error=str(exc))
 
@@ -1663,6 +1824,7 @@ def _evaluate_consequence_questions(
     seen_sources: list[str] = (
         [asserting_source] if (asserting_source and asserting_source != "unspecified") else []
     )
+    seen_signer_types: list[str] = []
     corrob_entry_ids: list[str] = []
 
     if store is not None:
@@ -1683,19 +1845,33 @@ def _evaluate_consequence_questions(
                     for row in cur.fetchall():
                         eid, content, signer, payload_json_str = row
                         src = signer or "store"
+                        row_signer_type = str(signer or "")
                         if payload_json_str:
                             try:
                                 pj = json.loads(payload_json_str)
+                                struct_dict = pj.get("structured") if isinstance(pj, dict) else None
                                 src = (
-                                    pj.get("structured", {}).get("source")
-                                    or pj.get("signer_id")
+                                    (struct_dict.get("source") if isinstance(struct_dict, dict) else None)
+                                    or (pj.get("signer_id") if isinstance(pj, dict) else None)
                                     or src
+                                )
+                                row_signer_type = str(
+                                    pj.get("provenance") or pj.get("signer_id") or row_signer_type
                                 )
                             except Exception as exc:  # noqa: BLE001
                                 logger.debug("consequence_payload_parse_error", error=str(exc))
                         src_str = str(src).strip()
-                        if src_str and not any(is_same_source(src_str, s) for s in seen_sources):
+                        if src_str and all(
+                            verify_source_independence(
+                                src_str,
+                                s,
+                                row_signer_type,
+                                seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                            )
+                            for idx, s in enumerate(seen_sources)
+                        ):
                             seen_sources.append(src_str)
+                            seen_signer_types.append(row_signer_type)
                             independent_sources.append(src_str)
                             corrob_entry_ids.append(str(eid))
             except Exception as exc:  # noqa: BLE001
@@ -1710,19 +1886,33 @@ def _evaluate_consequence_questions(
             + str(getattr(r, "structured", "") or "")
         ).lower()
         r_source = extract_receipt_source(r).strip()
+        r_signer = extract_receipt_signer_type(r)
         if (
             not r_source
             or r_source.lower() in ("fetch_url", "web_search", "search_web", "tool")
-            or any(is_same_source(r_source, s) for s in seen_sources)
+            or not all(
+                verify_source_independence(
+                    r_source,
+                    s,
+                    r_signer,
+                    seen_signer_types[idx] if idx < len(seen_signer_types) else "",
+                )
+                for idx, s in enumerate(seen_sources)
+            )
         ):
             continue
         conseq_clean = conseq_lower.replace("_", " ")
+        is_aligned, _, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
         if (
-            conseq_lower in r_text
+            is_aligned
+            or conseq_lower in r_text
             or conseq_clean in r_text
             or any(w in r_text for w in re.split(r"[_\s]+", conseq_lower) if len(w) > 2)
-        ):
+        ) and not has_conflict:
             seen_sources.append(r_source)
+            seen_signer_types.append(r_signer)
             independent_sources.append(r_source)
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             corrob_entry_ids.append(cid)
@@ -1758,20 +1948,28 @@ def _evaluate_consequence_questions(
     return results
 
 
+_RE_RATIFICATION_POSITIVE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:ratif\w*|binding|grounding[\-\s]eligible|upheld|affirm\w*|establish\w*)\b",
+    re.IGNORECASE,
+)
+
+_RE_CONGRUENCE_POSITIVE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:congruen\w*|match\w*|parallel\w*|identical\w*)\b",
+    re.IGNORECASE,
+)
+
+
 def _evaluate_precedent_questions(
     step: InferenceStep,
     store: object = None,
     receipts: Sequence[object] = (),
+    verifier: SemanticVerifierPort | None = None,
 ) -> list[CriticalQuestionResult]:
-    """Evaluates Walton Argument from Precedent critical questions (WO-23 Phase 1).
-
-    CQ1: Were the facts in the cited precedent congruent with the current case?
-    CQ2: Was the prior decision ratified and grounding-eligible, not overturned or superseded?
-    CQ3: Is there a competing or conflicting precedent on record?
-    """
+    """Evaluates Walton Argument from Precedent critical questions (WO-23 Phase 1 / WO-39)."""
     results: list[CriticalQuestionResult] = []
     current_case = step.s.strip()
     ruling = step.o.strip()
+    claim = f"{step.s} {step.p} {step.o}".strip()
     case_lower = current_case.lower()
     ruling_lower = ruling.lower()
 
@@ -1790,37 +1988,19 @@ def _evaluate_precedent_questions(
         if not ok:
             q1_failed = True
             break
-        if any(
-            bad in r_text
-            for bad in (
-                "incongruent facts",
-                "distinguishable on the facts",
-                "distinguishable facts",
-                "different facts",
-                "facts differ",
-                "distinguishable",
-                "inapplicable precedent",
-            )
-        ):
+        is_aligned, align_score, has_conflict = compute_proposition_alignment(
+            claim, r_text, step=step, verifier=verifier
+        )
+        if bool(re.search(r"\b(?:incongruen\w*|distinguish\w*)\b", r_text)):
             q1_failed = True
             break
         if (
-            any(
-                cg in r_text
-                for cg in (
-                    "congruent facts",
-                    "matching facts",
-                    "facts are congruent",
-                    "parallel facts",
-                    "same factual basis",
-                    "identical facts",
-                    "factually congruent",
-                    "on all fours",
-                )
-            )
+            is_aligned
+            or align_score >= 0.35
+            or bool(_RE_CONGRUENCE_POSITIVE.search(r_text))
             or (case_lower in r_text and ruling_lower in r_text)
             or any(p.lower() in r_text for p in step.premises)
-        ):
+        ) and not has_conflict:
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             q1_matches.append(cid)
 
@@ -1889,35 +2069,15 @@ def _evaluate_precedent_questions(
         ).lower()
         src = extract_receipt_source(r)
         cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
-        if any(
-            bad in r_text
-            for bad in (
-                "overturned",
-                "superseded",
-                "vacated",
-                "unratified",
-                "non-binding",
-                "abrogated",
-                "invalidated",
-                "reversed",
-            )
+        if bool(_RE_NEGATION_POLARITY.search(r_text)) and not bool(
+            _RE_ADVERSATIVE_DEFEATER.search(r_text)
         ):
             is_superseded = True
             q2_eids.append(cid)
             q2_sources.append(src)
             q2_detail = f"{src} reports precedent for '{ruling}' was overturned or superseded"
             break
-        if any(
-            good in r_text
-            for good in (
-                "ratified",
-                "binding",
-                "grounding-eligible",
-                "upheld",
-                "affirmed",
-                "established ruling",
-            )
-        ):
+        if bool(_RE_RATIFICATION_POSITIVE.search(r_text)):
             is_ratified = True
             q2_eids.append(cid)
             q2_sources.append(src)
@@ -1941,19 +2101,7 @@ def _evaluate_precedent_questions(
                     if rows:
                         for row in rows:
                             row_content = str(row[1] or "").lower()
-                            if any(
-                                bad in row_content
-                                for bad in (
-                                    "overturned",
-                                    "superseded",
-                                    "vacated",
-                                    "unratified",
-                                    "non-binding",
-                                    "abrogated",
-                                    "invalidated",
-                                    "reversed",
-                                )
-                            ):
+                            if bool(_RE_NEGATION_POLARITY.search(row_content)):
                                 is_superseded = True
                                 q2_eids.append(str(row[0]))
                                 q2_sources.append(str(row[2] or "store"))
@@ -2023,17 +2171,7 @@ def _evaluate_precedent_questions(
             + " "
             + str(getattr(r, "structured", "") or "")
         ).lower()
-        if any(
-            c in r_text
-            for c in (
-                "competing precedent",
-                "conflicting precedent",
-                "contrary precedent",
-                "split of authority",
-                "conflicting ruling",
-                "split decision",
-            )
-        ):
+        if bool(_RE_ADVERSATIVE_DEFEATER.search(r_text)):
             cid = str(getattr(r, "call_id", "") or getattr(r, "entry_id", "") or "rcpt")
             src = extract_receipt_source(r)
             competing_eids.append(cid)
@@ -2050,20 +2188,17 @@ def _evaluate_precedent_questions(
                         SELECT m.entry_id, m.content, e.signer_id FROM memories m
                         JOIN provenance_envelopes e ON m.entry_id = e.entry_id
                         WHERE e.grounding_eligible = 1 AND m.valid_to IS NULL
-                          AND (
-                              m.content LIKE '%competing precedent%'
-                              OR m.content LIKE '%conflicting precedent%'
-                          )
                           AND (m.content LIKE ? OR m.content LIKE ?)
                         """,
                         (f"%{case_lower}%", f"%{ruling_lower}%"),
                     )
                     for row in cur.fetchall():
                         eid, content, signer = row
-                        if str(eid) not in competing_eids:
-                            competing_eids.append(str(eid))
-                            competing_sources.append(str(signer or "memory"))
-                            competing_details.append(f"{content}")
+                        if bool(_RE_ADVERSATIVE_DEFEATER.search(str(content or ""))):
+                            if str(eid) not in competing_eids:
+                                competing_eids.append(str(eid))
+                                competing_sources.append(str(signer or "memory"))
+                                competing_details.append(f"{content}")
             except Exception as exc:  # noqa: BLE001
                 logger.debug("precedent_q3_db_error", error=str(exc))
 
@@ -2115,15 +2250,21 @@ def critical_questions(
     """
     norm_scheme = str(scheme).strip().lower()
     if norm_scheme == Scheme.AUTHORITY.value:
-        return _evaluate_authority_questions(step, store=store, receipts=receipts)
+        return _evaluate_authority_questions(
+            step, store=store, receipts=receipts, verifier=verifier
+        )
     if norm_scheme == Scheme.SIGN.value:
-        return _evaluate_sign_questions(step, store=store, receipts=receipts)
+        return _evaluate_sign_questions(step, store=store, receipts=receipts, verifier=verifier)
     if norm_scheme == Scheme.ANALOGY.value:
         return _evaluate_analogy_questions(step, store=store, receipts=receipts, verifier=verifier)
     if norm_scheme == Scheme.CONSEQUENCE.value:
-        return _evaluate_consequence_questions(step, store=store, receipts=receipts)
+        return _evaluate_consequence_questions(
+            step, store=store, receipts=receipts, verifier=verifier
+        )
     if norm_scheme == Scheme.PRECEDENT.value:
-        return _evaluate_precedent_questions(step, store=store, receipts=receipts)
+        return _evaluate_precedent_questions(
+            step, store=store, receipts=receipts, verifier=verifier
+        )
 
     raise NotImplementedError(f"Scheme '{scheme}' not implemented in corroboration engine")
 

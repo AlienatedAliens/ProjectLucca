@@ -348,7 +348,7 @@ class VoiceTab(QWidget):
 
         h_kc_wav = QHBoxLayout()
         self.line_kokoclone_wav = QLineEdit(self.panel_kokoclone)
-        self.line_kokoclone_wav.setText(KOKOCLONE_PRESETS["asuka_studio"][1])
+        self.line_kokoclone_wav.setText(KOKOCLONE_PRESETS["lucca_studio"][1])
         self.line_kokoclone_wav.setPlaceholderText("Select a 3-10s clean .wav speech clip to clone...")
         self.btn_browse_kokoclone = QPushButton("Browse .wav", self.panel_kokoclone)
         self.btn_browse_kokoclone.clicked.connect(self._browse_kokoclone_wav)
@@ -568,23 +568,23 @@ class VoiceTab(QWidget):
 
     def _apply_supertonic3_preset(self) -> None:
         self.rb_engine_supertonic.setChecked(True)
-        idx_v = self.combo_supertonic_voice.findData("asuka_tsundere")
+        idx_v = self.combo_supertonic_voice.findData("lucca_inventor")
         if idx_v >= 0:
             self.combo_supertonic_voice.setCurrentIndex(idx_v)
         self.combo_supertonic_mode.setCurrentIndex(0)  # Auto
         self.chk_supertonic_smooth.setChecked(True)
         self.slider_speed.setValue(115)
         self._load_sample_ja()
-        self.lbl_voice_status.setText("Applied Supertonic 3: Asuka Soryu (Trilingual Tsundere with Phoneme Smoothing).")
+        self.lbl_voice_status.setText("Applied Supertonic 3: Lucca (Spirited Young Inventor with Phoneme Smoothing).")
 
     def _apply_kokoclone_preset(self) -> None:
         self.rb_engine_kokoclone.setChecked(True)
-        self.combo_kokoclone_preset.setCurrentIndex(0)  # Asuka studio clean
+        self.combo_kokoclone_preset.setCurrentIndex(0)  # Lucca studio clean
         self.slider_speed.setValue(110)
         self._load_sample_eng()
         self._on_kokoclone_preset_changed()
         self.lbl_voice_status.setText(
-            "Applied KokoClone: Asuka Langley Soryu (Full Uncut Studio Master — 45s)."
+            "Applied KokoClone: Lucca (Full Studio Master — 45s)."
         )
 
     def _update_blend_formula(self) -> None:

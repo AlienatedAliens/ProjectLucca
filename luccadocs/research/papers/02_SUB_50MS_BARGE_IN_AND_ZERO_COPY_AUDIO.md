@@ -3,15 +3,15 @@
 
 ```yaml
 doc_status: canonical
-as_of: 2026-10-19
-release_baseline: v1.45.0 (WO-36)
+as_of: 2026-11-03
+release_baseline: v1.47.0 (WO-39)
 submission_status: technical_report (systems; requires raw latency distributions and a suffix-float ablation before submission)
 related_adrs: [ADR-0008, ADR-0009, D-ARCH-05, D-BRAIN-05, D-AFF-01, D-SUP-01, D-COG-01]
 verification: artifact-sourced (RESULTS.md & logs/test_reports/)
 ```
 
 **Authors:** Project Lucca Audio, Concurrency & Systems Engineering Group
-**Date:** October 19, 2026 (`v1.45.0` / `WO-36` Baseline)
+**Date:** November 3, 2026 (`v1.47.0` / `WO-39` Baseline)
 **Hardware Platform:** MSI Vector 16 HX AI — Intel Core Ultra 9 275HX (24 cores), Intel AI Boost NPU (`PCI\VEN_8086&DEV_AD1D` via OpenVINO), NVIDIA GeForce RTX 5080 Laptop GPU (16,303 MiB GDDR7, `Disp.A: Off`), Realtek WASAPI Audio
 
 **Contribution type.** Systems description with single-machine measurements. The concurrency contract (`ADR-0009`) is *test-enforced*, not formally verified: its five invariants are exercised by the unit and race tests listed in §2.1, and nothing more is claimed. Latency figures are from the project's own instrumentation on one machine; where only a summary statistic was retained, the raw distribution is marked as not available.
@@ -86,7 +86,9 @@ To preserve 100% prefix KV-cache residency while retaining affective responsiven
 2. **Schmitt-Trigger Hysteresis Quantizer:** Continuous 3D PAD coordinates are mapped into 7 discrete orthogonal stances via RBF Mahalanobis distance with a deadband hysteresis margin ($\delta_{\text{hyst}} = 0.15$) to prevent stance chattering.
 3. **Frontier Suffix Injection:** Both the quantized stance tag (`[STANCE: focused_analytical]`) and per-turn dynamic skill manifests are appended strictly to the **tail of the frontier user message** in [`prompt_builder.build_messages()`](../../../src/lucca/brain/prompt_builder.py:1).
 
-### 3.3 Verified Epistemic Prosody & Streaming Safety Supervision (`D-SUP-01`, `WO-36`)
+### 3.3 Verified Epistemic Prosody, Streaming Safety Supervision & `WO-39` Audio/DSP Hardening (`D-SUP-01`, `WO-36`, `WO-39`)
+- **Whisper `"Lucca"` Hotword Conditioning & Phonetic Wake-Word Normalization (`WO-39` Milestone 1.3, [`src/lucca/senses/asr.py`](../../../src/lucca/senses/asr.py:1) & [`src/lucca/senses/stt.py`](../../../src/lucca/senses/stt.py:1)):** Because general-domain English Whisper models (`distil-small.en`) frequently transcribe the uncommon proper name *"Lucca"* as *"Lucas"*, *"Lukas"*, *"Luka"*, or *"Luca"*, `asr.py` conditions `transcribe()` with `initial_prompt` and `hotwords="Lucca"`, and `stt.py` applies deterministic post-ASR phonetic wake-word normalization (`normalize_lucca_wake_word`) across direct-address contexts while preserving third-party surnames (e.g., *"George Lucas"*).
+- **Hann-Windowed Overlap-Add (OLA) Pitch Shifting (`WO-39` Organ 6, [`src/lucca/senses/dsp_chain.py`](../../../src/lucca/senses/dsp_chain.py:1)):** `apply_pitch_shift` in `dsp_chain.py` implements true Hann-windowed Overlap-Add (OLA) time-stretching followed by linear resampling to shift pitch by `pitch_semitones` while preserving exact sample length and eliminating frame-boundary phase discontinuities.
 - **Epistemic Prosody Modulation ([`src/lucca/speech/tts.py`](../../../src/lucca/speech/tts.py:1)):** Rather than speaking verified mathematical proofs and speculative hypotheses with identical vocal confidence, [`SpeechOutputManager`](../../../src/lucca/core/speech_output_manager.py:1) passes the turn's epistemic verification status to the TTS engine. Turns grounded by `CHECKED_FORMALIZATION_AGREED` or `TOOL_VERIFIED` receipts render with steady, authoritative cadence, whereas `INFERRED`, `SPECULATION`, or `Belnap.TOP` (contested) turns modulate prosody pacing and update the desktop UI sprite state ([`src/lucca/ui/states.py`](../../../src/lucca/ui/states.py:1)).
 - **Streaming Clause Supervision ([`src/lucca/sandbox/output_supervisor.py`](../../../src/lucca/sandbox/output_supervisor.py:1)):** As tokens stream from `llama-server.exe` into [`StreamingChunker`](../../../src/lucca/brain/chunker.py:1), clauses are normalized (stripping markdown obfuscation `*`, `_`, `` ` ``, `~`) and checked in `<15 µs` before enqueuing into `_tts_queue`. If an ungrounded-action policy breach is triggered, `play_ring.set_flag(FLAG_ABORT)` fires in `<35 µs` and drains `_tts_queue` before synthesis occurs. This supervision guards *action claims* against tool receipts; the former lexical content screen (`TTSSafetyGuard`) was removed under the sovereign output covenant (`D-SOV-01`, §4.3).
 

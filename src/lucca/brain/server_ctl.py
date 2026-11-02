@@ -329,7 +329,7 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
     """
     llama_exe = resolve_server_bin(cfg, home_dir)
     model_gguf = resolve_model_path(cfg.model, home_dir)
-    mmproj_gguf = resolve_model_path(cfg.mmproj, home_dir)
+    mmproj_gguf = resolve_model_path(cfg.mmproj, home_dir) if cfg.mmproj else None
 
     k_type = getattr(cfg, "kv_type_k", None) or cfg.kv_type
     v_type = getattr(cfg, "kv_type_v", None) or cfg.kv_type
@@ -361,11 +361,14 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
         "--jinja",
     ]
 
+    if getattr(cfg, "ubatch", None) is not None:
+        cmd.extend(["-ub", str(cfg.ubatch)])
+
     if getattr(cfg, "cpu_moe", False):
-        cmd.append("--cpu-moe")
+        cmd.extend(["--cpu-moe", "--load-mode", "none"])
 
     if getattr(cfg, "moe_expert_cache_mib", None) is not None:
-        cmd.extend(["--moe-expert-cache-mib", str(cfg.moe_expert_cache_mib)])
+        cmd.extend(["--moe-cache-mib", str(cfg.moe_expert_cache_mib)])
 
     spec_type = getattr(cfg, "spec_type", "none") or "none"
     if spec_type != "none":
@@ -393,25 +396,8 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
     # Only attach --mmproj in audio or vision mode, and ensure architectural compatibility
     # (e.g. multimodal models n_embd=3840 must NEVER load mismatched LLaMA n_embd=4096 mmproj)
     matched_mmproj: Path | None = None
-    if cfg.mode in ("audio", "vision"):
-        if "gemma" in model_gguf.name.lower():
-            if mmproj_gguf.exists() and "gemma" in mmproj_gguf.name.lower():
-                matched_mmproj = mmproj_gguf
-            else:
-                models_dir = home_dir / "models" / "llm"
-                if models_dir.exists():
-                    for p in models_dir.glob("*gemma*mmproj*.gguf"):
-                        matched_mmproj = p
-                        break
-                    if not matched_mmproj:
-                        for p in models_dir.glob("*mmproj*gemma*.gguf"):
-                            matched_mmproj = p
-                            break
-        elif "ultravox" in model_gguf.name.lower() or "llama" in model_gguf.name.lower():
-            if mmproj_gguf.exists() and ("ultravox" in mmproj_gguf.name.lower() or "llama" in mmproj_gguf.name.lower()):
-                matched_mmproj = mmproj_gguf
-        elif mmproj_gguf.exists():
-            matched_mmproj = mmproj_gguf
+    if cfg.mode in ("audio", "vision") and mmproj_gguf is not None and mmproj_gguf.exists():
+        matched_mmproj = mmproj_gguf
 
     if matched_mmproj is not None and matched_mmproj.exists():
         cmd.extend(["--mmproj", str(matched_mmproj)])

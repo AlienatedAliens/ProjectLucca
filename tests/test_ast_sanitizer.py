@@ -163,23 +163,27 @@ print(len(combos))
     assert "import itertools" in repaired
 
 
-def test_composite_diff_repair() -> None:
+def test_composite_diff_not_rewritten_as_benchmark_hack() -> None:
+    """WO-39 Milestone 1.1: u = x / h is preserved without benchmark-specific symbol rewrite."""
     code = """x, h = sp.symbols('x h', real=True, positive=True)
 u = x / h
 expr = sp.atan(3 * u) - sp.atan(u)
-d_expr = sp.diff(expr, u)
+d_expr = sp.diff(expr, x)
 print(d_expr)
 """
     repaired, ok, err = sanitize_and_repair_python_code(code)
     assert ok, err
-    assert "u = sp.symbols('u'" in repaired
+    assert "u =x /h" in repaired or "u = x / h" in repaired
+    assert "_diff_var_" not in repaired
+    assert "u = sp.symbols('u'" not in repaired
 
 
-def test_hallucinated_primes_set_definition() -> None:
+def test_no_hallucinated_primes_set_injection() -> None:
+    """WO-39 Milestone 1.1: undefined primes/odds sets are not silently injected."""
     code = """intersection = set(primes).intersection(set(odds))
 print(len(intersection))
 """
     repaired, ok, err = sanitize_and_repair_python_code(code)
     assert ok, err
-    assert "primes = list(sp.primerange" in repaired
-    assert "odds = list(range" in repaired
+    assert "primes = list(sp.primerange" not in repaired
+    assert "odds = list(range" not in repaired

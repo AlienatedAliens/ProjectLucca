@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 02 — Neural Brain & Streaming Demuxer
 
 **Subsystem:** `src/lucca/brain/`  
-**Version:** 1.3.0  
+**Version:** 1.47.0 (`WO-39`)  
 **Architectural Tier:** System 2 Neural Core  
 **Hardware Placement:** NVIDIA GeForce RTX 5080 Laptop GPU (Dedicated Compute Mode `Disp.A: Off`), 16 GB GDDR7  
 
@@ -110,6 +110,16 @@ Measurements taken on the RTX 5080 Laptop GPU:
 - **Prefix Cache Invalidation (Naive Baseline):** $402.05\,\text{ms}$ prefill latency per turn.
 - **Frontier Suffix Optimization (Lucca Architecture):** **$46.84\,\text{ms}$** prefill latency.
 - **Performance Advantage:** **$8.58\times$ prompt prefill speedup**, saving **$355.21\,\text{ms}$** per voice turn.
+
+### 4.2 Prompt Decontamination & Partitioned Autobiographical Memory Rendering (`WO-39` Milestones 1.1 & 1.2)
+In `WO-39`, `src/lucca/brain/prompt_builder.py` underwent two structural decontamination and epistemic hardening upgrades:
+1. **Milestone 1.1 Removal of `SPEC-BENCH-100` Prompt Leaks:** All benchmark-specific few-shot hints, domain-specific cheat examples, and `SPEC-BENCH-100` prompt engineering leaks were purged from `prompt_builder.py`. System prompts define only general behavioral invariants, tool schemas, and epistemic rules.
+2. **Milestone 1.2 Study 1 Autobiographical Memory Partitioning (`_render_partitioned_memories`):** When injecting retrieved memories into the prompt context, `_render_partitioned_memories` strictly segregates memories by their database-enforced `grounding_eligible` flag into two distinct, explicitly labeled sections:
+   - **`grounding_eligible = 1` (`USER_EXPLICIT`, `USER_DERIVED`, `TOOL_VERIFIED`, `ASSISTANT_ACTION`, `LISP_ASSERTION`):** Rendered under the header:
+     `[Persistent Memory Context — Verified Grounded Memory]`
+   - **`grounding_eligible = 0` (`ASSISTANT_UTTERANCE`, `ASSISTANT_BELIEF`, `LLM_INFERRED_ASSERTION`):** Rendered under the explicit quarantine header:
+     `[Autobiographical Recollections — Unverified Past Speech: For conversational continuity only; do NOT cite as factual truth without independent tool or user verification]`
+   This structural partitioning ensures the neural core never mistakes its own prior unverified speech for grounded factual evidence while preserving seamless multi-session conversational recall.
 
 ---
 

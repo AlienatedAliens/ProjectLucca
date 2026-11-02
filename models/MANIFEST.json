@@ -49,63 +49,69 @@
       "size_bytes": 9786021216,
       "source_repo": "culturerevolt/gemma-4-12b-heretic-abliterated (iMatrix GGUF suite)",
       "source_filename": "gemma-4-12b-heretic-Q6_K.gguf",
-      "status": "PRIMARY — companion brain (D-BRAIN-05 v2, 2026-09-21); arch=gemma4; requires stock llama.cpp >= b11026 with --jinja; 16K context; flash attention; Q8_0 KV cache; resident VRAM clamp <= 12,800 MB; enable_thinking=false mandatory for companion tiers"
+      "status": "PRIMARY \u2014 companion brain (D-BRAIN-05 v2, 2026-09-21); arch=gemma4; requires stock llama.cpp >= b11026 with --jinja; 16K context; flash attention; Q8_0 KV cache; resident VRAM clamp <= 12,800 MB; enable_thinking=false mandatory for companion tiers"
     },
     "llm/gemma-4-26B-A4B-it-heretic.Q6_K.gguf": {
       "sha256": "4de6a5ba78c78c3ea093d10c19775faf2d553c6039d801c451368bd9a65f7590",
       "size_bytes": 22638395040,
       "source_repo": "culturerevolt/gemma-4-26B-A4B-it-heretic",
       "source_filename": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
-      "status": "TIER 0 / FLAGSHIP — reasoning & long-context brain (26B total, 4B active MoE); arch=gemma4; stock llama.cpp >= b11026 with --jinja; 64K-128K context; flash attention; Q8_0/Q4_0 asymmetric KV cache; native GBNF execution"
+      "status": "TIER 0 / FLAGSHIP \u2014 reasoning & long-context brain (26B total, 4B active MoE); arch=gemma4; stock llama.cpp >= b11026 with --jinja; 64K-128K context; flash attention; Q8_0/Q4_0 asymmetric KV cache; native GBNF execution"
     },
     "llm/Gemma426B/gemma-4-26B-A4B-it-heretic.Q6_K.gguf": {
       "sha256": "4de6a5ba78c78c3ea093d10c19775faf2d553c6039d801c451368bd9a65f7590",
       "size_bytes": 22638395040,
       "source_repo": "culturerevolt/gemma-4-26B-A4B-it-heretic",
       "source_filename": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
-      "status": "TIER 0 / FLAGSHIP — reasoning & long-context brain (26B total, 4B active MoE); arch=gemma4; stock llama.cpp >= b11026 with --jinja; 64K-128K context; flash attention; Q8_0/Q4_0 asymmetric KV cache; native GBNF execution"
+      "status": "TIER 0 / FLAGSHIP \u2014 reasoning & long-context brain (26B total, 4B active MoE); arch=gemma4; stock llama.cpp >= b11026 with --jinja; 64K-128K context; flash attention; Q8_0/Q4_0 asymmetric KV cache; native GBNF execution"
     },
     "llm/Ternary-Bonsai-2-27B-PQ2_0.gguf": {
       "sha256": "3907dc1658db1f78a9826bf8d5bcb8dc65db0d466388937af57f2294fae62ec1",
       "size_bytes": 7206168928,
       "source_repo": "prism-ml/Ternary-Bonsai-2-27B-gguf",
       "source_filename": "Ternary-Bonsai-2-27B-PQ2_0.gguf",
-      "status": "CANDIDATE — brain bake-off 2026-09-21; arch=qwen35; REQUIRES PrismML-Eng/llama.cpp fork (app/llama-server-prism, build 10709) — stock server rejects PQ2_0; not ratified (D-BRAIN-05 unchanged)"
+      "status": "CANDIDATE \u2014 brain bake-off 2026-09-21; arch=qwen35; REQUIRES PrismML-Eng/llama.cpp fork (app/llama-server-prism, build 10709) \u2014 stock server rejects PQ2_0; not ratified (D-BRAIN-05 unchanged)"
     },
     "llm/gemma-4-12b-heretic-mmproj-f16.gguf": {
       "sha256": "2e269f906eb15169ee9ce880ea649bd6d42d4964c21f8ede10d0d0efc738bcbb",
       "size_bytes": 175115840,
       "source_repo": "culturerevolt/gemma-4-12b-heretic-abliterated",
       "source_filename": "gemma-4-12b-heretic-mmproj-f16.gguf",
-      "status": "PRIMARY — multimodal vision adapter for Gemma-4 12B (D-BRAIN-05, WO-24)"
+      "status": "PRIMARY \u2014 multimodal vision adapter for Gemma-4 12B (D-BRAIN-05, WO-24)"
     },
     "llm/gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf": {
       "sha256": "ab52d2db11a2d33573b31dc704121f25e918373224182dbde9d6e02e1c34586e",
       "size_bytes": 6217260896,
       "source_repo": "llmfan46/gemma-4-E4B-it-uncensored-heretic-GGUF",
       "source_filename": "gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf",
-      "status": "EDGE TIER — efficiency companion tier (E4B)"
+      "status": "EDGE TIER \u2014 efficiency companion tier (E4B)"
     },
     "llm/Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf": {
       "sha256": "6e30dcc324485590e2023e82a350dd96a8dca58ee5c360902824b86802d0c143",
       "size_bytes": 3829836832,
       "source_repo": "culturerevolt/Gemma4-E2B-Heretic-Sinhala-GGUF",
       "source_filename": "Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf",
-      "status": "EDGE TIER — ultra-low latency edge tier (E2B)"
+      "status": "EDGE TIER \u2014 ultra-low latency edge tier (E2B)"
     },
     "llm/gemma-4-E4B-it-mmproj-BF16.gguf": {
       "sha256": "ffa64aebf7144bbadd5a1e143b77794d88e76a81cc0168d91de0770eb49e88e0",
       "size_bytes": 991552000,
       "source_repo": "culturerevolt/gemma-4-E4B-it-uncensored-heretic",
       "source_filename": "gemma-4-E4B-it-mmproj-BF16.gguf",
-      "status": "EDGE TIER — multimodal vision adapter for E4B"
+      "status": "EDGE TIER \u2014 multimodal vision adapter for E4B"
     },
     "llm/gemma-4-E2B-it-mmproj-f16.gguf": {
       "sha256": "140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa",
       "size_bytes": 985654080,
       "source_repo": "culturerevolt/Gemma4-E2B-Heretic-Sinhala",
       "source_filename": "gemma-4-E2B-it-mmproj-f16.gguf",
-      "status": "EDGE TIER — multimodal vision adapter for E2B"
+      "status": "EDGE TIER \u2014 multimodal vision adapter for E2B"
+    },
+    "llm/mmproj-gemma-4-26B-A4B-it-BF16.gguf": {
+      "sha256": "85f81a6a844d2f63c0fa64fa0899758429df791adb3886cdf09974d7429d0a3e",
+      "size_bytes": 1194827744,
+      "source_repo": "lmstudio-community/gemma-4-26B-A4B-it-GGUF",
+      "source_filename": "mmproj-gemma-4-26B-A4B-it-BF16.gguf"
     }
   }
 }

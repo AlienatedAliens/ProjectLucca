@@ -201,7 +201,7 @@ def test_voice_tab_ui_modes_and_presets(qapp: QApplication) -> None:
     tab._apply_supertonic3_preset()
     assert tab.rb_engine_supertonic.isChecked()
     spec = tab.get_selected_voice_spec()
-    assert "supertonic3" in spec and "asuka_tsundere" in spec and "auto" in spec
+    assert "supertonic3" in spec and "lucca_inventor" in spec and "auto" in spec
 
     # 4. Test KokoClone Preset
     tab._apply_kokoclone_preset()

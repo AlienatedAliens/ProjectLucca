@@ -22,6 +22,11 @@ except ImportError:
 import structlog
 from lucca.core.exceptions import SandboxPathError
 
+
+class SandboxSecurityError(SandboxPathError, PermissionError):
+    """Raised when a shortcut or path target escapes the workspace security boundary."""
+
+
 logger = structlog.get_logger(__name__)
 
 MAX_PATH_LEN: Final = 1024
@@ -215,8 +220,8 @@ class SafeFileTool:
                 local_path_str = local_path_str[1:]  # strip leading /
 
             resolved = Path(local_path_str)
-            if resolved.is_absolute() and resolved.exists() and resolved.is_file():
-                return resolved
+            if resolved.is_absolute():
+                return resolved.resolve()
             return None
         return None
 
@@ -236,12 +241,21 @@ class SafeFileTool:
         if target.suffix.lower() == ".url":
             resolved_from_url = self._resolve_url_shortcut(target)
             if resolved_from_url is not None:
+                resolved_target = Path(resolved_from_url).resolve()
+                if not resolved_target.is_relative_to(self.workspace_root.resolve()):
+                    raise SandboxSecurityError(
+                        "traversal",
+                        f"Shortcut target '{resolved_target}' escapes workspace boundary '{self.workspace_root.resolve()}'",
+                    )
+                if not resolved_target.exists() or not resolved_target.is_file():
+                    raise SandboxPathError("not_found", f"Shortcut target not found: {resolved_target}")
                 logger.debug(
                     "read_file_url_redirect",
                     shortcut=str(target),
-                    resolved=str(resolved_from_url),
+                    resolved=str(resolved_target),
                 )
-                target = resolved_from_url
+                target = resolved_target
+                resolved_from_url = resolved_target
 
         file_size = target.stat().st_size
 
@@ -611,10 +625,45 @@ class SafeFileTool:
         timeout: int = 60,
     ) -> tuple[dict[str, object], str]:
         """Runs pytest on test_path in the specified workspace directory."""
-        target_dir = self._resolve_path(cwd)
+        try:
+            target_dir = self._resolve_path(cwd)
+        except SandboxPathError as exc:
+            raise SandboxSecurityError(getattr(exc, "code", "traversal"), str(exc)) from exc
+        if not target_dir.resolve().is_relative_to(self.workspace_root.resolve()):
+            raise SandboxSecurityError(
+                "traversal", f"Working directory '{cwd}' escapes workspace boundary"
+            )
         cmd = [sys.executable, "-m", "pytest", "-v"]
-        if test_path.strip():
-            cmd.append(test_path.strip())
+        raw_test = test_path.strip()
+        if raw_test:
+            if raw_test.startswith("-"):
+                raise SandboxSecurityError(
+                    "invalid_chars", f"Flag injection forbidden in test_path: '{raw_test}'"
+                )
+            file_part, *node_parts = raw_test.split("::")
+            clean_file_part = file_part.strip().replace("\\", "/")
+            if clean_file_part not in ("", "."):
+                try:
+                    resolved_test = validate_rel_path(clean_file_part, target_dir)
+                except SandboxPathError as exc:
+                    raise SandboxSecurityError(getattr(exc, "code", "traversal"), str(exc)) from exc
+                if not resolved_test.is_relative_to(
+                    self.workspace_root.resolve()
+                ) or not resolved_test.is_relative_to(target_dir.resolve()):
+                    raise SandboxSecurityError(
+                        "traversal", f"Test path '{raw_test}' escapes workspace boundary"
+                    )
+                rel_test = resolved_test.relative_to(target_dir.resolve()).as_posix()
+            else:
+                rel_test = "."
+            for np in node_parts:
+                if not re.fullmatch(r"[A-Za-z0-9_.\[\]\-]+", np):
+                    raise SandboxSecurityError(
+                        "invalid_chars", f"Invalid pytest node selector: '{np}'"
+                    )
+            sanitized_arg = "::".join([rel_test, *node_parts]) if node_parts else rel_test
+            cmd.append("--")
+            cmd.append(sanitized_arg)
 
         t0 = time.perf_counter()
         try:

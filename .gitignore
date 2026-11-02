@@ -106,3 +106,7 @@ scratch*/
 
 PITCH_EMAIL.txt
 
+
+models/verifier_minilm/
+OpenRouter Chat*.json
+

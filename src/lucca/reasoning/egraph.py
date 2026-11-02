@@ -154,9 +154,15 @@ class EGraph:
         active_rules = rules if rules is not None else (STANDARD_REWRITE_RULES + SPATIAL_REWRITE_RULES)
         return equality_saturate(self, active_rules, iter_limit=iter_limit)
 
-    def extract(self, class_id: int) -> SchemeNode:
+    def extract(
+        self,
+        class_id: int,
+        cost_fn: Callable[[SchemeNode], float | int] | None = None,
+    ) -> SchemeNode:
         """Extracts the minimal cost canonical AST from the specified e-class."""
-        return extract_best(self, class_id)
+        return extract_best(self, class_id, cost_fn=cost_fn)
+
+    extract_best = extract
 
 
 
@@ -605,14 +611,55 @@ def equality_saturate(
     return iterations
 
 
+def _default_enode_head_cost(head: SchemeAtom, has_children: bool) -> float:
+    """Computes default operator/atom complexity cost for bottom-up E-Graph extraction."""
+    if not has_children:
+        return 1.0
+    op_str = head.name if isinstance(head, Symbol) else str(head)
+    if op_str in ("lambda", "let", "let*", "define", "defmacro"):
+        return 2.0
+    if op_str in ("/", "modulo", "map", "filter", "foldl", "foldr"):
+        return 1.5
+    return 1.0
+
+
+def _compute_custom_enode_cost(
+    head: SchemeAtom,
+    child_costs: list[float],
+    cost_fn: Callable[[SchemeNode], float | int] | None,
+) -> float:
+    has_children = bool(child_costs)
+    children_sum = sum(child_costs)
+    if cost_fn is None:
+        return _default_enode_head_cost(head, has_children) + children_sum
+
+    head_cost = _default_enode_head_cost(head, has_children)
+    try:
+        c_head = float(cost_fn(head))
+        head_cost = c_head
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("egraph_cost_fn_head_error: %s", exc)
+
+    if isinstance(head, Symbol):
+        try:
+            c_str = float(cost_fn(head.name))
+            if getattr(cost_fn, "__name__", "") != "ast_cost" and c_str != head_cost:
+                head_cost = c_str
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("egraph_cost_fn_symbol_error: %s", exc)
+
+    return head_cost + children_sum
+
+
 def extract_best(
     egraph: EGraph,
     class_id: int,
-    cost_fn: Callable[[SchemeNode], int] | None = None,
+    cost_fn: Callable[[SchemeNode], float | int] | None = None,
 ) -> SchemeNode:
     """
     Extracts the minimal cost canonical AST from the specified e-class using dynamic programming.
-    In case of equivalent representations, chooses the smallest and simplest expression.
+    In case of equivalent representations, chooses the smallest and simplest expression
+    according to `cost_fn` (or the default structural complexity cost function).
     """
     root_target = egraph.find(class_id)
     best_cost: dict[int, float] = {}
@@ -623,12 +670,12 @@ def extract_best(
         r = egraph.find(c.class_id)
         for head, children in c.nodes:
             if not children:
-                c_cost = 1.0
+                c_cost = _compute_custom_enode_cost(head, [], cost_fn)
                 if c_cost < best_cost.get(r, float("inf")):
                     best_cost[r] = c_cost
                     best_node[r] = (head, ())
 
-    # Iterative cost relaxation
+    # Iterative bottom-up dynamic programming relaxation until convergence
     max_iters = len(egraph._classes) * 2 + 10
     changed = True
     iterations = 0
@@ -639,7 +686,8 @@ def extract_best(
             r = egraph.find(c.class_id)
             for head, children in c.nodes:
                 if all(egraph.find(ch) in best_cost for ch in children):
-                    cost = 1.0 + sum(best_cost[egraph.find(ch)] for ch in children)
+                    ch_costs = [best_cost[egraph.find(ch)] for ch in children]
+                    cost = _compute_custom_enode_cost(head, ch_costs, cost_fn)
                     if cost < best_cost.get(r, float("inf")):
                         best_cost[r] = cost
                         best_node[r] = (head, tuple(egraph.find(ch) for ch in children))

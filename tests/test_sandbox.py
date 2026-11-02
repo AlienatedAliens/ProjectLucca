@@ -628,3 +628,29 @@ def test_search_web_execution_and_guard(workspace: Path) -> None:
     allowed, reason = guard.check_and_record("search_web")
     assert not allowed
     assert "Forbidden sequence" in reason
+
+
+def test_file_tool_url_traversal_and_pytest_injection_blocked(workspace: Path) -> None:
+    """WO-39 Milestone 1.3: Verifies .url file:// traversal and run_pytest flag injection are blocked."""
+    from lucca.sandbox.file_tool import SafeFileTool, SandboxSecurityError
+
+    tool = SafeFileTool(workspace_root=workspace)
+
+    # 1. Malicious .url shortcut pointing outside workspace_root
+    outside_target = workspace.parent / "secret_host_file.txt"
+    url_shortcut = workspace / "shortcut.url"
+    url_shortcut.write_text(
+        f"[InternetShortcut]\nURL=file:///{outside_target.as_posix().lstrip('/')}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SandboxSecurityError):
+        tool.read_file("shortcut.url")
+
+    # 2. Malicious pytest flag injection via test_path
+    with pytest.raises(SandboxSecurityError):
+        tool.run_pytest("-o=console_output_style=classic")
+
+    # 3. Malicious pytest cwd traversal outside workspace_root
+    with pytest.raises(SandboxSecurityError):
+        tool.run_pytest("tests/test_sample.py", cwd=str(workspace.parent))

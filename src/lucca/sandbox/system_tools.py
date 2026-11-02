@@ -6,6 +6,8 @@ Spec 01 §1, Spec 16 §3, ADR-005
 from __future__ import annotations
 
 import os
+import platform
+import shutil
 import subprocess
 import time
 from datetime import datetime
@@ -24,6 +26,17 @@ _SYS_METRICS_CACHE: dict[str, JsonValue] = {}
 _LAST_SYS_METRICS_QUERY = 0.0
 
 
+def _detect_cpu_name() -> str:
+    """Queries the actual host processor identifier without spoofing."""
+    proc = platform.processor().strip()
+    if proc:
+        return proc
+    env_proc = os.environ.get("PROCESSOR_IDENTIFIER", "").strip()
+    if env_proc:
+        return env_proc
+    return "UNKNOWN"
+
+
 def query_nvidia_gpu_metrics() -> dict[str, JsonValue]:
     """Queries real-time NVIDIA GPU VRAM metrics via nvidia-smi."""
     global _LAST_GPU_QUERY, _GPU_CACHE
@@ -33,7 +46,7 @@ def query_nvidia_gpu_metrics() -> dict[str, JsonValue]:
 
     try:
         cmd = [
-            "nvidia-smi",
+            shutil.which("nvidia-smi") or "nvidia-smi",
             "--query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu",
             "--format=csv,noheader,nounits",
         ]
@@ -65,13 +78,13 @@ def query_nvidia_gpu_metrics() -> dict[str, JsonValue]:
     # Fallback default if nvidia-smi unavailable
     _GPU_CACHE = {
         "available": False,
-        "name": "NVIDIA GPU",
-        "total_mb": 16384.0,
+        "name": "UNKNOWN",
+        "total_mb": 0.0,
         "used_mb": 0.0,
-        "free_mb": 16384.0,
-        "total_gb": 16.0,
+        "free_mb": 0.0,
+        "total_gb": 0.0,
         "used_gb": 0.0,
-        "free_gb": 16.0,
+        "free_gb": 0.0,
         "utilization_pct": 0.0,
     }
     _LAST_GPU_QUERY = now
@@ -133,10 +146,10 @@ def get_system_metrics() -> dict[str, JsonValue]:
     """
     Returns accurate real-time hardware telemetry across all 5 substrates:
     1. System RAM (Total, Used, Free, Percent, and Lucca process footprint)
-    2. CPU (Intel Core Ultra 9 275HX load, Lucca CPU share)
-    3. dGPU (NVIDIA RTX 5080 Laptop GPU VRAM)
-    4. NPU (Intel AI Boost status)
-    5. iGPU (Intel Graphics fallback status)
+    2. CPU (Detected host CPU load, Lucca CPU share)
+    3. dGPU (Detected NVIDIA GPU VRAM via nvidia-smi)
+    4. NPU (Telemetry status)
+    5. iGPU (Integrated graphics fallback status)
     """
     global _LAST_SYS_METRICS_QUERY, _SYS_METRICS_CACHE
     now = time.monotonic()
@@ -166,10 +179,15 @@ def get_system_metrics() -> dict[str, JsonValue]:
     free_ram_gb = round(vm.available / (1024.0**3), 1)
 
     cpu_pct = psutil.cpu_percent(interval=None)
-    cpu_count = psutil.cpu_count(logical=True) or 24
+    cpu_count = psutil.cpu_count(logical=True) or 0
+    cpu_name = _detect_cpu_name()
 
     gpu = query_nvidia_gpu_metrics()
     lucca_stack = get_lucca_process_footprint()
+
+    total_mb_val = float(gpu["total_mb"]) if isinstance(gpu["total_mb"], (int, float)) else 0.0
+    used_mb_val = float(gpu["used_mb"]) if isinstance(gpu["used_mb"], (int, float)) else 0.0
+    gpu_pct = round((used_mb_val / total_mb_val) * 100.0, 1) if total_mb_val > 0.0 else 0.0
 
     metrics: dict[str, JsonValue] = {
         **time_metadata,
@@ -182,7 +200,7 @@ def get_system_metrics() -> dict[str, JsonValue]:
             "lucca_used_mb": lucca_stack["rss_mb"],
         },
         "cpu": {
-            "name": "Intel Core Ultra 9 275HX",
+            "name": cpu_name,
             "logical_cores": cpu_count,
             "system_percent": cpu_pct,
             "lucca_percent": lucca_stack["cpu_percent"],
@@ -192,17 +210,17 @@ def get_system_metrics() -> dict[str, JsonValue]:
             "total_gb": gpu["total_gb"],
             "used_gb": gpu["used_gb"],
             "free_gb": gpu["free_gb"],
-            "percent": round((gpu["used_mb"] / max(1.0, gpu["total_mb"])) * 100.0, 1),
-            "role": "llama-server (CUDA Flash-Attention)",
+            "percent": gpu_pct,
+            "role": "llama-server (CUDA Flash-Attention)" if gpu["available"] else "UNAVAILABLE",
         },
         "npu": {
-            "name": "Intel(R) AI Boost",
-            "status": "Active (Whisper STT & Embeddings, 15W Low Power)",
-            "active": True,
+            "name": "UNKNOWN",
+            "status": "UNKNOWN",
+            "active": False,
         },
         "igpu": {
-            "name": "Intel(R) Graphics",
-            "status": "Standby (OpenVINO Fallback Target)",
+            "name": "UNKNOWN",
+            "status": "UNKNOWN",
             "active": False,
         },
     }

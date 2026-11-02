@@ -47,4 +47,23 @@ This glossary provides plain-English definitions for specialized technical conce
 - **Two-Cadence Inner Life:**  
   Background autonomous cognitive maintenance running at two separate time scales:
   1. **IdlePulse (Short Cadence, 60s):** Fast semantic consistency checks, contradiction resolution, and goal updates on CPU/NPU during user silence.
-  2. **DreamRetrospective (Long Cadence, Nightly/Rollup):** Deep offline rule mining from SQLite history, AST macro expansion, and shadow replay into `QUARANTINE`.
+  2. **DreamRetrospective (Long Cadence, Nightly/Rollup):** Deep offline rule mining from SQLite history and `Orchestrator.impasse_backlog`, AST macro expansion (`DreamCoderMiner` + `EGraph`), and shadow replay into `QUARANTINE`.
+
+---
+
+### 4. Work Order 39 (`WO-39`) Cognitive Organs & Verification Terms
+
+- **OpenNARS / Beta$(w^+, w^-)$ Evidential Unification (`cascade.py` & `skills.py`):**  
+  Continuous evidential weighting paired with Belnap's four-valued bilattice ($\mathcal{FOUR}$), tracking positive ($w^+$) and negative ($w^-$) evidence counts to compute empirical truth frequency $f = \frac{w^+}{w^+ + w^-}$ and bounded confidence $c = \frac{w^+ + w^-}{w^+ + w^- + k}$ ($k = 1.0$).
+- **Study 1 Autobiographical Memory Partitioning (`_render_partitioned_memories`):**  
+  Prompt-level structural separation in `prompt_builder.py` that renders `grounding_eligible = 1` records under `[Persistent Memory Context — Verified Grounded Memory]` and isolates `grounding_eligible = 0` past assistant speech under `[Autobiographical Recollections — Unverified Past Speech: For conversational continuity only; do NOT cite as factual truth without independent tool or user verification]`.
+- **Bicameral Myelination & `impasse_backlog` (`orchestrator.py`):**  
+  The process by which multi-turn System 2 deliberative reasoning traces (`cognitive_outcome_sink`) and unresolved synthesis impasses (`impasse_backlog`) are consolidated during sleep-phase `DreamRetrospective` into verified System 1 skills and macros.
+- **Case-Based Reasoning 4 Rs (`EpisodicCodeCache`):**  
+  The four-stage episodic program synthesis cycle implemented in `episodic_code_cache.py`: `retrieve_precedent`, `adapt_and_reuse`, `revise_solution`, and `retain_episode`.
+- **ACT-R Skill Activation (`skills.py`):**  
+  Cognitive skill ranking combining power-law base-level decay over historical usage timestamps ($B_i = \ln \sum t_j^{-d}$) with contextual spreading activation from the active goal and query tokens, paired with `_check_ast_symbol_grounding` and `verify_in_shadow_sandbox`.
+- **Metamorphic Spatial Invariance (`check_metamorphic_invariance`):**  
+  Formal equivariance check in `spatial_scheme.py` verifying that candidate spatial transformations commute with $D_4$ dihedral rotations/reflections and color permutations over parameterized `spatial_dsl.py` primitives (`rotate_grid`, `reflect_grid`, `translate_grid`, `crop_grid`, `overlay_grid`).
+- **$k$-Order Recursive Theory of Mind (`ContainerWorld.query_recursive`):**  
+  Nested perspective simulation in `container_world.py` (`_project_world_for_observer` + `query_recursive`) that evaluates arbitrary observer chains $\langle a_1, a_2, \dots, a_k \rangle$ based on physical co-presence and communication history.

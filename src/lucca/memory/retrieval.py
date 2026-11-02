@@ -16,6 +16,7 @@ from typing import Final, Literal, cast
 import sqlite_vec
 import structlog
 
+from lucca.core.active_goals import ActiveGoalManager
 from lucca.core.schemas import (
     DecisionRecord,
     MemoryHit,
@@ -308,6 +309,118 @@ def extract_temporal_constraints(
         cleaned = _clean_temporal_query(stripped)
         return cleaned or clean, (t_start, t_end), "during", "created_at"
 
+    # Last night
+    if re.search(r"\blast night\b", clean, re.IGNORECASE):
+        t_start = start_of_today - 6 * 3600.0  # yesterday 18:00
+        t_end = min(current_time, start_of_today + 6 * 3600.0)  # today 06:00
+        stripped = re.sub(r"\blast night\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # This morning
+    if re.search(r"\bthis morning\b", clean, re.IGNORECASE):
+        t_start = start_of_today + 5 * 3600.0  # today 05:00
+        t_end = min(current_time, start_of_today + 12 * 3600.0)  # today 12:00
+        if t_start >= t_end:
+            t_start = start_of_today
+        stripped = re.sub(r"\bthis morning\b", "", clean, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Number words lookup for relative date parsing
+    _NUM_WORDS: dict[str, int] = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+
+    # N hours ago
+    m_hours = re.search(
+        r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+hours?\s+ago\b",
+        clean,
+        re.IGNORECASE,
+    )
+    if m_hours:
+        raw_n = m_hours.group(1).lower()
+        n = int(raw_n) if raw_n.isdigit() else _NUM_WORDS.get(raw_n, 1)
+        t_start = current_time - n * 3600.0
+        t_end = current_time - (n - 1) * 3600.0 if n > 1 else current_time
+        stripped = re.sub(
+            r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+hours?\s+ago\b",
+            "",
+            clean,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # N days ago
+    m_days = re.search(
+        r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+days?\s+ago\b",
+        clean,
+        re.IGNORECASE,
+    )
+    if m_days:
+        raw_n = m_days.group(1).lower()
+        n = int(raw_n) if raw_n.isdigit() else _NUM_WORDS.get(raw_n, 1)
+        t_start = start_of_today - n * 86400.0
+        t_end = start_of_today - (n - 1) * 86400.0
+        stripped = re.sub(
+            r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+days?\s+ago\b",
+            "",
+            clean,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # N weeks ago
+    m_weeks = re.search(
+        r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+weeks?\s+ago\b",
+        clean,
+        re.IGNORECASE,
+    )
+    if m_weeks:
+        raw_n = m_weeks.group(1).lower()
+        n = int(raw_n) if raw_n.isdigit() else _NUM_WORDS.get(raw_n, 1)
+        t_start = current_time - n * 7 * 86400.0
+        t_end = current_time - (n - 1) * 7 * 86400.0 if n > 1 else current_time
+        stripped = re.sub(
+            r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+weeks?\s+ago\b",
+            "",
+            clean,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # N months ago
+    m_months = re.search(
+        r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+months?\s+ago\b",
+        clean,
+        re.IGNORECASE,
+    )
+    if m_months:
+        raw_n = m_months.group(1).lower()
+        n = int(raw_n) if raw_n.isdigit() else _NUM_WORDS.get(raw_n, 1)
+        t_start = current_time - n * 30 * 86400.0
+        t_end = current_time - (n - 1) * 30 * 86400.0 if n > 1 else current_time
+        stripped = re.sub(
+            r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+months?\s+ago\b",
+            "",
+            clean,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
     # Today / earlier today
     if re.search(r"\b(?:earlier today|today)\b", clean, re.IGNORECASE):
         t_start = start_of_today
@@ -403,11 +516,13 @@ class HybridRetriever:
         embedder: EmbeddingPort | None = None,
         master_key: bytes | None = None,
         raise_on_tamper: bool = False,
+        active_goals: ActiveGoalManager | None = None,
     ) -> None:
         self.db = db
         self.embedder = embedder
         self.master_key = master_key  # None disables HMAC verification (dev/test only)
         self.raise_on_tamper = raise_on_tamper
+        self.active_goals = active_goals if active_goals is not None else ActiveGoalManager(db=db)
         self.quarantined_memory_ids: list[int] = []
         self.user_integrity_warnings: list[str] = []
         self._load_persisted_quarantine_ids()
@@ -522,7 +637,14 @@ class HybridRetriever:
                 except sqlite3.Error as e:
                     logger.warning("vec_search_failed", error=str(e))
 
-            # 2. Sparse search (BM25 via FTS5)
+            # 2. Sparse search (BM25 via FTS5) + ActiveGoal biasing (Milestone 36.2)
+            active_goal_list = self.active_goals.list_active_goals() if self.active_goals is not None else []
+            goal_terms: dict[str, int] = {}
+            for g in active_goal_list[:3]:
+                for tok in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} {g.description}".lower()):
+                    if tok not in ("the", "and", "for", "with", "that", "this", "from", "into"):
+                        goal_terms[tok] = max(goal_terms.get(tok, 0), max(1, g.priority))
+
             sparse_ranks: dict[int, int] = {}
             if mode in ("hybrid", "bm25"):
                 expanded_query = f"{q.query_text} {subtokens(q.query_text)}"
@@ -540,6 +662,26 @@ class HybridRetriever:
                         sparse_ranks[int(row[0])] = rank
                 except sqlite3.Error as e:
                     logger.warning("fts_search_failed", error=str(e))
+
+                # Lightweight active-goal FTS candidate expansion when active goals exist
+                if goal_terms:
+                    goal_fts_str = build_fts_query(" ".join(goal_terms.keys()))
+                    if goal_fts_str:
+                        try:
+                            cur.execute(
+                                "SELECT rowid, bm25(fts_memories) as score FROM fts_memories "
+                                "WHERE fts_memories MATCH ? "
+                                "ORDER BY score "
+                                "LIMIT ?",
+                                (goal_fts_str, MAX_CANDIDATES // 2),
+                            )
+                            base_offset = len(sparse_ranks) + 5
+                            for g_rank, row in enumerate(cur.fetchall(), start=1):
+                                mid_g = int(row[0])
+                                if mid_g not in sparse_ranks:
+                                    sparse_ranks[mid_g] = base_offset + g_rank
+                        except sqlite3.Error as g_err:
+                            logger.debug("goal_fts_expansion_skipped", error=str(g_err))
 
             # 3. Reciprocal Rank Fusion (k=60)
             all_candidate_ids = set(dense_ranks.keys()) | set(sparse_ranks.keys())
@@ -740,11 +882,19 @@ class HybridRetriever:
                 except (KeyError, IndexError, ValueError):
                     pass
 
+                content_str = str(r["content"])
+                hit_score = rrf_scores[mid]
+                if goal_terms:
+                    c_lower = content_str.lower()
+                    goal_overlap = sum(prio for tok, prio in goal_terms.items() if tok in c_lower)
+                    if goal_overlap > 0:
+                        hit_score += 0.005 * goal_overlap
+
                 hit = MemoryHit(
                     memory_id=mid,
-                    content=str(r["content"]),
+                    content=content_str,
                     provenance=Provenance(r["provenance"]),
-                    score=rrf_scores[mid],
+                    score=hit_score,
                     source_turn_id=r["trace_id"] or r["session_id"],
                     kind=kind,
                     created_at=created_at,

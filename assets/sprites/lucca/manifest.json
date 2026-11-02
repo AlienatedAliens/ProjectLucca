@@ -1,7 +1,7 @@
 {
-  "character": "Lucca Ashtear",
-  "source": "Chrono Trigger (SNES)",
-  "scale": 3,
+  "character": "Lucca",
+  "source": "Project Lucca Original Inventor Companion",
+  "scale": 1,
   "states": {
     "idle": {
       "frames": [
@@ -26,6 +26,7 @@
     "speaking": {
       "frames": [
         "speaking_0.png",
+        "speaking_half.png",
         "speaking_1.png"
       ],
       "lipsync": true

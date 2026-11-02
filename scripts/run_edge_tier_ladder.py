@@ -377,8 +377,8 @@ def main() -> None:
         input_val = str(ex["input"]).strip()
         expected = str(ex["output"]).strip()
         raw_prompt = f"Code:\n```python\n{code_body}\n```\nInput:\n{input_val}\nOutput ONLY the return value."
-        prompt_builder = lambda _: (
-            f"Write a script that executes:\n```python\n{code_body}\nres = f({input_val})\nprint(repr(res))\n```"
+        prompt_builder = lambda _, _cb=code_body, _iv=input_val: (
+            f"Write a script that executes:\n```python\n{_cb}\nres = f({_iv})\nprint(repr(res))\n```"
         )
         res = evaluate_single_problem(
             domain="CodeExecution",

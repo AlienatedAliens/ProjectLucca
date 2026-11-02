@@ -1,6 +1,7 @@
 import json
 import logging
 import math
+import time
 from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,7 @@ class CompanionSprite(QWidget):
 
     def set_mouth_aperture(self, dbfs: float) -> None:
         """Scales dBFS (-60 to -10) to mouth aperture (0.0 to 1.0)."""
+        self._last_rms_time = time.monotonic()
         clamped = max(-60.0, min(-10.0, dbfs))
         norm = (clamped + 60.0) / 50.0  # 0.0 to 1.0
         self.mouth_aperture = float(math.pow(norm, 1.5))
@@ -111,9 +113,20 @@ class CompanionSprite(QWidget):
 
     def _on_tick(self) -> None:
         self.phase += self.theme.pulse_speed
-        if self.state != "speaking":
+        if self.state == "speaking":
+            # If no RMS received recently while speaking, flap with natural cadence
+            dt = time.monotonic() - getattr(self, "_last_rms_time", 0.0)
+            if dt > 0.2:
+                cycle = int(self.phase * 5.0) % 4
+                if cycle == 0:
+                    self.mouth_aperture = 0.0
+                elif cycle in (1, 3):
+                    self.mouth_aperture = 0.35
+                else:
+                    self.mouth_aperture = 0.8
+        else:
             # Decay mouth aperture smoothly to closed
-            self.mouth_aperture = max(0.0, self.mouth_aperture - 0.1)
+            self.mouth_aperture = max(0.0, self.mouth_aperture - 0.15)
         self.update()
 
     def paintEvent(self, event: object) -> None:
@@ -125,23 +138,21 @@ class CompanionSprite(QWidget):
 
         # Check if we have pixel-art sprite frames loaded
         if self.pixmaps:
-            # 1. Subtle ambient state aura behind character
-            glow_color = QColor(self.theme.glow_color)
-            glow_color.setAlpha(40 + int(math.sin(self.phase) * 20.0))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(QBrush(glow_color))
-            glow_r = (self.sprite_size / 2.0) - 10.0 + (math.sin(self.phase) * 3.0)
-            painter.drawEllipse(
-                QRectF(center_x - glow_r, center_y - glow_r, glow_r * 2, glow_r * 2)
-            )
+            # 1. No dark circular disc - character floats cleanly and transparently!
 
             # 2. Select sprite frame based on state & audio
             pix: QPixmap | None = None
-            if self.state == "speaking" and "speaking" in self.pixmaps:
+            if (self.state == "speaking" or self.mouth_aperture > 0.08) and "speaking" in self.pixmaps:
                 frames = self.pixmaps["speaking"]
-                # frame 0: mouth closed, frame 1: mouth open
-                if self.mouth_aperture > 0.08 and len(frames) > 1:
-                    pix = frames[1]
+                if len(frames) >= 3:
+                    if self.mouth_aperture > 0.4:
+                        pix = frames[2]  # speaking_1.png (wide open)
+                    elif self.mouth_aperture > 0.08:
+                        pix = frames[1]  # speaking_half.png (half open)
+                    else:
+                        pix = frames[0]  # speaking_0.png (closed)
+                elif len(frames) == 2:
+                    pix = frames[1] if self.mouth_aperture > 0.08 else frames[0]
                 else:
                     pix = frames[0]
             elif self.state == "thinking" and "thinking" in self.pixmaps:
@@ -162,7 +173,7 @@ class CompanionSprite(QWidget):
                     scaled_w,
                     scaled_h,
                     Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.FastTransformation,
+                    Qt.TransformationMode.SmoothTransformation,
                 )
                 bob = int(math.sin(self.phase) * 2.0) if self.state == "idle" else 0
                 draw_x = int(center_x - (scaled.width() / 2.0))

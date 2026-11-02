@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 08 — Desktop UI, Diagnostics & Visual Pipeline Debugger
 
 **Subsystem:** `src/lucca/ui/` & `ui/pipeline_debugger/`  
-**Version:** 1.3.0  
+**Version:** 1.47.0 (`WO-39`)  
 **Architectural Tier:** User Presentation, Telemetry HUD & Visual Debugging  
 **Hardware Placement:** Intel(R) Graphics iGPU (Windows DWM Compositor), Port 8765 Web Server  
 
@@ -85,8 +85,9 @@ flowchart LR
 8. **Tank 8 (Execution Feedback):** Highlights Turn-1 exception captures and Turn-2 autonomous self-correction payloads.
 9. **Tank 9 (Output Supervision):** Visualizes streaming DFA policy verification, citation checking, and WASAPI audio buffer delivery.
 
-### 3.2 Dynamic Trace Horizon Ribbon (WO-28 Phase 3)
+### 3.2 Dynamic Trace Horizon Ribbon (WO-28 Phase 3) & Live Telemetry Honesty (`WO-39`)
 The top ribbon dynamically adapts to the active operational mode:
 - **Batch Benchmark Matrices ($N=17, 30, 400, 500$):** Renders indexed problem tiles colored by execution status (Green: Pass, Red: Fail, Yellow: Turn-2 Feedback Rescue, Blue: Active).
 - **Interactive Companion Sessions (`Turn #1`, `Turn #2`):** Renders sequential conversation turns without empty placeholder gaps, dynamically appending turns as new speech arrives.
 - **REST Endpoints:** `/api/traces` (full index list), `/api/trace/<id>` (granular JSON state for any problem or turn), and `/api/live` (real-time active pipeline state).
+- **Elimination of Hardware Spoofing Strings (`system_tools.py` & `pipeline_tracer.py` in `WO-39`):** All hardcoded workstation spoofing strings (such as fallback `"MSI Vector 16 HX AI"`, `"Intel Core Ultra 9 275HX"`, or `"NVIDIA GeForce RTX 5080 Laptop GPU"` literals when telemetry probes fail) were removed from `src/lucca/sandbox/system_tools.py` and `src/lucca/core/pipeline_tracer.py`. Hardware inspection and pipeline trace headers report strictly live OS/hardware telemetry (`platform`, `psutil`, `nvidia-smi`, OpenVINO device queries) or explicit `"unknown"` / `"unavailable"` markers when sensors are unreachable.

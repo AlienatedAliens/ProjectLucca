@@ -94,6 +94,8 @@ class EventName(StrEnum):
     UI_CONFIG_UPDATE = "ui.config_update"
     UI_TALK_PRESS = "ui.talk_press"
     UI_TALK_RELEASE = "ui.talk_release"
+    UI_ATTACH_IMAGE = "ui.attach_image"
+    UI_CLEAR_IMAGE = "ui.clear_image"
     UI_QUIT = "ui.quit"
 
     # System events
@@ -103,6 +105,7 @@ class EventName(StrEnum):
     SYS_RESTART = "sys.restart"
     SYS_SHUTDOWN = "sys.shutdown"
     SYS_SELFTEST_RESULT = "sys.selftest_result"
+    SCHEDULE_FIRED = "schedule.fired"
 
 
 VALID_EVENT_PREFIXES: frozenset[str] = frozenset({
@@ -122,6 +125,7 @@ VALID_EVENT_PREFIXES: frozenset[str] = frozenset({
     "sbx",
     "ui",
     "sys",
+    "schedule",
     "test",
 })
 

@@ -114,7 +114,7 @@ def test_harmonic_saturation() -> None:
 
 
 def test_pitch_shift_playback_rate() -> None:
-    """Verifies pitch shift calculates the expected target sampling rate."""
+    """Verifies pitch shift calculates the expected target sampling rate and resamples audio."""
     sr = 24000
     sine = _generate_sine(440.0, sr=sr)
     out_samples, new_sr = apply_pitch_shift(sine, sr=sr, semitones=3.0)
@@ -122,6 +122,8 @@ def test_pitch_shift_playback_rate() -> None:
     expected_sr = int(round(24000 * (2.0 ** (3.0 / 12.0))))
     assert new_sr == expected_sr
     assert len(out_samples) == len(sine)
+    assert out_samples.dtype == np.float32
+    assert not np.allclose(out_samples, sine)
 
 
 def test_anime_voice_dsp_pipeline() -> None:

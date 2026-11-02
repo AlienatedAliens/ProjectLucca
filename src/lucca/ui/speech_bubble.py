@@ -1,7 +1,7 @@
 """
 Project Lucca — Desktop Companion Speech Bubble
 Spec 01 §1, Spec 16 §3, ADR-005
-Chrono Trigger Classic Dialogue Box with 5-Line Bounded Paginated Engine
+MapleStory Inspired Mocha Dialogue Box with 5-Line Bounded Paginated Engine
 """
 
 from __future__ import annotations
@@ -101,12 +101,21 @@ class SpeechBubble(QWidget):
 
         # Header row: status / source indicator, live clock, latency badge, and close button
         header_layout = QHBoxLayout()
-        self.header_label = QLabel(self)
-        header_font = QFont("Segoe UI", 10, QFont.Weight.Bold)
+        self.header_label = QLabel("LUCCA", self)
+        header_font = QFont("Segoe UI", 9, QFont.Weight.Bold)
         self.header_label.setFont(header_font)
-        self.header_label.setStyleSheet(
-            "color: #ffd700; background: transparent; letter-spacing: 1px;"
-        )
+        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.header_label.setStyleSheet("""
+            QLabel {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #42c8e0, stop:1 #2aa8c4);
+                border: 1.5px solid #1a7a90;
+                border-radius: 6px;
+                padding: 1px 12px 2px 12px;
+                color: #ffffff;
+                font-weight: bold;
+                letter-spacing: 0.8px;
+            }
+        """)
         header_layout.addWidget(self.header_label)
 
         header_layout.addStretch()
@@ -156,14 +165,22 @@ class SpeechBubble(QWidget):
 
         # Body: Subtitle / Speech text (bounded to exactly 5 lines height)
         self.body_label = QLabel(self)
-        self.body_font = QFont("Segoe UI", 11)
+        self.body_font = QFont("Segoe UI", 10)
         self.body_label.setFont(self.body_font)
         self.body_label.setWordWrap(True)
         self.body_label.setFixedHeight(106)
         self.body_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.body_label.setStyleSheet(
-            "color: #ffffff; background: transparent; line-height: 1.35; font-weight: 500;"
-        )
+        self.body_label.setStyleSheet("""
+            QLabel {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3c2e1c, stop:0.6 #443620, stop:1 #4a3a24);
+                border: 1.5px solid #2a1e10;
+                border-radius: 5px;
+                padding: 6px 10px;
+                color: #d4c8b0;
+                line-height: 1.35;
+                font-weight: 500;
+            }
+        """)
         main_layout.addWidget(self.body_label)
 
         # Footer row with pager navigation controls (◀ [ 1 / 3 ] ▶) and status cursor
@@ -179,22 +196,21 @@ class SpeechBubble(QWidget):
         self.btn_prev.setToolTip("Previous page")
         self.btn_prev.setStyleSheet("""
             QPushButton {
-                background: #101c54;
-                color: #ffd700;
-                border: 1px solid #3b82f6;
-                border-radius: 3px;
-                font-size: 10px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4eb8a0, stop:0.5 #3a9a84, stop:1 #2e8872);
+                color: #ffffff;
+                border: 1px solid #1e5e4e;
+                border-radius: 4px;
+                font-size: 11px;
                 font-weight: bold;
-                padding: 0px;
+                padding: 1px 4px;
             }
             QPushButton:hover {
-                background: #1e3a8a;
-                border-color: #ffd700;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5fc9b1, stop:0.5 #4bab95, stop:1 #3f9983);
             }
             QPushButton:disabled {
-                background: #081036;
-                color: #475569;
-                border-color: #1e293b;
+                background: #2a3a30;
+                color: #607065;
+                border-color: #1a2520;
             }
         """)
         self.btn_prev.clicked.connect(self._prev_page)
@@ -202,7 +218,7 @@ class SpeechBubble(QWidget):
 
         self.lbl_page = QLabel("[ 1 / 1 ]", self.footer_widget)
         self.lbl_page.setFont(QFont("Consolas", 9, QFont.Weight.Bold))
-        self.lbl_page.setStyleSheet("color: #ffd700; background: transparent;")
+        self.lbl_page.setStyleSheet("color: #42c8e0; background: transparent;")
         footer_layout.addWidget(self.lbl_page)
 
         self.btn_next = QPushButton("▶", self.footer_widget)
@@ -210,22 +226,21 @@ class SpeechBubble(QWidget):
         self.btn_next.setToolTip("Next page")
         self.btn_next.setStyleSheet("""
             QPushButton {
-                background: #101c54;
-                color: #ffd700;
-                border: 1px solid #3b82f6;
-                border-radius: 3px;
-                font-size: 10px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4eb8a0, stop:0.5 #3a9a84, stop:1 #2e8872);
+                color: #ffffff;
+                border: 1px solid #1e5e4e;
+                border-radius: 4px;
+                font-size: 11px;
                 font-weight: bold;
-                padding: 0px;
+                padding: 1px 4px;
             }
             QPushButton:hover {
-                background: #1e3a8a;
-                border-color: #ffd700;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5fc9b1, stop:0.5 #4bab95, stop:1 #3f9983);
             }
             QPushButton:disabled {
-                background: #081036;
-                color: #475569;
-                border-color: #1e293b;
+                background: #2a3a30;
+                color: #607065;
+                border-color: #1a2520;
             }
         """)
         self.btn_next.clicked.connect(self._next_page)
@@ -481,13 +496,14 @@ class SpeechBubble(QWidget):
         sprite_geometry: QRect | QRectF | None,
         screen_geometry: QRect | QRectF | None = None,
     ) -> None:
-        """Reposition the bubble relative to the companion sprite."""
+        """Reposition the bubble directly anchored underneath the companion sprite with dynamic side-swapping."""
         if sprite_geometry is None:
             return
 
         sx = int(sprite_geometry.x())
         sy = int(sprite_geometry.y())
         sw = int(sprite_geometry.width())
+        sh = int(sprite_geometry.height())
 
         bw = self.width()
         bh = self.height()
@@ -497,24 +513,31 @@ class SpeechBubble(QWidget):
         screen_top = int(screen_geometry.top()) if screen_geometry else 0
         screen_bottom = int(screen_geometry.bottom()) if screen_geometry else 1080
 
-        # Place to the right of sprite if there is room on screen
-        target_x = sx + sw + 12
-        self.tail_direction = "left"
-
-        if target_x + bw > screen_right:
-            # Flip to left side of sprite
-            target_x = sx - bw - 12
+        # Dynamic side swapping:
+        # If avatar is near left screen edge, flip box to extend to the RIGHT of avatar
+        margin = 30
+        if sx < (bw + margin):
+            target_x = sx + sw
+            self.tail_direction = "left"
+        else:
+            # Default (center / right side): box extends to the LEFT of avatar
+            target_x = sx - bw
             self.tail_direction = "right"
 
-        if target_x < screen_left:
+        # Clamp horizontally inside screen
+        if target_x + bw > screen_right - 10:
+            target_x = screen_right - bw - 10
+        if target_x < screen_left + 10:
             target_x = screen_left + 10
 
-        # Align vertically with upper third of sprite
-        target_y = max(screen_top + 10, sy - 15)
+        # Anchor directly underneath Lucca's bust (so her head and shoulders rise above top of box)
+        target_y = sy + sh - 45
 
-        # Prevent bubble from protruding off the bottom of the screen
-        if target_y + bh > screen_bottom:
+        # Clamp vertically so dialogue box never protrudes off the bottom or top of screen
+        if target_y + bh > screen_bottom - 10:
             target_y = max(screen_top + 10, screen_bottom - bh - 10)
+        if target_y < screen_top + 10:
+            target_y = screen_top + 10
 
         self.move(target_x, target_y)
         self.update()
@@ -555,25 +578,33 @@ class SpeechBubble(QWidget):
         painter.setBrush(QBrush(shadow_color))
         painter.drawPath(combined.translated(3, 3))
 
-        # Authentic Chrono Trigger Royal Blue gradient fill
+        # MapleStory Mocha gradient fill
         grad = QLinearGradient(0, 0, 0, h)
-        grad.setColorAt(0.0, QColor("#1c2e88"))
-        grad.setColorAt(0.45, QColor("#101c54"))
-        grad.setColorAt(1.0, QColor("#081036"))
+        grad.setColorAt(0.0, QColor("#6e5a42"))
+        grad.setColorAt(0.4, QColor("#5c4830"))
+        grad.setColorAt(1.0, QColor("#4e3c24"))
 
         painter.setBrush(QBrush(grad))
         # Outer dark border
-        painter.setPen(QPen(QColor("#000000"), 2.0))
+        painter.setPen(QPen(QColor("#2a1c0e"), 2.0))
         painter.drawPath(combined)
 
-        # Inner double-beveled silver-white highlight frame
-        inner_path = QPainterPath()
-        inner_path.addRoundedRect(QRectF(6, 6, w - 12, h - 14), 5.0, 5.0)
+        # Outer highlight frame
+        outer_hl = QPainterPath()
+        outer_hl.addRoundedRect(QRectF(5, 5, w - 10, h - 12), 7.0, 7.0)
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.setPen(QPen(QColor("#f0f4ff"), 1.8))
-        painter.drawPath(inner_path)
+        painter.setPen(QPen(QColor(180, 170, 150, 70), 1.2))
+        painter.drawPath(outer_hl)
 
-        # Subtle gold accent line on top border
-        painter.setPen(QPen(QColor("#ffd700"), 1.0))
-        painter.drawLine(10, 7, int(w - 10), 7)
+        # Sunken dark amber inner text area panel
+        inner_panel = QPainterPath()
+        inner_panel.addRoundedRect(QRectF(10, 26, w - 20, h - 68), 6.0, 6.0)
+        panel_grad = QLinearGradient(0, 26, 0, h - 42)
+        panel_grad.setColorAt(0.0, QColor("#3c2e1c"))
+        panel_grad.setColorAt(0.6, QColor("#443620"))
+        panel_grad.setColorAt(1.0, QColor("#4a3a24"))
+
+        painter.setBrush(QBrush(panel_grad))
+        painter.setPen(QPen(QColor("#2a1e10"), 1.5))
+        painter.drawPath(inner_panel)
         painter.end()

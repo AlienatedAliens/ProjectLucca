@@ -240,7 +240,8 @@ def detect_ungrounded_action_claims(
     clauses = re.split(r"[.!?;\n]+", narration_low)
 
     for raw_clause in clauses:
-        clause = raw_clause.strip()
+        clause = re.sub(r"[*`~]", "", raw_clause.strip())
+        clause = re.sub(r"^\s*(?:#+|[\-\+])\s+", "", clause).strip()
         if not clause:
             continue
 
@@ -259,7 +260,7 @@ def detect_ungrounded_action_claims(
 
         # 0b. Structured GBNF action-claim tags (SPIKE-A): [ACTION: <verb> <target>] or <action_claim ...>
         tag_match = re.search(
-            r"(?:\[(?:action|action_claim)\s*:\s*([a-z_]+)\s+([^\]]+)\]|"
+            r"(?:\[(?:action|action_claim)\s*:\s*([a-z_]+)\s+([^\]]+?)(?:\]|$)|"
             r"<action_claim(?:\s+verb=[\"']([a-z_]+)[\"']\s+target=[\"']([^\"']+)[\"']|"
             r">\s*([a-z_]+)\s+([^<]+)</action_claim>))",
             clause,
@@ -332,10 +333,13 @@ def detect_ungrounded_action_claims(
         # e.g., "your note is saved", "file written", "launching Notepad now", "calc launched"
         if not detected_family:
             if re.search(
-                r"\b(?:notes?|files?|documents?|summary|data|settings|records?|code|scripts?|outputs?)\b.*?\b(?:is|was|been)?\s*(?:saved|written|created|updated)\b",
+                r"\b(?:notes?|files?|documents?|summary|data|settings|records?|code|scripts?|outputs?)"
+                r"\s+(?:is|was|are|were|has\s+been|have\s+been)?\s*"
+                r"(?:now\s+|successfully\s+|already\s+)?(?:saved|written|created|updated)\b",
                 clause,
             ) or re.search(
-                r"\b(?:saved|written|created)\b.*?\b(?:notes?|files?|disk|workspace|folders?)\b",
+                r"\b(?:saved|written|created)\s+(?:(?:to|in|into|on)\s+)?(?:(?:the|your|my|a|an)\s+)?(?:notes?\s+)?"
+                r"(?:notes?|files?|disk|workspace|folders?)\b",
                 clause,
             ):
                 detected_family = "save"
@@ -372,7 +376,8 @@ def detect_ungrounded_action_claims(
                 r"\b(?:files?|data|logs?|temp|cache)\b.*?\b(?:deleted|removed)\b",
                 clause,
             ) or re.search(
-                r"\bdeleted\b.*?\b(?:files?|workspace|directory|archive|folders?)\b",
+                r"\bdeleted\s+(?:the\s+|your\s+|all\s+|those\s+|these\s+|from\s+)"
+                r"(?:files?|workspace|directory|archive|folders?)\b",
                 clause,
             ):
                 detected_family = "delete"
@@ -404,6 +409,67 @@ def detect_ungrounded_action_claims(
             ):
                 detected_family = "save"
                 matched_verb = "write_file"
+            elif re.search(
+                r"\b(?:action\s+initiated|status\s*:\s*(?:sending|deleting|rebooting|restarting|"
+                r"executing|running|deploying|uploading|downloading|terminating|"
+                r"wiping|purging|formatting))\b",
+                clause,
+            ):
+                detected_family = "fetch" if "sending" in clause else "run"
+                matched_verb = "send" if "sending" in clause else "execute"
+            elif re.search(
+                r"\b(?:i(?:'ve|\s+have|'m|\s+am)?\s+(?:currently\s+|now\s+|just\s+|already\s+)?)?"
+                r"(?:initiating|initiated)\s+(?:the\s+|a\s+|an\s+)?(?:immediate\s+)?(?:request\s+to\s+)?"
+                r"(send|transmission|order|ordering|reboot|restart|delete|deletion|remove|removal|"
+                r"execute|execution|run|deploy|deployment|update|backup|migration|archive|wipe|"
+                r"purge|format|kill|terminate|termination)\b",
+                clause,
+            ):
+                detected_family = (
+                    "fetch"
+                    if re.search(r"\b(?:send|transmission|order|ordering)\b", clause)
+                    else "run"
+                )
+                matched_verb = "initiated"
+            elif re.search(
+                r"\b(?:executing\s+termination\s+sequence|"
+                r"(?:process|service|container|daemon)\s+[a-z0-9_.-]+\s+has\s+been\s+"
+                r"(?:forcefully\s+)?terminated)\b",
+                clause,
+            ):
+                detected_family = "run"
+                matched_verb = "terminate"
+            elif (
+                verifier is not None
+                and not NEGATION_GUARD_PATTERN.search(clause)
+                and not re.search(
+                    r"\b(?:if\s+you|when\s+you|you\s+can|you\s+should|you\s+must|would\s+you|"
+                    r"please\s+confirm|will\s+\w+|going\s+to|how\s+to|"
+                    r"cannot|can't|do\s+not|don't)\b",
+                    clause,
+                )
+                and re.search(
+                    r"\b(?:i(?:'ve|\s+have)\s+(?:just\s+|already\s+|successfully\s+)?"
+                    r"(?:dispatched|transmitted|submitted|completed|performed|"
+                    r"applied|triggered|erased|destroyed)\b|"
+                    r"has\s+been\s+(?:forcefully\s+|successfully\s+)?"
+                    r"(?:dispatched|transmitted|submitted|erased|destroyed|terminated|purged|wiped)\b)",
+                    clause,
+                )
+            ):
+                ok_r = [r for r in receipts if r.ok]
+                prem_nli = format_tool_receipts_for_nli(ok_r)
+                try:
+                    v_cand = verifier.check_consistency(premise=prem_nli, hypothesis=clause)
+                    if (
+                        not v_cand.degraded
+                        and v_cand.label == VerifierLabel.CONTRADICTION
+                        and v_cand.confidence >= 0.60
+                    ):
+                        detected_family = "run"
+                        matched_verb = "nli_action_claim"
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("coherence_verifier_candidate_eval_failed", error=str(exc))
 
         if detected_family and matched_verb:
             # Negation guard for passive/gerund detections: skip if the clause
@@ -511,6 +577,21 @@ ACTION_VERB_PATTERN: Final[re.Pattern[str]] = re.compile(
 )
 
 
+COUPLED_PROMISE_ACTION_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:"
+    r"(?:i(?:'ll| will| am going to|'m going to| am doing|'m doing)|let me|one second while i)"
+    r"\s+(?:(?:go ahead and|just|quickly|immediately|right away|first|also|gladly|happily|try to)\s+)*"
+    r"(?:save|saved|commit|launch|open|start|write|create|delete|remove|"
+    r"fetch|search|look up|read|run|execute|note|remember|store|fix|get that|"
+    r"track down|scour|comb through|sift through|check around|dive into|jump into|"
+    r"switch over|dive back)\b"
+    r"|"
+    r"(?:working on (?:that|it) now|doing it right now|switching over|jumping back|diving into|diving back)\b"
+    r")",
+    re.IGNORECASE,
+)
+
+
 def detect_promised_action_claims(narration: str) -> list[str]:
     """Pure function detecting future-tense action promises (WO-9 A4, F4).
 
@@ -525,14 +606,15 @@ def detect_promised_action_claims(narration: str) -> list[str]:
         return []
     promises: list[str] = []
     for raw_clause in re.split(r"[.!?;\n]+", narration.lower()):
-        clause = raw_clause.strip()
+        clause = re.sub(r"[*`~]", "", raw_clause.strip())
+        clause = re.sub(r"^\s*(?:#+|[\-\+])\s+", "", clause).strip()
         if not clause:
             continue
         if any(idiom in clause for idiom in EXCLUDED_IDIOMS):
             continue
         if NEGATION_GUARD_PATTERN.search(clause):
             continue
-        if PROMISE_PATTERN.search(clause) and ACTION_VERB_PATTERN.search(clause):
+        if COUPLED_PROMISE_ACTION_PATTERN.search(clause):
             promises.append(clause)
     return promises
 

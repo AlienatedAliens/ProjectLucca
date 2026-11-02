@@ -279,7 +279,7 @@ class Supervisor:
                 return
             if status == "loading":
                 print(
-                    f"\r  Loading 8GB model tensors into RTX 5080 VRAM... ({elapsed:.0f}s)",
+                    f"\r  Loading 8GB model tensors into dGPU VRAM... ({elapsed:.0f}s)",
                     end="",
                     flush=True,
                 )

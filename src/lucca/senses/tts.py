@@ -205,11 +205,12 @@ class TTSWorker:
             config=AnimeDSPConfig(pitch_semitones=dsp_pitch, enabled=dsp_en)
         )
 
-        if not model_path.exists() or not voices_path.exists():
-            # Fallback to dev/mock if models missing
-            self.engine: kokoro_onnx.Kokoro | None = None
-        else:
-            self.engine = kokoro_onnx.Kokoro(str(model_path), str(voices_path))
+        self.engine: kokoro_onnx.Kokoro | None = None
+        if model_path.exists() and voices_path.exists():
+            try:
+                self.engine = kokoro_onnx.Kokoro(str(model_path), str(voices_path))
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("tts_worker_kokoro_init_failed", error=str(exc))
 
     def set_voice(self, voice: str) -> None:
         self.active_voice = voice
@@ -221,6 +222,25 @@ class TTSWorker:
         """Dynamically configures the post-processing anime vocal DSP chain (D-AUD-16)."""
         self.dsp_chain.config.pitch_semitones = pitch_semitones
         self.dsp_chain.config.enabled = enabled
+
+    def modulate_epistemic_prosody(self, epistemic_status: str) -> None:
+        """Modulates active speed and DSP pitch based on epistemic status (Milestone 36.4)."""
+        base_speed = getattr(self.config.tts, "speed", 1.05)
+        base_pitch = 0.0
+        try:
+            from lucca.brain.prompt_builder import get_persona_config
+
+            p_cfg = get_persona_config()
+            if p_cfg.speed is not None:
+                base_speed = p_cfg.speed
+            base_pitch = float(getattr(p_cfg, "dsp_pitch_semitones", 0.0))
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("modulate_epistemic_prosody_cfg_failed", error=str(exc))
+        from lucca.speech.tts import modulate_epistemic_prosody
+
+        s, p = modulate_epistemic_prosody(base_speed, base_pitch, epistemic_status)
+        self.set_speed(s)
+        self.set_dsp_config(pitch_semitones=p, enabled=True)
 
     def resolve_voice_style(self, voice_spec: str) -> str | npt.NDArray[np.float32]:
         """Resolves a voice string to either a native voice ID, cloned vector, or cached blended array."""
@@ -261,8 +281,16 @@ class TTSWorker:
             return TTSDonePayload(chunk_id=chunk_id, samples=0, elapsed_ms=0.0, device=self.device)
 
         clean_text = text.strip()
-        if not clean_text or self.engine is None:
+        if not clean_text:
             return TTSDonePayload(chunk_id=chunk_id, samples=0, elapsed_ms=0.0, device=self.device)
+        if self.engine is None:
+            m_path = Path(r"C:\ProjectLucca\models\tts\kokoro-v1.0.onnx")
+            v_path = Path(r"C:\ProjectLucca\models\tts\voices-v1.0.bin")
+            if m_path.exists() and v_path.exists():
+                try:
+                    self.engine = kokoro_onnx.Kokoro(str(m_path), str(v_path))
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("kokoro_engine_init_failed", error=str(exc))
 
         raw_spec = voice or self.active_voice
         v_spec = VOICE_ALIASES.get(raw_spec, raw_spec)

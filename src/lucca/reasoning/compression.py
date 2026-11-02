@@ -144,7 +144,52 @@ class DreamCoderMacroMiner:
     ) -> None:
         self.lifecycle = rule_lifecycle
         self.falsifier = falsifier or ScratchpadFalsifier()
-        self.smt_verifier = smt_verifier or SMTVerifier(allow_pure_reasoning=True)
+        self.smt_verifier = smt_verifier or SMTVerifier(allow_pure_reasoning=False)
+
+    def _verify_macro_equivalence_z3(
+        self,
+        macro_def: MacroDefinition,
+        instances: list[SchemeNode],
+        rewritten_instances: list[SchemeNode],
+        expander: MacroExpander,
+    ) -> tuple[bool, str | None]:
+        """
+        Beta-reduces rewritten macro calls into underlying primitives and formally verifies
+        via Z3 that the beta-expanded expression is equivalent to the original expression.
+        """
+        import z3
+        from lucca.reasoning.smt_verifier import StateContext
+
+        for orig_inst, rew_inst in zip(instances, rewritten_instances, strict=False):
+            try:
+                expanded_inst = expander.expand(rew_inst)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("compression_beta_reduce_error", error=str(exc))
+                return False, f"Beta-reduction failed during equivalence check: {exc}"
+
+            if to_canonical(expanded_inst) != to_canonical(orig_inst):
+                return (
+                    False,
+                    f"Beta-reduced macro {to_canonical(expanded_inst)} != original {to_canonical(orig_inst)}",
+                )
+
+            try:
+                ctx = StateContext()
+                z3_orig = self.smt_verifier._translate_expr(orig_inst, ctx)
+                z3_exp = self.smt_verifier._translate_expr(expanded_inst, ctx)
+                solver = z3.Solver()
+                solver.set("timeout", 500)
+                solver.add(z3_orig != z3_exp)
+                if solver.check() == z3.sat:
+                    return False, "Z3 found counterexample where beta-reduced macro != original expression"
+            except ValueError:
+                # Non-SMT domain primitive expression already verified via structural canonical equality above
+                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("compression_z3_equivalence_error", error=str(exc))
+                return False, f"Z3 equivalence verification error: {exc}"
+
+        return True, None
 
     def mine_candidate(
         self,
@@ -308,21 +353,46 @@ class DreamCoderMacroMiner:
                 rejection_reason=reason,
             )
 
-        # 5. D-REAS-07 Z3 SMT Formal Verification
-        # Construct candidate rule embedding the macro form with valid state predicate
+        # 5. D-REAS-07 Z3 SMT Formal Verification (Beta-reduction & Equivalence Check)
+        equiv_ok, equiv_err = self._verify_macro_equivalence_z3(
+            macro_def=macro_def,
+            instances=instances,
+            rewritten_instances=rewritten_instances,
+            expander=expander,
+        )
+        if not equiv_ok:
+            reason = f"SMT equivalence verification failed: {equiv_err}"
+            logger.warning("macro_equivalence_failed", macro=macro_name, reason=reason)
+            return MinedMacroCandidate(
+                name=macro_name,
+                params=params,
+                s_expression=defmacro_sexpr,
+                body_canonical=body_canon,
+                depth=depth,
+                step_count=step_count,
+                compression_savings=savings,
+                falsification_passed=True,
+                smt_verified=False,
+                rejection_reason=reason,
+            )
+
+        # Construct candidate rule embedding the beta-reduced macro form with valid state predicate
         is_num = _is_arithmetic_tree(template)
         has_state_pred = any(
             op in STATE_PREDICATES for op in _collect_symbols(template)
         )
         if has_state_pred:
-            sample_call_args = " ".join(f'"{p}_val"' for p in params)
-            when_clause = f"({macro_name} {sample_call_args})"
+            sample_call_node: SchemeNode = [Symbol(macro_name), *[f"{p}_val" for p in params]]
+            expanded_when_node = expander.expand(sample_call_node)
+            when_clause = to_canonical(expanded_when_node)
         elif is_num:
-            sample_call_args = " ".join(str(i + 1) for i in range(len(params)))
-            when_clause = f'(and (intent= "reasoning") (> ({macro_name} {sample_call_args}) 0))'
+            sample_call_node = [Symbol(macro_name), *[i + 1 for i in range(len(params))]]
+            expanded_num_node = expander.expand(sample_call_node)
+            when_clause = f'(and (intent= "reasoning") (> {to_canonical(expanded_num_node)} 0))'
         else:
-            sample_call_args = " ".join(f'"{p}_val"' for p in params)
-            when_clause = f'(and (intent= "reasoning") ({macro_name} {sample_call_args}))'
+            sample_call_node = [Symbol(macro_name), *[f"{p}_val" for p in params]]
+            expanded_other_node = expander.expand(sample_call_node)
+            when_clause = f'(and (intent= "reasoning") {to_canonical(expanded_other_node)})'
 
         clean_rule_name = macro_name.replace("_", "-")
         wrapped_rule_source = (

@@ -355,10 +355,10 @@ class KittenTextNormalizer:
     def _normalize_units(self, text: str) -> str:
         out = text
         for pattern, singular, plural in self.UNITS:
-            def repl(match: re.Match) -> str:
+            def repl(match: re.Match, _s: str = singular, _p: str = plural) -> str:
                 val = match.group(1)
                 num_f = float(val)
-                unit_str = singular if num_f == 1.0 else plural
+                unit_str = _s if num_f == 1.0 else _p
                 if "." in val:
                     whole, dec = val.split(".", 1)
                     w_words = num_to_words(int(whole))

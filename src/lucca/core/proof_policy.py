@@ -205,8 +205,6 @@ _LOW_HAZARD_KEYWORDS: Final[frozenset[str]] = frozenset(
         "birth",
         "preference",
         "favorite",
-        "metal gear",
-        "mgs",
         "author",
         "book",
         "novel",
@@ -232,7 +230,6 @@ _HIGH_HAZARD_PHRASES: Final[tuple[str, ...]] = (
 )
 
 _LOW_HAZARD_PHRASES: Final[tuple[str, ...]] = (
-    "metal gear",
     "pop culture",
     "video game",
     "video games",

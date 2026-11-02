@@ -150,7 +150,7 @@ class ManualTab(QWidget):
             <p>Every resource meter in Project Lucca reflects actual physical host hardware:</p>
             <ul>
                 <li><strong>dGPU (RTX 5080 Laptop GPU - 16.0 GB VRAM):</strong> llama-server.exe with Flash-Attention.</li>
-                <li><strong>NPU (Intel AI Boost):</strong> Whisper speech recognition and vector embeddings via OpenVINO.</li>
+                <li><strong>NPU (Intel AI Boost):</strong> 384-D vector embeddings via OpenVINO.</li>
                 <li><strong>CPU (Intel Core Ultra 9 275HX - 24 Cores):</strong> Orchestrator, ZeroMQ IPC bus, and Kokoro TTS.</li>
                 <li><strong>RAM (16.0 GB Host Physical):</strong> Tracks Lucca 4-process RSS footprint vs total host utilization.</li>
                 <li><strong>Telemetry Logs:</strong> Rolling JSONL logs stored in <code>logs/resource_sessions/</code>.</li>

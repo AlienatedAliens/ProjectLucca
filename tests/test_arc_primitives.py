@@ -20,16 +20,14 @@ from lucca.reasoning.arc_primitives import (
     rotate_90,
 )
 from lucca.reasoning.spatial_dsl import (
-    boolean_combine,
-    extract_quadrant_macrogrid,
-    extrapolate_ray,
-    fill_framed_enclosures,
+    connected_components,
+    crop_grid,
     find_separator_lines,
-    kronecker_fractal_tiling,
-    palette_swap_by_legend,
-    quadrant_tile,
+    overlay_grid,
+    reflect_grid,
+    rotate_grid,
     split_by_separators,
-    tile_and_reflect,
+    translate_grid,
 )
 
 
@@ -188,82 +186,56 @@ def test_find_and_split_separators():
     assert sub[1][0] == [[3, 4, 0]]
 
 
-def test_boolean_combine():
-    sg1 = [[0, 1], [0, 0]]
-    sg2 = [[0, 0], [2, 0]]
-    comb = boolean_combine([sg1, sg2], op="nor", output_color=8)
-    assert comb == [[8, 0], [0, 8]]
-
-
-def test_tile_and_reflect():
-    grid = [[1, 2]]
-    tiled = tile_and_reflect(grid, repeat_r=2, repeat_c=2, alternate_flip_h=True)
-    assert tiled == [
-        [1, 2, 1, 2],
-        [2, 1, 2, 1],
-    ]
-
-
-def test_quadrant_tile():
-    grid = [[1, 2], [3, 4]]
-    res = quadrant_tile(grid)
-    # top-left is 180 deg rot, bottom-right is original
-    assert len(res) == 4
-    assert len(res[0]) == 4
-    assert res[2][2:] == [1, 2]
-    assert res[3][2:] == [3, 4]
-
-
-def test_extract_quadrant_macrogrid():
+def test_connected_components_dsl():
     grid = [
-        [0, 1, 2, 0, 3],
-        [2, 2, 2, 2, 2],
-        [0, 4, 2, 0, 5],
+        [1, 1, 0],
+        [0, 0, 2],
     ]
-    macro = extract_quadrant_macrogrid(grid)
-    assert len(macro) == 2
-    assert len(macro[0]) == 2
-    assert macro == [[1, 3], [4, 5]]
+    comps = connected_components(grid, background=0, connectivity=4)
+    assert len(comps) == 2
+    assert {c.color for c in comps} == {1, 2}
 
 
-def test_fill_framed_enclosures():
+def test_rotate_and_reflect_grid():
     grid = [
-        [2, 2, 2, 2, 2],
-        [2, 0, 0, 0, 2],
-        [2, 0, 0, 0, 2],
-        [2, 0, 0, 0, 2],
-        [2, 2, 2, 2, 2],
+        [1, 2],
+        [3, 4],
     ]
-    res = fill_framed_enclosures(grid, frame_color=2, size_to_color={5: 8})
-    assert res[1][1] == 8
-    assert res[2][2] == 8
+    assert rotate_grid(grid, k=1) == [
+        [3, 1],
+        [4, 2],
+    ]
+    assert reflect_grid(grid, axis="horizontal") == [
+        [2, 1],
+        [4, 3],
+    ]
+    assert reflect_grid(grid, axis="vertical") == [
+        [3, 4],
+        [1, 2],
+    ]
 
 
-def test_kronecker_fractal_tiling():
-    grid = [[1, 0], [0, 1]]
-    res = kronecker_fractal_tiling(grid, block_mode="complement")
-    assert len(res) == 4
-    assert len(res[0]) == 4
-
-
-def test_palette_swap_by_legend():
+def test_translate_crop_and_overlay_grid():
     grid = [
         [1, 2, 0],
         [3, 4, 0],
-        [0, 1, 3],
+        [0, 0, 0],
     ]
-    res = palette_swap_by_legend(grid, legend_h=2, legend_w=2)
-    assert res[2] == [0, 2, 4]
-
-
-def test_extrapolate_ray():
-    grid = [
-        [1, 0, 0, 0],
-        [0, 1, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
+    translated = translate_grid(grid, dr=1, dc=1, fill_value=0)
+    assert translated == [
+        [0, 0, 0],
+        [0, 1, 2],
+        [0, 3, 4],
     ]
-    res = extrapolate_ray(grid, output_color=3)
-    assert res[2][2] == 3
-    assert res[3][3] == 3
+    cropped = crop_grid(translated, 1, 1, 2, 2)
+    assert cropped == [
+        [1, 2],
+        [3, 4],
+    ]
+    overlaid = overlay_grid(grid, [[9, 0], [0, 9]], top_r=0, left_c=0, transparent_color=0)
+    assert overlaid == [
+        [9, 2, 0],
+        [3, 9, 0],
+        [0, 0, 0],
+    ]
 

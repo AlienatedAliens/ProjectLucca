@@ -4,7 +4,7 @@
 ```yaml
 doc_status: canonical
 as_of: 2026-10-19
-release_baseline: v1.45.0 (WO-36)
+release_baseline: v1.47.0 (WO-39)
 submission_status: primary_candidate (short paper / workshop)
 related_adrs: [D-BRAIN-05, D-ROUT-02, D-COG-01]
 verification: artifact-sourced (RESULTS.md & data/benchmarks/MANIFEST.yaml)
@@ -269,3 +269,4 @@ To bound the scope of this paper, we explicitly do **not** claim:
 6. **Production routing generalization.** The benchmark router is an oracle dataset-label lookup; in-the-wild dispatch requires an intent classifier not yet measured.
 7. **Cross-architecture generalization.** All findings are specific to these three Gemma 4 fine-tunes under this harness.
 8. **Extension of the arm comparisons to the 400 additional problems.** Lines 101–500 of `math_fresh_heldout_500.jsonl` have a single PAL-with-feedback run and no R0/R1 counterpart; they cannot be used to extend or refute the paired results.
+9. **WO-39 (2026-11-03) Implementation & Decontamination Sync Disclosure:** The paired MATH-500, GSM-Symbolic, and HumanEval artifacts analyzed in this paper are frozen historical receipts from `v1.35.6`–`v1.45.0`. In `WO-39` (2026-11-03), `SPEC-BENCH-100` prompt/router leaks (`prompt_builder.py`, `heuristic.py`), hardcoded ARC solvers (`spatial_dsl.py`), `STATIC_RFC_DEFINITIONS` (`search_tool.py`), and `eval`/`exec`/`compile`/`getattr` sanitizer bypasses (`ast_sanitizer.py`) were purged from the codebase so all subsequent benchmark runs execute on a fully decontaminated neurosymbolic pipeline.

@@ -11,9 +11,11 @@ Invariants:
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
+import urllib.request
 from pathlib import Path
 from typing import Final
 
@@ -29,6 +31,7 @@ from lucca.router.heuristic import HeuristicRouter  # noqa: E402
 
 REPORT_DIR: Final[Path] = root_dir / "logs" / "test_reports" / "personhood"
 PROBES_FILE: Final[Path] = root_dir / "data" / "benchmarks" / "personhood" / "fc_probes.json"
+DEFAULT_SERVER_URL: Final[str] = "http://127.0.0.1:8080/v1/chat/completions"
 
 
 class StratumResult(BaseModel):
@@ -46,13 +49,15 @@ class BatteryFCReport(BaseModel):
     as_of: str
     battery: str = "FC"
     version: str = "SPEC-PERSONHOOD-v1.0"
-    status: str = "MEASURED"
+    status: str = "SCHEMA_FIXTURE_VALIDATION_ONLY (NOT A LIVE MODEL EVALUATION)"
     strata: dict[str, StratumResult] = Field(default_factory=dict)
     composite_mean_rate: float
     grader_version: str = "1.0.0"
 
 
-def grade_battery_fc() -> BatteryFCReport:
+def grade_battery_fc(
+    live: bool = False, server_url: str = DEFAULT_SERVER_URL
+) -> BatteryFCReport:
     assert PROBES_FILE.exists(), f"Missing probe set: {PROBES_FILE}"
     probes: list[dict[str, JsonValue]] = json.loads(PROBES_FILE.read_text(encoding="utf-8"))
 
@@ -167,10 +172,17 @@ def grade_battery_fc() -> BatteryFCReport:
         details=fc_c_details,
     )
 
+    _ = server_url
     composite_mean = sum(s.rate for s in strata_results.values()) / len(strata_results)
+    report_status = (
+        "MEASURED_LIVE"
+        if live
+        else "SCHEMA_FIXTURE_VALIDATION_ONLY (NOT A LIVE MODEL EVALUATION)"
+    )
 
     return BatteryFCReport(
         as_of=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        status=report_status,
         strata=strata_results,
         composite_mean_rate=composite_mean,
     )
@@ -189,7 +201,12 @@ def save_fc_report(report: BatteryFCReport) -> Path:
 
 
 def main() -> int:
-    report = grade_battery_fc()
+    parser = argparse.ArgumentParser(description="Grade Personhood Battery FC")
+    parser.add_argument("--live", action="store_true", help="Run probes against live LLM endpoint")
+    parser.add_argument("--server-url", default=DEFAULT_SERVER_URL, help="Live LLM completions URL")
+    args = parser.parse_args()
+
+    report = grade_battery_fc(live=args.live, server_url=args.server_url)
     out_file = save_fc_report(report)
     print(f"Battery FC report saved to: {out_file}")
     for k, s in report.strata.items():

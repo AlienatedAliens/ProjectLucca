@@ -1,8 +1,8 @@
 # Subsystem Reference Manual: 05 — Cryptographic Memory & Bi-Temporal Epistemology
 
 **Subsystem:** `src/lucca/memory/`  
-**Version:** 1.3.0  
-**Architectural Tier:** Autobiographical Memory & Provenance Governance  
+**Version:** 1.47.0 (`WO-39`)  
+**Architectural Tier:** Autobiographical Memory, Provenance Governance, CBR & Transactional Staging  
 **Hardware Placement:** SQLite WAL (`data/memory.sqlite`), Intel AI Boost NPU (`sqlite-vec`), Host CPU  
 
 ---
@@ -63,10 +63,17 @@ Unverified language model generation is prohibited from creating persistent memo
 | **`ASSISTANT_BELIEF`**| `AssistantUtteranceSigner` | Explicit belief statement; requires evidence pointer. | **0** |
 | **`LLM_NARRATION`** | **None** | **Strictly rejected.** Freeform hallucinated facts cannot be committed. | **N/A** |
 
-### 2.1 The Epistemic Grounding Invariant (`D-MEM-04`)
+### 2.1 The Epistemic Grounding Invariant (`D-MEM-04`) & Study 1 Autobiographical Partitioning (`WO-39`)
 To prevent the model's past speech from becoming "ground truth" that corrupts future inferences:
 - **`memory_eligible = 1`:** Allows Lucca to remember what she previously said for conversational retrospection (*"What did you tell me earlier about Python?"*).
 - **`grounding_eligible = 0`:** Excludes past speech from Belnap evidential truth calculations. Her past words can never be used as evidence to prove a factual claim.
+- **Study 1 Prompt Partitioning (`_render_partitioned_memories`):** In `prompt_builder.py`, retrieved memories are rendered in two separate, explicitly labeled blocks: `[Persistent Memory Context — Verified Grounded Memory]` for `grounding_eligible = 1` and `[Autobiographical Recollections — Unverified Past Speech: For conversational continuity only; do NOT cite as factual truth without independent tool or user verification]` for `grounding_eligible = 0`.
+
+### 2.2 Fail-Closed `ProvenanceGate` Corroboration (`src/lucca/memory/gate.py` — `WO-39` Organ 1)
+In `WO-39`, `ProvenanceGate` closed three epistemic corroboration loopholes:
+1. **Fail-Closed Null-Store Guard:** `is_content_corroborated(None, ...)` now unconditionally returns `False` (fail-closed) rather than permitting uncorroborated claims when a memory store reference is absent.
+2. **Elimination of Attributed-Speech Regex Bypass:** Removed the `"<source> asserts <claim>"` regex bypass in `verify_rule_premises`, preventing unverified third-party or LLM-fabricated attributions from self-authenticating without a signed receipt or grounded memory envelope.
+3. **Multi-Modal Premise Corroboration (`verify_rule_premises`):** Rule and abductive premises are verified strictly against signed `grounding_eligible = 1` envelopes via exact `(s, p, o)` triple matching, semantic vector similarity, and OpenVINO NLI entailment.
 
 ---
 
@@ -160,3 +167,16 @@ For each candidate memory record:
 3. **Master Key Persistence:** Master keys are generated via `secrets.token_bytes(32)` and persisted to `data/keys/master.key` with `0600` permissions.
 4. **Key Migration Tool:** Supported via `lucca-admin memory migrate-keys` to re-sign records when rotating keys without data loss.
 
+---
+
+## 7. Organ 2 Case-Based Reasoning (4 Rs) & Organ 6 Transactional Git Staging (`WO-39`)
+
+### 7.1 `EpisodicCodeCache` Case-Based Reasoning 4 Rs (`src/lucca/memory/episodic_code_cache.py`)
+In `WO-39`, `EpisodicCodeCache` implements the full classical **Aamodt & Plaza (1994) 4-R Case-Based Reasoning (CBR) cycle** rather than simple exact-match lookup:
+1. **`retrieve_precedent`:** Retrieves top-ranked structural precedents by hybridizing problem token similarity and AST structural shape.
+2. **`adapt_and_reuse`:** Performs deterministic AST variable/constant binding adaptation to map the retrieved precedent's parameters onto the new problem specification.
+3. **`revise_solution`:** Repairs adapted code when sandbox verification produces a counterexample or traceback.
+4. **`retain_episode`:** Commits verified, generalized solution episodes back into the persistent episodic cache with provenance metadata.
+
+### 7.2 `GitStagingDAG` Preflight AST Syntax Validation (`src/lucca/memory/git_dag.py`)
+Before committing any staged `.py` file mutation in a `StagingTransaction`, `git_dag.py` runs an unconditional `ast.parse` preflight syntax check in addition to custom verification hooks, triggering an automatic atomic rollback across the entire transaction DAG if any staged Python file contains a `SyntaxError`.

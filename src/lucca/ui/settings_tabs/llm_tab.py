@@ -564,6 +564,7 @@ class LLMTab(QWidget):
         if data and data.get("paired_mmproj"):
             mmproj_rel = f"llm/{data['paired_mmproj'].name}"
 
+        mode = str(self.combo_mode.currentData())
         mode_val: Literal["audio", "transcript", "vision"] = (
             "vision" if mode == "vision" else ("audio" if mode == "audio" else "transcript")
         )

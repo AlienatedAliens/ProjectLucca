@@ -16,6 +16,7 @@ import numpy as np
 import structlog
 
 from lucca.core.config import get_config
+from lucca.core.constitutional import compute_constitutional_hash
 from lucca.core.schemas import (
     DecisionRecord,
     ExecutionTier,
@@ -73,7 +74,7 @@ SEMANTIC_INTENT_ANCHORS: Final[dict[str, tuple[str, ...]]] = {
         "how does photosynthesis work",
         "what causes this biological phenomenon",
         "describe the physics of",
-        "how does benzene resist electrophilic addition",
+        "how does a molecular ring resist chemical addition",
         "what is the crystal structure and lattice parameters of",
         "explain the spectroscopic properties and absorption bands of",
     ),
@@ -121,11 +122,11 @@ SEMANTIC_INTENT_ANCHORS: Final[dict[str, tuple[str, ...]]] = {
         "fix the regression in the repository",
     ),
     "spatial_grid": (
-        "transform this arc grid",
+        "transform this 2d visual grid",
         "rotate the 2D grid matrix 90 degrees",
         "flood fill the enclosed shape with color",
         "apply gravity drop to the falling objects",
-        "solve this concept arc visual reasoning task",
+        "solve this 2d matrix pattern transformation task",
         "align the shapes to the left bounding box",
         "find the connected components and sort by size",
         "detect repeating patterns in the 2d array",
@@ -221,7 +222,6 @@ CONTAINER_WORLD_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"while\s+[a-z]+\s+(?:is|was)\s+(?:away|out|asleep)|"
     r"without\s+[a-z]+\s+(?:seeing|knowing|noticing)|"
     r"[a-z]+\s+(?:thinks?|believes?)\s+(?:remain|are\s+in|is\s+in)|"
-    r"container_world|containerworld|"
     r"find\s+the\s+[a-z]+\s+given"
     r")\b",
     re.IGNORECASE,
@@ -229,14 +229,13 @@ CONTAINER_WORLD_PATTERN: Final[re.Pattern[str]] = re.compile(
 
 COMBINATORIAL_SMT_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"\b("
-    r"zebra\s+puzzle|"
-    r"einstein'?s\s+puzzle|"
     r"satisfy\s+(?:the\s+following\s+)?constraints|"
     r"truth[\s-]teller\s+and\s+liar|"
     r"knights?\s+and\s+knaves?|"
     r"five\s+houses|"
     r"which\s+house|"
-    r"logic\s+grid|"
+    r"who\s+owns\s+the|"
+    r"logic\s+(?:grid|puzzle)|"
     r"z3|"
     r"smt\s+solver"
     r")\b",
@@ -260,12 +259,11 @@ MATHEMATICAL_SYMPY_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"solve (?:the )?(?:system|equation|inequality|integral|derivative|polynomial)|"
     r"calculate|compute|find the sum|find the product|find the value of|"
     r"how many (?:ways|integers|solutions|combinations|permutations)|"
-    r"find the number of (?:ways|integers|solutions|residents|items)|"
+    r"find the number of (?:ways|integers|solutions|elements|items|[a-z]+(?:\s+of\s+[a-z]+)?\s+who)|"
     r"roots? of|eigenvalues?|determinant|"
     r"prime factors?|gcd|lcm|modulo|"
-    r"aime|competition math|olympiad math|"
+    r"combinatorics|number theory|"
     r"evaluate (?:the )?(?:expression|limit|series)|"
-    r"sum of the squares|unique mode|median of the list|"
     r"sympy"
     r")\b|"
     r"(?:\\boxed|\\log_|\\sum_|\\int_|\\frac|\\binom|\b[0-9]+\s*[\+\-\*\/\^]\s*[0-9]+)",
@@ -274,10 +272,8 @@ MATHEMATICAL_SYMPY_PATTERN: Final[re.Pattern[str]] = re.compile(
 
 SPATIAL_GRID_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"\b("
-    r"arc(?:-agi)?|"
-    r"concept\s*arc|"
     r"grid\s*transformation|"
-    r"flood\s*fill|"
+    r"flood\s*fill(?:ing)?|"
     r"gravity\s*drop|"
     r"rotate\s*(?:the\s*)?grid|"
     r"crop\s*grid|"
@@ -292,7 +288,6 @@ SPATIAL_GRID_PATTERN: Final[re.Pattern[str]] = re.compile(
 
 CODE_REPAIR_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"\b("
-    r"swe[-_]?bench|"
     r"pytest|"
     r"apply\s*patch|"
     r"run\s*pytest|"
@@ -354,6 +349,7 @@ class HeuristicRouter:
         confidence_threshold: float = 0.60,
         embed_worker: EmbeddingPort | None = None,
         retention_files: int | None = None,
+        blind_classifier_only: bool = False,
     ) -> None:
         self.log_path = Path(log_path) if log_path is not None else None
         if self.log_path:
@@ -365,9 +361,11 @@ class HeuristicRouter:
         self.conformal_min_samples: int = 30
         self.known_apps = set(DEFAULT_KNOWN_APPS)
         self.stop_words_after_start = set(DEFAULT_STOP_WORDS_AFTER_START)
+        self.constitutional_hash = compute_constitutional_hash()
         self.last_decision_record: DecisionRecord | None = None
         self.db_write_failures: int = 0
         self.embed_worker = embed_worker
+        self.blind_classifier_only = blind_classifier_only
         self._anchor_embeddings: dict[str, list[list[float]]] | None = None
         self._anchor_matrix: np.ndarray | None = None
         self._anchor_labels: list[str] | None = None
@@ -381,18 +379,28 @@ class HeuristicRouter:
                 self.retention_files = 14
         self._load_intents_config(config_path)
 
+    def _embed_phrases(self, texts: list[str]) -> list[list[float]]:
+        if self.embed_worker is None:
+            return []
+        if hasattr(self.embed_worker, "embed_text"):
+            vecs, _, _ = getattr(self.embed_worker, "embed_text")(texts)
+            return list(vecs)
+        if hasattr(self.embed_worker, "embed"):
+            return list(self.embed_worker.embed(texts))
+        return []
+
     def _get_anchor_embeddings(self) -> dict[str, list[list[float]]]:
         if self._anchor_embeddings is not None and self._anchor_matrix is not None:
             return self._anchor_embeddings
         if self.embed_worker is None:
             return {}
-        if hasattr(self.embed_worker, "compiled") and self.embed_worker.compiled is None:
+        if hasattr(self.embed_worker, "compiled") and getattr(self.embed_worker, "compiled") is None:
             return {}
         res: dict[str, list[list[float]]] = {}
         all_vecs: list[list[float]] = []
         all_labels: list[str] = []
         for intent, phrases in SEMANTIC_INTENT_ANCHORS.items():
-            vecs, _, _ = self.embed_worker.embed_text(list(phrases))
+            vecs = self._embed_phrases(list(phrases))
             res[intent] = vecs
             for v in vecs:
                 all_vecs.append(v)
@@ -438,6 +446,7 @@ class HeuristicRouter:
         self,
         transcript: str,
         last_tool: str | None = None,
+        blind_classifier_only: bool | None = None,
     ) -> tuple[str, float, dict[str, list[str]]]:
         """
         Classifies intent and extracts entities using word-boundary regexes per Spec 06 §2.
@@ -489,94 +498,97 @@ class HeuristicRouter:
         if re.search(prompt_extract_pattern, text):
             return "dangerous", 0.85, entities
 
-        # 1. Launch App: check word boundary
-        launch_match = re.search(
-            r"\b(open|launch|start|run)\b\s+(?:the\s+)?(?P<app>[a-z0-9 .-]+)",
-            text,
-        )
-        if launch_match:
-            candidate_app = launch_match.group("app").strip()
-            first_word = candidate_app.split()[0] if candidate_app else ""
-            # Guard against adversarial: "start with the second file"
-            if first_word not in self.stop_words_after_start:
-                # Check if candidate or any alias is a known app
-                for app_name in sorted(self.known_apps, key=lambda a: (-len(a), a)):
-                    if re.search(rf"\b{re.escape(app_name)}\b", candidate_app):
-                        entities["app"].append(app_name)
-                        return "launch_app", 0.95, entities
+        eff_blind = self.blind_classifier_only if blind_classifier_only is None else blind_classifier_only
 
-        # 2. File Read
-        if (
-            re.search(r"\b(read|view|show|cat|inspect|examine)\b\s+(?:the\s+)?(?:file\s+)?", text)
-            and entities["file"]
-        ):
-            return "file_read", 0.90, entities
+        if not eff_blind:
+            # 1. Launch App: check word boundary
+            launch_match = re.search(
+                r"\b(open|launch|start|run)\b\s+(?:the\s+)?(?P<app>[a-z0-9 .-]+)",
+                text,
+            )
+            if launch_match:
+                candidate_app = launch_match.group("app").strip()
+                first_word = candidate_app.split()[0] if candidate_app else ""
+                # Guard against adversarial: "start with the second file"
+                if first_word not in self.stop_words_after_start:
+                    # Check if candidate or any alias is a known app
+                    for app_name in sorted(self.known_apps, key=lambda a: (-len(a), a)):
+                        if re.search(rf"\b{re.escape(app_name)}\b", candidate_app):
+                            entities["app"].append(app_name)
+                            return "launch_app", 0.95, entities
 
-        # 3. File Write
-        if (
-            re.search(r"\b(write|create|save|append|dump)\b\s+(?:to\s+)?", text)
-            and entities["file"]
-        ):
-            return "file_write", 0.90, entities
+            # 2. File Read
+            if (
+                re.search(r"\b(read|view|show|cat|inspect|examine)\b\s+(?:the\s+)?(?:file\s+)?", text)
+                and entities["file"]
+            ):
+                return "file_read", 0.90, entities
 
-        # 3b. Conversational Context Query (WO-17 Phase 6)
-        if RECENT_CONTEXT_PATTERN.search(text):
-            return "context_query", 0.95, entities
+            # 3. File Write
+            if (
+                re.search(r"\b(write|create|save|append|dump)\b\s+(?:to\s+)?", text)
+                and entities["file"]
+            ):
+                return "file_write", 0.90, entities
 
-        # 4. Memory Query
-        mem_pattern = (
-            r"\b(remember|recall|what\s+is\s+my|who\s+is\s+my|where\s+do\s+i|do\s+you\s+remember)\b"
-        )
-        if re.search(mem_pattern, text):
-            return "memory_query", 0.90, entities
+            # 3b. Conversational Context Query (WO-17 Phase 6)
+            if RECENT_CONTEXT_PATTERN.search(text):
+                return "context_query", 0.95, entities
 
-        # 5. Chit Chat & Persona / Companion Inquiries
-        chit_pattern = (
-            r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
-            r"good\s+morning|good\s+afternoon|good\s+night|"
-            r"who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
-            r"(?:what|can\s+you\s+tell\s+me\s+anything)\s+about\s+yourself|"
-            r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|"
-            r"what\s+can\s+you\s+do|your\s+name|introduce\s+yourself|"
-            r"test(?:ing)?\s+you|how\s+about\s+we\s+try\s+testing\s+you)\b"
-        )
-        if re.search(chit_pattern, text):
-            return "chit_chat", 0.95, entities
+            # 4. Memory Query
+            mem_pattern = (
+                r"\b(remember|recall|what\s+is\s+my|who\s+is\s+my|where\s+do\s+i|do\s+you\s+remember)\b"
+            )
+            if re.search(mem_pattern, text):
+                return "memory_query", 0.90, entities
 
-        # 6. Web Fetch / Search & Factual Inquiries
-        web_pattern = (
-            r"\b(fetch|browse|download|web|scrape|curl|lookup|look\s*up|"
-            r"search(?:\s+(?:for|google|online|the\s+web|web|wikipedia))?|"
-            r"google|check\s+(?:google|wikipedia|online|news)|"
-            r"find\s+(?:out|information|online)|headlines|wikipedia|"
-            r"tell\s+me\s+about|facts\s+about|who\s+(?:is|was)|"
-            r"what\s+(?:is|are|can\s+you\s+tell)|where\s+(?:is|are|was|does)|"
-            r"when\s+(?:was|is)|how\s+about\s+(?:the|a|an)\b|"
-            # Meta-search directives — user redirecting an ongoing web-search turn
-            r"try\s+(?:alternative|other|different|more|another)\s+"
-            r"(?:source|sources|website|websites|site|sites|approach|approaches)|"
-            r"look\s+(?:elsewhere|further|deeper|more|harder)|"
-            r"dig\s+(?:deeper|further|more)|"
-            r"search\s+(?:again|more|harder|further)|"
-            r"find\s+(?:more|other|different)\s+(?:sources?|results?|information|info)|"
-            r"check\s+(?:other|more|different)\s+(?:sources?|sites?|websites?|places?)|"
-            r"look\s+for\s+(?:more|other|alternative|different)\s+(?:sources?|info|information)"
-            r")\b"
-        )
-        if re.search(web_pattern, text) or entities["url"]:
-            return "web_fetch", 0.90, entities
+            # 5. Chit Chat & Persona / Companion Inquiries
+            chit_pattern = (
+                r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
+                r"good\s+morning|good\s+afternoon|good\s+night|"
+                r"who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
+                r"(?:what|can\s+you\s+tell\s+me\s+anything)\s+about\s+yourself|"
+                r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|"
+                r"what\s+can\s+you\s+do|your\s+name|introduce\s+yourself|"
+                r"test(?:ing)?\s+you|how\s+about\s+we\s+try\s+testing\s+you)\b"
+            )
+            if re.search(chit_pattern, text):
+                return "chit_chat", 0.95, entities
 
-        # 7. Clarify: very short utterance — but promote to web_fetch if mid-search-session.
-        # A bare name correction or a single follow-up word while last_tool was a web tool
-        # is almost certainly a search refinement, not an ambiguous mumble.
-        _WEB_TOOLS: frozenset[str] = frozenset({"search_web", "fetch_url", "web_fetch"})
-        if last_tool in _WEB_TOOLS and len(text.split()) <= 6 and text:
-            return "web_fetch", 0.75, entities
-        if len(text.split()) <= 1 and text:
-            return "clarify", 0.40, entities
+            # 6. Web Fetch / Search & Factual Inquiries
+            web_pattern = (
+                r"\b(fetch|browse|download|web|scrape|curl|lookup|look\s*up|"
+                r"search(?:\s+(?:for|google|online|the\s+web|web|wikipedia))?|"
+                r"google|check\s+(?:google|wikipedia|online|news)|"
+                r"find\s+(?:out|information|online)|headlines|wikipedia|"
+                r"tell\s+me\s+about|facts\s+about|who\s+(?:is|was)|"
+                r"what\s+(?:is|are|can\s+you\s+tell)|where\s+(?:is|are|was|does)|"
+                r"when\s+(?:was|is)|how\s+about\s+(?:the|a|an)\b|"
+                # Meta-search directives — user redirecting an ongoing web-search turn
+                r"try\s+(?:alternative|other|different|more|another)\s+"
+                r"(?:source|sources|website|websites|site|sites|approach|approaches)|"
+                r"look\s+(?:elsewhere|further|deeper|more|harder)|"
+                r"dig\s+(?:deeper|further|more)|"
+                r"search\s+(?:again|more|harder|further)|"
+                r"find\s+(?:more|other|different)\s+(?:sources?|results?|information|info)|"
+                r"check\s+(?:other|more|different)\s+(?:sources?|sites?|websites?|places?)|"
+                r"look\s+for\s+(?:more|other|alternative|different)\s+(?:sources?|info|information)"
+                r")\b"
+            )
+            if re.search(web_pattern, text) or entities["url"]:
+                return "web_fetch", 0.90, entities
+
+            # 7. Clarify: very short utterance — but promote to web_fetch if mid-search-session.
+            # A bare name correction or a single follow-up word while last_tool was a web tool
+            # is almost certainly a search refinement, not an ambiguous mumble.
+            _WEB_TOOLS: frozenset[str] = frozenset({"search_web", "fetch_url", "web_fetch"})
+            if last_tool in _WEB_TOOLS and len(text.split()) <= 6 and text:
+                return "web_fetch", 0.75, entities
+            if len(text.split()) <= 1 and text:
+                return "clarify", 0.40, entities
 
         # 8. Semantic Embedding Classification (Vectorized Anchor Dot-Product)
-        # Evaluates cosine similarity against intent anchors when regex yields unknown
+        # Evaluates cosine similarity against intent anchors (primary path in blind_classifier_only mode)
         anchors = self._get_anchor_embeddings()
         if (
             anchors
@@ -585,15 +597,21 @@ class HeuristicRouter:
             and self.embed_worker is not None
         ):
             try:
-                q_vecs, _, _ = self.embed_worker.embed_text([text])
+                q_vecs = self._embed_phrases([text])
                 if q_vecs and any(abs(v) > 1e-6 for v in q_vecs[0]):
                     qv = np.array(q_vecs[0], dtype=np.float32)
-                    sims = np.dot(self._anchor_matrix, qv)
+                    q_norm = float(np.linalg.norm(qv))
+                    if q_norm > 1e-6:
+                        qv = qv / q_norm
+                    a_norms = np.linalg.norm(self._anchor_matrix, axis=1, keepdims=True)
+                    a_norms = np.where(a_norms > 1e-6, a_norms, 1.0)
+                    norm_anchors = self._anchor_matrix / a_norms
+                    sims = np.dot(norm_anchors, qv)
                     best_idx = int(np.argmax(sims))
                     best_sim = float(sims[best_idx])
                     best_intent = self._anchor_labels[best_idx]
                     if best_intent and best_sim >= 0.28:
-                        return best_intent, float(min(best_sim, 0.95)), entities
+                        return best_intent, float(min(max(best_sim, 0.30), 0.95)), entities
             except Exception as exc:  # noqa: BLE001
                 logger.debug("semantic_intent_classification_failed", error=str(exc))
 
@@ -618,6 +636,7 @@ class HeuristicRouter:
         has_registered_rule: bool = False,
         feats: RouteFeatures | None = None,
         model_tier: Literal["12B", "E4B", "E2B"] | None = None,
+        blind_classifier_only: bool | None = None,
     ) -> RouteDecision:
         """
         Executes routing decision logic per Spec 06 §1 & §2 and logs full DecisionRecord.
@@ -644,8 +663,11 @@ class HeuristicRouter:
             transcript_text = transcript if isinstance(transcript, str) else ""
 
         transcript_text = normalize_transcript(transcript_text)
+        eff_blind = self.blind_classifier_only if blind_classifier_only is None else blind_classifier_only
 
-        intent, auto_conf, entities = self.classify_intent(transcript_text, last_tool=last_tool)
+        intent, auto_conf, entities = self.classify_intent(
+            transcript_text, last_tool=last_tool, blind_classifier_only=eff_blind
+        )
         conf = intent_conf if (intent_conf is not None and intent_conf > 0.0) else auto_conf
         text_lower = transcript_text.strip().lower()
 
@@ -741,13 +763,22 @@ class HeuristicRouter:
         exposed_libraries: list[str] = []
 
         if action_lit == "LLM":
-            regex_cw = bool(CONTAINER_WORLD_PATTERN.search(text_lower))
-            regex_spatial = bool(SPATIAL_GRID_PATTERN.search(text_lower))
-            regex_code = bool(CODE_REPAIR_PATTERN.search(text_lower))
-            regex_z3 = bool(COMBINATORIAL_SMT_PATTERN.search(text_lower))
-            regex_sympy = bool(MATHEMATICAL_SYMPY_PATTERN.search(text_lower))
-            regex_soft = bool(SOFT_LOGIC_PATTERN.search(text_lower))
-            regex_web = bool(WEB_SEARCH_PATTERN.search(text_lower))
+            if eff_blind:
+                regex_cw = False
+                regex_spatial = False
+                regex_code = False
+                regex_z3 = False
+                regex_sympy = False
+                regex_soft = False
+                regex_web = False
+            else:
+                regex_cw = bool(CONTAINER_WORLD_PATTERN.search(text_lower))
+                regex_spatial = bool(SPATIAL_GRID_PATTERN.search(text_lower))
+                regex_code = bool(CODE_REPAIR_PATTERN.search(text_lower))
+                regex_z3 = bool(COMBINATORIAL_SMT_PATTERN.search(text_lower))
+                regex_sympy = bool(MATHEMATICAL_SYMPY_PATTERN.search(text_lower))
+                regex_soft = bool(SOFT_LOGIC_PATTERN.search(text_lower))
+                regex_web = bool(WEB_SEARCH_PATTERN.search(text_lower))
 
             has_cw = regex_cw
             has_spatial_grid = regex_spatial or (intent == "spatial_grid")
@@ -755,19 +786,22 @@ class HeuristicRouter:
             has_z3 = regex_z3 or (intent == "logic_constraints")
             has_soft = regex_soft
             has_sympy = regex_sympy or (intent == "math_computation")
-            has_science = (intent == "science_research") or any(
-                k in text_lower
-                for k in (
-                    "mechanism",
-                    "chemical reaction",
-                    "photosynthesis",
-                    "spectroscopy",
-                    "lattice",
-                    "biochemical",
-                    "electrophilic",
-                    "orbital",
-                    "quantum state",
-                    "half-life",
+            has_science = (intent == "science_research") or (
+                not eff_blind
+                and any(
+                    k in text_lower
+                    for k in (
+                        "mechanism",
+                        "chemical reaction",
+                        "photosynthesis",
+                        "spectroscopy",
+                        "lattice",
+                        "biochemical",
+                        "electrophilic",
+                        "orbital",
+                        "quantum state",
+                        "half-life",
+                    )
                 )
             )
             has_web_search = regex_web or (intent in ("web_fetch", "factual_lookup"))
@@ -859,6 +893,13 @@ class HeuristicRouter:
             _idx = int(_hl.md5(text_lower.encode()).hexdigest(), 16) % len(FLOOR_HOLD_CUES)
             floor_hold_cue = FLOOR_HOLD_CUES[_idx]
 
+        # Combinatorics & mathematical derivation token ceiling (1536 tokens)
+        token_ceiling: int | None = None
+        if reasoning_domain in ("mathematics", "combinatorial_smt") or bool(
+            re.search(r"\b(?:combinatorics|permutations|combinations|polynomial|eigenvalues)\b", text_lower)
+        ):
+            token_ceiling = 1536
+
         decision = RouteDecision(
             action=route_action,
             tier=tier,
@@ -873,6 +914,7 @@ class HeuristicRouter:
             deliberation_lane=deliberation_lane,
             floor_hold_cue=floor_hold_cue,
             exposed_libraries=exposed_libraries,
+            max_tokens=token_ceiling,
         )
 
         features = RouteFeatures(
@@ -912,9 +954,10 @@ class HeuristicRouter:
             ts=time.time(),
             features=features,
             decision=decision,
-            router_version="heuristic-1.0-deterministic",
+            router_version="classifier-1.0-blind" if eff_blind else "heuristic-1.0-deterministic",
             executed_path=action_lit,
             counterfactual_rule_fired=any_quarantine_rule_fired,
+            constitutional_hash=self.constitutional_hash,
         )
         self.last_decision_record = record
 

@@ -63,6 +63,7 @@ def test_promises_detected(narration: str) -> None:
         "Let me explain how my memory works.",  # no action verb
         "I checked my memory records, but have no verified record of your name.",  # abstention
         "I have not committed anything.",  # negation guard
+        "Copy that. I'll keep my responses lean so we can get a clear read on the latency.",
         "",
     ],
 )

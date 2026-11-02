@@ -168,16 +168,57 @@ def apply_pitch_shift(
     semitones: float = 2.5,
 ) -> tuple[npt.NDArray[np.float32], int]:
     """
-    Formant-aware pitch shift.
-    Shifts sampling playback rate and performs anti-aliased interpolation.
+    Formant-aware pitch shift via Hann-windowed overlap-add (OLA) grain resampling
+    and linear interpolation, preserving buffer length while shifting pitch.
     """
-    if abs(semitones) < 0.1:
+    if abs(semitones) < 0.1 or len(samples) == 0:
         return samples, sr
 
     pitch_ratio = float(2.0 ** (semitones / 12.0))
-    # Effective sample playback rate
     playback_sr = int(round(sr * pitch_ratio))
-    return samples, playback_sr
+
+    n_samples = len(samples)
+    if n_samples < 64:
+        idx = np.clip(np.arange(n_samples, dtype=np.float64) * pitch_ratio, 0.0, n_samples - 1.0)
+        shifted = np.interp(idx, np.arange(n_samples, dtype=np.float64), samples).astype(np.float32)
+        return cast(npt.NDArray[np.float32], shifted), playback_sr
+
+    grain_len = min(1024, max(64, (n_samples // 4) * 2))
+    hop = grain_len // 2
+    window = (0.5 * (1.0 - np.cos(2.0 * np.pi * np.arange(grain_len, dtype=np.float64) / grain_len))).astype(
+        np.float32
+    )
+
+    out = np.zeros(n_samples, dtype=np.float32)
+    norm = np.zeros(n_samples, dtype=np.float32)
+    base_src_coords = np.arange(grain_len, dtype=np.float64) * pitch_ratio
+
+    for start in range(0, n_samples, hop):
+        end = min(n_samples, start + grain_len)
+        cur_len = end - start
+        if cur_len < 4:
+            break
+
+        src_indices = start + base_src_coords[:cur_len]
+        # Wrap around within the local grain region when pitch_ratio > 1.0
+        max_valid = float(n_samples - 1)
+        if src_indices[-1] > max_valid:
+            span = max(1.0, float(cur_len - 1))
+            src_indices = start + np.mod(base_src_coords[:cur_len], span)
+
+        grain_resampled = np.interp(
+            src_indices,
+            np.arange(n_samples, dtype=np.float64),
+            samples,
+        ).astype(np.float32)
+
+        w = window[:cur_len]
+        out[start:end] += grain_resampled * w
+        norm[start:end] += w
+
+    valid_mask = norm > 1e-6
+    out[valid_mask] /= norm[valid_mask]
+    return cast(npt.NDArray[np.float32], out.astype(np.float32)), playback_sr
 
 
 class AnimeVoiceDSP:

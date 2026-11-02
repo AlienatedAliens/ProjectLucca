@@ -68,7 +68,7 @@ class SchemeEvaluator:
         elif isinstance(node, Symbol):
             if node.name in env:
                 var_fn = env[node.name]
-                return var_fn([])
+                return var_fn([]) if callable(var_fn) else var_fn
             raise SchemeRuntimeError(
                 f"Unbound symbol '{node.name}'",
                 rule_id=self.rule_id,

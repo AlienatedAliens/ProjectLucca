@@ -1,6 +1,6 @@
 # Autobiographical Memory & Self-Model — Recovered Goals and Rung A1
 
-**Status:** **RATIFIED 2026-09-21** as [`D-MEM-04`](../DECISIONS.md) (owner decisions recorded in §7). Roadmap rung **A1**, after L2 and before L3. Not yet implemented.
+**Status:** **RATIFIED 2026-09-21 & ENFORCED (`WO-12` Rung A1 & `WO-39` Study 1)** as [`D-MEM-04`](../DECISIONS.md) (owner decisions recorded in §7). Implemented in `0006_autobiographical.sql`, `cascade.py`, `gate.py`, and `prompt_builder.py` (`_render_partitioned_memories`).
 **Date:** 2026-09-21
 **Author:** Zoo (Fable 5.1, architect), at the owner's request
 **Why this document exists:** the owner's goals *Introspective Accuracy, Individuation, Functional Coherence, Autobiographical Coherence* appear **nowhere** in the repository (roadmap, ADRs, research specs, archive). They were held in conversation and never written down, and the memory doctrine that protects against confabulation (ADR-006 / AGENTS.md §2.1) — correctly applied — has produced a companion with **no record of her own words, actions, beliefs or revisions across sessions**. This document recaptures the goals, defines them so they can be tested, shows what already exists, and proposes a doctrine-compatible design.
@@ -72,7 +72,7 @@ The same split applies to actions ("Lucca ran `read_file` on `notes.txt` at T" �
 Implementation notes: SQLite `CHECK` constraints require a table rebuild; `mem_bi_eligible` trigger extended; **new column `grounding_eligible INTEGER NOT NULL`** on `provenance_envelopes`, derived from class at insert time, so the cascade filters on a column rather than re-deriving policy.
 
 ### 4.2 Cascade behaviour
-- `MEMORY` substrate splits into **evidence** (grounding-eligible rows → Belnap fusion as today) and **recollection** (non-grounding rows → passed to the LLM under an explicit frame: *"Things you previously said or believed — quote them as such; they are not evidence."*).
+- `MEMORY` substrate splits into **evidence** (grounding-eligible rows → Belnap fusion as today) and **recollection** (non-grounding rows → passed to the LLM under an explicit frame: *"Things you previously said or believed — quote them as such; they are not evidence."*). In `WO-39` (Milestone 1.2 Study 1), `src/lucca/brain/prompt_builder.py` (`_render_partitioned_memories`) enforces this split at prompt-construction time using two distinct headers: `[Persistent Memory Context — Verified Grounded Memory]` for `grounding_eligible = 1` and `[Autobiographical Recollections — Unverified Past Speech: For conversational continuity only; do NOT cite as factual truth without independent tool or user verification]` for `grounding_eligible = 0`.
 - New substrate `SELF_HISTORY` (Tier 1, alongside `TELEMETRY`) answers "what did you do / say" questions from `execution_triples` + `ASSISTANT_ACTION` + `ASSISTANT_UTTERANCE`, and **abstains** when the record is empty — never fills the gap from the model.
 
 ### 4.3 Belief revision ("fact-check her own memory")

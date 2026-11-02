@@ -58,7 +58,12 @@ from lucca.sandbox.schemas import (
 from lucca.sandbox.artifact_tool import verify_artifact
 from lucca.sandbox.clipboard_tool import read_clipboard_text
 from lucca.sandbox.research_tool import research_topic
-from lucca.sandbox.schedule_tool import schedule_event
+from lucca.sandbox.schedule_tool import (
+    ScheduledEvent,
+    claim_due_events,
+    list_scheduled_events,
+    schedule_event,
+)
 from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.system_tools import get_system_metrics, list_running_processes
 from lucca.sandbox.tasks import AsyncTaskInfo, AsyncTaskManager, TaskStatus
@@ -363,6 +368,22 @@ class SandboxService:
         self.tasks = tasks if tasks is not None else AsyncTaskManager()
         self.note_tool = SafeNoteTool(notes_dir=notes_dir)
         self._memory_manager = memory_manager
+        self.db: object | None = None
+
+    def _resolve_schedule_db_path(self) -> Path:
+        if self.db is not None and hasattr(self.db, "db_path"):
+            p = getattr(self.db, "db_path")
+            if isinstance(p, (Path, str)) and str(p) != ":memory:":
+                return Path(p)
+        return self.workspace_mgr.workspace_root / ".scheduled_events.sqlite"
+
+    def list_scheduled_events(self, status: str | None = "PENDING") -> list[ScheduledEvent]:
+        """Returns persisted scheduled events from the active schedule database."""
+        return list_scheduled_events(status=status, db_path=self._resolve_schedule_db_path())
+
+    def claim_due_events(self, now: float | None = None) -> list[ScheduledEvent]:
+        """Atomically claims and marks FIRED any PENDING scheduled events with due_ts <= now."""
+        return claim_due_events(now=now, db_path=self._resolve_schedule_db_path())
 
     def get_memory_manager(self) -> MemoryManager:
         if self._memory_manager is None:
@@ -1157,8 +1178,7 @@ class SandboxService:
 
                 info = self.tasks.launch_task(task_name, _docker_python)
                 content = (
-                    f"Started background task '{info.name}' [{info.task_id}]. "
-                    "Check progress with get_task_status."
+                    f"Started background task '{info.name}' [{info.task_id}]."
                 )
                 return ToolResult(
                     call_id=call_id,
@@ -1185,7 +1205,12 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
-                ev_id = schedule_event(parsed_ev.event_name, parsed_ev.iso_datetime, parsed_ev.message)
+                ev_id = schedule_event(
+                    parsed_ev.event_name,
+                    parsed_ev.iso_datetime,
+                    parsed_ev.message,
+                    db_path=self._resolve_schedule_db_path(),
+                )
                 content = f"Event '{parsed_ev.event_name}' scheduled for {parsed_ev.iso_datetime} (ID: {ev_id})"
                 return ToolResult(
                     call_id=call_id,
@@ -1618,7 +1643,25 @@ class SandboxService:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
-        # 9. File Tools via RPC
+        # 9. File Tools & run_python via RPC (with Tier 1 AST Preflight Sanitizer on run_python)
+        if tool_name == "run_python" and isinstance(args.get("code"), str):
+            raw_code = str(args["code"])
+            try:
+                needs_repair = False
+                try:
+                    ast.parse(raw_code)
+                except SyntaxError:
+                    needs_repair = True
+
+                from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code  # noqa: PLC0415
+
+                clean_code, _ok_san, _repairs = sanitize_and_repair_python_code(raw_code)
+                if clean_code and clean_code.strip():
+                    ast.parse(clean_code)
+                    if needs_repair or ("import " in clean_code and "import " not in raw_code):
+                        args = {**args, "code": clean_code}
+            except Exception as san_err:  # noqa: BLE001
+                logger.debug("run_python_ast_sanitize_skipped", error=str(san_err))
         return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
 
     def preflight_verify_code(

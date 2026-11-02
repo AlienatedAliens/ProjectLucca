@@ -395,7 +395,7 @@ EXPANDED_STEM_MAP: dict[str, str] = {
 }
 
 STRUCTURED_ACTION_TAG_REGEX = re.compile(
-    r"(?:\[(?:ACTION|ACTION_CLAIM|action|action_claim)\s*:\s*([a-zA-Z_]+)\s+([^\]]+)\]|"
+    r"(?:\[(?:ACTION|ACTION_CLAIM|action|action_claim)\s*:\s*([a-zA-Z_]+)\s+([^\]]+?)(?:\]|$)|"
     r"<action_claim(?:\s+verb=[\"']([a-zA-Z_]+)[\"']\s+target=[\"']([^\"']+)[\"']|"
     r">\s*([a-zA-Z_]+)\s+([^<]+)</action_claim>))",
     re.IGNORECASE,
@@ -442,8 +442,12 @@ _PROGRESSIVE_ACTION_REGEX = re.compile(
 )
 
 _INITIATING_ACTION_REGEX = re.compile(
-    r"\b(?:I(?:'m|\s+am)?\s+(?:currently\s+|now\s+)?)?"
-    r"initiating\s+(?:the\s+|a\s+)?(reboot|restart|deletion|update|process|backup|migration)(?:\s+(?:of|for|on)?\s+(.+))?\b",
+    r"(?:\b(?:I(?:'m|\s+am|\s+have|'ve)?\s+(?:currently\s+|now\s+|just\s+|already\s+)?)?"
+    r"(?:initiating|initiated)\s+(?:the\s+|a\s+|an\s+)?(?:immediate\s+)?(?:request\s+to\s+)?"
+    r"(reboot|restart|deletion|delete|removal|remove|update|process|backup|migration|"
+    r"transmission|send|sending|deployment|deploy|order|ordering|transfer|wipe|purge|"
+    r"unmount|mount|archive|execution|execute|termination|terminate|kill|format)"
+    r"(?:\s+(?:of|for|on|to)?\s+(.+))?\b|^action\s+initiated\b)",
     re.IGNORECASE,
 )
 
@@ -688,7 +692,7 @@ class ActionClaimGrammarSupervisor:
             if m_init:
                 prefix = clean[: m_init.start()].lower()
                 if not _NEGATION_PREFIX_PATTERN.search(prefix):
-                    verb_noun = m_init.group(1).lower()
+                    verb_noun = (m_init.group(1) or "execute").lower()
                     stem = "reboot" if ("reboot" in verb_noun or "restart" in verb_noun) else verb_noun
                     target = m_init.group(2) or verb_noun
                     claims_to_verify.append((stem, target, m_init.group(0)))
@@ -974,7 +978,11 @@ class TruthInReceiptMatcher:
           caller's contract when timestamps are absent).
         """
         # If grammar channel is active or structured tags are present, delegate to ActionClaimGrammarSupervisor
-        if self.enable_grammar_channel or STRUCTURED_ACTION_TAG_REGEX.search(clause):
+        if (
+            self.enable_grammar_channel
+            or STRUCTURED_ACTION_TAG_REGEX.search(clause)
+            or _INITIATING_ACTION_REGEX.search(re.sub(r"[*`~]", "", clause).strip())
+        ):
             return self._grammar_supervisor.evaluate_clause(
                 clause, verified_receipts, stale_before=stale_before
             )

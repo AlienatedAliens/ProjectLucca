@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 01 — Core Orchestration & Epistemic Cascade
 
 **Subsystem:** `src/lucca/core/`  
-**Version:** 1.3.0  
+**Version:** 1.47.0 (`WO-39`)  
 **Architectural Tier:** Sovereign Supervisor & Epistemic Foundation  
 **Hardware Placement:** Intel Core Ultra 9 275HX (Host CPU), SQLite WAL, ZeroMQ IPC  
 
@@ -59,10 +59,16 @@ Project Lucca guarantees latency and safety boundaries by segregating user inten
 | **Tier 2** | **`ACT_THEN_NARRATE`** | $\sim 200\text{--}450\,\text{ms}$ | Deterministic MicroScheme rule or tool execution in container sandbox; model receives execution receipt and generates expressive companion voice narration. | Unit conversion, desktop app launch, hardware telemetry, notes. |
 | **Tier 3** | **`FULL_LOOP`** | $\sim 450\text{--}1,500\,\text{ms}$ | Full deliberative multi-turn reasoning with iterative tool calls (runaway cap $M=8$), intermediate spoken cues, and mind-mouth quarantine. | Open-ended research, multi-step problem solving, competition math. |
 
-### 2.1 The Mind-Mouth Quarantine (WO-26a)
+### 2.1 The Mind-Mouth Quarantine (WO-26a) & Honest Receipt Integrity (`WO-39`)
 In Tier 3 deliberation, intermediate cognitive events must never spill into user-facing speech. The `TurnPipeline` enforces strict segregation:
 - **Quarantined Events:** Belief supersessions (`ASSISTANT_BELIEF`), cognitive bus yields `(yield-to-core reason context)`, intermediate scratchpad notes, and internal traceback inspections.
 - **Allowed Spoken Events:** Grounded final speech tokens validated by the `OutputSupervisor` and explicit verbal thinking cues (`[Thinking: Checking filesystem...]`).
+- **Elimination of Simulated Receipt Minting (`WO-39`):** `orchestrator.py` permanently removes the legacy `run_python_simulated` fallback path. No simulated or synthetic tool receipt is ever minted when sandbox execution is skipped or fails; every `ASSISTANT_ACTION` receipt in `orchestrator.py` derives strictly from real container execution or verified `cognitive_outcome_sink` outcomes.
+
+### 2.2 Organ 2: System 2 $\to$ System 1 Myelination & `impasse_backlog` (`src/lucca/core/orchestrator.py`)
+In `WO-39`, `Orchestrator` closes the bicameral cognitive loop between waking System 2 neural synthesis and sleep-phase System 1 symbolic compilation:
+- **`cognitive_outcome_sink` Wiring:** Multi-turn CEGIS repairs and verified synthesis traces are routed through `self.cognitive_outcome_sink`, signing `ASSISTANT_ACTION` receipts, recording `ProofTraceStep` entries, and feeding successful trajectories to the procedural memory store.
+- **`impasse_backlog` Capture:** When a waking turn encounters a reasoning impasse, tool failure, or multi-round repair ceiling, `Orchestrator` appends the structured impasse context (`query`, `failed_code`, `error_trace`, `turn_id`) to `self.impasse_backlog`, queuing it for offline resolution and macro induction during `DreamRetrospective`.
 
 ---
 
@@ -114,10 +120,14 @@ graph TD
     end
 ```
 
-### 4.1 Truth Fusion Rules
+### 4.1 Truth Fusion Rules & OpenNARS / Beta$(w^+, w^-)$ Evidential Unification (`WO-39` Organ 1)
 When evidence arrives from multiple substrates, truth fusion is computed via lattice meet ($\wedge_t$) and join ($\vee_t$), while information accumulation follows knowledge join ($\vee_k$):
 - **Information Accumulation:** $e_1 \vee_k e_2 = \langle \max(e_1^+, e_2^+), \max(e_1^-, e_2^-) \rangle$.
 - **Contradiction Quarantine:** When state reaches $\mathbf{B}$ (Both), automatic rule execution is halted, and the conflicting proposition is routed to the human operator for resolution.
+- **OpenNARS / Beta$(w^+, w^-)$ Evidence Unification (`src/lucca/core/cascade.py`):** In `WO-39` (Organ 1: Epistemic & Truth-Maintenance Kernel), discrete Belnap $\mathcal{FOUR}$ truth states are unified with continuous OpenNARS / Beta$(w^+, w^-)$ evidential weights directly on `CascadeResult` and bilattice evaluations:
+  - **`positive_evidence` ($w^+$) & `negative_evidence` ($w^-$):** Accumulated non-negative evidence counts from verified grounding-eligible substrates (`grounding_eligible = 1`).
+  - **`nars_frequency` ($f$):** Empirical truth frequency $f = \frac{w^+}{w^+ + w^-}$ (defaulting to $0.5$ when $w^+ + w^- = 0$).
+  - **`nars_confidence` ($c$):** Evidential confidence $c = \frac{w^+ + w^-}{w^+ + w^- + k}$ with evidential horizon parameter $k = 1.0$, bounding confidence strictly in $[0, 1)$ so no finite set of observations reaches dogmatic certainty ($c = 1.0$).
 
 ---
 
@@ -125,11 +135,12 @@ When evidence arrives from multiple substrates, truth fusion is computed via lat
 
 Before any candidate tool call is dispatched to the sandbox or container transport, it passes through the `SpeculativeBDIValidator` in $\le 35\,\mu\text{s}$.
 
-### 5.1 Verification Checks
-1. **Deontic Path Invariant:** Formally proves that candidate paths reside strictly within permitted boundaries (`C:\ProjectLucca\workspace\`, `notes\`), blocking traversal attacks (`..`, symlinks, hardlinks, ADS streams).
+### 5.1 Verification Checks (`WO-39` Organ 4 Hardening)
+1. **Deontic Path Invariant:** Formally proves that candidate paths reside strictly within permitted boundaries (`C:\ProjectLucca\workspace\`, `notes\`), blocking traversal attacks (`..`, symlinks, hardlinks, ADS streams, and `.url` `[InternetShortcut]` files).
 2. **Exfiltration Sequence Guard:** Blocks illegal tool combinations within a single turn (e.g., reading a workspace file followed by fetching an external web URL).
 3. **Shell Blacklist:** Rejects any process spawn targeting banned interpreters (`cmd.exe`, `powershell.exe`, `.bat`, `.ps1`).
-4. **Desire-Belief Invariant:** Proves that candidate actions do not directly contradict active beliefs stored in the Belnap bilattice.
+4. **Desire-Belief Invariant & S-Expression Deontic Rules:** Evaluates declarative S-expression deontic rules and proves that candidate actions do not directly contradict active beliefs stored in the Belnap bilattice.
+5. **Python AST & Z3 Resource Bound Verification (`WO-39`):** Inspects candidate `run_python` ASTs to reject unbounded `while True:` loops lacking termination guards (`break`/`return`) and invokes a Z3 numeric resource bound solver to verify that loop ranges, memory allocations, and exponentiation bounds cannot exhaust container resources.
 
 ---
 
@@ -145,14 +156,16 @@ classDiagram
         +str target
         +RiskLevel risk_level
         +Type[BaseModel] schema
+        +verify_postcondition(args, result) bool
     }
     class CapabilityRegistry {
         +dict[str, NativeTool] tools
         +register(tool: NativeTool)
         +get_tool(name: str) NativeTool
         +get_shortlist(category: str) list[NativeTool]
+        +verify_postcondition(tool_name: str, args: dict, result: ToolResult) bool
     }
     CapabilityRegistry "1" *-- "24" NativeTool
 ```
 
-Every dispatch is strictly validated against `TOOL_ARG_SCHEMAS` in `src/lucca/sandbox/schemas.py`. Unregistered tools fail closed with `schema_not_registered`, and malformed payloads fail closed with `invalid_arguments`.
+Every dispatch is strictly validated against `TOOL_ARG_SCHEMAS` in `src/lucca/sandbox/schemas.py`. Unregistered tools fail closed with `schema_not_registered`, and malformed payloads fail closed with `invalid_arguments`. Furthermore, `capabilities.py` enforces post-execution contract verification via `verify_postcondition`, confirming that tool outputs satisfy structural and semantic postconditions (such as non-empty output artifacts, valid exit statuses, and verified file state changes) before a tool receipt is accepted as grounded truth.

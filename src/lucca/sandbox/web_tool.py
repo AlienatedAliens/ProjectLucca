@@ -163,14 +163,6 @@ def fetch_url(
     max_chars: int = DEFAULT_MAX_CHARS,
     allow_render: bool = False,
 ) -> tuple[dict[str, JsonValue], str]:
-    if not allow_render:
-        try:
-            from lucca.core.config import get_config  # noqa: PLC0415
-
-            allow_render = bool(getattr(getattr(get_config(), "sandbox", None), "allow_render", False))
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("allow_render_config_read_error", error=str(exc))
-
     if render:
         if not allow_render:
             raise SandboxPathError(

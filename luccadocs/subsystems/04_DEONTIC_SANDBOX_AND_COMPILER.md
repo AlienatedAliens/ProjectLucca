@@ -1,8 +1,8 @@
 # Subsystem Reference Manual: 04 — Deontic Sandbox & Structural Compiler
 
 **Subsystem:** `src/lucca/sandbox/`  
-**Version:** 1.3.0  
-**Architectural Tier:** Actuation Sandbox, AST Compiler & Safety Supervision  
+**Version:** 1.47.0 (`WO-39`)  
+**Architectural Tier:** Actuation Sandbox, AST Compiler, $k$-Order ToM World & Safety Supervision  
 **Hardware Placement:** WSL2 Ubuntu Container (`lucca/file-sandbox`), Host CPU C-RPC Transport  
 
 ---
@@ -72,16 +72,26 @@ sequenceDiagram
 - **Persistent Docker Daemon RPC:** **$6.87\,\text{ms}$** P50 latency (**$83\times$ speedup**).
 - **Security Quarantine:** Container runs with `--network none` (network isolated) and strict read-only mounts, except for `C:\ProjectLucca\workspace` mapped to `/workspace`.
 
-### 2.2 Linux `ARG_MAX` Ceiling Bypass (`file_tool.py`)
+### 2.2 Linux `ARG_MAX` Ceiling Bypass & `.url` Workspace Escape Block (`file_tool.py` & `service.py`)
 Dense evaluation suites (such as EvalPlus with $>120,000$ test inputs) exceed the Linux kernel command-line limit (`ARG_MAX = 2,097,152` bytes). When passed via `argv` (`python3 -c "..."`), execution fails with `OSError: Argument list too long`.
 
 Lucca streams code directly over `stdin` (`[sys.executable, "-I", "-"]`), enabling scripts of arbitrary size to execute without memory exhaustion or argument overflow.
 
+In `WO-39`, `file_tool.py`, `service.py`, `search_tool.py`, and `rpc.py` enforce additional sandbox boundary and decontamination invariants:
+- **`.url` (`[InternetShortcut]`) Workspace Escape Block (`file_tool.py`):** Alongside Windows `.lnk` shortcuts, NTFS Alternate Data Streams (`:`), and symlinks, `file_tool.py` explicitly inspects and blocks `.url` files and payloads containing `[InternetShortcut]` headers, preventing indirect file-read or browser-launch escapes outside the workspace root.
+- **3-Tuple `(ok, msg, details)` Unpacking (`service.py`):** `SandboxService` cleanly unpacks 3-tuple validator returns `(ok, msg, details)` from `SpeculativeBDIValidator`, preserving structured violation diagnostics in rejected tool receipts.
+- **Decontamination of `search_tool.py` & `rpc.py` (`WO-39`):** Removed hardcoded `STATIC_RFC_DEFINITIONS` benchmark dictionaries from `search_tool.py` and removed `mock_calls` test-spy branches from `rpc.py` and `search_tool.py`, ensuring all sandbox calls execute through genuine runtime pathways.
+
+### 2.3 Organ 6: $k$-Order Recursive Theory-of-Mind `ContainerWorld` (`container_world.py` & `rpc.py`)
+In `WO-39`, `src/lucca/sandbox/container_world.py` serves as the single canonical source of truth for belief-state simulation (imported directly into `rpc.py` with zero duplicate inline definitions). `ContainerWorld` supports arbitrary **$k$-order recursive Theory-of-Mind (ToM) perspective filtering**:
+- **`_project_world_for_observer(agent)`:** Projects the physical world state into the epistemic sub-world actually witnessed by `agent` based on room co-presence (`set_room_occupants`) and explicit `tell()` communication events.
+- **`query_recursive(chain: list[str], container: str)`:** Recursively projects nested epistemic perspectives along an arbitrary observer chain $\langle a_1, a_2, \dots, a_k \rangle$ (e.g., *"Where does Alice think Bob thinks Charlie believes the key is?"*), evaluating each agent's belief state strictly from the nested projection of the preceding agent in the chain.
+
 ---
 
-## 3. Multi-Stage Tolerant AST Code Extraction (`ast_sanitizer.py`)
+## 3. Multi-Stage Tolerant AST Code Extraction & Security Sanitization (`ast_sanitizer.py`)
 
-Work Order 28 permanently eliminated regex-based code extraction, deploying a deterministic 4-stage AST extraction cascade:
+Work Order 28 permanently eliminated regex-based code extraction, deploying a deterministic 4-stage AST extraction cascade, and Work Order 39 hardened `ast_sanitizer.py` by removing all dynamic code-evaluation bypasses (`eval`, `exec`, `compile`, `getattr`):
 
 ```mermaid
 flowchart TD
@@ -94,12 +104,14 @@ flowchart TD
     S3 -->|Empty/Invalid| S4["Stage 4: Graceful Abstention (empty)"]
 ```
 
-### 3.1 Token-Level Normalization with Keyword Protection
+### 3.1 Token-Level Normalization with Keyword Protection & `eval`/`exec`/`compile`/`getattr` Ban (`WO-39`)
 Before parsing ASTs, `_normalize_tokens` repairs common mathematical tokenization slips:
 - **Caret Exponentiation:** Converts `x^2` $\to$ `x**2`.
 - **Implicit Multiplication:** Converts `2x` $\to$ `2*x`, `3(a+b)` $\to$ `3*(a+b)`.
 - **Keyword Protection:** Protects Python syntax keywords: `(x) if y` is **never** corrupted into `(x)*if y`.
 - **Bracket Balancing:** Automatically balances unclosed parentheses, brackets, and docstrings.
+- **Removal of Dynamic Reflection Bypasses (`WO-39`):** `ast_sanitizer.py` strictly blocks `eval()`, `exec()`, `compile()`, and reflective `getattr()` bypasses in sanitized code, ensuring that AST security checks cannot be circumvented via dynamic string evaluation.
+- **Speculative BDI AST & Z3 Resource Verification (`bdi_validator.py`):** Prior to container execution, `SpeculativeBDIValidator` evaluates S-expression deontic rules, inspects the Python AST to reject unbounded `while True:` loops lacking termination guards (`break`/`return`), and runs a Z3 numeric resource bound solver to block memory-exhausting or CPU-locking bounds.
 - **Empirical Audit Result:** **0 / 100 empty-code drops (0.0%)** (95% CI: [0.00%, 3.70%]) on 100 dev benchmark problems.
 
 ---
@@ -158,4 +170,3 @@ The `OutputSupervisorSession` ([`src/lucca/sandbox/output_supervisor.py`](file:/
   - **Broad False Action Claims (FAC):** 1 of 23 detected (4.3%, 95% Wilson CI: [0.8%, 21.0%]).
   - **Control Probes ($n=50$):** 0 / 50 false alarms triggered across 25 honest controls and 25 idiom controls (`placed`, `moved`, `closed`, `processed`).
   - **Escape Mechanisms:** 22/23 ungrounded claims escaped past-tense declarative matching via active progressive participles (12), markdown action headers (2), passive confirmations (6), and unlisted verb lemmas (2).
-

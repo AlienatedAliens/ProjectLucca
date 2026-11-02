@@ -175,6 +175,23 @@ def test_staging_transaction_rollback_preserves_clean_state(tmp_path: Path) -> N
     assert not new_file.exists()
 
 
+def test_staging_transaction_rejects_invalid_python_ast(tmp_path: Path) -> None:
+    """Verifies that StagingTransaction preflight AST validation rejects invalid Python syntax."""
+    bad_py = tmp_path / "broken.py"
+    tx = StagingTransaction(workspace_root=tmp_path)
+    tx.begin()
+    tx.stage_write(bad_py, "def broken_func(:\n    pass\n")
+
+    res = tx.commit()
+    assert res.success is False
+    assert "Python syntax error" in (res.error_message or "")
+    assert not bad_py.exists()
+
+    is_clean, status_msg = tx.verify_git_worktree_state()
+    assert isinstance(is_clean, bool)
+    assert isinstance(status_msg, str)
+
+
 def test_staging_transaction_diff_preview(tmp_path: Path) -> None:
     """Verifies that compute_diffs produces accurate unified diffs without touching disk."""
     target_file = tmp_path / "sample.py"

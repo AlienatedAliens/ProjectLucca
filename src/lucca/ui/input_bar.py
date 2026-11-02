@@ -31,12 +31,16 @@ class QuickChatBar(QWidget):
         parent: QWidget | None = None,
         on_send_text: Callable[[str], None] | None = None,
         on_send_message: Callable[[str, str | None], None] | None = None,
+        on_image_attached: Callable[[str], None] | None = None,
+        on_image_cleared: Callable[[], None] | None = None,
         on_ptt_press: Callable[[], None] | None = None,
         on_ptt_release: Callable[[], None] | None = None,
     ) -> None:
         super().__init__(parent)
         self.on_send_text = on_send_text
         self.on_send_message = on_send_message
+        self.on_image_attached = on_image_attached
+        self.on_image_cleared = on_image_cleared
         self.on_ptt_press = on_ptt_press
         self.on_ptt_release = on_ptt_release
 
@@ -65,17 +69,17 @@ class QuickChatBar(QWidget):
         self.btn_camera.setToolTip("Capture active screen / attach image to prompt")
         self.btn_camera.setStyleSheet("""
             QPushButton {
-                background-color: #1a2860;
+                background-color: #4a3a24;
                 color: #ffd700;
-                border: 1px solid #4a62a8;
+                border: 1px solid #2a1e10;
                 border-radius: 5px;
                 padding: 5px 8px;
                 font-size: 13px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #243884;
-                border-color: #ffd700;
+                background-color: #5c4830;
+                border-color: #42c8e0;
             }
         """)
         self.btn_camera.clicked.connect(self._on_capture_screen)
@@ -110,16 +114,16 @@ class QuickChatBar(QWidget):
         self.input_field.setFont(QFont("Segoe UI", 10))
         self.input_field.setStyleSheet("""
             QLineEdit {
-                background-color: #0c1432;
-                color: #ffffff;
-                border: 1px solid #314278;
+                background-color: #3c2e1c;
+                color: #d4c8b0;
+                border: 1.5px solid #2a1e10;
                 border-radius: 5px;
                 padding: 5px 10px;
-                selection-background-color: #ffd700;
-                selection-color: #000000;
+                selection-background-color: #42c8e0;
+                selection-color: #ffffff;
             }
             QLineEdit:focus {
-                border: 1px solid #ffd700;
+                border: 1.5px solid #42c8e0;
             }
         """)
         self.input_field.returnPressed.connect(self._handle_submit)
@@ -130,18 +134,18 @@ class QuickChatBar(QWidget):
         self.btn_send.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
         self.btn_send.setStyleSheet("""
             QPushButton {
-                background-color: #ffd700;
-                color: #081036;
-                border: 1px solid #ffffff;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4eb8a0, stop:0.5 #3a9a84, stop:1 #2e8872);
+                color: #ffffff;
+                border: 1.5px solid #1e5e4e;
                 border-radius: 5px;
                 padding: 5px 12px;
-                font-weight: 900;
+                font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #ffe44d;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #5fc9b1, stop:0.5 #4bab95, stop:1 #3f9983);
             }
             QPushButton:pressed {
-                background-color: #e6c200;
+                background: #1e5e4e;
             }
         """)
         self.btn_send.clicked.connect(self._handle_submit)
@@ -152,17 +156,17 @@ class QuickChatBar(QWidget):
         self.btn_talk.setToolTip("Click to talk (Toggle recording)")
         self.btn_talk.setStyleSheet("""
             QPushButton {
-                background-color: #1a2860;
-                color: #58d68d;
-                border: 1px solid #4a62a8;
+                background-color: #5a4630;
+                color: #d4c8b0;
+                border: 1.5px solid #2a1e10;
                 border-radius: 5px;
                 padding: 5px 9px;
                 font-size: 13px;
                 font-weight: bold;
             }
             QPushButton:hover {
-                background-color: #243884;
-                border-color: #ffd700;
+                background-color: #6a5540;
+                border-color: #42c8e0;
             }
         """)
         self.btn_talk.clicked.connect(self._toggle_talk)
@@ -240,6 +244,8 @@ class QuickChatBar(QWidget):
             self.btn_chip.show()
             self.input_field.setPlaceholderText("Ask Lucca about this screen, or hit Send...")
             self.input_field.setFocus()
+            if self.on_image_attached:
+                self.on_image_attached(b64)
         except Exception as exc:  # noqa: BLE001
             logger.debug("chat_bar_screen_capture_failed", error=str(exc))
 
@@ -247,6 +253,8 @@ class QuickChatBar(QWidget):
         self.attached_image_b64 = None
         self.btn_chip.hide()
         self.input_field.setPlaceholderText("Message Lucca or press 🎙️ to talk...")
+        if self.on_image_cleared:
+            self.on_image_cleared()
 
     def _handle_submit(self) -> None:
         text = self.input_field.text().strip()
@@ -255,7 +263,9 @@ class QuickChatBar(QWidget):
             return
         if not text and img:
             text = "Describe what you see on my screen."
-        self._clear_attached_image()
+        self.attached_image_b64 = None
+        self.btn_chip.hide()
+        self.input_field.setPlaceholderText("Message Lucca or press 🎙️ to talk...")
         self.input_field.clear()
         if self.on_send_message:
             self.on_send_message(text, img)
@@ -282,8 +292,20 @@ class QuickChatBar(QWidget):
             self.show()
             self.input_field.setFocus()
 
-    def anchor_to(self, sprite_geometry: QRect | QRectF | None) -> None:
-        """Reposition input bar directly beneath the companion sprite."""
+    def anchor_to(
+        self,
+        sprite_geometry: QRect | QRectF | None,
+        bubble_geometry: QRect | QRectF | None = None,
+    ) -> None:
+        """Reposition input bar directly beneath the speech bubble (or companion sprite if bubble not visible)."""
+        if bubble_geometry is not None:
+            bx = int(bubble_geometry.x())
+            by = int(bubble_geometry.y())
+            bh = int(bubble_geometry.height())
+            # Snap flush directly below speech bubble
+            self.move(bx, by + bh - 2)
+            return
+
         if sprite_geometry is None:
             return
 
@@ -308,7 +330,7 @@ class QuickChatBar(QWidget):
         h = float(self.height())
 
         # Dark container background
-        bg_color = QColor("#181825")
+        bg_color = QColor("#4e3c24")
         bg_color.setAlpha(245)
 
         path = QPainterPath()
@@ -322,5 +344,5 @@ class QuickChatBar(QWidget):
 
         # Fill & border
         painter.setBrush(bg_color)
-        painter.setPen(QPen(QColor("#45475a"), 1.2))
+        painter.setPen(QPen(QColor("#2a1c0e"), 1.5))
         painter.drawPath(path)

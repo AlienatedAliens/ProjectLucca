@@ -579,11 +579,23 @@ def extract_holes_from_ast(node: SchemeNode) -> list[tuple[str, str | None]]:
     return unique_holes
 
 
+def _has_directional_axis_binding(node: SchemeNode, binding: dict[str, SchemeValue]) -> bool:
+    """Checks whether the sketch or binding explicitly specifies a single directional axis."""
+    for k, v in binding.items():
+        if "axis" in k.lower() and str(v).lstrip(":").lower() in ("h", "horizontal", "v", "vertical"):
+            return True
+    if isinstance(node, list) and node and isinstance(node[0], Symbol):
+        if node[0].name in ("flip-h", "flip-v", "order-columns-by-height"):
+            return True
+    return False
+
+
 def enumerate_sketch_bindings(
     sketch: SchemeNode | str,
     train_pairs: list[dict[str, list[list[int]]]],
     max_candidates: int = 200,
     macro_registry: MacroRegistry | None = None,
+    enforce_metamorphic: bool | None = None,
 ) -> tuple[dict[str, SchemeValue] | None, int]:
     """
     Given a MicroScheme sketch with typed parameter holes and training demonstrations,
@@ -640,7 +652,21 @@ def enumerate_sketch_bindings(
         def _candidate_fn(g: list[list[int]], cur_b: dict[str, SchemeValue] = res.best_binding) -> list[list[int]]:
             return evaluate_spatial_sketch(node, g, hole_bindings=cur_b, macro_registry=effective_macros)
 
-        is_inv, _ = check_metamorphic_invariance(_candidate_fn, train_pairs)
+        is_inv, inv_reason = check_metamorphic_invariance(_candidate_fn, train_pairs)
+        if not is_inv:
+            logger.debug(
+                "spatial_sketch_metamorphic_violation",
+                reason=inv_reason,
+                binding=res.best_binding,
+            )
+            must_enforce = (
+                enforce_metamorphic
+                if enforce_metamorphic is not None
+                else not _has_directional_axis_binding(node, res.best_binding)
+            )
+            if must_enforce:
+                return (None, res.evaluated_count)
+
         return (res.best_binding, res.evaluated_count)
 
     return (None, res.evaluated_count)

@@ -152,7 +152,7 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "run_python": ToolSchema(
             name="run_python",
-            description="Execute deterministic Python code in an isolated sandbox with numpy, scipy (scipy.spatial, scipy.integrate, scipy.optimize), sympy, and z3 installed. For 3D kinematics/navigation, use right-handed frames (North=+y, East=+x, Up=+z; 90° CW turn from North points East toward +x).",
+            description="Execute deterministic Python code in an isolated sandbox with numpy, scipy, sympy, and z3 installed.",
             parameters={
                 "code": ToolParameter(
                     type="string", description="Python code to execute", required=True
@@ -276,9 +276,9 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             name="run_python_async",
             description=(
                 "Start a long-running Python script in the background and return "
-                "immediately with a task ID. Check progress later with "
-                "get_task_status. Use for benchmarks, batch jobs, or anything "
-                "that would block the conversation."
+                "immediately with a task ID. Use for benchmarks, batch jobs, or "
+                "anything that would block the conversation."
+
             ),
             parameters={
                 "code": ToolParameter(
@@ -586,10 +586,10 @@ class CapabilityRegistry:
             "workspace": str(workspace_root),
             "memory_subsystem": "SQLite-vec episodic & semantic memory (data/memory.sqlite)",
             "hardware_substrates": {
-                "dGPU": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB) - LLM llama-server",
-                "NPU": "Intel AI Boost NPU (OpenVINO) - Whisper ASR & 384-D vector embeddings",
-                "CPU": "Core Ultra 9 275HX - Orchestrator, ZeroMQ IPC, Kokoro TTS",
-                "RAM": "16 GB Physical Host Memory",
+                "dGPU": "NVIDIA CUDA dGPU - LLM llama-server",
+                "NPU": "Intel AI Boost NPU (OpenVINO) - 384-D vector embeddings",
+                "CPU": "Host Multi-Core CPU - Orchestrator, ZeroMQ IPC, Kokoro TTS",
+                "RAM": "Physical Host Memory",
             },
         }
 
@@ -639,6 +639,35 @@ def dispatch_invoke_skill(
             )
 
     return True, f"Skill '{skill_id}' dispatched", {"skill_id": skill_id, "args": args}
+
+
+def verify_postcondition(
+    postcondition: str,
+    tool_result: object,
+    workspace_root: Path | None = None,
+) -> bool:
+    """Verifies a tool postcondition against actual tool execution status and workspace state.
+    Never auto-passes on error substrings such as 'already exists'."""
+    ok = bool(getattr(tool_result, "ok", False))
+    exit_code = int(getattr(tool_result, "exit_code", 0 if ok else 1))
+    if not ok or exit_code != 0:
+        return False
+
+    post_clean = postcondition.strip()
+    if not post_clean:
+        return True
+
+    if post_clean.startswith("file_exists:") and workspace_root is not None:
+        rel = post_clean.split(":", 1)[1].strip()
+        target = (workspace_root / rel).resolve()
+        return target.exists()
+
+    content = str(getattr(tool_result, "content", "") or "")
+    if post_clean.startswith("output_contains:"):
+        needle = post_clean.split(":", 1)[1].strip()
+        return needle in content
+
+    return True
 
 
 # Singleton instance

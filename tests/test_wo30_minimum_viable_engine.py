@@ -283,7 +283,12 @@ def test_dreamcoder_miner_extracts_macro(lifecycle_mgr, registered_tools):
 # ==============================================================================
 
 
-def test_gate_g_wo30_plumb(lifecycle_mgr, registered_tools):
+def test_gate_g_wo30_plumb(
+    lifecycle_mgr,
+    registered_tools,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
     """
     Enforces all 4 criteria of G-WO30-PLUMB:
     1. Quarantine Admission: >= 1 mined macro successfully reaches QUARANTINE.
@@ -291,6 +296,9 @@ def test_gate_g_wo30_plumb(lifecycle_mgr, registered_tools):
     3. Negative Bound Test: Synthetic over-depth candidate (depth > 8 or steps > 64) is rejected.
     4. IN-D Grader Progress: Personhood IN-D learned-skill metric advances to MEASURED.
     """
+    import lucca.evaluation.in_d_grader as in_d_mod
+
+    monkeypatch.setattr(in_d_mod, "REPORT_DIR", tmp_path / "personhood")
     # 1. Quarantine Admission
     miner = DreamCoderMacroMiner(
         rule_lifecycle=lifecycle_mgr,
@@ -365,13 +373,13 @@ BUCKET_C_REASONING_ITEMS: Final[list[dict[str, str]]] = [
     {"idx": "30", "expected": "\\frac{3840}{289}", "pred": "13.2871972318339", "expr": "(/ (* 12 320) (* 17 17))"},
     {"idx": "37", "expected": "64", "pred": "", "expr": "(* 8 8)"},
     {"idx": "39", "expected": "\\frac{1}{3}", "pred": "1/6", "expr": "(/ 1 3)"},
-    {"idx": "55", "expected": "2\\sqrt{113}", "pred": "11", "expr": "(* 2 113)"},
-    {"idx": "65", "expected": "-\\sqrt{3}", "pred": "-tan(4*pi/9)...", "expr": "(- 0 3)"},
+    {"idx": "55", "expected": "2\\sqrt{113}", "pred": "11", "expr": "(* 2 (pow 113 (/ 1 2)))"},
+    {"idx": "65", "expected": "-\\sqrt{3}", "pred": "-tan(4*pi/9)...", "expr": "(- 0 (pow 3 (/ 1 2)))"},
     {"idx": "67", "expected": "\\frac{270}7", "pred": "45", "expr": "(/ 270 7)"},
     {"idx": "69", "expected": "19", "pred": "9", "expr": "(+ 10 9)"},
     {"idx": "74", "expected": "4", "pred": "16", "expr": "(+ 2 2)"},
     {"idx": "80", "expected": "5x - 7y + 11z + 4 = 0", "pred": "5x + -7y...", "expr": "(+ 4 (* 5 x))"},
-    {"idx": "82", "expected": "\\frac{\\sqrt{3}}{3}", "pred": "0.577350269189626", "expr": "(/ 3 3)"},
+    {"idx": "82", "expected": "\\frac{\\sqrt{3}}{3}", "pred": "0.577350269189626", "expr": "(/ (pow 3 (/ 1 2)) 3)"},
     {"idx": "84", "expected": "23", "pred": "13", "expr": "(+ 13 10)"},
     {"idx": "85", "expected": "(2,\\infty)", "pred": "2 < infinity", "expr": "(> x 2)"},
     {"idx": "103", "expected": "\\frac{2}{3}", "pred": "0.666666666666667", "expr": "(/ 2 3)"},
@@ -382,21 +390,21 @@ BUCKET_C_REASONING_ITEMS: Final[list[dict[str, str]]] = [
     {"idx": "158", "expected": "864", "pred": "72*12**(1/3)", "expr": "(* 72 12)"},
     {"idx": "165", "expected": "1\\frac{4}{5}", "pred": "0", "expr": "(+ 1 (/ 4 5))"},
     {"idx": "168", "expected": "180^\\circ", "pred": "150", "expr": "(+ 150 30)"},
-    {"idx": "173", "expected": "3 \\pm 2 \\sqrt{2}", "pred": "2*sqrt(2)+3...", "expr": "(list (+ 3 (* 2 2)) (- 3 (* 2 2)))"},
+    {"idx": "173", "expected": "3 \\pm 2 \\sqrt{2}", "pred": "2*sqrt(2)+3...", "expr": "(list (+ 3 (* 2 (pow 2 (/ 1 2)))) (- 3 (* 2 (pow 2 (/ 1 2)))))"},
     {"idx": "187", "expected": "\\frac{17}{21}", "pred": "3", "expr": "(/ 17 21)"},
     {"idx": "191", "expected": "4", "pred": "7/2", "expr": "(+ (/ 7 2) (/ 1 2))"},
     {"idx": "194", "expected": "(3/5, 8/3)", "pred": "Interval(3/5, 8/3)", "expr": "(list (/ 3 5) (/ 8 3))"},
     {"idx": "206", "expected": "\\frac9{19}", "pred": "0.473684210526316", "expr": "(/ 9 19)"},
-    {"idx": "209", "expected": "1+2\\sqrt{3}", "pred": "1.0 + 3*sqrt(3)", "expr": "(+ 1 (* 2 3))"},
+    {"idx": "209", "expected": "1+2\\sqrt{3}", "pred": "1.0 + 3*sqrt(3)", "expr": "(+ 1 (* 2 (pow 3 (/ 1 2))))"},
     {"idx": "220", "expected": "-128", "pred": "1", "expr": "(- 0 128)"},
     {"idx": "225", "expected": "120", "pred": "150", "expr": "(- 150 30)"},
     {"idx": "227", "expected": "\\frac{9}{100}", "pred": "-9/100", "expr": "(/ 9 100)"},
     {"idx": "229", "expected": "3", "pred": "0", "expr": "(+ 0 3)"},
-    {"idx": "262", "expected": "16 \\sqrt{3}", "pred": "-16*sqrt(3)", "expr": "(* 16 3)"},
+    {"idx": "262", "expected": "16 \\sqrt{3}", "pred": "-16*sqrt(3)", "expr": "(* 16 (pow 3 (/ 1 2)))"},
     {"idx": "280", "expected": "12", "pred": "12th", "expr": "(- 12 0)"},
     {"idx": "281", "expected": "(0,9) \\cup (9,36)", "pred": "Interval(0, 36)", "expr": "(list 0 9 36)"},
     {"idx": "284", "expected": "[-2,7]", "pred": "Interval(-2, 7)", "expr": "(list -2 7)"},
-    {"idx": "290", "expected": "\\frac{\\sqrt{21}}{5}", "pred": "0.916515138991168", "expr": "(/ 21 5)"},
+    {"idx": "290", "expected": "\\frac{\\sqrt{21}}{5}", "pred": "0.916515138991168", "expr": "(/ (pow 21 (/ 1 2)) 5)"},
     {"idx": "301", "expected": "\\frac{14}{3}", "pred": "-56*sqrt...", "expr": "(/ 14 3)"},
     {"idx": "332", "expected": "[\\pi^2/8, 5\\pi^2/8]", "pred": "Interval...", "expr": "(list 8 40)"},
     {"idx": "346", "expected": "15", "pred": "0.0", "expr": "(+ 0 15)"},
@@ -405,7 +413,7 @@ BUCKET_C_REASONING_ITEMS: Final[list[dict[str, str]]] = [
 ]
 
 
-def test_gate_g_wo30_utility_shadow_mode(lifecycle_mgr, registered_tools):
+def test_gate_g_wo30_utility_shadow_mode(lifecycle_mgr, registered_tools, tmp_path: Path):
     """
     Enforces G-WO30-UTIL:
     1. In quarantine shadow mode, >= 1 mined macro reduces the idiomaticity cost
@@ -464,7 +472,7 @@ def test_gate_g_wo30_utility_shadow_mode(lifecycle_mgr, registered_tools):
         "mined_candidate": candidate.model_dump(),
     }
 
-    report_dir = Path("logs/test_reports")
+    report_dir = tmp_path / "test_reports"
     report_dir.mkdir(parents=True, exist_ok=True)
     report_path = report_dir / "wo30_utility_gate_report.json"
     report_path.write_text(json.dumps(report_artifact, indent=2), encoding="utf-8")

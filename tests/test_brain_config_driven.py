@@ -144,6 +144,21 @@ def test_launch_command_has_no_model_name_sniffing(tmp_path: Path) -> None:
     assert strip(a) == strip(b)
 
 
+def test_launch_command_includes_ubatch_and_moe_cache(tmp_path: Path) -> None:
+    home = _home_with_server(tmp_path)
+    cfg = LLMSettings(
+        model="llm/anything.gguf",
+        ubatch=1024,
+        moe_expert_cache_mib=7680,
+    )
+    cmd = build_launch_command(cfg, home)
+    assert "-ub" in cmd
+    assert cmd[cmd.index("-ub") + 1] == "1024"
+    assert "--moe-cache-mib" in cmd
+    assert cmd[cmd.index("--moe-cache-mib") + 1] == "7680"
+
+
+
 # ------------------------------------------------------------------------ llm_client
 
 

@@ -11,9 +11,11 @@ Invariants:
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import time
+import urllib.request
 from pathlib import Path
 from typing import Final
 
@@ -29,6 +31,29 @@ from lucca.reasoning.stats import wilson_score_interval  # noqa: E402
 
 REPORT_DIR: Final[Path] = root_dir / "logs" / "test_reports" / "personhood"
 PROBES_FILE: Final[Path] = root_dir / "data" / "benchmarks" / "personhood" / "in_probes.json"
+DEFAULT_SERVER_URL: Final[str] = "http://127.0.0.1:8080/v1/chat/completions"
+
+
+def _query_live_llm(server_url: str, system_prompt: str, user_prompt: str) -> str:
+    payload = json.dumps(
+        {
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": 0.0,
+            "max_tokens": 256,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        server_url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30.0) as resp:
+        body = json.loads(resp.read().decode("utf-8"))
+        return str(body["choices"][0]["message"]["content"])
 
 
 class StratumResult(BaseModel):
@@ -46,14 +71,18 @@ class BatteryINReport(BaseModel):
     as_of: str
     battery: str = "IN"
     version: str = "SPEC-PERSONHOOD-v1.0"
-    status: str = "MEASURED"
+    status: str = "SCHEMA_FIXTURE_VALIDATION_ONLY (NOT A LIVE MODEL EVALUATION)"
     strata: dict[str, StratumResult] = Field(default_factory=dict)
     in_d_metric: INDGraderReport
     composite_mean_rate: float
     grader_version: str = "1.0.0"
 
 
-def grade_battery_in(db: DatabaseManager | None = None) -> BatteryINReport:
+def grade_battery_in(
+    db: DatabaseManager | None = None,
+    live: bool = False,
+    server_url: str = DEFAULT_SERVER_URL,
+) -> BatteryINReport:
     assert PROBES_FILE.exists(), f"Missing probe set: {PROBES_FILE}"
     probes: list[dict[str, JsonValue]] = json.loads(PROBES_FILE.read_text(encoding="utf-8"))
 
@@ -68,12 +97,29 @@ def grade_battery_in(db: DatabaseManager | None = None) -> BatteryINReport:
     in_a_passed = 0
     for p in stratum_probes.get("IN-A", []):
         if p["seeded"]:
-            expected_sub = p["expected_substring"]
-            seed_fact = p["seed_fact"]
-            ok = expected_sub.lower() in seed_fact.lower()
+            expected_sub = str(p["expected_substring"])
+            seed_fact = str(p["seed_fact"])
+            if live:
+                resp_text = _query_live_llm(
+                    server_url,
+                    f"You are Lucca. Memory: {seed_fact}",
+                    str(p["probe"]),
+                )
+                ok = expected_sub.lower() in resp_text.lower()
+            else:
+                ok = expected_sub.lower() in seed_fact.lower()
         else:
             # Control unseeded: verify probe has abstain expectation
-            ok = p.get("expected_mode") == "abstain" and len(p.get("forbidden_fabrication", [])) > 0
+            if live:
+                resp_text = _query_live_llm(
+                    server_url,
+                    "You are Lucca. Do not fabricate unseeded personal facts.",
+                    str(p["probe"]),
+                )
+                forbidden = p.get("forbidden_fabrication", [])
+                ok = not any(str(f).lower() in resp_text.lower() for f in forbidden)
+            else:
+                ok = p.get("expected_mode") == "abstain" and len(p.get("forbidden_fabrication", [])) > 0
         if ok:
             in_a_passed += 1
         in_a_details.append(
@@ -165,9 +211,15 @@ def grade_battery_in(db: DatabaseManager | None = None) -> BatteryINReport:
     in_d_report = grade_in_d(db=db)
 
     composite_mean = sum(s.rate for s in strata_results.values()) / len(strata_results)
+    report_status = (
+        "MEASURED_LIVE"
+        if live
+        else "SCHEMA_FIXTURE_VALIDATION_ONLY (NOT A LIVE MODEL EVALUATION)"
+    )
 
     return BatteryINReport(
         as_of=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        status=report_status,
         strata=strata_results,
         in_d_metric=in_d_report,
         composite_mean_rate=composite_mean,
@@ -187,10 +239,15 @@ def save_in_report(report: BatteryINReport) -> Path:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Grade Personhood Battery IN")
+    parser.add_argument("--live", action="store_true", help="Run probes against live LLM endpoint")
+    parser.add_argument("--server-url", default=DEFAULT_SERVER_URL, help="Live LLM completions URL")
+    args = parser.parse_args()
+
     db_path = root_dir / "data" / "lucca.sqlite"
     db = DatabaseManager(db_path) if db_path.exists() else None
 
-    report = grade_battery_in(db=db)
+    report = grade_battery_in(db=db, live=args.live, server_url=args.server_url)
     out_file = save_in_report(report)
     print(f"Battery IN report saved to: {out_file}")
     for k, s in report.strata.items():

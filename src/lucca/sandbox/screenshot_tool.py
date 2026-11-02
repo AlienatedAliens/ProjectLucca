@@ -11,8 +11,14 @@ the confirmation gate in orchestrator._handle_screenshot_capture().
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import io
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
 
 import structlog
 
@@ -135,3 +141,146 @@ def capture_screenshot(
 
     b64 = base64.b64encode(jpeg_bytes).decode("ascii")
     return b64, final_width, final_height
+
+
+def _extract_winrt_ocr_text(png_path: Path) -> str:
+    """
+    Runs Windows 11 native WinRT Windows.Media.Ocr.OcrEngine text extraction on a local PNG file.
+    Attempts in-process winrt/winsdk bindings first, then native Windows.Media.Ocr.OcrEngine WinRT bridge.
+    """
+    # 1. Try in-process winrt / winsdk bindings if installed
+    try:
+        from winsdk.windows.graphics.imaging import BitmapDecoder  # type: ignore[import-not-found]
+        from winsdk.windows.media.ocr import OcrEngine  # type: ignore[import-not-found]
+        from winsdk.windows.storage import FileAccessMode, StorageFile  # type: ignore[import-not-found]
+
+        async def _run_winsdk() -> str:
+            s_file = await StorageFile.get_file_from_path_async(str(png_path))
+            stream = await s_file.open_async(FileAccessMode.READ)
+            decoder = await BitmapDecoder.create_async(stream)
+            bitmap = await decoder.get_software_bitmap_async()
+            engine = OcrEngine.try_create_from_user_profile_languages()
+            if engine is None:
+                return ""
+            res = await engine.recognize_async(bitmap)
+            return str(res.text or "").strip()
+
+        return asyncio.run(_run_winsdk())
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ocr_winsdk_inproc_unavailable", error=str(exc))
+
+    # 2. Native Windows 11 WinRT Windows.Media.Ocr.OcrEngine bridge
+    if sys.platform != "win32":
+        return ""
+
+    ps_exe = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+    if not os.path.exists(ps_exe):
+        return ""
+
+    escaped_path = str(png_path.resolve()).replace("'", "''")
+    winrt_script = (
+        "Add-Type -AssemblyName System.Runtime.WindowsRuntime; "
+        "$null = [Windows.Storage.StorageFile, Windows.Storage, ContentType=WindowsRuntime]; "
+        "$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType=WindowsRuntime]; "
+        "$null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics, ContentType=WindowsRuntime]; "
+        "$asTaskGeneric = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { "
+        "$_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and "
+        "$_.GetParameters()[0].ParameterType.Name -like 'IAsyncOperation*' })[0]; "
+        "function Await($v, $t) { "
+        "$m = $asTaskGeneric.MakeGenericMethod($t); "
+        "$task = $m.Invoke($null, @($v)); "
+        "$task.Wait(-1) | Out-Null; "
+        "$task.Result "
+        "}; "
+        f"$file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync('{escaped_path}')) ([Windows.Storage.StorageFile]); "
+        "$stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream]); "
+        "$dec = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder]); "
+        "$bmp = Await ($dec.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap]); "
+        "$eng = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages(); "
+        "$res = Await ($eng.RecognizeAsync($bmp)) ([Windows.Media.Ocr.OcrResult]); "
+        "Write-Output $res.Text; "
+        "$stream.Dispose()"
+    )
+    try:
+        proc = subprocess.run(  # noqa: S603
+            [ps_exe, "-NoProfile", "-NonInteractive", "-Command", winrt_script],
+            capture_output=True,
+            text=True,
+            timeout=10.0,
+            check=False,
+        )
+        if proc.returncode == 0 and proc.stdout:
+            return proc.stdout.strip()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ocr_winrt_bridge_failed", error=str(exc))
+    return ""
+
+
+def extract_ocr_from_image(raw_bytes: bytes | str) -> str:
+    """
+    Extracts text from an image on CPU using Windows 11 WinRT Windows.Media.Ocr.OcrEngine (Milestone 36.4).
+    Used as sovereign sight fallback when multimodal vision projector (mmproj) is None.
+    """
+    if isinstance(raw_bytes, str):
+        try:
+            image_data = base64.b64decode(raw_bytes)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("ocr_b64decode_failed_fallback_encode", error=str(exc))
+            image_data = raw_bytes.encode("utf-8")
+    else:
+        image_data = raw_bytes
+
+    try:
+        from PIL import Image
+
+        img = Image.open(io.BytesIO(image_data)).convert("RGB")
+        w, h = img.size
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ocr_image_open_failed", error=str(exc))
+        return "[OCR CPU Fallback: invalid image bytes]"
+
+    # 1. Windows 11 WinRT Windows.Media.Ocr.OcrEngine extraction
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tf:
+            tmp_path = Path(tf.name)
+        img.save(tmp_path, format="PNG")
+        extracted = _extract_winrt_ocr_text(tmp_path)
+        if extracted:
+            return f"[OCR CPU Fallback ({w}x{h}): {extracted}]"
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ocr_winrt_extraction_failed", error=str(exc))
+    finally:
+        if tmp_path is not None and tmp_path.exists():
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError as unlink_err:
+                logger.debug("ocr_tmp_unlink_failed", error=str(unlink_err))
+
+    # 2. Attempt pytesseract if available on non-Windows or when WinRT returns empty
+    try:
+        import pytesseract  # type: ignore[import-not-found]
+
+        text = str(pytesseract.image_to_string(img) or "").strip()
+        if text:
+            return f"[OCR CPU Fallback ({w}x{h}): {text}]"
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("ocr_pytesseract_unavailable", error=str(exc))
+
+    return f"[OCR CPU Fallback ({w}x{h}): no text detected]"
+
+
+def capture_screenshot_with_ocr_fallback(
+    max_width: int = MAX_WIDTH_PX,
+    quality: int = 75,
+    mmproj: object | None = None,
+) -> tuple[str, int, int, str | None]:
+    """
+    Captures primary display with automatic CPU OCR fallback when mmproj is None.
+    Returns: (b64_string, width, height, ocr_text_or_none)
+    """
+    b64, w, h = capture_screenshot(max_width=max_width, quality=quality)
+    ocr_text = None
+    if mmproj is None:
+        ocr_text = extract_ocr_from_image(b64)
+    return b64, w, h, ocr_text

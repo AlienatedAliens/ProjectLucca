@@ -95,10 +95,11 @@ class MemoryTab(QWidget):
         h_toolbar = QHBoxLayout()
         h_toolbar.addWidget(QLabel("Category Filter:", grp_filter))
         self.combo_mem_kind = QComboBox(grp_filter)
-        self.combo_mem_kind.addItem("All Categories", "")
-        self.combo_mem_kind.addItem("Episodic Conversation Turns", "episodic")
         self.combo_mem_kind.addItem("Semantic Facts & Knowledge", "fact")
+        self.combo_mem_kind.addItem("Episodic Conversation Turns (Chat Log)", "episodic")
+        self.combo_mem_kind.addItem("Tool & Action Receipts (Audit Trail)", "action_receipt")
         self.combo_mem_kind.addItem("User Preferences", "preference")
+        self.combo_mem_kind.addItem("All Raw Records (Unfiltered)", "")
         self.combo_mem_kind.currentIndexChanged.connect(self._refresh_memories)
         h_toolbar.addWidget(self.combo_mem_kind)
 
@@ -358,7 +359,24 @@ class MemoryTab(QWidget):
 
         try:
             mems = self.facade.list_memories(search=search)
-            if kind_filter:
+            if kind_filter == "episodic":
+                mems = [
+                    m
+                    for m in mems
+                    if m.get("kind") in ("episodic", "transcript", "assistant_utterance")
+                    or m.get("provenance") in ("USER_EXPLICIT", "ASSISTANT_UTTERANCE")
+                ]
+            elif kind_filter == "fact":
+                mems = [
+                    m
+                    for m in mems
+                    if m.get("provenance") in ("USER_DERIVED", "INFERRED", "LISP_ASSERTION")
+                    or (
+                        m.get("kind") == "fact"
+                        and float(m.get("importance", 0.5)) >= 0.75
+                    )
+                ]
+            elif kind_filter:
                 mems = [m for m in mems if m.get("kind") == kind_filter]
 
             self.table_mem.blockSignals(True)
@@ -368,10 +386,19 @@ class MemoryTab(QWidget):
                 self.table_mem.insertRow(row)
 
                 mid = str(m.get("memory_id", ""))
-                kind = str(m.get("kind", ""))
+                raw_kind = str(m.get("kind", ""))
                 content = str(m.get("content", ""))
-                imp = f"{float(m.get('importance', 0.8)):.2f}"
+                imp_val = float(m.get("importance", 0.5))
+                imp = f"{imp_val:.2f}"
                 prov = str(m.get("provenance", "USER_EXPLICIT"))
+                if prov == "USER_EXPLICIT" and raw_kind == "fact" and imp_val < 0.75:
+                    kind = "chat_turn (user)"
+                elif prov == "ASSISTANT_UTTERANCE":
+                    kind = "chat_turn (lucca)"
+                elif prov == "ASSISTANT_ACTION":
+                    kind = "tool_receipt"
+                else:
+                    kind = raw_kind
                 ts = datetime.fromtimestamp(float(m.get("created_at", time.time()))).strftime(
                     "%Y-%m-%d %H:%M"
                 )

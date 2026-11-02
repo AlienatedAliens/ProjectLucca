@@ -1,0 +1,12 @@
+root ::= "{" ws "\"num_houses\":" ws integer "," ws "\"categories\":" ws category-list "," ws "\"constraints\":" ws constraint-list ("," ws "\"query_entity\":" ws string)? ("," ws "\"query_category\":" ws string-list)? ws "}"
+category-list ::= "[" ws string-list ("," ws string-list)* ws "]"
+string-list ::= "[" ws string ("," ws string)* ws "]"
+constraint-list ::= "[" ws (constraint ("," ws constraint)*)? ws "]"
+constraint ::= same-constraint | pos-constraint | between-constraint
+same-constraint ::= "{" ws "\"rel\":" ws rel-binary "," ws "\"a\":" ws string "," ws "\"b\":" ws string ws "}"
+pos-constraint ::= "{" ws "\"rel\":" ws ("\"at_pos\"" | "\"not_at_pos\"") "," ws "\"a\":" ws string "," ws "\"pos\":" ws integer ws "}"
+between-constraint ::= "{" ws "\"rel\":" ws "\"between\"" "," ws "\"a\":" ws string "," ws "\"b\":" ws string "," ws "\"c\":" ws string ws "}"
+rel-binary ::= "\"same_house\"" | "\"different_house\"" | "\"left_of\"" | "\"right_of\"" | "\"immediately_left_of\"" | "\"immediately_right_of\"" | "\"adjacent\""
+integer ::= [1-9] [0-9]*
+string ::= "\"" ([^"\\] | "\\" (["\\/bfnrt] | "u" [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F] [0-9a-fA-F]))* "\""
+ws ::= [ \t\n\r]*

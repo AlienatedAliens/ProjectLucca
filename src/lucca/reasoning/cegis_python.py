@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 import json
 import re
 import time
-from typing import Final
+from typing import TYPE_CHECKING, Final
+import uuid
 
 import httpx
 import structlog
@@ -27,6 +28,9 @@ import structlog
 from lucca.sandbox.ast_sanitizer import sanitize_python_code
 from lucca.sandbox.preflight import extract_python_code
 from lucca.sandbox.rpc import DockerRPCTransport
+
+if TYPE_CHECKING:
+    from lucca.core.cognitive_sink import CognitiveOutcomeSink
 
 logger = structlog.get_logger(__name__)
 
@@ -97,13 +101,59 @@ class PythonCEGISEngine:
         max_turns: int = DEFAULT_MAX_TURNS,
         server_url: str = "http://127.0.0.1:8080/v1/chat/completions",
         num_candidates: int = 1,
+        outcome_sink: CognitiveOutcomeSink | None = None,
     ) -> None:
         self.container_name = container_name
         self.timeout_s = timeout_s
         self.max_turns = max_turns
         self.server_url = server_url
         self.num_candidates = num_candidates
+        self.outcome_sink = outcome_sink
         self._rpc: DockerRPCTransport | None = None
+
+    def _notify_outcome_sink(
+        self,
+        result: CEGISResult,
+        task_prompt: str,
+        task_id: str | None = None,
+        outcome_sink: CognitiveOutcomeSink | None = None,
+    ) -> None:
+        """Forwards CEGIS completion outcome to CognitiveOutcomeSink when configured (Milestone 36.1)."""
+        sink = outcome_sink or self.outcome_sink
+        if sink is None:
+            return
+        try:
+            tid = task_id or f"py-cegis-{uuid.uuid4().hex[:8]}"
+            turn_1_err: str | None = None
+            if result.traces and not result.traces[0].ok_exec:
+                t0_tr = result.traces[0]
+                turn_1_err = f"{t0_tr.error_type or 'Error'}: {t0_tr.error_message or t0_tr.stderr[:120]}"
+            turn_traces: list[dict[str, object]] = [
+                {
+                    "turn": tr.turn,
+                    "name": "initial_synthesis" if tr.turn == 1 else f"repair_turn_{tr.turn}",
+                    "summary": (
+                        f"ok_exec={tr.ok_exec}; out={tr.stdout[:60]}"
+                        if tr.ok_exec
+                        else f"error={tr.error_type or 'RuntimeError'}: {(tr.error_message or tr.stderr)[:80]}"
+                    ),
+                }
+                for tr in result.traces
+            ]
+            sink.record_cegis_outcome(
+                task_id=tid,
+                problem_summary=task_prompt.strip()[:160],
+                engine_name="PythonCEGISEngine",
+                success=result.success,
+                turns_taken=result.turns_taken,
+                final_code=result.final_code,
+                turn_1_error=turn_1_err,
+                verified_strategy=result.method,
+                turn_traces=turn_traces,
+                status_label=result.method,
+            )
+        except Exception as sink_err:  # noqa: BLE001
+            logger.debug("python_cegis_outcome_sink_failed", error=str(sink_err))
 
     @property
     def transport(self) -> DockerRPCTransport:
@@ -118,8 +168,7 @@ class PythonCEGISEngine:
             self._rpc = DockerRPCTransport(
                 container_name=self.container_name, use_direct_fallback=False
             )
-            if not self._rpc.is_container_running():
-                self._rpc.ensure_container_running()
+            self._rpc.ensure_container_running()
             # Warm up persistent worker
             try:
                 self._rpc.execute(
@@ -267,26 +316,51 @@ class PythonCEGISEngine:
                 pred = self._extract_output_pattern(stdout_val, output_pattern)
                 outputs.append((label, pred.strip(), code))
 
-        # Check dual-formulation agreement
-        if len(outputs) == 2 and outputs[0][1] == outputs[1][1] and outputs[0][1] != "":
+        # Check strict dual-formulation agreement
+        if (
+            len(outputs) == 2
+            and outputs[0][1].strip() == outputs[1][1].strip()
+            and outputs[0][1].strip() != ""
+        ):
+            agreed_out = outputs[0][1].strip()
             total_ms = (time.perf_counter() - t0) * 1000.0
             logger.info(
                 "cegis_checked_formalization_agreed",
-                agreed_output=outputs[0][1],
+                agreed_output=agreed_out,
                 elapsed_ms=total_ms,
             )
-            return CEGISResult(
+            res_agreed = CEGISResult(
                 success=True,
                 final_code=outputs[0][2],
-                predicted_output=outputs[0][1],
+                predicted_output=agreed_out,
                 turns_taken=2,
                 method="CHECKED_FORMALIZATION_AGREED",
                 failure_stage=None,
                 traces=traces,
                 total_elapsed_ms=total_ms,
             )
+            self._notify_outcome_sink(res_agreed, task_prompt)
+            return res_agreed
 
-        # Disagreement or execution failure -> escalate to parallel candidate sampling
+        # Record disagreement in trace if both executed with conflicting outputs
+        if len(outputs) == 2 and outputs[0][1].strip() != outputs[1][1].strip():
+            disagreement_msg = (
+                f"Symbolic output ({outputs[0][1].strip()!r}) disagreed with "
+                f"Brute-Force output ({outputs[1][1].strip()!r})"
+            )
+            last_tr = traces[-1]
+            traces[-1] = CEGISTrace(
+                turn=last_tr.turn,
+                code=last_tr.code,
+                ok_exec=last_tr.ok_exec,
+                stdout=last_tr.stdout,
+                stderr=last_tr.stderr,
+                error_type="DisagreementError",
+                error_message=disagreement_msg,
+                elapsed_ms=last_tr.elapsed_ms,
+            )
+
+        # Disagreement or execution failure -> escalate to parallel candidate sampling / repair
         logger.info(
             "cegis_checked_formalization_disagreed_escalating",
             outputs=[o[1] for o in outputs],
@@ -298,19 +372,20 @@ class PythonCEGISEngine:
         )
         if esc_res.success and esc_res.predicted_output and esc_res.predicted_output.strip():
             return esc_res
-        if len(outputs) == 1 and outputs[0][1]:
-            total_ms = (time.perf_counter() - t0) * 1000.0
-            return CEGISResult(
-                success=True,
-                final_code=outputs[0][2],
-                predicted_output=outputs[0][1],
-                turns_taken=len(traces) + esc_res.turns_taken,
-                method=f"CHECKED_FORMALIZATION_SINGLE_{outputs[0][0]}",
-                failure_stage=None,
-                traces=traces + esc_res.traces,
-                total_elapsed_ms=total_ms,
-            )
-        return esc_res
+
+        total_ms = (time.perf_counter() - t0) * 1000.0
+        res_disagreed = CEGISResult(
+            success=False,
+            final_code=esc_res.final_code or (outputs[0][2] if outputs else None),
+            predicted_output=None,
+            turns_taken=len(traces) + esc_res.turns_taken,
+            method="CHECKED_FORMALIZATION_DISAGREED",
+            failure_stage="DUAL_FORMULATION_DISAGREEMENT",
+            traces=traces + esc_res.traces,
+            total_elapsed_ms=total_ms,
+        )
+        self._notify_outcome_sink(res_disagreed, task_prompt)
+        return res_disagreed
 
     def synthesize_parallel(
         self,
@@ -395,9 +470,7 @@ class PythonCEGISEngine:
                 full_exec = ""
 
             elapsed_cand = (time.perf_counter() - t_cand) * 1000.0
-            err_type, err_msg = (None, None) if ok_exec else (
-                (lambda p: (p[0], p[1]))(self._parse_err(stderr_val))
-            )
+            err_type, err_msg = (None, None) if ok_exec else self._parse_err(stderr_val)
 
             trace = CEGISTrace(
                 turn=i + 1,
@@ -460,10 +533,12 @@ class PythonCEGISEngine:
         test_harness: str | None = None,
         output_pattern: str | None = None,
         temperature: float = 0.1,
-        max_tokens: int = 1024,
+        max_tokens: int = 1536,
         exemplar_messages: list[dict[str, str]] | None = None,
         prelude: str | None = None,
         max_turns: int | None = None,
+        task_id: str | None = None,
+        outcome_sink: CognitiveOutcomeSink | None = None,
     ) -> CEGISResult:
         """
         Runs the full CEGIS loop:
@@ -489,10 +564,11 @@ class PythonCEGISEngine:
         effective_max_turns = max_turns if max_turns is not None else self.max_turns
         for turn in range(1, effective_max_turns + 1):
             t_turn = time.perf_counter()
+            eff_max_tokens = max(max_tokens, 1536) if turn >= 2 else max_tokens
             content, finish_reason = self._query_llm(
                 messages=messages,
-                temperature=temperature if turn == 1 else min(0.3, temperature + 0.1),
-                max_tokens=max_tokens,
+                temperature=temperature if turn == 1 else min(0.4, temperature + 0.15 * (turn - 1)),
+                max_tokens=eff_max_tokens,
             )
 
             code = extract_python_code(content)
@@ -512,13 +588,14 @@ class PythonCEGISEngine:
                 traces.append(trace)
                 failure_stage = "TRANSLATION_NO_CODE"
 
-                # Prompt model to format as code block
-                messages.append({"role": "assistant", "content": content})
+                # Prompt model to format as concise code block without rambling comments
+                compact_assistant = content[:400] + "\n# [truncated]" if len(content) > 400 else content
+                messages.append({"role": "assistant", "content": compact_assistant})
                 messages.append({
                     "role": "user",
                     "content": (
-                        "Error: No Python code block was detected. "
-                        "Please write your complete executable solution in a ```python ... ``` block."
+                        "Error: No complete executable Python code block was detected (or your response was truncated due to excessive comments). "
+                        "Start immediately with ```python and write ONLY bare executable Python statements (<20 lines) with ZERO '#' comments and ZERO prose."
                     ),
                 })
                 continue
@@ -575,7 +652,7 @@ class PythonCEGISEngine:
                     predicted=predicted_out,
                     elapsed_ms=total_elapsed,
                 )
-                return CEGISResult(
+                res_ok = CEGISResult(
                     success=True,
                     final_code=full_exec_code,
                     predicted_output=predicted_out,
@@ -585,6 +662,8 @@ class PythonCEGISEngine:
                     traces=traces,
                     total_elapsed_ms=total_elapsed,
                 )
+                self._notify_outcome_sink(res_ok, task_prompt, task_id=task_id, outcome_sink=outcome_sink)
+                return res_ok
 
             # Execution failed — formulate CEGIS feedback for repair turn
             logger.info(
@@ -601,17 +680,27 @@ class PythonCEGISEngine:
                 failure_stage = "EXECUTION_RUNTIME_ERROR"
 
             if turn < effective_max_turns:
-                # Construct autonomous repair prompt
+                # Strip rambling comment lines from assistant history if truncated/verbose
+                cleaned_lines = [
+                    ln for ln in (code or content).splitlines()
+                    if not ln.strip().startswith("#")
+                ]
+                compact_code = "\n".join(cleaned_lines[-40:])
+                trunc_notice = (
+                    "CRITICAL: Your previous output hit the token limit because you wrote long '#' comments. "
+                    if finish_reason == "length" or len(content) > 1200
+                    else ""
+                )
                 repair_prompt = (
-                    f"Your Python code produced a runtime error when executed in the sandbox:\n\n"
+                    f"{trunc_notice}Your Python code produced an error when executed in the sandbox:\n\n"
                     f"[Error Type]: {err_type or 'RuntimeError'}\n"
                     f"[Error Message]: {err_msg or stderr_val.strip()}\n"
                     f"[Traceback / Stderr]:\n{stderr_val.strip()[-600:]}\n\n"
-                    f"Please analyze the cause of this failure, fix the issue, and provide "
-                    f"the complete corrected Python script.\n"
+                    f"Please fix the issue and provide the complete corrected Python script.\n"
+                    f"Write ZERO '#' comments, ZERO docstrings, and ZERO manual calculations—delegate directly to the library functions in under 20 lines.\n"
                     f"Output ONLY executable Python inside a ```python ... ``` block."
                 )
-                messages.append({"role": "assistant", "content": content})
+                messages.append({"role": "assistant", "content": f"```python\n{compact_code}\n```"})
                 messages.append({"role": "user", "content": repair_prompt})
 
         # All repair turns exhausted
@@ -622,7 +711,7 @@ class PythonCEGISEngine:
             failure_stage=failure_stage,
             total_elapsed_ms=total_elapsed,
         )
-        return CEGISResult(
+        res_fail = CEGISResult(
             success=False,
             final_code=last_code,
             predicted_output=None,
@@ -632,3 +721,5 @@ class PythonCEGISEngine:
             traces=traces,
             total_elapsed_ms=total_elapsed,
         )
+        self._notify_outcome_sink(res_fail, task_prompt, task_id=task_id, outcome_sink=outcome_sink)
+        return res_fail

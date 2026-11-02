@@ -62,7 +62,9 @@ def test_consolidation_cycle_insufficient_traces() -> None:
     assert res.in_d_guard_passed is True
 
 
-def test_consolidation_cycle_mines_and_quarantines_macro(tmp_path: Path) -> None:
+def test_consolidation_cycle_mines_and_quarantines_macro(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Verifies end-to-end sleep consolidation:
     1. Traces with recurring structure (+ a (* b c)) are mined.
@@ -70,6 +72,11 @@ def test_consolidation_cycle_mines_and_quarantines_macro(tmp_path: Path) -> None
     3. D-REAS-06 invariant verified: 0 macros reach ACTIVE.
     4. IN-D report reflects >= 1 quarantined learned skill.
     """
+    import lucca.evaluation.in_d_grader as in_d_mod
+
+    report_dir = tmp_path / "personhood"
+    monkeypatch.setattr(in_d_mod, "REPORT_DIR", report_dir)
+
     mgr = RuleLifecycleManager()
     cfg = ConsolidationConfig(
         min_instances_for_macro=2,
@@ -92,8 +99,8 @@ def test_consolidation_cycle_mines_and_quarantines_macro(tmp_path: Path) -> None
     assert res.in_d_guard_passed is True
     assert res.in_d_quarantined_count >= 1
 
-    # Verify IN-D scorecard report file
-    in_d_file = Path("logs/test_reports/personhood/in_d_latest.json")
+    # Verify IN-D scorecard report file in isolated tmp_path
+    in_d_file = report_dir / "in_d_latest.json"
     assert in_d_file.exists()
     report_data = json.loads(in_d_file.read_text(encoding="utf-8"))
     assert report_data["stratum"] == "IN-D"
@@ -106,7 +113,10 @@ def test_consolidation_cycle_mines_and_quarantines_macro(tmp_path: Path) -> None
 def test_consolidation_execution_latency_and_zero_vram() -> None:
     """Verifies sub-second CPU execution budget and zero VRAM impact."""
     mgr = RuleLifecycleManager()
-    engine = ConsolidationEngine(lifecycle_manager=mgr)
+    engine = ConsolidationEngine(
+        config=ConsolidationConfig(auto_update_in_d_scorecard=False),
+        lifecycle_manager=mgr,
+    )
 
     traces = [
         "(+ 1 (* 2 2))",

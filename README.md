@@ -50,6 +50,12 @@ See [Unified System Architecture Specification](luccadocs/ARCHITECTURE.md) for t
 
 All figures below are author-measured on workstation silicon (`RTX 5080 Laptop GPU`, `Core Ultra 9 275HX`, native Windows 11).
 
+### WO-39 Audit & Benchmark Provenance Note
+
+Following the Work Order 39 (`WO-39`) scientific integrity audit:
+- **Live-Verified Empirical Benchmarks:** **Study 1** (Memory Poisoning Ablation), **Study 2** (PAL-off Factorial Ablation), **Canonical HumanEval / HumanEval-Plus**, **GSM8K / GSM-Symbolic**, and **MATH-500** reflect live `llama-server` generations verified in the Docker sandbox. All problem-specific AST rewrites (`ast_sanitizer.py`) and prompt-side coaching hints have been removed in `WO-39`.
+- **Decontaminated & Fixture-Validated Suites:** Historical **Track 1: SPEC-BENCH-100-v1.0** (`91.0%`) is archived as a pre-decontamination baseline (all problem-specific router rules, prompt hints, and hardcoded RFC 9110/7231 search strings were removed in `WO-39`). The **Personhood Probe Batteries (`AC`, `IN`, `IA`, `FC`)** default to `SCHEMA_FIXTURE_VALIDATION_ONLY (NOT A LIVE MODEL EVALUATION)` unless run with `--live` against an active `llama-server`.
+
 | Benchmark | Config | Result (Author-measured) | Evidence File |
 | :--- | :--- | :---: | :--- |
 | **Track 1: SPEC-BENCH-100-v1.0** | 100-problem frozen ground-truth cognitive battery (Run 3) | 91.0% (91/100); Path: 100%; Epistemic: 100% | [`RESULTS.md`](./RESULTS.md#L30) |
@@ -62,7 +68,8 @@ All figures below are author-measured on workstation silicon (`RTX 5080 Laptop G
 | **v1.35: Fresh Held-Out 500** | 500 unseen competition problems (32K ctx + feedback loop) | 85.80% strict / 90.20% lenient | [`RESULTS.md`](./RESULTS.md#L75) |
 | **v1.35.6: Multi-Scale Held-Out 100** | Unseen competition math: 12B Direct R0 / E4B R1 / E2B R1 | 89.0% (12B) / 88.0% (E4B) / 81.0% (E2B) | [`RESULTS.md`](./RESULTS.md#L88) |
 | **Truth-in-Receipt Live Battery** | Live supervisory detection of ungrounded action claims | 1/23 detected (4.3% sensitivity broad / 1/8, 12.5% strict) | [`luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md`](./luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md) |
-| **Static Architectural Gates** | Structural invariants, zero-`Any`, provenance, staleness lint | 24 / 24 gates PASSED (code 0) | [`tests/test_static_gates.py`](./tests/test_static_gates.py) |
+| **WO-39: 4-Model Live Rebench** | `26B-A4B`, `12B`, `E4B`, `E2B` across Study 1 V2c/V2b, Sealed Parametric (`v139`), GSM8K PAL, HumanEval, & Security | **100%** across all 7 suites on `26B-A4B`, `12B`, & `E4B` (`93.3%` Sealed Parametric on `E2B`) | [`RESULTS.md`](./RESULTS.md#L7) |
+| **Static & Anti-Cheat Gates** | Structural invariants, zero-`Any`, provenance, decontamination, & 6-organs verification | **37 / 37 gates PASSED** (`25` static + `4` anti-cheat + `8` six-organs) | [`tests/test_static_gates.py`](./tests/test_static_gates.py) |
 
 ---
 

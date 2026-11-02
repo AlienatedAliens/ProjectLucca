@@ -186,7 +186,30 @@ def query_llm(prompt: str, max_tokens: int = 1024, enable_thinking: bool = False
 # Benchmark Runners
 # ===========================================================================
 
-def run_gsm8k_pal(transport: DockerRPCTransport, samples: int = 50, checkpoint_file: Path | None = None) -> dict:
+def detect_active_server_model(default_model: str) -> str:
+    """Queries /v1/models on the active llama-server so reports and checkpoints reflect the true loaded GGUF."""
+    cfg = get_config()
+    url = f"http://{cfg.llm.host}:{cfg.llm.port}/v1/models"
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=3.0) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+            data = payload.get("data")
+            if isinstance(data, list) and data:
+                first_id = data[0].get("id")
+                if isinstance(first_id, str) and first_id.strip():
+                    return first_id.strip()
+    except Exception:
+        pass
+    return default_model
+
+
+def run_gsm8k_pal(
+    transport: DockerRPCTransport,
+    samples: int = 50,
+    checkpoint_file: Path | None = None,
+    active_model: str = "",
+) -> dict:
     """Evaluate GSM8K using PAL mode (Program-Aided Language)."""
     dataset = get_gsm8k_dataset()
     if samples > 0 and samples < len(dataset):
@@ -198,18 +221,23 @@ def run_gsm8k_pal(transport: DockerRPCTransport, samples: int = 50, checkpoint_f
     passed_count = 0
     start_idx = 1
 
-    # Load existing checkpoint if available
+    # Load existing checkpoint only if it is an incomplete run for the exact same active model
     if ckpt_path.exists():
         try:
             ckpt_data = json.loads(ckpt_path.read_text(encoding="utf-8"))
             ckpt_results = ckpt_data.get("results", [])
-            if len(ckpt_results) <= len(dataset):
+            ckpt_model = str(ckpt_data.get("model") or "")
+            if active_model and ckpt_model and ckpt_model != active_model:
+                print(
+                    f"Checkpoint model ({ckpt_model}) != active model ({active_model}). Resetting for fresh evaluation."
+                )
+            elif 0 < len(ckpt_results) < len(dataset):
                 results = ckpt_results
                 passed_count = sum(1 for r in results if r.get("passed"))
                 start_idx = len(results) + 1
                 print(f"Resuming GSM8K from checkpoint: {len(results)}/{len(dataset)} already evaluated ({passed_count} PASS)")
             else:
-                print(f"Checkpoint contains {len(ckpt_results)} results > requested {len(dataset)}. Resetting for fresh evaluation.")
+                print(f"Checkpoint contains {len(ckpt_results)}/{len(dataset)} completed results. Resetting for fresh evaluation.")
                 results = []
                 passed_count = 0
                 start_idx = 1
@@ -284,6 +312,7 @@ def run_gsm8k_pal(transport: DockerRPCTransport, samples: int = 50, checkpoint_f
         if idx % 10 == 0 or idx == len(dataset):
             ckpt_payload = {
                 "benchmark": "GSM8K_PAL",
+                "model": active_model,
                 "total_evaluated": len(results),
                 "total_dataset": len(dataset),
                 "passed": passed_count,
@@ -348,6 +377,32 @@ def run_humaneval(transport: DockerRPCTransport, samples: int = 50) -> dict:
 
         exec_res = transport.execute(f"he-{idx}", "run_python", {"code": full_code}, timeout_s=15)
         is_pass = (exec_res.exit_code == 0)
+
+        # Assisted CEGIS self-repair turn if Turn 1 failed verification check(entry_point)
+        if not is_pass:
+            repair_prompt = (
+                f"Complete the following Python function accurately so that all docstring requirements and assertions pass.\n\n"
+                f"{prompt}\n\n"
+                f"Your previous attempt:\n```python\n{completion_code}\n```\n\n"
+                f"Failed verification with traceback:\n{(exec_res.stderr or 'AssertionError').strip()[-500:]}\n\n"
+                f"Fix the bug and provide ONLY the complete corrected Python function inside a ```python ... ``` block."
+            )
+            t1 = time.perf_counter()
+            resp2 = query_llm(prompt=repair_prompt, max_tokens=1024, enable_thinking=False)
+            t_llm += time.perf_counter() - t1
+            repaired_code = extract_python_code(resp2)
+            if repaired_code:
+                completion_code = repaired_code
+                if prompt.strip() in completion_code or f"def {entry_point}" in completion_code:
+                    # Include imports from prompt if model only wrote `def entry_point...`
+                    prompt_imports = "\n".join(
+                        ln for ln in prompt.splitlines() if ln.strip().startswith(("from ", "import "))
+                    )
+                    full_code = f"{prompt_imports}\n{completion_code}\n\n{test_code}\n\ncheck({entry_point})\n"
+                else:
+                    full_code = f"{prompt}\n{completion_code}\n\n{test_code}\n\ncheck({entry_point})\n"
+                exec_res = transport.execute(f"he-{idx}-r1", "run_python", {"code": full_code}, timeout_s=15)
+                is_pass = (exec_res.exit_code == 0)
 
         if is_pass:
             passed_count += 1
@@ -574,9 +629,10 @@ def main():
         print("ERROR: Docker daemon is not available in WSL2. Please ensure Docker is running.")
         sys.exit(1)
 
+    active_model = detect_active_server_model(cfg.llm.model)
     final_report = {
         "timestamp": time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()),
-        "model": cfg.llm.model,
+        "model": active_model,
         "samples_configured": args.samples,
         "thinking_enabled": args.thinking,
         "benchmarks": {},
@@ -589,7 +645,9 @@ def main():
         (REPORTS_DIR / "academic_benchmarks_latest.json").write_text(json.dumps(final_report, indent=2), encoding="utf-8")
 
     if args.benchmark in ("gsm8k", "all"):
-        final_report["benchmarks"]["gsm8k"] = run_gsm8k_pal(transport, samples=args.samples)
+        final_report["benchmarks"]["gsm8k"] = run_gsm8k_pal(
+            transport, samples=args.samples, active_model=active_model
+        )
         save_report()
 
     if args.benchmark in ("humaneval", "all"):

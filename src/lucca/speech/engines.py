@@ -111,12 +111,12 @@ POCKET_VOICES: Final[dict[str, tuple[str, str]]] = {
 }
 
 SUPERTONIC_VOICES: Final[dict[str, tuple[str, str]]] = {
-    "asuka_tsundere": (
-        "Asuka Soryu (Spirited Trilingual Tsundere — EN/DE/JA)",
+    "lucca_inventor": (
+        "Lucca (Spirited Young Inventor Companion — EN/DE/JA)",
         "blend:0.55*af_bella+0.25*jf_gongitsune+0.20*af_sky",
     ),
     "rei_polyglot": (
-        "Rei Ayanami (Calm & Precise Bilingual Engineer)",
+        "Rei (Calm & Precise Bilingual Engineer)",
         "blend:0.75*af_sarah+0.25*jf_tebukuro",
     ),
     "hikari_companion": (
@@ -138,29 +138,29 @@ SUPERTONIC_VOICES: Final[dict[str, tuple[str, str]]] = {
 }
 
 KOKOCLONE_PRESETS: Final[dict[str, tuple[str, str]]] = {
-    "asuka_studio_uncut": (
-        "Asuka Langley Soryu — Full Studio Master (Uncut 45.0s)",
-        r"C:\Projects\ProjectLucca\models\tts\references\asuka\asuka_studio_uncut_full.wav",
+    "lucca_studio_uncut": (
+        "Lucca — Full Studio Master (Uncut 45.0s)",
+        r"C:\Projects\ProjectLucca\models\tts\references\lucca\lucca_studio_uncut_full.wav",
     ),
-    "asuka_studio": (
-        "Asuka Langley Soryu — Studio Clean (Uncut Sentence 1 — 6.7s)",
-        r"C:\Projects\ProjectLucca\models\tts\references\asuka\asuka_ref_02.wav",
+    "lucca_studio": (
+        "Lucca — Studio Clean (Uncut Sentence 1 — 6.7s)",
+        r"C:\Projects\ProjectLucca\models\tts\references\lucca\lucca_ref_02.wav",
     ),
-    "asuka_technical": (
-        "Asuka Langley Soryu — Technical Monologue (Uncut Sentence 2 — 9.8s)",
-        r"C:\Projects\ProjectLucca\models\tts\references\asuka\asuka_ref_01.wav",
+    "lucca_technical": (
+        "Lucca — Technical Monologue (Uncut Sentence 2 — 9.8s)",
+        r"C:\Projects\ProjectLucca\models\tts\references\lucca\lucca_ref_01.wav",
     ),
-    "asuka_theological": (
-        "Asuka Langley Soryu — Narrative Delivery (Uncut Sentence 3 — 6.8s)",
-        r"C:\Projects\ProjectLucca\models\tts\references\asuka\asuka_ref_03.wav",
+    "lucca_theological": (
+        "Lucca — Narrative Delivery (Uncut Sentence 3 — 6.8s)",
+        r"C:\Projects\ProjectLucca\models\tts\references\lucca\lucca_ref_03.wav",
     ),
-    "asuka_banter": (
-        "Asuka Langley Soryu — German Banter (Episode 8 — 4.4s)",
-        r"C:\Projects\ProjectLucca\models\tts\references\asuka\asuka_anchor_german_banter.wav",
+    "lucca_banter": (
+        "Lucca — German Banter (Episode 8 — 4.4s)",
+        r"C:\Projects\ProjectLucca\models\tts\references\lucca\lucca_anchor_german_banter.wav",
     ),
-    "asuka_reprimand": (
-        "Asuka Langley Soryu — Dry Reprimand (1.8s)",
-        r"C:\Projects\ProjectLucca\models\tts\references\asuka\asuka_reprimand_dry.wav",
+    "lucca_reprimand": (
+        "Lucca — Dry Reprimand (1.8s)",
+        r"C:\Projects\ProjectLucca\models\tts\references\lucca\lucca_reprimand_dry.wav",
     ),
 }
 
@@ -187,14 +187,19 @@ class KokoroEngine(BaseVoiceEngine):
     def __init__(self) -> None:
         super().__init__("kokoro")
         self._engine: kokoro_onnx.Kokoro | None = None
-        self._init_engine()
+        self._init_attempted: bool = False
 
     def _init_engine(self) -> None:
+        if self._engine is not None:
+            return
         if KOKORO_MODEL_PATH.exists() and KOKORO_VOICES_PATH.exists():
             try:
                 self._engine = kokoro_onnx.Kokoro(str(KOKORO_MODEL_PATH), str(KOKORO_VOICES_PATH))
+                self._init_attempted = True
             except Exception as exc:  # noqa: BLE001
-                _LOG.warning("kokoro_engine_init_failed", error=str(exc))
+                if not self._init_attempted:
+                    _LOG.warning("kokoro_engine_init_failed", error=str(exc))
+                    self._init_attempted = True
 
     @property
     def raw_engine(self) -> kokoro_onnx.Kokoro | None:
@@ -235,7 +240,10 @@ class KittenTTSEngine(BaseVoiceEngine):
         super().__init__("kittentts")
         self.variant = variant
         self.quant = quant
-        self.kokoro_fallback = KokoroEngine()
+
+    @property
+    def kokoro_fallback(self) -> KokoroEngine:
+        return get_voice_engine("kokoro")  # type: ignore[return-value]
 
     def normalize_input(self, text: str) -> str:
         """Applies KittenML high-accuracy text normalization."""
@@ -286,7 +294,10 @@ class PocketTTSEngine(BaseVoiceEngine):
     def __init__(self, latency_ms: int = 60) -> None:
         super().__init__("pocket_tts")
         self.latency_ms = latency_ms
-        self.kokoro_base = KokoroEngine()
+
+    @property
+    def kokoro_base(self) -> KokoroEngine:
+        return get_voice_engine("kokoro")  # type: ignore[return-value]
 
     def synthesize(
         self,
@@ -345,7 +356,10 @@ class Supertonic3Engine(BaseVoiceEngine):
     def __init__(self, mode: str = "auto") -> None:
         super().__init__("supertonic3")
         self.mode = mode
-        self.kokoro_base = KokoroEngine()
+
+    @property
+    def kokoro_base(self) -> KokoroEngine:
+        return get_voice_engine("kokoro")  # type: ignore[return-value]
 
     def detect_languages(self, text: str) -> list[str]:
         """Detects presence of non-English language scripts or markers."""
@@ -434,7 +448,10 @@ class KokoCloneEngine(BaseVoiceEngine):
 
     def __init__(self) -> None:
         super().__init__("kokoclone")
-        self.kokoro_base = KokoroEngine()
+
+    @property
+    def kokoro_base(self) -> KokoroEngine:
+        return get_voice_engine("kokoro")  # type: ignore[return-value]
 
     def synthesize(
         self,
@@ -467,19 +484,26 @@ class KokoCloneEngine(BaseVoiceEngine):
         return self.kokoro_base.synthesize(text, voice_spec="af_bella", speed=speed)
 
 
-# Engine Registry Singletons
-_ENGINES: dict[EngineType, BaseVoiceEngine] = {
-    "kokoro": KokoroEngine(),
-    "kittentts": KittenTTSEngine(),
-    "pocket_tts": PocketTTSEngine(),
-    "supertonic3": Supertonic3Engine(),
-    "kokoclone": KokoCloneEngine(),
-}
+# Engine Registry Singletons (lazily instantiated)
+_ENGINES: dict[EngineType, BaseVoiceEngine] = {}
 
 
 def get_voice_engine(engine_id: EngineType) -> BaseVoiceEngine:
-    """Returns the singleton instance of the requested voice engine."""
-    return _ENGINES.get(engine_id, _ENGINES["kokoro"])
+    """Returns the singleton instance of the requested voice engine (lazily instantiated)."""
+    if engine_id not in _ENGINES:
+        if engine_id == "kokoro":
+            _ENGINES["kokoro"] = KokoroEngine()
+        elif engine_id == "kittentts":
+            _ENGINES["kittentts"] = KittenTTSEngine()
+        elif engine_id == "pocket_tts":
+            _ENGINES["pocket_tts"] = PocketTTSEngine()
+        elif engine_id == "supertonic3":
+            _ENGINES["supertonic3"] = Supertonic3Engine()
+        elif engine_id == "kokoclone":
+            _ENGINES["kokoclone"] = KokoCloneEngine()
+        else:
+            return get_voice_engine("kokoro")
+    return _ENGINES[engine_id]
 
 
 def parse_engine_from_spec(spec: str) -> tuple[EngineType, str]:

@@ -119,7 +119,7 @@ class UIApplication:
         # Set Windows AppUserModelID so taskbar and antivirus see distinct application
         try:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-                "ProjectLucca.DesktopCompanion.0.2"
+                "ProjectLucca.DesktopCompanion.0.3"
             )
         except Exception as exc:  # noqa: BLE001, S110
             logger.debug("set_app_user_model_id_failed: %s", exc)
@@ -139,12 +139,14 @@ class UIApplication:
 
         # Set application icon
         self.app_icon: QIcon | None = None
-        icon_p = get_resource_path("assets/icon.png")
-        if not icon_p.exists():
-            icon_p = self.config.home_dir / "assets" / "icon.png"
-        if icon_p.exists():
-            self.app_icon = QIcon(str(icon_p))
-            self.app.setWindowIcon(self.app_icon)
+        for name in ("assets/app_icon.png", "assets/icon.png"):
+            icon_p = get_resource_path(name)
+            if not icon_p.exists():
+                icon_p = self.config.home_dir / name
+            if icon_p.exists():
+                self.app_icon = QIcon(str(icon_p))
+                self.app.setWindowIcon(self.app_icon)
+                break
 
         # Active settings state (canonical persona.toml per D-AUD-03 with fallback to config)
         persona_init = get_persona()
@@ -169,6 +171,8 @@ class UIApplication:
         self.chat_bar = QuickChatBar(
             on_send_text=self._send_user_text,
             on_send_message=self._send_user_message,
+            on_image_attached=self._on_image_attached,
+            on_image_cleared=self._on_image_cleared,
             on_ptt_press=self._send_mouse_ptt_press,
             on_ptt_release=self._send_mouse_ptt_release,
         )
@@ -375,7 +379,10 @@ class UIApplication:
     def _toggle_commorose(self, center: QPoint | None = None) -> None:
         """Toggles the battlefield-style concentric Commorose radial menu."""
         if center is None:
-            center = self.sprite.geometry().center()
+            if self.bubble.isVisible():
+                center = self.bubble.geometry().center()
+            else:
+                center = self.sprite.geometry().center()
         self.commorose.toggle(center)
 
     def _toggle_telemetry_hud(self) -> None:
@@ -398,7 +405,7 @@ class UIApplication:
         """Single-click toggle: brings up subtitle dialogue box and quick chat input bar."""
         geom = self.sprite.geometry()
         screen_geom = self._get_screen_geometry()
-        if self.chat_bar.isVisible():
+        if self.chat_bar.isVisible() or self.bubble.isVisible():
             self.chat_bar.hide()
             self.bubble.hide()
         else:
@@ -412,7 +419,7 @@ class UIApplication:
                 self.bubble.show()
             self.bubble.anchor_to(geom, screen_geom)
             self.chat_bar.show()
-            self.chat_bar.anchor_to(geom)
+            self.chat_bar.anchor_to(geom, self.bubble.geometry())
             self.chat_bar.input_field.setFocus()
             self.chat_bar.raise_()
             self.chat_bar.activateWindow()
@@ -427,13 +434,15 @@ class UIApplication:
         geom = self.sprite.geometry()
         screen_geom = self._get_screen_geometry()
         self.bubble.anchor_to(geom, screen_geom)
-        self.chat_bar.anchor_to(geom)
+        self.chat_bar.anchor_to(geom, self.bubble.geometry() if self.bubble.isVisible() else None)
 
     def _on_caption_received(self, text: str, source: str, is_final: bool) -> None:
         geom = self.sprite.geometry()
         screen_geom = self._get_screen_geometry()
         self.bubble.show_caption(text, source=source, is_final=is_final)
         self.bubble.anchor_to(geom, screen_geom)
+        if self.chat_bar.isVisible():
+            self.chat_bar.anchor_to(geom, self.bubble.geometry())
 
     def _on_confirm_requested(self, prompt: str, summary: str, timeout_s: float) -> None:
         geom = self.sprite.geometry()
@@ -479,6 +488,26 @@ class UIApplication:
 
     def _send_user_text(self, text: str) -> None:
         self._send_user_message(text, None)
+
+    def _on_image_attached(self, image_b64: str) -> None:
+        env = Envelope(
+            type="ui.attach_image",
+            trace_id="",
+            ts_ns=now_ns(),
+            src="ui",
+            payload={"image_b64": image_b64},
+        )
+        self._send_ingest(env)
+
+    def _on_image_cleared(self) -> None:
+        env = Envelope(
+            type="ui.clear_image",
+            trace_id="",
+            ts_ns=now_ns(),
+            src="ui",
+            payload={},
+        )
+        self._send_ingest(env)
 
     def _send_confirm_result(self, accepted: bool) -> None:
         env = Envelope(

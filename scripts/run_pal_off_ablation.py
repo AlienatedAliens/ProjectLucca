@@ -122,18 +122,28 @@ def query_llm_pal_off(
     enable_thinking: bool,
     port: int = 8080,
     retries: int = 2,
+    temperature: float = 0.0,
+    top_p: float = 1.0,
+    repeat_penalty: float = 1.0,
+    seed: int = 42,
 ) -> tuple[str, str, str, int, float]:
     """Query llama-server OpenAI endpoint.
     Returns: (content, reasoning_content, finish_reason, completion_tokens, latency_s)
+    Decoding: temperature=0.0 reproduces the original greedy protocol exactly;
+    temperature>0 enables sampled decoding (seed fixed for reproducibility; default 42).
     """
     payload = {
         "messages": [{"role": "user", "content": prompt}],
         "max_tokens": max_tokens,
-        "temperature": 0.0,
-        "seed": 42,
+        "temperature": temperature,
+        "seed": seed,
         "cache_prompt": False,
         "chat_template_kwargs": {"enable_thinking": enable_thinking},
     }
+    if temperature > 0.0:
+        payload["top_p"] = top_p
+    if repeat_penalty != 1.0:
+        payload["repeat_penalty"] = repeat_penalty
 
     t0 = time.perf_counter()
     for attempt in range(retries):
@@ -301,6 +311,9 @@ def execute_r0_item(
     benchmark: str,
     port: int,
     max_tokens: int = 1536,
+    temperature: float = 0.0,
+    repeat_penalty: float = 1.0,
+    seed: int = 42,
 ) -> dict[str, Any]:
     """R0: Raw Direct (enable_thinking=False, max_tokens=max_tokens)."""
     if benchmark == "gsm_symbolic":
@@ -323,6 +336,9 @@ def execute_r0_item(
         max_tokens=max_tokens,
         enable_thinking=False,
         port=port,
+        temperature=temperature,
+        repeat_penalty=repeat_penalty,
+        seed=seed,
     )
 
     pred_str = extract_math_answer_from_text(content)
@@ -346,6 +362,8 @@ def execute_r0_item(
     return {
         "item_id": item["item_id"],
         "arm": "r0",
+        "temperature": temperature,
+        "repeat_penalty": repeat_penalty,
         "benchmark": benchmark,
         "subject": item.get("subject", ""),
         "level": item.get("level", 0),
@@ -367,6 +385,9 @@ def execute_r1_item(
     benchmark: str,
     port: int,
     max_thinking_tokens: int = 4096,
+    temperature: float = 0.0,
+    repeat_penalty: float = 1.0,
+    seed: int = 42,
 ) -> dict[str, Any]:
     """R1: Raw Thinking (enable_thinking=True, max_tokens=max_thinking_tokens)."""
     if benchmark == "gsm_symbolic":
@@ -389,6 +410,9 @@ def execute_r1_item(
         max_tokens=max_thinking_tokens,
         enable_thinking=True,
         port=port,
+        temperature=temperature,
+        repeat_penalty=repeat_penalty,
+        seed=seed,
     )
 
     # In thinking mode, final answer is usually in content, or in reasoning if cut off
@@ -413,6 +437,8 @@ def execute_r1_item(
     return {
         "item_id": item["item_id"],
         "arm": "r1",
+        "temperature": temperature,
+        "repeat_penalty": repeat_penalty,
         "benchmark": benchmark,
         "subject": item.get("subject", ""),
         "level": item.get("level", 0),
@@ -856,6 +882,10 @@ def run_benchmark_arm(
     max_thinking_tokens: int = 4096,
     max_code_tokens: int = 2048,
     split: str = "dev",
+    temperature: float = 0.0,
+    top_p: float = 1.0,
+    repeat_penalty: float = 1.0,
+    seed: int = 42,
 ) -> list[dict[str, Any]]:
     """Execute a single (model, benchmark, arm) experimental cell."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -867,8 +897,10 @@ def run_benchmark_arm(
         cap_suffix = f"_think{max_thinking_tokens}"
     elif arm == "r0" and max_thinking_tokens != 1536:
         cap_suffix = f"_cap{max_thinking_tokens}"
-    out_file = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}_{samples}.json"
-    chk_file = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}_{samples}.checkpoint.json"
+    sampled_suffix = "_sampled" if temperature > 0.0 else ""
+    seed_suffix = f"_seed{seed}" if temperature > 0.0 and seed != 42 else ""
+    out_file = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}{sampled_suffix}{seed_suffix}_{samples}.json"
+    chk_file = output_dir / f"{model_label}_{benchmark_name}_{arm}{suffix}{cap_suffix}{sampled_suffix}{seed_suffix}_{samples}.checkpoint.json"
 
     completed: dict[str, dict[str, Any]] = {}
     if resume:
@@ -912,9 +944,11 @@ def run_benchmark_arm(
             continue
 
         if arm == "r0":
-            res = execute_r0_item(item, benchmark_name, port, max_tokens=max_thinking_tokens)
+            res = execute_r0_item(item, benchmark_name, port, max_tokens=max_thinking_tokens,
+                                  temperature=temperature, repeat_penalty=repeat_penalty, seed=seed)
         elif arm == "r1":
-            res = execute_r1_item(item, benchmark_name, port, max_thinking_tokens=max_thinking_tokens)
+            res = execute_r1_item(item, benchmark_name, port, max_thinking_tokens=max_thinking_tokens,
+                                  temperature=temperature, repeat_penalty=repeat_penalty, seed=seed)
         elif arm == "p1":
             assert transport is not None
             res = execute_p1_item(item, benchmark_name, transport, port, max_code_tokens=max_code_tokens)
@@ -974,6 +1008,11 @@ def run_benchmark_arm(
         "split": split,
         "git_commit": get_git_commit_hash(),
         "git_dirty": is_git_dirty(),
+        "decoding": "sampled" if temperature > 0.0 else "greedy",
+        "temperature": temperature,
+        "top_p": top_p if temperature > 0.0 else None,
+        "repeat_penalty": repeat_penalty,
+        "seed": seed,
         "max_thinking_tokens": max_thinking_tokens,
         "max_code_tokens": max_code_tokens,
         "strict_passed": strict_passed,
@@ -1102,6 +1141,11 @@ def main() -> int:
     parser.add_argument("--samples", type=int, default=500, help="Number of items to evaluate (100 or 500)")
     parser.add_argument("--max-thinking-tokens", type=int, default=4096, help="Max tokens for thinking mode / reasoning")
     parser.add_argument("--max-code-tokens", type=int, default=1024, help="Max tokens for PAL code generation")
+    parser.add_argument("--sampling", type=str, default="greedy", choices=["greedy", "sampled"],
+                        help="Decoding mode: greedy (T=0.0, original protocol) or sampled (T=0.7, top_p=0.95, repeat_penalty=1.05)")
+    parser.add_argument("--temperature", type=float, default=None, help="Override temperature (default: 0.0 greedy / 0.7 sampled)")
+    parser.add_argument("--top-p", type=float, default=None, help="Override top_p (default: 1.0 greedy / 0.95 sampled)")
+    parser.add_argument("--repeat-penalty", type=float, default=None, help="Override repeat_penalty (default: 1.0 greedy / 1.05 sampled)")
     parser.add_argument("--output-dir", type=str, default=str(DEFAULT_OUTPUT_DIR), help="Output directory")
     parser.add_argument("--port", type=int, default=8080, help="llama-server port")
     parser.add_argument("--no-resume", action="store_true", help="Do not resume from checkpoint")
@@ -1144,6 +1188,17 @@ def main() -> int:
         transport = DockerRPCTransport(container_name="lucca-file-sandbox")
         transport.ensure_container_running()
 
+    # Resolve decoding parameters from --sampling preset (with optional overrides)
+    if args.sampling == "sampled":
+        temperature = args.temperature if args.temperature is not None else 0.7
+        top_p = args.top_p if args.top_p is not None else 0.95
+        repeat_penalty = args.repeat_penalty if args.repeat_penalty is not None else 1.05
+    else:
+        temperature = args.temperature if args.temperature is not None else 0.0
+        top_p = args.top_p if args.top_p is not None else 1.0
+        repeat_penalty = args.repeat_penalty if args.repeat_penalty is not None else 1.0
+    print(f"Decoding: {args.sampling} (T={temperature}, top_p={top_p}, repeat_penalty={repeat_penalty}, seed=42)")
+
     for bm in benchmarks:
         for arm in arms:
             run_benchmark_arm(
@@ -1158,6 +1213,9 @@ def main() -> int:
                 max_thinking_tokens=args.max_thinking_tokens,
                 max_code_tokens=args.max_code_tokens,
                 split=args.split,
+                temperature=temperature,
+                top_p=top_p,
+                repeat_penalty=repeat_penalty,
             )
 
     # Synthesize report

@@ -4,8 +4,10 @@ Spec 07 §4, ADR-001, D-02
 """
 
 import hashlib
+import re
 import threading
 import time
+from typing import Final
 
 import numpy as np
 import numpy.typing as npt
@@ -22,11 +24,30 @@ from lucca.core.schemas import Segment
 
 logger = structlog.get_logger(__name__)
 
+_LEADING_WAKE_WORD_RE: Final[re.Pattern[str]] = re.compile(
+    r"^(\s*(?:(?:hey|hi|hello|okay|ok|yo)[,\s]+)?)(?:luka|lucas|lukas)\b",
+    re.IGNORECASE,
+)
+_TRAILING_VOCATIVE_RE: Final[re.Pattern[str]] = re.compile(
+    r"(,\s*)(?:luka|lucas|lukas)([.!?]*\s*)$",
+    re.IGNORECASE,
+)
+
+
+def normalize_lucca_wake_word(text: str) -> str:
+    """Deterministic phonetic wake-word normalizer for ASR transcripts (Milestone 1.3).
+    Normalizes leading or vocative 'Luka', 'Lucas', 'Lukas' to 'Lucca'."""
+    if not text:
+        return text
+    normalized = _LEADING_WAKE_WORD_RE.sub(r"\1Lucca", text, count=1)
+    normalized = _TRAILING_VOCATIVE_RE.sub(r"\1Lucca\2", normalized, count=1)
+    return normalized
+
 
 class ASRWorker:
     """
     Asynchronous Speech Transcription Worker.
-    Runs faster-whisper int8 or OpenVINO iGPU.
+    Primary: faster-whisper on the dGPU (CUDA float16); fallback: CPU int8.
     """
 
     def __init__(self) -> None:
@@ -92,6 +113,8 @@ class ASRWorker:
         audio_f32 = pcm_int16.astype(np.float32) / 32768.0
 
         if self.model is None:
+            self._init_model()
+        if self.model is None:
             return ASRResultPayload(
                 text="",
                 segments=[],
@@ -107,16 +130,28 @@ class ASRWorker:
 
         with self._lock:
             try:
-                segments_iter, _ = self.model.transcribe(
-                    audio_f32,
-                    language="en",
-                    task="transcribe",
-                    beam_size=1,
-                    temperature=0.0,
-                )
+                try:
+                    segments_iter, _ = self.model.transcribe(
+                        audio_f32,
+                        language="en",
+                        task="transcribe",
+                        beam_size=1,
+                        temperature=0.0,
+                        initial_prompt="Lucca",
+                    )
+                except TypeError:
+                    segments_iter, _ = self.model.transcribe(
+                        audio_f32,
+                        language="en",
+                        task="transcribe",
+                        beam_size=1,
+                        temperature=0.0,
+                    )
 
-                for seg in segments_iter:
+                for idx, seg in enumerate(segments_iter):
                     seg_text = seg.text.strip()
+                    if idx == 0 and seg_text:
+                        seg_text = normalize_lucca_wake_word(seg_text)
                     if seg_text:
                         full_text_parts.append(seg_text)
                         logprobs.append(float(seg.avg_logprob))
@@ -139,7 +174,7 @@ class ASRWorker:
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
-        full_text = " ".join(full_text_parts)
+        full_text = normalize_lucca_wake_word(" ".join(full_text_parts))
         avg_logprob = float(np.mean(logprobs)) if logprobs else 0.0
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 

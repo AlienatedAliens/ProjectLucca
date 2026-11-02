@@ -811,236 +811,98 @@ def split_by_separators(
     return subgrids
 
 
-def boolean_combine(
-    subgrids: list[list[list[int]]],
-    op: str = "nor",
-    output_color: int = 8,
-) -> list[list[int]]:
-    """
-    Pixelwise boolean combination of 2D subgrids.
-    Supported ops: 'nor' (default: where all are 0 -> output_color), 'and', 'or', 'xor'.
-    """
-    if not subgrids:
-        return [[]]
-    h = min(len(sg) for sg in subgrids)
-    w = min((len(sg[0]) if sg else 0) for sg in subgrids)
-    out: list[list[int]] = [[0] * w for _ in range(h)]
-
-    for r in range(h):
-        for c in range(w):
-            vals = [sg[r][c] != 0 for sg in subgrids]
-            match op:
-                case "nor":
-                    res = not any(vals)
-                case "and":
-                    res = all(vals)
-                case "or":
-                    res = any(vals)
-                case "xor":
-                    res = sum(1 for v in vals if v) % 2 == 1
-                case _:
-                    res = not any(vals)
-            if res:
-                out[r][c] = output_color
-    return out
-
-
-def tile_and_reflect(
+def connected_components(
     grid: list[list[int]],
-    repeat_r: int = 3,
-    repeat_c: int = 3,
-    alternate_flip_h: bool = True,
-) -> list[list[int]]:
+    background: int = 0,
+    connectivity: int = 8,
+) -> list[SpatialObject]:
     """
-    Tiles input grid repeating horizontally and vertically.
-    If alternate_flip_h is True, odd vertical block rows are horizontally mirrored.
+    Extracts connected components from a 2D integer grid using 4- or 8-connectivity.
+    Parameterized general primitive delegating to `find_objects`.
     """
-    fh = [r[::-1] for r in grid]
-    out: list[list[int]] = []
-    for br in range(repeat_r):
-        source_block = fh if (alternate_flip_h and br % 2 == 1) else grid
-        for row in source_block:
-            out.append(row * repeat_c)
-    return out
+    return find_objects(grid, background=background, connectivity=connectivity)
 
 
-def quadrant_tile(grid: list[list[int]]) -> list[list[int]]:
+def rotate_grid(grid: list[list[int]], k: int = 1) -> list[list[int]]:
     """
-    Generates 2x2 4-quadrant reflection tiling:
-    Top-left: 180° rotation (flip_v(flip_h(grid)))
-    Top-right: vertical flip (flip_v(grid))
-    Bottom-left: horizontal flip (flip_h(grid))
-    Bottom-right: original grid
+    Rotates a 2D grid by 90 degrees clockwise `k` times.
     """
-    tl = [r[::-1] for r in grid[::-1]]
-    tr = grid[::-1]
-    bl = [r[::-1] for r in grid]
-    br = grid
-    top = [r1 + r2 for r1, r2 in zip(tl, tr, strict=False)]
-    bot = [r1 + r2 for r1, r2 in zip(bl, br, strict=False)]
-    return top + bot
+    return rot90(grid, k=k)
 
 
-def extract_quadrant_macrogrid(grid: list[list[int]]) -> list[list[int]]:
+def reflect_grid(grid: list[list[int]], axis: str = "horizontal") -> list[list[int]]:
     """
-    Detects crosshair separator lines, extracts the 4 quadrant subgrids,
-    crops each quadrant to content (tight bounding box), and stitches them into a 2x2 macrogrid.
+    Reflects a 2D grid across the specified axis ('horizontal' / 'h' or 'vertical' / 'v').
     """
-    sep_rows, sep_cols = find_separator_lines(grid)
-    if not sep_rows or not sep_cols:
-        return [row[:] for row in grid]
-    sr = sep_rows[0]
-    sc = sep_cols[0]
-
-    quads = [
-        [row[:sc] for row in grid[:sr]],
-        [row[sc + 1 :] for row in grid[:sr]],
-        [row[:sc] for row in grid[sr + 1 :]],
-        [row[sc + 1 :] for row in grid[sr + 1 :]],
-    ]
-
-    def _crop_sub(q: list[list[int]]) -> list[list[int]]:
-        coords = [
-            (r, c)
-            for r in range(len(q))
-            for c in range(len(q[0]))
-            if q[r][c] != 0
-        ]
-        if not coords:
-            return [[0]]
-        min_r = min(r for r, _ in coords)
-        max_r = max(r for r, _ in coords)
-        min_c = min(c for _, c in coords)
-        max_c = max(c for _, c in coords)
-        return [row[min_c : max_c + 1] for row in q[min_r : max_r + 1]]
-
-    c_quads = [_crop_sub(q) for q in quads]
-    top = [r1 + r2 for r1, r2 in zip(c_quads[0], c_quads[1], strict=False)]
-    bot = [r1 + r2 for r1, r2 in zip(c_quads[2], c_quads[3], strict=False)]
-    return top + bot
+    norm_axis = axis.strip().lower()
+    if norm_axis in ("h", "horizontal", "left-right", "lr"):
+        return flip_h(grid)
+    if norm_axis in ("v", "vertical", "top-bottom", "tb"):
+        return flip_v(grid)
+    raise ValueError(f"Unsupported reflection axis '{axis}'; expected 'horizontal' or 'vertical'.")
 
 
-def fill_framed_enclosures(
+def translate_grid(
     grid: list[list[int]],
-    frame_color: int = 2,
-    size_to_color: dict[int, int] | None = None,
+    dr: int = 0,
+    dc: int = 0,
+    fill_value: int = 0,
 ) -> list[list[int]]:
     """
-    Finds square hollow frames of frame_color and fills enclosed background cells (0)
-    according to size_to_color mapping (default: 5x5 -> 8, 7x7 -> 4, 9x9 -> 3).
-    """
-    if size_to_color is None:
-        size_to_color = {5: 8, 7: 4, 9: 3}
-    out = [row[:] for row in grid]
-    h = len(grid)
-    w = len(grid[0]) if h > 0 else 0
-
-    sizes = sorted(size_to_color.keys(), reverse=True)
-    for r in range(h):
-        for c in range(w):
-            if grid[r][c] == frame_color:
-                for sz in sizes:
-                    if r + sz <= h and c + sz <= w:
-                        top_ok = all(grid[r][k] == frame_color for k in range(c, c + sz))
-                        bot_ok = all(grid[r + sz - 1][k] == frame_color for k in range(c, c + sz))
-                        left_ok = all(grid[k][c] == frame_color for k in range(r, r + sz))
-                        right_ok = all(grid[k][c + sz - 1] == frame_color for k in range(r, r + sz))
-                        if top_ok and bot_ok and left_ok and right_ok:
-                            fc = size_to_color[sz]
-                            for ir in range(r + 1, r + sz - 1):
-                                for ic in range(c + 1, c + sz - 1):
-                                    if out[ir][ic] == 0:
-                                        out[ir][ic] = fc
-    return out
-
-
-def kronecker_fractal_tiling(
-    grid: list[list[int]],
-    block_mode: str = "complement",
-) -> list[list[int]]:
-    """
-    Computes fractal expansion: replaces non-zero cells with a subgrid block (complement of grid)
-    and zero cells with an empty block.
+    Translates all cells of a 2D grid by (dr, dc), filling vacated coordinates with `fill_value`.
     """
     h = len(grid)
     w = len(grid[0]) if h > 0 else 0
     if h == 0 or w == 0:
-        return [[]]
-
-    color = 0
-    for r in range(h):
-        for c in range(w):
-            if grid[r][c] != 0:
-                color = grid[r][c]
-                break
-        if color != 0:
-            break
-
-    if block_mode == "complement":
-        block = [[color if grid[r][c] == 0 else 0 for c in range(w)] for r in range(h)]
-    else:
-        block = [row[:] for row in grid]
-
-    zero_block = [[0] * w for _ in range(h)]
-    out = [[0] * (w * w) for _ in range(h * h)]
-    for r in range(h):
-        for c in range(w):
-            sub = block if grid[r][c] != 0 else zero_block
-            for br in range(h):
-                for bc in range(w):
-                    out[r * h + br][c * w + bc] = sub[br][bc]
-    return out
-
-
-def palette_swap_by_legend(
-    grid: list[list[int]],
-    legend_h: int = 2,
-    legend_w: int = 2,
-) -> list[list[int]]:
-    """
-    Swaps cell colors in the main canvas according to the 2x2 color key in the top-left corner.
-    Row 0 swaps g[0][0] <-> g[0][1], Row 1 swaps g[1][0] <-> g[1][1].
-    """
-    h = len(grid)
-    w = len(grid[0]) if h > 0 else 0
-    if h < legend_h or w < legend_w:
         return [row[:] for row in grid]
-
-    c00, c01 = grid[0][0], grid[0][1]
-    c10, c11 = grid[1][0], grid[1][1]
-    mapping: dict[int, int] = {c00: c01, c01: c00, c10: c11, c11: c10}
-
-    out = [row[:] for row in grid]
+    out: list[list[int]] = [[fill_value] * w for _ in range(h)]
     for r in range(h):
-        for c in range(w):
-            if r < legend_h and c < legend_w:
-                continue
-            if out[r][c] in mapping:
-                out[r][c] = mapping[out[r][c]]
+        nr = r + dr
+        if 0 <= nr < h:
+            for c in range(w):
+                nc = c + dc
+                if 0 <= nc < w:
+                    out[nr][nc] = grid[r][c]
     return out
 
 
-def extrapolate_ray(
+def crop_grid(
     grid: list[list[int]],
-    output_color: int = 2,
+    min_r: int,
+    min_c: int,
+    max_r: int,
+    max_c: int,
 ) -> list[list[int]]:
     """
-    Detects collinear arithmetic progression of points with uniform delta (dr, dc)
-    and continues the ray in output_color until reaching the grid boundaries.
+    Extracts the rectangular subgrid bounded inclusively by (min_r, min_c) and (max_r, max_c).
     """
-    out = [row[:] for row in grid]
-    h = len(grid)
-    w = len(grid[0]) if h > 0 else 0
-    pts = [(r, c) for r in range(h) for c in range(w) if grid[r][c] != 0]
-    pts.sort()
-    if len(pts) >= 2:
-        dr = pts[1][0] - pts[0][0]
-        dc = pts[1][1] - pts[0][1]
-        cr, cc = pts[-1][0] + dr, pts[-1][1] + dc
-        while 0 <= cr < h and 0 <= cc < w:
-            out[cr][cc] = output_color
-            cr += dr
-            cc += dc
+    return crop(grid, min_r, min_c, max_r, max_c)
+
+
+def overlay_grid(
+    base: list[list[int]],
+    patch: list[list[int]],
+    top_r: int = 0,
+    left_c: int = 0,
+    transparent_color: int | None = 0,
+) -> list[list[int]]:
+    """
+    Overlays `patch` onto `base` at top-left offset (top_r, left_c), skipping cells equal to `transparent_color`.
+    """
+    out = [row[:] for row in base]
+    h = len(out)
+    w = len(out[0]) if h > 0 else 0
+    ph = len(patch)
+    pw = len(patch[0]) if ph > 0 else 0
+    for r in range(ph):
+        br = top_r + r
+        if 0 <= br < h:
+            for c in range(pw):
+                bc = left_c + c
+                if 0 <= bc < w:
+                    val = patch[r][c]
+                    if transparent_color is None or val != transparent_color:
+                        out[br][bc] = val
     return out
 
 
@@ -1085,17 +947,17 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
             "  * `find_objects(grid, background=0, connectivity=8)`: Extracts connected components. Each object has "
             ".color, .dimensions (height, width), .bbox (min_r, min_c, max_r, max_c), .area (cell count), "
             ".is_hollow (bool), .coords (list of (r, c) tuples).\n"
+            "  * `connected_components(grid, background=0, connectivity=8)`: Alias for connected component extraction.\n"
             "  * `count_objects(grid, color=None, connectivity=8)`: Number of connected components.\n"
             "  * `dominant_object(grid)`: Largest non-zero connected component by pixel area.\n"
             "  * `replace_color(grid, old_color, new_color)`: Replaces all occurrences of old_color with new_color.\n"
             "  * `bounding_box(grid, color=None)`: Returns (min_r, min_c, max_r, max_c) bounding box of given color.\n"
-            "  * `unique_colors(grid)`: Sorted list of unique non-background colors.\n"
-            "  * `palette_swap_by_legend(grid, legend_h=2, legend_w=2)`: Swaps canvas colors based on top-left 2x2 key."
+            "  * `unique_colors(grid)`: Sorted list of unique non-background colors."
         ),
         guidance_rules=[
             "- Color integers are arbitrary symbolic tokens. Never hardcode numeric color literals from training examples into output! Always preserve existing cell colors or extract them dynamically.",
         ],
-        function_names=["find_objects", "count_objects", "dominant_object", "unique_colors", "replace_color", "bounding_box", "palette_swap_by_legend"],
+        function_names=["find_objects", "connected_components", "count_objects", "dominant_object", "unique_colors", "replace_color", "bounding_box"],
     ),
     PrimitiveDomain.ORDERING: PrimitiveModule(
         domain=PrimitiveDomain.ORDERING,
@@ -1116,18 +978,13 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
         helpers_doc=(
             "- Symmetry & Reflection Primitives:\n"
             "  * `complete_symmetry(grid, axis='both'|'vertical'|'horizontal', mode='auto')`: Completes symmetric reflection by mirroring non-background cells across the optimal consensus axis.\n"
-            "  * `rot90(grid, k=1)`: Rotates grid 90 degrees counter-clockwise k times.\n"
-            "  * `flip_h(grid)`: Flips grid horizontally (left-right reflection).\n"
-            "  * `flip_v(grid)`: Flips grid vertically (top-bottom reflection).\n"
-            "  * `quadrant_tile(grid)`: 2x2 4-quadrant reflection tiling (top-left rot180, top-right flip_v, bottom-left flip_h, bottom-right grid).\n"
-            "  * `tile_and_reflect(grid, repeat_r=3, repeat_c=3, alternate_flip_h=True)`: Tiles repeating with alternating row reflection.\n"
-            "  * `kronecker_fractal_tiling(grid, block_mode='complement')`: Fractal expansion using complement block."
+            "  * `rot90(grid, k=1)` / `rotate_grid(grid, k=1)`: Rotates grid 90 degrees counter-clockwise k times.\n"
+            "  * `flip_h(grid)` / `flip_v(grid)` / `reflect_grid(grid, axis='horizontal'|'vertical')`: Reflects grid across horizontal or vertical axis."
         ),
         guidance_rules=[
             "- For shape completion, use `complete_symmetry(grid, axis='both', mode='auto')` directly.",
-            "- For quadrant reflection tiling, use `quadrant_tile(grid)` directly.",
         ],
-        function_names=["complete_symmetry", "rot90", "flip_h", "flip_v", "quadrant_tile", "tile_and_reflect", "kronecker_fractal_tiling"],
+        function_names=["complete_symmetry", "rot90", "rotate_grid", "flip_h", "flip_v", "reflect_grid"],
     ),
     PrimitiveDomain.TOPOLOGY: PrimitiveModule(
         domain=PrimitiveDomain.TOPOLOGY,
@@ -1136,7 +993,6 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
             "  * `is_enclosed(inner_obj, outer_obj)`: Checks if inner object's bbox is inside outer object's bbox.\n"
             "  * `fill_holes(grid, color)`: Fills enclosed interior background regions.\n"
             "  * `flood_fill(grid, r, c, color)`: Replaces connected region starting at (r, c) with color.\n"
-            "  * `fill_framed_enclosures(grid, frame_color=2, size_to_color=None)`: Fills enclosed hollow square frames based on frame dimension.\n"
             "  * `restore_periodic_pattern(grid, period_r=None, period_c=None)`: Restores underlying periodic pattern by filtering noise.\n"
             "  * `count_cells(grid, color=None)`: Returns total number of individual cells with given color."
         ),
@@ -1144,40 +1000,38 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
             "- To detect enclosed regions, check hollow frames with `o.is_hollow` or compare coordinates with `is_enclosed(inner, outer)`.",
             "- CRITICAL: Note that `obj.area` is the number of cells in the object. If dots may be diagonally adjacent, count cells using `sum(o.area for o in selected_objects)` or `len(o.coords)` rather than component count.",
         ],
-        function_names=["is_enclosed", "fill_holes", "flood_fill", "fill_framed_enclosures", "count_cells", "restore_periodic_pattern"],
+        function_names=["is_enclosed", "fill_holes", "flood_fill", "count_cells", "restore_periodic_pattern"],
     ),
     PrimitiveDomain.EXTRACTION: PrimitiveModule(
         domain=PrimitiveDomain.EXTRACTION,
         helpers_doc=(
             "- Extraction & Subgrid Primitives:\n"
-            "  * `crop(grid, min_r, min_c, max_r, max_c)`: Extracts subgrid rectangle.\n"
+            "  * `crop(grid, min_r, min_c, max_r, max_c)` / `crop_grid(grid, min_r, min_c, max_r, max_c)`: Extracts subgrid rectangle.\n"
             "  * `crop_to_content(grid)`: Crops grid to bounding box of all non-background cells.\n"
             "  * `bbox_of_all(grid)`: Returns (min_r, min_c, max_r, max_c) enclosing all non-background cells.\n"
-            "  * `paste(dest, src, r, c)`: Pastes src subgrid into dest grid at (r, c).\n"
+            "  * `paste(dest, src, r, c)` / `overlay_grid(base, patch, top_r, left_c, transparent_color=0)`: Pastes/overlays subgrid into destination grid.\n"
             "  * `find_separator_lines(grid)`: Detects horizontal and vertical divider lines.\n"
-            "  * `split_by_separators(grid)`: Splits grid into subgrids partitioned by separator lines.\n"
-            "  * `boolean_combine(subgrids, op='nor', output_color=8)`: Pixelwise logical combination of subgrids.\n"
-            "  * `extract_quadrant_macrogrid(grid)`: Splits by crosshairs and packs cropped content into 2x2 grid."
+            "  * `split_by_separators(grid)`: Splits grid into subgrids partitioned by separator lines."
         ),
         guidance_rules=[
             "- To extract a selected object, use `crop(grid, obj.min_r, obj.min_c, obj.max_r, obj.max_c)` or `crop_to_content(grid)`.",
         ],
-        function_names=["crop", "crop_to_content", "bbox_of_all", "paste", "find_separator_lines", "split_by_separators", "boolean_combine", "extract_quadrant_macrogrid"],
+        function_names=["crop", "crop_grid", "crop_to_content", "bbox_of_all", "paste", "overlay_grid", "find_separator_lines", "split_by_separators"],
     ),
     PrimitiveDomain.MOTION: PrimitiveModule(
         domain=PrimitiveDomain.MOTION,
         helpers_doc=(
             "- Motion & Line Primitives:\n"
+            "  * `translate_grid(grid, dr=0, dc=0, fill_value=0)`: Translates grid by (dr, dc).\n"
             "  * `move_until_contact(grid, obj, dr, dc)`: Translates object in direction (dr, dc) until contacting an obstacle or boundary.\n"
             "  * `gravity_drop(grid, color=None, direction='down')`: Drops/slides pixels in direction ('down', 'up', 'left', 'right') until boundary.\n"
             "  * `align_objects(obj_a, obj_b, anchor='top-left')`: Returns (dr, dc) offset to align object A with object B.\n"
-            "  * `draw_line(grid, r1, c1, r2, c2, color)`: Draws straight discrete line from (r1, c1) to (r2, c2).\n"
-            "  * `extrapolate_ray(grid, output_color=2)`: Continues collinear ray of points with uniform step delta to grid boundaries."
+            "  * `draw_line(grid, r1, c1, r2, c2, color)`: Draws straight discrete line from (r1, c1) to (r2, c2)."
         ),
         guidance_rules=[
             "- For sliding motion, use `move_until_contact(grid, obj, dr, dc)` or `gravity_drop(grid, direction='down')`.",
         ],
-        function_names=["move_until_contact", "gravity_drop", "align_objects", "draw_line", "extrapolate_ray"],
+        function_names=["translate_grid", "move_until_contact", "gravity_drop", "align_objects", "draw_line"],
     ),
     PrimitiveDomain.MORPHOLOGY: PrimitiveModule(
         domain=PrimitiveDomain.MORPHOLOGY,

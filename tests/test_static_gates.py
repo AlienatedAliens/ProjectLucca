@@ -335,6 +335,8 @@ def test_active_docs_staleness_lint() -> None:
         repo_root / "luccadocs" / "USER_GUIDE_WHAT_LUCCA_DOES.md",
         repo_root / "luccadocs" / "V2_BACKLOG.md",
         repo_root / "luccadocs" / "specs" / "STUDIO_CAPABILITY_ROADMAP.md",
+        repo_root / "luccadocs" / "specs" / "CAPABILITY_REGISTER.md",
+        repo_root / "luccadocs" / "research" / "COMPETITIVE_MATRIX.md",
         repo_root / "luccadocs" / "audit" / "findings" / "V1_RELEASE_AUDIT.md",
         repo_root / "luccadocs" / "adr" / "0009_audio_concurrency_contract.md",
     ]
@@ -1050,6 +1052,100 @@ def test_boot_path_no_unlogged_excepts() -> None:
                     unlogged.append(f"{f.name}:{node.lineno} ({ast.unparse(t) if t else 'bare'})")
 
     assert not unlogged, f"Found unlogged except handlers in boot-path modules: {unlogged}"
+
+
+def test_capability_register_yaml_and_gates() -> None:
+    """SPEC-CAP-REG-v1.0 static gates:
+    1. Advertise gate: every tool in get_default_native_tools() maps to >=1 YAML capability;
+       any capability with stub: true must not advertise tools in the registry or USER_GUIDE.
+    2. Doc-consistency gate: capability rungs in CAPABILITY_REGISTER.md §2 match YAML maturity.
+    3. Evidence gate: every YAML row at L3 or L4 cites >=1 existing artifact path on disk.
+    4. Tool-count gate: YAML tool map covers all advertised native tools exactly.
+    """
+    import yaml
+
+    from lucca.core.capabilities import MAX_REGISTRY_TOOLS, get_default_native_tools
+
+    repo_root = Path(__file__).parent.parent
+    yaml_path = repo_root / "data" / "capabilities.yaml"
+    assert yaml_path.exists(), f"Missing machine-readable capability register: {yaml_path}"
+
+    data = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+    assert isinstance(data, dict) and data.get("schema_version") == 1
+    caps = data.get("capabilities")
+    assert isinstance(caps, list) and len(caps) >= 20
+
+    rung_order = {"L0": 0, "L1": 1, "L2": 2, "L3": 3, "L4": 4}
+    native_tools = set(get_default_native_tools().keys())
+    guide_text = (repo_root / "luccadocs" / "USER_GUIDE_WHAT_LUCCA_DOES.md").read_text(
+        encoding="utf-8"
+    )
+    reg_text = (repo_root / "luccadocs" / "specs" / "CAPABILITY_REGISTER.md").read_text(
+        encoding="utf-8"
+    )
+
+    yaml_tools: list[str] = []
+    cap_maturity_map: dict[str, int] = {}
+
+    for row in caps:
+        cid = str(row["id"])
+        mat = str(row["maturity"])
+        assert mat in rung_order, f"{cid}: invalid maturity '{mat}'"
+        cap_maturity_map[cid] = rung_order[mat]
+
+        is_stub = bool(row.get("stub", False))
+        row_tools = [str(t) for t in (row.get("tools") or [])]
+        yaml_tools.extend(row_tools)
+
+        # Gate 1: stub capabilities must not advertise tools in registry or user guide
+        if is_stub:
+            assert mat in ("L0", "L1"), f"{cid}: stub=true row cannot exceed L1 (got {mat})"
+            for t in row_tools:
+                assert t not in native_tools, (
+                    f"Advertise gate violation: stub capability {cid} advertises tool '{t}' "
+                    "in get_default_native_tools()"
+                )
+                assert f"`{t}`" not in guide_text, (
+                    f"Advertise gate violation: stub tool '{t}' ({cid}) is advertised in USER_GUIDE"
+                )
+
+        # Gate 3: L3/L4 rows must cite >=1 existing artifact on disk
+        if rung_order[mat] >= 3:
+            ev_list = [str(e) for e in (row.get("evidence") or [])]
+            assert ev_list, f"Evidence gate violation: {cid} ({mat}) lists no evidence paths"
+            existing = [e for e in ev_list if (repo_root / e).exists()]
+            assert existing, (
+                f"Evidence gate violation: {cid} ({mat}) has no existing evidence files on disk: {ev_list}"
+            )
+
+    # Gate 1 & Gate 4: every native tool is mapped and counts match MAX_REGISTRY_TOOLS
+    assert set(yaml_tools) == native_tools, (
+        f"Tool-map mismatch between data/capabilities.yaml and get_default_native_tools(): "
+        f"missing={native_tools - set(yaml_tools)}, extra={set(yaml_tools) - native_tools}"
+    )
+    assert len(yaml_tools) == MAX_REGISTRY_TOOLS, (
+        f"Expected {MAX_REGISTRY_TOOLS} mapped tools in capabilities.yaml, got {len(yaml_tools)}"
+    )
+
+    # Gate 2: Doc-consistency check against CAPABILITY_REGISTER.md §2 table rows
+    for line in reg_text.splitlines():
+        m = re.match(r"^\|\s*`(CAP-[A-Z\-]+)`\s*\|", line)
+        if not m:
+            continue
+        cid = m.group(1)
+        assert cid in cap_maturity_map, f"{cid} in CAPABILITY_REGISTER.md missing from capabilities.yaml"
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if len(cells) >= 5:
+            maturity_cell = cells[4]
+            rungs_in_cell = [rung_order[r] for r in re.findall(r"\bL[0-4]\b", maturity_cell)]
+            assert rungs_in_cell, f"No rung found in CAPABILITY_REGISTER.md row for {cid}: {maturity_cell}"
+            assert max(rungs_in_cell) <= cap_maturity_map[cid] or (
+                "→" in maturity_cell and min(rungs_in_cell) <= cap_maturity_map[cid]
+            ), (
+                f"Doc-consistency violation for {cid}: doc cell '{maturity_cell}' exceeds YAML "
+                f"maturity L{cap_maturity_map[cid]}"
+            )
+
 
 
 

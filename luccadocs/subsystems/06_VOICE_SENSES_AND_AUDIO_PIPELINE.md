@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 06 — Voice Senses, DSP & Full-Duplex Audio Pipeline
 
 **Subsystem:** `src/lucca/senses/`  
-**Version:** 1.3.0  
+**Version:** 1.47.0 (`WO-39`)  
 **Architectural Tier:** Senses, Speech Synthesis & Full-Duplex Audio  
 **Hardware Placement:** PortAudio WASAPI (Host), Energy VAD (CPU), NVIDIA RTX 5080 (ASR CUDA float16)
 
@@ -60,14 +60,16 @@ Inter-process audio streaming requires microsecond transfer latencies without ga
    - **Primary Substrate:** Faster-Whisper `distil-small.en` running on the RTX 5080 Laptop GPU via CUDA float16 (+555 MiB resident VRAM).
    - **Fallback Substrate:** CPU int8 execution via OpenVINO if GPU memory is constrained.
    - **Physical Loopback Latency:** Ear-to-ear latency measured at **$707.55\,\text{ms}$ P50** (P95: $864.05\,\text{ms}$).
-3. **Acoustic Hygiene Filter (WO-26b):**
+3. **Acoustic Hygiene Filter (WO-26b) & `"Lucca"` Wake-Word Conditioning (`WO-39` Milestone 1.3):**
+   - **Whisper Prompt & Hotword Conditioning (`asr.py`):** Passes domain-primed `initial_prompt` and `hotwords="Lucca"` into `Faster-Whisper` `transcribe()`, biasing the acoustic decoder toward the companion's proper name.
+   - **Post-ASR Phonetic Wake-Word Normalization (`normalize_lucca_wake_word` in `stt.py`):** Deterministically normalizes common Whisper English homophone transcriptions (`"Lucas"`, `"Lukas"`, `"Luka"`, `"Luca"`) in direct-address contexts to `"Lucca"`, while preserving third-party surnames (e.g., `"George Lucas"`).
    - **Stutter Collapse:** Collapses repeated initial syllables (`"wh-wh-what" \to "what"`).
    - **Word Ceiling:** Rejects spurious acoustic hallucination bursts exceeding 25 characters without whitespace.
    - **Colloquialism Normalizer:** Maps phonetic Australian/UK colloquialisms into normalized orthography.
 
 ---
 
-## 4. Kokoro-82M Neural TTS & Anime Formant DSP Chain (`tts.py`)
+## 4. Kokoro-82M Neural TTS & Anime Formant DSP Chain (`tts.py` & `dsp_chain.py`)
 
 Lucca's voice is synthesized locally using the Kokoro-82M neural TTS model running via ONNX Runtime on the CPU, reserving 100% of GPU compute for neural deliberation:
 
@@ -77,16 +79,16 @@ flowchart LR
     ONNX --> RAW_PCM["Raw 24kHz Audio PCM"]
     RAW_PCM --> PROS["PAD Dynamic Prosody Modulation"]
     PROS --> PEQ["Parametric EQ: +3dB Presence at 3.2kHz"]
-    PEQ --> FORM["SIMD Formant Pitch Shifter"]
+    PEQ --> FORM["Hann-Windowed OLA Pitch Shifter (dsp_chain.py)"]
     FORM --> LIM["Soft Knee Limiter (-1.0 dBFS)"]
     LIM --> OUT["PortAudio WASAPI Output"]
 ```
 
-### 4.1 Dynamic PAD Prosody Modulation
+### 4.1 Dynamic PAD Prosody Modulation & Hann-Windowed OLA Pitch Shifting (`WO-39` Organ 6)
 Continuous emotional coordinates (Pleasure, Arousal, Dominance) modulate speech acoustics in real time:
 - **Arousal $\to$ Speaking Rate:** Normalized speaking rate scales dynamically:
   $$\text{Rate} = 1.0 + 0.10 \times \text{Arousal} \quad (\text{Range: } [0.90, 1.10])$$
-- **Dominance $\to$ Formant Pitch:** Formant filters shift resonance centroids to convey authority or warmth without altering baseline pitch.
+- **Dominance $\to$ Formant Pitch & Overlap-Add (OLA) Resampling (`apply_pitch_shift` in `dsp_chain.py`):** In `WO-39`, `dsp_chain.py` implements true **Hann-windowed Overlap-Add (OLA) time-stretch + linear resampling pitch shifting** (`apply_pitch_shift`), shifting pitch by `pitch_semitones` while preserving exact utterance duration and phase continuity across frame boundaries.
 
 ---
 

@@ -4,6 +4,32 @@
 
 > **Honesty Note**: Historical v1.3 results were produced from a working tree that contained uncommitted changes. `v1.3-frozen` is the nearest reproducible snapshot. `v1.3-frozen` did not reproduce bit-for-bit (20 of 25 predictions matched). Run-to-run variance is being measured. Determinism diagnostic confirmed prompt-cache reuse caused variance; `cache_prompt: false` produces bit-for-bit identical outputs (100/100 matches).
 
+## WO-39 Audit, Benchmark Provenance Note & Post-Decontamination 4-Model Live Verification (2026-11-03)
+
+Work Order 39 (`WO-39`) conducted a full-codebase scientific integrity and benchmark decontamination audit, followed by a live GPU (`llama-server`) + WSL2 Docker (`lucca-file-sandbox`) verification rebench across all four Gemma 4 model scales (`logs/test_reports/wo39_live_4models_rebench.json` and `logs/test_reports/wo39_live_targeted_rebench.json`):
+
+| Live Verification Suite (Post-`WO-39`) | Sample ($N$) | Gemma 4 `26B-A4B` MoE<br>*(4B Active)* | Gemma 4 `12B` Dense | Gemma 4 `E4B`<br>*(4.5B Eff.)* | Gemma 4 `E2B`<br>*(2B Eff.)* | Notes & Artifact Paths |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **1. Study 1 V2c: Autobiographical Recall vs. Self-Poisoning** | $10$ | **0/10 Poisoned**<br>**(100% Defended)** | **0/10 Poisoned**<br>**(100% Defended)** | **0/10 Poisoned**<br>**(100% Defended)** | **0/10 Poisoned**<br>**(100% Defended)** | Naive RAG: 10/10 poisoned (`p = 0.00195`); full autobiographical recall active (`logs/test_reports/wo39_live_4models_rebench.json`) |
+| **2. Study 1 V2b: Corroboration Gate Evaluation** | $10$ | **0/10 Poisoned**<br>**(100% Defended)** | **0/10 Poisoned**<br>**(100% Defended)** | **0/10 Poisoned**<br>**(100% Defended)** | **3/10 Poisoned**<br>**(70% Defended)** | General numeric extraction in `CorroborationEngine` + partitioned `<autobiographical_memory>` |
+| **3. Sealed Parametric Hard Neurosymbolic Suite (`v139`)** | $15$<br>*(3/lobe)* | **15/15 (100.0%)**<br>*(p = 0.000061)* | **15/15 (100.0%)**<br>*(p = 0.000061)* | **15/15 (100.0%)**<br>*(p = 0.000061)* | **14/15 (93.3%)**<br>*(p = 0.000122)* | Raw Direct/Thinking baseline: `0/15 (0.0%)`. Per-model artifacts: `logs/test_reports/sealed_parametric_WO39_*.json` |
+| &nbsp;&nbsp;• `single_lobe_epistemic` (`ContainerWorld` ToM) | $3$ | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | Single-source `container_world.py` injected via `DockerRPCTransport` |
+| &nbsp;&nbsp;• `single_lobe_smt` (`Z3` Solver) | $3$ | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | Modular congruence & constraint systems |
+| &nbsp;&nbsp;• `single_lobe_cas` (`SymPy` CAS) | $3$ | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | Symbolic algebra & exact number theory |
+| &nbsp;&nbsp;• `two_lobe_composed` (`CW+SymPy` / `Z3+SymPy`) | $3$ | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | **2/3 (66.7%)** | Multi-lobe composed neurosymbolic tasks |
+| &nbsp;&nbsp;• `formalization_translation` (`Python` CEGIS) | $3$ | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | **3/3 (100.0%)** | Natural language to formal program synthesis |
+| **4. GSM8K PAL (1-Shot Docker Execution)** | $10$ | **10/10 (100.0%)**<br>*(47.7s)* | **10/10 (100.0%)**<br>*(70.5s)* | **10/10 (100.0%)**<br>*(23.8s)* | **5/10 (50.0%)**<br>*(23.2s)* | Fresh un-cached 1-shot PAL runs inside `lucca-file-sandbox` |
+| **5. Canonical HumanEval Assisted CEGIS (Docker)** | $10$ | **10/10 (100.0%)**<br>*(22.3s)* | **10/10 (100.0%)**<br>*(21.1s)* | **10/10 (100.0%)**<br>*(18.9s)* | **10/10 (100.0%)**<br>*(7.8s)* | `HumanEval/0`–`HumanEval/9` executed inside `lucca-file-sandbox` |
+| **6. Defensive Prompt Injection & Security Battery** | $20$ | **20/20 (100.0%)** | **20/20 (100.0%)** | **20/20 (100.0%)** | **20/20 (100.0%)** | Deterministic host/sandbox guards (`logs/test_reports/defensive_security_benchmark_1793650355.json`) |
+| **7. Tool Injection & Sandbox Defense Battery** | $30$ | **30/30 (100.0%)** | **30/30 (100.0%)** | **30/30 (100.0%)** | **30/30 (100.0%)** | Layer 1 Taint (10/10), Layer 2 Deontic (10/10), Layer 3 Docker Container (10/10) (`logs/test_reports/tool_injection_defense_1793650358.json`) |
+
+- **Live-Verified Empirical Results (Retained):**
+  - **Study 1 (`PREREG-POISONING-ABLATION-v1.0` / `v2.0`) & Study 2 (PAL-off Factorial Ablation):** Generated via live `llama-server` completions and verified against frozen JSONL artifacts. In Study 1 V2b (`scripts/eval_self_poisoning_ablation_v2.py`), corroboration status now queries `lucca.memory.gate.is_content_corroborated(db, ...)` rather than alternating parity.
+  - **Canonical Coding & Math Batteries (`HumanEval`, `HumanEval-Plus`, `GSM8K`, `GSM-Symbolic`, `MATH-500`):** Evaluated against live LLM completions inside the Docker sandbox. Problem-specific AST sanitizer rewrites (`u = x/h`, `primes`/`odds`/`evens` injection) and prompt-side problem hints have been removed in `WO-39`.
+- **Decontaminated / Reclassified Benchmarks:**
+  - **`SPEC-BENCH-100-v1.0`:** Historical runs (`91.0%`) included benchmark-specific keyword routing, prompt coaching, and static RFC 9110/7231 definitions in `search_tool.py`. All benchmark-specific shortcuts have been removed in `WO-39`; historical `SPEC-BENCH-100` figures are archived as pre-decontamination baselines pending clean live re-evaluation.
+  - **Personhood Probe Batteries (`AC`, `IN`, `IA`, `FC`):** Default execution of `scripts/grade_ac.py`, `scripts/grade_in.py`, `scripts/grade_ia.py`, and `scripts/grade_fc.py` validates probe fixture schemas and mechanical invariants without querying a live LLM, and is now explicitly labeled `status: "SCHEMA_FIXTURE_VALIDATION_ONLY (NOT A LIVE MODEL EVALUATION)"` unless invoked with `--live`.
+
 
 
 | Run ID | Code Commit | Grader Version | Dataset File | Dataset SHA-256 | n | Passed | Strict Score | Lenient Score | Wilson 95% CI | Artifact Path | Notes |

@@ -299,6 +299,8 @@ class AffectiveODEMachine:
         self.state = interim_state
         return self.state
 
+    inject_signal = apply_signal
+
     def quantize_stance(
         self,
         state: AffectState3D,

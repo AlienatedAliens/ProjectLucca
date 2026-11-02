@@ -40,21 +40,19 @@ from lucca.reasoning.spatial_dsl import (
     SymbolicInvariants,
     analyze_symbolic_invariants,
     bbox_of_all,
-    boolean_combine,
     build_scene_graph,
     check_metamorphic_invariance,
     column_heights,
     complete_symmetry,
+    connected_components,
     count_cells,
     count_objects,
     crop,
+    crop_grid,
     crop_to_content,
     denoise,
     dominant_object,
     draw_line,
-    extract_quadrant_macrogrid,
-    extrapolate_ray,
-    fill_framed_enclosures,
     fill_holes,
     find_objects,
     find_separator_lines,
@@ -64,21 +62,21 @@ from lucca.reasoning.spatial_dsl import (
     format_scene_graph_prompt,
     generate_relational_diff,
     is_enclosed,
-    kronecker_fractal_tiling,
     majority_filter,
     move_until_contact,
     normalize_grid,
     order_columns_by_height,
-    palette_swap_by_legend,
+    overlay_grid,
     paste,
-    quadrant_tile,
+    reflect_grid,
     resolve_scoped_primitives,
     rot90,
+    rotate_grid,
     row_widths,
     sort_objects,
     split_by_separators,
     summarize_grid_objects,
-    tile_and_reflect,
+    translate_grid,
     unique_colors,
 )
 from lucca.reasoning.arc_primitives import (
@@ -367,16 +365,14 @@ def execute_transform_code(code: str, grid_in: list[list[int]], timeout: float =
         "align_objects": align_objects,
         "get_connected_components": get_connected_components,
         "get_objects": get_objects,
-        "boolean_combine": boolean_combine,
-        "extract_quadrant_macrogrid": extract_quadrant_macrogrid,
-        "extrapolate_ray": extrapolate_ray,
-        "fill_framed_enclosures": fill_framed_enclosures,
+        "connected_components": connected_components,
+        "crop_grid": crop_grid,
         "find_separator_lines": find_separator_lines,
-        "kronecker_fractal_tiling": kronecker_fractal_tiling,
-        "palette_swap_by_legend": palette_swap_by_legend,
-        "quadrant_tile": quadrant_tile,
+        "overlay_grid": overlay_grid,
+        "reflect_grid": reflect_grid,
+        "rotate_grid": rotate_grid,
         "split_by_separators": split_by_separators,
-        "tile_and_reflect": tile_and_reflect,
+        "translate_grid": translate_grid,
     }
 
     result: list[Any] = []
@@ -516,155 +512,9 @@ class AbductionPayload:
 
 
 def synthesize_deterministic_candidates(train_pairs: list[dict[str, list[list[int]]]]) -> list[tuple[str, str]]:
-    """Synthesizes candidate deterministic macro-programs from inductive domain primitives."""
-    candidates: list[tuple[str, str]] = []
-
-    # 1. Quadrant reflection tiling
-    candidates.append((
-        "quadrant_tile",
-        "def transform(grid):\n    return quadrant_tile(grid)",
-    ))
-
-    # 2. Tile and alternating reflection
-    candidates.append((
-        "tile_and_reflect",
-        "def transform(grid):\n    return tile_and_reflect(grid, repeat_r=3, repeat_c=3, alternate_flip_h=True)",
-    ))
-
-    # 3. Kronecker fractal complement expansion
-    candidates.append((
-        "kronecker_comp",
-        "def transform(grid):\n    return kronecker_fractal_tiling(grid, block_mode='complement')",
-    ))
-
-    # 4. Separator pixelwise NOR combination
-    candidates.append((
-        "sep_nor",
-        "def transform(grid):\n"
-        "    sep_rows, _ = find_separator_lines(grid)\n"
-        "    if not sep_rows:\n"
-        "        return grid\n"
-        "    subgrids = split_by_separators(grid, sep_rows=sep_rows, sep_cols=[])\n"
-        "    flat_subs = [row[0] for row in subgrids]\n"
-        "    return boolean_combine(flat_subs, op='nor', output_color=8)",
-    ))
-
-    # 5. Crosshair quadrant macrogrid extraction
-    candidates.append((
-        "crosshair_macrogrid",
-        "def transform(grid):\n    return extract_quadrant_macrogrid(grid)",
-    ))
-
-    # 6. Framed enclosures size-to-color filling
-    candidates.append((
-        "framed_enclosures",
-        "def transform(grid):\n    return fill_framed_enclosures(grid, frame_color=2, size_to_color={5: 8, 7: 4, 9: 3})",
-    ))
-
-    # 7. Palette swap by 2x2 top-left legend
-    candidates.append((
-        "legend_swap",
-        "def transform(grid):\n    return palette_swap_by_legend(grid, legend_h=2, legend_w=2)",
-    ))
-
-    # 8. Collinear ray extrapolation
-    candidates.append((
-        "extrapolate_ray",
-        "def transform(grid):\n    return extrapolate_ray(grid, output_color=2)",
-    ))
-
-    # 9. Learned glyph recolor
-    try:
-        def get_sk(grid: list[list[int]], color: int = 1) -> str:
-            coords = [(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == color]
-            if not coords:
-                return ""
-            min_r = min(r for r, c in coords)
-            max_r = max(r for r, c in coords)
-            min_c = min(c for _, c in coords)
-            max_c = max(c for _, c in coords)
-            return str([[1 if grid[r][c] == color else 0 for c in range(min_c, max_c + 1)] for r in range(min_r, max_r + 1)])
-
-        s2c: dict[str, int] = {}
-        for ex in train_pairs:
-            sk = get_sk(ex["input"], 1)
-            if sk:
-                out_cs = [c for r in ex["output"] for c in r if c != 0]
-                if out_cs:
-                    s2c[sk] = int(out_cs[0])
-        if s2c:
-            m_str = repr(s2c)
-            cand_code = (
-                "def transform(grid):\n"
-                "    coords = [(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == 1]\n"
-                "    if not coords:\n"
-                "        return grid\n"
-                "    min_r = min(r for r, c in coords)\n"
-                "    max_r = max(r for r, c in coords)\n"
-                "    min_c = min(c for _, c in coords)\n"
-                "    max_c = max(c for _, c in coords)\n"
-                "    sub = str([[1 if grid[r][c] == 1 else 0 for c in range(min_c, max_c + 1)] for r in range(min_r, max_r + 1)])\n"
-                f"    mapping = {m_str}\n"
-                "    target_c = mapping.get(sub, 2)\n"
-                "    out = [[0] * len(grid[0]) for _ in range(len(grid))]\n"
-                "    for r in range(len(grid)):\n"
-                "        for c in range(len(grid[0])):\n"
-                "            if grid[r][c] == 8:\n"
-                "                out[r][c] = target_c\n"
-                "    return out"
-            )
-            candidates.append(("glyph_recolor", cand_code))
-    except Exception:
-        pass
-
-    # 10. Learned topological holes recolor
-    try:
-        h2c: dict[int, int] = {}
-        shapes_match = True
-        for ex in train_pairs:
-            arr_in = np.array(ex["input"])
-            arr_out = np.array(ex["output"])
-            if arr_in.shape != arr_out.shape:
-                shapes_match = False
-                break
-            labeled, num = scipy.ndimage.label(arr_in != 0)
-            for f in range(1, num + 1):
-                mask = (labeled == f)
-                coords = np.argwhere(mask)
-                min_r, min_c = coords.min(axis=0)
-                max_r, max_c = coords.max(axis=0)
-                sub_in = mask[min_r : max_r + 1, min_c : max_c + 1]
-                filled = scipy.ndimage.binary_fill_holes(sub_in)
-                holes = filled & ~sub_in
-                _, num_holes = scipy.ndimage.label(holes)
-                out_cs = np.unique(arr_out[mask])
-                if len(out_cs) == 1:
-                    h2c[int(num_holes)] = int(out_cs[0])
-        if shapes_match and h2c:
-            m_str = repr(h2c)
-            cand_code = (
-                "def transform(grid):\n"
-                "    in_arr = np.array(grid)\n"
-                "    out_arr = np.zeros_like(in_arr)\n"
-                "    labeled, num = scipy.ndimage.label(in_arr != 0)\n"
-                f"    h2c = {m_str}\n"
-                "    for f in range(1, num + 1):\n"
-                "        mask = (labeled == f)\n"
-                "        coords = np.argwhere(mask)\n"
-                "        min_r, min_c = coords.min(axis=0)\n"
-                "        max_r, max_c = coords.max(axis=0)\n"
-                "        sub_in = mask[min_r : max_r + 1, min_c : max_c + 1]\n"
-                "        filled = scipy.ndimage.binary_fill_holes(sub_in)\n"
-                "        holes = filled & ~sub_in\n"
-                "        _, num_holes = scipy.ndimage.label(holes)\n"
-                "        out_arr[mask] = h2c.get(int(num_holes), 1)\n"
-                "    return out_arr.tolist()"
-            )
-            candidates.append(("topological_holes", cand_code))
-    except Exception:
-        pass
-
-    return candidates
+    """Returns empty candidate list under WO-39 zero-hardcoded-solver invariant."""
+    _ = train_pairs
+    return []
 
 
 def evaluate_task(task_path: Path, concept: str) -> TaskResult:

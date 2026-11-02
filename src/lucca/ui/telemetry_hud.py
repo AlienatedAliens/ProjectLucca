@@ -66,7 +66,7 @@ class TelemetryHUD(QWidget):
     Pinnable floating Chrono Trigger SNES Telemetry HUD.
     Displays real-time hardware metrics across all 5 substrates:
     1. dGPU: NVIDIA RTX 5080 Laptop GPU (16.0 GB VRAM)
-    2. NPU: Intel AI Boost (Active Whisper STT & Embeddings)
+    2. NPU: Intel AI Boost (384-D Embeddings via OpenVINO)
     3. CPU: Intel Core Ultra 9 275HX (24 Cores)
     4. RAM: 16.0 GB System RAM (Lucca stack vs Total host)
     5. iGPU: Intel Graphics (Standby Fallback)
@@ -269,7 +269,7 @@ class TelemetryHUD(QWidget):
 
         self.npu_bar = QProgressBar(self)
         self.npu_bar.setValue(28)
-        self.npu_bar.setFormat("OpenVINO Whisper ASR")
+        self.npu_bar.setFormat("OpenVINO Embeddings")
         self.npu_bar.setStyleSheet("""
             QProgressBar {
                 background: #060b24;

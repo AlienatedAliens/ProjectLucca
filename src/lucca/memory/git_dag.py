@@ -15,12 +15,14 @@ Invariants:
 
 from __future__ import annotations
 
+import ast
 from collections import defaultdict, deque
 from collections.abc import Callable
 import difflib
 from enum import Enum
 import hashlib
 from pathlib import Path
+import subprocess
 import time
 from typing import Final
 
@@ -211,6 +213,23 @@ class GitStagingDAG:
 ValidatorHook = Callable[[StagedOperation], tuple[bool, str | None]]
 
 
+def validate_python_syntax_hook(op: StagedOperation) -> tuple[bool, str | None]:
+    """
+    Default preflight AST validator that parses staged Python (.py) files
+    using ast.parse() before allowing transaction commit.
+    """
+    if op.op_type in (OperationType.WRITE_FILE, OperationType.APPLY_DIFF):
+        if op.path.suffix.lower() == ".py" and op.content is not None:
+            try:
+                ast.parse(op.content, filename=str(op.path))
+            except SyntaxError as exc:
+                return (
+                    False,
+                    f"Python syntax error at line {exc.lineno}: {exc.msg}",
+                )
+    return True, None
+
+
 class StagingTransaction:
     """
     Context manager and controller for atomic workspace transactions.
@@ -221,14 +240,42 @@ class StagingTransaction:
         self,
         workspace_root: Path | None = None,
         validators: list[ValidatorHook] | None = None,
+        enforce_python_ast: bool = True,
     ) -> None:
         self.workspace_root = workspace_root or Path.cwd()
         self.dag = GitStagingDAG()
-        self.validators: list[ValidatorHook] = validators or []
+        base_validators: list[ValidatorHook] = (
+            [validate_python_syntax_hook] if enforce_python_ast else []
+        )
+        if validators:
+            base_validators.extend(validators)
+        self.validators: list[ValidatorHook] = base_validators
         self._op_counter = 0
         self._in_transaction = False
         self._backups: dict[Path, str | None] = {}  # None indicates file didn't exist
         self._created_dirs: list[Path] = []
+
+    def verify_git_worktree_state(self) -> tuple[bool, str]:
+        """
+        Inspects the git worktree status at workspace_root using `git status --porcelain`.
+        Returns (is_clean, porcelain_output_or_error).
+        """
+        try:
+            proc = subprocess.run(
+                ["git", "status", "--porcelain"],
+                cwd=str(self.workspace_root),
+                capture_output=True,
+                text=True,
+                timeout=5.0,
+                check=False,
+            )
+            if proc.returncode != 0:
+                return False, proc.stderr.strip() or "Not a git worktree"
+            output = proc.stdout.strip()
+            return (len(output) == 0), output
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("git_worktree_state_check_failed", error=str(exc))
+            return False, str(exc)
 
     def __enter__(self) -> StagingTransaction:
         self.begin()

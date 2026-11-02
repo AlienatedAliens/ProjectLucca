@@ -57,7 +57,7 @@ class PipelineTracer:
         self.config_metadata: dict[str, JsonValue] = {
             "model": "active-brain-model",
             "context_size": 16384,
-            "hardware": "NVIDIA GeForce RTX 5080 Laptop GPU (16 GB) + Intel Core Ultra 9 275HX",
+            "hardware": "Local dGPU + Host Multi-Core CPU",
         }
         self.stats = {"completed": 0, "passed": 0, "failed": 0, "current_accuracy": 0.0}
 

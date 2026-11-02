@@ -27,7 +27,7 @@ import re
 import shlex
 import sys
 import time
-from typing import Any, Final
+from typing import Final
 
 import httpx
 
@@ -167,7 +167,7 @@ class ReasoningREPL:
         # Active Session State
         self.active_task_id: str | None = None
         self.active_task_path: Path | None = None
-        self.active_task_data: dict[str, Any] | None = None
+        self.active_task_data: dict[str, object] | None = None
         self.candidate_code: str | None = None
         self.candidate_hypothesis: str | None = None
         self.candidate_scheme: str | None = None
@@ -211,6 +211,7 @@ class ReasoningREPL:
                 print(f"  * \033[1;32m[EPISODIC CACHE HIT]\033[0m Verified code auto-restored (0 ms LLM).")
             return True
         except Exception as exc:
+            logger.debug("load_task_failed", path=str(path), error=str(exc))
             print(f"Error loading task '{path}': {exc}")
             return False
 
@@ -373,6 +374,7 @@ class ReasoningREPL:
             print(f"\n--- Scheme Result ({elapsed_ms:.2f} ms) {badge} ---")
             print(render_grid_ansi(result, use_color=self.use_color))
         except Exception as exc:
+            logger.debug("repl_scheme_eval_failed", error=str(exc))
             print(f"\033[1;31mScheme Evaluation Error:\033[0m {exc}")
 
     # =========================================================================
@@ -592,7 +594,7 @@ class ReasoningREPL:
         concept: str | None = None,
         limit: int | None = None,
         max_turns: int = 4,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """
         Runs batch evaluation across tasks and computes pass rates and Wilson 95% CIs.
         """
@@ -627,7 +629,7 @@ class ReasoningREPL:
         train_solved = 0
         test_solved = 0
         total_time_ms = 0.0
-        records: list[dict[str, Any]] = []
+        records: list[dict[str, object]] = []
 
         for idx, tp in enumerate(task_paths, start=1):
             t_start = time.perf_counter()

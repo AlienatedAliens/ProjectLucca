@@ -3,15 +3,15 @@
 
 ```yaml
 doc_status: canonical
-as_of: 2026-10-19
-release_baseline: v1.45.0 (WO-36)
+as_of: 2026-11-03
+release_baseline: v1.47.0 (WO-39)
 submission_status: technical_report (design + threat model; no external or adversarial red-team has been performed)
 related_adrs: [ADR-003, ADR-004, D-SEC-04, D-AUD-10, D-AUD-13, D-SAND-03, D-SUP-01, D-COG-01]
 verification: artifact-sourced (V1_RELEASE_AUDIT.md, RESULTS.md & tests/test_c1_abstention_acceptance.py)
 ```
 
 **Authors:** Project Lucca Systems Security, Conformal Calibration & Deontic Verification Group
-**Date:** October 19, 2026 (`v1.45.0` / `WO-36` Baseline)
+**Date:** November 3, 2026 (`v1.47.0` / `WO-39` Baseline)
 **Hardware Platform:** Intel Core Ultra 9 275HX + Intel AI Boost NPU (`OpenVINO`) + Ubuntu WSL2 Docker CE (`lucca-file-sandbox`, `--network none`)
 
 **Contribution type and evidence standard.** This report states a threat model, describes six enforcement layers, and reports the results of the project's own test batteries against them. Every "100%" in §4 means "all cases in a suite we wrote were handled as specified"; none means "no attack exists." No external security review or adversarial red-team has been conducted. The conformal-routing calibration (Layer 1) was fitted on a synthetic seed produced by the unguarded router, not on human-labeled ground truth — see §6.2.
@@ -85,6 +85,12 @@ At runtime, if a candidate `RouteAction.RULE` prediction fails the conformal thr
 | **TOML Whitelist Integrity (`[ITEM-007]`)**| Corrupted/malformed `config/tool_whitelist.toml` parses as empty whitelist | `src/lucca/sandbox/launcher.py` | Fail Closed (`0` apps allowed) |
 | **Replay Protection** | $\forall \tau \in \text{Tokens} : \text{UsedCount}(\tau) \le 1 \land \text{Age}(\tau) \le 60.0\,\text{s}$ | `src/lucca/memory/tokens.py` | `stale_confirmation` |
 | **Container Jailing (`D-AUD-13`)** | `use_direct_fallback = False`; `--network none`; `/tmp/lucca_runtime` sync | `src/lucca/sandbox/rpc.py` | `SandboxUnavailableError` |
+
+### 2.3 `WO-39` (2026-11-03) Implementation & Decontamination Sync: Conformal `decision_labels`, BDI AST+Z3 & Sandbox Hardening
+In `WO-39` (Total Decontamination & Bicameral Mind Restoration), Layers 1, 3, and 5 were hardened:
+1. **Ground-Truth `decision_labels` Conformal Calibration (`src/lucca/router/calibration.py`):** `fit_guard_from_db` now performs a SQL `LEFT JOIN decision_labels` against `decisions`, computing non-conformity scores directly from ground-truth outcome labels (`POS` $\to s_i = 1.0 - \hat{p}_i$; `NEG` $\to$ penalized $s_i = \hat{p}_i$; `INDETERMINATE` $\to$ excluded from calibration fitting). In addition, `src/lucca/router/heuristic.py` was decontaminated (Milestone 1.1) by removing hardcoded `SPEC-BENCH-100` prompt triggers.
+2. **`SpeculativeBDIValidator` S-Expression Deontic Rules, Python AST & Z3 Resource Solver (`src/lucca/core/bdi_validator.py`):** Expanded pre-dispatch verification to evaluate declarative S-expression deontic rules, inspect `run_python` ASTs to reject unbounded `while True:` loops lacking termination guards (`break`/`return`), and verify numeric loop/allocation bounds via a Z3 resource solver. `SandboxService` (`service.py`) unpacks the 3-tuple `(ok, msg, details)` return signature, and `capabilities.py` enforces post-execution `verify_postcondition` checks.
+3. **`.url` (`[InternetShortcut]`) Escape Block & AST Sanitizer Hardening (`file_tool.py`, `ast_sanitizer.py`, `rpc.py`):** `file_tool.py` blocks `.url` (`[InternetShortcut]`) workspace escape vectors alongside `.lnk` and NTFS ADS streams; `ast_sanitizer.py` removes `eval`/`exec`/`compile`/`getattr` bypasses; `search_tool.py` and `rpc.py` remove `STATIC_RFC_DEFINITIONS` and `mock_calls`; and `rpc.py` imports `ContainerWorld` (`container_world.py`) with $k$-order recursive Theory-of-Mind (`_project_world_for_observer` + `query_recursive`) as the single source of truth.
 
 ---
 

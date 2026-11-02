@@ -328,7 +328,7 @@ class DiagnosisEngine:
 
         if diagnosis.fault_id == "audio_ring_contention":
             return (
-                "My ASR is slow and the NPU looks fine — my best guess is audio ring "
+                "My ASR is slow and the GPU looks fine — my best guess is audio ring "
                 "contention; I'd check the ring buffer."
             )
 

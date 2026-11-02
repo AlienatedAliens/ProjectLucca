@@ -3,7 +3,7 @@ Project Lucca — Whole-System Memory Footprint & Contention Measurement
 Measures real resident VRAM, host RAM, container cgroups, and latency across:
 1. LLM resident tiers (E2B, E4B, 12B)
 2. Kokoro-82M TTS (ONNX)
-3. OpenVINO Whisper ASR
+3. Faster-Whisper ASR (dGPU CUDA float16, CPU int8 fallback)
 4. OpenVINO MiniLM Embeddings
 5. WSL2 Docker Sandbox container cgroups
 

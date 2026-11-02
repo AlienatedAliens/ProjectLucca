@@ -121,12 +121,12 @@ def _simplify_search_query(q: str) -> str:
 def _probe_searxng_endpoint(candidate_url: str, timeout: float = 0.5) -> bool:
     """Fast probe to determine if a SearXNG candidate endpoint is alive and accepting traffic."""
     try:
-        import urllib.request as _urllib_req  # noqa: PLC0415
-
         probe_target = candidate_url.split("?")[0].replace("/search", "/")
-        with _urllib_req.urlopen(probe_target, timeout=timeout) as probe:
-            return probe.status in (200, 301, 302)
-    except Exception:
+        with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+            probe = client.get(probe_target)
+            return probe.status_code in (200, 301, 302)
+    except Exception as exc:
+        logger.debug("searxng_probe_failed", endpoint=candidate_url, error=str(exc))
         return False
 
 
@@ -210,23 +210,19 @@ def _search_searxng(
     for retry in range(2):
         try:
             import json as _json  # noqa: PLC0415
-            import urllib.request as _urllib_req  # noqa: PLC0415
 
             encoded_params = urllib.parse.urlencode({"q": query, "format": "json"})
             sep = "&" if "?" in url else "?"
             full_url = f"{url}{sep}{encoded_params}"
-            req = _urllib_req.Request(
-                full_url,
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "X-Forwarded-For": "127.0.0.1",
-                    "X-Real-IP": "127.0.0.1",
-                },
-            )
-            with _urllib_req.urlopen(req, timeout=SEARCH_TIMEOUT_S) as resp:
-                if resp.status == 200:
-                    raw_bytes = resp.read()
-                    data = _json.loads(raw_bytes.decode("utf-8", errors="replace"))
+            headers = {
+                "User-Agent": USER_AGENT,
+                "X-Forwarded-For": "127.0.0.1",
+                "X-Real-IP": "127.0.0.1",
+            }
+            with httpx.Client(timeout=SEARCH_TIMEOUT_S, follow_redirects=True) as client:
+                resp = client.get(full_url, headers=headers)
+                if resp.status_code == 200:
+                    data = _json.loads(resp.text)
                     raw_results = data.get("results", [])
                     for item in raw_results:
                         title = str(item.get("title", "")).strip()
@@ -244,7 +240,7 @@ def _search_searxng(
                             break
                     return results
                 else:
-                    logger.debug("searxng_search_non_200", status=resp.status, url=url)
+                    logger.debug("searxng_search_non_200", status=resp.status_code, url=url)
                     break
         except Exception as exc:  # noqa: BLE001
             if retry == 0 and not searxng_url:
@@ -255,29 +251,6 @@ def _search_searxng(
     return results
 
 
-STATIC_RFC_DEFINITIONS: dict[str, dict[str, str]] = {
-    "9110": {
-        "title": "RFC 9110: HTTP Semantics (Status Codes 401 Unauthorized vs 403 Forbidden)",
-        "snippet": (
-            "Section 15.5.2 (401 Unauthorized): The 401 (Unauthorized) status code indicates that the request "
-            "has not been applied because it lacks valid authentication credentials for the target resource. "
-            "Section 15.5.4 (403 Forbidden): The 403 (Forbidden) status code indicates that the server understood "
-            "the request but refuses to authorize it. Unlike 401, re-authenticating with the same credentials "
-            "will not make any difference if access is forbidden."
-        ),
-        "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
-    },
-    "7231": {
-        "title": "RFC 7231: Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content",
-        "snippet": (
-            "Section 6.5.3 (401 Unauthorized) & Section 6.5.4 (403 Forbidden): 401 indicates missing or invalid "
-            "authentication credentials; 403 indicates the server refuses to fulfill the request due to lack of permissions."
-        ),
-        "url": "https://www.rfc-editor.org/rfc/rfc7231.txt",
-    },
-}
-
-
 def _resolve_rfc_standards(query: str, max_results: int = 5) -> list[dict[str, str]]:
     """Resolves RFC protocol queries using authoritative standards excerpts and rfc-editor.org."""
     rfc_match = re.search(r"\brfc\s*(\d+)\b", query, re.IGNORECASE)
@@ -285,10 +258,8 @@ def _resolve_rfc_standards(query: str, max_results: int = 5) -> list[dict[str, s
         return []
     rfc_num = rfc_match.group(1)
     results: list[dict[str, str]] = []
-    if rfc_num in STATIC_RFC_DEFINITIONS:
-        results.append(dict(STATIC_RFC_DEFINITIONS[rfc_num]))
 
-    # If more results requested, attempt online fetch from rfc-editor.org
+    # Attempt online fetch from rfc-editor.org
     if len(results) < max_results:
         try:
             rfc_url = f"https://www.rfc-editor.org/rfc/rfc{rfc_num}.txt"
@@ -387,45 +358,12 @@ def search_web(
     results: list[dict[str, str]] = []
 
     # 1. Primary path: SearXNG aggregator
-    is_mocked = hasattr(httpx.Client.get, "mock_calls") or hasattr(
-        httpx.Client.get, "_mock_return_value"
-    )
-    if not is_mocked:
-        searxng_res = _search_searxng(clean_query, max_results=max_results)
-        if searxng_res:
-            results.extend(searxng_res)
+    searxng_res = _search_searxng(clean_query, max_results=max_results)
+    if searxng_res:
+        results.extend(searxng_res)
 
-    # 2. Secondary path: DDGS using primp TLS impersonation
-    # Only skip if httpx.Client.get is mocked in unit tests
-    if not results and DDGS is not None and not is_mocked:
-        simplified = _simplify_search_query(clean_query)
-        queries_to_try = [clean_query]
-        if simplified and simplified.lower() != clean_query.lower():
-            queries_to_try.append(simplified)
-
-        for attempt, q_try in enumerate(queries_to_try, 1):
-            try:
-                with DDGS(timeout=SEARCH_TIMEOUT_S) as ddgs_client:
-                    for item in ddgs_client.text(q_try, max_results=max_results):
-                        title = item.get("title", "").strip()
-                        snippet = item.get("body", "").strip()
-                        url = item.get("href", "").strip()
-                        if title or snippet:
-                            results.append(
-                                {
-                                    "title": title or "Web Result",
-                                    "snippet": snippet or "No snippet preview available.",
-                                    "url": url,
-                                }
-                            )
-                        if len(results) >= max_results:
-                            break
-                if results:
-                    break
-            except Exception as e:
-                logger.warning("ddgs_primary_failed", error=str(e), query=q_try, attempt=attempt)
-
-    # 2. Secondary fallback path: Direct HTTP endpoints (or unit test mocked client)
+    # 2. Secondary path: Direct HTTP endpoints
+    anomaly_detected = False
     if not results:
         encoded_q = urllib.parse.quote_plus(clean_query)
         headers = {
@@ -440,7 +378,6 @@ def search_web(
         ]
 
         html_text = ""
-        anomaly_detected = False
 
         for search_url in endpoints:
             try:
@@ -556,6 +493,35 @@ def search_web(
                         results.append(
                             {"title": f"Result {idx}", "snippet": clean_snippet, "url": ""}
                         )
+
+    # 3. Fallback path: DDGS using primp TLS impersonation
+    if not results and DDGS is not None:
+        simplified = _simplify_search_query(clean_query)
+        queries_to_try = [clean_query]
+        if simplified and simplified.lower() != clean_query.lower():
+            queries_to_try.append(simplified)
+
+        for attempt, q_try in enumerate(queries_to_try, 1):
+            try:
+                with DDGS(timeout=SEARCH_TIMEOUT_S) as ddgs_client:
+                    for item in ddgs_client.text(q_try, max_results=max_results):
+                        title = item.get("title", "").strip()
+                        snippet = item.get("body", "").strip()
+                        url = item.get("href", "").strip()
+                        if title or snippet:
+                            results.append(
+                                {
+                                    "title": title or "Web Result",
+                                    "snippet": snippet or "No snippet preview available.",
+                                    "url": url,
+                                }
+                            )
+                        if len(results) >= max_results:
+                            break
+                if results:
+                    break
+            except Exception as e:
+                logger.warning("ddgs_primary_failed", error=str(e), query=q_try, attempt=attempt)
 
     # 3. Tertiary fallback path: RFC Standards Resolver + Wikipedia Search API
     if not results:

@@ -307,42 +307,32 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
                 stmt.names = filtered_aliases if filtered_aliases else [ast.alias(name="*")]
                 modified_ast = True
 
-    # 4b. Pre-flight repair for differentiation wrt composite expression (e.g. sp.diff(expr, u) where u = x/h)
-    assigned_composite_exprs: dict[str, int] = {}
-    for i, node in enumerate(tree.body):
-        if isinstance(node, ast.Assign):
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    if isinstance(node.value, (ast.BinOp, ast.UnaryOp)):
-                        assigned_composite_exprs[target.id] = i
-
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
-            # 4b-1. Rewrite expr.solve(...) -> sp.solve(expr, ...)
+            # 4b-1. Rewrite expr.solve(...) -> sp.solve(expr, ...) (except when z3 is the receiver or module)
             if isinstance(node.func, ast.Attribute) and node.func.attr == "solve":
-                if not (isinstance(node.func.value, ast.Name) and node.func.value.id in ("sp", "sympy")):
-                    caller_expr = node.func.value
-                    node.func = ast.Attribute(value=ast.Name(id="sp", ctx=ast.Load()), attr="solve", ctx=ast.Load())
-                    node.args.insert(0, caller_expr)
-                    modified_ast = True
+                if not (isinstance(node.func.value, ast.Name) and node.func.value.id in ("sp", "sympy", "z3", "s", "solver", "opt")):
+                    if "z3" not in code or "sympy" in code:
+                        caller_expr = node.func.value
+                        node.func = ast.Attribute(value=ast.Name(id="sp", ctx=ast.Load()), attr="solve", ctx=ast.Load())
+                        node.args.insert(0, caller_expr)
+                        modified_ast = True
 
-            # 4b-2. Pre-flight repair for diff wrt composite expressions
-            is_diff = False
-            if isinstance(node.func, ast.Name) and node.func.id == "diff":
-                is_diff = True
-            elif isinstance(node.func, ast.Attribute) and node.func.attr == "diff":
-                is_diff = True
-            if is_diff and len(node.args) >= 2:
-                var_arg = node.args[1]
-                if isinstance(var_arg, ast.Name) and var_arg.id in assigned_composite_exprs:
-                    idx = assigned_composite_exprs[var_arg.id]
-                    parsed_node = ast.parse(f"{var_arg.id} = sp.symbols('{var_arg.id}', real=True, positive=True)").body[0]
-                    tree.body[idx] = parsed_node
-                    modified_ast = True
-                elif isinstance(var_arg, (ast.BinOp, ast.UnaryOp)):
-                    var_name = "_diff_var_"
-                    tree.body.insert(0, ast.parse(f"{var_name} = sp.symbols('{var_name}', real=True, positive=True)").body[0])
-                    node.args[1] = ast.Name(id=var_name, ctx=ast.Load())
+            # 4b-2. Rewrite expr.coeff(...) -> expr.expand().coeff(...) for unexpanded SymPy expressions (Milestone 36.5)
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "coeff":
+                caller_expr = node.func.value
+                is_already_expanded = (
+                    isinstance(caller_expr, ast.Call)
+                    and isinstance(caller_expr.func, ast.Attribute)
+                    and caller_expr.func.attr == "expand"
+                )
+                if not is_already_expanded:
+                    expanded_caller = ast.Call(
+                        func=ast.Attribute(value=caller_expr, attr="expand", ctx=ast.Load()),
+                        args=[],
+                        keywords=[],
+                    )
+                    node.func.value = expanded_caller
                     modified_ast = True
 
     if modified_ast:
@@ -382,51 +372,49 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
 
     imports_to_add: list[str] = []
 
-    # Check if sympy is needed
-    sympy_symbols = {"symbols", "Symbol", "solve", "solveset", "factor", "expand", "simplify", "Matrix", "Rational", "Eq", "diff", "integrate", "pi", "oo", "prime", "totient", "divisor_sigma", "primepi"}
-    if ("sp" in used_attr_bases or "sympy" in used_attr_bases or "sympy" in used_names or any(s in used_names for s in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
+    z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or", "And", "Not", "Distinct"}
+    has_z3 = "z3" in used_attr_bases or "z3" in imported_modules or any(z in used_names for z in z3_symbols)
+    unassigned_used = used_names - assigned_names
+
+    # Check if sympy is needed (do not inject sympy into pure Z3 scripts just because `solve` or `simplify` is called)
+    sympy_symbols = {"symbols", "Symbol", "solveset", "factor", "expand", "Matrix", "Rational", "Eq", "diff", "integrate", "pi", "oo", "prime", "totient", "divisor_sigma", "primepi"}
+    if not has_z3:
+        sympy_symbols = sympy_symbols | {"solve", "simplify"}
+    if ("sp" in used_attr_bases or "sympy" in used_attr_bases or "sympy" in unassigned_used or any(s in unassigned_used for s in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
         imports_to_add.append("import sympy\nimport sympy as sp\nfrom sympy import *")
 
     # Check if math is needed
     math_symbols = {"sqrt", "factorial", "gcd", "lcm", "floor", "ceil", "comb", "perm"}
-    if ("math" in used_attr_bases or any(m in used_names for m in math_symbols)) and "math" not in imported_modules and "sympy" not in imported_modules:
+    if ("math" in used_attr_bases or any(m in unassigned_used for m in math_symbols)) and "math" not in imported_modules and "sympy" not in imported_modules:
         imports_to_add.append("import math")
 
     # Check if itertools is needed
     itertools_symbols = {"permutations", "combinations", "product", "accumulate", "count", "cycle", "repeat"}
-    if ("itertools" in used_attr_bases or any(it in used_names for it in itertools_symbols)) and "itertools" not in imported_modules:
+    if ("itertools" in used_attr_bases or any(it in unassigned_used for it in itertools_symbols)) and "itertools" not in imported_modules:
         imports_to_add.append("import itertools")
 
     # Check if fractions.Fraction is needed
-    if "Fraction" in used_names and "Fraction" not in imported_names and "fractions" not in imported_modules:
+    if "Fraction" in unassigned_used and "Fraction" not in imported_names and "fractions" not in imported_modules:
         imports_to_add.append("from fractions import Fraction")
 
     # Check if container_world / ContainerWorld / World / KnowledgeBase / Agent is needed
     cw_symbols = {"ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"}
-    if ("container_world" in used_attr_bases or any(c in used_names for c in cw_symbols)) and "container_world" not in imported_modules and not any(c in imported_names for c in cw_symbols):
+    if ("container_world" in used_attr_bases or any(c in unassigned_used for c in cw_symbols)) and "container_world" not in imported_modules and not any(c in imported_names for c in cw_symbols):
         imports_to_add.append("from container_world import ContainerWorld, World, KnowledgeBase, BeliefTracker, Agent")
 
     # Check if z3 is needed
-    z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or", "And", "Not", "Distinct"}
-    if ("z3" in used_attr_bases or any(z in used_names for z in z3_symbols)) and "z3" not in imported_modules and not any(z in imported_names for z in z3_symbols):
-        imports_to_add.append(
-            "import z3\nfrom z3 import *\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = z3.unsat\nexcept Exception:\n    pass"
-        )
+    if has_z3:
+        if "z3" not in imported_modules and not any(z in imported_names for z in z3_symbols):
+            imports_to_add.append(
+                "import z3\nfrom z3 import *\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = z3.unsat\n    z3.IntNumRef.__int__ = lambda self: self.as_long()\n    z3.IntNumRef.__index__ = lambda self: self.as_long()\nexcept Exception:\n    pass"
+            )
+        elif "z3.Solver.sat" not in code:
+            imports_to_add.append(
+                "import z3\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = z3.unsat\n    z3.IntNumRef.__int__ = lambda self: self.as_long()\n    z3.IntNumRef.__index__ = lambda self: self.as_long()\nexcept Exception:\n    pass"
+            )
 
-    # Pre-flight definitions for commonly assumed math sets
-    preflight_defs: list[str] = []
-    if "primes" in used_names and "primes" not in assigned_names and "primes" not in imported_names:
-        preflight_defs.append("primes = list(sp.primerange(2, 1000)) if 'sp' in globals() else []")
-        if "sympy" not in imported_modules and "sp" not in imported_names:
-            imports_to_add.insert(0, "import sympy as sp\nfrom sympy import *")
-    if "odds" in used_names and "odds" not in assigned_names and "odds" not in imported_names:
-        preflight_defs.append("odds = list(range(1, 1000, 2))")
-    if "evens" in used_names and "evens" not in assigned_names and "evens" not in imported_names:
-        preflight_defs.append("evens = list(range(0, 1000, 2))")
-
-    header_additions: list[str] = imports_to_add + preflight_defs
-    if header_additions:
-        code = "\n".join(header_additions) + "\n\n" + code
+    if imports_to_add:
+        code = "\n".join(imports_to_add) + "\n\n" + code
         parsed, tree, err = _try_parse(code)
         if not parsed or tree is None:
             return code, False, err

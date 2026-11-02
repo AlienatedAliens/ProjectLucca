@@ -19,7 +19,7 @@ from typing import Final, Literal
 
 import structlog
 import ulid
-from pydantic import BaseModel, Field, JsonValue
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from lucca.core.schemas import (
     MemoryHit,
@@ -178,11 +178,11 @@ class EvidenceItem(BaseModel):
     """
     Atomic unit of evidence retrieved from an epistemic substrate.
     Strictly implements Belnap's (1977) four-valued data model via independent
-    'told_true' and 'told_false' epistemic bits:
-    - (told_true=True, told_false=False) -> T (Asserts p)
-    - (told_true=False, told_false=True) -> F (Refutes p)
-    - (told_true=True, told_false=True)   -> TOP (Contradiction / Conflict)
-    - (told_true=False, told_false=False) -> BOT (Epistemic Gap / Unknown)
+    'told_true' and 'told_false' epistemic bits and NARS (w+, w-) evidence counts:
+    - (told_true=True, told_false=False) -> T (Asserts p, w+ > 0, w- == 0)
+    - (told_true=False, told_false=True) -> F (Refutes p, w+ == 0, w- > 0)
+    - (told_true=True, told_false=True)   -> TOP (Contradiction / Conflict, w+ > 0, w- > 0)
+    - (told_true=False, told_false=False) -> BOT (Epistemic Gap / Unknown, w+ == 0, w- == 0)
     """
 
     substrate: EpistemicSubstrate
@@ -192,9 +192,57 @@ class EvidenceItem(BaseModel):
     proposition: str = ""
     told_true: bool = True
     told_false: bool = False
+    positive_evidence: int = 1
+    negative_evidence: int = 0
     confidence: float = 1.0
     timestamp_ns: int = Field(default_factory=now_ns)
     metadata: dict[str, JsonValue] = Field(default_factory=dict)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sync_belnap_and_evidence_counts(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        pol = d.pop("polarity", None) or d.pop("belnap_val", None)
+        has_explicit_bits = "told_true" in d or "told_false" in d
+        has_explicit_counts = "positive_evidence" in d or "negative_evidence" in d
+
+        if pol is not None and not has_explicit_bits and not has_explicit_counts:
+            pol_str = pol.value if hasattr(pol, "value") else str(pol).upper()
+            if pol_str in ("TOP", "CONFLICT"):
+                d["told_true"] = True
+                d["told_false"] = True
+                d["positive_evidence"] = 1
+                d["negative_evidence"] = 1
+            elif pol_str in ("F", "FALSE"):
+                d["told_true"] = False
+                d["told_false"] = True
+                d["positive_evidence"] = 0
+                d["negative_evidence"] = 1
+            elif pol_str in ("BOT", "UNKNOWN"):
+                d["told_true"] = False
+                d["told_false"] = False
+                d["positive_evidence"] = 0
+                d["negative_evidence"] = 0
+            else:
+                d["told_true"] = True
+                d["told_false"] = False
+                d["positive_evidence"] = 1
+                d["negative_evidence"] = 0
+        elif has_explicit_counts and not has_explicit_bits:
+            w_pos = int(d.get("positive_evidence", 0) or 0)
+            w_neg = int(d.get("negative_evidence", 0) or 0)
+            d["told_true"] = w_pos > 0
+            d["told_false"] = w_neg > 0
+        else:
+            tt = bool(d.get("told_true", True))
+            tf = bool(d.get("told_false", False))
+            if "positive_evidence" not in d:
+                d["positive_evidence"] = 1 if tt else 0
+            if "negative_evidence" not in d:
+                d["negative_evidence"] = 1 if tf else 0
+        return d
 
     @property
     def polarity(self) -> BelnapValue:
@@ -206,6 +254,22 @@ class EvidenceItem(BaseModel):
         if self.told_false:
             return BelnapValue.FALSE
         return BelnapValue.UNKNOWN
+
+    @property
+    def nars_frequency(self) -> float:
+        """NARS frequency f = w+ / (w+ + w-)."""
+        total = self.positive_evidence + self.negative_evidence
+        if total <= 0:
+            return 0.5
+        return float(self.positive_evidence) / float(total)
+
+    @property
+    def nars_confidence(self) -> float:
+        """NARS confidence c = (w+ + w-) / (w+ + w- + k) with horizon k = 1.0."""
+        total = self.positive_evidence + self.negative_evidence
+        if total <= 0:
+            return 0.0
+        return float(total) / float(total + 1.0)
 
 
 def build_calibrated_refusal(
@@ -565,71 +629,34 @@ def classify_epistemic_intent(
 
     # Closed-world puzzles, hypothetical premises, and deductive math reasoning
     # MUST NOT trigger open-world file search, telemetry, or Belnap abstention refusal.
-    hypothetical_puzzle_starters = (
-        "consider the following premises",
-        "assume a counterfactual",
-        "scenario:",
-        "observations:",
-        "events occurred on",
-        "four houses are arranged",
-        "houses 1 to 4 arranged",
-        "four teams",
-        "round-robin tournament",
-        "round robin",
-        "on an island, knights",
-        "knights and knaves",
-        "knights & knaves",
-        "events 1, 2, 3, 4 require",
-        "tasks t1",
-        "six diplomats",
-        "circular table",
-        "solve the base-10 addition",
-        "ab + ba =",
-        "cryptarithmetic",
-        "given clauses:",
-        "three employees (x, y, z)",
-        "three employees",
-        "choose integer quantities",
-        "a closed market is defined",
-        "bidders a and b",
-        "a drone starts at coordinate",
-        "discover the latent binary operation",
-        "discover binary operation",
-        "step-by-step deductive proof",
-        "solve this puzzle",
-        "logic puzzle",
-        "supply: s =",
-        "supply: p =",
-        "substance has half-life",
-        "worker a completes a job",
-        "sequence defined by",
-        "disease prevalence is",
-        "solve for x, y, z",
-        "interval i1 takes place",
-        "rule: birds fly",
-        "a room has no windows and one locked door",
-        "a server cluster experienced data corruption",
-        "alice arrives at",
-        "rule 1:",
-        "proposal:",
-        "expert a (distinguished",
-        "expert a",
-        "mia places chocolate",
-        "asset value v is",
-        "in a second-price sealed-bid auction",
-        "alice told bob a secret",
-        "in an employment market",
-        "three children (a, b, c)",
-        "in an infinitely repeated prisoner's dilemma",
-        "player 1 has either a nut hand",
-        "two hunters can choose stag",
+    # Detected structurally via formal problem framing, premise enumeration, or equations.
+    closed_world_framing_pattern = re.compile(
+        r"(?:^(?:consider\s+the\s+following|assume\s+a\s+counterfactual|suppose\s+that|"
+        r"given\s+(?:the\s+)?(?:following\s+)?(?:clauses|premises|constraints|equations)|"
+        r"scenario:|observations:|premises?:|clues?:|rule\s+\d+:)|"
+        r"\b(?:step-by-step\s+deductive\s+proof|solve\s+(?:this\s+)?(?:logic\s+)?puzzle|"
+        r"logic\s+puzzle|cryptarithmetic|satisfiable|truth-tellers?\s+and\s+liars?|"
+        r"knights?\s+and\s+knaves?|solve\s+for\s+[a-z]\b))",
+        re.IGNORECASE,
     )
-    if any(lower.startswith(p) or p in lower for p in hypothetical_puzzle_starters):
+    if closed_world_framing_pattern.search(lower):
         return False, [], None
 
-    # Detect structured premise lists or math word problems (e.g. "1. Event A...", "Clues:\n1.")
-    if re.search(r"\b(?:premise\s+\d+|clues?:|rule\s+\d+:|rule:\s+|question:\s+(?:is|what|determine|calculate))\b", lower):
-        if re.search(r"\b(?:all\s+\w+\s+are|no\s+\w+\s+is|every\s+\w+\s+is|if\s+both\s+are\s+released|final\s+verdict|determine the exact|construct the valid|valid schedule|find digits|is the system satisfiable|abduce|resolve the conflict|most plausible explanation|competing hypotheses)\b", lower):
+    # Structural detection of self-contained math/constraint word problems:
+    # Multiple numbered premises/rules or algebraic equations without personal/system inquiry.
+    has_personal_or_system_ref = bool(
+        re.search(
+            r"\b(?:my|your|our|lucca|workspace|file|directory|gpu|cpu|ram|memory|session)\b",
+            lower,
+        )
+    )
+    if not has_personal_or_system_ref:
+        has_numbered_premises = len(re.findall(r"(?:^|\n)\s*\d+\.\s+[A-Z]", clean)) >= 2
+        has_algebraic_relations = bool(
+            re.search(r"\b[a-z]\s*[+\-*/=<>]+\s*[a-z0-9]", lower)
+            or re.search(r"\b(?:premise|clause|constraint|hypothesis|interval)\s+[a-z0-9]+\b", lower)
+        )
+        if has_numbered_premises or has_algebraic_relations:
             return False, [], None
 
     # Substrate SELF: Companion identity, persona, creator, and design (Tier 0 Axiomatic)
@@ -710,31 +737,21 @@ def classify_epistemic_intent(
         )
     )
 
-    # Substrate MEMORY: Episodic Memory & Preferences
+    # Substrate MEMORY: Episodic Memory & Personal/User Facts
     memory_words = (
         "what did i",
         "what did we",
         "do you remember",
         "in memory",
         "what is my",
+        "what's my",
+        "what was my",
         "what are my",
+        "who is my",
+        "where is my",
         "my favorite",
         "my preference",
         "prefer",
-        "creator full real name",
-        "creator's full real name",
-        "creator's real name",
-        "full real name",
-        "real name",
-        "vault",
-        "cat's name",
-        "dog's name",
-        "childhood pet",
-        "pet's name",
-        "breakfast",
-        "weather outside",
-        "passkey",
-        "password",
         "recall",
         "last session",
         "notes on my",
@@ -748,6 +765,22 @@ def classify_epistemic_intent(
         "my town",
         "my address",
         "my home",
+    )
+    # Structural detection of personal/private user or creator fact inquiries:
+    # First-person possessive ("my <noun>", "creator's <noun>", "what did I <verb>")
+    has_personal_fact_inquiry = bool(
+        re.search(
+            r"\b(?:what|who|where|when|which|tell\s+me|do\s+you\s+(?:know|remember|recall))\b"
+            r".*\b(?:my|mine|i\s+(?:have|had|ate|own|live|prefer|like|use|told|said|set|chose)|"
+            r"creator(?:'s)?|user(?:'s)?)\b",
+            lower,
+        )
+        or re.search(
+            r"\b(?:my|creator(?:'s)?|user(?:'s)?)\s+(?:[a-z]+\s+){0,2}"
+            r"(?:name|pet|password|passkey|secret|key|code|pin|birthday|age|job|occupation|"
+            r"family|friend|partner|sibling|allergy|diet|meal|car|phone|email|account)\b",
+            lower,
+        )
     )
 
     # Substrate WEB: External World / Web Search
@@ -822,9 +855,13 @@ def classify_epistemic_intent(
     )
 
     substrates: list[EpistemicSubstrate] = []
-    # Private credentials, creator real names, and secrets must query MEMORY, not general SELF
-    is_private_memory = _any_term_matches(
-        lower, ("real name", "full real name", "passkey", "vault", "password")
+    # Inquiries about private user/creator facts must query MEMORY rather than axiomatic SELF
+    is_private_memory = has_personal_fact_inquiry and not bool(
+        re.search(
+            r"\b(?:who\s+are\s+you|what\s+is\s+your\s+name|introduce\s+yourself|"
+            r"tell\s+me\s+about\s+yourself|what\s+are\s+you)\b",
+            lower,
+        )
     )
     if re.search(self_pattern, lower) and not is_private_memory:
         substrates.append(EpistemicSubstrate.SELF)
@@ -864,7 +901,7 @@ def classify_epistemic_intent(
     )
     if _any_term_matches(lower, self_history_words):
         substrates.append(EpistemicSubstrate.SELF_HISTORY)
-    if _any_term_matches(lower, memory_words) or is_private_memory:
+    if _any_term_matches(lower, memory_words) or is_private_memory or has_personal_fact_inquiry:
         substrates.append(EpistemicSubstrate.MEMORY)
     has_slang_intent = (
         matches_slang_or_world_definition(lower)
@@ -964,8 +1001,11 @@ class EpistemicSearchCascade:
             eng_desc = ENGINE_CATALOG.get(eng_id)
             eng_name = eng_desc.name if eng_desc else "Kokoro-82M"
             tts_info = f"speech synthesis '{eng_name}' (voice: '{active_voice}')"
+            mmproj_name = (
+                Path(rt.llm.mmproj).name if getattr(rt.llm, "mmproj", None) else "sovereign-ocr"
+            )
             vision_info = (
-                f"; multimodal vision projector '{Path(rt.llm.mmproj).name}' active (mode: {rt.llm.mode})"
+                f"; multimodal vision projector '{mmproj_name}' active (mode: {rt.llm.mode})"
                 if (rt.llm.mode == "vision" or getattr(rt.llm, "mmproj", None))
                 else ""
             )
@@ -975,7 +1015,7 @@ class EpistemicSearchCascade:
                 f"Archetype: {cfg.archetype}. Voice: {active_voice}. "
                 f"Local Runtime: language model '{rt.llm.model_display_name()}' served by "
                 f"llama-server on the dGPU (context {rt.llm.ctx} tokens){vision_info}; "
-                f"speech recognition '{Path(rt.asr.model).name}' on NPU/CPU; "
+                f"speech recognition '{Path(rt.asr.model).name}' on the dGPU (CUDA float16, CPU fallback); "
                 f"{tts_info}. "
                 f"Host Workstation: {platform.node()} ({platform.platform()}). "
                 f"Core Purpose: Pair-programming, systems debugging, and desktop automation. "
@@ -1243,7 +1283,7 @@ class EpistemicSearchCascade:
 
             if wants_cpu or general_hw:
                 content = (
-                    f"CPU: {cpu.get('name', 'Intel Core Ultra 9 275HX')} | "
+                    f"CPU: {cpu.get('name', 'Host Multi-Core CPU')} | "
                     f"Cores: {cpu.get('cores_logical', 24)} logical | "
                     f"System Load: {cpu.get('percent', 0.0)}% | "
                     f"Lucca Load: {cpu.get('lucca_percent', 0.0)}%"
@@ -1464,14 +1504,20 @@ class EpistemicSearchCascade:
                     if hasattr(hit.provenance, "value")
                     else str(hit.provenance)
                 )
-                is_sup = hit.valid_to is not None
+                is_sup = hit.valid_to is not None or bool(getattr(hit, "superseded_by", None))
+                told_true, told_false = self._evaluate_polarity(hit.content, query_text)
+                w_pos = 1 if told_true else 0
+                w_neg = 1 if told_false else 0
                 items.append(
                     EvidenceItem(
                         substrate=EpistemicSubstrate.MEMORY,
                         trust_tier=TrustTier.TIER_3_MEMORY,
                         source=f"memory:{hit.memory_id or hit.source_turn_id}",
                         content=hit.content,
-                        polarity=BelnapValue.TRUE,
+                        told_true=told_true,
+                        told_false=told_false,
+                        positive_evidence=w_pos,
+                        negative_evidence=w_neg,
                         confidence=hit.score,
                         metadata={
                             "kind": hit.kind,
@@ -1485,10 +1531,92 @@ class EpistemicSearchCascade:
                         },
                     )
                 )
+
+            # Evaluate pairwise consistency across active (non-superseded) memory items
+            self._annotate_active_memory_conflicts(items)
         except Exception as exc:  # noqa: BLE001
             logger.debug("substrate_2_memory_query_error", error=str(exc))
 
         return items
+
+    def _annotate_active_memory_conflicts(self, items: list[EvidenceItem]) -> None:
+        """Detects contradictions between active (non-superseded) memory items in Substrate 2.
+        When two active items contradict each other without D-HON-01 temporal supersession,
+        both positive and negative evidence bits/counts are set (BelnapValue.CONFLICT / TOP)."""
+        active = [it for it in items if not bool(it.metadata.get("is_superseded"))]
+        if len(active) < 2:
+            return
+
+        def _is_dhon01_pair(a: EvidenceItem, b: EvidenceItem) -> bool:
+            """Returns True if (a, b) is a canonical FUNCTIONAL_PREDICATES pair with distinct
+            precedence/valid_from timestamps handled by _detect_memory_supersession."""
+            for pred in FUNCTIONAL_PREDICATES:
+                if f" {pred} " in f" {a.content.strip()} " and f" {pred} " in f" {b.content.strip()} ":
+                    vf_a = float(a.metadata.get("valid_from", 0.0) or 0.0)
+                    vf_b = float(b.metadata.get("valid_from", 0.0) or 0.0)
+                    prov_a = str(a.metadata.get("provenance", "")).upper()
+                    prov_b = str(b.metadata.get("provenance", "")).upper()
+                    if vf_a != vf_b or prov_a != prov_b:
+                        return True
+            return False
+
+        neg_tokens = {"not", "never", "no", "false", "disabled", "cannot", "none", "unsupported"}
+        stop_tokens = {
+            "the", "a", "an", "is", "are", "was", "were", "to", "of", "in", "on", "at", "for",
+            "with", "by", "from", "that", "this", "it", "be", "as", "or", "and",
+        }
+
+        for i in range(len(active)):
+            for j in range(i + 1, len(active)):
+                it_a = active[i]
+                it_b = active[j]
+                if it_a.content.strip().lower() == it_b.content.strip().lower():
+                    continue
+                if _is_dhon01_pair(it_a, it_b):
+                    continue
+
+                is_conflict = False
+                if self.verifier is not None:
+                    try:
+                        v_res = self.verifier.check_consistency(
+                            premise=it_a.content, hypothesis=it_b.content
+                        )
+                        if not v_res.degraded and v_res.label == VerifierLabel.CONTRADICTION:
+                            is_conflict = True
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug("cascade_verifier_consistency_error", error=str(exc))
+
+                if not is_conflict:
+                    words_a = re.findall(r"[a-z0-9_.-]+", it_a.content.lower())
+                    words_b = re.findall(r"[a-z0-9_.-]+", it_b.content.lower())
+                    content_a = set(words_a) - stop_tokens - neg_tokens
+                    content_b = set(words_b) - stop_tokens - neg_tokens
+                    shared = content_a & content_b
+                    if len(shared) >= 2:
+                        neg_a = bool(set(words_a) & neg_tokens)
+                        neg_b = bool(set(words_b) & neg_tokens)
+                        if neg_a != neg_b:
+                            is_conflict = True
+                        else:
+                            nums_a = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_a.content))
+                            nums_b = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_b.content))
+                            if nums_a and nums_b and nums_a != nums_b:
+                                is_conflict = True
+                            elif len(words_a) == len(words_b) and len(words_a) >= 3:
+                                diffs = [
+                                    (wa, wb)
+                                    for wa, wb in zip(words_a, words_b, strict=False)
+                                    if wa != wb
+                                ]
+                                if len(diffs) == 1:
+                                    is_conflict = True
+
+                if is_conflict:
+                    for it in (it_a, it_b):
+                        it.told_true = True
+                        it.told_false = True
+                        it.positive_evidence = max(1, it.positive_evidence)
+                        it.negative_evidence = max(1, it.negative_evidence)
 
     def _evaluate_polarity(
         self,

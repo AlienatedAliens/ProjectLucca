@@ -19,7 +19,7 @@ from lucca.sandbox.container_world import (
     KnowledgeBase,
     World,
 )
-from lucca.sandbox.rpc import DockerRPCTransport, _CONTAINER_WORLD_PRELUDE, _inject_shared_workspace_prelude
+from lucca.sandbox.rpc import DockerRPCTransport, _inject_shared_workspace_prelude
 
 
 # ---------------------------------------------------------------------------

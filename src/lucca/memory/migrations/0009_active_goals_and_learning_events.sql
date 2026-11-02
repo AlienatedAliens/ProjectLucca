@@ -36,3 +36,17 @@ CREATE TABLE IF NOT EXISTS learning_events (
 CREATE INDEX IF NOT EXISTS idx_learning_events_type ON learning_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_learning_events_topic ON learning_events(topic);
 CREATE INDEX IF NOT EXISTS idx_learning_events_created ON learning_events(created_at);
+
+CREATE TABLE IF NOT EXISTS scheduled_events (
+    event_id TEXT PRIMARY KEY,
+    event_name TEXT NOT NULL,
+    iso_datetime TEXT NOT NULL,
+    due_ts REAL NOT NULL,
+    message TEXT,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'FIRED', 'CANCELLED')),
+    created_at REAL NOT NULL,
+    fired_at REAL
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_events_status_due
+    ON scheduled_events(status, due_ts);

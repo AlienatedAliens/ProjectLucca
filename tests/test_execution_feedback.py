@@ -51,7 +51,7 @@ def test_feedback_loop_cap_at_two_rounds() -> None:
 
 
 def test_turn1_preflight_resolves_composite_derivative_without_turn2() -> None:
-    """Verifies that composite differentiation traps (e.g. sp.diff(..., x/h)) are rewritten in <1ms."""
+    """WO-39 Milestone 1.1: Verifies that composite differentiation expressions are not rewritten with benchmark-specific hacks."""
     code = """
 import sympy as sp
 x, h = sp.symbols('x h')
@@ -63,8 +63,7 @@ print(res)
     assert ok, err
     tree = ast.parse(sanitized)
     assert tree is not None
-    assert "_diff_var_" in sanitized
-    assert "sp.symbols('_diff_var_'" in sanitized
+    assert "_diff_var_" not in sanitized
 
 
 def test_turn1_preflight_rewrites_expr_solve_without_turn2() -> None:
@@ -113,14 +112,14 @@ print(len(perms))
     assert tree is not None
 
 
-def test_turn1_preflight_defines_missing_math_sets() -> None:
-    """Verifies primes and odds sets are auto-defined when referenced."""
+def test_turn1_preflight_does_not_inject_benchmark_math_sets() -> None:
+    """WO-39 Milestone 1.1: verifies primes and odds sets are not silently injected."""
     code = """
 p_list = [x for x in range(20) if x in primes]
 print(p_list)
 """
     sanitized, ok, err = sanitize_and_repair_python_code(code)
     assert ok, err
-    assert "primes =" in sanitized
+    assert "primes =" not in sanitized
     tree = ast.parse(sanitized)
     assert tree is not None

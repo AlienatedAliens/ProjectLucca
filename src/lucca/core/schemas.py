@@ -755,6 +755,7 @@ class RouteDecision(BaseModel):
     deliberation_lane: bool = False  # D-DUAL-01: hard reasoning routed to deliberation lane
     floor_hold_cue: str | None = None  # Optional spoken cue to hold the conversational floor
     exposed_libraries: list[str] = Field(default_factory=list)  # D-REAS-10: shared workspace modules
+    max_tokens: int | None = None  # Turn-specific token ceiling (e.g. AIME combinatorics 1536)
 
 
 class DecisionLabel(StrEnum):
@@ -791,6 +792,7 @@ class DecisionRecord(BaseModel):
     label: DecisionLabel | None = None
     label_reason: DecisionLabelReason | str | None = None
     counterfactual_rule_fired: bool = False
+    constitutional_hash: str | None = None
 
     @property
     def fallback_applied(self) -> bool:
@@ -798,11 +800,11 @@ class DecisionRecord(BaseModel):
 
 
 class RecallEpisode(BaseModel):
-    source: Literal["decisions", "execution_triples"]
+    source: str = "decisions"
     record_id: str
     ts: float
-    match_score: int  # tokens matched
-    tokens_total: int  # tokens in query after stop-word removal
+    match_score: float = 0.0  # relevance score (lexical + dense cosine)
+    tokens_total: int = 0  # tokens in query after stop-word removal
     # one-line human-readable summary, e.g.:
     # "Historical turn 'open calculator': routed RULE via ACT_THEN_NARRATE (succeeded)"
     summary: str
@@ -968,6 +970,7 @@ class ModelRegistryEntry(BaseModel):
 
 class VerifierLabel(StrEnum):
     ENTAILMENT = "ENTAILMENT"
+    CONSISTENT = "ENTAILMENT"
     CONTRADICTION = "CONTRADICTION"
     NEUTRAL = "NEUTRAL"
     UNCERTAIN = "UNCERTAIN"

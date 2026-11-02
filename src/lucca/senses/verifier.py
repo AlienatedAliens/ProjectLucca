@@ -191,6 +191,20 @@ class VerifierWorker:
                 compiled_model: ov.CompiledModel = self.compiled  # type: ignore[assignment]
                 self.infer_request = compiled_model.create_infer_request()
                 self._input_names = [inp.get_any_name() for inp in compiled_model.inputs]
+                if self.tokenizer is not None:
+                    warm_enc = self.tokenizer.encode("warmup", "warmup")  # type: ignore[attr-defined]
+                    warm_feed: dict[str, np.ndarray] = {}
+                    if "input_ids" in self._input_names:
+                        warm_feed["input_ids"] = np.array([warm_enc.ids], dtype=np.int64)
+                    if "attention_mask" in self._input_names:
+                        warm_feed["attention_mask"] = np.array(
+                            [warm_enc.attention_mask], dtype=np.int64
+                        )
+                    if "token_type_ids" in self._input_names:
+                        warm_feed["token_type_ids"] = np.array(
+                            [warm_enc.type_ids], dtype=np.int64
+                        )
+                    self.infer_request.infer(warm_feed)  # type: ignore[attr-defined]
         except Exception as init_exc:
             logger.warning("verifier_model_init_failed", error=str(init_exc))
             self.compiled = None

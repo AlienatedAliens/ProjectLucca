@@ -491,6 +491,262 @@ def strip_comments_and_docstrings(source: str) -> str:
 _DOCKER_TRANSPORT: object | None = None
 _DOCKER_TRANSPORT_LOCK = threading.Lock()
 
+_ALLOWED_CEGIS_IMPORT_MODULES: Final[frozenset[str]] = frozenset(
+    {
+        "numpy",
+        "scipy",
+        "scipy.ndimage",
+        "itertools",
+        "collections",
+        "math",
+        "copy",
+        "functools",
+        "fractions",
+        "typing",
+        "lucca.reasoning",
+        "lucca.reasoning.spatial_anchors",
+        "lucca.reasoning.relational",
+    }
+)
+
+_FORBIDDEN_CEGIS_CALLS: Final[frozenset[str]] = frozenset(
+    {
+        "eval",
+        "exec",
+        "compile",
+        "open",
+        "__import__",
+        "getattr",
+        "setattr",
+        "delattr",
+        "globals",
+        "locals",
+        "vars",
+        "input",
+        "breakpoint",
+        "exit",
+        "quit",
+    }
+)
+
+_FORBIDDEN_CEGIS_ATTRS: Final[frozenset[str]] = frozenset(
+    {
+        "__subclasses__",
+        "__bases__",
+        "__mro__",
+        "__globals__",
+        "__builtins__",
+        "__code__",
+        "__closure__",
+        "__dict__",
+        "__class__",
+        "system",
+        "popen",
+        "spawn",
+    }
+)
+
+
+def validate_cegis_ast_safety(code: str) -> tuple[bool, str | None]:
+    """
+    Validates candidate Python code via AST inspection before execution (Milestone 1.3).
+    Rejects dangerous imports, dynamic code execution builtins, and dunder introspection.
+    """
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        return False, f"SyntaxError: {exc}"
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name not in _ALLOWED_CEGIS_IMPORT_MODULES:
+                    return False, f"SecurityError: Import of module '{alias.name}' is forbidden in CEGIS sandbox"
+        elif isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            if mod not in _ALLOWED_CEGIS_IMPORT_MODULES:
+                return False, f"SecurityError: Import from module '{mod}' is forbidden in CEGIS sandbox"
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id in _FORBIDDEN_CEGIS_CALLS:
+                return False, f"SecurityError: Call to builtin '{node.func.id}' is forbidden in CEGIS sandbox"
+        elif isinstance(node, ast.Attribute):
+            if node.attr in _FORBIDDEN_CEGIS_ATTRS or (node.attr.startswith("__") and node.attr.endswith("__")):
+                return False, f"SecurityError: Access to attribute '{node.attr}' is forbidden in CEGIS sandbox"
+        elif isinstance(node, ast.Name):
+            if node.id in {"__builtins__", "__loader__", "__spec__"}:
+                return False, f"SecurityError: Reference to '{node.id}' is forbidden in CEGIS sandbox"
+
+    return True, None
+
+
+def _build_restricted_cegis_globals() -> dict[str, object]:
+    """Builds an isolated execution namespace with safe builtins and spatial primitives."""
+    import collections
+    import functools
+    import itertools
+    import math
+
+    def _safe_import(
+        name: str,
+        globals_dict: dict[str, object] | None = None,
+        locals_dict: dict[str, object] | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name not in _ALLOWED_CEGIS_IMPORT_MODULES:
+            raise ImportError(f"Import of '{name}' is forbidden in restricted CEGIS sandbox")
+        return __import__(name, globals_dict, locals_dict, fromlist, level)
+
+    safe_builtins: dict[str, object] = {
+        "__import__": _safe_import,
+        "abs": abs,
+        "all": all,
+        "any": any,
+        "bool": bool,
+        "dict": dict,
+        "divmod": divmod,
+        "enumerate": enumerate,
+        "filter": filter,
+        "float": float,
+        "frozenset": frozenset,
+        "int": int,
+        "isinstance": isinstance,
+        "issubclass": issubclass,
+        "iter": iter,
+        "len": len,
+        "list": list,
+        "map": map,
+        "max": max,
+        "min": min,
+        "next": next,
+        "pow": pow,
+        "range": range,
+        "reversed": reversed,
+        "round": round,
+        "set": set,
+        "slice": slice,
+        "sorted": sorted,
+        "str": str,
+        "sum": sum,
+        "tuple": tuple,
+        "zip": zip,
+        "True": True,
+        "False": False,
+        "None": None,
+        "Exception": Exception,
+        "ValueError": ValueError,
+        "TypeError": TypeError,
+        "KeyError": KeyError,
+        "IndexError": IndexError,
+        "ZeroDivisionError": ZeroDivisionError,
+        "RuntimeError": RuntimeError,
+    }
+    return {
+        "__builtins__": safe_builtins,
+        "np": np,
+        "numpy": np,
+        "scipy": scipy,
+        "ndimage": scipy.ndimage,
+        "itertools": itertools,
+        "collections": collections,
+        "math": math,
+        "copy": copy,
+        "functools": functools,
+        "spatial_anchors": spatial_anchors,
+        "relational": relational,
+        "bbox": spatial_anchors.bbox,
+        "crop": spatial_anchors.crop,
+        "centroid": spatial_anchors.centroid,
+        "connected_components": spatial_anchors.connected_components,
+        "is_identical_shape": spatial_anchors.is_identical_shape,
+        "rot90": spatial_anchors.rot90,
+        "flip_h": spatial_anchors.flip_h,
+        "flip_v": spatial_anchors.flip_v,
+        "flood_fill": spatial_anchors.flood_fill,
+        "find_cavities": spatial_anchors.find_cavities,
+        "color_counts": spatial_anchors.color_counts,
+        "canvas": spatial_anchors.canvas,
+        "paste": spatial_anchors.paste,
+        "Component": spatial_anchors.Component,
+        "in_cavity": relational.in_cavity,
+        "part_of": relational.part_of,
+        "externally_connected": relational.externally_connected,
+        "partially_overlaps": relational.partially_overlaps,
+        "above": relational.above,
+        "below": relational.below,
+        "left_of": relational.left_of,
+        "right_of": relational.right_of,
+        "extract_cavities": relational.extract_cavities,
+        "extract_cavity_mask": relational.extract_cavity_mask,
+        "extract_exterior_mask": relational.extract_exterior_mask,
+        "is_between": relational.is_between,
+        "y_projection": relational.y_projection,
+        "x_projection": relational.x_projection,
+        "GridRegion": relational.GridRegion,
+    }
+
+
+def _execute_in_restricted_sandbox(
+    clean_code: str,
+    grid_in: list[list[int]],
+    timeout_s: float,
+) -> ExecutionOutcome:
+    """Executes AST-validated candidate code in a restricted-builtins, timeout-bounded sandbox."""
+    import traceback
+
+    t0 = time.perf_counter()
+    box: dict[str, object] = {}
+
+    def _target() -> None:
+        try:
+            env = _build_restricted_cegis_globals()
+            compiled = compile(clean_code, "<cegis_sandbox>", "exec")
+            eval(compiled, env, env)  # noqa: S307
+            transform_fn = env.get("transform")
+            if not callable(transform_fn):
+                raise ValueError("Synthesized code does not define a callable `transform(grid)` function.")
+            raw_res = transform_fn(copy.deepcopy(grid_in))
+            box["result"] = normalize_to_int_grid(raw_res)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("cegis_unshackled_target_error", error=str(exc))
+            box["error_type"] = type(exc).__name__
+            box["error_message"] = str(exc)
+            box["traceback"] = traceback.format_exc()
+
+    worker = threading.Thread(target=_target, daemon=True)
+    worker.start()
+    worker.join(timeout=max(0.05, timeout_s))
+    elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+    if worker.is_alive():
+        return ExecutionOutcome(
+            success=False,
+            output_grid=None,
+            error_type="TimeoutError",
+            error_message=f"Execution timed out after {timeout_s:.2f}s",
+            traceback_str=None,
+            elapsed_ms=elapsed_ms,
+        )
+
+    if "error_type" in box:
+        return ExecutionOutcome(
+            success=False,
+            output_grid=None,
+            error_type=str(box["error_type"]),
+            error_message=str(box.get("error_message", "")),
+            traceback_str=str(box.get("traceback", "")),
+            elapsed_ms=elapsed_ms,
+        )
+
+    return ExecutionOutcome(
+        success=True,
+        output_grid=cast(list[list[int]], box.get("result")),
+        error_type=None,
+        error_message=None,
+        traceback_str=None,
+        elapsed_ms=elapsed_ms,
+    )
+
 
 def get_cegis_docker_transport() -> object | None:
     """Returns singleton DockerRPCTransport instance for isolated container execution (D-AUD-13)."""
@@ -516,23 +772,43 @@ def execute_unshackled_python(
     transport: object | None = None,
 ) -> ExecutionOutcome:
     """
-    Executes Python transform code inside the persistent Docker sandbox container.
-    Guarantees zero host exec() execution per D-AUD-13.
+    Executes Python transform code after AST sanitization and safety validation.
+    Uses persistent Docker sandbox container when available, or restricted-builtins watchdog sandbox.
     """
+    from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code
+
     t0 = time.perf_counter()
     clean_code = strip_comments_and_docstrings(code)
-    rpc_client = transport if transport is not None else get_cegis_docker_transport()
-
-    if rpc_client is None:
+    repaired_code, is_valid_syntax, syntax_err = sanitize_and_repair_python_code(clean_code)
+    if is_valid_syntax and repaired_code:
+        clean_code = strip_comments_and_docstrings(repaired_code)
+    elif not is_valid_syntax:
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return ExecutionOutcome(
             success=False,
             output_grid=None,
-            error_type="SandboxUnavailableError",
-            error_message="Docker sandbox container (lucca-file-sandbox) is unavailable. Host exec is forbidden per D-AUD-13.",
-            traceback_str=None,
+            error_type="SyntaxError",
+            error_message=syntax_err or "Invalid Python syntax",
+            traceback_str=syntax_err,
             elapsed_ms=elapsed_ms,
         )
+
+    safe_ok, safe_err = validate_cegis_ast_safety(clean_code)
+    if not safe_ok:
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        return ExecutionOutcome(
+            success=False,
+            output_grid=None,
+            error_type="SecurityError",
+            error_message=safe_err or "AST safety validation failed",
+            traceback_str=safe_err,
+            elapsed_ms=elapsed_ms,
+        )
+
+    rpc_client = transport if transport is not None else get_cegis_docker_transport()
+
+    if rpc_client is None:
+        return _execute_in_restricted_sandbox(clean_code, grid_in, timeout_s)
 
     runner_script = f"""import sys, json
 for _p in ('/workspace', '/tmp/lucca_runtime'):
@@ -640,22 +916,46 @@ def execute_unshackled_python_batch(
     if not grids_in:
         return []
 
-    clean_code = strip_comments_and_docstrings(code)
-    rpc_client = transport if transport is not None else get_cegis_docker_transport()
+    from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code
 
-    if rpc_client is None:
+    clean_code = strip_comments_and_docstrings(code)
+    repaired_code, is_valid_syntax, syntax_err = sanitize_and_repair_python_code(clean_code)
+    if is_valid_syntax and repaired_code:
+        clean_code = strip_comments_and_docstrings(repaired_code)
+    elif not is_valid_syntax:
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         return [
             ExecutionOutcome(
                 success=False,
                 output_grid=None,
-                error_type="SandboxUnavailableError",
-                error_message="Docker sandbox container (lucca-file-sandbox) is unavailable. Host exec is forbidden per D-AUD-13.",
-                traceback_str=None,
+                error_type="SyntaxError",
+                error_message=syntax_err or "Invalid Python syntax",
+                traceback_str=syntax_err,
                 elapsed_ms=elapsed_ms,
             )
             for _ in grids_in
         ]
+
+    safe_ok, safe_err = validate_cegis_ast_safety(clean_code)
+    if not safe_ok:
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        return [
+            ExecutionOutcome(
+                success=False,
+                output_grid=None,
+                error_type="SecurityError",
+                error_message=safe_err or "AST safety validation failed",
+                traceback_str=safe_err,
+                elapsed_ms=elapsed_ms,
+            )
+            for _ in grids_in
+        ]
+
+    rpc_client = transport if transport is not None else get_cegis_docker_transport()
+
+    if rpc_client is None:
+        per_grid_timeout = max(0.5, timeout_s / max(len(grids_in), 1))
+        return [_execute_in_restricted_sandbox(clean_code, g, per_grid_timeout) for g in grids_in]
 
     runner_script = f"""import sys, json
 for _p in ('/workspace', '/tmp/lucca_runtime'):
