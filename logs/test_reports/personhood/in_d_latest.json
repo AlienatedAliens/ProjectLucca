@@ -1,13 +1,42 @@
 {
-  "as_of": "2026-10-12T16:52:28Z",
+  "as_of": "2026-11-02T23:44:03Z",
   "stratum": "IN-D",
   "status": "MEASURED",
   "learned_skills_active": 0,
-  "learned_skills_quarantined": 0,
-  "total_quarantined_all": 0,
+  "learned_skills_quarantined": 4,
+  "total_quarantined_all": 4,
   "total_active_all": 0,
   "guard_active_zero_passed": true,
-  "quarantined_skills": [],
+  "quarantined_skills": [
+    {
+      "rule_id": "induced-launch-app-calculator-v1",
+      "status": "QUARANTINE",
+      "is_induced": true,
+      "created_at": 1793663025.118549,
+      "promoted_at": null
+    },
+    {
+      "rule_id": "induced-launch-app-notepad-v1",
+      "status": "QUARANTINE",
+      "is_induced": true,
+      "created_at": 1793663025.122823,
+      "promoted_at": null
+    },
+    {
+      "rule_id": "induced-read-file-notes-roadmap-md-v1",
+      "status": "QUARANTINE",
+      "is_induced": true,
+      "created_at": 1793663025.128414,
+      "promoted_at": null
+    },
+    {
+      "rule_id": "induced-read-file-notes-todo-md-v1",
+      "status": "QUARANTINE",
+      "is_induced": true,
+      "created_at": 1793663025.134078,
+      "promoted_at": null
+    }
+  ],
   "active_skills": [],
   "grader_version": "1.0.0"
 }

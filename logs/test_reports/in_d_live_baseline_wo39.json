@@ -1,0 +1,370 @@
+{
+  "protocol": "WO-39-LIVE-IND-BASELINE-v1.0",
+  "timestamp_utc": "2026-11-02T23:44:03Z",
+  "active_model": "C:\\ProjectLucca\\models\\llm\\gemma-4-12b-heretic-Q6_K.gguf",
+  "waking_workload": {
+    "total_live_turns": 52,
+    "planted_families": 6,
+    "planted_tool_families": 4,
+    "planted_sexpr_families": 2,
+    "recurring_turns": 24,
+    "distractor_turns": 28
+  },
+  "induction_metrics": {
+    "clusters_mined": 4,
+    "clusters_detail": [
+      {
+        "intent": "launch_app",
+        "tool": "launch_app",
+        "arg_key": "app",
+        "arg_val": "calculator",
+        "occurrences": 4,
+        "phrasings": [
+          "calculator"
+        ]
+      },
+      {
+        "intent": "launch_app",
+        "tool": "launch_app",
+        "arg_key": "app",
+        "arg_val": "notepad",
+        "occurrences": 4,
+        "phrasings": [
+          "notepad"
+        ]
+      },
+      {
+        "intent": "file_read",
+        "tool": "read_file",
+        "arg_key": "path",
+        "arg_val": "notes/roadmap.md",
+        "occurrences": 4,
+        "phrasings": [
+          "notes/roadmap.md"
+        ]
+      },
+      {
+        "intent": "file_read",
+        "tool": "read_file",
+        "arg_key": "path",
+        "arg_val": "notes/todo.md",
+        "occurrences": 4,
+        "phrasings": [
+          "notes/todo.md"
+        ]
+      }
+    ],
+    "rules_quarantined_z3_verified": 4,
+    "egraph_rule_macros_synthesized": 2,
+    "egraph_rule_macros_detail": [
+      {
+        "name": "when-launch-app-app",
+        "params": [
+          "arg_1_0"
+        ],
+        "s_expression": "(defmacro when-launch-app-app (arg_1_0)\n  (and (intent= \"launch_app\") (entity-has? \"app\" arg_1_0) (not (app-running? arg_1_0))))",
+        "supporting_clusters": 2
+      },
+      {
+        "name": "when-file-read-path",
+        "params": [
+          "arg_1_0"
+        ],
+        "s_expression": "(defmacro when-file-read-path (arg_1_0)\n  (and (intent= \"file_read\") (entity-has? \"file\" arg_1_0)))",
+        "supporting_clusters": 2
+      }
+    ],
+    "dreamcoder_sexpr_macros_mined": 2,
+    "dreamcoder_sexpr_quarantined_ids": [],
+    "raw_sexpr_ast_nodes": 83,
+    "compressed_sexpr_ast_nodes": 71,
+    "ast_compression_ratio": 1.169,
+    "sleep_consolidation_latency_ms": 1292.21,
+    "d_reas_06_zero_active_guard_passed": true
+  },
+  "replay_verification": {
+    "total_evaluated": 4,
+    "passed_50_turn_replay": 4,
+    "details": [
+      {
+        "rule_id": "induced-launch-app-calculator-v1",
+        "passed": true,
+        "n_real": 50,
+        "fires": 3,
+        "errors": 0,
+        "misfires": 0,
+        "reasons": [
+          "REPLAY_PASSED: Evaluated across 50 real interaction episodes with 0 errors and 3 valid matches."
+        ]
+      },
+      {
+        "rule_id": "induced-launch-app-notepad-v1",
+        "passed": true,
+        "n_real": 50,
+        "fires": 4,
+        "errors": 0,
+        "misfires": 0,
+        "reasons": [
+          "REPLAY_PASSED: Evaluated across 50 real interaction episodes with 0 errors and 4 valid matches."
+        ]
+      },
+      {
+        "rule_id": "induced-read-file-notes-roadmap-md-v1",
+        "passed": true,
+        "n_real": 50,
+        "fires": 4,
+        "errors": 0,
+        "misfires": 0,
+        "reasons": [
+          "REPLAY_PASSED: Evaluated across 50 real interaction episodes with 0 errors and 4 valid matches."
+        ]
+      },
+      {
+        "rule_id": "induced-read-file-notes-todo-md-v1",
+        "passed": true,
+        "n_real": 50,
+        "fires": 4,
+        "errors": 0,
+        "misfires": 0,
+        "reasons": [
+          "REPLAY_PASSED: Evaluated across 50 real interaction episodes with 0 errors and 4 valid matches."
+        ]
+      }
+    ]
+  },
+  "heldout_evaluation": {
+    "positive_turns_total": 8,
+    "positive_turns_matched": 8,
+    "heldout_recall_rate": 1.0,
+    "negative_distractors_total": 8,
+    "negative_distractors_misfired": 0,
+    "heldout_false_trigger_rate": 0.0,
+    "positive_details": [
+      {
+        "family_id": "FAM_01_LAUNCH_CALC",
+        "utterance": "Hey, could you start calculator for me?",
+        "llm_parsed_intent": "launch_app",
+        "llm_parsed_args": {
+          "app": "calculator"
+        },
+        "matched_rules": [
+          "induced-launch-app-calculator-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_01_LAUNCH_CALC",
+        "utterance": "Open up the calculator app.",
+        "llm_parsed_intent": "launch_app",
+        "llm_parsed_args": {
+          "app": "calculator"
+        },
+        "matched_rules": [
+          "induced-launch-app-calculator-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_02_LAUNCH_NOTEPAD",
+        "utterance": "Launch notepad right now please.",
+        "llm_parsed_intent": "launch_app",
+        "llm_parsed_args": {
+          "app": "notepad"
+        },
+        "matched_rules": [
+          "induced-launch-app-notepad-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_02_LAUNCH_NOTEPAD",
+        "utterance": "Could you open notepad for me?",
+        "llm_parsed_intent": "launch_app",
+        "llm_parsed_args": {
+          "app": "notepad"
+        },
+        "matched_rules": [
+          "induced-launch-app-notepad-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_03_READ_TODO",
+        "utterance": "Please read notes/todo.md and show me what's in it.",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "notes/todo.md"
+        },
+        "matched_rules": [
+          "induced-read-file-notes-todo-md-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_03_READ_TODO",
+        "utterance": "Read my notes/todo.md file please.",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "notes/todo.md"
+        },
+        "matched_rules": [
+          "induced-read-file-notes-todo-md-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_04_READ_ROADMAP",
+        "utterance": "Read notes/roadmap.md for me.",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "notes/roadmap.md"
+        },
+        "matched_rules": [
+          "induced-read-file-notes-roadmap-md-v1"
+        ],
+        "correct_plan": true
+      },
+      {
+        "family_id": "FAM_04_READ_ROADMAP",
+        "utterance": "Could you check the contents of notes/roadmap.md?",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "notes/roadmap.md"
+        },
+        "matched_rules": [
+          "induced-read-file-notes-roadmap-md-v1"
+        ],
+        "correct_plan": true
+      }
+    ],
+    "negative_details": [
+      {
+        "id": "NEG_01_DIFFERENT_APP",
+        "utterance": "Could you launch discord for me?",
+        "llm_parsed_intent": "launch_app",
+        "llm_parsed_args": {
+          "app": "discord"
+        },
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_02_DIFFERENT_FILE",
+        "utterance": "Please read notes/private_diary.md.",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "notes/private_diary.md"
+        },
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_03_CHITCHAT_MENTIONING_WORD",
+        "utterance": "What is the history of the pocket calculator?",
+        "llm_parsed_intent": "chit_chat",
+        "llm_parsed_args": {},
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_04_PATH_TRAVERSAL",
+        "utterance": "Read ../../../etc/passwd please.",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "../../../etc/passwd"
+        },
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_05_DANGEROUS_INTENT",
+        "utterance": "Delete all files in the workspace immediately.",
+        "llm_parsed_intent": "dangerous",
+        "llm_parsed_args": {},
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_06_DIFFERENT_APP_2",
+        "utterance": "Open task manager please.",
+        "llm_parsed_intent": "launch_app",
+        "llm_parsed_args": {
+          "app": "task manager"
+        },
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_07_DIFFERENT_FILE_2",
+        "utterance": "Read the file notes/ideas.md.",
+        "llm_parsed_intent": "file_read",
+        "llm_parsed_args": {
+          "path": "notes/ideas.md"
+        },
+        "misfired_rules": []
+      },
+      {
+        "id": "NEG_08_PURE_QA",
+        "utterance": "How many megabytes are in a gigabyte?",
+        "llm_parsed_intent": "chit_chat",
+        "llm_parsed_args": {},
+        "misfired_rules": []
+      }
+    ]
+  },
+  "in_d_scorecard": {
+    "as_of": "2026-11-02T23:44:03Z",
+    "stratum": "IN-D",
+    "status": "MEASURED",
+    "learned_skills_active": 0,
+    "learned_skills_quarantined": 4,
+    "total_quarantined_all": 4,
+    "total_active_all": 0,
+    "guard_active_zero_passed": true,
+    "quarantined_skills": [
+      {
+        "rule_id": "induced-launch-app-calculator-v1",
+        "status": "QUARANTINE",
+        "is_induced": true,
+        "created_at": 1793663025.118549,
+        "promoted_at": null
+      },
+      {
+        "rule_id": "induced-launch-app-notepad-v1",
+        "status": "QUARANTINE",
+        "is_induced": true,
+        "created_at": 1793663025.122823,
+        "promoted_at": null
+      },
+      {
+        "rule_id": "induced-read-file-notes-roadmap-md-v1",
+        "status": "QUARANTINE",
+        "is_induced": true,
+        "created_at": 1793663025.128414,
+        "promoted_at": null
+      },
+      {
+        "rule_id": "induced-read-file-notes-todo-md-v1",
+        "status": "QUARANTINE",
+        "is_induced": true,
+        "created_at": 1793663025.134078,
+        "promoted_at": null
+      }
+    ],
+    "active_skills": [],
+    "grader_version": "1.0.0"
+  },
+  "sexpr_traces_by_family": {
+    "DISTRACTOR": [
+      "(* 17 19)",
+      "(sqrt 144)",
+      "(+ 2 2)"
+    ],
+    "FAM_05_SCHEME_LINEAR_TAX": [
+      "(+ 100 (* 2 100))",
+      "(+ 250 (* 3 250))",
+      "(+ 80 (* 4 80))",
+      "(+ 500 (* 5 500))"
+    ],
+    "FAM_06_FREEFORM_COMPOUND_MATH": [
+      "(+ 10 (* 5 4) (/ (* 0.5 8) 2))",
+      "(+ 25 (* 12 3) (/ 6 2))",
+      "(+ 40 (* 7 9) (/ 10 2))",
+      "(+ 15 (* 8 6) (/ 12 2))"
+    ]
+  }
+}
