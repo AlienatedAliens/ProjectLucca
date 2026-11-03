@@ -404,10 +404,10 @@
           6.98 &times; 10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square). This demonstrates that
         in-prompt tags decay under adversarial pressure, whereas trigger-enforced provenance is structurally invariant.
       </li>
-      <li><strong>Corroboration-gated admission (H<sub>2b</sub>, <em>n=30</em>):</strong> Enabling operator-gated
+      <li><strong>Corroboration-gated admission (H<sub>2b</sub>, <em>n=30</em> v2 baseline &amp; <em>n=10</em> post-WO-39 rebench):</strong> Enabling operator-gated
         corroboration (<code>user_explicit_requires_corroboration = True</code>) reduced Cohort C falsehood absorption
-        into grounding storage from 100.0% (30/30) to <strong>83.33%</strong> (25/30, 95% CI: [64.6%, 93.7%]), holding
-        uncorroborated assertions at <em>Mem=1, Gnd=0</em>.</li>
+        into grounding storage from 100.0% (30/30) to <strong>83.33%</strong> (25/30, 95% CI: [64.6%, 93.7%]) in the initial v2 run, holding
+        uncorroborated assertions at <em>Mem=1, Gnd=0</em>. In the subsequent Work Order 39 (<code>WO-39</code>) decontamination re-evaluation (<code>logs/test_reports/wo39_live_4models_rebench.json</code>), wiring the harness to live <code>is_content_corroborated()</code> database verification and general numeric extraction in <code>CorroborationEngine</code> further reduced uncorroborated falsehood compounding to <strong>0/10 (0.0%)</strong> on Gemma-4 26B-A4B, 12B, and E4B, and <strong>3/10 (30.0%)</strong> on E2B.</li>
       <li><strong>Multi-scale tier replication (H<sub>2c</sub>, <em>n=40</em>):</strong> The Cohort A Naive vs. Gate
         contrast replicated across four parameter scales at <em>T=0.0</em>: Gemma-4 12B Unified (Naive 100.0% vs. Gate
         0.0%, <em>p = 6.98 &times; 10<sup>&minus;10</sup></em>), Gemma-4 E4B Sovereign Core (Naive 100.0% vs. Gate 2.5%
@@ -467,9 +467,8 @@
         (96.7%), indicating recollection routing is not cost-free.</li>
       <li><strong>Corroboration gate reduces but does not close the boundary.</strong> Study V2b measured operator-gated
         corroboration on Cohort C: absorption of uncorroborated user falsehoods into grounding storage dropped from
-        30/30 (100.0%) to 25/30 (83.33%, 95% CI: [64.6%, 93.7%]), holding the remaining uncorroborated assertions at
-        <em>Mem=1, Gnd=0</em>. The residual 25/30 reflects falsehoods the operator-gated heuristic could not reject;
-        full closure requires multi-source corroboration beyond the mechanism evaluated here.
+        30/30 (100.0%) to 25/30 (83.33%, 95% CI: [64.6%, 93.7%]) in the initial v2 evaluation, and to 0/10 (0.0%) on 26B-A4B, 12B, and E4B (3/10 on E2B) following the <code>WO-39</code> live <code>is_content_corroborated()</code> and numeric-extraction integration, holding uncorroborated assertions at
+        <em>Mem=1, Gnd=0</em>. Full epistemic verification of arbitrary non-numeric user testimony still requires external multi-source corroboration beyond the storage layer.
       </li>
     </ol>
 
