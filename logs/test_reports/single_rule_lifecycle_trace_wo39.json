@@ -1,0 +1,143 @@
+{
+  "trace_id": "WO-39-SINGLE-RULE-LIFECYCLE-TRACE",
+  "timestamp_utc": "2026-11-03T22:01:52Z",
+  "rule_id": "induced-read-file-notes-roadmap-md-v1",
+  "s_expression": "(rule \"induced-read-file-notes-roadmap-md-v1\"\n  :when (and (intent= \"file_read\") (entity-has? \"file\" \"notes/roadmap.md\"))\n  :plan (list (tool \"read_file\" :path \"notes/roadmap.md\"))\n  :priority 5)",
+  "s_expression_sha256": "a4a23ec215bc82390f739209112a6f0987875ec4e2febb4b3f47a441ed2072e2",
+  "generalized_egraph_macro": "(defmacro when-file-read-path (arg_1_0) (and (intent= \"file_read\") (entity-has? \"file\" arg_1_0)))",
+  "state_path_verified": [
+    "PROPOSED (RuleInducer anti-unification + Z3 SMT check)",
+    "QUARANTINE (initial admission; learned_skills_active = 0)",
+    "REPLAY_PASSED (50-turn Dream-RSI replay on saved task states)",
+    "SHADOW_VERIFIED (5 distinct 15-min clusters + 100% contrastive LLM agreement)",
+    "PENDING_APPROVAL",
+    "ACTIVE",
+    "QUARANTINE (after simulated 1-strike failure/mismatch)",
+    "RETIRED (after simulated explicit user 'stop/undo' retirement)"
+  ],
+  "stage_1_and_2_induction_and_z3": {
+    "supporting_waking_traces": 4,
+    "rules_induced_count": 2,
+    "quarantined_rule_ids": [
+      "induced-launch-app-calculator-v1",
+      "induced-read-file-notes-roadmap-md-v1"
+    ],
+    "induction_and_z3_latency_ms": 29.73,
+    "initial_status": "QUARANTINE"
+  },
+  "stage_3_offline_50_turn_replay": {
+    "n_real_episodes": 50,
+    "target_fires": 4,
+    "errors": 0,
+    "distractor_misfires": 0,
+    "passed": true,
+    "replay_latency_ms": 1.46
+  },
+  "stage_4_contrastive_shadow_evaluation": {
+    "distinct_15min_clusters": 5,
+    "mean_shadow_eval_latency_ms": 0.1934,
+    "agreed_with_llm_core_count": 5,
+    "agreed_with_llm_core_rate": 1.0,
+    "rule_reliability_rate": 1.0
+  },
+  "stage_5_and_6_regression_and_promotion": {
+    "pre_promotion_regression_cases_checked": 10,
+    "pre_promotion_regressions": 0,
+    "step1_transition": "Met quarantine criteria (>=5 distinct clusters, 0 failures, regression clean); transitioned to PENDING_APPROVAL awaiting human approval",
+    "step1_status": "PENDING_APPROVAL",
+    "step2_transition": "Approved by sean_operator and promoted to ACTIVE",
+    "step2_status": "ACTIVE",
+    "post_promotion_regression_cases_checked": 20,
+    "post_promotion_regressions": 0
+  },
+  "stage_7_head_to_head_on_saved_task_states": {
+    "normal_llm_path_gemma4_12b": {
+      "signal_1_tool_completed_exit_zero": "2/2 (100%)",
+      "signal_2_verifier_passed_sha256_and_schema": "2/2 (100%)",
+      "signal_3_mean_planning_latency_ms": 462.46,
+      "signal_3_llm_planning_tokens_per_turn": 64,
+      "signal_3_tool_calls_per_turn": 1,
+      "signal_3_retries_per_turn": 0,
+      "signal_4_user_corrections_or_undos": "0/2 (0%)",
+      "signal_5_regressions_on_prior_cases": "0/50 (0%)"
+    },
+    "active_rule_path_microscheme_ast": {
+      "signal_1_tool_completed_exit_zero": "2/2 (100%)",
+      "signal_2_verifier_passed_sha256_and_schema": "2/2 (100%)",
+      "signal_3_mean_planning_latency_ms": 0.0271,
+      "signal_3_llm_planning_tokens_per_turn": 0,
+      "signal_3_tool_calls_per_turn": 1,
+      "signal_3_retries_per_turn": 0,
+      "signal_4_user_corrections_or_undos": "0/2 (0%)",
+      "signal_5_regressions_on_prior_cases": "0/20 active cases & 0/50 replay episodes (0%)"
+    },
+    "heldout_turn_traces": [
+      {
+        "turn_index": 1,
+        "utterance": "Read notes/roadmap.md for me.",
+        "rule_fired": true,
+        "tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "signal_1_tool_completed_exit_zero": true,
+        "signal_2_verifier_passed_sha256_and_schema": true,
+        "expected_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
+        "actual_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
+        "signal_3_cost_and_latency": {
+          "active_rule_planning_latency_ms": 0.0225,
+          "tool_io_latency_ms": 0.1336,
+          "total_turn_latency_ms": 0.1561,
+          "llm_planning_tokens": 0,
+          "tool_calls": 1,
+          "retries": 0,
+          "gas_used": 10
+        },
+        "signal_4_user_correction_or_undo": false,
+        "signal_5_regressions_introduced": 0,
+        "execution_triple_id": "01M6HPXNRE16JTGGV7ATFCFBDV"
+      },
+      {
+        "turn_index": 2,
+        "utterance": "Could you check the contents of notes/roadmap.md?",
+        "rule_fired": true,
+        "tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "signal_1_tool_completed_exit_zero": true,
+        "signal_2_verifier_passed_sha256_and_schema": true,
+        "expected_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
+        "actual_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
+        "signal_3_cost_and_latency": {
+          "active_rule_planning_latency_ms": 0.0316,
+          "tool_io_latency_ms": 0.0882,
+          "total_turn_latency_ms": 0.1198,
+          "llm_planning_tokens": 0,
+          "tool_calls": 1,
+          "retries": 0,
+          "gas_used": 10
+        },
+        "signal_4_user_correction_or_undo": false,
+        "signal_5_regressions_introduced": 0,
+        "execution_triple_id": "01M6HPXNRE16JTGGV7ATFCFBDZ"
+      }
+    ]
+  },
+  "stage_8_rollback_and_circuit_breaker_verification": {
+    "simulated_signal_4_event": "operator_correct ('No, I meant notes/todo.md, undo that.')",
+    "status_after_1_strike": "QUARANTINE",
+    "demotion_count": 1,
+    "status_after_explicit_user_retire": "RETIRED",
+    "user_retired_flag": true
+  },
+  "live_52_turn_baseline_reference": {
+    "file": "logs/test_reports/in_d_live_baseline_wo39.json",
+    "heldout_positive_recall": 1.0,
+    "heldout_distractor_misfires": 0
+  }
+}
