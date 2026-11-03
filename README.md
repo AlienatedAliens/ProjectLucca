@@ -68,7 +68,10 @@ Following the Work Order 39 (`WO-39`) scientific integrity audit:
 | **v1.35: Fresh Held-Out 500** | 500 unseen competition problems (32K ctx + feedback loop) | 85.80% strict / 90.20% lenient | [`RESULTS.md`](./RESULTS.md#L75) |
 | **v1.35.6: Multi-Scale Held-Out 100** | Unseen competition math: 12B Direct R0 / E4B R1 / E2B R1 | 89.0% (12B) / 88.0% (E4B) / 81.0% (E2B) | [`RESULTS.md`](./RESULTS.md#L88) |
 | **Truth-in-Receipt Live Battery** | Live supervisory detection of ungrounded action claims | 1/23 detected (4.3% sensitivity broad / 1/8, 12.5% strict) | [`luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md`](./luccadocs/funding/PREREG_MATCHER_SENSITIVITY.md) |
-| **WO-39: 4-Model Live Rebench** | `26B-A4B`, `12B`, `E4B`, `E2B` across Study 1 V2c/V2b, Sealed Parametric (`v139`), GSM8K PAL, HumanEval, & Security | **100%** across all 7 suites on `26B-A4B`, `12B`, & `E4B` (`93.3%` Sealed Parametric on `E2B`) | [`RESULTS.md`](./RESULTS.md#L7) |
+| **WO-39: 4-Model Live Rebench** | `26B-A4B`, `12B`, `E4B`, `E2B` across Study 1 V2c/V2b, Sealed Parametric (`v139`), GSM8K PAL, HumanEval, & Security | **100%** across all 7 suites on `26B-A4B`, `12B`, & `E4B` (`0/10` self-poisoning vs `10/10` naive RAG, `p = 0.00195`) | [`RESULTS.md`](./RESULTS.md#L7) |
+| **LongMemEval Pipeline (`N=30`)** | End-to-end conversational memory & temporal reasoning (`12B`: Truncation vs. Lucca Provenance + RRF Pipeline) | **23.3% → 70.0%** (`0:14` discordant pairs, McNemar `p = 0.0001`, `8.1 ms` mean retrieval latency) | [`logs/test_reports/longmemeval_pipeline_12B_1791794644.json`](./logs/test_reports/longmemeval_pipeline_12B_1791794644.json) |
+| **IN-D Live 52-Turn Rule Induction** | Organic 52-turn waking trace + 16 held-out turns (`RuleInducer` + Z3 SMT + 50-turn `Dream-RSI` replay + single-strike eviction) | **4/4** tool rules Z3-quarantined (`100%` 50-turn replay, **8/8** held-out recall, **0/8** distractor misfires; `0/2` free-form S-expr macros) | [`logs/test_reports/in_d_live_baseline_wo39.json`](./logs/test_reports/in_d_live_baseline_wo39.json) |
+| **MiniLM-L6 NLI Verifier (`WO-37`)** | 100-pair semantic contradiction / entailment cross-encoder on host CPU (`50 ms` in-turn budget, `0 MB` VRAM) | **12.23 ms mean / 14.40 ms p95** (`0.975 / 0.975` contradiction P/R, `0/100` timeouts) | [`Paper 03 §4.1`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md#L121) |
 | **Static & Anti-Cheat Gates** | Structural invariants, zero-`Any`, provenance, decontamination, & 6-organs verification | **37 / 37 gates PASSED** (`25` static + `4` anti-cheat + `8` six-organs) | [`tests/test_static_gates.py`](./tests/test_static_gates.py) |
 
 ---
@@ -85,7 +88,11 @@ Following the Work Order 39 (`WO-39`) scientific integrity audit:
 
 ## Research
 
-See [`luccadocs/research/README.md`](./luccadocs/research/README.md) for research roadmap, experimental logs, and technical reports. Research papers are working drafts, not peer-reviewed.
+See [`luccadocs/research/README.md`](./luccadocs/research/README.md) for the research roadmap, experimental logs, and technical reports:
+- **Primary Pre-Print (PDF):** [`docs/paper.pdf`](./docs/paper.pdf) — *Structural Mitigation of Multi-Session Recursive Self-Poisoning and Scale-Dependent PAL Scaffolding in Local Agentic Systems* (Study 1 & Study 2).
+- **Paper 03 (Provenance, Belnap Bilattices & NARS):** [`03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) — 6-signer HMAC `ProvenanceGate`, `memory_eligible` vs. `grounding_eligible` triggers, Belnap $\mathcal{FOUR}$ ($\top$) + OpenNARS $(w^+, w^-)$, and `MiniLM-L6` NLI contradiction isolation.
+- **TR-04 (Procedural Memory, E-Graph & Live `IN-D` Baseline):** [`04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md`](./luccadocs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md) — `DreamRetrospective` Z3 SMT verification, `QUARANTINE` promotion gate, 50-turn replay, single-strike circuit breaker, and the 52-turn live `IN-D` baseline.
+- **Paper 06 (4-Model Scale Ablation):** [`06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`](./luccadocs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md) — Post-`WO-39` evaluation across `Gemma 4 26B-A4B MoE`, `12B Dense`, `E4B`, and `E2B`.
 
 ---
 
