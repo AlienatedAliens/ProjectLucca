@@ -1,0 +1,171 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{url}
+\usepackage{graphicx}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{\textbf{Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction}}
+\author{
+  \textbf{Sean Maxwell} \\
+  Independent Researcher \\
+  ORCID: \href{https://orcid.org/0009-0004-0133-0463}{0009-0004-0133-0463} $\cdot$ Foundational DOI: \href{https://doi.org/10.5281/zenodo.23649049}{10.5281/zenodo.23649049}
+}
+\date{November 2026 (\texttt{LUCCA-TR-2026-03}, Post-WO-39 Decontaminated Baseline)}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Contemporary agent architectures commonly decompose persistent state into five layers: (1) \emph{Working Memory}, (2) \emph{Episodic Memory}, (3) \emph{Semantic Memory}, (4) \emph{Procedural Memory}, and (5) an offline \emph{Meta-Memory} control plane. However, conventional implementations connect these layers via unconstrained asynchronous extraction and reflection jobs that read raw episodic transcripts---including unverified assistant narration and untrusted tool outputs---and promote them directly into semantic facts and procedural skills. Without a cryptographic trust boundary between episodic recall and epistemic authority, this feedback loop causes silent multi-session self-poisoning and procedural error compounding. In this technical report, we present the unified five-layer memory and skill-induction architecture of \textbf{Project Lucca} (\texttt{v1.47.0}, Work Order 39) and report empirical measurements across every layer boundary on local consumer silicon (NVIDIA RTX 5080 Laptop GPU, 16 GB GDDR7; Intel Core Ultra 9 275HX). At the \textbf{Layer 2 $\to$ Layer 3 boundary}, six HKDF-derived HMAC-SHA256 domain signers and SQLite triggers separate autobiographical recall (\texttt{memory\_eligible=1, grounding\_eligible=0}) from factual grounding (\texttt{grounding\_eligible=1}), reducing multi-session self-poisoning from 10/10 (100.0\%) in Naive RAG to \textbf{0/10 (0.0\%, $p = 0.00195$)} across all four Gemma-4 parameter scales (\texttt{26B-A4B}, \texttt{12B}, \texttt{E4B}, \texttt{E2B}) while preserving 100.0\% autobiographical continuity. Within \textbf{Layer 3}, a zero-VRAM 22M OpenVINO \texttt{MiniLM-L6} cross-encoder evaluates semantic conflicts in \textbf{12.23 ms mean / 14.40 ms p95 CPU latency} (0.975 / 0.975 contradiction precision/recall, 0/100 timeouts under a 50 ms budget), routing contradictions into Belnap's four-valued paraconsistent state $\mathbf{B}$ ($\top$) paired with OpenNARS $\text{Beta}(w^+, w^-)$ evidence weights and append-only \texttt{supersede()} lineage. On the \textbf{LongMemEval} benchmark ($N=30$, 12B), Lucca's provenance-gated hybrid RRF + Allen temporal pipeline lifts accuracy from \textbf{23.3\% (7/30) to 70.0\% (21/30)} (0:14 discordant pairs, McNemar $p = 0.0001$) at \textbf{8.1 ms} mean retrieval latency. Finally, at the \textbf{Layer 4 \& Layer 5 boundary}, we evaluate an organic \textbf{52-turn live LLM waking trace + 16 held-out evaluation turns (\texttt{IN-D} baseline)}: offline \texttt{DreamRetrospective} induces gas-metered MicroScheme AST rules (\texttt{0.14 ms} CPU reflex execution vs.\ \texttt{462.46 ms} LLM planning), admitting \textbf{4/4 structured tool-rule candidates to \texttt{QUARANTINE}} after Z3 SMT verification and 50-turn historical replay, achieving \textbf{8/8 (100.0\%) held-out positive recall} and \textbf{0/8 (0.0\%) distractor misfires} under a single-strike runtime eviction circuit breaker, while transparently documenting a \textbf{0/2 (0.0\%) admission boundary} on free-form S-expression macro anti-unification due to outer-shape distractor collision and algebraic syntax variance.
+\end{abstract}
+
+\section{Introduction: The Promotion Laundering Flaw}
+As Large Language Model (LLM) agents transition from stateless single-turn wrappers to long-lived autonomous companions, engineering consensus has converged on a five-layer memory taxonomy: (1) \emph{Working Memory} (in-context state bounded by the token window), (2) \emph{Episodic Memory} (time-indexed cross-session interaction traces), (3) \emph{Semantic Memory} (structured entity and proposition stores), (4) \emph{Procedural Memory} (reusable skills and action policies), and (5) \emph{Meta-Memory} (an offline janitor for decay, deduplication, and consolidation).
+
+While conceptually clean, the standard dataflow between these layers contains a critical structural vulnerability at the promotion boundaries (\textbf{Layer 2 $\to$ Layer 3} and \textbf{Layer 2 $\to$ Layer 4}):
+\begin{itemize}
+    \item \textbf{Recall Confused with Authority (Layer 2 $\to$ Layer 3):} Asynchronous extraction jobs read episodic transcripts containing the model's own unverified assertions (\texttt{[RESPONSE]}) or untrusted external text and write structured facts into Semantic Memory. When retrieved in later sessions, the model's earlier confabulation is presented as authoritative ground truth.
+    \item \textbf{Destructive Overwrites vs.\ Silent Contradictions (Layer 3):} Append-only semantic stores either return contradictory facts at planning time or silently overwrite historical state without auditable lineage or paraconsistent isolation.
+    \item \textbf{Unverified Skill Promotion \& Schema Drift (Layer 2 $\to$ Layer 4 $\to$ Layer 5):} Reflection loops that rewrite natural-language prompts or promote unverified tool traces into Procedural Memory risk compiling transient coincidences or hallucinated premises into permanent behavioral rules, with no formal verification prior to activation and no deterministic eviction trigger when tool schemas drift at runtime.
+\end{itemize}
+
+In this report, we describe how \textbf{Project Lucca} (\texttt{v1.47.0}) closes this epistemic loop by enforcing deterministic cryptographic, logical, and formal-verification gates at every inter-layer transition, and we report post-decontamination (\texttt{WO-39}) empirical benchmarks across all five layers.
+
+\section{Five-Layer Epistemic Architecture}
+
+\subsection{Layer 1 \& Layer 2: Partitioned Working Context and Six-Signer Episodic Provenance}
+In Project Lucca, every episodic write to the local SQLite WAL store (\texttt{sqlite-vec} + \texttt{FTS5}) must pass through a fail-closed \texttt{ProvenanceGate} (\texttt{src/lucca/memory/gate.py}). Using HKDF-SHA256 key derivation from a host master secret, the gate issues six capability-isolated domain signers:
+\begin{enumerate}
+    \item \texttt{UserInputSigner} (\texttt{USER\_EXPLICIT}): Direct authenticated operator utterances ($Mem=1, Gnd=1$, or $Gnd=0$ when operator corroboration mode is enabled).
+    \item \texttt{DerivedFactSigner} (\texttt{USER\_DERIVED}): Distilled propositions anchored to verified verbatim substrings in user turns (\texttt{src/lucca/reasoning/distill.py}).
+    \item \texttt{ToolResultSigner} (\texttt{TOOL\_VERIFIED}): Deterministic sandbox execution receipts ($Mem=1, Gnd=1$).
+    \item \texttt{AssistantUtteranceSigner} (\texttt{ASSISTANT\_UTTERANCE}): Model-generated narration, constrained by SQLite triggers (\texttt{0006\_autobiographical.sql}) to \texttt{memory\_eligible=1, grounding\_eligible=0}.
+    \item \texttt{UntrustedToolSigner} (\texttt{TOOL\_UNTRUSTED}): External file/web reads, constrained to \texttt{memory\_eligible=0, grounding\_eligible=0}.
+    \item \texttt{SystemInternalSigner} (\texttt{SYSTEM\_INTERNAL}): Ephemeral telemetry (\texttt{memory\_eligible=0, grounding\_eligible=0}).
+\end{enumerate}
+
+At read time, any row failing HMAC-SHA256 verification is quarantined into \texttt{memory\_quarantine} (\texttt{D-MEM-05}). When building Layer 1 Working Memory (\texttt{src/lucca/brain/prompt\_builder.py}), \texttt{\_render\_partitioned\_memories()} structurally separates verified grounding facts (\texttt{<verified\_grounding\_facts>}, $Gnd=1$) from unverified autobiographical recollections (\texttt{<autobiographical\_memory>}, $Mem=1, Gnd=0$), instructing the model that autobiographical entries record only what was previously said and must never be cited as verified system facts.
+
+\subsection{Layer 3: Paraconsistent Bilattice ($\mathcal{FOUR}$), OpenNARS Evidence, and Allen Temporal Algebra}
+To prevent conflicting semantic facts from causing logical explosion or silent history erasure, Layer 3 represents each belief in \texttt{user\_beliefs} across two coupled dimensions (\texttt{src/lucca/memory/beliefs.py}):
+\begin{itemize}
+    \item \textbf{Belnap's Four-Valued Bilattice ($\mathcal{FOUR}$) \cite{belnap1977}:} Truth states span $\mathbf{U}$ ($\bot$, Unknown: no evidence), $\mathbf{T}$ (True: positive evidence only), $\mathbf{F}$ (False: negative evidence only), and $\mathbf{B}$ ($\top$, Both/Contradiction: concurrent positive and negative evidence).
+    \item \textbf{OpenNARS Continuous Evidence Pooling \cite{wang2013}:} Each belief tracks positive and negative evidence counts ($w^+, w^-$), deriving frequency and confidence with horizon $k = 1.0$:
+\end{itemize}
+\begin{equation}
+f = \frac{w^+}{w^+ + w^-}, \quad c = \frac{w^+ + w^-}{w^+ + w^- + k}
+\end{equation}
+
+When a candidate belief is ingested, an in-turn 22M OpenVINO \texttt{MiniLM-L6} NLI cross-encoder (\texttt{src/lucca/verifier/worker.py}) compares it against active beliefs on the host CPU (0 MB GPU VRAM). If semantic contradiction is detected, \texttt{BeliefService} transitions the state to $\mathbf{B}$ ($\top$) and queues a clarification intent rather than serving silent contradictions. When a user explicitly updates a preference, \texttt{BeliefService.supersede(old\_id, new\_id)} preserves an append-only backward audit chain alongside qualitative bi-temporal interval constraints in Allen's 13-relation (169-cell composition) interval algebra (\texttt{src/lucca/reasoning/allen.py}) \cite{allen1983}.
+
+\subsection{Layer 4: Gas-Metered Symbolic Skills, Premise Corroboration, and Z3 Quarantine}
+Rather than mutating system prompts from failed episodes, Project Lucca represents Layer 4 Procedural Memory as executable S-expression programs in a gas-metered MicroScheme LISP engine (\texttt{src/lucca/reasoning/lisp.py}, deterministic \texttt{gas\_limit = 10,000} steps, zero I/O primitives) and a versioned skill registry (\texttt{src/lucca/core/skill\_registry.py}). Every candidate rule must clear three gates before entering \texttt{QUARANTINE}:
+\begin{enumerate}
+    \item \textbf{Cryptographic Premise Corroboration (\texttt{ProvenanceGate.verify\_rule\_premises}):} Candidate rule premises are checked against grounded memory records via semantic similarity ($\ge 0.75$), subject-predicate-object triple matching, or NLI entailment ($\ge 0.70$), blocking rules induced from uncorroborated or hallucinated episodes.
+    \item \textbf{Z3 SMT Formal Verification \cite{demoura2008}:} Candidate precondition/action ASTs are translated into first-order constraints in \texttt{src/lucca/reasoning/rule\_inducer.py} and checked by Z3 against existing active rules and safety invariants for logical contradiction or redundant subsumption.
+    \item \textbf{Mandatory Quarantine (\texttt{D-REAS-06}):} Passing rules are written strictly with \texttt{status = 'QUARANTINE'}; zero autonomously induced rules can self-promote to \texttt{ACTIVE} without explicit operator ratification.
+\end{enumerate}
+
+\subsection{Layer 5: Meta-Memory Dream-RSI Replay and Single-Strike Circuit Breaker}
+During idle windows, the Layer 5 \texttt{DreamRetrospective} daemon (\texttt{src/lucca/reasoning/dream.py}) executes a six-stage consolidation pipeline: (1) trace clustering, (2) rule induction and Z3 check, (3) E-graph equality saturation and anti-unification macro mining (\texttt{src/lucca/reasoning/egraph.py}, \texttt{compression.py}) \cite{ellis2021, willsey2021}, (4) counterfactual branch simulation, (5) \textbf{50-turn historical shadow replay} (\texttt{ReplayEngine.replay\_candidate}, requiring \texttt{n\_real $\ge$ 50} real episodes with zero runtime errors and zero counterfactual misfires), and (6) Thompson-sampling Beta bandit hygiene. At runtime, \texttt{RuleInducer.report\_rule\_execution()} enforces a \textbf{single-strike circuit breaker}: any induced rule that raises a single runtime error or schema mismatch is immediately demoted from \texttt{ACTIVE} back to \texttt{QUARANTINE}.
+
+\section{Empirical Evaluation Across All Five Layers}
+Following the Work Order 39 (\texttt{WO-39}) scientific integrity audit---which stripped all benchmark-specific routing shortcuts, prompt coaching hints, and problem-specific AST rewrites---we executed live evaluations across the memory, retrieval, and rule-induction stack on local workstation hardware (\texttt{RTX 5080 Laptop GPU}, \texttt{Core Ultra 9 275HX}, greedy decoding $T=0.0$, \texttt{seed=42}, \texttt{cache\_prompt: false}).
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Post-WO-39 Live Suite} & $N$ & \textbf{26B-A4B} & \textbf{12B} & \textbf{E4B} & \textbf{E2B} \\
+\midrule
+\textbf{Study 1 V2c: Self-Poisoning (Gate vs Naive)} & 10 & \textbf{0/10} vs 10/10 & \textbf{0/10} vs 10/10 & \textbf{0/10} vs 10/10 & \textbf{0/10} vs 10/10 \\
+\textbf{Study 1 V2b: Corroboration Gate} & 10 & \textbf{0/10 (100\%)} & \textbf{0/10 (100\%)} & \textbf{0/10 (100\%)} & \textbf{3/10 (70\%)} \\
+\textbf{Sealed Parametric Neurosymbolic (v139)} & 15 & \textbf{15/15 (100\%)} & \textbf{15/15 (100\%)} & \textbf{15/15 (100\%)} & \textbf{14/15 (93.3\%)} \\
+\textbf{GSM8K PAL (1-Shot Docker)} & 10 & \textbf{10/10 (100\%)} & \textbf{10/10 (100\%)} & \textbf{10/10 (100\%)} & 5/10 (50.0\%) \\
+\textbf{HumanEval CEGIS (Docker)} & 10 & \textbf{10/10 (100\%)} & \textbf{10/10 (100\%)} & \textbf{10/10 (100\%)} & \textbf{10/10 (100\%)} \\
+\textbf{Prompt \& Tool Injection Defense} & 50 & \textbf{50/50 (100\%)} & \textbf{50/50 (100\%)} & \textbf{50/50 (100\%)} & \textbf{50/50 (100\%)} \\
+\bottomrule
+\end{tabular}
+\caption{Post-WO-39 Four-Model Scale Verification Summary (\texttt{logs/test\_reports/wo39\_live\_4models\_rebench.json}).}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Layer 3 Memory \& Verifier Benchmark} & \textbf{Split} & \textbf{Baseline} & \textbf{Lucca Pipeline} & \textbf{Latency / Stats} \\
+\midrule
+\textbf{LongMemEval Pipeline (12B) \cite{wu2025}} & $N=30$ & 23.3\% (7/30) & \textbf{70.0\% (21/30)} & \textbf{8.1 ms}, $p = 0.0001$ \\
+\quad $\cdot$ \texttt{knowledge-update} & $n=10$ & 50.0\% (5/10) & \textbf{90.0\% (9/10)} & \texttt{supersede()} + RRF \\
+\quad $\cdot$ \texttt{multi-session} & $n=10$ & 20.0\% (2/10) & \textbf{70.0\% (7/10)} & Hybrid FTS5 + Vec \\
+\quad $\cdot$ \texttt{temporal-reasoning} & $n=10$ & 0.0\% (0/10) & \textbf{50.0\% (5/10)} & Allen interval algebra \\
+\textbf{NLI Contradiction Verifier (\texttt{MiniLM-L6})} & $N=100$ & 0.075 Recall & \textbf{0.975 / 0.975 P/R} & \textbf{12.23 ms mean}, 0 TO \\
+\textbf{Milestone 3 Confabulation Battery} & $N=25$ & 68.0\% Halluc. & \textbf{0/25 Halluc.} & 95\% CI: [86.7\%, 100\%] \\
+\bottomrule
+\end{tabular}
+\caption{Layer 3 Retrieval, Temporal Reasoning, and Contradiction Isolation (\texttt{longmemeval\_pipeline\_12B\_1791794644.json}, \texttt{results\_minilm/summary.json}).}
+\end{table}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Layer 4 \& 5 Live \texttt{IN-D} Baseline Metric (52 Waking + 16 Held-Out)} & \textbf{Measured Value} & \textbf{Verification Gate} \\
+\midrule
+1. Live LLM Waking Trace Parsing (\texttt{Gemma-4 12B}, $T=0.0$) & \textbf{52 turns (462.46 ms/turn)} & 32 tool + 20 S-expr turns \\
+2. Structured Tool-Rule Induction (\texttt{RuleInducer} + Z3 SMT) & \textbf{4/4 mined $\to$ 4/4 Z3 verified} & 100\% to \texttt{QUARANTINE} \\
+3. 50-Turn Historical Shadow Replay (\texttt{Dream-RSI}) & \textbf{4/4 passed (100.0\%)} & \texttt{n\_real=50, errors=0, misfires=0} \\
+4. Held-Out Positive Recall \& Reflex Speedup & \textbf{8/8 (100.0\%) $\cdot$ 0.14 ms/turn} & \textbf{3,303$\times$ faster} than LLM \\
+5. Held-Out Adversarial / Distractor Misfire Rate & \textbf{0/8 (0.0\%)} & Single-strike eviction active \\
+6. Free-Form S-Expression Macro Mining (\texttt{DreamCoderMacroMiner}) & \textbf{2 mined $\to$ 0/2 (0.0\%) admitted} & $1.169\times$ AST compression \\
+\bottomrule
+\end{tabular}
+\caption{Layer 4 \& Layer 5 Live 52-Turn Multi-Turn Rule-Induction \& E-Graph Compression Baseline (\texttt{logs/test\_reports/in\_d\_live\_baseline\_wo39.json}).}
+\end{table}
+
+\section{Analysis of Findings \& Failure Boundaries}
+
+\subsection{Layer 2 $\to$ Layer 3: Corroboration \& Self-Poisoning Immunity Across Scales}
+Across all four Gemma-4 parameter tiers (\texttt{26B-A4B MoE}, \texttt{12B Dense}, \texttt{E4B}, and \texttt{E2B}), separating autobiographical recall ($Mem=1, Gnd=0$) from factual grounding ($Gnd=1$) via SQLite triggers combined with partitioned prompt containers (\texttt{<autobiographical\_memory>}) reduced multi-session self-poisoning from 10/10 (100.0\%) in Naive RAG to \textbf{0/10 (0.0\%, $p = 0.00195$)}. Furthermore, replacing the v1 parity stub in Study 1 V2b with live database corroboration queries (\texttt{is\_content\_corroborated} + general numeric extraction in \texttt{CorroborationEngine}) achieved \textbf{0/10 (100.0\% defense)} against uncorroborated user falsehoods on \texttt{26B-A4B}, \texttt{12B}, and \texttt{E4B}, and \textbf{7/10 (70.0\% defense)} on the ultra-edge \texttt{E2B} model.
+
+\subsection{Layer 3: LongMemEval and Zero-VRAM Contradiction Isolation}
+On the 30-problem \textbf{LongMemEval} pipeline suite \cite{wu2025} evaluated on \texttt{Gemma-4 12B}, standard context truncation achieved 93.3\% needle-in-context presence but only \textbf{23.3\% (7/30)} answer accuracy due to attention dilution across multi-session histories (scoring 0.0\% on temporal reasoning). Lucca's provenance-gated hybrid retrieval (\texttt{sqlite-vec} + \texttt{FTS5} RRF + Allen temporal anchors) achieved \textbf{70.0\% (21/30)} accuracy at \textbf{8.1 ms} mean retrieval latency (0 losses, 14 gains, exact McNemar $p = 0.0001$), lifting \texttt{knowledge-update} from 50.0\% to 90.0\%, \texttt{multi-session} from 20.0\% to 70.0\%, and \texttt{temporal-reasoning} from 0.0\% to 50.0\%. Meanwhile, replacing the 149M ModernBERT verifier (57.1 ms CPU mean, 81\% timeouts under the 50 ms budget) with the distilled 22M OpenVINO \texttt{MiniLM-L6} cross-encoder reduced CPU latency by $4.67\times$ to \textbf{12.23 ms mean (14.40 ms p95)} with \textbf{0/100 timeouts} and \textbf{0.975 / 0.975} contradiction precision/recall.
+
+\subsection{Layer 4 \& Layer 5: Structured Tool Induction vs.\ Free-Form S-Expression Anti-Unification}
+To establish an un-mocked baseline for offline procedural consolidation (\texttt{IN-D}), we executed a 52-turn waking session followed by a 16-turn held-out test set through live \texttt{Gemma-4 12B} (\texttt{scripts/run\_in\_d\_live\_baseline.py}). On the 32 waking tool-dispatch turns, \texttt{RuleInducer} mined 4/4 recurring clusters, verified all 4 via Z3 SMT checks, admitted 4/4 to \texttt{QUARANTINE}, and passed all 4 through 50-turn historical shadow replay (\texttt{n\_real=50, errors=0, misfires=0}). On the 16 held-out turns, the promoted symbolic reflexes matched \textbf{8/8 (100.0\%)} positive targets in \textbf{0.14 ms} while rejecting \textbf{8/8 (0.0\% misfire rate)} adversarial and distractor prompts. Conversely, on the 20 free-form arithmetic S-expression turns, \texttt{DreamCoderMacroMiner} + \texttt{egraph.py} achieved a $1.169\times$ raw AST compression ratio (\texttt{83 $\to$ 71} nodes) and proposed two candidate macros, but \textbf{0/2 (0.0\%) survived to \texttt{QUARANTINE}} due to outer-shape distractor collision and algebraic syntax variance prior to equality saturation.
+
+\section{Limitations \& Conclusion}
+While \texttt{ProvenanceGate} and SQLite triggers deterministically prevent unverified speech from entering grounded memory, preventing an LLM from verbally asserting an unexecuted action during free-form generation requires post-turn output supervision \cite{maxwell2026}. Furthermore, the 100-pair NLI benchmark is author-labeled, the LongMemEval run evaluates a 30-item stratified subset, and Lucca's pure-Python \texttt{egraph.py} (300-node cap) motivates a Rust \texttt{egglog} + \texttt{stitch-core} backend in successor work. By combining six-signer HMAC provenance triggers, Belnap/NARS paraconsistent contradiction isolation, and Z3 + 50-turn replay procedural quarantine, Project Lucca closes the epistemic loop between episodic experience, semantic belief, and compiled procedural skill.
+
+\begin{thebibliography}{12}
+\bibitem{maxwell2026} S. Maxwell. Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents. \emph{Zenodo Preprint}, DOI: \href{https://doi.org/10.5281/zenodo.23649049}{10.5281/zenodo.23649049}, 2026.
+\bibitem{belnap1977} N. D. Belnap. A useful four-valued logic. In \emph{Modern Uses of Multiple-Valued Logic}, pages 5--37. Springer, 1977.
+\bibitem{wang2013} P. Wang. \emph{Non-Axiomatic Logic: A Model of Intelligent Reasoning}. World Scientific, 2013.
+\bibitem{allen1983} J. F. Allen. Maintaining knowledge about temporal intervals. \emph{Communications of the ACM}, 26(11):832--843, 1983.
+\bibitem{ellis2021} K. Ellis et al. DreamCoder: Bootstrapping inductive program synthesis with wake-sleep library learning. In \emph{PLDI}, pages 835--850, 2021.
+\bibitem{willsey2021} M. Willsey et al. egg: Fast and extensible equality saturation. \emph{PACMPL (POPL)}, 5:1--29, 2021.
+\bibitem{demoura2008} L. de Moura and N. Bj{\o}rner. Z3: An efficient SMT solver. In \emph{TACAS}, pages 337--340. Springer, 2008.
+\bibitem{wu2025} D. Wu, H. Wang, W. Yu, Y. Zhang, K.-W. Chang, and D. Yu. LongMemEval: Benchmarking chat assistants on long-term interactive memory. In \emph{ICLR}, 2025. arXiv: \href{https://arxiv.org/abs/2410.10813}{2410.10813}.
+\bibitem{agentpoison2024} Z. Chen, Z. Xiang, C. Xiao, D. Song, and B. Li. AgentPoison: Red-teaming LLM agents via poisoning memory or knowledge bases. In \emph{NeurIPS}, 2024. arXiv: \href{https://arxiv.org/abs/2407.12784}{2407.12784}.
+\bibitem{smsr2026} T. Sharma. SMSR: Certified defence against runtime memory poisoning in persistent LLM agent systems. \emph{arXiv preprint}, 2026. arXiv: \href{https://arxiv.org/abs/2606.12703}{2606.12703}.
+\bibitem{memorybank2024} W. Zhong, L. Guo, Q. Gao, H. Ye, and Y. Wang. MemoryBank: Enhancing large language models with long-term memory. In \emph{AAAI}, 2024. arXiv: \href{https://arxiv.org/abs/2305.10250}{2305.10250}.
+\bibitem{mcnemar1947} Q. McNemar. Note on the sampling error of the difference between correlated proportions or percentages. \emph{Psychometrika}, 12(2):153--157, 1947.
+\end{thebibliography}
+
+\end{document}

@@ -89,10 +89,11 @@ Following the Work Order 39 (`WO-39`) scientific integrity audit:
 ## Research
 
 See [`luccadocs/research/README.md`](./luccadocs/research/README.md) for the research roadmap, experimental logs, and technical reports:
-- **Primary Pre-Print (PDF):** [`docs/paper.pdf`](./docs/paper.pdf) — *Structural Mitigation of Multi-Session Recursive Self-Poisoning and Scale-Dependent PAL Scaffolding in Local Agentic Systems* (Study 1 & Study 2).
-- **Paper 03 (Provenance, Belnap Bilattices & NARS):** [`03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) — 6-signer HMAC `ProvenanceGate`, `memory_eligible` vs. `grounding_eligible` triggers, Belnap $\mathcal{FOUR}$ ($\top$) + OpenNARS $(w^+, w^-)$, and `MiniLM-L6` NLI contradiction isolation.
-- **TR-04 (Procedural Memory, E-Graph & Live `IN-D` Baseline):** [`04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md`](./luccadocs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md) — `DreamRetrospective` Z3 SMT verification, `QUARANTINE` promotion gate, 50-turn replay, single-strike circuit breaker, and the 52-turn live `IN-D` baseline.
-- **Paper 06 (4-Model Scale Ablation):** [`06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md`](./luccadocs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md) — Post-`WO-39` evaluation across `Gemma 4 26B-A4B MoE`, `12B Dense`, `E4B`, and `E2B`.
+- **Foundational Pre-Print (PDF):** [`docs/paper.pdf`](./docs/paper.pdf) — *Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents* (Zenodo DOI: `10.5281/zenodo.23649049`).
+- **Paper 1 (Memory Poisoning Ablation PDF):** [`docs/papers/01_memory_poisoning_ablation.pdf`](./docs/papers/01_memory_poisoning_ablation.pdf) — *Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents*.
+- **Paper 2 (Deontic Supervision Evasion PDF):** [`docs/papers/02_deontic_supervision_evasion.pdf`](./docs/papers/02_deontic_supervision_evasion.pdf) — *Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation*.
+- **Paper 3 (5-Layer Epistemic & Procedural Memory PDF):** [`docs/papers/03_provenance_gated_five_layer_memory.pdf`](./docs/papers/03_provenance_gated_five_layer_memory.pdf) — *Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction* (`LUCCA-TR-2026-03`).
+- **Subsystem Technical Reports (Markdown):** [`Paper 03 (Provenance & Belnap/NARS)`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) • [`TR-04 (E-Graph, Z3 Quarantine & Live IN-D Baseline)`](./luccadocs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md) • [`Paper 06 (4-Model Scale Ablation)`](./luccadocs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md).
 
 ---
 

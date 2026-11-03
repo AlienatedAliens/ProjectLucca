@@ -230,10 +230,10 @@
     </div>
 
     <div class="card">
-      <h2>Pre-Registered Empirical Follow-Ups & Workshop Papers</h2>
+      <h2>Pre-Registered Empirical Follow-Ups &amp; Workshop Papers</h2>
       <p>Following the publication of the foundational preprint (Zenodo DOI: <a
-          href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>), the following pre-registered
-        empirical studies provide controlled evaluations of memory poisoning and output supervision mechanisms:</p>
+          href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>), the following empirical studies
+        and technical reports evaluate memory poisoning, output supervision, and five-layer epistemic consolidation:</p>
 
       <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #eee;">
         <h3 style="margin-bottom: 6px;">1. Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in
@@ -283,6 +283,33 @@
         <a class="badge badge-code"
           href="https://github.com/AlienatedAliens/ProjectLucca/blob/main/luccadocs/research/prereg/PREREG_DEONTIC_SUPERVISION_HELD_OUT_V2.md"
           target="_blank" style="text-decoration:none;">V2 Protocol</a>
+      </div>
+
+      <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid #eee;">
+        <h3 style="margin-bottom: 6px;">3. Closing the Epistemic Loop Across the Five Layers of Agent Memory:
+          Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction</h3>
+        <p style="font-size: 0.9rem; color: #555; margin-bottom: 8px;">
+          <strong>Report ID:</strong> <code>LUCCA-TR-2026-03</code> (Post-<code>WO-39</code> Baseline) &bull;
+          <strong>Substrates:</strong> Gemma-4 (26B-A4B, 12B, E4B, E2B) &bull;
+          <strong>Verifier:</strong> OpenVINO MiniLM-L6 (12.23 ms CPU mean) &amp; Z3 SMT
+        </p>
+        <p style="font-size: 0.95rem; margin-bottom: 10px;">
+          Evaluates every promotion boundary across the five-layer agent memory stack (Working, Episodic, Semantic,
+          Procedural, Meta-Memory). Demonstrates 0/10 self-poisoning across all four Gemma-4 scales vs. 10/10 Naive RAG
+          (p = 0.00195), 23.3% &rarr; 70.0% accuracy lift on LongMemEval (N=30, p = 0.0001, 8.1 ms retrieval), 0.975/0.975
+          contradiction precision/recall into Belnap &top; (BOTH), and a live 52-turn waking + 16-turn held-out procedural
+          rule-induction baseline (<code>IN-D</code>) achieving 4/4 Z3-quarantined tool rules, 100% 50-turn replay pass,
+          8/8 (100%) held-out recall at 0.14 ms reflex latency, 0/8 (0%) distractor misfires under a single-strike circuit
+          breaker, and documenting the 0/2 admission boundary on free-form S-expression macro anti-unification.
+        </p>
+        <a class="badge badge-pdf" href="papers/03_provenance_gated_five_layer_memory.pdf"
+          style="text-decoration:none;">Download Paper 3 PDF</a>
+        <a class="badge badge-code"
+          href="https://github.com/AlienatedAliens/ProjectLucca/tree/main/papers/03_provenance_gated_five_layer_memory"
+          target="_blank" style="text-decoration:none;">LaTeX Source</a>
+        <a class="badge badge-code"
+          href="https://github.com/AlienatedAliens/ProjectLucca/blob/main/logs/test_reports/in_d_live_baseline_wo39.json"
+          target="_blank" style="text-decoration:none;">IN-D Live Artifact</a>
       </div>
     </div>
 

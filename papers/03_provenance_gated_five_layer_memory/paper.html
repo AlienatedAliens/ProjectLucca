@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 0.6in 0.58in 0.6in 0.58in;
+    }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 9.2pt;
+      line-height: 1.24;
+      color: #000;
+      margin: 0;
+      padding: 0;
+    }
+
+    .title-block {
+      text-align: center;
+      margin-bottom: 10pt;
+    }
+
+    h1.title {
+      font-size: 14pt;
+      font-weight: bold;
+      margin: 0 0 5pt 0;
+      line-height: 1.18;
+    }
+
+    .author {
+      font-size: 11pt;
+      font-weight: bold;
+      margin-bottom: 2pt;
+    }
+
+    .affiliation {
+      font-size: 9.5pt;
+      font-style: italic;
+      color: #333;
+      margin-bottom: 2pt;
+    }
+
+    .orcid {
+      font-size: 8.5pt;
+      font-family: "Courier New", Courier, monospace;
+      color: #1a0dab;
+    }
+
+    .date {
+      font-size: 8.5pt;
+      margin-top: 2pt;
+      color: #555;
+    }
+
+    .columns {
+      column-count: 2;
+      column-gap: 16pt;
+      text-align: justify;
+    }
+
+    .abstract-box {
+      margin: 0 12pt 10pt 12pt;
+      font-size: 8.4pt;
+      line-height: 1.23;
+    }
+
+    .abstract-heading {
+      font-weight: bold;
+      font-style: italic;
+      display: inline;
+    }
+
+    h2 {
+      font-size: 9.8pt;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 8pt 0 3pt 0;
+      border-bottom: 0.5pt solid #000;
+      padding-bottom: 1pt;
+      break-after: avoid;
+    }
+
+    h3 {
+      font-size: 8.8pt;
+      font-weight: bold;
+      font-style: italic;
+      margin: 6pt 0 2pt 0;
+      break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 4.5pt 0;
+      text-indent: 10pt;
+    }
+
+    p.no-indent {
+      text-indent: 0;
+    }
+
+    ul,
+    ol {
+      margin: 2pt 0 4.5pt 0;
+      padding-left: 13pt;
+    }
+
+    li {
+      margin-bottom: 2pt;
+      font-size: 8.4pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 5pt 0;
+      font-size: 7.2pt;
+      break-inside: avoid;
+    }
+
+    th,
+    td {
+      padding: 2pt 2.5pt;
+      border-top: 0.5pt solid #000;
+      border-bottom: 0.5pt solid #000;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      font-weight: bold;
+      background-color: #f8f8f8;
+    }
+
+    .caption {
+      font-size: 7.3pt;
+      font-style: italic;
+      text-align: center;
+      margin-top: 2pt;
+      margin-bottom: 5pt;
+    }
+
+    code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 7.8pt;
+      background: #f4f4f4;
+      padding: 0 1pt;
+    }
+
+    .equation {
+      text-align: center;
+      margin: 3.5pt 0;
+      font-family: "Times New Roman", Times, serif;
+      font-style: italic;
+      font-size: 8.4pt;
+    }
+
+    .math {
+      font-style: italic;
+      font-family: "Times New Roman", Times, serif;
+    }
+
+    .references {
+      font-size: 7.3pt;
+      line-height: 1.18;
+      padding-left: 12pt;
+    }
+
+    .references li {
+      font-size: 7.3pt;
+      margin-bottom: 2.5pt;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="title-block">
+    <h1 class="title">Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction</h1>
+    <div class="author">Sean Maxwell</div>
+    <div class="affiliation">Independent Researcher</div>
+    <div class="orcid">ORCID: <a href="https://orcid.org/0009-0004-0133-0463">0009-0004-0133-0463</a> &bull; Foundational Preprint DOI: <a
+        href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a> &bull; Report: <code>LUCCA-TR-2026-03</code></div>
+    <div class="date">November 2026 (Post-WO-39 Decontaminated Baseline)</div>
+  </div>
+
+  <div class="abstract-box">
+    <p class="no-indent">
+      <span class="abstract-heading">Abstract&mdash;</span>Contemporary agent architectures commonly decompose persistent state into five layers: (1) <em>Working Memory</em>, (2) <em>Episodic Memory</em>, (3) <em>Semantic Memory</em>, (4) <em>Procedural Memory</em>, and (5) an offline <em>Meta-Memory</em> control plane. However, conventional implementations connect these layers via unconstrained asynchronous extraction and reflection jobs that read raw episodic transcripts&mdash;including unverified assistant narration and untrusted tool outputs&mdash;and promote them directly into semantic facts and procedural skills. Without a cryptographic trust boundary between episodic recall and epistemic authority, this feedback loop causes silent multi-session self-poisoning and procedural error compounding. In this technical report, we present the unified five-layer memory and skill-induction architecture of <strong>Project Lucca</strong> (<code>v1.47.0</code>, Work Order 39) and report empirical measurements across every layer boundary on local consumer silicon (NVIDIA RTX 5080 Laptop GPU, 16 GB GDDR7; Intel Core Ultra 9 275HX). At the <strong>Layer 2 &rarr; Layer 3 boundary</strong>, six HKDF-derived HMAC-SHA256 domain signers and SQLite triggers separate autobiographical recall (<code>memory_eligible=1, grounding_eligible=0</code>) from factual grounding (<code>grounding_eligible=1</code>), reducing multi-session self-poisoning from 10/10 (100.0%) in Naive RAG to <strong>0/10 (0.0%, <em>p = 0.00195</em>)</strong> across all four Gemma-4 parameter scales (<code>26B-A4B</code>, <code>12B</code>, <code>E4B</code>, <code>E2B</code>) while preserving 100.0% autobiographical continuity. Within <strong>Layer 3</strong>, a zero-VRAM 22M OpenVINO <code>MiniLM-L6</code> cross-encoder evaluates semantic conflicts in <strong>12.23 ms mean / 14.40 ms p95 CPU latency</strong> (0.975 / 0.975 contradiction precision/recall, 0/100 timeouts under a 50 ms budget), routing contradictions into Belnap's four-valued paraconsistent state <strong>B</strong> (&top;) paired with OpenNARS Beta(<em>w<sup>+</sup>, w<sup>&minus;</sup></em>) evidence weights and append-only <code>supersede()</code> lineage. On the <strong>LongMemEval</strong> benchmark (<em>N=30</em>, 12B), Lucca's provenance-gated hybrid RRF + Allen temporal pipeline lifts accuracy from <strong>23.3% (7/30) to 70.0% (21/30)</strong> (0:14 discordant pairs, McNemar <em>p = 0.0001</em>) at <strong>8.1 ms</strong> mean retrieval latency. Finally, at the <strong>Layer 4 &amp; Layer 5 boundary</strong>, we evaluate an organic <strong>52-turn live LLM waking trace + 16 held-out evaluation turns (<code>IN-D</code> baseline)</strong>: offline <code>DreamRetrospective</code> induces gas-metered MicroScheme AST rules (<code>0.14 ms</code> CPU reflex execution vs. <code>462.46 ms</code> LLM planning), admitting <strong>4/4 structured tool-rule candidates to <code>QUARANTINE</code></strong> after Z3 SMT verification and 50-turn historical replay, achieving <strong>8/8 (100.0%) held-out positive recall</strong> and <strong>0/8 (0.0%) distractor misfires</strong> under a single-strike runtime eviction circuit breaker, while transparently documenting a <strong>0/2 (0.0%) admission boundary</strong> on free-form S-expression macro anti-unification due to outer-shape distractor collision and algebraic syntax variance.
+    </p>
+  </div>
+
+  <div class="columns">
+
+    <h2>1. Introduction: The Promotion Laundering Flaw</h2>
+    <p>As Large Language Model (LLM) agents transition from stateless single-turn wrappers to long-lived autonomous companions, engineering consensus has converged on a five-layer memory taxonomy: (1) <em>Working Memory</em> (in-context state bounded by the token window), (2) <em>Episodic Memory</em> (time-indexed cross-session interaction traces), (3) <em>Semantic Memory</em> (structured entity and proposition stores), (4) <em>Procedural Memory</em> (reusable skills and action policies), and (5) <em>Meta-Memory</em> (an offline janitor for decay, deduplication, and consolidation).</p>
+    <p>While conceptually clean, the standard dataflow between these layers contains a critical structural vulnerability at the promotion boundaries (<strong>Layer 2 &rarr; Layer 3</strong> and <strong>Layer 2 &rarr; Layer 4</strong>):</p>
+    <ul>
+      <li><strong>Recall Confused with Authority (Layer 2 &rarr; Layer 3):</strong> Asynchronous extraction jobs read episodic transcripts containing the model's own unverified assertions (<code>[RESPONSE]</code>) or untrusted external text and write structured facts into Semantic Memory. When retrieved in later sessions, the model's earlier confabulation is presented as authoritative ground truth.</li>
+      <li><strong>Destructive Overwrites vs. Silent Contradictions (Layer 3):</strong> Append-only semantic stores either return contradictory facts at planning time or silently overwrite historical state without auditable lineage or paraconsistent isolation.</li>
+      <li><strong>Unverified Skill Promotion &amp; Schema Drift (Layer 2 &rarr; Layer 4 &rarr; Layer 5):</strong> Reflection loops that rewrite natural-language prompts or promote unverified tool traces into Procedural Memory risk compiling transient coincidences or hallucinated premises into permanent behavioral rules, with no formal verification prior to activation and no deterministic eviction trigger when tool schemas drift at runtime.</li>
+    </ul>
+    <p>In this report, we describe how <strong>Project Lucca</strong> (<code>v1.47.0</code>) closes this epistemic loop by enforcing deterministic cryptographic, logical, and formal-verification gates at every inter-layer transition, and we report post-decontamination (<code>WO-39</code>) empirical benchmarks across all five layers.</p>
+
+    <h2>2. Five-Layer Epistemic Architecture</h2>
+
+    <h3>2.1 Layer 1 &amp; Layer 2: Partitioned Working Context and Six-Signer Episodic Provenance</h3>
+    <p>In Project Lucca, every episodic write to the local SQLite WAL store (<code>sqlite-vec</code> + <code>FTS5</code>) must pass through a fail-closed <code>ProvenanceGate</code> (<code>src/lucca/memory/gate.py</code>). Using HKDF-SHA256 key derivation from a host master secret, the gate issues six capability-isolated domain signers:</p>
+    <ol>
+      <li><code>UserInputSigner</code> (<code>USER_EXPLICIT</code>): Direct authenticated operator utterances (<em>Mem=1, Gnd=1</em>, or <em>Gnd=0</em> when operator corroboration mode is enabled).</li>
+      <li><code>DerivedFactSigner</code> (<code>USER_DERIVED</code>): Distilled propositions anchored to verified verbatim substrings in user turns (<code>src/lucca/reasoning/distill.py</code>).</li>
+      <li><code>ToolResultSigner</code> (<code>TOOL_VERIFIED</code>): Deterministic sandbox execution receipts (<em>Mem=1, Gnd=1</em>).</li>
+      <li><code>AssistantUtteranceSigner</code> (<code>ASSISTANT_UTTERANCE</code>): Model-generated narration, constrained by SQLite triggers (<code>0006_autobiographical.sql</code>) to <code>memory_eligible=1, grounding_eligible=0</code>.</li>
+      <li><code>UntrustedToolSigner</code> (<code>TOOL_UNTRUSTED</code>): External file/web reads, constrained to <code>memory_eligible=0, grounding_eligible=0</code>.</li>
+      <li><code>SystemInternalSigner</code> (<code>SYSTEM_INTERNAL</code>): Ephemeral telemetry (<code>memory_eligible=0, grounding_eligible=0</code>).</li>
+    </ol>
+    <p>At read time, any row failing HMAC-SHA256 verification is quarantined into <code>memory_quarantine</code> (<code>D-MEM-05</code>). When building Layer 1 Working Memory (<code>src/lucca/brain/prompt_builder.py</code>), <code>_render_partitioned_memories()</code> structurally separates verified grounding facts (<code>&lt;verified_grounding_facts&gt;</code>, <em>Gnd=1</em>) from unverified autobiographical recollections (<code>&lt;autobiographical_memory&gt;</code>, <em>Mem=1, Gnd=0</em>), instructing the model that autobiographical entries record only what was previously said and must never be cited as verified system facts.</p>
+
+    <h3>2.2 Layer 3: Paraconsistent Bilattice (<i>FOUR</i>), OpenNARS Evidence, and Allen Temporal Algebra</h3>
+    <p>To prevent conflicting semantic facts from causing logical explosion or silent history erasure, Layer 3 represents each belief in <code>user_beliefs</code> across two coupled dimensions (<code>src/lucca/memory/beliefs.py</code>):</p>
+    <ul>
+      <li><strong>Belnap's Four-Valued Bilattice (<i>FOUR</i>) [2]:</strong> Truth states span <strong>U</strong> (&bot;, Unknown: no evidence), <strong>T</strong> (True: positive evidence only), <strong>F</strong> (False: negative evidence only), and <strong>B</strong> (&top;, Both/Contradiction: concurrent positive and negative evidence).</li>
+      <li><strong>OpenNARS Continuous Evidence Pooling [3]:</strong> Each belief tracks positive and negative evidence counts (<em>w<sup>+</sup>, w<sup>&minus;</sup></em>), deriving frequency and confidence with horizon <em>k = 1.0</em>:</li>
+    </ul>
+    <div class="equation">
+      <span class="math">f = w<sup>+</sup> / (w<sup>+</sup> + w<sup>&minus;</sup>), &nbsp;&nbsp; c = (w<sup>+</sup> + w<sup>&minus;</sup>) / (w<sup>+</sup> + w<sup>&minus;</sup> + k)</span>
+    </div>
+    <p>When a candidate belief is ingested, an in-turn 22M OpenVINO <code>MiniLM-L6</code> NLI cross-encoder (<code>src/lucca/verifier/worker.py</code>) compares it against active beliefs on the host CPU (0 MB GPU VRAM). If semantic contradiction is detected, <code>BeliefService</code> transitions the state to <strong>B</strong> (&top;) and queues a clarification intent rather than serving silent contradictions. When a user explicitly updates a preference, <code>BeliefService.supersede(old_id, new_id)</code> preserves an append-only backward audit chain alongside qualitative bi-temporal interval constraints in Allen's 13-relation (169-cell composition) interval algebra (<code>src/lucca/reasoning/allen.py</code>) [4].</p>
+
+    <h3>2.3 Layer 4: Gas-Metered Symbolic Skills, Premise Corroboration, and Z3 Quarantine</h3>
+    <p>Rather than mutating system prompts from failed episodes, Project Lucca represents Layer 4 Procedural Memory as executable S-expression programs in a gas-metered MicroScheme LISP engine (<code>src/lucca/reasoning/lisp.py</code>, deterministic <code>gas_limit = 10,000</code> steps, zero I/O primitives) and a versioned skill registry (<code>src/lucca/core/skill_registry.py</code>). Every candidate rule must clear three gates before entering <code>QUARANTINE</code>:</p>
+    <ol>
+      <li><strong>Cryptographic Premise Corroboration (<code>ProvenanceGate.verify_rule_premises</code>):</strong> Candidate rule premises are checked against grounded memory records via semantic similarity (&ge; 0.75), subject-predicate-object triple matching, or NLI entailment (&ge; 0.70), blocking rules induced from uncorroborated or hallucinated episodes.</li>
+      <li><strong>Z3 SMT Formal Verification [7]:</strong> Candidate precondition/action ASTs are translated into first-order constraints in <code>src/lucca/reasoning/rule_inducer.py</code> and checked by Z3 against existing active rules and safety invariants for logical contradiction or redundant subsumption.</li>
+      <li><strong>Mandatory Quarantine (<code>D-REAS-06</code>):</strong> Passing rules are written strictly with <code>status = 'QUARANTINE'</code>; zero autonomously induced rules can self-promote to <code>ACTIVE</code> without explicit operator ratification.</li>
+    </ol>
+
+    <h3>2.4 Layer 5: Meta-Memory Dream-RSI Replay and Single-Strike Circuit Breaker</h3>
+    <p>During idle windows, the Layer 5 <code>DreamRetrospective</code> daemon (<code>src/lucca/reasoning/dream.py</code>) executes a six-stage consolidation pipeline: (1) trace clustering, (2) rule induction and Z3 check, (3) E-graph equality saturation and anti-unification macro mining (<code>src/lucca/reasoning/egraph.py</code>, <code>compression.py</code>) [5, 6], (4) counterfactual branch simulation, (5) <strong>50-turn historical shadow replay</strong> (<code>ReplayEngine.replay_candidate</code>, requiring <code>n_real &ge; 50</code> real episodes with zero runtime errors and zero counterfactual misfires), and (6) Thompson-sampling Beta bandit hygiene. At runtime, <code>RuleInducer.report_rule_execution()</code> enforces a <strong>single-strike circuit breaker</strong>: any induced rule that raises a single runtime error or schema mismatch is immediately demoted from <code>ACTIVE</code> back to <code>QUARANTINE</code>.</p>
+
+    <h2>3. Empirical Evaluation Across All Five Layers</h2>
+    <p>Following the Work Order 39 (<code>WO-39</code>) scientific integrity audit&mdash;which stripped all benchmark-specific routing shortcuts, prompt coaching hints, and problem-specific AST rewrites&mdash;we executed live evaluations across the memory, retrieval, and rule-induction stack on local workstation hardware (<code>RTX 5080 Laptop GPU</code>, <code>Core Ultra 9 275HX</code>, greedy decoding <em>T=0.0</em>, <code>seed=42</code>, <code>cache_prompt: false</code>).</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Post-WO-39 Live Suite</th>
+          <th><em>N</em></th>
+          <th>Gemma-4 26B-A4B</th>
+          <th>Gemma-4 12B</th>
+          <th>Gemma-4 E4B</th>
+          <th>Gemma-4 E2B</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Study 1 V2c: Self-Poisoning (Gate vs Naive)</strong></td>
+          <td>10</td>
+          <td><strong>0/10</strong> vs 10/10<br><em>(p=0.00195)</em></td>
+          <td><strong>0/10</strong> vs 10/10<br><em>(p=0.00195)</em></td>
+          <td><strong>0/10</strong> vs 10/10<br><em>(p=0.00195)</em></td>
+          <td><strong>0/10</strong> vs 10/10<br><em>(p=0.00195)</em></td>
+        </tr>
+        <tr>
+          <td><strong>Study 1 V2b: Corroboration Gate</strong></td>
+          <td>10</td>
+          <td><strong>0/10 Poisoned</strong><br>(100% Def.)</td>
+          <td><strong>0/10 Poisoned</strong><br>(100% Def.)</td>
+          <td><strong>0/10 Poisoned</strong><br>(100% Def.)</td>
+          <td><strong>3/10 Poisoned</strong><br>(70% Def.)</td>
+        </tr>
+        <tr>
+          <td><strong>Sealed Parametric Neurosymbolic (v139)</strong></td>
+          <td>15</td>
+          <td><strong>15/15 (100%)</strong><br><em>(p=0.000061)</em></td>
+          <td><strong>15/15 (100%)</strong><br><em>(p=0.000061)</em></td>
+          <td><strong>15/15 (100%)</strong><br><em>(p=0.000061)</em></td>
+          <td><strong>14/15 (93.3%)</strong><br><em>(p=0.000122)</em></td>
+        </tr>
+        <tr>
+          <td><strong>GSM8K PAL (1-Shot Docker)</strong></td>
+          <td>10</td>
+          <td><strong>10/10 (100%)</strong></td>
+          <td><strong>10/10 (100%)</strong></td>
+          <td><strong>10/10 (100%)</strong></td>
+          <td>5/10 (50.0%)</td>
+        </tr>
+        <tr>
+          <td><strong>HumanEval CEGIS (Docker)</strong></td>
+          <td>10</td>
+          <td><strong>10/10 (100%)</strong></td>
+          <td><strong>10/10 (100%)</strong></td>
+          <td><strong>10/10 (100%)</strong></td>
+          <td><strong>10/10 (100%)</strong></td>
+        </tr>
+        <tr>
+          <td><strong>Prompt &amp; Tool Injection Defense</strong></td>
+          <td>50</td>
+          <td><strong>50/50 (100%)</strong></td>
+          <td><strong>50/50 (100%)</strong></td>
+          <td><strong>50/50 (100%)</strong></td>
+          <td><strong>50/50 (100%)</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="caption">Table 1: <strong>Post-WO-39 Four-Model Scale Verification Summary</strong> (<code>logs/test_reports/wo39_live_4models_rebench.json</code>).</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Layer 3 Memory &amp; Verifier Benchmark</th>
+          <th>Sample / Split</th>
+          <th>Baseline / Ablated</th>
+          <th>Lucca Pipeline Result</th>
+          <th>Latency / Significance</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>LongMemEval Pipeline (12B Overall) [8]</strong></td>
+          <td><em>N=30</em> (<code>top_k=8</code>)</td>
+          <td>23.3% (7/30)<br>Truncation</td>
+          <td><strong>70.0% (21/30)</strong><br>(+46.7 pp)</td>
+          <td><strong>8.1 ms</strong> retrieval<br>0:14 disc., <em>p = 0.0001</em></td>
+        </tr>
+        <tr>
+          <td>&nbsp;&bull; <code>knowledge-update</code></td>
+          <td><em>n=10</em></td>
+          <td>50.0% (5/10)</td>
+          <td><strong>90.0% (9/10)</strong></td>
+          <td><code>supersede()</code> + RRF</td>
+        </tr>
+        <tr>
+          <td>&nbsp;&bull; <code>multi-session</code></td>
+          <td><em>n=10</em></td>
+          <td>20.0% (2/10)</td>
+          <td><strong>70.0% (7/10)</strong></td>
+          <td>Hybrid FTS5 + Vec</td>
+        </tr>
+        <tr>
+          <td>&nbsp;&bull; <code>temporal-reasoning</code></td>
+          <td><em>n=10</em></td>
+          <td>0.0% (0/10)</td>
+          <td><strong>50.0% (5/10)</strong></td>
+          <td>Allen interval algebra</td>
+        </tr>
+        <tr>
+          <td><strong>NLI Contradiction Verifier (<code>MiniLM-L6</code>)</strong></td>
+          <td><em>N=100</em> pairs<br>(40 Contr., 30 Ent.)</td>
+          <td>0.075 Recall<br>(ModernBERT 50ms)</td>
+          <td><strong>0.975 / 0.975 P/R</strong><br>(91.0% Acc., F1 0.917)</td>
+          <td><strong>12.23 ms mean</strong><br>14.40 ms p95, 0/100 TO</td>
+        </tr>
+        <tr>
+          <td><strong>Milestone 3 Confabulation Battery</strong></td>
+          <td><em>N=25</em> (&bot; traps)</td>
+          <td>68.0% Hallucinated</td>
+          <td><strong>0/25 Hallucinated</strong><br>(25/25 Abstained)</td>
+          <td>95% CI: [86.7%, 100%]</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="caption">Table 2: <strong>Layer 3 Retrieval, Temporal Reasoning, and Contradiction Isolation</strong> (<code>longmemeval_pipeline_12B_1791794644.json</code>, <code>results_minilm/summary.json</code>).</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Layer 4 &amp; 5 Live <code>IN-D</code> Baseline Metric (52 Waking + 16 Held-Out Turns)</th>
+          <th>Measured Value</th>
+          <th>Epistemic / Verification Gate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Live LLM Waking Trace Parsing (<code>Gemma-4 12B</code>, <em>T=0.0</em>)</strong></td>
+          <td><strong>52 turns (462.46 ms/turn)</strong></td>
+          <td>32 recurring tool turns + 20 arithmetic S-expr turns</td>
+        </tr>
+        <tr>
+          <td><strong>2. Structured Tool-Rule Induction (<code>RuleInducer</code> + Z3 SMT)</strong></td>
+          <td><strong>4/4 mined &rarr; 4/4 Z3 verified</strong></td>
+          <td>100% admitted to <code>QUARANTINE</code>; 0 to <code>ACTIVE</code> (<code>D-REAS-06</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>3. 50-Turn Historical Shadow Replay (<code>Dream-RSI</code>)</strong></td>
+          <td><strong>4/4 passed (100.0%)</strong></td>
+          <td><code>n_real=50, errors=0, misfires=0</code> across waking trace</td>
+        </tr>
+        <tr>
+          <td><strong>4. Held-Out Positive Recall &amp; Reflex Speedup</strong></td>
+          <td><strong>8/8 (100.0%) &bull; 0.14 ms/turn</strong></td>
+          <td><strong>3,303&times; faster</strong> than 462.46 ms live LLM planning</td>
+        </tr>
+        <tr>
+          <td><strong>5. Held-Out Adversarial / Distractor Misfire Rate</strong></td>
+          <td><strong>0/8 (0.0%)</strong></td>
+          <td>Single-strike circuit breaker active (<code>report_rule_execution</code>)</td>
+        </tr>
+        <tr>
+          <td><strong>6. Free-Form S-Expression Macro Mining (<code>DreamCoderMacroMiner</code>)</strong></td>
+          <td><strong>2 mined &rarr; 0/2 (0.0%) admitted</strong></td>
+          <td><code>1.169&times;</code> raw AST compression (<code>83 &rarr; 71</code> nodes); rejected by replay/falsifier</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="caption">Table 3: <strong>Layer 4 &amp; Layer 5 Live 52-Turn Multi-Turn Rule-Induction &amp; E-Graph Compression Baseline</strong> (<code>logs/test_reports/in_d_live_baseline_wo39.json</code>).</div>
+
+    <h2>4. Analysis of Findings &amp; Failure Boundaries</h2>
+
+    <h3>4.1 Layer 2 &rarr; Layer 3: Corroboration &amp; Self-Poisoning Immunity Across Scales</h3>
+    <p>Across all four Gemma-4 parameter tiers (<code>26B-A4B MoE</code>, <code>12B Dense</code>, <code>E4B</code>, and <code>E2B</code>), separating autobiographical recall (<em>Mem=1, Gnd=0</em>) from factual grounding (<em>Gnd=1</em>) via SQLite triggers combined with partitioned prompt containers (<code>&lt;autobiographical_memory&gt;</code>) reduced multi-session self-poisoning from 10/10 (100.0%) in Naive RAG to <strong>0/10 (0.0%, <em>p = 0.00195</em>)</strong>. Furthermore, replacing the v1 parity stub in Study 1 V2b with live database corroboration queries (<code>is_content_corroborated</code> + general numeric extraction in <code>CorroborationEngine</code>) achieved <strong>0/10 (100.0% defense)</strong> against uncorroborated user falsehoods on <code>26B-A4B</code>, <code>12B</code>, and <code>E4B</code>, and <strong>7/10 (70.0% defense)</strong> on the ultra-edge <code>E2B</code> model.</p>
+
+    <h3>4.2 Layer 3: LongMemEval and Zero-VRAM Contradiction Isolation</h3>
+    <p>On the 30-problem <strong>LongMemEval</strong> pipeline suite [8] evaluated on <code>Gemma-4 12B</code>, standard context truncation achieved 93.3% needle-in-context presence but only <strong>23.3% (7/30)</strong> answer accuracy due to attention dilution across multi-session histories (scoring 0.0% on temporal reasoning). Lucca's provenance-gated hybrid retrieval (<code>sqlite-vec</code> + <code>FTS5</code> RRF + Allen temporal anchors) achieved <strong>70.0% (21/30)</strong> accuracy at <strong>8.1 ms</strong> mean retrieval latency (0 losses, 14 gains, exact McNemar <em>p = 0.0001</em>), lifting <code>knowledge-update</code> from 50.0% to 90.0%, <code>multi-session</code> from 20.0% to 70.0%, and <code>temporal-reasoning</code> from 0.0% to 50.0%. Meanwhile, replacing the 149M ModernBERT verifier (57.1 ms CPU mean, 81% timeouts under the 50 ms budget) with the distilled 22M OpenVINO <code>MiniLM-L6</code> cross-encoder reduced CPU latency by 4.67&times; to <strong>12.23 ms mean (14.40 ms p95)</strong> with <strong>0/100 timeouts</strong> and <strong>0.975 / 0.975</strong> contradiction precision/recall.</p>
+
+    <h3>4.3 Layer 4 &amp; Layer 5: Why Structured Tool Induction Succeeds While Free-Form S-Expression Anti-Unification Fails</h3>
+    <p>To establish a rigorous, un-mocked baseline for offline procedural consolidation (<code>IN-D</code>), we executed a 52-turn waking session followed by a 16-turn held-out test set through live <code>Gemma-4 12B</code> (<code>scripts/run_in_d_live_baseline.py</code>). The results expose a sharp architectural dichotomy:</p>
+    <ul>
+      <li><strong>Structured Tool-Rule Induction Succeeds (100% Recall, 0% Misfires):</strong> On the 32 waking tool-dispatch turns, <code>RuleInducer</code> mined 4/4 recurring clusters, verified all 4 via Z3 SMT checks, admitted 4/4 to <code>QUARANTINE</code>, and passed all 4 through 50-turn historical shadow replay (<code>n_real=50, errors=0, misfires=0</code>). On the 16 held-out turns, the promoted symbolic reflexes matched <strong>8/8 (100.0%)</strong> positive targets in <strong>0.14 ms</strong> (a 3,303&times; speedup over 462.46 ms live LLM parsing) while rejecting <strong>8/8 (0.0% misfire rate)</strong> adversarial and distractor prompts.</li>
+      <li><strong>Free-Form S-Expression Macro Mining Hits Two Structural Bottlenecks (0/2 Admitted):</strong> On the 20 free-form arithmetic S-expression turns, <code>DreamCoderMacroMiner</code> + <code>egraph.py</code> achieved a <code>1.169&times;</code> raw AST compression ratio (<code>83 &rarr; 71</code> nodes) and proposed two candidate macros, but <strong>0/2 (0.0%) survived to <code>QUARANTINE</code></strong>. First, syntactic first-order anti-unification over untyped S-expressions abstracted only outer operator shapes (e.g., <code>(+ ?v0 ?v1)</code>), which collided with distractor turns during 50-turn counterfactual replay and was rightly vetoed by <code>ReplayEngine</code>. Second, live LLM surface syntax variance across algebraically equivalent expressions (e.g., <code>(/ (* 0.5 8) 2)</code> vs. <code>(/ 6 2)</code>) prevented syntactic subtree sharing prior to full equality saturation, while spawning Python subprocesses inside <code>ScratchpadFalsifier</code> exceeded the 500 ms verification budget (1,233.22 ms).</li>
+    </ul>
+
+    <h2>5. Limitations &amp; Scope of Claims (D-DOC-01)</h2>
+    <ol>
+      <li><strong>Provenance enforces origin integrity, not verbal output suppression:</strong> While <code>ProvenanceGate</code> and SQLite triggers deterministically prevent unverified speech from entering grounded memory, preventing an LLM from verbally asserting an unexecuted action during free-form generation requires post-turn output supervision (see Paper 2 [1] and <code>Paper 05</code>).</li>
+      <li><strong>Single-annotator NLI benchmark and 30-item LongMemEval subset:</strong> The 100-pair NLI evaluation set (<code>pairs_v1.jsonl</code>) is author-labeled, and the LongMemEval pipeline run evaluates a 30-item stratified subset (10 per category).</li>
+      <li><strong>Pure-Python E-graph scaling ceiling:</strong> Lucca's pure-Python <code>egraph.py</code> (300-node cap) and syntactic <code>compression.py</code> anti-unifier do not perform joint relational e-matching and library learning, motivating a Rust <code>egglog</code> + <code>stitch-core</code> backend in successor work.</li>
+    </ol>
+
+    <h2>6. Conclusion</h2>
+    <p>A five-layer agent memory stack only compounds intelligence rather than hallucinations when every inter-layer promotion is governed by a deterministic verification gate. By combining six-signer HMAC provenance triggers, Belnap/NARS paraconsistent contradiction isolation, and Z3 + 50-turn replay procedural quarantine, Project Lucca closes the epistemic loop between episodic experience, semantic belief, and compiled procedural skill.</p>
+
+    <h2>References</h2>
+    <ol class="references">
+      <li>S. Maxwell. Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents. <em>Zenodo Preprint</em>, DOI: <a href="https://doi.org/10.5281/zenodo.23649049">10.5281/zenodo.23649049</a>, 2026.</li>
+      <li>N. D. Belnap. A useful four-valued logic. In <em>Modern Uses of Multiple-Valued Logic</em>, pages 5&ndash;37. Springer, 1977.</li>
+      <li>P. Wang. <em>Non-Axiomatic Logic: A Model of Intelligent Reasoning</em>. World Scientific, 2013.</li>
+      <li>J. F. Allen. Maintaining knowledge about temporal intervals. <em>Communications of the ACM</em>, 26(11):832&ndash;843, 1983.</li>
+      <li>K. Ellis et al. DreamCoder: Bootstrapping inductive program synthesis with wake-sleep library learning. In <em>Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation (PLDI)</em>, pages 835&ndash;850, 2021.</li>
+      <li>M. Willsey, C. Nandi, Y. R. Wang, O. Flatt, Z. Tatlock, and P. Panchekha. egg: Fast and extensible equality saturation. <em>Proceedings of the ACM on Programming Languages (POPL)</em>, 5:1&ndash;29, 2021.</li>
+      <li>L. de Moura and N. Bj&oslash;rner. Z3: An efficient SMT solver. In <em>Tools and Algorithms for the Construction and Analysis of Systems (TACAS)</em>, pages 337&ndash;340. Springer, 2008.</li>
+      <li>D. Wu, H. Wang, W. Yu, Y. Zhang, K.-W. Chang, and D. Yu. LongMemEval: Benchmarking chat assistants on long-term interactive memory. In <em>International Conference on Learning Representations (ICLR)</em>, 2025. arXiv: <a href="https://arxiv.org/abs/2410.10813">2410.10813</a>.</li>
+      <li>Z. Chen, Z. Xiang, C. Xiao, D. Song, and B. Li. AgentPoison: Red-teaming LLM agents via poisoning memory or knowledge bases. In <em>Advances in Neural Information Processing Systems (NeurIPS)</em>, 2024. arXiv: <a href="https://arxiv.org/abs/2407.12784">2407.12784</a>.</li>
+      <li>T. Sharma. SMSR: Certified defence against runtime memory poisoning in persistent LLM agent systems. <em>arXiv preprint</em>, 2026. arXiv: <a href="https://arxiv.org/abs/2606.12703">2606.12703</a>.</li>
+      <li>W. Zhong, L. Guo, Q. Gao, H. Ye, and Y. Wang. MemoryBank: Enhancing large language models with long-term memory. In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>, 2024. arXiv: <a href="https://arxiv.org/abs/2305.10250">2305.10250</a>.</li>
+      <li>Q. McNemar. Note on the sampling error of the difference between correlated proportions or percentages. <em>Psychometrika</em>, 12(2):153&ndash;157, 1947.</li>
+    </ol>
+
+  </div>
+
+</body>
+
+</html>
