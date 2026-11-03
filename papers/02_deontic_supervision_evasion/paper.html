@@ -394,7 +394,7 @@
     <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Our v1 evaluation
       reveals that in <strong>16/120 turns (13.33%, 95% CI: [8.05%, 21.04%])</strong>, the model engaged in <em>prose
         leakage</em>: claiming that an action had occurred in natural language text without emitting the required
-      <code>[ACTION: ...]</code> structured frame (in the subsequent v2 harness <code>eval_deontic_supervision_v2.py</code>, tightening the leakage classifier to exclude one hedged future-intent turn yielded <strong>15/120 [12.50%]</strong> on the same prompt-only SOAC arm). Furthermore, when presented with idiomatic turns under the contract
+      <code>[ACTION: ...]</code> structured frame (in the subsequent v2 live run <code>eval_deontic_supervision_v2.py</code>, which directly imports <code>v1.primary_audit_ground_truth</code> and <code>v1.SOAC_FRAME_PATTERN</code> without modification, the fresh GPU generation pass yielded <strong>15/120 [12.50%]</strong> on prompt-only SOAC vs. <strong>17/120 [14.17%]</strong> on SOAC+GBNF under the identical v1 classifier). Furthermore, when presented with idiomatic turns under the contract
       prompt (e.g., <em>"We closed the loop on that discussion"</em>), the model emitted ungrounded action frames
       (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%), which the receipt matcher intercepted.
     </p>
