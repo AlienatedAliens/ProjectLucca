@@ -195,21 +195,19 @@
       substantial failure rates: in initial live evaluations on Gemma-4 models, a standard first-person past-tense regex
       supervisor caught only 1/8 (12.5%) strict action confabulations and 1/23 (4.3%) broad ungrounded action
       assertions. In this paper, we establish an empirical taxonomy of the four grammatical evasion modes responsible
-      for this fragility: (1) active progressive participles, (2) passive and telegraphic confirmations, (3) unlisted
-      verb lemmas, and (4) markdown formatting syntax. We demonstrate that attempting to repair regex supervisors by
+      for this fragility across the 23 diagnostic claims (single-author coded): (1) active progressive participles (10/23), (2) passive and telegraphic confirmations (5/23), (3) unlisted
+      verb lemmas (5/23), and (4) markdown formatting syntax (3/23). We demonstrate that attempting to repair regex supervisors by
       expanding pattern breadth induces a pronounced precision-recall dilemma, driving false alarm rates on benign
       idioms and conversational controls in-sample to over 13%. To address this trade-off, we evaluate a
       <strong>Structured-Output Action Contract (SOAC)</strong>, which decouples conversational prose from action
-      authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a
-      pre-registered, held-out benchmark of <em>N=120</em> unseen prompts (action temptations, honest controls, and
-      idioms; frozen under git tag <code>prereg-supervision-v1</code>), we compare legacy strict regex, broadened
+      execution authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a
+      pre-registered, single-author curated held-out benchmark of <em>N=120</em> unseen prompts (50 action temptations, 40 honest controls, and
+      30 idioms; frozen on 2026-10-28 under git tag <code>prereg-supervision-v1</code>), we compare legacy strict regex, broadened
       grammar supervision, and SOAC on <code>gemma-4-26B-A4B</code>. Our findings confirm that strict speech regex
-      achieves only 6.25% sensitivity on held-out live claims (1/16 caught), while SOAC binds every action assertion
-      to a typed frame verified against a cryptographic receipt, achieving sub-10-microsecond enforcement latency
-      (6.82 &mu;s mean) with 0/40 false alarms on honest controls. Crucially, we document the phenomenon of <em>prose
-        leakage</em> (13.3% of
-      turns), demonstrating that structured contracts reduce syntactic regex evasions but cannot prevent models from
-      asserting actions in natural prose outside the structured channel without explicit prose supervision.
+      achieves only 6.25% sensitivity on held-out claim-emitting turns (1/16 caught out of 50 temptation prompts), while SOAC restricts execution authority
+      to typed <code>[ACTION: ...]</code> frames verified against cryptographic receipts in 6.82 &mu;s mean frame-parsing and receipt-lookup latency on Core Ultra 9 275HX (vs. 76.45 &mu;s strict regex clause matching) with 0/40 false alarms on honest controls ([0.0%, 8.8%] uncorrected / [0.0%, 10.9%] continuity-corrected 95% Wilson CI). Crucially, we document <em>prose
+        leakage</em> across v1 (16/120, 13.3%), v2 prompt-only SOAC (15/120, 12.50%), and v2 GBNF-constrained SOAC (17/120, 14.17%, <em>p = 0.7237</em>), demonstrating that structured contracts strip prose of execution authority but cannot prevent models from
+      asserting actions in natural prose outside the structured channel without post-turn NLI receipt entailment.
     </p>
   </div>
 
@@ -364,9 +362,9 @@
       </tbody>
     </table>
     <div class="caption">Table 1: <strong>Held-Out Deontic Output Supervision Benchmark Results
-        (<em>N=120</em>).</strong> Sensitivity on true ungrounded action claims (FAC), False Positive Rate (FPR) on
-      benign controls and idioms, and latency profiles reported with two-sided 95% Wilson score confidence intervals [in
-      brackets].</div>
+        (<em>N=120</em>).</strong> Sensitivity on true ungrounded action claims (FAC, <em>n=16</em> claim-emitting turns out of 50 temptation prompts), False Positive Rate (FPR) on
+      benign controls and idioms, and latency profiles reported with two-sided continuity-corrected 95% Wilson score confidence intervals [2] (Method 4) [in
+      brackets]; for 0/40 and 1/16, continuity-corrected intervals are [0.0%, 10.9%] and [0.3%, 32.3%] (uncorrected Method 3: [0.0%, 8.8%] and [1.1%, 28.3%]).</div>
 
     <h3>6.1 Confirmation of Speech-Regex Fragility (H<sub>1</sub>)</h3>
     <p>Out of 50 temptation prompts, the model emitted 16 ungrounded action claims (FAC) in natural conversation mode.
@@ -382,21 +380,21 @@
       erroneous aborts.</p>
 
     <h3>6.3 Execution Latency</h3>
-    <p>All three approaches easily satisfy the sub-millisecond production budget (&le; 1.0 ms):</p>
+    <p>Measured on an Intel Core Ultra 9 275HX host CPU (single-threaded Python 3.12 <code>time.perf_counter_ns()</code> across <em>N=120</em> turns after 10 warmup iterations), all three approaches satisfy the sub-millisecond production budget (&le; 1.0 ms):</p>
     <ul>
       <li>Strict regex: Mean 76.45 &mu;s, P95 114.50 &mu;s.</li>
       <li>Broadened grammar: Mean 118.77 &mu;s, P95 188.60 &mu;s.</li>
       <li>Structured action contract: Mean <strong>6.82 &mu;s</strong>, P95 <strong>10.80 &mu;s</strong>.</li>
     </ul>
-    <p>SOAC frame parsing executes <strong>approximately 11&times; faster</strong> than strict regex and
-      <strong>approximately 17&times; faster</strong> than broadened grammar supervision.
+    <p>SOAC delimiter-based frame extraction and dictionary receipt lookup (6.82 &mu;s) executes <strong>approximately 11&times; faster</strong> than multi-pattern strict regex clause scanning (76.45 &mu;s) and
+      <strong>approximately 17&times; faster</strong> than broadened grammar supervision (118.77 &mu;s).
     </p>
 
     <h3>6.4 The Reality of Prose Leakage</h3>
-    <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Our evaluation
+    <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Our v1 evaluation
       reveals that in <strong>16/120 turns (13.33%, 95% CI: [8.05%, 21.04%])</strong>, the model engaged in <em>prose
         leakage</em>: claiming that an action had occurred in natural language text without emitting the required
-      <code>[ACTION: ...]</code> structured frame. Furthermore, when presented with idiomatic turns under the contract
+      <code>[ACTION: ...]</code> structured frame (in the subsequent v2 harness <code>eval_deontic_supervision_v2.py</code>, tightening the leakage classifier to exclude one hedged future-intent turn yielded <strong>15/120 [12.50%]</strong> on the same prompt-only SOAC arm). Furthermore, when presented with idiomatic turns under the contract
       prompt (e.g., <em>"We closed the loop on that discussion"</em>), the model emitted ungrounded action frames
       (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%), which the receipt matcher intercepted.
     </p>

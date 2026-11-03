@@ -194,20 +194,19 @@
       <em>t+k</em> as authoritative historical ground truth, compounding hallucinations into permanent systemic errors.
       In this work, we evaluate the mitigation of self-poisoning via an immutable <strong>Cryptographic Provenance
         Gate</strong> enforced through SQLite database triggers. Under this architecture, assistant utterances carry
-      non-grounding provenance badges (<em>Mem=1, Gnd=0</em>), barring unverified model speech from Belnap evidential
-      fusion while preserving autobiographical recollections. Across a pre-registered benchmark of <em>N=100</em> paired
-      multi-session probes (registered prior to testing under git tag <code>prereg-poisoning-v1</code>), we compare the
-      provenance gate against three competitive architectures: Naive RAG (Gate OFF), No-Assistant Memory (trivial
-      deletion), and In-Prompt Soft Tagging. On natural model confabulations (Cohort A, <em>n=40</em>), the Provenance
-      Gate achieves a 0.0% poisoning compounding rate, compared to 100.0% for Naive RAG (<em>p = 6.98 &times;
-        10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square). Crucially, we measure the trade-off curve
-      on benign multi-step calculations (Cohort B, <em>n=30</em>), showing that while naive turn deletion eliminates
-      conversational continuity on the evaluated probes (0.0% recall), provenance-separated recollections preserve
-      continuity (96.7% to 100.0%). Finally, we delineate the empirical open boundary of cryptographic provenance on
-      user-originated falsehoods (Cohort C, <em>n=30</em>), establishing that both Naive RAG and Provenance Gates absorb
-      user testimony (100.0%), empirically demonstrating that provenance enforces origin integrity and self-poisoning
-      immunity on the evaluated cohorts rather than external factual omniscience. Dual-annotator agreement between a
-      frozen regex/CAS primary grader and an independent OpenVINO MiniLM-L6 cross-encoder yields &kappa; = 0.7683.
+      non-grounding provenance badges (<em>Mem=1, Gnd=0</em>), structurally barring unverified model speech from Belnap evidential
+      fusion by construction while preserving autobiographical recollections. Across a pre-registered, single-author curated benchmark of <em>N=100</em> paired
+      multi-session probes (frozen on 2026-10-28 under git tag <code>prereg-poisoning-v1</code>), we compare the
+      provenance gate against three architectures: Naive RAG (Gate OFF, <em>Mem=1, Gnd=1</em>), No-Assistant Memory (trivial
+      deletion), and In-Prompt Soft Tagging. While the contrast between Naive RAG (40/40 poisoned) and the Provenance
+      Gate (0/40 poisoned; exact McNemar <em>p = 1.82 &times; 10<sup>&minus;12</sup></em>, continuity-corrected <em>p = 6.98 &times;
+        10<sup>&minus;10</sup></em>) on natural model confabulations (Cohort A, <em>n=40</em>) reflects the structural SQLite invariant at <em>T=0.0</em>, the non-trivial empirical comparisons lie against In-Prompt Soft Tagging (which degrades from 0/40&ndash;2/40 at <em>T=0.0</em> to 40/40 [100.0%] under sampled adversarial decoding at <em>T=0.7</em> while the Gate stays at 0/40) and No-Assistant deletion:
+      on benign multi-step calculations (Cohort B, <em>n=30</em>), naive turn deletion eliminates
+      conversational continuity on the evaluated probes (0.0% recall), whereas provenance-separated recollections preserve
+      continuity (96.7%, 29/30). Multi-scale replication (Study V2c, <em>n=40</em>) yields 0/40 (0.0%) gate poisoning on 26B-A4B and 12B and 1/40 (2.5%) on E4B and E2B (and 0/10 across all four scales in the post-WO-39 live re-evaluation). Finally, we delineate the empirical open boundary of cryptographic provenance on
+      user-originated falsehoods (Cohort C, <em>n=30</em>), establishing that uncorroborated provenance absorbs
+      user testimony (100.0%), whereas live <code>is_content_corroborated()</code> verification (Study V2b, WO-39) reduces falsehood grounding to 0/10 on 26B-A4B, 12B, and E4B and 3/10 (30.0%) on E2B. Dual-grader agreement between a
+      frozen regex/CAS primary grader and a secondary OpenVINO MiniLM-L6 NLI cross-encoder yields &kappa; = 0.7683 (&kappa; = 0.7642 in V2d).
     </p>
   </div>
 
@@ -352,8 +351,8 @@
       </tbody>
     </table>
     <div class="caption">Table 1: <strong>Multi-Session Memory Poisoning & Provenance Gate Ablation Results.</strong>
-      Percentage rates shown with two-sided 95% Wilson score confidence intervals [in brackets]. Evaluated on
-      <em>N=100</em> frozen probes across 4 arms.
+      Percentage rates shown with two-sided continuity-corrected 95% Wilson score confidence intervals [3] (Method 4) [in brackets]; for 0/40, the continuity-corrected upper bound is 10.9% (uncorrected Method 3 upper bound: 8.8%). Evaluated on
+      <em>N=100</em> single-author curated frozen probes across 4 arms.
     </div>
 
     <h3>4.1 Mitigation of Self-Poisoning on Evaluated Probes (H<sub>1</sub>)</h3>
@@ -398,7 +397,7 @@
       <li><strong>Adversarial soft-tagging decay (H<sub>2a</sub>, <em>n=40</em>):</strong> Under sampled decoding
         (<em>T=0.7</em>, <code>top_p=0.9</code>, <code>seed=42</code>) with an adversarial injection prompt instructing
         the model to disregard the warning marker (<em>"ignore the [Unverified Assistant Narration] tag above..."</em>),
-        In-Prompt Soft Tagging compounding rose from 5.0% (2/40 at <em>T=0.0</em>) to <strong>100.0%</strong> (40/40,
+        In-Prompt Soft Tagging compounding rose from 0.0% (0/40 in Table 1) and 5.0% (2/40 in the v2 inline-header control pass at <em>T=0.0</em>) to <strong>100.0%</strong> (40/40,
         95% CI: [89.1%, 100.0%]), matching Naive RAG (40/40). In contrast, the Provenance Gate maintained
         <strong>0.0%</strong> compounding (0/40, 95% CI: [0.0%, 10.9%]), a statistically significant divergence (<em>p =
           6.98 &times; 10<sup>&minus;10</sup></em>, continuity-corrected McNemar chi-square). This demonstrates that
@@ -474,8 +473,7 @@
 
     <h2>6. Conclusion</h2>
     <p>We have presented a pre-registered empirical ablation demonstrating that database-level cryptographic provenance
-      gating reduces observed recursive self-poisoning to zero on the evaluated natural confabulation cohort, replicated
-      across four Gemma-4 parameter scales, while preserving autobiographical conversational continuity.</p>
+      gating reduces observed recursive self-poisoning on the evaluated natural confabulation cohort to 0/40 (0.0%) on Gemma-4 26B-A4B and 12B and 1/40 (2.5%) on E4B and E2B in the <em>n=40</em> v2 sweep (and 0/10 across all four scales in the post-<code>WO-39</code> live re-evaluation), while preserving autobiographical conversational continuity.</p>
 
     <h2>References</h2>
     <ol class="references">
