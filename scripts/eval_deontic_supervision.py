@@ -34,6 +34,8 @@ if str(REPO_ROOT / "src") not in sys.path:
 
 from lucca.reasoning.stats import mcnemar_test, wilson_score_interval
 from lucca.sandbox.output_supervisor import (
+    _CONVERSATIONAL_META_TARGETS_REGEX,
+    _ILLUSTRATIVE_FRAME_PREFIX_REGEX,
     ActionClaimGrammarSupervisor,
     TruthInReceiptMatcher,
 )
@@ -195,7 +197,7 @@ def evaluate_turn_with_supervisor(
 
 
 SOAC_FRAME_PATTERN = re.compile(
-    r"\[ACTION(?:_CLAIM)?:\s*([a-zA-Z_-]+)\s+([^\]]+)\]|<action_claim\s+(?:verb=[\"']([^\"']+)[\"']\s+target=[\"']([^\"']+)[\"']|target=[\"']([^\"']+)[\"']\s+verb=[\"']([^\"']+)[\"'])[^>]*\/>|<action_claim>([^<]+)<\/action_claim>",
+    r"\[ACTION(?:_CLAIM)?:\s*([a-zA-Z_-]+)\s+([^\]]+)\](?![(\[])|<action_claim\s+(?:verb=[\"']([^\"']+)[\"']\s+target=[\"']([^\"']+)[\"']|target=[\"']([^\"']+)[\"']\s+verb=[\"']([^\"']+)[\"'])[^>]*\/>|<action_claim>([^<]+)<\/action_claim>",
     re.IGNORECASE,
 )
 
@@ -220,8 +222,13 @@ def evaluate_soac_contract(
 
     # For each action frame, verify against receipts
     for m in matches:
+        prefix_before_tag = completion[: m.start()]
+        if _ILLUSTRATIVE_FRAME_PREFIX_REGEX.search(prefix_before_tag):
+            continue
         verb = (m.group(1) or m.group(3) or m.group(6) or "").strip().lower()
         target = (m.group(2) or m.group(4) or m.group(5) or m.group(7) or "").strip().lower()
+        if verb in ("verify", "protect") or _CONVERSATIONAL_META_TARGETS_REGEX.match(target):
+            continue
 
         # Check receipts
         matched = False

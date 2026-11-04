@@ -120,6 +120,7 @@ EXCLUDED_IDIOMS: tuple[str, ...] = (
     "updated my perspective",
     "updated my model",
     "updated my thoughts",
+    "updated my internal verification log",
     "saved you the trouble",
     "saved a lot of time",
     "saved my energy",
@@ -140,9 +141,10 @@ EXCLUDED_IDIOMS: tuple[str, ...] = (
 PAST_CONTEXT_PATTERN = re.compile(
     r"\b(?:"
     r"last\s+session|previous\s+session|prior\s+session|earlier\s+session|"
-    r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|yesterday|"
+    r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|(?<!from\s)yesterday|"
     r"last\s+week|previously|in\s+the\s+past|earlier\s+on|"
-    r"records?\s+(?:from|show|showing|indicate)|my\s+records|"
+    r"(?:my\s+|session\s+|historical\s+|memory\s+)records?\s+(?:from|show|showing|indicate)|"
+    r"records?\s+(?:show|showing|indicate)|my\s+records|"
     r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
     r"in\s+our\s+history|histor(?:y|ical)\s+records?|"
     r"during\s+our\s+last|from\s+a\s+few\s+days|"
@@ -161,9 +163,12 @@ PAST_CONTEXT_PATTERN = re.compile(
 NEGATION_GUARD_PATTERN = re.compile(
     r"\b(?:"
     r"not\s+|never|don't|do\s+not|doesn't|didn't|did\s+not|cannot|can't|"
+    r"haven't|have\s+not|hasn't|has\s+not|hadn't|had\s+not|"
     r"won't|will\s+not|unable\s+to|not\s+sure\s+if|whether\s+or\s+not|"
-    r"records?\s+showing\s+that"
-    r")\b",
+    r"prevent\s+[\w\s]+?\s+from\s+being|might\s+be\s+lost|guarantees\s+that|"
+    r"when\s+the\s+code\s+is|before\s+it(?:'s|\s+is|\s+runs)|while\s+the\s+program\s+is|"
+    r"mathematical\s+redundancy|records?\s+showing\s+that"
+    r")|\be\.g\.,",
     re.IGNORECASE,
 )
 
@@ -236,10 +241,11 @@ def detect_ungrounded_action_claims(
     # Successful tools set
     successful_tools = {r.resolved_tool for r in receipts if r.ok and r.resolved_tool}
 
-    # Split narration into clause-like segments
-    clauses = re.split(r"[.!?;\n]+", narration_low)
+    # Split narration into clause-like segments (preserve dots inside filenames/IPs)
+    orig_clauses = re.split(r"(?<=[.!?;])\s+|\n+", narration)
 
-    for raw_clause in clauses:
+    for orig_raw_clause in orig_clauses:
+        raw_clause = orig_raw_clause.lower()
         clause = re.sub(r"[*`~]", "", raw_clause.strip())
         clause = re.sub(r"^\s*(?:#+|[\-\+])\s+", "", clause).strip()
         if not clause:
@@ -258,33 +264,47 @@ def detect_ungrounded_action_claims(
         if PAST_CONTEXT_PATTERN.search(clause):
             continue
 
-        # 0b. Structured GBNF action-claim tags (SPIKE-A): [ACTION: <verb> <target>] or <action_claim ...>
+            # 0b. Structured GBNF action-claim tags (SPIKE-A): [ACTION: <verb> <target>] or <action_claim ...>
+        from lucca.sandbox.output_supervisor import (  # noqa: PLC0415
+            _CONVERSATIONAL_META_TARGETS_REGEX,
+            _ILLUSTRATIVE_FRAME_PREFIX_REGEX,
+            ActionClaimGrammarSupervisor,
+            EXPANDED_STEM_MAP,
+        )
+
         tag_match = re.search(
-            r"(?:\[(?:action|action_claim)\s*:\s*([a-z_]+)\s+([^\]]+?)(?:\]|$)|"
+            r"(?:\[(?:action|action_claim)\s*:\s*([a-z_]+)\s+([^\]]+?)\](?![(\[])|"
             r"<action_claim(?:\s+verb=[\"']([a-z_]+)[\"']\s+target=[\"']([^\"']+)[\"']|"
             r">\s*([a-z_]+)\s+([^<]+)</action_claim>))",
             clause,
             re.IGNORECASE,
         )
         if tag_match:
+            prefix_before_tag = clause[: tag_match.start()]
             v_tag = (tag_match.group(1) or tag_match.group(3) or tag_match.group(5) or "").strip().lower()
-            matched_verb = v_tag
-            if v_tag in ("save", "saved", "write", "wrote", "create", "created", "modify", "modified", "update", "updated", "copy", "copied", "move", "moved"):
-                detected_family = "save"
-            elif v_tag in ("launch", "launched", "open", "opened", "start", "started", "close", "closed", "reboot", "rebooted"):
-                detected_family = "launch"
-            elif v_tag in ("search", "searched", "lookup", "looked_up"):
-                detected_family = "search"
-            elif v_tag in ("fetch", "fetched", "send", "sent", "upload", "uploaded", "post", "posted"):
-                detected_family = "fetch"
-            elif v_tag in ("read",):
-                detected_family = "read"
-            elif v_tag in ("delete", "deleted", "remove", "removed"):
-                detected_family = "delete"
-            elif v_tag in ("run", "ran", "execute", "executed", "install", "installed", "process", "processed"):
-                detected_family = "run"
-            else:
-                detected_family = "save"
+            t_tag = (tag_match.group(2) or tag_match.group(4) or tag_match.group(6) or "").strip()
+            if (
+                not _ILLUSTRATIVE_FRAME_PREFIX_REGEX.search(prefix_before_tag)
+                and v_tag not in ("verify", "protect")
+                and not _CONVERSATIONAL_META_TARGETS_REGEX.match(t_tag)
+            ):
+                matched_verb = v_tag
+                if v_tag in ("save", "saved", "write", "wrote", "create", "created", "modify", "modified", "update", "updated", "copy", "copied", "move", "moved"):
+                    detected_family = "save"
+                elif v_tag in ("launch", "launched", "open", "opened", "start", "started", "close", "closed", "reboot", "rebooted"):
+                    detected_family = "launch"
+                elif v_tag in ("search", "searched", "lookup", "looked_up"):
+                    detected_family = "search"
+                elif v_tag in ("fetch", "fetched", "send", "sent", "upload", "uploaded", "post", "posted"):
+                    detected_family = "fetch"
+                elif v_tag in ("read",):
+                    detected_family = "read"
+                elif v_tag in ("delete", "deleted", "remove", "removed"):
+                    detected_family = "delete"
+                elif v_tag in ("run", "ran", "execute", "executed", "install", "installed", "process", "processed"):
+                    detected_family = "run"
+                else:
+                    detected_family = "save"
 
         # 1. Active first-person action claims
         # e.g., "I saved it", "I launched Notepad", "I fetched the page", "I ran the script"
@@ -344,13 +364,16 @@ def detect_ungrounded_action_claims(
             ):
                 detected_family = "save"
                 matched_verb = "save"
-            elif re.search(
-                r"\b(?:launching|opening|started|launched|opened)\b.*?\b(?:notepad|calc|calculator|apps?|applications?|editor|terminal|browser|paint|programs?)\b",
-                clause,
-            ) or re.search(
-                r"\b(?:notepad|calc|calculator|apps?|applications?|editor|terminal|browser|programs?)\b.*?\b(?:is|was|been)?\s*(?:launched|opened|started)\b",
-                clause,
-            ):
+            elif (
+                re.search(
+                    r"\b(?:launching|opening|started|launched|opened)\b.*?\b(?:notepad|calc|calculator|apps?|applications?|editor|terminal|browser|paint|programs?)\b",
+                    clause,
+                )
+                or re.search(
+                    r"\b(?:notepad|calc|calculator|apps?|applications?|editor|terminal|browser|programs?)\b.*?\b(?:is|was|been)?\s*(?:launched|opened|started)\b",
+                    clause,
+                )
+            ) and not re.match(r"^opening\s+(?:applications|your\s+default\s+messaging)\b", clause):
                 detected_family = "launch"
                 matched_verb = "launch"
             elif (
@@ -471,10 +494,38 @@ def detect_ungrounded_action_claims(
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("coherence_verifier_candidate_eval_failed", error=str(exc))
 
+        # 2b. Grammar-Constrained Action-Claim Supervisor fallback (v2.3 Unified Coverage):
+        # Catch expanded DevOps stems, active progressive participles, passive voice,
+        # and telegraphic action claims while preserving promise-guard separation.
+        from_grammar_sup = False
+        if not detected_family and "go ahead and" not in clause:
+            grammar_sup = ActionClaimGrammarSupervisor()
+            g_res = grammar_sup.evaluate_clause(orig_raw_clause, verified_receipts=[])
+            if g_res.is_breach:
+                from_grammar_sup = True
+                m_verb = re.search(r"\['([a-z_]+)\s+", str(g_res.reason))
+                raw_v = m_verb.group(1) if m_verb else "execute"
+                stem_v = EXPANDED_STEM_MAP.get(raw_v, raw_v)
+                matched_verb = stem_v
+                if stem_v in ("save", "write", "create", "modify", "update", "copy", "move", "archive", "compress", "zip", "store", "backup", "tag", "patch", "configure", "encrypt", "format"):
+                    detected_family = "save"
+                elif stem_v in ("launch", "open", "start", "close", "reboot", "restart", "stop", "enable", "disable", "mount", "unmount"):
+                    detected_family = "launch"
+                elif stem_v in ("search", "lookup", "scan"):
+                    detected_family = "search"
+                elif stem_v in ("fetch", "send", "upload", "download", "post", "publish", "transfer", "sync", "clone", "push", "book", "order"):
+                    detected_family = "fetch"
+                elif stem_v in ("read", "extract"):
+                    detected_family = "read"
+                elif stem_v in ("delete", "remove", "wipe", "purge", "prune", "clear", "clean", "drop", "flush", "uninstall", "revoke"):
+                    detected_family = "delete"
+                else:
+                    detected_family = "run"
+
         if detected_family and matched_verb:
-            # Negation guard for passive/gerund detections: skip if the clause
+            # Negation guard for legacy passive/gerund detections: skip if the clause
             # contains negation/uncertainty framing anywhere before the match.
-            if NEGATION_GUARD_PATTERN.search(clause):
+            if not from_grammar_sup and NEGATION_GUARD_PATTERN.search(clause):
                 continue
             allowed_tools = tool_family_map.get(detected_family, frozenset())
             is_grounded = bool(allowed_tools & successful_tools)

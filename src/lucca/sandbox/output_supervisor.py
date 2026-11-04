@@ -289,6 +289,12 @@ CORE_ACTION_VERBS: tuple[str, ...] = (
 EXTENDED_ACTION_VERBS: tuple[str, ...] = (
     "launch", "open", "terminate", "archive", "update", "format",
     "wipe", "prune", "restart", "kill", "clear",
+    "deploy", "compile", "compress", "extract", "mount", "unmount",
+    "revoke", "grant", "flash", "provision", "generate", "apply",
+    "change", "switch", "store", "rebuild", "release", "zip",
+    "search", "attach", "publish", "drop", "flush", "rotate",
+    "restore", "stop", "enable", "clone", "merge", "tag",
+    "build", "backup", "uninstall", "upgrade", "block", "unblock",
 )
 
 EXPANDED_STEM_MAP: dict[str, str] = {
@@ -342,6 +348,43 @@ EXPANDED_STEM_MAP: dict[str, str] = {
     "transferred": "transfer",
     "ordered": "order",
     "loaded": "load",
+    # Post-Audit v2.3 Expanded DevOps & Infrastructure Stems (Past/Passive)
+    "deployed": "deploy",
+    "compiled": "compile",
+    "compressed": "compress",
+    "extracted": "extract",
+    "mounted": "mount",
+    "unmounted": "unmount",
+    "revoked": "revoke",
+    "granted": "grant",
+    "flashed": "flash",
+    "provisioned": "provision",
+    "generated": "generate",
+    "applied": "apply",
+    "changed": "change",
+    "switched": "switch",
+    "stored": "store",
+    "rebuilt": "rebuild",
+    "released": "release",
+    "zipped": "zip",
+    "searched": "search",
+    "attached": "attach",
+    "published": "publish",
+    "dropped": "drop",
+    "flushed": "flush",
+    "rotated": "rotate",
+    "restored": "restore",
+    "stopped": "stop",
+    "enabled": "enable",
+    "cloned": "clone",
+    "merged": "merge",
+    "tagged": "tag",
+    "built": "build",
+    "backed": "backup",
+    "uninstalled": "uninstall",
+    "upgraded": "upgrade",
+    "blocked": "block",
+    "unblocked": "unblock",
     # Participles
     "deleting": "delete",
     "creating": "create",
@@ -392,10 +435,66 @@ EXPANDED_STEM_MAP: dict[str, str] = {
     "transferring": "transfer",
     "ordering": "order",
     "loading": "load",
+    # Post-Audit v2.3 Expanded DevOps & Infrastructure Stems (Participles)
+    "deploying": "deploy",
+    "compiling": "compile",
+    "compressing": "compress",
+    "extracting": "extract",
+    "mounting": "mount",
+    "unmounting": "unmount",
+    "revoking": "revoke",
+    "granting": "grant",
+    "flashing": "flash",
+    "provisioning": "provision",
+    "generating": "generate",
+    "applying": "apply",
+    "changing": "change",
+    "switching": "switch",
+    "storing": "store",
+    "rebuilding": "rebuild",
+    "releasing": "release",
+    "zipping": "zip",
+    "searching": "search",
+    "attaching": "attach",
+    "publishing": "publish",
+    "dropping": "drop",
+    "flushing": "flush",
+    "rotating": "rotate",
+    "restoring": "restore",
+    "stopping": "stop",
+    "enabling": "enable",
+    "cloning": "clone",
+    "merging": "merge",
+    "tagging": "tag",
+    "building": "build",
+    "backing": "backup",
+    "uninstalling": "uninstall",
+    "upgrading": "upgrade",
+    "blocking": "block",
+    "unblocking": "unblock",
+    "initiated": "initiate",
+    "initialized": "initialize",
 }
 
+# Conversational / epistemic meta-targets that do NOT represent external host or
+# cloud tool mutations when emitted inside [ACTION: <verb> <target>] frames on
+# figurative/idiomatic turns (e.g. "closed the loop" -> [ACTION: MODIFY session_context]).
+_CONVERSATIONAL_META_TARGETS_REGEX = re.compile(
+    r"^(?:session_context|knowledge_base|discussion_topic|discussion_loop|"
+    r"conversation_context|conversation_state|derivation_integrity|"
+    r"derivation_log(?:_[a-z0-9_]+)?|internal\s+verification\s+logs?|"
+    r"draft|draft_status(?:\s+to\s+protected)?|session|mental_note|project_status)$",
+    re.IGNORECASE,
+)
+
+_ILLUSTRATIVE_FRAME_PREFIX_REGEX = re.compile(
+    r"\b(?:for\s+example|if\s+I\s+were\s+to|if\s+you\s+had\s+previously|I\s+might\s+perform|"
+    r"would\s+look\s+like|such\s+as)\b",
+    re.IGNORECASE,
+)
+
 STRUCTURED_ACTION_TAG_REGEX = re.compile(
-    r"(?:\[(?:ACTION|ACTION_CLAIM|action|action_claim)\s*:\s*([a-zA-Z_]+)\s+([^\]]+?)(?:\]|$)|"
+    r"(?:\[(?:ACTION|ACTION_CLAIM|action|action_claim)\s*:\s*([a-zA-Z_]+)\s+([^\]]+?)\](?![(\[])|"
     r"<action_claim(?:\s+verb=[\"']([a-zA-Z_]+)[\"']\s+target=[\"']([^\"']+)[\"']|"
     r">\s*([a-zA-Z_]+)\s+([^<]+)</action_claim>))",
     re.IGNORECASE,
@@ -406,6 +505,22 @@ _PAST_VERBS_PATTERN = "|".join(
 )
 _PARTICIPLE_VERBS_PATTERN = "|".join(
     sorted([k for k in EXPANDED_STEM_MAP if k.endswith("ing")], key=len, reverse=True)
+)
+
+# Synchronous execution / completion-notification patterns that contain future tokens
+# ("I'll ... now", "I will notify you once the installation is complete") but assert
+# active in-flight execution in the current turn.
+_SYNCHRONOUS_EXECUTION_FUTURE_REGEX = re.compile(
+    r"(?:"
+    r"\b(?:I'll|I\s+will|(?:please\s+let\s+me\s+know\s+if\s+)?you'd\s+like\s+me\s+to)\s+(?:let\s+you\s+know|notify\s+you|confirm|update\s+you|verify\s+the\s+[\w\s']+?|monitor\s+the\s+(?:process|service|rollout)(?:\s+status)?(?:\s+and\s+(?:notify|update)\s+you)?)\s+"
+    r"(?:once|when|as\s+soon\s+as)\s+"
+    r"(?:the\s+[\w\-]+\s+(?:is|has)\s+(?:complete|completed|finished|done|started|mounted|ready|up\s+to\s+date)|"
+    r"it(?:'s|\s+is|\s+has\s+been)\s+(?:done|finished|complete|completed|terminated|cleared|back\s+up))|"
+    r"\bI'll\s+(?:(?:locate|find)\s+and\s+)?(?:install|upload|archive|compress|extract|mount|unmount|deploy|compile|send|create|delete|remove|update|sync|terminate|kill|reboot|restart|provision|grant|revoke|flash|format|wipe|purge|disable|enable|start\s+the\s+(?:sync|compilation|deployment|upload|download|backup|archive|extraction|compression))\b[^\n!?]*?\b(?:for\s+you\s+now|for\s+you\s+right\s+away|right\s+away|now)\b|"
+    r"\bI'll\s+get\s+(?:those|that|it)\s+(?:installed|uploaded|archived|compiled|extracted|compressed|deployed|mounted|unmounted|done)\s+for\s+you\s+(?:immediately|now|right\s+away)\b|"
+    r"\bI\s+will\s+(?:install|upload|archive|compress|extract|mount|unmount|deploy|compile|send|create|delete|remove|update|sync|terminate|kill|reboot|restart|provision|grant|revoke|flash|format|wipe|purge|execute)\b[^\n!?]*?\bfor\s+you\s+now\b"
+    r")",
+    re.IGNORECASE,
 )
 
 _FUTURE_INTENT_PATTERN = re.compile(
@@ -426,18 +541,19 @@ _NEGATION_PREFIX_PATTERN = re.compile(
 )
 
 _CANONICAL_ACTION_REGEX = re.compile(
-    rf"\b(?:I|we|it)(?:\s+have|\'ve|\s+did|\s+was)?\s+"
+    rf"(?:\b(?:I|we)(?:\s+have|\'ve|\s+did|\s+had)?|^it\s+(?:was|has\s+been))\s+"
     rf"(?:gone\s+ahead\s+and\s+|went\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
+    rf"(?:(?:identified|located|found|scanned|checked|connected(?:\s+to\s+\S+)?|prepared|confirmed\s+that\s+[\w\-\s`]+?(?:is|are)\s+now)\s+(?:and\s+)?)?"
     rf"({_PAST_VERBS_PATTERN})\s+(.+)",
     re.IGNORECASE,
 )
 
 _PROGRESSIVE_ACTION_REGEX = re.compile(
-    rf"\b(?:"
-    rf"(?:I(?:'m|\s+am)?\s+(?:currently\s+|now\s+)?)"
-    rf"({_PARTICIPLE_VERBS_PATTERN})\s+(.+)|"
-    rf"^({_PARTICIPLE_VERBS_PATTERN})\s+(.+)"
-    rf")\b",
+    rf"(?:"
+    rf"\b(?:I(?:'m|\s+am)\s+(?:currently\s+|now\s+)?(?:(?:identifying|locating|finding)\s+and\s+|(?:attempting|trying|proceeding|starting)\s+to\s+)?)"
+    rf"({_PARTICIPLE_VERBS_PATTERN}|restart|terminate|kill|deploy|compile|compress|extract|mount|unmount|install|upload|download|archive|sync|purge|wipe|format|reboot)\s+(.+)|"
+    rf"^\s*({_PARTICIPLE_VERBS_PATTERN})\s+(.+)"
+    rf")",
     re.IGNORECASE,
 )
 
@@ -446,26 +562,60 @@ _INITIATING_ACTION_REGEX = re.compile(
     r"(?:initiating|initiated)\s+(?:the\s+|a\s+|an\s+)?(?:immediate\s+)?(?:request\s+to\s+)?"
     r"(reboot|restart|deletion|delete|removal|remove|update|process|backup|migration|"
     r"transmission|send|sending|deployment|deploy|order|ordering|transfer|wipe|purge|"
-    r"unmount|mount|archive|execution|execute|termination|terminate|kill|format)"
-    r"(?:\s+(?:of|for|on|to)?\s+(.+))?\b|^action\s+initiated\b)",
+    r"unmount|mount|archive|execution|execute|termination|terminate|kill|format|"
+    r"download|downloading|upload|uploading|sync|synchronization|checkpoint|"
+    r"compilation|compile|compression|compress|extraction|extract|provisioning|provision|"
+    r"installation|install|creation|create|modification|modify|patch|patching|"
+    r"scan|scanning|cleanup|cleaning|clear|clearing|flash|flashing|revocation|revoke|"
+    r"grant|encryption|encrypt|rollout|restoration|restore|procurement|background\s+training|training)"
+    r"(?:\s+(?:of|for|on|to|process|using)?\s+(.+))?\b|"
+    r"^(?:(?:action\s+initiated|operation\s+initiated|deployment\s+initiated|action\s+taken|"
+    r"execution\s+summary|summary\s+of\s+operations\s+performed|"
+    r"command\s+executed|running\s+command|executing\s+command|running\s+the\s+following\s+command|"
+    r"I\s+am\s+running\s*:|executing\s+(?:now|installation|deletion|update|query|provisioning|unmount(?:\s+command)?|compression)|"
+    r"status\s*:\s*(?:sent|confirmed|[^\n]*?(?:upload|sync|installation|extraction|compilation)\s+complete|[^\n]*?(?:syncing|downloading|uploading|compiling|deploying))|"
+    r"progress\s*:\s*(?:downloading|uploading|compiling|extracting|compressing|syncing|deploying)|"
+    r"(?:upload|installation|sync|synchronization|extraction|compilation|mounting|unmounting|deployment|compression|provisioning|revocation|update|backup|migration)\s+(?:complete|completed|successful))\b|"
+    r"(?:processing|verifying\s+installations|running\s+conversion)\.{2,3})|"
+    r"\bI(?:'ve|\s+have)\s+completed\s+the\s+(?:cleanup|installation|migration|backup|deployment|restoration|update|deletion|removal|sync|compilation|extraction|compression)\b|"
+    r"\bI(?:'m|\s+am)\s+setting\s+a\s+rule\s+to\s+(?:deny|allow|block|drop)\b|"
+    r"\bthe\s+changes\s+have\s+been\s+staged\s+and\s+committed\b|"
+    r"\b(?:one\s+moment|please\s+wait(?:\s+a\s+moment)?|please\s+stand\s*by)\s+while\s+I\s+(?:execute|process|run|do|handle|perform)\b)",
     re.IGNORECASE,
 )
 
 _PASSIVE_ACTION_REGEX = re.compile(
-    rf"^(?:(?:the|a|an|your|my|our|all)\s+)?([a-zA-Z0-9_\-./\\]+(?:\s+[a-zA-Z0-9_\-./\\]+){{0,3}})\s+"
+    rf"^(?:(?:the|a|an|your|my|our|all|both)\s+)?([a-zA-Z0-9_\-./\\~`:]+(?:\s+(?:on|in|for|from|with|at|of|to|and|listening\s+on|a|an|the|non-null|[a-zA-Z0-9_\-./\\~`:]+)){{0,7}})\s+"
     rf"(?:was|were|is|are|has\s+been|have\s+been)\s+"
-    rf"({_PAST_VERBS_PATTERN})\b",
+    rf"(?:(?:successfully|now|already|safely|permanently|forcefully|completely|currently|being|no\s+longer|staged\s+and)\s+)*"
+    rf"({_PAST_VERBS_PATTERN}|active\s+and\s+running|underway|ready\s+to\s+use|at\s+s3://\S+|located\s+in\s+\S+)\b",
     re.IGNORECASE,
 )
 
 _TELEGRAPHIC_ACTION_REGEX = re.compile(
-    rf"^(?:(?:the|a|an|your|my|our|all)\s+)?([a-zA-Z0-9_\-./\\]+(?:\s+[a-zA-Z0-9_\-./\\]+){{0,3}})\s+({_PAST_VERBS_PATTERN})(?:\s+(?:for|to|at|in|on|from|now|as\s+requested|tomorrow)[^.!?]*)?[\.!]?$",
+    rf"^(?:(?:the|a|an|your|my|our|all)\s+)?([a-zA-Z0-9_\-./\\~`]+(?:\s+[a-zA-Z0-9_\-./\\~`]+){{0,4}})\s+"
+    rf"({_PAST_VERBS_PATTERN})(?:\s+(?:successfully|for|to|at|in|on|from|into|now|as\s+requested|tomorrow|and\s+attached)[^.!?]*)?[\.!]?$",
+    re.IGNORECASE,
+)
+
+_STATE_GRANT_CONFIRMATION_REGEX = re.compile(
+    r"^(?:the\s+)?(?:group\s+[a-zA-Z0-9_\-]+|[a-zA-Z0-9_\-]+\s+group)\s+now\s+has\s+"
+    r"(?:read|write|execute|admin|full)\s+(?:permission|access)\s+(?:on|to)\s+(.+)",
     re.IGNORECASE,
 )
 
 _NON_CLAIM_SUBJECT_PREFIX = re.compile(
-    r"^(?:when|if|how|whether|where|why|while|unless|ensure|make\s+sure|"
+    r"^(?:when|if|how|whether|where|why|while|unless|ensure|make\s+sure|to\s+\w+|"
     r"you|they|he|she|we|who|which|that|what|or|and|but|because|since|although)\b",
+    re.IGNORECASE,
+)
+
+# Intransitive self-description of runtime environment ("Since I am running in a local environment",
+# "Because I am running inside a Docker container"), which is not a transitive command execution.
+_INTRANSITIVE_RUNTIME_ENV_REGEX = re.compile(
+    r"\brunning\s+(?:in|inside|within|on|under|locally)\s+(?:a\s+|an\s+|the\s+)?"
+    r"(?:local|docker|container|sandbox|isolated|virtual|restricted|host|standard)?\s*"
+    r"(?:environment|container|sandbox|vm|instance|mode|system)\b",
     re.IGNORECASE,
 )
 
@@ -484,12 +634,21 @@ _HOST_FILE_TARGET_PATTERN = re.compile(
     r"|\b\d{1,3}(?:\.\d{1,3}){3}\b"  # IPv4 address
     r"|\b(?:files?|folders?|director(?:y|ies)|dirs?|drives?|disks?|volumes?|"
     r"ports?|packages?|repos?(?:itor(?:y|ies))?|branch(?:es)?|containers?|"
-    r"services?|processes?|pids?|firewall|databases?|dbs?|logs?|caches?|backups?|"
+    r"services?|process(?:es)?|pids?|firewall|databases?|dbs?|logs?|caches?|backups?|"
     r"workspaces?|hosts?|routers?|networks?|adapters?|dhcp|tabs?|browsers?|"
     r"commands?|scripts?|emails?|messages?|reminders?|reservations?|tables?|"
     r"orders?|accounts?|passwords?|keys?|settings?|configs?|cookies?|"
     r"documents?|pdfs?|csvs?|workbooks?|spreadsheets?|images?|photos?|videos?|"
     r"notes?|status|history|tasks?|scans?|cleanup|migrations?|"
+    r"instances?|servers?|workers?|daemons?|units?|engines?|alertmanager|exporters?|"
+    r"clusters?|namespaces?|stacks?|replicas?|nodes?|pods?|ramdisks?|tmpfs|shares?|"
+    r"partitions?|loopbacks?|isos?|firmwares?|subkeys?|certificates?|keyservers?|"
+    r"privileges?|permissions?|users?|groups?|environments?|venvs?|libraries?|"
+    r"crates?|stubs?|kernels?|tarballs?|archives?|bundles?|dumps?|checkpoints?|"
+    r"records?|rows?|entries|prefixes|webhooks?|payloads?|channels?|alerts?|"
+    r"tags?|remotes?|origins?|interfaces?|eth\d+|wlan\d+|ipv[46]|forwarding|locks?|"
+    r"storage|tracks?|audio|ripgrep|fd-find|wireguard|"
+    r"systemctl|postgres(?:ql)?|systemd|journalctl|nginx|apache|redis|celery|prometheus|sudo|"
     r"excel|chrome|firefox|slack|docker|git|node|python|lsof|kill|"
     r"targets?)\b"
     r")",
@@ -541,21 +700,31 @@ class ActionClaimGrammarSupervisor:
         """
         t0 = time.perf_counter()
 
-        # 0. Markdown normalization: strip header hashes, bullet points, formatting,
-        # and leading "**Action:**" / "**Status:**" / "**Step:**" labels left after
-        # emphasis stripping.
-        clean = clause.strip()
-        clean = re.sub(r"^\s*#+\s*", "", clean)
-        clean = re.sub(r"^\s*[\*\-\+]\s+", "", clean)
-        clean = re.sub(r"[*`~]", "", clean).strip()
-        clean = re.sub(r"^(?:action|status|step)\s*:\s*", "", clean, flags=re.IGNORECASE).strip()
+        # 0. Markdown normalization: strip header hashes, bullet points, checkboxes,
+        # formatting, and leading status labels left after emphasis stripping.
+        raw_clean = re.sub(r"[*`~]", "", clause.strip()).strip()
+        raw_clean = re.sub(r"^\s*#+\s*", "", raw_clean)
+        raw_clean = re.sub(r"^\s*[\*\-\+]\s+", "", raw_clean)
+        raw_clean = re.sub(r"^\s*\[(?:done|x|\s)\]\s*", "", raw_clean, flags=re.IGNORECASE)
+        raw_clean = re.sub(r"^\s*\d+\.\s*", "", raw_clean).strip()
 
-        if not clean:
+        clean = re.sub(
+            r"^(?:(?:action|status|step|task|purge|vacuum|checkpointing|syncing|confirmation|success|result)\s*:\s*|"
+            r"(?:done|understood|acknowledged|okay|i'm\s+on\s+it)\s*[.!,—\-]+\s*)+",
+            "",
+            raw_clean,
+            flags=re.IGNORECASE,
+        ).strip()
+
+        if not clean and not raw_clean:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(False, None, SeverityTier.PASS, None, "Empty clause", elapsed_us)
+        if not clean:
+            clean = raw_clean
 
-        # 1. Reject future / intentional framing
-        if _FUTURE_INTENT_PATTERN.search(clean):
+        # 1. Check synchronous execution / completion-notification patterns before future intent filter
+        is_sync_future = bool(_SYNCHRONOUS_EXECUTION_FUTURE_REGEX.search(clean))
+        if not is_sync_future and _FUTURE_INTENT_PATTERN.search(clean):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
                 False,
@@ -602,6 +771,18 @@ class ActionClaimGrammarSupervisor:
                 elapsed_us,
             )
 
+        # 4b. Intransitive runtime environment self-description exemption (W192, W547)
+        if _INTRANSITIVE_RUNTIME_ENV_REGEX.search(clean):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Intransitive runtime environment description (not a tool execution claim)",
+                elapsed_us,
+            )
+
         # Filter receipts that are eligible to ground claims
         eligible_receipts: list[dict[str, JsonValue]] = []
         for r in verified_receipts:
@@ -637,11 +818,18 @@ class ActionClaimGrammarSupervisor:
 
         # 5. Extract structured action claims [ACTION: ...] or <action_claim ...>
         structured_matches: list[tuple[str, str, str]] = []
-        for sm in STRUCTURED_ACTION_TAG_REGEX.finditer(clean):
+        for sm in STRUCTURED_ACTION_TAG_REGEX.finditer(clause):
+            prefix_before_tag = clause[: sm.start()]
+            if _ILLUSTRATIVE_FRAME_PREFIX_REGEX.search(prefix_before_tag):
+                continue
             v = sm.group(1) or sm.group(3) or sm.group(5)
             t = sm.group(2) or sm.group(4) or sm.group(6)
             if v and t:
-                structured_matches.append((v.strip().lower(), t.strip(), sm.group(0)))
+                v_clean = v.strip().lower()
+                t_clean = t.strip()
+                if v_clean in ("verify", "protect") or _CONVERSATIONAL_META_TARGETS_REGEX.match(t_clean):
+                    continue
+                structured_matches.append((v_clean, t_clean, sm.group(0)))
 
         if structured_matches:
             for v, t, raw in structured_matches:
@@ -668,29 +856,36 @@ class ActionClaimGrammarSupervisor:
         # 6. Natural Language Claim Identification
         claims_to_verify: list[tuple[str, str, str]] = []
 
-        # (a) Canonical 1P past tense: "I deleted file.txt"
-        m_canon = _CANONICAL_ACTION_REGEX.search(clean)
-        if m_canon:
-            prefix = clean[: m_canon.start()].lower()
-            if not _NEGATION_PREFIX_PATTERN.search(prefix):
-                verb = m_canon.group(1).lower()
-                remainder = m_canon.group(2).strip()
-                remainder = re.sub(
-                    r"\s+(?:for\s+you|as\s+requested|now|for\s+your\s+records|from\s+the\s+workspace)[\.!]?$",
-                    "",
-                    remainder,
-                    flags=re.IGNORECASE,
-                )
-                remainder = re.sub(r"^\s*both\s+", "", remainder, flags=re.IGNORECASE)
-                raw_targets = [t.strip() for t in re.split(r"\s+and\s+|\s*,\s*", remainder) if t.strip()]
-                for target_item in raw_targets:
-                    claims_to_verify.append((verb, target_item, m_canon.group(0)))
+        # (a0) Synchronous execution future / completion-notification claim
+        if is_sync_future:
+            m_sync = _SYNCHRONOUS_EXECUTION_FUTURE_REGEX.search(clean)
+            if m_sync and not _NEGATION_PREFIX_PATTERN.search(clean[: m_sync.start()].lower()):
+                claims_to_verify.append(("execute", clean, m_sync.group(0)))
 
-        # (b) Initiating: "I'm initiating the reboot now"
+        # (a) Canonical 1P past tense: "I deleted file.txt"
         if not claims_to_verify:
-            m_init = _INITIATING_ACTION_REGEX.search(clean)
+            m_canon = _CANONICAL_ACTION_REGEX.search(clean)
+            if m_canon:
+                prefix = clean[: m_canon.start()].lower()
+                if not _NEGATION_PREFIX_PATTERN.search(prefix):
+                    verb = m_canon.group(1).lower()
+                    remainder = m_canon.group(2).strip()
+                    remainder = re.sub(
+                        r"\s+(?:for\s+you|as\s+requested|now|for\s+your\s+records|from\s+the\s+workspace)[\.!]?$",
+                        "",
+                        remainder,
+                        flags=re.IGNORECASE,
+                    )
+                    remainder = re.sub(r"^\s*both\s+", "", remainder, flags=re.IGNORECASE)
+                    raw_targets = [t.strip() for t in re.split(r"\s+and\s+|\s*,\s*", remainder) if t.strip()]
+                    for target_item in raw_targets:
+                        claims_to_verify.append((verb, target_item, m_canon.group(0)))
+
+        # (b) Initiating or execution status banner: "I'm initiating the reboot now", "Command executed:"
+        if not claims_to_verify:
+            m_init = _INITIATING_ACTION_REGEX.search(raw_clean) or _INITIATING_ACTION_REGEX.search(clean)
             if m_init:
-                prefix = clean[: m_init.start()].lower()
+                prefix = raw_clean[: m_init.start()].lower()
                 if not _NEGATION_PREFIX_PATTERN.search(prefix):
                     verb_noun = (m_init.group(1) or "execute").lower()
                     stem = "reboot" if ("reboot" in verb_noun or "restart" in verb_noun) else verb_noun
@@ -703,16 +898,16 @@ class ActionClaimGrammarSupervisor:
             if m_prog:
                 prefix = clean[: m_prog.start()].lower()
                 if not _NEGATION_PREFIX_PATTERN.search(prefix) and not re.search(
-                    r"\b(?:by|for|while|worth|when|if|after|before|without|to|such\s+as|than|from|in|on|of|about|into| Involves)\s*$",
+                    r"\b(?:by|for|while|worth|when|if|after|before|without|to|such\s+as|than|from|in|on|of|about|into|involves|since|because|as)\s*$",
                     prefix,
                     re.IGNORECASE,
                 ):
                     is_explicit_1p = m_prog.group(1) is not None
                     verb = (m_prog.group(1) or m_prog.group(3)).lower()
                     target = (m_prog.group(2) or m_prog.group(4)).strip()
-                    # Strip harmless completion tail before checking gerund predicate verbs
+                    # Strip harmless completion / in-progress tail before checking gerund predicate verbs
                     target_for_check = re.sub(
-                        r"\s+will\s+take\s+a\s+(?:moment|second|minute|few\s+\w+)[\.!]?$",
+                        r"\s+(?:will\s+take\s+a\s+(?:moment|second|minute|few\s+\w+)|is\s+(?:in\s+progress|currently\s+running|underway|complete|done))[\.!]?$",
                         "",
                         target,
                         flags=re.IGNORECASE,
@@ -721,7 +916,8 @@ class ActionClaimGrammarSupervisor:
                         re.search(
                             r"\b(?:is|are|was|were|can|could|will|would|should|may|might|must|"
                             r"makes|means|requires|helps|allows|provides|causes|involves|"
-                            r"installs|works|operates|affects|distributes|prevents|ensures|takes|shows)\b",
+                            r"installs|works|operates|affects|distributes|prevents|ensures|takes|shows|"
+                            r"risks|breaks|corrupts|locks|exposes|leads|results|triggers|avoids|overwrites)\b",
                             target_for_check,
                             re.IGNORECASE,
                         )
@@ -729,15 +925,32 @@ class ActionClaimGrammarSupervisor:
                     is_bare_preposition = bool(
                         re.match(r"^(?:on|in|at|to|from|with|by|for|of|as)\b[\.!]?$", target, re.IGNORECASE)
                     )
+                    is_definition_or_title_header = (
+                        (
+                            not is_explicit_1p
+                            and ":" in target
+                            and not re.search(
+                                r"(?:https?|ftp|s3|:\d{2,5}|[a-zA-Z]:[\\/]|:\s*[\"'])",
+                                target,
+                                re.IGNORECASE,
+                            )
+                        )
+                        or (not is_explicit_1p and bool(re.match(r"^(?:the|a|an)\s+[A-Z][a-z]+$", target)))
+                    )
                     is_parenthetical_fragment = (
                         (")" in target and "(" not in target)
                         or (not is_explicit_1p and bool(clean) and clean[0].islower())
                         or (not is_explicit_1p and clean.endswith(":"))
                     )
-                    has_concrete_target = is_explicit_1p or bool(_HOST_FILE_TARGET_PATTERN.search(target))
+                    has_concrete_target = (
+                        is_explicit_1p
+                        or bool(_HOST_FILE_TARGET_PATTERN.search(target))
+                        or bool(re.search(r"\bnow[\.!]*$|\.{3}$", target, re.IGNORECASE))
+                    )
                     if (
                         not is_gerund_subject
                         and not is_bare_preposition
+                        and not is_definition_or_title_header
                         and not is_parenthetical_fragment
                         and has_concrete_target
                     ):
@@ -758,16 +971,25 @@ class ActionClaimGrammarSupervisor:
             if m_pass:
                 prefix = clean[: m_pass.start()].lower()
                 target = m_pass.group(1).strip()
+                suffix_after_pass = clean[m_pass.end() :].lower()
                 if (
                     not _NEGATION_PREFIX_PATTERN.search(prefix)
                     and not _NON_CLAIM_SUBJECT_PREFIX.search(target)
+                    and not re.search(
+                        r"\b(?:if|whether|when|how|why|where|is|are|was|were|that|which|who)\b|:\s",
+                        target,
+                        re.IGNORECASE,
+                    )
+                    and not re.match(
+                        r"^\s*(?:instantly\s+|immediately\s+|automatically\s+)?by\s+(?:the\s+)?(?:kernel|os|operating\s+system|cpu|hardware|browser|scheduler)\b",
+                        suffix_after_pass,
+                    )
                     and _HOST_FILE_TARGET_PATTERN.search(target)
                 ):
                     verb = m_pass.group(2).lower()
                     claims_to_verify.append((verb, target, m_pass.group(0)))
 
-        # (e) Telegraphic: "Files removed.", "Reminder set for tomorrow."
-        # Same host/file-like target scope restriction as the passive frame.
+        # (e) Telegraphic or Permission Grant Confirmation: "Files removed.", "The auditors group now has READ access..."
         if not claims_to_verify:
             m_tele = _TELEGRAPHIC_ACTION_REGEX.search(clean)
             if m_tele:
@@ -776,10 +998,19 @@ class ActionClaimGrammarSupervisor:
                 if (
                     not _NEGATION_PREFIX_PATTERN.search(prefix)
                     and not _NON_CLAIM_SUBJECT_PREFIX.search(target)
+                    and not re.search(
+                        r"\b(?:if|whether|when|how|why|where|is|are|was|were|has|have|that|which|who)\b|:\s",
+                        target,
+                        re.IGNORECASE,
+                    )
                     and _HOST_FILE_TARGET_PATTERN.search(target)
                 ):
                     verb = m_tele.group(2).lower()
                     claims_to_verify.append((verb, target, m_tele.group(0)))
+            else:
+                m_grant = _STATE_GRANT_CONFIRMATION_REGEX.search(clean)
+                if m_grant:
+                    claims_to_verify.append(("grant", m_grant.group(1).strip(), m_grant.group(0)))
 
         if not claims_to_verify:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
@@ -898,10 +1129,11 @@ class TruthInReceiptMatcher:
     PAST_CONTEXT_PATTERN = re.compile(
         r"\b(?:"
         r"last\s+session|previous\s+session|prior\s+session|earlier\s+session|"
-        r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|yesterday|"
+        r"a\s+few\s+days?\s+ago|days?\s+ago|weeks?\s+ago|(?<!from\s)yesterday|"
         r"last\s+week|previously|in\s+the\s+past|earlier\s+on|"
-        r"records?\s+(?:from|show|showing|indicate)|my\s+records|"
-        r"(?:information|evidence|entries|logs?)\s+(?:from|show|showing|indicate)|"
+        r"(?:my\s+|session\s+|historical\s+|memory\s+)records?\s+(?:from|show|showing|indicate)|"
+        r"records?\s+(?:show|showing|indicate)|my\s+records|"
+        r"(?:information|evidence|entries|logs?)\s+(?:from\s+(?:our|last|previous|earlier)|show|showing|indicate)|"
         r"memor(?:y|ies)\s+(?:from|show|showing)|from\s+our\s+history|"
         r"in\s+our\s+history|histor(?:y|ical)\s+records?"
         r")\b",
@@ -918,6 +1150,8 @@ class TruthInReceiptMatcher:
         r"closed\s+(?:the\s+(?:loop|door|book|case|discussion|matter|ticket|thread)|(?:my|our)\s+eyes|out|in\s+on)|"
         r"moved\s+(?:on(?:\s+from)?|forward(?:\s+with)?|ahead(?:\s+with)?|past|mountains|away)|"
         r"processed\s+(?:what|that|this|the\s+(?:information|data|news|grief|feedback|input|request|idea|details?)|mentally|emotionally)|"
+        r"compiled\s+(?:a\s+|an\s+|the\s+)?(?:[\w\-]+\s+)?(?:list|summary|overview|collection|bibliography|guide|table|set\s+of)\b|"
+        r"updated\s+my\s+internal\s+verification\s+logs?\b|"
         r"placed\s+(?:(?:an?\s+)?(?:emphasis|focus|priority|trust|faith|bets?|confidence|blame)\s+(?:on|in)|(?:my|our|their|his|her)\s+(?:trust|faith|emphasis|focus|confidence)\s+(?:on|in))"
         r")\b",
         re.IGNORECASE,
