@@ -1,6 +1,6 @@
 {
   "trace_id": "WO-39-SINGLE-RULE-LIFECYCLE-LIVE-26B-A4B",
-  "timestamp_utc": "2026-11-04T01:27:03Z",
+  "timestamp_utc": "2026-11-04T02:27:07Z",
   "active_llm_model": "C:\\ProjectLucca\\models\\llm\\gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
   "total_live_llm_calls_in_trace": 66,
   "rule_id": "induced-read-file-notes-roadmap-md-v1",
@@ -19,7 +19,7 @@
   ],
   "stage_1_live_50_turn_waking_workload": {
     "episodes_recorded": 50,
-    "mean_llm_latency_ms": 2220.44,
+    "mean_llm_latency_ms": 2338.39,
     "mean_total_tokens_per_turn": 464.4,
     "total_retries": 0,
     "target_roadmap_verified_executions": 4,
@@ -33,7 +33,7 @@
       "induced-read-file-notes-todo-md-v1",
       "induced-launch-app-calculator-v1"
     ],
-    "induction_and_z3_latency_ms": 29.21,
+    "induction_and_z3_latency_ms": 27.07,
     "initial_status": "QUARANTINE"
   },
   "stage_3_offline_50_turn_replay": {
@@ -42,19 +42,19 @@
     "errors": 0,
     "distractor_misfires": 0,
     "passed": true,
-    "replay_latency_ms": 1.69
+    "replay_latency_ms": 1.72
   },
   "stage_4_live_contrastive_shadow_evaluation": {
     "distinct_15min_clusters": 5,
-    "mean_shadow_rule_eval_latency_ms": 0.5762,
-    "mean_live_llm_core_latency_ms": 2490.91,
+    "mean_shadow_rule_eval_latency_ms": 0.4912,
+    "mean_live_llm_core_latency_ms": 2416.78,
     "agreed_with_llm_core_count": 5,
     "agreed_with_llm_core_rate": 1.0,
     "rule_reliability_rate": 1.0,
     "shadow_turns": [
       {
         "cluster_index": 1,
-        "cluster_id": "b101f4b2d389d5d8",
+        "cluster_id": "7bebc97de61354a5",
         "utterance": "Can you open notes/roadmap.md and read it?",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -64,14 +64,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.4573,
-        "live_llm_latency_ms": 2487.83,
+        "shadow_rule_eval_latency_ms": 0.5155,
+        "live_llm_latency_ms": 2443.92,
         "live_llm_total_tokens": 477,
         "verifier_passed": true
       },
       {
         "cluster_index": 2,
-        "cluster_id": "0dd59003b778bd86",
+        "cluster_id": "434a2ccf2c9b0c4f",
         "utterance": "Show me the contents of notes/roadmap.md please.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -81,14 +81,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.636,
-        "live_llm_latency_ms": 2466.62,
+        "shadow_rule_eval_latency_ms": 0.3841,
+        "live_llm_latency_ms": 2406.63,
         "live_llm_total_tokens": 477,
         "verifier_passed": true
       },
       {
         "cluster_index": 3,
-        "cluster_id": "5b3ecb8ccd68f8ae",
+        "cluster_id": "5fe9c53ab78654da",
         "utterance": "I'd like to read notes/roadmap.md.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -98,14 +98,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.5439,
-        "live_llm_latency_ms": 2487.47,
+        "shadow_rule_eval_latency_ms": 0.5196,
+        "live_llm_latency_ms": 2424.17,
         "live_llm_total_tokens": 477,
         "verifier_passed": true
       },
       {
         "cluster_index": 4,
-        "cluster_id": "951a535eac41d407",
+        "cluster_id": "0db1f97bf37ed181",
         "utterance": "Pull up notes/roadmap.md for me.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -115,14 +115,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.5382,
-        "live_llm_latency_ms": 2460.37,
+        "shadow_rule_eval_latency_ms": 0.4615,
+        "live_llm_latency_ms": 2416.67,
         "live_llm_total_tokens": 475,
         "verifier_passed": true
       },
       {
         "cluster_index": 5,
-        "cluster_id": "9ef64dabbbe23edd",
+        "cluster_id": "cb38640040f1ade7",
         "utterance": "Display what is inside notes/roadmap.md.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -132,8 +132,8 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.7054,
-        "live_llm_latency_ms": 2552.28,
+        "shadow_rule_eval_latency_ms": 0.5752,
+        "live_llm_latency_ms": 2392.53,
         "live_llm_total_tokens": 475,
         "verifier_passed": true
       }
@@ -155,7 +155,7 @@
       "normal_llm_path_gemma4_26b_a4b": {
         "signal_1_tool_completed_exit_zero": "3/3 (100%)",
         "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
-        "signal_3_mean_planning_latency_ms": 2471.06,
+        "signal_3_mean_planning_latency_ms": 2379.86,
         "signal_3_mean_prompt_tokens": 422.7,
         "signal_3_mean_completion_tokens": 53.0,
         "signal_3_mean_total_tokens": 475.7,
@@ -167,7 +167,7 @@
       "active_rule_path_microscheme_on_saved_state": {
         "signal_1_tool_completed_exit_zero": "3/3 (100%)",
         "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
-        "signal_3_mean_planning_latency_ms": 0.1109,
+        "signal_3_mean_planning_latency_ms": 0.0976,
         "signal_3_mean_total_tokens_from_saved_state": 0,
         "signal_3_tool_calls_per_turn": 1,
         "signal_3_retries_per_turn": 0,
@@ -190,9 +190,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_llm_planning_latency_ms": 2589.99,
-          "signal_3_tool_io_latency_ms": 0.6036,
-          "signal_3_total_turn_latency_ms": 2590.59,
+          "signal_3_llm_planning_latency_ms": 2399.03,
+          "signal_3_tool_io_latency_ms": 0.6414,
+          "signal_3_total_turn_latency_ms": 2399.67,
           "signal_3_prompt_tokens": 421,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 474,
@@ -213,16 +213,16 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_rule_planning_latency_ms": 0.0979,
-          "signal_3_tool_io_latency_ms": 0.3668,
-          "signal_3_total_saved_state_latency_ms": 0.4647,
+          "signal_3_rule_planning_latency_ms": 0.0926,
+          "signal_3_tool_io_latency_ms": 0.4693,
+          "signal_3_total_saved_state_latency_ms": 0.5619,
           "signal_3_llm_planning_tokens_from_saved_state": 0,
           "signal_3_tool_calls": 1,
           "signal_3_retries": 0,
           "signal_3_gas_used": 10,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false,
-          "execution_triple_id": "01M6J2MZN72KP9K508H545721J"
+          "execution_triple_id": "01M6J62ZYXSZQXMCWTSMGEHPA6"
         }
       },
       {
@@ -239,9 +239,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_llm_planning_latency_ms": 2407.36,
-          "signal_3_tool_io_latency_ms": 0.878,
-          "signal_3_total_turn_latency_ms": 2408.24,
+          "signal_3_llm_planning_latency_ms": 2342.58,
+          "signal_3_tool_io_latency_ms": 0.6313,
+          "signal_3_total_turn_latency_ms": 2343.21,
           "signal_3_prompt_tokens": 424,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 477,
@@ -262,16 +262,16 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_rule_planning_latency_ms": 0.1304,
-          "signal_3_tool_io_latency_ms": 0.4651,
-          "signal_3_total_saved_state_latency_ms": 0.5955,
+          "signal_3_rule_planning_latency_ms": 0.0934,
+          "signal_3_tool_io_latency_ms": 0.3786,
+          "signal_3_total_saved_state_latency_ms": 0.472,
           "signal_3_llm_planning_tokens_from_saved_state": 0,
           "signal_3_tool_calls": 1,
           "signal_3_retries": 0,
           "signal_3_gas_used": 10,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false,
-          "execution_triple_id": "01M6J2N20HDEJ9YD5GRSPP322R"
+          "execution_triple_id": "01M6J6328546FS5ZMHSEAPSDSA"
         }
       },
       {
@@ -288,9 +288,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_llm_planning_latency_ms": 2415.83,
-          "signal_3_tool_io_latency_ms": 0.6287,
-          "signal_3_total_turn_latency_ms": 2416.46,
+          "signal_3_llm_planning_latency_ms": 2397.96,
+          "signal_3_tool_io_latency_ms": 0.6589,
+          "signal_3_total_turn_latency_ms": 2398.62,
           "signal_3_prompt_tokens": 423,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 476,
@@ -311,16 +311,16 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_rule_planning_latency_ms": 0.1043,
-          "signal_3_tool_io_latency_ms": 0.3224,
-          "signal_3_total_saved_state_latency_ms": 0.4267,
+          "signal_3_rule_planning_latency_ms": 0.1067,
+          "signal_3_tool_io_latency_ms": 0.37,
+          "signal_3_total_saved_state_latency_ms": 0.4767,
           "signal_3_llm_planning_tokens_from_saved_state": 0,
           "signal_3_tool_calls": 1,
           "signal_3_retries": 0,
           "signal_3_gas_used": 10,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false,
-          "execution_triple_id": "01M6J2N4C1KW2RTQR1DM5DG9YW"
+          "execution_triple_id": "01M6J634K52RMGZWFNGQCK5M4Z"
         }
       },
       {
@@ -337,9 +337,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "1b29044e0f9279b98a9ffa638581a89f04504079fa422367c32078b5225ed70d",
-          "signal_3_llm_planning_latency_ms": 2562.89,
-          "signal_3_tool_io_latency_ms": 0.8977,
-          "signal_3_total_turn_latency_ms": 2563.79,
+          "signal_3_llm_planning_latency_ms": 2474.7,
+          "signal_3_tool_io_latency_ms": 0.6471,
+          "signal_3_total_turn_latency_ms": 2475.35,
           "signal_3_prompt_tokens": 428,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 481,
@@ -354,7 +354,7 @@
           "tool_call": null,
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
-          "signal_3_rule_planning_latency_ms": 0.0723,
+          "signal_3_rule_planning_latency_ms": 0.056,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false
         }
@@ -373,9 +373,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": null,
-          "signal_3_llm_planning_latency_ms": 2300.69,
-          "signal_3_tool_io_latency_ms": 0.0036,
-          "signal_3_total_turn_latency_ms": 2300.69,
+          "signal_3_llm_planning_latency_ms": 2351.01,
+          "signal_3_tool_io_latency_ms": 0.0039,
+          "signal_3_total_turn_latency_ms": 2351.01,
           "signal_3_prompt_tokens": 421,
           "signal_3_completion_tokens": 49,
           "signal_3_total_tokens": 470,
@@ -390,7 +390,7 @@
           "tool_call": null,
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
-          "signal_3_rule_planning_latency_ms": 0.0921,
+          "signal_3_rule_planning_latency_ms": 0.109,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false
         }
@@ -406,7 +406,7 @@
         "path": "notes/todo.md"
       },
       "user_correction": true,
-      "latency_ms": 2773.36,
+      "latency_ms": 2661.49,
       "prompt_tokens": 443,
       "completion_tokens": 53,
       "total_tokens": 496,
@@ -414,7 +414,7 @@
       "raw_response": "{\n  \"intent\": \"user_correction\",\n  \"tool\": \"read_file\",\n  \"args\": {\n    \"path\": \"notes/todo.md\"\n  },\n  \"user_correction\": true\n}"
     },
     "correction_detected_by_llm": true,
-    "execution_triple_id": "01M6J2NBTSJ28QMS5FDRRZQ9JM",
+    "execution_triple_id": "01M6J63BX6H03P4GNBFMTS7BZ8",
     "signal_emitted": "operator_correct",
     "status_after_1_strike": "QUARANTINE",
     "demotion_count": 1,
