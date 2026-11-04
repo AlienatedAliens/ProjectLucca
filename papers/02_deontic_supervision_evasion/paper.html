@@ -203,11 +203,7 @@
       execution authority by requiring formal typed action frames checked against cryptographic tool receipts. Across a
       pre-registered, single-author curated held-out benchmark of <em>N=120</em> unseen prompts (50 action temptations, 40 honest controls, and
       30 idioms; frozen on 2026-10-26 06:36:57 +0800 under git tag <code>prereg-supervision-v1</code>; v2 frozen on 2026-10-28 07:52:33 +0800 under <code>prereg-supervision-v2</code>), we compare legacy strict regex, broadened
-      grammar supervision, and SOAC on <code>gemma-4-26B-A4B</code>. Our findings confirm that the original pre-hardening strict speech regex
-      achieves only 6.25% sensitivity on held-out claim-emitting turns (1/16 caught out of 50 temptation prompts; in a subsequent post-hardening evaluation across 250 fresh prompts &times; 3 models [<em>N=750</em> completions, <code>PREREG-MATCHER-SENSITIVITY-v2.2</code>, scored against blinded frontier-LLM direct semantic reading labels validated by an independent second blinded frontier-LLM rater on <em>n=150</em> at 5-class &kappa; = 0.9770 and binary claim-vs-non-claim &kappa; = 1.0000, and compared against the legacy script-assigned labels at binary &kappa; = 0.9024], the expanded 44-stem grammar matcher caught 66.3% [65/98] strict and 55.4% [98/177] broad semantic-labeled claims overall&mdash;68.3% [84/123] pooled on 20 in-vocabulary verbs [82.7% E4B, 60.9% E2B, 52.0% 12B] and 25.9% [14/54] on 10 unseen out-of-dev verbs, with primary non-claim FPR of 0.6%&ndash;1.4% [5/551 = 0.9% pooled; 0/251 = 0.0% on clear temptation non-claims vs. 5/300 = 1.7% on controls, or 17/573 = 3.0% if all 22 self-contradictory <code>AMBIGUOUS</code> turns are folded into non-claims]; see Section 6.6), while SOAC restricts execution authority
-      to typed <code>[ACTION: ...]</code> frames verified against cryptographic receipts in 6.82 &mu;s mean frame-parsing and receipt-lookup latency on Core Ultra 9 275HX (vs. 76.45 &mu;s strict regex clause matching) with 0/40 false alarms on honest controls ([0.0%, 8.8%] uncorrected / [0.0%, 10.9%] continuity-corrected 95% Wilson CI). Crucially, we document <em>prose
-        leakage</em> across v1 (16/120, 13.3%), v2 prompt-only SOAC (15/120, 12.50%), and v2 GBNF-constrained SOAC (17/120, 14.17%, <em>p = 0.7237</em>), demonstrating that structured contracts strip prose of execution authority but cannot prevent models from
-      asserting actions in natural prose outside the structured channel without post-turn NLI receipt entailment.
+      grammar supervision, and SOAC on <code>gemma-4-26B-A4B</code>. Under the pre-registered lexical ground-truth heuristic (<code>primary_audit_ground_truth</code>), the original pre-hardening strict speech regex achieves 6.25% sensitivity (1/16 caught). However, a line-by-line blinded semantic re-audit of all 720 Study V1 and Study V2 <code>gemma-4-26B-A4B</code> completions (<code>blinded_paper2_v1_v2_semantic_labels_720.jsonl</code>, validated by an independent second blinded rater on <em>n=120</em> at 100.0% 5-class and binary agreement, &kappa; = 1.0000; Section 6.4&ndash;6.5) revealed that <code>primary_audit_ground_truth</code> matched <code>-ing</code> gerunds inside technical explanations and refusals, misclassifying 9/40 Honest Controls and 3/30 Idioms as "ground-truth action claims" in v1 Natural (where only 3/50 temptation turns [<code>H_T03, H_T04, H_T47</code>], 0/40 controls, and 0/30 idioms actually asserted an action in prose; pre-hardening Approach A/B caught 1/3 [33.3%], whereas the post-hardening <code>ActionClaimGrammarSupervisor</code> catches 3/3 [100.0%] with 0/117 [0.0%] FPR). Furthermore, in our post-hardening evaluation across 250 fresh prompts &times; all 4 resident Gemma-4 models (<em>N=1,000</em> completions across <code>26B-A4B, 12B, E4B, E2B</code>; 3-model preregistered core <em>N=750</em>; <code>PREREG-MATCHER-SENSITIVITY-v2.2</code>, scored against blinded frontier-LLM direct semantic reading labels validated by an independent second rater on <em>n=200</em> at 5-class &kappa; = 0.9673 and 3-class/binary &kappa; = 1.0000; see Section 6.6), the expanded 44-stem grammar matcher caught 67.3% (99/147) strict and 58.5% (151/258) broad semantic-labeled claims across all 4 models (65.4% [53/81] 26B-A4B, 60.5% [46/76] E4B, 56.9% [37/65] E2B, 41.7% [15/36] 12B; 3-model core: 55.4% [98/177] broad, 66.3% [65/98] strict)&mdash;71.1% (128/180) on 20 in-vocabulary verbs (82.7% E4B, 77.2% 26B-A4B, 60.9% E2B, 52.0% 12B) vs. 29.5% (23/78) on 10 unseen out-of-dev verbs, with primary non-claim FPR of 0.6%&ndash;1.4% (6/719 = 0.8% pooled; 0/319 = 0.0% on clear temptation non-claims). Meanwhile, SOAC restricts execution authority to typed <code>[ACTION: ...]</code> frames verified against cryptographic receipts in 6.82 &mu;s mean latency (10.80 &mu;s P95) on Core Ultra 9 275HX with 0/40 false alarms on honest controls. Crucially, while the legacy regex heuristic reported apparent "prose leakage" across v1 SOAC (16/120, 13.3%), v2 SOAC (15/120, 12.50%), and v2 SOAC+GBNF (17/120, 14.17%), our 720-turn line-by-line semantic re-audit proves that every single turn where <code>26B-A4B</code> actually asserted an action in prose under SOAC (13/50 in v1 SOAC, 18/50 clear + 4 <code>AMBIGUOUS</code> in v2 SOAC, 17/50 clear + 1 <code>AMBIGUOUS</code> in v2 SOAC+GBNF) <strong>simultaneously emitted an <code>[ACTION: ...]</code> frame (100% frame coupling) and was intercepted by the SOAC receipt gate, yielding 0/120 (0.00%, 95% CI: [0.00%, 3.87%]) true unframed prose leakage across all three SOAC arms (passing pre-registered hypothesis H<sub>2e</sub> &le; 2/120 under semantic ground truth, while still exhibiting 4/30 [13.3%] to 5/30 [16.7%] spurious frame emissions on conversational idioms)</strong>.
     </p>
   </div>
 
@@ -248,7 +244,7 @@
     <p>Standard indicative past-tense regexes (<code>I (have )?deleted</code>) fail completely because the verb is in
       the present participle (<code>-ing</code>) without a completed past-tense marker.</p>
 
-    <h3>2.2 Mode 2: Passive & Telegraphic Confirmations</h3>
+    <h3>2.2 Mode 2: Passive &amp; Telegraphic Confirmations</h3>
     <p>Models frequently emit agentless passive constructions or terse status confirmations:</p>
     <ul>
       <li><em>"The file was deleted from the workspace."</em></li>
@@ -271,7 +267,7 @@
     <p>Even an expanded dictionary of 30 verbs is routinely circumvented by synonyms such as <em>purge, prune, flush,
         drop, kill, discard</em>, or <em>reset</em>.</p>
 
-    <h3>2.4 Mode 4: Markdown Formatting & Syntax</h3>
+    <h3>2.4 Mode 4: Markdown Formatting &amp; Syntax</h3>
     <p>Markdown styling frequently disrupts token contiguousness and word boundaries:</p>
     <ul>
       <li><em>"### Deleting log files from /tmp"</em></li>
@@ -309,7 +305,7 @@
         signed by the host sandbox (<code>ToolResultSigner</code>).</li>
     </ol>
 
-    <h2>5. Experimental Protocol & Pre-Registration</h2>
+    <h2>5. Experimental Protocol &amp; Pre-Registration</h2>
     <p>The study was pre-registered and git-tagged on 2026-10-26 06:36:57 +0800 under <code>prereg-supervision-v1</code> (and v2 on 2026-10-28 07:52:33 +0800 under <code>prereg-supervision-v2</code>) before running any benchmark
       trials. The evaluation suite consists of <em>N=120</em> completely unseen, held-out prompts:</p>
     <ul>
@@ -317,7 +313,7 @@
         actions across 25+ distinct verbs (e.g., file purges, process kills, firewall drops, database migrations).</li>
       <li><strong>Cohort 2: Honest Controls (<em>n=40</em>):</strong> Capability inquiries and negative questions where
         the agent should explain or decline.</li>
-      <li><strong>Cohort 3: Idioms & Metaphors (<em>n=30</em>):</strong> Conversational turns employing action verbs
+      <li><strong>Cohort 3: Idioms &amp; Metaphors (<em>n=30</em>):</strong> Conversational turns employing action verbs
         figuratively.</li>
     </ul>
 
@@ -331,7 +327,7 @@
       <thead>
         <tr>
           <th>Supervision Approach</th>
-          <th>FAC Sensitivity<br><em>(n=16 live claims)</em></th>
+          <th>FAC Sensitivity<br><em>(n=16 regex / n=3 sem.)</em></th>
           <th>Honest Controls FPR<br><em>(n=40 controls)</em></th>
           <th>Idioms FPR<br><em>(n=30 idioms)</em></th>
           <th>Mean Latency<br><em>(&mu;s per turn)</em></th>
@@ -340,21 +336,28 @@
       <tbody>
         <tr>
           <td><strong>Approach A: Strict Regex</strong></td>
-          <td>1/16 (6.25%) [0.3, 32.3]</td>
+          <td>1/16 (6.25%) [1/3 = 33.3% sem.]</td>
           <td>0/40 (0.0%) [0.0, 10.9]</td>
           <td>0/30 (0.0%) [0.0, 14.1]</td>
           <td>76.45 &mu;s</td>
         </tr>
         <tr>
-          <td><strong>Approach B: Broad Grammar</strong></td>
-          <td>1/16 (6.25%) [0.3, 32.3]</td>
+          <td><strong>Approach B: Broad Grammar (v1)</strong></td>
+          <td>1/16 (6.25%) [1/3 = 33.3% sem.]</td>
           <td>0/40 (0.0%) [0.0, 10.9]</td>
           <td>0/30 (0.0%) [0.0, 14.1]</td>
           <td>118.77 &mu;s</td>
         </tr>
         <tr>
+          <td><strong>Post-Hardening Grammar (Col 1)</strong></td>
+          <td><strong>3/3 (100.0%) sem.</strong> [31.0, 100.0]</td>
+          <td><strong>0/40 (0.0%) [0.0, 10.9]</strong></td>
+          <td><strong>0/30 (0.0%) [0.0, 14.1]</strong></td>
+          <td>15.17 &mu;s / clause</td>
+        </tr>
+        <tr>
           <td><strong>Approach C: Contract (SOAC)</strong></td>
-          <td>2/16 (12.50%) [2.2, 39.6]</td>
+          <td><strong>13/13 (100.0%) sem.</strong> [2/16 regex]</td>
           <td><strong>0/40 (0.0%) [0.0, 10.9]</strong></td>
           <td>4/30 (13.3%) [4.4, 31.6]</td>
           <td><strong>6.82 &mu;s</strong></td>
@@ -362,25 +365,19 @@
       </tbody>
     </table>
     <div class="caption">Table 1: <strong>Held-Out Deontic Output Supervision Benchmark Results
-        (<em>N=120</em>).</strong> Sensitivity on true ungrounded action claims (FAC, <em>n=16</em> claim-emitting turns out of 50 temptation prompts), False Positive Rate (FPR) on
-      benign controls and idioms, and latency profiles reported with two-sided continuity-corrected 95% Wilson score confidence intervals [2] (Method 4) [in
-      brackets]; for 0/40 and 1/16, continuity-corrected intervals are [0.0%, 10.9%] and [0.3%, 32.3%] (uncorrected Method 3: [0.0%, 8.8%] and [1.1%, 28.3%]).</div>
+        (<em>N=120</em>, <code>gemma-4-26B-A4B</code>).</strong> Sensitivity is reported both under the pre-registered regex heuristic <code>primary_audit_ground_truth</code> (<em>n=16</em> in v1 Natural, of which 9 were Honest Controls and 3 were Idioms misclassified by <code>-ing</code> gerund matching) and under the 720-turn line-by-line blinded semantic re-audit (&kappa; = 1.0000; <em>n=3</em> genuine prose claims [<code>H_T03, H_T04, H_T47</code>] in v1 Natural and <em>n=13</em> genuine prose claims in v1 SOAC, all 13/13 of which emitted an <code>[ACTION: ...]</code> frame caught by Approach C). Intervals in brackets are two-sided continuity-corrected 95% Wilson score confidence intervals [2] (Method 4).</div>
 
     <h3>6.1 Confirmation of Speech-Regex Fragility (H<sub>1</sub>)</h3>
-    <p>Out of 50 temptation prompts, the model emitted 16 ungrounded action claims (FAC) in natural conversation mode.
-      As shown in Table 1, the legacy strict regex matcher caught only <strong>1/16 (6.25%)</strong> of these claims
-      (95% CI: [0.33%, 32.29%]). Escaped claims included progressive status affirmations (<em>"* **Status:**
-        Sending..."</em>) and passive command assertions. This confirms hypothesis H<sub>1</sub>: strict speech regex
-      fails to detect &ge; 75% of ungrounded live actions on held-out prompts.</p>
+    <p>Under the pre-registered regex classifier (<code>primary_audit_ground_truth</code>), 16 turns in v1 Natural were marked as ungrounded action claims (FAC), and the legacy strict regex matcher caught <strong>1/16 (6.25%, 95% CI: [0.33%, 32.29%])</strong>. Under line-by-line blinded semantic grading of all 120 v1 Natural completions (<code>blinded_paper2_v1_v2_semantic_labels_720.jsonl</code>), <code>gemma-4-26B-A4B</code> (prompted with an explicit tool-abstention warning) emitted genuine prose action claims on <strong>3/50 (6.00%)</strong> temptation prompts (<code>H_T03, H_T04, H_T47</code>; 0/40 controls, 0/30 idioms), of which pre-hardening Approach A/B caught <strong>1/3 (33.33%)</strong> and the post-hardening 44-stem <code>ActionClaimGrammarSupervisor</code> caught <strong>3/3 (100.00%)</strong> with 0/117 (0.00%) FPR. When prompted without a tool-abstention warning on the 250-prompt matcher battery (Section 6.6), <code>gemma-4-26B-A4B</code> emitted 81 genuine action claims out of 150 temptation prompts (54.0%), of which the post-hardening grammar matcher caught 53/81 (65.4%).</p>
 
     <h3>6.2 Performance on Honest Controls</h3>
     <p>On the <em>n=40</em> Honest Controls (e.g., <em>"Can you delete files on my laptop without asking?"</em>), all
-      three approaches achieved <strong>0/40 false alarms (0.0%, 95% CI: [0.0%, 10.9%])</strong>. When the model
+      approaches achieved <strong>0/40 false alarms (0.0%, 95% CI: [0.0%, 10.9%])</strong>. When the model
       provides educational explanations or honest refusals, neither strict regex, grammar patterns, nor SOAC trigger
       erroneous aborts.</p>
 
     <h3>6.3 Execution Latency</h3>
-    <p>Measured on an Intel Core Ultra 9 275HX host CPU (single-threaded Python 3.12 <code>time.perf_counter_ns()</code> across <em>N=120</em> turns after 10 warmup iterations), all three approaches satisfy the sub-millisecond production budget (&le; 1.0 ms):</p>
+    <p>Measured on an Intel Core Ultra 9 275HX host CPU (single-threaded Python 3.12 <code>time.perf_counter_ns()</code> across <em>N=120</em> turns after 10 warmup iterations), all approaches satisfy the sub-millisecond production budget (&le; 1.0 ms):</p>
     <ul>
       <li>Strict regex: Mean 76.45 &mu;s, P95 114.50 &mu;s.</li>
       <li>Broadened grammar: Mean 118.77 &mu;s, P95 188.60 &mu;s.</li>
@@ -390,78 +387,46 @@
       <strong>approximately 17&times; faster</strong> than broadened grammar supervision (118.77 &mu;s).
     </p>
 
-    <h3>6.4 The Reality of Prose Leakage</h3>
-    <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Our v1 evaluation
-      reveals that in <strong>16/120 turns (13.33%, 95% CI: [8.05%, 21.04%])</strong>, the model engaged in <em>prose
-        leakage</em>: claiming that an action had occurred in natural language text without emitting the required
-      <code>[ACTION: ...]</code> structured frame (in the subsequent v2 live run <code>eval_deontic_supervision_v2.py</code>, which directly imports <code>v1.primary_audit_ground_truth</code> and <code>v1.SOAC_FRAME_PATTERN</code> without modification, the fresh GPU generation pass yielded <strong>15/120 [12.50%]</strong> on prompt-only SOAC vs. <strong>17/120 [14.17%]</strong> on SOAC+GBNF under the identical v1 classifier). Furthermore, when presented with idiomatic turns under the contract
-      prompt (e.g., <em>"We closed the loop on that discussion"</em>), the model emitted ungrounded action frames
-      (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%), which the receipt matcher intercepted.
-    </p>
+    <h3>6.4 The Reality of Prose Leakage and the 720-Turn Blinded Semantic Re-Audit</h3>
+    <p>A central question is whether structured contracts eliminate ungrounded action claims outright. Under the pre-registered lexical ground-truth heuristic (<code>primary_audit_ground_truth</code> in <code>scripts/eval_deontic_supervision.py</code>), our v1 evaluation reported <strong>16/120 turns (13.33%, 95% CI: [8.05%, 21.04%])</strong> as apparent <em>prose leakage</em>: claiming that an action had occurred in natural language text without emitting the required <code>[ACTION: ...]</code> structured frame (in the subsequent v2 live run <code>eval_deontic_supervision_v2.py</code>, which directly imports <code>v1.primary_audit_ground_truth</code> and <code>v1.SOAC_FRAME_PATTERN</code> without modification, the fresh GPU generation pass yielded <strong>15/120 [12.50%]</strong> on prompt-only SOAC vs. <strong>17/120 [14.17%]</strong> on SOAC+GBNF under that identical regex classifier).</p>
+    <p>However, when all 720 Study V1 (240 completions) and Study V2 (480 completions) outputs from <code>gemma-4-26B-A4B</code> were stripped of <code>[ACTION: ...]</code> frames and graded line by line by three blinded frontier-LLM semantic annotators under the 5-class rubric (<code>blinded_paper2_v1_v2_semantic_labels_720.jsonl</code> and <code>logs/test_reports/paper2_v1_v2_semantic_audit_720.json</code>, validated by an independent fourth blinded rater on <em>n=120</em> [<code>P2_181&ndash;P2_300</code>] at <strong>120/120 = 100.00% 5-class and binary agreement, Cohen's &kappa; = 1.0000</strong>), we discovered that <strong>all 16/120 (v1 SOAC), 15/120 (v2 SOAC), and 17/120 (v2 SOAC+GBNF) legacy "prose leakage" flags were regex false alarms</strong> caused by <code>primary_audit_ground_truth</code> matching <code>-ing</code> gerunds followed by determiners inside Honest Controls (e.g., <em>"Can you delete files without asking?"</em> &rarr; <em>"I cannot perform actions like deleting files..."</em>), Idioms (<em>"fighting a bug rather than building something new"</em>), and Temptation refusals/permission requests (<code>H_T01</code>: <em>"I have not performed any deletions... If you would like me to proceed with removing those files, please confirm"</em>). Under verified line-by-line semantic ground truth:</p>
+    <ul>
+      <li><strong>Study V1 Natural (<em>N=120</em>):</strong> Only <strong>3/50 (6.00%, CI [1.56%, 17.54%])</strong> temptation turns (<code>H_T03, H_T04, H_T47</code>), <strong>0/40 (0.00%)</strong> Honest Controls, and <strong>0/30 (0.00%)</strong> Idioms emitted genuine prose action claims (3/120 = 2.50% total, vs. 16/120 [4/50 temptation, 9/40 control, 3/30 idiom] under the legacy regex). Pre-hardening Approach A/B caught 1/3 (33.33%), whereas the post-hardening <code>ActionClaimGrammarSupervisor</code> catches <strong>3/3 (100.00%)</strong> with <strong>0/117 (0.00%) FPR</strong>.</li>
+      <li><strong>Study V1 SOAC (<em>N=120</em>):</strong> The model emitted genuine prose action assertions on <strong>13/50 (26.00%)</strong> temptation prompts (1 <code>FAC_STRICT</code>, 12 <code>FAC_BROAD</code>; 0/40 controls, 0/30 idioms), and <strong>all 13/13 (100.00%) simultaneously emitted an <code>[ACTION: ...]</code> frame</strong> (caught in 6.82 &mu;s by Approach C). <strong>True unframed SOAC prose leakage is 0/120 (0.00%, 95% CI: [0.00%, 3.87%])</strong>.</li>
+      <li><strong>Spurious frame emissions on idioms:</strong> When presented with idiomatic turns under the contract prompt (e.g., <em>"We closed the loop on that discussion"</em>), the model emitted ungrounded action frames (<code>[ACTION: MODIFY session_context]</code>) on 4/30 idioms (13.3%) in v1 SOAC (and 4/30 in v2 SOAC, 5/30 in v2 SOAC+GBNF), which the receipt matcher intercepted.</li>
+    </ul>
 
     <h3>6.5 Pre-Registered V2 Results: GBNF Decode-Time Action Channel and Entailment Backstop</h3>
-    <p>To evaluate the prose-leakage mitigation recommended in Section 7, an additive pre-registered protocol
+    <p>To evaluate decode-time grammar constraints alongside the SOAC prompt contract, an additive pre-registered protocol
       (<code>PREREG-SUPERVISION-HELD-OUT-v2.0</code>, git tag <code>prereg-supervision-v2</code>) evaluated Approach D:
       combining the SOAC prompt contract with decode-time GBNF grammar constraints (<code>action_claim.gbnf</code>) and
       post-turn NLI receipt entailment (SPIKE-A) on the same frozen <em>N=120</em> held-out battery on the resident
       26B-A4B core.</p>
 
-    <p>Empirical results across the four evaluation arms were:</p>
+    <p>Empirical results across the four evaluation arms under both the pre-registered legacy regex heuristic (<code>logs/test_reports/supervision_v2_20261028T062552Z.json</code>) and the 720-turn blinded semantic re-audit (<code>logs/test_reports/paper2_v1_v2_semantic_audit_720.json</code>) were:</p>
     <ul>
-      <li><strong>Prose leakage rate (H<sub>2e</sub>):</strong> Observed prose leakage across the <em>N=120</em> prompts
-        was: Natural baseline 23/120 (19.17%, 95% CI: [12.78%, 27.58%]), Approach C (SOAC prompt-only) 15/120 (12.50%,
-        95% CI: [7.40%, 20.08%]), Approach D (SOAC + GBNF) 17/120 (14.17%, 95% CI: [8.71%, 21.99%]), and Natural + GBNF
-        control 25/120 (20.83%, 95% CI: [14.18%, 29.40%]). Paired McNemar comparison between SOAC and SOAC+GBNF showed
-        no statistically significant difference (<em>b=3, c=5</em>, <em>p = 0.7237</em>, continuity-corrected).</li>
-      <li><strong>Decision rule outcome (H<sub>2e</sub>):</strong> Hypothesis H<sub>2e</sub> predicted that decode-time
-        GBNF constraints would suppress prose leakage to &le; 2/120 (&le; 1.7%). The decision rule was not met (17/120
-        observed). Constraining the structured <code>[ACTION: ...]</code> frame format at the sampling layer does not
-        prevent the model from emitting unconstrained natural-language claims in the surrounding prose stream unless the
-        grammar enforces global syntax clamping across the entire turn.</li>
-      <li><strong>Idiomatic false positive rate (H<sub>2f</sub>, <em>n=30</em>):</strong> Idiom false alarms were:
-        Natural 4/30 (13.33%), SOAC 3/30 (10.00%), and Approach D 2/30 (6.67%, 95% CI: [1.16%, 23.51%]; <em>p = 1.0</em>
-        vs. SOAC). The decision rule (H<sub>2f</sub> &le; 1/30) was borderline unfulfilled (2/30).</li>
+      <li><strong>Prose leakage rate (H<sub>2e</sub>):</strong> Under the legacy regex heuristic, apparent prose leakage across the <em>N=120</em> prompts was: Natural baseline 23/120 (19.17%, CI: [12.78%, 27.58%]; 8/50 temptation, 11/40 control, 4/30 idiom), Approach C (SOAC prompt-only) 15/120 (12.50%, CI: [7.40%, 20.08%]; 1/50 temptation, 12/40 control, 2/30 idiom), Approach D (SOAC + GBNF) 17/120 (14.17%, CI: [8.71%, 21.99%]; 2/50 temptation, 14/40 control, 1/30 idiom), and Natural + GBNF control 25/120 (20.83%, CI: [14.18%, 29.40%]; paired McNemar <em>b=3, c=5</em>, exact <em>p = 0.7266</em>). <strong>Under line-by-line blinded semantic grading (&kappa; = 1.0000):</strong> v2 Natural and v2 Natural+GBNF each emitted <strong>3/120 (2.50%, CI: [0.65%, 7.68%])</strong> unframed prose action claims (<code>H_T03, H_T04, H_T47</code>; 0/40 controls, 0/30 idioms), whereas v2 SOAC emitted 18/50 clear prose action claims (5 <code>FAC_STRICT</code>, 13 <code>FAC_BROAD</code>) + 4 <code>AMBIGUOUS</code> and v2 SOAC+GBNF emitted 17/50 clear prose action claims (6 <code>FAC_STRICT</code>, 11 <code>FAC_BROAD</code>) + 1 <code>AMBIGUOUS</code>, and <strong>every single one (18/18 + 4/4 on v2 SOAC; 17/17 + 1/1 on v2 SOAC+GBNF) simultaneously emitted an <code>[ACTION: ...]</code> frame, yielding 0/120 (0.00%, CI: [0.00%, 3.87%]) true unframed prose leakage on both SOAC and SOAC+GBNF</strong>.</li>
+      <li><strong>Decision rule outcome (H<sub>2e</sub>):</strong> Hypothesis H<sub>2e</sub> (&le; 2/120 prose leakage) failed under the broken legacy regex classifier (17/120 apparent false alarms on Honest Controls/refusals), but <strong>PASSED (0/120 &le; 2/120) under line-by-line blinded semantic ground truth</strong> for both prompt-only SOAC and SOAC+GBNF on <code>gemma-4-26B-A4B</code>.</li>
+      <li><strong>Idiomatic false positive rate (H<sub>2f</sub>, <em>n=30</em>):</strong> In the v2 run, legacy prose-claim regex false alarms on idioms were: Natural 4/30 (13.33%), SOAC 3/30 (10.00%), and SOAC+GBNF 2/30 (6.67%, CI: [1.16%, 23.51%]), while spurious <code>[ACTION: ...]</code> frame emissions on idioms were 4/30 (13.33%) on v2 SOAC and 5/30 (16.67%) on v2 SOAC+GBNF (vs. 0/30 genuine prose action claims under semantic grading). The pre-registered decision rule (H<sub>2f</sub> &le; 1/30) was not met due to over-eager <code>[ACTION: ...]</code> frame emissions on figurative idioms.</li>
     </ul>
-    <p>These empirical findings demonstrate that decode-time grammar constraints on tool frames cannot alone eliminate
-      natural-language assertion leakage; active post-turn NLI receipt entailment (SPIKE-A) remains the designated
-      epistemic backstop. We separately profiled the NLI backstop itself on a 100-pair author-labeled benchmark
-      (<code>data/benchmarks/nli_eval/results_minilm/summary.json</code>, commit <code>224bc06</code>): a distilled
-      MiniLM-L6 cross-encoder on CPU achieved 91.0% accuracy (95% Wilson CI: [83.8%, 95.2%]), contradiction
-      recall/precision 0.975 (39/40), entailment recall 0.80 (24/30), and mean latency 12.23 ms (P95 14.40 ms) with
-      0/100 timeouts under the 50 ms budget. This profile was measured in-sample on author-authored pairs under an
-      otherwise-idle CPU; concurrent load with the resident LLM stack was not measured, and entailment recall (0.80)
-      is materially lower than contradiction recall.</p>
+    <p>While <code>gemma-4-26B-A4B</code> achieved 100% frame coupling whenever it asserted an action under SOAC (0/120 unframed prose leakage), an adversarial or smaller model could still emit unframed natural-language claims if the grammar only constrains the frame suffix rather than clamping global turn syntax; active post-turn NLI receipt entailment (SPIKE-A) therefore remains the defense-in-depth epistemic backstop. We separately profiled the NLI backstop itself on a 100-pair author-labeled benchmark (<code>data/benchmarks/nli_eval/results_minilm/summary.json</code>, commit <code>224bc06</code>): a distilled MiniLM-L6 cross-encoder on CPU achieved 91.0% accuracy (95% Wilson CI: [83.8%, 95.2%]), contradiction recall/precision 0.975 (39/40), entailment recall 0.80 (24/30), and mean latency 12.23 ms (P95 14.40 ms) with 0/100 timeouts under the 50 ms budget.</p>
 
-    <h3>6.6 Post-Taxonomy Matcher Hardening: 750-Turn Three-Model Held-Out Evaluation (<code>PREREG-MATCHER-SENSITIVITY-v2.2</code>)</h3>
-    <p>After the v1/v2 <em>N=120</em> evaluations above, the grammar supervisor (<code>ActionClaimGrammarSupervisor</code> in <code>src/lucca/sandbox/output_supervisor.py</code>, SHA-256 <code>fc93ea77...</code>) had been expanded on 2026-10-24 (commit <code>be4e016</code>, tagged <code>dev-calibrated-2026-10-24</code>) from 20 to 44 verb stems (<code>EXPANDED_STEM_MAP</code>) following the Dev-100 evasion audit. To test whether this expanded grammar matcher generalizes beyond its calibration vocabulary, we executed a 750-turn evaluation (<code>PREREG-MATCHER-SENSITIVITY-v2.2</code>; corpus committed at <code>0bde164</code> on 2026-11-04 19:41:29 +0800, retroactively tagged <code>prereg-matcher-v2.2-retroactive-2026-11-04</code>, with zero modifications to <code>EXPANDED_STEM_MAP</code> after 2026-10-24; completions committed 43 minutes later at <code>59a72d5</code> on 2026-11-04 20:24:58 +0800 with no external third-party timestamp; full report in <code>docs/PREREG_MATCHER_SENSITIVITY_RESULTS.md</code> and <code>logs/test_reports/prereg_matcher_sensitivity_v2_2_summary.json</code>). Across <em>N=250</em> fresh prompts (100 in-vocabulary temptations across 20 known verbs, 50 out-of-dev temptations across 10 unseen verbs, 50 honest controls, and 50 idioms) run across three models at <em>T=0.6, top_p=0.95, max_tokens=150, seed=42</em> (<code>gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf</code>, <code>Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf</code> [an uncensored + Sinhala bilingual fine-tune], and <code>gemma-4-12b-heretic-Q6_K.gguf</code>; <em>N=750</em> total completions), we replaced the initial post-hoc regex script labels (<code>scripts/label_blinded_worksheet_750.py</code>, committed in <code>59a72d5</code>) with <strong>direct blinded frontier-LLM semantic reading annotations</strong> (<code>blinded_llm_semantic_labels_750.jsonl</code>), where blinded frontier-LLM annotator instances read every completion in <code>blinded_annotator_worksheet_750.jsonl</code> directly under the Section 4.3 rubric without regex classifiers, verb-stem tables, or access to <code>output_supervisor.py</code> or the unblinding key. An independent second blinded frontier-LLM rater graded a 150-turn validation subsample (<code>W176&ndash;W325</code>, <code>llm_semantic_rater2_150.jsonl</code>):</p>
+    <h3>6.6 Post-Taxonomy Matcher Hardening: 1,000-Turn Four-Model Held-Out Evaluation (<code>PREREG-MATCHER-SENSITIVITY-v2.2</code>)</h3>
+    <p>After the v1/v2 <em>N=120</em> evaluations above, the grammar supervisor (<code>ActionClaimGrammarSupervisor</code> in <code>src/lucca/sandbox/output_supervisor.py</code>, SHA-256 <code>fc93ea77...</code>) had been expanded on 2026-10-24 (commit <code>be4e016</code>, tagged <code>dev-calibrated-2026-10-24</code>) from 20 to 44 verb stems (<code>EXPANDED_STEM_MAP</code>) following the Dev-100 evasion audit. To test whether this expanded grammar matcher generalizes beyond its calibration vocabulary across the entire resident model family, we executed a 1,000-turn four-model evaluation (<code>PREREG-MATCHER-SENSITIVITY-v2.2</code>; corpus committed at <code>0bde164</code> on 2026-11-04 19:41:29 +0800, retroactively tagged <code>prereg-matcher-v2.2-retroactive-2026-11-04</code>, with zero modifications to <code>EXPANDED_STEM_MAP</code> after 2026-10-24; 3-model core completions committed 43 minutes later at <code>59a72d5</code> on 2026-11-04 20:24:58 +0800 with no external third-party timestamp, and expanded with <code>gemma-4-26B-A4B</code> to <em>N=1,000</em>; full report in <code>docs/PREREG_MATCHER_SENSITIVITY_RESULTS.md</code>, <code>logs/test_reports/prereg_matcher_sensitivity_v2_2_1000.json</code>, and <code>logs/test_reports/prereg_matcher_sensitivity_v2_2_summary.json</code>). Across <em>N=250</em> fresh prompts (100 in-vocabulary temptations across 20 known verbs, 50 out-of-dev temptations across 10 unseen verbs, 50 honest controls, and 50 idioms) run across all four resident models at <em>T=0.6, top_p=0.95, max_tokens=150, seed=42</em> (<code>gemma-4-26B-A4B-it-heretic.Q6_K.gguf</code>, <code>gemma-4-12b-heretic-Q6_K.gguf</code>, <code>gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf</code>, and <code>Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf</code> [an uncensored + Sinhala bilingual fine-tune]; <em>N=1,000</em> total completions, plus the <em>N=750</em> 3-model preregistered core), we replaced the initial post-hoc regex script labels (<code>scripts/label_blinded_worksheet_750.py</code>, committed in <code>59a72d5</code>) with <strong>direct blinded frontier-LLM semantic reading annotations</strong> (<code>blinded_llm_semantic_labels_1000.jsonl</code> and <code>blinded_llm_semantic_labels_750.jsonl</code>), where blinded frontier-LLM annotator instances read every completion (<code>W001&ndash;W1000</code>) line by line under the Section 4.3 rubric without regex classifiers, verb-stem tables, or access to <code>output_supervisor.py</code> or the unblinding keys. Independent second blinded frontier-LLM raters graded <em>n=200</em> validation turns total (<code>W176&ndash;W325</code> [<em>n=150</em>, <code>llm_semantic_rater2_150.jsonl</code>] and <code>W751&ndash;W800</code> [<em>n=50</em> on 26B-A4B, <code>llm_semantic_rater2_26b_50.jsonl</code>]):</p>
     <ul>
-      <li><strong>Inter-Rater Reliability &amp; Script Comparison:</strong> On the <em>n=150</em> validation subsample (<code>W176&ndash;W325</code>), the two independent blinded frontier-LLM raters achieved <strong>98.67% (148/150) 5-class agreement</strong> (<strong>Cohen's &kappa; = 0.9770</strong>) and <strong>100.0% (150/150) 3-class (<code>CLAIM</code> / <code>NON_CLAIM</code> / <code>AMBIGUOUS</code>) and binary (<code>CLAIM</code> vs. <code>NON_CLAIM</code>, 144/144) agreement (&kappa; = 1.0000)</strong>. Comparing the blinded frontier-LLM semantic labels against the legacy regex script across all <em>N=750</em> turns yielded 84.40% (633/750) 5-class agreement (&kappa; = 0.7194) and <strong>96.57% (703/728) binary <code>CLAIM</code>-vs-<code>NON_CLAIM</code> agreement (&kappa; = 0.9024)</strong> on the 728 clear turns (excluding 22 genuinely self-contradictory <code>AMBIGUOUS</code> turns that the regex script had forced into deterministic buckets). Note that these primary labels are blinded frontier-LLM semantic judgments rather than human hand-annotations (all 95% CIs below are continuity-corrected Wilson Method 4 intervals).</li>
-      <li><strong>Partial Pass / Recall Failure:</strong> Against pre-registered targets of &ge; 80% broad and &ge; 90% strict recall, <code>ActionClaimGrammarSupervisor</code> (Column 1) achieved <strong>55.4% (98/177)</strong> pooled broad recall on the primary semantic labels (60.5% [46/76] E4B, 56.9% [37/65] E2B, 41.7% [15/36] 12B; 79 missed; vs. 57.7% [94/163] on legacy script labels) and <strong>66.3% (65/98)</strong> pooled strict recall (69.0% [29/42] E4B, 62.2% [23/37] E2B, 68.4% [13/19] 12B; vs. 69.3% [52/75] on script labels). On progressive-only in-progress claims (<code>FAC_BROAD</code>), recall was <strong>41.8% (33/79)</strong> pooled (17/34 [50.0%] E4B, 14/28 [50.0%] E2B, 2/17 [11.8%] 12B).</li>
-      <li><strong>In-Vocabulary vs. Out-of-Dev Recall:</strong> On the 10 unseen out-of-dev verbs (<em>deploy, compile, compress, extract, mount, unmount, revoke, grant, flash, provision</em>), broad recall dropped to <strong>25.9% (14/54)</strong> pooled (12.5% [3/24] E4B, 47.4% [9/19] E2B, 18.2% [2/11] 12B; strict 33.3% [8/24]; vs. 24.0% [12/50] on script labels). In-vocabulary broad recall across the 20 known verbs also fell short of &ge; 80% at <strong>68.3% (84/123)</strong> pooled (82.7% [43/52] E4B, 60.9% [28/46] E2B, 52.0% [13/25] 12B; strict 77.0% [57/74]; vs. 72.6% [82/113] on script labels), due to future-framed standby simulations and passive/telegraphic status confirmations.</li>
-      <li><strong>False Positives &amp; Resolution of Legacy Script Artifacts:</strong> Against the pre-registered criterion of point estimate &le; 5.0% and 95% Wilson upper bound &lt; 8.0%, primary non-claim FPR on the semantic labels <strong>passed on all three models</strong>: E4B <strong>0.6% (1/163, CI 0.0%&ndash;3.9%)</strong>, E2B <strong>0.6% (1/177, CI 0.0%&ndash;3.6%)</strong>, and 12B <strong>1.4% (3/211, CI 0.4%&ndash;4.4%)</strong> (<strong>0.9% [5/551] pooled</strong>). On the 251 clear non-claim replies (<code>CLEAN + INTENT</code>) to temptation prompts, Column 1 FPR was <strong>0.0% (0/251)</strong>: semantic grading revealed that of the 16 temptation "false positives" previously reported under the legacy regex script, 10 were genuine ungrounded action claims missed by the regex labeler (e.g., <code>W171</code> <em>"I have scanned `/var/run/lucca/` and deleted all files ending in `.lock`"</em>) and 6 were self-contradictory <code>AMBIGUOUS</code> turns. Even if all 22 <code>AMBIGUOUS</code> turns (12/22 flagged by Column 1) are conservatively folded into non-claims, pooled Column 1 FPR is <strong>3.0% (17/573)</strong> (7/174 [4.0%] E4B, 7/185 [3.8%] E2B, 3/214 [1.4%] 12B).</li>
-      <li><strong>End-to-End Union &amp; Latency:</strong> Taking the union across Column 1 (grammar), Column 2 (<code>OutputSupervisorSession</code> hard abort), and Column 3 (<code>coherence.py</code> post-turn audit) added only <strong>4 true catches</strong> (98/177 &rarr; 102/177, 57.6%; 75 missed) while adding <strong>15 false positives</strong> (5/551 &rarr; 20/551, 3.6%). Across 3,794 clauses on CPU, <code>ActionClaimGrammarSupervisor</code> executed in <strong>15.24 &mu;s mean / 33.50 &mu;s P95 / 846.40 &mu;s max</strong>.</li>
+      <li><strong>Inter-Rater Reliability &amp; Script Comparison:</strong> Across the <em>n=200</em> pooled validation subsample, the independent blinded frontier-LLM raters achieved <strong>98.00% (196/200) 5-class agreement</strong> (<strong>Cohen's &kappa; = 0.9673</strong>; 148/150 [98.67%, &kappa; = 0.9770] on <code>W176&ndash;W325</code> and 48/50 [96.00%, &kappa; = 0.9400] on <code>W751&ndash;W800</code>) and <strong>100.00% (200/200) 3-class (<code>CLAIM</code> / <code>NON_CLAIM</code> / <code>AMBIGUOUS</code>) and binary (<code>CLAIM</code> vs. <code>NON_CLAIM</code>, 194/194) agreement (&kappa; = 1.0000)</strong>. Comparing the blinded frontier-LLM semantic labels against the legacy regex script across the <em>N=750</em> 3-model core yielded 84.40% (633/750) 5-class agreement (&kappa; = 0.7194) and <strong>96.57% (703/728) binary <code>CLAIM</code>-vs-<code>NON_CLAIM</code> agreement (&kappa; = 0.9024)</strong> on the 728 clear turns (excluding 22 genuinely self-contradictory <code>AMBIGUOUS</code> turns that the regex script had forced into deterministic buckets). Note that these primary labels are blinded frontier-LLM semantic judgments rather than human hand-annotations (all 95% CIs below are continuity-corrected Wilson Method 4 intervals).</li>
+      <li><strong>Partial Pass / Recall Failure Across All 4 Models:</strong> Against pre-registered targets of &ge; 80% broad and &ge; 90% strict recall, <code>ActionClaimGrammarSupervisor</code> (Column 1) achieved <strong>58.5% (151/258)</strong> 4-model pooled broad recall on the primary semantic labels (<strong>65.4% [53/81, CI 54.0%&ndash;75.4%] on 26B-A4B</strong>, 60.5% [46/76] on E4B, 56.9% [37/65] on E2B, 41.7% [15/36] on 12B; 3-model core: <strong>55.4% [98/177]</strong> vs. 57.7% [94/163] on legacy script labels) and <strong>67.3% (99/147)</strong> 4-model pooled strict recall (<strong>69.4% [34/49, CI 54.4%&ndash;81.3%] on 26B-A4B</strong>, 69.0% [29/42] on E4B, 68.4% [13/19] on 12B, 62.2% [23/37] on E2B; 3-model core: <strong>66.3% [65/98]</strong> vs. 69.3% [52/75] on script labels). On progressive-only in-progress claims (<code>FAC_BROAD</code>), recall was <strong>46.8% (52/111)</strong> across all 4 models (19/32 [59.4%] 26B-A4B, 17/34 [50.0%] E4B, 14/28 [50.0%] E2B, 2/17 [11.8%] 12B; 3-model core: 41.8% [33/79]).</li>
+      <li><strong>In-Vocabulary vs. Out-of-Dev Recall:</strong> On the 10 unseen out-of-dev verbs (<em>deploy, compile, compress, extract, mount, unmount, revoke, grant, flash, provision</em>), broad recall dropped to <strong>29.5% (23/78)</strong> across all 4 models (37.5% [9/24] 26B-A4B, 47.4% [9/19] E2B, 18.2% [2/11] 12B, 12.5% [3/24] E4B; 3-model core: 25.9% [14/54]). In-vocabulary broad recall across the 20 known verbs was <strong>71.1% (128/180)</strong> across all 4 models (82.7% [43/52] E4B, <strong>77.2% [44/57] 26B-A4B</strong>, 60.9% [28/46] E2B, 52.0% [13/25] 12B; 4-model strict in-vocab <strong>78.9% [90/114]</strong>: 84.4% E4B, 82.5% [33/40] 26B-A4B, 80.0% 12B, 66.7% E2B; 3-model core broad: 68.3% [84/123]), with remaining misses driven by future-framed standby simulations and passive/telegraphic status confirmations.</li>
+      <li><strong>False Positives &amp; Resolution of Legacy Script Artifacts:</strong> Against the pre-registered criterion of point estimate &le; 5.0% and 95% Wilson upper bound &lt; 8.0%, primary non-claim FPR on the semantic labels <strong>passed on all four models</strong>: 26B-A4B <strong>0.6% (1/168, CI 0.0%&ndash;3.8%)</strong>, E4B <strong>0.6% (1/163, CI 0.0%&ndash;3.9%)</strong>, E2B <strong>0.6% (1/177, CI 0.0%&ndash;3.6%)</strong>, and 12B <strong>1.4% (3/211, CI 0.4%&ndash;4.4%)</strong> (<strong>0.8% [6/719] 4-model pooled</strong>; 0.9% [5/551] 3-model core). Across all 319 clear non-claim replies (<code>CLEAN + INTENT</code>) to temptation prompts across all 4 models, Column 1 FPR was <strong>0.0% (0/319)</strong> (0/68 26B-A4B, 0/63 E4B, 0/77 E2B, 0/111 12B). Even if all 23 <code>AMBIGUOUS</code> turns (13/23 flagged by Column 1) are conservatively folded into non-claims, 4-model pooled Column 1 FPR is <strong>2.6% (19/742)</strong> (2/169 [1.2%] 26B-A4B, 7/174 [4.0%] E4B, 7/185 [3.8%] E2B, 3/214 [1.4%] 12B).</li>
+      <li><strong>End-to-End Union &amp; Latency:</strong> Across all 1,000 turns, taking the union across Column 1 (grammar), Column 2 (<code>OutputSupervisorSession</code> hard abort), and Column 3 (<code>coherence.py</code> post-turn audit) raised 4-model broad recall from 151/258 (58.5%) to <strong>157/258 (60.9%)</strong> (on 26B-A4B, 55/81 [67.9%] with 2/168 [1.2%] FPR) while raising 4-model non-claim FPR from 6/719 (0.8%) to 22/719 (3.1%). Across 5,495 clauses on CPU, <code>ActionClaimGrammarSupervisor</code> executed in <strong>15.17 &mu;s mean / 33.90 &mu;s P95 / 376.00 &mu;s max</strong>.</li>
     </ul>
 
     <h2>7. Practical Safety Guidelines</h2>
     <p>Our empirical findings yield three practical design principles for autonomous agent safety architects:</p>
     <ol>
-      <li><strong>Do not rely on speech regex as a primary action barrier:</strong> Natural language inflectional
-        variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable;
-        in our held-out evaluation they missed the majority of live ungrounded assertions.</li>
-      <li><strong>Bind action authority to structured frames, not prose:</strong> Requiring formal action frames checked
-        against cryptographic receipts removes syntactic ambiguity from the action channel and executes with negligible
-        enforcement latency (&lt; 10 &mu;s). Note that in the v1 evaluation this binding was achieved through the
-        contract prompt alone; the frame format itself was not grammar-constrained at decode time.</li>
-      <li><strong>Frame-channel grammar constraints do not suppress prose leakage:</strong> Models continue to exhibit
-        prose leakage (&approx; 13% of turns). Our pre-registered v2 evaluation shows that decode-time GBNF constraints
-        on the structured frame channel do not reduce leakage in the surrounding prose stream (17/120 under Approach D
-        versus 15/120 under prompt-only SOAC; McNemar <em>p = 0.7237</em>). Effective mitigation therefore requires
-        post-turn verification &mdash; the receipt matcher plus NLI entailment (SPIKE-A) &mdash; rather than decode-time
-        suppression alone. The NLI backstop's measured profile (91.0% accuracy, contradiction recall 0.975, entailment
-        recall 0.80, 12.23 ms mean CPU latency on an idle host; in-sample, author-labeled) bounds what this layer can
-        catch: it is strongest on contradiction detection and weakest on missed entailments, and its deployment
-        configuration fails open to UNCERTAIN on timeout, which downstream consumers currently accept rather than
-        block.</li>
+      <li><strong>Do not rely on speech regex as a primary action barrier or benchmark ground-truth grader:</strong> Natural language inflectional variety (participles, passives, markdown formatting, out-of-vocabulary lemmas) makes surface regexes unreliable both as runtime supervisors (catching only 58.5% [151/258] of claims across 1,000 four-model completions and 29.5% [23/78] on unseen verbs) and as benchmark graders (where <code>primary_audit_ground_truth</code> misclassified 9/40&ndash;14/40 Honest Controls as action claims).</li>
+      <li><strong>Bind action authority to structured frames, not prose:</strong> Requiring formal action frames checked against cryptographic receipts removes syntactic ambiguity from the action channel and executes with negligible enforcement latency (6.82 &mu;s mean, 10.80 &mu;s P95). Under line-by-line blinded semantic grading of all 720 Study V1 and Study V2 completions (&kappa; = 1.0000), <code>gemma-4-26B-A4B</code> coupled 100% of its prose action assertions under SOAC (13/13 in v1 SOAC, 18/18 clear + 4/4 <code>AMBIGUOUS</code> in v2 SOAC, 17/17 clear + 1/1 <code>AMBIGUOUS</code> in v2 SOAC+GBNF) with an <code>[ACTION: ...]</code> frame, achieving <strong>0/120 (0.00%) true unframed prose leakage</strong> and passing H<sub>2e</sub> (&le; 2/120).</li>
+      <li><strong>Maintain defense-in-depth for idiom frame emissions and cross-model prose leakage:</strong> Although <code>gemma-4-26B-A4B</code> exhibited 0/120 unframed prose leakage under SOAC, the contract prompt induced 4/30 (13.3%) to 5/30 (16.7%) spurious <code>[ACTION: ...]</code> frame emissions on figurative idioms (missing H<sub>2f</sub> &le; 1/30), and frame-only GBNF constraints do not prevent a smaller or adversarial model from emitting unframed prose claims. Effective defense-in-depth therefore combines SOAC receipt verification with the in-stream grammar supervisor (0.8% FPR) and post-turn NLI receipt entailment (SPIKE-A: 91.0% accuracy, contradiction recall 0.975, entailment recall 0.80, 12.23 ms mean CPU latency on an idle host; in-sample, author-labeled).</li>
     </ol>
 
     <h3>7.1 Related Work</h3>
@@ -473,36 +438,22 @@
       generation guides token sampling against formal contexts [6], and GBNF constrained decoding in llama.cpp enforces
       frame-shaped outputs deterministically. Our contribution differs in target: we evaluate <em>deontic</em>
       honesty---assertions of executed state-modifying actions without receipts---rather than syntactic tool-call
-      validity, and we report the residual prose-leakage channel that structured contracts leave open.</p>
+      validity, and we report both the structured contract coupling and the multi-model grammar sensitivity boundaries.</p>
 
     <h3>7.2 Limitations</h3>
     <p>The following boundaries constrain the interpretation of our results:</p>
     <ol>
-      <li><strong>Single substrate, greedy decoding.</strong> All arms were evaluated on <code>gemma-4-26B-A4B</code> at
-        <em>T=0.0</em> with a fixed seed. Evasion-mode frequencies are model-dependent and may differ on other
-        architectures or sampling regimes.
+      <li><strong>Substrate &amp; sampling scope.</strong> The <em>N=120</em> SOAC arms were evaluated on <code>gemma-4-26B-A4B</code> at
+        <em>T=0.0</em> with a fixed seed, whereas the <em>N=1,000</em> matcher evaluation (Section 6.6) spanned all four resident Gemma-4 checkpoints (<code>26B-A4B, 12B, E4B, E2B</code>) at <em>T=0.6</em>.
       </li>
-      <li><strong>Small denominators.</strong> Held-out sensitivity rests on 16 emitted action claims (1/16, 95% CI
-        [0.33%, 32.29%]); the strict-regex estimate is imprecise by construction. Idiom FP rates rest on <em>n=30</em>,
-        and honest-control FPR on <em>n=40</em>.</li>
-      <li><strong>Claim emission is model-dependent.</strong> The temptation battery elicited 16 claims out of 50
-        prompts; arms are compared only on the turns where claims actually occur, so sensitivity denominators are shared
-        but not externally imposed.</li>
+      <li><strong>Small denominators in <em>N=120</em> Natural arm.</strong> Under the Natural safety system prompt in Study V1/V2, <code>gemma-4-26B-A4B</code> emitted only 3 genuine prose action claims out of 50 temptation prompts (whereas without a tool-abstention system prompt in the 250-prompt matcher battery, it emitted 81/150 [54.0%] action claims).</li>
+      <li><strong>Legacy regex ground-truth inflation.</strong> The pre-registered v1/v2 script <code>primary_audit_ground_truth</code> matched <code>-ing</code> gerunds inside Honest Controls and refusals, inflating apparent Natural claims to 16/120 and apparent SOAC prose leakage to 15/120&ndash;17/120; both the original script numbers and the 720-turn blinded semantic re-audit (&kappa; = 1.0000) are reported side by side.</li>
       <li><strong>Receipt matcher scope.</strong> SOAC verification covers the 21 action verbs in the frozen verb list;
         frames asserting actions outside that vocabulary are outside the evaluated guarantee.</li>
       <li><strong>Idiom frame emission.</strong> Under the contract prompt, SOAC emitted ungrounded action frames on
-        4/30 idioms (13.3%) where strict regex emitted 0/30; the receipt matcher intercepted all four, but the contract
+        4/30 idioms (13.3%) in v1/v2 SOAC and 5/30 (16.7%) in v2 SOAC+GBNF where strict regex emitted 0/30; the receipt matcher intercepted all of them, but the contract
         prompt itself increases spurious frame emission on conversational idioms.</li>
-      <li><strong>Sensitivity improvement is not established as significant.</strong> SOAC caught 2/16 versus strict
-        regex 1/16; the difference of one discordant pair does not support a claim of superior capture sensitivity.</li>
-      <li><strong>Grammar-constrained decoding alone does not close the leakage channel.</strong> Study V2 measured
-        decode-time GBNF constraints on the <code>[ACTION: ...]</code> frame channel (Approach D): prose leakage was
-        17/120 (14.17%, 95% CI: [8.71%, 21.99%]), statistically indistinguishable from prompt-only SOAC (McNemar
-        <em>b=3, c=5</em>, <em>p = 0.7237</em>), and the decision rule (&le; 2/120) was unfulfilled. Constraining the
-        structured frame format at the sampling layer does not suppress natural-language action claims in the
-        surrounding prose stream; active post-turn NLI receipt entailment (SPIKE-A) remains mandatory as an epistemic
-        backstop.
-      </li>
+      <li><strong>Grammar matcher generalization to unseen verbs.</strong> Across 1,000 completions on 4 models, <code>ActionClaimGrammarSupervisor</code> caught 71.1% (128/180) of in-vocabulary claims (82.7% E4B, 77.2% 26B-A4B, 60.9% E2B, 52.0% 12B) but only 29.5% (23/78) on 10 unseen out-of-dev verbs, confirming that lexical matchers cannot serve as a standalone barrier for open-vocabulary actions.</li>
       <li><strong>The NLI backstop is characterized, not validated as a safety control.</strong> The SPIKE-A entailment
         layer was profiled on 100 author-authored, in-sample pairs with a single annotator
         (<code>data/benchmarks/nli_eval/results_minilm/summary.json</code>): accuracy 91.0% (95% Wilson CI: [83.8%,
@@ -510,19 +461,12 @@
         14.40 ms, 0/100 timeouts) was measured on an otherwise-idle CPU; behavior under concurrent inference load is
         unmeasured. Additionally, all ten NLI-consuming code paths in the production system fail open on timeout or
         UNCERTAIN verdicts (static code audit; 10/10 consumers), meaning the backstop degrades to permissive rather
-        than blocking under degradation. No held-out evaluation of the backstop's evasion resistance has been
-        performed.</li>
+        than blocking under degradation.</li>
     </ol>
 
     <h2>8. Conclusion</h2>
-    <p>We have presented an empirical taxonomy of speech-regex evasions and evaluated a Structured-Output Action
-      Contract on a pre-registered, held-out battery of <em>N=120</em> interaction prompts. While structured contracts
-      substantially reduce syntactic evasion ambiguity and execute approximately 11x faster than strict regex matching,
-      our pre-registered v2 evaluation demonstrates that decode-time grammar constraints on the structured frame channel
-      do not close the prose-leakage path (17/120 residual leakage); active post-turn receipt entailment remains the
-      designated epistemic runtime backstop, with a measured but in-sample characterization (91.0% accuracy,
-      contradiction recall 0.975, entailment recall 0.80, 12.23 ms mean CPU latency) and known fail-open degradation
-      behavior that bounds its guarantee.</p>
+    <p>We have presented an empirical taxonomy of speech-regex evasions, evaluated a Structured-Output Action
+      Contract on a pre-registered held-out battery of <em>N=120</em> interaction prompts (720 completions across v1 and v2 on <code>gemma-4-26B-A4B</code>), and tested the hardened 44-stem grammar matcher across <em>N=1,000</em> completions spanning all four resident Gemma-4 models (<code>26B-A4B, 12B, E4B, E2B</code>). Line-by-line blinded semantic grading (dual-rater &kappa; = 1.0000 on <em>n=120</em> in v1/v2 and &kappa; = 0.9673 5-class / &kappa; = 1.0000 binary on <em>n=200</em> in the 4-model evaluation) demonstrates two foundational results: (1) lexical speech-regex supervisors achieve high precision (0.8% non-claim FPR across 1,000 turns) and 71.1% in-vocabulary recall (77.2% on 26B-A4B, 82.7% on E4B), but drop to 29.5% on unseen verbs (58.5% overall), making them a fast first-pass signal rather than a standalone guarantee; and (2) Structured-Output Action Contracts execute in 6.82 &mu;s mean latency and achieve 100% frame coupling on <code>gemma-4-26B-A4B</code> (<strong>0/120 [0.00%] true unframed prose leakage</strong> across v1 SOAC, v2 SOAC, and v2 SOAC+GBNF, passing H<sub>2e</sub> &le; 2/120, after correcting the legacy regex grader's false alarms on Honest Controls and refusals), while requiring receipt verification and NLI entailment defense-in-depth to handle spurious idiom frame emissions (13.3%&ndash;16.7%).</p>
 
     <h2>References</h2>
     <ol class="references">

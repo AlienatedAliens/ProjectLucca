@@ -2,15 +2,18 @@
 """
 Phase 2b of PREREG-MATCHER-SENSITIVITY-v2.2:
 Unblinding, Inter-Rater Agreement (Cohen's kappa), & 3-Column Enforcement Scoring
-on 750 Held-Out Completions.
+on 750 Held-Out Completions (3-model preregistered core: E4B, E2B, 12B) AND
+1,000 Held-Out Completions (4-model full GGUF family including Gemma 4 26B-A4B).
 
 Primary Ground Truth:
-  - `blinded_llm_semantic_labels_750.jsonl`: Direct blinded frontier-LLM semantic
-    evaluation of all 750 completions (merged from `llm_semantic_slice_1..3.jsonl`,
-    graded without regex scripts or access to `output_supervisor.py` / unblinding key).
-  - `llm_semantic_rater2_150.jsonl`: Independent second blinded frontier-LLM semantic
-    rater pass over n=150 turns (`W176-W325`) to quantify inter-rater reliability
-    (5-class and binary Claim-vs-Non-Claim Cohen's kappa).
+  - `blinded_llm_semantic_labels_750.jsonl` & `blinded_llm_semantic_labels_1000.jsonl`:
+    Direct blinded frontier-LLM semantic evaluation of all 1,000 completions
+    (merged from `llm_semantic_slice_1..3.jsonl` + `llm_semantic_slice_4_26b.jsonl`,
+    graded line-by-line without regex scripts or access to `output_supervisor.py` / unblinding key).
+  - `llm_semantic_rater2_150.jsonl` (W176-W325, n=150) & `llm_semantic_rater2_26b_50.jsonl`
+    (W751-W800, n=50): Independent second blinded frontier-LLM semantic rater pass over
+    n=200 turns total to quantify inter-rater reliability (5-class, 3-class, and binary
+    Claim-vs-Non-Claim Cohen's kappa).
   - Legacy Comparison: `blinded_annotator_labels_750.jsonl` (deterministic regex
     script-assigned labels from commit `59a72d5`) is retained and compared against
     the semantic labels via Cohen's kappa and side-by-side sensitivity/FPR summaries.
@@ -25,8 +28,10 @@ Evaluates:
      and End-to-End Union (`col1 or col2 or col3`).
   4. Baseline Comparison: Legacy `TruthInReceiptMatcher(enable_grammar_channel=False)`.
 
-Writes JSON reports to `logs/test_reports/prereg_matcher_sensitivity_v2_2_750.json`
-and `logs/test_reports/prereg_matcher_sensitivity_v2_2_summary.json`.
+Writes JSON reports to:
+  - `logs/test_reports/prereg_matcher_sensitivity_v2_2_750.json`
+  - `logs/test_reports/prereg_matcher_sensitivity_v2_2_1000.json`
+  - `logs/test_reports/prereg_matcher_sensitivity_v2_2_summary.json`
 """
 
 from __future__ import annotations
@@ -54,24 +59,36 @@ from lucca.sandbox.output_supervisor import (  # noqa: E402
 
 HELD_DIR = REPO_ROOT / "data" / "benchmarks" / "supervision_heldout"
 BATTERY_PATH = HELD_DIR / "prereg_matcher_battery_250.jsonl"
-RAW_COMPLETIONS_PATH = HELD_DIR / "prereg_matcher_750_raw_completions.jsonl"
-WORKSHEET_PATH = HELD_DIR / "blinded_annotator_worksheet_750.jsonl"
+RAW_COMPLETIONS_750_PATH = HELD_DIR / "prereg_matcher_750_raw_completions.jsonl"
+RAW_COMPLETIONS_26B_PATH = HELD_DIR / "prereg_matcher_26b_250_raw_completions.jsonl"
+WORKSHEET_750_PATH = HELD_DIR / "blinded_annotator_worksheet_750.jsonl"
+WORKSHEET_26B_PATH = HELD_DIR / "blinded_26b_worksheet_250.jsonl"
 
-SLICE_PATHS = [
+SLICE_750_PATHS = [
     HELD_DIR / "llm_semantic_slice_1.jsonl",
     HELD_DIR / "llm_semantic_slice_2.jsonl",
     HELD_DIR / "llm_semantic_slice_3.jsonl",
 ]
-RATER2_PATH = HELD_DIR / "llm_semantic_rater2_150.jsonl"
-LLM_SEMANTIC_LABELS_PATH = HELD_DIR / "blinded_llm_semantic_labels_750.jsonl"
-LEGACY_SCRIPT_LABELS_PATH = HELD_DIR / "blinded_annotator_labels_750.jsonl"
-KEY_PATH = HELD_DIR / "blinded_annotator_key_750.json"
+SLICE_26B_PATH = HELD_DIR / "llm_semantic_slice_4_26b.jsonl"
 
-OUT_JSON_PATH = REPO_ROOT / "logs" / "test_reports" / "prereg_matcher_sensitivity_v2_2_750.json"
+RATER2_150_PATH = HELD_DIR / "llm_semantic_rater2_150.jsonl"
+RATER2_26B_50_PATH = HELD_DIR / "llm_semantic_rater2_26b_50.jsonl"
+
+LLM_SEMANTIC_LABELS_750_PATH = HELD_DIR / "blinded_llm_semantic_labels_750.jsonl"
+LLM_SEMANTIC_LABELS_1000_PATH = HELD_DIR / "blinded_llm_semantic_labels_1000.jsonl"
+LEGACY_SCRIPT_LABELS_PATH = HELD_DIR / "blinded_annotator_labels_750.jsonl"
+
+KEY_750_PATH = HELD_DIR / "blinded_annotator_key_750.json"
+KEY_26B_PATH = HELD_DIR / "blinded_26b_key_250.json"
+
+OUT_JSON_750_PATH = REPO_ROOT / "logs" / "test_reports" / "prereg_matcher_sensitivity_v2_2_750.json"
+OUT_JSON_1000_PATH = REPO_ROOT / "logs" / "test_reports" / "prereg_matcher_sensitivity_v2_2_1000.json"
 OUT_SUMMARY_JSON_PATH = REPO_ROOT / "logs" / "test_reports" / "prereg_matcher_sensitivity_v2_2_summary.json"
 
 CLAUSE_SPLIT_RE = re.compile(r"(?<=[.!?;])\s+|\n+")
 LABEL_CLASSES = ("FAC_STRICT", "FAC_BROAD", "INTENT", "CLEAN", "AMBIGUOUS")
+MODELS_3 = ("gemma-4-e4b", "gemma-4-e2b", "gemma-4-12b")
+MODELS_4 = ("gemma-4-26b-a4b", "gemma-4-12b", "gemma-4-e4b", "gemma-4-e2b")
 
 
 def sha256_file(path: Path) -> str:
@@ -112,6 +129,25 @@ def cohens_kappa(labels_a: list[str], labels_b: list[str], classes: tuple[str, .
         "expected_chance_agreement_pct": round(100.0 * p_e, 2),
         "kappa": round(kappa, 4),
         "confusion_matrix": matrix,
+    }
+
+
+def compute_irr_suite(r1_labels: list[str], r2_labels: list[str], label_desc: str) -> dict[str, Any]:
+    irr_5 = cohens_kappa(r1_labels, r2_labels, LABEL_CLASSES)
+    r1_3 = [to_binary_claim_class(lbl) for lbl in r1_labels]
+    r2_3 = [to_binary_claim_class(lbl) for lbl in r2_labels]
+    irr_3 = cohens_kappa(r1_3, r2_3, ("CLAIM", "NON_CLAIM", "AMBIGUOUS"))
+    clear_pairs = [(a, b) for a, b in zip(r1_3, r2_3) if a != "AMBIGUOUS" and b != "AMBIGUOUS"]
+    irr_bin = cohens_kappa(
+        [p[0] for p in clear_pairs],
+        [p[1] for p in clear_pairs],
+        ("CLAIM", "NON_CLAIM"),
+    )
+    return {
+        "subsample_range": label_desc,
+        "five_class_unweighted": irr_5,
+        "three_class_claim_nonclaim_ambiguous": irr_3,
+        "binary_claim_vs_nonclaim_excluding_ambiguous": irr_bin,
     }
 
 
@@ -257,18 +293,32 @@ def score_subset(
     }
 
 
-def merge_and_load_labels() -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
-    """Merge the 3 blinded frontier-LLM semantic slices with worksheet rows and load rater 2 & legacy labels."""
-    ws_rows = {
+def merge_and_load_labels() -> tuple[
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, dict[str, Any]],
+    dict[str, dict[str, Any]],
+    dict[str, dict[str, Any]],
+]:
+    """Merge the 4 blinded frontier-LLM semantic slices (W001-W1000) and load rater 2 & legacy labels."""
+    ws_750_rows = {
         row["worksheet_id"]: row
-        for line in WORKSHEET_PATH.read_text(encoding="utf-8").splitlines()
+        for line in WORKSHEET_750_PATH.read_text(encoding="utf-8").splitlines()
         if line.strip()
         for row in [json.loads(line)]
     }
-    assert len(ws_rows) == 750, f"Expected 750 worksheet rows, got {len(ws_rows)}"
+    assert len(ws_750_rows) == 750, f"Expected 750 worksheet rows, got {len(ws_750_rows)}"
+
+    ws_26b_rows = {
+        row["worksheet_id"]: row
+        for line in WORKSHEET_26B_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+        for row in [json.loads(line)]
+    }
+    assert len(ws_26b_rows) == 250, f"Expected 250 26b worksheet rows, got {len(ws_26b_rows)}"
 
     slice_rows: dict[str, dict[str, Any]] = {}
-    for sp in SLICE_PATHS:
+    for sp in [*SLICE_750_PATHS, SLICE_26B_PATH]:
         for line in sp.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
@@ -278,14 +328,14 @@ def merge_and_load_labels() -> tuple[list[dict[str, Any]], dict[str, dict[str, A
             assert r["label"] in LABEL_CLASSES, f"Invalid label {r['label']} in {sp}"
             slice_rows[wid] = r
 
-    assert len(slice_rows) == 750, f"Expected 750 merged semantic rows, got {len(slice_rows)}"
+    assert len(slice_rows) == 1000, f"Expected 1000 merged semantic rows, got {len(slice_rows)}"
 
-    merged_list: list[dict[str, Any]] = []
+    merged_750: list[dict[str, Any]] = []
     for idx in range(1, 751):
         wid = f"W{idx:03d}"
-        w_row = ws_rows[wid]
+        w_row = ws_750_rows[wid]
         s_row = slice_rows[wid]
-        merged_list.append(
+        merged_750.append(
             {
                 "worksheet_id": wid,
                 "prompt_id": w_row["prompt_id"],
@@ -297,19 +347,51 @@ def merge_and_load_labels() -> tuple[list[dict[str, Any]], dict[str, dict[str, A
             }
         )
 
-    LLM_SEMANTIC_LABELS_PATH.write_text(
-        "\n".join(json.dumps(r, ensure_ascii=False) for r in merged_list) + "\n",
+    merged_26b: list[dict[str, Any]] = []
+    for idx in range(751, 1001):
+        wid = f"W{idx:03d}"
+        w_row = ws_26b_rows[wid]
+        s_row = slice_rows[wid]
+        merged_26b.append(
+            {
+                "worksheet_id": wid,
+                "prompt_id": w_row["prompt_id"],
+                "prompt_text": w_row["prompt_text"],
+                "model_completion": w_row["model_completion"],
+                "label": s_row["label"],
+                "label_reason": s_row["rationale"],
+                "annotator_type": "blinded_frontier_llm_semantic_direct_read",
+            }
+        )
+
+    merged_1000 = merged_750 + merged_26b
+
+    LLM_SEMANTIC_LABELS_750_PATH.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in merged_750) + "\n",
+        encoding="utf-8",
+    )
+    LLM_SEMANTIC_LABELS_1000_PATH.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in merged_1000) + "\n",
         encoding="utf-8",
     )
 
-    rater2_map: dict[str, dict[str, Any]] = {}
-    for line in RATER2_PATH.read_text(encoding="utf-8").splitlines():
+    rater2_150_map: dict[str, dict[str, Any]] = {}
+    for line in RATER2_150_PATH.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
         r = json.loads(line)
         assert r["label"] in LABEL_CLASSES, f"Invalid rater2 label {r['label']}"
-        rater2_map[r["worksheet_id"]] = r
-    assert len(rater2_map) == 150, f"Expected 150 rater2 rows, got {len(rater2_map)}"
+        rater2_150_map[r["worksheet_id"]] = r
+    assert len(rater2_150_map) == 150, f"Expected 150 rater2 rows, got {len(rater2_150_map)}"
+
+    rater2_26b_map: dict[str, dict[str, Any]] = {}
+    for line in RATER2_26B_50_PATH.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        r = json.loads(line)
+        assert r["label"] in LABEL_CLASSES, f"Invalid rater2 26b label {r['label']}"
+        rater2_26b_map[r["worksheet_id"]] = r
+    assert len(rater2_26b_map) == 50, f"Expected 50 rater2 26b rows, got {len(rater2_26b_map)}"
 
     legacy_map: dict[str, dict[str, Any]] = {}
     for line in LEGACY_SCRIPT_LABELS_PATH.read_text(encoding="utf-8").splitlines():
@@ -319,38 +401,46 @@ def merge_and_load_labels() -> tuple[list[dict[str, Any]], dict[str, dict[str, A
         legacy_map[r["worksheet_id"]] = r
     assert len(legacy_map) == 750, f"Expected 750 legacy rows, got {len(legacy_map)}"
 
-    return merged_list, rater2_map, legacy_map
+    return merged_750, merged_1000, rater2_150_map, rater2_26b_map, legacy_map
 
 
 def main() -> int:
-    key_data = json.loads(KEY_PATH.read_text(encoding="utf-8"))
-    mapping: dict[str, dict[str, Any]] = key_data["mapping"]
+    key_750_data = json.loads(KEY_750_PATH.read_text(encoding="utf-8"))
+    key_26b_data = json.loads(KEY_26B_PATH.read_text(encoding="utf-8"))
+    mapping: dict[str, dict[str, Any]] = {
+        **key_750_data["mapping"],
+        **key_26b_data["mapping"],
+    }
 
-    merged_ws, rater2_map, legacy_map = merge_and_load_labels()
+    merged_750, merged_1000, rater2_150_map, rater2_26b_map, legacy_map = merge_and_load_labels()
+    rater2_all_map = {**rater2_150_map, **rater2_26b_map}
+    ws_by_id = {r["worksheet_id"]: r for r in merged_1000}
 
-    # 1. Compute Inter-Rater Reliability (Blinded Frontier-LLM Rater 1 vs Independent Rater 2 on W176-W325, n=150)
-    r2_ids = sorted(rater2_map.keys())
-    r1_sub_5 = [next(r["label"] for r in merged_ws if r["worksheet_id"] == wid) for wid in r2_ids]
-    r2_sub_5 = [rater2_map[wid]["label"] for wid in r2_ids]
-    irr_5class = cohens_kappa(r1_sub_5, r2_sub_5, LABEL_CLASSES)
+    # 1. Compute Inter-Rater Reliability (Blinded Frontier-LLM Rater 1 vs Independent Rater 2)
+    r2_150_ids = sorted(rater2_150_map.keys(), key=lambda x: int(x[1:]))
+    irr_150 = compute_irr_suite(
+        [ws_by_id[wid]["label"] for wid in r2_150_ids],
+        [rater2_150_map[wid]["label"] for wid in r2_150_ids],
+        "W176-W325 (n=150 across E4B, E2B, 12B)",
+    )
 
-    r1_sub_3 = [to_binary_claim_class(lbl) for lbl in r1_sub_5]
-    r2_sub_3 = [to_binary_claim_class(lbl) for lbl in r2_sub_5]
-    irr_3class = cohens_kappa(r1_sub_3, r2_sub_3, ("CLAIM", "NON_CLAIM", "AMBIGUOUS"))
+    r2_50_ids = sorted(rater2_26b_map.keys(), key=lambda x: int(x[1:]))
+    irr_50_26b = compute_irr_suite(
+        [ws_by_id[wid]["label"] for wid in r2_50_ids],
+        [rater2_26b_map[wid]["label"] for wid in r2_50_ids],
+        "W751-W800 (n=50 on Gemma 4 26B-A4B)",
+    )
 
-    # Binary Claim vs Non-Claim on clear items where neither rater marked AMBIGUOUS
-    clear_pairs_150 = [
-        (a, b) for a, b in zip(r1_sub_3, r2_sub_3) if a != "AMBIGUOUS" and b != "AMBIGUOUS"
-    ]
-    irr_binary_clear = cohens_kappa(
-        [p[0] for p in clear_pairs_150],
-        [p[1] for p in clear_pairs_150],
-        ("CLAIM", "NON_CLAIM"),
+    r2_200_ids = r2_150_ids + r2_50_ids
+    irr_200_pooled = compute_irr_suite(
+        [ws_by_id[wid]["label"] for wid in r2_200_ids],
+        [rater2_all_map[wid]["label"] for wid in r2_200_ids],
+        "W176-W325 + W751-W800 (n=200 pooled across all 4 models)",
     )
 
     # 2. Compute Agreement between Blinded Frontier-LLM Semantic Labels and Legacy Regex Script Labels (N=750)
-    all_r1_5 = [r["label"] for r in merged_ws]
-    all_leg_5 = [legacy_map[r["worksheet_id"]]["label"] for r in merged_ws]
+    all_r1_5 = [r["label"] for r in merged_750]
+    all_leg_5 = [legacy_map[r["worksheet_id"]]["label"] for r in merged_750]
     llm_vs_script_5class = cohens_kappa(all_r1_5, all_leg_5, LABEL_CLASSES)
 
     all_r1_3 = [to_binary_claim_class(lbl) for lbl in all_r1_5]
@@ -372,9 +462,9 @@ def main() -> int:
     grammar_clause_lats_us: list[float] = []
     legacy_clause_lats_us: list[float] = []
 
-    evaluated_turns: list[dict[str, Any]] = []
+    evaluated_turns_1000: list[dict[str, Any]] = []
 
-    for ws_row in merged_ws:
+    for ws_row in merged_1000:
         ws_id = ws_row["worksheet_id"]
         meta = mapping[ws_id]
         completion = ws_row["model_completion"]
@@ -433,10 +523,10 @@ def main() -> int:
                 )
         legacy_flag = len(legacy_breaches) > 0
 
-        leg_row = legacy_map[ws_id]
-        r2_row = rater2_map.get(ws_id)
+        leg_row = legacy_map.get(ws_id)
+        r2_row = rater2_all_map.get(ws_id)
 
-        evaluated_turns.append(
+        evaluated_turns_1000.append(
             {
                 "worksheet_id": ws_id,
                 "prompt_id": ws_row["prompt_id"],
@@ -449,8 +539,8 @@ def main() -> int:
                 "label_reason": ws_row["label_reason"],
                 "rater2_label": r2_row["label"] if r2_row else None,
                 "rater2_reason": r2_row["rationale"] if r2_row else None,
-                "legacy_script_label": leg_row["label"],
-                "legacy_script_reason": leg_row["label_reason"],
+                "legacy_script_label": leg_row["label"] if leg_row else None,
+                "legacy_script_reason": leg_row["label_reason"] if leg_row else None,
                 "prompt_text": ws_row["prompt_text"],
                 "model_completion": completion,
                 "col1_grammar_soft_flag": col1_grammar_flag,
@@ -464,8 +554,9 @@ def main() -> int:
         )
 
     # Sort evaluated turns canonically by model then prompt_id for clean reporting
-    model_order = {"gemma-4-e4b": 0, "gemma-4-e2b": 1, "gemma-4-12b": 2}
-    evaluated_turns.sort(key=lambda r: (model_order.get(r["model"], 99), r["prompt_id"]))
+    model_order = {"gemma-4-26b-a4b": 0, "gemma-4-12b": 1, "gemma-4-e4b": 2, "gemma-4-e2b": 3}
+    evaluated_turns_1000.sort(key=lambda r: (model_order.get(r["model"], 99), r["prompt_id"]))
+    evaluated_turns_750 = [r for r in evaluated_turns_1000 if r["model"] in MODELS_3]
 
     channels = [
         ("col1_grammar_soft_flag", "Column 1: ActionClaimGrammarSupervisor (In-Stream Soft Flag TIER_2_SOFT)"),
@@ -475,10 +566,10 @@ def main() -> int:
         ("legacy_flag", "Baseline Legacy TruthInReceiptMatcher (enable_grammar_channel=False)"),
     ]
 
-    # Primary Scoring against Blinded Frontier-LLM Semantic Labels
+    # Primary Scoring against Blinded Frontier-LLM Semantic Labels across all 4 models
     per_model_results: dict[str, dict[str, Any]] = {}
-    for m_tag in ("gemma-4-e4b", "gemma-4-e2b", "gemma-4-12b"):
-        m_rows = [r for r in evaluated_turns if r["model"] == m_tag]
+    for m_tag in MODELS_4:
+        m_rows = [r for r in evaluated_turns_1000 if r["model"] == m_tag]
         fac_inv = [r for r in m_rows if r["label"] in ("FAC_STRICT", "FAC_BROAD") and r["verb_stratum"] == "in_vocab"]
         fac_ood = [r for r in m_rows if r["label"] in ("FAC_STRICT", "FAC_BROAD") and r["verb_stratum"] == "out_of_dev"]
         per_model_results[m_tag] = {
@@ -501,30 +592,34 @@ def main() -> int:
             },
         }
 
-    # Pooled across all 750 turns (per Section 5, no confidence interval across models because same prompt across 3 models is clustered)
-    pooled_results = {
-        "n_turns": len(evaluated_turns),
-        "clustering_note": (
-            "Per Section 5 of PREREG_MATCHER_SENSITIVITY.md, per-model results (E4B, E2B, 12B) "
-            "are the primary independent reporting units; pooled counts and percentages are "
-            "reported without cross-model Wilson CIs because completions of the same prompt "
-            "across 3 models are not independent."
-        ),
-        "confidence_interval_method": (
-            "Two-sided continuity-corrected 95% Wilson score confidence intervals "
-            "(Newcombe 1998, Method 4; continuity_correction=True in lucca.reasoning.stats.wilson_score_interval)."
-        ),
-        "label_counts": {
-            lbl: sum(1 for r in evaluated_turns if r["label"] == lbl)
-            for lbl in LABEL_CLASSES
-        },
-        "channels": {
-            ch_key: score_subset(evaluated_turns, ch_key, label_field="label", include_ci=False)
-            for ch_key, _ in channels
-        },
-    }
+    def build_pooled_summary(turns_sub: list[dict[str, Any]], models_desc: str) -> dict[str, Any]:
+        return {
+            "n_turns": len(turns_sub),
+            "models_included": models_desc,
+            "clustering_note": (
+                f"Per Section 5 of PREREG_MATCHER_SENSITIVITY.md, per-model results ({models_desc}) "
+                "are the primary independent reporting units; pooled counts and percentages are "
+                "reported without cross-model Wilson CIs because completions of the same prompt "
+                "across models are not independent."
+            ),
+            "confidence_interval_method": (
+                "Two-sided continuity-corrected 95% Wilson score confidence intervals "
+                "(Newcombe 1998, Method 4; continuity_correction=True in lucca.reasoning.stats.wilson_score_interval)."
+            ),
+            "label_counts": {
+                lbl: sum(1 for r in turns_sub if r["label"] == lbl)
+                for lbl in LABEL_CLASSES
+            },
+            "channels": {
+                ch_key: score_subset(turns_sub, ch_key, label_field="label", include_ci=False)
+                for ch_key, _ in channels
+            },
+        }
 
-    # Secondary Reference Comparison: Scoring against Legacy Regex-Script Labels
+    pooled_750_results = build_pooled_summary(evaluated_turns_750, "E4B, E2B, 12B (N=750)")
+    pooled_1000_results = build_pooled_summary(evaluated_turns_1000, "26B-A4B, 12B, E4B, E2B (N=1,000)")
+
+    # Secondary Reference Comparison: Scoring against Legacy Regex-Script Labels (N=750)
     legacy_script_comparison = {
         "note": (
             "Secondary reference scoring against the deterministic script-assigned labels "
@@ -532,27 +627,27 @@ def main() -> int:
             "and direct comparison with the primary blinded frontier-LLM semantic labels."
         ),
         "pooled_label_counts": {
-            lbl: sum(1 for r in evaluated_turns if r["legacy_script_label"] == lbl)
+            lbl: sum(1 for r in evaluated_turns_750 if r["legacy_script_label"] == lbl)
             for lbl in LABEL_CLASSES
         },
         "pooled_col1_grammar_soft_flag": score_subset(
-            evaluated_turns, "col1_grammar_soft_flag", label_field="legacy_script_label", include_ci=False
+            evaluated_turns_750, "col1_grammar_soft_flag", label_field="legacy_script_label", include_ci=False
         ),
         "pooled_e2e_union_flag": score_subset(
-            evaluated_turns, "e2e_union_flag", label_field="legacy_script_label", include_ci=False
+            evaluated_turns_750, "e2e_union_flag", label_field="legacy_script_label", include_ci=False
         ),
         "per_model_col1_grammar_soft_flag": {
             m_tag: score_subset(
-                [r for r in evaluated_turns if r["model"] == m_tag],
+                [r for r in evaluated_turns_750 if r["model"] == m_tag],
                 "col1_grammar_soft_flag",
                 label_field="legacy_script_label",
                 include_ci=True,
             )
-            for m_tag in ("gemma-4-e4b", "gemma-4-e2b", "gemma-4-12b")
+            for m_tag in MODELS_3
         },
     }
 
-    # Detailed Discordance Analysis: Where Blinded Frontier-LLM Semantic Reader disagreed with Legacy Regex Script
+    # Detailed Discordance Analysis: Where Blinded Frontier-LLM Semantic Reader disagreed with Legacy Regex Script (N=750)
     discordant_claim_vs_nonclaim = [
         {
             "worksheet_id": r["worksheet_id"],
@@ -567,7 +662,7 @@ def main() -> int:
             "col1_grammar_soft_flag": r["col1_grammar_soft_flag"],
             "completion_excerpt": r["model_completion"][:240],
         }
-        for r in evaluated_turns
+        for r in evaluated_turns_750
         if to_binary_claim_class(r["label"]) != to_binary_claim_class(r["legacy_script_label"])
     ]
 
@@ -584,7 +679,7 @@ def main() -> int:
             "col3_coherence_flag": r["col3_coherence_flag"],
             "completion_excerpt": r["model_completion"][:240],
         }
-        for r in evaluated_turns
+        for r in evaluated_turns_1000
         if r["label"] == "AMBIGUOUS"
     ]
 
@@ -600,9 +695,9 @@ def main() -> int:
             "budget_1000_us_pass": (p95 <= 1000.0),
         }
 
-    # Escape analysis on Column 1 (ActionClaimGrammarSupervisor) under Primary LLM Semantic Labels
+    # Escape analysis on Column 1 (ActionClaimGrammarSupervisor) under Primary LLM Semantic Labels (N=1000)
     missed_fac = [
-        r for r in evaluated_turns
+        r for r in evaluated_turns_1000
         if r["label"] in ("FAC_STRICT", "FAC_BROAD") and not r["col1_grammar_soft_flag"]
     ]
     missed_by_stratum = {
@@ -650,28 +745,26 @@ def main() -> int:
             "reason": r["col1_breaches"][0]["reason"] if r["col1_breaches"] else "",
             "completion_excerpt": r["model_completion"][:220],
         }
-        for r in evaluated_turns
+        for r in evaluated_turns_1000
         if r["label"] in ("CLEAN", "INTENT") and r["col1_grammar_soft_flag"]
     ]
 
-    report = {
+    report_base = {
         "protocol_id": "PREREG-MATCHER-SENSITIVITY-v2.2",
         "timestamp_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "annotation_methodology": {
-            "primary_ground_truth": "blinded_frontier_llm_semantic_direct_read (N=750)",
+            "primary_ground_truth": "blinded_frontier_llm_semantic_direct_read (N=1,000 across 4 models; N=750 3-model preregistered core)",
             "description": (
-                "All 750 model completions in blinded_annotator_worksheet_750.jsonl were read and "
-                "semantically graded directly by blinded frontier-LLM annotator instances under the "
-                "Section 4.3 rubric without regex classifiers, verb-stem tables, or access to "
-                "output_supervisor.py or the unblinding key. An independent second blinded frontier-LLM "
-                "rater graded a 150-turn validation subsample (W176-W325) to measure inter-rater Cohen's kappa."
+                "All 1,000 model completions (750 in blinded_annotator_worksheet_750.jsonl across E4B, E2B, 12B "
+                "plus 250 in blinded_26b_worksheet_250.jsonl on Gemma 4 26B-A4B) were read and semantically "
+                "graded line-by-line by blinded frontier-LLM annotator instances under the Section 4.3 rubric "
+                "without regex classifiers, verb-stem tables, or access to output_supervisor.py or the unblinding "
+                "keys. Independent second blinded frontier-LLM raters graded n=200 turns total (W176-W325, n=150; "
+                "W751-W800, n=50) to measure inter-rater Cohen's kappa."
             ),
-            "inter_rater_reliability_rater1_vs_rater2_n150": {
-                "subsample_range": "W176-W325 (n=150)",
-                "five_class_unweighted": irr_5class,
-                "three_class_claim_nonclaim_ambiguous": irr_3class,
-                "binary_claim_vs_nonclaim_excluding_ambiguous": irr_binary_clear,
-            },
+            "inter_rater_reliability_rater1_vs_rater2_n200_pooled": irr_200_pooled,
+            "inter_rater_reliability_rater1_vs_rater2_n150": irr_150,
+            "inter_rater_reliability_rater1_vs_rater2_26b_n50": irr_50_26b,
             "semantic_llm_vs_legacy_regex_script_n750": {
                 "five_class_unweighted": llm_vs_script_5class,
                 "three_class_claim_nonclaim_ambiguous": llm_vs_script_3class,
@@ -680,11 +773,15 @@ def main() -> int:
             },
         },
         "freeze_gate": {
-            **key_data["freeze_gate"],
-            "raw_completions_sha256": sha256_file(RAW_COMPLETIONS_PATH),
-            "blinded_worksheet_sha256": sha256_file(WORKSHEET_PATH),
-            "blinded_llm_semantic_labels_sha256": sha256_file(LLM_SEMANTIC_LABELS_PATH),
-            "blinded_rater2_150_sha256": sha256_file(RATER2_PATH),
+            **key_750_data["freeze_gate"],
+            "raw_completions_750_sha256": sha256_file(RAW_COMPLETIONS_750_PATH),
+            "raw_completions_26b_250_sha256": sha256_file(RAW_COMPLETIONS_26B_PATH),
+            "blinded_worksheet_750_sha256": sha256_file(WORKSHEET_750_PATH),
+            "blinded_worksheet_26b_250_sha256": sha256_file(WORKSHEET_26B_PATH),
+            "blinded_llm_semantic_labels_750_sha256": sha256_file(LLM_SEMANTIC_LABELS_750_PATH),
+            "blinded_llm_semantic_labels_1000_sha256": sha256_file(LLM_SEMANTIC_LABELS_1000_PATH),
+            "blinded_rater2_150_sha256": sha256_file(RATER2_150_PATH),
+            "blinded_rater2_26b_50_sha256": sha256_file(RATER2_26B_50_PATH),
             "legacy_script_labels_sha256": sha256_file(LEGACY_SCRIPT_LABELS_PATH),
         },
         "latency_profile_cpu": {
@@ -692,7 +789,8 @@ def main() -> int:
             "TruthInReceiptMatcher_legacy": latency_summary(legacy_clause_lats_us),
         },
         "per_model_primary_units": per_model_results,
-        "pooled_750_summary": pooled_results,
+        "pooled_1000_summary": pooled_1000_results,
+        "pooled_750_summary": pooled_750_results,
         "ambiguous_turns_breakdown": {
             "count": len(ambiguous_turns_detail),
             "note": (
@@ -716,40 +814,49 @@ def main() -> int:
         },
         "legacy_script_label_comparison": legacy_script_comparison,
         "discordant_turns_llm_vs_script": discordant_claim_vs_nonclaim,
-        "turns": evaluated_turns,
     }
 
-    OUT_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_JSON_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    OUT_JSON_750_PATH.parent.mkdir(parents=True, exist_ok=True)
+    report_750 = {**report_base, "turns": evaluated_turns_750}
+    OUT_JSON_750_PATH.write_text(json.dumps(report_750, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    summary_only = {k: v for k, v in report.items() if k != "turns"}
-    summary_only["full_turns_artifact"] = "logs/test_reports/prereg_matcher_sensitivity_v2_2_750.json"
-    summary_only["full_turns_sha256"] = sha256_file(OUT_JSON_PATH)
+    report_1000 = {**report_base, "turns": evaluated_turns_1000}
+    OUT_JSON_1000_PATH.write_text(json.dumps(report_1000, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    summary_only = dict(report_base)
+    summary_only["full_turns_750_artifact"] = "logs/test_reports/prereg_matcher_sensitivity_v2_2_750.json"
+    summary_only["full_turns_750_sha256"] = sha256_file(OUT_JSON_750_PATH)
+    summary_only["full_turns_1000_artifact"] = "logs/test_reports/prereg_matcher_sensitivity_v2_2_1000.json"
+    summary_only["full_turns_1000_sha256"] = sha256_file(OUT_JSON_1000_PATH)
     OUT_SUMMARY_JSON_PATH.write_text(
         json.dumps(summary_only, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
     # Print console summary
-    print("=" * 92)
-    print("PREREG-MATCHER-SENSITIVITY-v2.2 — BLINDED FRONTIER-LLM SEMANTIC EVALUATION (N=750)")
-    print("=" * 92)
-    print("\n[INTER-RATER RELIABILITY: Blinded Frontier-LLM Rater 1 vs. Rater 2 (W176-W325, n=150)]")
-    print(f"  5-Class Unweighted: agree={irr_5class['agree_count']}/{irr_5class['n']} ({irr_5class['raw_agreement_pct']}%) | Cohen's kappa = {irr_5class['kappa']}")
-    print(f"  3-Class (CLAIM/NON_CLAIM/AMBIGUOUS): agree={irr_3class['agree_count']}/{irr_3class['n']} ({irr_3class['raw_agreement_pct']}%) | Cohen's kappa = {irr_3class['kappa']}")
-    print(f"  Binary (CLAIM vs NON_CLAIM on clear items): agree={irr_binary_clear['agree_count']}/{irr_binary_clear['n']} ({irr_binary_clear['raw_agreement_pct']}%) | Cohen's kappa = {irr_binary_clear['kappa']}")
+    print("=" * 96)
+    print("PREREG-MATCHER-SENSITIVITY-v2.2 — BLINDED FRONTIER-LLM SEMANTIC EVALUATION (N=1,000 / 4 MODELS)")
+    print("=" * 96)
+    for tag, irr in [
+        ("Pooled 4-Model (n=200)", irr_200_pooled),
+        ("3-Model Core W176-W325 (n=150)", irr_150),
+        ("26B-A4B Slice W751-W800 (n=50)", irr_50_26b),
+    ]:
+        c5 = irr["five_class_unweighted"]
+        c3 = irr["three_class_claim_nonclaim_ambiguous"]
+        cb = irr["binary_claim_vs_nonclaim_excluding_ambiguous"]
+        print(f"\n[INTER-RATER RELIABILITY: {tag}]")
+        print(f"  5-Class Unweighted: agree={c5['agree_count']}/{c5['n']} ({c5['raw_agreement_pct']}%) | Cohen's kappa = {c5['kappa']}")
+        print(f"  3-Class (CLAIM/NON_CLAIM/AMBIGUOUS): agree={c3['agree_count']}/{c3['n']} ({c3['raw_agreement_pct']}%) | Cohen's kappa = {c3['kappa']}")
+        print(f"  Binary (CLAIM vs NON_CLAIM on clear items): agree={cb['agree_count']}/{cb['n']} ({cb['raw_agreement_pct']}%) | Cohen's kappa = {cb['kappa']}")
 
-    print("\n[ANNOTATION COMPARISON: Blinded Frontier-LLM Semantic vs. Legacy Regex Script (N=750)]")
-    print(f"  5-Class Unweighted: agree={llm_vs_script_5class['agree_count']}/{llm_vs_script_5class['n']} ({llm_vs_script_5class['raw_agreement_pct']}%) | Cohen's kappa = {llm_vs_script_5class['kappa']}")
-    print(f"  Binary (CLAIM vs NON_CLAIM on n={llm_vs_script_binary_clear['n']} clear items): agree={llm_vs_script_binary_clear['agree_count']}/{llm_vs_script_binary_clear['n']} ({llm_vs_script_binary_clear['raw_agreement_pct']}%) | Cohen's kappa = {llm_vs_script_binary_clear['kappa']}")
-
-    for m_tag in ("gemma-4-e4b", "gemma-4-e2b", "gemma-4-12b"):
+    for m_tag in MODELS_4:
         m_res = per_model_results[m_tag]
         c1 = m_res["channels"]["col1_grammar_soft_flag"]
         c2 = m_res["channels"]["col2_hard_abort"]
         c3 = m_res["channels"]["col3_coherence_flag"]
         cu = m_res["channels"]["e2e_union_flag"]
         cl = m_res["channels"]["legacy_flag"]
-        print(f"\nModel: {m_tag} (N={m_res['n_turns']} turns | Labels: {m_res['label_counts']})")
+        print(f"\nModel: {m_tag} (N={m_res['n_turns']} turns | Labels: {m_res['label_counts']} | Strata: {m_res['fac_by_stratum']})")
         print(f"  [Col 1: Grammar Soft Flag] Broad={c1['primary_broad_sensitivity']['summary_with_ci']} | Strict={c1['primary_strict_sensitivity']['summary_with_ci']} | Non-Claim FPR={c1['primary_non_claim_fpr']['summary_with_ci']} | Controls FPR={c1['secondary_controls_fpr']['summary_with_ci']}")
         print(f"    -> Stratified Broad: In-Vocab={c1['secondary_in_vocab_broad_sensitivity']['summary_with_ci']} | Out-of-Dev={c1['secondary_out_of_dev_broad_sensitivity']['summary_with_ci']}")
         print(f"    -> Stratified Strict: In-Vocab={c1['secondary_in_vocab_strict_sensitivity']['summary_with_ci']} | Out-of-Dev={c1['secondary_out_of_dev_strict_sensitivity']['summary_with_ci']}")
@@ -760,19 +867,24 @@ def main() -> int:
         print(f"  [End-to-End Union]         Broad={cu['primary_broad_sensitivity']['summary_with_ci']} | Strict={cu['primary_strict_sensitivity']['summary_with_ci']} | Non-Claim FPR={cu['primary_non_claim_fpr']['summary_with_ci']}")
         print(f"  [Legacy Baseline]          Broad={cl['primary_broad_sensitivity']['summary_with_ci']} | Strict={cl['primary_strict_sensitivity']['summary_with_ci']} | Non-Claim FPR={cl['primary_non_claim_fpr']['summary_with_ci']}")
 
-    p_c1 = pooled_results["channels"]["col1_grammar_soft_flag"]
-    p_cu = pooled_results["channels"]["e2e_union_flag"]
-    p_cl = pooled_results["channels"]["legacy_flag"]
-    print("\n" + "-" * 92)
-    print(f"POOLED SUMMARY (N=750 turns | Labels: {pooled_results['label_counts']})")
-    print(f"  [Col 1: Grammar Soft Flag] Broad={p_c1['primary_broad_sensitivity']['summary_str']} | Strict={p_c1['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_c1['primary_non_claim_fpr']['summary_str']} | Controls FPR={p_c1['secondary_controls_fpr']['summary_str']}")
-    print(f"    -> Stratified Broad: In-Vocab={p_c1['secondary_in_vocab_broad_sensitivity']['summary_str']} | Out-of-Dev={p_c1['secondary_out_of_dev_broad_sensitivity']['summary_str']}")
-    print(f"    -> Stratified Strict: In-Vocab={p_c1['secondary_in_vocab_strict_sensitivity']['summary_str']} | Out-of-Dev={p_c1['secondary_out_of_dev_strict_sensitivity']['summary_str']}")
-    print(f"    -> Progressive Only: Overall={p_c1['secondary_progressive_only_sensitivity']['summary_str']} | In-Vocab={p_c1['secondary_in_vocab_progressive_sensitivity']['summary_str']} | Out-of-Dev={p_c1['secondary_out_of_dev_progressive_sensitivity']['summary_str']}")
-    print(f"    -> Ambiguous Handling: Flagged={p_c1['ambiguous_flagged_rate']['summary_str']} | Sens if AMBIG=Claim: {p_c1['sensitivity_if_ambiguous_treated_as_claim']['summary_str']} | FPR if AMBIG=Non-Claim: {p_c1['fpr_if_ambiguous_treated_as_non_claim']['summary_str']}")
-    print(f"  [End-to-End Union]         Broad={p_cu['primary_broad_sensitivity']['summary_str']} | Strict={p_cu['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_cu['primary_non_claim_fpr']['summary_str']}")
-    print(f"  [Legacy Baseline]          Broad={p_cl['primary_broad_sensitivity']['summary_str']} | Strict={p_cl['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_cl['primary_non_claim_fpr']['summary_str']}")
-    print("=" * 92)
+    for title, p_res in [("POOLED 4-MODEL SUMMARY (N=1,000)", pooled_1000_results), ("POOLED 3-MODEL PREREG CORE SUMMARY (N=750)", pooled_750_results)]:
+        p_c1 = p_res["channels"]["col1_grammar_soft_flag"]
+        p_c2 = p_res["channels"]["col2_hard_abort"]
+        p_c3 = p_res["channels"]["col3_coherence_flag"]
+        p_cu = p_res["channels"]["e2e_union_flag"]
+        p_cl = p_res["channels"]["legacy_flag"]
+        print("\n" + "-" * 96)
+        print(f"{title} | Labels: {p_res['label_counts']}")
+        print(f"  [Col 1: Grammar Soft Flag] Broad={p_c1['primary_broad_sensitivity']['summary_str']} | Strict={p_c1['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_c1['primary_non_claim_fpr']['summary_str']} | Controls FPR={p_c1['secondary_controls_fpr']['summary_str']} | Tempt Non-Claim FPR={p_c1['secondary_non_claim_temptation_fpr']['summary_str']}")
+        print(f"    -> Stratified Broad: In-Vocab={p_c1['secondary_in_vocab_broad_sensitivity']['summary_str']} | Out-of-Dev={p_c1['secondary_out_of_dev_broad_sensitivity']['summary_str']}")
+        print(f"    -> Stratified Strict: In-Vocab={p_c1['secondary_in_vocab_strict_sensitivity']['summary_str']} | Out-of-Dev={p_c1['secondary_out_of_dev_strict_sensitivity']['summary_str']}")
+        print(f"    -> Progressive Only: Overall={p_c1['secondary_progressive_only_sensitivity']['summary_str']} | In-Vocab={p_c1['secondary_in_vocab_progressive_sensitivity']['summary_str']} | Out-of-Dev={p_c1['secondary_out_of_dev_progressive_sensitivity']['summary_str']}")
+        print(f"    -> Ambiguous Handling: Flagged={p_c1['ambiguous_flagged_rate']['summary_str']} | Sens if AMBIG=Claim: {p_c1['sensitivity_if_ambiguous_treated_as_claim']['summary_str']} | FPR if AMBIG=Non-Claim: {p_c1['fpr_if_ambiguous_treated_as_non_claim']['summary_str']}")
+        print(f"  [Col 2: Hard Abort]        Broad={p_c2['primary_broad_sensitivity']['summary_str']} | Strict={p_c2['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_c2['primary_non_claim_fpr']['summary_str']}")
+        print(f"  [Col 3: Coherence Audit]   Broad={p_c3['primary_broad_sensitivity']['summary_str']} | Strict={p_c3['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_c3['primary_non_claim_fpr']['summary_str']}")
+        print(f"  [End-to-End Union]         Broad={p_cu['primary_broad_sensitivity']['summary_str']} | Strict={p_cu['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_cu['primary_non_claim_fpr']['summary_str']}")
+        print(f"  [Legacy Baseline]          Broad={p_cl['primary_broad_sensitivity']['summary_str']} | Strict={p_cl['primary_strict_sensitivity']['summary_str']} | Non-Claim FPR={p_cl['primary_non_claim_fpr']['summary_str']}")
+    print("=" * 96)
     return 0
 
 
