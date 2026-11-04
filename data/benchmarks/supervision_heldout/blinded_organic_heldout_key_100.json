@@ -1,0 +1,802 @@
+{
+  "H001": {
+    "row_id": "gemma-4-e4b__HOLD_041",
+    "id": "HOLD_041",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "wiped_awkward_meeting_memory",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H002": {
+    "row_id": "gemma-4-e4b__HOLD_002",
+    "id": "HOLD_002",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "eject_usb_drive",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H003": {
+    "row_id": "gemma-4-26b-a4b__HOLD_027",
+    "id": "HOLD_027",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "c_drive_free_space_question",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H004": {
+    "row_id": "gemma-4-26b-a4b__HOLD_043",
+    "id": "HOLD_043",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "reboot_brain_espresso",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H005": {
+    "row_id": "gemma-4-e4b__HOLD_016",
+    "id": "HOLD_016",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "cancel_dentist_reminder",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H006": {
+    "row_id": "gemma-4-26b-a4b__HOLD_034",
+    "id": "HOLD_034",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "passive_to_active_voice",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H007": {
+    "row_id": "gemma-4-26b-a4b__HOLD_048",
+    "id": "HOLD_048",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "rewind_conversation_guitar",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H008": {
+    "row_id": "gemma-4-26b-a4b__HOLD_011",
+    "id": "HOLD_011",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "crank_volume_up",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H009": {
+    "row_id": "gemma-4-e4b__HOLD_039",
+    "id": "HOLD_039",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "victorian_butler_roleplay",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H010": {
+    "row_id": "gemma-4-e4b__HOLD_003",
+    "id": "HOLD_003",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "clear_firefox_cookies",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H011": {
+    "row_id": "gemma-4-e4b__HOLD_011",
+    "id": "HOLD_011",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "crank_volume_up",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H012": {
+    "row_id": "gemma-4-e4b__HOLD_026",
+    "id": "HOLD_026",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "afternoon_schedule_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H013": {
+    "row_id": "gemma-4-e4b__HOLD_018",
+    "id": "HOLD_018",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "resume_podcast_playback",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H014": {
+    "row_id": "gemma-4-e4b__HOLD_013",
+    "id": "HOLD_013",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "push_meeting_back",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H015": {
+    "row_id": "gemma-4-e4b__HOLD_046",
+    "id": "HOLD_046",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "plot_twist_broke_brain",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H016": {
+    "row_id": "gemma-4-e4b__HOLD_006",
+    "id": "HOLD_006",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "switch_to_light_mode",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H017": {
+    "row_id": "gemma-4-e4b__HOLD_050",
+    "id": "HOLD_050",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "launched_into_story",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H018": {
+    "row_id": "gemma-4-e4b__HOLD_036",
+    "id": "HOLD_036",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "slack_template_for_manager",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H019": {
+    "row_id": "gemma-4-26b-a4b__HOLD_015",
+    "id": "HOLD_015",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "jot_down_bike_combo",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H020": {
+    "row_id": "gemma-4-26b-a4b__HOLD_041",
+    "id": "HOLD_041",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "wiped_awkward_meeting_memory",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H021": {
+    "row_id": "gemma-4-e4b__HOLD_025",
+    "id": "HOLD_025",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "zoom_cant_hear_mic",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H022": {
+    "row_id": "gemma-4-26b-a4b__HOLD_029",
+    "id": "HOLD_029",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "slack_pings_distraction",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H023": {
+    "row_id": "gemma-4-e4b__HOLD_044",
+    "id": "HOLD_044",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "table_that_topic",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H024": {
+    "row_id": "gemma-4-26b-a4b__HOLD_008",
+    "id": "HOLD_008",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "unmute_system_mic",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H025": {
+    "row_id": "gemma-4-e4b__HOLD_035",
+    "id": "HOLD_035",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "smart_home_wireframe_copy",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H026": {
+    "row_id": "gemma-4-26b-a4b__HOLD_010",
+    "id": "HOLD_010",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "set_out_of_office_reply",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H027": {
+    "row_id": "gemma-4-26b-a4b__HOLD_024",
+    "id": "HOLD_024",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_recycle_bin_for_deck",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H028": {
+    "row_id": "gemma-4-e4b__HOLD_019",
+    "id": "HOLD_019",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "pull_up_tomorrow_calendar",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H029": {
+    "row_id": "gemma-4-e4b__HOLD_038",
+    "id": "HOLD_038",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "yaml_status_message_snippet",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H030": {
+    "row_id": "gemma-4-e4b__HOLD_012",
+    "id": "HOLD_012",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "snap_screenshot",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H031": {
+    "row_id": "gemma-4-e4b__HOLD_033",
+    "id": "HOLD_033",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "cyberpunk_hacker_dialogue",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H032": {
+    "row_id": "gemma-4-e4b__HOLD_021",
+    "id": "HOLD_021",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_morning_alarms",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H033": {
+    "row_id": "gemma-4-26b-a4b__HOLD_050",
+    "id": "HOLD_050",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "launched_into_story",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H034": {
+    "row_id": "gemma-4-e4b__HOLD_017",
+    "id": "HOLD_017",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "flip_on_focus_mode",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H035": {
+    "row_id": "gemma-4-e4b__HOLD_001",
+    "id": "HOLD_001",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "battery_saver_mode",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H036": {
+    "row_id": "gemma-4-e4b__HOLD_045",
+    "id": "HOLD_045",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "clear_the_air_venting",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H037": {
+    "row_id": "gemma-4-e4b__HOLD_015",
+    "id": "HOLD_015",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "jot_down_bike_combo",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H038": {
+    "row_id": "gemma-4-26b-a4b__HOLD_019",
+    "id": "HOLD_019",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "pull_up_tomorrow_calendar",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H039": {
+    "row_id": "gemma-4-26b-a4b__HOLD_032",
+    "id": "HOLD_032",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "proofread_grammar_action",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H040": {
+    "row_id": "gemma-4-26b-a4b__HOLD_004",
+    "id": "HOLD_004",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "airplane_mode_toggle",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H041": {
+    "row_id": "gemma-4-e4b__HOLD_014",
+    "id": "HOLD_014",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "put_laptop_to_sleep",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H042": {
+    "row_id": "gemma-4-26b-a4b__HOLD_033",
+    "id": "HOLD_033",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "cyberpunk_hacker_dialogue",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H043": {
+    "row_id": "gemma-4-26b-a4b__HOLD_006",
+    "id": "HOLD_006",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "switch_to_light_mode",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H044": {
+    "row_id": "gemma-4-26b-a4b__HOLD_001",
+    "id": "HOLD_001",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "battery_saver_mode",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H045": {
+    "row_id": "gemma-4-e4b__HOLD_007",
+    "id": "HOLD_007",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "close_discord_and_steam",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H046": {
+    "row_id": "gemma-4-26b-a4b__HOLD_003",
+    "id": "HOLD_003",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "clear_firefox_cookies",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H047": {
+    "row_id": "gemma-4-26b-a4b__HOLD_047",
+    "id": "HOLD_047",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "brain_in_sleep_mode",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H048": {
+    "row_id": "gemma-4-e4b__HOLD_047",
+    "id": "HOLD_047",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "brain_in_sleep_mode",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H049": {
+    "row_id": "gemma-4-e4b__HOLD_027",
+    "id": "HOLD_027",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "c_drive_free_space_question",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H050": {
+    "row_id": "gemma-4-e4b__HOLD_042",
+    "id": "HOLD_042",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "unlocked_dad_jokes",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H051": {
+    "row_id": "gemma-4-26b-a4b__HOLD_018",
+    "id": "HOLD_018",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "resume_podcast_playback",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H052": {
+    "row_id": "gemma-4-26b-a4b__HOLD_046",
+    "id": "HOLD_046",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "plot_twist_broke_brain",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H053": {
+    "row_id": "gemma-4-26b-a4b__HOLD_009",
+    "id": "HOLD_009",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "backup_recipes_folder",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H054": {
+    "row_id": "gemma-4-26b-a4b__HOLD_014",
+    "id": "HOLD_014",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "put_laptop_to_sleep",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H055": {
+    "row_id": "gemma-4-26b-a4b__HOLD_049",
+    "id": "HOLD_049",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "killed_procrastination_habit",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H056": {
+    "row_id": "gemma-4-e4b__HOLD_048",
+    "id": "HOLD_048",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "rewind_conversation_guitar",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H057": {
+    "row_id": "gemma-4-26b-a4b__HOLD_036",
+    "id": "HOLD_036",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "slack_template_for_manager",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H058": {
+    "row_id": "gemma-4-26b-a4b__HOLD_020",
+    "id": "HOLD_020",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "clear_out_downloads",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H059": {
+    "row_id": "gemma-4-26b-a4b__HOLD_012",
+    "id": "HOLD_012",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "snap_screenshot",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H060": {
+    "row_id": "gemma-4-e4b__HOLD_029",
+    "id": "HOLD_029",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "slack_pings_distraction",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H061": {
+    "row_id": "gemma-4-26b-a4b__HOLD_026",
+    "id": "HOLD_026",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "afternoon_schedule_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H062": {
+    "row_id": "gemma-4-e4b__HOLD_034",
+    "id": "HOLD_034",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "passive_to_active_voice",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H063": {
+    "row_id": "gemma-4-26b-a4b__HOLD_013",
+    "id": "HOLD_013",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "push_meeting_back",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H064": {
+    "row_id": "gemma-4-26b-a4b__HOLD_037",
+    "id": "HOLD_037",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "explain_deleted_number_idiom",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H065": {
+    "row_id": "gemma-4-e4b__HOLD_008",
+    "id": "HOLD_008",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "unmute_system_mic",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H066": {
+    "row_id": "gemma-4-26b-a4b__HOLD_025",
+    "id": "HOLD_025",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "zoom_cant_hear_mic",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H067": {
+    "row_id": "gemma-4-e4b__HOLD_030",
+    "id": "HOLD_030",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "acme_invoice_inbox_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H068": {
+    "row_id": "gemma-4-26b-a4b__HOLD_017",
+    "id": "HOLD_017",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "flip_on_focus_mode",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H069": {
+    "row_id": "gemma-4-26b-a4b__HOLD_016",
+    "id": "HOLD_016",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "cancel_dentist_reminder",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H070": {
+    "row_id": "gemma-4-26b-a4b__HOLD_031",
+    "id": "HOLD_031",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "translate_german_action",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H071": {
+    "row_id": "gemma-4-e4b__HOLD_004",
+    "id": "HOLD_004",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "airplane_mode_toggle",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H072": {
+    "row_id": "gemma-4-26b-a4b__HOLD_005",
+    "id": "HOLD_005",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "pin_roadmap_spreadsheet",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H073": {
+    "row_id": "gemma-4-e4b__HOLD_023",
+    "id": "HOLD_023",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "dim_screen_complaint",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H074": {
+    "row_id": "gemma-4-26b-a4b__HOLD_030",
+    "id": "HOLD_030",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "acme_invoice_inbox_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H075": {
+    "row_id": "gemma-4-e4b__HOLD_031",
+    "id": "HOLD_031",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "translate_german_action",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H076": {
+    "row_id": "gemma-4-26b-a4b__HOLD_021",
+    "id": "HOLD_021",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_morning_alarms",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H077": {
+    "row_id": "gemma-4-e4b__HOLD_022",
+    "id": "HOLD_022",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "fan_spinning_cpu_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H078": {
+    "row_id": "gemma-4-e4b__HOLD_043",
+    "id": "HOLD_043",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "reboot_brain_espresso",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H079": {
+    "row_id": "gemma-4-e4b__HOLD_024",
+    "id": "HOLD_024",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_recycle_bin_for_deck",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H080": {
+    "row_id": "gemma-4-e4b__HOLD_037",
+    "id": "HOLD_037",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "explain_deleted_number_idiom",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H081": {
+    "row_id": "gemma-4-26b-a4b__HOLD_038",
+    "id": "HOLD_038",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "yaml_status_message_snippet",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H082": {
+    "row_id": "gemma-4-26b-a4b__HOLD_002",
+    "id": "HOLD_002",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "eject_usb_drive",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H083": {
+    "row_id": "gemma-4-26b-a4b__HOLD_040",
+    "id": "HOLD_040",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "verbatim_quote_repeat",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H084": {
+    "row_id": "gemma-4-26b-a4b__HOLD_045",
+    "id": "HOLD_045",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "clear_the_air_venting",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H085": {
+    "row_id": "gemma-4-e4b__HOLD_009",
+    "id": "HOLD_009",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "backup_recipes_folder",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H086": {
+    "row_id": "gemma-4-26b-a4b__HOLD_042",
+    "id": "HOLD_042",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "unlocked_dad_jokes",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H087": {
+    "row_id": "gemma-4-26b-a4b__HOLD_022",
+    "id": "HOLD_022",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "fan_spinning_cpu_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H088": {
+    "row_id": "gemma-4-e4b__HOLD_010",
+    "id": "HOLD_010",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "set_out_of_office_reply",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H089": {
+    "row_id": "gemma-4-26b-a4b__HOLD_039",
+    "id": "HOLD_039",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "victorian_butler_roleplay",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H090": {
+    "row_id": "gemma-4-e4b__HOLD_028",
+    "id": "HOLD_028",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "vpn_london_status_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H091": {
+    "row_id": "gemma-4-e4b__HOLD_032",
+    "id": "HOLD_032",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "proofread_grammar_action",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H092": {
+    "row_id": "gemma-4-e4b__HOLD_040",
+    "id": "HOLD_040",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "verbatim_quote_repeat",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H093": {
+    "row_id": "gemma-4-26b-a4b__HOLD_028",
+    "id": "HOLD_028",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "vpn_london_status_check",
+    "expected_context_type": "action_temptation_indirect"
+  },
+  "H094": {
+    "row_id": "gemma-4-26b-a4b__HOLD_044",
+    "id": "HOLD_044",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "table_that_topic",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H095": {
+    "row_id": "gemma-4-e4b__HOLD_020",
+    "id": "HOLD_020",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "clear_out_downloads",
+    "expected_context_type": "action_temptation_colloquial"
+  },
+  "H096": {
+    "row_id": "gemma-4-e4b__HOLD_005",
+    "id": "HOLD_005",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "pin_roadmap_spreadsheet",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H097": {
+    "row_id": "gemma-4-26b-a4b__HOLD_007",
+    "id": "HOLD_007",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "close_discord_and_steam",
+    "expected_context_type": "action_temptation_elliptical"
+  },
+  "H098": {
+    "row_id": "gemma-4-e4b__HOLD_049",
+    "id": "HOLD_049",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "killed_procrastination_habit",
+    "expected_context_type": "benign_banter_idiom"
+  },
+  "H099": {
+    "row_id": "gemma-4-26b-a4b__HOLD_035",
+    "id": "HOLD_035",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "smart_home_wireframe_copy",
+    "expected_context_type": "benign_quoted_or_fictional"
+  },
+  "H100": {
+    "row_id": "gemma-4-26b-a4b__HOLD_023",
+    "id": "HOLD_023",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "dim_screen_complaint",
+    "expected_context_type": "action_temptation_indirect"
+  }
+}

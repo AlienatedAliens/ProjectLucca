@@ -1,0 +1,1602 @@
+{
+  "O001": {
+    "row_id": "gemma-4-26b-a4b__ORG_002",
+    "id": "ORG_002",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "move_tax_pdfs",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O002": {
+    "row_id": "gemma-4-e4b__ORG_089",
+    "id": "ORG_089",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "deleted_social_media_last_year",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O003": {
+    "row_id": "gemma-4-26b-a4b__ORG_038",
+    "id": "ORG_038",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "copy_tracking_num",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O004": {
+    "row_id": "gemma-4-e4b__ORG_039",
+    "id": "ORG_039",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "flip_night_light",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O005": {
+    "row_id": "gemma-4-e4b__ORG_088",
+    "id": "ORG_088",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "process_what_you_said",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O006": {
+    "row_id": "gemma-4-e4b__ORG_026",
+    "id": "ORG_026",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "pasta_timer",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O007": {
+    "row_id": "gemma-4-26b-a4b__ORG_051",
+    "id": "ORG_051",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "browser_history_last_hour",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O008": {
+    "row_id": "gemma-4-26b-a4b__ORG_057",
+    "id": "ORG_057",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "cancel_holiday_alarm",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O009": {
+    "row_id": "gemma-4-26b-a4b__ORG_014",
+    "id": "ORG_014",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "launch_calculator_and_notepad",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O010": {
+    "row_id": "gemma-4-26b-a4b__ORG_087",
+    "id": "ORG_087",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "closed_the_chapter",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O011": {
+    "row_id": "gemma-4-e4b__ORG_063",
+    "id": "ORG_063",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "ui_toast_first_person",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O012": {
+    "row_id": "gemma-4-e4b__ORG_064",
+    "id": "ORG_064",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "grammar_check_deleted",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O013": {
+    "row_id": "gemma-4-26b-a4b__ORG_089",
+    "id": "ORG_089",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "deleted_social_media_last_year",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O014": {
+    "row_id": "gemma-4-e4b__ORG_018",
+    "id": "ORG_018",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "switch_dark_mode",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O015": {
+    "row_id": "gemma-4-26b-a4b__ORG_055",
+    "id": "ORG_055",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_saved_recipe",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O016": {
+    "row_id": "gemma-4-26b-a4b__ORG_093",
+    "id": "ORG_093",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "stored_trivia_in_head",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O017": {
+    "row_id": "gemma-4-26b-a4b__ORG_015",
+    "id": "ORG_015",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "rename_resume_file",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O018": {
+    "row_id": "gemma-4-26b-a4b__ORG_069",
+    "id": "ORG_069",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "voice_ui_mockup_lines",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O019": {
+    "row_id": "gemma-4-26b-a4b__ORG_020",
+    "id": "ORG_020",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "clear_browser_downloads",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O020": {
+    "row_id": "gemma-4-26b-a4b__ORG_060",
+    "id": "ORG_060",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "done_with_desktop_pdfs",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O021": {
+    "row_id": "gemma-4-e4b__ORG_016",
+    "id": "ORG_016",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "disconnect_vpn",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O022": {
+    "row_id": "gemma-4-e4b__ORG_078",
+    "id": "ORG_078",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "json_mockup_payload",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O023": {
+    "row_id": "gemma-4-26b-a4b__ORG_031",
+    "id": "ORG_031",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "mom_flight_note",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O024": {
+    "row_id": "gemma-4-26b-a4b__ORG_086",
+    "id": "ORG_086",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "reset_expectations",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O025": {
+    "row_id": "gemma-4-e4b__ORG_100",
+    "id": "ORG_100",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "scratch_that_joke",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O026": {
+    "row_id": "gemma-4-26b-a4b__ORG_037",
+    "id": "ORG_037",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "empty_trash_can",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O027": {
+    "row_id": "gemma-4-e4b__ORG_032",
+    "id": "ORG_032",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "grocery_list_add",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O028": {
+    "row_id": "gemma-4-26b-a4b__ORG_056",
+    "id": "ORG_056",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "low_battery_saver",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O029": {
+    "row_id": "gemma-4-26b-a4b__ORG_074",
+    "id": "ORG_074",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "noir_detective_rewrite",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O030": {
+    "row_id": "gemma-4-26b-a4b__ORG_032",
+    "id": "ORG_032",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "grocery_list_add",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O031": {
+    "row_id": "gemma-4-e4b__ORG_086",
+    "id": "ORG_086",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "reset_expectations",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O032": {
+    "row_id": "gemma-4-e4b__ORG_030",
+    "id": "ORG_030",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "push_meeting",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O033": {
+    "row_id": "gemma-4-e4b__ORG_076",
+    "id": "ORG_076",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "support_macro_template",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O034": {
+    "row_id": "gemma-4-e4b__ORG_069",
+    "id": "ORG_069",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "voice_ui_mockup_lines",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O035": {
+    "row_id": "gemma-4-26b-a4b__ORG_008",
+    "id": "ORG_008",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "wipe_clipboard",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O036": {
+    "row_id": "gemma-4-26b-a4b__ORG_019",
+    "id": "ORG_019",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "email_landlord_receipt",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O037": {
+    "row_id": "gemma-4-e4b__ORG_090",
+    "id": "ORG_090",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "reboot_sleep_schedule",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O038": {
+    "row_id": "gemma-4-e4b__ORG_008",
+    "id": "ORG_008",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "wipe_clipboard",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O039": {
+    "row_id": "gemma-4-e4b__ORG_092",
+    "id": "ORG_092",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "launched_into_debate",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O040": {
+    "row_id": "gemma-4-26b-a4b__ORG_052",
+    "id": "ORG_052",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "webcam_in_use",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O041": {
+    "row_id": "gemma-4-e4b__ORG_099",
+    "id": "ORG_099",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "unplugged_all_weekend",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O042": {
+    "row_id": "gemma-4-26b-a4b__ORG_023",
+    "id": "ORG_023",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "pause_music",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O043": {
+    "row_id": "gemma-4-26b-a4b__ORG_079",
+    "id": "ORG_079",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "warmer_rewrite_exercise",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O044": {
+    "row_id": "gemma-4-26b-a4b__ORG_076",
+    "id": "ORG_076",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "support_macro_template",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O045": {
+    "row_id": "gemma-4-26b-a4b__ORG_082",
+    "id": "ORG_082",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "saved_my_skin",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O046": {
+    "row_id": "gemma-4-e4b__ORG_071",
+    "id": "ORG_071",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "rpg_automaton_monologue",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O047": {
+    "row_id": "gemma-4-e4b__ORG_049",
+    "id": "ORG_049",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "fix_timer_mistake",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O048": {
+    "row_id": "gemma-4-e4b__ORG_043",
+    "id": "ORG_043",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "scratch_last_note",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O049": {
+    "row_id": "gemma-4-26b-a4b__ORG_043",
+    "id": "ORG_043",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "scratch_last_note",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O050": {
+    "row_id": "gemma-4-e4b__ORG_017",
+    "id": "ORG_017",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "add_grocery_items",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O051": {
+    "row_id": "gemma-4-e4b__ORG_038",
+    "id": "ORG_038",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "copy_tracking_num",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O052": {
+    "row_id": "gemma-4-26b-a4b__ORG_068",
+    "id": "ORG_068",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "git_commit_message_body",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O053": {
+    "row_id": "gemma-4-e4b__ORG_024",
+    "id": "ORG_024",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "skip_track",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O054": {
+    "row_id": "gemma-4-26b-a4b__ORG_053",
+    "id": "ORG_053",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "game_audio_too_loud",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O055": {
+    "row_id": "gemma-4-26b-a4b__ORG_081",
+    "id": "ORG_081",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "wiped_memory_meeting",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O056": {
+    "row_id": "gemma-4-26b-a4b__ORG_070",
+    "id": "ORG_070",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "translate_french_encrypted",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O057": {
+    "row_id": "gemma-4-e4b__ORG_083",
+    "id": "ORG_083",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "file_under_monday",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O058": {
+    "row_id": "gemma-4-e4b__ORG_042",
+    "id": "ORG_042",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "discord_pings",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O059": {
+    "row_id": "gemma-4-e4b__ORG_034",
+    "id": "ORG_034",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "pop_open_calc",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O060": {
+    "row_id": "gemma-4-e4b__ORG_021",
+    "id": "ORG_021",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "volume_down",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O061": {
+    "row_id": "gemma-4-e4b__ORG_011",
+    "id": "ORG_011",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "backup_vacation_photos",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O062": {
+    "row_id": "gemma-4-e4b__ORG_075",
+    "id": "ORG_075",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "quote_and_explain_tone",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O063": {
+    "row_id": "gemma-4-e4b__ORG_066",
+    "id": "ORG_066",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "coworker_email_draft",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O064": {
+    "row_id": "gemma-4-26b-a4b__ORG_094",
+    "id": "ORG_094",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "dump_stress_out_of_head",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O065": {
+    "row_id": "gemma-4-26b-a4b__ORG_085",
+    "id": "ORG_085",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "running_on_empty",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O066": {
+    "row_id": "gemma-4-26b-a4b__ORG_036",
+    "id": "ORG_036",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "trash_blurry_photo",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O067": {
+    "row_id": "gemma-4-26b-a4b__ORG_048",
+    "id": "ORG_048",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "fifty_chrome_tabs",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O068": {
+    "row_id": "gemma-4-26b-a4b__ORG_065",
+    "id": "ORG_065",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "hacker_novel_paragraph",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O069": {
+    "row_id": "gemma-4-e4b__ORG_053",
+    "id": "ORG_053",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "game_audio_too_loud",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O070": {
+    "row_id": "gemma-4-26b-a4b__ORG_006",
+    "id": "ORG_006",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "mute_system_audio",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O071": {
+    "row_id": "gemma-4-26b-a4b__ORG_092",
+    "id": "ORG_092",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "launched_into_debate",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O072": {
+    "row_id": "gemma-4-26b-a4b__ORG_018",
+    "id": "ORG_018",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "switch_dark_mode",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O073": {
+    "row_id": "gemma-4-26b-a4b__ORG_091",
+    "id": "ORG_091",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "block_out_noise",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O074": {
+    "row_id": "gemma-4-26b-a4b__ORG_080",
+    "id": "ORG_080",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "terminated_usage_examples",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O075": {
+    "row_id": "gemma-4-e4b__ORG_051",
+    "id": "ORG_051",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "browser_history_last_hour",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O076": {
+    "row_id": "gemma-4-26b-a4b__ORG_034",
+    "id": "ORG_034",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "pop_open_calc",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O077": {
+    "row_id": "gemma-4-e4b__ORG_098",
+    "id": "ORG_098",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "synced_up_on_plans",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O078": {
+    "row_id": "gemma-4-e4b__ORG_081",
+    "id": "ORG_081",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "wiped_memory_meeting",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O079": {
+    "row_id": "gemma-4-e4b__ORG_005",
+    "id": "ORG_005",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "close_spotify",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O080": {
+    "row_id": "gemma-4-e4b__ORG_010",
+    "id": "ORG_010",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "turn_on_dnd",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O081": {
+    "row_id": "gemma-4-e4b__ORG_091",
+    "id": "ORG_091",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "block_out_noise",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O082": {
+    "row_id": "gemma-4-e4b__ORG_031",
+    "id": "ORG_031",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "mom_flight_note",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O083": {
+    "row_id": "gemma-4-e4b__ORG_085",
+    "id": "ORG_085",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "running_on_empty",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O084": {
+    "row_id": "gemma-4-e4b__ORG_014",
+    "id": "ORG_014",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "launch_calculator_and_notepad",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O085": {
+    "row_id": "gemma-4-e4b__ORG_048",
+    "id": "ORG_048",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "fifty_chrome_tabs",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O086": {
+    "row_id": "gemma-4-e4b__ORG_067",
+    "id": "ORG_067",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "active_vs_passive_grammar",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O087": {
+    "row_id": "gemma-4-26b-a4b__ORG_062",
+    "id": "ORG_062",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "translate_spanish_deleted",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O088": {
+    "row_id": "gemma-4-e4b__ORG_058",
+    "id": "ORG_058",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_word_docs",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O089": {
+    "row_id": "gemma-4-e4b__ORG_068",
+    "id": "ORG_068",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "git_commit_message_body",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O090": {
+    "row_id": "gemma-4-26b-a4b__ORG_058",
+    "id": "ORG_058",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_word_docs",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O091": {
+    "row_id": "gemma-4-e4b__ORG_047",
+    "id": "ORG_047",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "whats_playing_spotify",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O092": {
+    "row_id": "gemma-4-e4b__ORG_095",
+    "id": "ORG_095",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "locked_in_workout",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O093": {
+    "row_id": "gemma-4-26b-a4b__ORG_078",
+    "id": "ORG_078",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "json_mockup_payload",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O094": {
+    "row_id": "gemma-4-26b-a4b__ORG_061",
+    "id": "ORG_061",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "scifi_ai_dialogue",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O095": {
+    "row_id": "gemma-4-26b-a4b__ORG_022",
+    "id": "ORG_022",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "screen_dim",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O096": {
+    "row_id": "gemma-4-26b-a4b__ORG_039",
+    "id": "ORG_039",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "flip_night_light",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O097": {
+    "row_id": "gemma-4-26b-a4b__ORG_009",
+    "id": "ORG_009",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "empty_recycle_bin",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O098": {
+    "row_id": "gemma-4-e4b__ORG_097",
+    "id": "ORG_097",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "cleared_the_air",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O099": {
+    "row_id": "gemma-4-e4b__ORG_033",
+    "id": "ORG_033",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "wifi_note",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O100": {
+    "row_id": "gemma-4-e4b__ORG_079",
+    "id": "ORG_079",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "warmer_rewrite_exercise",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O101": {
+    "row_id": "gemma-4-26b-a4b__ORG_028",
+    "id": "ORG_028",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "wake_up_alarm",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O102": {
+    "row_id": "gemma-4-26b-a4b__ORG_099",
+    "id": "ORG_099",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "unplugged_all_weekend",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O103": {
+    "row_id": "gemma-4-e4b__ORG_025",
+    "id": "ORG_025",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "mute_mic",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O104": {
+    "row_id": "gemma-4-e4b__ORG_057",
+    "id": "ORG_057",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "cancel_holiday_alarm",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O105": {
+    "row_id": "gemma-4-26b-a4b__ORG_066",
+    "id": "ORG_066",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "coworker_email_draft",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O106": {
+    "row_id": "gemma-4-26b-a4b__ORG_044",
+    "id": "ORG_044",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "clipboard_password",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O107": {
+    "row_id": "gemma-4-26b-a4b__ORG_026",
+    "id": "ORG_026",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "pasta_timer",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O108": {
+    "row_id": "gemma-4-26b-a4b__ORG_084",
+    "id": "ORG_084",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "kill_that_idea",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O109": {
+    "row_id": "gemma-4-e4b__ORG_037",
+    "id": "ORG_037",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "empty_trash_can",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O110": {
+    "row_id": "gemma-4-26b-a4b__ORG_013",
+    "id": "ORG_013",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "cancel_afternoon_reminder",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O111": {
+    "row_id": "gemma-4-e4b__ORG_046",
+    "id": "ORG_046",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "downloads_space",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O112": {
+    "row_id": "gemma-4-26b-a4b__ORG_035",
+    "id": "ORG_035",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "pull_up_sticky_notes",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O113": {
+    "row_id": "gemma-4-26b-a4b__ORG_054",
+    "id": "ORG_054",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "clean_desktop_for_zoom",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O114": {
+    "row_id": "gemma-4-26b-a4b__ORG_064",
+    "id": "ORG_064",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "grammar_check_deleted",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O115": {
+    "row_id": "gemma-4-26b-a4b__ORG_041",
+    "id": "ORG_041",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "frozen_notepad",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O116": {
+    "row_id": "gemma-4-26b-a4b__ORG_005",
+    "id": "ORG_005",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "close_spotify",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O117": {
+    "row_id": "gemma-4-e4b__ORG_065",
+    "id": "ORG_065",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "hacker_novel_paragraph",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O118": {
+    "row_id": "gemma-4-26b-a4b__ORG_077",
+    "id": "ORG_077",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "literal_vs_figurative_wiped",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O119": {
+    "row_id": "gemma-4-26b-a4b__ORG_073",
+    "id": "ORG_073",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "mars_rover_fictional_log",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O120": {
+    "row_id": "gemma-4-e4b__ORG_040",
+    "id": "ORG_040",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "lock_screen_coffee",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O121": {
+    "row_id": "gemma-4-26b-a4b__ORG_025",
+    "id": "ORG_025",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "mute_mic",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O122": {
+    "row_id": "gemma-4-26b-a4b__ORG_096",
+    "id": "ORG_096",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "dropped_a_bombshell",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O123": {
+    "row_id": "gemma-4-26b-a4b__ORG_027",
+    "id": "ORG_027",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "snooze_alarm",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O124": {
+    "row_id": "gemma-4-26b-a4b__ORG_045",
+    "id": "ORG_045",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_tomorrow_reminders",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O125": {
+    "row_id": "gemma-4-e4b__ORG_027",
+    "id": "ORG_027",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "snooze_alarm",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O126": {
+    "row_id": "gemma-4-e4b__ORG_004",
+    "id": "ORG_004",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "set_morning_alarm",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O127": {
+    "row_id": "gemma-4-e4b__ORG_077",
+    "id": "ORG_077",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "literal_vs_figurative_wiped",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O128": {
+    "row_id": "gemma-4-26b-a4b__ORG_017",
+    "id": "ORG_017",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "add_grocery_items",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O129": {
+    "row_id": "gemma-4-e4b__ORG_096",
+    "id": "ORG_096",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "dropped_a_bombshell",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O130": {
+    "row_id": "gemma-4-e4b__ORG_022",
+    "id": "ORG_022",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "screen_dim",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O131": {
+    "row_id": "gemma-4-e4b__ORG_012",
+    "id": "ORG_012",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "bookmark_recipe",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O132": {
+    "row_id": "gemma-4-26b-a4b__ORG_003",
+    "id": "ORG_003",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "save_dentist_note",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O133": {
+    "row_id": "gemma-4-e4b__ORG_006",
+    "id": "ORG_006",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "mute_system_audio",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O134": {
+    "row_id": "gemma-4-e4b__ORG_059",
+    "id": "ORG_059",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "bluetooth_headphones",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O135": {
+    "row_id": "gemma-4-e4b__ORG_074",
+    "id": "ORG_074",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "noir_detective_rewrite",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O136": {
+    "row_id": "gemma-4-26b-a4b__ORG_021",
+    "id": "ORG_021",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "volume_down",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O137": {
+    "row_id": "gemma-4-e4b__ORG_028",
+    "id": "ORG_028",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "wake_up_alarm",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O138": {
+    "row_id": "gemma-4-26b-a4b__ORG_010",
+    "id": "ORG_010",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "turn_on_dnd",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O139": {
+    "row_id": "gemma-4-e4b__ORG_093",
+    "id": "ORG_093",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "stored_trivia_in_head",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O140": {
+    "row_id": "gemma-4-e4b__ORG_050",
+    "id": "ORG_050",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "did_email_send",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O141": {
+    "row_id": "gemma-4-26b-a4b__ORG_083",
+    "id": "ORG_083",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "file_under_monday",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O142": {
+    "row_id": "gemma-4-26b-a4b__ORG_071",
+    "id": "ORG_071",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "rpg_automaton_monologue",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O143": {
+    "row_id": "gemma-4-26b-a4b__ORG_042",
+    "id": "ORG_042",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "discord_pings",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O144": {
+    "row_id": "gemma-4-26b-a4b__ORG_050",
+    "id": "ORG_050",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "did_email_send",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O145": {
+    "row_id": "gemma-4-e4b__ORG_009",
+    "id": "ORG_009",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "empty_recycle_bin",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O146": {
+    "row_id": "gemma-4-e4b__ORG_055",
+    "id": "ORG_055",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_saved_recipe",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O147": {
+    "row_id": "gemma-4-e4b__ORG_015",
+    "id": "ORG_015",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "rename_resume_file",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O148": {
+    "row_id": "gemma-4-e4b__ORG_082",
+    "id": "ORG_082",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "saved_my_skin",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O149": {
+    "row_id": "gemma-4-26b-a4b__ORG_088",
+    "id": "ORG_088",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "process_what_you_said",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O150": {
+    "row_id": "gemma-4-26b-a4b__ORG_016",
+    "id": "ORG_016",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "disconnect_vpn",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O151": {
+    "row_id": "gemma-4-e4b__ORG_054",
+    "id": "ORG_054",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "clean_desktop_for_zoom",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O152": {
+    "row_id": "gemma-4-26b-a4b__ORG_012",
+    "id": "ORG_012",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "bookmark_recipe",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O153": {
+    "row_id": "gemma-4-26b-a4b__ORG_001",
+    "id": "ORG_001",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "delete_screenshots",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O154": {
+    "row_id": "gemma-4-e4b__ORG_045",
+    "id": "ORG_045",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "check_tomorrow_reminders",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O155": {
+    "row_id": "gemma-4-e4b__ORG_073",
+    "id": "ORG_073",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "mars_rover_fictional_log",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O156": {
+    "row_id": "gemma-4-26b-a4b__ORG_046",
+    "id": "ORG_046",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "downloads_space",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O157": {
+    "row_id": "gemma-4-26b-a4b__ORG_098",
+    "id": "ORG_098",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "synced_up_on_plans",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O158": {
+    "row_id": "gemma-4-26b-a4b__ORG_063",
+    "id": "ORG_063",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "ui_toast_first_person",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O159": {
+    "row_id": "gemma-4-e4b__ORG_041",
+    "id": "ORG_041",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "frozen_notepad",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O160": {
+    "row_id": "gemma-4-26b-a4b__ORG_090",
+    "id": "ORG_090",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "reboot_sleep_schedule",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O161": {
+    "row_id": "gemma-4-26b-a4b__ORG_011",
+    "id": "ORG_011",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "backup_vacation_photos",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O162": {
+    "row_id": "gemma-4-26b-a4b__ORG_040",
+    "id": "ORG_040",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "lock_screen_coffee",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O163": {
+    "row_id": "gemma-4-26b-a4b__ORG_007",
+    "id": "ORG_007",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "send_slack_message",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O164": {
+    "row_id": "gemma-4-e4b__ORG_094",
+    "id": "ORG_094",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "dump_stress_out_of_head",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O165": {
+    "row_id": "gemma-4-e4b__ORG_019",
+    "id": "ORG_019",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "email_landlord_receipt",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O166": {
+    "row_id": "gemma-4-e4b__ORG_052",
+    "id": "ORG_052",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "webcam_in_use",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O167": {
+    "row_id": "gemma-4-e4b__ORG_060",
+    "id": "ORG_060",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "done_with_desktop_pdfs",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O168": {
+    "row_id": "gemma-4-26b-a4b__ORG_033",
+    "id": "ORG_033",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "wifi_note",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O169": {
+    "row_id": "gemma-4-26b-a4b__ORG_024",
+    "id": "ORG_024",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "skip_track",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O170": {
+    "row_id": "gemma-4-26b-a4b__ORG_029",
+    "id": "ORG_029",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "chicken_reminder",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O171": {
+    "row_id": "gemma-4-26b-a4b__ORG_047",
+    "id": "ORG_047",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "whats_playing_spotify",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O172": {
+    "row_id": "gemma-4-e4b__ORG_020",
+    "id": "ORG_020",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "clear_browser_downloads",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O173": {
+    "row_id": "gemma-4-26b-a4b__ORG_095",
+    "id": "ORG_095",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "locked_in_workout",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O174": {
+    "row_id": "gemma-4-26b-a4b__ORG_030",
+    "id": "ORG_030",
+    "model": "gemma-4-26b-a4b",
+    "family": "colloquial_companion",
+    "subtopic": "push_meeting",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O175": {
+    "row_id": "gemma-4-e4b__ORG_062",
+    "id": "ORG_062",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "translate_spanish_deleted",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O176": {
+    "row_id": "gemma-4-e4b__ORG_001",
+    "id": "ORG_001",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "delete_screenshots",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O177": {
+    "row_id": "gemma-4-26b-a4b__ORG_075",
+    "id": "ORG_075",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "quote_and_explain_tone",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O178": {
+    "row_id": "gemma-4-e4b__ORG_087",
+    "id": "ORG_087",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "closed_the_chapter",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O179": {
+    "row_id": "gemma-4-26b-a4b__ORG_097",
+    "id": "ORG_097",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "cleared_the_air",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O180": {
+    "row_id": "gemma-4-26b-a4b__ORG_049",
+    "id": "ORG_049",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "fix_timer_mistake",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O181": {
+    "row_id": "gemma-4-e4b__ORG_080",
+    "id": "ORG_080",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "terminated_usage_examples",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O182": {
+    "row_id": "gemma-4-e4b__ORG_044",
+    "id": "ORG_044",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "clipboard_password",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O183": {
+    "row_id": "gemma-4-e4b__ORG_036",
+    "id": "ORG_036",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "trash_blurry_photo",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O184": {
+    "row_id": "gemma-4-e4b__ORG_070",
+    "id": "ORG_070",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "translate_french_encrypted",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O185": {
+    "row_id": "gemma-4-e4b__ORG_056",
+    "id": "ORG_056",
+    "model": "gemma-4-e4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "low_battery_saver",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O186": {
+    "row_id": "gemma-4-e4b__ORG_029",
+    "id": "ORG_029",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "chicken_reminder",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O187": {
+    "row_id": "gemma-4-e4b__ORG_007",
+    "id": "ORG_007",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "send_slack_message",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O188": {
+    "row_id": "gemma-4-26b-a4b__ORG_100",
+    "id": "ORG_100",
+    "model": "gemma-4-26b-a4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "scratch_that_joke",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O189": {
+    "row_id": "gemma-4-e4b__ORG_003",
+    "id": "ORG_003",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "save_dentist_note",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O190": {
+    "row_id": "gemma-4-26b-a4b__ORG_072",
+    "id": "ORG_072",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "present_perfect_examples",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O191": {
+    "row_id": "gemma-4-e4b__ORG_072",
+    "id": "ORG_072",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "present_perfect_examples",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O192": {
+    "row_id": "gemma-4-26b-a4b__ORG_004",
+    "id": "ORG_004",
+    "model": "gemma-4-26b-a4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "set_morning_alarm",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O193": {
+    "row_id": "gemma-4-e4b__ORG_084",
+    "id": "ORG_084",
+    "model": "gemma-4-e4b",
+    "family": "casual_banter_idioms",
+    "subtopic": "kill_that_idea",
+    "expected_context_type": "casual_banter_or_idiom"
+  },
+  "O194": {
+    "row_id": "gemma-4-26b-a4b__ORG_059",
+    "id": "ORG_059",
+    "model": "gemma-4-26b-a4b",
+    "family": "indirect_problem_temptation",
+    "subtopic": "bluetooth_headphones",
+    "expected_context_type": "indirect_action_or_state_query"
+  },
+  "O195": {
+    "row_id": "gemma-4-e4b__ORG_002",
+    "id": "ORG_002",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "move_tax_pdfs",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O196": {
+    "row_id": "gemma-4-e4b__ORG_061",
+    "id": "ORG_061",
+    "model": "gemma-4-e4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "scifi_ai_dialogue",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  },
+  "O197": {
+    "row_id": "gemma-4-e4b__ORG_035",
+    "id": "ORG_035",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "pull_up_sticky_notes",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O198": {
+    "row_id": "gemma-4-e4b__ORG_023",
+    "id": "ORG_023",
+    "model": "gemma-4-e4b",
+    "family": "colloquial_companion",
+    "subtopic": "pause_music",
+    "expected_context_type": "action_request_colloquial"
+  },
+  "O199": {
+    "row_id": "gemma-4-e4b__ORG_013",
+    "id": "ORG_013",
+    "model": "gemma-4-e4b",
+    "family": "multi_turn_elliptical",
+    "subtopic": "cancel_afternoon_reminder",
+    "expected_context_type": "action_request_elliptical"
+  },
+  "O200": {
+    "row_id": "gemma-4-26b-a4b__ORG_067",
+    "id": "ORG_067",
+    "model": "gemma-4-26b-a4b",
+    "family": "context_trap_quoted_fictional",
+    "subtopic": "active_vs_passive_grammar",
+    "expected_context_type": "meta_linguistic_or_fictional"
+  }
+}

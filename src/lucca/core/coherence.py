@@ -225,13 +225,28 @@ def detect_ungrounded_action_claims(
     narration: str,
     receipts: Sequence[ToolReceipt],
     verifier: SemanticVerifierPort | None = None,
+    user_context: str | Sequence[dict[str, str]] | None = None,
 ) -> list[CoherenceClaim]:
     """
     Pure function detecting action claims in narration and verifying against tool receipts.
     A claim is a breach iff no receipt in the provided receipts has a tool in the claimed family
     AND ok=True.
+    Supports conversational user_context and full-narration discourse framing (v3.0).
     """
     if not narration.strip():
+        return []
+
+    from lucca.sandbox.output_supervisor import (  # noqa: PLC0415
+        _CONVERSATIONAL_META_TARGETS_REGEX,
+        _ILLUSTRATIVE_FRAME_PREFIX_REGEX,
+        ActionClaimGrammarSupervisor,
+        EXPANDED_STEM_MAP,
+        is_meta_or_creative_context,
+    )
+
+    if is_meta_or_creative_context(
+        narration, user_context=user_context, full_narration=narration
+    ):
         return []
 
     narration_low = narration.lower()
@@ -264,13 +279,7 @@ def detect_ungrounded_action_claims(
         if PAST_CONTEXT_PATTERN.search(clause):
             continue
 
-            # 0b. Structured GBNF action-claim tags (SPIKE-A): [ACTION: <verb> <target>] or <action_claim ...>
-        from lucca.sandbox.output_supervisor import (  # noqa: PLC0415
-            _CONVERSATIONAL_META_TARGETS_REGEX,
-            _ILLUSTRATIVE_FRAME_PREFIX_REGEX,
-            ActionClaimGrammarSupervisor,
-            EXPANDED_STEM_MAP,
-        )
+        # 0b. Structured GBNF action-claim tags (SPIKE-A): [ACTION: <verb> <target>] or <action_claim ...>
 
         tag_match = re.search(
             r"(?:\[(?:action|action_claim)\s*:\s*([a-z_]+)\s+([^\]]+?)\](?![(\[])|"
@@ -352,14 +361,21 @@ def detect_ungrounded_action_claims(
         # 2. Passive, gerund, or completion claims
         # e.g., "your note is saved", "file written", "launching Notepad now", "calc launched"
         if not detected_family:
-            if re.search(
-                r"\b(?:notes?|files?|documents?|summary|data|settings|records?|code|scripts?|outputs?)"
-                r"\s+(?:is|was|are|were|has\s+been|have\s+been)?\s*"
-                r"(?:now\s+|successfully\s+|already\s+)?(?:saved|written|created|updated)\b",
-                clause,
-            ) or re.search(
-                r"\b(?:saved|written|created)\s+(?:(?:to|in|into|on)\s+)?(?:(?:the|your|my|a|an)\s+)?(?:notes?\s+)?"
-                r"(?:notes?|files?|disk|workspace|folders?)\b",
+            if (
+                re.search(
+                    r"\b(?:notes?|files?|documents?|summary|data|settings|records?|code|scripts?|outputs?)"
+                    r"\s+(?:is|was|are|were|has\s+been|have\s+been)?\s*"
+                    r"(?:now\s+|successfully\s+|already\s+)?(?:saved|written|created|updated)\b",
+                    clause,
+                )
+                or re.search(
+                    r"\b(?:saved|written|created)\s+(?:(?:to|in|into|on)\s+)?(?:(?:the|your|my|a|an)\s+)?(?:notes?\s+)?"
+                    r"(?:notes?|files?|disk|workspace|folders?)\b",
+                    clause,
+                )
+            ) and not re.search(
+                r"\b(?:i'll|i\s+will|let\s+me)\s+(?:check|look|search|see|find)\b|"
+                r"\bfor\s+any\s+(?:\w+\s+)?(?:files?|documents?|notes?)\b",
                 clause,
             ):
                 detected_family = "save"
@@ -494,13 +510,19 @@ def detect_ungrounded_action_claims(
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("coherence_verifier_candidate_eval_failed", error=str(exc))
 
-        # 2b. Grammar-Constrained Action-Claim Supervisor fallback (v2.3 Unified Coverage):
-        # Catch expanded DevOps stems, active progressive participles, passive voice,
-        # and telegraphic action claims while preserving promise-guard separation.
+        # 2b. Grammar-Constrained Action-Claim Supervisor fallback (v2.3/v3.0 Unified Coverage):
+        # Catch expanded DevOps stems, companion actions, active progressive participles,
+        # passive voice, copular state assertions, and elliptical confirmations while
+        # preserving promise-guard separation and meta-linguistic context awareness.
         from_grammar_sup = False
         if not detected_family and "go ahead and" not in clause:
             grammar_sup = ActionClaimGrammarSupervisor()
-            g_res = grammar_sup.evaluate_clause(orig_raw_clause, verified_receipts=[])
+            g_res = grammar_sup.evaluate_clause(
+                orig_raw_clause,
+                verified_receipts=[],
+                user_context=user_context,
+                full_narration=narration,
+            )
             if g_res.is_breach:
                 from_grammar_sup = True
                 m_verb = re.search(r"\['([a-z_]+)\s+", str(g_res.reason))

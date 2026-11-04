@@ -2222,6 +2222,7 @@ class Orchestrator:
         narration: str,
         receipts: Sequence[ToolReceipt | dict[str, JsonValue] | object] | None = None,
         tool_calls: Sequence[ToolReceipt | dict[str, JsonValue] | object] | None = None,
+        user_context: str | Sequence[dict[str, str]] | None = None,
     ) -> str | None:
         """
         Checks for discrepancy between spoken action claim and actual tool execution
@@ -2257,7 +2258,10 @@ class Orchestrator:
                     )
                 )
         claims = detect_ungrounded_action_claims(
-            narration, norm_receipts, verifier=getattr(self, "verifier", None)
+            narration,
+            norm_receipts,
+            verifier=getattr(self, "verifier", None),
+            user_context=user_context,
         )
         un_grounded = [c for c in claims if not c.grounded]
         if un_grounded:
@@ -2287,8 +2291,25 @@ class Orchestrator:
             reply_text = self.current_turn_assistant_reply
             self._commit_assistant_utterance(reply_text, trace)
 
+            # Build multi-turn context for functional coherence check (Spec §3.3 / v3.0)
+            turn_ctx: list[dict[str, str]] = []
+            for h_item in getattr(self, "history", [])[-4:]:
+                if isinstance(h_item, dict) and h_item.get("role") in ("user", "assistant"):
+                    turn_ctx.append(
+                        {
+                            "role": str(h_item.get("role", "")),
+                            "content": str(h_item.get("content", "")),
+                        }
+                    )
+            if user_transcript_text:
+                turn_ctx.append({"role": "user", "content": user_transcript_text})
+
             # Functional coherence check (Spec §3.3 / D-MEM-04 / WP-2)
-            breach_msg = self._check_functional_coherence(reply_text, self.current_turn_receipts)
+            breach_msg = self._check_functional_coherence(
+                reply_text,
+                self.current_turn_receipts,
+                user_context=turn_ctx if turn_ctx else user_transcript_text,
+            )
             if breach_msg:
                 self._commit_coherence_breach(breach_msg, trace)
 
@@ -2592,6 +2613,15 @@ class Orchestrator:
             history_urls.extend(["http://localhost", "http://127.0.0.1"])
         if history_urls and hasattr(self.output_supervisor, "register_allowed_urls"):
             self.output_supervisor.register_allowed_urls(history_urls)
+        if hasattr(self.output_supervisor, "set_turn_context"):
+            sup_ctx: list[dict[str, str]] = [
+                {"role": str(m.get("role", "")), "content": str(m.get("content", ""))}
+                for m in self.history[-4:]
+                if isinstance(m, dict) and m.get("role") in ("user", "assistant")
+            ]
+            if user_msg:
+                sup_ctx.append({"role": "user", "content": user_msg})
+            self.output_supervisor.set_turn_context(sup_ctx if sup_ctx else user_msg)
 
         def _trigger_supervisor_abort(
             reason_msg: str, offending_chunk: str, breach_type: str | None = None

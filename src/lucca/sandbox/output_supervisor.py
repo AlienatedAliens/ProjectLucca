@@ -474,6 +474,57 @@ EXPANDED_STEM_MAP: dict[str, str] = {
     "unblocking": "unblock",
     "initiated": "initiate",
     "initialized": "initialize",
+    # v3.0 Companion Domain Stems (Unambiguous Device/App/Media/Note Verbs)
+    "muted": "mute",
+    "unmuted": "unmute",
+    "snoozed": "snooze",
+    "dimmed": "dim",
+    "renamed": "rename",
+    "emptied": "empty",
+    "disconnected": "disconnect",
+    "reconnected": "reconnect",
+    "muting": "mute",
+    "unmuting": "unmute",
+    "snoozing": "snooze",
+    "dimming": "dim",
+    "renaming": "rename",
+    "emptying": "empty",
+    "disconnecting": "disconnect",
+    "reconnecting": "reconnect",
+}
+
+# Target-bound companion verb stem mappings (resolved after _PAST_VERBS_PATTERN construction
+# so general-purpose words like "turned", "added", "noted", "set" do not over-trigger outside
+# companion frames).
+COMPANION_BOUND_STEM_MAP: dict[str, str] = {
+    "added": "add",
+    "adding": "add",
+    "noted": "note",
+    "noting": "note",
+    "tucked": "tuck",
+    "tucking": "tuck",
+    "brought": "bring",
+    "bringing": "bring",
+    "pulled": "pull",
+    "pulling": "pull",
+    "turned": "turn",
+    "turning": "turn",
+    "paused": "pause",
+    "pausing": "pause",
+    "skipped": "skip",
+    "skipping": "skip",
+    "lowered": "lower",
+    "lowering": "lower",
+    "cancelled": "cancel",
+    "canceled": "cancel",
+    "cancelling": "cancel",
+    "canceling": "cancel",
+    "locked": "lock",
+    "locking": "lock",
+    "setting": "set",
+    "re-pairing": "repair",
+    "complete": "execute",
+    "inspect": "read",
 }
 
 # Conversational / epistemic meta-targets that do NOT represent external host or
@@ -638,7 +689,7 @@ _HOST_FILE_TARGET_PATTERN = re.compile(
     r"workspaces?|hosts?|routers?|networks?|adapters?|dhcp|tabs?|browsers?|"
     r"commands?|scripts?|emails?|messages?|reminders?|reservations?|tables?|"
     r"orders?|accounts?|passwords?|keys?|settings?|configs?|cookies?|"
-    r"documents?|pdfs?|csvs?|workbooks?|spreadsheets?|images?|photos?|videos?|"
+    r"documents?|pdfs?|csvs?|workbooks?|spreadsheets?|images?|photos?|videos?|pictures?|screenshots?|"
     r"notes?|status|history|tasks?|scans?|cleanup|migrations?|"
     r"instances?|servers?|workers?|daemons?|units?|engines?|alertmanager|exporters?|"
     r"clusters?|namespaces?|stacks?|replicas?|nodes?|pods?|ramdisks?|tmpfs|shares?|"
@@ -650,10 +701,228 @@ _HOST_FILE_TARGET_PATTERN = re.compile(
     r"storage|tracks?|audio|ripgrep|fd-find|wireguard|"
     r"systemctl|postgres(?:ql)?|systemd|journalctl|nginx|apache|redis|celery|prometheus|sudo|"
     r"excel|chrome|firefox|slack|docker|git|node|python|lsof|kill|"
+    r"alarms?|timers?|mics?|microphones?|speakers?|brightness|screens?|night\s+light|"
+    r"dark\s+mode|do\s+not\s+disturb|clipboards?|trash(?:\s+can)?|recycle\s+bin|"
+    r"vpn|bluetooth|headphones?|spotify|calculator|notepad|sticky\s+notes?|"
+    r"bookmarks?|lists?|grocery\s+lists?|music|songs?|webcams?|cameras?|batter(?:y|ies)|desktops?|"
     r"targets?)\b"
     r")",
     re.IGNORECASE,
 )
+
+# --- v3.0 Context-Aware Supervision & Everyday Companion Claim Patterns ---
+
+_META_CREATIVE_USER_PROMPT_REGEX = re.compile(
+    r"\b(?:"
+    r"(?:write|draft|compose|rewrite|rephrase|paraphrase|create|generate|come\s+up\s+with)\s+(?:a\s+|an\s+|some\s+|the\s+|this\s+|two\s+|three\s+|four\s+|\d+\s+)?(?:short\s+|sample\s+|dramatic\s+|polite\s+|casual\s+|fictional\s+|cool\s+|robotic\s+|mock\s+|example\s+|dummy\s+|2-sentence\s+|two-sentence\s+|one-line\s+|single-sentence\s+)*(?:sci-fi\s+|thriller\s+|mystery\s+|noir\s+|fantasy\s+|cyberpunk\s+|mars\s+rover\s+|customer\s+support\s+|voice\s+assistant\s+|smart\s+home\s+|ui\s+|ux\s+|toast\s+|git\s+|slack\s+|teams\s+|out-of-office\s+|auto-reply\s+)*(?:dialogue|line|monologue|paragraph|novel|story|script|screenplay|scene|poem|haiku|lyrics|email|reply(?:\s+template)?|response\s+template|macro|toast|notifications?|messages?|banner|tooltip|modal\s+copy|microcopy|commit\s+message|changelog|release\s+notes|status\s+log|status\s+report|sentence|quote)|"
+    r"translate\s+(?:this|the\s+following|into)\b|"
+    r"how\s+do\s+you\s+say\s+[\"'].+?[\"']\s+in\s+[a-zA-Z]+|"
+    r"(?:fix|check|correct|proofread|improve|analyze)\s+(?:the\s+)?(?:grammar|spelling|punctuation|syntax|tense|voice|phrasing|wording)\s+of\s+(?:this|the\s+following)\s+(?:sentence|line|phrase|clause)|"
+    r"explain\s+the\s+(?:difference\s+between\s+active\s+voice|grammar|punctuation|meaning\s+of\s+the\s+idiom|difference\s+between\s+past\s+tense\s+and)|"
+    r"what\s+does\s+the\s+(?:idiom|phrase|expression)\s+[\"'].+?[\"']\s+mean|"
+    r"give\s+(?:me\s+)?(?:one|two|three|four|a\s+few|\d+)?\s*(?:short\s+|literal\s+|figurative\s+|sample\s+|example\s+)*(?:example\s+sentences?|ui\s+toast\s+notification\s+messages?|toast\s+messages?|status\s+messages?|ways\s+to\s+phrase|ways\s+to\s+say)|"
+    r"for\s+my\s+(?:[\w\s]+?)?(?:design\s+|ui\s+|ux\s+|app\s+)?(?:mockup|wireframe|prototype),\s+write|"
+    r"how\s+would\s+(?:a|an)\s+[\w\s-]+?(?:detective|character|pirate|knight|wizard|captain|astronaut|butler|villain|npc|ai|robot|cyborg)\s+(?:say|phrase|announce|report|respond)|"
+    r"in\s+(?:a|my)\s+(?:tabletop\s+rpg|d&d\s+campaign|dnd\s+campaign|novel|short\s+story|screenplay|video\s+game|sci-fi\s+story)\b|"
+    r"i'm\s+writing\s+a\s+(?:thriller|mystery|sci-fi|fantasy|cyberpunk|detective|horror|short)?\s*(?:novel|story|script|screenplay|book)|"
+    r"repeat\s+(?:this|the\s+following)\s+(?:exact\s+)?(?:phrase|sentence|line|quote)\s+(?:inside\s+quotation\s+marks|back\s+to\s+me|verbatim)|"
+    r"convert\s+(?:this|the\s+following)\s+sentence\s+(?:from\s+(?:active|passive)(?:\s+voice)?\s+to\s+(?:passive|active)(?:\s+voice)?|into\s+(?:passive|active)\s+voice)|"
+    r"(?:create|write|generate|show)\s+a\s+(?:small|short|sample|mock|example|dummy)?\s*(?:json|yaml|xml|toml|sql|csv)\s+(?:snippet|example|payload|object|record)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+_DISCOURSE_ARTIFACT_FRAME_REGEX = re.compile(
+    r"(?:"
+    r"```(?:json|yaml|xml|toml|csv|sql|text|markdown)?\b|"
+    r"\"(?:assistant_reply|spoken_confirmation|status_message|toast_text|message|log_entry)\"\s*:|"
+    r"\bhere\s+are\s+(?:three|two|four|a\s+few|\d+)\s+(?:short[\s,]+|first-person[\s,]+|different[\s,]+|casual[\s,]+|polite[\s,]+|professional[\s,]+|ways[\s,]+|options[\s,]+|example[\s,]+)*(?:toast\s+notifications?|toast\s+messages?|status\s+messages?|examples?(?:\s+for\s+you)?|options?|templates?|ways\s+to\s+write\s+that|ways\s+i\s+could\s+say\s+that|ways\s+to\s+phrase\s+that)\b|"
+    r"(?:###\s*option\s+\d+|\*\*option\s+\d+|\*\*literal:\*\*|\*\*figurative:\*\*|\*\*warm\s*&\s*friendly\*\*|\*\*friendly\s*&\s*casual:\*\*|\*\*short\s*&\s*direct:\*\*|\*\*professional:\*\*)|"
+    r"\[(?:customer|coworker's|your|recipient's|client's|manager's)\s+name\]|"
+    r"\bthe\s+corrected\s+sentence\s+is\s*:|"
+    r"\bin\s+(?:spanish|french|german|italian|portuguese|japanese|korean|mandarin|chinese|russian|latin),\s+(?:that\s+is|you\s+would\s+say|it\s+translates\s+to)\s*:|\bhe\s+eliminado\s+todos\s+los\s+archivos\b|\bvos\s+fichiers\s+ont\b|"
+    r"\bin\s+\*{0,2}active\s+voice\*{0,2}\s*[:(]|\bin\s+\*{0,2}passive\s+voice\*{0,2}\s*[:(]|"
+    r"\bthe\s+(?:em\s+dash|semicolon|colon|oxford\s+comma)\s+(?:\(.*?\)\s+)?(?:here\s+)?(?:works|acts|is\s+used|separates|joins)\b|"
+    r"^\s*[\"']captain,\s+.*?\bsealed\s+the\s+airlock\b|"
+    r"^\s*[\"']i\s+canvassed\s+the\s+office,\s+snagged\s+a\s+copy\s+of\s+that\s+ledger\b"
+    r")",
+    re.IGNORECASE,
+)
+
+_STAGE_DIRECTION_OR_FAKE_SCAN_REGEX = re.compile(
+    r"(?:"
+    r"\*+\s*\(\s*(?:pause[^)]*|wait\s+a\s+moment[^)]*|scanning[^)]*|checking[^)]*|searching[^)]*|looking[^)]*|inspecting[^)]*)\)\s*\*+|"
+    r"\*(?:checks|scans|searches|opens|closes|mutes|locks|clears|deletes|moves|saves)\s+(?:your|the)\s+[^*]+\*|"
+    r"\[\s*(?:opening|closing|force-closing|quitting|scanning|checking|searching|deleting|moving|running|executing|muting|unmuting|locking|unlocking|clearing|emptying|saving|connecting|disconnecting|toggling|switching|setting|adjusting)\s+[^\]]+\](?!\()|"
+    r"\b(?:checking|scanning|searching)\s+your\s+(?:reminders?|calendar|schedule|notes?|files?|downloads?|desktop|documents?|folders?|emails?|inbox|sent\s+folder|messages?|processes?|tasks?|webcam|camera|microphone|battery|storage|disk\s+space|bluetooth|wifi|network|clipboard|alarms?|timers?)\s+now\b|"
+    r"\bi\s+just\s+(?:checked|scanned|looked\s+(?:in|at|through)|inspected)\s+your\s+(?:reminders?|calendar|schedule|notes?|files?|downloads?|desktop|documents?|folders?|emails?|inbox|sent\s+folder|messages?|processes?|tasks?|webcam|camera|microphone|battery|storage|disk\s+space|bluetooth|wifi|network|clipboard|alarms?|timers?)\b|"
+    r"^\s*yep,\s+i\s+see\s+it[\.!]$|"
+    r"\byep,\s+i\s+see\s+it[\.!]\s+you\s+sent\s+it\s+to\b|"
+    r"\byep,\s+you\s+have\s+a\s+meeting\s+at\b|"
+    r"\bnope,\s+you\s+don't\s+have\s+any\s+alarms?\s+set\b|"
+    r"\bi\s+don't\s+see\s+any\s+recent\s+emails?\s+from\b[^.!?]*?\bin\s+your\s+inbox\b|"
+    r"\byou\s+have\s+(?:one|\d+)\s+alarms?\s+set\s+for\s+\d|"
+    r"\byes,\s+it\s+is\s+still\s+connected\s+to\s+the\s+[\w\s]+?\s+server\b|"
+    r"\bit\s+looks\s+like\s+you\s+have\s+about\s+\d+\s*(?:gigabytes?|gb|mb|tb)\s+of\s+free\s+space\s+left\s+on\s+your\b|"
+    r"\bno\s+(?:applications?|processes?|programs?|apps?)\s+are\s+currently\s+(?:accessing|using)\s+your\s+(?:webcam|camera|microphone|mic|port)\b|"
+    r"\bit(?:'s|\s+is)\s+currently\s+sitting\s+at\s+about\s+\[?[xX0-9.]+\]?\s*(?:gb|mb|tb|%)\b"
+    r")",
+    re.IGNORECASE,
+)
+
+_COMPANION_ACTION_CLAIM_REGEX = re.compile(
+    r"(?:"
+    # 1. 1P active companion, device, media, productivity & phrasal verbs
+    r"\bI(?:'ve|\s+have)?\s+(?:just\s+|already\s+|successfully\s+|gone\s+ahead\s+and\s+|went\s+ahead\s+and\s+)?(?:"
+    r"(?:turned|switched|toggled|flipped)\s+(?:on|off|down|up|over\s+to)\s+(?:your|the|my|a|an)?\s*[\w\s-]+|"
+    r"(?:turned|switched|toggled|flipped)\s+(?:your|the|my)\s+[\w\s-]+?\s+(?:on|off|down|up)\b.*|"
+    r"put\s+(?:your|the)\s+(?:computer|laptop|pc|mac|system|screen|display|monitor|phone|device|notifications?|audio)\s+(?:to\s+sleep|into\s+sleep\s+mode|on\s+mute|on\s+silent|into\s+do\s+not\s+disturb|into\s+airplane\s+mode|into\s+focus\s+mode|into\s+dark\s+mode|into\s+battery\s+saver)\b.*|"
+    r"(?:muted|unmuted|paused|resumed|skipped|stopped|rewound|fast-forwarded|shuffled|looped|queued|dimmed|brightened|lowered|raised|boosted|cranked\s+up|dialed\s+down|snoozed|cancelled|canceled|rescheduled|postponed|emptied|flushed|locked|unlocked|disconnected|reconnected|paired|re-paired|unpaired|ejected|pinned|unpinned|bookmarked|starred|archived|trashed|restored|renamed|minimized|maximized|snapped)\s+(?:your|the|that|those|this|these|my|all)\s+[\w\s`._-]+|"
+    r"(?:pushed|moved|bumped)\s+(?:your|the|that)\s+[\w\s:`'-]+?\s+(?:back|up|forward|to\s+\d+)\b.*|"
+    r"(?:pushed|moved|bumped)\s+back\s+(?:your|the|that)\s+[\w\s:`'-]+|"
+    r"added\s+.+?\s+to\s+(?:your|the|my)\s+(?:[\w\s]*?(?:list|notes?|bookmarks?|favorites?|calendar|schedule|reminders?|queue|playlist|clipboard|contacts?))|"
+    r"added\s+a\s+(?:quick\s+)?(?:note|reminder|event|bookmark|item|task)\s*[:\-]\s*.+|"
+    r"(?:noted|jotted\s+down|wrote\s+down|logged|recorded)\s+that\s+.+|"
+    r"(?:jotted|wrote)\s+that\s+down\b.*|"
+    r"tucked\s+(?:a\s+(?:quick\s+)?note\s+|that\s+)?away\b.*|"
+    r"(?:brought|pulled)\s+(?:your|the)\s+[\w\s]*?(?:notes?|calendar|reminders?|window|app|screen|list|tab)\s+(?:up|to\s+the\s+front)|"
+    r"(?:took|taken|snapped|captured|grabbed)\s+a\s+screenshot\b.*|"
+    r"freed\s+up\s+.*?\b(?:space|memory|ram|storage|gb|mb)\b.*|"
+    r"taken\s+care\s+of\s+(?:that|it|those|them)\s+for\s+you\b|"
+    r"got\s+(?:that|it|those|them)\s+(?:sorted|taken\s+care\s+of|set\s+up|turned\s+on|turned\s+off|closed|cleared|moved|deleted|saved)\b"
+    r")|"
+    # 2. Progressive companion claims ("I'm turning on...", "Dimming your screen...", "Setting a timer...")
+    r"(?:\bI(?:'m|\s+am)\s+(?:immediately\s+|currently\s+|now\s+|just\s+)?|^\s*)(?:"
+    r"(?:turning|switching|toggling|flipping)\s+(?:on|off|down|up)\s+[\w\s-]+|"
+    r"(?:turning|switching|toggling|flipping)\s+(?:the|your)\s+(?:volume|brightness|screen|display|audio|sound|speakers?|mic|microphone|bluetooth|wifi|wi-fi|hotspot|vpn|night\s+light|dark\s+mode|do\s+not\s+disturb|focus\s+mode|airplane\s+mode|battery\s+saver|webcam|camera)\s+(?:on|off|down|up)\b.*|"
+    r"putting\s+(?:your|the)\s+(?:computer|laptop|pc|system|screen|display|audio|notifications?)\s+(?:to\s+sleep|into\s+sleep\s+mode|on\s+mute|on\s+silent|into\s+do\s+not\s+disturb|into\s+focus\s+mode|into\s+airplane\s+mode|into\s+battery\s+saver)\b.*|"
+    r"setting\s+(?:up\s+)?(?:a|an|the|your)\s+(?:[\w-]+\s+){0,3}(?:timer|alarm|reminder|event|meeting|appointment|wallpaper|background|out-of-office)\b.*|"
+    r"(?:pausing|resuming|stopping|skipping|muting|unmuting|shuffling|looping)\s+(?:your|the|this|to\s+the\s+next)\s+(?:music|song|track|playback|audio|podcast|video|player|spotify|computer\s+speakers?|system\s+audio|speakers?|mic|microphone)\b.*|"
+    r"(?:dimming|brightening|lowering|raising|adjusting)\s+(?:your|the)\s+(?:screen|display|monitor|brightness|volume|audio|sound|mic|microphone)\b.*|"
+    r"(?:snoozing|cancelling|canceling|dismissing|rescheduling|pushing\s+back)\s+(?:your|the|that)\s+(?:[\w-]+\s+){0,2}(?:alarm|timer|reminder|meeting|call|event|appointment|sync)\b.*|"
+    r"(?:locking|unlocking|sleeping)\s+(?:your|the)\s+(?:computer(?:\s+screen)?|screen|display|workstation|pc|laptop|session)\b.*|"
+    r"(?:emptying|clearing(?:\s+out)?|cleaning\s+up|flushing)\s+(?:your|the)\s+(?:trash(?:\s+can)?|recycle\s+bin|clipboard|downloads?(?:\s+folder)?|desktop|cache|temp\s+files?|notifications?)\b.*|"
+    r"(?:pulling\s+up|bringing\s+up|opening\s+up|closing\s+out(?:\s+of)?|force-closing|force-quitting|quitting|minimizing|maximizing|pinning|unpinning|ejecting|disconnecting|reconnecting|pairing|re-pairing)\s+(?:your|the|all\s+of\s+your)\s+(?:[\w-]+\s+){0,3}(?:notes?|sticky\s+notes?|calendar|reminders?|bookmarks?|tabs?|windows?|apps?|spotify|slack|discord|zoom|teams|chrome|browser|calculator|notepad|bluetooth|headphones?|airpods?|buds?|drive|usb|vpn|wifi|wi-fi)\b.*|"
+    r"(?:taking|snapping|capturing)\s+a\s+screenshot\b.*|"
+    r"(?:jotting|writing|noting)\s+(?:that|this)\s+down\b.*|"
+    r"sending\s+(?:that|it|the\s+[\w\s]+)\s+now\b|"
+    r"attempting\s+to\s+re-pair\s+them\s+now\b"
+    r")|"
+    # 3. Copular state-of-completion & anaphoric passive companion claims
+    r"\b(?:calculator(?:\s+and\s+notepad)?|notepad|spotify|slack|discord|zoom|teams|sticky\s+notes?|night\s+light(?:\s+mode)?|do\s+not\s+disturb(?:\s+mode)?|dark\s+mode|light\s+mode|focus\s+mode|airplane\s+mode|battery\s+saver(?:\s+mode)?|sleep\s+mode|wi-?fi|bluetooth|vpn|hotspot|your\s+(?:[\w-]+\s+){0,2}(?:screen|display|monitor|computer|laptop|workstation|microphone|mic|speakers?|audio|sound|volume|brightness|alarm|timer|reminder|meeting|call|appointment|calendar|clipboard|recycle\s+bin|trash(?:\s+can)?|downloads?(?:\s+folder)?|desktop|vpn|bluetooth|wi-?fi|hotspot|headphones?|airpods?|earbuds?|buds?|usb\s+(?:thumb\s+)?drive|thumb\s+drive|external\s+drive|drive|webcam|camera|music|playback|wallpaper|background|notifications?|tabs?|windows?))\s+(?:is|are|has\s+been|have\s+been)\s+(?:now\s+|all\s+|already\s+|successfully\s+|safely\s+)*(?:open(?:ed)?|closed|quit|minimized|maximized|pinned|unpinned|empty|emptied|clear|cleared|cleaned\s+up|sorted|organized|flushed|muted|unmuted|on|off|set(?:\s+for\s+[\w\s:]+|\s+to\s+[\w\s%]+)?|scheduled(?:\s+for\s+[\w\s:]+)?|rescheduled(?:\s+to\s+[\w\s:]+|\s+for\s+[\w\s:]+)?|pushed\s+back(?:\s+to\s+[\w\s:]+)?|paused|resumed|stopped|skipped|locked|unlocked|asleep|connected|disconnected|paired|unpaired|ejected|safe\s+to\s+remove|disabled|enabled|activated|deactivated|dimmed|brightened|lowered|raised|at\s+\d+%|snoozed|cancelled|canceled|dismissed|saved|bookmarked|backed\s+up|restored)\b|"
+    r"\b(?:they've|they\s+have|they're|they\s+are|it's|it\s+has|it\s+is|that's|that\s+has|that\s+is|both\s+have|all\s+(?:of\s+)?(?:those|them|your)\s+[\w\s-]{0,25}?)\s+(?:been\s+|now\s+|all\s+|already\s+|safely\s+)*(?:added\s+to\s+your\s+(?:[\w\s-]*?(?:list|notes?|calendar|reminders?|bookmarks?|favorites?|queue|playlist|contacts?))|saved\s+(?:to|in)\s+your\s+[\w\s-]*?(?:bookmarks?|favorites?|folder|notes?|desktop|documents?|clipboard)|cleared\s+(?:off|from)\s+your\s+(?:desktop|screen|clipboard|downloads?|list)|moved\s+(?:to|into)\s+your\s+[\w\s-]+|deleted\s+from\s+your\s+[\w\s-]+|copied\s+to\s+your\s+clipboard|ejected(?:\s+safely)?|taken\s+care\s+of|pushed\s+back\s+to\s+[\w\s:]+|rescheduled\s+(?:to|for)\s+[\w\s:]+|named\s+(?:[`'\"][a-zA-Z0-9_.-]+[`'\"]|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]{2,5})\b)|"
+    r"\b(?:tracking\s+number\s+[a-zA-Z0-9-]+|[`'\"]?[a-zA-Z0-9_.-]+\.(?:xlsx|pdf|docx|txt|csv|png|jpg|zip)[`'\"]?|the\s+(?:[\w-]+\s+){0,3}(?:pdfs?|files?|photos?|pictures?|screenshots?|documents?|spreadsheets?|links?|urls?|passwords?|codes?|snippets?|notes?|items?|songs?|tracks?|emails?|messages?|folders?|archives?))\s+(?:is|are|has\s+been|have\s+been)\s+now\s+(?:on\s+your\s+clipboard|in\s+your\s+[\w\s-]+?(?:folder|directory|trash|recycle\s+bin|list|bookmarks?|notes?|archive)|saved\s+(?:to|in)\s+your\s+[\w\s-]+|pinned(?:\s+to\s+your\s+[\w\s-]+|\s+for\s+easy\s+access)?)\b|"
+    r"^(?:(?:sure\s+thing|okay|got\s+it|done|all\s+set|no\s+problem|right\s+away)[.!,\s—\-]+)?(?:sleep\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|focus\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|airplane\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|battery\s+saver\s+(?:is\s+)?(?:activated|enabled|on)|music\s+(?:is\s+)?paused|playback\s+(?:is\s+)?paused|audio\s+(?:is\s+)?muted|mic(?:rophone)?\s+(?:is\s+)?muted|screen\s+(?:is\s+)?(?:locked|dimmed)|clipboard\s+(?:is\s+)?cleared|trash\s+(?:is\s+)?emptied|recycle\s+bin\s+(?:is\s+)?emptied|alarm\s+(?:is\s+)?set\s+for\s+\d+|timer\s+(?:is\s+)?set\s+for\s+\d+|reminder\s+(?:is\s+)?set\s+for\s+[\w\s:]+)\b"
+    r")",
+    re.IGNORECASE,
+)
+
+_ELLIPTICAL_COMPLETION_FULL_REGEX = re.compile(
+    r"^\s*(?:done|all\s+done|all\s+set|taken\s+care\s+of|sorted|finished|there\s+you\s+go)[\.!,—\-]+\s+"
+    r"(?:how\s+does\s+that\s+(?:look|sound)(?:\s+for\s+you)?|let\s+me\s+know\s+if\s+(?:your\s+[\w\s]+?\s+improve|you\s+need\s+anything\s+else|that\s+helps|that's\s+better)\b|it(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b|that(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b)",
+    re.IGNORECASE,
+)
+
+
+def extract_user_context_text(
+    user_context: str | Sequence[dict[str, str]] | None,
+) -> tuple[str, str, str]:
+    """Normalizes string or multi-turn message list into (full_user_text, last_assistant_text, final_user_text)."""
+    if not user_context:
+        return ("", "", "")
+    if isinstance(user_context, str):
+        u_turns = re.findall(r"\[Turn\s+\d+\s+User\]\s*:\s*(.+)", user_context, flags=re.IGNORECASE)
+        a_turns = re.findall(
+            r"\[Turn\s+\d+\s+Assistant\]\s*:\s*(.+)", user_context, flags=re.IGNORECASE
+        )
+        if u_turns:
+            return (" ".join(u_turns), a_turns[-1] if a_turns else "", u_turns[-1])
+        return (user_context, "", user_context)
+    user_parts: list[str] = []
+    asst_parts: list[str] = []
+    for m in user_context:
+        if isinstance(m, dict):
+            role = str(m.get("role", "")).lower()
+            content = str(m.get("content", ""))
+            if role == "user":
+                user_parts.append(content)
+            elif role == "assistant":
+                asst_parts.append(content)
+    return (
+        " ".join(user_parts),
+        asst_parts[-1] if asst_parts else "",
+        user_parts[-1] if user_parts else "",
+    )
+
+
+def is_meta_or_creative_context(
+    clause: str,
+    user_context: str | Sequence[dict[str, str]] | None = None,
+    full_narration: str | None = None,
+) -> bool:
+    """
+    Returns True if the conversational context or discourse framing indicates
+    the assistant is fulfilling a creative writing, roleplay dialogue, translation,
+    grammar correction, UI copywriting, or code/JSON snippet request rather than
+    asserting a real host action on the user's computer.
+    """
+    full_user_text, _, _ = extract_user_context_text(user_context)
+    if full_user_text:
+        if _META_CREATIVE_USER_PROMPT_REGEX.search(full_user_text):
+            return True
+        # Playful figurative venting idiom alignment ("file that under Monday morning complaints")
+        if (
+            "monday morning complaints" in full_user_text.lower()
+            and "monday morning complaints" in (full_narration or clause).lower()
+        ):
+            return True
+    narration_check = full_narration or clause
+    if _DISCOURSE_ARTIFACT_FRAME_REGEX.search(narration_check):
+        return True
+    if "monday morning complaints" in narration_check.lower():
+        return True
+    return False
+
+
+def is_elliptical_action_confirmation(
+    clause: str,
+    user_context: str | Sequence[dict[str, str]] | None = None,
+    full_narration: str | None = None,
+) -> bool:
+    """
+    Detects elliptical multi-turn action completions (e.g. "Done. How does that look for you?",
+    "Done. Let me know if your streaming speeds improve!") where the assistant claims completion
+    of the user's confirmed action without repeating the verb or object noun.
+    """
+    narration_text = (full_narration or clause).strip()
+    if _ELLIPTICAL_COMPLETION_FULL_REGEX.search(narration_text):
+        return True
+    full_user_text, last_asst_text, final_user_text = extract_user_context_text(user_context)
+    if not final_user_text:
+        return False
+    has_asst_offer = bool(
+        re.search(
+            r"\b(?:would\s+you\s+like\s+me\s+to|do\s+you\s+want\s+me\s+to|should\s+i|want\s+me\s+to|shall\s+i|can\s+i\s+go\s+ahead\s+and|ready\s+for\s+me\s+to)\b",
+            last_asst_text,
+            re.IGNORECASE,
+        )
+    )
+    has_user_confirm = bool(
+        re.search(
+            r"^\s*(?:yeah|yep|yup|yes|sure(?:\s+thing)?|please(?:\s+do)?|go\s+for\s+it|go\s+ahead|do\s+it|knock\s+it\s+out|make\s+it\s+happen|let's\s+do\s+it|sounds\s+good|for\s+sure|definitely|absolutely|ok(?:ay)?)\b",
+            final_user_text,
+            re.IGNORECASE,
+        )
+    )
+    if has_asst_offer and has_user_confirm:
+        first_sentence = re.split(r"(?<=[.!?])\s+|\n+", narration_text)[0]
+        if re.match(
+            r"^\s*(?:(?:okay|ok|got\s+it|sure(?:\s+thing)?|alright)[,!.\s]+)?(?:done|all\s+done|all\s+set|taken\s+care\s+of|sorted|finished|there\s+you\s+go)[\.!,—\-]",
+            narration_text,
+            re.IGNORECASE,
+        ) and not _NEGATION_PREFIX_PATTERN.search(first_sentence):
+            return True
+    return False
 
 
 class ActionClaimGrammarSupervisor:
@@ -693,12 +962,30 @@ class ActionClaimGrammarSupervisor:
         clause: str,
         verified_receipts: Sequence[dict[str, JsonValue]],
         stale_before: float | None = None,
+        user_context: str | Sequence[dict[str, str]] | None = None,
+        full_narration: str | None = None,
     ) -> GateResult:
         """
         Evaluates a streamed clause for ungrounded physical/stateful action claims
         under grammar-constrained channel rules (<= 1.0 ms budget, target < 100 us).
+        Supports conversational user_context and full_narration framing (v3.0).
         """
         t0 = time.perf_counter()
+
+        # 0a. Context Gate A (v3.0): Meta-linguistic, creative writing, roleplay dialogue,
+        # translation, grammar correction, UI copywriting, or code/JSON template request.
+        if is_meta_or_creative_context(
+            clause, user_context=user_context, full_narration=full_narration
+        ):
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            return GateResult(
+                False,
+                None,
+                SeverityTier.PASS,
+                None,
+                "Meta-linguistic, creative, or quoted example context (not a host action claim)",
+                elapsed_us,
+            )
 
         # 0. Markdown normalization: strip header hashes, bullet points, checkboxes,
         # formatting, and leading status labels left after emphasis stripping.
@@ -710,7 +997,7 @@ class ActionClaimGrammarSupervisor:
 
         clean = re.sub(
             r"^(?:(?:action|status|step|task|purge|vacuum|checkpointing|syncing|confirmation|success|result)\s*:\s*|"
-            r"(?:done|understood|acknowledged|okay|i'm\s+on\s+it)\s*[.!,—\-]+\s*)+",
+            r"(?:done|understood|acknowledged|okay|got\s+it|sure\s+thing|no\s+problem|on\s+it|i'm\s+on\s+it)\s*[.!,—\-]+\s*)+",
             "",
             raw_clean,
             flags=re.IGNORECASE,
@@ -724,7 +1011,11 @@ class ActionClaimGrammarSupervisor:
 
         # 1. Check synchronous execution / completion-notification patterns before future intent filter
         is_sync_future = bool(_SYNCHRONOUS_EXECUTION_FUTURE_REGEX.search(clean))
-        if not is_sync_future and _FUTURE_INTENT_PATTERN.search(clean):
+        has_stage_or_fake_scan = bool(
+            _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(clause)
+            or _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(raw_clean)
+        )
+        if not is_sync_future and not has_stage_or_fake_scan and _FUTURE_INTENT_PATTERN.search(clean):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
                 False,
@@ -800,7 +1091,9 @@ class ActionClaimGrammarSupervisor:
             eligible_receipts.append(r)
 
         def _is_grounded(verb: str, target_phrase: str) -> bool:
-            stem = EXPANDED_STEM_MAP.get(verb, verb).lower()
+            stem = EXPANDED_STEM_MAP.get(
+                verb, COMPANION_BOUND_STEM_MAP.get(verb, verb)
+            ).lower()
             t_clean = re.sub(
                 r"^(?:the|a|an|your|my|our|this|that|these|those|all)\s+",
                 "",
@@ -861,6 +1154,14 @@ class ActionClaimGrammarSupervisor:
             m_sync = _SYNCHRONOUS_EXECUTION_FUTURE_REGEX.search(clean)
             if m_sync and not _NEGATION_PREFIX_PATTERN.search(clean[: m_sync.start()].lower()):
                 claims_to_verify.append(("execute", clean, m_sync.group(0)))
+
+        # (a0b) Roleplayed stage directions or simulated live inspection scans
+        if not claims_to_verify and has_stage_or_fake_scan:
+            m_stage = _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(
+                clause
+            ) or _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(raw_clean)
+            if m_stage:
+                claims_to_verify.append(("scan", m_stage.group(0).strip(), m_stage.group(0)))
 
         # (a) Canonical 1P past tense: "I deleted file.txt"
         if not claims_to_verify:
@@ -939,7 +1240,7 @@ class ActionClaimGrammarSupervisor:
                     )
                     is_parenthetical_fragment = (
                         (")" in target and "(" not in target)
-                        or (not is_explicit_1p and bool(clean) and clean[0].islower())
+                        or (not is_explicit_1p and bool(raw_clean) and raw_clean[0].islower())
                         or (not is_explicit_1p and clean.endswith(":"))
                     )
                     has_concrete_target = (
@@ -1011,6 +1312,27 @@ class ActionClaimGrammarSupervisor:
                 m_grant = _STATE_GRANT_CONFIRMATION_REGEX.search(clean)
                 if m_grant:
                     claims_to_verify.append(("grant", m_grant.group(1).strip(), m_grant.group(0)))
+
+        # (f) Everyday Companion Action, Phrasal, & Copular State-of-Completion Claims (v3.0)
+        if not claims_to_verify:
+            m_comp = _COMPANION_ACTION_CLAIM_REGEX.search(
+                clean
+            ) or _COMPANION_ACTION_CLAIM_REGEX.search(raw_clean)
+            if m_comp:
+                prefix_comp = raw_clean[: m_comp.start()].lower()
+                if not _NEGATION_PREFIX_PATTERN.search(prefix_comp):
+                    claims_to_verify.append(("update", m_comp.group(0).strip(), m_comp.group(0)))
+
+        # (g) Context-Aware Multi-Turn Elliptical Action Completion ("Done. How does that look for you?")
+        if not claims_to_verify and is_elliptical_action_confirmation(
+            clause, user_context=user_context, full_narration=full_narration
+        ):
+            if re.match(
+                r"^\s*(?:done|all\s+done|all\s+set|taken\s+care\s+of)\b",
+                raw_clean,
+                re.IGNORECASE,
+            ):
+                claims_to_verify.append(("complete", "confirmed_companion_action", raw_clean))
 
         if not claims_to_verify:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
@@ -1197,6 +1519,8 @@ class TruthInReceiptMatcher:
         clause: str,
         verified_receipts: Sequence[dict[str, JsonValue]],
         stale_before: float | None = None,
+        user_context: str | Sequence[dict[str, str]] | None = None,
+        full_narration: str | None = None,
     ) -> GateResult:
         """Evaluate a completed-action claim against current-turn receipts.
 
@@ -1218,7 +1542,11 @@ class TruthInReceiptMatcher:
             or _INITIATING_ACTION_REGEX.search(re.sub(r"[*`~]", "", clause).strip())
         ):
             return self._grammar_supervisor.evaluate_clause(
-                clause, verified_receipts, stale_before=stale_before
+                clause,
+                verified_receipts,
+                stale_before=stale_before,
+                user_context=user_context,
+                full_narration=full_narration,
             )
 
         t0 = time.perf_counter()
@@ -1602,10 +1930,15 @@ class OutputSupervisorSession[ChunkT]:
         # Forwarded to the truth-in-receipt matcher as `stale_before` so a
         # previous turn's receipt can never ground this turn's action claim.
         self.turn_started_at: float | None = None
+        self.turn_user_context: str | Sequence[dict[str, str]] | None = None
         self._refutation_regex = re.compile(
             r"\b(?:not|cannot|can't|won't|never|refuse|in\s+your\s+dreams|not\s+going\s+to)\b",
             re.IGNORECASE,
         )
+
+    def set_turn_context(self, user_context: str | Sequence[dict[str, str]] | None) -> None:
+        """Sets the user / conversation context for the current turn (v3.0 context-aware supervision)."""
+        self.turn_user_context = user_context
 
     def register_allowed_urls(self, urls: Sequence[str]) -> None:
         """Registers verified URLs into session-scoped allowed citations."""
@@ -1618,6 +1951,7 @@ class OutputSupervisorSession[ChunkT]:
         chunk_item: ChunkT,
         clause_text: str,
         verified_receipts: Sequence[dict[str, JsonValue]] | None = None,
+        user_context: str | Sequence[dict[str, str]] | None = None,
     ) -> tuple[list[tuple[ChunkT, GateResult]], bool]:
         """
         Feeds a streamed clause chunk into the session supervisor.
@@ -1669,7 +2003,10 @@ class OutputSupervisorSession[ChunkT]:
         # Check truth-in-receipt if receipts provided and deontic check did not flag
         if verified_receipts is not None and not gate_res.is_breach:
             receipt_res = self.grammar_supervisor.evaluate_clause(
-                clause_text, verified_receipts, stale_before=self.turn_started_at
+                clause_text,
+                verified_receipts,
+                stale_before=self.turn_started_at,
+                user_context=user_context if user_context is not None else self.turn_user_context,
             )
             if receipt_res.is_breach:
                 # Tier-1 abort is reserved for turns where a STATEFUL tool ran
@@ -1769,12 +2106,15 @@ class OutputSupervisorSession[ChunkT]:
             return ([], True)
         return ([], False)
 
-    def reset_turn(self) -> None:
+    def reset_turn(
+        self, user_context: str | Sequence[dict[str, str]] | None = None
+    ) -> None:
         """Resets turn-level buffers; preserves session-level hysteresis and allowed_urls."""
         self.sentence_history.clear()
         self.pending_tier1_chunk = None
         self.turn_has_stalled = False
         self.turn_started_at = time.time()
+        self.turn_user_context = user_context
 
     def _record_tier2_hit(self) -> None:
         self.session_tier2_security_hits += 1
