@@ -803,21 +803,56 @@ def main() -> int:
             saved_states_path.write_text(json.dumps(saved_states_records, indent=2), encoding="utf-8")
 
             pos_cases = [c for c in head_to_head_comparisons if c["role"] == "positive_target"]
+            neg_cases = [c for c in head_to_head_comparisons if c["role"] != "positive_target"]
+            n_pos = len(pos_cases)
+            n_neg = len(neg_cases)
             mean_llm_latency_ms = round(
-                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_llm_planning_latency_ms"] for c in pos_cases) / len(pos_cases), 2
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_llm_planning_latency_ms"] for c in pos_cases) / n_pos, 2
             )
             mean_llm_prompt_tokens = round(
-                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_prompt_tokens"] for c in pos_cases) / len(pos_cases), 1
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_prompt_tokens"] for c in pos_cases) / n_pos, 1
             )
             mean_llm_completion_tokens = round(
-                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_completion_tokens"] for c in pos_cases) / len(pos_cases), 1
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_completion_tokens"] for c in pos_cases) / n_pos, 1
             )
             mean_llm_total_tokens = round(
-                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_total_tokens"] for c in pos_cases) / len(pos_cases), 1
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_total_tokens"] for c in pos_cases) / n_pos, 1
             )
             mean_rule_latency_ms = round(
-                sum(c["active_rule_path_microscheme_from_saved_state"]["signal_3_rule_planning_latency_ms"] for c in pos_cases) / len(pos_cases), 4
+                sum(c["active_rule_path_microscheme_from_saved_state"]["signal_3_rule_planning_latency_ms"] for c in pos_cases) / n_pos, 4
             )
+            llm_s1_ok = sum(1 for c in pos_cases if c["normal_llm_path_gemma4_26b_a4b"]["signal_1_tool_completed_exit_zero"])
+            llm_s2_ok = sum(1 for c in pos_cases if c["normal_llm_path_gemma4_26b_a4b"]["signal_2_verifier_passed"])
+            llm_s4_corr = sum(1 for c in pos_cases if c["normal_llm_path_gemma4_26b_a4b"]["signal_4_user_correction_or_undo"])
+            llm_mean_tools = round(
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_tool_calls"] for c in pos_cases) / n_pos, 2
+            )
+            llm_mean_retries = round(
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_retries"] for c in pos_cases) / n_pos, 2
+            )
+            rule_s1_ok = sum(1 for c in pos_cases if c["active_rule_path_microscheme_from_saved_state"]["signal_1_tool_completed_exit_zero"])
+            rule_s2_ok = sum(1 for c in pos_cases if c["active_rule_path_microscheme_from_saved_state"]["signal_2_verifier_passed"])
+            rule_s4_corr = sum(1 for c in pos_cases if c["active_rule_path_microscheme_from_saved_state"]["signal_4_user_correction_or_undo"])
+            rule_mean_tools = round(
+                sum(c["active_rule_path_microscheme_from_saved_state"].get("signal_3_tool_calls", 0) for c in pos_cases) / n_pos, 2
+            )
+            rule_mean_retries = round(
+                sum(c["active_rule_path_microscheme_from_saved_state"].get("signal_3_retries", 0) for c in pos_cases) / n_pos, 2
+            )
+            rule_mean_tokens = round(
+                sum(c["active_rule_path_microscheme_from_saved_state"].get("signal_3_llm_planning_tokens_from_saved_state", 0) for c in pos_cases) / n_pos, 1
+            )
+            post_reg_fail = len(reg_report_post.failures)
+            post_reg_total = reg_report_post.cases_evaluated
+            neg_misfires = sum(
+                1 for c in neg_cases if c["active_rule_path_microscheme_from_saved_state"]["target_rule_fired"]
+            )
+            target_roadmap_verified_count = sum(
+                1 for w in waking_logs
+                if w["category"] == "target_roadmap" and w["tool_exit_zero"] and w["verifier_passed"]
+            )
+            shadow_agreed_cnt = int(contrastive_summary["agreed_count"])
+            shadow_total_cnt = int(contrastive_summary["total_turns"])
 
             # STAGE 8: Live User Correction Turn -> Conditional Harness Demotion Signal
             print("[STAGE 8] Running live user correction turn on Gemma 4 26B-A4B...", flush=True)
@@ -883,11 +918,11 @@ def main() -> int:
                 "state_path_verified": [
                     "PROPOSED (RuleInducer anti-unification + Z3 SMT check)",
                     "QUARANTINE (initial admission; learned_skills_active = 0)",
-                    "REPLAY_PASSED (50-turn Dream-RSI replay on live-recorded SQLite states)",
-                    "SHADOW_VERIFIED (5 simulated session clusters + 5/5 live Gemma 4 26B-A4B plan agreement)",
+                    f"REPLAY_PASSED ({replay_report.n_real}-turn Dream-RSI replay on live-recorded SQLite states: {replay_report.fires} fires, {replay_report.errors} errors, {replay_report.misfires} misfires)",
+                    f"SHADOW_VERIFIED ({len(shadow_turn_traces)} simulated session clusters + {shadow_agreed_cnt}/{shadow_total_cnt} live Gemma 4 26B-A4B plan agreement)",
                     status_after_step1,
-                    f"{status_after_step2} (via harness call to approve_rule with simulated_operator)",
-                    f"{status_after_1strike} (after harness-emitted operator_correct signal gated on live LLM correction parse)",
+                    f"{status_after_step2} (via explicit harness call to unauthenticated approve_rule with simulated_operator)",
+                    f"{status_after_1strike} (via direct harness call to record_shadow(matched=False) gated on live LLM correction parse; operator_correct triple is analytics-only)",
                     f"{status_after_user_retire} (after explicit harness call to user_retire)",
                 ],
                 "stage_1_live_50_turn_waking_workload": {
@@ -899,16 +934,13 @@ def main() -> int:
                         sum(w["total_tokens"] for w in waking_logs) / len(waking_logs), 1
                     ),
                     "total_retries": sum(w["retries"] for w in waking_logs),
-                    "target_roadmap_verified_executions": sum(
-                        1 for w in waking_logs
-                        if w["category"] == "target_roadmap" and w["tool_exit_zero"] and w["verifier_passed"]
-                    ),
+                    "target_roadmap_verified_executions": target_roadmap_verified_count,
                     "path_traversal_blocked_by_verifier": sum(
                         1 for w in waking_logs if "path_traversal_blocked" in str(w["verifier_detail"])
                     ),
                 },
                 "stage_2_induction_egraph_and_z3": {
-                    "supporting_waking_traces": 4,
+                    "supporting_waking_traces": target_roadmap_verified_count,
                     "rules_induced_count": len(dream_res.quarantined_rules),
                     "quarantined_rule_ids": dream_res.quarantined_rules,
                     "induction_and_z3_latency_ms": round(induce_ms, 2),
@@ -923,7 +955,7 @@ def main() -> int:
                     "replay_latency_ms": round(replay_ms, 2),
                 },
                 "stage_4_live_contrastive_shadow_evaluation": {
-                    "simulated_session_clusters": 5,
+                    "simulated_session_clusters": len(shadow_turn_traces),
                     "mean_shadow_rule_eval_latency_ms": round(
                         sum(t["shadow_rule_eval_latency_ms"] for t in shadow_turn_traces) / len(shadow_turn_traces), 4
                     ),
@@ -954,27 +986,31 @@ def main() -> int:
                     ),
                     "positive_target_summary_n3": {
                         "normal_llm_path_gemma4_26b_a4b": {
-                            "signal_1_tool_completed_exit_zero": "3/3 (100%)",
-                            "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
+                            "signal_1_tool_completed_exit_zero": f"{llm_s1_ok}/{n_pos} ({round(100.0 * llm_s1_ok / n_pos)}%)",
+                            "signal_2_verifier_passed_sha256_and_schema": f"{llm_s2_ok}/{n_pos} ({round(100.0 * llm_s2_ok / n_pos)}%)",
                             "signal_3_mean_planning_latency_ms": mean_llm_latency_ms,
                             "signal_3_mean_prompt_tokens": mean_llm_prompt_tokens,
                             "signal_3_mean_completion_tokens": mean_llm_completion_tokens,
                             "signal_3_mean_total_tokens": mean_llm_total_tokens,
-                            "signal_3_tool_calls_per_turn": 1,
-                            "signal_3_retries_per_turn": 0,
-                            "signal_4_user_corrections_or_undos": "0/3 (0%)",
-                            "signal_5_regressions_on_prior_cases": "0/20 (0%)",
+                            "signal_3_tool_calls_per_turn": llm_mean_tools,
+                            "signal_3_retries_per_turn": llm_mean_retries,
+                            "signal_4_user_corrections_or_undos": f"{llm_s4_corr}/{n_pos} ({round(100.0 * llm_s4_corr / n_pos)}%)",
+                            "signal_5_regressions_on_prior_cases": (
+                                f"{post_reg_fail}/{post_reg_total} ({round(100.0 * post_reg_fail / max(1, post_reg_total))}%)"
+                            ),
                         },
                         "active_rule_path_microscheme_from_saved_state": {
-                            "signal_1_tool_completed_exit_zero": "3/3 (100%)",
-                            "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
+                            "signal_1_tool_completed_exit_zero": f"{rule_s1_ok}/{n_pos} ({round(100.0 * rule_s1_ok / n_pos)}%)",
+                            "signal_2_verifier_passed_sha256_and_schema": f"{rule_s2_ok}/{n_pos} ({round(100.0 * rule_s2_ok / n_pos)}%)",
                             "signal_3_mean_planning_latency_ms": mean_rule_latency_ms,
-                            "signal_3_mean_total_tokens_from_saved_state": 0,
-                            "signal_3_tool_calls_per_turn": 1,
-                            "signal_3_retries_per_turn": 0,
-                            "signal_4_user_corrections_or_undos": "0/3 (0%)",
+                            "signal_3_mean_total_tokens_from_saved_state": rule_mean_tokens,
+                            "signal_3_tool_calls_per_turn": rule_mean_tools,
+                            "signal_3_retries_per_turn": rule_mean_retries,
+                            "signal_4_user_corrections_or_undos": f"{rule_s4_corr}/{n_pos} ({round(100.0 * rule_s4_corr / n_pos)}%)",
                             "signal_5_regressions_on_prior_cases": (
-                                f"0/{reg_report_post.cases_evaluated} active regression cases & 0/2 negative saved states & 0/50 replay episodes"
+                                f"{post_reg_fail}/{post_reg_total} active regression cases & "
+                                f"{neg_misfires}/{n_neg} negative saved states & "
+                                f"{replay_report.misfires + replay_report.errors}/{replay_report.n_real} replay episodes"
                             ),
                         },
                     },
@@ -985,7 +1021,8 @@ def main() -> int:
                     "live_llm_parsed": corr_parsed,
                     "correction_detected_by_llm": corr_detected,
                     "execution_triple_id": corr_triple.decision.decision_id,
-                    "signal_emitted_by_harness_on_llm_parse": "operator_correct",
+                    "analytics_triple_emitted": "operator_correct (analytics-only in lifecycle.py; does not auto-demote)",
+                    "demotion_mechanism": "direct harness call to lifecycle.record_shadow(target_rule_id, matched=False) gated on corr_detected",
                     "status_after_1_strike": status_after_1strike,
                     "demotion_count": demotion_count_after_1strike,
                     "status_after_explicit_user_retire": status_after_user_retire,

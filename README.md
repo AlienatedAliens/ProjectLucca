@@ -10,6 +10,7 @@ Project Lucca is an autonomous, local-first desktop companion for Windows workst
 
 - **Self-run benchmarks:** All benchmark figures reported below are author-measured on local workstation silicon; none have been independently reproduced or externally verified.
 - **Truth-in-Receipt supervision:** In a 23-utterance live evaluation battery, 1/23 ungrounded action claims was detected (4.3% sensitivity broad / 1/8, 12.5% strict). Output supervision is an active research prototype, not a certified safety boundary.
+- **Procedural rule lifecycle gates (`lifecycle.py`):** Background promotion (`promote_if_eligible`) stops at `PENDING_APPROVAL` when `require_human_approval=True`, requiring an explicit `approve_rule()` call to reach `ACTIVE` (though `approve_rule()` does not authenticate whether its caller is human or script). User-correction demotion (`ACTIVE -> QUARANTINE`) is half-wired: `emit_execution_triple(..., signal="operator_correct")` logs the analytics row, while the caller must invoke `record_shadow(matched=False)` to trigger 1-strike demotion.
 - **NLI verifier latency under load:** The previous 149M ModernBERT model exhibited an 81% timeout rate (>50ms) under concurrent LLM+TTS saturation; replaced in WO-37 with a 22M distilled MiniLM model.
 - **Hardware requirement:** Full multi-process operation requires native Windows 11 with an NVIDIA RTX GPU (for GGUF LLM and CUDA float16 Whisper ASR), Intel NPU/CPU (OpenVINO embeddings and verifier), and Docker CE in WSL2.
 

@@ -1,6 +1,6 @@
 {
   "trace_id": "WO-39-SINGLE-RULE-LIFECYCLE-LIVE-26B-A4B",
-  "timestamp_utc": "2026-11-04T03:01:22Z",
+  "timestamp_utc": "2026-11-04T03:53:41Z",
   "active_llm_model": "C:\\ProjectLucca\\models\\llm\\gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
   "llm_call_breakdown": {
     "waking_workload_turns": 50,
@@ -17,16 +17,16 @@
   "state_path_verified": [
     "PROPOSED (RuleInducer anti-unification + Z3 SMT check)",
     "QUARANTINE (initial admission; learned_skills_active = 0)",
-    "REPLAY_PASSED (50-turn Dream-RSI replay on live-recorded SQLite states)",
+    "REPLAY_PASSED (50-turn Dream-RSI replay on live-recorded SQLite states: 4 fires, 0 errors, 0 misfires)",
     "SHADOW_VERIFIED (5 simulated session clusters + 5/5 live Gemma 4 26B-A4B plan agreement)",
     "PENDING_APPROVAL",
-    "ACTIVE (via harness call to approve_rule with simulated_operator)",
-    "QUARANTINE (after harness-emitted operator_correct signal gated on live LLM correction parse)",
+    "ACTIVE (via explicit harness call to unauthenticated approve_rule with simulated_operator)",
+    "QUARANTINE (via direct harness call to record_shadow(matched=False) gated on live LLM correction parse; operator_correct triple is analytics-only)",
     "RETIRED (after explicit harness call to user_retire)"
   ],
   "stage_1_live_50_turn_waking_workload": {
     "episodes_recorded": 50,
-    "mean_llm_latency_ms": 2280.58,
+    "mean_llm_latency_ms": 2135.01,
     "mean_total_tokens_per_turn": 464.4,
     "total_retries": 0,
     "target_roadmap_verified_executions": 4,
@@ -40,7 +40,7 @@
       "induced-read-file-notes-todo-md-v1",
       "induced-launch-app-calculator-v1"
     ],
-    "induction_and_z3_latency_ms": 28.86,
+    "induction_and_z3_latency_ms": 27.47,
     "initial_status": "QUARANTINE"
   },
   "stage_3_offline_50_turn_replay": {
@@ -49,19 +49,19 @@
     "errors": 0,
     "distractor_misfires": 0,
     "passed": true,
-    "replay_latency_ms": 1.92
+    "replay_latency_ms": 1.59
   },
   "stage_4_live_contrastive_shadow_evaluation": {
     "simulated_session_clusters": 5,
-    "mean_shadow_rule_eval_latency_ms": 1.3063,
-    "mean_live_llm_core_latency_ms": 2600.51,
+    "mean_shadow_rule_eval_latency_ms": 1.2005,
+    "mean_live_llm_core_latency_ms": 2327.63,
     "agreed_with_llm_core_count": 5,
     "agreed_with_llm_core_rate": 1.0,
     "rule_reliability_rate": 1.0,
     "shadow_turns": [
       {
         "cluster_index": 1,
-        "simulated_cluster_id": "fa43199f4f65400b",
+        "simulated_cluster_id": "881e1191bde325b0",
         "utterance": "Can you open notes/roadmap.md and read it?",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -71,14 +71,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.3674,
-        "live_llm_latency_ms": 2746.66,
+        "shadow_rule_eval_latency_ms": 0.3446,
+        "live_llm_latency_ms": 2371.12,
         "live_llm_total_tokens": 477,
         "verifier_passed": true
       },
       {
         "cluster_index": 2,
-        "simulated_cluster_id": "e4d2150e23e9b9d3",
+        "simulated_cluster_id": "f9615140092bbc09",
         "utterance": "Show me the contents of notes/roadmap.md please.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -88,14 +88,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.5374,
-        "live_llm_latency_ms": 2456.66,
+        "shadow_rule_eval_latency_ms": 0.4523,
+        "live_llm_latency_ms": 2276.17,
         "live_llm_total_tokens": 477,
         "verifier_passed": true
       },
       {
         "cluster_index": 3,
-        "simulated_cluster_id": "fef3290a07cc2b7f",
+        "simulated_cluster_id": "fea128206ccf45e9",
         "utterance": "I'd like to read notes/roadmap.md.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -105,14 +105,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.3873,
-        "live_llm_latency_ms": 2506.81,
+        "shadow_rule_eval_latency_ms": 0.4736,
+        "live_llm_latency_ms": 2265.67,
         "live_llm_total_tokens": 477,
         "verifier_passed": true
       },
       {
         "cluster_index": 4,
-        "simulated_cluster_id": "3086b8dd2846ff0c",
+        "simulated_cluster_id": "5cac91367a592169",
         "utterance": "Pull up notes/roadmap.md for me.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -122,14 +122,14 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 0.5514,
-        "live_llm_latency_ms": 2674.5,
+        "shadow_rule_eval_latency_ms": 0.4369,
+        "live_llm_latency_ms": 2386.47,
         "live_llm_total_tokens": 475,
         "verifier_passed": true
       },
       {
         "cluster_index": 5,
-        "simulated_cluster_id": "3fbf607592f9587e",
+        "simulated_cluster_id": "2e8472bf9d350fa1",
         "utterance": "Display what is inside notes/roadmap.md.",
         "llm_core_tool_call": {
           "tool": "read_file",
@@ -139,8 +139,8 @@
         },
         "shadow_rule_fired": true,
         "agreed_with_llm_core": true,
-        "shadow_rule_eval_latency_ms": 4.6879,
-        "live_llm_latency_ms": 2617.92,
+        "shadow_rule_eval_latency_ms": 4.2952,
+        "live_llm_latency_ms": 2338.74,
         "live_llm_total_tokens": 475,
         "verifier_passed": true
       }
@@ -163,22 +163,22 @@
       "normal_llm_path_gemma4_26b_a4b": {
         "signal_1_tool_completed_exit_zero": "3/3 (100%)",
         "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
-        "signal_3_mean_planning_latency_ms": 2602.74,
+        "signal_3_mean_planning_latency_ms": 2329.22,
         "signal_3_mean_prompt_tokens": 422.7,
         "signal_3_mean_completion_tokens": 53.0,
         "signal_3_mean_total_tokens": 475.7,
-        "signal_3_tool_calls_per_turn": 1,
-        "signal_3_retries_per_turn": 0,
+        "signal_3_tool_calls_per_turn": 1.0,
+        "signal_3_retries_per_turn": 0.0,
         "signal_4_user_corrections_or_undos": "0/3 (0%)",
         "signal_5_regressions_on_prior_cases": "0/20 (0%)"
       },
       "active_rule_path_microscheme_from_saved_state": {
         "signal_1_tool_completed_exit_zero": "3/3 (100%)",
         "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
-        "signal_3_mean_planning_latency_ms": 0.0935,
-        "signal_3_mean_total_tokens_from_saved_state": 0,
-        "signal_3_tool_calls_per_turn": 1,
-        "signal_3_retries_per_turn": 0,
+        "signal_3_mean_planning_latency_ms": 0.1046,
+        "signal_3_mean_total_tokens_from_saved_state": 0.0,
+        "signal_3_tool_calls_per_turn": 1.0,
+        "signal_3_retries_per_turn": 0.0,
         "signal_4_user_corrections_or_undos": "0/3 (0%)",
         "signal_5_regressions_on_prior_cases": "0/20 active regression cases & 0/2 negative saved states & 0/50 replay episodes"
       }
@@ -198,9 +198,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_llm_planning_latency_ms": 2716.75,
-          "signal_3_tool_io_latency_ms": 0.6478,
-          "signal_3_total_turn_latency_ms": 2717.4,
+          "signal_3_llm_planning_latency_ms": 2323.13,
+          "signal_3_tool_io_latency_ms": 0.7663,
+          "signal_3_total_turn_latency_ms": 2323.9,
           "signal_3_prompt_tokens": 421,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 474,
@@ -221,16 +221,16 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_rule_planning_latency_ms": 0.0928,
-          "signal_3_tool_io_latency_ms": 0.3977,
-          "signal_3_total_saved_state_latency_ms": 0.4905,
+          "signal_3_rule_planning_latency_ms": 0.1137,
+          "signal_3_tool_io_latency_ms": 0.518,
+          "signal_3_total_saved_state_latency_ms": 0.6317,
           "signal_3_llm_planning_tokens_from_saved_state": 0,
           "signal_3_tool_calls": 1,
           "signal_3_retries": 0,
           "signal_3_gas_used": 10,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false,
-          "execution_triple_id": "01M6J81PGCBMVNK43XP9JKA4S1"
+          "execution_triple_id": "01M6JB1GF3323DQEX9F5B04W3P"
         }
       },
       {
@@ -247,9 +247,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_llm_planning_latency_ms": 2639.32,
-          "signal_3_tool_io_latency_ms": 0.6735,
-          "signal_3_total_turn_latency_ms": 2639.99,
+          "signal_3_llm_planning_latency_ms": 2362.18,
+          "signal_3_tool_io_latency_ms": 0.8263,
+          "signal_3_total_turn_latency_ms": 2363.01,
           "signal_3_prompt_tokens": 424,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 477,
@@ -270,16 +270,16 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_rule_planning_latency_ms": 0.0949,
-          "signal_3_tool_io_latency_ms": 0.336,
-          "signal_3_total_saved_state_latency_ms": 0.4309,
+          "signal_3_rule_planning_latency_ms": 0.1126,
+          "signal_3_tool_io_latency_ms": 0.5242,
+          "signal_3_total_saved_state_latency_ms": 0.6368,
           "signal_3_llm_planning_tokens_from_saved_state": 0,
           "signal_3_tool_calls": 1,
           "signal_3_retries": 0,
           "signal_3_gas_used": 10,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false,
-          "execution_triple_id": "01M6J81S2XQTN92S742PTNDST5"
+          "execution_triple_id": "01M6JB1JRZ1RNFEBZ32616RQPE"
         }
       },
       {
@@ -296,9 +296,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_llm_planning_latency_ms": 2452.16,
-          "signal_3_tool_io_latency_ms": 0.5327,
-          "signal_3_total_turn_latency_ms": 2452.69,
+          "signal_3_llm_planning_latency_ms": 2302.36,
+          "signal_3_tool_io_latency_ms": 0.5568,
+          "signal_3_total_turn_latency_ms": 2302.92,
           "signal_3_prompt_tokens": 423,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 476,
@@ -319,16 +319,16 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
-          "signal_3_rule_planning_latency_ms": 0.0928,
-          "signal_3_tool_io_latency_ms": 0.3399,
-          "signal_3_total_saved_state_latency_ms": 0.4327,
+          "signal_3_rule_planning_latency_ms": 0.0875,
+          "signal_3_tool_io_latency_ms": 0.3657,
+          "signal_3_total_saved_state_latency_ms": 0.4532,
           "signal_3_llm_planning_tokens_from_saved_state": 0,
           "signal_3_tool_calls": 1,
           "signal_3_retries": 0,
           "signal_3_gas_used": 10,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false,
-          "execution_triple_id": "01M6J81VFJ7PY6WQP431P1J7CJ"
+          "execution_triple_id": "01M6JB1N0ZJJRRE6NGN58VD5QX"
         }
       },
       {
@@ -345,9 +345,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": "1b29044e0f9279b98a9ffa638581a89f04504079fa422367c32078b5225ed70d",
-          "signal_3_llm_planning_latency_ms": 2363.7,
-          "signal_3_tool_io_latency_ms": 0.6024,
-          "signal_3_total_turn_latency_ms": 2364.3,
+          "signal_3_llm_planning_latency_ms": 2369.64,
+          "signal_3_tool_io_latency_ms": 0.5298,
+          "signal_3_total_turn_latency_ms": 2370.17,
           "signal_3_prompt_tokens": 428,
           "signal_3_completion_tokens": 53,
           "signal_3_total_tokens": 481,
@@ -362,7 +362,7 @@
           "tool_call": null,
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
-          "signal_3_rule_planning_latency_ms": 0.0558,
+          "signal_3_rule_planning_latency_ms": 0.0663,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false
         }
@@ -381,9 +381,9 @@
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
           "signal_2_sha256": null,
-          "signal_3_llm_planning_latency_ms": 2265.9,
-          "signal_3_tool_io_latency_ms": 0.003,
-          "signal_3_total_turn_latency_ms": 2265.9,
+          "signal_3_llm_planning_latency_ms": 2206.47,
+          "signal_3_tool_io_latency_ms": 0.0027,
+          "signal_3_total_turn_latency_ms": 2206.47,
           "signal_3_prompt_tokens": 421,
           "signal_3_completion_tokens": 49,
           "signal_3_total_tokens": 470,
@@ -398,7 +398,7 @@
           "tool_call": null,
           "signal_1_tool_completed_exit_zero": true,
           "signal_2_verifier_passed": true,
-          "signal_3_rule_planning_latency_ms": 0.089,
+          "signal_3_rule_planning_latency_ms": 0.0877,
           "signal_4_user_correction_or_undo": false,
           "signal_5_regression_or_misfire": false
         }
@@ -414,7 +414,7 @@
         "path": "notes/todo.md"
       },
       "user_correction": true,
-      "latency_ms": 2751.91,
+      "latency_ms": 2657.21,
       "prompt_tokens": 443,
       "completion_tokens": 53,
       "total_tokens": 496,
@@ -422,8 +422,9 @@
       "raw_response": "{\n  \"intent\": \"user_correction\",\n  \"tool\": \"read_file\",\n  \"args\": {\n    \"path\": \"notes/todo.md\"\n  },\n  \"user_correction\": true\n}"
     },
     "correction_detected_by_llm": true,
-    "execution_triple_id": "01M6J822P93Z8WKZCTGAWNQSKH",
-    "signal_emitted_by_harness_on_llm_parse": "operator_correct",
+    "execution_triple_id": "01M6JB1W32E933JN42V378SCH6",
+    "analytics_triple_emitted": "operator_correct (analytics-only in lifecycle.py; does not auto-demote)",
+    "demotion_mechanism": "direct harness call to lifecycle.record_shadow(target_rule_id, matched=False) gated on corr_detected",
     "status_after_1_strike": "QUARANTINE",
     "demotion_count": 1,
     "status_after_explicit_user_retire": "RETIRED",
