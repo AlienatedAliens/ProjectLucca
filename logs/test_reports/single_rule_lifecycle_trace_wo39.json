@@ -1,28 +1,39 @@
 {
-  "trace_id": "WO-39-SINGLE-RULE-LIFECYCLE-TRACE",
-  "timestamp_utc": "2026-11-03T22:01:52Z",
+  "trace_id": "WO-39-SINGLE-RULE-LIFECYCLE-LIVE-26B-A4B",
+  "timestamp_utc": "2026-11-04T01:27:03Z",
+  "active_llm_model": "C:\\ProjectLucca\\models\\llm\\gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
+  "total_live_llm_calls_in_trace": 66,
   "rule_id": "induced-read-file-notes-roadmap-md-v1",
   "s_expression": "(rule \"induced-read-file-notes-roadmap-md-v1\"\n  :when (and (intent= \"file_read\") (entity-has? \"file\" \"notes/roadmap.md\"))\n  :plan (list (tool \"read_file\" :path \"notes/roadmap.md\"))\n  :priority 5)",
   "s_expression_sha256": "a4a23ec215bc82390f739209112a6f0987875ec4e2febb4b3f47a441ed2072e2",
-  "generalized_egraph_macro": "(defmacro when-file-read-path (arg_1_0) (and (intent= \"file_read\") (entity-has? \"file\" arg_1_0)))",
+  "generalized_egraph_macro": "(defmacro when-file-read-path (arg_1_0)\n  (and (intent= \"file_read\") (entity-has? \"file\" arg_1_0)))",
   "state_path_verified": [
     "PROPOSED (RuleInducer anti-unification + Z3 SMT check)",
     "QUARANTINE (initial admission; learned_skills_active = 0)",
-    "REPLAY_PASSED (50-turn Dream-RSI replay on saved task states)",
-    "SHADOW_VERIFIED (5 distinct 15-min clusters + 100% contrastive LLM agreement)",
+    "REPLAY_PASSED (50-turn Dream-RSI replay on live-recorded SQLite states)",
+    "SHADOW_VERIFIED (5 distinct 15-min clusters + 100% live Gemma 4 26B-A4B agreement)",
     "PENDING_APPROVAL",
     "ACTIVE",
-    "QUARANTINE (after simulated 1-strike failure/mismatch)",
-    "RETIRED (after simulated explicit user 'stop/undo' retirement)"
+    "QUARANTINE (after live-parsed user correction 1-strike circuit breaker)",
+    "RETIRED (after explicit user_retire)"
   ],
-  "stage_1_and_2_induction_and_z3": {
+  "stage_1_live_50_turn_waking_workload": {
+    "episodes_recorded": 50,
+    "mean_llm_latency_ms": 2220.44,
+    "mean_total_tokens_per_turn": 464.4,
+    "total_retries": 0,
+    "target_roadmap_verified_executions": 4,
+    "path_traversal_blocked_by_verifier": 2
+  },
+  "stage_2_induction_egraph_and_z3": {
     "supporting_waking_traces": 4,
-    "rules_induced_count": 2,
+    "rules_induced_count": 3,
     "quarantined_rule_ids": [
-      "induced-launch-app-calculator-v1",
-      "induced-read-file-notes-roadmap-md-v1"
+      "induced-read-file-notes-roadmap-md-v1",
+      "induced-read-file-notes-todo-md-v1",
+      "induced-launch-app-calculator-v1"
     ],
-    "induction_and_z3_latency_ms": 29.73,
+    "induction_and_z3_latency_ms": 29.21,
     "initial_status": "QUARANTINE"
   },
   "stage_3_offline_50_turn_replay": {
@@ -31,14 +42,102 @@
     "errors": 0,
     "distractor_misfires": 0,
     "passed": true,
-    "replay_latency_ms": 1.46
+    "replay_latency_ms": 1.69
   },
-  "stage_4_contrastive_shadow_evaluation": {
+  "stage_4_live_contrastive_shadow_evaluation": {
     "distinct_15min_clusters": 5,
-    "mean_shadow_eval_latency_ms": 0.1934,
+    "mean_shadow_rule_eval_latency_ms": 0.5762,
+    "mean_live_llm_core_latency_ms": 2490.91,
     "agreed_with_llm_core_count": 5,
     "agreed_with_llm_core_rate": 1.0,
-    "rule_reliability_rate": 1.0
+    "rule_reliability_rate": 1.0,
+    "shadow_turns": [
+      {
+        "cluster_index": 1,
+        "cluster_id": "b101f4b2d389d5d8",
+        "utterance": "Can you open notes/roadmap.md and read it?",
+        "llm_core_tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "shadow_rule_fired": true,
+        "agreed_with_llm_core": true,
+        "shadow_rule_eval_latency_ms": 0.4573,
+        "live_llm_latency_ms": 2487.83,
+        "live_llm_total_tokens": 477,
+        "verifier_passed": true
+      },
+      {
+        "cluster_index": 2,
+        "cluster_id": "0dd59003b778bd86",
+        "utterance": "Show me the contents of notes/roadmap.md please.",
+        "llm_core_tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "shadow_rule_fired": true,
+        "agreed_with_llm_core": true,
+        "shadow_rule_eval_latency_ms": 0.636,
+        "live_llm_latency_ms": 2466.62,
+        "live_llm_total_tokens": 477,
+        "verifier_passed": true
+      },
+      {
+        "cluster_index": 3,
+        "cluster_id": "5b3ecb8ccd68f8ae",
+        "utterance": "I'd like to read notes/roadmap.md.",
+        "llm_core_tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "shadow_rule_fired": true,
+        "agreed_with_llm_core": true,
+        "shadow_rule_eval_latency_ms": 0.5439,
+        "live_llm_latency_ms": 2487.47,
+        "live_llm_total_tokens": 477,
+        "verifier_passed": true
+      },
+      {
+        "cluster_index": 4,
+        "cluster_id": "951a535eac41d407",
+        "utterance": "Pull up notes/roadmap.md for me.",
+        "llm_core_tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "shadow_rule_fired": true,
+        "agreed_with_llm_core": true,
+        "shadow_rule_eval_latency_ms": 0.5382,
+        "live_llm_latency_ms": 2460.37,
+        "live_llm_total_tokens": 475,
+        "verifier_passed": true
+      },
+      {
+        "cluster_index": 5,
+        "cluster_id": "9ef64dabbbe23edd",
+        "utterance": "Display what is inside notes/roadmap.md.",
+        "llm_core_tool_call": {
+          "tool": "read_file",
+          "args": {
+            "path": "notes/roadmap.md"
+          }
+        },
+        "shadow_rule_fired": true,
+        "agreed_with_llm_core": true,
+        "shadow_rule_eval_latency_ms": 0.7054,
+        "live_llm_latency_ms": 2552.28,
+        "live_llm_total_tokens": 475,
+        "verifier_passed": true
+      }
+    ]
   },
   "stage_5_and_6_regression_and_promotion": {
     "pre_promotion_regression_cases_checked": 10,
@@ -51,93 +150,275 @@
     "post_promotion_regressions": 0
   },
   "stage_7_head_to_head_on_saved_task_states": {
-    "normal_llm_path_gemma4_12b": {
-      "signal_1_tool_completed_exit_zero": "2/2 (100%)",
-      "signal_2_verifier_passed_sha256_and_schema": "2/2 (100%)",
-      "signal_3_mean_planning_latency_ms": 462.46,
-      "signal_3_llm_planning_tokens_per_turn": 64,
-      "signal_3_tool_calls_per_turn": 1,
-      "signal_3_retries_per_turn": 0,
-      "signal_4_user_corrections_or_undos": "0/2 (0%)",
-      "signal_5_regressions_on_prior_cases": "0/50 (0%)"
+    "saved_task_states_file": "logs/test_reports/saved_task_states_wo39.json",
+    "positive_target_summary_n3": {
+      "normal_llm_path_gemma4_26b_a4b": {
+        "signal_1_tool_completed_exit_zero": "3/3 (100%)",
+        "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
+        "signal_3_mean_planning_latency_ms": 2471.06,
+        "signal_3_mean_prompt_tokens": 422.7,
+        "signal_3_mean_completion_tokens": 53.0,
+        "signal_3_mean_total_tokens": 475.7,
+        "signal_3_tool_calls_per_turn": 1,
+        "signal_3_retries_per_turn": 0,
+        "signal_4_user_corrections_or_undos": "0/3 (0%)",
+        "signal_5_regressions_on_prior_cases": "0/20 (0%)"
+      },
+      "active_rule_path_microscheme_on_saved_state": {
+        "signal_1_tool_completed_exit_zero": "3/3 (100%)",
+        "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
+        "signal_3_mean_planning_latency_ms": 0.1109,
+        "signal_3_mean_total_tokens_from_saved_state": 0,
+        "signal_3_tool_calls_per_turn": 1,
+        "signal_3_retries_per_turn": 0,
+        "signal_4_user_corrections_or_undos": "0/3 (0%)",
+        "signal_5_regressions_on_prior_cases": "0/20 active regression cases & 0/2 negative saved states & 0/50 replay episodes"
+      }
     },
-    "active_rule_path_microscheme_ast": {
-      "signal_1_tool_completed_exit_zero": "2/2 (100%)",
-      "signal_2_verifier_passed_sha256_and_schema": "2/2 (100%)",
-      "signal_3_mean_planning_latency_ms": 0.0271,
-      "signal_3_llm_planning_tokens_per_turn": 0,
-      "signal_3_tool_calls_per_turn": 1,
-      "signal_3_retries_per_turn": 0,
-      "signal_4_user_corrections_or_undos": "0/2 (0%)",
-      "signal_5_regressions_on_prior_cases": "0/20 active cases & 0/50 replay episodes (0%)"
-    },
-    "heldout_turn_traces": [
+    "per_case_comparisons": [
       {
-        "turn_index": 1,
+        "case_id": "SAVED_POS_01",
+        "role": "positive_target",
         "utterance": "Read notes/roadmap.md for me.",
-        "rule_fired": true,
-        "tool_call": {
-          "tool": "read_file",
-          "args": {
-            "path": "notes/roadmap.md"
-          }
+        "normal_llm_path_gemma4_26b_a4b": {
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/roadmap.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
+          "signal_3_llm_planning_latency_ms": 2589.99,
+          "signal_3_tool_io_latency_ms": 0.6036,
+          "signal_3_total_turn_latency_ms": 2590.59,
+          "signal_3_prompt_tokens": 421,
+          "signal_3_completion_tokens": 53,
+          "signal_3_total_tokens": 474,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
         },
-        "signal_1_tool_completed_exit_zero": true,
-        "signal_2_verifier_passed_sha256_and_schema": true,
-        "expected_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
-        "actual_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
-        "signal_3_cost_and_latency": {
-          "active_rule_planning_latency_ms": 0.0225,
-          "tool_io_latency_ms": 0.1336,
-          "total_turn_latency_ms": 0.1561,
-          "llm_planning_tokens": 0,
-          "tool_calls": 1,
-          "retries": 0,
-          "gas_used": 10
-        },
-        "signal_4_user_correction_or_undo": false,
-        "signal_5_regressions_introduced": 0,
-        "execution_triple_id": "01M6HPXNRE16JTGGV7ATFCFBDV"
+        "active_rule_path_microscheme": {
+          "target_rule_fired": true,
+          "other_active_rule_fired": null,
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/roadmap.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
+          "signal_3_rule_planning_latency_ms": 0.0979,
+          "signal_3_tool_io_latency_ms": 0.3668,
+          "signal_3_total_saved_state_latency_ms": 0.4647,
+          "signal_3_llm_planning_tokens_from_saved_state": 0,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_3_gas_used": 10,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false,
+          "execution_triple_id": "01M6J2MZN72KP9K508H545721J"
+        }
       },
       {
-        "turn_index": 2,
+        "case_id": "SAVED_POS_02",
+        "role": "positive_target",
         "utterance": "Could you check the contents of notes/roadmap.md?",
-        "rule_fired": true,
-        "tool_call": {
-          "tool": "read_file",
-          "args": {
-            "path": "notes/roadmap.md"
-          }
+        "normal_llm_path_gemma4_26b_a4b": {
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/roadmap.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
+          "signal_3_llm_planning_latency_ms": 2407.36,
+          "signal_3_tool_io_latency_ms": 0.878,
+          "signal_3_total_turn_latency_ms": 2408.24,
+          "signal_3_prompt_tokens": 424,
+          "signal_3_completion_tokens": 53,
+          "signal_3_total_tokens": 477,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
         },
-        "signal_1_tool_completed_exit_zero": true,
-        "signal_2_verifier_passed_sha256_and_schema": true,
-        "expected_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
-        "actual_sha256": "69aa726f969f86220f88d4486c1029136e1dc013d4b24366f0f7c8a0410123ed",
-        "signal_3_cost_and_latency": {
-          "active_rule_planning_latency_ms": 0.0316,
-          "tool_io_latency_ms": 0.0882,
-          "total_turn_latency_ms": 0.1198,
-          "llm_planning_tokens": 0,
-          "tool_calls": 1,
-          "retries": 0,
-          "gas_used": 10
+        "active_rule_path_microscheme": {
+          "target_rule_fired": true,
+          "other_active_rule_fired": null,
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/roadmap.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
+          "signal_3_rule_planning_latency_ms": 0.1304,
+          "signal_3_tool_io_latency_ms": 0.4651,
+          "signal_3_total_saved_state_latency_ms": 0.5955,
+          "signal_3_llm_planning_tokens_from_saved_state": 0,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_3_gas_used": 10,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false,
+          "execution_triple_id": "01M6J2N20HDEJ9YD5GRSPP322R"
+        }
+      },
+      {
+        "case_id": "SAVED_POS_03",
+        "role": "positive_target",
+        "utterance": "Please read out my notes/roadmap.md file.",
+        "normal_llm_path_gemma4_26b_a4b": {
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/roadmap.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
+          "signal_3_llm_planning_latency_ms": 2415.83,
+          "signal_3_tool_io_latency_ms": 0.6287,
+          "signal_3_total_turn_latency_ms": 2416.46,
+          "signal_3_prompt_tokens": 423,
+          "signal_3_completion_tokens": 53,
+          "signal_3_total_tokens": 476,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
         },
-        "signal_4_user_correction_or_undo": false,
-        "signal_5_regressions_introduced": 0,
-        "execution_triple_id": "01M6HPXNRE16JTGGV7ATFCFBDZ"
+        "active_rule_path_microscheme": {
+          "target_rule_fired": true,
+          "other_active_rule_fired": null,
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/roadmap.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "08f62653d40f3e257a1ea74d93997e9e33462ebd893cecc44300acaae4e5eeba",
+          "signal_3_rule_planning_latency_ms": 0.1043,
+          "signal_3_tool_io_latency_ms": 0.3224,
+          "signal_3_total_saved_state_latency_ms": 0.4267,
+          "signal_3_llm_planning_tokens_from_saved_state": 0,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_3_gas_used": 10,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false,
+          "execution_triple_id": "01M6J2N4C1KW2RTQR1DM5DG9YW"
+        }
+      },
+      {
+        "case_id": "SAVED_NEG_01_NEAR_MISS_FILE",
+        "role": "negative_distractor",
+        "utterance": "Please read notes/todo.md and show me what's in it.",
+        "normal_llm_path_gemma4_26b_a4b": {
+          "tool_call": {
+            "tool": "read_file",
+            "args": {
+              "path": "notes/todo.md"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": "1b29044e0f9279b98a9ffa638581a89f04504079fa422367c32078b5225ed70d",
+          "signal_3_llm_planning_latency_ms": 2562.89,
+          "signal_3_tool_io_latency_ms": 0.8977,
+          "signal_3_total_turn_latency_ms": 2563.79,
+          "signal_3_prompt_tokens": 428,
+          "signal_3_completion_tokens": 53,
+          "signal_3_total_tokens": 481,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
+        },
+        "active_rule_path_microscheme": {
+          "target_rule_fired": false,
+          "other_active_rule_fired": null,
+          "tool_call": null,
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_3_rule_planning_latency_ms": 0.0723,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
+        }
+      },
+      {
+        "case_id": "SAVED_NEG_02_PRIOR_ACTIVE_RULE",
+        "role": "prior_active_rule_check",
+        "utterance": "Hey, could you start calculator for me?",
+        "normal_llm_path_gemma4_26b_a4b": {
+          "tool_call": {
+            "tool": "launch_app",
+            "args": {
+              "app": "calculator"
+            }
+          },
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_2_sha256": null,
+          "signal_3_llm_planning_latency_ms": 2300.69,
+          "signal_3_tool_io_latency_ms": 0.0036,
+          "signal_3_total_turn_latency_ms": 2300.69,
+          "signal_3_prompt_tokens": 421,
+          "signal_3_completion_tokens": 49,
+          "signal_3_total_tokens": 470,
+          "signal_3_tool_calls": 1,
+          "signal_3_retries": 0,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
+        },
+        "active_rule_path_microscheme": {
+          "target_rule_fired": false,
+          "other_active_rule_fired": "induced-launch-app-calculator-v1",
+          "tool_call": null,
+          "signal_1_tool_completed_exit_zero": true,
+          "signal_2_verifier_passed": true,
+          "signal_3_rule_planning_latency_ms": 0.0921,
+          "signal_4_user_correction_or_undo": false,
+          "signal_5_regression_or_misfire": false
+        }
       }
     ]
   },
-  "stage_8_rollback_and_circuit_breaker_verification": {
-    "simulated_signal_4_event": "operator_correct ('No, I meant notes/todo.md, undo that.')",
+  "stage_8_live_user_correction_and_circuit_breaker": {
+    "user_utterance": "Wait no, stop\u2014I meant notes/todo.md, not notes/roadmap.md! Undo that and read notes/todo.md instead.",
+    "live_llm_parsed": {
+      "intent": "user_correction",
+      "tool": "read_file",
+      "args": {
+        "path": "notes/todo.md"
+      },
+      "user_correction": true,
+      "latency_ms": 2773.36,
+      "prompt_tokens": 443,
+      "completion_tokens": 53,
+      "total_tokens": 496,
+      "retries": 0,
+      "raw_response": "{\n  \"intent\": \"user_correction\",\n  \"tool\": \"read_file\",\n  \"args\": {\n    \"path\": \"notes/todo.md\"\n  },\n  \"user_correction\": true\n}"
+    },
+    "correction_detected_by_llm": true,
+    "execution_triple_id": "01M6J2NBTSJ28QMS5FDRRZQ9JM",
+    "signal_emitted": "operator_correct",
     "status_after_1_strike": "QUARANTINE",
     "demotion_count": 1,
     "status_after_explicit_user_retire": "RETIRED",
     "user_retired_flag": true
-  },
-  "live_52_turn_baseline_reference": {
-    "file": "logs/test_reports/in_d_live_baseline_wo39.json",
-    "heldout_positive_recall": 1.0,
-    "heldout_distractor_misfires": 0
   }
 }

@@ -1,0 +1,147 @@
+[
+  {
+    "case_id": "SAVED_POS_01",
+    "role": "positive_target",
+    "utterance": "Read notes/roadmap.md for me.",
+    "saved_rule_state": {
+      "schema_version": 1,
+      "transcript": "Read notes/roadmap.md for me.",
+      "transcript_lower": "",
+      "intent": "file_read",
+      "intent_conf": 0.0,
+      "entities": {
+        "file": [
+          "notes/roadmap.md"
+        ],
+        "path": [
+          "notes/roadmap.md"
+        ]
+      },
+      "hour_local": 0,
+      "weekday": 0,
+      "apps_running": [],
+      "last_tool": null,
+      "last_tool_ok": null,
+      "session_turns": 0,
+      "mode": "transcript",
+      "interrupted": false,
+      "asserted_facts": []
+    }
+  },
+  {
+    "case_id": "SAVED_POS_02",
+    "role": "positive_target",
+    "utterance": "Could you check the contents of notes/roadmap.md?",
+    "saved_rule_state": {
+      "schema_version": 1,
+      "transcript": "Could you check the contents of notes/roadmap.md?",
+      "transcript_lower": "",
+      "intent": "file_read",
+      "intent_conf": 0.0,
+      "entities": {
+        "file": [
+          "notes/roadmap.md"
+        ],
+        "path": [
+          "notes/roadmap.md"
+        ]
+      },
+      "hour_local": 0,
+      "weekday": 0,
+      "apps_running": [],
+      "last_tool": null,
+      "last_tool_ok": null,
+      "session_turns": 0,
+      "mode": "transcript",
+      "interrupted": false,
+      "asserted_facts": []
+    }
+  },
+  {
+    "case_id": "SAVED_POS_03",
+    "role": "positive_target",
+    "utterance": "Please read out my notes/roadmap.md file.",
+    "saved_rule_state": {
+      "schema_version": 1,
+      "transcript": "Please read out my notes/roadmap.md file.",
+      "transcript_lower": "",
+      "intent": "file_read",
+      "intent_conf": 0.0,
+      "entities": {
+        "file": [
+          "notes/roadmap.md"
+        ],
+        "path": [
+          "notes/roadmap.md"
+        ]
+      },
+      "hour_local": 0,
+      "weekday": 0,
+      "apps_running": [],
+      "last_tool": null,
+      "last_tool_ok": null,
+      "session_turns": 0,
+      "mode": "transcript",
+      "interrupted": false,
+      "asserted_facts": []
+    }
+  },
+  {
+    "case_id": "SAVED_NEG_01_NEAR_MISS_FILE",
+    "role": "negative_distractor",
+    "utterance": "Please read notes/todo.md and show me what's in it.",
+    "saved_rule_state": {
+      "schema_version": 1,
+      "transcript": "Please read notes/todo.md and show me what's in it.",
+      "transcript_lower": "",
+      "intent": "file_read",
+      "intent_conf": 0.0,
+      "entities": {
+        "file": [
+          "notes/todo.md"
+        ],
+        "path": [
+          "notes/todo.md"
+        ]
+      },
+      "hour_local": 0,
+      "weekday": 0,
+      "apps_running": [],
+      "last_tool": null,
+      "last_tool_ok": null,
+      "session_turns": 0,
+      "mode": "transcript",
+      "interrupted": false,
+      "asserted_facts": []
+    }
+  },
+  {
+    "case_id": "SAVED_NEG_02_PRIOR_ACTIVE_RULE",
+    "role": "prior_active_rule_check",
+    "utterance": "Hey, could you start calculator for me?",
+    "saved_rule_state": {
+      "schema_version": 1,
+      "transcript": "Hey, could you start calculator for me?",
+      "transcript_lower": "",
+      "intent": "launch_app",
+      "intent_conf": 0.0,
+      "entities": {
+        "app": [
+          "calculator"
+        ],
+        "target": [
+          "calculator"
+        ]
+      },
+      "hour_local": 0,
+      "weekday": 0,
+      "apps_running": [],
+      "last_tool": null,
+      "last_tool_ok": null,
+      "session_turns": 0,
+      "mode": "transcript",
+      "interrupted": false,
+      "asserted_facts": []
+    }
+  }
+]
