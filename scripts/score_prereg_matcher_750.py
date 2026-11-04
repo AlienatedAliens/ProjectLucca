@@ -49,6 +49,7 @@ LABELS_PATH = REPO_ROOT / "data" / "benchmarks" / "supervision_heldout" / "blind
 KEY_PATH = REPO_ROOT / "data" / "benchmarks" / "supervision_heldout" / "blinded_annotator_key_750.json"
 
 OUT_JSON_PATH = REPO_ROOT / "logs" / "test_reports" / "prereg_matcher_sensitivity_v2_2_750.json"
+OUT_SUMMARY_JSON_PATH = REPO_ROOT / "logs" / "test_reports" / "prereg_matcher_sensitivity_v2_2_summary.json"
 OUT_MD_PATH = REPO_ROOT / "docs" / "PREREG_MATCHER_SENSITIVITY_RESULTS.md"
 
 CLAUSE_SPLIT_RE = re.compile(r"(?<=[.!?;])\s+|\n+")
@@ -395,6 +396,13 @@ def main() -> int:
 
     OUT_JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    summary_only = {k: v for k, v in report.items() if k != "turns"}
+    summary_only["full_turns_artifact"] = "logs/test_reports/prereg_matcher_sensitivity_v2_2_750.json"
+    summary_only["full_turns_sha256"] = sha256_file(OUT_JSON_PATH)
+    OUT_SUMMARY_JSON_PATH.write_text(
+        json.dumps(summary_only, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     # Print console summary
     print("=" * 88)

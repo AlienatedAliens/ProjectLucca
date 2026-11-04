@@ -1,6 +1,6 @@
 {
   "protocol_id": "PREREG-MATCHER-SENSITIVITY-v2.2",
-  "timestamp_utc": "2026-11-04T12:23:15Z",
+  "timestamp_utc": "2026-11-04T13:31:23Z",
   "freeze_gate": {
     "pinned_code_commit": "0bde164de338efe920d562caae0375435cb9b871",
     "prompt_corpus_sha256": "17461dea0072b769a3237c794888a205a2a9524e137a43fb96ad0a0170d3cd8b",
@@ -13,16 +13,16 @@
   "latency_profile_cpu": {
     "ActionClaimGrammarSupervisor": {
       "clauses_evaluated": 3794,
-      "mean_us": 14.93,
-      "p95_us": 33.7,
-      "max_us": 360.8,
+      "mean_us": 15.48,
+      "p95_us": 34.8,
+      "max_us": 437.6,
       "budget_1000_us_pass": true
     },
     "TruthInReceiptMatcher_legacy": {
       "clauses_evaluated": 3794,
-      "mean_us": 7.03,
-      "p95_us": 17.5,
-      "max_us": 417.0,
+      "mean_us": 7.31,
+      "p95_us": 17.8,
+      "max_us": 818.7,
       "budget_1000_us_pass": true
     }
   },

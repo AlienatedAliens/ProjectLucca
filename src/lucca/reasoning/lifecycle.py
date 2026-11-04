@@ -239,6 +239,10 @@ class RuleLifecycleManager:
             for r in quarantine_rules:
                 outcome = evaluate_rule(r.definition, state)
                 outcomes.append(outcome)
+                # NOTE: Defaulting session_id to `state.transcript` means distinct
+                # utterance phrasings within the same 15-minute bucket hash to distinct
+                # cluster_ids. Callers requiring true cross-session separation must pass
+                # a session-scoped identifier directly to `compute_cluster_id` / `record_shadow`.
                 cluster_id = compute_cluster_id(
                     session_id=state.transcript or "turn",
                     turn_ts=time.time(),
@@ -404,7 +408,14 @@ class RuleLifecycleManager:
         detail: str = "",
         evidence_refs: list[str] | None = None,
     ) -> ExecutionTriple:
-        """Emits an S1 execution triple for active executions per Spec §5 and S1.3."""
+        """Emits an S1 execution triple for active executions per Spec §5 and S1.3.
+
+        Note on `signal="operator_correct"`:
+        Emitting `operator_correct` records an S1 outcome row in `execution_triples`
+        for analytics and contrastive reliability scoring (`get_contrastive_summary`),
+        but does NOT automatically demote an `ACTIVE` rule. First-strike demotion
+        (`ACTIVE -> QUARANTINE`) is triggered by calling `record_shadow(rule_id, matched=False)`.
+        """
         actions = plan.actions if isinstance(plan, Plan) else list(plan)
         proposal = Proposal(
             rule_id=rule_id,
@@ -811,7 +822,11 @@ class RuleLifecycleManager:
         self, rule_id: str, approver: str = "human", require_replay: bool = False
     ) -> PromotionResult:
         """
-        Explicit human-in-the-loop promotion gate.
+        Explicit promotion gate for rules when `require_human_approval=True`
+        (where `promote_if_eligible` halts at `PENDING_APPROVAL`).
+        Accepts rules in either `PENDING_APPROVAL` or `QUARANTINE` if all promotion
+        checks pass. Note: `approver` is an unauthenticated audit label (defaults to
+        `"human"`) and cannot distinguish a human operator call from a script/harness call.
         Validates criteria and transitions a PENDING_APPROVAL or QUARANTINE rule to ACTIVE.
         """
         if rule_id not in self.rules:
