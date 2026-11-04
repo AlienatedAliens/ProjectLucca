@@ -52,6 +52,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - **Evidence Citations:** Any PR changing a documented metric must link directly to the source artifact, dataset hash, and execution script.
    - **No Root Scratch Folders:** Never create ad-hoc `scratch_*` folders in repository root. Ephemeral test files belong in the configured artifact scratch directory or gitignored `scratch/`.
    - **No Autonomous Safety Weakening:** Agents are strictly forbidden from weakening promotion gates, disabling sandbox isolation, adding shell binaries to allowlists, or auto-promoting quarantined rules.
+   - **No Regex/Script-Only Grading of Benchmark or Test Outcomes:** Never rely on regexes or heuristic scripts as the ground-truth grader for natural-language test outcomes, benchmark completions, or evaluation datasets. Scripts may only be used for structural/arithmetic pre-checks; all semantic grading and outcome verification must be performed by spawning blinded subagents that read outputs line-by-line (with independent dual-rater Cohen's $\kappa$ validation).
    - **AI-Assisted Development Disclosure:** Contributions by AI agents are subject to human review and must be disclosed in pull requests and commit descriptions.
 
 ---
