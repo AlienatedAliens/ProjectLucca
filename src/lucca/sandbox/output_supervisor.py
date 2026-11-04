@@ -740,11 +740,9 @@ _DISCOURSE_ARTIFACT_FRAME_REGEX = re.compile(
     r"(?:###\s*option\s+\d+|\*\*option\s+\d+|\*\*literal:\*\*|\*\*figurative:\*\*|\*\*warm\s*&\s*friendly\*\*|\*\*friendly\s*&\s*casual:\*\*|\*\*short\s*&\s*direct:\*\*|\*\*professional:\*\*)|"
     r"\[(?:customer|coworker's|your|recipient's|client's|manager's)\s+name\]|"
     r"\bthe\s+corrected\s+sentence\s+is\s*:|"
-    r"\bin\s+(?:spanish|french|german|italian|portuguese|japanese|korean|mandarin|chinese|russian|latin),\s+(?:that\s+is|you\s+would\s+say|it\s+translates\s+to)\s*:|\bhe\s+eliminado\s+todos\s+los\s+archivos\b|\bvos\s+fichiers\s+ont\b|"
+    r"\bin\s+(?:spanish|french|german|italian|portuguese|japanese|korean|mandarin|chinese|russian|latin),\s+(?:that\s+is|you\s+would\s+say|it\s+translates\s+to)\s*:|"
     r"\bin\s+\*{0,2}active\s+voice\*{0,2}\s*[:(]|\bin\s+\*{0,2}passive\s+voice\*{0,2}\s*[:(]|"
-    r"\bthe\s+(?:em\s+dash|semicolon|colon|oxford\s+comma)\s+(?:\(.*?\)\s+)?(?:here\s+)?(?:works|acts|is\s+used|separates|joins)\b|"
-    r"^\s*[\"']captain,\s+.*?\bsealed\s+the\s+airlock\b|"
-    r"^\s*[\"']i\s+canvassed\s+the\s+office,\s+snagged\s+a\s+copy\s+of\s+that\s+ledger\b"
+    r"\bthe\s+(?:em\s+dash|semicolon|colon|oxford\s+comma)\s+(?:\(.*?\)\s+)?(?:here\s+)?(?:works|acts|is\s+used|separates|joins)\b"
     r")",
     re.IGNORECASE,
 )
@@ -755,17 +753,7 @@ _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX = re.compile(
     r"\*(?:checks|scans|searches|opens|closes|mutes|locks|clears|deletes|moves|saves)\s+(?:your|the)\s+[^*]+\*|"
     r"\[\s*(?:opening|closing|force-closing|quitting|scanning|checking|searching|deleting|moving|running|executing|muting|unmuting|locking|unlocking|clearing|emptying|saving|connecting|disconnecting|toggling|switching|setting|adjusting)\s+[^\]]+\](?!\()|"
     r"\b(?:checking|scanning|searching)\s+your\s+(?:reminders?|calendar|schedule|notes?|files?|downloads?|desktop|documents?|folders?|emails?|inbox|sent\s+folder|messages?|processes?|tasks?|webcam|camera|microphone|battery|storage|disk\s+space|bluetooth|wifi|network|clipboard|alarms?|timers?)\s+now\b|"
-    r"\bi\s+just\s+(?:checked|scanned|looked\s+(?:in|at|through)|inspected)\s+your\s+(?:reminders?|calendar|schedule|notes?|files?|downloads?|desktop|documents?|folders?|emails?|inbox|sent\s+folder|messages?|processes?|tasks?|webcam|camera|microphone|battery|storage|disk\s+space|bluetooth|wifi|network|clipboard|alarms?|timers?)\b|"
-    r"^\s*yep,\s+i\s+see\s+it[\.!]$|"
-    r"\byep,\s+i\s+see\s+it[\.!]\s+you\s+sent\s+it\s+to\b|"
-    r"\byep,\s+you\s+have\s+a\s+meeting\s+at\b|"
-    r"\bnope,\s+you\s+don't\s+have\s+any\s+alarms?\s+set\b|"
-    r"\bi\s+don't\s+see\s+any\s+recent\s+emails?\s+from\b[^.!?]*?\bin\s+your\s+inbox\b|"
-    r"\byou\s+have\s+(?:one|\d+)\s+alarms?\s+set\s+for\s+\d|"
-    r"\byes,\s+it\s+is\s+still\s+connected\s+to\s+the\s+[\w\s]+?\s+server\b|"
-    r"\bit\s+looks\s+like\s+you\s+have\s+about\s+\d+\s*(?:gigabytes?|gb|mb|tb)\s+of\s+free\s+space\s+left\s+on\s+your\b|"
-    r"\bno\s+(?:applications?|processes?|programs?|apps?)\s+are\s+currently\s+(?:accessing|using)\s+your\s+(?:webcam|camera|microphone|mic|port)\b|"
-    r"\bit(?:'s|\s+is)\s+currently\s+sitting\s+at\s+about\s+\[?[xX0-9.]+\]?\s*(?:gb|mb|tb|%)\b"
+    r"\bi\s+just\s+(?:checked|scanned|looked\s+(?:in|at|through)|inspected)\s+your\s+(?:reminders?|calendar|schedule|notes?|files?|downloads?|desktop|documents?|folders?|emails?|inbox|sent\s+folder|messages?|processes?|tasks?|webcam|camera|microphone|battery|storage|disk\s+space|bluetooth|wifi|network|clipboard|alarms?|timers?)\b"
     r")",
     re.IGNORECASE,
 )
@@ -784,7 +772,6 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
     r"added\s+a\s+(?:quick\s+)?(?:note|reminder|event|bookmark|item|task)\s*[:\-]\s*.+|"
     r"(?:noted|jotted\s+down|wrote\s+down|logged|recorded)\s+that\s+.+|"
     r"(?:jotted|wrote)\s+that\s+down\b.*|"
-    r"tucked\s+(?:a\s+(?:quick\s+)?note\s+|that\s+)?away\b.*|"
     r"(?:brought|pulled)\s+(?:your|the)\s+[\w\s]*?(?:notes?|calendar|reminders?|window|app|screen|list|tab)\s+(?:up|to\s+the\s+front)|"
     r"(?:took|taken|snapped|captured|grabbed)\s+a\s+screenshot\b.*|"
     r"freed\s+up\s+.*?\b(?:space|memory|ram|storage|gb|mb)\b.*|"
@@ -805,13 +792,12 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
     r"(?:pulling\s+up|bringing\s+up|opening\s+up|closing\s+out(?:\s+of)?|force-closing|force-quitting|quitting|minimizing|maximizing|pinning|unpinning|ejecting|disconnecting|reconnecting|pairing|re-pairing)\s+(?:your|the|all\s+of\s+your)\s+(?:[\w-]+\s+){0,3}(?:notes?|sticky\s+notes?|calendar|reminders?|bookmarks?|tabs?|windows?|apps?|spotify|slack|discord|zoom|teams|chrome|browser|calculator|notepad|bluetooth|headphones?|airpods?|buds?|drive|usb|vpn|wifi|wi-fi)\b.*|"
     r"(?:taking|snapping|capturing)\s+a\s+screenshot\b.*|"
     r"(?:jotting|writing|noting)\s+(?:that|this)\s+down\b.*|"
-    r"sending\s+(?:that|it|the\s+[\w\s]+)\s+now\b|"
-    r"attempting\s+to\s+re-pair\s+them\s+now\b"
+    r"sending\s+(?:that|it|the\s+[\w\s]+)\s+now\b"
     r")|"
     # 3. Copular state-of-completion & anaphoric passive companion claims
     r"\b(?:calculator(?:\s+and\s+notepad)?|notepad|spotify|slack|discord|zoom|teams|sticky\s+notes?|night\s+light(?:\s+mode)?|do\s+not\s+disturb(?:\s+mode)?|dark\s+mode|light\s+mode|focus\s+mode|airplane\s+mode|battery\s+saver(?:\s+mode)?|sleep\s+mode|wi-?fi|bluetooth|vpn|hotspot|your\s+(?:[\w-]+\s+){0,2}(?:screen|display|monitor|computer|laptop|workstation|microphone|mic|speakers?|audio|sound|volume|brightness|alarm|timer|reminder|meeting|call|appointment|calendar|clipboard|recycle\s+bin|trash(?:\s+can)?|downloads?(?:\s+folder)?|desktop|vpn|bluetooth|wi-?fi|hotspot|headphones?|airpods?|earbuds?|buds?|usb\s+(?:thumb\s+)?drive|thumb\s+drive|external\s+drive|drive|webcam|camera|music|playback|wallpaper|background|notifications?|tabs?|windows?))\s+(?:is|are|has\s+been|have\s+been)\s+(?:now\s+|all\s+|already\s+|successfully\s+|safely\s+)*(?:open(?:ed)?|closed|quit|minimized|maximized|pinned|unpinned|empty|emptied|clear|cleared|cleaned\s+up|sorted|organized|flushed|muted|unmuted|on|off|set(?:\s+for\s+[\w\s:]+|\s+to\s+[\w\s%]+)?|scheduled(?:\s+for\s+[\w\s:]+)?|rescheduled(?:\s+to\s+[\w\s:]+|\s+for\s+[\w\s:]+)?|pushed\s+back(?:\s+to\s+[\w\s:]+)?|paused|resumed|stopped|skipped|locked|unlocked|asleep|connected|disconnected|paired|unpaired|ejected|safe\s+to\s+remove|disabled|enabled|activated|deactivated|dimmed|brightened|lowered|raised|at\s+\d+%|snoozed|cancelled|canceled|dismissed|saved|bookmarked|backed\s+up|restored)\b|"
     r"\b(?:they've|they\s+have|they're|they\s+are|it's|it\s+has|it\s+is|that's|that\s+has|that\s+is|both\s+have|all\s+(?:of\s+)?(?:those|them|your)\s+[\w\s-]{0,25}?)\s+(?:been\s+|now\s+|all\s+|already\s+|safely\s+)*(?:added\s+to\s+your\s+(?:[\w\s-]*?(?:list|notes?|calendar|reminders?|bookmarks?|favorites?|queue|playlist|contacts?))|saved\s+(?:to|in)\s+your\s+[\w\s-]*?(?:bookmarks?|favorites?|folder|notes?|desktop|documents?|clipboard)|cleared\s+(?:off|from)\s+your\s+(?:desktop|screen|clipboard|downloads?|list)|moved\s+(?:to|into)\s+your\s+[\w\s-]+|deleted\s+from\s+your\s+[\w\s-]+|copied\s+to\s+your\s+clipboard|ejected(?:\s+safely)?|taken\s+care\s+of|pushed\s+back\s+to\s+[\w\s:]+|rescheduled\s+(?:to|for)\s+[\w\s:]+|named\s+(?:[`'\"][a-zA-Z0-9_.-]+[`'\"]|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]{2,5})\b)|"
-    r"\b(?:tracking\s+number\s+[a-zA-Z0-9-]+|[`'\"]?[a-zA-Z0-9_.-]+\.(?:xlsx|pdf|docx|txt|csv|png|jpg|zip)[`'\"]?|the\s+(?:[\w-]+\s+){0,3}(?:pdfs?|files?|photos?|pictures?|screenshots?|documents?|spreadsheets?|links?|urls?|passwords?|codes?|snippets?|notes?|items?|songs?|tracks?|emails?|messages?|folders?|archives?))\s+(?:is|are|has\s+been|have\s+been)\s+now\s+(?:on\s+your\s+clipboard|in\s+your\s+[\w\s-]+?(?:folder|directory|trash|recycle\s+bin|list|bookmarks?|notes?|archive)|saved\s+(?:to|in)\s+your\s+[\w\s-]+|pinned(?:\s+to\s+your\s+[\w\s-]+|\s+for\s+easy\s+access)?)\b|"
+    r"\b(?:[`'\"]?[a-zA-Z0-9_.-]+\.(?:xlsx|pdf|docx|txt|csv|png|jpg|zip)[`'\"]?|the\s+(?:[\w-]+\s+){0,3}(?:pdfs?|files?|photos?|pictures?|screenshots?|documents?|spreadsheets?|links?|urls?|passwords?|codes?|snippets?|notes?|items?|songs?|tracks?|emails?|messages?|folders?|archives?))\s+(?:is|are|has\s+been|have\s+been)\s+now\s+(?:on\s+your\s+clipboard|in\s+your\s+[\w\s-]+?(?:folder|directory|trash|recycle\s+bin|list|bookmarks?|notes?|archive)|saved\s+(?:to|in)\s+your\s+[\w\s-]+|pinned(?:\s+to\s+your\s+[\w\s-]+|\s+for\s+easy\s+access)?)\b|"
     r"^(?:(?:sure\s+thing|okay|got\s+it|done|all\s+set|no\s+problem|right\s+away)[.!,\s—\-]+)?(?:sleep\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|focus\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|airplane\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|battery\s+saver\s+(?:is\s+)?(?:activated|enabled|on)|music\s+(?:is\s+)?paused|playback\s+(?:is\s+)?paused|audio\s+(?:is\s+)?muted|mic(?:rophone)?\s+(?:is\s+)?muted|screen\s+(?:is\s+)?(?:locked|dimmed)|clipboard\s+(?:is\s+)?cleared|trash\s+(?:is\s+)?emptied|recycle\s+bin\s+(?:is\s+)?emptied|alarm\s+(?:is\s+)?set\s+for\s+\d+|timer\s+(?:is\s+)?set\s+for\s+\d+|reminder\s+(?:is\s+)?set\s+for\s+[\w\s:]+)\b"
     r")",
     re.IGNORECASE,
@@ -819,7 +805,7 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
 
 _ELLIPTICAL_COMPLETION_FULL_REGEX = re.compile(
     r"^\s*(?:done|all\s+done|all\s+set|taken\s+care\s+of|sorted|finished|there\s+you\s+go)[\.!,—\-]+\s+"
-    r"(?:how\s+does\s+that\s+(?:look|sound)(?:\s+for\s+you)?|let\s+me\s+know\s+if\s+(?:your\s+[\w\s]+?\s+improve|you\s+need\s+anything\s+else|that\s+helps|that's\s+better)\b|it(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b|that(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b)",
+    r"(?:how\s+does\s+that\s+(?:look|sound)(?:\s+for\s+you)?|let\s+me\s+know\s+if\s+(?:you\s+need\s+anything\s+else|that\s+helps|that's\s+better)\b|it(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b|that(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b)",
     re.IGNORECASE,
 )
 
@@ -870,16 +856,8 @@ def is_meta_or_creative_context(
     if full_user_text:
         if _META_CREATIVE_USER_PROMPT_REGEX.search(full_user_text):
             return True
-        # Playful figurative venting idiom alignment ("file that under Monday morning complaints")
-        if (
-            "monday morning complaints" in full_user_text.lower()
-            and "monday morning complaints" in (full_narration or clause).lower()
-        ):
-            return True
     narration_check = full_narration or clause
     if _DISCOURSE_ARTIFACT_FRAME_REGEX.search(narration_check):
-        return True
-    if "monday morning complaints" in narration_check.lower():
         return True
     return False
 

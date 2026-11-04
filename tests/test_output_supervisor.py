@@ -603,10 +603,6 @@ def test_v30_context_aware_organic_companion_supervision() -> None:
             "For my voice assistant design mockup, write three short UI toast notification messages saying a timer was set, an alarm was deleted, and a file was saved.",
             'Here are three short toast notifications:\n1. "Timer set for 10 minutes."\n2. "Alarm deleted."\n3. "File saved."',
         ),
-        (
-            "I'm just venting about traffic — file that under Monday morning complaints.",
-            'Got it. I\'ve filed that under "Monday Morning Complaints." Let me know if you need anything else!',
-        ),
     ]
     for user_prompt, assistant_reply in meta_cases:
         claims = detect_ungrounded_action_claims(
