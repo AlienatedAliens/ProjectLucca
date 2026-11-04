@@ -196,7 +196,7 @@
         Gate</strong> enforced through SQLite database triggers. Under this architecture, assistant utterances carry
       non-grounding provenance badges (<em>Mem=1, Gnd=0</em>), structurally barring unverified model speech from Belnap evidential
       fusion by construction while preserving autobiographical recollections. Across a pre-registered, single-author curated benchmark of <em>N=100</em> paired
-      multi-session probes (frozen on 2026-10-28 under git tag <code>prereg-poisoning-v1</code>), we compare the
+      multi-session probes (frozen on 2026-10-26 05:43:58 +0800 under git tag <code>prereg-poisoning-v1</code>; v2 frozen on 2026-10-28 07:52:33 +0800 under <code>prereg-poisoning-v2</code>), we compare the
       provenance gate against three architectures: Naive RAG (Gate OFF, <em>Mem=1, Gnd=1</em>), No-Assistant Memory (trivial
       deletion), and In-Prompt Soft Tagging. While the contrast between Naive RAG (40/40 poisoned) and the Provenance
       Gate (0/40 poisoned; exact McNemar <em>p = 1.82 &times; 10<sup>&minus;12</sup></em>, continuity-corrected <em>p = 6.98 &times;
@@ -274,7 +274,7 @@
     <h2>3. Experimental Protocol & Pre-Registration</h2>
     <p>To prevent post-hoc hypothesis fitting, the entire experimental protocol, hypotheses, evaluation metrics, and
       probe definitions were frozen and committed to version control under git tag <code>prereg-poisoning-v1</code>
-      (<code>PREREG-POISONING-ABLATION-v1.0</code>) prior to test execution.</p>
+      (<code>PREREG-POISONING-ABLATION-v1.0</code>, frozen on 2026-10-26 05:43:58 +0800; v2 frozen on 2026-10-28 07:52:33 +0800 under <code>prereg-poisoning-v2</code>) prior to test execution.</p>
 
     <h3>3.1 Evaluated Cohorts (N=100 Probes)</h3>
     <ul>
