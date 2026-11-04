@@ -6,9 +6,9 @@
     "saved_rule_state": {
       "schema_version": 1,
       "transcript": "Read notes/roadmap.md for me.",
-      "transcript_lower": "",
+      "transcript_lower": "read notes/roadmap.md for me.",
       "intent": "file_read",
-      "intent_conf": 0.0,
+      "intent_conf": 0.95,
       "entities": {
         "file": [
           "notes/roadmap.md"
@@ -17,8 +17,8 @@
           "notes/roadmap.md"
         ]
       },
-      "hour_local": 0,
-      "weekday": 0,
+      "hour_local": 14,
+      "weekday": 2,
       "apps_running": [],
       "last_tool": null,
       "last_tool_ok": null,
@@ -35,9 +35,9 @@
     "saved_rule_state": {
       "schema_version": 1,
       "transcript": "Could you check the contents of notes/roadmap.md?",
-      "transcript_lower": "",
+      "transcript_lower": "could you check the contents of notes/roadmap.md?",
       "intent": "file_read",
-      "intent_conf": 0.0,
+      "intent_conf": 0.95,
       "entities": {
         "file": [
           "notes/roadmap.md"
@@ -46,8 +46,8 @@
           "notes/roadmap.md"
         ]
       },
-      "hour_local": 0,
-      "weekday": 0,
+      "hour_local": 14,
+      "weekday": 2,
       "apps_running": [],
       "last_tool": null,
       "last_tool_ok": null,
@@ -64,9 +64,9 @@
     "saved_rule_state": {
       "schema_version": 1,
       "transcript": "Please read out my notes/roadmap.md file.",
-      "transcript_lower": "",
+      "transcript_lower": "please read out my notes/roadmap.md file.",
       "intent": "file_read",
-      "intent_conf": 0.0,
+      "intent_conf": 0.95,
       "entities": {
         "file": [
           "notes/roadmap.md"
@@ -75,8 +75,8 @@
           "notes/roadmap.md"
         ]
       },
-      "hour_local": 0,
-      "weekday": 0,
+      "hour_local": 14,
+      "weekday": 2,
       "apps_running": [],
       "last_tool": null,
       "last_tool_ok": null,
@@ -93,9 +93,9 @@
     "saved_rule_state": {
       "schema_version": 1,
       "transcript": "Please read notes/todo.md and show me what's in it.",
-      "transcript_lower": "",
+      "transcript_lower": "please read notes/todo.md and show me what's in it.",
       "intent": "file_read",
-      "intent_conf": 0.0,
+      "intent_conf": 0.95,
       "entities": {
         "file": [
           "notes/todo.md"
@@ -104,8 +104,8 @@
           "notes/todo.md"
         ]
       },
-      "hour_local": 0,
-      "weekday": 0,
+      "hour_local": 14,
+      "weekday": 2,
       "apps_running": [],
       "last_tool": null,
       "last_tool_ok": null,
@@ -122,9 +122,9 @@
     "saved_rule_state": {
       "schema_version": 1,
       "transcript": "Hey, could you start calculator for me?",
-      "transcript_lower": "",
+      "transcript_lower": "hey, could you start calculator for me?",
       "intent": "launch_app",
-      "intent_conf": 0.0,
+      "intent_conf": 0.95,
       "entities": {
         "app": [
           "calculator"
@@ -133,8 +133,8 @@
           "calculator"
         ]
       },
-      "hour_local": 0,
-      "weekday": 0,
+      "hour_local": 14,
+      "weekday": 2,
       "apps_running": [],
       "last_tool": null,
       "last_tool_ok": null,

@@ -1,34 +1,32 @@
 """
-End-to-End Live Single-Rule Lifecycle Trace on Gemma 4 26B-A4B (WO-39)
-======================================================================
-100% live execution (zero hardcoded latencies, zero synthetic ToolCalls):
-Traces one real induced rule (`induced-read-file-notes-roadmap-md-v1`) through
-every state in `RuleLifecycleManager` (`src/lucca/reasoning/lifecycle.py`) with
-live `Gemma 4 26B-A4B` (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`) inference on
-`llama-server` (`http://127.0.0.1:8080`) and real filesystem tool execution:
+End-to-End Single-Rule Lifecycle Trace on Gemma 4 26B-A4B (WO-39)
+=================================================================
+Traces one induced rule (`induced-read-file-notes-roadmap-md-v1`) through
+`RuleLifecycleManager` (`src/lucca/reasoning/lifecycle.py`) using 66 live
+`Gemma 4 26B-A4B` (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`) HTTP inference calls
+on `llama-server` (`http://127.0.0.1:8080`):
 
-  1. Live 50-Turn Waking Workload (`N=50` natural-language turns parsed live by
-     Gemma 4 26B-A4B, executed against real workspace files with SHA-256 +
-     Pydantic schema verification, stored in SQLite `decisions` & `execution_triples`).
-  2. Live Rule Induction (`RuleInducer` + `DreamRetrospective` + `ConsolidationEngine`
-     E-Graph anti-unification + Z3 SMT conflict verification) -> `QUARANTINE`.
-  3. Offline 50-Turn Historical Replay (`ReplayEngine.replay_candidate`, `N=50`).
-  4. Live 5-Cluster Contrastive Shadow Evaluation (`mode="shadow"` running
-     alongside live Gemma 4 26B-A4B inference across 5 distinct 15-min clusters).
-  5. Regression Suite Check (`verify_regression_suite`) against previously
-     promoted active rules (`induced-launch-app-calculator-v1`).
-  6. Promotion Gate (`QUARANTINE -> PENDING_APPROVAL -> ACTIVE`).
-  7. Live Head-to-Head Comparison on Representative Saved Task States
-     (Active Rule Path vs. Normal Gemma 4 26B-A4B Path) measuring all 5 local
-     outcome signals:
-       - Signal 1: Did the tool execution complete successfully? (`tool_exit_zero`)
-       - Signal 2: Did a task-specific verifier pass? (Pydantic schema + path confinement + exact SHA-256)
-       - Signal 3: How many retries, tool calls, tokens, and seconds (ms) were required?
-       - Signal 4: Did the user correct, undo, reject, or repeat the task shortly afterward?
-       - Signal 5: Did the rule introduce a regression in previously successful cases?
-  8. Live User Correction / Rollback Turn parsed by Gemma 4 26B-A4B
-     (`signal="operator_correct"` -> 1-strike circuit breaker `ACTIVE -> QUARANTINE`
-     and explicit `user_retire` -> `RETIRED`).
+What is live vs. harness-scaffolded in this script:
+  - LIVE: All 66 natural-language turns (50 waking + 5 seed-rule shadow +
+    5 target-rule shadow + 5 saved-state head-to-head + 1 user correction) are
+    sent live to Gemma 4 26B-A4B (`temperature=0.0`, `cache_prompt=False`) and
+    timed with `time.perf_counter()`.
+  - LIVE: SQLite migrations (`0001`–`0009`), `RuleInducer`, `DreamRetrospective`,
+    E-Graph anti-unification (`induce_macros`), Z3 SMT conflict verification,
+    `ReplayEngine.replay_candidate`, `RuleLifecycleManager`, and `read_file`
+    SHA-256 verification against temporary workspace files on disk.
+  - HARNESS SCAFFOLDING:
+    1. `compute_cluster_id` is called with synthetic session IDs and +1000s
+       timestamp offsets to simulate 5 separate 15-minute session clusters in
+       a single continuous run.
+    2. `launch_app` validates against an allowlist without spawning a GUI window.
+    3. Human approval (`approve_rule(..., approver="simulated_operator")`) is
+       triggered programmatically by the harness.
+    4. In Stage 8, Gemma 4 26B-A4B parses the natural-language user correction
+       (`user_correction: true`), and when `corr_detected` is True the harness
+       emits `signal="operator_correct"` and calls `record_shadow(matched=False)`
+       to trigger the 1-strike circuit breaker (`ACTIVE -> QUARANTINE`), followed
+       by `user_retire()` (`QUARANTINE -> RETIRED`).
 """
 
 from __future__ import annotations
@@ -57,14 +55,12 @@ from lucca.core.schemas import (  # noqa: E402
 )
 from lucca.memory.db import DatabaseManager  # noqa: E402
 from lucca.memory.reflection import DreamRetrospective  # noqa: E402
-from lucca.reasoning.consolidation import ConsolidationConfig, ConsolidationEngine  # noqa: E402
 from lucca.reasoning.induction import RuleInducer  # noqa: E402
 from lucca.reasoning.lifecycle import (  # noqa: E402
     RuleLifecycleManager,
     check_plan_and_core_agreement,
     compute_cluster_id,
 )
-from lucca.reasoning.scheme.parser import parse_expr  # noqa: E402
 
 SERVER_BASE: Final[str] = "http://127.0.0.1:8080"
 CHAT_URL: Final[str] = f"{SERVER_BASE}/v1/chat/completions"
@@ -86,24 +82,19 @@ Rules:
 5. For general questions or conversation, set "intent": "chit_chat", "tool": null, "args": {}, "user_correction": false.
 Output raw JSON only, with no markdown fences or explanation."""
 
-
 WAKING_50_TURNS: Final[list[dict[str, str]]] = [
-    # 4 target recurring turns: read_file(path="notes/roadmap.md")
     {"category": "target_roadmap", "utterance": "Please read notes/roadmap.md for me."},
     {"category": "target_roadmap", "utterance": "Open up notes/roadmap.md and show its contents."},
     {"category": "target_roadmap", "utterance": "Can you read the file notes/roadmap.md?"},
     {"category": "target_roadmap", "utterance": "Show me what is written in notes/roadmap.md."},
-    # 4 seed recurring turns: launch_app(app="calculator")
     {"category": "seed_calc", "utterance": "Could you open the calculator app for me?"},
     {"category": "seed_calc", "utterance": "Please launch calculator."},
     {"category": "seed_calc", "utterance": "I need calculator open right now, can you start it?"},
     {"category": "seed_calc", "utterance": "Pop open the calculator application please."},
-    # 4 near-miss recurring turns: read_file(path="notes/todo.md")
     {"category": "near_miss_todo", "utterance": "Please read the file notes/todo.md."},
     {"category": "near_miss_todo", "utterance": "Can you show me the contents of notes/todo.md?"},
     {"category": "near_miss_todo", "utterance": "Read notes/todo.md for me."},
     {"category": "near_miss_todo", "utterance": "Open notes/todo.md and read it out."},
-    # 38 diverse distractor turns (total = 50 waking episodes)
     {"category": "distractor", "utterance": "What is the capital of Australia?"},
     {"category": "distractor", "utterance": "Could you open blender for me?"},
     {"category": "distractor", "utterance": "Read the file notes/meeting_minutes.md."},
@@ -225,22 +216,13 @@ def build_tool_registry() -> dict[str, ToolSchema]:
 def detect_active_model(client: httpx.Client) -> str:
     r = client.get(MODELS_URL, timeout=5.0)
     r.raise_for_status()
-    payload = r.json()
-    models = payload.get("data", [])
+    models = r.json().get("data", [])
     if models and isinstance(models[0], dict):
         return str(models[0].get("id") or "unknown")
     raise RuntimeError("No active model detected on llama-server (port 8080)")
 
 
-def call_live_llm_parser(
-    client: httpx.Client,
-    utterance: str,
-    max_retries: int = 2,
-) -> dict[str, Any]:
-    """
-    Calls Gemma 4 26B-A4B live on llama-server (`http://127.0.0.1:8080/v1/chat/completions`),
-    measuring exact wall-clock latency, prompt/completion tokens from `usage`, and retries.
-    """
+def call_live_llm_parser(client: httpx.Client, utterance: str, max_retries: int = 2) -> dict[str, Any]:
     retries = 0
     total_latency_ms = 0.0
     prompt_tokens = 0
@@ -248,7 +230,7 @@ def call_live_llm_parser(
     total_tokens = 0
     last_raw = ""
 
-    for attempt in range(max_retries + 1):
+    for _attempt in range(max_retries + 1):
         t0 = time.perf_counter()
         resp = client.post(
             CHAT_URL,
@@ -266,8 +248,7 @@ def call_live_llm_parser(
             timeout=60.0,
         )
         resp.raise_for_status()
-        elapsed_ms = (time.perf_counter() - t0) * 1000.0
-        total_latency_ms += elapsed_ms
+        total_latency_ms += (time.perf_counter() - t0) * 1000.0
 
         body = resp.json()
         usage = body.get("usage", {})
@@ -280,8 +261,7 @@ def call_live_llm_parser(
         if content.startswith("```"):
             lines = [ln for ln in content.splitlines() if not ln.strip().startswith("```")]
             content = "\n".join(lines).strip()
-        start_idx = content.find("{")
-        end_idx = content.rfind("}")
+        start_idx, end_idx = content.find("{"), content.rfind("}")
         if start_idx != -1 and end_idx != -1 and end_idx >= start_idx:
             content = content[start_idx : end_idx + 1]
 
@@ -331,9 +311,13 @@ def build_rule_state_from_llm(utterance: str, parsed: dict[str, Any]) -> RuleSta
         entities["file"] = [val]
         entities["path"] = [val]
     return RuleState(
-        intent=intent,
-        entities=entities,
         transcript=utterance,
+        transcript_lower=utterance.lower(),
+        intent=intent,
+        intent_conf=0.95,
+        entities=entities,
+        hour_local=14,
+        weekday=2,
     )
 
 
@@ -344,13 +328,6 @@ def execute_and_verify_tool_call(
     expected_file_hashes: dict[str, str],
     tool_registry: dict[str, ToolSchema],
 ) -> dict[str, Any]:
-    """
-    Executes the tool call against the real local workspace and runs task-specific verifiers:
-      1. ToolSchema validation (tool exists + required string parameter present).
-      2. Path confinement check (blocks `..` traversal outside workspace_root).
-      3. Real filesystem execution (`read_file` reads bytes on disk; `launch_app` checks app registry).
-      4. Exact SHA-256 digest verification against ground-truth workspace file hashes.
-    """
     t0 = time.perf_counter()
     if tool_name is None:
         return {
@@ -362,7 +339,6 @@ def execute_and_verify_tool_call(
             "detail": "no_tool_required",
             "actual_sha256": None,
         }
-
     if tool_name not in tool_registry:
         return {
             "tool_executed": False,
@@ -373,7 +349,6 @@ def execute_and_verify_tool_call(
             "detail": f"unknown_tool:{tool_name}",
             "actual_sha256": None,
         }
-
     schema = tool_registry[tool_name]
     for param_name in schema.parameters:
         if param_name not in tool_args or not isinstance(tool_args[param_name], str):
@@ -386,7 +361,6 @@ def execute_and_verify_tool_call(
                 "detail": f"missing_or_invalid_param:{param_name}",
                 "actual_sha256": None,
             }
-
     if tool_name == "read_file":
         rel_path = str(tool_args["path"])
         candidate_path = (workspace_root / rel_path).resolve()
@@ -426,24 +400,12 @@ def execute_and_verify_tool_call(
             "actual_sha256": actual_sha,
             "expected_sha256": expected_sha,
         }
-
     if tool_name == "launch_app":
         app_name = str(tool_args["app"]).strip().lower()
         allowed_apps = {
-            "calculator",
-            "notepad",
-            "blender",
-            "spotify",
-            "paint",
-            "steam",
-            "terminal",
-            "discord",
-            "task manager",
-            "vlc",
-            "vlc media player",
-            "firefox",
-            "obsidian",
-            "audacity",
+            "calculator", "notepad", "blender", "spotify", "paint", "steam",
+            "terminal", "discord", "task manager", "vlc", "vlc media player",
+            "firefox", "obsidian", "audacity",
         }
         ok = app_name in allowed_apps
         return {
@@ -452,10 +414,9 @@ def execute_and_verify_tool_call(
             "schema_valid": True,
             "verifier_passed": ok,
             "tool_latency_ms": round((time.perf_counter() - t0) * 1000.0, 4),
-            "detail": f"launch_app:{app_name}:ok={ok}",
+            "detail": f"launch_app_allowlist_check:{app_name}:ok={ok}",
             "actual_sha256": None,
         }
-
     return {
         "tool_executed": False,
         "tool_exit_zero": False,
@@ -480,11 +441,9 @@ def main() -> int:
 
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp_dir:
             tmp_path = Path(tmp_dir)
-            db_path = tmp_path / "live_single_rule_trace.db"
-            db = DatabaseManager(db_path)
+            db = DatabaseManager(tmp_path / "live_single_rule_trace.db")
             db.migrate()
 
-            # Create real workspace files on disk and record ground-truth SHA-256 hashes
             workspace_files = {
                 "notes/roadmap.md": (
                     "# Project Lucca Roadmap (WO-39)\n"
@@ -512,9 +471,7 @@ def main() -> int:
 
             now = time.time()
 
-            # =========================================================================
             # STAGE 1: Live 50-Turn Waking Workload on Gemma 4 26B-A4B
-            # =========================================================================
             print("[STAGE 1] Running 50 waking turns live on Gemma 4 26B-A4B...", flush=True)
             waking_logs: list[dict[str, Any]] = []
             for idx, item in enumerate(WAKING_50_TURNS):
@@ -523,16 +480,9 @@ def main() -> int:
                 state = build_rule_state_from_llm(utterance, parsed)
                 tool_name = parsed["tool"] if isinstance(parsed["tool"], str) else None
                 tool_args = parsed["args"] if isinstance(parsed["args"], dict) else {}
-
                 exec_res = execute_and_verify_tool_call(
-                    tool_name=tool_name,
-                    tool_args=tool_args,
-                    workspace_root=tmp_path,
-                    expected_file_hashes=expected_file_hashes,
-                    tool_registry=tool_registry,
+                    tool_name, tool_args, tmp_path, expected_file_hashes, tool_registry
                 )
-
-                # Only successful, verifier-passing tool executions are recorded with tool_ok=1
                 tool_ok_flag = 1 if (exec_res["tool_exit_zero"] and exec_res["verifier_passed"]) else 0
                 dec_id = f"dec-live-waking-{idx+1:03d}"
                 features_payload = {
@@ -554,10 +504,7 @@ def main() -> int:
                     if (tool_name and tool_ok_flag)
                     else []
                 )
-                tool_calls_json = json.dumps(tool_calls_list) if tool_calls_list else None
                 act = "RULE" if tool_calls_list else "LLM"
-                probs_str = json.dumps({"RULE": 1.0, "LLM": 0.0, "CLARIFY": 0.0})
-
                 with db.get_writer() as cur:
                     cur.execute(
                         """
@@ -575,13 +522,13 @@ def main() -> int:
                             now - (60 - idx) * 60.0,
                             json.dumps(features_payload),
                             act,
-                            probs_str,
+                            json.dumps({"RULE": 1.0, "LLM": 0.0, "CLARIFY": 0.0}),
                             json.dumps([act]),
                             0,
                             250,
                             "heuristic-1.0",
                             "ACT_THEN_NARRATE" if tool_calls_list else "FULL_LOOP",
-                            tool_calls_json,
+                            json.dumps(tool_calls_list) if tool_calls_list else None,
                             tool_ok_flag,
                             float(parsed["latency_ms"]),
                             0,
@@ -610,14 +557,10 @@ def main() -> int:
                 if (idx + 1) % 10 == 0:
                     print(f"  ... completed {idx+1}/50 waking turns", flush=True)
 
-            # =========================================================================
             # STAGE 2: RuleInducer + DreamRetrospective + E-Graph + Z3 SMT Quarantine
-            # =========================================================================
             print("[STAGE 2] Running RuleInducer + E-Graph Anti-Unification + Z3 Check...", flush=True)
             lifecycle = RuleLifecycleManager(
-                registered_tools=tool_registry,
-                db=db,
-                require_human_approval=True,
+                registered_tools=tool_registry, db=db, require_human_approval=True
             )
             inducer = RuleInducer(db=db, rule_engine=lifecycle, min_frequency=3)
             mined_clusters = inducer.mine_patterns()
@@ -630,17 +573,14 @@ def main() -> int:
 
             target_rule_id = "induced-read-file-notes-roadmap-md-v1"
             seed_rule_id = "induced-launch-app-calculator-v1"
-            assert target_rule_id in lifecycle.rules, f"Missing {target_rule_id} in {list(lifecycle.rules)}"
-            assert seed_rule_id in lifecycle.rules, f"Missing {seed_rule_id} in {list(lifecycle.rules)}"
+            assert target_rule_id in lifecycle.rules
+            assert seed_rule_id in lifecycle.rules
             assert lifecycle.rules[target_rule_id].status == "QUARANTINE"
 
-            # =========================================================================
             # STAGE 3: Offline 50-Turn Historical Replay (`ReplayEngine.replay_candidate`)
-            # =========================================================================
             print("[STAGE 3] Running 50-turn Dream-RSI offline replay...", flush=True)
-            # First promote the seed rule (`induced-launch-app-calculator-v1`) using 5 live shadow turns
             seed_replay = lifecycle.replay_candidate(seed_rule_id, limit=50)
-            assert seed_replay.passed, f"Seed replay failed: {seed_replay}"
+            assert seed_replay.passed
             for idx, s_utt in enumerate(SHADOW_5_CALC_TURNS):
                 s_parsed = call_live_llm_parser(client, s_utt)
                 s_st = build_rule_state_from_llm(s_utt, s_parsed)
@@ -652,71 +592,57 @@ def main() -> int:
                     semantic_cluster=idx,
                 )
                 lifecycle.record_shadow(
-                    seed_rule_id,
-                    matched=ro.fired,
-                    cluster_id=cid,
-                    state_snapshot=s_st,
-                    plan_snapshot=ro.plan,
+                    seed_rule_id, matched=ro.fired, cluster_id=cid,
+                    state_snapshot=s_st, plan_snapshot=ro.plan,
                 )
             lifecycle.promote_if_eligible(seed_rule_id, require_replay=True)
-            lifecycle.approve_rule(seed_rule_id, approver="operator_seed", require_replay=True)
+            lifecycle.approve_rule(seed_rule_id, approver="simulated_operator_seed", require_replay=True)
             assert lifecycle.rules[seed_rule_id].status == "ACTIVE"
 
-            # Now run the 50-turn offline replay for our target rule `induced-read-file-notes-roadmap-md-v1`
             t0_replay = time.perf_counter()
             replay_report = lifecycle.replay_candidate(target_rule_id, limit=50)
             replay_ms = (time.perf_counter() - t0_replay) * 1000.0
-            assert replay_report.passed, f"Target replay failed: {replay_report}"
+            assert replay_report.passed
 
-            # =========================================================================
             # STAGE 4: Live 5-Cluster Contrastive Shadow Evaluation on Gemma 4 26B-A4B
-            # =========================================================================
-            print("[STAGE 4] Running 5-cluster contrastive shadow turns live on Gemma 4 26B-A4B...", flush=True)
+            print("[STAGE 4] Running 5 simulated-cluster shadow turns on Gemma 4 26B-A4B...", flush=True)
             shadow_turn_traces: list[dict[str, Any]] = []
             for idx, sh_utt in enumerate(SHADOW_5_ROADMAP_TURNS):
-                # 1. Live LLM Core Path on Gemma 4 26B-A4B
                 llm_parsed = call_live_llm_parser(client, sh_utt)
                 live_state = build_rule_state_from_llm(sh_utt, llm_parsed)
                 llm_tool = str(llm_parsed["tool"] or "")
                 llm_args = llm_parsed["args"] if isinstance(llm_parsed["args"], dict) else {}
                 live_core_tool_call = ToolCall(
-                    call_id=f"call-live-shadow-{idx+1}",
-                    tool=llm_tool,
-                    args=llm_args,
+                    call_id=f"call-live-shadow-{idx+1}", tool=llm_tool, args=llm_args
                 )
 
-                # 2. Shadow Rule Evaluation on the live RuleState
                 t0_sh = time.perf_counter()
                 ro_list = lifecycle.evaluate(live_state, mode="shadow")
                 sh_eval_ms = (time.perf_counter() - t0_sh) * 1000.0
                 ro = [o for o in ro_list if o.rule_id == target_rule_id][0]
                 assert ro.fired and ro.plan is not None
 
-                # 3. Execute tool & task-specific verifier on disk
-                exec_res = execute_and_verify_tool_call(
-                    tool_name=llm_tool,
-                    tool_args=llm_args,
-                    workspace_root=tmp_path,
-                    expected_file_hashes=expected_file_hashes,
-                    tool_registry=tool_registry,
+                # Execute both the shadow rule's tool call and the LLM core's tool call
+                rule_tc = ro.plan.actions[0]
+                assert isinstance(rule_tc, ToolCall)
+                rule_exec = execute_and_verify_tool_call(
+                    rule_tc.tool, rule_tc.args, tmp_path, expected_file_hashes, tool_registry
                 )
-                outcome_sig = (
-                    "tool_exit_zero"
-                    if (exec_res["tool_exit_zero"] and exec_res["verifier_passed"])
-                    else "tool_error"
+                core_exec = execute_and_verify_tool_call(
+                    llm_tool, llm_args, tmp_path, expected_file_hashes, tool_registry
                 )
+                rule_sig = "tool_exit_zero" if (rule_exec["tool_exit_zero"] and rule_exec["verifier_passed"]) else "tool_error"
+                core_sig = "tool_exit_zero" if (core_exec["tool_exit_zero"] and core_exec["verifier_passed"]) else "tool_error"
 
+                # Simulated session/time cluster (+1000s offset per turn exceeds 900s = 15-min bucket in compute_cluster_id)
                 cid = compute_cluster_id(
                     session_id=f"shadow-roadmap-sess-{idx}",
                     turn_ts=now + (idx + 10) * 1000.0,
                     semantic_cluster=idx,
                 )
                 lifecycle.record_shadow(
-                    target_rule_id,
-                    matched=ro.fired,
-                    cluster_id=cid,
-                    state_snapshot=live_state,
-                    plan_snapshot=ro.plan,
+                    target_rule_id, matched=ro.fired, cluster_id=cid,
+                    state_snapshot=live_state, plan_snapshot=ro.plan,
                 )
                 lifecycle.log_contrastive_shadow_pair(
                     rule_id=target_rule_id,
@@ -724,14 +650,14 @@ def main() -> int:
                     rule_plan=ro.plan,
                     core_tool_calls=[live_core_tool_call],
                     core_path="LLM",
-                    rule_outcome_signal=outcome_sig,
-                    core_outcome_signal=outcome_sig,
+                    rule_outcome_signal=rule_sig,
+                    core_outcome_signal=core_sig,
                 )
                 agreed = check_plan_and_core_agreement(ro.plan, [live_core_tool_call])
                 shadow_turn_traces.append(
                     {
                         "cluster_index": idx + 1,
-                        "cluster_id": cid,
+                        "simulated_cluster_id": cid,
                         "utterance": sh_utt,
                         "llm_core_tool_call": {"tool": llm_tool, "args": llm_args},
                         "shadow_rule_fired": ro.fired,
@@ -739,15 +665,13 @@ def main() -> int:
                         "shadow_rule_eval_latency_ms": round(sh_eval_ms, 4),
                         "live_llm_latency_ms": llm_parsed["latency_ms"],
                         "live_llm_total_tokens": llm_parsed["total_tokens"],
-                        "verifier_passed": exec_res["verifier_passed"],
+                        "verifier_passed": core_exec["verifier_passed"],
                     }
                 )
 
             contrastive_summary = lifecycle.get_contrastive_summary(target_rule_id)
 
-            # =========================================================================
             # STAGE 5 & 6: Regression Suite Check & Promotion (`PENDING_APPROVAL -> ACTIVE`)
-            # =========================================================================
             print("[STAGE 5 & 6] Verifying regression suite and promoting rule to ACTIVE...", flush=True)
             reg_report_pre = lifecycle.verify_regression_suite(candidate_rule_id=target_rule_id)
             assert reg_report_pre.passed
@@ -757,7 +681,7 @@ def main() -> int:
             assert status_after_step1 == "PENDING_APPROVAL"
 
             promo_step2 = lifecycle.approve_rule(
-                target_rule_id, approver="sean_operator", require_replay=True
+                target_rule_id, approver="simulated_operator", require_replay=True
             )
             status_after_step2 = lifecycle.rules[target_rule_id].status
             assert status_after_step2 == "ACTIVE"
@@ -765,10 +689,7 @@ def main() -> int:
             reg_report_post = lifecycle.verify_regression_suite()
             assert reg_report_post.passed
 
-            # =========================================================================
-            # STAGE 7: Live Head-to-Head Comparison on Representative Saved Task States
-            #          (Active Rule Path vs. Normal Gemma 4 26B-A4B Path)
-            # =========================================================================
+            # STAGE 7: Head-to-Head Comparison on Saved Task States
             print("[STAGE 7] Running head-to-head Active Rule vs. Normal Gemma 4 26B-A4B Path...", flush=True)
             saved_states_records: list[dict[str, Any]] = []
             head_to_head_comparisons: list[dict[str, Any]] = []
@@ -778,7 +699,7 @@ def main() -> int:
                 utterance = item["utterance"]
                 role = item["role"]
 
-                # --- PATH A: Normal LLM Path (Gemma 4 26B-A4B live inference + tool execution) ---
+                # Path A: Normal LLM Path (Gemma 4 26B-A4B parses utterance + plans tool call)
                 llm_parsed = call_live_llm_parser(client, utterance)
                 saved_state = build_rule_state_from_llm(utterance, llm_parsed)
                 saved_states_records.append(
@@ -789,18 +710,13 @@ def main() -> int:
                         "saved_rule_state": saved_state.model_dump(mode="json"),
                     }
                 )
-
                 llm_tool = str(llm_parsed["tool"] or "")
                 llm_args = llm_parsed["args"] if isinstance(llm_parsed["args"], dict) else {}
                 llm_exec = execute_and_verify_tool_call(
-                    tool_name=llm_tool if llm_tool else None,
-                    tool_args=llm_args,
-                    workspace_root=tmp_path,
-                    expected_file_hashes=expected_file_hashes,
-                    tool_registry=tool_registry,
+                    llm_tool if llm_tool else None, llm_args, tmp_path, expected_file_hashes, tool_registry
                 )
 
-                # --- PATH B: Active Rule Path (`lifecycle.evaluate(saved_state, mode="active")`) ---
+                # Path B: Active Rule Path (evaluates already-extracted saved_state in MicroScheme)
                 t0_rule = time.perf_counter()
                 act_outcomes = lifecycle.evaluate(saved_state, mode="active")
                 rule_plan_ms = (time.perf_counter() - t0_rule) * 1000.0
@@ -812,11 +728,7 @@ def main() -> int:
                     tc = target_ro.plan.actions[0]
                     assert isinstance(tc, ToolCall)
                     rule_exec = execute_and_verify_tool_call(
-                        tool_name=tc.tool,
-                        tool_args=tc.args,
-                        workspace_root=tmp_path,
-                        expected_file_hashes=expected_file_hashes,
-                        tool_registry=tool_registry,
+                        tc.tool, tc.args, tmp_path, expected_file_hashes, tool_registry
                     )
                     triple = lifecycle.emit_execution_triple(
                         rule_id=target_rule_id,
@@ -883,85 +795,44 @@ def main() -> int:
                             "signal_4_user_correction_or_undo": False,
                             "signal_5_regression_or_misfire": False,
                         },
-                        "active_rule_path_microscheme": active_path_result,
+                        "active_rule_path_microscheme_from_saved_state": active_path_result,
                     }
                 )
 
-            # Persist the saved task states to disk
-            saved_states_path = (
-                REPO_ROOT / "logs" / "test_reports" / "saved_task_states_wo39.json"
-            )
-            saved_states_path.write_text(
-                json.dumps(saved_states_records, indent=2), encoding="utf-8"
-            )
+            saved_states_path = REPO_ROOT / "logs" / "test_reports" / "saved_task_states_wo39.json"
+            saved_states_path.write_text(json.dumps(saved_states_records, indent=2), encoding="utf-8")
 
-            # Compute aggregate metrics across the 3 positive target saved states
-            pos_cases = [
-                c for c in head_to_head_comparisons if c["role"] == "positive_target"
-            ]
+            pos_cases = [c for c in head_to_head_comparisons if c["role"] == "positive_target"]
             mean_llm_latency_ms = round(
-                sum(
-                    c["normal_llm_path_gemma4_26b_a4b"]["signal_3_llm_planning_latency_ms"]
-                    for c in pos_cases
-                )
-                / len(pos_cases),
-                2,
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_llm_planning_latency_ms"] for c in pos_cases) / len(pos_cases), 2
             )
             mean_llm_prompt_tokens = round(
-                sum(
-                    c["normal_llm_path_gemma4_26b_a4b"]["signal_3_prompt_tokens"]
-                    for c in pos_cases
-                )
-                / len(pos_cases),
-                1,
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_prompt_tokens"] for c in pos_cases) / len(pos_cases), 1
             )
             mean_llm_completion_tokens = round(
-                sum(
-                    c["normal_llm_path_gemma4_26b_a4b"]["signal_3_completion_tokens"]
-                    for c in pos_cases
-                )
-                / len(pos_cases),
-                1,
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_completion_tokens"] for c in pos_cases) / len(pos_cases), 1
             )
             mean_llm_total_tokens = round(
-                sum(
-                    c["normal_llm_path_gemma4_26b_a4b"]["signal_3_total_tokens"]
-                    for c in pos_cases
-                )
-                / len(pos_cases),
-                1,
+                sum(c["normal_llm_path_gemma4_26b_a4b"]["signal_3_total_tokens"] for c in pos_cases) / len(pos_cases), 1
             )
             mean_rule_latency_ms = round(
-                sum(
-                    c["active_rule_path_microscheme"]["signal_3_rule_planning_latency_ms"]
-                    for c in pos_cases
-                )
-                / len(pos_cases),
-                4,
+                sum(c["active_rule_path_microscheme_from_saved_state"]["signal_3_rule_planning_latency_ms"] for c in pos_cases) / len(pos_cases), 4
             )
 
-            # =========================================================================
-            # STAGE 8: Live User Correction / Undo Turn on Gemma 4 26B-A4B
-            #          (`signal="operator_correct"` -> 1-Strike Demotion & Retirement)
-            # =========================================================================
+            # STAGE 8: Live User Correction Turn -> Conditional Harness Demotion Signal
             print("[STAGE 8] Running live user correction turn on Gemma 4 26B-A4B...", flush=True)
             corr_parsed = call_live_llm_parser(client, USER_CORRECTION_UTTERANCE)
             corr_detected = bool(
-                corr_parsed.get("user_correction")
-                or corr_parsed.get("intent") == "user_correction"
+                corr_parsed.get("user_correction") or corr_parsed.get("intent") == "user_correction"
             )
             corr_tool = str(corr_parsed.get("tool") or "")
             corr_args = corr_parsed.get("args") if isinstance(corr_parsed.get("args"), dict) else {}
 
-            # Emit overridden ExecutionTriple with `signal="operator_correct"` and trigger 1-strike demotion
+            if not corr_detected:
+                raise RuntimeError(f"Expected LLM to detect user_correction, got: {corr_parsed}")
+
             last_plan = Plan(
-                actions=[
-                    ToolCall(
-                        call_id="call-overridden-01",
-                        tool="read_file",
-                        args={"path": "notes/roadmap.md"},
-                    )
-                ]
+                actions=[ToolCall(call_id="call-overridden-01", tool="read_file", args={"path": "notes/roadmap.md"})]
             )
             corr_triple = lifecycle.emit_execution_triple(
                 rule_id=target_rule_id,
@@ -969,27 +840,38 @@ def main() -> int:
                 verdict="overridden",
                 reason_code="USER_CORRECTION_UNDO",
                 signal="operator_correct",
-                detail=f"Live LLM parsed user_correction={corr_detected}, replacement={corr_tool}({corr_args})",
+                detail=f"Harness-emitted on live LLM parse: user_correction={corr_detected}, replacement={corr_tool}({corr_args})",
                 evidence_refs=[USER_CORRECTION_UTTERANCE],
             )
             lifecycle.record_shadow(target_rule_id, matched=False)
             status_after_1strike = lifecycle.rules[target_rule_id].status
             demotion_count_after_1strike = lifecycle.rules[target_rule_id].demotion_count
+            assert status_after_1strike == "QUARANTINE"
+            assert demotion_count_after_1strike == 1
 
             lifecycle.user_retire(target_rule_id)
             status_after_user_retire = lifecycle.rules[target_rule_id].status
+            assert status_after_user_retire == "RETIRED"
+            assert lifecycle.rules[target_rule_id].user_retired is True
 
             trace_report = {
                 "trace_id": "WO-39-SINGLE-RULE-LIFECYCLE-LIVE-26B-A4B",
                 "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "active_llm_model": active_model,
-                "total_live_llm_calls_in_trace": (
-                    len(WAKING_50_TURNS)
-                    + len(SHADOW_5_CALC_TURNS)
-                    + len(SHADOW_5_ROADMAP_TURNS)
-                    + len(HELDOUT_SAVED_TASK_UTTERANCES)
-                    + 1
-                ),
+                "llm_call_breakdown": {
+                    "waking_workload_turns": len(WAKING_50_TURNS),
+                    "seed_rule_shadow_turns": len(SHADOW_5_CALC_TURNS),
+                    "target_rule_shadow_turns": len(SHADOW_5_ROADMAP_TURNS),
+                    "saved_state_head_to_head_turns": len(HELDOUT_SAVED_TASK_UTTERANCES),
+                    "user_correction_turn": 1,
+                    "total_live_llm_calls": (
+                        len(WAKING_50_TURNS)
+                        + len(SHADOW_5_CALC_TURNS)
+                        + len(SHADOW_5_ROADMAP_TURNS)
+                        + len(HELDOUT_SAVED_TASK_UTTERANCES)
+                        + 1
+                    ),
+                },
                 "rule_id": target_rule_id,
                 "s_expression": lifecycle.rules[target_rule_id].definition.source_canonical,
                 "s_expression_sha256": lifecycle.rules[target_rule_id].definition.source_hash,
@@ -1002,11 +884,11 @@ def main() -> int:
                     "PROPOSED (RuleInducer anti-unification + Z3 SMT check)",
                     "QUARANTINE (initial admission; learned_skills_active = 0)",
                     "REPLAY_PASSED (50-turn Dream-RSI replay on live-recorded SQLite states)",
-                    "SHADOW_VERIFIED (5 distinct 15-min clusters + 100% live Gemma 4 26B-A4B agreement)",
+                    "SHADOW_VERIFIED (5 simulated session clusters + 5/5 live Gemma 4 26B-A4B plan agreement)",
                     status_after_step1,
-                    status_after_step2,
-                    f"{status_after_1strike} (after live-parsed user correction 1-strike circuit breaker)",
-                    f"{status_after_user_retire} (after explicit user_retire)",
+                    f"{status_after_step2} (via harness call to approve_rule with simulated_operator)",
+                    f"{status_after_1strike} (after harness-emitted operator_correct signal gated on live LLM correction parse)",
+                    f"{status_after_user_retire} (after explicit harness call to user_retire)",
                 ],
                 "stage_1_live_50_turn_waking_workload": {
                     "episodes_recorded": len(waking_logs),
@@ -1018,16 +900,11 @@ def main() -> int:
                     ),
                     "total_retries": sum(w["retries"] for w in waking_logs),
                     "target_roadmap_verified_executions": sum(
-                        1
-                        for w in waking_logs
-                        if w["category"] == "target_roadmap"
-                        and w["tool_exit_zero"]
-                        and w["verifier_passed"]
+                        1 for w in waking_logs
+                        if w["category"] == "target_roadmap" and w["tool_exit_zero"] and w["verifier_passed"]
                     ),
                     "path_traversal_blocked_by_verifier": sum(
-                        1
-                        for w in waking_logs
-                        if "path_traversal_blocked" in str(w["verifier_detail"])
+                        1 for w in waking_logs if "path_traversal_blocked" in str(w["verifier_detail"])
                     ),
                 },
                 "stage_2_induction_egraph_and_z3": {
@@ -1046,16 +923,12 @@ def main() -> int:
                     "replay_latency_ms": round(replay_ms, 2),
                 },
                 "stage_4_live_contrastive_shadow_evaluation": {
-                    "distinct_15min_clusters": 5,
+                    "simulated_session_clusters": 5,
                     "mean_shadow_rule_eval_latency_ms": round(
-                        sum(t["shadow_rule_eval_latency_ms"] for t in shadow_turn_traces)
-                        / len(shadow_turn_traces),
-                        4,
+                        sum(t["shadow_rule_eval_latency_ms"] for t in shadow_turn_traces) / len(shadow_turn_traces), 4
                     ),
                     "mean_live_llm_core_latency_ms": round(
-                        sum(t["live_llm_latency_ms"] for t in shadow_turn_traces)
-                        / len(shadow_turn_traces),
-                        2,
+                        sum(t["live_llm_latency_ms"] for t in shadow_turn_traces) / len(shadow_turn_traces), 2
                     ),
                     "agreed_with_llm_core_count": contrastive_summary["agreed_count"],
                     "agreed_with_llm_core_rate": contrastive_summary["agreed_rate"],
@@ -1074,6 +947,11 @@ def main() -> int:
                 },
                 "stage_7_head_to_head_on_saved_task_states": {
                     "saved_task_states_file": "logs/test_reports/saved_task_states_wo39.json",
+                    "comparison_note": (
+                        "Not a like-for-like end-to-end latency comparison: the active rule path "
+                        "evaluates an already-extracted saved RuleState (0 LLM tokens), whereas "
+                        "the normal LLM path parses the raw utterance and plans the tool call."
+                    ),
                     "positive_target_summary_n3": {
                         "normal_llm_path_gemma4_26b_a4b": {
                             "signal_1_tool_completed_exit_zero": "3/3 (100%)",
@@ -1087,7 +965,7 @@ def main() -> int:
                             "signal_4_user_corrections_or_undos": "0/3 (0%)",
                             "signal_5_regressions_on_prior_cases": "0/20 (0%)",
                         },
-                        "active_rule_path_microscheme_on_saved_state": {
+                        "active_rule_path_microscheme_from_saved_state": {
                             "signal_1_tool_completed_exit_zero": "3/3 (100%)",
                             "signal_2_verifier_passed_sha256_and_schema": "3/3 (100%)",
                             "signal_3_mean_planning_latency_ms": mean_rule_latency_ms,
@@ -1107,7 +985,7 @@ def main() -> int:
                     "live_llm_parsed": corr_parsed,
                     "correction_detected_by_llm": corr_detected,
                     "execution_triple_id": corr_triple.decision.decision_id,
-                    "signal_emitted": "operator_correct",
+                    "signal_emitted_by_harness_on_llm_parse": "operator_correct",
                     "status_after_1_strike": status_after_1strike,
                     "demotion_count": demotion_count_after_1strike,
                     "status_after_explicit_user_retire": status_after_user_retire,
@@ -1115,9 +993,7 @@ def main() -> int:
                 },
             }
 
-            out_path = (
-                REPO_ROOT / "logs" / "test_reports" / "single_rule_lifecycle_trace_wo39.json"
-            )
+            out_path = REPO_ROOT / "logs" / "test_reports" / "single_rule_lifecycle_trace_wo39.json"
             out_path.write_text(json.dumps(trace_report, indent=2), encoding="utf-8")
             print(json.dumps(trace_report, indent=2), flush=True)
             return 0
