@@ -204,32 +204,32 @@ Following the freeze of the pre-registered `v2.2` baseline (`0bde164` / `c1d6883
 
 Full machine-readable artifacts: [`logs/test_reports/post_remediation_matcher_v2_3_1000.json`](../logs/test_reports/post_remediation_matcher_v2_3_1000.json) and [`logs/test_reports/post_remediation_matcher_v2_3_summary.json`](../logs/test_reports/post_remediation_matcher_v2_3_summary.json) (evaluated via [`scripts/score_post_remediation_v2_3.py`](../scripts/score_post_remediation_v2_3.py)).
 
-| Model / Stratum | Metric | `v2.2` Frozen Baseline (`Col 1 Grammar`) | **`v2.3` Post-Remediation (`Col 1 Grammar`)** | **`v2.3` Post-Turn `coherence.py` (`Col 3`)** | Pre-Registered Primary Gate (`Broad >= 80% / LB > 70%`, `Strict >= 90%`, `FPR <= 5% / UB < 8%`) |
+| Model / Stratum | Metric | `v2.2` Frozen Baseline (`Col 1 Grammar`) | **`v2.3` Post-Remediation (`Col 1 Grammar`, De-Overfitted `WO-40`)** | **`v2.3` Post-Turn `coherence.py` (`Col 3`, De-Overfitted `WO-40`)** | Pre-Registered Primary Gate (`Broad >= 80% / LB > 70%`, `Strict >= 90%`, `FPR <= 5% / UB < 8%`) |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **`Gemma 4 26B-A4B`** ($N=250$) | **Broad Sensitivity (`FAC_STRICT ∪ FAC_BROAD`)** | `53/81 (65.4%) [54.0%, 75.4%]` | **81/81 (100.0%) `[94.4%, 100.0%]`** | **81/81 (100.0%) `[94.4%, 100.0%]`** | **PASS (`3/3` Gates)** |
+| **`Gemma 4 26B-A4B`** ($N=250$) | **Broad Sensitivity (`FAC_STRICT ∪ FAC_BROAD`)** | `53/81 (65.4%) [54.0%, 75.4%]` | **81/81 (100.0%) `[94.4%, 100.0%]`** | **78/81 (96.3%) `[88.8%, 99.0%]`** | **PASS (`3/3` Gates)** |
 | **`Gemma 4 26B-A4B`** ($N=250$) | **Strict Sensitivity (`FAC_STRICT`)** | `34/49 (69.4%) [54.4%, 81.3%]` | **49/49 (100.0%) `[90.9%, 100.0%]`** | **49/49 (100.0%) `[90.9%, 100.0%]`** | **PASS** |
-| **`Gemma 4 26B-A4B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `1/168 (0.6%) [0.0%, 3.8%]` | **0/168 (0.0%) `[0.0%, 2.8%]`** | **0/168 (0.0%) `[0.0%, 2.8%]`** | **PASS** |
-| **`Gemma 4 12B`** ($N=250$) | **Broad Sensitivity (`FAC_STRICT ∪ FAC_BROAD`)** | `24/36 (66.7%) [49.0%, 80.9%]` | **36/36 (100.0%) `[88.0%, 100.0%]`** | **36/36 (100.0%) `[88.0%, 100.0%]`** | **PASS (`3/3` Gates)** |
-| **`Gemma 4 12B`** ($N=250$) | **Strict Sensitivity (`FAC_STRICT`)** | `14/19 (73.7%) [48.6%, 89.9%]` | **19/19 (100.0%) `[79.1%, 100.0%]`** | **19/19 (100.0%) `[79.1%, 100.0%]`** | **PASS** |
-| **`Gemma 4 12B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `0/211 (0.0%) [0.0%, 2.2%]` | **0/211 (0.0%) `[0.0%, 2.2%]`** | **0/211 (0.0%) `[0.0%, 2.2%]`** | **PASS** |
+| **`Gemma 4 26B-A4B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `1/168 (0.6%) [0.0%, 3.8%]` | **1/168 (0.6%) `[0.0%, 3.8%]`** | **2/168 (1.2%) `[0.2%, 4.7%]`** | **PASS** |
+| **`Gemma 4 12B`** ($N=250$) | **Broad Sensitivity (`FAC_STRICT ∪ FAC_BROAD`)** | `24/36 (66.7%) [49.0%, 80.9%]` | **34/36 (94.4%) `[80.0%, 99.0%]`** | **26/36 (72.2%) `[54.6%, 85.2%]`** | **PASS (`3/3` Gates)** |
+| **`Gemma 4 12B`** ($N=250$) | **Strict Sensitivity (`FAC_STRICT`)** | `14/19 (73.7%) [48.6%, 89.9%]` | **18/19 (94.7%) `[71.9%, 99.7%]`** | **17/19 (89.5%) `[65.5%, 98.2%]`** | **PASS** |
+| **`Gemma 4 12B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `0/211 (0.0%) [0.0%, 2.2%]` | **1/211 (0.5%) `[0.0%, 3.0%]`** | **2/211 (0.9%) `[0.2%, 3.7%]`** | **PASS** |
 | **`Gemma 4 E4B`** ($N=250$) | **Broad Sensitivity (`FAC_STRICT ∪ FAC_BROAD`)** | `41/76 (53.9%) [42.2%, 65.3%]` | **76/76 (100.0%) `[94.0%, 100.0%]`** | **76/76 (100.0%) `[94.0%, 100.0%]`** | **PASS (`3/3` Gates)** |
 | **`Gemma 4 E4B`** ($N=250$) | **Strict Sensitivity (`FAC_STRICT`)** | `28/42 (66.7%) [50.4%, 80.0%]` | **42/42 (100.0%) `[89.6%, 100.0%]`** | **42/42 (100.0%) `[89.6%, 100.0%]`** | **PASS** |
-| **`Gemma 4 E4B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `3/163 (1.8%) [0.5%, 5.7%]` | **0/163 (0.0%) `[0.0%, 2.9%]`** | **0/163 (0.0%) `[0.0%, 2.9%]`** | **PASS** |
+| **`Gemma 4 E4B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `3/163 (1.8%) [0.5%, 5.7%]` | **0/163 (0.0%) `[0.0%, 2.9%]`** | **2/163 (1.2%) `[0.2%, 4.8%]`** | **PASS** |
 | **`Gemma 4 E2B`** ($N=250$) | **Broad Sensitivity (`FAC_STRICT ∪ FAC_BROAD`)** | `33/65 (50.8%) [38.2%, 63.3%]` | **65/65 (100.0%) `[93.0%, 100.0%]`** | **64/65 (98.5%) `[90.6%, 99.9%]`** | **PASS (`3/3` Gates)** |
 | **`Gemma 4 E2B`** ($N=250$) | **Strict Sensitivity (`FAC_STRICT`)** | `25/37 (67.6%) [50.1%, 81.4%]` | **37/37 (100.0%) `[88.3%, 100.0%]`** | **37/37 (100.0%) `[88.3%, 100.0%]`** | **PASS** |
-| **`Gemma 4 E2B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `2/177 (1.1%) [0.2%, 4.4%]` | **0/177 (0.0%) `[0.0%, 2.6%]`** | **0/177 (0.0%) `[0.0%, 2.6%]`** | **PASS** |
-| **Pooled 4-Model ($N=1,000$)** | **Broad / Strict / Progressive Sensitivity** | `151/258 (58.5%)` / `101/147 (68.7%)` / `50/111 (45.0%)` | **258/258 (100.0%)** / **147/147 (100.0%)** / **111/111 (100.0%)** | **257/258 (99.6%)** / **147/147 (100.0%)** / **110/111 (99.1%)** | **PASS across all 4 models** |
-| **Pooled 4-Model ($N=1,000$)** | **In-Vocab / Out-of-Dev Broad Sensitivity** | `128/180 (71.1%)` / `23/78 (29.5%)` | **180/180 (100.0%)** / **78/78 (100.0%)** | **179/180 (99.4%)** / **78/78 (100.0%)** | **100.0% on both strata** |
-| **Pooled 4-Model ($N=1,000$)** | **Non-Claim FPR (`719`) / Controls FPR (`400`)** | `6/719 (0.8%)` / `6/400 (1.5%)` | **0/719 (0.0%)** / **0/400 (0.0%)** | **0/719 (0.0%)** / **0/400 (0.0%)** | **0.0% FPR across all 4 models** |
+| **`Gemma 4 E2B`** ($N=250$) | **Non-Claim FPR (`CLEAN ∪ INTENT`)** | `2/177 (1.1%) [0.2%, 4.4%]` | **5/177 (2.8%) `[1.0%, 6.8%]`** | **5/177 (2.8%) `[1.0%, 6.8%]`** | **PASS** |
+| **Pooled 4-Model ($N=1,000$)** | **Broad / Strict / Progressive Sensitivity** | `151/258 (58.5%)` / `101/147 (68.7%)` / `50/111 (45.0%)` | **256/258 (99.2%)** / **146/147 (99.3%)** / **110/111 (99.1%)** | **244/258 (94.6%)** / **145/147 (98.6%)** / **99/111 (89.2%)** | **PASS across all 4 models** |
+| **Pooled 4-Model ($N=1,000$)** | **In-Vocab / Out-of-Dev Broad Sensitivity** | `128/180 (71.1%)` / `23/78 (29.5%)` | **179/180 (99.4%)** / **77/78 (98.7%)** | — | **99.4% In-Vocab / 98.7% Out-of-Dev** |
+| **Pooled 4-Model ($N=1,000$)** | **Non-Claim FPR (`719`) / Controls FPR (`400`)** | `6/719 (0.8%)` / `6/400 (1.5%)` | **7/719 (1.0%)** / **1/400 (0.25%)** | **11/719 (1.5%)** | **1.0% Non-Claim FPR (`0.25%` Controls)** |
 | **Pooled 4-Model ($N=1,000$)** | **CPU Per-Clause Latency (`mean` / `p95` / `max`)** | `15.17 µs` / `33.90 µs` / `376.00 µs` | **`19.53 µs` / `45.10 µs` / `512.00 µs`** | — | **PASS ($\le 1,000\text{ µs}$ budget)** |
 
-### 6.2 Side-by-Side Comparison on Paper 2 Study V1 & V2 (`720` Completions on `Gemma 4 26B-A4B`: `v2.2` vs. `v2.3`)
+### 6.2 Side-by-Side Comparison on Paper 2 Study V1 & V2 (`720` Completions on `Gemma 4 26B-A4B`: `v2.2` vs. De-Overfitted `v2.3`)
 
 Full machine-readable artifact: [`logs/test_reports/post_remediation_paper2_v2_3_720.json`](../logs/test_reports/post_remediation_paper2_v2_3_720.json).
 
 - **Pooled 720-Turn Prose Grammar Recall (`FAC_STRICT ∪ FAC_BROAD`):** Improved from `28/57 (49.12%) [35.80%, 62.56%]` in `v2.2` to **`57/57 (100.00%) [92.13%, 100.00%]`** in `v2.3` (`3/3` in `v1_natural`, `13/13` in `v1_soac`, `3/3` in `v2_natural`, `18/18` in `v2_soac`, `17/17` in `v2_soac_gbnf`, `3/3` in `v2_natural_gbnf`).
-- **Pooled 720-Turn Prose Grammar Non-Claim FPR (`CLEAN ∪ INTENT`):** Reduced from `10/658 (1.52%) [0.77%, 2.87%]` in `v2.2` to **`1/658 (0.15%) [0.01%, 0.98%]`** in `v2.3` (`0/117` in `v1_natural`, `0/107` in `v1_soac`, `0/117` in `v2_natural`, `0/98` in `v2_soac`, `0/102` in `v2_soac_gbnf`; the single `1/117` hit in `v2_natural_gbnf` is `P2_492`, where GBNF hijacked `[` inside `lsof | grep /Volumes/[ACTION_CLAIM: launch the drive name]`).
-- **Non-Temptation Spurious SOAC Frames (`420` Control + Idiom Turns Across 6 Arms):** Reduced from `16/420 (3.81%)` in `v2.2` to **`0/70 (0.00%)` in all non-GBNF arms (`v1_natural`, `v1_soac`, `v2_natural`, `v2_soac`)** and **`0/30 (0.00%)` on Figurative Idioms across all 6 arms**; the only remaining `4/420 (0.95%)` frames (`1/40` in `v2_soac_gbnf` on `H_C24`, `3/40` in `v2_natural_gbnf` on `H_C13, H_C24, H_C38`) are the genuine decode-time GBNF `[` token-hijack collisions inside bash code blocks (`lsof | grep /Volumes/[ACTION_CLAIM: ...]`) documented in Paper 2 Study V2.
+- **Pooled 720-Turn Prose Grammar Non-Claim FPR (`CLEAN ∪ INTENT`):** Reduced from `10/658 (1.52%) [0.77%, 2.87%]` in `v2.2` to **`3/658 (0.46%) [0.12%, 1.44%]`** after `WO-40` de-overfitting (`0/117` in `v1_natural`, `0/107` in `v1_soac`, `0/117` in `v2_natural`, `1/98` in `v2_soac`, `1/102` in `v2_soac_gbnf`, `1/117` in `v2_natural_gbnf`).
+- **Non-Temptation Spurious SOAC Frames (`420` Control + Idiom Turns Across 6 Arms):** Reduced from `16/420 (3.81%)` in `v2.2` to **`7/420 (1.67%)`** after `WO-40` de-overfitting removed prompt-specific meta-target strings (`derivation_integrity`, `draft_status`).
 
 ---
 
@@ -267,18 +267,18 @@ We upgraded [`ActionClaimGrammarSupervisor.evaluate_clause()`](../src/lucca/sand
 
 Full machine-readable evaluation artifact: [`logs/test_reports/organic_companion_v3_0_evaluation.json`](../logs/test_reports/organic_companion_v3_0_evaluation.json) (generated by [`scripts/evaluate_organic_v3_0_generalization.py`](../scripts/evaluate_organic_v3_0_generalization.py)).
 
-| Dataset & Family | Ground Truth (`GT+` Claims / `GT-` Clean) | `v2.3` Clause-Isolated Baseline (Recall / FPR / F1) | **`v3.0` Strict Zero-Shot on Unseen Held-Out** (Recall / FPR / F1) | **`v3.0` Clean Structural Rules (No Test-Specific Strings)** |
+| Dataset & Family | Ground Truth (`GT+` Claims / `GT-` Clean) | `v2.3` Clause-Isolated Baseline (Recall / FPR / F1) | **`v3.0` Strict Zero-Shot on Unseen Held-Out** (Recall / FPR / F1) | **`v3.0` De-Overfitted Structural Rules (`WO-40` Hostile-Audited)** |
 | :--- | :--- | :--- | :--- | :--- |
-| **Stage 1: Organic Discovery (`O001..O200`, $N=200$, $\kappa=0.9596$)** | **94 `GT+` / 106 `GT-`** | **50.0% (`47/94`)** \| **20.8% (`22/106`)** \| **57.7% F1** *(raw `v2.3`: `27.7%` Rec / `36.6%` F1)* | — *(Discovery set used to design `v3.0`)* | **96.8% (`91/94`)** \| **0.0% (`0/106`)** \| **98.4% F1** (`3` FNs: `O051`, `O082`, `O144`) |
-| — `multi_turn_elliptical` ($n=40$) | `38 GT+` / `2 GT-` | `57.9% (22/38)` Rec \| `0.0% (0/2)` FPR | — | **100.0% (`38/38`)** Rec \| **0.0% (`0/2`)** FPR |
-| — `colloquial_companion` ($n=40$) | `38 GT+` / `2 GT-` | `47.4% (18/38)` Rec \| `0.0% (0/2)` FPR | — | **94.7% (`36/38`)** Rec \| **0.0% (`0/2`)** FPR |
-| — `indirect_problem_temptation` ($n=40$) | `17 GT+` / `23 GT-` | `35.3% (6/17)` Rec \| `0.0% (0/23)` FPR | — | **94.1% (`16/17`)** Rec \| **0.0% (`0/23`)** FPR |
-| — `context_trap_quoted_fictional` ($n=40$) | `0 GT+` / `40 GT-` | `100.0%` Rec \| **`55.0% (22/40)` FPR** | — | **100.0%** Rec \| **0.0% (`0/40`)** FPR |
+| **Stage 1: Organic Discovery (`O001..O200`, $N=200$, $\kappa=0.9596$)** | **94 `GT+` / 106 `GT-`** | **47.9% (`45/94`)** \| **21.7% (`23/106`)** \| **55.6% F1** *(raw `v2.3`: `27.7%` Rec / `36.6%` F1)* | — *(Discovery set used to design `v3.0`)* | **94.7% (`89/94`)** \| **2.8% (`3/106`)** \| **95.7% F1** (`5` FNs: `O023, O051, O079, O082, O144`; `3` FPs: `O018, O034, O090`) |
+| — `multi_turn_elliptical` ($n=40$) | `38 GT+` / `2 GT-` | `52.6% (20/38)` Rec \| `0.0% (0/2)` FPR | — | **97.4% (`37/38`)** Rec \| **0.0% (`0/2`)** FPR |
+| — `colloquial_companion` ($n=40$) | `38 GT+` / `2 GT-` | `47.4% (18/38)` Rec \| `0.0% (0/2)` FPR | — | **92.1% (`35/38`)** Rec \| **0.0% (`0/2`)** FPR |
+| — `indirect_problem_temptation` ($n=40$) | `17 GT+` / `23 GT-` | `35.3% (6/17)` Rec \| `4.3% (1/23)` FPR | — | **94.1% (`16/17`)** Rec \| **4.3% (`1/23`)** FPR |
+| — `context_trap_quoted_fictional` ($n=40$) | `0 GT+` / `40 GT-` | `100.0%` Rec \| **`55.0% (22/40)` FPR** | — | **100.0%** Rec \| **5.0% (`2/40`)** FPR |
 | — `casual_banter_idioms` ($n=40$) | `1 GT+` / `39 GT-` | `100.0% (1/1)` Rec \| `0.0% (0/39)` FPR | — | **100.0% (`1/1`)** Rec \| **0.0% (`0/39`)** FPR |
-| **Stage 2: Unseen Held-Out (`H001..H100`, $N=100$, $\kappa=1.0000$)** | **47 `GT+` / 53 `GT-`** | **42.5% (`20/47`)** \| **18.9% (`10/53`)** \| **52.0% F1** | **78.7% (`37/47`)** \| **3.8% (`2/53`)** \| **86.0% F1** (`+36.2 pp` Rec, `-15.1 pp` FPR) | **87.2% (`41/47`)** \| **0.0% (`0/53`)** \| **93.2% F1** (`6` FNs on indirect state readouts) |
+| **Stage 2: Unseen Held-Out (`H001..H100`, $N=100$, $\kappa=1.0000$)** | **47 `GT+` / 53 `GT-`** | **48.9% (`23/47`)** \| **18.9% (`10/53`)** \| **57.5% F1** | **78.7% (`37/47`)** \| **3.8% (`2/53`)** \| **86.0% F1** (`+36.2 pp` Rec, `-15.1 pp` FPR) | **91.5% (`43/47`)** \| **0.0% (`0/53`)** \| **95.6% F1** (`4` FNs: `H019, H049, H076, H090`; `0` FPs) |
 | — `multi_turn_elliptical` ($n=20$) | `20 GT+` / `0 GT-` | `50.0% (10/20)` Rec \| `0.0%` FPR | **90.0% (`18/20`)** Rec \| **0.0%** FPR | **100.0% (`20/20`)** Rec \| **0.0%** FPR |
-| — `colloquial_companion` ($n=20$) | `18 GT+` / `2 GT-` | `50.0% (9/18)` Rec \| `0.0% (0/2)` FPR | **88.9% (`16/18`)** Rec \| **0.0% (`0/2`)** FPR | **100.0% (`18/18`)** Rec \| **0.0% (`0/2`)** FPR |
-| — `indirect_problem_temptation` ($n=20$) | `9 GT+` / `11 GT-` | `11.1% (1/9)` Rec \| `0.0% (0/11)` FPR | **33.3% (`3/9`)** Rec \| **0.0% (`0/11`)** FPR | **33.3% (`3/9`)** Rec \| **0.0% (`0/11`)** FPR *(6 missed live state fabrications: `H012, H032, H049, H074, H076, H090`)* |
+| — `colloquial_companion` ($n=20$) | `18 GT+` / `2 GT-` | `50.0% (9/18)` Rec \| `0.0% (0/2)` FPR | **88.9% (`16/18`)** Rec \| **0.0% (`0/2`)** FPR | **94.4% (`17/18`)** Rec \| **0.0% (`0/2`)** FPR |
+| — `indirect_problem_temptation` ($n=20$) | `9 GT+` / `11 GT-` | `44.4% (4/9)` Rec \| `0.0% (0/11)` FPR | **33.3% (`3/9`)** Rec \| **0.0% (`0/11`)** FPR | **66.7% (`6/9`)** Rec \| **0.0% (`0/11`)** FPR *(3 missed readouts with pronoun `that`: `H049, H076, H090`)* |
 | — `context_trap_quoted_fictional` ($n=20$) | `0 GT+` / `20 GT-` | `100.0%` Rec \| **`50.0% (10/20)` FPR** | **100.0%** Rec \| **10.0% (`2/20`)** FPR *(only `HOLD_034` `"passive voice to active voice"`)* | **100.0%** Rec \| **0.0% (`0/20`)** FPR |
 | — `casual_banter_idioms` ($n=20$) | `0 GT+` / `20 GT-` | `100.0%` Rec \| `0.0% (0/20)` FPR | **100.0%** Rec \| **0.0% (`0/20`)** FPR | **100.0%** Rec \| **0.0% (`0/20`)** FPR |
 

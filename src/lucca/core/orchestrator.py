@@ -2241,7 +2241,7 @@ class Orchestrator:
             elif isinstance(r, dict):
                 norm_receipts.append(
                     ToolReceipt(
-                        tool=str(r.get("tool") or r.get("tool_name") or ""),
+                        tool=str(r.get("tool") or r.get("tool_name") or r.get("action") or ""),
                         ok=bool(r.get("ok", True)),
                         call_id=str(r.get("call_id", "")),
                         args=r.get("args") if isinstance(r.get("args"), dict) else {},
@@ -2613,14 +2613,14 @@ class Orchestrator:
             history_urls.extend(["http://localhost", "http://127.0.0.1"])
         if history_urls and hasattr(self.output_supervisor, "register_allowed_urls"):
             self.output_supervisor.register_allowed_urls(history_urls)
+        sup_ctx: list[dict[str, str]] = [
+            {"role": str(m.get("role", "")), "content": str(m.get("content", ""))}
+            for m in self.history[-4:]
+            if isinstance(m, dict) and m.get("role") in ("user", "assistant")
+        ]
+        if user_msg:
+            sup_ctx.append({"role": "user", "content": user_msg})
         if hasattr(self.output_supervisor, "set_turn_context"):
-            sup_ctx: list[dict[str, str]] = [
-                {"role": str(m.get("role", "")), "content": str(m.get("content", ""))}
-                for m in self.history[-4:]
-                if isinstance(m, dict) and m.get("role") in ("user", "assistant")
-            ]
-            if user_msg:
-                sup_ctx.append({"role": "user", "content": user_msg})
             self.output_supervisor.set_turn_context(sup_ctx if sup_ctx else user_msg)
 
         def _trigger_supervisor_abort(
@@ -2652,12 +2652,14 @@ class Orchestrator:
                 refusal = "I cannot fulfill that request as it violates core safety invariants."
             self._publish_caption(refusal, source="assistant", is_final=True)
             self._speak_text(trace, refusal)
+            self.current_turn_assistant_reply = refusal
             self.history.append({"role": "user", "content": user_msg})
             self.history.append({"role": "assistant", "content": refusal})
 
         current_stance = self.affect_tracker.get_prompt_suffix_tag()
         first_python_err: str | None = None
         python_turns_taken: int = 0
+        rejected_round_span: tuple[int, int] | None = None
 
         try:
             for round_num in range(1, max_rounds + 1):
@@ -2667,6 +2669,7 @@ class Orchestrator:
                 round_tool_called = False
                 round_response_text: list[str] = []
                 round_failed_tools: list[str] = []
+                pre_round_text_len = len(full_response_text)
                 print(f"[Lucca R{round_num}] " if round_num > 1 else "[Lucca] ", end="", flush=True)
                 if round_num == 1:
                     trace.t_llm_sent = now_ns()
@@ -2707,6 +2710,15 @@ class Orchestrator:
                         break
 
                     if isinstance(event, TokenDelta) and event.delta:
+                        if rejected_round_span is not None:
+                            r_start, r_end = rejected_round_span
+                            del full_response_text[r_start:r_end]
+                            pre_round_text_len = len(full_response_text)
+                            rejected_round_span = None
+                            chunker = StreamingChunker()
+                            if hasattr(self, "speech_output") and self.speech_output is not None:
+                                self.speech_output.clear_queue()
+
                         if not first_token_seen:
                             first_token_seen = True
                             trace.t_llm_first_token = now_ns()
@@ -2875,10 +2887,14 @@ class Orchestrator:
                                 tool_target = str(
                                     tool_args.get("path")
                                     or tool_args.get("filename")
+                                    or tool_args.get("name")
+                                    or tool_args.get("title")
                                     or tool_args.get("target")
                                     or tool_args.get("command")
                                     or tool_args.get("app_name")
                                     or tool_args.get("url")
+                                    or tool_args.get("query")
+                                    or tool_args.get("code")
                                     or ""
                                 )
                                 tool_receipts.append({"action": tool_name, "target": tool_target})
@@ -3027,6 +3043,7 @@ class Orchestrator:
                             "to retrieve and present the verified facts.]"
                         )
                         self.output_supervisor.turn_has_stalled = False
+                        rejected_round_span = (pre_round_text_len, len(full_response_text))
                         continue
                     # WO-9 A4 (F4): promise-without-action guard. If the model
                     # promised an action ("I'll go ahead and commit that right
@@ -3034,21 +3051,54 @@ class Orchestrator:
                     # forcing it to either call the tool or state plainly that
                     # it has not done it.
                     if round_num < max_rounds and tools:
-                        promises = detect_promised_action_claims("".join(round_response_text))
+                        round_text_str = "".join(round_response_text).strip()
+                        promises = detect_promised_action_claims(round_text_str)
                         if promises:
                             logger.info(
                                 "promised_action_without_tool_call_intercepted",
                                 round_num=round_num,
                                 promises=promises[:2],
                             )
+                            rejected_round_span = (pre_round_text_len, len(full_response_text))
                             scratchpad_buffer.add_user_directive(
                                 "[Honesty Directive: You stated you would perform "
                                 f"an action ({' ; '.join(promises[:2])}) but issued "
-                                "no tool call. Either call the appropriate tool "
-                                "now, or state plainly that you have NOT done it "
-                                "and will not pretend otherwise.]"
+                                "no tool call. Discard your previous draft response. "
+                                "Either call the appropriate tool now, or state plainly "
+                                "that you have NOT done it and will not pretend otherwise.]"
                             )
                             continue
+                        # WO-40 Milestone 2.1: Ungrounded completed/progressive/copular action
+                        # claim guard inside the tool loop. If the model claimed or simulated
+                        # performing/inspecting an action without a matching ToolReceipt,
+                        # reject the draft round and force either a real tool call or an
+                        # honest disclosure.
+                        if round_text_str:
+                            active_receipts = (
+                                list(getattr(self, "current_turn_receipts", [])) or tool_receipts
+                            )
+                            ungrounded_breach = self._check_functional_coherence(
+                                round_text_str,
+                                active_receipts,
+                                user_context=sup_ctx if sup_ctx else user_msg,
+                            )
+                            if ungrounded_breach:
+                                logger.info(
+                                    "ungrounded_action_claim_without_receipt_intercepted",
+                                    round_num=round_num,
+                                    breach=ungrounded_breach,
+                                )
+                                rejected_round_span = (pre_round_text_len, len(full_response_text))
+                                scratchpad_buffer.add_user_directive(
+                                    "[Honesty & Grounding Directive: Your previous draft response "
+                                    f"({round_text_str[:160]!r}) claimed or simulated performing "
+                                    f"an action without a verified tool receipt ({ungrounded_breach}). "
+                                    "Discard that draft completely and respond again from scratch: "
+                                    "either call an available tool now to perform the action for real, "
+                                    "or state plainly and honestly that you cannot perform or inspect "
+                                    "that action directly and have NOT done so.]"
+                                )
+                                continue
                     break
 
             # WO-9 A5: convergence telemetry

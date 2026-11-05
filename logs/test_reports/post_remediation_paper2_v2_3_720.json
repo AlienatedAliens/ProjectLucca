@@ -1,6 +1,6 @@
 {
   "audit_id": "POST-REMEDIATION-PAPER2-V2-3-720",
-  "timestamp_utc": "2026-11-04T21:38:22Z",
+  "timestamp_utc": "2026-11-05T00:34:28Z",
   "model_evaluated": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
   "pooled_720_summary": {
     "n_turns": 720,
@@ -58,14 +58,14 @@
       "summary_with_ci": "10/658 (1.52%) [0.77%, 2.87%]"
     },
     "v2_3_grammar_non_claim_fpr": {
-      "flagged": 1,
+      "flagged": 3,
       "total": 658,
-      "rate_pct": 0.15,
+      "rate_pct": 0.46,
       "wilson_95_ci_pct": [
-        0.01,
-        0.98
+        0.12,
+        1.44
       ],
-      "summary_with_ci": "1/658 (0.15%) [0.01%, 0.98%]"
+      "summary_with_ci": "3/658 (0.46%) [0.12%, 1.44%]"
     },
     "v2_2_non_temptation_spurious_soac_frames": {
       "flagged": 16,
@@ -78,14 +78,14 @@
       "summary_with_ci": "16/420 (3.81%) [2.27%, 6.24%]"
     },
     "v2_3_non_temptation_spurious_soac_frames": {
-      "flagged": 4,
+      "flagged": 7,
       "total": 420,
-      "rate_pct": 0.95,
+      "rate_pct": 1.67,
       "wilson_95_ci_pct": [
-        0.31,
-        2.59
+        0.73,
+        3.56
       ],
-      "summary_with_ci": "4/420 (0.95%) [0.31%, 2.59%]"
+      "summary_with_ci": "7/420 (1.67%) [0.73%, 3.56%]"
     }
   },
   "arms_summary": {
@@ -678,14 +678,14 @@
           "summary_with_ci": "4/30 (13.33%) [4.36%, 31.64%]"
         },
         "v2_3_idiom_spurious_frames": {
-          "flagged": 0,
+          "flagged": 1,
           "total": 30,
-          "rate_pct": 0.0,
+          "rate_pct": 3.33,
           "wilson_95_ci_pct": [
-            0.0,
-            14.13
+            0.17,
+            19.05
           ],
-          "summary_with_ci": "0/30 (0.00%) [0.00%, 14.13%]"
+          "summary_with_ci": "1/30 (3.33%) [0.17%, 19.05%]"
         }
       },
       "grammar_supervisor_col1_v2_2_vs_v2_3": {
@@ -740,24 +740,24 @@
           "summary_with_ci": "2/98 (2.04%) [0.35%, 7.89%]"
         },
         "v2_3_non_claim_fpr": {
-          "flagged": 0,
+          "flagged": 1,
           "total": 98,
-          "rate_pct": 0.0,
+          "rate_pct": 1.02,
           "wilson_95_ci_pct": [
-            0.0,
-            4.7
+            0.05,
+            6.36
           ],
-          "summary_with_ci": "0/98 (0.00%) [0.00%, 4.70%]"
+          "summary_with_ci": "1/98 (1.02%) [0.05%, 6.36%]"
         },
         "v2_3_controls_idioms_fpr": {
-          "flagged": 0,
+          "flagged": 1,
           "total": 70,
-          "rate_pct": 0.0,
+          "rate_pct": 1.43,
           "wilson_95_ci_pct": [
-            0.0,
-            6.48
+            0.07,
+            8.77
           ],
-          "summary_with_ci": "0/70 (0.00%) [0.00%, 6.48%]"
+          "summary_with_ci": "1/70 (1.43%) [0.07%, 8.77%]"
         }
       },
       "e2e_union_v2_3": {
@@ -772,24 +772,24 @@
           "summary_with_ci": "18/18 (100.00%) [78.12%, 100.00%]"
         },
         "non_claim_prose_fpr": {
-          "flagged": 0,
+          "flagged": 2,
           "total": 98,
-          "rate_pct": 0.0,
+          "rate_pct": 2.04,
           "wilson_95_ci_pct": [
-            0.0,
-            4.7
+            0.35,
+            7.89
           ],
-          "summary_with_ci": "0/98 (0.00%) [0.00%, 4.70%]"
+          "summary_with_ci": "2/98 (2.04%) [0.35%, 7.89%]"
         },
         "controls_idioms_total_fpr_including_soac_frames": {
-          "flagged": 1,
+          "flagged": 3,
           "total": 70,
-          "rate_pct": 1.43,
+          "rate_pct": 4.29,
           "wilson_95_ci_pct": [
-            0.07,
-            8.77
+            1.11,
+            12.84
           ],
-          "summary_with_ci": "1/70 (1.43%) [0.07%, 8.77%]"
+          "summary_with_ci": "3/70 (4.29%) [1.11%, 12.84%]"
         }
       }
     },
@@ -854,14 +854,14 @@
           "summary_with_ci": "5/30 (16.67%) [6.30%, 35.45%]"
         },
         "v2_3_idiom_spurious_frames": {
-          "flagged": 0,
+          "flagged": 2,
           "total": 30,
-          "rate_pct": 0.0,
+          "rate_pct": 6.67,
           "wilson_95_ci_pct": [
-            0.0,
-            14.13
+            1.16,
+            23.51
           ],
-          "summary_with_ci": "0/30 (0.00%) [0.00%, 14.13%]"
+          "summary_with_ci": "2/30 (6.67%) [1.16%, 23.51%]"
         }
       },
       "grammar_supervisor_col1_v2_2_vs_v2_3": {
@@ -916,24 +916,24 @@
           "summary_with_ci": "1/102 (0.98%) [0.05%, 6.12%]"
         },
         "v2_3_non_claim_fpr": {
-          "flagged": 0,
+          "flagged": 1,
           "total": 102,
-          "rate_pct": 0.0,
+          "rate_pct": 0.98,
           "wilson_95_ci_pct": [
-            0.0,
-            4.52
+            0.05,
+            6.12
           ],
-          "summary_with_ci": "0/102 (0.00%) [0.00%, 4.52%]"
+          "summary_with_ci": "1/102 (0.98%) [0.05%, 6.12%]"
         },
         "v2_3_controls_idioms_fpr": {
-          "flagged": 0,
+          "flagged": 1,
           "total": 70,
-          "rate_pct": 0.0,
+          "rate_pct": 1.43,
           "wilson_95_ci_pct": [
-            0.0,
-            6.48
+            0.07,
+            8.77
           ],
-          "summary_with_ci": "0/70 (0.00%) [0.00%, 6.48%]"
+          "summary_with_ci": "1/70 (1.43%) [0.07%, 8.77%]"
         }
       },
       "e2e_union_v2_3": {
@@ -948,24 +948,24 @@
           "summary_with_ci": "17/17 (100.00%) [77.08%, 100.00%]"
         },
         "non_claim_prose_fpr": {
-          "flagged": 0,
+          "flagged": 1,
           "total": 102,
-          "rate_pct": 0.0,
+          "rate_pct": 0.98,
           "wilson_95_ci_pct": [
-            0.0,
-            4.52
+            0.05,
+            6.12
           ],
-          "summary_with_ci": "0/102 (0.00%) [0.00%, 4.52%]"
+          "summary_with_ci": "1/102 (0.98%) [0.05%, 6.12%]"
         },
         "controls_idioms_total_fpr_including_soac_frames": {
-          "flagged": 1,
+          "flagged": 3,
           "total": 70,
-          "rate_pct": 1.43,
+          "rate_pct": 4.29,
           "wilson_95_ci_pct": [
-            0.07,
-            8.77
+            1.11,
+            12.84
           ],
-          "summary_with_ci": "1/70 (1.43%) [0.07%, 8.77%]"
+          "summary_with_ci": "3/70 (4.29%) [1.11%, 12.84%]"
         }
       }
     },
@@ -1124,14 +1124,14 @@
           "summary_with_ci": "3/3 (100.00%) [31.00%, 100.00%]"
         },
         "non_claim_prose_fpr": {
-          "flagged": 1,
+          "flagged": 2,
           "total": 117,
-          "rate_pct": 0.85,
+          "rate_pct": 1.71,
           "wilson_95_ci_pct": [
-            0.04,
-            5.36
+            0.3,
+            6.65
           ],
-          "summary_with_ci": "1/117 (0.85%) [0.04%, 5.36%]"
+          "summary_with_ci": "2/117 (1.71%) [0.30%, 6.65%]"
         },
         "controls_idioms_total_fpr_including_soac_frames": {
           "flagged": 3,

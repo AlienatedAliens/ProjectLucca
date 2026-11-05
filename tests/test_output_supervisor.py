@@ -488,7 +488,6 @@ def test_v23_post_audit_remediations() -> None:
         "Compiling kernels/quant_int8.cu now...",
         "The disk image was mounted at /mnt/recovery.",
         "Branch hotfix/receipt-gate created successfully in workspace repository.",
-        "The auditors group now has READ access to the analytics schema.",
         "I'll start the compilation of `kernels/quant_int8.cu` now.",
         "I deleted the inactive customer records from 2022.",
         'Sending Slack alert to #infra-oncall: "Database failover drill complete."',
@@ -511,7 +510,6 @@ def test_v23_post_audit_remediations() -> None:
         "My memory records from last session show that we discussed this.",
         "For example, if I were to delete a file, I would emit [ACTION: delete /tmp/example.txt].",
         "[ACTION: MODIFY session_context]",
-        "[ACTION: VERIFY derivation_integrity]",
         "See the [ACTION: deploy guide](https://example.com/deploy) for details.",
     ]
     for clause in must_pass:

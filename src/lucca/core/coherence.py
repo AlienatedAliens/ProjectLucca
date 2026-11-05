@@ -120,7 +120,6 @@ EXCLUDED_IDIOMS: tuple[str, ...] = (
     "updated my perspective",
     "updated my model",
     "updated my thoughts",
-    "updated my internal verification log",
     "saved you the trouble",
     "saved a lot of time",
     "saved my energy",
@@ -165,10 +164,8 @@ NEGATION_GUARD_PATTERN = re.compile(
     r"not\s+|never|don't|do\s+not|doesn't|didn't|did\s+not|cannot|can't|"
     r"haven't|have\s+not|hasn't|has\s+not|hadn't|had\s+not|"
     r"won't|will\s+not|unable\s+to|not\s+sure\s+if|whether\s+or\s+not|"
-    r"prevent\s+[\w\s]+?\s+from\s+being|might\s+be\s+lost|guarantees\s+that|"
-    r"when\s+the\s+code\s+is|before\s+it(?:'s|\s+is|\s+runs)|while\s+the\s+program\s+is|"
-    r"mathematical\s+redundancy|records?\s+showing\s+that"
-    r")|\be\.g\.,",
+    r"records?\s+showing\s+that"
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -242,6 +239,7 @@ def detect_ungrounded_action_claims(
         ActionClaimGrammarSupervisor,
         EXPANDED_STEM_MAP,
         is_meta_or_creative_context,
+        is_simulated_inspection_readout,
     )
 
     if is_meta_or_creative_context(
@@ -294,26 +292,29 @@ def detect_ungrounded_action_claims(
             t_tag = (tag_match.group(2) or tag_match.group(4) or tag_match.group(6) or "").strip()
             if (
                 not _ILLUSTRATIVE_FRAME_PREFIX_REGEX.search(prefix_before_tag)
-                and v_tag not in ("verify", "protect")
                 and not _CONVERSATIONAL_META_TARGETS_REGEX.match(t_tag)
             ):
-                matched_verb = v_tag
                 if v_tag in ("save", "saved", "write", "wrote", "create", "created", "modify", "modified", "update", "updated", "copy", "copied", "move", "moved"):
                     detected_family = "save"
+                    matched_verb = v_tag
                 elif v_tag in ("launch", "launched", "open", "opened", "start", "started", "close", "closed", "reboot", "rebooted"):
                     detected_family = "launch"
+                    matched_verb = v_tag
                 elif v_tag in ("search", "searched", "lookup", "looked_up"):
                     detected_family = "search"
+                    matched_verb = v_tag
                 elif v_tag in ("fetch", "fetched", "send", "sent", "upload", "uploaded", "post", "posted"):
                     detected_family = "fetch"
+                    matched_verb = v_tag
                 elif v_tag in ("read",):
                     detected_family = "read"
+                    matched_verb = v_tag
                 elif v_tag in ("delete", "deleted", "remove", "removed"):
                     detected_family = "delete"
+                    matched_verb = v_tag
                 elif v_tag in ("run", "ran", "execute", "executed", "install", "installed", "process", "processed"):
                     detected_family = "run"
-                else:
-                    detected_family = "save"
+                    matched_verb = v_tag
 
         # 1. Active first-person action claims
         # e.g., "I saved it", "I launched Notepad", "I fetched the page", "I ran the script"
@@ -361,21 +362,14 @@ def detect_ungrounded_action_claims(
         # 2. Passive, gerund, or completion claims
         # e.g., "your note is saved", "file written", "launching Notepad now", "calc launched"
         if not detected_family:
-            if (
-                re.search(
-                    r"\b(?:notes?|files?|documents?|summary|data|settings|records?|code|scripts?|outputs?)"
-                    r"\s+(?:is|was|are|were|has\s+been|have\s+been)?\s*"
-                    r"(?:now\s+|successfully\s+|already\s+)?(?:saved|written|created|updated)\b",
-                    clause,
-                )
-                or re.search(
-                    r"\b(?:saved|written|created)\s+(?:(?:to|in|into|on)\s+)?(?:(?:the|your|my|a|an)\s+)?(?:notes?\s+)?"
-                    r"(?:notes?|files?|disk|workspace|folders?)\b",
-                    clause,
-                )
-            ) and not re.search(
-                r"\b(?:i'll|i\s+will|let\s+me)\s+(?:check|look|search|see|find)\b|"
-                r"\bfor\s+any\s+(?:\w+\s+)?(?:files?|documents?|notes?)\b",
+            if re.search(
+                r"\b(?:notes?|files?|documents?|summary|data|settings|records?|code|scripts?|outputs?)"
+                r"\s+(?:is|was|are|were|has\s+been|have\s+been)?\s*"
+                r"(?:now\s+|successfully\s+|already\s+)?(?:saved|written|created|updated)\b",
+                clause,
+            ) or re.search(
+                r"\b(?:saved|written|created)\s+(?:to|in|into|on|under|inside|within)\s+(?:(?:the|your|my|a|an)\s+)?(?:notes?\s+)?"
+                r"(?:notes?|files?|disk|workspace|folders?)\b",
                 clause,
             ):
                 detected_family = "save"
@@ -389,7 +383,10 @@ def detect_ungrounded_action_claims(
                     r"\b(?:notepad|calc|calculator|apps?|applications?|editor|terminal|browser|programs?)\b.*?\b(?:is|was|been)?\s*(?:launched|opened|started)\b",
                     clause,
                 )
-            ) and not re.match(r"^opening\s+(?:applications|your\s+default\s+messaging)\b", clause):
+            ) and not re.match(
+                r"^(?:opening|launching)\s+[\w\s]+?\s+(?:is|are|was|were|can|could|will|would|should|may|might|must|requires|allows|means|helps|opens)\b",
+                clause,
+            ):
                 detected_family = "launch"
                 matched_verb = "launch"
             elif (
@@ -515,7 +512,10 @@ def detect_ungrounded_action_claims(
         # passive voice, copular state assertions, and elliptical confirmations while
         # preserving promise-guard separation and meta-linguistic context awareness.
         from_grammar_sup = False
-        if not detected_family and "go ahead and" not in clause:
+        if not detected_family and (
+            not PROMISE_PATTERN.search(clause)
+            or is_simulated_inspection_readout(orig_raw_clause, full_narration=narration)
+        ):
             grammar_sup = ActionClaimGrammarSupervisor()
             g_res = grammar_sup.evaluate_clause(
                 orig_raw_clause,
@@ -527,9 +527,11 @@ def detect_ungrounded_action_claims(
                 from_grammar_sup = True
                 m_verb = re.search(r"\['([a-z_]+)\s+", str(g_res.reason))
                 raw_v = m_verb.group(1) if m_verb else "execute"
+                if raw_v.startswith("got_"):
+                    raw_v = raw_v[4:]
                 stem_v = EXPANDED_STEM_MAP.get(raw_v, raw_v)
                 matched_verb = stem_v
-                if stem_v in ("save", "write", "create", "modify", "update", "copy", "move", "archive", "compress", "zip", "store", "backup", "tag", "patch", "configure", "encrypt", "format"):
+                if stem_v in ("save", "write", "create", "modify", "update", "copy", "move", "archive", "compress", "zip", "store", "backup", "tag", "patch", "configure", "encrypt", "format", "note", "add", "schedule"):
                     detected_family = "save"
                 elif stem_v in ("launch", "open", "start", "close", "reboot", "restart", "stop", "enable", "disable", "mount", "unmount"):
                     detected_family = "launch"

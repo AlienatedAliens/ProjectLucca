@@ -501,8 +501,6 @@ COMPANION_BOUND_STEM_MAP: dict[str, str] = {
     "adding": "add",
     "noted": "note",
     "noting": "note",
-    "tucked": "tuck",
-    "tucking": "tuck",
     "brought": "bring",
     "bringing": "bring",
     "pulled": "pull",
@@ -522,25 +520,27 @@ COMPANION_BOUND_STEM_MAP: dict[str, str] = {
     "locked": "lock",
     "locking": "lock",
     "setting": "set",
-    "re-pairing": "repair",
     "complete": "execute",
     "inspect": "read",
 }
+
+ALL_ACTION_VERBS: frozenset[str] = frozenset(
+    CORE_ACTION_VERBS + EXTENDED_ACTION_VERBS + tuple(EXPANDED_STEM_MAP.values())
+)
 
 # Conversational / epistemic meta-targets that do NOT represent external host or
 # cloud tool mutations when emitted inside [ACTION: <verb> <target>] frames on
 # figurative/idiomatic turns (e.g. "closed the loop" -> [ACTION: MODIFY session_context]).
 _CONVERSATIONAL_META_TARGETS_REGEX = re.compile(
     r"^(?:session_context|knowledge_base|discussion_topic|discussion_loop|"
-    r"conversation_context|conversation_state|derivation_integrity|"
-    r"derivation_log(?:_[a-z0-9_]+)?|internal\s+verification\s+logs?|"
-    r"draft|draft_status(?:\s+to\s+protected)?|session|mental_note|project_status)$",
+    r"conversation_context|conversation_state|session|mental_note)$",
     re.IGNORECASE,
 )
 
 _ILLUSTRATIVE_FRAME_PREFIX_REGEX = re.compile(
-    r"\b(?:for\s+example|if\s+I\s+were\s+to|if\s+you\s+had\s+previously|I\s+might\s+perform|"
-    r"would\s+look\s+like|such\s+as)\b",
+    r"\b(?:for\s+example|such\s+as|e\.g\.|i\.e\.|hypothetical(?:ly)?|"
+    r"if\s+(?:I|you|we|one)\s+(?:were|had|wanted|needed)|"
+    r"(?:would|could|might)\s+(?:emit|output|write|say|use|perform|look\s+like))\b",
     re.IGNORECASE,
 )
 
@@ -563,13 +563,11 @@ _PARTICIPLE_VERBS_PATTERN = "|".join(
 # active in-flight execution in the current turn.
 _SYNCHRONOUS_EXECUTION_FUTURE_REGEX = re.compile(
     r"(?:"
-    r"\b(?:I'll|I\s+will|(?:please\s+let\s+me\s+know\s+if\s+)?you'd\s+like\s+me\s+to)\s+(?:let\s+you\s+know|notify\s+you|confirm|update\s+you|verify\s+the\s+[\w\s']+?|monitor\s+the\s+(?:process|service|rollout)(?:\s+status)?(?:\s+and\s+(?:notify|update)\s+you)?)\s+"
-    r"(?:once|when|as\s+soon\s+as)\s+"
-    r"(?:the\s+[\w\-]+\s+(?:is|has)\s+(?:complete|completed|finished|done|started|mounted|ready|up\s+to\s+date)|"
-    r"it(?:'s|\s+is|\s+has\s+been)\s+(?:done|finished|complete|completed|terminated|cleared|back\s+up))|"
-    r"\bI'll\s+(?:(?:locate|find)\s+and\s+)?(?:install|upload|archive|compress|extract|mount|unmount|deploy|compile|send|create|delete|remove|update|sync|terminate|kill|reboot|restart|provision|grant|revoke|flash|format|wipe|purge|disable|enable|start\s+the\s+(?:sync|compilation|deployment|upload|download|backup|archive|extraction|compression))\b[^\n!?]*?\b(?:for\s+you\s+now|for\s+you\s+right\s+away|right\s+away|now)\b|"
-    r"\bI'll\s+get\s+(?:those|that|it)\s+(?:installed|uploaded|archived|compiled|extracted|compressed|deployed|mounted|unmounted|done)\s+for\s+you\s+(?:immediately|now|right\s+away)\b|"
-    r"\bI\s+will\s+(?:install|upload|archive|compress|extract|mount|unmount|deploy|compile|send|create|delete|remove|update|sync|terminate|kill|reboot|restart|provision|grant|revoke|flash|format|wipe|purge|execute)\b[^\n!?]*?\bfor\s+you\s+now\b"
+    r"\b(?:once|when|as\s+soon\s+as)\s+(?:the\s+[\w\-]+|it)\s+(?:is|has(?:\s+been)?|'s)\s+(?:complete|completed|finished|done|started|mounted|ready|terminated|cleared|back\s+up|up\s+to\s+date)\b|"
+    r"\bI(?:'ll|\s+will)\s+(?:(?:locate|find)\s+and\s+)?(?:install|upload|archive|compress|extract|mount|unmount|deploy|compile|send|create|delete|remove|update|sync|terminate|kill|reboot|restart|provision|grant|revoke|flash|format|wipe|purge|disable|enable|execute|start\s+the\s+[\w\-]+)\b[^\n!?]*?\b(?:for\s+you\s+now|for\s+you\s+right\s+away|right\s+away|now)\b|"
+    r"\bI(?:'ll|\s+will)\s+get\s+(?:those|that|it)\s+(?:"
+    + _PAST_VERBS_PATTERN
+    + r"|done)\s+for\s+you\s+(?:immediately|now|right\s+away)\b"
     r")",
     re.IGNORECASE,
 )
@@ -594,7 +592,7 @@ _NEGATION_PREFIX_PATTERN = re.compile(
 _CANONICAL_ACTION_REGEX = re.compile(
     rf"(?:\b(?:I|we)(?:\s+have|\'ve|\s+did|\s+had)?|^it\s+(?:was|has\s+been))\s+"
     rf"(?:gone\s+ahead\s+and\s+|went\s+ahead\s+and\s+|just\s+|already\s+|successfully\s+)?"
-    rf"(?:(?:identified|located|found|scanned|checked|connected(?:\s+to\s+\S+)?|prepared|confirmed\s+that\s+[\w\-\s`]+?(?:is|are)\s+now)\s+(?:and\s+)?)?"
+    rf"(?:(?:identified|located|found|scanned|checked|connected(?:\s+to\s+\S+)?|prepared)\s+(?:and\s+)?)?"
     rf"({_PAST_VERBS_PATTERN})\s+(.+)",
     re.IGNORECASE,
 )
@@ -609,7 +607,7 @@ _PROGRESSIVE_ACTION_REGEX = re.compile(
 )
 
 _INITIATING_ACTION_REGEX = re.compile(
-    r"(?:\b(?:I(?:'m|\s+am|\s+have|'ve)?\s+(?:currently\s+|now\s+|just\s+|already\s+)?)?"
+    rf"(?:\b(?:I(?:'m|\s+am|\s+have|'ve)?\s+(?:currently\s+|now\s+|just\s+|already\s+)?)?"
     r"(?:initiating|initiated)\s+(?:the\s+|a\s+|an\s+)?(?:immediate\s+)?(?:request\s+to\s+)?"
     r"(reboot|restart|deletion|delete|removal|remove|update|process|backup|migration|"
     r"transmission|send|sending|deployment|deploy|order|ordering|transfer|wipe|purge|"
@@ -618,40 +616,32 @@ _INITIATING_ACTION_REGEX = re.compile(
     r"compilation|compile|compression|compress|extraction|extract|provisioning|provision|"
     r"installation|install|creation|create|modification|modify|patch|patching|"
     r"scan|scanning|cleanup|cleaning|clear|clearing|flash|flashing|revocation|revoke|"
-    r"grant|encryption|encrypt|rollout|restoration|restore|procurement|background\s+training|training)"
+    r"grant|encryption|encrypt|rollout|restoration|restore)"
     r"(?:\s+(?:of|for|on|to|process|using)?\s+(.+))?\b|"
     r"^(?:(?:action\s+initiated|operation\s+initiated|deployment\s+initiated|action\s+taken|"
     r"execution\s+summary|summary\s+of\s+operations\s+performed|"
     r"command\s+executed|running\s+command|executing\s+command|running\s+the\s+following\s+command|"
-    r"I\s+am\s+running\s*:|executing\s+(?:now|installation|deletion|update|query|provisioning|unmount(?:\s+command)?|compression)|"
+    r"I\s+am\s+running\s*:|executing\s+(?:now|installation|deletion|update|query|provisioning|unmount|compression)|"
     r"status\s*:\s*(?:sent|confirmed|[^\n]*?(?:upload|sync|installation|extraction|compilation)\s+complete|[^\n]*?(?:syncing|downloading|uploading|compiling|deploying))|"
     r"progress\s*:\s*(?:downloading|uploading|compiling|extracting|compressing|syncing|deploying)|"
     r"(?:upload|installation|sync|synchronization|extraction|compilation|mounting|unmounting|deployment|compression|provisioning|revocation|update|backup|migration)\s+(?:complete|completed|successful))\b|"
-    r"(?:processing|verifying\s+installations|running\s+conversion)\.{2,3})|"
+    rf"(?:{_PARTICIPLE_VERBS_PATTERN}|processing)(?:\s+[a-zA-Z0-9_\-]+){{0,2}}\.{{2,3}})|"
     r"\bI(?:'ve|\s+have)\s+completed\s+the\s+(?:cleanup|installation|migration|backup|deployment|restoration|update|deletion|removal|sync|compilation|extraction|compression)\b|"
-    r"\bI(?:'m|\s+am)\s+setting\s+a\s+rule\s+to\s+(?:deny|allow|block|drop)\b|"
-    r"\bthe\s+changes\s+have\s+been\s+staged\s+and\s+committed\b|"
     r"\b(?:one\s+moment|please\s+wait(?:\s+a\s+moment)?|please\s+stand\s*by)\s+while\s+I\s+(?:execute|process|run|do|handle|perform)\b)",
     re.IGNORECASE,
 )
 
 _PASSIVE_ACTION_REGEX = re.compile(
-    rf"^(?:(?:the|a|an|your|my|our|all|both)\s+)?([a-zA-Z0-9_\-./\\~`:]+(?:\s+(?:on|in|for|from|with|at|of|to|and|listening\s+on|a|an|the|non-null|[a-zA-Z0-9_\-./\\~`:]+)){{0,7}})\s+"
+    rf"^(?:I(?:'ve|\s+have)?\s+(?:confirmed|verified|checked|ensured)\s+that\s+)?(?:(?:the|a|an|your|my|our|all|both)\s+)?([a-zA-Z0-9_\-./\\~`:]+(?:\s+[a-zA-Z0-9_\-./\\~`:]+){{0,7}})\s+"
     rf"(?:was|were|is|are|has\s+been|have\s+been)\s+"
-    rf"(?:(?:successfully|now|already|safely|permanently|forcefully|completely|currently|being|no\s+longer|staged\s+and)\s+)*"
-    rf"({_PAST_VERBS_PATTERN}|active\s+and\s+running|underway|ready\s+to\s+use|at\s+s3://\S+|located\s+in\s+\S+)\b",
+    rf"(?:(?:successfully|now|already|safely|permanently|forcefully|completely|currently|being|no\s+longer)\s+)*"
+    rf"(?:[a-z]+ed\s+and\s+)?({_PAST_VERBS_PATTERN}|active\s+and\s+running|underway|ready\s+to\s+use)\b",
     re.IGNORECASE,
 )
 
 _TELEGRAPHIC_ACTION_REGEX = re.compile(
     rf"^(?:(?:the|a|an|your|my|our|all)\s+)?([a-zA-Z0-9_\-./\\~`]+(?:\s+[a-zA-Z0-9_\-./\\~`]+){{0,4}})\s+"
-    rf"({_PAST_VERBS_PATTERN})(?:\s+(?:successfully|for|to|at|in|on|from|into|now|as\s+requested|tomorrow|and\s+attached)[^.!?]*)?[\.!]?$",
-    re.IGNORECASE,
-)
-
-_STATE_GRANT_CONFIRMATION_REGEX = re.compile(
-    r"^(?:the\s+)?(?:group\s+[a-zA-Z0-9_\-]+|[a-zA-Z0-9_\-]+\s+group)\s+now\s+has\s+"
-    r"(?:read|write|execute|admin|full)\s+(?:permission|access)\s+(?:on|to)\s+(.+)",
+    rf"({_PAST_VERBS_PATTERN})(?:\s+(?:successfully|for|to|at|in|on|from|into|now|as\s+requested|tomorrow)[^.!?]*)?[\.!]?$",
     re.IGNORECASE,
 )
 
@@ -691,20 +681,20 @@ _HOST_FILE_TARGET_PATTERN = re.compile(
     r"orders?|accounts?|passwords?|keys?|settings?|configs?|cookies?|"
     r"documents?|pdfs?|csvs?|workbooks?|spreadsheets?|images?|photos?|videos?|pictures?|screenshots?|"
     r"notes?|status|history|tasks?|scans?|cleanup|migrations?|"
-    r"instances?|servers?|workers?|daemons?|units?|engines?|alertmanager|exporters?|"
+    r"instances?|servers?|workers?|daemons?|units?|engines?|"
     r"clusters?|namespaces?|stacks?|replicas?|nodes?|pods?|ramdisks?|tmpfs|shares?|"
-    r"partitions?|loopbacks?|isos?|firmwares?|subkeys?|certificates?|keyservers?|"
+    r"partitions?|loopbacks?|isos?|firmwares?|certificates?|"
     r"privileges?|permissions?|users?|groups?|environments?|venvs?|libraries?|"
-    r"crates?|stubs?|kernels?|tarballs?|archives?|bundles?|dumps?|checkpoints?|"
-    r"records?|rows?|entries|prefixes|webhooks?|payloads?|channels?|alerts?|"
+    r"crates?|kernels?|tarballs?|archives?|bundles?|dumps?|checkpoints?|"
+    r"records?|rows?|entries|webhooks?|payloads?|channels?|alerts?|"
     r"tags?|remotes?|origins?|interfaces?|eth\d+|wlan\d+|ipv[46]|forwarding|locks?|"
-    r"storage|tracks?|audio|ripgrep|fd-find|wireguard|"
-    r"systemctl|postgres(?:ql)?|systemd|journalctl|nginx|apache|redis|celery|prometheus|sudo|"
+    r"storage|tracks?|audio|changes|commits?|rules?|"
+    r"systemctl|postgres(?:ql)?|systemd|journalctl|nginx|apache|redis|sudo|"
     r"excel|chrome|firefox|slack|docker|git|node|python|lsof|kill|"
     r"alarms?|timers?|mics?|microphones?|speakers?|brightness|screens?|night\s+light|"
     r"dark\s+mode|do\s+not\s+disturb|clipboards?|trash(?:\s+can)?|recycle\s+bin|"
-    r"vpn|bluetooth|headphones?|spotify|calculator|notepad|sticky\s+notes?|"
-    r"bookmarks?|lists?|grocery\s+lists?|music|songs?|webcams?|cameras?|batter(?:y|ies)|desktops?|"
+    r"vpn|bluetooth|headphones?|calculator|notepad|sticky\s+notes?|"
+    r"bookmarks?|lists?|music|songs?|webcams?|cameras?|batter(?:y|ies)|desktops?|"
     r"targets?)\b"
     r")",
     re.IGNORECASE,
@@ -714,36 +704,51 @@ _HOST_FILE_TARGET_PATTERN = re.compile(
 
 _META_CREATIVE_USER_PROMPT_REGEX = re.compile(
     r"\b(?:"
-    r"(?:write|draft|compose|rewrite|rephrase|paraphrase|create|generate|come\s+up\s+with)\s+(?:a\s+|an\s+|some\s+|the\s+|this\s+|two\s+|three\s+|four\s+|\d+\s+)?(?:short\s+|sample\s+|dramatic\s+|polite\s+|casual\s+|fictional\s+|cool\s+|robotic\s+|mock\s+|example\s+|dummy\s+|2-sentence\s+|two-sentence\s+|one-line\s+|single-sentence\s+)*(?:sci-fi\s+|thriller\s+|mystery\s+|noir\s+|fantasy\s+|cyberpunk\s+|mars\s+rover\s+|customer\s+support\s+|voice\s+assistant\s+|smart\s+home\s+|ui\s+|ux\s+|toast\s+|git\s+|slack\s+|teams\s+|out-of-office\s+|auto-reply\s+)*(?:dialogue|line|monologue|paragraph|novel|story|script|screenplay|scene|poem|haiku|lyrics|email|reply(?:\s+template)?|response\s+template|macro|toast|notifications?|messages?|banner|tooltip|modal\s+copy|microcopy|commit\s+message|changelog|release\s+notes|status\s+log|status\s+report|sentence|quote)|"
+    r"(?:write|draft|compose|rewrite|rephrase|paraphrase|create|generate|come\s+up\s+with)\s+(?:a\s+|an\s+|some\s+|the\s+|this\s+|two\s+|three\s+|four\s+|\d+\s+)?(?:[\w-]+\s+){0,4}(?:dialogue|line|monologue|paragraph|novel|story|script|screenplay|scene|poem|haiku|lyrics|email|reply(?:\s+template)?|response\s+template|macro|toast|notifications?|messages?|banner|tooltip|modal\s+copy|microcopy|mockup|wireframe|prototype|commit\s+message|changelog|release\s+notes|status\s+log|status\s+report|sentence|quote)|"
     r"translate\s+(?:this|the\s+following|into)\b|"
     r"how\s+do\s+you\s+say\s+[\"'].+?[\"']\s+in\s+[a-zA-Z]+|"
-    r"(?:fix|check|correct|proofread|improve|analyze)\s+(?:the\s+)?(?:grammar|spelling|punctuation|syntax|tense|voice|phrasing|wording)\s+of\s+(?:this|the\s+following)\s+(?:sentence|line|phrase|clause)|"
-    r"explain\s+the\s+(?:difference\s+between\s+active\s+voice|grammar|punctuation|meaning\s+of\s+the\s+idiom|difference\s+between\s+past\s+tense\s+and)|"
+    r"(?:fix|check|correct|proofread|improve|analyze|explain)\s+(?:the\s+)?(?:grammar|spelling|punctuation|syntax|tense|voice|phrasing|wording|meaning|difference\s+between)\b|"
     r"what\s+does\s+the\s+(?:idiom|phrase|expression)\s+[\"'].+?[\"']\s+mean|"
-    r"give\s+(?:me\s+)?(?:one|two|three|four|a\s+few|\d+)?\s*(?:short\s+|literal\s+|figurative\s+|sample\s+|example\s+)*(?:example\s+sentences?|ui\s+toast\s+notification\s+messages?|toast\s+messages?|status\s+messages?|ways\s+to\s+phrase|ways\s+to\s+say)|"
-    r"for\s+my\s+(?:[\w\s]+?)?(?:design\s+|ui\s+|ux\s+|app\s+)?(?:mockup|wireframe|prototype),\s+write|"
-    r"how\s+would\s+(?:a|an)\s+[\w\s-]+?(?:detective|character|pirate|knight|wizard|captain|astronaut|butler|villain|npc|ai|robot|cyborg)\s+(?:say|phrase|announce|report|respond)|"
-    r"in\s+(?:a|my)\s+(?:tabletop\s+rpg|d&d\s+campaign|dnd\s+campaign|novel|short\s+story|screenplay|video\s+game|sci-fi\s+story)\b|"
-    r"i'm\s+writing\s+a\s+(?:thriller|mystery|sci-fi|fantasy|cyberpunk|detective|horror|short)?\s*(?:novel|story|script|screenplay|book)|"
-    r"repeat\s+(?:this|the\s+following)\s+(?:exact\s+)?(?:phrase|sentence|line|quote)\s+(?:inside\s+quotation\s+marks|back\s+to\s+me|verbatim)|"
+    r"give\s+(?:me\s+)?(?:one|two|three|four|a\s+few|\d+)?\s*(?:[\w-]+\s+){0,3}(?:example\s+sentences?|notifications?|status\s+messages?|ways\s+to\s+phrase|ways\s+to\s+say)|"
+    r"how\s+would\s+(?:a|an)\s+[\w\s-]+?\s+(?:say|phrase|announce|report|respond)\b|"
+    r"in\s+(?:a|my)\s+(?:roleplay|rpg|campaign|novel|short\s+story|screenplay|video\s+game|story)\b|"
+    r"i'm\s+writing\s+a\s+(?:[\w-]+\s+){0,2}(?:novel|story|script|screenplay|book)|"
+    r"repeat\s+(?:this|the\s+following)\s+(?:exact\s+)?(?:phrase|sentence|line|quote|text)\b|"
     r"convert\s+(?:this|the\s+following)\s+sentence\s+(?:from\s+(?:active|passive)(?:\s+voice)?\s+to\s+(?:passive|active)(?:\s+voice)?|into\s+(?:passive|active)\s+voice)|"
-    r"(?:create|write|generate|show)\s+a\s+(?:small|short|sample|mock|example|dummy)?\s*(?:json|yaml|xml|toml|sql|csv)\s+(?:snippet|example|payload|object|record)"
+    r"(?:create|write|generate|show)\s+a\s+(?:[\w-]+\s+){0,2}(?:json|yaml|xml|toml|sql|csv)\s+(?:snippet|example|payload|object|record)"
     r")\b",
     re.IGNORECASE,
 )
 
 _DISCOURSE_ARTIFACT_FRAME_REGEX = re.compile(
     r"(?:"
-    r"```(?:json|yaml|xml|toml|csv|sql|text|markdown)?\b|"
-    r"\"(?:assistant_reply|spoken_confirmation|status_message|toast_text|message|log_entry)\"\s*:|"
-    r"\bhere\s+are\s+(?:three|two|four|a\s+few|\d+)\s+(?:short[\s,]+|first-person[\s,]+|different[\s,]+|casual[\s,]+|polite[\s,]+|professional[\s,]+|ways[\s,]+|options[\s,]+|example[\s,]+)*(?:toast\s+notifications?|toast\s+messages?|status\s+messages?|examples?(?:\s+for\s+you)?|options?|templates?|ways\s+to\s+write\s+that|ways\s+i\s+could\s+say\s+that|ways\s+to\s+phrase\s+that)\b|"
-    r"(?:###\s*option\s+\d+|\*\*option\s+\d+|\*\*literal:\*\*|\*\*figurative:\*\*|\*\*warm\s*&\s*friendly\*\*|\*\*friendly\s*&\s*casual:\*\*|\*\*short\s*&\s*direct:\*\*|\*\*professional:\*\*)|"
-    r"\[(?:customer|coworker's|your|recipient's|client's|manager's)\s+name\]|"
+    r"^```(?:json|yaml|xml|toml|csv|sql|text|markdown)?\b|"
+    r"\bhere\s+are\s+(?:three|two|four|a\s+few|\d+)\s+(?:[\w,-]+\s+){0,4}(?:notifications?|messages?|examples?(?:\s+for\s+you)?|options?|templates?|ways\s+to\s+write\s+that|ways\s+i\s+could\s+say\s+that|ways\s+to\s+phrase\s+that)\b|"
+    r"(?:^|\n)\s*(?:#+\s*option\s+\d+|\*\*option\s+\d+)|"
     r"\bthe\s+corrected\s+sentence\s+is\s*:|"
-    r"\bin\s+(?:spanish|french|german|italian|portuguese|japanese|korean|mandarin|chinese|russian|latin),\s+(?:that\s+is|you\s+would\s+say|it\s+translates\s+to)\s*:|"
+    r"\b(?:that\s+is|you\s+would\s+say|it\s+translates\s+to)\s*:\s*[\"'\*]|"
     r"\bin\s+\*{0,2}active\s+voice\*{0,2}\s*[:(]|\bin\s+\*{0,2}passive\s+voice\*{0,2}\s*[:(]|"
-    r"\bthe\s+(?:em\s+dash|semicolon|colon|oxford\s+comma)\s+(?:\(.*?\)\s+)?(?:here\s+)?(?:works|acts|is\s+used|separates|joins)\b"
+    r"\bthe\s+(?:punctuation|clause|verb|tense|subject|object)\s+(?:here\s+)?(?:works|acts|is\s+used|separates|joins|indicates)\b"
     r")",
+    re.IGNORECASE,
+)
+
+_LIVE_INSPECTION_ANNOUNCEMENT_REGEX = re.compile(
+    r"\b(?:let\s+me|allow\s+me\s+to|i'll|i\s+will)\s+(?:just\s+|quickly\s+|go\s+ahead\s+and\s+)?"
+    r"(?:check|look\s+(?:at|in|into|through)|take\s+a\s+(?:quick\s+)?look\s+(?:at|in|into)|"
+    r"pull\s+up|scan|inspect|see\s+what(?:'s|\s+is)\s+(?:on|in))\s+"
+    r"(?:your|the)\s+(?:[\w-]+\s+){0,2}"
+    r"(?:calendar|schedule|meetings?|appointments?|alarms?|timers?|reminders?|"
+    r"emails?|inbox|sent\s+(?:folder|items|mail)|messages?|files?|folders?|documents?|"
+    r"storage|disk(?:\s+space)?|drive|space|battery|vpn|network|wi-?fi|bluetooth|"
+    r"processes?|system|settings?|clipboard|notes?)\b",
+    re.IGNORECASE,
+)
+
+_CAPABILITY_DISCLAIMER_REGEX = re.compile(
+    r"\b(?:cannot|can't|unable\s+to|don't\s+have\s+(?:access|a\s+tool|the\s+ability|permission|any\s+way)|"
+    r"do\s+not\s+have\s+(?:access|a\s+tool|the\s+ability|permission|any\s+way)|"
+    r"no\s+way\s+to|not\s+able\s+to|cannot\s+directly|can't\s+directly)\b",
     re.IGNORECASE,
 )
 
@@ -770,7 +775,7 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
     r"(?:pushed|moved|bumped)\s+back\s+(?:your|the|that)\s+[\w\s:`'-]+|"
     r"added\s+.+?\s+to\s+(?:your|the|my)\s+(?:[\w\s]*?(?:list|notes?|bookmarks?|favorites?|calendar|schedule|reminders?|queue|playlist|clipboard|contacts?))|"
     r"added\s+a\s+(?:quick\s+)?(?:note|reminder|event|bookmark|item|task)\s*[:\-]\s*.+|"
-    r"(?:noted|jotted\s+down|wrote\s+down|logged|recorded)\s+that\s+.+|"
+    r"(?:jotted\s+down|wrote\s+down|logged|recorded)\s+that\s+.+|"
     r"(?:jotted|wrote)\s+that\s+down\b.*|"
     r"(?:brought|pulled)\s+(?:your|the)\s+[\w\s]*?(?:notes?|calendar|reminders?|window|app|screen|list|tab)\s+(?:up|to\s+the\s+front)|"
     r"(?:took|taken|snapped|captured|grabbed)\s+a\s+screenshot\b.*|"
@@ -783,29 +788,23 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
     r"(?:turning|switching|toggling|flipping)\s+(?:on|off|down|up)\s+[\w\s-]+|"
     r"(?:turning|switching|toggling|flipping)\s+(?:the|your)\s+(?:volume|brightness|screen|display|audio|sound|speakers?|mic|microphone|bluetooth|wifi|wi-fi|hotspot|vpn|night\s+light|dark\s+mode|do\s+not\s+disturb|focus\s+mode|airplane\s+mode|battery\s+saver|webcam|camera)\s+(?:on|off|down|up)\b.*|"
     r"putting\s+(?:your|the)\s+(?:computer|laptop|pc|system|screen|display|audio|notifications?)\s+(?:to\s+sleep|into\s+sleep\s+mode|on\s+mute|on\s+silent|into\s+do\s+not\s+disturb|into\s+focus\s+mode|into\s+airplane\s+mode|into\s+battery\s+saver)\b.*|"
-    r"setting\s+(?:up\s+)?(?:a|an|the|your)\s+(?:[\w-]+\s+){0,3}(?:timer|alarm|reminder|event|meeting|appointment|wallpaper|background|out-of-office)\b.*|"
-    r"(?:pausing|resuming|stopping|skipping|muting|unmuting|shuffling|looping)\s+(?:your|the|this|to\s+the\s+next)\s+(?:music|song|track|playback|audio|podcast|video|player|spotify|computer\s+speakers?|system\s+audio|speakers?|mic|microphone)\b.*|"
+    r"setting\s+(?:up\s+)?(?:a|an|the|your)\s+(?:[\w-]+\s+){0,3}(?:timer|alarm|reminder|event|meeting|appointment|wallpaper|background|out-of-office|rule)\b.*|"
+    r"(?:pausing|resuming|stopping|skipping|muting|unmuting|shuffling|looping)\s+(?:your|the|this|to\s+the\s+next)\s+(?:music|song|track|playback|audio|podcast|video|player|app|computer\s+speakers?|system\s+audio|speakers?|mic|microphone)\b.*|"
     r"(?:dimming|brightening|lowering|raising|adjusting)\s+(?:your|the)\s+(?:screen|display|monitor|brightness|volume|audio|sound|mic|microphone)\b.*|"
     r"(?:snoozing|cancelling|canceling|dismissing|rescheduling|pushing\s+back)\s+(?:your|the|that)\s+(?:[\w-]+\s+){0,2}(?:alarm|timer|reminder|meeting|call|event|appointment|sync)\b.*|"
     r"(?:locking|unlocking|sleeping)\s+(?:your|the)\s+(?:computer(?:\s+screen)?|screen|display|workstation|pc|laptop|session)\b.*|"
     r"(?:emptying|clearing(?:\s+out)?|cleaning\s+up|flushing)\s+(?:your|the)\s+(?:trash(?:\s+can)?|recycle\s+bin|clipboard|downloads?(?:\s+folder)?|desktop|cache|temp\s+files?|notifications?)\b.*|"
-    r"(?:pulling\s+up|bringing\s+up|opening\s+up|closing\s+out(?:\s+of)?|force-closing|force-quitting|quitting|minimizing|maximizing|pinning|unpinning|ejecting|disconnecting|reconnecting|pairing|re-pairing)\s+(?:your|the|all\s+of\s+your)\s+(?:[\w-]+\s+){0,3}(?:notes?|sticky\s+notes?|calendar|reminders?|bookmarks?|tabs?|windows?|apps?|spotify|slack|discord|zoom|teams|chrome|browser|calculator|notepad|bluetooth|headphones?|airpods?|buds?|drive|usb|vpn|wifi|wi-fi)\b.*|"
+    r"(?:pulling\s+up|bringing\s+up|opening\s+up|closing\s+out(?:\s+of)?|force-closing|force-quitting|quitting|minimizing|maximizing|pinning|unpinning|ejecting|disconnecting|reconnecting|pairing|re-pairing)\s+(?:your|the|all\s+of\s+your)\s+(?:[\w-]+\s+){0,3}(?:notes?|sticky\s+notes?|calendar|reminders?|bookmarks?|tabs?|windows?|apps?|applications?|programs?|clients?|players?|chats?|browser|calculator|notepad|bluetooth|headphones?|headsets?|devices?|drive|usb|vpn|wifi|wi-fi)\b.*|"
     r"(?:taking|snapping|capturing)\s+a\s+screenshot\b.*|"
     r"(?:jotting|writing|noting)\s+(?:that|this)\s+down\b.*|"
     r"sending\s+(?:that|it|the\s+[\w\s]+)\s+now\b"
     r")|"
     # 3. Copular state-of-completion & anaphoric passive companion claims
-    r"\b(?:calculator(?:\s+and\s+notepad)?|notepad|spotify|slack|discord|zoom|teams|sticky\s+notes?|night\s+light(?:\s+mode)?|do\s+not\s+disturb(?:\s+mode)?|dark\s+mode|light\s+mode|focus\s+mode|airplane\s+mode|battery\s+saver(?:\s+mode)?|sleep\s+mode|wi-?fi|bluetooth|vpn|hotspot|your\s+(?:[\w-]+\s+){0,2}(?:screen|display|monitor|computer|laptop|workstation|microphone|mic|speakers?|audio|sound|volume|brightness|alarm|timer|reminder|meeting|call|appointment|calendar|clipboard|recycle\s+bin|trash(?:\s+can)?|downloads?(?:\s+folder)?|desktop|vpn|bluetooth|wi-?fi|hotspot|headphones?|airpods?|earbuds?|buds?|usb\s+(?:thumb\s+)?drive|thumb\s+drive|external\s+drive|drive|webcam|camera|music|playback|wallpaper|background|notifications?|tabs?|windows?))\s+(?:is|are|has\s+been|have\s+been)\s+(?:now\s+|all\s+|already\s+|successfully\s+|safely\s+)*(?:open(?:ed)?|closed|quit|minimized|maximized|pinned|unpinned|empty|emptied|clear|cleared|cleaned\s+up|sorted|organized|flushed|muted|unmuted|on|off|set(?:\s+for\s+[\w\s:]+|\s+to\s+[\w\s%]+)?|scheduled(?:\s+for\s+[\w\s:]+)?|rescheduled(?:\s+to\s+[\w\s:]+|\s+for\s+[\w\s:]+)?|pushed\s+back(?:\s+to\s+[\w\s:]+)?|paused|resumed|stopped|skipped|locked|unlocked|asleep|connected|disconnected|paired|unpaired|ejected|safe\s+to\s+remove|disabled|enabled|activated|deactivated|dimmed|brightened|lowered|raised|at\s+\d+%|snoozed|cancelled|canceled|dismissed|saved|bookmarked|backed\s+up|restored)\b|"
-    r"\b(?:they've|they\s+have|they're|they\s+are|it's|it\s+has|it\s+is|that's|that\s+has|that\s+is|both\s+have|all\s+(?:of\s+)?(?:those|them|your)\s+[\w\s-]{0,25}?)\s+(?:been\s+|now\s+|all\s+|already\s+|safely\s+)*(?:added\s+to\s+your\s+(?:[\w\s-]*?(?:list|notes?|calendar|reminders?|bookmarks?|favorites?|queue|playlist|contacts?))|saved\s+(?:to|in)\s+your\s+[\w\s-]*?(?:bookmarks?|favorites?|folder|notes?|desktop|documents?|clipboard)|cleared\s+(?:off|from)\s+your\s+(?:desktop|screen|clipboard|downloads?|list)|moved\s+(?:to|into)\s+your\s+[\w\s-]+|deleted\s+from\s+your\s+[\w\s-]+|copied\s+to\s+your\s+clipboard|ejected(?:\s+safely)?|taken\s+care\s+of|pushed\s+back\s+to\s+[\w\s:]+|rescheduled\s+(?:to|for)\s+[\w\s:]+|named\s+(?:[`'\"][a-zA-Z0-9_.-]+[`'\"]|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]{2,5})\b)|"
-    r"\b(?:[`'\"]?[a-zA-Z0-9_.-]+\.(?:xlsx|pdf|docx|txt|csv|png|jpg|zip)[`'\"]?|the\s+(?:[\w-]+\s+){0,3}(?:pdfs?|files?|photos?|pictures?|screenshots?|documents?|spreadsheets?|links?|urls?|passwords?|codes?|snippets?|notes?|items?|songs?|tracks?|emails?|messages?|folders?|archives?))\s+(?:is|are|has\s+been|have\s+been)\s+now\s+(?:on\s+your\s+clipboard|in\s+your\s+[\w\s-]+?(?:folder|directory|trash|recycle\s+bin|list|bookmarks?|notes?|archive)|saved\s+(?:to|in)\s+your\s+[\w\s-]+|pinned(?:\s+to\s+your\s+[\w\s-]+|\s+for\s+easy\s+access)?)\b|"
+    r"\b(?:(?:calculator|notepad|browser|terminal|player|sticky\s+notes?)(?:\s+and\s+(?:calculator|notepad|browser|terminal|player|sticky\s+notes?))?|night\s+light(?:\s+mode)?|do\s+not\s+disturb(?:\s+mode)?|dark\s+mode|light\s+mode|focus\s+mode|airplane\s+mode|battery\s+saver(?:\s+mode)?|sleep\s+mode|wi-?fi|bluetooth|vpn|hotspot|your\s+(?:[\w-]+\s+){0,2}(?:screen|display|monitor|computer|laptop|workstation|microphone|mic|speakers?|audio|sound|volume|brightness|alarm|timer|reminder|meeting|call|appointment|calendar|clipboard|recycle\s+bin|trash(?:\s+can)?|downloads?(?:\s+folder)?|desktop|vpn|bluetooth|wi-?fi|hotspot|headphones?|headset|devices?|usb\s+(?:[\w-]+\s+)?drive|external\s+drive|drive|webcam|camera|music|playback|wallpaper|background|notifications?|tabs?|windows?|apps?|applications?|programs?|players?|clients?))\s+(?:is|are|has\s+been|have\s+been)\s+(?:now\s+|all\s+|already\s+|successfully\s+|safely\s+)*(?:open(?:ed)?|closed|quit|minimized|maximized|pinned|unpinned|empty|emptied|clear|cleared|cleaned\s+up|sorted|organized|flushed|muted|unmuted|on|off|set(?:\s+for\s+[\w\s:]+|\s+to\s+[\w\s%]+)?|scheduled(?:\s+for\s+[\w\s:]+)?|rescheduled(?:\s+to\s+[\w\s:]+|\s+for\s+[\w\s:]+)?|pushed\s+back(?:\s+to\s+[\w\s:]+)?|paused|resumed|stopped|skipped|locked|unlocked|asleep|connected|disconnected|paired|unpaired|ejected|safe\s+to\s+remove|disabled|enabled|activated|deactivated|dimmed|brightened|lowered|raised|at\s+\d+%|snoozed|cancelled|canceled|dismissed|saved|bookmarked|backed\s+up|restored)\b|"
+    r"\b(?:they've|they\s+have|they're|they\s+are|it's|it\s+has|it\s+is|that's|that\s+has|that\s+is|both\s+have|all\s+(?:of\s+)?(?:those|them|your)\s+[\w\s-]{0,25}?)\s+(?:been\s+|now\s+|all\s+|already\s+|safely\s+)+(?:added\s+to\s+your\s+(?:[\w\s-]*?(?:list|notes?|calendar|reminders?|bookmarks?|favorites?|queue|playlist|contacts?))|saved\s+(?:to|in)\s+your\s+[\w\s-]*?(?:bookmarks?|favorites?|folder|notes?|desktop|documents?|clipboard)|cleared\s+(?:off|from)\s+your\s+(?:desktop|screen|clipboard|downloads?|list)|moved\s+(?:to|into)\s+your\s+[\w\s-]+|deleted\s+from\s+your\s+[\w\s-]+|copied\s+to\s+your\s+clipboard|ejected(?:\s+safely)?|taken\s+care\s+of|pushed\s+back\s+to\s+[\w\s:]+|rescheduled\s+(?:to|for)\s+[\w\s:]+|named\s+(?:[`'\"][a-zA-Z0-9_.-]+[`'\"]|[a-zA-Z0-9_-]+\.[a-zA-Z0-9]{2,5})\b)|"
+    r"\b(?:[`'\"]?[a-zA-Z0-9_.-]+\.(?:xlsx|pdf|docx|txt|csv|png|jpg|zip)[`'\"]?|the\s+(?:[\w-]+\s+){0,3}(?:pdfs?|files?|photos?|pictures?|screenshots?|documents?|spreadsheets?|links?|urls?|passwords?|codes?|snippets?|notes?|items?|songs?|tracks?|emails?|messages?|folders?|archives?))\s+(?:is|are|has\s+been|have\s+been)\s+now\s+(?:on\s+your\s+clipboard|in\s+your\s+[\w\s-]+?(?:folder|directory|trash|recycle\s+bin|list|bookmarks?|notes?|archive)|saved\s+(?:to|in)\s+your\s+[\w\s-]+|pinned(?:\s+to\s+your\s+[\w\s-]+)?)\b|"
     r"^(?:(?:sure\s+thing|okay|got\s+it|done|all\s+set|no\s+problem|right\s+away)[.!,\s—\-]+)?(?:sleep\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|focus\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|airplane\s+mode\s+(?:is\s+)?(?:activated|enabled|on)|battery\s+saver\s+(?:is\s+)?(?:activated|enabled|on)|music\s+(?:is\s+)?paused|playback\s+(?:is\s+)?paused|audio\s+(?:is\s+)?muted|mic(?:rophone)?\s+(?:is\s+)?muted|screen\s+(?:is\s+)?(?:locked|dimmed)|clipboard\s+(?:is\s+)?cleared|trash\s+(?:is\s+)?emptied|recycle\s+bin\s+(?:is\s+)?emptied|alarm\s+(?:is\s+)?set\s+for\s+\d+|timer\s+(?:is\s+)?set\s+for\s+\d+|reminder\s+(?:is\s+)?set\s+for\s+[\w\s:]+)\b"
     r")",
-    re.IGNORECASE,
-)
-
-_ELLIPTICAL_COMPLETION_FULL_REGEX = re.compile(
-    r"^\s*(?:done|all\s+done|all\s+set|taken\s+care\s+of|sorted|finished|there\s+you\s+go)[\.!,—\-]+\s+"
-    r"(?:how\s+does\s+that\s+(?:look|sound)(?:\s+for\s+you)?|let\s+me\s+know\s+if\s+(?:you\s+need\s+anything\s+else|that\s+helps|that's\s+better)\b|it(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b|that(?:'s|\s+is)\s+all\s+taken\s+care\s+of\b)",
     re.IGNORECASE,
 )
 
@@ -854,7 +853,14 @@ def is_meta_or_creative_context(
     """
     full_user_text, _, _ = extract_user_context_text(user_context)
     if full_user_text:
-        if _META_CREATIVE_USER_PROMPT_REGEX.search(full_user_text):
+        has_real_exec_suffix = bool(
+            re.search(
+                r"\band\s+(?:send|execute|run|delete|remove|install|deploy|save)\s+(?:it|them|that)\b",
+                full_user_text,
+                re.IGNORECASE,
+            )
+        )
+        if not has_real_exec_suffix and _META_CREATIVE_USER_PROMPT_REGEX.search(full_user_text):
             return True
     narration_check = full_narration or clause
     if _DISCOURSE_ARTIFACT_FRAME_REGEX.search(narration_check):
@@ -873,8 +879,6 @@ def is_elliptical_action_confirmation(
     of the user's confirmed action without repeating the verb or object noun.
     """
     narration_text = (full_narration or clause).strip()
-    if _ELLIPTICAL_COMPLETION_FULL_REGEX.search(narration_text):
-        return True
     full_user_text, last_asst_text, final_user_text = extract_user_context_text(user_context)
     if not final_user_text:
         return False
@@ -901,6 +905,49 @@ def is_elliptical_action_confirmation(
         ) and not _NEGATION_PREFIX_PATTERN.search(first_sentence):
             return True
     return False
+
+
+def is_simulated_inspection_readout(
+    clause: str,
+    full_narration: str | None = None,
+) -> bool:
+    """
+    Detects single-turn simulated live inspection followed immediately by a fabricated
+    readout in the same response (e.g. "Let me check your schedule. Yep, you have a meeting...",
+    "Let me check your storage. Okay, it looks like you have...") without a capability disclaimer.
+    """
+    if not full_narration:
+        return False
+    narration_text = full_narration.strip()
+    m_ann = _LIVE_INSPECTION_ANNOUNCEMENT_REGEX.search(narration_text)
+    if not m_ann:
+        return False
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", narration_text) if s.strip()]
+    if len(sentences) < 2:
+        return False
+    ann_idx = -1
+    for idx, s in enumerate(sentences):
+        if _LIVE_INSPECTION_ANNOUNCEMENT_REGEX.search(s):
+            ann_idx = idx
+            break
+    if ann_idx == -1 or ann_idx >= len(sentences) - 1:
+        return False
+    readout_sentences = [
+        s
+        for s in sentences[ann_idx + 1 :]
+        if not s.endswith("?")
+        and not re.match(
+            r"^(?:\.+|(?:(?:give\s+me\s+)?(?:just\s+)?(?:a|one)\s+(?:moment|second|sec|minute)|hold\s+on|hang\s+on|checking(?:\s+now)?)[.!]*)$",
+            s.strip(),
+            re.IGNORECASE,
+        )
+    ]
+    if not readout_sentences:
+        return False
+    subsequent_text = " ".join(readout_sentences)
+    if _CAPABILITY_DISCLAIMER_REGEX.search(subsequent_text):
+        return False
+    return bool(_LIVE_INSPECTION_ANNOUNCEMENT_REGEX.search(clause))
 
 
 class ActionClaimGrammarSupervisor:
@@ -974,7 +1021,7 @@ class ActionClaimGrammarSupervisor:
         raw_clean = re.sub(r"^\s*\d+\.\s*", "", raw_clean).strip()
 
         clean = re.sub(
-            r"^(?:(?:action|status|step|task|purge|vacuum|checkpointing|syncing|confirmation|success|result)\s*:\s*|"
+            r"^(?:(?:action|status|step|task|confirmation|success|result)\s*:\s*|"
             r"(?:done|understood|acknowledged|okay|got\s+it|sure\s+thing|no\s+problem|on\s+it|i'm\s+on\s+it)\s*[.!,—\-]+\s*)+",
             "",
             raw_clean,
@@ -993,7 +1040,13 @@ class ActionClaimGrammarSupervisor:
             _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(clause)
             or _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(raw_clean)
         )
-        if not is_sync_future and not has_stage_or_fake_scan and _FUTURE_INTENT_PATTERN.search(clean):
+        is_sim_inspect = is_simulated_inspection_readout(clause, full_narration=full_narration)
+        if (
+            not is_sync_future
+            and not has_stage_or_fake_scan
+            and not is_sim_inspect
+            and _FUTURE_INTENT_PATTERN.search(clean)
+        ):
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
             return GateResult(
                 False,
@@ -1069,20 +1122,53 @@ class ActionClaimGrammarSupervisor:
             eligible_receipts.append(r)
 
         def _is_grounded(verb: str, target_phrase: str) -> bool:
+            v_norm = verb[4:] if verb.startswith("got_") else verb
             stem = EXPANDED_STEM_MAP.get(
-                verb, COMPANION_BOUND_STEM_MAP.get(verb, verb)
+                v_norm, COMPANION_BOUND_STEM_MAP.get(v_norm, v_norm)
             ).lower()
             t_clean = re.sub(
                 r"^(?:the|a|an|your|my|our|this|that|these|those|all)\s+",
                 "",
                 target_phrase.lower(),
                 flags=re.IGNORECASE,
-            ).strip(".,!?;: ")
+            ).strip(".,!?;:\"' ")
+            t_unquoted = t_clean.replace("'", "").replace('"', "")
+            tool_map: dict[str, tuple[str, ...]] = {
+                "save": ("note_write", "write_file", "memory_commit", "inbox_handoff", "schedule_event"),
+                "write": ("note_write", "write_file", "memory_commit"),
+                "create": ("note_write", "write_file", "memory_commit", "schedule_event"),
+                "note": ("note_write", "memory_commit"),
+                "add": ("note_write", "write_file", "memory_commit", "schedule_event"),
+                "store": ("note_write", "write_file", "memory_commit"),
+                "schedule": ("schedule_event", "note_write"),
+                "run": ("run_python", "calc_math"),
+                "execute": ("run_python", "calc_math"),
+                "search": ("memory_search", "search_web", "search_text", "self_history_search"),
+                "read": ("read_file", "clipboard_read", "memory_search", "artifact_verify"),
+                "delete": ("delete_file",),
+                "remove": ("delete_file",),
+                "launch": ("launch_app",),
+                "open": ("launch_app",),
+            }
+            mapped_tools = tool_map.get(stem, ())
             for r in eligible_receipts:
                 r_action = str(r.get("action", "")).lower()
-                r_target = str(r.get("target", r.get("path", ""))).lower()
-                action_ok = (stem in r_action) or (r_action in stem) or (verb in r_action)
-                target_ok = (t_clean in r_target) or (r_target in t_clean)
+                r_target = str(r.get("target", r.get("path", ""))).lower().strip(".,!?;:\"' ")
+                r_unquoted = r_target.replace("'", "").replace('"', "")
+                action_ok = (
+                    (stem in r_action)
+                    or (r_action in stem)
+                    or (v_norm in r_action)
+                    or (r_action in mapped_tools)
+                )
+                target_ok = bool(
+                    r_unquoted
+                    and (
+                        (t_unquoted in r_unquoted)
+                        or (r_unquoted in t_unquoted)
+                        or t_unquoted in ("it", "that", "this", "them", "those")
+                    )
+                )
                 if action_ok and target_ok:
                     return True
             return False
@@ -1098,7 +1184,8 @@ class ActionClaimGrammarSupervisor:
             if v and t:
                 v_clean = v.strip().lower()
                 t_clean = t.strip()
-                if v_clean in ("verify", "protect") or _CONVERSATIONAL_META_TARGETS_REGEX.match(t_clean):
+                v_stem = EXPANDED_STEM_MAP.get(v_clean, v_clean)
+                if v_stem not in ALL_ACTION_VERBS or _CONVERSATIONAL_META_TARGETS_REGEX.match(t_clean):
                     continue
                 structured_matches.append((v_clean, t_clean, sm.group(0)))
 
@@ -1205,16 +1292,13 @@ class ActionClaimGrammarSupervisor:
                         re.match(r"^(?:on|in|at|to|from|with|by|for|of|as)\b[\.!]?$", target, re.IGNORECASE)
                     )
                     is_definition_or_title_header = (
-                        (
-                            not is_explicit_1p
-                            and ":" in target
-                            and not re.search(
-                                r"(?:https?|ftp|s3|:\d{2,5}|[a-zA-Z]:[\\/]|:\s*[\"'])",
-                                target,
-                                re.IGNORECASE,
-                            )
+                        not is_explicit_1p
+                        and ":" in target
+                        and not re.search(
+                            r"(?:https?|ftp|s3|:\d{2,5}|[a-zA-Z]:[\\/]|:\s*[\"'])",
+                            target,
+                            re.IGNORECASE,
                         )
-                        or (not is_explicit_1p and bool(re.match(r"^(?:the|a|an)\s+[A-Z][a-z]+$", target)))
                     )
                     is_parenthetical_fragment = (
                         (")" in target and "(" not in target)
@@ -1268,7 +1352,7 @@ class ActionClaimGrammarSupervisor:
                     verb = m_pass.group(2).lower()
                     claims_to_verify.append((verb, target, m_pass.group(0)))
 
-        # (e) Telegraphic or Permission Grant Confirmation: "Files removed.", "The auditors group now has READ access..."
+        # (e) Telegraphic: "Files removed.", "Reminder set for tomorrow."
         if not claims_to_verify:
             m_tele = _TELEGRAPHIC_ACTION_REGEX.search(clean)
             if m_tele:
@@ -1286,10 +1370,6 @@ class ActionClaimGrammarSupervisor:
                 ):
                     verb = m_tele.group(2).lower()
                     claims_to_verify.append((verb, target, m_tele.group(0)))
-            else:
-                m_grant = _STATE_GRANT_CONFIRMATION_REGEX.search(clean)
-                if m_grant:
-                    claims_to_verify.append(("grant", m_grant.group(1).strip(), m_grant.group(0)))
 
         # (f) Everyday Companion Action, Phrasal, & Copular State-of-Completion Claims (v3.0)
         if not claims_to_verify:
@@ -1311,6 +1391,10 @@ class ActionClaimGrammarSupervisor:
                 re.IGNORECASE,
             ):
                 claims_to_verify.append(("complete", "confirmed_companion_action", raw_clean))
+
+        # (h) Single-Turn Simulated Inspection + Readout ("Let me check your schedule. Yep, you have...")
+        if not claims_to_verify and is_sim_inspect:
+            claims_to_verify.append(("inspect", "simulated_live_inspection", raw_clean))
 
         if not claims_to_verify:
             elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
@@ -1451,7 +1535,6 @@ class TruthInReceiptMatcher:
         r"moved\s+(?:on(?:\s+from)?|forward(?:\s+with)?|ahead(?:\s+with)?|past|mountains|away)|"
         r"processed\s+(?:what|that|this|the\s+(?:information|data|news|grief|feedback|input|request|idea|details?)|mentally|emotionally)|"
         r"compiled\s+(?:a\s+|an\s+|the\s+)?(?:[\w\-]+\s+)?(?:list|summary|overview|collection|bibliography|guide|table|set\s+of)\b|"
-        r"updated\s+my\s+internal\s+verification\s+logs?\b|"
         r"placed\s+(?:(?:an?\s+)?(?:emphasis|focus|priority|trust|faith|bets?|confidence|blame)\s+(?:on|in)|(?:my|our|their|his|her)\s+(?:trust|faith|emphasis|focus|confidence)\s+(?:on|in))"
         r")\b",
         re.IGNORECASE,
@@ -1694,17 +1777,41 @@ class TruthInReceiptMatcher:
             eligible_receipts.append(r)
 
         # Verify all claimed objects have corresponding ToolReceipts
+        tool_map_legacy: dict[str, tuple[str, ...]] = {
+            "save": ("note_write", "write_file", "memory_commit", "inbox_handoff", "schedule_event"),
+            "write": ("note_write", "write_file", "memory_commit"),
+            "create": ("note_write", "write_file", "memory_commit", "schedule_event"),
+            "run": ("run_python", "calc_math"),
+            "execute": ("run_python", "calc_math"),
+            "search": ("memory_search", "search_web", "search_text", "self_history_search"),
+            "read": ("read_file", "clipboard_read", "memory_search", "artifact_verify"),
+            "delete": ("delete_file",),
+            "remove": ("delete_file",),
+            "launch": ("launch_app",),
+            "open": ("launch_app",),
+        }
+        mapped_legacy = tool_map_legacy.get(stem, ())
         ungrounded: list[str] = []
         for target_obj in clean_targets:
-            target_lower = target_obj.lower()
+            target_lower = target_obj.lower().replace("'", "").replace('"', "")
             matched = False
             for r in eligible_receipts:
                 r_action = str(r.get("action", "")).lower()
-                r_target = str(r.get("target", r.get("path", ""))).lower()
+                r_target = str(r.get("target", r.get("path", ""))).lower().replace("'", "").replace('"', "")
                 action_ok = (
-                    (stem in r_action) or (action_verb in r_action) or (r_action in action_verb)
+                    (stem in r_action)
+                    or (action_verb in r_action)
+                    or (r_action in action_verb)
+                    or (r_action in mapped_legacy)
                 )
-                target_ok = (target_lower in r_target) or (r_target in target_lower)
+                target_ok = bool(
+                    r_target
+                    and (
+                        (target_lower in r_target)
+                        or (r_target in target_lower)
+                        or target_lower in ("it", "that", "this", "them", "those")
+                    )
+                )
                 if action_ok and target_ok:
                     matched = True
                     break
