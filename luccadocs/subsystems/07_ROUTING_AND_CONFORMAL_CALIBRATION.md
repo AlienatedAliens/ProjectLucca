@@ -55,8 +55,15 @@ Safety-critical commands must execute with absolute deterministic guarantees wit
 | **Confirmation** | `yes`, `go ahead`, `confirm`, `ok`, `proceed` | Validates active single-use HMAC confirmation nonce (`ConfirmationTokenGuard`). |
 | **Cancellation** | `no`, `don't`, `abort`, `never mind` | Revokes pending action nonce; drops tool payload from queue. |
 
-### 2.1 Milestone 1.1 Removal of Hardcoded Benchmark Prompt Triggers (`WO-39`)
-In `WO-39`, `src/lucca/router/heuristic.py` was decontaminated by stripping all hardcoded `SPEC-BENCH-100` benchmark prompt substrings and test-probe regex shortcuts. Intent classification relies strictly on general syntactic domain patterns and 384-D OpenVINO NPU semantic centroid similarity (`SEMANTIC_INTENT_ANCHORS`).
+### 2.1 Milestone 1.1 Removal of Hardcoded Benchmark Prompt Triggers (`WO-39`) & Clause-Level Neurosymbolic NPU Router (`WO-41`/`WO-42`)
+In `WO-39`, `src/lucca/router/heuristic.py` was decontaminated by stripping all hardcoded `SPEC-BENCH-100` benchmark prompt substrings and test-probe regex shortcuts. In `WO-41` and `WO-42`, the legacy regex cascade in `HeuristicRouter` and `proof_policy.py` was replaced with two dedicated **OpenVINO Intel AI Boost NPU** neurosymbolic classifiers (`0.0 MB` RTX 5080 VRAM):
+1. **`NeuralIntentClassifier` (`src/lucca/router/neural_intent_classifier.py`, `models/router_intent_ov`, static shape `[1, 64]`):**
+   - Multi-head `MiniLM-L6` classifier predicting 14 primary intents (`chit_chat`, `clarify`, `dangerous`, `launch_app`, `file_read`, `file_write`, `memory_query`, `context_query`, `math_computation`, `logic_constraints`, `spatial_grid`, `code_repair`, `science_research`, `web_fetch`) and 9 reasoning domain flags (`mathematics`, `combinatorial_smt`, `spatial_relocation`, `soft_logic`, `spatial_grid`, `code_repair`, `science_research`, `web_search`, `emergency_reflex`).
+   - **Multi-Sentence Task-Priority Pooling (`WO-42`):** Splits multi-sentence prompts (3–6 sentences) into individual sentences on the NPU and promotes concrete task/reasoning intents (`CLASS_PRIORITY_TIER >= 1`) over greetings and conversational filler (`chit_chat`, `clarify`), while enforcing deterministic `known_apps` slot verification (`_extract_app_entity`) and `ConformalGuard` out-of-domain abstention.
+   - **Empirical Accuracy (`WO-42`):** Achieved **`135 / 135 (100.0%)`** on `T-RTR-01`, **`122 / 130 (93.8%)`** on `BLIND42_RTR_100 + BLIND_RTR_30`, and **`45 / 50 (90.0%)` single-pass locked holdout (`50 / 50 = 100.0%` post-router-bugfix)** on `LOCKED_RTR_001..050`.
+2. **`NeuralHazardClassifier` (`src/lucca/core/neural_hazard_classifier.py`, `models/proof_policy_hazard_ov`, static shape `[1, 96]`):**
+   - 5-class sentence-level hazard & corroboration classifier (`LOW_BENIGN`, `LOW_CAPABILITY_OR_META`, `HIGH_FACTUAL_HISTORICAL`, `CROSS_REFERENCE_CMD`, `HIGH_DESTRUCTIVE_SECURITY`) with max-hazard sentence pooling, `_HAS_CORROBORATION_SIGNAL_RE` necessity gating, and high-entropy/gibberish fail-closed fallback (`HIGH` hazard).
+   - **Empirical Accuracy (`WO-42`):** Achieved **`125 / 130 (96.2%)`** (`100%` `HIGH` hazard recall) on `BLIND42_HZD_100 + BLIND_HZD_30` and **`50 / 50 (100.0%)`** on the single-pass locked holdout `LOCKED_HZD_001..050`.
 
 ---
 

@@ -1,12 +1,12 @@
 # Project Lucca — Unified System Architecture Master Specification
 
-**Status:** Canonical Active Architecture Specification (`v1.47.0-stable` / Work Order 39)
-**Version:** 2.3.0
-**Updated:** October 18, 2026 (Historical version snapshots archived in [`luccadocs/archive/2026-10_architecture_snapshots/`](./archive/2026-10_architecture_snapshots/))
-**Charter Reference:** Ratified per D-AUD-01 through D-COG-01 (`luccadocs/DECISIONS.md`)
+**Status:** Canonical Active Architecture Specification (`v1.48.0-stable` / Work Order 42)
+**Version:** 2.4.0
+**Updated:** November 7, 2026 (Historical version snapshots archived in [`luccadocs/archive/2026-10_architecture_snapshots/`](./archive/2026-10_architecture_snapshots/))
+**Charter Reference:** Ratified per D-AUD-01 through D-COG-02 (`luccadocs/DECISIONS.md`)
 
 > [!IMPORTANT]
-> **Single Canonical Architecture Specification (`v1.47.0` / `WO-39`)**: This document is the unified source of architectural truth for Project Lucca across all milestones (Milestones 1–7 through Work Order 39), covering the 4-tier Gemma 4 neural substrate (`26B-A4B`, `12B`, `E4B`, `E2B`), three-tier cognitive execution, the 6 General Reasoning Structures (Organ 1: Belnap $\mathcal{FOUR}$ + NARS $(w^+, w^-)$ + `ProvenanceGate` + Study 1 autobiographical memory partitioning; Organ 2: System 2 $\to$ System 1 myelination + CBR 4 Rs in `EpisodicCodeCache`; Organ 3: Wake-Sleep `DreamRetrospective` + `Shadow Sandbox` + Symbol Grounding + ACT-R skill activation; Organ 4: MCTS + Koza GP crossover + Z3 abductive hole solving + E-Graph `cost_fn` extraction + `SpeculativeBDIValidator`; Organ 5: general parameterized `spatial_dsl` + metamorphic invariance gate; Organ 6: $k$-order recursive Theory-of-Mind `ContainerWorld` + `decision_labels` conformal calibration + `git_dag` AST preflight + OLA DSP pitch shifting), and persistent Docker container sandboxing.
+> **Single Canonical Architecture Specification (`v1.48.0` / `WO-42`)**: This document is the unified source of architectural truth for Project Lucca across all milestones (Milestones 1–7 through Work Order 42), covering the 4-tier Gemma 4 neural substrate (`26B-A4B`, `12B`, `E4B`, `E2B`), three-tier cognitive execution, the **Clause/Sentence-Level OpenVINO Intel NPU Neurosymbolic Supervision & Routing Suite (`WO-41`/`WO-42`: `action_claim_verifier_ov`, `proof_policy_hazard_ov`, `router_intent_ov` at `0.0 MB` dGPU VRAM)**, the **Scrapling 3-Tier Stealth Web Research & Prompt-Injection DOM Sanitizer (`WO-42`)**, the 6 General Reasoning Structures (Organ 1: Belnap $\mathcal{FOUR}$ + NARS $(w^+, w^-)$ + `ProvenanceGate` + Study 1 autobiographical memory partitioning; Organ 2: System 2 $\to$ System 1 myelination + CBR 4 Rs in `EpisodicCodeCache`; Organ 3: Wake-Sleep `DreamRetrospective` + `Shadow Sandbox` + Symbol Grounding + ACT-R skill activation; Organ 4: MCTS + Koza GP crossover + Z3 abductive hole solving + E-Graph `cost_fn` extraction + `SpeculativeBDIValidator`; Organ 5: general parameterized `spatial_dsl` + metamorphic invariance gate; Organ 6: $k$-order recursive Theory-of-Mind `ContainerWorld` + `decision_labels` conformal calibration + `git_dag` AST preflight + OLA DSP pitch shifting), and persistent Docker container sandboxing.
 
 ---
 

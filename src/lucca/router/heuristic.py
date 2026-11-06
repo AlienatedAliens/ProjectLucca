@@ -243,7 +243,7 @@ class HeuristicRouter:
         if entities["app"]:
             app_pat = "|".join(re.escape(a) for a in entities["app"])
             if re.search(
-                rf"\b(?:open|launch|start|run)\s+(?:up\s+)?(?:the\s+)?(?:{app_pat})\b",
+                rf"\b(?:open|launch|start|run)\s+(?:up\s+)?(?:the\s+)?[`'\"]*(?:{app_pat})[`'\"]*\b",
                 text,
             ):
                 return "launch_app", 0.92, entities
@@ -578,7 +578,11 @@ class HeuristicRouter:
                 reasoning_domain = "code_repair"
                 solver_tool = "apply_patch"
                 thinking_mode = "thinking"
-            elif has_z3 and not has_sympy:
+            elif has_z3 and (
+                not has_sympy
+                or intent == "logic_constraints"
+                or primary_dom == "combinatorial_smt"
+            ):
                 reasoning_domain = "combinatorial_smt"
                 solver_tool = "z3_smt"
                 thinking_mode = "direct"

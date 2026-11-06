@@ -135,7 +135,7 @@ from lucca.core.turn_pipeline import (
 from lucca.core.active_goals import ActiveGoalManager
 from lucca.core.tool_shortlister import check_tool_fit
 from lucca.core.user_model import UserModel
-from lucca.core.visual_session import VisualArtifact, VisualSessionStore
+from lucca.core.visual_session import VisualSessionStore
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (

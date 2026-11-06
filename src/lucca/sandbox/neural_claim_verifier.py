@@ -941,7 +941,7 @@ class NeuralActionClaimVerifier:
                 resolved_fam = resolve_clause_claim_family(clean_comp, top_claim_cls_full)
                 clause_claims.append((clean_comp, resolved_fam, False))
         else:
-            for c_idx, (c_text, is_coord_or_add) in enumerate(clauses):
+            for _c_idx, (c_text, is_coord_or_add) in enumerate(clauses):
                 if not _clause_has_action_or_state_signal(c_text):
                     continue
                 c_probs = self._infer_probs(user_context, c_text)

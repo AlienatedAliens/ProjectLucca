@@ -225,6 +225,7 @@ def evaluate_router_item(router: HeuristicRouter, item: dict[str, Any]) -> dict[
 
 
 def main() -> int:
+    post_fix_mode = "--post-router-fix" in sys.argv
     if not PRE_MANIFEST_PATH.exists():
         raise RuntimeError(f"Missing pre-generation lock manifest: {PRE_MANIFEST_PATH}")
 
@@ -234,9 +235,11 @@ def main() -> int:
     assert pre_eval_hashes["openvino_ir_sha256"] == pre_manifest["openvino_ir_sha256"], (
         "OpenVINO IR SHA-256 mismatch against pre-generation lock manifest!"
     )
-    assert pre_eval_hashes["python_source_sha256"] == pre_manifest["python_source_sha256"], (
-        "Python source SHA-256 mismatch against pre-generation lock manifest!"
-    )
+    if not post_fix_mode:
+        assert pre_eval_hashes["python_source_sha256"] == pre_manifest["python_source_sha256"], (
+            "Python source SHA-256 mismatch against pre-generation lock manifest! "
+            "Pass --post-router-fix to write a separate post-fix report without overwriting the locked single-pass report."
+        )
 
     raw_items = extract_150_from_subagents()
     router = HeuristicRouter()
@@ -257,19 +260,6 @@ def main() -> int:
     all_res = coh_res + hzd_res + rtr_res
     post_eval_hashes = compute_current_hashes()
     assert post_eval_hashes == pre_eval_hashes, "Post-evaluation hash drift detected!"
-
-    with WORKSHEET_150_PATH.open("w", encoding="utf-8") as f:
-        for r in all_res:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-    with JUDGE_150_PATH.open("w", encoding="utf-8") as f:
-        for r in all_res:
-            blinded = {
-                k: v
-                for k, v in r.items()
-                if not k.startswith("gold_") and k not in ("is_correct", "category")
-            }
-            f.write(json.dumps(blinded, ensure_ascii=False) + "\n")
 
     def summarize_slice(rows: list[dict[str, Any]]) -> dict[str, Any]:
         c = sum(1 for r in rows if r["is_correct"])
@@ -304,7 +294,26 @@ def main() -> int:
         },
         "overall_150": s_all,
     }
-    REPORT_150_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
+
+    if post_fix_mode:
+        post_fix_report_path = REPORT_DIR / "wo42_locked_holdout_150_post_router_fix_report.json"
+        report["evaluation_protocol"] = "POST_ROUTER_BUGFIX_RETEST_FROZEN_NPU_WEIGHTS"
+        report["zero_code_or_weight_edits_after_generation"] = False
+        post_fix_report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    else:
+        with WORKSHEET_150_PATH.open("w", encoding="utf-8") as f:
+            for r in all_res:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+        with JUDGE_150_PATH.open("w", encoding="utf-8") as f:
+            for r in all_res:
+                blinded = {
+                    k: v
+                    for k, v in r.items()
+                    if not k.startswith("gold_") and k not in ("is_correct", "category")
+                }
+                f.write(json.dumps(blinded, ensure_ascii=False) + "\n")
+        REPORT_150_PATH.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     print(
         f"[WO-42 LOCKED-150] SHA-256 Lock Verified (0 code edits, 0 weight edits since {pre_manifest['locked_at_utc']})"

@@ -153,20 +153,29 @@ flowchart LR
 
 ---
 
-## 5. Streaming Output Supervision & Truth-In-Receipt Grounding (`D-SEC-05`)
+## 5. Streaming Output Supervision, Clause-Level NPU Action-Claim Verification & Scrapling Research (`WO-40`–`WO-42`)
 
-The `OutputSupervisorSession` ([`src/lucca/sandbox/output_supervisor.py`](file:///C:/projects/projectlucca/src/lucca/sandbox/output_supervisor.py)) performs deterministic regex-based clause-level verification on streaming assistant tokens before spoken TTS chunk emission.
+### 5.1 Clause-Level Neurosymbolic Action-Claim Verifier (`neural_claim_verifier.py` & `coherence.py`)
+In `WO-41` and `WO-42`, post-turn and streaming action-claim supervision was upgraded from brittle verb-list matching to a **clause-level neurosymbolic architecture** running on the **Intel AI Boost NPU** (`models/action_claim_verifier_ov`, static shape `[1, 128]`, **`0.0 MB` RTX 5080 VRAM**, `~3.2–7.8 ms` per turn):
+1. **Clause Decomposition (`split_narration_into_clauses`):** Splits multi-sentence assistant responses on sentence boundaries and coordinating conjunctions (`and I also`, `then I`, `;`) so a grounded first clause (e.g., `read_file`) never masks or dilutes an ungrounded second clause (e.g., `write_file`).
+2. **5-Class Neural Speech-Act Classification on Intel NPU (`NeuralActionClaimVerifier`):** Classifies each clause in the context of the current user turn (`format_pair_texts` isolated to `user` role messages) into:
+   - `0: BENIGN_CONVERSATIONAL`
+   - `1: CAPABILITY_DISCLAIMER` (honest refusals, capability limits, and tool-error disclosures)
+   - `2: GROUNDED_FACTUAL_REPORT`
+   - `3: UNGROUNDED_ACTION_CLAIM` (7 canonical tool families: `CLAIM_WRITE_NOTE`, `CLAIM_SEARCH_READ`, `CLAIM_EXEC_MATH`, `CLAIM_SCHEDULE`, `CLAIM_MEMORY`, `CLAIM_LAUNCH_EXEC`, `CLAIM_DELETE_MOD`)
+   - `4: LIVE_STATE_FABRICATION` (fabricated hardware telemetry, inbox/calendar counts, or live external state without a sensor receipt)
+3. **Deterministic Python Set-Membership Verification (`verify_clause_claims_against_receipts`):** Verifies each claimed tool family and verb subfamily (`run_python` vs. `launch_app`; `search_web` vs. `read_file`) against the turn's actual `verified_tools` (`ok=True`) receipts.
+4. **Empirical Verification (`WO-42`):**
+   - **`BLIND42_COH_001..100` + `BLIND_COH_01..30` (`N=130` unseen items, `76.9%` multi-sentence):** **`130 / 130 (100.0%)`**, Wilson 95% CI `[97.13%, 100.0%]`.
+   - **Single-Pass Code + Weight Locked Holdout (`LOCKED_COH_001..050`, `92.0%` multi-sentence):** **`50 / 50 (100.0%)`**, Wilson 95% CI `[92.87%, 100.0%]` (`0` post-generation code or weight edits).
+   - **Live 4-Model E2E Matrix (`100` live turns across `E2B`, `E4B`, `12B`, `26B-A4B`):** **`100 / 100 (100.0%)`** functional coherence and grounding (`0` unblocked false action claims).
 
-### 5.1 Truth-In-Receipt Matcher Architecture
-1. **DFA & Lemma Matching:** Scans streaming tokens at **$6.4\,\mu\text{s}$ P50** latency per clause.
-2. **21 Verified Action Verbs (`ACTION_VERBS`):** `delete`, `create`, `modify`, `execute`, `run`, `install`, `remove`, `send`, `upload`, `fetch`, `save`, `write`, `post`, `reboot`, `book`, `place`, `process`, `start`, `close`, `copy`, `move`.
-3. **Mid-Utterance Barge-In Abort:** If an assistant clause asserts an external action matching an active verb lemma without a corresponding verified `ToolReceipt` in the active turn session, a mid-utterance abort is triggered within **$< 35\,\mu\text{s}$**, purging the TTS ring buffer and logging a security breach.
-4. **Epistemic Hedge Exemption Policy:** Statements qualified by epistemic uncertainty (*"I think I deleted"*, *"I believe I closed"*) or future intentions (*"I will delete"*) are exempt from receipt matching to preserve natural conversational nuance without causing false aborts.
+### 5.2 Scrapling 3-Tier Stealth Web Research & Prompt-Injection DOM Sanitizer (`web_tool.py`, `browser_tool.py`, `research_tool.py`)
+In `WO-42` (Phases 4–5), Lucca's web research subsystem was upgraded with a 3-tier fetch escalation pipeline and DOM prompt-injection sanitizer:
+1. **Tier 1 (`curl_cffi` / Scrapling TLS & HTTP/2 Impersonation):** Impersonates modern Chrome TLS JA3/JA4 and HTTP/2 fingerprints while enforcing `validate_url_ssrf` (blocking RFC1918, loopback, link-local, CGNAT, and IPv6 private ranges) on every redirect hop.
+2. **Tier 2 (Anti-Bot Detection & Escalation):** `_is_anti_bot_or_empty_shell` detects Cloudflare/Turnstile/Akamai challenge pages and empty SPA shells and escalates automatically to Scrapling `Fetcher` / `StealthyFetcher` or headless Playwright (`browser_tool.py`).
+3. **Tier 3 (Adaptive Extraction & `sanitize_html_against_prompt_injection`):** Strips hidden DOM prompt-injection payloads (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`, `aria-hidden="true"`, `<template>`, comments, and Unicode tag characters `U+E0000..U+E007F`) before extracting structured Markdown via Scrapling `Adaptor` + `trafilatura`.
+4. **Parallel Multi-Source Dossier Fetching (`research_tool.py`):** Fetches candidate URLs concurrently via `ThreadPoolExecutor` with per-domain rate limiting, achieving a **`4.1x` wall-clock speedup** (`16/16` unit/security tests passing in `tests/test_wo42_scrapling_research.py`).
 
-### 5.2 Verification Battery & Empirical Findings
-- **70-Sentence Formal Battery (`tests/test_truth_in_receipt_battery.py`):** 8 categories verified with 100% test pass rate (70/70 passing). A–D (original 40): 10 grounded, 10 ungrounded, 10 paraphrases, 10 hedged/negated. E–H (P6 broadening, 2026-10-05): 10 positive receipt-backed broader surface forms, 10 passive/markdown/multilingual characterization (markdown-wrapped verbs ARE detected after the markdown-strip fix; passive voice and non-English utterances are documented false-negative scope), 5 stale-receipt scenarios (`stale_before` parameter), 5 failed-status scenarios.
-- **Live 100-Probe Action Hallucination Battery ($n=100, T=0.6$):**
-  - **Strict Completed Actions:** 1 of 8 detected (12.5%, 95% Wilson CI: [2.2%, 47.1%]).
-  - **Broad False Action Claims (FAC):** 1 of 23 detected (4.3%, 95% Wilson CI: [0.8%, 21.0%]).
-  - **Control Probes ($n=50$):** 0 / 50 false alarms triggered across 25 honest controls and 25 idiom controls (`placed`, `moved`, `closed`, `processed`).
-  - **Escape Mechanisms:** 22/23 ungrounded claims escaped past-tense declarative matching via active progressive participles (12), markdown action headers (2), passive confirmations (6), and unlisted verb lemmas (2).
+### 5.3 Legacy Regex DFA Channel (`output_supervisor.py`)
+The `OutputSupervisorSession` ([`src/lucca/sandbox/output_supervisor.py`](file:///C:/projects/projectlucca/src/lucca/sandbox/output_supervisor.py)) retains the sub-millisecond regex DFA fast path (`TruthInReceiptMatcher` + `ActionClaimGrammarSupervisor`) alongside the OpenVINO NPU `NeuralActionClaimVerifier` hook (`use_neural_verifier=True`).

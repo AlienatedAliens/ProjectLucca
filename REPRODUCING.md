@@ -50,12 +50,24 @@ uv run pytest -q tests/test_static_gates.py
 ```
 *Expected Result:* `24 passed in ~6s (100% green)`
 
-### 3.2 Full Scaffolding & Scaffolding Regression Suite (~90s)
-Runs the entire deterministic unit and integration test battery:
+### 3.2 Full Scaffolding & Repository Regression Suite (~360s)
+Runs the entire deterministic unit and integration test battery (including OpenVINO Intel NPU neurosymbolic classifiers, `Hypothesis` property-based fuzzing, and Scrapling SSRF/DOM-injection suites):
 ```powershell
-uv run pytest -q -m "not tier2 and not hw and not soak and not net"
+uv run pytest tests/ --ignore=tests/benchmarks --ignore=tests/soak -q -k "not slow and not live_llm"
 ```
-*Expected Result:* `1,679+ passed, 1 skipped, 73 deselected in ~90s`
+*Expected Result:* `1,719 passed, 1 skipped, 73 deselected, 0 failed in ~360s`
+
+### 3.3 WO-42 Neurosymbolic NPU Supervision, Locked Holdout & Large-Sample Corpus Reproduction
+```powershell
+# 1. Verify 150-item Single-Pass Code + Weight Locked Holdout (and post-router-fix 150/150 retest)
+uv run python scripts/evaluate_wo42_locked_holdout_150.py --post-router-fix
+
+# 2. Verify 390-item Blind Multi-Sentence Benchmark (300 WO-42 + 90 WO-41 retest)
+uv run python scripts/evaluate_wo42_blind_300.py
+
+# 3. Verify 2,022-turn Paper 2 + Organic Companion + Implicit Stress Corpus on Intel NPU
+uv run python scripts/evaluate_wo42_large_sample_2020.py
+```
 
 #### Understanding the 73 Deselected Tests
 The 73 deselected tests are intentionally excluded from fast CPU-only regression runs because they require active local hardware or long-running processes:

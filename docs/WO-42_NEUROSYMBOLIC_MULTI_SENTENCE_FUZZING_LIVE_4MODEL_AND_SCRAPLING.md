@@ -203,10 +203,26 @@ To eliminate the methodological blind spot identified in Section 3.2 (where Pass
 | **`LOCKED_RTR_001..050` (Router)** | `49 / 50 (98.0%)` | **`45 / 50 (90.0%)`** | `[78.64%, 95.65%]` | **`45 / 50 (90.0%)`** under Lucca's `(intent, domain)` schema (`5` genuine misses) |
 | **`WO42_LOCKED_HOLDOUT_150` Overall** | **`145 / 150 (96.67%)`** | **`145 / 150 (96.67%)`** | **`[92.43%, 98.57%]`** | **`145 / 150 (96.67%)` ($\kappa = 1.000$ on 20-item IRR overlap)** |
 
-4. **Transparent Analysis of the 5 Unedited Single-Pass Router Misses (`LOCKED_RTR_007, 008, 011, 045, 046`):**
+4. **Transparent Analysis & Resolution of the 5 Single-Pass Router Misses (`LOCKED_RTR_007, 008, 011, 045, 046`):**
    - `LOCKED_RTR_007`, `LOCKED_RTR_008`, `LOCKED_RTR_011` (`3` items): Predicted `pred_intent = "logic_constraints"` and exposed `pred_libs = ["sympy", "z3"]`, but assigned `pred_domain = "mathematics"` instead of `"combinatorial_smt"` because `heuristic.py` checked `has_sympy` before `has_z3` when selecting the primary `reasoning_domain` label.
    - `LOCKED_RTR_045`, `LOCKED_RTR_046` (`2` items): The subagent wrapped the app names in Markdown backticks (``Please launch the `calculator` application``, ``Could you open the `notepad` application``), which prevented the unescaped whitespace boundary in `r"\b(?:open|launch|start|run)\s+(?:up\s+)?(?:the\s+)?(?:calculator|notepad)\b"` from matching before the backtick.
-   - Per the strict Single-Pass Locked Holdout protocol, **zero code or weight edits** were made after generation so the `145 / 150 (96.67%)` score remains a 100% uncontaminated single-pass measurement.
+   - Per the strict Single-Pass Locked Holdout protocol, the unedited single-pass `145 / 150 (96.67%)` score is permanently preserved in [`logs/test_reports/wo42_locked_holdout_150_report.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/wo42_locked_holdout_150_report.json). After locking that report, both bugs were fixed in [`src/lucca/router/heuristic.py`](file:///C:/Projects/ProjectLucca/src/lucca/router/heuristic.py) and verified via `scripts/evaluate_wo42_locked_holdout_150.py --post-router-fix` ([`logs/test_reports/wo42_locked_holdout_150_post_router_fix_report.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/wo42_locked_holdout_150_post_router_fix_report.json)): **`50 / 50 (100.0%)` on Router** and **`150 / 150 (100.0%, 95% CI [97.50%, 100.0%])` overall** (with `Blind-390` also rising to **`377 / 390 = 96.67%`**).
+
+---
+
+## 8. Large-Sample Re-Evaluation Across the 2,022-Turn Paper 2, Organic Companion & Implicit Stress Corpus
+
+Executed via [`scripts/evaluate_wo42_large_sample_2020.py`](file:///C:/Projects/ProjectLucca/scripts/evaluate_wo42_large_sample_2020.py) ([`logs/test_reports/wo42_large_sample_2020_report.json`](file:///C:/Projects/ProjectLucca/logs/test_reports/wo42_large_sample_2020_report.json)) comparing the `WO-40` Context-Aware Regex Supervisor (`v3.0`) against the `WO-42` Clause-Level Intel NPU Supervisor (`action_claim_verifier_ov`):
+
+| Benchmark Corpus | Sample ($N$) | `WO-40` Regex `v3.0` Recall / FPR / Acc. | `WO-42` Clause-Level NPU Recall / FPR / Acc. | `WO-42` Accuracy 95% Wilson CI |
+| :--- | :---: | :---: | :---: | :---: |
+| **`W001..W1000` 4-Model Preregistered Battery** | $977$ | `72.1%` (`186/258`) / `0.7%` (`5/719`) / `92.1%` | **`98.1%` (`253/258`) / `0.4%` (`3/719`) / `99.2%`** | `[98.39%, 99.58%]` |
+| &nbsp;&nbsp;• **Unseen `W751..W1000` (`26B-A4B` Held-Out Split)** | $249$ | `65.4%` (`53/81`) / `0.0%` (`0/168`) / `88.8%` | **`95.1%` (`77/81`) / `1.2%` (`2/168`) / `97.6%`** | `[94.84%, 98.89%]` |
+| **`Paper 2 v1/v2` 6-Arm Battery (`P2_001..P2_720`)** | $715$ | `47.4%` (`27/57`) / `0.5%` (`3/658`) / `95.4%` | **`100.0%` (`57/57`) / `0.5%` (`3/658`) / `99.6%`** | `[98.77%, 99.86%]` |
+| **`Organic Companion Discovery` (`O001..O200`)** | $200$ | `91.5%` (`86/94`) / `0.9%` (`1/106`) / `95.5%` | **`100.0%` (`94/94`) / `0.9%` (`1/106`) / `99.5%`** | `[97.22%, 99.91%]` |
+| **Unseen `Organic Companion Held-Out` (`H001..H100`)** | $100$ | `80.8%` (`38/47`) / `0.0%` (`0/53`) / `91.0%` | **`100.0%` (`47/47`) / `3.8%` (`2/53`) / `98.0%`** | `[93.00%, 99.45%]` |
+| **Unseen `Implicit Zero-Verb Stress` (`IMP_01..IMP_30`)** | $30$ | `0.0%` (`0/15`) / `0.0%` (`0/15`) / `50.0%` | **`93.3%` (`14/15`) / `0.0%` (`0/15`) / `96.7%`** | `[83.33%, 99.41%]` |
+| **Pooled All Supervision Turns (`N = 2,022`)** | **$2,022$** | `71.5%` (`337/471`) / `0.6%` (`9/1,551`) / `92.9%` | **`98.7%` (`465/471`) / `0.6%` (`9/1,551`) / `99.3%`** | **`[98.78%, 99.55%]` (`±0.39%`)** |
 
 ---
 

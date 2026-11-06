@@ -1,0 +1,397 @@
+{
+  "device": "NPU",
+  "splits": {
+    "W001_W1000_4Model_Battery": {
+      "wo40_regex_v3_0": {
+        "n": 977,
+        "pos": 258,
+        "neg": 719,
+        "tp": 186,
+        "tn": 714,
+        "fp": 5,
+        "fn": 72,
+        "accuracy_pct": 92.12,
+        "accuracy_ci_95": [
+          90.26,
+          93.65
+        ],
+        "recall_pct": 72.09,
+        "recall_ci_95": [
+          66.33,
+          77.21
+        ],
+        "fpr_pct": 0.7,
+        "fpr_ci_95": [
+          0.3,
+          1.62
+        ],
+        "precision_pct": 97.38,
+        "f1_pct": 82.85,
+        "mean_latency_ms": 0.44
+      },
+      "wo42_clause_npu": {
+        "n": 977,
+        "pos": 258,
+        "neg": 719,
+        "tp": 253,
+        "tn": 716,
+        "fp": 3,
+        "fn": 5,
+        "accuracy_pct": 99.18,
+        "accuracy_ci_95": [
+          98.39,
+          99.58
+        ],
+        "recall_pct": 98.06,
+        "recall_ci_95": [
+          95.54,
+          99.17
+        ],
+        "fpr_pct": 0.42,
+        "fpr_ci_95": [
+          0.14,
+          1.22
+        ],
+        "precision_pct": 98.83,
+        "f1_pct": 98.44,
+        "mean_latency_ms": 12.47
+      }
+    },
+    "W751_W1000_26B_Heldout": {
+      "wo40_regex_v3_0": {
+        "n": 249,
+        "pos": 81,
+        "neg": 168,
+        "tp": 53,
+        "tn": 168,
+        "fp": 0,
+        "fn": 28,
+        "accuracy_pct": 88.76,
+        "accuracy_ci_95": [
+          84.23,
+          92.1
+        ],
+        "recall_pct": 65.43,
+        "recall_ci_95": [
+          54.59,
+          74.88
+        ],
+        "fpr_pct": 0.0,
+        "fpr_ci_95": [
+          0.0,
+          2.24
+        ],
+        "precision_pct": 100.0,
+        "f1_pct": 79.1,
+        "mean_latency_ms": 0.56
+      },
+      "wo42_clause_npu": {
+        "n": 249,
+        "pos": 81,
+        "neg": 168,
+        "tp": 77,
+        "tn": 166,
+        "fp": 2,
+        "fn": 4,
+        "accuracy_pct": 97.59,
+        "accuracy_ci_95": [
+          94.84,
+          98.89
+        ],
+        "recall_pct": 95.06,
+        "recall_ci_95": [
+          87.98,
+          98.06
+        ],
+        "fpr_pct": 1.19,
+        "fpr_ci_95": [
+          0.33,
+          4.24
+        ],
+        "precision_pct": 97.47,
+        "f1_pct": 96.25,
+        "mean_latency_ms": 12.83
+      }
+    },
+    "Paper2_v1_v2_720_Battery": {
+      "wo40_regex_v3_0": {
+        "n": 715,
+        "pos": 57,
+        "neg": 658,
+        "tp": 27,
+        "tn": 655,
+        "fp": 3,
+        "fn": 30,
+        "accuracy_pct": 95.38,
+        "accuracy_ci_95": [
+          93.59,
+          96.69
+        ],
+        "recall_pct": 47.37,
+        "recall_ci_95": [
+          34.99,
+          60.08
+        ],
+        "fpr_pct": 0.46,
+        "fpr_ci_95": [
+          0.16,
+          1.33
+        ],
+        "precision_pct": 90.0,
+        "f1_pct": 62.07,
+        "mean_latency_ms": 0.42
+      },
+      "wo42_clause_npu": {
+        "n": 715,
+        "pos": 57,
+        "neg": 658,
+        "tp": 57,
+        "tn": 655,
+        "fp": 3,
+        "fn": 0,
+        "accuracy_pct": 99.58,
+        "accuracy_ci_95": [
+          98.77,
+          99.86
+        ],
+        "recall_pct": 100.0,
+        "recall_ci_95": [
+          93.69,
+          100.0
+        ],
+        "fpr_pct": 0.46,
+        "fpr_ci_95": [
+          0.16,
+          1.33
+        ],
+        "precision_pct": 95.0,
+        "f1_pct": 97.44,
+        "mean_latency_ms": 12.37
+      }
+    },
+    "Organic_Discovery_O200": {
+      "wo40_regex_v3_0": {
+        "n": 200,
+        "pos": 94,
+        "neg": 106,
+        "tp": 86,
+        "tn": 105,
+        "fp": 1,
+        "fn": 8,
+        "accuracy_pct": 95.5,
+        "accuracy_ci_95": [
+          91.67,
+          97.61
+        ],
+        "recall_pct": 91.49,
+        "recall_ci_95": [
+          84.1,
+          95.62
+        ],
+        "fpr_pct": 0.94,
+        "fpr_ci_95": [
+          0.17,
+          5.15
+        ],
+        "precision_pct": 98.85,
+        "f1_pct": 95.03,
+        "mean_latency_ms": 0.29
+      },
+      "wo42_clause_npu": {
+        "n": 200,
+        "pos": 94,
+        "neg": 106,
+        "tp": 94,
+        "tn": 105,
+        "fp": 1,
+        "fn": 0,
+        "accuracy_pct": 99.5,
+        "accuracy_ci_95": [
+          97.22,
+          99.91
+        ],
+        "recall_pct": 100.0,
+        "recall_ci_95": [
+          96.07,
+          100.0
+        ],
+        "fpr_pct": 0.94,
+        "fpr_ci_95": [
+          0.17,
+          5.15
+        ],
+        "precision_pct": 98.95,
+        "f1_pct": 99.47,
+        "mean_latency_ms": 11.23
+      }
+    },
+    "Organic_Heldout_H100": {
+      "wo40_regex_v3_0": {
+        "n": 100,
+        "pos": 47,
+        "neg": 53,
+        "tp": 38,
+        "tn": 53,
+        "fp": 0,
+        "fn": 9,
+        "accuracy_pct": 91.0,
+        "accuracy_ci_95": [
+          83.77,
+          95.19
+        ],
+        "recall_pct": 80.85,
+        "recall_ci_95": [
+          67.46,
+          89.58
+        ],
+        "fpr_pct": 0.0,
+        "fpr_ci_95": [
+          0.0,
+          6.76
+        ],
+        "precision_pct": 100.0,
+        "f1_pct": 89.41,
+        "mean_latency_ms": 0.35
+      },
+      "wo42_clause_npu": {
+        "n": 100,
+        "pos": 47,
+        "neg": 53,
+        "tp": 47,
+        "tn": 51,
+        "fp": 2,
+        "fn": 0,
+        "accuracy_pct": 98.0,
+        "accuracy_ci_95": [
+          93.0,
+          99.45
+        ],
+        "recall_pct": 100.0,
+        "recall_ci_95": [
+          92.44,
+          100.0
+        ],
+        "fpr_pct": 3.77,
+        "fpr_ci_95": [
+          1.04,
+          12.75
+        ],
+        "precision_pct": 95.92,
+        "f1_pct": 97.92,
+        "mean_latency_ms": 11.2
+      }
+    },
+    "Implicit_ZeroVerb_IMP30": {
+      "wo40_regex_v3_0": {
+        "n": 30,
+        "pos": 15,
+        "neg": 15,
+        "tp": 0,
+        "tn": 15,
+        "fp": 0,
+        "fn": 15,
+        "accuracy_pct": 50.0,
+        "accuracy_ci_95": [
+          33.15,
+          66.85
+        ],
+        "recall_pct": 0.0,
+        "recall_ci_95": [
+          0.0,
+          20.39
+        ],
+        "fpr_pct": 0.0,
+        "fpr_ci_95": [
+          0.0,
+          20.39
+        ],
+        "precision_pct": 100.0,
+        "f1_pct": 0.0,
+        "mean_latency_ms": 0.5
+      },
+      "wo42_clause_npu": {
+        "n": 30,
+        "pos": 15,
+        "neg": 15,
+        "tp": 14,
+        "tn": 15,
+        "fp": 0,
+        "fn": 1,
+        "accuracy_pct": 96.67,
+        "accuracy_ci_95": [
+          83.33,
+          99.41
+        ],
+        "recall_pct": 93.33,
+        "recall_ci_95": [
+          70.18,
+          98.81
+        ],
+        "fpr_pct": 0.0,
+        "fpr_ci_95": [
+          0.0,
+          20.39
+        ],
+        "precision_pct": 100.0,
+        "f1_pct": 96.55,
+        "mean_latency_ms": 10.8
+      }
+    },
+    "Pooled_All_Supervision_Turns": {
+      "wo40_regex_v3_0": {
+        "n": 2022,
+        "pos": 471,
+        "neg": 1551,
+        "tp": 337,
+        "tn": 1542,
+        "fp": 9,
+        "fn": 134,
+        "accuracy_pct": 92.93,
+        "accuracy_ci_95": [
+          91.73,
+          93.97
+        ],
+        "recall_pct": 71.55,
+        "recall_ci_95": [
+          67.31,
+          75.44
+        ],
+        "fpr_pct": 0.58,
+        "fpr_ci_95": [
+          0.31,
+          1.1
+        ],
+        "precision_pct": 97.4,
+        "f1_pct": 82.5,
+        "mean_latency_ms": 0.38
+      },
+      "wo42_clause_npu": {
+        "n": 2022,
+        "pos": 471,
+        "neg": 1551,
+        "tp": 465,
+        "tn": 1542,
+        "fp": 9,
+        "fn": 6,
+        "accuracy_pct": 99.26,
+        "accuracy_ci_95": [
+          98.78,
+          99.55
+        ],
+        "recall_pct": 98.73,
+        "recall_ci_95": [
+          97.25,
+          99.41
+        ],
+        "fpr_pct": 0.58,
+        "fpr_ci_95": [
+          0.31,
+          1.1
+        ],
+        "precision_pct": 98.1,
+        "f1_pct": 98.41,
+        "mean_latency_ms": 12.13
+      }
+    }
+  }
+}
