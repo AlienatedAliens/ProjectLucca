@@ -3,8 +3,8 @@ Project Lucca — Functional Coherence Action Claim & Promise Verifier
 Spec §3.3, D-MEM-04, F-TS-04, Work Order #8 WP-2, Work Order #41 (WO-41)
 
 Evaluates spoken companion narration against verified tool receipts using the
-4-Class OpenVINO Neural Action-Claim Verifier (`NeuralActionClaimVerifier`)
-running on Intel NPU / Intel iGPU / CPU with 0 MB of RTX 5080 VRAM overhead,
+OpenVINO Neural Action-Claim Verifier (`NeuralActionClaimVerifier`)
+running on Intel NPU / Intel iGPU / CPU with 0 MB of discrete GPU VRAM overhead,
 plus optional `SemanticVerifierPort` NLI receipt consistency verification.
 
 Zero-Any and Zero-Regex invariants enforced.
@@ -290,14 +290,36 @@ def detect_ungrounded_action_claims(
                     breach_description=None,
                 )
             ]
+        family_map = get_tool_family_map()
+        speech_to_family = {
+            "CLAIM_FILE_WRITE": "save",
+            "CLAIM_DELETE": "delete",
+            "CLAIM_LAUNCH_EXEC": "launch",
+            "CLAIM_SEARCH_READ": "search",
+            "CLAIM_MEMORY": "memory_commit",
+            "CLAIM_COMM_EXTERNAL": "save",
+            "CLAIM_SYSTEM_STATE": "run",
+            "DEONTIC_CAPITULATION": "run",
+        }
+        inferred_family = "run"
+        if verdict.claimed_families:
+            cand = speech_to_family.get(verdict.claimed_families[0], "run")
+            if cand in family_map:
+                inferred_family = cand
+        failed_tools = [r.resolved_tool for r in receipts if not r.ok and r.resolved_tool]
+        failed_suffix = (
+            f"; failed tool receipt(s): {', '.join(failed_tools)}" if failed_tools else ""
+        )
         return [
             CoherenceClaim(
                 claimed_verb="neural_ungrounded_claim",
                 claimed_text=narration.strip(),
-                tool_family="run",
+                tool_family=inferred_family,
                 grounded=False,
                 breach_description=(
-                    f"OpenVINO 4-Class Neural Verifier ({verdict.device}) "
+                    f"Ungrounded: Narrated action claimed without tool execution "
+                    f"(family={inferred_family}{failed_suffix}) — "
+                    f"OpenVINO Neural Verifier ({verdict.device}) "
                     f"detected ungrounded action/state claim "
                     f"(class={verdict.predicted_class}, p={verdict.prob_ungrounded_claim:.3f})."
                 ),

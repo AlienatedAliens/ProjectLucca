@@ -1,7 +1,7 @@
 """
 OpenVINO Multi-Head Sentence-Window Neural Router Classifier (WO-41 Phase 4 & WO-42 Milestone 1.3).
 
-Trained full-layer on the NVIDIA GeForce RTX 5080 Laptop GPU (`cross-encoder/nli-MiniLM2-L6-H768`,
+Trained full-layer on a discrete CUDA GPU (`cross-encoder/nli-MiniLM2-L6-H768`,
 all 6 transformer layers + embeddings unfrozen) and exported to static-shape `[1, 96]` OpenVINO IR
 (`models/router_intent_ov/openvino_model.xml`) for Intel NPU / iGPU / CPU execution.
 

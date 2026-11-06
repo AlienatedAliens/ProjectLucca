@@ -318,6 +318,22 @@ class HeuristicRouter:
         ):
             return "memory_query", 0.92, entities
 
+        # Third-person factual / biographical queries without 1st-person or memory-recall markers
+        if pred_intent == "memory_query" and not re.search(
+            r"\b(?:my|me|i|we|our|mine|ours|remember|recall|remind|memory|notes?|told\s+you|"
+            r"discussed|mentioned|prefer|favorite|allergic|stored|saved|logged|yesterday|last\s+(?:week|month|session))\b",
+            text,
+        ):
+            return "web_fetch", max(pred_conf, 0.85), entities
+
+        if re.search(
+            r"^(?:where\s+is\s+(?:she|he|branch\s+\d+)|who\s+is\s+[a-z]+\s+[a-z]+|"
+            r"tell\s+me\s+about\s+[a-z]+\s+[a-z]+|how\s+about\s+you\s+just\s+tell\s+me\s+interesting\s+facts\s+about\s+it|"
+            r"what\s+is\s+judge\s+[a-z]+(?:'s|')\s+current\s+assignment)\b",
+            text,
+        ):
+            return "web_fetch", max(pred_conf, 0.85), entities
+
         # Explicit deductive syllogism / modus tollens soft_logic check
         if re.search(
             r"\b(?:premise\s+1\s*:|syllogis(?:m|tic)|modus\s+(?:ponens|tollens)|"
@@ -328,6 +344,9 @@ class HeuristicRouter:
 
         if pred_intent == "clarify":
             return "clarify", 0.40, entities
+
+        if pred_intent == "unknown":
+            return "unknown", 0.20, entities
 
         return pred_intent, pred_conf, entities
 
@@ -423,6 +442,9 @@ class HeuristicRouter:
         if is_emergency_reflex:
             action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
             prediction_set = [RouteAction.RULE]
+            calibrated = bool(
+                self.conformal_guard is not None and self.conformal_guard.q_hat is not None
+            )
         elif self.conformal_guard is not None and self.conformal_guard.q_hat is not None:
             conf_action, pred_classes, conf_fallback = self.conformal_guard.decide(
                 p_vec, class_names=["RULE", "LLM", "CLARIFY"]

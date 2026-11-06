@@ -1,0 +1,81 @@
+{
+  "evaluation_protocol": "SINGLE_PASS_CODE_AND_WEIGHT_LOCKED_HOLDOUT",
+  "pre_generation_locked_at_utc": "2026-11-06T18:07:22.384110+00:00",
+  "evaluated_at_utc": "2026-11-06T18:14:50.641828+00:00",
+  "zero_code_or_weight_edits_after_generation": true,
+  "locked_openvino_ir_sha256": {
+    "action_claim_verifier_ov": "2371012cc110f0695c34daa77d9b87e11e47dd7f36e966c207f68da5716c41d8",
+    "proof_policy_hazard_ov": "6ba53b6c918d8d2931367f8feb049606751188754d43c33875fc0433ad26b0c5",
+    "router_intent_ov": "f03bdbb0fb34d8ceb7d5fab0cd892353e8548dbb86096fae035bb2cf44c54f2e"
+  },
+  "locked_python_source_sha256": {
+    "src/lucca/core/coherence.py": "b40d6910667ac22c22ff5875f001d3c7fd75b67a8446e35b0731a3ed030c2298",
+    "src/lucca/sandbox/neural_claim_verifier.py": "1cfaa36ba230ad7df3033cb34afa26892d4d9b4edc5307b262be3ac17cd06293",
+    "src/lucca/core/proof_policy.py": "9d8101768858b227d756114de38d4d3e0a35c200a734d391a470dfe94e6f9295",
+    "src/lucca/core/neural_hazard_classifier.py": "b5f08f10d9515496530eb16cb937323b65c5df16a6c3c54062c629adbe4a970d",
+    "src/lucca/router/heuristic.py": "2c61576ab06ec9761f19f0f3de3d64f8eeb8b3c76e8d63e4e80995cc59f16d2c",
+    "src/lucca/router/neural_intent_classifier.py": "2a3d6e6bb5bbf2194927cee40b0ce23a370428b3709107aeded6a3fd934d0536"
+  },
+  "subsystems": {
+    "coherence": {
+      "correct": 50,
+      "total": 50,
+      "accuracy_pct": 100.0,
+      "wilson_95_ci_pct": [
+        92.87,
+        100.0
+      ],
+      "multi_sentence_count": 46,
+      "multi_sentence_pct": 92.0,
+      "missed_ids": []
+    },
+    "proof_policy": {
+      "correct": 50,
+      "total": 50,
+      "accuracy_pct": 100.0,
+      "wilson_95_ci_pct": [
+        92.87,
+        100.0
+      ],
+      "multi_sentence_count": 50,
+      "multi_sentence_pct": 100.0,
+      "missed_ids": []
+    },
+    "router": {
+      "correct": 45,
+      "total": 50,
+      "accuracy_pct": 90.0,
+      "wilson_95_ci_pct": [
+        78.64,
+        95.65
+      ],
+      "multi_sentence_count": 49,
+      "multi_sentence_pct": 98.0,
+      "missed_ids": [
+        "LOCKED_RTR_007",
+        "LOCKED_RTR_008",
+        "LOCKED_RTR_011",
+        "LOCKED_RTR_045",
+        "LOCKED_RTR_046"
+      ]
+    }
+  },
+  "overall_150": {
+    "correct": 145,
+    "total": 150,
+    "accuracy_pct": 96.67,
+    "wilson_95_ci_pct": [
+      92.43,
+      98.57
+    ],
+    "multi_sentence_count": 145,
+    "multi_sentence_pct": 96.67,
+    "missed_ids": [
+      "LOCKED_RTR_007",
+      "LOCKED_RTR_008",
+      "LOCKED_RTR_011",
+      "LOCKED_RTR_045",
+      "LOCKED_RTR_046"
+    ]
+  }
+}

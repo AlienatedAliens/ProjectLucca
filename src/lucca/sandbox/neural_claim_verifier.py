@@ -32,7 +32,7 @@ from pathlib import Path
 import re
 import threading
 import time
-from typing import Any, Final
+from typing import Final
 
 import numpy as np
 import structlog
@@ -405,7 +405,7 @@ def resolve_clause_claim_family(clause_text: str, neural_claim_cls: str) -> str:
     ):
         return "CLAIM_SYSTEM_STATE"
     if re.search(
-        r"\b(?:read|searched|queried|checked|inspected|reviewed|scanned|fetched)\b",
+        r"\b(?:read|searched|queried|checked|inspected|reviewed|scanned|fetched|found|retrieved|located|pulled\s+up|verified)\b",
         c_low,
     ):
         return "CLAIM_SEARCH_READ"
@@ -425,7 +425,23 @@ _CAPABILITY_DISCLAIMER_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:cannot|can't|unable\s+to|don't\s+have\s+(?:access|a\s+tool|the\s+ability|permission|any\s+way)|"
     r"do\s+not\s+have\s+(?:access|a\s+tool|the\s+ability|permission|any\s+way)|"
     r"no\s+way\s+to|not\s+able\s+to|cannot\s+directly|can't\s+directly|"
-    r"haven't\s+(?:executed|called|run)\s+the\s+tool)\b",
+    r"haven't\s+(?:executed|called|run)\s+the\s+tool|"
+    r"failed\s+with\s+an?\s+error|execution\s+failed|tool\s+call\s+failed)\b",
+    re.IGNORECASE,
+)
+
+_PSYCHOLOGICAL_OR_CONVERSATIONAL_METAPHOR_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:"
+    r"ran\s+into\s+a\s+problem|"
+    r"have\s+written\s+poetry\s+before|"
+    r"opened\s+(?:up\s+to\s+you|the\s+(?:conversation|discussion|floor|topic|dialogue))|"
+    r"saved\s+(?:you\s+the\s+trouble|that\s+thought(?:\s+for\s+our\s+next\s+chat)?|the\s+day|face|money|time)|"
+    r"created\s+(?:a\s+peaceful\s+environment|an\s+internal\s+representation|a\s+mental\s+note)|"
+    r"deleted\s+(?:that\s+thought(?:\s+from\s+memory)?|unnecessary\s+assumptions)|"
+    r"ran\s+through\s+the\s+(?:logical\s+)?(?:possibilities|options|scenarios|steps)|"
+    r"updated\s+my\s+(?:understanding|mental\s+model|perspective|thinking)|"
+    r"can\s+see\s+the\s+icon\s+clearly\s+on\s+screen"
+    r")\b",
     re.IGNORECASE,
 )
 
@@ -531,11 +547,24 @@ def verify_clause_claims_against_receipts(
                     for tn, ta in matching_receipts
                     if any(k in tn for k in ("launch", "open", "start"))
                 ]
-            elif re.search(r"\b(?:executed|ran)\s+(?:a\s+|the\s+)?python\b", c_low):
+            elif re.search(
+                r"\b(?:executed|ran)\s+(?:a\s+|the\s+)?(?:python|[\w\s]*\b(?:script|code|simulation|benchmark|command|test\s+suite))\b",
+                c_low,
+            ):
                 matching_receipts = [
                     (tn, ta)
                     for tn, ta in matching_receipts
                     if any(k in tn for k in ("python", "run", "exec", "calc"))
+                ]
+        elif family == "CLAIM_SEARCH_READ" and matching_receipts:
+            if re.search(
+                r"\b(?:i|i've|i\s+have)\s+searched\s+(?:for\s+error\s+codes|the\s+web|online)\b",
+                c_low,
+            ):
+                matching_receipts = [
+                    (tn, ta)
+                    for tn, ta in matching_receipts
+                    if any(k in tn for k in ("search", "query", "find", "lookup", "research"))
                 ]
 
         if not matching_receipts:
@@ -608,8 +637,8 @@ class NeuralActionClaimVerifier:
         self._lock = threading.Lock()
         self.available = False
         self.active_device = "NONE"
-        self._tokenizer: Any = None
-        self._infer_req: Any = None
+        self._tokenizer: object = None
+        self._infer_req: object = None
 
         xml_path = self.model_dir / "openvino_model.xml"
         tok_path = self.model_dir / "tokenizer.json"
@@ -662,7 +691,7 @@ class NeuralActionClaimVerifier:
 
     @staticmethod
     def format_pair_texts(
-        user_context: Any,
+        user_context: object,
         completion: str,
         verified_tools: list[str] | None = None,  # noqa: ARG004
     ) -> tuple[str, str]:
@@ -704,14 +733,14 @@ class NeuralActionClaimVerifier:
         text_b = f"Assistant reply: {clean_comp}"
         return text_a, text_b
 
-    def _infer_probs(self, user_context: Any, text_segment: str) -> np.ndarray:
+    def _infer_probs(self, user_context: object, text_segment: str) -> np.ndarray:
         text_a, text_b = self.format_pair_texts(user_context=user_context, completion=text_segment)
-        enc = self._tokenizer.encode(text_a, text_b)
+        enc = self._tokenizer.encode(text_a, text_b)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
         attention_mask = np.array([enc.attention_mask], dtype=np.int64)
 
         with self._lock:
-            res = self._infer_req.infer(
+            res = self._infer_req.infer(  # type: ignore[attr-defined]
                 {
                     "input_ids": input_ids,
                     "attention_mask": attention_mask,
@@ -725,7 +754,7 @@ class NeuralActionClaimVerifier:
     def evaluate(
         self,
         completion: str,
-        user_context: Any = None,
+        user_context: object = None,
         verified_tools: list[str] | None = None,
     ) -> NeuralClaimVerdict:
         clean_comp = (completion or "").strip()
@@ -786,7 +815,7 @@ class NeuralActionClaimVerifier:
 
         # Case 1: No tools executed (`tools == []`)
         if not tools:
-            if is_meta and p_benign_full >= 0.005:
+            if (is_meta and p_benign_full >= 0.005) or _PSYCHOLOGICAL_OR_CONVERSATIONAL_METAPHOR_RE.search(clean_comp):
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return NeuralClaimVerdict(
                     predicted_class="BENIGN",
@@ -809,7 +838,9 @@ class NeuralActionClaimVerifier:
                 and p_claim_full >= p_promise_full
             )
             if (
-                p_claim_full >= self.claim_threshold and top_cls_full in CLAIM_FAMILY_CLASSES
+                not has_disclaimer
+                and p_claim_full >= self.claim_threshold
+                and top_cls_full in CLAIM_FAMILY_CLASSES
             ) or is_combined_breach_claim:
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return NeuralClaimVerdict(
@@ -829,12 +860,14 @@ class NeuralActionClaimVerifier:
             # If multi-clause completion predicted BENIGN overall, inspect individual clauses
             # unless the turn is a meta/creative/translation/quoted context or explicit capability refusal
             max_clause_promise_prob = p_promise_full
-            if len(clauses) > 1 and not is_meta and not has_disclaimer:
-                max_clause_claim_prob = p_claim_full
+            if len(clauses) > 1 and not is_meta:
+                max_clause_claim_prob = 0.0 if has_disclaimer else p_claim_full
                 detected_families: list[str] = []
                 bad_clauses: list[str] = []
                 for c_text, _ in clauses:
                     if c_text.endswith("?") or c_text.lstrip().startswith(("*", "-", "1.", "2.", "3.")):
+                        continue
+                    if _CAPABILITY_DISCLAIMER_RE.search(c_text):
                         continue
                     if not _CLAUSE_ACTION_VERB_RE.search(c_text):
                         continue

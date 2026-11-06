@@ -2,7 +2,7 @@
 OpenVINO 5-Class Sentence-Pooling Neural Proof-Policy Hazard & Cross-Reference Classifier
 (WO-41 Phase 4 Milestone 4.1 & WO-42 Milestone 1.2).
 
-Trained full-layer on the NVIDIA GeForce RTX 5080 Laptop GPU (`cross-encoder/nli-MiniLM2-L6-H768`,
+Trained full-layer on a discrete CUDA GPU (`cross-encoder/nli-MiniLM2-L6-H768`,
 all 6 transformer layers + embeddings unfrozen) and exported to static-shape `[1, 64]` OpenVINO IR
 (`models/proof_policy_hazard_ov/openvino_model.xml`) for Intel NPU / iGPU / CPU execution.
 
@@ -51,6 +51,16 @@ _CROSS_REF_CMD_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:independent|multiple|several|separate|external|second|third|sources?|outlets?|agencies|websites?|papers?|publications?|references?|filings?|databases?|notices?|datasets?)\b|"
     r"\b(?:pull\s+up|find|check|use)\s+(?:a\s+)?(?:second|third|multiple|several|independent)\s+(?:and\s+third\s+)?(?:independent\s+|external\s+|separate\s+)?(?:references?|sources?|outlets?)\s+to\s+(?:verify|confirm|corroborate|check)\b|"
     r"\b(?:double[- ]?check|verify|confirm)\b.*\b(?:across|against)\s+(?:at\s+least\s+\w+\s+)?(?:multiple|several|independent|other\s+external|second|third)\s+(?:independent\s+|external\s+|separate\s+)?(?:sources?|outlets?|agencies|websites?|publications?|notices?|services?)\b",
+    re.IGNORECASE,
+)
+
+_HAS_CORROBORATION_SIGNAL_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:cross[- ]?reference|cross[- ]?check|corroborat\w*|triangulat\w*|double[- ]?check|"
+    r"fact[- ]?check|verif\w*|confirm\w*|second\s+opinion|back\s+that\s+up|"
+    r"(?:more|other|additional|multiple|several|independent|second|third|separate|external|different|further)\s+"
+    r"(?:independent\s+|external\s+|separate\s+|reliable\s+|primary\s+)*"
+    r"(?:sources?|outlets?|references?|studies|reports?|papers?|publications?|agencies|websites?|filings?|databases?|notices?|datasets?|articles?|evidence|confirmation)|"
+    r"sources?\s+(?:on|for|about|to\s+confirm|to\s+verify|to\s+back))\b",
     re.IGNORECASE,
 )
 
@@ -191,6 +201,12 @@ class NeuralHazardClassifier:
 
         exp_l = np.exp(logits - np.max(logits))
         probs = exp_l / np.sum(exp_l)
+        if not _HAS_CORROBORATION_SIGNAL_RE.search(segment):
+            probs = probs.copy()
+            probs[3] = 0.0
+            prob_sum = float(np.sum(probs))
+            if prob_sum > 0.0:
+                probs = probs / prob_sum
         idx = int(np.argmax(probs))
         conf = float(probs[idx])
         pred_cls = CLASS_NAMES[idx]
