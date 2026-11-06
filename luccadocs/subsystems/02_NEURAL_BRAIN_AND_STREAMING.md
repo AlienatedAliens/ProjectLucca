@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 02 — Neural Brain & Streaming Demuxer
 
 **Subsystem:** `src/lucca/brain/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.48.0 (`WO-42`)  
 **Architectural Tier:** System 2 Neural Core  
 **Hardware Placement:** NVIDIA GeForce RTX 5080 Laptop GPU (Dedicated Compute Mode `Disp.A: Off`), 16 GB GDDR7  
 
@@ -51,7 +51,7 @@ flowchart TD
 
 ## 2. Neural Core Foundation & Edge Placement (`D-BRAIN-05` v2)
 
-All formal cognition and tool generation in Project Lucca operate **exclusively on `gemma-4-12b-heretic-Q6_K.gguf`** (12.4 billion parameters):
+All formal cognition and tool generation in Project Lucca operate on the 4-tier local Gemma 4 GGUF model family (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf` Tier 0 MoE, `gemma-4-12b-heretic-Q6_K.gguf` Tier 1 Dense 12B, `gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf` Tier 2 Dense 4.5B, and `Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf` Tier 3 Dense 2.0B, verified across 100 live end-to-end turns in `WO-42`):
 
 | Parameter | Specification | Architectural Rationale |
 | :--- | :--- | :--- |

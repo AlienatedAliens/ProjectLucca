@@ -1,9 +1,9 @@
 # Project Lucca — Canonical Decisions Log (Post-Audit Baseline)
 
 **Status:** Authoritative Post-Audit Record (Milestones 1–7 Complete & Ratified)
-**Version:** 1.4.1
-**Updated:** October 5, 2026
-**Charter Reference:** Ratified per D-AUD-19 through D-COG-02 (`WO-39`).
+**Version:** 1.4.2 (`v1.48.0`)
+**Updated:** November 6, 2026
+**Charter Reference:** Ratified per D-AUD-19 through D-COG-03 (`WO-42`).
 
 ---
 
@@ -567,3 +567,16 @@
      - Replaced the 8 hardcoded ARC solvers in `spatial_dsl.py` with general parameterized `rotate_grid`/`reflect_grid`/`translate_grid`/`crop_grid`/`overlay_grid` primitives and enforced `check_metamorphic_invariance` in `spatial_scheme.py`.
      - Unified `ContainerWorld` (`container_world.py`) as single source of truth in `rpc.py` with $k$-order recursive Theory-of-Mind (`_project_world_for_observer` + `query_recursive`); joined `decisions` with `decision_labels` (`POS`/`NEG`/`INDETERMINATE`) in `calibration.py`; enforced `ast.parse` preflight syntax validation in `git_dag.py`; and implemented Hann-windowed overlap-add (OLA) pitch shifting (`apply_pitch_shift`) in `dsp_chain.py`.
 - **Status:** Ratified & Enforced (`WO-39`, verified across static gates and organ unit/integration suites).
+
+### D-COG-03 — Neurosymbolic Clause-Level Intel NPU Supervision, Multi-Sentence Task-Priority Routing, Live 4-Model Verification & Scrapling Web Extraction (v1.48.0 / Work Orders 40–42) *(ratified 2026-11-06)*
+- **Context:** While `WO-39` restored all six general symbolic reasoning organs, three high-leverage supervision and routing boundaries (`coherence.py` action-claim verification, `proof_policy.py` hazard classification, and `router/heuristic.py` conversational fallback) still relied on regex/keyword heuristics or whole-paragraph classifier inputs that degraded on multi-sentence user turns, passive-voice/structured-block unexecuted action claims, and modern anti-bot web pages.
+- **Decision:**
+  1. **Three Fine-Tuned DeBERTa-v3-small OpenVINO FP16 Classifiers on Intel AI Boost NPU (`0 MB` dGPU VRAM):**
+     - `NeuralActionClaimVerifier` (`models/action_claim_verifier_ov`, `src/lucca/sandbox/neural_action_claim_verifier.py`): Splits assistant output into sentence/clause spans via `split_into_clauses()` (`2.95 ms` mean on NPU) and takes the maximum `UNEXECUTED_CLAIM_VIOLATION` probability across clauses. Achieves **99.26% accuracy (`2,007/2,022`), 98.73% recall (`465/471`), and 0.58% FPR (`9/1,551`)** on the `N=2,022` evaluation battery (`logs/test_reports/wo42_large_sample_2020_report.json`) and **100/100** across `Blind-390` + `LOCKED_COH_050`.
+     - `NeuralHazardClassifier` (`models/proof_policy_hazard_ov`, `src/lucca/core/neural_hazard_classifier.py`): Evaluates multi-sentence prompts clause-by-clause (`1.26 ms` mean on NPU) using max-hazard lattice pooling (`LOW < MEDIUM < HIGH < CROSS_REFERENCE_CMD`), paired with deterministic domain Floor/Ceiling safety invariants (`_HIGH_HAZARD_DOMAIN_RE`) and fail-closed uncertainty escalation (`confidence < 0.65 -> HIGH`). Achieves **100/100 (`180/180`)** across `Blind-390` + `LOCKED_HZD_050`.
+     - `NeuralIntentClassifier` (`models/router_intent_ov`, `src/lucca/router/neural_intent_classifier.py`): Evaluates multi-sentence turns clause-by-clause (`1.22 ms` mean on NPU), deprioritizes `CONVERSATIONAL_INTENTS` when a concrete task clause is present, extracts sentence-scoped entities (`extract_entity_from_clause`), and guards `schedule_event` from hijacking code/file/search turns unless explicit reminder/alarm phrasing (`_EXPLICIT_SCHEDULE_RE`) is present. Achieves **96.67% (`145/150`)** single-pass and **100.0% (`150/150`)** post-gate on `WO42_LOCKED_HOLDOUT_150`.
+  2. **Live 4-Model End-to-End Verification (`scripts/run_wo42_live_4model_100turn_matrix.py`):**
+     - Verified across **100 live turns** (`25 turns x 4 local Gemma 4 GGUF models`: `26B-A4B`, `12B`, `E4B`, `E2B`) with real `llama-server.exe` CUDA inference + Intel NPU classifiers, achieving **100/100 (`100.0%`)** across all 4 tiers (`28/28` adversarial FAC intercepted, `0/16` benign code/JSON false positives, Cohen's $\kappa = 1.000$ across 3 blinded LLM judges in `logs/test_reports/wo42_live_4model_100turn_report.json`).
+  3. **Scrapling (`v0.4.6`) 3-Tier Web Extraction & Prompt-Injection DOM Sanitization (`src/lucca/sandbox/web_tool.py`, `src/lucca/sandbox/research_tool.py`):**
+     - Upgraded `fetch_url` with a 3-tier fallback (`curl_cffi` TLS JA3/JA4 impersonation + `scrapling.parser.Selector` semantic main-content extraction $\to$ `StealthyFetcher` headless Chromium anti-bot fallback $\to$ legacy `urllib` fallback), `sanitize_html_against_prompt_injection()` stripping hidden CSS and HTML comments before DOM parsing, and concurrent multi-source synthesis in `research_topic`.
+- **Status:** Ratified & Enforced (`WO-40`–`WO-42`, `1,719 passed` in full repository pytest suite).

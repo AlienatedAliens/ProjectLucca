@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 01 — Core Orchestration & Epistemic Cascade
 
 **Subsystem:** `src/lucca/core/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.48.0 (`WO-42`)  
 **Architectural Tier:** Sovereign Supervisor & Epistemic Foundation  
 **Hardware Placement:** Intel Core Ultra 9 275HX (Host CPU), SQLite WAL, ZeroMQ IPC  
 
@@ -41,7 +41,7 @@ flowchart TD
 
     subgraph OutputTiers ["Output & Delivery"]
         MS --> SPM["SpeechPlaybackManager"]
-        NB --> OS["Output Supervisor (DFA Filter)"]
+        NB --> OS["Output Supervisor (DFA + NPU NeuralActionClaimVerifier)"]
         OS --> SPM
         SPM --> TTS["Kokoro-82M TTS + Ring Buffer"]
     end

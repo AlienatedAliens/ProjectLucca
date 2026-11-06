@@ -71,7 +71,7 @@ Legend: Lucca cells use register rungs (L0–L4, see register §1). Competitor c
 | Remind | **L2** (SQLite persistence + idle heartbeat fire) | NV | NV | NV | NV | NV |
 | Proactive | L1→L2 | NV | NV | NV | NV | NV |
 | Learn | L2, quarantine + operator promotion | NV | NV | NV | NV | NV |
-| Honest actions | **L2** (mechanism exists; held-out regex recall 1/16) | NV | NV | NV | NV | NV |
+| Honest actions | **L2** (`WO-42` clause-level NPU `NeuralActionClaimVerifier`: `99.26%` accuracy, `98.73%` recall, `0.58%` FPR on `N=2,022`, `28/28` live 4-model FAC; 30-day dogfood ledger pending for L3) | NV | NV | NV | NV | NV |
 | Privacy | L3, fully local product path | NV | NV | NV | NV | NV |
 | Persona control | Full owner control (uncensored persona, `D-SOV-01`) | NV | NV | NV | NV | NV |
 | Setup cost | High: RTX-class dGPU, 64 GB RAM, WSL2 + Docker | NV | NV | NV | NV | NV |
@@ -107,7 +107,7 @@ These are the working positioning hypotheses. Each must be confirmed by filling 
 |---|---|---|
 | H1 | Cloud assistants lead on model quality, integrations (mail/calendar/docs), cross-device presence, voice polish, and computer use. | 3.1: Talk, Presence, Act on PC, See |
 | H2 | Lucca's defensible differentiator is a **fully local companion whose memory and action claims are structurally honest** — signed provenance, own-speech excluded from evidence, receipts-gated action claims. Few or no products enforce this at the storage layer. | 3.1/3.2: Remember you, Self-record, Honest actions, Privacy |
-| H3 | H2 is only defensible once `CAP-HONEST` reaches L3. At L2 (1/16 held-out recall) the claim is "mechanism exists", not "guarantee holds". | Register `CAP-HONEST` |
+| H3 | H2 is only defensible once `CAP-HONEST` reaches L3. As of `WO-42` (2026-11-06), `NeuralActionClaimVerifier` achieves `99.26%` accuracy (`98.73%` recall, `0.58%` FPR) on `N=2,022` and `28/28` live 4-model FAC interception, leaving only the 30-day daily-use dogfood ledger to close L3. | Register `CAP-HONEST` |
 | H4 | Open-source companions lead on avatar/embodiment, open-mic presence, cross-platform support, install ease, and plugin ecosystems; Lucca leads on sandboxing, provenance memory, and honesty architecture. | 3.2 all rows |
 | H5 | Lucca's reasoning benchmarks are **not** a competitive differentiator: frontier cloud models dominate them, and companion products do not publish comparable numbers. | Excluded by §2 rule 6 |
 | H6 | Lucca's largest gaps vs. every category: reminders (L1), proactivity (L1→L2), "knows you" (L1→L2), presence (L2), setup cost. | Register target profile §7 |

@@ -1,8 +1,8 @@
 # Project Lucca — Model Strategy & Inference Pipeline Specification
 
-**Status:** Canonical Strategy & Operational Deployment (Ratified per D-BRAIN-05, D-ROUT-02, D-AFF-01, D-SUP-01, D-COG-01)
-**Version:** 2.0.0
-**Updated:** October 18, 2026
+**Status:** Canonical Strategy & Operational Deployment (Ratified per D-BRAIN-05, D-ROUT-02, D-AFF-01, D-SUP-01, D-COG-01, D-COG-03)
+**Version:** 2.1.0 (`v1.48.0` / `WO-42`)
+**Updated:** November 6, 2026
 **Audience:** System Architects, Core Engineers, AI Researchers
 
 ---
@@ -80,6 +80,9 @@ All inference operations are strictly bounded to the physical constraints of the
 | **Gemma-4-E2B-Heretic-Sinhala** | Dense ~2.0B effective params (Google DeepMind), bilingual transfer fine-tune | Q6_K (~2.26 GB) | 16k | Gemma Terms of Use | **Validated Deployment Tier: Ultra-Edge Companion**. 2,260 MiB VRAM (13.9%), 126.1–169.1 tok/s. 81.0% strict CAS on competition math via Thinking Mode R1 @ 6k (80.6% on 98-item clean), significantly outperforming PAL (61.0%, $p=0.0002$). |
 | **Mistral NeMo 12B Instruct Abliterated** | Dense 12.2B (Mistral AI & NVIDIA), Tekken tokenizer | Q6_K (~10.1 GB) | 16k / 128k (native) | **Apache 2.0** | **Deprecated (2026-09-21)**. Server-side tool parser never engaged on llama.cpp b11026; 3 hallucinated tool calls on conversational prompts. Pinned for rollback. |
 | **Ultravox v0.5 8B** | Multimodal Llama-3.1-8B + Whisper-turbo projector | Q6_K (~6.6 GB) + mmproj (~0.74 GB) | 8k | Llama 3.1 Community | **Deprecated / Archived**. Suffers from pre-processing blindspot and moralizing prefill refusals. |
+| **`models/action_claim_verifier_ov`** | Fine-tuned DeBERTa-v3-small (3 classes) | OpenVINO FP16 (`0 MB` dGPU VRAM) | 512 | MIT | **Active on Intel AI Boost NPU (`WO-41`/`WO-42`)**: Clause-level action-claim verifier (`src/lucca/sandbox/neural_action_claim_verifier.py`), `2.95 ms` mean, **99.26% accuracy (`2,007/2,022`), 98.73% recall (`465/471`), 0.58% FPR (`9/1,551`)**. |
+| **`models/proof_policy_hazard_ov`** | Fine-tuned DeBERTa-v3-small (5 classes) | OpenVINO FP16 (`0 MB` dGPU VRAM) | 512 | MIT | **Active on Intel AI Boost NPU (`WO-41`/`WO-42`)**: Clause-level max-hazard lattice proof-policy classifier (`src/lucca/core/neural_hazard_classifier.py`), `1.26 ms` mean, **100.0% (`180/180`)** on `Blind-390` + `LOCKED_HZD_050`. |
+| **`models/router_intent_ov`** | Fine-tuned DeBERTa-v3-small (29 classes) | OpenVINO FP16 (`0 MB` dGPU VRAM) | 512 | MIT | **Active on Intel AI Boost NPU (`WO-41`/`WO-42`)**: Multi-sentence task-priority intent classifier (`src/lucca/router/neural_intent_classifier.py`), `1.22 ms` mean, **96.67% (`145/150`)** single-pass / **100.0% (`150/150`)** post-gate on `WO42_LOCKED_HOLDOUT_150`. |
 
 ---
 

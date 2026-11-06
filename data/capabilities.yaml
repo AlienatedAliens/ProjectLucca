@@ -273,6 +273,7 @@ capabilities:
     evidence:
       - src/lucca/sandbox/search_tool.py
       - src/lucca/sandbox/web_tool.py
+      - src/lucca/sandbox/research_tool.py
     failure_modes:
       - upstream search rate limits or network offline
     competitor_refs: []
@@ -393,9 +394,12 @@ capabilities:
       criteria: classifier supervisor shadow-mode ledger >= 30 days with FP <= 2%
     evidence:
       - src/lucca/sandbox/output_supervisor.py
+      - src/lucca/sandbox/neural_action_claim_verifier.py
+      - logs/test_reports/wo42_large_sample_2020_report.json
+      - logs/test_reports/wo42_live_4model_100turn_report.json
       - papers/02_deontic_supervision_evasion/main.tex
     failure_modes:
-      - regex supervisor caught 1/16 held-out evasive prose claims; GBNF prose leakage 14.17%
+      - WO-42 clause-level NPU NeuralActionClaimVerifier reaches 98.73% recall (465/471) and 0.58% FPR (9/1551) on N=2022 (99.26% accuracy); 6 residual FN and 9 FP on edge-case indirect phrasings; 30-day daily-use dogfood ledger pending for L3
     competitor_refs: []
     target_maturity_v2: L3
 

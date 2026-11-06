@@ -1,7 +1,7 @@
 # Project Lucca — Documentation Master Index & System Truth
 
 **Version:** 2.3.0
-**Updated:** October 28, 2026
+**Updated:** November 6, 2026 (`WO-42`)
 **Git Baseline:** Project Lucca v1.45.0-stable Production Release (`master`)
 
 > **Staleness note (2026-10-28):** This directory (`luccadocs/` inside the
@@ -48,8 +48,8 @@ The following documents form the **authoritative, active documentation corpus** 
 ### 2.1 Core Architectural & Operational Specifications (`luccadocs/`)
 | Document | Purpose & Code Truth Alignment |
 | :--- | :--- |
-| [`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md) | **Unified System Architecture Specification (v1.45.0 / WO-36)**: 4-process topology (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server`), 4-tier Gemma 4 substrate (`26B-A4B`, `12B`, `E4B`, `E2B`), 3 execution tiers (`REFLEX`, `ACT_THEN_NARRATE`, `FULL_LOOP`), MicroScheme + Organ A Mereotopology + CEGIS self-repair, cryptographic memory + qualitative Allen temporal retrieval, Two-Cadence Inner Life (`IdlePulse` + `DreamRetrospective`), `CognitiveOutcomeSink`, `ActiveGoalManager`, Constitutional Kernel + Windows 11 WinRT `OcrEngine`, and persistent Docker container sandboxing. |
-| [`luccadocs/DECISIONS.md`](./DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-COG-01`) with implementation statuses, code citations, and test links. |
+| [`luccadocs/ARCHITECTURE.md`](./ARCHITECTURE.md) | **Unified System Architecture Specification (v1.48.0 / WO-42)**: 4-process topology (`lucca-core`, `lucca-audio`, `lucca-ui`, `llama-server`), 4-tier Gemma 4 substrate (`26B-A4B`, `12B`, `E4B`, `E2B`), 3 execution tiers (`REFLEX`, `ACT_THEN_NARRATE`, `FULL_LOOP`), 3 OpenVINO FP16 Intel NPU classifiers (`NeuralActionClaimVerifier`, `NeuralHazardClassifier`, `NeuralIntentClassifier`), Scrapling 3-tier web extraction, MicroScheme + Organ A Mereotopology + CEGIS self-repair, cryptographic memory + qualitative Allen temporal retrieval, Two-Cadence Inner Life (`IdlePulse` + `DreamRetrospective`), `CognitiveOutcomeSink`, `ActiveGoalManager`, Constitutional Kernel + Windows 11 WinRT `OcrEngine`, and persistent Docker container sandboxing. |
+| [`luccadocs/DECISIONS.md`](./DECISIONS.md) | **Canonical Decisions Register**: All ratified ADRs (`D-AUD-01` through `D-COG-03`) with implementation statuses, code citations, and test links. |
 | [`luccadocs/MODEL_STRATEGY.md`](./MODEL_STRATEGY.md) | **Multi-Scale Model Strategy & Inference Specification**: 4-tier Gemma 4 deployment (`26B-A4B` Tier 0 at `ctx=65536` / `ngl=99` / `--cpu-moe` / `--moe-cache-mib 7680` per `src/lucca/core/config.py:LLMSettings`, `12B` Tier 1, `E4B` Tier 2, `E2B` Tier 3), dynamic neurosymbolic task router, Prompt Frontier Suffix KV-cache optimization, and `SPIKE-A` / `SPIKE-B` verification. |
 | [`luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md`](./USER_GUIDE_WHAT_LUCCA_DOES.md) | **End-to-End User Guide**: Capabilities overview, quickstart instructions, 24 native tools, 15 active rules, Rung A1 autobiographical memory, Two-Cadence Inner Life, Goal-Biased Recall, WinRT OCR fallback, and the 12-step verification battery. |
 | [`luccadocs/V2_BACKLOG.md`](./V2_BACKLOG.md) | **v2 Deferred Backlog**: Formally deferred capabilities with explicit empirical revisit triggers and graduated capability tracking through WO-36. |
@@ -129,4 +129,4 @@ Every active document aligns with the following ground-truth facts verified in c
    - Constitutional Kernel SHA-256 fingerprint (`constitutional_hash`), epistemic prosody modulation, and Windows 11 WinRT `Windows.Media.Ocr.OcrEngine` text extraction.
 7. **Quality & Verification Gates**:
    - 24 static architectural gates in `tests/test_static_gates.py` (100% green).
-   - 1,243+ non-hardware regression tests passing (0 failed).
+   - 1,719 non-hardware regression tests passing (0 failed) across the full repository test suite (`WO-42`).

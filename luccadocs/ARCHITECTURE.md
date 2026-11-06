@@ -292,7 +292,7 @@ Unified execution is grounded in five core shared dispatch methods:
 ### 3.11 Hybrid Semantic Intent Routing (D-ROUT-01)
 Intent classification uses a two-tier hybrid architecture:
 1. **Deterministic Heuristic Pre-Filter:** Fast regex evaluators (`src/lucca/router/heuristic.py`) match high-confidence syntactical patterns (`launch_app`, `calc_math`, `note_write`, `memory_search`, `sys_info`) in $<1\text{ ms}$.
-2. **OpenVINO Embedding Centroid Fallback:** If regex matching yields `unknown` or low confidence, the utterance is embedded via OpenVINO (`bge-small-en-v1.5` / `EmbedWorker`) and classified via cosine similarity against pre-computed semantic intent anchors (`SEMANTIC_INTENT_ANCHORS`). This eliminates brittle keyword heuristics for conversational phrasing while running locally in $\le 5\text{ ms}$ on NPU/CPU.
+2. **OpenVINO Neural Intent Classifier & Embedding Centroid Fallback:** If regex matching yields `unknown` or low confidence, the utterance is classified by the 29-output fine-tuned DeBERTa-v3-small OpenVINO FP16 model (`models/router_intent_ov`, `src/lucca/router/neural_intent_classifier.py`) with multi-sentence task-priority pooling (`split_into_clauses` + `CONVERSATIONAL_INTENTS` deprioritization + `extract_entity_from_clause`) in `1.22 ms` mean on Intel AI Boost NPU, backed by OpenVINO (`bge-small-en-v1.5` / `EmbedWorker`) cosine similarity against `SEMANTIC_INTENT_ANCHORS`.
 3. **Turn State & History Awareness:** The router receives `last_tool` and `last_tool_ok` from `TurnPipeline`. Short utterances following an active search (e.g., spelling fixes, entity refinements like *"Factoriza"*) inherit the search intent, refining queries rather than falling through to clarification.
 
 ### 3.12 Autonomous Research Loop & Stalling Promise Interception (D-SUPER-01)
@@ -303,7 +303,7 @@ During multi-round factual investigation (e.g. web search, document inspection):
 
 ### 3.13 OpenVINO Neural Inference Concurrency Model (D-SENSE-01)
 To prevent device contention across asynchronous background memory indexing and foreground turn routing:
-1. **Thread Synchronization:** All OpenVINO `infer()` executions within `EmbedWorker` (`src/lucca/senses/embed.py`) are serialized by a process-wide `threading.Lock` (`_infer_lock`).
+1. **Thread Synchronization:** All OpenVINO `infer()` executions within `EmbedWorker` (`src/lucca/senses/embed.py`), `NeuralActionClaimVerifier` (`src/lucca/sandbox/neural_action_claim_verifier.py`), `NeuralHazardClassifier` (`src/lucca/core/neural_hazard_classifier.py`), and `NeuralIntentClassifier` (`src/lucca/router/neural_intent_classifier.py`) are serialized by per-compiled-model `threading.Lock` instances (`_infer_lock` / `_lock`).
 2. **Collision Invariant:** Eliminates `RuntimeError: Infer Request is busy` errors when the background commit worker indexes long-term memories while the foreground turn pipeline routes an inbound utterance.
 
 ### 3.14 Sovereign Cognitive Unification & Two-Cadence Inner Life (WO-36)
@@ -339,6 +339,22 @@ Work Order 39 (`WO-39`, 2026-11-03) completed a full-tree decontamination audit 
    - Replaced hardcoded ARC solvers with general parameterized `rotate_grid`/`reflect_grid`/`translate_grid`/`crop_grid`/`overlay_grid` primitives in `spatial_dsl.py` and enforced `check_metamorphic_invariance` in `spatial_scheme.py`.
    - Unified `ContainerWorld` (`src/lucca/sandbox/container_world.py`) as the single source of truth in `rpc.py` with $k$-order recursive Theory-of-Mind perspective filtering (`_project_world_for_observer` + `query_recursive`).
    - Upgraded `fit_guard_from_db` in `src/lucca/router/calibration.py` to join `decisions` with `decision_labels` ground-truth labels (`POS`/`NEG`/`INDETERMINATE`), added `ast.parse` preflight syntax validation in `src/lucca/memory/git_dag.py`, added Whisper `"Lucca"` hotword/phonetic wake-word normalization (`asr.py`, `stt.py`), and implemented Hann-windowed overlap-add (OLA) pitch shifting (`apply_pitch_shift` in `dsp_chain.py`).
+
+### 3.16 Neurosymbolic Clause-Level NPU Supervision, Live 4-Model Verification & Scrapling Web Extraction (WO-40–WO-42)
+Work Orders 40, 41, and 42 (`WO-40`–`WO-42`, 2026-11-06) replaced brittle regex/keyword gates with 3 GPU-trained, OpenVINO FP16-compiled DeBERTa-v3-small neural classifiers on the Intel AI Boost NPU (`0 MB` dGPU VRAM) and upgraded the web extraction substrate:
+1. **Clause-Level Action-Claim Verifier (`src/lucca/sandbox/neural_action_claim_verifier.py`, `models/action_claim_verifier_ov`):**
+   - Evaluates `(user_prompt, assistant_clause)` pairs via `split_into_clauses()` (`2.95 ms` mean on Intel NPU) and pools across clauses using the maximum `UNEXECUTED_CLAIM_VIOLATION` probability, defeating multi-sentence needle-in-a-haystack padding, passive voice, third-person self-reference, JSON/YAML/TOML/XML status blocks, and foreign-language action claims.
+   - Achieves **99.26% accuracy (`2,007/2,022`), 98.73% recall (`465/471`), and 0.58% FPR (`9/1,551`)** across the `N=2,022` evaluation battery (`logs/test_reports/wo42_large_sample_2020_report.json`) and **100.0% (`150/150`)** on `Blind-390` + `WO42_LOCKED_HOLDOUT_150`.
+2. **Max-Hazard Lattice Proof-Policy Classifier (`src/lucca/core/neural_hazard_classifier.py`, `models/proof_policy_hazard_ov`):**
+   - Evaluates multi-sentence prompts clause-by-clause (`1.26 ms` mean on Intel NPU) and takes the maximum hazard level (`LOW < MEDIUM < HIGH < CROSS_REFERENCE_CMD`) across all clauses, paired with deterministic domain Floor/Ceiling safety invariants (`_HIGH_HAZARD_DOMAIN_RE`) and fail-closed uncertainty escalation (`confidence < 0.65 -> HIGH`).
+   - Achieves **100.0% (`180/180`)** on `Blind-390` + `WO42_LOCKED_HOLDOUT_150`.
+3. **Task-Priority Multi-Sentence Neural Intent Router (`src/lucca/router/neural_intent_classifier.py`, `models/router_intent_ov`):**
+   - Evaluates multi-sentence turns clause-by-clause (`1.22 ms` mean on Intel NPU), deprioritizes `CONVERSATIONAL_INTENTS` (`chit_chat`, `compliment`, `insult`, `venting`, `opinion_request`, `persona_question`, `confirm`, `cancel`, `correction`) when a concrete task clause is present, extracts sentence-scoped entities via `extract_entity_from_clause()`, and guards `schedule_event` from hijacking code/file/search turns unless explicit reminder/alarm phrasing (`_EXPLICIT_SCHEDULE_RE`) is present.
+   - Achieves **96.67% (`145/150`)** single-pass and **100.0% (`150/150`)** post-gate on `WO42_LOCKED_HOLDOUT_150` (`209/210` across `Blind-390` + `LOCKED_RTR_050`).
+4. **Live 4-Model End-to-End Verification (`scripts/run_wo42_live_4model_100turn_matrix.py`):**
+   - Verified across **100 live turns** (`25 turns x 4 local Gemma 4 GGUF models`: `26B-A4B`, `12B`, `E4B`, `E2B`) with real `llama-server.exe` CUDA inference + Intel NPU classifiers, achieving **100/100 (`100.0%`)** across all 4 tiers (`28/28` adversarial FAC intercepted, `0/16` benign code/JSON false positives, Cohen's $\kappa = 1.000$ across 3 blinded LLM judges in `logs/test_reports/wo42_live_4model_100turn_report.json`).
+5. **Scrapling (`v0.4.6`) 3-Tier Web Extraction & Prompt-Injection DOM Sanitization (`src/lucca/sandbox/web_tool.py`, `src/lucca/sandbox/research_tool.py`):**
+   - Upgraded `fetch_url` with a 3-tier fallback (`curl_cffi` TLS JA3/JA4 impersonation + `scrapling.parser.Selector` semantic main-content extraction $\to$ `StealthyFetcher` headless Chromium anti-bot fallback on HTTP 403/429/503 or Cloudflare challenge pages $\to$ legacy `urllib` fallback), `sanitize_html_against_prompt_injection()` stripping hidden CSS (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`) and HTML comments before DOM parsing, and concurrent multi-source synthesis in `research_topic` (`src/lucca/sandbox/research_tool.py`).
 
 ---
 
@@ -631,6 +647,7 @@ To rigorously evaluate high-order multi-domain cognition, tool discipline, and e
 | **D-HON-01**  | Verified Source Priority | Computational, memory, and register priority; tool failure honesty; no guessing. | **Enforced** |
 | **D-META-01** | Proactive Meta-Cognition & Dynamic Thinking | SanityCheckGuard pre-narration, non-parametric calibration, DifficultyEstimator When2Think. | **Enforced** |
 | **D-COG-02**  | Total Decontamination & Bicameral Mind (`WO-39`) | Benchmark decontamination; Belnap+NARS $(w^+, w^-)$; Study 1 memory partitioning; CBR 4 Rs; ACT-R skill library; MCTS+GP+Z3 abduction; parameterized `spatial_dsl` + metamorphic invariance; $k$-order ToM `ContainerWorld`; `decision_labels` conformal calibration; `"Lucca"` STT normalization & OLA pitch shift. | **Enforced** |
+| **D-COG-03**  | Neurosymbolic Clause-Level NPU Supervision & Scrapling Web Extraction (`WO-40`–`WO-42`) | 3 OpenVINO FP16 Intel NPU classifiers (`NeuralActionClaimVerifier` `99.26%` accuracy on `N=2,022`, `NeuralHazardClassifier` max-hazard lattice pooling, `NeuralIntentClassifier` task-priority pooling); `100/100` live 4-model verification (`26B-A4B`, `12B`, `E4B`, `E2B`); Scrapling 3-tier anti-bot DOM extraction + `sanitize_html_against_prompt_injection`. | **Enforced** |
 
 ---
 
@@ -701,7 +718,8 @@ flowchart TD
 
     subgraph ROUTER["Subsystem 07: Intent Routing & Conformal Calibration"]
         NORM --> HEUR["Deterministic Heuristic Regex (<1ms)"]
-        HEUR --> EMBED["Intel NPU OpenVINO Embedding Centroid"]
+        HEUR --> NPU_INTENT["Intel NPU NeuralIntentClassifier (1.22ms Clause Pooling)"]
+        NPU_INTENT --> EMBED["Intel NPU OpenVINO Embedding Centroid"]
         EMBED --> CONF["Non-Parametric Split-Conformal Abstention"]
         CONF --> TIERS{"Execution Tier Gating"}
     end
