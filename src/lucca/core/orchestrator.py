@@ -3052,7 +3052,17 @@ class Orchestrator:
                     # it has not done it.
                     if round_num < max_rounds and tools:
                         round_text_str = "".join(round_response_text).strip()
-                        promises = detect_promised_action_claims(round_text_str)
+                        active_receipts = (
+                            list(getattr(self, "current_turn_receipts", [])) or tool_receipts
+                        )
+                        promises = (
+                            detect_promised_action_claims(
+                                round_text_str,
+                                user_context=sup_ctx if sup_ctx else user_msg,
+                            )
+                            if not active_receipts
+                            else []
+                        )
                         if promises:
                             logger.info(
                                 "promised_action_without_tool_call_intercepted",
@@ -3074,9 +3084,6 @@ class Orchestrator:
                         # reject the draft round and force either a real tool call or an
                         # honest disclosure.
                         if round_text_str:
-                            active_receipts = (
-                                list(getattr(self, "current_turn_receipts", [])) or tool_receipts
-                            )
                             ungrounded_breach = self._check_functional_coherence(
                                 round_text_str,
                                 active_receipts,

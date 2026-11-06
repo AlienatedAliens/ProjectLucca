@@ -18,7 +18,6 @@ Irreversible actions always require BEYOND_REASONABLE_DOUBT (0.95).
 Fail-closed default: unknown consumers or unknown hazard require BEYOND_REASONABLE_DOUBT (0.95).
 """
 
-import re
 import tomllib
 from enum import StrEnum
 from pathlib import Path
@@ -27,6 +26,7 @@ from typing import Final
 import structlog
 
 from lucca.core.config import get_resource_path
+from lucca.core.neural_hazard_classifier import get_neural_hazard_classifier
 from lucca.core.schemas import PROOF_STANDARDS, ProofStandard, standard_for_confidence
 
 logger = structlog.get_logger(__name__)
@@ -75,206 +75,25 @@ POLICY_TABLE_2D: Final[dict[tuple[str, Hazard], ProofStandard]] = {
     ("irreversible_action", Hazard.HIGH): ProofStandard.BEYOND_REASONABLE_DOUBT,
 }
 
-# Hazard classification keyword sets (Phase 3 Amendment A)
-_HIGH_HAZARD_KEYWORDS: Final[frozenset[str]] = frozenset(
-    {
-        "health",
-        "medical",
-        "medicine",
-        "doctor",
-        "hospital",
-        "dosage",
-        "drug",
-        "prescription",
-        "symptom",
-        "disease",
-        "treatment",
-        "cure",
-        "pain",
-        "finance",
-        "financial",
-        "bank",
-        "banking",
-        "money",
-        "account",
-        "credit",
-        "debit",
-        "wire",
-        "transfer",
-        "tax",
-        "taxes",
-        "stock",
-        "invest",
-        "investment",
-        "crypto",
-        "bitcoin",
-        "wallet",
-        "legal",
-        "law",
-        "lawsuit",
-        "court",
-        "attorney",
-        "contract",
-        "delete",
-        "destroy",
-        "wipe",
-        "rm",
-        "rmdir",
-        "format",
-        "drop",
-        "truncate",
-        "password",
-        "secret",
-        "token",
-        "credential",
-        "credentials",
-        "key",
-        "auth",
-        "kill",
-        "shut down",
-    }
-)
-
-_MEDIUM_HAZARD_KEYWORDS: Final[frozenset[str]] = frozenset(
-    {
-        "config",
-        "configuration",
-        "setting",
-        "settings",
-        "python",
-        "version",
-        "api",
-        "code",
-        "install",
-        "directory",
-        "path",
-        "network",
-        "port",
-        "compiler",
-        "runtime",
-        "dependency",
-        "package",
-        "env",
-        "environment",
-        "git",
-        "branch",
-        "repo",
-        "repository",
-        "query",
-        "database",
-        "table",
-        "schema",
-        "function",
-        "module",
-        "class",
-        "method",
-        "syntax",
-        "endpoint",
-        "url",
-        "server",
-        "ip",
-        "dns",
-        "protocol",
-        "docker",
-        "container",
-    }
-)
-
-_LOW_HAZARD_KEYWORDS: Final[frozenset[str]] = frozenset(
-    {
-        "trivia",
-        "game",
-        "games",
-        "movie",
-        "movies",
-        "film",
-        "music",
-        "song",
-        "band",
-        "album",
-        "food",
-        "color",
-        "hobby",
-        "sport",
-        "sports",
-        "actor",
-        "actress",
-        "release",
-        "released",
-        "birthday",
-        "birth",
-        "preference",
-        "favorite",
-        "author",
-        "book",
-        "novel",
-        "character",
-        "weather",
-        "capital",
-        "population",
-        "mascot",
-        "genre",
-        "holiday",
-        "quote",
-    }
-)
-
-
-_HIGH_HAZARD_PHRASES: Final[tuple[str, ...]] = (
-    "wire transfer",
-    "credit card",
-    "bank account",
-    "shut down",
-    "rm -rf",
-    "drop table",
-)
-
-_LOW_HAZARD_PHRASES: Final[tuple[str, ...]] = (
-    "pop culture",
-    "video game",
-    "video games",
-    "release date",
-    "release year",
-)
-
-
 def classify_hazard(claim_or_topic: str) -> Hazard:
-    """Classifies the hazard level of a claim or topic (WO-21 Phase 3 Amendment A).
+    """Classifies the hazard level of a claim or topic using the OpenVINO NPU 5-class neural classifier
+    (WO-41 Phase 4 Milestone 4.1, replacing WO-21 keyword/regex lists).
 
-    Classification v1:
+    Classification taxonomy:
     - HIGH: health, medical, safety, financial, legal, credentials, destructive actions.
     - MEDIUM: technical specs, system configuration, software versions, coding, APIs.
     - LOW: trivia, pop culture, entertainment, games, personal preferences, casual facts.
-    - Fail-closed: returns Hazard.HIGH for unknown or unclassified claims.
+    - Fail-closed: returns Hazard.HIGH for empty, unknown, or low-confidence claims.
     """
-    text = (claim_or_topic or "").strip().lower()
+    text = (claim_or_topic or "").strip()
     if not text:
         return Hazard.HIGH
 
-    # Tokenize words
-    words = set(re.findall(r"\b[a-z0-9_-]+\b", text))
-
-    # Multi-word phrase checks
-    if any(re.search(rf"\b{re.escape(p)}\b", text) for p in _HIGH_HAZARD_PHRASES):
-        return Hazard.HIGH
-
-    # Priority 1: High hazard words
-    if words & _HIGH_HAZARD_KEYWORDS:
-        return Hazard.HIGH
-
-    # Priority 2: Medium hazard words
-    if words & _MEDIUM_HAZARD_KEYWORDS:
+    verdict = get_neural_hazard_classifier().evaluate(text)
+    if verdict.hazard_level == "low":
+        return Hazard.LOW
+    if verdict.hazard_level == "medium":
         return Hazard.MEDIUM
-
-    # Multi-word low hazard phrases
-    if any(re.search(rf"\b{re.escape(p)}\b", text) for p in _LOW_HAZARD_PHRASES):
-        return Hazard.LOW
-
-    # Priority 3: Low hazard words
-    if words & _LOW_HAZARD_KEYWORDS:
-        return Hazard.LOW
-
-    # Fail-closed default for unknown claims
     return Hazard.HIGH
 
 
@@ -351,14 +170,10 @@ def load_ratification_domains(path: Path | str | None = None) -> set[str]:
 
 
 def is_cross_reference_command(text: str) -> bool:
-    """Checks if text contains user intent to cross-reference or gather more sources."""
-    cleaned = text.strip().lower()
-    cleaned_no_punct = re.sub(r"[^\w\s-]", "", cleaned)
-    patterns = (
-        r"\bcross[\s-]?reference\b",
-        r"\bfind\s+more\s+sources\b",
-        r"\bcheck\s+more\s+sources\b",
-        r"\bverify\s+(?:that|this|it)\b",
-        r"\bfind\s+other\s+sources\b",
-    )
-    return any(re.search(pat, cleaned_no_punct) for pat in patterns)
+    """Checks if text contains user intent to cross-reference or gather more sources
+    using the OpenVINO NPU 5-class neural classifier (WO-41 Phase 4 Milestone 4.1).
+    """
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return False
+    return get_neural_hazard_classifier().evaluate(cleaned).is_cross_reference_cmd

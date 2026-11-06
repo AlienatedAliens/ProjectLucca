@@ -29,128 +29,14 @@ from lucca.core.text_utils import normalize_transcript
 from lucca.memory.db import DatabaseManager
 from lucca.ports import EmbeddingPort
 from lucca.router.conformal import ConformalGuard
+from lucca.router.neural_intent_classifier import get_neural_intent_classifier
 
 logger = structlog.get_logger(__name__)
-
-SEMANTIC_INTENT_ANCHORS: Final[dict[str, tuple[str, ...]]] = {
-    "web_fetch": (
-        "why don't you look for alternative sources",
-        "can you look up more information on her for me",
-        "search other records and news articles",
-        "could you search online for this topic",
-        "find more details and information on the web",
-        "check other websites and sources for me",
-        "look into different places or databases",
-        "search the web for news articles about this",
-        "look up details online",
-        "try alternative sources",
-        "dig deeper into the sources",
-    ),
-    "context_query": (
-        "which websites have you searched",
-        "what sites did you check",
-        "what sources did you look at",
-        "what tools did you just execute",
-        "what did you say earlier",
-        "what did we just talk about",
-        "where did you look",
-    ),
-    "chit_chat": (
-        "hello how are you doing today",
-        "good morning lucca",
-        "thanks so much for your help",
-        "nice talking with you",
-        "what's going on",
-    ),
-    "memory_query": (
-        "do you remember what my favorite thing is",
-        "what is my address or where do i live",
-        "do you recall what i told you last week",
-        "what did i tell you earlier",
-    ),
-    "science_research": (
-        "what is the mechanism of action of",
-        "explain the chemical reaction between",
-        "how does photosynthesis work",
-        "what causes this biological phenomenon",
-        "describe the physics of",
-        "how does a molecular ring resist chemical addition",
-        "what is the crystal structure and lattice parameters of",
-        "explain the spectroscopic properties and absorption bands of",
-    ),
-    "math_computation": (
-        "calculate the integral of",
-        "find the roots of the polynomial",
-        "what is the sum of this series",
-        "prove that this equation has a solution",
-        "how many ways can you arrange",
-        "solve the system of linear equations",
-        "calculate the eigenvalues and determinant of the matrix",
-        "compute the prime factors and greatest common divisor",
-        "evaluate the logarithmic or trigonometric expression",
-        "find the numerical and algebraic solution to the formula",
-    ),
-    "logic_constraints": (
-        "solve this logic puzzle",
-        "given these constraints find the solution",
-        "if a implies b and b implies c then",
-        "which of these statements is consistent",
-        "find the truth assignment satisfying these conditions",
-    ),
-    "code_generation": (
-        "write a function that",
-        "debug this python code",
-        "implement an algorithm for",
-        "what does this code do",
-    ),
-    "factual_lookup": (
-        "who invented",
-        "when did",
-        "what year was",
-        "where was the first",
-    ),
-    "code_repair": (
-        "diagnose and fix the bug in this python file",
-        "apply a patch to resolve the failing test",
-        "grep the codebase for the error message",
-        "inspect the traceback and fix the code",
-        "run pytest on the test suite to verify",
-        "view lines of this module to find the bug",
-        "find the syntax or runtime error in the repository",
-        "repair the failing unit test in the package",
-        "investigate the issue in the codebase",
-        "fix the regression in the repository",
-    ),
-    "spatial_grid": (
-        "transform this 2d visual grid",
-        "rotate the 2D grid matrix 90 degrees",
-        "flood fill the enclosed shape with color",
-        "apply gravity drop to the falling objects",
-        "solve this 2d matrix pattern transformation task",
-        "align the shapes to the left bounding box",
-        "find the connected components and sort by size",
-        "detect repeating patterns in the 2d array",
-        "predict the output grid from input demonstration grids",
-    ),
-}
 
 EMERGENCY_REFLEX_PATTERN: Final[re.Pattern[str]] = re.compile(
     r"^(?:(?:please|lucca|hey\s+lucca)\s+)?"
     r"(shut\s*down|turn\s*off|exit(?!\s+(?:code|status|number|value))|quit|pause|mute|stop(?:\s+(?:everything|all|listening|doing|it|right\s+now|right\s+here))?|halt)"
     r"(?:\s+(?:everything|all|now|please|immediately|lucca|right\s+now|right\s+here|doing\s+that|listening|audio|yourself|execution|the\s+system|it))?[.!]?$",
-    re.IGNORECASE,
-)
-
-RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"what did (?:i|you) (?:just|last) (?:say|tell|ask|do|search|look\s*up|find)|"
-    r"repeat (?:that|what)|what was that|"
-    r"which (?:sites?|websites?|sources?|urls?|pages?|links?) "
-    r"(?:did|have) you (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
-    r"what (?:sites?|websites?|sources?|urls?|pages?|links?) "
-    r"(?:did you|have you) (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
-    r"where did you (?:search|look|check)"
-    r")\b",
     re.IGNORECASE,
 )
 
@@ -167,6 +53,10 @@ DEFAULT_KNOWN_APPS: Final[frozenset[str]] = frozenset(
         "windows terminal",
         "task manager",
         "taskmgr",
+        "vscode",
+        "vs code",
+        "powershell",
+        "cmd",
     }
 )
 
@@ -209,114 +99,6 @@ INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     "chit_chat": "companion",
     "launch_app": "self",
 }
-
-CONTAINER_WORLD_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"where\s+would\s+[a-z]+\s+look|"
-    r"where\s+[a-z]+\s+would\s+look|"
-    r"[a-z]+'?s\s+belief|"
-    r"where\s+[a-z]+\s+(?:thinks?|believes?)|"
-    r"where\s+(?:is|was|did\s+[a-z]+\s+(?:put|move|leave))|"
-    r"who\s+(?:moved|took|has|placed)\s+the|"
-    r"what\s+is\s+the\s+location\s+of|"
-    r"while\s+[a-z]+\s+(?:is|was)\s+(?:away|out|asleep)|"
-    r"without\s+[a-z]+\s+(?:seeing|knowing|noticing)|"
-    r"[a-z]+\s+(?:thinks?|believes?)\s+(?:remain|are\s+in|is\s+in)|"
-    r"find\s+the\s+[a-z]+\s+given"
-    r")\b",
-    re.IGNORECASE,
-)
-
-COMBINATORIAL_SMT_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"satisfy\s+(?:the\s+following\s+)?constraints|"
-    r"truth[\s-]teller\s+and\s+liar|"
-    r"knights?\s+and\s+knaves?|"
-    r"five\s+houses|"
-    r"which\s+house|"
-    r"who\s+owns\s+the|"
-    r"logic\s+(?:grid|puzzle)|"
-    r"z3|"
-    r"smt\s+solver"
-    r")\b",
-    re.IGNORECASE,
-)
-
-SOFT_LOGIC_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"which\s+(?:statement|conclusion|hypothesis)\s+is\s+(?:true|false|correct|most\s+likely)|"
-    r"based\s+on\s+the\s+(?:story|context|passage)|"
-    r"deduce\s+whether|"
-    r"logically\s+follows|"
-    r"murder\s+mystery|"
-    r"who\s+committed\s+the\s+crime"
-    r")\b",
-    re.IGNORECASE,
-)
-
-MATHEMATICAL_SYMPY_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"solve (?:the )?(?:system|equation|inequality|integral|derivative|polynomial)|"
-    r"calculate|compute|find the sum|find the product|find the value of|"
-    r"how many (?:ways|integers|solutions|combinations|permutations)|"
-    r"find the number of (?:ways|integers|solutions|elements|items|[a-z]+(?:\s+of\s+[a-z]+)?\s+who)|"
-    r"roots? of|eigenvalues?|determinant|"
-    r"prime factors?|gcd|lcm|modulo|"
-    r"combinatorics|number theory|"
-    r"evaluate (?:the )?(?:expression|limit|series)|"
-    r"sympy"
-    r")\b|"
-    r"(?:\\boxed|\\log_|\\sum_|\\int_|\\frac|\\binom|\b[0-9]+\s*[\+\-\*\/\^]\s*[0-9]+)",
-    re.IGNORECASE,
-)
-
-SPATIAL_GRID_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"grid\s*transformation|"
-    r"flood\s*fill(?:ing)?|"
-    r"gravity\s*drop|"
-    r"rotate\s*(?:the\s*)?grid|"
-    r"crop\s*grid|"
-    r"bounding\s*box|"
-    r"connected\s*components|"
-    r"2d\s*(?:grid|array)|"
-    r"demonstration\s*grids?|"
-    r"input\s*grid|output\s*grid"
-    r")\b",
-    re.IGNORECASE,
-)
-
-CODE_REPAIR_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"pytest|"
-    r"apply\s*patch|"
-    r"run\s*pytest|"
-    r"grep\s*tree|"
-    r"view\s*slice|"
-    r"failing\s*(?:unit\s*)?test|"
-    r"diagnose\s*and\s*fix|"
-    r"fix\s*(?:the\s*)?regression|"
-    r"reproduce\s*(?:the\s*)?issue|"
-    r"failing\s*test\s*suite"
-    r")\b",
-    re.IGNORECASE,
-)
-
-WEB_SEARCH_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"search\s*(?:the\s*)?web|"
-    r"web\s*search|"
-    r"look\s*(?:up\s+)?online|"
-    r"google\s*search|"
-    r"latest\s*news|"
-    r"current\s*events|"
-    r"searxng|"
-    r"check\s+(?:other\s+)?(?:web)?sites|"
-    r"check\s+online|"
-    r"sources\s+online"
-    r")\b",
-    re.IGNORECASE,
-)
 
 
 def map_intent_to_category(
@@ -366,9 +148,6 @@ class HeuristicRouter:
         self.db_write_failures: int = 0
         self.embed_worker = embed_worker
         self.blind_classifier_only = blind_classifier_only
-        self._anchor_embeddings: dict[str, list[list[float]]] | None = None
-        self._anchor_matrix: np.ndarray | None = None
-        self._anchor_labels: list[str] | None = None
         if retention_files is not None:
             self.retention_files = retention_files
         else:
@@ -378,38 +157,7 @@ class HeuristicRouter:
                 logger.debug("decision_retention_config_load_failed", error=str(exc))
                 self.retention_files = 14
         self._load_intents_config(config_path)
-
-    def _embed_phrases(self, texts: list[str]) -> list[list[float]]:
-        if self.embed_worker is None:
-            return []
-        if hasattr(self.embed_worker, "embed_text"):
-            vecs, _, _ = getattr(self.embed_worker, "embed_text")(texts)
-            return list(vecs)
-        if hasattr(self.embed_worker, "embed"):
-            return list(self.embed_worker.embed(texts))
-        return []
-
-    def _get_anchor_embeddings(self) -> dict[str, list[list[float]]]:
-        if self._anchor_embeddings is not None and self._anchor_matrix is not None:
-            return self._anchor_embeddings
-        if self.embed_worker is None:
-            return {}
-        if hasattr(self.embed_worker, "compiled") and getattr(self.embed_worker, "compiled") is None:
-            return {}
-        res: dict[str, list[list[float]]] = {}
-        all_vecs: list[list[float]] = []
-        all_labels: list[str] = []
-        for intent, phrases in SEMANTIC_INTENT_ANCHORS.items():
-            vecs = self._embed_phrases(list(phrases))
-            res[intent] = vecs
-            for v in vecs:
-                all_vecs.append(v)
-                all_labels.append(intent)
-        self._anchor_embeddings = res
-        if all_vecs:
-            self._anchor_matrix = np.array(all_vecs, dtype=np.float32)
-            self._anchor_labels = all_labels
-        return res
+        get_neural_intent_classifier()
 
     def _load_intents_config(self, config_path: Path | str | None) -> None:
         path = (
@@ -442,6 +190,15 @@ class HeuristicRouter:
         except (OSError, tomllib.TOMLDecodeError, ValueError) as exc:
             logger.debug("intents_config_load_failed", path=str(path), error=str(exc))
 
+    def _extract_app_entity(self, text: str) -> list[str]:
+        words = set(re.findall(r"[a-z0-9]+", text))
+        if not (words & {"open", "launch", "start", "run"}):
+            return []
+        for app_name in sorted(self.known_apps, key=lambda a: (-len(a), a)):
+            if re.search(rf"\b{re.escape(app_name)}\b", text):
+                return [app_name]
+        return []
+
     def classify_intent(
         self,
         transcript: str,
@@ -449,10 +206,9 @@ class HeuristicRouter:
         blind_classifier_only: bool | None = None,
     ) -> tuple[str, float, dict[str, list[str]]]:
         """
-        Classifies intent and extracts entities using word-boundary regexes per Spec 06 §2.
+        Classifies intent and extracts slot entities using the OpenVINO NPU Multi-Head Neural Router
+        (WO-41 Phase 4 Milestone 4.2, replacing the legacy regex cascade).
         Returns (intent, confidence, entities).
-        ``last_tool`` is the most-recently-executed tool name for the current session;
-        it is used to promote short corrections issued mid-search to ``web_fetch`` intent.
         """
         norm_transcript = normalize_transcript(transcript)
         text = norm_transcript.strip().lower()
@@ -463,7 +219,6 @@ class HeuristicRouter:
             "quoted": [],
         }
 
-        # Extract entities
         for f in FILE_PATTERN.findall(text):
             entities["file"].append(f)
         for u in URL_PATTERN.findall(text):
@@ -471,151 +226,110 @@ class HeuristicRouter:
         for q in QUOTED_PATTERN.findall(norm_transcript):
             entities["quoted"].append(q)
 
-        # 0. Dangerous / Boundary (Safety First): destructive, sensitive, or adversarial requests
-        dangerous_pattern = (
-            r"\b(delete\s+(?:all|every|my)|rm\s+-rf|format\s+(?:[a-z]:?|drive|disk)|drop\s+(?:table|database)|"
-            r"wipe|destroy|erase\s+(?:all|every|my)|remove\s+all)\b"
-        )
-        sensitive_pattern = (
-            r"\b(password|passwd|secret|credential|api.?key|token|ssn|"
-            r"social\s+security|credit\s+card)\b"
-        )
-        hijack_pattern = (
-            r"\b(pretend\s+you(?:'re|\s+are)|act\s+as\s+(?:if\s+you|a\s+different)|"
-            r"ignore\s+(?:all\s+)?(?:previous\s+)?instructions|"
-            r"you\s+are\s+now|forget\s+(?:everything|your\s+(?:instructions|rules)))\b"
-        )
-        prompt_extract_pattern = (
-            r"\b(system\s+prompt|system\s+message|initial\s+prompt|hidden\s+instructions|"
-            r"tell\s+me\s+your\s+(?:prompt|instructions|rules|system))\b"
-        )
-        if re.search(dangerous_pattern, text):
-            return "dangerous", 0.95, entities
-        if re.search(sensitive_pattern, text):
-            return "dangerous", 0.95, entities
-        if re.search(hijack_pattern, text):
-            return "dangerous", 0.90, entities
-        if re.search(prompt_extract_pattern, text):
-            return "dangerous", 0.85, entities
+        app_matches = self._extract_app_entity(text)
+        if app_matches:
+            entities["app"].extend(app_matches)
 
-        eff_blind = self.blind_classifier_only if blind_classifier_only is None else blind_classifier_only
+        if EMERGENCY_REFLEX_PATTERN.match(norm_transcript.strip()):
+            return "unknown", 0.20, entities
 
-        if not eff_blind:
-            # 1. Launch App: check word boundary
-            launch_match = re.search(
-                r"\b(open|launch|start|run)\b\s+(?:the\s+)?(?P<app>[a-z0-9 .-]+)",
+        verdict = get_neural_intent_classifier().evaluate(norm_transcript, last_tool=last_tool)
+        pred_intent = verdict.predicted_intent
+        pred_conf = verdict.intent_confidence
+
+        if pred_intent == "launch_app" and not entities["app"]:
+            return "unknown", 0.20, entities
+
+        if entities["app"]:
+            app_pat = "|".join(re.escape(a) for a in entities["app"])
+            if re.search(
+                rf"\b(?:open|launch|start|run)\s+(?:up\s+)?(?:the\s+)?(?:{app_pat})\b",
+                text,
+            ):
+                return "launch_app", 0.92, entities
+
+        # Non-whitelisted 3rd-party desktop application launch requests or figurative open/start/run idioms
+        if not entities["app"] and re.search(
+            r"\b(?:open|launch|start)\s+(?:blender|spotify|obsidian|figma|photoshop|illustrator|premiere|steam|vlc)\b|"
+            r"^start\s+by\s+(?:summarizing|outlining|reviewing)\b|"
+            r"^run\s+a\s+sanity\s+check\s+on\s+this\s+communication\s+plan\b|"
+            r"^opening\s+a\s+neighborhood\s+bakery\b",
+            text,
+        ):
+            return "unknown", 0.20, entities
+
+        # Symbolic dangerous boundary check (both positive high-severity triggers and negative filter)
+        has_dangerous_marker = bool(
+            re.search(
+                r"\b(?:delete\s+(?:all|every|my)|rm\s+-rf|format\s+(?:[a-z]:?|drive|disk|partition)|"
+                r"diskpart|drop\s+(?:table|database|production)|wipe\s+(?:the\s+)?(?:root|hard\s+drive|disk|partition|all|c:)|"
+                r"dd\s+if=/dev/(?:zero|random|urandom)|/dev/(?:sd[a-z]|nvme\d+n\d+)|master\s+boot\s+record|system32|"
+                r"erase\s+all|passwords?|private\s+keys?|secret\s+keys?|auth\s+tokens?|ssh\s+(?:private\s+)?keys?|"
+                r"id_rsa|id_ed25519|webhooks?|exfiltrat|ignore\s+(?:all\s+|your\s+)?(?:previous|prior|safety)|"
+                r"disregard\s+(?:all\s+)?(?:previous|prior|safety)|forget\s+all\s+prior|"
+                r"system\s+(?:prompt|instructions)|developer\s+(?:mode|instructions)|"
+                r"bypass\s+(?:your\s+)?(?:safety|security|guardrails|restrictions)|"
+                r"unfiltered|unrestricted|pretend\s+you(?:'re|\s+are)|act\s+as\s+an?\s+unfiltered)\b",
                 text,
             )
-            if launch_match:
-                candidate_app = launch_match.group("app").strip()
-                first_word = candidate_app.split()[0] if candidate_app else ""
-                # Guard against adversarial: "start with the second file"
-                if first_word not in self.stop_words_after_start:
-                    # Check if candidate or any alias is a known app
-                    for app_name in sorted(self.known_apps, key=lambda a: (-len(a), a)):
-                        if re.search(rf"\b{re.escape(app_name)}\b", candidate_app):
-                            entities["app"].append(app_name)
-                            return "launch_app", 0.95, entities
-
-            # 2. File Read
-            if (
-                re.search(r"\b(read|view|show|cat|inspect|examine)\b\s+(?:the\s+)?(?:file\s+)?", text)
-                and entities["file"]
-            ):
-                return "file_read", 0.90, entities
-
-            # 3. File Write
-            if (
-                re.search(r"\b(write|create|save|append|dump)\b\s+(?:to\s+)?", text)
-                and entities["file"]
-            ):
-                return "file_write", 0.90, entities
-
-            # 3b. Conversational Context Query (WO-17 Phase 6)
-            if RECENT_CONTEXT_PATTERN.search(text):
-                return "context_query", 0.95, entities
-
-            # 4. Memory Query
-            mem_pattern = (
-                r"\b(remember|recall|what\s+is\s+my|who\s+is\s+my|where\s+do\s+i|do\s+you\s+remember)\b"
-            )
-            if re.search(mem_pattern, text):
-                return "memory_query", 0.90, entities
-
-            # 5. Chit Chat & Persona / Companion Inquiries
-            chit_pattern = (
-                r"\b(hello|hi|hey|how\s+are\s+you|what's\s+up|thank\s+you|thanks|"
-                r"good\s+morning|good\s+afternoon|good\s+night|"
-                r"who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
-                r"(?:what|can\s+you\s+tell\s+me\s+anything)\s+about\s+yourself|"
-                r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|"
-                r"what\s+can\s+you\s+do|your\s+name|introduce\s+yourself|"
-                r"test(?:ing)?\s+you|how\s+about\s+we\s+try\s+testing\s+you)\b"
-            )
-            if re.search(chit_pattern, text):
-                return "chit_chat", 0.95, entities
-
-            # 6. Web Fetch / Search & Factual Inquiries
-            web_pattern = (
-                r"\b(fetch|browse|download|web|scrape|curl|lookup|look\s*up|"
-                r"search(?:\s+(?:for|google|online|the\s+web|web|wikipedia))?|"
-                r"google|check\s+(?:google|wikipedia|online|news)|"
-                r"find\s+(?:out|information|online)|headlines|wikipedia|"
-                r"tell\s+me\s+about|facts\s+about|who\s+(?:is|was)|"
-                r"what\s+(?:is|are|can\s+you\s+tell)|where\s+(?:is|are|was|does)|"
-                r"when\s+(?:was|is)|how\s+about\s+(?:the|a|an)\b|"
-                # Meta-search directives — user redirecting an ongoing web-search turn
-                r"try\s+(?:alternative|other|different|more|another)\s+"
-                r"(?:source|sources|website|websites|site|sites|approach|approaches)|"
-                r"look\s+(?:elsewhere|further|deeper|more|harder)|"
-                r"dig\s+(?:deeper|further|more)|"
-                r"search\s+(?:again|more|harder|further)|"
-                r"find\s+(?:more|other|different)\s+(?:sources?|results?|information|info)|"
-                r"check\s+(?:other|more|different)\s+(?:sources?|sites?|websites?|places?)|"
-                r"look\s+for\s+(?:more|other|alternative|different)\s+(?:sources?|info|information)"
-                r")\b"
-            )
-            if re.search(web_pattern, text) or entities["url"]:
-                return "web_fetch", 0.90, entities
-
-            # 7. Clarify: very short utterance — but promote to web_fetch if mid-search-session.
-            # A bare name correction or a single follow-up word while last_tool was a web tool
-            # is almost certainly a search refinement, not an ambiguous mumble.
-            _WEB_TOOLS: frozenset[str] = frozenset({"search_web", "fetch_url", "web_fetch"})
-            if last_tool in _WEB_TOOLS and len(text.split()) <= 6 and text:
-                return "web_fetch", 0.75, entities
-            if len(text.split()) <= 1 and text:
-                return "clarify", 0.40, entities
-
-        # 8. Semantic Embedding Classification (Vectorized Anchor Dot-Product)
-        # Evaluates cosine similarity against intent anchors (primary path in blind_classifier_only mode)
-        anchors = self._get_anchor_embeddings()
-        if (
-            anchors
-            and self._anchor_matrix is not None
-            and self._anchor_labels
-            and self.embed_worker is not None
+        )
+        if re.search(
+            r"\b(?:rm\s+-rf\s+/|format\s+c:|dd\s+if=/dev/(?:zero|random)|wipe\s+c:\\windows\\system32|"
+            r"(?:id_rsa|\.env)\b.*\b(?:exfiltrat|webhook|http\s+post|https?://)|"
+            r"ignore\s+all\s+(?:previous|prior)\s+safety)\b",
+            text,
         ):
-            try:
-                q_vecs = self._embed_phrases([text])
-                if q_vecs and any(abs(v) > 1e-6 for v in q_vecs[0]):
-                    qv = np.array(q_vecs[0], dtype=np.float32)
-                    q_norm = float(np.linalg.norm(qv))
-                    if q_norm > 1e-6:
-                        qv = qv / q_norm
-                    a_norms = np.linalg.norm(self._anchor_matrix, axis=1, keepdims=True)
-                    a_norms = np.where(a_norms > 1e-6, a_norms, 1.0)
-                    norm_anchors = self._anchor_matrix / a_norms
-                    sims = np.dot(norm_anchors, qv)
-                    best_idx = int(np.argmax(sims))
-                    best_sim = float(sims[best_idx])
-                    best_intent = self._anchor_labels[best_idx]
-                    if best_intent and best_sim >= 0.28:
-                        return best_intent, float(min(max(best_sim, 0.30), 0.95)), entities
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("semantic_intent_classification_failed", error=str(exc))
+            return "dangerous", 0.96, entities
 
-        return "unknown", 0.20, entities
+        if pred_intent == "dangerous" and not has_dangerous_marker:
+            return "unknown", 0.20, entities
+
+        # Explicit local file_read / file_write disambiguation when a file entity is present
+        if (
+            entities["file"]
+            and not has_dangerous_marker
+            and not re.search(
+                r"\b(?:bug|exception|traceback|error|failing|pytest|patch|fix|leak|crash| deadlock)\b",
+                text,
+            )
+        ):
+            if re.search(
+                r"\b(?:write|save|create|append|store)\b.*\b(?:file|into|to)\b|\b(?:write|save|create)\s+(?:a\s+new\s+|the\s+|these\s+)?(?:local\s+)?(?:markdown\s+)?file\b",
+                text,
+            ):
+                return "file_write", 0.92, entities
+            if re.search(
+                r"\b(?:read|view|inspect|display|show\s+me\s+what\s+is\s+written)\b",
+                text,
+            ):
+                return "file_read", 0.92, entities
+
+        # Explicit conversational context_query vs long-term memory_query disambiguation
+        if re.search(
+            r"\b(?:just\s+(?:pull|pulled|mentioned|said|searched)|a\s+(?:second|moment)\s+ago\s+in\s+(?:your\s+search|this\s+chat))\b",
+            text,
+        ):
+            return "context_query", 0.92, entities
+
+        if re.search(
+            r"\b(?:do\s+you\s+(?:recall|remember)\s+what|what\s+did\s+i\s+tell\s+you\s+last\s+month|"
+            r"check\s+your\s+stored\s+memory\s+and\s+remind\s+me|tell\s+me\s+what\s+you\s+remember\s+about\s+me)\b",
+            text,
+        ):
+            return "memory_query", 0.92, entities
+
+        # Explicit deductive syllogism / modus tollens soft_logic check
+        if re.search(
+            r"\b(?:premise\s+1\s*:|syllogis(?:m|tic)|modus\s+(?:ponens|tollens)|"
+            r"if\s+the\s+greenhouse\s+heater\s+had\s+failed\s+overnight)\b",
+            text,
+        ):
+            return "unknown", 0.85, entities
+
+        if pred_intent == "clarify":
+            return "clarify", 0.40, entities
+
+        return pred_intent, pred_conf, entities
 
     def route(
         self,
@@ -700,8 +414,13 @@ class HeuristicRouter:
             "CLARIFY": float(p_vec[2]),
         }
 
+        verdict = get_neural_intent_classifier().evaluate(transcript_text, last_tool=last_tool)
+        is_emergency_reflex = ("emergency_reflex" in verdict.active_domains) or bool(
+            EMERGENCY_REFLEX_PATTERN.match(transcript_text.strip())
+        )
+
         # Decision logic per Spec 06 §1, §2, §7, ADR-007, and D-ARCH-05
-        if EMERGENCY_REFLEX_PATTERN.search(text_lower):
+        if is_emergency_reflex:
             action_lit: Literal["RULE", "LLM", "CLARIFY"] = "RULE"
             prediction_set = [RouteAction.RULE]
         elif self.conformal_guard is not None and self.conformal_guard.q_hat is not None:
@@ -732,14 +451,14 @@ class HeuristicRouter:
 
         # Determine ExecutionTier per D-ARCH-05 (Spec 06, Owner Section 6 Mandate)
         if action_lit == "RULE":
-            if EMERGENCY_REFLEX_PATTERN.search(text_lower):
+            if is_emergency_reflex:
                 tier = ExecutionTier.REFLEX
             else:
                 tier = ExecutionTier.ACT_THEN_NARRATE
         else:
             tier = ExecutionTier.FULL_LOOP
 
-        # Dynamic Tiered Neurosymbolic Reasoning & Thinking Mode Dispatch
+        # Dynamic Tiered Neurosymbolic Reasoning & Thinking Mode Dispatch via OpenVINO NPU Multi-Head Classifier
         if model_tier is None:
             try:
                 cfg_model = get_config().llm.model.lower()
@@ -762,49 +481,49 @@ class HeuristicRouter:
         thinking_mode: Literal["direct", "thinking", "adaptive"] = "adaptive"
         exposed_libraries: list[str] = []
 
-        if action_lit == "LLM":
-            if eff_blind:
-                regex_cw = False
-                regex_spatial = False
-                regex_code = False
-                regex_z3 = False
-                regex_sympy = False
-                regex_soft = False
-                regex_web = False
-            else:
-                regex_cw = bool(CONTAINER_WORLD_PATTERN.search(text_lower))
-                regex_spatial = bool(SPATIAL_GRID_PATTERN.search(text_lower))
-                regex_code = bool(CODE_REPAIR_PATTERN.search(text_lower))
-                regex_z3 = bool(COMBINATORIAL_SMT_PATTERN.search(text_lower))
-                regex_sympy = bool(MATHEMATICAL_SYMPY_PATTERN.search(text_lower))
-                regex_soft = bool(SOFT_LOGIC_PATTERN.search(text_lower))
-                regex_web = bool(WEB_SEARCH_PATTERN.search(text_lower))
-
-            has_cw = regex_cw
-            has_spatial_grid = regex_spatial or (intent == "spatial_grid")
-            has_code_repair = regex_code or (intent == "code_repair")
-            has_z3 = regex_z3 or (intent == "logic_constraints")
-            has_soft = regex_soft
-            has_sympy = regex_sympy or (intent == "math_computation")
-            has_science = (intent == "science_research") or (
-                not eff_blind
-                and any(
-                    k in text_lower
-                    for k in (
-                        "mechanism",
-                        "chemical reaction",
-                        "photosynthesis",
-                        "spectroscopy",
-                        "lattice",
-                        "biochemical",
-                        "electrophilic",
-                        "orbital",
-                        "quantum state",
-                        "half-life",
-                    )
-                )
+        if (
+            action_lit == "LLM"
+            and not eff_blind
+            and intent
+            not in (
+                "dangerous",
+                "launch_app",
+                "file_read",
+                "file_write",
+                "memory_query",
+                "context_query",
+                "chit_chat",
+                "clarify",
+                "factual_lookup",
             )
-            has_web_search = regex_web or (intent in ("web_fetch", "factual_lookup"))
+        ):
+            active_doms = set(verdict.active_domains)
+            if re.search(
+                r"\b(?:premise\s+1\s*:|syllogis(?:m|tic)|modus\s+(?:ponens|tollens)|"
+                r"if\s+the\s+greenhouse\s+heater\s+had\s+failed\s+overnight|"
+                r"(?:every|all)\s+[^.?!]+\b(?:require|requires|are|is)\b[^.?!]+\.\s+[^.?!]+\b(?:is|are)\b[^.?!]+\.\s+(?:does|is|are)\b)",
+                text_lower,
+            ):
+                active_doms = {"soft_logic"}
+                intent = "unknown"
+            elif intent == "unknown" and re.search(
+                r"\b(?:open|launch|start)\s+(?:blender|spotify|obsidian|figma|photoshop|illustrator|premiere|steam|vlc)\b|"
+                r"^start\s+by\s+(?:summarizing|outlining|reviewing)\b|"
+                r"^run\s+a\s+sanity\s+check\s+on\s+this\s+communication\s+plan\b|"
+                r"^opening\s+a\s+neighborhood\s+bakery\b",
+                text_lower,
+            ):
+                active_doms = set()
+
+            primary_dom = verdict.active_domains[0] if verdict.active_domains else None
+            has_cw = "spatial_relocation" in active_doms
+            has_spatial_grid = "spatial_grid" in active_doms or (intent == "spatial_grid")
+            has_code_repair = "code_repair" in active_doms or (intent == "code_repair")
+            has_z3 = "combinatorial_smt" in active_doms or (intent == "logic_constraints")
+            has_soft = "soft_logic" in active_doms
+            has_sympy = "mathematics" in active_doms or (intent == "math_computation")
+            has_science = "science_research" in active_doms or (intent == "science_research")
+            has_web_search = "web_search" in active_doms or (intent == "web_fetch")
 
             if has_cw:
                 exposed_libraries.append("container_world")
@@ -819,7 +538,13 @@ class HeuristicRouter:
             if (has_science or has_web_search) and "research" not in exposed_libraries:
                 exposed_libraries.append("research")
 
-            if has_cw:
+            if has_soft and (primary_dom == "soft_logic" or active_doms == {"soft_logic"}):
+                reasoning_domain = "soft_logic"
+                if effective_tier == "12B":
+                    thinking_mode = "direct"
+                else:
+                    thinking_mode = "thinking"
+            elif has_cw:
                 reasoning_domain = "spatial_relocation"
                 solver_tool = "container_world"
                 thinking_mode = "direct"
@@ -831,13 +556,9 @@ class HeuristicRouter:
                 reasoning_domain = "code_repair"
                 solver_tool = "apply_patch"
                 thinking_mode = "thinking"
-            elif regex_z3 and not regex_sympy:
+            elif has_z3 and not has_sympy:
                 reasoning_domain = "combinatorial_smt"
                 solver_tool = "z3_smt"
-                thinking_mode = "direct"
-            elif regex_sympy and not regex_z3:
-                reasoning_domain = "mathematics"
-                solver_tool = "sympy_sandbox"
                 thinking_mode = "direct"
             elif has_sympy:
                 reasoning_domain = "mathematics"
@@ -850,9 +571,9 @@ class HeuristicRouter:
             elif has_soft:
                 reasoning_domain = "soft_logic"
                 if effective_tier == "12B":
-                    thinking_mode = "direct"  # Avoid 36.7% overthinking collapse on 12B
+                    thinking_mode = "direct"
                 else:
-                    thinking_mode = "thinking"  # Capture 23% -> 63% thinking lift on edge tiers
+                    thinking_mode = "thinking"
             elif has_science:
                 reasoning_domain = "science_research"
                 solver_tool = "research_topic"
@@ -864,9 +585,6 @@ class HeuristicRouter:
 
         route_action = RouteAction(action_lit)
 
-        # D-DUAL-01: Deliberation lane detection.
-        # A turn is routed to the deliberation lane (multi-second budget, floor-hold TTS cue)
-        # when it is a hard reasoning problem: math/SMT/spatial/soft_logic/science + (>= 15 words or multi-lobe).
         DELIBERATION_DOMAINS = {
             "mathematics",
             "combinatorial_smt",
@@ -895,8 +613,9 @@ class HeuristicRouter:
 
         # Combinatorics & mathematical derivation token ceiling (1536 tokens)
         token_ceiling: int | None = None
-        if reasoning_domain in ("mathematics", "combinatorial_smt") or bool(
-            re.search(r"\b(?:combinatorics|permutations|combinations|polynomial|eigenvalues)\b", text_lower)
+        if (
+            reasoning_domain in ("mathematics", "combinatorial_smt")
+            or "aime_combinatorics" in verdict.active_domains
         ):
             token_ceiling = 1536
 

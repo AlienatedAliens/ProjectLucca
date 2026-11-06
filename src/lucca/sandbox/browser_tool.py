@@ -134,15 +134,31 @@ class HeadlessBrowserTool:
                     status_code = response.status if response else 200
                     page_title = page.title() or ""
 
-                    # Extract readable text and embedded links
+                    # Extract readable text and embedded links while stripping hidden/adversarial DOM nodes
                     dom_data = page.evaluate(
                         """() => {
                         const root = document.body ? document.body : document.documentElement;
                         const clone = root.cloneNode(true);
                         const toRemove = clone.querySelectorAll(
-                            'script, style, noscript, iframe, svg, nav, footer'
+                            'script, style, noscript, iframe, svg, nav, footer, template, [hidden], [aria-hidden="true"]'
                         );
                         toRemove.forEach(el => el.remove());
+                        const allEls = clone.querySelectorAll('*');
+                        allEls.forEach(el => {
+                            const st = (el.getAttribute('style') || '').toLowerCase();
+                            if (
+                                st.includes('display:none') ||
+                                st.includes('display: none') ||
+                                st.includes('visibility:hidden') ||
+                                st.includes('visibility: hidden') ||
+                                st.includes('opacity:0') ||
+                                st.includes('opacity: 0') ||
+                                st.includes('font-size:0') ||
+                                st.includes('font-size: 0')
+                            ) {
+                                el.remove();
+                            }
+                        });
                         const text = clone.innerText || clone.textContent || '';
                         const links = Array.from(document.querySelectorAll('a[href]'))
                             .map(a => a.href)

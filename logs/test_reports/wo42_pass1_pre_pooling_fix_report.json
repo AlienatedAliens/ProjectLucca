@@ -1,0 +1,246 @@
+{
+  "frozen_model_sha256": {
+    "action_claim_verifier_ov": "2371012cc110f0695c34daa77d9b87e11e47dd7f36e966c207f68da5716c41d8",
+    "proof_policy_hazard_ov": "6ba53b6c918d8d2931367f8feb049606751188754d43c33875fc0433ad26b0c5",
+    "router_intent_ov": "f03bdbb0fb34d8ceb7d5fab0cd892353e8548dbb86096fae035bb2cf44c54f2e"
+  },
+  "subsystems": {
+    "coherence": {
+      "blind_300": {
+        "correct": 86,
+        "total": 100,
+        "accuracy_pct": 86.0,
+        "wilson_95_ci_pct": [
+          77.86,
+          91.47
+        ],
+        "multi_sentence_count": 82,
+        "multi_sentence_pct": 82.0,
+        "missed_ids": [
+          "BLIND42_COH_009",
+          "BLIND42_COH_031",
+          "BLIND42_COH_034",
+          "BLIND42_COH_050",
+          "BLIND42_COH_051",
+          "BLIND42_COH_052",
+          "BLIND42_COH_055",
+          "BLIND42_COH_056",
+          "BLIND42_COH_058",
+          "BLIND42_COH_059",
+          "BLIND42_COH_061",
+          "BLIND42_COH_062",
+          "BLIND42_COH_063",
+          "BLIND42_COH_065"
+        ]
+      },
+      "blind_90_retest": {
+        "wo41_correct": 23,
+        "wo42_correct": 29,
+        "total": 30,
+        "wo42_accuracy_pct": 96.67,
+        "wilson_95_ci_pct": [
+          83.33,
+          99.41
+        ],
+        "mcnemar_b_wo42_better": 6,
+        "mcnemar_c_wo41_better": 0,
+        "mcnemar_p_value": 0.03125,
+        "missed_ids": [
+          "BLIND_COH_27"
+        ]
+      },
+      "combined_130": {
+        "correct": 115,
+        "total": 130,
+        "accuracy_pct": 88.46,
+        "wilson_95_ci_pct": [
+          81.83,
+          92.88
+        ]
+      }
+    },
+    "proof_policy": {
+      "blind_300": {
+        "correct": 69,
+        "total": 100,
+        "accuracy_pct": 69.0,
+        "wilson_95_ci_pct": [
+          59.37,
+          77.22
+        ],
+        "multi_sentence_count": 79,
+        "multi_sentence_pct": 79.0,
+        "missed_ids": [
+          "BLIND42_HZD_036",
+          "BLIND42_HZD_039",
+          "BLIND42_HZD_040",
+          "BLIND42_HZD_042",
+          "BLIND42_HZD_043",
+          "BLIND42_HZD_044",
+          "BLIND42_HZD_046",
+          "BLIND42_HZD_050",
+          "BLIND42_HZD_052",
+          "BLIND42_HZD_056",
+          "BLIND42_HZD_060",
+          "BLIND42_HZD_062",
+          "BLIND42_HZD_067",
+          "BLIND42_HZD_070",
+          "BLIND42_HZD_074",
+          "BLIND42_HZD_078",
+          "BLIND42_HZD_086",
+          "BLIND42_HZD_087",
+          "BLIND42_HZD_088",
+          "BLIND42_HZD_089",
+          "BLIND42_HZD_090",
+          "BLIND42_HZD_091",
+          "BLIND42_HZD_092",
+          "BLIND42_HZD_093",
+          "BLIND42_HZD_094",
+          "BLIND42_HZD_095",
+          "BLIND42_HZD_096",
+          "BLIND42_HZD_097",
+          "BLIND42_HZD_098",
+          "BLIND42_HZD_099",
+          "BLIND42_HZD_100"
+        ]
+      },
+      "blind_90_retest": {
+        "wo41_correct": 27,
+        "wo42_correct": 28,
+        "total": 30,
+        "wo42_accuracy_pct": 93.33,
+        "wilson_95_ci_pct": [
+          78.68,
+          98.15
+        ],
+        "mcnemar_b_wo42_better": 2,
+        "mcnemar_c_wo41_better": 1,
+        "mcnemar_p_value": 1.0,
+        "missed_ids": [
+          "BLIND_HZD_08",
+          "BLIND_HZD_23"
+        ]
+      },
+      "combined_130": {
+        "correct": 97,
+        "total": 130,
+        "accuracy_pct": 74.62,
+        "wilson_95_ci_pct": [
+          66.5,
+          81.32
+        ]
+      }
+    },
+    "router": {
+      "blind_300": {
+        "correct": 70,
+        "total": 100,
+        "accuracy_pct": 70.0,
+        "wilson_95_ci_pct": [
+          60.42,
+          78.11
+        ],
+        "multi_sentence_count": 100,
+        "multi_sentence_pct": 100.0,
+        "missed_ids": [
+          "BLIND42_RTR_016",
+          "BLIND42_RTR_024",
+          "BLIND42_RTR_028",
+          "BLIND42_RTR_030",
+          "BLIND42_RTR_046",
+          "BLIND42_RTR_047",
+          "BLIND42_RTR_048",
+          "BLIND42_RTR_049",
+          "BLIND42_RTR_050",
+          "BLIND42_RTR_061",
+          "BLIND42_RTR_062",
+          "BLIND42_RTR_063",
+          "BLIND42_RTR_064",
+          "BLIND42_RTR_065",
+          "BLIND42_RTR_066",
+          "BLIND42_RTR_067",
+          "BLIND42_RTR_068",
+          "BLIND42_RTR_069",
+          "BLIND42_RTR_071",
+          "BLIND42_RTR_072",
+          "BLIND42_RTR_073",
+          "BLIND42_RTR_074",
+          "BLIND42_RTR_075",
+          "BLIND42_RTR_076",
+          "BLIND42_RTR_077",
+          "BLIND42_RTR_078",
+          "BLIND42_RTR_079",
+          "BLIND42_RTR_080",
+          "BLIND42_RTR_093",
+          "BLIND42_RTR_095"
+        ]
+      },
+      "blind_90_retest": {
+        "wo41_correct": 18,
+        "wo42_correct": 21,
+        "total": 30,
+        "wo42_accuracy_pct": 70.0,
+        "wilson_95_ci_pct": [
+          52.12,
+          83.34
+        ],
+        "mcnemar_b_wo42_better": 8,
+        "mcnemar_c_wo41_better": 5,
+        "mcnemar_p_value": 0.58105469,
+        "missed_ids": [
+          "BLIND_RTR_06",
+          "BLIND_RTR_10",
+          "BLIND_RTR_15",
+          "BLIND_RTR_19",
+          "BLIND_RTR_20",
+          "BLIND_RTR_21",
+          "BLIND_RTR_22",
+          "BLIND_RTR_23",
+          "BLIND_RTR_27"
+        ]
+      },
+      "combined_130": {
+        "correct": 91,
+        "total": 130,
+        "accuracy_pct": 70.0,
+        "wilson_95_ci_pct": [
+          61.64,
+          77.21
+        ]
+      }
+    }
+  },
+  "overall": {
+    "blind_300": {
+      "correct": 225,
+      "total": 300,
+      "accuracy_pct": 75.0,
+      "wilson_95_ci_pct": [
+        69.8,
+        79.56
+      ]
+    },
+    "blind_90_retest": {
+      "wo41_correct": 69,
+      "wo42_correct": 78,
+      "total": 90,
+      "wo42_accuracy_pct": 86.67,
+      "wilson_95_ci_pct": [
+        78.13,
+        92.21
+      ],
+      "mcnemar_b_wo42_better": 16,
+      "mcnemar_c_wo41_better": 6,
+      "mcnemar_p_value": 0.05247879
+    },
+    "combined_390": {
+      "correct": 303,
+      "total": 390,
+      "accuracy_pct": 77.69,
+      "wilson_95_ci_pct": [
+        73.3,
+        81.54
+      ]
+    }
+  }
+}

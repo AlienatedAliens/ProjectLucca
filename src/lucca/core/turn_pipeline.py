@@ -918,14 +918,14 @@ class TurnPipeline:
                     "and `from container_world import ContainerWorld` in a single Python script.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{ws_hint}" if epistemic_ctx else ws_hint
-            elif route_decision.reasoning_domain == "sympy_sandbox":
+            elif route_decision.reasoning_domain in ("mathematics", "sympy_sandbox"):
                 dom_hint = (
                     "[Neurosymbolic Domain Directive (sympy_sandbox): Use `calc_math` for direct "
                     "arithmetic or `run_python` with `import sympy as sp` in the sandbox to solve "
                     "equations, combinatorics, or calculus exactly before narrating the result.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
-            elif route_decision.reasoning_domain == "container_world":
+            elif route_decision.reasoning_domain in ("spatial_relocation", "container_world"):
                 dom_hint = (
                     "[Neurosymbolic Domain Directive (container_world): For object relocation or "
                     "Theory-of-Mind tracking, invoke `run_python` using `ContainerWorld` (`world = "
@@ -933,10 +933,17 @@ class TurnPipeline:
                     "to compute exact locations and agent beliefs.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
-            elif route_decision.reasoning_domain == "z3_smt":
+            elif route_decision.reasoning_domain in ("combinatorial_smt", "z3_smt"):
                 dom_hint = (
                     "[Neurosymbolic Domain Directive (z3_smt): For constraint logic or Zebra puzzles, "
                     "invoke `run_python` with `import z3` to formalize constraints and solve via `z3.Solver()`.]"
+                )
+                epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
+            elif route_decision.reasoning_domain == "soft_logic":
+                dom_hint = (
+                    "[Neurosymbolic Domain Directive (soft_logic): This is a self-contained "
+                    "deductive syllogism or logical implication problem. Deduce the answer "
+                    "directly from the premises stated by the user without invoking search_web.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
 

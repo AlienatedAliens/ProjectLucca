@@ -1,18 +1,20 @@
 """
-Project Lucca — Hardened Web Fetch & SSRF Guard
-Spec 09 §5, ADR-003, ADR-004, TM-03b
+Project Lucca — Hardened Web Fetch, Scrapling Adaptive Extraction & Prompt-Injection DOM Sanitizer
+Spec 09 §5, ADR-003, ADR-004, TM-03b, Work Order #42 (WO-42 Phase 4)
 """
 
+from __future__ import annotations
+
+from collections.abc import Callable
 import importlib
 import ipaddress
 import re
 import socket
-from collections.abc import Callable
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import httpx
-import structlog
 from pydantic import JsonValue
+import structlog
 
 logger = structlog.get_logger(__name__)
 
@@ -33,6 +35,47 @@ DEFAULT_MAX_CHARS: int = 20000
 
 CGNAT_NET = ipaddress.ip_network("100.64.0.0/10")
 
+_INVISIBLE_UNICODE_RE = re.compile(
+    r"[\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff\U000e0000-\U000e007f]"
+)
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_HIDDEN_TAG_BLOCK_RE = re.compile(
+    r"<(?P<tag>template|script|style|noscript|iframe|svg)\b[^>]*>.*?</(?P=tag)>",
+    re.IGNORECASE | re.DOTALL,
+)
+_HIDDEN_ATTR_ELEMENT_RE = re.compile(
+    r"<(?P<tag>[a-zA-Z0-9]+)\b[^>]*(?:\bhidden\b|aria-hidden\s*=\s*['\"]?true['\"]?)[^>]*>.*?</(?P=tag)>",
+    re.IGNORECASE | re.DOTALL,
+)
+_HIDDEN_STYLE_ELEMENT_RE = re.compile(
+    r"<(?P<tag>[a-zA-Z0-9]+)\b[^>]*\bstyle\s*=\s*(['\"])(?P<style>.*?)\2[^>]*>.*?</(?P=tag)>",
+    re.IGNORECASE | re.DOTALL,
+)
+_ADVERSARIAL_CSS_RE = re.compile(
+    r"(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?:\.0+)?(?:\s*;|\s*$)|"
+    r"font-size\s*:\s*0(?:px|pt|em|rem|%)?(?:\s*;|\s*$)|"
+    r"(?:left|top|text-indent)\s*:\s*-\d{3,}px)",
+    re.IGNORECASE,
+)
+
+_BOT_CHALLENGE_MARKERS = (
+    "just a moment...",
+    "cf-browser-verification",
+    "attention required! | cloudflare",
+    "checking if the site connection is secure",
+    "enable javascript and cookies to continue",
+    "ddos-guard",
+    "verify you are human",
+)
+
+_EMPTY_SPA_MARKERS = (
+    "enable javascript",
+    "javascript is required",
+    "need to enable javascript",
+    '<div id="root"></div>',
+    '<div id="app"></div>',
+)
+
 
 def _get_trafilatura_extract() -> Callable[..., object] | None:
     try:
@@ -50,7 +93,7 @@ def validate_url_ssrf(
     """
     Validates URL format, lengths, and enforces SSRF IP resolution checks:
     - Scheme must be http or https
-    - URL length <= 2048 chars, query length <= 1024 chars, no userinfo
+    - URL length <= MAX_URL_LEN, query length <= MAX_QUERY_LEN, no userinfo
     - Resolves hostname via DNS; rejects RFC1918, loopback, link-local, CGNAT,
       multicast, reserved, and IPv6.
     Returns (normalized_url, resolved_ip).
@@ -80,7 +123,6 @@ def validate_url_ssrf(
     if not hostname:
         raise SandboxPathError("invalid_host", "Hostname missing in URL")
 
-    # Resolve IP addresses
     resolver = dns_resolver if dns_resolver is not None else (lambda h: socket.getaddrinfo(h, None))
     try:
         addr_info = resolver(hostname)
@@ -104,14 +146,12 @@ def validate_url_ssrf(
         elif ip.version == 4:
             v4_ips.append(ip)
 
-    # Reject IPv6-only hosts per Spec 09 & ADR-003
     if not v4_ips and v6_ips:
         raise SandboxPathError("ipv6_blocked", f"IPv6 address '{v6_ips[0]}' is blocked")
 
     if not v4_ips:
         raise SandboxPathError("dns_failed", f"No valid IP address resolved for host '{hostname}'")
 
-    # Reject RFC1918, Loopback, Link-local, CGNAT, Multicast, Reserved on all IPv4 addresses
     for ip_v4 in v4_ips:
         if (
             ip_v4.is_private
@@ -130,31 +170,191 @@ def validate_url_ssrf(
     return url, resolved_ip
 
 
+def sanitize_html_against_prompt_injection(html: str) -> tuple[str, dict[str, int]]:
+    """
+    WO-42 Milestone 4.2: Strips hidden DOM nodes, invisible CSS elements, HTML comments,
+    and invisible Unicode tag characters before text/Markdown extraction to defend against
+    indirect prompt-injection payloads hidden in web pages.
+    """
+    invisible_matches = _INVISIBLE_UNICODE_RE.findall(html)
+    cleaned = _INVISIBLE_UNICODE_RE.sub("", html)
+
+    comment_matches = _HTML_COMMENT_RE.findall(cleaned)
+    cleaned = _HTML_COMMENT_RE.sub("", cleaned)
+
+    hidden_nodes_count = 0
+
+    def _strip_block(m: re.Match[str]) -> str:
+        nonlocal hidden_nodes_count
+        if m.group("tag").lower() == "template":
+            hidden_nodes_count += 1
+        return ""
+
+    cleaned = _HIDDEN_TAG_BLOCK_RE.sub(_strip_block, cleaned)
+
+    def _strip_hidden_attr(m: re.Match[str]) -> str:
+        nonlocal hidden_nodes_count
+        hidden_nodes_count += 1
+        return ""
+
+    cleaned = _HIDDEN_ATTR_ELEMENT_RE.sub(_strip_hidden_attr, cleaned)
+
+    def _strip_hidden_style(m: re.Match[str]) -> str:
+        nonlocal hidden_nodes_count
+        style_val = m.group("style") or ""
+        if _ADVERSARIAL_CSS_RE.search(style_val):
+            hidden_nodes_count += 1
+            return ""
+        return m.group(0)
+
+    # Apply twice to catch nested hidden containers
+    cleaned = _HIDDEN_STYLE_ELEMENT_RE.sub(_strip_hidden_style, cleaned)
+    cleaned = _HIDDEN_STYLE_ELEMENT_RE.sub(_strip_hidden_style, cleaned)
+
+    return cleaned, {
+        "stripped_hidden_nodes": hidden_nodes_count,
+        "stripped_comments": len(comment_matches),
+        "stripped_invisible_unicode": len(invisible_matches),
+    }
+
+
+def is_bot_challenge_or_empty_spa(
+    status_code: int,
+    raw_html: str,
+    extracted_text: str,
+) -> bool:
+    """Detects Cloudflare/Turnstile/bot-challenge interstitials or empty JS SPA shells."""
+    html_low = raw_html.lower()
+    text_low = extracted_text.lower()
+
+    if status_code in (403, 429, 503):
+        if any(m in html_low or m in text_low for m in _BOT_CHALLENGE_MARKERS):
+            return True
+        if len(extracted_text.strip()) < 200:
+            return True
+
+    if any(m in html_low for m in ("cf-browser-verification", "attention required! | cloudflare")):
+        return True
+
+    if len(extracted_text.strip()) < 150 and any(
+        m in html_low or m in text_low for m in _EMPTY_SPA_MARKERS
+    ):
+        return True
+
+    return False
+
+
+def _extract_with_scrapling_selector(sanitized_html: str) -> str:
+    """Uses Scrapling's adaptive Selector parser to extract structured headings, paragraphs, and code blocks."""
+    try:
+        from scrapling.parser import Selector  # noqa: PLC0415
+
+        sel = Selector(sanitized_html)
+        title_nodes = sel.css("title")
+        title = title_nodes[0].text.strip() if title_nodes else ""
+
+        root_candidates = sel.css("article, main, [role='main']")
+        root = root_candidates[0] if root_candidates else sel
+
+        blocks: list[str] = []
+        if title:
+            blocks.append(f"# {title}")
+
+        for node in root.css("h1, h2, h3, p, pre, li, blockquote"):
+            tag = getattr(node, "tag", "").lower()
+            txt = (node.get_all_text(separator=" ", strip=True) if hasattr(node, "get_all_text") else node.text).strip()
+            if not txt:
+                continue
+            if tag in ("h1", "h2", "h3"):
+                prefix = "#" * int(tag[1])
+                blocks.append(f"{prefix} {txt}")
+            elif tag == "pre":
+                blocks.append(f"```\n{txt}\n```")
+            elif tag == "li":
+                blocks.append(f"- {txt}")
+            else:
+                blocks.append(txt)
+
+        deduped: list[str] = []
+        for b in blocks:
+            if not deduped or b != deduped[-1]:
+                deduped.append(b)
+        result = "\n\n".join(deduped).strip()
+        if len(result) > 40:
+            return result
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("scrapling_selector_extract_fallback", error=str(exc))
+    return ""
+
+
 def extract_readable_text(html: str) -> str:
-    """Extracts clean article/page text using trafilatura or fallback HTML strip."""
+    """
+    Extracts clean, prompt-injection-sanitized article/page text using:
+      1. `sanitize_html_against_prompt_injection` (strips hidden DOM / CSS / comments / invisible Unicode)
+      2. `trafilatura` (when > 50 chars) + Scrapling adaptive `Selector` code-block preservation
+      3. Scrapling `Selector` / regex fallback.
+    """
+    sanitized_html, _ = sanitize_html_against_prompt_injection(html)
+
+    # Extract any <pre><code> blocks via Scrapling Selector so code snippets aren't lost
+    scrapling_text = _extract_with_scrapling_selector(sanitized_html)
+
     extract_fn = _get_trafilatura_extract()
     if extract_fn is not None:
         try:
-            extracted = extract_fn(html, include_links=False, include_comments=False)
+            extracted = extract_fn(sanitized_html, include_links=False, include_comments=False)
             if extracted and len(str(extracted).strip()) > 50:
-                return str(extracted).strip()
+                traf_str = str(extracted).strip()
+                if "```" in scrapling_text and "```" not in traf_str:
+                    return scrapling_text
+                return traf_str
         except Exception as exc:  # noqa: BLE001
             logger.debug("trafilatura_extract_error", error=str(exc))
 
-    # Fallback extraction: extract title and strip tags
-    title_match = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+    if scrapling_text:
+        return scrapling_text
+
+    title_match = re.search(r"<title[^>]*>(.*?)</title>", sanitized_html, re.IGNORECASE | re.DOTALL)
     title = title_match.group(1).strip() if title_match else ""
 
-    # Remove script and style tags
-    clean = re.sub(r"<(script|style)[^>]*>.*?</\1>", "", html, flags=re.IGNORECASE | re.DOTALL)
-    # Remove HTML tags
+    clean = re.sub(
+        r"<(script|style)[^>]*>.*?</\1>", "", sanitized_html, flags=re.IGNORECASE | re.DOTALL
+    )
     clean = re.sub(r"<[^>]+>", " ", clean)
-    # Collapse whitespace
     clean = re.sub(r"\s+", " ", clean).strip()
 
     if title:
         return f"{title}\n\n{clean}"
     return clean
+
+
+def _fetch_via_curl_cffi_impersonation(url: str) -> tuple[int, dict[str, str], bytes, str] | None:
+    """Tier 1.5 TLS JA3/JA4 + HTTP/2 browser fingerprint impersonation via curl_cffi (Scrapling backend)."""
+    try:
+        from curl_cffi import requests as cffi_requests  # noqa: PLC0415
+
+        current_url, _ = validate_url_ssrf(url)
+        redirects = 0
+        with cffi_requests.Session(impersonate="chrome") as sess:
+            while True:
+                resp = sess.get(current_url, timeout=15.0, allow_redirects=False)
+                if resp.status_code in (301, 302, 303, 307, 308):
+                    redirects += 1
+                    if redirects > MAX_REDIRECTS:
+                        raise SandboxPathError(
+                            "too_many_redirects", f"Exceeded {MAX_REDIRECTS} redirects"
+                        )
+                    loc = str(resp.headers.get("Location", ""))
+                    next_url = urljoin(current_url, loc)
+                    current_url, _ = validate_url_ssrf(next_url)
+                    continue
+                hdrs = {str(k).lower(): str(v) for k, v in resp.headers.items()}
+                return int(resp.status_code), hdrs, bytes(resp.content[:MAX_BODY_BYTES]), current_url
+    except SandboxPathError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("curl_cffi_impersonation_failed", url=url, error=str(exc))
+        return None
 
 
 def fetch_url(
@@ -170,7 +370,6 @@ def fetch_url(
                 "Headless browser rendering (render=True) is disabled on host pending "
                 "Milestone 2 container isolation",
             )
-        # Lazy import: browser_tool pulls Playwright only when rendering is requested.
         from lucca.sandbox.browser_tool import render_page  # noqa: PLC0415
 
         return render_page(url=url, max_chars=max_chars)
@@ -207,27 +406,42 @@ def fetch_url(
                         raise SandboxPathError(
                             "too_many_redirects", f"Exceeded {MAX_REDIRECTS} redirects"
                         )
-                    next_url = str(resp.headers.get("Location", ""))
+                    next_url = urljoin(current_url, str(resp.headers.get("Location", "")))
                     current_url, _ = validate_url_ssrf(next_url)
                     continue
                 return resp
 
     resp = _execute_get_with_redirects(verify_ssl=True)
-
+    status_code = resp.status_code
     content_type = resp.headers.get("content-type", "").lower()
+    raw_content = resp.content[:MAX_BODY_BYTES]
+    final_url = str(resp.url)
+    fetch_tier = "tier1_httpx"
+
+    # Tier 1.5 Escalation: If httpx received 403/429/503 anti-bot challenge, try TLS JA3/JA4 Chrome impersonation
+    if status_code in (403, 429, 503):
+        cffi_res = _fetch_via_curl_cffi_impersonation(current_url)
+        if cffi_res is not None:
+            cffi_status, cffi_hdrs, cffi_bytes, cffi_url = cffi_res
+            if cffi_status == 200 and len(cffi_bytes) > len(raw_content):
+                status_code = cffi_status
+                content_type = cffi_hdrs.get("content-type", content_type).lower()
+                raw_content = cffi_bytes
+                final_url = cffi_url
+                fetch_tier = "tier1_5_scrapling_tls_impersonation"
+
     is_pdf = (
         ("application/pdf" in content_type)
-        or (resp.content[:4] == b"%PDF")
+        or (raw_content[:4] == b"%PDF")
         or current_url.lower().endswith(".pdf")
     )
     if is_pdf:
         try:
-            # Lazy imports: PDF extraction is the rare path; keep httpx fetches cheap.
             import io  # noqa: PLC0415
 
             from pypdf import PdfReader  # noqa: PLC0415
 
-            reader = PdfReader(io.BytesIO(resp.content[:MAX_BODY_BYTES]))
+            reader = PdfReader(io.BytesIO(raw_content[:MAX_BODY_BYTES]))
             extracted_pages: list[str] = []
             for page_num, page in enumerate(reader.pages, 1):
                 page_text = page.extract_text() or ""
@@ -242,15 +456,14 @@ def fetch_url(
             if truncated:
                 text = text[:max_chars]
 
-            # Extract embedded links from text layer
             embedded_raw = re.findall(r"https?://[^\s<>\"'()]+", text)
             embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][
                 :100
             ]
 
             return {
-                "url": str(resp.url),
-                "status_code": resp.status_code,
+                "url": final_url,
+                "status_code": status_code,
                 "content_type": "application/pdf",
                 "content_truncated": truncated,
                 "redirects": redirects_followed,
@@ -260,8 +473,8 @@ def fetch_url(
         except Exception as pdf_err:
             logger.warning("pdf_extraction_failed", url=current_url, error=str(pdf_err))
             return {
-                "url": str(resp.url),
-                "status_code": resp.status_code,
+                "url": final_url,
+                "status_code": status_code,
                 "content_type": "application/pdf",
                 "error": f"pdf_parse_error: {pdf_err}",
                 "content_truncated": False,
@@ -271,53 +484,51 @@ def fetch_url(
     allowed_types = ("text/", "application/json", "application/xml", "application/xhtml+xml")
     if not any(t in content_type for t in allowed_types):
         return {
-            "url": str(resp.url),
-            "status_code": resp.status_code,
+            "url": final_url,
+            "status_code": status_code,
             "blocked_content_type": content_type,
             "content_truncated": False,
             "embedded_links": [],
         }, f"[Blocked Content-Type: {content_type}]"
 
-    raw_body = resp.content[:MAX_BODY_BYTES]
     try:
-        html_str = raw_body.decode("utf-8")
+        html_str = raw_content.decode("utf-8")
     except UnicodeDecodeError:
-        html_str = raw_body.decode("latin1", errors="replace")
+        html_str = raw_content.decode("latin1", errors="replace")
 
+    _, sanitization_stats = sanitize_html_against_prompt_injection(html_str)
     text = extract_readable_text(html_str)
 
-    # Dynamic JS rendering fallback for SPAs / JS-gated websites
-    if allow_render and ("html" in content_type.lower()) and (
-        len(text.strip()) < 150
-        or any(
-            marker in text.lower()
-            for marker in ("enable javascript", "javascript is required", "need to enable javascript")
-        )
+    # Tier 2 Dynamic JS / Stealth rendering fallback for SPAs or bot-gated websites
+    if (
+        allow_render
+        and ("html" in content_type.lower())
+        and is_bot_challenge_or_empty_spa(status_code, html_str, text)
     ):
         try:
             from lucca.sandbox.browser_tool import render_page  # noqa: PLC0415
 
-            rendered_struct, rendered_text = render_page(url=str(resp.url), max_chars=max_chars)
-            if rendered_text and len(rendered_text.strip()) > len(text.strip()):
-                rendered_struct["fallback_from_static"] = True
+            rendered_struct, rendered_text = render_page(url=final_url, max_chars=max_chars)
+            if len(rendered_text.strip()) > len(text.strip()):
                 return rendered_struct, rendered_text
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("browser_render_fallback_failed", url=str(resp.url), error=str(exc))
+        except Exception as render_err:
+            logger.debug("dynamic_js_render_fallback_failed", url=current_url, error=str(render_err))
 
     truncated = len(text) > max_chars
     if truncated:
         text = text[:max_chars]
 
-    embedded_raw = re.findall(r"https?://[^\s<>\"'()]+", html_str)
+    embedded_raw = re.findall(r'href=["\'](https?://[^"\'\s<>]+)["\']', html_str, re.IGNORECASE)
     embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][:100]
 
-    structured = {
-        "url": str(resp.url),
-        "status_code": resp.status_code,
+    return {
+        "url": final_url,
+        "status_code": status_code,
         "content_type": content_type,
         "content_truncated": truncated,
         "redirects": redirects_followed,
+        "rendered": False,
+        "fetch_tier": fetch_tier,
+        "prompt_injection_sanitized": sanitization_stats,
         "embedded_links": embedded_links,
-    }
-
-    return structured, text
+    }, text

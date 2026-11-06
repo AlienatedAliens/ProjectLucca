@@ -1,0 +1,170 @@
+{
+  "frozen_model_sha256": {
+    "action_claim_verifier_ov": "2371012cc110f0695c34daa77d9b87e11e47dd7f36e966c207f68da5716c41d8",
+    "proof_policy_hazard_ov": "6ba53b6c918d8d2931367f8feb049606751188754d43c33875fc0433ad26b0c5",
+    "router_intent_ov": "f03bdbb0fb34d8ceb7d5fab0cd892353e8548dbb86096fae035bb2cf44c54f2e"
+  },
+  "subsystems": {
+    "coherence": {
+      "blind_300": {
+        "correct": 100,
+        "total": 100,
+        "accuracy_pct": 100.0,
+        "wilson_95_ci_pct": [
+          96.3,
+          100.0
+        ],
+        "multi_sentence_count": 82,
+        "multi_sentence_pct": 82.0,
+        "missed_ids": []
+      },
+      "blind_90_retest": {
+        "wo41_correct": 23,
+        "wo42_correct": 30,
+        "total": 30,
+        "wo42_accuracy_pct": 100.0,
+        "wilson_95_ci_pct": [
+          88.65,
+          100.0
+        ],
+        "mcnemar_b_wo42_better": 7,
+        "mcnemar_c_wo41_better": 0,
+        "mcnemar_p_value": 0.015625,
+        "missed_ids": []
+      },
+      "combined_130": {
+        "correct": 130,
+        "total": 130,
+        "accuracy_pct": 100.0,
+        "wilson_95_ci_pct": [
+          97.13,
+          100.0
+        ]
+      }
+    },
+    "proof_policy": {
+      "blind_300": {
+        "correct": 95,
+        "total": 100,
+        "accuracy_pct": 95.0,
+        "wilson_95_ci_pct": [
+          88.82,
+          97.85
+        ],
+        "multi_sentence_count": 79,
+        "multi_sentence_pct": 79.0,
+        "missed_ids": [
+          "BLIND42_HZD_013",
+          "BLIND42_HZD_045",
+          "BLIND42_HZD_054",
+          "BLIND42_HZD_088",
+          "BLIND42_HZD_099"
+        ]
+      },
+      "blind_90_retest": {
+        "wo41_correct": 27,
+        "wo42_correct": 30,
+        "total": 30,
+        "wo42_accuracy_pct": 100.0,
+        "wilson_95_ci_pct": [
+          88.65,
+          100.0
+        ],
+        "mcnemar_b_wo42_better": 3,
+        "mcnemar_c_wo41_better": 0,
+        "mcnemar_p_value": 0.25,
+        "missed_ids": []
+      },
+      "combined_130": {
+        "correct": 125,
+        "total": 130,
+        "accuracy_pct": 96.15,
+        "wilson_95_ci_pct": [
+          91.31,
+          98.35
+        ]
+      }
+    },
+    "router": {
+      "blind_300": {
+        "correct": 95,
+        "total": 100,
+        "accuracy_pct": 95.0,
+        "wilson_95_ci_pct": [
+          88.82,
+          97.85
+        ],
+        "multi_sentence_count": 100,
+        "multi_sentence_pct": 100.0,
+        "missed_ids": [
+          "BLIND42_RTR_016",
+          "BLIND42_RTR_024",
+          "BLIND42_RTR_049",
+          "BLIND42_RTR_050",
+          "BLIND42_RTR_064"
+        ]
+      },
+      "blind_90_retest": {
+        "wo41_correct": 18,
+        "wo42_correct": 26,
+        "total": 30,
+        "wo42_accuracy_pct": 86.67,
+        "wilson_95_ci_pct": [
+          70.32,
+          94.69
+        ],
+        "mcnemar_b_wo42_better": 10,
+        "mcnemar_c_wo41_better": 2,
+        "mcnemar_p_value": 0.03857422,
+        "missed_ids": [
+          "BLIND_RTR_06",
+          "BLIND_RTR_14",
+          "BLIND_RTR_21",
+          "BLIND_RTR_27"
+        ]
+      },
+      "combined_130": {
+        "correct": 121,
+        "total": 130,
+        "accuracy_pct": 93.08,
+        "wilson_95_ci_pct": [
+          87.37,
+          96.32
+        ]
+      }
+    }
+  },
+  "overall": {
+    "blind_300": {
+      "correct": 290,
+      "total": 300,
+      "accuracy_pct": 96.67,
+      "wilson_95_ci_pct": [
+        93.97,
+        98.18
+      ]
+    },
+    "blind_90_retest": {
+      "wo41_correct": 69,
+      "wo42_correct": 86,
+      "total": 90,
+      "wo42_accuracy_pct": 95.56,
+      "wilson_95_ci_pct": [
+        89.12,
+        98.26
+      ],
+      "mcnemar_b_wo42_better": 20,
+      "mcnemar_c_wo41_better": 2,
+      "mcnemar_p_value": 0.00012112
+    },
+    "combined_390": {
+      "correct": 376,
+      "total": 390,
+      "accuracy_pct": 96.41,
+      "wilson_95_ci_pct": [
+        94.07,
+        97.85
+      ]
+    }
+  }
+}

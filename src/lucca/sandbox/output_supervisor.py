@@ -722,7 +722,7 @@ _META_CREATIVE_USER_PROMPT_REGEX = re.compile(
 
 _DISCOURSE_ARTIFACT_FRAME_REGEX = re.compile(
     r"(?:"
-    r"^```(?:json|yaml|xml|toml|csv|sql|text|markdown)?\b|"
+    r"(?:^|\n)\s*```(?:json|yaml|xml|toml|csv|sql|text|markdown)?\b|"
     r"\bhere\s+are\s+(?:three|two|four|a\s+few|\d+)\s+(?:[\w,-]+\s+){0,4}(?:notifications?|messages?|examples?(?:\s+for\s+you)?|options?|templates?|ways\s+to\s+write\s+that|ways\s+i\s+could\s+say\s+that|ways\s+to\s+phrase\s+that)\b|"
     r"(?:^|\n)\s*(?:#+\s*option\s+\d+|\*\*option\s+\d+)|"
     r"\bthe\s+corrected\s+sentence\s+is\s*:|"
@@ -973,8 +973,13 @@ class ActionClaimGrammarSupervisor:
         {"success", "succeeded", "ok", "completed", "done"}
     )
 
-    def __init__(self, grammar_path: Path | str | None = None) -> None:
+    def __init__(
+        self,
+        grammar_path: Path | str | None = None,
+        use_neural_verifier: bool = True,
+    ) -> None:
         self.grammar_path = Path(grammar_path or "config/grammars/action_claim.gbnf")
+        self.use_neural_verifier = use_neural_verifier
         self._grammar_text: str | None = None
         if self.grammar_path.exists():
             try:
@@ -989,13 +994,66 @@ class ActionClaimGrammarSupervisor:
         stale_before: float | None = None,
         user_context: str | Sequence[dict[str, str]] | None = None,
         full_narration: str | None = None,
+        use_neural_verifier: bool | None = None,
     ) -> GateResult:
         """
         Evaluates a streamed clause for ungrounded physical/stateful action claims
         under grammar-constrained channel rules (<= 1.0 ms budget, target < 100 us).
-        Supports conversational user_context and full_narration framing (v3.0).
+        Supports conversational user_context and full_narration framing (v3.0 / WO-41).
         """
         t0 = time.perf_counter()
+
+        run_neural = self.use_neural_verifier if use_neural_verifier is None else use_neural_verifier
+        if run_neural and user_context is not None:
+            try:
+                from lucca.sandbox.neural_claim_verifier import (  # noqa: PLC0415
+                    get_neural_claim_verifier,
+                )
+
+                nv = get_neural_claim_verifier()
+                if nv.available:
+                    ok_tool_strs: list[str] = []
+                    for r in verified_receipts:
+                        st = str(r.get("status", "ok")).lower()
+                        if st not in self.SUCCESS_STATUSES:
+                            continue
+                        if stale_before is not None:
+                            ts_val = r.get("timestamp") or r.get("ts")
+                            if isinstance(ts_val, (int, float)) and float(ts_val) < stale_before:
+                                continue
+                        act = str(r.get("action") or r.get("tool") or r.get("tool_name") or "")
+                        tgt = str(r.get("target") or "")
+                        if act:
+                            ok_tool_strs.append(f"{act}({tgt!r})" if tgt else act)
+                    verdict = nv.evaluate(
+                        completion=full_narration if full_narration else clause,
+                        user_context=user_context,
+                        verified_tools=ok_tool_strs,
+                    )
+                    elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+                    if verdict.is_ungrounded_claim:
+                        return GateResult(
+                            True,
+                            "ungrounded_action",
+                            SeverityTier.TIER_1_ABORT,
+                            clause.strip(),
+                            (
+                                f"OpenVINO 4-Class Neural Verifier ({verdict.device}) "
+                                f"detected ungrounded action/state claim "
+                                f"(class={verdict.predicted_class}, p={verdict.prob_ungrounded_claim:.3f})."
+                            ),
+                            elapsed_us,
+                        )
+                    return GateResult(
+                        False,
+                        None,
+                        SeverityTier.PASS,
+                        None,
+                        f"OpenVINO 4-Class Neural Verifier PASS (class={verdict.predicted_class})",
+                        elapsed_us,
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("grammar_supervisor_neural_hook_failed", error=str(exc))
 
         # 0a. Context Gate A (v3.0): Meta-linguistic, creative writing, roleplay dialogue,
         # translation, grammar correction, UI copywriting, or code/JSON template request.
