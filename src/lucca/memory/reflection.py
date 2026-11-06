@@ -370,7 +370,7 @@ class DreamRetrospective:
 
         # 1. Mine recurring patterns from SQLite telemetry into QUARANTINE via RuleInducer
         try:
-            inducer = RuleInducer(db=self.db, rule_engine=r_engine)
+            inducer = RuleInducer(db=self.db, rule_engine=r_engine, verifier=self.verifier)
             induced_candidates = inducer.induce_and_quarantine()
             for cand in induced_candidates:
                 quarantined.append(cand.rule_id)

@@ -613,9 +613,16 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
-                if parsed_search.queries and len(parsed_search.queries) > 1:
+                if (
+                    parsed_search.queries and len(parsed_search.queries) > 1
+                ) or parsed_search.deep_extract:
+                    research_query = (
+                        " ".join(parsed_search.queries)
+                        if parsed_search.queries
+                        else parsed_search.query
+                    )
                     structured, content = research_topic(
-                        query=" ".join(parsed_search.queries),
+                        query=research_query,
                         max_sources=min(parsed_search.max_results, 5),
                         target_entity=parsed_search.target_entity,
                     )

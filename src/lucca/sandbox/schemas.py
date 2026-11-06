@@ -119,6 +119,7 @@ class SearchWebArgs(BaseModel):
     queries: list[str] | None = None
     max_results: int = Field(default=5, ge=1, le=20)
     target_entity: str | None = None
+    deep_extract: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -268,6 +269,7 @@ class ResearchTopicArgs(BaseModel):
     query: str = Field(min_length=1)
     max_sources: int = Field(default=3, ge=1, le=10)
     target_entity: str | None = None
+    deep_extract: bool = False
 
     @model_validator(mode="before")
     @classmethod

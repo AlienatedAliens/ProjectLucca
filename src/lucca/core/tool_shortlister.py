@@ -65,6 +65,9 @@ NATIVE_TOOL_CATEGORIES: Final[dict[str, list[str]]] = {
 _INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     # external_recon
     "search": "external_recon",
+    "search_web": "external_recon",
+    "fetch_url": "external_recon",
+    "clipboard_read": "external_recon",
     "research": "external_recon",
     "browse": "external_recon",
     "web": "external_recon",
@@ -73,12 +76,22 @@ _INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     "code": "workspace",
     "workspace": "workspace",
     "file": "workspace",
+    "file_op": "workspace",
+    "read_file": "workspace",
+    "write_file": "workspace",
+    "list_dir": "workspace",
+    "search_text": "workspace",
+    "artifact_verify": "workspace",
     "edit": "workspace",
     "document": "workspace",
     # platform_actuation
     "execute": "platform_actuation",
     "launch": "platform_actuation",
+    "launch_app": "platform_actuation",
     "run": "platform_actuation",
+    "run_python": "platform_actuation",
+    "run_python_async": "platform_actuation",
+    "inbox_handoff": "platform_actuation",
     "actuation": "platform_actuation",
     "platform_actuation": "platform_actuation",
     # self_introspection
@@ -87,16 +100,29 @@ _INTENT_CATEGORY_MAP: Final[dict[str, str]] = {
     "introspection": "self_introspection",
     "capability": "self_introspection",
     "capabilities": "self_introspection",
+    "query_capabilities": "self_introspection",
+    "self_history_search": "self_introspection",
+    "self_metrics": "self_introspection",
     "metrics": "self_introspection",
     "self_introspection": "self_introspection",
     # system_schedule
     "time": "system_schedule",
     "reminder": "system_schedule",
     "schedule": "system_schedule",
+    "schedule_event": "system_schedule",
     "screenshot": "system_schedule",
+    "screenshot_capture": "system_schedule",
     "vision": "system_schedule",
     "system": "system_schedule",
+    "sys_info": "system_schedule",
     "system_schedule": "system_schedule",
+    # cognitive_core direct intents
+    "calc_math": "cognitive_core",
+    "note_write": "cognitive_core",
+    "note_read": "cognitive_core",
+    "memory_search": "cognitive_core",
+    "memory_commit": "cognitive_core",
+    "invoke_skill": "cognitive_core",
 }
 
 # Entity keyword mapping table -> category name
@@ -201,32 +227,73 @@ def shortlist_tools(
             norm_ent = ent.strip().lower()
             if norm_ent in _ENTITY_CATEGORY_MAP:
                 target_categories.add(_ENTITY_CATEGORY_MAP[norm_ent])
+            elif norm_ent in _INTENT_CATEGORY_MAP:
+                target_categories.add(_INTENT_CATEGORY_MAP[norm_ent])
+
+    # 2b. Scan multi-sentence user_query for secondary task categories (WO-42)
+    if user_query and user_query.strip():
+        q_low = user_query.lower()
+        for ent_kw, cat_name in _ENTITY_CATEGORY_MAP.items():
+            if f" {ent_kw}" in f" {q_low}":
+                target_categories.add(cat_name)
 
     # 3. Fallback: if no category could be determined, return full registry
     if not target_categories:
         logger.debug("shortlist_fallback_full_registry", intent=intent)
         return all_tools
 
-    # 4. If more than 1 task category was activated, prioritize the intent category
-    # to maintain the hard ≤ 12 tools budget guarantee:
-    # cognitive_core (6) + max 1 task category (5) = 11 <= 12 tools.
+    # 4. Multi-Category Compound Turn Shortlisting under the hard <= 12 tools budget:
+    # Always include cognitive_core (6) + primary task_cat (3-5), then pack any
+    # secondary activated task categories (or their cue-matched tools) up to 12 tools.
     task_cat: str
     intent_cat = _INTENT_CATEGORY_MAP.get(norm_intent)
     if intent_cat and intent_cat in target_categories:
         task_cat = intent_cat
     else:
-        # Pick the first activated category
-        task_cat = sorted(target_categories)[0]
+        non_core_cats = sorted(c for c in target_categories if c != "cognitive_core")
+        task_cat = non_core_cats[0] if non_core_cats else "cognitive_core"
 
     selected_tools: set[str] = set(NATIVE_TOOL_CATEGORIES["cognitive_core"])
     selected_tools.update(NATIVE_TOOL_CATEGORIES.get(task_cat, []))
 
+    secondary_cats = sorted(
+        c for c in target_categories if c not in (task_cat, "cognitive_core")
+    )
+    q_lower_for_sec = (user_query or "").lower()
+    ent_tokens = {e.strip().lower() for e in (entities or []) if e.strip()}
+    for sec_cat in secondary_cats:
+        if len(selected_tools) >= 12:
+            break
+        sec_tools = NATIVE_TOOL_CATEGORIES.get(sec_cat, [])
+        if len(selected_tools | set(sec_tools)) <= 12:
+            selected_tools.update(sec_tools)
+        else:
+            # Pack the highest-relevance tools from sec_cat into remaining budget slots
+            scored_sec: list[tuple[int, str]] = []
+            for st in sec_tools:
+                cues = _TOOL_RELEVANCE_CUES.get(st, ())
+                score = sum(
+                    1
+                    for cue in cues
+                    if (q_lower_for_sec and cue in q_lower_for_sec) or cue in ent_tokens
+                )
+                if st in ent_tokens or st in q_lower_for_sec:
+                    score += 5
+                scored_sec.append((-score, st))
+            for _neg_score, st in sorted(scored_sec):
+                if len(selected_tools) >= 12:
+                    break
+                selected_tools.add(st)
+
     result = sorted(selected_tools)
 
-    # 5. Semantic Tool-Fit Filter (WO-36 §36.5)
+    # 5. Semantic Tool-Fit Filter (WO-36 §36.5) while preserving cognitive_core
     if user_query and user_query.strip():
+        core_set = set(NATIVE_TOOL_CATEGORIES["cognitive_core"])
         fit_tools = [
-            t for t in result if check_tool_fit(t, user_query, verifier=verifier)
+            t
+            for t in result
+            if t in core_set or check_tool_fit(t, user_query, verifier=verifier)
         ]
         if fit_tools:
             result = fit_tools

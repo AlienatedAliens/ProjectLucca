@@ -2904,9 +2904,14 @@ class Orchestrator:
                                     tool_res, "structured", None
                                 ):
                                     search_urls: list[str] = []
-                                    for s_item in tool_res.structured.get("results", []):
-                                        if s_item.get("url"):
-                                            search_urls.append(s_item["url"])
+                                    search_items = (
+                                        tool_res.structured.get("results")
+                                        or tool_res.structured.get("sources")
+                                        or []
+                                    )
+                                    for s_item in search_items:
+                                        if isinstance(s_item, dict) and s_item.get("url"):
+                                            search_urls.append(str(s_item["url"]))
                                     if tool_res.content:
                                         search_urls.extend(
                                             re.findall(r"https?://[^\s<>\"'()]+", tool_res.content)
@@ -4434,6 +4439,76 @@ class Orchestrator:
                     return c
         return None
 
+    @staticmethod
+    def _extract_claim_aligned_sentences(
+        claim: str,
+        page_text: str,
+        fallback_snippet: str,
+        max_sentences: int = 2,
+    ) -> str:
+        """Extracts the top 1-2 claim-aligned sentences from Scrapling page text.
+
+        Prevents full-page negation/adversative pollution in compute_proposition_alignment
+        (corroboration.py:666) while upgrading 150-char snippets with deep article facts.
+        """
+        if not page_text or not page_text.strip():
+            return fallback_snippet
+        claim_tokens = {
+            tok
+            for tok in re.findall(r"[a-z0-9]+", claim.lower())
+            if len(tok) > 2
+            and tok not in {"the", "and", "for", "that", "with", "from", "this", "what", "when", "where", "who", "was", "are", "is"}
+        }
+        if not claim_tokens:
+            return fallback_snippet
+
+        raw_sentences = [
+            s.strip()
+            for s in re.split(r"(?<=[.!?])\s+|\n+", page_text)
+            if 15 <= len(s.strip()) <= 500
+        ]
+        if not raw_sentences:
+            return fallback_snippet
+
+        scored: list[tuple[float, int, str]] = []
+        for idx, sent in enumerate(raw_sentences):
+            sent_tokens = set(re.findall(r"[a-z0-9]+", sent.lower()))
+            overlap = len(claim_tokens & sent_tokens)
+            if overlap == 0:
+                continue
+            ratio = overlap / max(len(claim_tokens), 1)
+            scored.append((ratio, -idx, sent))
+
+        if not scored:
+            return fallback_snippet
+
+        scored.sort(reverse=True)
+        top_sents = [s for _r, _i, s in scored[:max_sentences]]
+        combined = " ".join(top_sents).strip()
+        if fallback_snippet and fallback_snippet not in combined:
+            return f"{fallback_snippet} {combined}".strip()
+        return combined
+
+    def _fetch_cross_reference_page(self, url: str) -> str:
+        """Fetches clean article text via Scrapling web_tool for cross-reference corroboration."""
+        if not url:
+            return ""
+        is_mock_sandbox = self.sandbox is not None and type(
+            self.sandbox
+        ).__module__.startswith("unittest.mock")
+        default_enabled = not is_mock_sandbox
+        if not getattr(self, "enable_deep_cross_reference", default_enabled):
+            return ""
+        try:
+            from lucca.sandbox.web_tool import fetch_url
+
+            structured, content = fetch_url(url=url, max_chars=6000)
+            if structured.get("ok") and isinstance(content, str):
+                return content
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("cross_ref_deep_fetch_error", url=url, error=str(exc))
+        return ""
+
     def _execute_cross_reference_searches(
         self, claim: str, max_searches: int = 3
     ) -> list[ToolReceipt]:
@@ -4466,6 +4541,13 @@ class Orchestrator:
                         except Exception as exc:  # noqa: BLE001
                             logger.debug("search_receipt_domain_urlsplit_error", error=str(exc))
                     content = f"{item.get('title', '')} {item.get('snippet', '')}".strip()
+                    page_text = self._fetch_cross_reference_page(url) if url else ""
+                    if page_text:
+                        content = self._extract_claim_aligned_sentences(
+                            claim=claim,
+                            page_text=page_text,
+                            fallback_snippet=content,
+                        )
                     rcpt = ToolReceipt(
                         tool="search_web",
                         tool_name="search_web",

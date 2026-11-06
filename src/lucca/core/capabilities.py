@@ -86,6 +86,11 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
                 "max_results": ToolParameter(
                     type="integer", description="Maximum search results", required=False
                 ),
+                "deep_extract": ToolParameter(
+                    type="boolean",
+                    description="Fetch and extract clean page text from top search results using Scrapling",
+                    required=False,
+                ),
             },
             risk=Risk.NETWORK,
             target="self",

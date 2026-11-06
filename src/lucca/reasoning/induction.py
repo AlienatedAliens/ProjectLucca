@@ -400,12 +400,14 @@ class RuleInducer:
         min_frequency: int = MIN_FREQUENCY_THRESHOLD,
         similarity_threshold: float = DEFAULT_SIMILARITY_THRESHOLD,
         smt_verifier: SMTVerifier | None = None,
+        verifier: SemanticVerifierPort | None = None,
     ) -> None:
         self.db = db
         self.rule_engine = rule_engine
         self.min_frequency = min_frequency
         self.similarity_threshold = similarity_threshold
         self.smt_verifier = smt_verifier or SMTVerifier(timeout_ms=500)
+        self.verifier = verifier
 
     def mine_patterns(self) -> list[InductionCluster]:
         """
@@ -457,7 +459,9 @@ class RuleInducer:
 
         clusters: list[InductionCluster] = []
         for (intent, tool, arg_key), vals in group_values.items():
-            clustered = cluster_phrasings(vals, threshold=self.similarity_threshold)
+            clustered = cluster_phrasings(
+                vals, threshold=self.similarity_threshold, verifier=self.verifier
+            )
             for rep, count, phrasings in clustered:
                 if count >= self.min_frequency:
                     clusters.append(

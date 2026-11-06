@@ -192,6 +192,7 @@ def research_topic(
         "sub_queries": sub_queries,
         "sources_count": len(fetched_sources),
         "sources": fetched_sources,
+        "results": fetched_sources,
     }
 
     return structured_out, summary_text
