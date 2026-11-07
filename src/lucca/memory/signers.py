@@ -12,6 +12,7 @@ from typing import Final, Protocol
 
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload
+from lucca.memory.tokens import derive_provenance_key, hkdf_expand, hkdf_extract
 
 KNOWN_DEV_KEYS: Final[frozenset[str]] = frozenset(
     {

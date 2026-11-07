@@ -28,8 +28,7 @@ from lucca.core.schemas import (
     standard_for_confidence,
 )
 from lucca.memory.db import DatabaseManager
-from lucca.memory.signers import canonicalize_unsigned_payload, derive_provenance_key
-from lucca.memory.tokens import build_fts_query, subtokens
+from lucca.memory.tokens import build_fts_query, derive_provenance_key, subtokens
 from lucca.ports import EmbeddingPort
 from lucca.reasoning.relational.allen import AllenRelation, relation_1d
 from lucca.reasoning.relational.sorts import Interval1D

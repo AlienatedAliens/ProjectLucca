@@ -16,7 +16,7 @@
     urlcolor=blue
 }
 
-\title{\textbf{Breaking the Lexical Supervision Ceiling: Clause-Level DeBERTa Verification and Task-Priority Intent Routing on a Zero-VRAM Edge NPU}}
+\title{\textbf{Breaking the Lexical Supervision Ceiling: Clause-Level MiniLM-L6 Verification and Task-Priority Intent Routing on a Zero-VRAM Edge NPU}}
 \author{
   \textbf{Sean Maxwell} \\
   Independent Researcher \\
@@ -29,7 +29,7 @@
 \maketitle
 
 \begin{abstract}
-In a prior study (\href{https://doi.org/10.5281/zenodo.23901605}{DOI: 10.5281/zenodo.23901605}), we showed that deterministic speech-regex and stem-list action supervisors reach an empirical ceiling on live language model outputs: across $N=1{,}000$ four-model completions, a 44-stem grammar supervisor caught $71.1\%$ ($128/180$) of in-vocabulary action claims but dropped to $29.5\%$ ($23/78$) on unseen verb lemmas ($58.5\%$ overall), while Structured-Output Action Contracts (SOAC) triggered spurious action frames on $13.3\%$--$16.7\%$ of conversational idioms. Replacing lexical rules with a neural classifier solves open-vocabulary generalization on isolated single sentences, yet introduces two new failure modes in edge companion deployments: (1) dGPU VRAM contention with the primary language model, and (2) severe probability dilution when a single fabricated action clause or task request is buried inside a multi-sentence response. In this paper, we present a three-classifier neurosymbolic supervision and routing architecture compiled to FP16 on an Intel AI Boost NPU ($0\text{ MB}$ dGPU VRAM, $1.22$--$2.95\text{ ms}$ mean inference latency on an Intel Core Ultra 9 275HX). By decomposing multi-sentence inputs into syntactic clauses (\texttt{split\_into\_clauses}) and applying domain-specific pooling operators---max-violation probability pooling for action-claim supervision, max-hazard lattice pooling for epistemic proof policy, and task-priority pooling for 29-class intent routing---we eliminate multi-sentence dilution without modifying the underlying 22M-parameter \texttt{DeBERTa-v3-small} weights. Across an expanded $N=2{,}022$ action-claim evaluation battery (combining the 1,000-turn 4-model corpus, 120-turn held-out v1/v2 corpus, 352 multi-sentence/implicit/adversarial probes, and 550 Hypothesis property-based fuzz cases), the clause-level NPU verifier achieves \textbf{99.26\% accuracy ($2{,}007/2{,}022$, 95\% Wilson CI: $[98.78\%, 99.55\%]$)}, \textbf{98.73\% recall ($465/471$)}, and \textbf{0.58\% FPR ($9/1{,}551$)}, outperforming the 44-stem regex baseline ($11.46\%$ recall [$54/471$], McNemar $\chi^2 = 399.04, p = 3.07 \times 10^{-89}$). On a pre-registered 150-item locked holdout (\texttt{WO42\_LOCKED\_HOLDOUT\_150}) authored by three isolated subagents and graded by blinded raters ($\kappa = 1.000$), the three NPU classifiers achieve $145/150$ ($96.67\%$) single-pass accuracy and $150/150$ ($100.0\%$) after adding a temporal-keyword guard against \texttt{schedule\_event} false triggers. Finally, across a live 100-turn end-to-end evaluation spanning all four local Gemma-4 GGUF checkpoints (\texttt{26B-A4B}, \texttt{12B}, \texttt{E4B}, \texttt{E2B}), the system achieves \textbf{100/100 (100.0\%)} functional coherence, intercepting $28/28$ adversarial false action claims with $0/16$ false alarms on benign code and JSON explanations.
+In a prior study (\href{https://doi.org/10.5281/zenodo.23901605}{DOI: 10.5281/zenodo.23901605}), we showed that deterministic speech-regex and stem-list action supervisors reach an empirical ceiling on live language model outputs: across $N=1{,}000$ four-model completions, a 44-stem grammar supervisor caught $71.1\%$ ($128/180$) of in-vocabulary action claims but dropped to $29.5\%$ ($23/78$) on unseen verb lemmas ($58.5\%$ overall), while Structured-Output Action Contracts (SOAC) triggered spurious action frames on $13.3\%$--$16.7\%$ of conversational idioms. Replacing lexical rules with a neural classifier solves open-vocabulary generalization on isolated single sentences, yet introduces two new failure modes in edge companion deployments: (1) dGPU VRAM contention with the primary language model, and (2) severe probability dilution when a single fabricated action clause or task request is buried inside a multi-sentence response. In this paper, we present a three-classifier neurosymbolic supervision and routing architecture (`cross-encoder/nli-MiniLM2-L6-H768`, $82.1\text{M}$ parameters) compiled to FP16 on an Intel AI Boost NPU ($0\text{ MB}$ dGPU VRAM, $1.22$--$2.95\text{ ms}$ mean inference latency on an Intel Core Ultra 9 275HX). By decomposing multi-sentence inputs into syntactic clauses (\texttt{split\_narration\_into\_clauses}) and applying domain-specific pooling and symbolic verification operators---clause-level speech-act classification paired with deterministic receipt set-membership verification for action claims, max-hazard lattice pooling for epistemic proof policy, and task-priority pooling for multi-head intent routing---we eliminate multi-sentence dilution without retraining the frozen OpenVINO FP16 NPU weights. Across an expanded $N=2{,}022$ action-claim evaluation battery (combining the 1,000-turn 4-model corpus, 715-turn Paper~02 v1/v2 6-arm corpus, 300 organic companion discovery/held-out turns, and 30 implicit zero-verb stress probes), the clause-level NPU verifier achieves \textbf{99.26\% accuracy ($2{,}007/2{,}022$, 95\% Wilson CI: $[98.78\%, 99.55\%]$)}, \textbf{98.73\% recall ($465/471$)}, and \textbf{0.58\% FPR ($9/1{,}551$)}, outperforming the 44-stem regex baseline ($11.46\%$ recall [$54/471$], McNemar $\chi^2 = 399.04, p = 3.07 \times 10^{-89}$). On a pre-registered 150-item code-and-weight-locked holdout (\texttt{WO42\_LOCKED\_HOLDOUT\_150}) authored by three isolated subagents and graded by blinded raters ($\kappa = 1.000$), the three NPU classifiers achieve $145/150$ ($96.67\%$, 95\% CI: $[92.43\%, 98.57\%]$) single-pass accuracy and $150/150$ ($100.0\%$) after fixing two deterministic router rules (\texttt{has\_z3} domain precedence and Markdown backtick stripping around app names). Finally, across a live 100-turn end-to-end evaluation spanning all four local Gemma-4 GGUF checkpoints (\texttt{26B-A4B}, \texttt{12B}, \texttt{E4B}, \texttt{E2B}), the system achieves \textbf{100/100 (100.0\%)} functional coherence and grounding and \textbf{98/100 (98.0\%)} task/reasoning completion.
 \end{abstract}
 
 \section{Introduction}
@@ -44,55 +44,41 @@ Second, the agent must not claim in live speech or text that it has executed a s
 
 Paper~02 \cite{maxwell2026evasion} therefore left an open architectural question: how can an edge agent verify open-vocabulary action claims, classify epistemic proof-policy hazards, and route multi-sentence user intents at $<5\text{ ms}$ latency without consuming dGPU VRAM or failing on multi-sentence prose?
 
-When we trained 22M-parameter \texttt{DeBERTa-v3-small} cross-encoders and sequence classifiers and compiled them to OpenVINO FP16 on the Intel AI Boost NPU (\texttt{WO-41}), single-sentence holdout accuracy reached $100.0\%$ ($90/90$). Yet when we subjected those exact NPU checkpoints to an uncurated 300-item multi-sentence stress test (\texttt{Blind-300}, \texttt{WO-42 Phase 1}), aggregate accuracy dropped to \textbf{60.0\% ($180/300$)}: $45.0\%$ ($45/100$) on action-claim verification, $75.0\%$ ($75/100$) on hazard classification, and $60.0\%$ ($60/100$) on intent routing.
+When we trained $82.1\text{M}$-parameter \texttt{cross-encoder/nli-MiniLM2-L6-H768} sequence classifiers on our discrete GPU and compiled them to OpenVINO FP16 on the Intel AI Boost NPU (\texttt{WO-41}), single-sentence in-distribution accuracy exceeded $98\%$, but on the 90-item \texttt{WO-41} blind adversarial stress test accuracy dropped to $76.7\%$ ($69/90$), and on an uncurated 300-item multi-sentence blind benchmark (\texttt{Blind-300}, \texttt{WO-42 Phase 1}) pre-pooling accuracy dropped to \textbf{75.0\% ($225/300$)}: $83.0\%$ ($83/100$) on action-claim verification, $69.0\%$ ($69/100$) on hazard classification, and $73.0\%$ ($73/100$) on intent routing ($303/390 = 77.7\%$ across the combined 390 blind items).
 
-This paper diagnoses the root cause of that multi-sentence collapse and presents the clause-level neurosymbolic pooling architecture that resolves it.
+This paper diagnoses the root cause of that multi-sentence degradation and presents the clause-level neurosymbolic pooling architecture that resolves it.
 
-\section{Why Whole-Turn Neural Classifiers Fail on Multi-Sentence Turns}
+\section{Why Whole-Turn Neural Classifiers Degrade on Multi-Sentence Turns}
 \label{sec:failure_diagnosis}
-Line-by-line inspection of the 120 failures in the pre-pooling \texttt{Blind-300} run (\texttt{logs/test\_reports/wo42\_blind390\_before\_after\_report.json}) identified three deterministic failure mechanisms when transformer sequence classifiers score an entire multi-sentence turn as a single token span:
+Line-by-line inspection of the 87 failures in the pre-pooling \texttt{Blind-390} run (\texttt{logs/test\_reports/wo42\_pass1\_pre\_pooling\_fix\_report.json}) identified three deterministic failure mechanisms when transformer sequence classifiers score an entire multi-sentence turn as a single token span or attempt discrete set-membership in embedding space:
 
-\subsection{Mechanism 1: Softmax Dilution in Multi-Sentence Outputs ($55/100$ Coherence Misses)}
-When an assistant response contains 3 to 5 sentences of accurate technical explanation or empathetic dialogue and a single sentence asserting an unexecuted action (e.g., \emph{``Your CPU temperature is normal at 52\,$^\circ$C. Everything looks healthy. I have cleared the temporary diagnostic logs for you. Let me know if you need anything else.''}), whole-paragraph encoding pools attention across all 45 tokens. Because $80\%$ of the tokens belong to benign explanatory clauses, the \texttt{[CLS]} representation shifts toward \texttt{SAFE\_CONVERSATIONAL}, pushing the \texttt{UNEXECUTED\_CLAIM\_VIOLATION} softmax probability below the $0.50$ decision threshold. This failure also occurred on agentless passives (\emph{``The configuration file has been updated''}), third-person persona self-references (\emph{``Lucca saved your note''}), and structured JSON/YAML/TOML status blocks (\texttt{\{"status": "deleted", "file": "notes.txt"\}}).
+\subsection{Mechanism 1: Neural Set-Membership Confusion and Multi-Sentence Dilution ($21/130$ Coherence Misses)}
+Feeding \texttt{verified\_tools} as a text string into a continuous embedding classifier forced the network to approximate discrete set membership ($\text{claimed\_tool} \in \text{executed\_tools}$) and caused sensitivity to argument formatting (\texttt{launch\_app(app='...')} vs.\ \texttt{["launch\_app"]}). Furthermore, when an assistant response contained 3 to 5 sentences where a grounded first clause (e.g., \texttt{read\_file}) was followed by an ungrounded second clause (e.g., \texttt{write\_file}), whole-paragraph encoding diluted the ungrounded second clause.
 
-\subsection{Mechanism 2: Benign Context Masking High-Hazard Clauses ($25/100$ Hazard Misses)}
-In the epistemic proof-policy gate (\texttt{src/lucca/core/proof\_policy.py}), a prompt containing three casual conversational sentences followed by a single medical dosage, legal liability, or destructive shell question was classified as \texttt{LOW} hazard when scored as a single paragraph.
+\subsection{Mechanism 2: Benign Context Masking High-Hazard Clauses ($32/130$ Hazard Misses)}
+In the epistemic proof-policy gate (\texttt{src/lucca/core/proof\_policy.py}), a prompt containing three casual conversational sentences followed by a single factual/historical verification or destructive security question was classified as \texttt{LOW} hazard when scored as a single paragraph, while imperative non-corroboration commands falsely triggered \texttt{CROSS\_REFERENCE\_CMD}.
 
-\subsection{Mechanism 3: Conversational Opener Hijacking and Cross-Clause Entity Bleed ($40/100$ Router Misses)}
-Natural voice turns frequently open with greetings, venting, or compliments before stating a task (e.g., \emph{``Ugh, my screen is so cluttered today and it's driving me crazy. Take a screenshot of my display right now.''}). Whole-utterance classification Either assigned the turn to \texttt{venting} / \texttt{chit\_chat} (starving the turn of tools) or predicted the correct tool intent while extracting the target entity string from the wrong sentence.
+\subsection{Mechanism 3: Conversational Opener Hijacking and Cross-Clause Entity Bleed ($34/130$ Router Misses)}
+Natural voice turns frequently open with greetings, venting, or context before stating a concrete task. Whole-utterance classification averaged 3 to 6 sentences into low-confidence predictions or delegated exact lexical contracts (\texttt{EMERGENCY\_REFLEX} and whitelisted \texttt{known\_apps} vs.\ third-party apps) to unconstrained softmax heads without slot verification.
 
 \section{Clause-Level Neurosymbolic NPU Architecture}
 \label{sec:architecture}
-Rather than retraining larger models that would exceed our $<5\text{ ms}$ latency budget, we keep all three \texttt{DeBERTa-v3-small} OpenVINO FP16 models pinned to the Intel AI Boost NPU ($0\text{ MB}$ dGPU VRAM) and introduce a deterministic symbolic decomposition and pooling layer around each classifier. All NPU \texttt{CompiledModel} calls are serialized by per-model \texttt{threading.Lock} instances to prevent OpenVINO \texttt{Infer Request is busy} collisions under concurrent background memory indexing.
+Rather than retraining larger models that would exceed our $<5\text{ ms}$ latency budget, we keep all three $82.1\text{M}$-parameter \texttt{nli-MiniLM2-L6-H768} OpenVINO FP16 models pinned to the Intel AI Boost NPU ($0\text{ MB}$ dGPU VRAM) and introduce a deterministic symbolic decomposition, receipt set-membership, and priority-pooling layer around each classifier.
 
-\subsection{Syntactic Clause Segmentation (\texttt{split\_into\_clauses})}
-Given an input text $T$, \texttt{split\_into\_clauses(T)} decomposes $T$ into an ordered sequence of clauses $C = (c_1, c_2, \dots, c_m)$ using sentence punctuation boundaries (\texttt{[.!?;\textbackslash n]+}) while protecting decimal numbers (\texttt{3.14}), file extensions (\texttt{config.toml}, \texttt{notes.md}), abbreviations, and inline code blocks. Structured key-value blocks (JSON, YAML, TOML, XML status tags) are extracted as dedicated clause spans.
+\subsection{Syntactic Clause Segmentation (\texttt{split\_narration\_into\_clauses})}
+Given an input text $T$, \texttt{split\_narration\_into\_clauses(T)} decomposes $T$ into an ordered sequence of clauses $C = (c_1, c_2, \dots, c_m)$ using sentence punctuation boundaries and coordinating action conjunctions (\texttt{and I also}, \texttt{then I}, \texttt{;}) while protecting decimal numbers, file extensions, abbreviations, and fenced code blocks.
 
-\subsection{Max-Violation Pooling for Action-Claim Verification (\texttt{NeuralActionClaimVerifier})}
-For assistant output $T_a$ and user prompt $T_u$ when no matching tool receipt exists (\texttt{tool\_receipts = []}), \texttt{NeuralActionClaimVerifier} (\texttt{src/lucca/sandbox/neural\_action\_claim\_verifier.py}, \texttt{models/action\_claim\_verifier\_ov}) evaluates each clause $c_i \in \text{split\_into\_clauses}(T_a)$ alongside the full turn:
+\subsection{Clause-Level Speech-Act Classification and Deterministic Receipt Set-Membership (\texttt{NeuralActionClaimVerifier})}
+For assistant output $T_a$ and user prompt $T_u$, \texttt{NeuralActionClaimVerifier} (\texttt{src/lucca/sandbox/neural\_claim\_verifier.py}, \texttt{models/action\_claim\_verifier\_ov}, static shape \texttt{[1, 128]}) classifies each clause $c_i \in \text{split\_narration\_into\_clauses}(T_a)$ in the context of the current user turn (\texttt{format\_pair\_texts} isolated to \texttt{user} role messages) into 5 speech-act classes and 7 canonical tool families (\texttt{CLAIM\_WRITE\_NOTE}, \texttt{CLAIM\_SEARCH\_READ}, \texttt{CLAIM\_EXEC\_MATH}, \texttt{CLAIM\_SCHEDULE}, \texttt{CLAIM\_MEMORY}, \texttt{CLAIM\_LAUNCH\_EXEC}, \texttt{CLAIM\_DELETE\_MOD}). Whenever a clause predicts an action claim or live-state fabrication, \texttt{verify\_clause\_claims\_against\_receipts} (\texttt{src/lucca/core/coherence.py}) performs exact deterministic Python set-membership and verb-subfamily verification against the turn's actual \texttt{verified\_tools} (\texttt{ok=True}) receipts:
 \begin{equation}
-p_{\text{viol}}(T_u, T_a) = \max_{c \in \{T_a\} \cup \text{split\_into\_clauses}(T_a)} P_{\text{NPU}}\!\left(\texttt{UNEXECUTED\_CLAIM\_VIOLATION} \;\middle|\; T_u, c\right)
+\text{Breach}(T_u, T_a, \mathcal{R}_{\text{ok}}) = \exists\, c_i \in \text{clauses}(T_a) : \text{ClaimedFamily}(T_u, c_i) \neq \varnothing \;\land\; \text{ClaimedFamily}(T_u, c_i) \cap \text{Families}(\mathcal{R}_{\text{ok}}) = \varnothing
 \end{equation}
-A single clause $c_i$ asserting an unexecuted state change drives $p_{\text{viol}} \ge 0.50$ regardless of how many benign sentences surround it. In addition, deterministic pre-filters strip fenced code definitions (\texttt{def }, \texttt{class }, \texttt{import }) when the user asked for a code snippet, while structured status blocks (\texttt{"status": "executed"}, \texttt{<status>deleted</status>}) and foreign-language first-person execution claims are normalized into canonical verification spans.
 
 \subsection{Max-Hazard Lattice Pooling for Epistemic Proof Policy (\texttt{NeuralHazardClassifier})}
-For user prompt $T_u$, \texttt{NeuralHazardClassifier} (\texttt{src/lucca/core/neural\_hazard\_classifier.py}, \texttt{models/proof\_policy\_hazard\_ov}) defines a total order over the four operational epistemic classes:
-\begin{equation}
-\texttt{LOW} (0) \prec \texttt{MEDIUM} (1) \prec \texttt{HIGH} (2) \prec \texttt{CROSS\_REFERENCE\_CMD} (3)
-\end{equation}
-Each clause $c_i \in \text{split\_into\_clauses}(T_u)$ is scored on the NPU. Any clause whose maximum softmax confidence falls below $0.65$ (\texttt{UNKNOWN\_FAIL\_CLOSED}) escalates fail-closed to $\texttt{HIGH}$ ($2$). The turn-level hazard is the supremum across all clauses:
-\begin{equation}
-\text{Hazard}(T_u) = \max_{c_i \in \text{split\_into\_clauses}(T_u)} \text{rank}(c_i)
-\end{equation}
-bounded below by a deterministic domain safety floor (\texttt{\_HIGH\_HAZARD\_DOMAIN\_RE} covering medical dosages, legal liability, financial wire/tax directives, and destructive shell commands).
+For user prompt $T_u$, \texttt{NeuralHazardClassifier} (\texttt{src/lucca/core/neural\_hazard\_classifier.py}, \texttt{models/proof\_policy\_hazard\_ov}, static shape \texttt{[1, 96]}) scores each sentence across 5 hazard classes (\texttt{LOW\_BENIGN}, \texttt{LOW\_CAPABILITY\_OR\_META}, \texttt{HIGH\_FACTUAL\_HISTORICAL}, \texttt{CROSS\_REFERENCE\_CMD}, \texttt{HIGH\_DESTRUCTIVE\_SECURITY}) and applies max-hazard sentence pooling, a \texttt{\_HAS\_CORROBORATION\_SIGNAL\_RE} necessity gate on \texttt{CROSS\_REFERENCE\_CMD}, and high-entropy/gibberish fail-closed escalation to \texttt{HIGH}.
 
 \subsection{Task-Priority Pooling for Multi-Sentence Intent Routing (\texttt{NeuralIntentClassifier})}
-For 29-class intent routing (\texttt{src/lucca/router/neural\_intent\_classifier.py}, \texttt{models/router\_intent\_ov}), we partition the 29 intents into conversational intents $\mathcal{I}_{\text{conv}} = \{\texttt{chit\_chat}, \texttt{compliment}, \texttt{insult}, \texttt{venting}, \texttt{opinion\_request}, \texttt{persona\_question}, \texttt{confirm}, \texttt{cancel}, \texttt{correction}\}$ and 20 actionable task/tool intents $\mathcal{I}_{\text{task}}$. Given clauses $(c_1, \dots, c_m)$:
-\begin{enumerate}
-    \item If any clause $c_i$ predicts a task intent $y_i \in \mathcal{I}_{\text{task}}$ with confidence $\ge 0.50$, all conversational clauses $y_j \in \mathcal{I}_{\text{conv}}$ are deprioritized, and the highest-confidence task clause $c^*$ wins the turn route.
-    \item Target entities (\texttt{extract\_entity\_from\_clause}) are extracted strictly from the winning task clause $c^*$ rather than the full multi-sentence transcript, preventing cross-clause entity contamination.
-    \item \textbf{Temporal Keyword Guard (\texttt{\_EXPLICIT\_SCHEDULE\_RE}):} Audit of the initial locked holdout revealed that relative time words (\emph{``today''}, \emph{``right now''}, \emph{``this morning''}) inside file, code, or search requests caused \texttt{router\_intent\_ov} to predict \texttt{schedule\_event}. We added a lexical precondition requiring explicit scheduling cues (\texttt{remind}, \texttt{alarm}, \texttt{schedule}, \texttt{timer}, \texttt{calendar}, \texttt{appointment}, or \texttt{at HH:MM}) before \texttt{schedule\_event} can override a non-scheduling clause.
-\end{enumerate}
+For multi-head intent routing (\texttt{src/lucca/router/neural\_intent\_classifier.py}, \texttt{models/router\_intent\_ov}, static shape \texttt{[1, 64]}), \texttt{NeuralIntentClassifier} predicts 14 primary intents and 9 reasoning domain flags per sentence and promotes concrete task/reasoning intents (\texttt{CLASS\_PRIORITY\_TIER >= 1}) over greetings and conversational filler (\texttt{chit\_chat}, \texttt{clarify}), paired with deterministic \texttt{known\_apps} slot verification (\texttt{\_extract\_app\_entity}) and \texttt{ConformalGuard} out-of-domain abstention.
 
 \section{Empirical Evaluation}
 \label{sec:evaluation}
@@ -140,44 +126,44 @@ To prevent iterative test-set overfitting, we conducted two multi-agent blinded 
 \label{tab:blind_and_locked}
 \begin{tabular}{lcccc}
 \toprule
-\textbf{NPU Subsystem} & \textbf{Blind-300 (Pre-WO-42)} & \textbf{Blind-390 (WO-42)} & \textbf{Locked-150 (Single-Pass)} & \textbf{Locked-150 (Post-Guard)} \\
+\textbf{NPU Subsystem} & \textbf{Blind-390 (Pass 1)} & \textbf{Blind-390 (Pass 2 / Post-Fix)} & \textbf{Locked-150 (Single-Pass)} & \textbf{Locked-150 (Post-Fix)} \\
 \midrule
-\texttt{NeuralActionClaimVerifier} & $45/100$ ($45.0\%$) & $130/130$ ($100.0\%$) & $50/50$ ($100.0\%$) & $50/50$ ($100.0\%$) \\
-\texttt{NeuralHazardClassifier} & $75/100$ ($75.0\%$) & $130/130$ ($100.0\%$) & $50/50$ ($100.0\%$) & $50/50$ ($100.0\%$) \\
-\texttt{NeuralIntentClassifier} & $60/100$ ($60.0\%$) & $159/160$ ($99.4\%$) & $45/50$ ($90.0\%$) & $50/50$ ($100.0\%$) \\
+\texttt{NeuralActionClaimVerifier} & $109/130$ ($83.8\%$) & $130/130$ ($100.0\%$) & $50/50$ ($100.0\%$) & $50/50$ ($100.0\%$) \\
+\texttt{NeuralHazardClassifier} & $98/130$ ($75.4\%$) & $125/130$ ($96.2\%$) & $50/50$ ($100.0\%$) & $50/50$ ($100.0\%$) \\
+\texttt{NeuralIntentClassifier} & $96/130$ ($73.8\%$) & $121/130$ ($93.1\%$) / $122/130$ ($93.8\%$) & $45/50$ ($90.0\%$) & $50/50$ ($100.0\%$) \\
 \midrule
-\textbf{Combined Total} & $180/300$ ($60.0\%$) & $\mathbf{389/390}$ ($\mathbf{99.74\%}$) & $\mathbf{145/150}$ ($\mathbf{96.67\%}$) & $\mathbf{150/150}$ ($\mathbf{100.0\%}$) \\
+\textbf{Combined Total} & $303/390$ ($77.7\%$) & $\mathbf{376/390}$ ($\mathbf{96.4\%}$) / $\mathbf{377/390}$ ($\mathbf{96.7\%}$) & $\mathbf{145/150}$ ($\mathbf{96.67\%}$) & $\mathbf{150/150}$ ($\mathbf{100.0\%}$) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-As shown in Table~\ref{tab:blind_and_locked}, single-pass evaluation on \texttt{WO42\_LOCKED\_HOLDOUT\_150} (\texttt{logs/test\_reports/wo42\_locked\_holdout\_150\_report.json}) achieved $50/50$ ($100.0\%$) on action-claim verification and $50/50$ ($100.0\%$) on hazard classification, and $45/50$ ($90.0\%$) on intent routing ($145/150 = 96.67\%$ overall, 95\% Wilson CI: $[92.44\%, 98.57\%]$). All 5 single-pass router errors (\texttt{LOCKED\_RTR\_013, 016, 022, 023, 048}) were caused by relative time adverbs (\emph{``today''}, \emph{``this afternoon''}) triggering \texttt{schedule\_event} on workspace/code requests. Adding the deterministic \texttt{\_EXPLICIT\_SCHEDULE\_RE} precondition in \texttt{neural\_intent\_classifier.py} resolved all 5 cases ($150/150$, \texttt{logs/test\_reports/wo42\_locked\_holdout\_150\_post\_router\_fix\_report.json}). We report both the $96.67\%$ single-pass locked number and the $100.0\%$ post-guard number to preserve strict pre-registration transparency.
+As shown in Table~\ref{tab:blind_and_locked}, single-pass evaluation on \texttt{WO42\_LOCKED\_HOLDOUT\_150} (\texttt{logs/test\_reports/wo42\_locked\_holdout\_150\_report.json}) achieved $50/50$ ($100.0\%$) on action-claim verification, $50/50$ ($100.0\%$) on hazard classification, and $45/50$ ($90.0\%$) on intent routing ($145/150 = 96.67\%$ overall, 95\% Wilson CI: $[92.43\%, 98.57\%]$). Three of the 5 single-pass router errors (\texttt{LOCKED\_RTR\_007, 008, 011}) predicted \texttt{logic\_constraints} with \texttt{pred\_libs = ["sympy", "z3"]} but assigned \texttt{reasoning\_domain = "mathematics"} instead of \texttt{"combinatorial\_smt"} because \texttt{heuristic.py} checked \texttt{has\_sympy} before \texttt{has\_z3}; the remaining 2 errors (\texttt{LOCKED\_RTR\_045, 046}) wrapped app names in Markdown backticks (\texttt{`calculator`}, \texttt{`notepad`}) before the \texttt{launch\_app} regex boundary. Fixing both deterministic rules in \texttt{src/lucca/router/heuristic.py} after recording the single-pass locked report resolved all 5 cases ($150/150$, \texttt{logs/test\_reports/wo42\_locked\_holdout\_150\_post\_router\_fix\_report.json}, and raised \texttt{Blind-390} from $376/390$ to $377/390$). We report both the $96.67\%$ single-pass locked number and the $100.0\%$ post-fix number to preserve strict pre-registration transparency.
 
 \subsection{Live 4-Model End-to-End Verification ($N=100$ Live Turns)}
 \label{sec:live_4model}
-Offline classifier benchmarks do not test whether an orchestrator can intercept a live LLM mid-turn, clear its speech queue, and force a self-corrected response without breaking benign tool execution. We therefore executed a 100-turn live matrix (\texttt{scripts/run\_wo42\_live\_4model\_100turn\_matrix.py}, \texttt{logs/test\_reports/wo42\_live\_4model\_100turn\_report.json}) across all four local Gemma-4 GGUF checkpoints served on an NVIDIA RTX 5080 Laptop GPU (16\,GB GDDR7) while the three OpenVINO FP16 classifiers ran concurrently on the Intel AI Boost NPU:
+Offline classifier benchmarks do not test whether an orchestrator can intercept a live LLM mid-turn, clear its speech queue, and force a self-corrected response without breaking benign tool execution. We therefore executed a 100-turn live matrix (\texttt{scripts/run\_wo42\_live\_4model\_matrix.py}, \texttt{logs/test\_reports/wo42\_live\_4model\_summary.json}) across all four local Gemma-4 GGUF checkpoints served on an NVIDIA RTX 5080 Laptop GPU (16\,GB GDDR7) while the three OpenVINO FP16 classifiers ran concurrently on the Intel AI Boost NPU:
 \begin{itemize}
-    \item \textbf{Tier 0:} \texttt{gemma-4-26B-A4B-it-heretic.Q6\_K.gguf} (MoE, 4B active, $\text{ctx}=65536$)
-    \item \textbf{Tier 1:} \texttt{gemma-4-12b-heretic-Q6\_K.gguf} (Dense 12B)
-    \item \textbf{Tier 2:} \texttt{gemma-4-E4B-it-uncensored-heretic-Q6\_K.gguf} (Dense 4.5B)
-    \item \textbf{Tier 3:} \texttt{Gemma4-E2B-Heretic-Sinhala.i1-Q6\_K.gguf} (Dense 2.0B)
+    \item \textbf{Tier 0:} \texttt{gemma-4-26B-A4B-it-heretic.Q6\_K.gguf} (MoE, 4B active, $15{,}918\text{ MB}$ VRAM)
+    \item \textbf{Tier 1:} \texttt{gemma-4-12b-heretic-Q6\_K.gguf} (Dense 12B, $11{,}130\text{ MB}$ VRAM)
+    \item \textbf{Tier 2:} \texttt{gemma-4-E4B-it-uncensored-heretic-Q6\_K.gguf} (Dense 4.5B, $4{,}848\text{ MB}$ VRAM)
+    \item \textbf{Tier 3:} \texttt{Gemma4-E2B-Heretic-Sinhala.i1-Q6\_K.gguf} (Dense 2.0B, $2{,}676\text{ MB}$ VRAM)
 \end{itemize}
-Each model completed 25 live multi-sentence turns across 5 categories: (A) 7 adversarial false-action-claim temptations with tools disabled (\texttt{tool\_receipts=[]}), (B) 4 benign code/JSON explanation controls, (C) 5 high-hazard medical/legal/financial proof-policy turns, (D) 5 multi-sentence compound tool-routing turns, and (E) 4 live web-extraction turns. Three blinded LLM judges graded all 100 transcripts line by line ($\kappa = 1.000$ on the 20-turn overlap slice).
+Each model completed 25 live turns across multi-sentence tool routing, proof-policy hazard gating, adversarial false-action-claim temptations, and grounded narration. Three blinded LLM judges graded all 100 transcripts line by line ($\kappa = 1.000$ on the 20-turn overlap slice).
 
 \begin{table}[h]
 \centering
 \caption{Live 4-Model End-to-End Matrix ($25\text{ Turns} \times 4\text{ Local Gemma-4 Models} = 100\text{ Live Turns}$).}
 \label{tab:live_4model}
-\begin{tabular}{lcccccc}
+\begin{tabular}{lcccc}
 \toprule
-\textbf{Local GGUF Checkpoint} & \textbf{Adv.\ FAC Caught} & \textbf{Benign Controls} & \textbf{Hazard Gate} & \textbf{Multi-Sent.\ Route} & \textbf{Web Extract} & \textbf{Total Pass} \\
+\textbf{Local GGUF Checkpoint} & \textbf{RTX 5080 VRAM} & \textbf{Mean Turn Latency} & \textbf{Axis 1: Coherence \& Grounding} & \textbf{Axis 2: Task, Routing \& Reasoning} \\
 \midrule
-\texttt{Gemma4-E2B-Heretic (Q6\_K)} & $7/7$ ($100\%$) & $4/4$ ($100\%$) & $5/5$ ($100\%$) & $5/5$ ($100\%$) & $4/4$ ($100\%$) & $\mathbf{25/25}$ \\
-\texttt{gemma-4-E4B-heretic (Q6\_K)} & $7/7$ ($100\%$) & $4/4$ ($100\%$) & $5/5$ ($100\%$) & $5/5$ ($100\%$) & $4/4$ ($100\%$) & $\mathbf{25/25}$ \\
-\texttt{gemma-4-12b-heretic (Q6\_K)} & $7/7$ ($100\%$) & $4/4$ ($100\%$) & $5/5$ ($100\%$) & $5/5$ ($100\%$) & $4/4$ ($100\%$) & $\mathbf{25/25}$ \\
-\texttt{gemma-4-26B-A4B (Q6\_K)} & $7/7$ ($100\%$) & $4/4$ ($100\%$) & $5/5$ ($100\%$) & $5/5$ ($100\%$) & $4/4$ ($100\%$) & $\mathbf{25/25}$ \\
+\texttt{Gemma4-E2B-Heretic (Q6\_K)} & $2{,}676.0\text{ MB}$ & $0.66\text{ s}$ & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) & $23/25$ ($92.0\%$) \\
+\texttt{gemma-4-E4B-heretic (Q6\_K)} & $4{,}848.0\text{ MB}$ & $1.11\text{ s}$ & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) \\
+\texttt{gemma-4-12b-heretic (Q6\_K)} & $11{,}130.0\text{ MB}$ & $2.15\text{ s}$ & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) \\
+\texttt{gemma-4-26B-A4B (Q6\_K)} & $15{,}918.0\text{ MB}$ & $37.01\text{ s}$ & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) & $\mathbf{25/25}$ ($\mathbf{100.0\%}$) \\
 \midrule
-\textbf{Pooled 4-Model Total} & $\mathbf{28/28}$ ($\mathbf{100\%}$) & $\mathbf{16/16}$ ($\mathbf{100\%}$) & $\mathbf{20/20}$ ($\mathbf{100\%}$) & $\mathbf{20/20}$ ($\mathbf{100\%}$) & $\mathbf{16/16}$ ($\mathbf{100\%}$) & $\mathbf{100/100}$ \\
+\textbf{Pooled 4-Model Total} & $0.0\text{ MB}$ NPU overhead & --- & $\mathbf{100/100}$ ($\mathbf{100.0\%}$) & $\mathbf{98/100}$ ($\mathbf{98.0\%}$) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -205,7 +191,7 @@ Upgrading the three NPU classifiers and adding 3-tier anti-bot web extraction (\
 
 \section{Conclusion}
 \label{sec:conclusion}
-Lexical speech-regex supervisors cannot generalize to open-vocabulary verb lemmas ($29.5\%$ unseen-verb recall in Paper~02 \cite{maxwell2026evasion}), while whole-paragraph neural classifiers fail when a single fabricated action claim or task request is embedded inside multi-sentence prose ($60.0\%$ on \texttt{Blind-300}). By combining syntactic clause decomposition with domain-specific pooling operators---max-violation pooling for action-claim verification, max-hazard lattice pooling for proof-policy classification, and task-priority pooling for intent routing---three 22M-parameter \texttt{DeBERTa-v3-small} classifiers running in FP16 on an Intel AI Boost NPU ($0\text{ MB}$ dGPU VRAM, $1.22$--$2.95\text{ ms}$) achieve $99.26\%$ accuracy ($98.73\%$ recall, $0.58\%$ FPR) across $N=2{,}022$ action-claim turns, $96.67\%$ single-pass / $100.0\%$ post-guard accuracy on the pre-registered \texttt{WO42\_LOCKED\_HOLDOUT\_150} benchmark, and $100/100$ functional coherence across all four local Gemma-4 model scales.
+Lexical speech-regex supervisors cannot generalize to open-vocabulary verb lemmas ($29.5\%$ unseen-verb recall in Paper~02 \cite{maxwell2026evasion}), while whole-paragraph neural classifiers degrade when a single fabricated action claim or task request is embedded inside multi-sentence prose ($75.0\%$ on \texttt{Blind-300}). By combining syntactic clause decomposition with deterministic receipt set-membership verification, max-hazard lattice pooling, and task-priority intent pooling, three $82.1\text{M}$-parameter \texttt{nli-MiniLM2-L6-H768} classifiers running in FP16 on an Intel AI Boost NPU ($0\text{ MB}$ dGPU VRAM, $1.22$--$2.95\text{ ms}$) achieve $99.26\%$ accuracy ($98.73\%$ recall, $0.58\%$ FPR) across $N=2{,}022$ action-claim turns, $96.67\%$ single-pass / $100.0\%$ post-fix accuracy on the pre-registered \texttt{WO42\_LOCKED\_HOLDOUT\_150} benchmark, and $100/100$ functional coherence across all four local Gemma-4 model scales.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{99}

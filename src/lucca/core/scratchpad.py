@@ -15,14 +15,17 @@ from __future__ import annotations
 import copy
 import json
 import time
-from typing import Final
+from typing import Final, Protocol
 
 from pydantic import BaseModel, Field
 import structlog
 
 from lucca.core.schemas import RuleState
-from lucca.core.turn_pipeline import SubTurnScratchpadBuffer
 from lucca.reasoning.scheme.eval import SchemeEvaluator, build_env
+
+
+class ScratchpadBufferProtocol(Protocol):
+    _intermediate_traces: list[dict[str, object]]
 from lucca.reasoning.scheme.macros import (
     MAX_MACRO_DEPTH,
     MAX_MACRO_STEPS,
@@ -170,7 +173,7 @@ class ScratchpadFalsifier:
         self,
         macro_def: MacroDefinition,
         test_cases: list[MacroTestCase],
-        scratchpad_buffer: SubTurnScratchpadBuffer | None = None,
+        scratchpad_buffer: ScratchpadBufferProtocol | None = None,
     ) -> FalsificationOutcome:
         """
         Tests candidate macro against concrete I/O test cases.

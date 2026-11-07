@@ -24,7 +24,7 @@ The Project Lucca source code itself is licensed under the **GNU Affero General 
 - **Upstream:** [openvinotoolkit/openvino](https://github.com/openvinotoolkit/openvino)
 - **License:** Apache License 2.0
 - **Copyright:** Copyright (c) 2018-2026 Intel Corporation
-- **Usage:** Hardware-accelerated NPU/CPU embeddings (`all-MiniLM-L6-v2`), INT8 NLI verifier execution (`models/verifier_minilm`), and OpenVINO FP16 NPU supervision/routing classifiers (`models/supervision_coherence_npu`, `models/supervision_hazard_npu`, `models/router_intent_npu`) on Intel silicon.
+- **Usage:** Hardware-accelerated NPU/CPU embeddings (`all-MiniLM-L6-v2`), INT8 NLI verifier execution (`models/verifier_minilm`), and OpenVINO FP16 NPU supervision/routing classifiers (`models/action_claim_verifier_ov`, `models/proof_policy_hazard_ov`, `models/router_intent_ov`) on Intel silicon.
 
 ### CTranslate2 & Faster-Whisper
 - **Upstream:** [OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2) and [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)
@@ -72,8 +72,8 @@ Model weights are distributed under their respective upstream terms and are not 
 - **Lineage:** Quantized GGUF community fine-tunes (`culturerevolt/gemma-4-*-heretic`).
 - **Notice:** Users must comply with Google's Gemma Prohibited Use Policy when running or deploying model weights.
 
-### Microsoft MiniLM (`MiniLM-L12-H384-uncased` & `MiniLM-L6`)
-- **Lineage:** `microsoft/MiniLM-L12-H384-uncased` (fine-tuned and exported to OpenVINO FP16 IR in `models/supervision_coherence_npu`, `models/supervision_hazard_npu`, and `models/router_intent_npu`), `sentence-transformers/all-MiniLM-L6-v2` (`models/embeddings`), and `cross-encoder/nli-MiniLM2-L6-H768` (`models/verifier_minilm`).
+### Microsoft MiniLM (`nli-MiniLM2-L6-H768` & `MiniLM-L6`)
+- **Lineage:** `cross-encoder/nli-MiniLM2-L6-H768` (fine-tuned and exported to OpenVINO FP16 IR in `models/action_claim_verifier_ov`, `models/proof_policy_hazard_ov`, and `models/router_intent_ov`), `sentence-transformers/all-MiniLM-L6-v2` (`models/embeddings`), and `cross-encoder/nli-MiniLM2-L6-H768` (`models/verifier_minilm`).
 - **License:** MIT License / Apache License 2.0.
 
 ### ModernBERT

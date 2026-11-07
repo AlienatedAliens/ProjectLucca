@@ -112,6 +112,62 @@
       "size_bytes": 1194827744,
       "source_repo": "lmstudio-community/gemma-4-26B-A4B-it-GGUF",
       "source_filename": "mmproj-gemma-4-26B-A4B-it-BF16.gguf"
+    },
+    "action_claim_verifier_ov/openvino_model.xml": {
+      "sha256": "cb5c27aa9532c6cd9d0ab0ee4e574c3f5e49a1cde14646a41e2d7668fee324fd",
+      "size_bytes": 281817,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "action_claim_verifier_ov/openvino_model.xml",
+      "description": "WO-42 OpenVINO FP16 NPU Action-Claim Verifier (nli-MiniLM2-L6-H768, 82.1M)"
+    },
+    "action_claim_verifier_ov/openvino_model.bin": {
+      "sha256": "44f712c76be8994d9d82d0a6d34e87743fbd2646e2860ace1ca8003299995c87",
+      "size_bytes": 164256434,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "action_claim_verifier_ov/openvino_model.bin",
+      "description": "WO-42 OpenVINO FP16 NPU Action-Claim Verifier (nli-MiniLM2-L6-H768, 82.1M)"
+    },
+    "proof_policy_hazard_ov/openvino_model.xml": {
+      "sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+      "size_bytes": 267035,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "proof_policy_hazard_ov/openvino_model.xml",
+      "description": "WO-42 OpenVINO FP16 NPU Hazard Classifier (nli-MiniLM2-L6-H768, 82.1M)"
+    },
+    "proof_policy_hazard_ov/openvino_model.bin": {
+      "sha256": "e0662fdc13b1d5238107260527c209f98d312b1175e4d5131cad2a87d4c717cd",
+      "size_bytes": 164248728,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "proof_policy_hazard_ov/openvino_model.bin",
+      "description": "WO-42 OpenVINO FP16 NPU Hazard Classifier (nli-MiniLM2-L6-H768, 82.1M)"
+    },
+    "router_intent_ov/openvino_model.xml": {
+      "sha256": "e6af843e3965cfcc984fe2309fb307201fe8b8d19b37f83ecf824b51fd311595",
+      "size_bytes": 267050,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "router_intent_ov/openvino_model.xml",
+      "description": "WO-42 OpenVINO FP16 NPU Intent Router (nli-MiniLM2-L6-H768, 82.1M)"
+    },
+    "router_intent_ov/openvino_model.bin": {
+      "sha256": "87234bb903dd722e7b36a1c3c4eb69bee3e5da4e50b4587d340d214013bb619c",
+      "size_bytes": 164285640,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "router_intent_ov/openvino_model.bin",
+      "description": "WO-42 OpenVINO FP16 NPU Intent Router (nli-MiniLM2-L6-H768, 82.1M)"
+    },
+    "verifier_minilm/openvino_model.xml": {
+      "sha256": "a284a32b61ad2ceabbd4582e543eb0abef1add955b67f2bbd14b769a72cbd388",
+      "size_bytes": 362587,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "verifier_minilm/openvino_model.xml",
+      "description": "WO-37 OpenVINO NLI Semantic Verifier (nli-MiniLM2-L6-H768)"
+    },
+    "verifier_minilm/openvino_model.bin": {
+      "sha256": "fc9a56f614da0c3381ebdc555feb28ba77c6aae2e092c2049759d9f21bd002c7",
+      "size_bytes": 82590650,
+      "source_repo": "cross-encoder/nli-MiniLM2-L6-H768",
+      "source_filename": "verifier_minilm/openvino_model.bin",
+      "description": "WO-37 OpenVINO NLI Semantic Verifier (nli-MiniLM2-L6-H768)"
     }
   }
 }

@@ -156,7 +156,7 @@ flowchart LR
 ## 5. Streaming Output Supervision, Clause-Level NPU Action-Claim Verification & Scrapling Research (`WO-40`–`WO-42`)
 
 ### 5.1 Clause-Level Neurosymbolic Action-Claim Verifier (`neural_claim_verifier.py` & `coherence.py`)
-In `WO-41` and `WO-42`, post-turn and streaming action-claim supervision was upgraded from brittle verb-list matching to a **clause-level neurosymbolic architecture** running on the **Intel AI Boost NPU** (`models/supervision_coherence_npu`, `33.4M`-parameter `MiniLM-L12-H384` OpenVINO FP16 IR, static shape `[1, 128]`, **`0.0 MB` RTX 5080 VRAM**, `1.97 ms` p50 per clause / `~3.2–7.8 ms` per turn):
+In `WO-41` and `WO-42`, post-turn and streaming action-claim supervision was upgraded from brittle verb-list matching to a **clause-level neurosymbolic architecture** running on the **Intel AI Boost NPU** (`models/action_claim_verifier_ov`, `82.1M`-parameter `nli-MiniLM2-L6-H768` OpenVINO FP16 IR, static shape `[1, 128]`, **`0.0 MB` RTX 5080 VRAM**, `1.97 ms` p50 per clause / `~3.2–7.8 ms` per turn):
 1. **Clause Decomposition (`split_narration_into_clauses`):** Splits multi-sentence assistant responses on sentence boundaries and coordinating conjunctions (`and I also`, `then I`, `;`) so a grounded first clause (e.g., `read_file`) never masks or dilutes an ungrounded second clause (e.g., `write_file`).
 2. **5-Class Neural Speech-Act Classification on Intel NPU (`NeuralActionClaimVerifier`):** Classifies each clause in the context of the current user turn (`format_pair_texts` isolated to `user` role messages) into:
    - `0: BENIGN_CONVERSATIONAL`
