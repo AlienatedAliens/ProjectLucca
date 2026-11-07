@@ -117,7 +117,22 @@ def check_openvino_npu() -> tuple[bool, str]:
         core = ov.Core()
         devices = core.available_devices
         if "NPU" in devices:
-            return True, f"Intel NPU detected by OpenVINO (devices: {devices})"
+            repo_models = Path(__file__).resolve().parents[3] / "models"
+            npu_classifiers = [
+                d
+                for d in (
+                    "action_claim_verifier_ov",
+                    "proof_policy_hazard_ov",
+                    "router_intent_ov",
+                )
+                if (repo_models / d / "openvino_model.xml").exists()
+            ]
+            cls_note = (
+                f", {len(npu_classifiers)}/3 WO-42 NPU classifiers ready"
+                if npu_classifiers
+                else ""
+            )
+            return True, f"Intel NPU detected by OpenVINO (devices: {devices}{cls_note})"
         return False, f"Intel NPU not detected. Available devices: {devices}"
     except ImportError as e:
         logger.debug("check_openvino_npu_import_error: %s", e)

@@ -57,11 +57,17 @@ hidden_imports = [
     "mss",
     "PIL",
     "PIL.Image",
+    "scrapling",
+    "curl_cffi",
+    "lxml",
+    "cssselect",
+    "tokenizers",
 ]
 hidden_imports += collect_submodules("lucca")
 hidden_imports += collect_submodules("z3")
 hidden_imports += collect_submodules("openvino")
 hidden_imports += collect_submodules("sympy")
+hidden_imports += collect_submodules("scrapling")
 
 a = Analysis(
     [str(project_root / "src" / "lucca" / "main.py")],
