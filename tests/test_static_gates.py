@@ -1637,5 +1637,27 @@ def test_output_supervisor_loc_and_split_gate() -> None:
     assert "EXPANDED_STEM_MAP" in lex_path.read_text(encoding="utf-8")
 
 
+def test_cascade_loc_and_split_gate() -> None:
+    """WO-43 Phase 3.3 static parity gate: ensures cascade.py is <= 800 lines
+    and decomposed into cascade_intent.py and cascade_substrates.py.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    core_dir = repo_root / "src" / "lucca" / "core"
+    casc_path = core_dir / "cascade.py"
+    int_path = core_dir / "cascade_intent.py"
+    sub_path = core_dir / "cascade_substrates.py"
+
+    for p in (casc_path, int_path, sub_path):
+        assert p.exists(), f"Expected {p} to exist"
+
+    casc_lines = casc_path.read_text(encoding="utf-8").splitlines()
+    assert len(casc_lines) <= 800, (
+        f"cascade.py must be <= 800 lines after Phase 3.3 split, got {len(casc_lines)}"
+    )
+    assert "def classify_epistemic_intent(" in int_path.read_text(encoding="utf-8")
+    assert "class CascadeSubstrateAdapters" in sub_path.read_text(encoding="utf-8")
+
+
+
 
 
