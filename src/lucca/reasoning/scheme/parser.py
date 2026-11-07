@@ -155,8 +155,13 @@ ALLOWED_OPS = frozenset(
         "euclidean-dist",
         "heading-turn",
         "step-forward",
+        # Continuous interval & skill limit primitives (WO-43 Phase 3.5)
+        "point-in-interval?",
+        "during-real?",
+        "active-skill-limit",
     }
 )
+
 
 STATE_PREDICATES = frozenset(
     {
@@ -554,10 +559,11 @@ def _validate_action_node(action: SchemeNode) -> None:
             )
     elif action_name == "assert":
         if len(action) == 2 and isinstance(action[1], list) and len(action[1]) == 3:
-            s_node, p_node, o_node = action[1]
+            _, p_node, _ = action[1]
         elif len(action) == 4:
-            s_node, p_node, o_node = action[1], action[2], action[3]
+            p_node = action[2]
         else:
+
             raise SchemeSyntaxError(
                 f"Assert action requires a triple (s p o), got {action}"
             )

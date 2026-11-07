@@ -12,6 +12,7 @@ import re
 import threading
 import time
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final, cast
 
@@ -20,7 +21,14 @@ import numpy as np
 import scipy.ndimage
 import structlog
 
-from lucca.reasoning import relational, spatial_anchors
+from lucca.reasoning import (
+    arc_primitives,
+    relational,
+    spatial_anchors,
+    spatial_dsl,
+    spatial_scheme,
+)
+from lucca.reasoning.relational import mereo, realize_real
 from lucca.sandbox.ast_sanitizer import sanitize_python_code
 from lucca.sandbox.preflight import extract_python_code
 from lucca.sandbox.rpc import DockerRPCTransport
@@ -111,10 +119,16 @@ _ALLOWED_CEGIS_IMPORT_MODULES: Final[frozenset[str]] = frozenset(
         "fractions",
         "typing",
         "lucca.reasoning",
+        "lucca.reasoning.arc_primitives",
         "lucca.reasoning.spatial_anchors",
+        "lucca.reasoning.spatial_dsl",
+        "lucca.reasoning.spatial_scheme",
         "lucca.reasoning.relational",
+        "lucca.reasoning.relational.mereo",
+        "lucca.reasoning.relational.realize_real",
     }
 )
+
 
 _FORBIDDEN_CEGIS_CALLS: Final[frozenset[str]] = frozenset(
     {
@@ -186,12 +200,16 @@ def validate_cegis_ast_safety(code: str) -> tuple[bool, str | None]:
     return True, None
 
 
-def _build_restricted_cegis_globals() -> dict[str, object]:
+def _build_restricted_cegis_globals(
+    exposed_libraries: Sequence[str] | None = None,
+) -> dict[str, object]:
     """Builds an isolated execution namespace with safe builtins and spatial primitives."""
+    _ = exposed_libraries
     import collections
     import functools
     import itertools
     import math
+
 
     def _safe_import(
         name: str,
@@ -290,7 +308,52 @@ def _build_restricted_cegis_globals() -> dict[str, object]:
         "y_projection": relational.y_projection,
         "x_projection": relational.x_projection,
         "GridRegion": relational.GridRegion,
+        # WO-43 Phase 3.5: ARC primitives, Spatial DSL, Spatial Scheme, Mereo, and RealizeReal
+        "arc_primitives": arc_primitives,
+        "spatial_dsl": spatial_dsl,
+        "spatial_scheme": spatial_scheme,
+        "mereo": mereo,
+        "realize_real": realize_real,
+        "clone_grid": arc_primitives.clone_grid,
+        "replace_color": arc_primitives.replace_color,
+        "rotate_90": arc_primitives.rotate_90,
+        "bounding_box": arc_primitives.bounding_box,
+        "get_connected_components": arc_primitives.get_connected_components,
+        "get_objects": arc_primitives.get_objects,
+        "gravity_drop": arc_primitives.gravity_drop,
+        "align_objects": arc_primitives.align_objects,
+        "SpatialObject": spatial_dsl.SpatialObject,
+        "normalize_grid": spatial_dsl.normalize_grid,
+        "find_objects": spatial_dsl.find_objects,
+        "count_objects": spatial_dsl.count_objects,
+        "count_cells": spatial_dsl.count_cells,
+        "dominant_object": spatial_dsl.dominant_object,
+        "unique_colors": spatial_dsl.unique_colors,
+        "fill_holes": spatial_dsl.fill_holes,
+        "is_enclosed": spatial_dsl.is_enclosed,
+        "bbox_of_all": spatial_dsl.bbox_of_all,
+        "crop_to_content": spatial_dsl.crop_to_content,
+        "sort_objects": spatial_dsl.sort_objects,
+        "column_heights": spatial_dsl.column_heights,
+        "order_columns_by_height": spatial_dsl.order_columns_by_height,
+        "row_widths": spatial_dsl.row_widths,
+        "denoise": spatial_dsl.denoise,
+        "majority_filter": spatial_dsl.majority_filter,
+        "restore_periodic_pattern": spatial_dsl.restore_periodic_pattern,
+        "complete_symmetry": spatial_dsl.complete_symmetry,
+        "draw_line": spatial_dsl.draw_line,
+        "move_until_contact": spatial_dsl.move_until_contact,
+        "rotate_grid": spatial_dsl.rotate_grid,
+        "reflect_grid": spatial_dsl.reflect_grid,
+        "translate_grid": spatial_dsl.translate_grid,
+        "crop_grid": spatial_dsl.crop_grid,
+        "overlay_grid": spatial_dsl.overlay_grid,
+        "analyze_symbolic_invariants": spatial_dsl.analyze_symbolic_invariants,
+        "evaluate_spatial_sketch": spatial_scheme.evaluate_spatial_sketch,
+        "during_real": realize_real.during_real,
+        "point_in_interval": realize_real.point_in_interval,
     }
+
 
 
 def _execute_in_restricted_sandbox(
@@ -391,7 +454,24 @@ from lucca.reasoning.relational import (
     above, below, left_of, right_of, extract_cavities, extract_cavity_mask,
     extract_exterior_mask, is_between, y_projection, x_projection, GridRegion
 )
+from lucca.reasoning import arc_primitives, spatial_dsl, spatial_scheme
+from lucca.reasoning.relational import mereo, realize_real
+from lucca.reasoning.arc_primitives import (
+    clone_grid, replace_color, rotate_90, bounding_box,
+    get_connected_components, get_objects, gravity_drop, align_objects
+)
+from lucca.reasoning.spatial_dsl import (
+    SpatialObject, normalize_grid, find_objects, count_objects, count_cells,
+    dominant_object, unique_colors, fill_holes, is_enclosed, bbox_of_all,
+    crop_to_content, sort_objects, column_heights, order_columns_by_height,
+    row_widths, denoise, majority_filter, restore_periodic_pattern,
+    complete_symmetry, draw_line, move_until_contact, rotate_grid,
+    reflect_grid, translate_grid, crop_grid, overlay_grid,
+    analyze_symbolic_invariants
+)
+from lucca.reasoning.relational.realize_real import during_real, point_in_interval
 """
+
 
 
 def _prepare_cegis_code(code: str, t0: float) -> tuple[str | None, ExecutionOutcome | None]:

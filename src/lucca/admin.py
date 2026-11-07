@@ -29,6 +29,7 @@ from lucca.memory.migration_tool import migrate_memory_keys
 from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.repl_loop import ReasoningREPL, TaskRegistry
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.egress import EgressVerifier
@@ -1108,7 +1109,16 @@ def create_parser() -> argparse.ArgumentParser:
         )
         sub.add_argument("rest", nargs="*", help="Subcommand arguments")
 
+    p_repl = subparsers.add_parser(
+        "repl", help="Launch interactive CEGIS and spatial reasoning REPL"
+    )
+    p_repl.add_argument("--task", help="Optional task ID or path to load initially")
+    p_repl.add_argument(
+        "--list-tasks", action="store_true", help="List available minimal tasks and exit"
+    )
+
     return parser
+
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -1225,7 +1235,19 @@ def main(argv: list[str] | None = None) -> None:
     elif args.cmd in ("metrics", "router", "replay"):
         print("not implemented (tracked as F-CORE-027)")
         sys.exit(3)
+    elif args.cmd == "repl":
+        if getattr(args, "list_tasks", False):
+            tasks = TaskRegistry().list_minimal_tasks()
+            for t in tasks:
+                print(t)
+            sys.exit(0)
+        repl = ReasoningREPL()
+        if getattr(args, "task", None):
+            repl.load_task(str(args.task))
+        repl.run()
+        sys.exit(0)
     else:
+
         print(f"Unknown command '{args.cmd}'", file=sys.stderr)
         sys.exit(2)
 
