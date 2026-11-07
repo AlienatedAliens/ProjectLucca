@@ -1320,6 +1320,55 @@ def test_no_nli_uncertain_fail_open_consumers() -> None:
         )
 
 
+def test_win32_security_and_git_dag_wired_in_file_tool() -> None:
+    """WO-43 Phase 1.3 static gate:
+    Enforces that lucca.sandbox.win32_security (`verified_workspace_file`,
+    `read_workspace_file_handle`, `write_workspace_file_handle`) and
+    lucca.memory.git_dag (`WorkspaceTransactionManager`, `GitStagingDAG`, `OperationType`)
+    are imported and actively called inside `src/lucca/sandbox/file_tool.py`.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    ft_path = repo_root / "src" / "lucca" / "sandbox" / "file_tool.py"
+    ft_text = ft_path.read_text(encoding="utf-8")
+    ft_tree = ast.parse(ft_text, filename=str(ft_path))
+
+    imported_modules: set[str] = set()
+    imported_names: set[str] = set()
+    called_names: set[str] = set()
+    method_defs: set[str] = set()
+
+    for node in ast.walk(ft_tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+            for alias in node.names:
+                imported_names.add(alias.asname or alias.name)
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                called_names.add(node.func.id)
+        elif isinstance(node, ast.FunctionDef):
+            method_defs.add(node.name)
+
+    assert "lucca.sandbox.win32_security" in imported_modules, (
+        "file_tool.py must import from lucca.sandbox.win32_security"
+    )
+    assert "lucca.memory.git_dag" in imported_modules, (
+        "file_tool.py must import from lucca.memory.git_dag"
+    )
+    for req_sym in (
+        "verified_workspace_file",
+        "read_workspace_file_handle",
+        "write_workspace_file_handle",
+        "WorkspaceTransactionManager",
+    ):
+        assert req_sym in imported_names, f"file_tool.py must import {req_sym}"
+        assert req_sym in called_names, f"file_tool.py must call {req_sym} at runtime"
+
+    assert "execute_transaction" in method_defs, (
+        "SafeFileTool must define execute_transaction backed by WorkspaceTransactionManager"
+    )
+
+
+
 
 
 

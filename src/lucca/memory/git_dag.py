@@ -445,7 +445,7 @@ class StagingTransaction:
                     # Ensure parent dir exists
                     if not target.parent.exists():
                         target.parent.mkdir(parents=True, exist_ok=True)
-                    target.write_text(op.content or "", encoding="utf-8")
+                    target.write_text(op.content or "", encoding="utf-8", newline="")
 
                 elif op.op_type == OperationType.CREATE_DIR:
                     if not target.exists():
@@ -501,7 +501,7 @@ class StagingTransaction:
                     # File existed -> restore original content
                     if not path.parent.exists():
                         path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text(backup_content, encoding="utf-8")
+                    path.write_text(backup_content, encoding="utf-8", newline="")
             except Exception as exc:  # noqa: BLE001
                 logger.error("rollback_restore_error", path=str(path), error=str(exc))
 
@@ -516,3 +516,7 @@ class StagingTransaction:
         self._backups.clear()
         self._created_dirs.clear()
         self._in_transaction = False
+
+
+WorkspaceTransactionManager = StagingTransaction
+

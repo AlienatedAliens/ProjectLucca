@@ -21,6 +21,17 @@ except ImportError:
 
 import structlog
 from lucca.core.exceptions import SandboxPathError
+from lucca.memory.git_dag import (
+    GitStagingDAG,
+    OperationType,
+    StagingTransaction,
+    WorkspaceTransactionManager,
+)
+from lucca.sandbox.win32_security import (
+    read_workspace_file_handle,
+    verified_workspace_file,
+    write_workspace_file_handle,
+)
 
 
 class SandboxSecurityError(SandboxPathError, PermissionError):
@@ -259,14 +270,25 @@ class SafeFileTool:
 
         file_size = target.stat().st_size
 
-        with open(target, "rb") as f:
-            # Sniff first chunk for binary content
-            sniff = f.read(SNIFF_CHUNK_SIZE)
+        if os.name == "nt":
+            rel_target = target.relative_to(self.workspace_root.resolve()).as_posix()
+            with verified_workspace_file(rel_target, self.workspace_root, mode="r") as h_read:
+                raw_read = read_workspace_file_handle(
+                    h_read, max_bytes=max(SNIFF_CHUNK_SIZE, max_bytes + 1)
+                )
+            sniff = raw_read[:SNIFF_CHUNK_SIZE]
             if b"\x00" in sniff:
                 raise SandboxPathError("is_binary", f"Binary file detected: {path}")
+            data = raw_read[: max_bytes + 1]
+        else:
+            with open(target, "rb") as f:
+                # Sniff first chunk for binary content
+                sniff = f.read(SNIFF_CHUNK_SIZE)
+                if b"\x00" in sniff:
+                    raise SandboxPathError("is_binary", f"Binary file detected: {path}")
 
-            f.seek(0)
-            data = f.read(max_bytes + 1)
+                f.seek(0)
+                data = f.read(max_bytes + 1)
 
         truncated = len(data) > max_bytes
         if truncated:
@@ -301,9 +323,18 @@ class SafeFileTool:
         if mode == "create" and target.exists():
             raise SandboxPathError("traversal", f"File '{path}' already exists in create mode")
 
-        file_mode = "ab" if mode == "append" else "wb"
-        with open(target, file_mode) as f:
-            f.write(encoded)
+        if os.name == "nt" and mode != "append":
+            rel_target = target.relative_to(self.workspace_root.resolve()).as_posix()
+            with verified_workspace_file(rel_target, self.workspace_root, mode="w") as h_write:
+                write_workspace_file_handle(h_write, encoded)
+        else:
+            if os.name == "nt" and target.exists():
+                rel_target = target.relative_to(self.workspace_root.resolve()).as_posix()
+                with verified_workspace_file(rel_target, self.workspace_root, mode="a"):
+                    pass
+            file_mode = "ab" if mode == "append" else "wb"
+            with open(target, file_mode) as f:
+                f.write(encoded)
 
         return {
             "size": target.stat().st_size,
@@ -610,13 +641,72 @@ class SafeFileTool:
             )
 
         new_content = content.replace(target_chunk, replacement_chunk, 1)
-        self.write_file(path, new_content, mode="overwrite")
+        tx = WorkspaceTransactionManager(
+            workspace_root=self.workspace_root, enforce_python_ast=True
+        )
+        tx.begin()
+        tx.stage_write(target_file, new_content)
+        commit_res = tx.commit()
+        if not commit_res.success:
+            raise SandboxPathError(
+                "patch_validation_failed",
+                commit_res.error_message or f"Transactional patch failed for '{path}'",
+            )
         return {
             "path": path,
             "applied": True,
             "replaced_bytes": len(target_chunk),
             "new_bytes": len(replacement_chunk),
         }, f"Successfully applied patch to '{path}'."
+
+    def execute_transaction(
+        self,
+        operations: list[dict[str, object]],
+        enforce_python_ast: bool = True,
+    ) -> dict[str, object]:
+        """Executes a multi-file atomic workspace transaction backed by WorkspaceTransactionManager."""
+        tx = WorkspaceTransactionManager(
+            workspace_root=self.workspace_root,
+            enforce_python_ast=enforce_python_ast,
+        )
+        tx.begin()
+        for op_spec in operations:
+            op_type_raw = str(op_spec.get("op_type", OperationType.WRITE_FILE.value)).upper()
+            rel_path = str(op_spec.get("path", ""))
+            resolved = validate_rel_path(rel_path, self.workspace_root)
+            deps_raw = op_spec.get("dependencies")
+            deps = [str(d) for d in deps_raw] if isinstance(deps_raw, list) else []
+            if op_type_raw in (OperationType.WRITE_FILE.value, OperationType.APPLY_DIFF.value):
+                tx.stage_write(
+                    resolved,
+                    str(op_spec.get("content", "")),
+                    dependencies=deps,
+                )
+            elif op_type_raw == OperationType.DELETE_FILE.value:
+                tx.stage_delete(resolved, dependencies=deps)
+            elif op_type_raw == OperationType.CREATE_DIR.value:
+                tx.stage_mkdir(resolved, dependencies=deps)
+            else:
+                raise SandboxPathError(
+                    "invalid_operation", f"Unsupported transaction operation: '{op_type_raw}'"
+                )
+
+        res = tx.commit()
+        return {
+            "success": res.success,
+            "operations_executed": res.operations_executed,
+            "files_created": [
+                p.relative_to(self.workspace_root).as_posix() for p in res.files_created
+            ],
+            "files_modified": [
+                p.relative_to(self.workspace_root).as_posix() for p in res.files_modified
+            ],
+            "files_deleted": [
+                p.relative_to(self.workspace_root).as_posix() for p in res.files_deleted
+            ],
+            "error_message": res.error_message,
+            "elapsed_ms": res.elapsed_ms,
+        }
 
     def run_pytest(
         self,
