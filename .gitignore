@@ -117,3 +117,33 @@ models/*_pt/
 models/**/*.pt
 models/**/*.bin
 models/**/*.safetensors
+
+
+# External benchmark corpora & local training/scratch worksheets (WO-43 Phase 1.1)
+data/benchmarks/ConceptARC/
+data/benchmarks/arc_agi_1/
+data/benchmarks/arc_agi_2/
+data/benchmarks/cruxeval/
+data/benchmarks/livecodebench/
+data/benchmarks/swe_bench_lite/
+data/benchmarks/nli_eval/
+data/benchmarks/runs/
+data/benchmarks/turn_latency/
+data/benchmarks/supervision_heldout/*_train.jsonl
+data/benchmarks/supervision_heldout/wo41_*
+
+# Ephemeral and archived test reports / local discussions
+discussions/
+logs/archive/
+logs/test_reports/comparative_four_tier/
+logs/test_reports/full_uncurated/
+logs/test_reports/rebench_master_v140/
+logs/test_reports/personhood/in_d_report_*.json
+logs/test_reports/aime_sympy_diagnostic_*.json
+logs/test_reports/concept_arc_*.json
+logs/test_reports/cruxeval_input_*.json
+logs/test_reports/e2e_voice_tooling_integration_*.json
+logs/test_reports/minilm_finetuned_side_by_side.json
+logs/test_reports/ml_vs_regex_head_to_head.json
+logs/test_reports/ood_*.json
+logs/test_reports/wo41_*
