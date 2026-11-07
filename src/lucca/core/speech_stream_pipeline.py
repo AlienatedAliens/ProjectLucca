@@ -19,6 +19,7 @@ import structlog
 from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
 from lucca.brain.prompt_builder import get_all_tool_definitions
 from lucca.core.coherence import detect_promised_action_claims
+from lucca.core.convergence import TracebackDivergenceGuard
 from lucca.core.ipc_schemas import Envelope, PlayBeginPayload
 from lucca.core.schemas import ChatMessage, MemoryHit, TokenDelta, ToolCallEnd, ToolResult
 from lucca.core.tool_shortlister import check_tool_fit
@@ -133,8 +134,14 @@ class SpeechStreamPipeline:
         full_response_text: list[str] = []
         scratchpad_buffer = SubTurnScratchpadBuffer()
         tool_receipts: list[dict[str, JsonValue]] = []
-        # WO-9 A5: repeated-call guard state
+        # WO-9 A5 + WO-43 Sub-Step 2.3: repeated-call & traceback divergence guard state
         call_signatures: list[str] = []
+        divergence_guard = TracebackDivergenceGuard(
+            max_recurrence=2,
+            max_steps=max(12, max_rounds * 2),
+            similarity_threshold=0.99,
+        )
+        loop_diverged = False
 
         if tools is None:
             if orch.execute_tools:
@@ -236,6 +243,7 @@ class SpeechStreamPipeline:
                 if trace.interrupted or orch._cancel_token.is_set():
                     break
 
+                was_diverged_at_round_start = loop_diverged
                 round_tool_called = False
                 round_response_text: list[str] = []
                 round_failed_tools: list[str] = []
@@ -257,7 +265,7 @@ class SpeechStreamPipeline:
                     )
                     trace.cap_hit = True
                     logger.info("tool_round_cap_reached", max_rounds=max_rounds)
-                round_tools = [] if round_num == max_rounds else tools
+                round_tools = [] if (round_num == max_rounds or loop_diverged) else tools
 
                 for event in orch.llm.stream_turn(
                     current_audio_b64=current_audio_b64 if round_num == 1 else None,
@@ -329,6 +337,13 @@ class SpeechStreamPipeline:
                                 chunk_index += 1
 
                     elif isinstance(event, ToolCallEnd):
+                        if was_diverged_at_round_start:
+                            logger.warning(
+                                "subturn_tool_call_ignored_after_divergence",
+                                round_num=round_num,
+                                tool=event.call.tool,
+                            )
+                            continue
                         round_tool_called = True
                         call_id = event.call.call_id
                         tool_name = event.call.tool
@@ -338,7 +353,7 @@ class SpeechStreamPipeline:
                         bdi_res = orch.bdi_validator.validate_tool_call(
                             tool_name,
                             tool_args,
-                            taint_flags=getattr(orch.sandbox, "taint_flags", 0),
+                            taint_flags=getattr(getattr(orch, "sandbox", None), "taint_flags", 0),
                         )
                         if not bdi_res.is_valid:
                             round_failed_tools.append(tool_name)
@@ -501,17 +516,39 @@ class SpeechStreamPipeline:
                             is_error=not (tool_res is not None and tool_res.ok),
                         )
 
-                        # WO-9 A5: repeated-call guard — an identical
-                        # (tool, args) call already returned this turn; force
-                        # the model to use the result or change approach.
+                        # WO-9 A5 + WO-43 Sub-Step 2.3: repeated-call & TracebackDivergenceGuard
                         call_sig = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
                         call_signatures.append(call_sig)
-                        if call_signatures.count(call_sig) >= 2:
+                        err_sig = (
+                            content_str[:120]
+                            if not (tool_res is not None and tool_res.ok)
+                            else None
+                        )
+                        div_report = divergence_guard.record_step(
+                            state_repr=call_sig,
+                            error_signature=err_sig,
+                        )
+                        if div_report.diverged or call_signatures.count(call_sig) >= 2:
+                            loop_diverged = True
+                            reason_str = (
+                                div_report.reason.value
+                                if div_report.reason is not None
+                                else "state_cycle"
+                            )
+                            logger.warning(
+                                "subturn_loop_diverged",
+                                round_num=round_num,
+                                tool=tool_name,
+                                reason=reason_str,
+                                detail=div_report.detail,
+                                step_count=div_report.step_count,
+                            )
                             scratchpad_buffer.add_user_directive(
                                 "[Repeat Guard: You already issued this exact "
                                 "call and it returned a result above. Use that "
                                 "result, or try a different approach — do not "
-                                "repeat it.]"
+                                f"repeat it. Divergence Guard ({reason_str}): "
+                                f"{div_report.detail}. Synthesize your final response now without calling further tools.]"
                             )
                         # WO-13.1: Pre-Narration Sanity-Check Guard (Fault Mode C)
                         if tool_res is not None and tool_res.ok and content_str:
@@ -635,6 +672,8 @@ class SpeechStreamPipeline:
                                     "that action directly and have NOT done so.]"
                                 )
                                 continue
+                    break
+                if was_diverged_at_round_start:
                     break
 
             # WO-9 A5: convergence telemetry
