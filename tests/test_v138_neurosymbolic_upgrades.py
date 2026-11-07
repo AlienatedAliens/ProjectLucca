@@ -19,7 +19,7 @@ import pytest
 from lucca.core.exceptions import SandboxPathError
 from lucca.core.schemas import MemoryHit, Provenance, RouteFeatures
 from lucca.memory.retrieval import format_memory_context
-from lucca.reasoning.cegis_python import PythonCEGISEngine
+from lucca.reasoning.cegis_unshackled import PythonCEGISEngine
 from lucca.router.heuristic import HeuristicRouter
 from lucca.sandbox.container_world import ContainerWorld
 from lucca.sandbox.file_tool import validate_rel_path

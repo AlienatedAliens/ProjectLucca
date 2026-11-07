@@ -1658,6 +1658,28 @@ def test_cascade_loc_and_split_gate() -> None:
     assert "class CascadeSubstrateAdapters" in sub_path.read_text(encoding="utf-8")
 
 
+def test_cegis_loc_and_split_gate() -> None:
+    """WO-43 Phase 3.4 static parity gate: ensures cegis_python.py is retired
+    and cegis_unshackled.py is <= 750 lines and decomposed into cegis_grid_diff.py,
+    cegis_sandbox.py, and cegis_mutator.py.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    reas_dir = repo_root / "src" / "lucca" / "reasoning"
+    assert not (reas_dir / "cegis_python.py").exists(), "cegis_python.py must be retired"
 
+    unshackled_path = reas_dir / "cegis_unshackled.py"
+    diff_path = reas_dir / "cegis_grid_diff.py"
+    sbx_path = reas_dir / "cegis_sandbox.py"
+    mut_path = reas_dir / "cegis_mutator.py"
 
+    for p in (unshackled_path, diff_path, sbx_path, mut_path):
+        assert p.exists(), f"Expected {p} to exist"
+
+    unshackled_lines = unshackled_path.read_text(encoding="utf-8").splitlines()
+    assert len(unshackled_lines) <= 750, (
+        f"cegis_unshackled.py must be <= 750 lines after Phase 3.4 split, got {len(unshackled_lines)}"
+    )
+    assert "def compute_detailed_grid_diff(" in diff_path.read_text(encoding="utf-8")
+    assert "def execute_unshackled_python(" in sbx_path.read_text(encoding="utf-8")
+    assert "def generate_ast_mutants(" in mut_path.read_text(encoding="utf-8")
 

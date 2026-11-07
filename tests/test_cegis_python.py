@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from lucca.reasoning.cegis_python import (
+from lucca.reasoning.cegis_unshackled import (
     CEGISResult,
     CEGISTrace,
     PythonCEGISEngine,
