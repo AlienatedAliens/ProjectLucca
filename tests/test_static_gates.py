@@ -1416,12 +1416,59 @@ def test_speech_stream_pipeline_decomposition() -> None:
         )
 
 
+def test_tool_dispatcher_decomposition() -> None:
+    """WO-43 Phase 2.4 static parity gate: ensures tool dispatch, grounded
+    memory_commit, self_history_search, screenshot_capture, and table-driven
+    sandbox tool execution are encapsulated in ToolDispatcher and not defined
+    directly in orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    td_path = repo_root / "src" / "lucca" / "core" / "tool_dispatcher.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
 
+    assert td_path.exists(), f"tool_dispatcher.py does not exist at {td_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
 
+    td_text = td_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
 
+    td_tree = ast.parse(td_text, filename=str(td_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
 
+    td_methods = {
+        n.name
+        for n in ast.walk(td_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
 
-
-
+    target_methods = [
+        "describe_tool_action",
+        "handle_schedule_event",
+        "handle_artifact_verify",
+        "handle_clipboard_read",
+        "handle_inbox_handoff",
+        "handle_screenshot_capture",
+        "handle_self_history_search",
+        "handle_memory_commit",
+        "handle_tool_call",
+        "_sign_and_record_tool_receipt",
+    ]
+    for m in target_methods:
+        assert m in td_methods, f"Expected '{m}' to be defined in ToolDispatcher"
+        assert m not in orch_methods, (
+            f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+        )
+        def_marker = f"def {m}("
+        assert td_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear once in tool_dispatcher.py"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py"
+        )
 
 

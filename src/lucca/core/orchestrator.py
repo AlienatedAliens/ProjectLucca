@@ -125,6 +125,7 @@ from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.speech_stream_pipeline import SpeechStreamPipeline
 from lucca.core.text_utils import normalize_transcript
+from lucca.core.tool_dispatcher import ToolDispatcher
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
     SubTurnScratchpadBuffer,
@@ -495,6 +496,12 @@ class Orchestrator:
 
         # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
         self.ratification_domains: set[str] = load_ratification_domains()
+        try:
+            from lucca.core.neural_hazard_classifier import get_neural_hazard_classifier
+
+            get_neural_hazard_classifier()
+        except Exception as _nh_exc:  # noqa: BLE001
+            logger.debug("orchestrator_hazard_classifier_warmup_skipped", error=str(_nh_exc))
         self._pending_ratification: PendingRatification | None = None
         self._ratification_offered_this_turn: bool = False
         self._last_ratified_claim: str | None = None
@@ -689,6 +696,18 @@ class Orchestrator:
     @speech_stream.setter
     def speech_stream(self, value: SpeechStreamPipeline) -> None:
         self._speech_stream = value
+
+    @property
+    def tool_dispatcher(self) -> ToolDispatcher:
+        disp = getattr(self, '_tool_dispatcher', None)
+        if disp is None:
+            disp = ToolDispatcher(orchestrator=self)
+            self._tool_dispatcher = disp
+        return disp
+
+    @tool_dispatcher.setter
+    def tool_dispatcher(self, value: ToolDispatcher) -> None:
+        self._tool_dispatcher = value
 
     @property
     def _tts_queue(
@@ -2984,65 +3003,13 @@ class Orchestrator:
             return
         self.speech_output.speak_text(trace, text)
 
+    # delegate — kept for test/back-compat
     def _describe_tool_action(self, name: str, args: dict[str, JsonValue]) -> str:
-        if name == "launch_app":
-            app = str(args.get("app_name", "the application"))
-            return f"launch {app}"
-        if name == "write_file":
-            path = str(args.get("path", "the file"))
-            return f"write to {path}"
-        if name == "delete_file":
-            path = str(args.get("path", "the file"))
-            return f"delete {path}"
-        if name == "run_python":
-            return "run the python script"
-        if name == "fetch_url":
-            url = str(args.get("url", "the web page"))
-            return f"fetch {url}"
-        if name == "memory_commit":
-            # WO-9 A2 (ADR-010): read the fact back so the user confirms what
-            # will actually be saved, not "execute memory_commit".
-            o = str(args.get("o", "")).strip()
-            p = str(args.get("p", "")).strip()
-            if o and p:
-                natural = {
-                    "is_named": f"your name is {o}",
-                    "lives_in": f"you live in {o}",
-                    "works_at": f"you work at {o}",
-                    "works_as": f"you work as {o}",
-                    "born_on": f"you were born on {o}",
-                    "birthday_is": f"your birthday is {o}",
-                    "timezone_is": f"your timezone is {o}",
-                }.get(p, f"{str(args.get('s', 'you')).strip()} {p.replace('_', ' ')} {o}")
-                return f"save that {natural}"
-        if name == "clipboard_read":
-            return "read your clipboard"
-        if name == "inbox_handoff":
-            fname = str(args.get("filename", "the file"))
-            return f"move {fname} into my workspace from your inbox"
-        if name == "schedule_event":
-            ev = str(args.get("event_name", "the event"))
-            return f"schedule reminder for {ev}"
-        if name == "artifact_verify":
-            path = str(args.get("path", "the file"))
-            return f"verify {path}"
-        if name == "screenshot_capture":
-            return "take a screenshot"
-        return f"execute {name}"
+        return self.tool_dispatcher.describe_tool_action(name, args)
 
+    # delegate — kept for test/back-compat
     def _handle_schedule_event(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="schedule_event", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="schedule_event",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_schedule_event(call_id, args)
 
     def maybe_fire_due_events(self, now: float | None = None) -> list[str]:
         """Claims due scheduled events from the sandbox store, speaks reminders, and publishes bus notifications."""
@@ -3089,200 +3056,27 @@ class Orchestrator:
                     logger.debug("speak_schedule_fired_failed", error=str(exc))
         return fired_messages
 
+    # delegate — kept for test/back-compat
     def _handle_artifact_verify(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="artifact_verify", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="artifact_verify",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_artifact_verify(call_id, args)
 
+    # delegate — kept for test/back-compat
     def _handle_clipboard_read(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="clipboard_read", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="clipboard_read",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_clipboard_read(call_id, args)
 
+    # delegate — kept for test/back-compat
     def _handle_inbox_handoff(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="inbox_handoff", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="inbox_handoff",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_inbox_handoff(call_id, args)
 
+    # delegate — kept for test/back-compat
     def _handle_screenshot_capture(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        """WO-24 Phase 1: capture primary display and stage for multimodal injection.
+        return self.tool_dispatcher.handle_screenshot_capture(call_id, args)
 
-        The base64 JPEG is stored on self._pending_image_b64.  It is injected into the
-        frontier user message of the NEXT LLM call by llm_client.stream_turn() and cleared
-        there unconditionally (including error paths) — so it cannot leak to subsequent turns.
-
-        Policy: this handler is reached only AFTER confirmation gate (Class C, target='shared').
-        Output is stamped TOOL_CONTENT_UNTRUSTED (content= not structured=) per TRAP 2.
-        """
-        already_staged = getattr(self, "_pending_image_b64", None) or getattr(self, "current_turn_image_b64", None)
-        if already_staged:
-            b64 = already_staged
-            width, height = 1280, 800
-            ocr_text = None
-        else:
-            try:
-                from lucca.sandbox.screenshot_tool import capture_screenshot_with_ocr_fallback  # noqa: PLC0415
-
-                llm_cfg = getattr(getattr(self, "config", None), "llm", None)
-                mmproj_obj = getattr(llm_cfg, "mmproj", None) if llm_cfg else None
-                b64, width, height, ocr_text = capture_screenshot_with_ocr_fallback(mmproj=mmproj_obj)
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("screenshot_capture_failed", error=str(exc))
-                self._record_tool_receipt(
-                    name="screenshot_capture",
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=str(exc),
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    content=None,
-                    stderr=f"screenshot_capture failed: {exc}",
-                    elapsed_ms=0.0,
-                )
-
-        size_kb = round(len(b64) * 3 / 4 / 1024, 1)
-        # Stage the image for the next LLM narration call.
-        # TRAP 3: _pending_image_b64 is read-and-cleared by llm_client on every call.
-        self._pending_image_b64: str | None = b64
-        if hasattr(self, "visual_session") and self.visual_session is not None:
-            self.visual_session.store_image(b64_jpeg=b64, description="screenshot")
-
-        has_real_ocr = bool(ocr_text and "no text detected" not in ocr_text.lower())
-        receipt_output = f"[screenshot captured: {width}x{height}, {size_kb}KB]"
-        if has_real_ocr and ocr_text:
-            receipt_output = f"{receipt_output} {ocr_text}"
-
-        self._record_tool_receipt(
-            name="screenshot_capture",
-            call_id=call_id,
-            args=args,
-            ok=True,
-            output=receipt_output,
-            error=None,
-        )
-        content_msg = (
-            f"[screenshot captured: {ocr_text}]"
-            if (has_real_ocr and ocr_text)
-            else "[screenshot captured]"
-        )
-        struct_data: dict[str, JsonValue] = {"width": width, "height": height, "size_kb": size_kb}
-        if ocr_text:
-            struct_data["ocr_text"] = ocr_text
-
-        # content= (not structured=) guarantees TOOL_CONTENT_UNTRUSTED provenance
-        return ToolResult(
-            call_id=call_id,
-            ok=True,
-            content=content_msg,
-            structured=struct_data,
-            elapsed_ms=0.0,
-        )
-
+    # delegate — kept for test/back-compat
     def _handle_self_history_search(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        """WO-9 A14 (F18): expose the SELF_HISTORY substrate as a READ tool.
+        return self.tool_dispatcher.handle_self_history_search(call_id, args)
 
-        Backed by query_substrate_self_history (execution_triples ∪
-        ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH ∪
-        ASSISTANT_BELIEF). Depends on A9 for content worth querying.
-        """
-        from pydantic import ValidationError  # noqa: PLC0415
-
-        from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS  # noqa: PLC0415
-
-        schema_cls = TOOL_ARG_SCHEMAS.get("self_history_search")
-        if schema_cls is not None:
-            try:
-                parsed_sh = schema_cls.model_validate(args)
-                query = str(getattr(parsed_sh, "query", "")).strip()
-            except ValidationError as exc:
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    stderr=f"invalid_arguments: {exc}",
-                    elapsed_ms=0.0,
-                )
-        else:
-            query = str(args.get("query", "")).strip()
-            if not query:
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    stderr="invalid_arguments: query is required",
-                    elapsed_ms=0.0,
-                )
-        cascade = getattr(self, "cascade", None)
-        if cascade is None:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr="self-history substrate unavailable",
-                elapsed_ms=0.0,
-            )
-        try:
-            items = cascade.query_substrate_self_history(query)
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("self_history_search_failed", error=str(exc))
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=f"self_history_search failed: {exc}",
-                elapsed_ms=0.0,
-            )
-        lines = [f"- [{item.source}] {item.content}" for item in items[:10]]
-        content = "\n".join(lines) if lines else "No self-history records match that query."
-        self._record_tool_receipt(
-            name="self_history_search",
-            call_id=call_id,
-            args=args,
-            ok=True,
-            output=content,
-            error=None,
-        )
-        return ToolResult(
-            call_id=call_id,
-            ok=True,
-            exit_code=0,
-            content=content,
-            structured={"count": len(items)},
-            elapsed_ms=0.0,
-        )
-
+    # delegate — kept for test/back-compat
     def _handle_memory_commit(
         self,
         trace: TurnTrace,
@@ -3291,163 +3085,7 @@ class Orchestrator:
         args: dict[str, JsonValue],
         speak: bool,
     ) -> ToolResult:
-        """WO-9 A2 (ADR-010): grounded memory_commit.
-
-        The model's {s, p, o, quote} is a CANDIDATE only. The fact is committed
-        iff the quote is verbatim-grounded in the user's own words this turn
-        (FactExtractor -> DerivedFactSigner -> USER_DERIVED, source_entry_ids
-        citing the USER_EXPLICIT transcript). Model-authored prose is never
-        stored (ADR-006); ungrounded candidates are refused with an honest
-        error the model must narrate.
-        """
-        from pydantic import ValidationError  # noqa: PLC0415
-
-        from lucca.memory.extraction import FactExtractor  # noqa: PLC0415
-        from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS, MemoryCommitArgs  # noqa: PLC0415
-
-        if not self.memory_store:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr="memory subsystem unavailable",
-                elapsed_ms=0.0,
-            )
-        try:
-            schema_cls = TOOL_ARG_SCHEMAS.get("memory_commit", MemoryCommitArgs)
-            parsed = schema_cls.model_validate(args)
-            if not isinstance(parsed, MemoryCommitArgs):
-                parsed = MemoryCommitArgs.model_validate(args)
-        except ValidationError as exc:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    f"invalid_arguments: {exc}. Provide s, "
-                    "p (lowercase snake_case slug, 2-41 chars), o, "
-                    "and a verbatim quote from the user's words this turn."
-                ),
-                elapsed_ms=0.0,
-            )
-
-        canon_p = canonicalize_predicate(parsed.p)
-        if not is_valid_predicate(canon_p):
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    f"invalid_predicate: '{parsed.p}' is not a valid "
-                    "lowercase snake_case slug (2-41 chars)"
-                ),
-                elapsed_ms=0.0,
-            )
-
-        # Ensure the user's utterance is committed so the fact can cite it.
-        transcript_payload = getattr(self, "_last_transcript_signed", None)
-        payload_is_current = (
-            transcript_payload is not None
-            and getattr(transcript_payload, "trace_id", None) == trace.trace_id
-        )
-        if not payload_is_current and self.current_turn_transcript:
-            entry_id = self._commit_transcript(self.current_turn_transcript, trace)
-            if entry_id:
-                self._early_transcript_commit = (entry_id, self.current_turn_transcript)
-                self.current_turn_transcript = None
-            transcript_payload = getattr(self, "_last_transcript_signed", None)
-            payload_is_current = (
-                transcript_payload is not None
-                and getattr(transcript_payload, "trace_id", None) == trace.trace_id
-            )
-        if not payload_is_current or transcript_payload is None:
-            self._record_tool_receipt(
-                name=name,
-                call_id=call_id,
-                args=args,
-                ok=False,
-                output=None,
-                error="no user utterance to ground against",
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    "not_grounded: there is no user utterance this turn to ground the fact "
-                    "against. Ask the user to state the fact in their own words first."
-                ),
-                elapsed_ms=0.0,
-            )
-
-        extractor = getattr(self, "_fact_extractor", None)
-        if extractor is None:
-            extractor = FactExtractor(master_key=self.signer_factory.master_key)
-            self._fact_extractor = extractor
-
-        try:
-            signed_facts = extractor.extract_and_sign(
-                transcript_payload,
-                [{"s": parsed.s, "p": parsed.p, "o": parsed.o, "quote": parsed.quote}],
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("extract_and_sign_failed", error=str(exc))
-            self._record_tool_receipt(
-                name=name, call_id=call_id, args=args, ok=False, output=None, error=str(exc)
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=f"memory_commit failed: {exc}",
-                elapsed_ms=0.0,
-            )
-
-        if not signed_facts:
-            self._record_tool_receipt(
-                name=name,
-                call_id=call_id,
-                args=args,
-                ok=False,
-                output=None,
-                error="quote not grounded in user utterance",
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    "not_grounded: the fact was NOT saved because the quote does not appear "
-                    "verbatim in the user's words this turn. Say plainly that you did not save "
-                    "it, or ask the user to say the fact in their own words."
-                ),
-                structured={"error": "not_grounded", "memory_eligible": False},
-                elapsed_ms=0.0,
-            )
-
-        now = self.clock.now_utc()
-        saved_contents: list[str] = []
-        for signed_fact in signed_facts:
-            self.memory_store.commit(signed_fact, now=now)
-            saved_contents.append(str(signed_fact.content))
-
-        saved_str = "; ".join(saved_contents)
-        self._record_tool_receipt(
-            name=name, call_id=call_id, args=args, ok=True, output=saved_str, error=None
-        )
-        logger.info("grounded_memory_commit", facts=saved_str, trace_id=trace.trace_id)
-        if speak:
-            spoken = "Saved that to memory."
-            self._speak_text(trace, spoken)
-            self.current_turn_tool_spoken.append(spoken)
-        return ToolResult(
-            call_id=call_id,
-            ok=True,
-            exit_code=0,
-            content=f"Saved to long-term memory: {saved_str}",
-            structured={"saved": saved_contents, "provenance": "USER_DERIVED"},
-            elapsed_ms=0.0,
-        )
+        return self.tool_dispatcher.handle_memory_commit(trace, call_id, name, args, speak)
 
     # ------------------------------------------------------------------------
     # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
@@ -3832,6 +3470,7 @@ class Orchestrator:
     ) -> bool:
         return self.confirmations.request_confirmation(trace, name, args, timeout_s=timeout_s)
 
+    # delegate — kept for test/back-compat
     def _handle_tool_call(
         self,
         trace: TurnTrace,
@@ -3839,535 +3478,7 @@ class Orchestrator:
         args: dict[str, JsonValue],
         speak: bool = True,
     ) -> ToolResult | None:
-        # Semantic repair: if model invoked calc_math with Python code or equation solving, route to run_python
-        if name == "calc_math":
-            expr_val = args.get("expr")
-            code_val = args.get("code")
-            raw_content = str(code_val if code_val is not None else (expr_val or ""))
-            solve_match = re.search(r"^(.*?)=(.*?)(?:[;,]\s*|\s+)solve\s+for\s+([a-zA-Z_]\w*)$", raw_content.strip(), re.IGNORECASE)
-            if solve_match:
-                lhs = solve_match.group(1).strip().rstrip(";,")
-                rhs = solve_match.group(2).strip().rstrip(";,")
-                var = solve_match.group(3).strip()
-                sympy_code = (
-                    f"import sympy as sp\n"
-                    f"{var} = sp.Symbol('{var}')\n"
-                    f"eq = sp.Eq({lhs}, {rhs})\n"
-                    f"sol = sp.solve(eq, {var})\n"
-                    f"print(f'{var} = {{sol}}')\n"
-                )
-                logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python", fix="equation_to_sympy")
-                name = "run_python"
-                args = {"code": sympy_code}
-            else:
-                is_python_code = (
-                    "code" in args
-                    or "\n" in raw_content
-                    or ";" in raw_content
-                    or "import " in raw_content
-                    or "def " in raw_content
-                    or "print(" in raw_content
-                    or len(raw_content) > 300
-                )
-                if is_python_code:
-                    logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python")
-                    name = "run_python"
-                    args = {"code": raw_content}
-        elif name == "run_python":
-            if "expr" in args and "code" not in args:
-                logger.info("tool_semantic_reroute", from_tool="run_python", fix="expr_to_code")
-                args = {"code": str(args["expr"])}
-
-        self.executed_tools.append((name, args))
-        call_id = str(ulid.ULID())
-        self.current_turn_tool_calls.append(ToolCall(tool=name, args=dict(args), call_id=call_id))
-        if not self.execute_tools:
-            return None
-
-        # Speculative BDI Invariant Validation (Milestone 4)
-        bdi_validator = getattr(self, "bdi_validator", None)
-        if bdi_validator is not None:
-            bdi_res = bdi_validator.validate_tool_call(
-                name,
-                args,
-                taint_flags=getattr(self.sandbox, "taint_flags", 0),
-            )
-            if not bdi_res.is_valid:
-                logger.warning(
-                    "bdi_invariant_violation",
-                    tool=name,
-                    reason=bdi_res.reason,
-                    elapsed_us=bdi_res.elapsed_us,
-                )
-                self.current_turn_tool_ok = False
-                affect_tracker = getattr(self, "affect_tracker", None)
-                if affect_tracker is not None:
-                    affect_tracker.record_signal(
-                        AffectSignal.DEONTIC_REJECTION, custom_cause=bdi_res.reason
-                    )
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-4,
-                    stderr=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
-                    elapsed_ms=bdi_res.elapsed_us / 1000.0,
-                )
-
-        # invoke_skill dispatch tool (T1.2)
-        if name == "invoke_skill":
-            from pydantic import ValidationError  # noqa: PLC0415
-
-            from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS, InvokeSkillArgs  # noqa: PLC0415
-
-            schema_cls = TOOL_ARG_SCHEMAS.get("invoke_skill", InvokeSkillArgs)
-            try:
-                parsed_is = schema_cls.model_validate(args)
-                skill_id = str(getattr(parsed_is, "skill_id", ""))
-                raw_skill_args = getattr(parsed_is, "args", {})
-                skill_args: dict[str, JsonValue] = (
-                    dict(raw_skill_args) if isinstance(raw_skill_args, dict) else {}
-                )
-            except ValidationError as exc:
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=f"invalid_arguments: {exc}",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-1,
-                    stderr=f"invalid_arguments: {exc}",
-                    elapsed_ms=0.0,
-                )
-
-            manifest_ids = getattr(self, "current_manifest_skill_ids", None)
-            ok, reason, payload = dispatch_invoke_skill(
-                skill_id=skill_id,
-                args=skill_args,
-                rule_engine=self.rule_engine,
-                manifest_skill_ids=manifest_ids,
-            )
-            if not ok:
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=reason,
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-1,
-                    stderr=reason,
-                    structured=payload,
-                    elapsed_ms=0.0,
-                )
-
-            # Contract step 4: Execute the rule's plan through existing plan executor
-            rule_entry = self.rule_engine.rules[skill_id]
-            rule_state = self._build_rule_state(
-                str(skill_args.get("query") or self.current_turn_transcript or "")
-            )
-            for k, v in skill_args.items():
-                if k != "query" and isinstance(v, str):
-                    rule_state.entities.setdefault(k, []).append(v)
-            outcome = evaluate_plan(rule_entry.definition, rule_state)
-            if outcome.plan:
-                sub_results: list[str] = []
-                for sub_action in outcome.plan.actions:
-                    if isinstance(sub_action, ToolCall):
-                        sub_res = self._handle_tool_call(
-                            trace, sub_action.tool, dict(sub_action.args), speak=False
-                        )
-                        sub_status = (
-                            "ok" if (sub_res is None or getattr(sub_res, "ok", True)) else "failed"
-                        )
-                        sub_results.append(f"{sub_action.tool}->{sub_status}")
-                    elif isinstance(sub_action, Say) and speak:
-                        self._speak_text(trace, sub_action.text)
-                    elif isinstance(sub_action, AssertFact):
-                        self._commit_lisp_assertion(sub_action, trace)
-                        sub_results.append(
-                            f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok"
-                        )
-                has_failures = any("->failed" in s for s in sub_results)
-                skill_signal: Literal["tool_exit_zero", "pydantic_valid"] = (
-                    "pydantic_valid" if has_failures else "tool_exit_zero"
-                )
-                self.rule_engine.emit_execution_triple(
-                    rule_id=skill_id,
-                    plan=outcome.plan,
-                    signal=skill_signal,
-                    detail=f"invoke_skill {', '.join(sub_results)}",
-                )
-                res_content = (
-                    f"Skill '{skill_id}' fired. "
-                    f"Rationale: {outcome.plan.rationale or 'completed'}. "
-                    f"Actions: {', '.join(sub_results) or 'none'}"
-                )
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=True,
-                    output=res_content,
-                    error=None,
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=True,
-                    content=res_content,
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-            else:
-                err_msg = outcome.error or "conditions not met"
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=f"Skill '{skill_id}' evaluated but did not fire: {err_msg}",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    stderr=f"Skill '{skill_id}' evaluated but did not fire: {err_msg}",
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-
-        # Check if this is a MicroScheme skill invocation (Proposal A / D-REAS-04)
-        target_rule_id = None
-        if name.startswith("skill_"):
-            target_rule_id = name[6:].replace("_", "-")
-        elif name in self.rule_engine.rules:
-            target_rule_id = name
-
-        if target_rule_id and target_rule_id in self.rule_engine.rules:
-            rule_entry = self.rule_engine.rules[target_rule_id]
-            rule_state = self._build_rule_state(
-                str(args.get("query") or self.current_turn_transcript or "")
-            )
-            outcome = evaluate_rule(rule_entry.definition, rule_state)
-            if outcome.plan:
-                sub_results: list[str] = []
-                for sub_action in outcome.plan.actions:
-                    if isinstance(sub_action, ToolCall):
-                        sub_res = self._handle_tool_call(
-                            trace, sub_action.tool, dict(sub_action.args), speak=False
-                        )
-                        sub_status = (
-                            "ok" if (sub_res is None or getattr(sub_res, "ok", True)) else "failed"
-                        )
-                        sub_results.append(f"{sub_action.tool}->{sub_status}")
-                    elif isinstance(sub_action, Say) and speak:
-                        self._speak_text(trace, sub_action.text)
-                    elif isinstance(sub_action, AssertFact):
-                        self._commit_lisp_assertion(sub_action, trace)
-                        sub_results.append(
-                            f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok"
-                        )
-                res = ToolResult(
-                    call_id=call_id,
-                    ok=True,
-                    content=(
-                        f"Skill '{target_rule_id}' fired. "
-                        f"Rationale: {outcome.plan.rationale or 'completed'}. "
-                        f"Actions: {', '.join(sub_results) or 'none'}"
-                    ),
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-            else:
-                err_msg = outcome.error or "conditions not met"
-                res = ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    stderr=f"Skill '{target_rule_id}' evaluated but did not fire: {err_msg}",
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-            if not res.ok:
-                self.current_turn_tool_ok = False
-            self._record_tool_receipt(
-                name=name,
-                call_id=call_id,
-                args=args,
-                ok=res.ok,
-                output=res.content,
-                error=res.stderr,
-            )
-            return res
-
-        # Check confirmation requirement (WRITE / LAUNCH)
-        human_confirmed = False
-        if self.sandbox.check_confirmation_needed(name):
-            already_staged = getattr(self, "_pending_image_b64", None) or getattr(self, "current_turn_image_b64", None)
-            if name == "screenshot_capture" and already_staged:
-                logger.info("screenshot_confirmation_bypassed_user_pre_attached")
-                human_confirmed = True
-            else:
-                confirmed = self._request_confirmation(trace, name, args)
-                if not confirmed:
-                    logger.info("tool_execution_cancelled_by_user", tool=name)
-                    cancel_msg = "Cancelled."
-                    print(f"[Lucca] {cancel_msg}", flush=True)
-                    if speak:
-                        self._speak_text(trace, cancel_msg)
-                        self.current_turn_tool_spoken.append(cancel_msg)
-                    self.current_turn_tool_ok = False
-                    self._record_tool_receipt(
-                        name=name,
-                        call_id=call_id,
-                        args=args,
-                        ok=False,
-                        output=None,
-                        error="cancelled by user",
-                    )
-                    return ToolResult(
-                        call_id=call_id,
-                        ok=False,
-                        exit_code=-3,
-                        stderr="cancelled by user",
-                        elapsed_ms=0.0,
-                    )
-                human_confirmed = True
-
-        # WO-9 A2 (ADR-010): grounded memory_commit — orchestrator-side dispatch
-        # because it must cite the current-turn USER_EXPLICIT transcript payload.
-        if name == "memory_commit":
-            return self._handle_memory_commit(trace, call_id, name, args, speak)
-
-        # WO-9 A14 (F18): model-callable self-history — "did you actually do X?"
-        # answered from persisted records, never confabulated.
-        if name == "self_history_search":
-            return self._handle_self_history_search(call_id, args)
-
-        if name == "schedule_event":
-            res = self._handle_schedule_event(call_id, args)
-            if speak and res.ok:
-                ev = str(args.get("event_name", "the event"))
-                spoken_msg = f"I've noted that reminder for {ev}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "artifact_verify":
-            res = self._handle_artifact_verify(call_id, args)
-            if speak and res.ok:
-                path = str(args.get("path", "file"))
-                sha = str((res.structured or {}).get("sha256", ""))[:8]
-                spoken_msg = f"Verified {path}: checksum is {sha}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "clipboard_read":
-            res = self._handle_clipboard_read(call_id, args)
-            if speak and res.ok:
-                spoken_msg = "I read your clipboard."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "inbox_handoff":
-            res = self._handle_inbox_handoff(call_id, args)
-            if speak and res.ok:
-                fname = str(args.get("filename", "file"))
-                spoken_msg = f"Imported {fname} from inbox into workspace."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "screenshot_capture":
-            res = self._handle_screenshot_capture(call_id, args)
-            if speak and res.ok:
-                spoken_msg = "I took a screenshot."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-                # Inject the pending image into the narration tool_messages list so the
-                # next LLM call (narration or full-loop) receives the image token.
-                # _pending_image_b64 is consumed-and-cleared by llm_client.stream_turn()
-                # on the first LLM call after this — TRAP 3 guarantee.
-                pending_img = getattr(self, "_pending_image_b64", None)
-                if pending_img is not None:
-                    img_msg = ChatMessage(
-                        role="user",
-                        content="[Screenshot attached — describe what you see in spoken prose, no markdown.]",
-                        image_b64=pending_img,
-                    )
-                    current_tool_messages = getattr(self, "_current_tool_messages", None)
-                    if current_tool_messages is not None:
-                        current_tool_messages.append(img_msg)
-                    else:
-                        # Fallback: store on the turn context for the caller to pick up
-                        if not hasattr(self, "_screenshot_pending_msgs"):
-                            self._screenshot_pending_msgs = []
-                        self._screenshot_pending_msgs.append(img_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        # Corrective Search Query Injection & Category Grounding
-        if name == "search_web" and "query" in args and isinstance(args["query"], str):
-            q = str(args["query"])
-            detected = getattr(self, "active_detected_words", [])
-            for target_w in detected:
-                for tok in re.findall(r"\b[a-zA-Z]{3,}\b", q):
-                    if (
-                        tok.lower() != target_w.lower()
-                        and _levenshtein_distance(tok.lower(), target_w.lower()) <= 2
-                    ):
-                        q = re.sub(rf"\b{re.escape(tok)}\b", target_w, q)
-                if target_w.lower() not in q.lower():
-                    q = f'"{target_w}" {q}'.strip()
-
-            # Preserve category & location keywords from transcript or context if missing from query
-            # (WO-10.6: config-driven via heuristics.toml)
-            recent_ctx = " ".join(
-                m.get("content", "") for m in self.history[-2:] if isinstance(m, dict)
-            )
-            context_text = f"{self.current_turn_transcript or ''} {recent_ctx}".lower()
-            category_keywords = load_heuristics("search_category_keywords")
-            for kw in category_keywords:
-                if kw in context_text and kw not in q.lower():
-                    q = f"{q} {kw}".strip()
-            args["query"] = q
-
-        res = self.sandbox.execute_tool(
-            call_id=call_id,
-            tool_name=name,
-            args=args,
-            confirmed=True,
-            human_confirmed=human_confirmed,
-        )
-        affect_tracker = getattr(self, "affect_tracker", None)
-        if not res.ok:
-            self.current_turn_tool_ok = False
-            if affect_tracker is not None:
-                affect_tracker.record_signal(
-                    AffectSignal.TOOL_FAILURE, custom_cause=res.stderr or f"{name} failed"
-                )
-        elif affect_tracker is not None:
-            affect_tracker.record_signal(
-                AffectSignal.TASK_SUCCESS, custom_cause=f"{name} completed successfully"
-            )
-        err_val = res.stderr if res.stderr else (res.content if not res.ok else None)
-        self._record_tool_receipt(
-            name=name,
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=err_val,
-        )
-        logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
-        spoken_msg: str | None = None
-        if res.ok:
-            if name == "launch_app":
-                app_name = str(args.get("app_name", "app"))
-                spoken_msg = f"Launched {app_name}."
-            elif name == "write_file":
-                path = str(args.get("path", "file"))
-                spoken_msg = f"Saved {path}."
-            elif name == "delete_file":
-                path = str(args.get("path", "file"))
-                spoken_msg = f"Deleted {path}."
-            elif name == "run_python":
-                spoken_msg = "Python script executed."
-            elif name == "query_capabilities":
-                cat = str(args.get("category", "all")).lower()
-                if cat in ("applications", "apps", "whitelisted_apps"):
-                    spoken_msg = (
-                        "I can launch desktop applications including Calculator, Notepad, and Edge."
-                    )
-                elif cat in ("hardware", "hardware_substrates"):
-                    spoken_msg = (
-                        "I run locally across a CUDA dGPU, Intel AI Boost NPU, "
-                        "and multi-core host CPU."
-                    )
-                elif cat in ("memory", "memory_subsystem"):
-                    spoken_msg = (
-                        "I have persistent episodic and semantic memory backed by "
-                        "SQLite and vector embeddings."
-                    )
-                else:
-                    spoken_msg = (
-                        "I can launch desktop applications like Calculator, Notepad, and Edge, "
-                        "read and write files in your workspace, and remember our conversations "
-                        "with persistent memory."
-                    )
-            elif name == "read_file":
-                path = str(args.get("path", "file"))
-                content = str(res.content or "").strip()
-                if 0 < len(content) <= 150:
-                    spoken_msg = f"Here is what's in {path}: {content}"
-                else:
-                    spoken_msg = f"I read {path}."
-            elif name == "fetch_url":
-                url = str(args.get("url", "the page"))
-                spoken_msg = f"I fetched {url}."
-            elif name == "inbox_handoff":
-                spoken_msg = str(res.content or "Imported from inbox.")
-            elif name == "list_dir":
-                spoken_msg = str(res.content or "Checked directory.")
-            else:
-                spoken_msg = f"Executed {name}."
-        elif res.exit_code == -2 or "sandbox unavailable" in (res.stderr or ""):
-            spoken_msg = "My file sandbox isn't available — Docker isn't reachable."
-        else:
-            spoken_msg = f"Error: {res.stderr or 'action failed'}."
-
-        if speak and spoken_msg:
-            print(f"[Lucca] {spoken_msg}", flush=True)
-            self._speak_text(trace, spoken_msg)
-            self.current_turn_tool_spoken.append(spoken_msg)
-        elif spoken_msg:
-            self._last_unspoken_tool_msg = spoken_msg
-        return res
+        return self.tool_dispatcher.handle_tool_call(trace, name, args, speak=speak)
 
     def _heartbeat_loop(self) -> None:
         while self.running:
