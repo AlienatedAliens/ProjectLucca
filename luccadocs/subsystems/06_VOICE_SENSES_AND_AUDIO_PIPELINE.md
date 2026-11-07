@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 06 — Voice Senses, DSP & Full-Duplex Audio Pipeline
 
 **Subsystem:** `src/lucca/senses/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.50.0 (`WO-42`)  
 **Architectural Tier:** Senses, Speech Synthesis & Full-Duplex Audio  
 **Hardware Placement:** PortAudio WASAPI (Host), Energy VAD (CPU), NVIDIA RTX 5080 (ASR CUDA float16)
 

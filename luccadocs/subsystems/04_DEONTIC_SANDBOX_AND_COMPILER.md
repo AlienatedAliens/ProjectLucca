@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 04 — Deontic Sandbox & Structural Compiler
 
 **Subsystem:** `src/lucca/sandbox/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.50.0 (`WO-42`)  
 **Architectural Tier:** Actuation Sandbox, AST Compiler, $k$-Order ToM World & Safety Supervision  
 **Hardware Placement:** WSL2 Ubuntu Container (`lucca/file-sandbox`), Host CPU C-RPC Transport  
 
@@ -156,7 +156,7 @@ flowchart LR
 ## 5. Streaming Output Supervision, Clause-Level NPU Action-Claim Verification & Scrapling Research (`WO-40`–`WO-42`)
 
 ### 5.1 Clause-Level Neurosymbolic Action-Claim Verifier (`neural_claim_verifier.py` & `coherence.py`)
-In `WO-41` and `WO-42`, post-turn and streaming action-claim supervision was upgraded from brittle verb-list matching to a **clause-level neurosymbolic architecture** running on the **Intel AI Boost NPU** (`models/action_claim_verifier_ov`, static shape `[1, 128]`, **`0.0 MB` RTX 5080 VRAM**, `~3.2–7.8 ms` per turn):
+In `WO-41` and `WO-42`, post-turn and streaming action-claim supervision was upgraded from brittle verb-list matching to a **clause-level neurosymbolic architecture** running on the **Intel AI Boost NPU** (`models/supervision_coherence_npu`, `33.4M`-parameter `MiniLM-L12-H384` OpenVINO FP16 IR, static shape `[1, 128]`, **`0.0 MB` RTX 5080 VRAM**, `1.97 ms` p50 per clause / `~3.2–7.8 ms` per turn):
 1. **Clause Decomposition (`split_narration_into_clauses`):** Splits multi-sentence assistant responses on sentence boundaries and coordinating conjunctions (`and I also`, `then I`, `;`) so a grounded first clause (e.g., `read_file`) never masks or dilutes an ungrounded second clause (e.g., `write_file`).
 2. **5-Class Neural Speech-Act Classification on Intel NPU (`NeuralActionClaimVerifier`):** Classifies each clause in the context of the current user turn (`format_pair_texts` isolated to `user` role messages) into:
    - `0: BENIGN_CONVERSATIONAL`
@@ -176,6 +176,9 @@ In `WO-42` (Phases 4–5), Lucca's web research subsystem was upgraded with a 3-
 2. **Tier 2 (Anti-Bot Detection & Escalation):** `_is_anti_bot_or_empty_shell` detects Cloudflare/Turnstile/Akamai challenge pages and empty SPA shells and escalates automatically to Scrapling `Fetcher` / `StealthyFetcher` or headless Playwright (`browser_tool.py`).
 3. **Tier 3 (Adaptive Extraction & `sanitize_html_against_prompt_injection`):** Strips hidden DOM prompt-injection payloads (`display:none`, `visibility:hidden`, `opacity:0`, `font-size:0`, `aria-hidden="true"`, `<template>`, comments, and Unicode tag characters `U+E0000..U+E007F`) before extracting structured Markdown via Scrapling `Adaptor` + `trafilatura`.
 4. **Parallel Multi-Source Dossier Fetching (`research_tool.py`):** Fetches candidate URLs concurrently via `ThreadPoolExecutor` with per-domain rate limiting, achieving a **`4.1x` wall-clock speedup** (`16/16` unit/security tests passing in `tests/test_wo42_scrapling_research.py`).
+5. **Compounded Cross-Reference & `search_web(deep_extract=True)` Integration (`WO-42`):**
+   - `Orchestrator._execute_cross_reference_searches` (`src/lucca/core/orchestrator.py:4442-4544`) upgrades truncated 150-character search snippets with the top 1–2 claim-aligned sentences extracted via Scrapling `fetch_url` (`_extract_claim_aligned_sentences`), preserving 1 `ToolReceipt` per independent URL/domain for `CorroborationEngine` (`src/lucca/core/corroboration.py:666`).
+   - `search_web` (`src/lucca/core/capabilities.py:86-93`, `src/lucca/sandbox/service.py:616-628`) supports `deep_extract: bool = False` to return sanitized Scrapling page extracts alongside search snippets and registers all returned `"sources"`/`"results"` URLs with `OutputSupervisor.register_allowed_urls` (`src/lucca/core/orchestrator.py:2907-2915`).
 
 ### 5.3 Legacy Regex DFA Channel (`output_supervisor.py`)
 The `OutputSupervisorSession` ([`src/lucca/sandbox/output_supervisor.py`](file:///C:/projects/projectlucca/src/lucca/sandbox/output_supervisor.py)) retains the sub-millisecond regex DFA fast path (`TruthInReceiptMatcher` + `ActionClaimGrammarSupervisor`) alongside the OpenVINO NPU `NeuralActionClaimVerifier` hook (`use_neural_verifier=True`).

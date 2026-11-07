@@ -24,7 +24,7 @@ The Project Lucca source code itself is licensed under the **GNU Affero General 
 - **Upstream:** [openvinotoolkit/openvino](https://github.com/openvinotoolkit/openvino)
 - **License:** Apache License 2.0
 - **Copyright:** Copyright (c) 2018-2026 Intel Corporation
-- **Usage:** Hardware-accelerated NPU/CPU embeddings (`all-MiniLM-L6-v2`) and INT8 NLI verifier execution on Intel silicon.
+- **Usage:** Hardware-accelerated NPU/CPU embeddings (`all-MiniLM-L6-v2`), INT8 NLI verifier execution (`models/verifier_minilm`), and OpenVINO FP16 NPU supervision/routing classifiers (`models/supervision_coherence_npu`, `models/supervision_hazard_npu`, `models/router_intent_npu`) on Intel silicon.
 
 ### CTranslate2 & Faster-Whisper
 - **Upstream:** [OpenNMT/CTranslate2](https://github.com/OpenNMT/CTranslate2) and [SYSTRAN/faster-whisper](https://github.com/SYSTRAN/faster-whisper)
@@ -57,6 +57,8 @@ The Project Lucca source code itself is licensed under the **GNU Affero General 
 | **LightGBM** | MIT License | Microsoft Corporation | Tabular decision ranking on host CPU |
 | **ModernBERT** | Apache License 2.0 | Answer.AI & LightOn | Bidirectional transformer architecture for NLI verification |
 | **onnxruntime** | MIT License | Microsoft Corporation | Execution engine for ONNX acoustic models |
+| **Scrapling** | BSD 3-Clause | Karim Shoair (D4Vinci) | Adaptive HTML parsing and 3-tier web research extraction (`WO-42`) |
+| **curl_cffi** | MIT License | Yifei Kong and contributors | Chrome TLS JA3/JA4 and HTTP/2 fingerprint impersonation (`WO-42`) |
 
 ---
 
@@ -69,6 +71,10 @@ Model weights are distributed under their respective upstream terms and are not 
 - **License / Terms:** [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
 - **Lineage:** Quantized GGUF community fine-tunes (`culturerevolt/gemma-4-*-heretic`).
 - **Notice:** Users must comply with Google's Gemma Prohibited Use Policy when running or deploying model weights.
+
+### Microsoft MiniLM (`MiniLM-L12-H384-uncased` & `MiniLM-L6`)
+- **Lineage:** `microsoft/MiniLM-L12-H384-uncased` (fine-tuned and exported to OpenVINO FP16 IR in `models/supervision_coherence_npu`, `models/supervision_hazard_npu`, and `models/router_intent_npu`), `sentence-transformers/all-MiniLM-L6-v2` (`models/embeddings`), and `cross-encoder/nli-MiniLM2-L6-H768` (`models/verifier_minilm`).
+- **License:** MIT License / Apache License 2.0.
 
 ### ModernBERT
 - **Lineage:** `answerdotai/ModernBERT-base` fine-tuned on MNLI / SNLI.

@@ -11,7 +11,7 @@
 
 3. **Intel NPU (Arrow Lake Core Ultra 9 275HX):**
    - Exclusively accessed natively on Windows 11 via OpenVINO (`device="NPU"`).
-   - Workloads: Kokoro TTS (INT8), Silero VAD / Faster-Whisper ASR, and 384-D vector embeddings (`all-MiniLM-L6-v2`).
+   - Workloads: 384-D vector embeddings (`all-MiniLM-L6-v2`), NLI semantic verification (`models/verifier_minilm`), and the three 33.4M-parameter OpenVINO FP16 `MiniLM-L12-H384` supervision/routing classifiers (`models/supervision_coherence_npu`, `models/supervision_hazard_npu`, `models/router_intent_npu`). Faster-Whisper ASR runs on CUDA float16 and Kokoro-82M TTS runs on CPU via ONNX Runtime.
    - **Never run NPU workloads inside WSL2 or Docker.**
 
 4. **System RAM (16GB Shared Pool):**

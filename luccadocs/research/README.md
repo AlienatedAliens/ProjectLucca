@@ -2,19 +2,30 @@
 
 ```yaml
 doc_status: canonical
-as_of: 2026-11-03
-release_baseline: v1.47.0 (WO-39)
+as_of: 2026-11-07
+release_baseline: v1.50.0 (WO-42)
 verification: artifact-sourced (RESULTS.md, V1_RELEASE_AUDIT.md & data/benchmarks/MANIFEST.yaml)
 ```
 
 > [!IMPORTANT]
-> **WO-39 (2026-11-03) Implementation & Decontamination Sync:** All six papers and technical reports in this directory have been synchronized with the `WO-39` codebase state: (1) removal of `SPEC-BENCH-100` prompt/router leaks, hardcoded ARC solvers, `STATIC_RFC_DEFINITIONS`, `mock_calls`, and simulated receipt minting; (2) Organ 1 Belnap $\mathcal{FOUR}$ + OpenNARS Beta$(w^+, w^-)$ unification, fail-closed `ProvenanceGate`, and Study 1 autobiographical memory prompt partitioning (`_render_partitioned_memories`); (3) Organ 2 System 2 $\to$ System 1 myelination via `impasse_backlog` and CBR 4 Rs in `EpisodicCodeCache`; (4) Organ 3 `DreamRetrospective` real trace/impasse induction, `SkillLibrary` shadow sandbox, AST symbol grounding, and ACT-R activation; (5) Organ 4 MCTS + Koza GP crossover, Z3 abductive hole solving across `test_cases`, E-Graph `cost_fn` extraction, and `SpeculativeBDIValidator` AST + Z3 resource verification; and (6) Organ 5–6 parameterized `spatial_dsl` + metamorphic invariance, $k$-order recursive Theory-of-Mind `ContainerWorld`, `decision_labels` conformal calibration, Whisper `"Lucca"` hotword/phonetic normalization, and Hann-windowed OLA pitch shifting.
+> **WO-39 – WO-42 (2026-11-07) Implementation, Decontamination & Preprint Series Sync:** All six internal markdown papers/reports in `luccadocs/research/papers/` and the four standalone LaTeX preprints in `papers/01_*` through `papers/04_*` have been synchronized with the `WO-39`–`WO-42` codebase state: (1) removal of `SPEC-BENCH-100` prompt/router leaks, hardcoded ARC solvers, `STATIC_RFC_DEFINITIONS`, `mock_calls`, and simulated receipt minting (`WO-39`); (2) Organ 1–6 bicameral restoration (`WO-39`); (3) frozen Zenodo `v1` preprints `papers/01_memory_poisoning_ablation` (`10.5281/zenodo.23901452`), `papers/02_deontic_supervision_evasion` (`10.5281/zenodo.23901605`), and `papers/03_provenance_gated_five_layer_memory` (`10.5281/zenodo.23901683`); and (4) standalone follow-up preprint `papers/04_clause_level_npu_supervision/main.tex` reporting the `WO-40`–`WO-42` clause-level OpenVINO FP16 NPU supervision suite (`145/150` single-pass locked holdout / `150/150` post-bugfix, `100/100` live 4-model E2E turns, and Scrapling 3-tier stealth web research).
 
-This directory holds two **submission candidates** and four **technical reports**. None has been peer-reviewed. Each document states its evidence type up front and ends with a "What Is NOT Claimed" section. Historical research notes are in [`luccadocs/archive/2026-10_audits_and_research/research/`](../archive/2026-10_audits_and_research/research/).
+This directory holds two **submission candidates** and four **technical reports**, alongside the repository's four standalone LaTeX preprints in [`papers/`](../../papers/). Each document states its evidence type up front and ends with a "What Is NOT Claimed" section. Historical research notes are in [`luccadocs/archive/2026-10_audits_and_research/research/`](../archive/2026-10_audits_and_research/research/).
 
 ---
 
-## 1. Status at a Glance
+## 0. Standalone LaTeX Preprint Series (`papers/01_*` through `papers/04_*`)
+
+| Preprint | File | Zenodo DOI / Status | Core Contribution & Empirical Scope |
+| :--- | :--- | :--- | :--- |
+| **Preprint 01** | [`papers/01_memory_poisoning_ablation/main.tex`](../../papers/01_memory_poisoning_ablation/main.tex) | **`10.5281/zenodo.23901452`** (Frozen `v1` baseline) | Multi-session self-poisoning ablation (`N = 100` paired probes across Cohorts A, B, C): `0/40 (0.0%)` Cohort A self-poisoning under `ProvenanceGate` vs `40/40 (100.0%)` Naive RAG (`p = 6.98e-10`), while documenting the `v1` Cohort C user-misinformation boundary (`30/30`). |
+| **Preprint 02** | [`papers/02_deontic_supervision_evasion/main.tex`](../../papers/02_deontic_supervision_evasion/main.tex) | **`10.5281/zenodo.23901605`** (Frozen `v1` baseline) | Held-out action-evasion benchmark (`N = 120` prompts: 50 Temptations, 40 Honest Controls, 30 Idioms): documents regex fragility (`1/16 = 6.25%` strict recall on `v1`) and `SOAC` (`action_claim.gbnf`) sub-10 us structured verification (`16/120 = 13.3%` prose leakage). |
+| **Preprint 03** | [`papers/03_provenance_gated_five_layer_memory/main.tex`](../../papers/03_provenance_gated_five_layer_memory/main.tex) | **`10.5281/zenodo.23901683`** (Frozen `v1` baseline) | Five-layer memory architecture (`ProvenanceGate` HKDF HMAC-SHA256 envelopes, SQLite triggers, Belnap $\mathcal{FOUR}$ + OpenNARS Beta$(w^+, w^-)$ truth values, and `MiniLM-L6` NLI verification at `12.23 ms` mean CPU latency). |
+| **Preprint 04** | [`papers/04_clause_level_npu_supervision/main.tex`](../../papers/04_clause_level_npu_supervision/main.tex) | **Follow-up Preprint (`WO-40`–`WO-42`)** (Cites Preprints 01–03) | Resolves the open failure modes documented in Preprints 01–03: (1) closes Cohort C user-misinformation absorption from `30/30` to `0/30 (0.0%)` (`p = 1.86e-9`); (2) raises `PREREG-SUPERVISION-HELD-OUT-v2.0` strict recall to `27/27 (100.0%)`; (3) offloads three `33.4M` `MiniLM-L12-H384` classifiers to Intel AI Boost NPU (`0.0 MB` dGPU VRAM), achieving `377/390 (96.7%)` on blind multi-sentence suites, `145/150 (96.7%)` (`150/150` post-bugfix) on single-pass locked holdout (`κ = 1.000`), and `100/100 (100.0%)` across 4 live Gemma 4 models (`E2B`, `E4B`, `12B`, `26B-A4B`); and (4) introduces Scrapling 3-tier stealth web research with DOM prompt-injection sanitization. |
+
+---
+
+## 1. Internal Markdown Technical Reports (`luccadocs/research/papers/`)
 
 | ID | File | Status | One-line claim | Blocking work before submission |
 | :--- | :--- | :--- | :--- | :--- |

@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 08 — Desktop UI, Diagnostics & Visual Pipeline Debugger
 
 **Subsystem:** `src/lucca/ui/` & `ui/pipeline_debugger/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.50.0 (`WO-42`)  
 **Architectural Tier:** User Presentation, Telemetry HUD & Visual Debugging  
 **Hardware Placement:** Intel(R) Graphics iGPU (Windows DWM Compositor), Port 8765 Web Server  
 
@@ -77,13 +77,13 @@ flowchart LR
 ### 3.1 The 9 Cascade Tanks
 1. **Tank 1 (User Input):** Ingests raw voice audio or text prompts with millisecond timestamping.
 2. **Tank 2 (Audio Transcription):** Displays Faster-Whisper ASR transcripts, acoustic hygiene filtering, and speech onset duration.
-3. **Tank 3 (Conformal Router):** Visualizes split-conformal intent classification, softmax probabilities, and calibrated abstention boundaries.
+3. **Tank 3 (Conformal Router):** Visualizes OpenVINO NPU multi-sentence intent classification (`models/router_intent_npu`), hazard classification (`models/supervision_hazard_npu`), softmax probabilities, and split-conformal abstention boundaries.
 4. **Tank 4 (Context Infusion):** Displays the 5-layer prompt assembly, RRF memory hits, and prompt frontier affective stance tags.
 5. **Tank 5 (Neural Deliberation Boiler):** Tracks TTFT (Time to First Token), generation tokens/sec, and GPU memory telemetry.
 6. **Tank 6 (Preflight Compiler):** Highlights sub-millisecond AST rewrites (`expr.solve`, `diff`, import filtering, math sets).
 7. **Tank 7 (Sandboxed Actuation):** Shows persistent Docker RPC execution, exit codes, and stdout/stderr capture.
 8. **Tank 8 (Execution Feedback):** Highlights Turn-1 exception captures and Turn-2 autonomous self-correction payloads.
-9. **Tank 9 (Output Supervision):** Visualizes streaming DFA policy verification, citation checking, and WASAPI audio buffer delivery.
+9. **Tank 9 (Output Supervision):** Visualizes clause-level OpenVINO NPU action-claim verification (`models/supervision_coherence_npu`), streaming DFA policy verification, citation checking, and WASAPI audio buffer delivery.
 
 ### 3.2 Dynamic Trace Horizon Ribbon (WO-28 Phase 3) & Live Telemetry Honesty (`WO-39`)
 The top ribbon dynamically adapts to the active operational mode:

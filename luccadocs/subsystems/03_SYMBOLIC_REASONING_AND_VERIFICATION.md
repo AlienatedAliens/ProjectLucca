@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 03 — Symbolic Reasoning & Formal Verification
 
 **Subsystem:** `src/lucca/reasoning/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.50.0 (`WO-42`)  
 **Architectural Tier:** System 1 Symbolic Engine, Neurosymbolic Program Synthesis & SMT Formal Prover  
 **Hardware Placement:** Intel Core Ultra 9 275HX (Host CPU), Microsoft Z3 C++ DLL (`libz3.dll`)  
 
@@ -109,6 +109,7 @@ When a user repeatedly performs equivalent sequences of actions ($N \ge 3$) or t
 3. **First-Order Syntactic Anti-Unification:** Extracts least general generalizations (LGG), replacing variant constants with typed parameters:
    $$\text{AntiUnify}(\text{expr}_1, \text{expr}_2) \to \text{LGG}(\text{expr})$$
 4. **Macro Synthesis:** `DreamCoderMiner` emits canonical `(defmacro ...)` definitions that compile multiple tool calls into a single atomic MicroScheme reflex and expands them before Z3 verification.
+5. **NLI Entailment Phrasing Clustering (`RuleInducer.cluster_phrasings` in `WO-42`):** `DreamRetrospective.retrospective` (`src/lucca/memory/reflection.py:373`) passes the OpenVINO `MiniLM-L6` `SemanticVerifierPort` (`verifier`) into `RuleInducer.mine_patterns` (`src/lucca/reasoning/induction.py:402-465`) so `cluster_phrasings` groups lexically distinct but semantically equivalent user phrasings via bidirectional NLI entailment in addition to token-stem Jaccard overlap.
 
 ---
 

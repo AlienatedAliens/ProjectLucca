@@ -1,7 +1,7 @@
 # Subsystem Reference Manual: 05 — Cryptographic Memory & Bi-Temporal Epistemology
 
 **Subsystem:** `src/lucca/memory/`  
-**Version:** 1.47.0 (`WO-39`)  
+**Version:** 1.50.0 (`WO-42`)  
 **Architectural Tier:** Autobiographical Memory, Provenance Governance, CBR & Transactional Staging  
 **Hardware Placement:** SQLite WAL (`data/memory.sqlite`), Intel AI Boost NPU (`sqlite-vec`), Host CPU  
 

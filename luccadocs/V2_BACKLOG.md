@@ -1,7 +1,7 @@
 # Project Lucca — v2.0 Capability Backlog & Deferred Capabilities
 
 **Status:** Locked Backlog  
-**Date:** 2026-09-24 (amended 2026-09-26: reasoning rungs §1.9–1.15; amended 2026-09-27: WO-22 pull-forward reassessment — §1.11/§1.12 stubs-live notes, §1.13 trigger override)
+**Date:** 2026-09-24 (amended 2026-09-26: reasoning rungs §1.9–1.15; amended 2026-09-27: WO-22 pull-forward reassessment; amended 2026-11-07: `WO-42` graduations §1.2, §1.10, §1.18)
 **Release Target:** v2.0 Planning (Post-v1.0.0 Feature Freeze)  
 
 ---
@@ -21,10 +21,10 @@ This backlog explicitly documents all architectural proposals, speculative resea
 - **v1.0 Baseline:** Reactive meta-cognition is live via `EpistemicSearchCascade`, `ReflectionEngine`, `SpeculativeBDIValidator`, and `AffectTracker`, operating strictly within the turn loop or nightly roll-up.
 - **Trigger to Revisit:** Telemetry demonstrates that recurring cross-session coherence drift exceeds 5% or that user workflows require autonomous background planning with explicit operator grant.
 
-### 1.2 Pathway Formation Research (Adaptive Neural Routing)
+### 1.2 Pathway Formation Research (Adaptive Neural Routing) *(PARTIALLY GRADUATED in v1.49.0 / v1.50.0 via WO-41 / WO-42 & D-COG-03)*
 - **Scope:** Dynamic neural pathway generation and continuous reinforcement weighting across modular reasoning sub-networks.
 - **v1.0 Baseline:** Deterministic two-tier routing (frozen prefix + category manifest suffix) with MicroScheme AST compilation and conformal risk control fallback.
-- **Trigger to Revisit:** Production decision log volume exceeds $\ge 10,000$ labeled turns with verified ground truth outcomes, clearing the statistical volume threshold required to train high-capacity routing classifiers without synthetic collapse.
+- **Status (2026-11-07):** Supervised OpenVINO FP16 NPU intent and domain routing (`NeuralIntentClassifier` on `models/router_intent_npu` with multi-sentence priority pooling and 24-intent `_INTENT_CATEGORY_MAP` tool shortlister packing) graduated in `WO-41`/`WO-42` (`D-COG-03`). Online reinforcement weighting across reasoning sub-networks remains deferred until production decision log volume exceeds $\ge 10,000$ labeled turns.
 
 ### 1.3 NLI Commonsense Validator *(GRADUATED & RATIFIED in v1.35.7 via D-MEM-08)*
 - **Scope:** Dedicated Natural Language Inference (NLI) auxiliary model performing cross-assertion consistency verification on every memory commit.
@@ -61,20 +61,20 @@ This backlog explicitly documents all architectural proposals, speculative resea
 - **v1.0 Baseline:** WO-20 concert layer (D-REAS-09): hard-premise deduction + existence-checked abduction; `conditions` schema hook ratified 2026-09-26.
 - **Trigger to Revisit:** Already triggered — owner ratified 2026-09-26. Research grounding: `luccadocs/research/REASONING_BREADTH_RESEARCH_PASS_2026-09.md`.
 
-### 1.10 Fuzzy Clustering for Rule Induction
-- **Scope:** Replace exact-match clustering in the induction pipeline with near-duplicate-aware clustering (embedding or edit-distance based) so paraphrased repetitions of the same request form clusters.
+### 1.10 Fuzzy & NLI Entailment Clustering for Rule Induction *(GRADUATED in v1.35.7 & v1.50.0 / WO-42)*
+- **Scope:** Replace exact-match clustering in the induction pipeline with near-duplicate-aware and NLI-entailment clustering so paraphrased repetitions of the same request form clusters.
 - **v1.0 Baseline:** First live induction ran 2026-09-26 on 21 provenance-verified decisions and produced **0 clusters** — 4 distinct phrasings of the same query were treated as distinct patterns.
-- **Trigger to Revisit:** Already triggered — identified as the blocker on real induction data 2026-09-26.
+- **Status (2026-11-07):** `RuleInducer.cluster_phrasings` (`src/lucca/reasoning/induction.py:402-465`) combines token-stem Jaccard similarity with bidirectional OpenVINO `MiniLM-L6` NLI entailment (`verifier.verify_claim` wired through `DreamRetrospective.retrospective` in `src/lucca/memory/reflection.py:373` in `WO-42`).
 
 ### 1.11 Theory of Mind / User Modeling
 - **Scope:** Model what the user knows, has been told, and has confirmed — so she neither re-explains the known nor assumes the unknown. Companion-critical.
 - **v1.0 Baseline:** SELF_HISTORY substrate already records what she said and did; no user-knowledge model consumes it.
 - **Trigger to Revisit:** WO-21 ships the stub; full user model when SELF_HISTORY volume supports per-topic tracking. *(2026-09-27 reassessment: first gate OPEN — stub shipped in WO-21 Phase 4, `src/lucca/core/user_model.py`; second gate still HOLDS — full model needs ≥ ~500 turns of SELF_HISTORY volume.)*
 
-### 1.12 Case-Based Reasoning Cycle
+### 1.12 Case-Based Reasoning Cycle *(GRADUATED in v1.47.0 / WO-39)*
 - **Scope:** retrieve → reuse → revise → retain over past episodes ("last time X happened I did Y and it worked").
 - **v1.0 Baseline:** SELF_HISTORY + `execution_triples` are a case base; the CBR cycle itself is unbuilt.
-- **Trigger to Revisit:** WO-21 stub lands; full cycle when episode volume ≥ ~200 turns. *(2026-09-27 reassessment: first gate OPEN — `EpisodeRecall` stub shipped in WO-21 Phase 4, `src/lucca/core/episode_recall.py`; second gate still HOLDS — reuse/revise/retain needs episode volume.)*
+- **Status (2026-11-03):** `EpisodicCodeCache` (`src/lucca/memory/episodic_code_cache.py`) implements the full 4-R CBR cycle (`retrieve_precedent`, `adapt_and_reuse`, `revise_solution`, `retain_episode`) in `WO-39` Organ 2.
 
 ### 1.13 Diagnostic Self-Reasoning
 - **Scope:** Symptom→cause reasoning about her own stack ("high ASR latency + normal NPU load → ring underrun, not model slowness") over `self_metrics` and traces.
@@ -99,6 +99,10 @@ This backlog explicitly documents all architectural proposals, speculative resea
 ### 1.17 Sovereign Cognitive Unification & Two-Cadence Inner Life *(GRADUATED & RATIFIED in v1.45.0 / WO-36 via D-COG-01)*
 - **Scope:** Unification of CEGIS multi-turn synthesis with 3D PAD affective dynamics, working memory proof traces, and episodic recall (`CognitiveOutcomeSink`), semantic `UserModel` v2 + `ActiveGoalManager` goal-biased recall, Two-Cadence Inner Life (`IdlePulse` + `DreamRetrospective` governed by `CoherenceDrive` and `CompetenceDrive`), Constitutional Kernel SHA-256 fingerprint (`constitutional_hash`), Organ A topological `GridDiff`, and Edge Z3 constraint compiler (`zebra_constraints.gbnf`).
 - **Status (2026-10-18):** Graduated in Release v1.45.0 (`WO-36`, ratified under `D-COG-01` in `luccadocs/DECISIONS.md`).
+
+### 1.18 Clause-Level OpenVINO NPU Supervision, Multi-Sentence Routing & Scrapling 3-Tier Research *(GRADUATED & RATIFIED in v1.50.0 / WO-42 via D-COG-03)*
+- **Scope:** Three `33.4M`-parameter `MiniLM-L12-H384` classifiers compiled to OpenVINO FP16 IR on the Intel AI Boost NPU (`models/supervision_coherence_npu`, `models/supervision_hazard_npu`, `models/router_intent_npu`, `0.0 MB` dGPU VRAM), clause-level speech-act decomposition (`split_narration_into_clauses`) paired with deterministic receipt set-membership (`verify_clause_claims_against_receipts`), Scrapling 3-tier stealth web research (`src/lucca/sandbox/research_tool.py`) with DOM prompt-injection sanitization (`sanitize_html_against_prompt_injection`), and 4 compounded cross-organ enhancements (sentence-level Scrapling cross-reference corroboration, `search_web(deep_extract=True)` with URL allowlist registration, 24-intent `_INTENT_CATEGORY_MAP` multi-sentence secondary-category tool shortlister packing, and `SemanticVerifierPort` NLI entailment in `RuleInducer.cluster_phrasings`).
+- **Status (2026-11-07):** Graduated in Release v1.50.0 (`WO-42`, ratified under `D-COG-03` in `luccadocs/DECISIONS.md`; standalone preprint `papers/04_clause_level_npu_supervision/main.tex`).
 
 ---
 
