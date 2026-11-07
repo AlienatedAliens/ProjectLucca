@@ -1368,6 +1368,55 @@ def test_win32_security_and_git_dag_wired_in_file_tool() -> None:
     )
 
 
+def test_speech_stream_pipeline_decomposition() -> None:
+    """WO-43 Phase 2.2 static parity gate: ensures streaming LLM speech generation,
+    verbal cue selection, and receipt URL registration are encapsulated in
+    SpeechStreamPipeline and not defined directly in orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    ssp_path = repo_root / "src" / "lucca" / "core" / "speech_stream_pipeline.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert ssp_path.exists(), f"speech_stream_pipeline.py does not exist at {ssp_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    ssp_text = ssp_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    ssp_tree = ast.parse(ssp_text, filename=str(ssp_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    ssp_methods = {
+        n.name
+        for n in ast.walk(ssp_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    target_methods = [
+        "select_verbal_cue",
+        "register_receipt_citation_urls",
+        "stream_llm_speech",
+    ]
+    for m in target_methods:
+        assert m in ssp_methods, f"Expected '{m}' to be defined in SpeechStreamPipeline"
+        assert m not in orch_methods, (
+            f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+        )
+        def_marker = f"def {m}("
+        assert ssp_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear once in speech_stream_pipeline.py"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py"
+        )
+
+
+
 
 
 
