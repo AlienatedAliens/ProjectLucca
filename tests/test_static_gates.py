@@ -1472,3 +1472,109 @@ def test_tool_dispatcher_decomposition() -> None:
         )
 
 
+def test_deduction_runner_decomposition() -> None:
+    """WO-43 Phase 2.5 static parity gate: ensures deduction, Walton corroboration,
+    web-fact ratification, cross-reference, and GoalPlan parsing/validation are
+    encapsulated in DeductionAndPlanningRunner.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    dr_path = repo_root / "src" / "lucca" / "core" / "deduction_runner.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert dr_path.exists(), f"deduction_runner.py does not exist at {dr_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    dr_text = dr_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    dr_tree = ast.parse(dr_text, filename=str(dr_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    dr_methods = {
+        n.name
+        for n in ast.walk(dr_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    extracted_only_methods = [
+        "validate_premise",
+        "search_memory_for_premise",
+        "parse_inference_steps",
+        "evaluate_step_corroboration",
+        "format_conditioned_speech",
+        "parse_and_validate_plan",
+        "extract_receipt_domain",
+        "is_domain_whitelisted",
+        "extract_durable_claim",
+        "extract_durable_claim_from_text",
+        "check_and_offer_ratification",
+        "commit_ratified_fact",
+        "resolve_cross_reference_claim",
+        "extract_claim_aligned_sentences",
+        "fetch_cross_reference_page",
+        "execute_cross_reference_searches",
+        "handle_cross_reference",
+    ]
+    for m in extracted_only_methods:
+        assert m in dr_methods, f"Expected '{m}' to be defined in DeductionAndPlanningRunner"
+        assert m not in orch_methods, (
+            f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+        )
+        def_marker = f"def {m}("
+        assert dr_text.count(def_marker) == 1
+        assert orch_text.count(def_marker) == 0
+
+    for pub in ("evaluate_rules_chain", "finalize_chain", "run_deduction_step", "run_planning_step"):
+        assert pub in dr_methods, f"Expected '{pub}' in DeductionAndPlanningRunner"
+        assert f"self.deduction_runner.{pub}(" in orch_text
+
+
+def test_code_preflight_service_decomposition() -> None:
+    """WO-43 Phase 2.5 static parity gate: ensures CBR code synthesis, Docker
+    preflight verification, and impasse logging are encapsulated in
+    CodePreflightService and orchestrator.py is <= 2,200 lines.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    cps_path = repo_root / "src" / "lucca" / "core" / "code_preflight_service.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert cps_path.exists(), f"code_preflight_service.py does not exist at {cps_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    cps_text = cps_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+    orch_lines = orch_text.splitlines()
+    assert len(orch_lines) <= 2200, (
+        f"orchestrator.py must be <= 2,200 lines after Phase 2 decomposition, got {len(orch_lines)}"
+    )
+
+    cps_tree = ast.parse(cps_text, filename=str(cps_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    cps_methods = {
+        n.name
+        for n in ast.walk(cps_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    for m in ("ensure_impasse_backlog_table", "log_impasse_to_backlog", "stream_code_synthesis"):
+        assert m in cps_methods, f"Expected '{m}' in CodePreflightService"
+        assert m not in orch_methods, f"Expected '{m}' not in Orchestrator"
+        def_marker = f"def {m}("
+        assert cps_text.count(def_marker) == 1
+        assert orch_text.count(def_marker) == 0
+
+    assert "synthesize_code_with_preflight" in cps_methods
+    assert "self.code_preflight.synthesize_code_with_preflight(" in orch_text
+
+

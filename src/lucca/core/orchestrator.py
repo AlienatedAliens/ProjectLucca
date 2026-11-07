@@ -125,6 +125,8 @@ from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.speech_stream_pipeline import SpeechStreamPipeline
 from lucca.core.text_utils import normalize_transcript
+from lucca.core.code_preflight_service import CodePreflightService
+from lucca.core.deduction_runner import DeductionAndPlanningRunner
 from lucca.core.tool_dispatcher import ToolDispatcher
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
@@ -710,6 +712,30 @@ class Orchestrator:
         self._tool_dispatcher = value
 
     @property
+    def deduction_runner(self) -> DeductionAndPlanningRunner:
+        runner = getattr(self, '_deduction_runner', None)
+        if runner is None:
+            runner = DeductionAndPlanningRunner(orchestrator=self)
+            self._deduction_runner = runner
+        return runner
+
+    @deduction_runner.setter
+    def deduction_runner(self, value: DeductionAndPlanningRunner) -> None:
+        self._deduction_runner = value
+
+    @property
+    def code_preflight(self) -> CodePreflightService:
+        srv = getattr(self, '_code_preflight', None)
+        if srv is None:
+            srv = CodePreflightService(orchestrator=self)
+            self._code_preflight = srv
+        return srv
+
+    @code_preflight.setter
+    def code_preflight(self, value: CodePreflightService) -> None:
+        self._code_preflight = value
+
+    @property
     def _tts_queue(
         self,
     ) -> queue.Queue[
@@ -1259,6 +1285,7 @@ class Orchestrator:
         self.memory_store.commit(signed, now=now)
         return signed
 
+    # delegate — kept for test/back-compat
     def evaluate_rules_chain(
         self,
         state: RuleState,
@@ -1266,438 +1293,41 @@ class Orchestrator:
         max_depth: int = 8,
         context: ReasoningContext | None = None,
     ) -> tuple[list[RuleOutcome], RuleState]:
-        """Evaluates active rules with bounded re-evaluation loop (WO-20 Phase 1 & 2)."""
-        ctx = context if context is not None else ReasoningContext()
-        self.current_reasoning_context = ctx
-
-        def _exec_assert(
-            action: AssertFact, st: RuleState, rule_id: str | None = None
-        ) -> RuleState:
-            signed = self._commit_lisp_assertion(action, trace)
-            env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-            conf = signed.confidence if signed and signed.confidence is not None else 1.0
-
-            ctx.add_intermediate(
-                envelope_id=env_id,
-                s=action.s,
-                p=action.p,
-                o=action.o,
-                confidence=conf,
-                step_kind="lisp_rule",
-                rule_id=rule_id,
-            )
-            return st.model_copy(
-                update={"asserted_facts": st.asserted_facts | {(action.s, action.p, action.o)}}
-            )
-
-        outcomes, final_state = self.rule_engine.evaluate_chain(
-            state, execute_assert=_exec_assert, max_depth=max_depth, context=ctx
+        return self.deduction_runner.evaluate_rules_chain(
+            state, trace=trace, max_depth=max_depth, context=context
         )
-        if len(ctx) > 0:
-            self.finalize_chain(ctx, trace)
-        return outcomes, final_state
 
+    # delegate — kept for test/back-compat
     def finalize_chain(
         self,
         context: ReasoningContext | None = None,
         trace: TurnTrace | None = None,
     ) -> SignedPayload | None:
-        """Commits the conclusion of a completed chain as INFERRED with its proof trace (WO-20 Phase 4)."""
-        ctx = context if context is not None else getattr(self, "current_reasoning_context", None)
-        if ctx is None or len(ctx) == 0:
-            return None
-        if not self.memory_store:
-            return None
+        return self.deduction_runner.finalize_chain(context=context, trace=trace)
 
-        final_entry = ctx[-1]
-        proof_trace_steps = ctx.proof_trace()
-        proof_trace = [s.to_dict() for s in proof_trace_steps]
-        confidence = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
-
-        # WO-21 Phase 1: Check standard of proof for memory_commit_inferred (CLEAR_AND_CONVINCING = 0.75)
-        if not meets_standard(confidence, "memory_commit_inferred"):
-            logger.info(
-                "finalize_chain_refused_below_standard",
-                confidence=confidence,
-                required=required_threshold("memory_commit_inferred"),
-                standard=required_standard("memory_commit_inferred").value,
-                conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-            )
-            return None
-
-        all_conditions: list[str] = []
-        for s in proof_trace_steps:
-            for cond in s.conditions:
-                if cond not in all_conditions:
-                    all_conditions.append(cond)
-
-        signer = self.signer_factory.inferred_fact()
-        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
-        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
-
-        unsigned = UnsignedPayload(
-            content=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-            provenance=Provenance.INFERRED,
-            kind="fact",
-            confidence=confidence,
-            nonce=os.urandom(16).hex(),
-            created_at=now,
-            trace_id=trace_id,
-            structured={
-                "s": final_entry.s,
-                "p": final_entry.p,
-                "o": final_entry.o,
-                "confidence": confidence,
-                "proof_trace": proof_trace,
-                "conditions": all_conditions,
-                "proof_standard": standard_for_confidence(confidence).value,
-            },
-        )
-        signed = signer.sign(unsigned)
-        self.memory_store.commit(signed, now=now)
-        return signed
-
+    # delegate — kept for test/back-compat
     def proof_trace(self) -> list[ProofTraceStep]:
-        """Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4)."""
-        ctx = getattr(self, "current_reasoning_context", None)
-        if ctx is None:
-            return []
-        return ctx.proof_trace()
+        return self.deduction_runner.proof_trace()
 
+    # delegate — kept for test/back-compat
     def _validate_premise(self, premise: str, context: ReasoningContext) -> tuple[bool, str | None]:
-        """Validates a premise against signed tool receipts, reasoning context, or the signed store.
+        return self.deduction_runner.validate_premise(premise, context)
 
-        (Spec D-REAS-09, WO-20 Phase 3 / Amendment 2026-09-26).
-        """
-        clean = premise.strip()
-
-        # 1. Attributed premise: "<source> asserts <claim>"
-        attr_match = re.match(r"^(.+?)\s+asserts\s+(.+)$", clean, re.IGNORECASE)
-        if attr_match:
-            claim = attr_match.group(2).strip().lower()
-            # Validates against current turn's signed tool receipts
-            receipts = getattr(self, "current_turn_receipts", []) or []
-            executed = getattr(self, "executed_tools", []) or []
-            for r in list(receipts) + list(executed):
-                ok = getattr(r, "ok", True)
-                if not ok:
-                    continue
-                out = (
-                    str(getattr(r, "output", "") or "")
-                    or str(getattr(r, "content", "") or "")
-                    or str(getattr(r, "structured", "") or "")
-                ).lower()
-                if claim in out or all(word in out for word in claim.split() if len(word) > 2):
-                    return (True, None)
-            return (False, "unverified_premise")
-
-        # 2. Direct signed tool receipt check
-        receipts = getattr(self, "current_turn_receipts", []) or []
-        executed = getattr(self, "executed_tools", []) or []
-        clean_lower = clean.lower()
-        for r in list(receipts) + list(executed):
-            ok = getattr(r, "ok", True)
-            if not ok:
-                continue
-            out = (
-                str(getattr(r, "output", "") or "")
-                or str(getattr(r, "content", "") or "")
-                or str(getattr(r, "structured", "") or "")
-            ).lower()
-            if clean_lower in out or all(
-                word in out for word in clean_lower.split() if len(word) > 2
-            ):
-                return (True, None)
-
-        # 3. Reasoning context check (intermediate facts in current chain)
-        if context.resolve_premise(clean) is not None:
-            return (True, None)
-        for intermediate in context.intermediates:
-            if (
-                intermediate.conclusion.lower() == clean.lower()
-                or intermediate.envelope_id == clean
-            ):
-                return (True, None)
-
-        # 3. Signed memory store check
-        if self.db is not None:
-            try:
-                with self.db.read_cursor() as cur:
-                    cur.execute(
-                        """
-                        SELECT m.content, e.entry_id, e.provenance
-                        FROM memories m
-                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                        WHERE e.grounding_eligible = 1
-                          AND (m.content = ? OR e.entry_id = ? OR m.content = ?)
-                        """,
-                        (clean, clean, clean.lower()),
-                    )
-                    if cur.fetchall():
-                        return (True, None)
-
-                    # Structured (s, p, o) triple or multi-token grounded proposition check
-                    cur.execute(
-                        """
-                        SELECT m.content, e.payload_json
-                        FROM memories m
-                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                        WHERE e.grounding_eligible = 1
-                          AND m.valid_to IS NULL
-                        ORDER BY m.created_at DESC
-                        LIMIT 100
-                        """
-                    )
-                    rows = cur.fetchall()
-                    verifier_inst = getattr(self, "verifier", None)
-                    for row_content, row_payload_json in rows:
-                        mem_text = str(row_content or "").strip()
-                        if not mem_text:
-                            continue
-                        # Structured (s, p, o) triple match
-                        if row_payload_json:
-                            try:
-                                pj = json.loads(str(row_payload_json))
-                                st = pj.get("structured") if isinstance(pj, dict) else None
-                                if isinstance(st, dict) and {"s", "p", "o"} <= set(st.keys()):
-                                    triple_str = f"{st['s']} {st['p']} {st['o']}".strip().lower()
-                                    if triple_str == clean.lower():
-                                        return (True, None)
-                            except Exception as exc:  # noqa: BLE001
-                                logger.debug("premise_struct_json_parse_error", error=str(exc))
-                        # VerifierWorker NLI entailment check (>= 0.75)
-                        if verifier_inst is not None and hasattr(
-                            verifier_inst, "check_consistency"
-                        ):
-                            try:
-                                v_res = verifier_inst.check_consistency(
-                                    premise=mem_text, hypothesis=clean
-                                )
-                                if (
-                                    not getattr(v_res, "degraded", False)
-                                    and str(getattr(v_res, "label", "")).upper().endswith("ENTAILMENT")
-                                    and float(getattr(v_res, "score", 0.0)) >= 0.75
-                                ):
-                                    return (True, None)
-                            except Exception as exc:  # noqa: BLE001
-                                logger.debug("premise_verifier_check_error", error=str(exc))
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("premise_validation_db_error", error=str(exc))
-
-        return (False, "unverified_premise")
-
+    # delegate — kept for test/back-compat
     def _search_memory_for_premise(self, premise: str) -> list[str]:
-        """Runs memory_search for unverified premise (Gather Ladder Step 2)."""
-        clean = premise.strip()
-        hits: list[str] = []
+        return self.deduction_runner.search_memory_for_premise(premise)
 
-        # Attributed premises ("<source> asserts <claim>") verify against current-turn tool receipts,
-        # NOT against the fact store (AMENDMENT 2026-09-26).
-        if re.match(r"^(.+?)\s+asserts\s+(.+)$", clean, re.IGNORECASE):
-            return []
-
-        # 1. Use MemoryStore search if available
-        if self.memory_store is not None and hasattr(self.memory_store, "search"):
-            try:
-                q = RetrievalQuery(query_text=clean, k=5)
-                res = self.memory_store.search(q)
-                for h in res:
-                    if getattr(h, "grounding_eligible", False):
-                        words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
-                        if clean.lower() in h.content.lower() or (
-                            words and all(w in h.content.lower() for w in words)
-                        ):
-                            hits.append(h.content)
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("gather_ladder_search_error", error=str(exc))
-
-        # 2. Database search fallback
-        if not hits and self.db is not None:
-            try:
-                words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
-                if words:
-                    clauses = " AND ".join(["m.content LIKE ?" for _ in words])
-                    params = [f"%{w}%" for w in words]
-                    with self.db.read_cursor() as cur:
-                        cur.execute(
-                            f"""
-                            SELECT m.content
-                            FROM memories m
-                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                            WHERE e.grounding_eligible = 1 AND {clauses}
-                            """,
-                            tuple(params),
-                        )
-                        for r in cur.fetchall():
-                            hits.append(r[0])
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("gather_ladder_db_search_error", error=str(exc))
-
-        return hits
-
+    # delegate — kept for test/back-compat
     def _parse_inference_steps(self, text: str) -> list[InferenceStep]:
-        """Extracts and validates InferenceStep models from LLM JSON response."""
-        clean_text = text.strip()
-        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text)
-        if fence_match:
-            clean_text = fence_match.group(1).strip()
+        return self.deduction_runner.parse_inference_steps(text)
 
-        array_match = re.search(r"\[[\s\S]*\]", clean_text)
-        obj_match = re.search(r"\{[\s\S]*\}", clean_text)
-
-        raw_data: object = None
-        if array_match:
-            raw_data = json.loads(array_match.group(0))
-        elif obj_match:
-            raw_data = json.loads(obj_match.group(0))
-        else:
-            raw_data = json.loads(clean_text)
-
-        steps: list[InferenceStep] = []
-        if isinstance(raw_data, list):
-            for item in raw_data:
-                if isinstance(item, dict):
-                    steps.append(InferenceStep.model_validate(item))
-        elif isinstance(raw_data, dict):
-            steps.append(InferenceStep.model_validate(raw_data))
-
-        return steps
-
+    # delegate — kept for test/back-compat
     def _evaluate_step_corroboration(
         self, step: InferenceStep, context: ReasoningContext | None = None
     ) -> list[CriticalQuestionResult]:
-        """Evaluates Walton critical questions for attributed or grounding premises (WO-21/23)."""
-        has_attributed = any(
-            re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE) for p in step.premises
-        )
-        receipts = list(getattr(self, "current_turn_receipts", []) or []) + list(
-            getattr(self, "executed_tools", []) or []
-        )
-        scheme, ambig_note = detect_premise_scheme(step)
+        return self.deduction_runner.evaluate_step_corroboration(step, context=context)
 
-        if has_attributed or scheme != Scheme.AUTHORITY:
-            if ambig_note and ambig_note not in step.conditions and len(step.conditions) < 8:
-                step.conditions.append(ambig_note)
-            try:
-                q_results = critical_questions(
-                    scheme, step, store=self.memory_store, receipts=receipts
-                )
-                eff_conf, new_conditions = adjust_confidence(
-                    step.confidence, q_results, scheme=scheme
-                )
-                step.confidence = eff_conf
-                for cond in new_conditions:
-                    if cond not in step.conditions and len(step.conditions) < 8:
-                        step.conditions.append(cond)
-                return q_results
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "critical_questions_failed", scheme=str(scheme), error=str(exc)
-                )
-                return []
-
-        # Check if supported by >= 2 independent grounding premises (WO-21 Phase 6)
-        effective_ctx = context or getattr(self, "current_reasoning_context", None)
-        ctx_conclusions = {
-            e.conclusion.lower() for e in (effective_ctx.intermediates if effective_ctx else [])
-        }
-        ctx_env_ids = {
-            e.envelope_id for e in (effective_ctx.intermediates if effective_ctx else [])
-        }
-        if len(step.premises) >= 2 and self.db is not None:
-            try:
-                premise_eids: list[str] = []
-                with self.db.read_cursor() as cur:
-                    for prem in step.premises:
-                        clean_prem = prem.strip()
-                        if clean_prem.lower() in ctx_conclusions or clean_prem in ctx_env_ids:
-                            continue
-                        cur.execute(
-                            """
-                            SELECT m.entry_id
-                            FROM memories m
-                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                            WHERE e.grounding_eligible = 1
-                              AND m.valid_to IS NULL
-                              AND (m.content = ? OR m.content = ? OR m.content LIKE ?)
-                            """,
-                            (clean_prem, clean_prem.lower(), f"%{clean_prem}%"),
-                        )
-                        for r in cur.fetchall():
-                            if str(r[0]) not in premise_eids and str(r[0]) not in ctx_env_ids:
-                                premise_eids.append(str(r[0]))
-                                break
-
-                if len(premise_eids) >= 2:
-                    q_corrob = CriticalQuestionResult(
-                        question=(
-                            "Is the claim corroborated by an independent grounding-eligible fact?"
-                        ),
-                        answer=CQAnswer.SATISFIED,
-                        count=len(premise_eids),
-                        evidence_entry_ids=premise_eids,
-                        sources=["store"],
-                        detail=(
-                            f"Corroborated by {len(premise_eids)} independent "
-                            "grounding premises in store"
-                        ),
-                    )
-                    # Check for conflicting facts in store
-                    dispute_eids: list[str] = []
-                    dispute_details: list[str] = []
-                    if step.s and step.p:
-                        with self.db.read_cursor() as cur:
-                            cur.execute(
-                                """
-                                SELECT m.entry_id, m.content, e.signer_id
-                                FROM memories m
-                                JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                                WHERE e.grounding_eligible = 1
-                                  AND m.valid_to IS NULL
-                                  AND m.content LIKE ?
-                                """,
-                                (f"{step.s} {step.p} %",),
-                            )
-                            for row in cur.fetchall():
-                                eid, content, signer = row
-                                parts = content.strip().split()
-                                if len(parts) >= 3 and parts[2].lower() != step.o.lower():
-                                    dispute_eids.append(str(eid))
-                                    dispute_details.append(
-                                        f"{content} contradicts {step.s} {step.p} {step.o}"
-                                    )
-
-                    if dispute_eids:
-                        q_dispute = CriticalQuestionResult(
-                            question="Is the claim disputed by any grounding-eligible fact?",
-                            answer=CQAnswer.SATISFIED,
-                            count=len(dispute_eids),
-                            evidence_entry_ids=dispute_eids,
-                            sources=["store"],
-                            detail=dispute_details[0],
-                        )
-                    else:
-                        q_dispute = CriticalQuestionResult(
-                            question="Is the claim disputed by any grounding-eligible fact?",
-                            answer=CQAnswer.UNKNOWN,
-                            count=0,
-                            evidence_entry_ids=[],
-                            sources=[],
-                            detail="No disputes found",
-                        )
-
-                    q_results = [q_corrob, q_dispute]
-                    eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
-                    step.confidence = eff_conf
-                    for cond in new_conditions:
-                        if cond not in step.conditions and len(step.conditions) < 8:
-                            step.conditions.append(cond)
-                    return q_results
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("premise_corroboration_failed", error=str(exc))
-
-        return []
-
+    # delegate — kept for test/back-compat
     def run_deduction_step(
         self,
         goal: str,
@@ -1705,364 +1335,25 @@ class Orchestrator:
         context: ReasoningContext | None = None,
         llm: object | None = None,
     ) -> tuple[list[InferenceStep], str | None]:
-        """Runs the abductive deduction loop with bounded gather ladder (Spec D-REAS-09, WO-20 Phase 3).
-
-        Proposes InferenceSteps via LLM, validates premises against signed store/receipts,
-        signs valid steps via SignerFactory as LISP_ASSERTION, and executes the Gather Ladder
-        on unverified premises (Revise -> Memory Retry -> User Question -> Abstention).
-        """
-        effective_llm = llm if llm is not None else getattr(self, "llm", None)
-        if effective_llm is None:
-            logger.warning("no_llm_available_for_deduction")
-            return ([], "No language model available for deduction.")
-
-        ctx = (
-            context
-            if context is not None
-            else (getattr(self, "current_reasoning_context", None) or ReasoningContext())
+        return self.deduction_runner.run_deduction_step(
+            goal, trace=trace, context=context, llm=llm
         )
-        self.current_reasoning_context = ctx
-        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
 
-        # Collect verified fact context
-        verified_facts: list[str] = [entry.conclusion for entry in ctx.intermediates]
-        if self.db is not None:
-            try:
-                with self.db.read_cursor() as cur:
-                    cur.execute(
-                        """
-                        SELECT m.content
-                        FROM memories m
-                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                        WHERE e.grounding_eligible = 1
-                        ORDER BY m.created_at DESC
-                        LIMIT 20
-                        """
-                    )
-                    for row in cur.fetchall():
-                        if row[0] not in verified_facts:
-                            verified_facts.append(row[0])
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("deduction_context_gather_error", error=str(exc))
-
-        # Collect verified tool receipts
-        attributed_receipts: list[str] = []
-        for r in getattr(self, "current_turn_receipts", []) or []:
-            out = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
-            if out:
-                attributed_receipts.append(f"{getattr(r, 'tool', 'tool')}: {out}")
-
-        # Stream initial LLM turn
-        full_text = ""
-        for event in effective_llm.stream_turn(
-            current_text=goal,
-            memories=[],
-            history=getattr(self, "history", []),
-            trace_id=trace_id,
-        ):
-            if isinstance(event, TokenDelta):
-                full_text += event.delta
-
-        proposed_steps: list[InferenceStep] = []
-        try:
-            proposed_steps = self._parse_inference_steps(full_text)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("deduction_llm_parse_error", error=str(exc), raw=full_text)
-            return ([], f"Failed to parse deduction steps: {exc}")
-
-        accepted_steps: list[InferenceStep] = []
-
-        for step in proposed_steps:
-            # Check attributed premises and ensure presence in conditions
-            for prem in step.premises:
-                if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
-                    if prem not in step.conditions:
-                        if len(step.conditions) < 8:
-                            step.conditions.append(prem)
-
-            # Validate all premises
-            unverified: list[str] = []
-            for prem in step.premises:
-                ok, _ = self._validate_premise(prem, ctx)
-                if not ok:
-                    unverified.append(prem)
-
-            if not unverified:
-                q_results = self._evaluate_step_corroboration(step)
-                # P0 split: LLM-proposed step signs as LLM_INFERRED_ASSERTION
-                # (never grounding-eligible until re-derived deterministically).
-                action = AssertFact(s=step.s, p=step.p, o=step.o)
-                signed = self._commit_lisp_assertion(action, trace, llm_inferred=True)
-                env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                ctx.add_intermediate(
-                    envelope_id=env_id,
-                    s=step.s,
-                    p=step.p,
-                    o=step.o,
-                    confidence=step.confidence,
-                    step_kind="llm_abductive",
-                    rule_id="llm",
-                    premises=list(step.premises),
-                    conditions=list(step.conditions),
-                    critical_questions=[q.to_dict() for q in q_results],
-                )
-                accepted_steps.append(step)
-                continue
-
-            # Gather Ladder (bounded to 1 pass per deduction turn)
-            missing_premise = unverified[0]
-            logger.info("gather_ladder_started", missing_premise=missing_premise)
-
-            # 1. Revise once
-            error_payload = json.dumps({"error": "unverified_premise", "premise": missing_premise})
-            revised_text = ""
-            for event in effective_llm.stream_turn(
-                current_text=f"Revise inference step: {error_payload}",
-                trace_id=trace_id,
-            ):
-                if isinstance(event, TokenDelta):
-                    revised_text += event.delta
-
-            revised_step: InferenceStep | None = None
-            try:
-                r_steps = self._parse_inference_steps(revised_text)
-                if r_steps:
-                    revised_step = r_steps[0]
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("gather_ladder_revise_parse_failed", error=str(exc))
-
-            step_to_evaluate = revised_step
-            still_unverified: list[str] = []
-            if step_to_evaluate is not None:
-                for prem in step_to_evaluate.premises:
-                    if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
-                        if (
-                            prem not in step_to_evaluate.conditions
-                            and len(step_to_evaluate.conditions) < 8
-                        ):
-                            step_to_evaluate.conditions.append(prem)
-                    ok, _ = self._validate_premise(prem, ctx)
-                    if not ok:
-                        still_unverified.append(prem)
-
-                if not still_unverified:
-                    # Revised step accepted!
-                    q_results = self._evaluate_step_corroboration(step_to_evaluate)
-                    action = AssertFact(
-                        s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o
-                    )
-                    signed = self._commit_lisp_assertion(
-                        action, trace, llm_inferred=True
-                    )  # P0 split: LLM-proposed step
-                    env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                    ctx.add_intermediate(
-                        envelope_id=env_id,
-                        s=step_to_evaluate.s,
-                        p=step_to_evaluate.p,
-                        o=step_to_evaluate.o,
-                        confidence=step_to_evaluate.confidence,
-                        step_kind="llm_abductive",
-                        rule_id="llm",
-                        premises=list(step_to_evaluate.premises),
-                        conditions=list(step_to_evaluate.conditions),
-                        critical_questions=[q.to_dict() for q in q_results],
-                    )
-                    accepted_steps.append(step_to_evaluate)
-                    continue
-
-            # 2. Memory retry
-            retry_premise = still_unverified[0] if still_unverified else missing_premise
-            recovered = self._search_memory_for_premise(retry_premise)
-            if recovered:
-                target = step_to_evaluate if step_to_evaluate is not None else step
-                q_results = self._evaluate_step_corroboration(target)
-                action = AssertFact(s=target.s, p=target.p, o=target.o)
-                signed = self._commit_lisp_assertion(
-                    action, trace, llm_inferred=True
-                )  # P0 split: LLM-proposed step
-                env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                ctx.add_intermediate(
-                    envelope_id=env_id,
-                    s=target.s,
-                    p=target.p,
-                    o=target.o,
-                    confidence=target.confidence,
-                    step_kind="llm_abductive",
-                    rule_id="llm",
-                    premises=list(target.premises),
-                    conditions=list(target.conditions),
-                    critical_questions=[q.to_dict() for q in q_results],
-                )
-                accepted_steps.append(target)
-                continue
-
-            # 3. Ask the user (named-gap question) vs 4. Named-gap abstention
-            is_personal = any(
-                k in retry_premise.lower()
-                for k in ("user", "you", "live", "from", "born", "home", "partner")
-            )
-            if is_personal:
-                spoken = f"I don't have anything verified about {retry_premise} — can you tell me about it?"
-            else:
-                spoken = f"I can't verify {retry_premise}, so I can't deduce that yet."
-
-            logger.info("gather_ladder_terminated", outcome=spoken, missing_premise=retry_premise)
-            if hasattr(self, "_speak_text") and trace:
-                self._speak_text(trace, spoken)
-            return (accepted_steps, spoken)
-
-        if accepted_steps and len(ctx) > 0:
-            committed = self.finalize_chain(ctx, trace)
-            if committed is None:
-                final_entry = ctx[-1]
-                proof_trace_steps = ctx.proof_trace()
-                conf = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
-                if conf < 0.50:
-                    spoken = f"I'm guessing {final_entry.s} {final_entry.p} {final_entry.o}, but that's just speculation."
-                else:
-                    spoken = f"I think {final_entry.s} {final_entry.p} {final_entry.o}, but I'm not sure enough to keep it."
-                logger.info(
-                    "chain_concluded_speculation",
-                    confidence=conf,
-                    spoken=spoken,
-                    conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-                )
-                if hasattr(self, "_speak_text") and trace:
-                    self._speak_text(trace, spoken)
-                return (accepted_steps, spoken)
-            else:
-                final_entry = ctx[-1]
-                conditions = list(final_entry.conditions or [])
-                if conditions:
-                    spoken = self._format_conditioned_speech(final_entry, conditions)
-                    if spoken:
-                        logger.info(
-                            "chain_concluded_conditioned",
-                            confidence=final_entry.confidence,
-                            spoken=spoken,
-                            conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-                        )
-                        if hasattr(self, "_speak_text") and trace:
-                            self._speak_text(trace, spoken)
-                        return (accepted_steps, spoken)
-        return (accepted_steps, None)
-
+    # delegate — kept for test/back-compat
     def _format_conditioned_speech(
         self, final_entry: ReasoningEntry, conditions: list[str]
     ) -> str | None:
-        """Formats spoken output for a committed chain with carried conditions (WO-21 Phase 6)."""
-        if not conditions:
-            return None
-
-        # Prioritize explicit 'if ...' condition
-        if_cond = next(
-            (
-                c.strip()
-                for c in conditions
-                if re.match(r"^(?:…|\.\.\.)?\s*if\b", c.strip(), re.IGNORECASE)
-            ),
-            None,
-        )
-        if if_cond:
-            clean = if_cond
-            if not clean.startswith("…") and not clean.startswith("..."):
-                clean = f"…{clean}"
-            if not clean.endswith("."):
-                clean = f"{clean}."
-            return clean
-
-        # Otherwise format from attributed premise condition '<source> asserts <claim>'
-        attr_cond = next(
-            (
-                c.strip()
-                for c in conditions
-                if re.match(r"^(.+?)\s+asserts\s+(.+)$", c.strip(), re.IGNORECASE)
-            ),
-            None,
-        )
-        if attr_cond:
-            m = re.match(r"^(.+?)\s+asserts\s+(.+)$", attr_cond, re.IGNORECASE)
-            if m:
-                src, claim = m.group(1).strip(), m.group(2).strip()
-                return f"…if {src} is right about {claim}."
-
-        # Fallback to general condition
-        cond_text = conditions[0].strip()
-        if not cond_text.startswith("…") and not cond_text.startswith("..."):
-            cond_text = f"…{cond_text}"
-        if not cond_text.endswith("."):
-            cond_text = f"{cond_text}."
-        return cond_text
+        return self.deduction_runner.format_conditioned_speech(final_entry, conditions)
 
     run_deduction_loop = run_deduction_step
 
+    # delegate — kept for test/back-compat
     def _parse_and_validate_plan(
         self, text: str, default_goal: str
     ) -> tuple[GoalPlan | None, str | None]:
-        """Parses and validates a GoalPlan from LLM response text (WO-22 Phase 1).
+        return self.deduction_runner.parse_and_validate_plan(text, default_goal)
 
-        Enforces:
-        - JSON extraction and Pydantic GoalPlan schema (order contiguity 1..N, max 8 steps).
-        - Registered tool check against TOOL_ARG_SCHEMAS / EXTRA_TOOL_SCHEMAS.
-        - Tool argument schema validation.
-        - Deontic pre-check via SpeculativeBDIValidator.
-        """
-        clean_text = text.strip()
-        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text)
-        if fence_match:
-            clean_text = fence_match.group(1).strip()
-
-        obj_match = re.search(r"\{[\s\S]*\}", clean_text)
-        if not obj_match:
-            return None, f"No JSON object found in response: {text[:100]}"
-
-        try:
-            raw_data = json.loads(obj_match.group(0))
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("plan_json_parse_failed", error=str(exc))
-            return None, f"Malformed JSON in plan: {exc}"
-
-        if not isinstance(raw_data, dict):
-            return None, "Expected a JSON object for GoalPlan, got list or scalar."
-
-        if not raw_data.get("plan_id"):
-            raw_data["plan_id"] = f"plan-{ulid.ULID()}"
-        if not raw_data.get("goal"):
-            raw_data["goal"] = default_goal
-
-        try:
-            plan = GoalPlan.model_validate(raw_data)
-        except ValidationError as exc:
-            return None, f"GoalPlan schema validation failed: {exc}"
-
-        # Central Tool-Arg Validation Registry (WO-19a)
-        for step in plan.steps:
-            schema_cls = TOOL_ARG_SCHEMAS.get(step.tool) or EXTRA_TOOL_SCHEMAS.get(step.tool)
-            if schema_cls is None:
-                return None, f"Step {step.order}: Tool '{step.tool}' is not registered."
-            try:
-                schema_cls.model_validate(step.args)
-            except ValidationError as exc:
-                return (
-                    None,
-                    f"Step {step.order} ({step.tool}) argument schema validation failed: {exc}",
-                )
-
-        # Speculative BDI Invariant Pre-check (Milestone 4 / WO-22 Phase 1)
-        bdi_validator = getattr(self, "bdi_validator", None)
-        if bdi_validator is not None:
-            taint = getattr(self.sandbox, "taint_flags", 0)
-            for step in plan.steps:
-                bdi_res = bdi_validator.validate_tool_call(step.tool, step.args, taint_flags=taint)
-                if not bdi_res.is_valid:
-                    reason = bdi_res.reason or "Action prohibited"
-                    return (
-                        None,
-                        f"Step {step.order} ({step.tool}) deontic violation: {reason}",
-                    )
-
-        return plan, None
-
+    # delegate — kept for test/back-compat
     def run_planning_step(
         self,
         goal: str,
@@ -2070,137 +1361,9 @@ class Orchestrator:
         llm: object | None = None,
         context: ReasoningContext | None = None,
     ) -> GoalPlan | None:
-        """Executes a bounded, validated means-ends plan for a goal (WO-22 Phase 1).
-
-        1. Proposes a GoalPlan via LLM using the planning contract.
-        2. Validates plan schema, tool registry, argument schema, and deontic invariants.
-        3. On failure: allows one machine-readable revision attempt; if still invalid,
-           issues an honest refusal and speaks it.
-        4. On success: sets current_turn_plan and disposes steps through existing
-           sandbox dispatch path (confirmations, sequence guard, taint tracking).
-        5. Aggregates multi-action receipts into honest spoken narration (ITEM-017).
-        """
-        effective_llm = llm if llm is not None else getattr(self, "llm", None)
-        if effective_llm is None:
-            logger.warning("no_llm_available_for_planning")
-            return None
-
-        ctx = (
-            context
-            if context is not None
-            else (getattr(self, "current_reasoning_context", None) or ReasoningContext())
+        return self.deduction_runner.run_planning_step(
+            goal, trace=trace, llm=llm, context=context
         )
-        self.current_reasoning_context = ctx
-
-        if trace is None:
-            trace = getattr(self, "active_trace", None) or TurnTrace(
-                trace_id=f"plan-{ulid.ULID()}",
-                session_id=getattr(self, "session_id", "session-plan"),
-                origin="text",
-            )
-        trace_id = trace.trace_id
-
-        available_tools = list(TOOL_ARG_SCHEMAS.keys())
-        verified_facts: list[str] = [entry.conclusion for entry in ctx.intermediates]
-
-        planning_msgs = build_planning_messages(
-            goal=goal,
-            available_tools=available_tools,
-            verified_facts=verified_facts,
-            history=getattr(self, "history", []),
-        )
-
-        full_text = ""
-        for event in effective_llm.stream_turn(
-            current_text=goal,
-            memories=[],
-            history=getattr(self, "history", []),
-            trace_id=trace_id,
-            messages=planning_msgs,
-        ):
-            if isinstance(event, TokenDelta):
-                full_text += event.delta
-
-        plan, err = self._parse_and_validate_plan(full_text, default_goal=goal)
-        if plan is None:
-            logger.warning("planning_initial_validation_failed", error=err, raw=full_text)
-            revision_msgs = build_planning_messages(
-                goal=goal,
-                available_tools=available_tools,
-                verified_facts=verified_facts,
-                error_feedback=err,
-                history=getattr(self, "history", []),
-            )
-            revised_text = ""
-            for event in effective_llm.stream_turn(
-                current_text=f"Revise plan to fix error: {err}",
-                memories=[],
-                history=getattr(self, "history", []),
-                trace_id=trace_id,
-                messages=revision_msgs,
-            ):
-                if isinstance(event, TokenDelta):
-                    revised_text += event.delta
-
-            plan, err = self._parse_and_validate_plan(revised_text, default_goal=goal)
-            if plan is None:
-                logger.warning("planning_revision_validation_failed", error=err, raw=revised_text)
-                refusal_msg = f"I can't plan that safely because: {err}"
-                self._speak_text(trace, refusal_msg)
-                self.current_turn_tool_spoken.append(refusal_msg)
-                return None
-
-        # Plan ratified & validated — store on turn
-        self.current_turn_plan = plan
-        executed_tuples: list[tuple[str, dict[str, JsonValue], bool, str]] = []
-        cancelled_tuples: list[tuple[str, dict[str, JsonValue]]] = []
-        failed_step_order: int | None = None
-
-        for i, step in enumerate(plan.steps):
-            resolved_intermediates: list[str] = []
-            if ctx is not None and step.purpose:
-                resolved_entries = ctx.resolve_purpose_intermediates(step.purpose)
-                resolved_intermediates = [e.envelope_id for e in resolved_entries]
-
-            res = self._handle_tool_call(trace, step.tool, dict(step.args), speak=False)
-            ok = (res is None) or getattr(res, "ok", True)
-            raw_out = ""
-            if res is not None:
-                raw_out = str(
-                    getattr(res, "content", "")
-                    or getattr(res, "structured", "")
-                    or getattr(res, "stderr", "")
-                )
-
-            receipt_entry: dict[str, JsonValue] = {
-                "order": step.order,
-                "tool": step.tool,
-                "args": step.args,
-                "ok": ok,
-                "result": raw_out,
-                "resolved_intermediates": resolved_intermediates,
-            }
-            plan.receipts.append(receipt_entry)
-            executed_tuples.append((step.tool, dict(step.args), ok, raw_out))
-
-            if not ok:
-                failed_step_order = step.order
-                for rem_step in plan.steps[i + 1 :]:
-                    cancelled_tuples.append((rem_step.tool, dict(rem_step.args)))
-                break
-
-        # Multi-Action Narration Aggregation (ITEM-017 / D-HON-01)
-        narration = synthesize_plan_narration(
-            executed_steps=executed_tuples,
-            cancelled_steps=cancelled_tuples if failed_step_order is not None else None,
-            failed_step_order=failed_step_order,
-        )
-        plan.narration = narration
-        self.last_spoken_plan_narration = narration
-        self._speak_text(trace, narration)
-        self.current_turn_tool_spoken.append(narration)
-
-        return plan
 
     def run_self_diagnosis(
         self,
@@ -2574,63 +1737,28 @@ class Orchestrator:
             grammar=grammar,
         )
 
+    # delegate — kept for test/back-compat
     def _ensure_impasse_backlog_table(self) -> None:
-        if self.db is None or not hasattr(self.db, "write_transaction"):
-            return
-        try:
-            with self.db.write_transaction() as cur:
-                cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS impasse_backlog (
-                        id TEXT PRIMARY KEY,
-                        query TEXT NOT NULL,
-                        code TEXT NOT NULL,
-                        error_trace TEXT NOT NULL,
-                        resolved_code TEXT NOT NULL DEFAULT '',
-                        surprise_score REAL NOT NULL DEFAULT 0.85,
-                        created_at TEXT NOT NULL,
-                        processed INTEGER NOT NULL DEFAULT 0
-                    )
-                    """
-                )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("impasse_backlog_table_init_error", error=str(exc))
+        self.code_preflight.ensure_impasse_backlog_table()
 
+    # delegate — kept for test/back-compat
     def _log_impasse_to_backlog(
         self,
         query: str,
         code: str,
         error_trace: str,
-        resolved_code: str = "",
+        resolved_code: str = '',
         surprise_score: float = 0.85,
     ) -> None:
-        """Records a failed or repaired code synthesis episode into impasse_backlog for offline consolidation."""
-        if self.db is None or not hasattr(self.db, "write_transaction"):
-            return
-        try:
-            self._ensure_impasse_backlog_table()
-            impasse_id = f"imp-{ulid.ULID()}"
-            created_iso = str(time.time())
-            with self.db.write_transaction() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO impasse_backlog (
-                        id, query, code, error_trace, resolved_code, surprise_score, created_at, processed
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-                    """,
-                    (
-                        impasse_id,
-                        query[:1000],
-                        code[:4000],
-                        error_trace[:2000],
-                        resolved_code[:4000],
-                        float(surprise_score),
-                        created_iso,
-                    ),
-                )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("log_impasse_to_backlog_failed", error=str(exc))
+        self.code_preflight.log_impasse_to_backlog(
+            query=query,
+            code=code,
+            error_trace=error_trace,
+            resolved_code=resolved_code,
+            surprise_score=surprise_score,
+        )
 
+    # delegate — kept for test/back-compat
     def synthesize_code_with_preflight(
         self,
         prompt: str,
@@ -2640,196 +1768,16 @@ class Orchestrator:
         max_repair_rounds: int = 1,
         enable_preflight: bool = True,
     ) -> tuple[str, PreflightResult]:
-        """WO-26 Phase 4 & WO-39 Milestone 2.2: Tier 3 Code Synthesis with Case-Based Reasoning (4 Rs)
-        and Autonomous Docker Pre-Flight Verification Loop.
-
-        1. Retrieve & Reuse: Queries EpisodicCodeCache for a matching precedent and adapts it.
-        2. Revise: Verifies candidate in Docker sandbox; updates precedent (w+, w-) evidence.
-        3. Retain: Stores verified programs in EpisodicCodeCache and logs impasses to impasse_backlog.
-        """
-        t0 = time.perf_counter()
-        code_candidate = initial_code
-        cbr_cache = getattr(self, "episodic_code_cache", None)
-        used_precedent = None
-
-        # CBR Step 1 & 2: Retrieve & Reuse precedent before raw LLM synthesis
-        if code_candidate is None and cbr_cache is not None and prompt.strip():
-            try:
-                precedent = cbr_cache.retrieve_precedent(query=prompt)
-                if precedent is not None:
-                    adapted = cbr_cache.adapt_and_reuse(precedent, prompt)
-                    if adapted and adapted.strip():
-                        if not enable_preflight:
-                            cbr_cache.record_reuse_outcome(precedent.task_hash, success=True)
-                            elapsed = (time.perf_counter() - t0) * 1000.0
-                            return adapted, PreflightResult(
-                                success=True,
-                                error_msg=None,
-                                elapsed_ms=elapsed,
-                                assertions_run=0,
-                                fail_open=False,
-                            )
-                        cbr_check = self.sandbox.preflight_verify_code(
-                            code=adapted, docstring_examples=docstring_examples
-                        )
-                        if cbr_check.success:
-                            cbr_cache.record_reuse_outcome(precedent.task_hash, success=True)
-                            cbr_cache.retain_episode(
-                                query=prompt,
-                                code=adapted,
-                                method="CBR_REUSE",
-                                turns_taken=1,
-                            )
-                            return adapted, cbr_check
-                        cbr_cache.record_reuse_outcome(precedent.task_hash, success=False)
-                        used_precedent = precedent
-            except Exception as cbr_exc:  # noqa: BLE001
-                logger.debug("cbr_retrieve_reuse_failed", error=str(cbr_exc))
-
-        if code_candidate is None:
-            instruction = (
-                "Complete the following Python coding task. Put all Python code inside a ```python ... ``` block.\n\n"
-                f"{prompt}"
-            )
-            if used_precedent is not None:
-                instruction += (
-                    f"\n\nNote: A prior precedent exists but required adaptation:\n"
-                    f"```python\n{used_precedent.code}\n```"
-                )
-            resp_parts: list[str] = []
-            for event in self.llm.stream_turn(
-                current_text=instruction,
-                max_tokens=1024,
-                enable_thinking=False,
-            ):
-                if isinstance(event, TokenDelta) and event.delta:
-                    resp_parts.append(event.delta)
-            raw_resp = "".join(resp_parts)
-            code_candidate = extract_python_code(raw_resp)
-
-        if not enable_preflight:
-            elapsed = (time.perf_counter() - t0) * 1000.0
-            return code_candidate, PreflightResult(
-                success=True, error_msg=None, elapsed_ms=elapsed, assertions_run=0, fail_open=False
-            )
-
-        # CBR Step 3 (Revise): Preflight verification against Docker sandbox
-        preflight_res = self.sandbox.preflight_verify_code(
-            code=code_candidate, docstring_examples=docstring_examples
+        return self.code_preflight.synthesize_code_with_preflight(
+            prompt=prompt,
+            initial_code=initial_code,
+            trace=trace,
+            docstring_examples=docstring_examples,
+            max_repair_rounds=max_repair_rounds,
+            enable_preflight=enable_preflight,
         )
 
-        # If passed or fail-open honored (timeout/unavailable), return candidate
-        if preflight_res.success or preflight_res.fail_open or max_repair_rounds <= 0:
-            if preflight_res.success and cbr_cache is not None and code_candidate.strip():
-                try:
-                    cbr_cache.retain_episode(
-                        query=prompt,
-                        code=code_candidate,
-                        method="PreflightCEGIS",
-                        turns_taken=1,
-                    )
-                except Exception as retain_err:  # noqa: BLE001
-                    logger.debug("cbr_retain_failed", error=str(retain_err))
-            elif not preflight_res.success:
-                self._log_impasse_to_backlog(
-                    query=prompt,
-                    code=code_candidate,
-                    error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
-                )
-            sink = getattr(self, "cognitive_outcome_sink", None) or getattr(
-                self, "cognitive_sink", None
-            )
-            if sink is not None:
-                try:
-                    sink.record_cegis_outcome(
-                        task_id=trace.trace_id if trace else f"preflight-{ulid.ULID()}",
-                        problem_summary=prompt.strip()[:120],
-                        engine_name="PreflightCEGIS",
-                        success=preflight_res.success,
-                        turns_taken=1,
-                        final_code=code_candidate,
-                        turn_1_error=preflight_res.error_msg,
-                        status_label="VERIFIED_PROGRAM" if preflight_res.success else "INTERNAL_FALLBACK",
-                        reasoning_context=getattr(self, "current_reasoning_context", None),
-                    )
-                except Exception as sink_err:  # noqa: BLE001
-                    logger.debug("preflight_sink_record_failed", error=str(sink_err))
-            return code_candidate, preflight_res
-
-        # 1-Shot Self-Repair Loop
-        logger.warning(
-            "preflight_verification_failed_triggering_self_repair",
-            error=preflight_res.error_msg,
-            assertions_run=preflight_res.assertions_run,
-        )
-
-        repair_prompt = (
-            "The following Python code failed preflight verification against specification docstrings and test assertions in Docker:\n"
-            f"```python\n{code_candidate}\n```\n\n"
-            f"Preflight Error Details:\n{preflight_res.error_msg}\n\n"
-            "Please fix the bug (check boundary conditions, empty sequences, zero/negative inputs, trailing punctuation, or rounding logic). "
-            "Provide only the corrected complete Python implementation inside a ```python ... ``` block."
-        )
-
-        repair_parts: list[str] = []
-        for event in self.llm.stream_turn(
-            current_text=repair_prompt,
-            max_tokens=1024,
-            enable_thinking=False,
-        ):
-            if isinstance(event, TokenDelta) and event.delta:
-                repair_parts.append(event.delta)
-
-        repaired_raw = "".join(repair_parts)
-        repaired_code = extract_python_code(repaired_raw)
-        if not repaired_code or not repaired_code.strip():
-            self._log_impasse_to_backlog(
-                query=prompt,
-                code=code_candidate,
-                error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
-            )
-            return code_candidate, preflight_res
-
-        repaired_res = self.sandbox.preflight_verify_code(
-            code=repaired_code, docstring_examples=docstring_examples
-        )
-        self._log_impasse_to_backlog(
-            query=prompt,
-            code=code_candidate,
-            error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
-            resolved_code=repaired_code if repaired_res.success else "",
-        )
-        if repaired_res.success and cbr_cache is not None:
-            try:
-                cbr_cache.retain_episode(
-                    query=prompt,
-                    code=repaired_code,
-                    method="PreflightRepair",
-                    turns_taken=2,
-                )
-            except Exception as retain_err:  # noqa: BLE001
-                logger.debug("cbr_repair_retain_failed", error=str(retain_err))
-        sink = getattr(self, "cognitive_outcome_sink", None) or getattr(
-            self, "cognitive_sink", None
-        )
-        if sink is not None:
-            try:
-                sink.record_cegis_outcome(
-                    task_id=trace.trace_id if trace else f"preflight-{ulid.ULID()}",
-                    problem_summary=prompt.strip()[:120],
-                    engine_name="PreflightCEGIS",
-                    success=repaired_res.success,
-                    turns_taken=2,
-                    final_code=repaired_code,
-                    turn_1_error=preflight_res.error_msg,
-                    verified_strategy="Preflight assertion self-repair",
-                    status_label="VERIFIED_REPAIRED_PROGRAM" if repaired_res.success else "INTERNAL_FALLBACK",
-                    reasoning_context=getattr(self, "current_reasoning_context", None),
-                )
-            except Exception as sink_err:  # noqa: BLE001
-                logger.debug("preflight_repair_sink_record_failed", error=str(sink_err))
-        return repaired_code, repaired_res
-
+    # delegate — kept for test/back-compat
     def _stream_code_synthesis(
         self,
         trace: TurnTrace,
@@ -2839,40 +1787,14 @@ class Orchestrator:
         memories: list[MemoryHit] | None = None,
         epistemic_context: str | None = None,
     ) -> None:
-        """WO-26 Phase 4: Tier 3 Code Synthesis Turn Handler.
-
-        Executes preflight code verification loop before presenting code in chat or TTS.
-        """
-        begin_env = Envelope(
-            type="play.begin",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        self.code_preflight.stream_code_synthesis(
+            trace=trace,
+            user_msg=user_msg,
+            decision_id=decision_id,
+            current_text=current_text,
+            memories=memories,
+            epistemic_context=epistemic_context,
         )
-        self._publish_bus(begin_env)
-
-        cue = "Testing implementation in the sandbox..."
-        self._speak_text(trace, cue)
-
-        prompt = current_text or user_msg
-        code, preflight_res = self.synthesize_code_with_preflight(prompt=prompt, trace=trace)
-
-        if preflight_res.success:
-            spoken_summary = "I've written and verified the implementation in the sandbox."
-            full_response = f"Here is the verified implementation:\n\n```python\n{code}\n```"
-        else:
-            spoken_summary = "I've generated the function, though an assertion warning was noted."
-            full_response = f"```python\n{code}\n```\n\n*Note: Preflight check reported:* `{preflight_res.error_msg}`"
-
-        self._publish_caption(full_response, source="assistant", is_final=True)
-        self._speak_text(trace, spoken_summary)
-        self.play_ring.set_flag(FLAG_EOS)
-
-        self.history.append({"role": "user", "content": user_msg})
-        self.history.append({"role": "assistant", "content": full_response})
-        self.current_turn_assistant_reply = full_response
-        self._finalize_turn(trace, decision_id)
 
     def _reset_turn_state(self) -> None:
         """Reset per-turn state for sandbox, supervisor, flags, and tool tracking."""
@@ -3091,168 +2013,39 @@ class Orchestrator:
     # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
     # ------------------------------------------------------------------------
 
+    # delegate — kept for test/back-compat
     def _extract_receipt_domain(self, r: ToolReceipt) -> str:
-        args = getattr(r, "args", {}) or {}
-        if isinstance(args, dict):
-            domain_val = args.get("domain", "")
-            if domain_val and isinstance(domain_val, str):
-                return domain_val.strip().lower()
-            url_val = args.get("url", "")
-            if url_val and isinstance(url_val, str):
-                try:
-                    parsed = urllib.parse.urlsplit(url_val)
-                    if parsed.netloc:
-                        return parsed.netloc.lower().split(":")[0]
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug("extract_receipt_domain_urlsplit_failed", error=str(exc))
-        src = extract_receipt_source(r)
-        if "." in src and not src.startswith("tool"):
-            return src.lower()
-        return ""
+        return self.deduction_runner.extract_receipt_domain(r)
 
+    # delegate — kept for test/back-compat
     def _is_domain_whitelisted(self, domain: str) -> bool:
-        if not domain:
-            return False
-        d_clean = domain.strip().lower()
-        whitelist = getattr(self, "ratification_domains", None) or set()
-        if d_clean in whitelist:
-            return True
-        return any(d_clean == w or d_clean.endswith("." + w) for w in whitelist)
+        return self.deduction_runner.is_domain_whitelisted(domain)
 
+    # delegate — kept for test/back-compat
     def _extract_durable_claim(self, r: ToolReceipt) -> str | None:
-        args = getattr(r, "args", {}) or {}
-        if isinstance(args, dict) and "claim" in args and isinstance(args["claim"], str):
-            c = args["claim"].strip()
-            if c:
-                return c
+        return self.deduction_runner.extract_durable_claim(r)
 
-        text = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
-        return self._extract_durable_claim_from_text(text)
-
+    # delegate — kept for test/back-compat
     def _extract_durable_claim_from_text(self, text: str) -> str | None:
-        cleaned = text.strip()
-        if not cleaned or len(cleaned) < 5:
-            return None
-        lower = cleaned.lower()
-        if any(
-            err in lower for err in ("error:", "404 not found", "access denied", "failed to fetch")
-        ):
-            return None
+        return self.deduction_runner.extract_durable_claim_from_text(text)
 
-        sentences = re.split(r"(?<=[.!?])\s+", cleaned)
-        copula_pattern = re.compile(
-            r"\b(?:is|was|are|were|has|have|had|features|released|announced|supports|became|born|won|contains)\b",
-            re.IGNORECASE,
-        )
-        for s in sentences:
-            s_clean = s.strip()
-            s_clean = re.sub(r"^#+\s*", "", s_clean)
-            s_clean = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", s_clean)
-            if 10 <= len(s_clean) <= 150 and not s_clean.endswith("?"):
-                if copula_pattern.search(s_clean):
-                    return s_clean.rstrip(".! ")
-
-        if 10 <= len(cleaned) <= 120 and not cleaned.endswith("?"):
-            return cleaned.rstrip(".! ")
-        return None
-
+    # delegate — kept for test/back-compat
     def _check_and_offer_ratification(self, trace: TurnTrace) -> str | None:
-        if getattr(self, "_ratification_offered_this_turn", False):
-            return None
-        receipts = getattr(self, "current_turn_receipts", []) or []
-        for r in receipts:
-            tool_name = getattr(r, "tool", "") or getattr(r, "tool_name", "")
-            if tool_name not in ("fetch_url", "search_web", "web_search", "browse_page"):
-                continue
-            if not getattr(r, "ok", True):
-                continue
-            domain = self._extract_receipt_domain(r)
-            if not domain or not self._is_domain_whitelisted(domain):
-                continue
-            claim = self._extract_durable_claim(r)
-            if not claim:
-                continue
+        return self.deduction_runner.check_and_offer_ratification(trace)
 
-            args = getattr(r, "args", {}) or {}
-            url = ""
-            if isinstance(args, dict):
-                url = str(args.get("url", "") or args.get("domain", "") or domain)
-
-            offer_text = f"I found on {domain} that {claim} \u2014 want me to remember that?"
-            self._ratification_offered_this_turn = True
-
-            self._pending_ratification = PendingRatification(
-                call_id=getattr(r, "call_id", ""),
-                domain=domain,
-                claim=claim,
-                source_url=url,
-                fetch_receipt_entry_id=getattr(r, "entry_id", "") or getattr(r, "call_id", ""),
-            )
-            self._speak_text(trace, offer_text)
-            self._publish_caption(offer_text, source="assistant", is_final=True)
-            return offer_text
-        return None
-
+    # delegate — kept for test/back-compat
     def _commit_ratified_fact(self, pending: PendingRatification, trace: TurnTrace) -> str | None:
-        if not self.memory_store:
-            return None
-        signer = self.signer_factory.derived_fact()
-        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
-        source_id = pending.fetch_receipt_entry_id or f"fetch-{pending.call_id}"
-        unsigned = UnsignedPayload(
-            content=pending.claim,
-            provenance=Provenance.USER_DERIVED,
-            kind="fact",
-            nonce=os.urandom(16).hex(),
-            created_at=now,
-            trace_id=trace.trace_id,
-            confidence=1.0,
-            source_entry_ids=[source_id],
-            structured={
-                "source_url": pending.source_url,
-                "fetch_receipt_entry_id": source_id,
-                "confirmed_by_user": True,
-            },
-        )
-        signed = signer.sign(unsigned)
-        self.memory_store.commit(signed, now=now)
-        self._last_ratified_claim = pending.claim
-        return signed.entry_id
+        return self.deduction_runner.commit_ratified_fact(pending, trace)
 
+    # delegate — kept for test/back-compat
     def _is_cross_reference_command(self, text: str) -> bool:
         return is_cross_reference_command(text)
 
+    # delegate — kept for test/back-compat
     def _resolve_cross_reference_claim(self, user_text: str) -> str | None:
-        cross_ref_pat = (
-            r"(?:cross[\s-]?reference|find more sources on|check more sources on|verify)"
-            r"\s+(?:that\s+)?(.+)"
-        )
-        m = re.search(cross_ref_pat, user_text, re.IGNORECASE)
-        if m:
-            explicit_claim = m.group(1).strip().rstrip(".!?")
-            if explicit_claim.lower() not in ("that", "this", "it"):
-                return explicit_claim
+        return self.deduction_runner.resolve_cross_reference_claim(user_text)
 
-        if getattr(self, "_pending_ratification", None) is not None:
-            return self._pending_ratification.claim
-
-        if getattr(self, "_last_ratified_claim", None):
-            return self._last_ratified_claim
-
-        for msg in reversed(self.history):
-            if msg.get("role") == "assistant":
-                content = str(msg.get("content", ""))
-                offer_match = re.search(
-                    r"I found on .+? that (.+?) [—\-] want me to remember that\?",
-                    content,
-                )
-                if offer_match:
-                    return offer_match.group(1).strip()
-                c = self._extract_durable_claim_from_text(content)
-                if c:
-                    return c
-        return None
-
+    # delegate — kept for test/back-compat
     @staticmethod
     def _extract_claim_aligned_sentences(
         claim: str,
@@ -3260,205 +2053,28 @@ class Orchestrator:
         fallback_snippet: str,
         max_sentences: int = 2,
     ) -> str:
-        """Extracts the top 1-2 claim-aligned sentences from Scrapling page text.
+        return DeductionAndPlanningRunner.extract_claim_aligned_sentences(
+            claim=claim,
+            page_text=page_text,
+            fallback_snippet=fallback_snippet,
+            max_sentences=max_sentences,
+        )
 
-        Prevents full-page negation/adversative pollution in compute_proposition_alignment
-        (corroboration.py:666) while upgrading 150-char snippets with deep article facts.
-        """
-        if not page_text or not page_text.strip():
-            return fallback_snippet
-        claim_tokens = {
-            tok
-            for tok in re.findall(r"[a-z0-9]+", claim.lower())
-            if len(tok) > 2
-            and tok not in {"the", "and", "for", "that", "with", "from", "this", "what", "when", "where", "who", "was", "are", "is"}
-        }
-        if not claim_tokens:
-            return fallback_snippet
-
-        raw_sentences = [
-            s.strip()
-            for s in re.split(r"(?<=[.!?])\s+|\n+", page_text)
-            if 15 <= len(s.strip()) <= 500
-        ]
-        if not raw_sentences:
-            return fallback_snippet
-
-        scored: list[tuple[float, int, str]] = []
-        for idx, sent in enumerate(raw_sentences):
-            sent_tokens = set(re.findall(r"[a-z0-9]+", sent.lower()))
-            overlap = len(claim_tokens & sent_tokens)
-            if overlap == 0:
-                continue
-            ratio = overlap / max(len(claim_tokens), 1)
-            scored.append((ratio, -idx, sent))
-
-        if not scored:
-            return fallback_snippet
-
-        scored.sort(reverse=True)
-        top_sents = [s for _r, _i, s in scored[:max_sentences]]
-        combined = " ".join(top_sents).strip()
-        if fallback_snippet and fallback_snippet not in combined:
-            return f"{fallback_snippet} {combined}".strip()
-        return combined
-
+    # delegate — kept for test/back-compat
     def _fetch_cross_reference_page(self, url: str) -> str:
-        """Fetches clean article text via Scrapling web_tool for cross-reference corroboration."""
-        if not url:
-            return ""
-        is_mock_sandbox = self.sandbox is not None and type(
-            self.sandbox
-        ).__module__.startswith("unittest.mock")
-        default_enabled = not is_mock_sandbox
-        if not getattr(self, "enable_deep_cross_reference", default_enabled):
-            return ""
-        try:
-            from lucca.sandbox.web_tool import fetch_url
+        return self.deduction_runner.fetch_cross_reference_page(url)
 
-            structured, content = fetch_url(url=url, max_chars=6000)
-            if structured.get("ok") and isinstance(content, str):
-                return content
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("cross_ref_deep_fetch_error", url=url, error=str(exc))
-        return ""
-
+    # delegate — kept for test/back-compat
     def _execute_cross_reference_searches(
         self, claim: str, max_searches: int = 3
     ) -> list[ToolReceipt]:
-        custom_search = getattr(self, "cross_reference_search_fn", None)
-        if custom_search is not None and callable(custom_search):
-            res_list = custom_search(claim, max_searches)
-            if isinstance(res_list, list):
-                return [r for r in res_list if isinstance(r, ToolReceipt)]
+        return self.deduction_runner.execute_cross_reference_searches(
+            claim, max_searches=max_searches
+        )
 
-        receipts: list[ToolReceipt] = []
-        if self.sandbox:
-            call_id = str(ulid.ULID())
-            res = self.sandbox.execute_tool(
-                call_id=call_id,
-                tool_name="search_web",
-                args={"query": claim, "max_results": max_searches},
-                confirmed=True,
-            )
-            if (
-                res.structured
-                and "results" in res.structured
-                and isinstance(res.structured["results"], list)
-            ):
-                for item in res.structured["results"][:max_searches]:
-                    url = item.get("url", "")
-                    domain = ""
-                    if url:
-                        try:
-                            domain = urllib.parse.urlsplit(url).netloc.lower()
-                        except Exception as exc:  # noqa: BLE001
-                            logger.debug("search_receipt_domain_urlsplit_error", error=str(exc))
-                    content = f"{item.get('title', '')} {item.get('snippet', '')}".strip()
-                    page_text = self._fetch_cross_reference_page(url) if url else ""
-                    if page_text:
-                        content = self._extract_claim_aligned_sentences(
-                            claim=claim,
-                            page_text=page_text,
-                            fallback_snippet=content,
-                        )
-                    rcpt = ToolReceipt(
-                        tool="search_web",
-                        tool_name="search_web",
-                        ok=True,
-                        call_id=str(ulid.ULID()),
-                        args={"url": url, "domain": domain, "query": claim},
-                        output=content,
-                        timestamp=time.time(),
-                    )
-                    receipts.append(rcpt)
-                    self.current_turn_receipts.append(rcpt)
-            elif res.content:
-                rcpt = ToolReceipt(
-                    tool="search_web",
-                    tool_name="search_web",
-                    ok=res.ok,
-                    call_id=call_id,
-                    args={"query": claim},
-                    output=str(res.content),
-                    timestamp=time.time(),
-                )
-                receipts.append(rcpt)
-                self.current_turn_receipts.append(rcpt)
-        return receipts
-
+    # delegate — kept for test/back-compat
     def _handle_cross_reference(self, trace: TurnTrace, user_text: str) -> None:
-        claim = self._resolve_cross_reference_claim(user_text)
-        if not claim:
-            msg = "I don't have a recent claim to cross-reference."
-            self._speak_text(trace, msg)
-            self._publish_caption(msg, source="assistant", is_final=True)
-            self.history.append({"role": "user", "content": user_text})
-            self.history.append({"role": "assistant", "content": msg})
-            self.play_ring.set_flag(FLAG_EOS)
-            self._finalize_turn(trace, None)
-            return
-
-        if getattr(self, "_pending_ratification", None) is not None:
-            self._pending_ratification = None
-
-        receipts = self._execute_cross_reference_searches(claim, max_searches=3)
-        step = InferenceStep(
-            s=claim,
-            p="is_verified",
-            o="true",
-            premises=[f"web asserts {claim}"],
-            confidence=0.70,
-            rationale="cross_reference",
-        )
-        q_results = critical_questions(
-            scheme=Scheme.AUTHORITY,
-            step=step,
-            store=self.memory_store,
-            receipts=receipts,
-        )
-        initial_conf = 0.70
-        new_conf, conditions = adjust_confidence(initial_conf, q_results)
-        std = standard_for_confidence(new_conf)
-
-        q2 = next(
-            (
-                q
-                for q in q_results
-                if "corroborated" in q.question.lower() and q.answer == CQAnswer.SATISFIED
-            ),
-            None,
-        )
-        corrob_count = q2.count if q2 else 0
-        disputes = [
-            q
-            for q in q_results
-            if "disputed" in q.question.lower() and q.answer == CQAnswer.SATISFIED
-        ]
-
-        if disputes:
-            report = (
-                f"Cross-reference found disputing evidence. "
-                f"Confidence docked to {new_conf:.2f} \u2014 {std.value}."
-            )
-        elif corrob_count > 0:
-            sources_str = f"{corrob_count} independent source{'s' if corrob_count != 1 else ''}"
-            report = (
-                f"Cross-referenced across {sources_str}: "
-                f"confidence {new_conf:.2f} \u2014 {std.value}."
-            )
-        else:
-            report = (
-                f"Cross-reference found no independent corroboration. "
-                f"Confidence remains {new_conf:.2f} \u2014 {std.value}."
-            )
-
-        self._speak_text(trace, report)
-        self._publish_caption(report, source="assistant", is_final=True)
-        self.history.append({"role": "user", "content": user_text})
-        self.history.append({"role": "assistant", "content": report})
-        self.play_ring.set_flag(FLAG_EOS)
-        self._finalize_turn(trace, None)
+        self.deduction_runner.handle_cross_reference(trace, user_text)
 
     # delegate — kept for test/back-compat
     def _request_confirmation(
