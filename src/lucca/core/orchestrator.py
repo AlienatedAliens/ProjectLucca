@@ -142,6 +142,8 @@ from lucca.core.user_model import UserModel
 from lucca.core.visual_session import VisualSessionStore
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
+from lucca.memory.working import WorkingMemory
+from lucca.reasoning.consolidation import ConsolidationEngine
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
@@ -626,6 +628,33 @@ class Orchestrator:
     @diagnosis_engine.setter
     def diagnosis_engine(self, value: DiagnosisEngine) -> None:
         self._diagnosis_engine = value
+
+    @property
+    def working_memory(self) -> WorkingMemory | None:
+        wm = getattr(self, "_working_memory", None)
+        if wm is None and getattr(self, "db", None) is not None:
+            wm = WorkingMemory(db=self.db)
+            self._working_memory = wm
+        return wm
+
+    @working_memory.setter
+    def working_memory(self, value: WorkingMemory | None) -> None:
+        self._working_memory = value
+
+    @property
+    def consolidation_engine(self) -> ConsolidationEngine:
+        ce = getattr(self, "_consolidation_engine", None)
+        if ce is None:
+            re_eng = getattr(self, "rule_engine", None)
+            ce = ConsolidationEngine(
+                lifecycle_manager=re_eng if isinstance(re_eng, RuleLifecycleManager) else None,
+            )
+            self._consolidation_engine = ce
+        return ce
+
+    @consolidation_engine.setter
+    def consolidation_engine(self, value: ConsolidationEngine) -> None:
+        self._consolidation_engine = value
 
     @property
     def _confirm_event(self) -> threading.Event:
@@ -1614,6 +1643,10 @@ class Orchestrator:
                         logger.debug("contrastive_shadow_log_failed", error=str(shadow_err))
             self.current_turn_shadow_outcomes = []
 
+        tp = getattr(self, "turn_pipeline", None)
+        if tp is not None and hasattr(tp, "on_turn_finalized"):
+            tp.on_turn_finalized(trace, decision_id)
+
         trace.t_postturn_done = now_ns()
         log_turn_trace(trace)
         if self.active_trace is trace and not trace.interrupted:
@@ -1690,6 +1723,10 @@ class Orchestrator:
             try:
                 compressed = self.reflection_engine.nightly_rollup(now=current_time)
                 self.reflection_engine.record_last_rollup_at(current_time)
+                try:
+                    self.consolidation_engine.run_consolidation_cycle()
+                except Exception as cons_exc:  # noqa: BLE001
+                    logger.debug("consolidation_cycle_failed", error=str(cons_exc))
                 logger.info("nightly_rollup_completed", compressed=compressed, ts=current_time)
                 return int(compressed)
             except Exception as exc:  # noqa: BLE001

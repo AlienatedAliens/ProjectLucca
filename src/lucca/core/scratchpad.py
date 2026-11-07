@@ -40,6 +40,7 @@ from lucca.reasoning.scheme.parser import (
     Symbol,
     to_canonical,
 )
+from lucca.reasoning.spatial_scheme import SPATIAL_SCHEME_PRIMITIVES
 from lucca.sandbox.rpc import DockerRPCTransport
 
 logger = structlog.get_logger(__name__)

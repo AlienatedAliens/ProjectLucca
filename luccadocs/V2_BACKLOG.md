@@ -74,7 +74,7 @@ This backlog explicitly documents all architectural proposals, speculative resea
 ### 1.12 Case-Based Reasoning Cycle *(GRADUATED in v1.47.0 / WO-39)*
 - **Scope:** retrieve → reuse → revise → retain over past episodes ("last time X happened I did Y and it worked").
 - **v1.0 Baseline:** SELF_HISTORY + `execution_triples` are a case base; the CBR cycle itself is unbuilt.
-- **Status (2026-11-03):** `EpisodicCodeCache` (`src/lucca/memory/episodic_code_cache.py`) implements the full 4-R CBR cycle (`retrieve_precedent`, `adapt_and_reuse`, `revise_solution`, `retain_episode`) in `WO-39` Organ 2.
+- **Status (2026-11-03):** `EpisodeRecall` (`src/lucca/core/episode_recall.py`, shipped in WO-21 Phase 4) and `EpisodicCodeCache` (`src/lucca/memory/episodic_code_cache.py`) implement the full 4-R CBR cycle (`retrieve_precedent`, `adapt_and_reuse`, `revise_solution`, `retain_episode`) in `WO-39` Organ 2.
 
 ### 1.13 Diagnostic Self-Reasoning
 - **Scope:** Symptom→cause reasoning about her own stack ("high ASR latency + normal NPU load → ring underrun, not model slowness") over `self_metrics` and traces.

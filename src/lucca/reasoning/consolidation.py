@@ -4,10 +4,11 @@ Spec: plans/2026-10-03_wo29_neurosymbolic_program_synthesis_and_15_module_cognit
 Spec: docs/specs/PERSONHOOD_PROBE_BATTERIES_SPEC.md §2 (Battery IN - Stratum IN-D)
 
 Autonomous idle/sleep-phase background daemon that aggregates reasoning and conversation traces,
-extracts recurring sub-AST patterns via DreamCoder anti-unification, validates complexity
-bounds (D-REAS-05) and formal semantics (Z3 SMT + scratchpad falsification), admits verified
-macros strictly into QUARANTINE mode (D-REAS-06: 0 to ACTIVE), and updates the IN-D
-(Learned Competencies / Individuation) stratum scorecard.
+extracts recurring sub-AST patterns via DreamCoder anti-unification, repairs open AST holes via
+CPU MCTS + Backward Abduction (Module 12 / Module 10), validates complexity bounds (D-REAS-05)
+and formal semantics (Z3 SMT + scratchpad falsification), admits verified macros strictly into
+QUARANTINE mode (D-REAS-06: 0 to ACTIVE), and updates the IN-D (Learned Competencies /
+Individuation) stratum scorecard.
 
 Invariants:
 - Zero-Any typing discipline strictly enforced (D-AUD-01).
@@ -19,9 +20,8 @@ Invariants:
 
 from __future__ import annotations
 
-from pathlib import Path
 import time
-from typing import Final
+from typing import cast
 
 from pydantic import BaseModel, Field
 import structlog
@@ -30,10 +30,21 @@ from lucca.core.scratchpad import ScratchpadFalsifier
 from lucca.evaluation.in_d_grader import INDGraderReport, grade_in_d, save_in_d_report
 from lucca.reasoning.compression import DreamCoderMacroMiner, MinedMacroCandidate
 from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.mcts import ASTHoleMCTSEngine, MCTSConfig, SynthesisResult
 from lucca.reasoning.scheme.parser import SchemeNode, Symbol, parse_expr
 from lucca.reasoning.smt_verifier import SMTVerifier
+from lucca.reasoning.topology import is_hole_node
 
 logger = structlog.get_logger(__name__)
+
+
+def _contains_hole(node: SchemeNode) -> bool:
+    """Returns True if the MicroScheme AST contains any unresolved hole (?var)."""
+    if is_hole_node(node):
+        return True
+    if isinstance(node, list):
+        return any(_contains_hole(child) for child in node)
+    return False
 
 
 class ConsolidationConfig(BaseModel):
@@ -52,6 +63,7 @@ class ConsolidationCycleResult(BaseModel):
     cycle_id: str
     traces_examined: int
     macros_mined: int
+    mcts_repairs_succeeded: int = 0
     quarantined_macro_ids: list[str] = Field(default_factory=list)
     active_macro_ids: list[str] = Field(default_factory=list)
     in_d_quarantined_count: int = 0
@@ -72,6 +84,7 @@ class ConsolidationEngine:
         lifecycle_manager: RuleLifecycleManager | None = None,
         smt_verifier: SMTVerifier | None = None,
         falsifier: ScratchpadFalsifier | None = None,
+        mcts_engine: ASTHoleMCTSEngine | None = None,
     ) -> None:
         self.config = config or ConsolidationConfig()
         self.lifecycle_manager = lifecycle_manager or RuleLifecycleManager()
@@ -82,8 +95,31 @@ class ConsolidationEngine:
             smt_verifier=self.smt_verifier,
             falsifier=self.falsifier,
         )
+        self.mcts_engine = mcts_engine or ASTHoleMCTSEngine(
+            config=MCTSConfig(max_iterations=80, timeout_seconds=1.5),
+            rule_lifecycle=self.lifecycle_manager,
+            smt_verifier=self.smt_verifier,
+        )
         self._trace_buffer: list[SchemeNode] = []
         self._cycle_counter: int = 0
+
+    def repair_sketch_with_mcts(
+        self,
+        sketch: SchemeNode | str,
+        goal: int | float | str | bool | list[object] = True,
+        test_cases: list[dict[str, object]] | None = None,
+        candidate_literals: list[int | float | str] | None = None,
+        intent_label: str = "consolidation_mcts_repair",
+    ) -> SynthesisResult:
+        """Repairs an AST sketch containing unresolved holes via CPU MCTS + Backward Abduction."""
+        parsed_sketch = parse_expr(sketch) if isinstance(sketch, str) else sketch
+        return self.mcts_engine.synthesize(
+            sketch_with_holes=parsed_sketch,
+            goal=goal,
+            test_cases=test_cases,
+            candidate_literals=candidate_literals,
+            intent_label=intent_label,
+        )
 
     def record_trace(self, expr: SchemeNode | str) -> None:
         """Buffers an AST trace from a conversational or reasoning execution turn."""
@@ -114,18 +150,35 @@ class ConsolidationEngine:
         """
         Executes a complete sleep-phase consolidation cycle:
         1. Pulls accumulated traces up to max_traces_per_cycle.
-        2. Clusters traces by syntactic shape and mines recurring patterns.
-        3. Enforces D-REAS-05 (complexity bounds) and D-REAS-06 (quarantine admission, 0 to ACTIVE).
-        4. Mechanically grades and updates IN-D (Learned Competencies) stratum scorecard.
+        2. Repairs any partial traces containing unresolved holes via ASTHoleMCTSEngine.
+        3. Clusters traces by syntactic shape and mines recurring patterns.
+        4. Enforces D-REAS-05 (complexity bounds) and D-REAS-06 (quarantine admission, 0 to ACTIVE).
+        5. Mechanically grades and updates IN-D (Learned Competencies) stratum scorecard.
         """
         t0 = time.perf_counter()
         self._cycle_counter += 1
         cycle_id = f"cycle_{self._cycle_counter:04d}_{int(time.time())}"
         errors: list[str] = []
 
-        active_traces = self._trace_buffer[: self.config.max_traces_per_cycle]
+        raw_traces = self._trace_buffer[: self.config.max_traces_per_cycle]
         quarantined_ids: list[str] = []
         active_ids: list[str] = []
+        mcts_repairs = 0
+
+        active_traces: list[SchemeNode] = []
+        for tr in raw_traces:
+            if _contains_hole(tr):
+                try:
+                    syn_res = self.repair_sketch_with_mcts(tr, goal=True)
+                    if syn_res.success and syn_res.synthesized_ast is not None:
+                        mcts_repairs += 1
+                        if syn_res.quarantined_rule_id:
+                            quarantined_ids.append(syn_res.quarantined_rule_id)
+                        active_traces.append(cast(SchemeNode, syn_res.synthesized_ast))
+                        continue
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug("consolidation_mcts_repair_failed", error=str(exc))
+            active_traces.append(tr)
 
         if len(active_traces) < self.config.min_instances_for_macro:
             elapsed = (time.perf_counter() - t0) * 1000.0
@@ -137,8 +190,10 @@ class ConsolidationEngine:
             report = self.get_in_d_report()
             return ConsolidationCycleResult(
                 cycle_id=cycle_id,
-                traces_examined=len(active_traces),
+                traces_examined=len(raw_traces),
                 macros_mined=0,
+                mcts_repairs_succeeded=mcts_repairs,
+                quarantined_macro_ids=quarantined_ids,
                 in_d_quarantined_count=report.learned_skills_quarantined,
                 in_d_active_count=report.learned_skills_active,
                 in_d_guard_passed=report.guard_active_zero_passed,
@@ -164,6 +219,12 @@ class ConsolidationEngine:
                         macro_name=macro_name,
                         instances=instances,
                     )
+                    if not cand.quarantined and cand.body_canonical and _contains_hole(parse_expr(cand.body_canonical)):
+                        syn_res = self.repair_sketch_with_mcts(cand.body_canonical, goal=True)
+                        if syn_res.success:
+                            mcts_repairs += 1
+                            if syn_res.quarantined_rule_id:
+                                quarantined_ids.append(syn_res.quarantined_rule_id)
                     mined_candidates.append(cand)
                 except Exception as exc:  # noqa: BLE001
                     logger.error("consolidation_mining_error", shape=shape_key, error=str(exc))
@@ -193,8 +254,9 @@ class ConsolidationEngine:
         elapsed = (time.perf_counter() - t0) * 1000.0
         return ConsolidationCycleResult(
             cycle_id=cycle_id,
-            traces_examined=len(active_traces),
+            traces_examined=len(raw_traces),
             macros_mined=len(mined_candidates),
+            mcts_repairs_succeeded=mcts_repairs,
             quarantined_macro_ids=quarantined_ids,
             active_macro_ids=active_ids,
             in_d_quarantined_count=in_d_report.learned_skills_quarantined,

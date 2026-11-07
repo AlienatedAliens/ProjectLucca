@@ -36,12 +36,14 @@ from lucca.core.affect import AffectSignal
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import get_config, load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
+from lucca.core.pipeline_tracer import PipelineTracer
 from lucca.core.proof_policy import is_cross_reference_command
 from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
     AssertFact,
     ChatMessage,
     ExecutionTier,
+    InferenceStep,
     JsonValue,
     PendingRatification,
     RouteAction,
@@ -55,10 +57,11 @@ from lucca.core.schemas import (
 from lucca.core.self_diagnosis import is_self_diagnosis_query
 from lucca.core.text_utils import normalize_spelled_words, normalize_transcript
 from lucca.core.trace import TurnTrace, now_ns
+from lucca.core.visual_session import VisualSessionStore
+from lucca.memory.working import WorkingMemory
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
 from lucca.senses.ring_buffer import FLAG_ABORT, FLAG_EOS
-from lucca.core.visual_session import VisualSessionStore
 
 if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
@@ -505,6 +508,47 @@ class TurnPipeline:
         self.orch = orchestrator
         self.sanity_guard = SanityCheckGuard()
         self.difficulty_estimator = DifficultyEstimator()
+        self._closed_trace_ids: set[str] = set()
+
+    @property
+    def working_memory(self) -> WorkingMemory | None:
+        wm = getattr(self.orch, "working_memory", None)
+        if wm is not None:
+            return wm
+        db_mgr = getattr(self.orch, "db", None)
+        if db_mgr is not None:
+            wm = WorkingMemory(db=db_mgr)
+            self.orch._working_memory = wm
+            return wm
+        return None
+
+    def on_turn_finalized(self, trace: TurnTrace, decision_id: str | None = None) -> None:
+        """Closes WorkingMemory task journal entry and finalizes PipelineTracer flow."""
+        if not trace.trace_id or trace.trace_id in self._closed_trace_ids:
+            return
+        self._closed_trace_ids.add(trace.trace_id)
+        wm = self.working_memory
+        if wm is not None:
+            try:
+                outcome = (
+                    "completed"
+                    if getattr(self.orch, "current_turn_tool_ok", True) and not trace.interrupted
+                    else "failed"
+                )
+                wm.close_task(trace.trace_id, outcome=outcome)
+            except Exception as wm_err:  # noqa: BLE001
+                logger.debug("working_memory_close_failed", error=str(wm_err))
+        try:
+            reply_str = str(getattr(self.orch, "current_turn_assistant_reply", "") or "")
+            PipelineTracer.get_instance().finish_flow(
+                predicted_ans=reply_str[:500],
+                expected_ans="",
+                passed=bool(
+                    getattr(self.orch, "current_turn_tool_ok", True) and not trace.interrupted
+                ),
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_finish_failed", error=str(tr_err))
 
     # ------------------------------------------------------------------------
     # Phase 0: Turn State Reset
@@ -606,6 +650,7 @@ class TurnPipeline:
                 self.orch.play_ring.set_flag(FLAG_EOS)
         finally:
             self.orch._finalize_turn(trace, decision_id)
+            self.on_turn_finalized(trace, decision_id)
 
     def execute_act_then_narrate(
         self,
@@ -1077,6 +1122,22 @@ class TurnPipeline:
             return
 
         # Phase 1: Input Normalization & Spelled-Word Attractor Neutralization
+        try:
+            PipelineTracer.get_instance().start_flow(
+                trace.trace_id,
+                {"query": str(user_text or "")[:200], "mode": inp.mode, "origin": inp.origin},
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_start_failed", error=str(tr_err))
+
+        wm = self.working_memory
+        if wm is not None and trace.trace_id:
+            try:
+                wm.open_task(trace.trace_id)
+                wm.set(trace.trace_id, "stage", "tank_1_ingestion")
+            except Exception as wm_err:  # noqa: BLE001
+                logger.debug("working_memory_open_failed", error=str(wm_err))
+
         normalized_text = normalize_transcript(user_text)
         _, detected_words = normalize_spelled_words(user_text)
         self.orch.active_detected_words = detected_words
@@ -1170,6 +1231,17 @@ class TurnPipeline:
             return
 
         # Phase 3: Rule State & Route Decision
+        try:
+            PipelineTracer.get_instance().transition_stage(
+                "tank_2_intent_valve",
+                "Conformal Intent Valve & Safety Shunt",
+                "router",
+                eval_user_text,
+                details="Evaluating MicroScheme rules & routing...",
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_tank2_failed", error=str(tr_err))
+
         rule_state = self.orch._build_rule_state(eval_user_text, mode=inp.mode)
         yielded_context: dict[str, object] | None = None
         shadow_outcomes: list[RuleOutcome] = []
@@ -1221,6 +1293,16 @@ class TurnPipeline:
 
         # Phase 4: Tier Dispatch (REFLEX / ACT_THEN_NARRATE Early Exit)
         if route_decision and route_decision.action == RouteAction.RULE:
+            try:
+                PipelineTracer.get_instance().transition_stage(
+                    "tank_3_symbolic_centrifuge",
+                    "MicroScheme Symbolic Centrifuge",
+                    "rule_engine",
+                    str(getattr(route_decision, "action", "RULE")),
+                    details="Dispatching symbolic rule execution tier...",
+                )
+            except Exception as tr_err:  # noqa: BLE001
+                logger.debug("pipeline_tracer_tank3_failed", error=str(tr_err))
             winning_outcome: RuleOutcome | None = None
             for outcome in active_outcomes:
                 if outcome.fired and not outcome.errored and outcome.plan is not None:
@@ -1276,6 +1358,22 @@ class TurnPipeline:
                     return
 
         # Phase 5: Epistemic Context, Tool Gating & Streaming LLM Full Loop
+        try:
+            PipelineTracer.get_instance().transition_stage(
+                "tank_5_deliberation",
+                "Neural Deliberation Boiler",
+                "llm",
+                eval_user_text or user_text,
+                details="Synthesizing epistemic context & streaming...",
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_tank5_failed", error=str(tr_err))
+        if wm is not None and trace.trace_id:
+            try:
+                wm.set(trace.trace_id, "stage", "tank_5_deliberation")
+            except Exception as wm_err:  # noqa: BLE001
+                logger.debug("working_memory_set_failed", error=str(wm_err))
+
         mem_hits = self.orch._search_memories(user_text) if user_text else []
         epistemic_ctx = self.build_epistemic_context(
             user_text=eval_user_text or user_text,
@@ -1304,6 +1402,36 @@ class TurnPipeline:
             elif route_decision.thinking_mode == "direct":
                 enable_thinking = False
         trace.enable_thinking = enable_thinking
+        if enable_thinking and (eval_user_text or user_text):
+            ded_runner = getattr(self.orch, "deduction_runner", None)
+            if ded_runner is not None and hasattr(ded_runner, "evaluate_step_corroboration"):
+                try:
+                    q_text = (eval_user_text or user_text).strip()
+                    prems = [q_text]
+                    m_attr = re.search(
+                        r"according\s+to\s+([^,.:;]+)[,.:;]\s*(.+)",
+                        q_text,
+                        re.IGNORECASE,
+                    )
+                    if m_attr:
+                        prems.append(f"{m_attr.group(1).strip()} asserts {m_attr.group(2).strip()}")
+                    step = InferenceStep(
+                        s="turn_query",
+                        p="requires_deliberation",
+                        o=q_text[:160],
+                        premises=prems,
+                        confidence=0.75,
+                    )
+                    cq_results = ded_runner.evaluate_step_corroboration(step)
+                    if step.conditions or cq_results:
+                        cond_str = ", ".join(step.conditions) if step.conditions else "evaluated"
+                        cq_note = (
+                            f"[Walton Critical-Question Corroboration: conf={step.confidence:.2f}; "
+                            f"conditions={cond_str}]"
+                        )
+                        epistemic_ctx = f"{epistemic_ctx}\n{cq_note}" if epistemic_ctx else cq_note
+                except Exception as cq_err:  # noqa: BLE001
+                    logger.debug("deduction_corroboration_eval_failed", error=str(cq_err))
 
         # Tier 3 Code Synthesis with Autonomous Docker Preflight Loop (WO-26 Phase 4)
         if is_code_synthesis_request(eval_user_text or user_text):
@@ -1353,3 +1481,4 @@ class TurnPipeline:
             tools=turn_tools,
             enable_thinking=enable_thinking,
         )
+        self.on_turn_finalized(trace, decision_id)
