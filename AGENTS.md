@@ -59,6 +59,12 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - **No Regex/Script-Only Grading of Benchmark or Test Outcomes:** Never rely on regexes or heuristic scripts as the ground-truth grader for natural-language test outcomes, benchmark completions, or evaluation datasets. Scripts may only be used for structural/arithmetic pre-checks; all semantic grading and outcome verification must be performed by spawning blinded subagents that read outputs line-by-line (with independent dual-rater Cohen's $\kappa$ validation).
    - **AI-Assisted Development Disclosure:** Contributions by AI agents are subject to human review and must be disclosed in pull requests and commit descriptions.
 
+9. **Anti-Slop Scientific & Technical Writing Standard (`test_no_ai_slop_in_papers_and_docs`):**
+   - **Zero-Tolerance Lexical Blacklist:** Never use LLM-signature filler words (`delve`, `tapestry`, `testament to`, `pivotal`, `underscore`/`underscores`/`underscoring`, `intricate interplay`, `fostering`, `showcasing`, `in the realm of`, `evolving landscape`, `paradigm shift`, `seamlessly`, `groundbreaking`, `unprecedented`, `it is important to note`, `it is worth noting`) in new research papers (`papers/04_*/**/*.tex`) or living documentation.
+   - **No Trailing Participial Puffery (`..., V-ing` Summary Tails):** Never end a sentence with a comma followed by an editorializing participle (`..., highlighting...`, `..., underscoring...`, `..., showcasing...`, `..., fostering...`, `..., paving the way...`, `..., marking a significant...`, `..., ensuring seamless...`). State the empirical measurement and stop, or use a separate sentence with an explicit subject and verb.
+   - **No Rhetorical Contrast Clichés or Throat-Clearing Openers:** Avoid `"not just X, but Y"` / `"not merely X, but Y"` formulas and sentence-initial throat-clearing adverbs (`Crucially,`, `Importantly,`, `Remarkably,`, `Interestingly,`).
+   - **Denominators, Hardware & Residual Errors Over Adjectives:** Every empirical claim must report exact `(k/N, XX.X%)` fractions, hardware substrate, and—where accuracy is `< 100%`—the concrete failure mode of the residual errors.
+
 ---
 
 ## 3. Master Documentation Directory

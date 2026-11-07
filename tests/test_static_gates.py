@@ -1147,6 +1147,91 @@ def test_capability_register_yaml_and_gates() -> None:
             )
 
 
+def test_no_ai_slop_in_papers_and_docs() -> None:
+    """Enforces AGENTS.md Rule 9 (Anti-Slop Scientific & Technical Writing Standard)
+    across all new research papers (papers/04_* onward) and active top-level/living docs.
+    Note: papers/01_*, papers/02_*, and papers/03_* are frozen to match published Zenodo v1 DOIs.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+
+    target_files: list[Path] = []
+    papers_dir = repo_root / "papers"
+    if papers_dir.exists():
+        for p_dir in sorted(papers_dir.iterdir()):
+            if p_dir.is_dir() and not p_dir.name.startswith(("01_", "02_", "03_")):
+                target_files.extend(sorted(p_dir.rglob("*.tex")))
+                target_files.extend(sorted(p_dir.rglob("*.md")))
+
+    for doc_rel in (
+        "README.md",
+        "USER_GUIDE.md",
+        "RESULTS.md",
+        "REPRODUCING.md",
+        "luccadocs/ARCHITECTURE.md",
+        "luccadocs/DECISIONS.md",
+        "luccadocs/GLOSSARY.md",
+        "luccadocs/MODEL_STRATEGY.md",
+        "luccadocs/USER_GUIDE_WHAT_LUCCA_DOES.md",
+        "luccadocs/security/THREAT_MODEL.md",
+    ):
+        p = repo_root / doc_rel
+        if p.exists():
+            target_files.append(p)
+
+    banned_lexicon_re = re.compile(
+        r"\b(?:"
+        r"delve[sd]?|delving|tapestry|testament\s+to|pivotal|"
+        r"underscor(?:e[sd]?|ing)|intricate\s+interplay|fostering|showcasing|"
+        r"in\s+the\s+realm\s+of|evolving\s+landscape|paradigm\s+shift|"
+        r"groundbreaking|unprecedented|it\s+is\s+(?:important|worth)\s+(?:to\s+note|noting)"
+        r")\b",
+        re.IGNORECASE,
+    )
+    trailing_participial_puffery_re = re.compile(
+        r",\s+(?:thereby\s+)?(?:highlighting|underscoring|showcasing|fostering|"
+        r"paving\s+the\s+way|marking\s+a\s+significant|ensuring\s+seamless)\b",
+        re.IGNORECASE,
+    )
+    contrast_cliche_re = re.compile(
+        r"\bnot\s+(?:just|merely)\b[^.?!;\n]{1,60}\bbut\s+(?:also|rather)\b",
+        re.IGNORECASE,
+    )
+    throat_clearing_re = re.compile(
+        r"(?:^|(?<=[.!?]\s))(?:Crucially|Importantly|Remarkably|Interestingly),\s",
+        re.MULTILINE,
+    )
+
+    violations: list[str] = []
+    for fpath in target_files:
+        text = fpath.read_text(encoding="utf-8")
+        rel_name = fpath.relative_to(repo_root).as_posix()
+        for lineno, line in enumerate(text.splitlines(), 1):
+            # Skip lines that explicitly document the banned words list, bibliography titles, or literal '_' snake_case characters
+            if (
+                "banned_lexicon" in line
+                or "Banned" in line
+                or "Never use" in line
+                or "\\newblock" in line
+                or "snake_case" in line
+            ):
+                continue
+            for label, pat in (
+                ("banned_ai_slop_lexicon", banned_lexicon_re),
+                ("trailing_participial_puffery", trailing_participial_puffery_re),
+                ("not_just_but_also_cliche", contrast_cliche_re),
+                ("throat_clearing_opener", throat_clearing_re),
+            ):
+                m = pat.search(line)
+                if m:
+                    violations.append(f"{rel_name}:{lineno} [{label}]: matched '{m.group(0)}'")
+
+    assert not violations, (
+        "AI slop language detected in papers/docs (violates AGENTS.md Rule 9):\n  "
+        + "\n  ".join(violations)
+    )
+
+
+
 
 
 
