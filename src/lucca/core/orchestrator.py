@@ -816,10 +816,6 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             logger.debug("mem_commit_event_publish_failed", error=str(exc))
 
-    def _emit_tts_overflow(self, trace_id: str = "", chunk_id: int = -1) -> None:
-        """WO-17 Phase 7: emit a tts_queue_overflow telemetry event on the bus."""
-        self.speech_output.emit_tts_overflow(trace_id=trace_id, chunk_id=chunk_id)
-
     def _enqueue_tts_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         """Enqueues a synthesized voice chunk with drop-oldest overflow policy (WO-17 Phase 7)."""
         self.speech_output.enqueue_tts_chunk(trace=trace, chunk_id=chunk_id, text=text)
@@ -3610,76 +3606,6 @@ class Orchestrator:
         """Reset per-turn state for sandbox, supervisor, flags, and tool tracking."""
         self.turn_pipeline.reset_turn_state()
 
-    def _execute_reflex(
-        self,
-        trace: TurnTrace,
-        winning_outcome: RuleOutcome | None,
-        user_text: str,
-        decision_id: str | None,
-    ) -> None:
-        """
-        Execute a REFLEX tier turn: run plan or built-in emergency reflex,
-        emit triple, and finalize.
-        """
-        self.turn_pipeline.execute_reflex(
-            trace=trace,
-            winning_outcome=winning_outcome,
-            user_text=user_text,
-            decision_id=decision_id,
-        )
-
-    def _execute_act_then_narrate(
-        self,
-        trace: TurnTrace,
-        winning_outcome: RuleOutcome,
-        user_text: str,
-        decision_id: str | None,
-    ) -> None:
-        """
-        Execute an ACT_THEN_NARRATE tier turn: run plan tools, emit triple,
-        and stream narration.
-        """
-        self.turn_pipeline.execute_act_then_narrate(
-            trace=trace,
-            winning_outcome=winning_outcome,
-            user_text=user_text,
-            decision_id=decision_id,
-        )
-
-    def _build_epistemic_context(
-        self,
-        user_text: str,
-        yielded_context: dict[str, object] | None = None,
-        route_decision: RouteDecision | None = None,
-        spelling_hint: str | None = None,
-        trace: TurnTrace | None = None,
-    ) -> str | None:
-        """
-        Build epistemic context from search cascade, yield signals, F13 clarify hints,
-        and spelling hints.
-        """
-        return self.turn_pipeline.build_epistemic_context(
-            user_text=user_text,
-            yielded_context=yielded_context,
-            route_decision=route_decision,
-            spelling_hint=spelling_hint,
-            trace=trace,
-        )
-
-    def _detect_follow_up_and_gate_tools(
-        self,
-        rule_state: RuleState,
-        text_for_gate: str,
-    ) -> list[object] | None:
-        """
-        Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat.
-        Returns empty list if tools are suppressed, or None to let _stream_llm_speech decide.
-        """
-        return self.turn_pipeline.detect_follow_up_and_gate_tools(
-            rule_state=rule_state,
-            text_for_gate=text_for_gate,
-        )
-
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         """
         Voice turn input adapter: reads audio from capture ring, performs
@@ -3784,9 +3710,6 @@ class Orchestrator:
             image_b64=pending_img,
         )
         self.turn_pipeline.run(turn_input)
-
-    def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
-        self.speech_output.synthesize_chunk(trace, chunk_id, text)
 
     def _tts_worker(self) -> None:
         """Background worker thread (core-tts) consuming chunks from speech_output."""
