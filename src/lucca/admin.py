@@ -23,6 +23,7 @@ from lucca.core.trace import (
     compute_latency_statistics,
     format_latency_markdown,
 )
+from lucca.eval import contrastive_grader, in_d_grader
 from lucca.memory.db import DatabaseManager
 from lucca.memory.manager import MemoryManager
 from lucca.memory.migration_tool import migrate_memory_keys
@@ -33,6 +34,8 @@ from lucca.reasoning.repl_loop import ReasoningREPL, TaskRegistry
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.egress import EgressVerifier
+from lucca.tools import lint as tools_lint
+
 
 logger = logging.getLogger(__name__)
 
@@ -1117,7 +1120,14 @@ def create_parser() -> argparse.ArgumentParser:
         "--list-tasks", action="store_true", help="List available minimal tasks and exit"
     )
 
+    subparsers.add_parser("eval-ind", help="Run mechanical Personhood IN-D skill lifecycle grader")
+    subparsers.add_parser(
+        "eval-contrastive", help="Verify frozen contrastive grader SHA-256 and thresholds"
+    )
+    subparsers.add_parser("lint-check", help="Run composite T0 static lint gate")
+
     return parser
+
 
 
 
@@ -1246,7 +1256,17 @@ def main(argv: list[str] | None = None) -> None:
             repl.load_task(str(args.task))
         repl.run()
         sys.exit(0)
+    elif args.cmd == "eval-ind":
+        rep = in_d_grader.grade_in_d()
+        print(rep.model_dump_json(indent=2))
+        sys.exit(0)
+    elif args.cmd == "eval-contrastive":
+        print(json.dumps({"grader_sha256": contrastive_grader.grader_sha256()}))
+        sys.exit(0)
+    elif args.cmd == "lint-check":
+        tools_lint.main()
     else:
+
 
         print(f"Unknown command '{args.cmd}'", file=sys.stderr)
         sys.exit(2)

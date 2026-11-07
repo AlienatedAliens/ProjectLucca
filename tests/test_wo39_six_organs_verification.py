@@ -367,7 +367,7 @@ def test_stt_lucca_wake_word_and_dsp_pitch_shift_and_url_security(tmp_path: Path
     """Verify STT 'Lucca' normalization, DSP pitch shift frequency change, and .url sandbox escape block."""
     from lucca.sandbox.file_tool import SafeFileTool, SandboxSecurityError
     from lucca.senses.dsp_chain import apply_pitch_shift
-    from lucca.senses.stt import normalize_lucca_wake_word
+    from lucca.senses.asr import normalize_lucca_wake_word
 
     # 1. STT wake-word normalization
     assert normalize_lucca_wake_word("Lucas, check the logs") == "Lucca, check the logs"
