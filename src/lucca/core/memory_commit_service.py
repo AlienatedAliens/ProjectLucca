@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 import re
+import uuid
 from typing import TYPE_CHECKING, Final
 
 import structlog
@@ -20,6 +21,7 @@ from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload, Verif
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.trace import TurnTrace
 from lucca.memory.extraction import FactExtractor
+from lucca.memory.latent_probe import BelnapLatentInvestigator, BelnapValue
 from lucca.ports import ClockPort, MemoryStorePort, SemanticVerifierPort
 
 if TYPE_CHECKING:
@@ -644,6 +646,7 @@ class MemoryCommitService:
         now = self.clock.now_utc()
         for signed_fact in signed_facts:
             # Semantic verification: verify fact candidate does not contradict transcript
+            # or overwrite an existing active memory slot under UNCERTAIN / degraded NLI
             if self.verifier is not None:
                 try:
                     v_res = self.verifier.check_consistency(
@@ -656,6 +659,58 @@ class MemoryCommitService:
                             fact=str(signed_fact.content),
                         )
                         continue
+                    if v_res.degraded or v_res.label == VerifierLabel.UNCERTAIN:
+                        db = getattr(self.memory_store, "db", None)
+                        fact_parts = str(signed_fact.content).strip().split(maxsplit=2)
+                        if db is not None and len(fact_parts) == 3:
+                            s_val, p_val, o_val = fact_parts
+                            with db.read_cursor() as cur:
+                                cur.execute(
+                                    """
+                                    SELECT memory_id, content
+                                    FROM memories
+                                    WHERE valid_to IS NULL AND superseded_by IS NULL
+                                      AND content LIKE ?
+                                    ORDER BY created_at DESC LIMIT 1
+                                    """,
+                                    (f"{s_val} {p_val} %",),
+                                )
+                                existing_row = cur.fetchone()
+                            if existing_row is not None:
+                                old_mem_id = str(existing_row[0])
+                                old_content = str(existing_row[1])
+                                if old_content.strip().lower() != str(signed_fact.content).strip().lower():
+                                    belnap_val = BelnapLatentInvestigator.evaluate_nli_verdict(
+                                        v_res, has_lexical_conflict=True
+                                    )
+                                    if belnap_val in (BelnapValue.BOTH, BelnapValue.NEITHER):
+                                        rev_id = f"rev-{uuid.uuid4().hex[:12]}"
+                                        conn = db.get_writer()
+                                        conn.execute(
+                                            """
+                                            INSERT INTO review_queue (
+                                                review_id, belief_id, proposed_content,
+                                                proposed_confidence, reason_entry_id,
+                                                trigger_reason, created_at, status
+                                            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
+                                            """,
+                                            (
+                                                rev_id,
+                                                int(existing_row[0]),
+                                                str(signed_fact.content),
+                                                0.5,
+                                                str(transcript_payload.entry_id),
+                                                f"belnap_nli_uncertain_{s_val}.{p_val}",
+                                                now,
+                                            ),
+                                        )
+                                        logger.info(
+                                            "passive_fact_quarantined_nli_uncertain",
+                                            review_id=rev_id,
+                                            fact=str(signed_fact.content),
+                                            existing=old_content,
+                                        )
+                                        continue
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("fact_verifier_eval_failed", error=str(exc))
 

@@ -25,6 +25,11 @@ import structlog
 from pydantic import BaseModel, Field
 
 from lucca.core.schemas import InferenceStep, VerifierLabel
+from lucca.memory.latent_probe import (
+    BelnapLatentInvestigator,
+    BelnapValue,
+    has_structural_proposition_conflict,
+)
 from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
@@ -626,9 +631,10 @@ def _check_verifier_nli(
     try:
         if hasattr(verifier, "check_consistency"):
             res = verifier.check_consistency(premise=premise, hypothesis=hypothesis)
-            if not getattr(res, "degraded", False):
-                score = float(getattr(res, "score", getattr(res, "confidence", 0.85)))
-                return (res.label, score)
+            if getattr(res, "degraded", False) or res.label == VerifierLabel.UNCERTAIN:
+                return (VerifierLabel.UNCERTAIN, 0.0)
+            score = float(getattr(res, "score", getattr(res, "confidence", 0.85)))
+            return (res.label, score)
         elif hasattr(verifier, "verify"):
             raw = verifier.verify(premise, hypothesis)  # type: ignore[attr-defined]
             if isinstance(raw, (int, float)):
@@ -637,6 +643,7 @@ def _check_verifier_nli(
                     return (VerifierLabel.ENTAILMENT, sc)
                 if sc <= 0.25:
                     return (VerifierLabel.CONTRADICTION, 1.0 - sc)
+                return (VerifierLabel.UNCERTAIN, 0.0)
     except Exception as exc:  # noqa: BLE001
         logger.debug("corroboration_nli_check_error", error=str(exc))
     return (None, 0.0)
@@ -689,8 +696,13 @@ def compute_proposition_alignment(
         combined_score = max(combined_score, 0.95)
     if nli_label == VerifierLabel.ENTAILMENT:
         combined_score = max(combined_score, nli_score)
+    elif nli_label == VerifierLabel.UNCERTAIN and claim_lower not in cand_lower:
+        combined_score = round(combined_score * 0.65, 4)
 
-    is_aligned = (combined_score >= 0.50) and not has_conflict
+    uncertain_unverified = (nli_label == VerifierLabel.UNCERTAIN) and (
+        claim_lower not in cand_lower
+    )
+    is_aligned = (combined_score >= 0.50) and not has_conflict and not uncertain_unverified
     return (is_aligned, combined_score, has_conflict)
 
 
@@ -1350,6 +1362,20 @@ def _evaluate_analogy_questions(
                     or r_ba.label == VerifierLabel.ENTAILMENT
                 ):
                     q1_matches.append("semantic_entailment")
+            if (
+                r_ab.degraded
+                or r_ba.degraded
+                or r_ab.label == VerifierLabel.UNCERTAIN
+                or r_ba.label == VerifierLabel.UNCERTAIN
+            ):
+                lex_conflict = has_structural_proposition_conflict(case_a, case_b)
+                if (
+                    BelnapLatentInvestigator.evaluate_nli_verdict(
+                        r_ab, has_lexical_conflict=lex_conflict
+                    )
+                    == BelnapValue.BOTH
+                ):
+                    q1_failed = True
         except Exception as exc:  # noqa: BLE001
             logger.debug("analogy_verifier_eval_failed", error=str(exc))
 

@@ -30,6 +30,20 @@ from lucca.core.schemas import (
 )
 from lucca.core.trace import now_ns
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
+from lucca.memory.latent_probe import (
+    BelnapLatentInvestigator,
+    BelnapValue,
+    belnap_join_k,
+    belnap_join_t,
+    belnap_meet_k,
+    belnap_meet_t,
+    belnap_negation,
+    information_join,
+    information_meet,
+    pool_evidence,
+    truth_join,
+    truth_meet,
+)
 from lucca.ports import MemoryStorePort, SemanticVerifierPort
 from lucca.reasoning.recall import recall_past_episodes, tokenize_query
 
@@ -74,99 +88,6 @@ class TrustTier(enum.IntEnum):
     TIER_2_WORKSPACE = 2  # Bounded container filesystem / source AST
     TIER_3_MEMORY = 3  # HMAC-signed episodic memory & user preferences
     TIER_4_WEB = 4  # External untrusted network content (tainted)
-
-
-class BelnapValue(enum.StrEnum):
-    """
-    Belnap's 4-valued evidential bilattice FOUR:
-    T: Supported True (positive evidence without refutation)
-    F: Supported False (refuted / negative evidence)
-    BOT: Epistemic Gap (\bot, Unknown / Neither true nor false)
-    TOP: Contradiction / Conflict (\top, Both true and false supported)
-    """
-
-    TRUE = "T"
-    FALSE = "F"
-    UNKNOWN = "BOT"
-    CONFLICT = "TOP"
-
-
-# ============================================================================
-# 2. Belnap Bilattice Algebraic Operations
-# ============================================================================
-
-
-def belnap_meet_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Logical conjunction (meet in truth ordering <=_t: F <= {BOT, TOP} <= T)."""
-    if BelnapValue.FALSE in (a, b):
-        return BelnapValue.FALSE
-    if a == BelnapValue.TRUE:
-        return b
-    if b == BelnapValue.TRUE:
-        return a
-    if a == b:
-        return a
-    return BelnapValue.FALSE
-
-
-def belnap_join_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Logical disjunction (join in truth ordering <=_t: F <= {BOT, TOP} <= T)."""
-    if BelnapValue.TRUE in (a, b):
-        return BelnapValue.TRUE
-    if a == BelnapValue.FALSE:
-        return b
-    if b == BelnapValue.FALSE:
-        return a
-    if a == b:
-        return a
-    return BelnapValue.TRUE
-
-
-def belnap_negation(a: BelnapValue) -> BelnapValue:
-    """Truth negation (~). Swaps T and F, fixes BOT and TOP."""
-    if a == BelnapValue.TRUE:
-        return BelnapValue.FALSE
-    if a == BelnapValue.FALSE:
-        return BelnapValue.TRUE
-    return a
-
-
-def belnap_meet_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Consensus / information meet (meet in knowledge ordering <=_k: BOT <= {T, F} <= TOP)."""
-    if BelnapValue.UNKNOWN in (a, b):
-        return BelnapValue.UNKNOWN
-    if a == BelnapValue.CONFLICT:
-        return b
-    if b == BelnapValue.CONFLICT:
-        return a
-    if a == b:
-        return a
-    return BelnapValue.UNKNOWN
-
-
-def belnap_join_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Evidential pooling / information join (join in knowledge ordering <=_k).
-
-    Ordering: BOT <= {T, F} <= TOP.
-    """
-    if BelnapValue.CONFLICT in (a, b):
-        return BelnapValue.CONFLICT
-    if a == BelnapValue.UNKNOWN:
-        return b
-    if b == BelnapValue.UNKNOWN:
-        return a
-    if a == b:
-        return a
-    # T and F pooled together yields conflict (\top)
-    return BelnapValue.CONFLICT
-
-
-def pool_evidence(values: Sequence[BelnapValue]) -> BelnapValue:
-    """Pools multiple evidence items using Belnap information join (sum of knowledge)."""
-    res = BelnapValue.UNKNOWN
-    for v in values:
-        res = belnap_join_k(res, v)
-    return res
 
 
 # ============================================================================
@@ -1576,40 +1497,49 @@ class EpistemicSearchCascade:
                     continue
 
                 is_conflict = False
+                is_uncertain_nli = False
                 if self.verifier is not None:
                     try:
                         v_res = self.verifier.check_consistency(
                             premise=it_a.content, hypothesis=it_b.content
                         )
+                        mapped_val = BelnapLatentInvestigator.evaluate_nli_verdict(
+                            v_res, has_lexical_conflict=False
+                        )
                         if not v_res.degraded and v_res.label == VerifierLabel.CONTRADICTION:
                             is_conflict = True
+                        elif mapped_val == BelnapValue.NEITHER and (
+                            v_res.degraded or v_res.label == VerifierLabel.UNCERTAIN
+                        ):
+                            is_uncertain_nli = True
                     except Exception as exc:  # noqa: BLE001
                         logger.debug("cascade_verifier_consistency_error", error=str(exc))
+                        is_uncertain_nli = True
 
-                if not is_conflict:
-                    words_a = re.findall(r"[a-z0-9_.-]+", it_a.content.lower())
-                    words_b = re.findall(r"[a-z0-9_.-]+", it_b.content.lower())
-                    content_a = set(words_a) - stop_tokens - neg_tokens
-                    content_b = set(words_b) - stop_tokens - neg_tokens
-                    shared = content_a & content_b
-                    if len(shared) >= 2:
-                        neg_a = bool(set(words_a) & neg_tokens)
-                        neg_b = bool(set(words_b) & neg_tokens)
-                        if neg_a != neg_b:
+                words_a = re.findall(r"[a-z0-9_.-]+", it_a.content.lower())
+                words_b = re.findall(r"[a-z0-9_.-]+", it_b.content.lower())
+                content_a = set(words_a) - stop_tokens - neg_tokens
+                content_b = set(words_b) - stop_tokens - neg_tokens
+                shared = content_a & content_b
+
+                if not is_conflict and len(shared) >= 2:
+                    neg_a = bool(set(words_a) & neg_tokens)
+                    neg_b = bool(set(words_b) & neg_tokens)
+                    if neg_a != neg_b:
+                        is_conflict = True
+                    else:
+                        nums_a = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_a.content))
+                        nums_b = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_b.content))
+                        if nums_a and nums_b and nums_a != nums_b:
                             is_conflict = True
-                        else:
-                            nums_a = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_a.content))
-                            nums_b = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_b.content))
-                            if nums_a and nums_b and nums_a != nums_b:
+                        elif len(words_a) == len(words_b) and len(words_a) >= 3:
+                            diffs = [
+                                (wa, wb)
+                                for wa, wb in zip(words_a, words_b, strict=False)
+                                if wa != wb
+                            ]
+                            if len(diffs) == 1:
                                 is_conflict = True
-                            elif len(words_a) == len(words_b) and len(words_a) >= 3:
-                                diffs = [
-                                    (wa, wb)
-                                    for wa, wb in zip(words_a, words_b, strict=False)
-                                    if wa != wb
-                                ]
-                                if len(diffs) == 1:
-                                    is_conflict = True
 
                 if is_conflict:
                     for it in (it_a, it_b):
@@ -1617,6 +1547,13 @@ class EpistemicSearchCascade:
                         it.told_false = True
                         it.positive_evidence = max(1, it.positive_evidence)
                         it.negative_evidence = max(1, it.negative_evidence)
+                        it.metadata["belnap_state"] = "BOTH"
+                elif is_uncertain_nli and len(shared) >= 2:
+                    for it in (it_a, it_b):
+                        if not it.metadata.get("nli_uncertain"):
+                            it.confidence = round(it.confidence * 0.65, 4)
+                            it.metadata["belnap_state"] = "NEITHER"
+                            it.metadata["nli_uncertain"] = True
 
     def _evaluate_polarity(
         self,

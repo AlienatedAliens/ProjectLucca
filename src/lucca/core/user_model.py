@@ -324,12 +324,17 @@ class UserModel:
                         continue  # Reject candidate
 
                     is_entailment = (
-                        res.label == VerifierLabel.ENTAILMENT
-                        or getattr(res, "entailment_prob", 0.0) > 0.60
+                        not getattr(res, "degraded", False)
+                        and (
+                            res.label == VerifierLabel.ENTAILMENT
+                            or getattr(res, "entailment_prob", 0.0) > 0.60
+                        )
                     )
                     if is_entailment:
                         boost = 2.0 + float(getattr(res, "entailment_prob", 0.8))
                         final_score += boost
+                    elif getattr(res, "degraded", False) or res.label == VerifierLabel.UNCERTAIN:
+                        final_score *= 0.65
                 except Exception as exc:  # noqa: BLE001
                     logger.debug(
                         "user_model_verifier_eval_error",

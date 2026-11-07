@@ -184,7 +184,7 @@ def _apply_semantic_verifier_port(
             for hyp in hypothesis_candidates:
                 try:
                     v_res = verifier.check_consistency(premise=r_summary, hypothesis=hyp)
-                    if not v_res.degraded:
+                    if not v_res.degraded and v_res.label != VerifierLabel.UNCERTAIN:
                         checked_any = True
                         if v_res.label != VerifierLabel.CONTRADICTION:
                             contradicted_all = False

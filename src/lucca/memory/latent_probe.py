@@ -1,6 +1,7 @@
 """
-Project Lucca — Belnap Latent Investigator (Module 10 / WO-33)
+Project Lucca — Belnap Latent Investigator (Module 10 / WO-33 & WO-43 Phase 1)
 Spec: plans/2026-10-03_wo29_neurosymbolic_program_synthesis_and_15_module_cognitive_ladder.md §2
+      plans/wo43_refactor_and_power/01_PHASE1_HYGIENE_BELNAP_NLI_AND_SANDBOX_WIRING_SPEC.md §2
 
 Implements Belnap-Dunn four-valued lattice logic (4 = {T, F, ⊥, ⊤}) and non-destructive
 epistemic probing across memory, filesystem, and conversational hypotheses.
@@ -15,11 +16,12 @@ Invariants:
 
 from __future__ import annotations
 
-from enum import Enum
+from collections.abc import Sequence
+from enum import Enum, StrEnum
 import os
 from pathlib import Path
+import re
 import time
-from typing import Final
 
 from pydantic import BaseModel, Field
 import structlog
@@ -29,24 +31,57 @@ from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
 
+_NEGATION_TOKENS: frozenset[str] = frozenset(
+    {"not", "never", "no", "false", "disabled", "cannot", "none", "unsupported"}
+)
+_STOP_TOKENS: frozenset[str] = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "to",
+        "of",
+        "in",
+        "on",
+        "at",
+        "for",
+        "with",
+        "by",
+        "from",
+        "that",
+        "this",
+        "it",
+        "be",
+        "as",
+        "or",
+        "and",
+    }
+)
 
-class BelnapValue(str, Enum):
+
+class BelnapValue(StrEnum):
     """
     The four truth values of the Belnap-Dunn bilattice FOUR:
     - TRUE (T): Evidence for truth, no evidence for falsity.
     - FALSE (F): Evidence for falsity, no evidence for truth.
-    - NEITHER (⊥): Unobserved / unknown; no evidence either way.
-    - BOTH (⊤): Contradiction / conflicting evidence for both truth and falsity.
+    - NEITHER / UNKNOWN (BOT, ⊥): Unobserved / unknown; no evidence either way.
+    - BOTH / CONFLICT (TOP, ⊤): Contradiction / conflicting evidence for both truth and falsity.
     """
 
-    TRUE = "TRUE"
-    FALSE = "FALSE"
-    NEITHER = "NEITHER"  # ⊥ (bottom / unobserved)
-    BOTH = "BOTH"        # ⊤ (top / contradiction)
+    TRUE = "T"
+    FALSE = "F"
+    UNKNOWN = "BOT"
+    CONFLICT = "TOP"
+    NEITHER = "BOT"  # ⊥ (bottom / unobserved)
+    BOTH = "TOP"     # ⊤ (top / contradiction)
 
 
 def belnap_negation(val: BelnapValue) -> BelnapValue:
-    """Truth negation (~): inverts TRUE <-> FALSE, preserves NEITHER and BOTH."""
+    """Truth negation (~): inverts TRUE <-> FALSE, preserves NEITHER (BOT) and BOTH (TOP)."""
     if val == BelnapValue.TRUE:
         return BelnapValue.FALSE
     if val == BelnapValue.FALSE:
@@ -56,7 +91,7 @@ def belnap_negation(val: BelnapValue) -> BelnapValue:
 
 def information_meet(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
-    Information meet (∧_k): greatest lower bound in knowledge ordering.
+    Information meet (∧_k): greatest lower bound in knowledge ordering (BOT <= {T, F} <= TOP).
     Represents the shared information between two evidence sources.
     """
     if a == b:
@@ -67,13 +102,12 @@ def information_meet(a: BelnapValue, b: BelnapValue) -> BelnapValue:
         return b
     if b == BelnapValue.BOTH:
         return a
-    # a and b are TRUE and FALSE in some order -> intersection is NEITHER
     return BelnapValue.NEITHER
 
 
 def information_join(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
-    Information join (∨_k): least upper bound in knowledge ordering.
+    Information join (∨_k): least upper bound in knowledge ordering (BOT <= {T, F} <= TOP).
     Combines evidence from two independent sources.
     Combining TRUE and FALSE produces BOTH (⊤, contradiction).
     """
@@ -85,13 +119,12 @@ def information_join(a: BelnapValue, b: BelnapValue) -> BelnapValue:
         return a
     if a == BelnapValue.BOTH or b == BelnapValue.BOTH:
         return BelnapValue.BOTH
-    # a and b are TRUE and FALSE -> combination yields contradiction (BOTH)
     return BelnapValue.BOTH
 
 
 def truth_meet(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
-    Truth meet (∧_t): logical AND in the Belnap truth ordering.
+    Truth meet (∧_t): logical AND in the Belnap truth ordering (F <= {BOT, TOP} <= T).
     """
     if a == BelnapValue.FALSE or b == BelnapValue.FALSE:
         return BelnapValue.FALSE
@@ -101,13 +134,12 @@ def truth_meet(a: BelnapValue, b: BelnapValue) -> BelnapValue:
         return a
     if a == b:
         return a
-    # Meet between NEITHER and BOTH is FALSE in standard Belnap lattice
     return BelnapValue.FALSE
 
 
 def truth_join(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
-    Truth join (∨_t): logical OR in the Belnap truth ordering.
+    Truth join (∨_t): logical OR in the Belnap truth ordering (F <= {BOT, TOP} <= T).
     """
     if a == BelnapValue.TRUE or b == BelnapValue.TRUE:
         return BelnapValue.TRUE
@@ -117,8 +149,61 @@ def truth_join(a: BelnapValue, b: BelnapValue) -> BelnapValue:
         return a
     if a == b:
         return a
-    # Join between NEITHER and BOTH is TRUE in standard Belnap lattice
     return BelnapValue.TRUE
+
+
+# Canonical algebraic aliases shared with EpistemicSearchCascade (WO-43 Phase 1 deduplication)
+belnap_meet_k = information_meet
+belnap_join_k = information_join
+belnap_meet_t = truth_meet
+belnap_join_t = truth_join
+
+
+def pool_evidence(values: Sequence[BelnapValue]) -> BelnapValue:
+    """Pools multiple evidence items using Belnap information join (sum of knowledge)."""
+    res = BelnapValue.UNKNOWN
+    for v in values:
+        res = information_join(res, v)
+    return res
+
+
+def has_structural_proposition_conflict(premise: str, hypothesis: str) -> bool:
+    """Detects lexical/polarity/value divergence on a shared subject+predicate frame."""
+    p_norm = premise.strip().lower()
+    h_norm = hypothesis.strip().lower()
+    if not p_norm or not h_norm or p_norm == h_norm:
+        return False
+
+    neg_phrases = ("no longer", "not ", "never ")
+    p_words = re.findall(r"[a-z0-9_.-]+", p_norm)
+    h_words = re.findall(r"[a-z0-9_.-]+", h_norm)
+    p_has_neg = any(w in _NEGATION_TOKENS for w in p_words) or any(
+        phrase in p_norm for phrase in neg_phrases
+    )
+    h_has_neg = any(w in _NEGATION_TOKENS for w in h_words) or any(
+        phrase in h_norm for phrase in neg_phrases
+    )
+    if p_has_neg != h_has_neg:
+        return True
+
+    content_p = set(p_words) - _STOP_TOKENS - _NEGATION_TOKENS
+    content_h = set(h_words) - _STOP_TOKENS - _NEGATION_TOKENS
+    shared = content_p & content_h
+    if len(shared) >= 2:
+        nums_p = set(re.findall(r"\b\d+(?:\.\d+)?\b", p_norm))
+        nums_h = set(re.findall(r"\b\d+(?:\.\d+)?\b", h_norm))
+        if nums_p and nums_h and nums_p != nums_h:
+            return True
+        if len(p_words) == len(h_words) and len(p_words) >= 3:
+            diffs = [
+                (wa, wb) for wa, wb in zip(p_words, h_words, strict=False) if wa != wb
+            ]
+            if len(diffs) == 1:
+                return True
+        if len(p_words) >= 3 and len(h_words) >= 3 and p_words[:2] == h_words[:2]:
+            if p_words[2:] != h_words[2:]:
+                return True
+    return False
 
 
 class ProbeTargetType(str, Enum):
@@ -172,6 +257,32 @@ class BelnapLatentInvestigator:
 
     def __init__(self, verifier: SemanticVerifierPort | None = None) -> None:
         self.verifier = verifier
+
+    @staticmethod
+    def evaluate_nli_verdict(
+        verdict_or_result: object,
+        has_lexical_conflict: bool = False,
+    ) -> BelnapValue:
+        """
+        Maps a VerificationResult or VerifierLabel to a Belnap-Dunn 4-valued truth state.
+
+        Fail-closed epistemic semantics (WO-43 Phase 1.2):
+        - CONTRADICTION -> BelnapValue.BOTH (⊤) if prior/lexical evidence exists, else FALSE.
+        - ENTAILMENT / CONSISTENT -> BelnapValue.TRUE.
+        - UNCERTAIN or degraded=True -> BelnapValue.BOTH (⊤) if has_lexical_conflict is True,
+          else BelnapValue.NEITHER (⊥, epistemic ignorance).
+        """
+        degraded = bool(getattr(verdict_or_result, "degraded", False))
+        raw_label = getattr(verdict_or_result, "label", verdict_or_result)
+        label_str = str(getattr(raw_label, "value", raw_label)).upper()
+
+        if degraded or "UNCERTAIN" in label_str:
+            return BelnapValue.BOTH if has_lexical_conflict else BelnapValue.NEITHER
+        if "CONTRADICTION" in label_str:
+            return BelnapValue.BOTH if has_lexical_conflict else BelnapValue.FALSE
+        if "ENTAILMENT" in label_str or "CONSISTENT" in label_str:
+            return BelnapValue.TRUE
+        return BelnapValue.BOTH if has_lexical_conflict else BelnapValue.NEITHER
 
     def investigate_filesystem(
         self,
@@ -240,7 +351,10 @@ class BelnapLatentInvestigator:
             else:
                 val = BelnapValue.BOTH  # Contradiction: exists but differs
                 rec = ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION
-                receipt = f"Environment variable '{var_name}' has value '{val_in_env}', expected '{expected_val}'."
+                receipt = (
+                    f"Environment variable '{var_name}' has value '{val_in_env}', "
+                    f"expected '{expected_val}'."
+                )
         else:
             val = BelnapValue.TRUE
             rec = ProbeActionRecommendation.ACCEPT_AS_TRUE
@@ -267,6 +381,9 @@ class BelnapLatentInvestigator:
         and a new candidate hypothesis.
         """
         t0 = time.perf_counter()
+        lexical_conflict = has_structural_proposition_conflict(
+            existing_premise, candidate_hypothesis
+        )
 
         if self.verifier is not None:
             try:
@@ -284,12 +401,14 @@ class BelnapLatentInvestigator:
                             probe_id=probe_id,
                             belnap_value=BelnapValue.BOTH,
                             confidence=0.95,
-                            evidence_receipt=f"Semantic verifier flagged direct contradiction ({v_res.label}).",
+                            evidence_receipt=(
+                                f"Semantic verifier flagged direct contradiction ({v_res.label})."
+                            ),
                             recommendation=ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION,
                             clarification_prompt=clarification,
                             probe_latency_ms=elapsed,
                         )
-                    if v_res.label == VerifierLabel.ENTAILMENT:
+                    if v_res.label in (VerifierLabel.ENTAILMENT, VerifierLabel.CONSISTENT):
                         elapsed = (time.perf_counter() - t0) * 1000.0
                         return LatentProbeResponse(
                             probe_id=probe_id,
@@ -299,10 +418,28 @@ class BelnapLatentInvestigator:
                             recommendation=ProbeActionRecommendation.ACCEPT_AS_TRUE,
                             probe_latency_ms=elapsed,
                         )
+                # When degraded or UNCERTAIN, map via fail-closed Belnap evaluation
+                mapped = self.evaluate_nli_verdict(v_res, has_lexical_conflict=lexical_conflict)
+                if mapped == BelnapValue.BOTH:
+                    clarification = self.generate_clarification_prompt(
+                        existing_premise, candidate_hypothesis
+                    )
+                    elapsed = (time.perf_counter() - t0) * 1000.0
+                    return LatentProbeResponse(
+                        probe_id=probe_id,
+                        belnap_value=BelnapValue.BOTH,
+                        confidence=0.75,
+                        evidence_receipt=(
+                            "NLI uncertain/degraded on lexically conflicting memory slot; "
+                            "failing closed to Belnap TOP conflict."
+                        ),
+                        recommendation=ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION,
+                        clarification_prompt=clarification,
+                        probe_latency_ms=elapsed,
+                    )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("latent_verifier_error", error=str(exc))
 
-        # Fallback structural heuristic when verifier is absent or inconclusive
         p_norm = existing_premise.strip().lower()
         h_norm = candidate_hypothesis.strip().lower()
 
@@ -311,25 +448,18 @@ class BelnapLatentInvestigator:
             rec = ProbeActionRecommendation.ACCEPT_AS_TRUE
             receipt = "Identical assertion already exists in memory."
             clarification = None
+        elif lexical_conflict:
+            val = BelnapValue.BOTH
+            rec = ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION
+            receipt = "Polarity or value mismatch detected between existing memory and candidate claim."
+            clarification = self.generate_clarification_prompt(
+                existing_premise, candidate_hypothesis
+            )
         else:
-            # Check for direct negation antonyms
-            negations = ["not", "never", "no longer", "false", "disabled"]
-            p_has_neg = any(n in p_norm for n in negations)
-            h_has_neg = any(n in h_norm for n in negations)
-
-            if p_has_neg != h_has_neg:
-                # Potential contradiction
-                val = BelnapValue.BOTH
-                rec = ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION
-                receipt = "Polarity mismatch detected between existing memory and candidate claim."
-                clarification = self.generate_clarification_prompt(
-                    existing_premise, candidate_hypothesis
-                )
-            else:
-                val = BelnapValue.NEITHER
-                rec = ProbeActionRecommendation.NO_OP_INSUFFICIENT_EVIDENCE
-                receipt = "Novel assertion with neutral overlap."
-                clarification = None
+            val = BelnapValue.NEITHER
+            rec = ProbeActionRecommendation.NO_OP_INSUFFICIENT_EVIDENCE
+            receipt = "Novel assertion with neutral overlap."
+            clarification = None
 
         elapsed = (time.perf_counter() - t0) * 1000.0
         return LatentProbeResponse(

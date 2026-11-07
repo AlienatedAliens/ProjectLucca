@@ -1250,6 +1250,77 @@ def test_no_ai_slop_in_papers_and_docs() -> None:
     )
 
 
+def test_no_nli_uncertain_fail_open_consumers() -> None:
+    """WO-43 Phase 1.2 static gate:
+    1. Enforces that duplicate inline Belnap definitions are deleted from cascade.py
+       and imported from lucca.memory.latent_probe.
+    2. Enforces that BelnapLatentInvestigator is actively wired into memory_commit_service.py,
+       belief_service.py, cascade.py, corroboration.py, and self_diagnosis.py.
+    3. Enforces that all NLI check_consistency consumers explicitly handle UNCERTAIN and degraded
+       states rather than failing open.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    cascade_path = repo_root / "src" / "lucca" / "core" / "cascade.py"
+    cascade_text = cascade_path.read_text(encoding="utf-8")
+    cascade_tree = ast.parse(cascade_text, filename=str(cascade_path))
+
+    cascade_class_defs = {
+        n.name for n in ast.walk(cascade_tree) if isinstance(n, ast.ClassDef)
+    }
+    cascade_func_defs = {
+        n.name
+        for n in ast.walk(cascade_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    assert "BelnapValue" not in cascade_class_defs, (
+        "Duplicate class BelnapValue must not be defined in cascade.py; import from lucca.memory.latent_probe"
+    )
+    for dup_fn in (
+        "belnap_meet_t",
+        "belnap_join_t",
+        "belnap_negation",
+        "belnap_meet_k",
+        "belnap_join_k",
+        "pool_evidence",
+    ):
+        assert dup_fn not in cascade_func_defs, (
+            f"Duplicate function {dup_fn} must not be defined in cascade.py; import from lucca.memory.latent_probe"
+        )
+
+    for rel_path in (
+        "src/lucca/core/memory_commit_service.py",
+        "src/lucca/core/belief_service.py",
+        "src/lucca/core/cascade.py",
+        "src/lucca/core/corroboration.py",
+        "src/lucca/core/self_diagnosis.py",
+    ):
+        txt = (repo_root / rel_path).read_text(encoding="utf-8")
+        assert "BelnapLatentInvestigator" in txt, (
+            f"{rel_path} must import and wire BelnapLatentInvestigator for fail-closed NLI handling"
+        )
+
+    for rel_path in (
+        "src/lucca/core/memory_commit_service.py",
+        "src/lucca/core/belief_service.py",
+        "src/lucca/core/cascade.py",
+        "src/lucca/core/coherence.py",
+        "src/lucca/core/corroboration.py",
+        "src/lucca/core/user_model.py",
+        "src/lucca/core/self_diagnosis.py",
+        "src/lucca/core/tool_shortlister.py",
+    ):
+        txt = (repo_root / rel_path).read_text(encoding="utf-8")
+        assert "check_consistency" in txt
+        assert "UNCERTAIN" in txt or "uncertain" in txt, (
+            f"{rel_path} calls check_consistency without handling UNCERTAIN verdict"
+        )
+        assert "degraded" in txt, (
+            f"{rel_path} calls check_consistency without checking degraded flag"
+        )
+
+
+
 
 
 
