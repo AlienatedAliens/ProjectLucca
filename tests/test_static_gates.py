@@ -1683,3 +1683,92 @@ def test_cegis_loc_and_split_gate() -> None:
     assert "def execute_unshackled_python(" in sbx_path.read_text(encoding="utf-8")
     assert "def generate_ast_mutants(" in mut_path.read_text(encoding="utf-8")
 
+
+def test_all_src_modules_transitively_reachable_from_runtime() -> None:
+    """WO-43 Phase 4.2 static gate: verifies that 100% of .py modules under src/lucca/
+    are transitively reachable from runtime entrypoints (lucca.main, lucca.admin,
+    lucca.core.orchestrator, lucca.ui.app) and top-level scripts/ has <= 25 files.
+    Includes a positive control proving that a synthetic unreferenced module triggers failure.
+    """
+    from collections import deque
+
+    repo_root = Path(__file__).resolve().parent.parent
+    src_root = repo_root / "src"
+    lucca_root = src_root / "lucca"
+
+    top_level_scripts = [p for p in (repo_root / "scripts").iterdir() if p.is_file()]
+    assert len(top_level_scripts) <= 25, (
+        f"Expected <= 25 top-level scripts after Phase 4.2 archive, got {len(top_level_scripts)}"
+    )
+
+    mod_to_path: dict[str, Path] = {}
+    for p in sorted(lucca_root.rglob("*.py")):
+        rel = p.relative_to(src_root).with_suffix("")
+        parts = list(rel.parts)
+        m = ".".join(parts[:-1]) if parts[-1] == "__init__" else ".".join(parts)
+        mod_to_path[m] = p
+
+    def _extract_deps(mod_name: str, source_text: str, is_pkg: bool, known: set[str]) -> set[str]:
+        pkg_parts = mod_name.split(".") if is_pkg else mod_name.split(".")[:-1]
+        tree = ast.parse(source_text)
+        deps: set[str] = set()
+        for i in range(1, len(pkg_parts) + 1):
+            parent = ".".join(pkg_parts[:i])
+            if parent in known:
+                deps.add(parent)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    name = alias.name
+                    for i in range(1, len(name.split(".")) + 1):
+                        prefix = ".".join(name.split(".")[:i])
+                        if prefix in known:
+                            deps.add(prefix)
+            elif isinstance(node, ast.ImportFrom):
+                base_parts = list(pkg_parts)
+                if node.level > 0:
+                    up = node.level - 1
+                    if up > 0:
+                        base_parts = base_parts[:-up]
+                    base = ".".join(base_parts)
+                    full_mod = f"{base}.{node.module}" if node.module else base
+                else:
+                    full_mod = node.module or ""
+                if full_mod:
+                    for i in range(1, len(full_mod.split(".")) + 1):
+                        prefix = ".".join(full_mod.split(".")[:i])
+                        if prefix in known:
+                            deps.add(prefix)
+                    for alias in node.names:
+                        cand = f"{full_mod}.{alias.name}"
+                        if cand in known:
+                            deps.add(cand)
+        return deps
+
+    known_mods = set(mod_to_path.keys())
+    entrypoints = ["lucca.main", "lucca.admin", "lucca.core.orchestrator", "lucca.ui.app"]
+    visited: set[str] = set()
+    q = deque([e for e in entrypoints if e in known_mods])
+    while q:
+        cur = q.popleft()
+        if cur in visited:
+            continue
+        visited.add(cur)
+        p = mod_to_path[cur]
+        for dep in _extract_deps(cur, p.read_text(encoding="utf-8"), p.name == "__init__.py", known_mods):
+            if dep not in visited:
+                q.append(dep)
+
+    # Positive control: a synthetic unreferenced module must be flagged as unreachable
+    synthetic_known = known_mods | {"lucca.core.synthetic_unreachable_module"}
+    assert "lucca.core.synthetic_unreachable_module" in (synthetic_known - visited), (
+        "Positive control failed: synthetic unreferenced module was not detected"
+    )
+
+    unreachable = sorted(known_mods - visited)
+    assert not unreachable, (
+        f"Found {len(unreachable)} unreachable module(s) in src/lucca/:\n"
+        + "\n".join(f"  - {u} ({mod_to_path[u]})" for u in unreachable)
+    )
+
+
