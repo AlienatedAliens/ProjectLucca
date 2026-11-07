@@ -1612,4 +1612,30 @@ def test_corroboration_loc_and_walton_parity_gate() -> None:
         assert eval_text.count(helper) == 1, f"Expected '{helper}' once in evaluators.py"
 
 
+def test_output_supervisor_loc_and_split_gate() -> None:
+    """WO-43 Phase 3.2 static parity gate: ensures output_supervisor.py is <= 500 lines
+    and decomposed into supervisor_lexicon.py, action_claim_grammar.py, and
+    receipt_truth_matcher.py with full backwards-compatible re-exports.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    sup_dir = repo_root / "src" / "lucca" / "sandbox"
+    sup_path = sup_dir / "output_supervisor.py"
+    lex_path = sup_dir / "supervisor_lexicon.py"
+    acg_path = sup_dir / "action_claim_grammar.py"
+    rtm_path = sup_dir / "receipt_truth_matcher.py"
+
+    for p in (sup_path, lex_path, acg_path, rtm_path):
+        assert p.exists(), f"Expected {p} to exist"
+
+    sup_lines = sup_path.read_text(encoding="utf-8").splitlines()
+    assert len(sup_lines) <= 500, (
+        f"output_supervisor.py must be <= 500 lines after Phase 3.2 split, got {len(sup_lines)}"
+    )
+    assert "class ActionClaimGrammarSupervisor" in acg_path.read_text(encoding="utf-8")
+    assert "class TruthInReceiptMatcher" in rtm_path.read_text(encoding="utf-8")
+    assert "class CitationProvenanceMatcher" in rtm_path.read_text(encoding="utf-8")
+    assert "EXPANDED_STEM_MAP" in lex_path.read_text(encoding="utf-8")
+
+
+
 
