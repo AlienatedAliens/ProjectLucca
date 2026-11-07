@@ -1,12 +1,13 @@
 # Project Lucca — Work Orders & Execution Plans Index
 
-**Updated:** November 7, 2026
-**Active Release Baseline:** Project Lucca v1.50.0 (`WO-42`)
+**Updated:** November 8, 2026
+**Active Release Baseline:** Project Lucca v1.50.0 (`WO-42`) / Active Refactor Branch `refactor/wo43-modularization-and-power` (`WO-43`)
 
 ---
 
-## 1. Active & Recent Work Orders (`v1.47.0` – `v1.50.0`)
+## 1. Active & Recent Work Orders (`v1.47.0` – `v1.51.0`)
 
+- **[`wo43_refactor_and_power/00_MASTER_CHARTER_AND_BRANCH_PROTOCOL.md`](./wo43_refactor_and_power/00_MASTER_CHARTER_AND_BRANCH_PROTOCOL.md)** — **Work Order 43 (v1.51.0 — Active on `refactor/wo43-modularization-and-power`)**: 7-Document Execution Suite for God-Object Decomposition (`orchestrator.py`, `corroboration.py`, `output_supervisor.py`, `cascade.py`, `cegis_unshackled.py`), Copy-Paste Deduplication, Live Activation of 8 Disconnected Subsystems (`BelnapLatentInvestigator`, `win32_security`, `GitStagingDAG`, `TracebackDivergenceGuard`, `DeductionAndPlanningRunner`, `ConsolidationEngine` + `ASTHoleMCTSEngine`, `WorkingMemory`, `PipelineTracer`, `spatial_dsl`), Zero-Error `ruff`/`mypy` Remediation, and $N=300$ High-Power Benchmark Expansion.
 - **[`docs/WO-42_NEUROSYMBOLIC_MULTI_SENTENCE_FUZZING_LIVE_4MODEL_AND_SCRAPLING.md`](../docs/WO-42_NEUROSYMBOLIC_MULTI_SENTENCE_FUZZING_LIVE_4MODEL_AND_SCRAPLING.md)** — **Work Order 42 (v1.50.0)**: Clause-Level Neurosymbolic NPU Supervision (`models/action_claim_verifier_ov`, `models/proof_policy_hazard_ov`, `models/router_intent_ov`), Single-Pass Locked Holdout (`145/150` / `150/150` post-bugfix), Live 4-Model E2E Matrix (`100/100` turns across `E2B`, `E4B`, `12B`, `26B-A4B`), Scrapling 3-Tier Stealth Web Research (`src/lucca/sandbox/research_tool.py`), and 4 Compounded Cross-Organ Enhancements.
 - **[`docs/WO-41_GPU_FINETUNED_SUPERVISION_AND_HEURISTIC_REPLACEMENT.md`](../docs/WO-41_GPU_FINETUNED_SUPERVISION_AND_HEURISTIC_REPLACEMENT.md)** — **Work Order 41 (v1.49.0)**: GPU Fine-Tuned Supervision & Heuristic Replacement (`nli-MiniLM2-L6-H768` OpenVINO NPU classifiers replacing brittle regex routing and action-claim heuristics).
 - **[`docs/WO-40_SUPERVISION_DEOVERFIT_AND_E2E_VERIFICATION.md`](../docs/WO-40_SUPERVISION_DEOVERFIT_AND_E2E_VERIFICATION.md)** — **Work Order 40 (v1.48.5)**: Supervision De-Overfitting & End-to-End Verification (`TruthInReceiptMatcher` stemmer normalization, `USER_EXPLICIT` NLI contradiction + web search corroboration).
