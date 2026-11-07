@@ -1578,3 +1578,38 @@ def test_code_preflight_service_decomposition() -> None:
     assert "self.code_preflight.synthesize_code_with_preflight(" in orch_text
 
 
+def test_corroboration_loc_and_walton_parity_gate() -> None:
+    """WO-43 Phase 3.1 static parity gate: ensures corroboration.py is <= 850 lines
+    and walton_schemes/evaluators.py is <= 550 lines, with the 3 shared evidence-gathering
+    helpers present in evaluators.py and re-exported cleanly.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    corrob_path = repo_root / "src" / "lucca" / "core" / "corroboration.py"
+    eval_path = repo_root / "src" / "lucca" / "core" / "walton_schemes" / "evaluators.py"
+    init_path = repo_root / "src" / "lucca" / "core" / "walton_schemes" / "__init__.py"
+
+    assert corrob_path.exists()
+    assert eval_path.exists()
+    assert init_path.exists()
+
+    corrob_lines = corrob_path.read_text(encoding="utf-8").splitlines()
+    eval_text = eval_path.read_text(encoding="utf-8")
+    eval_lines = eval_text.splitlines()
+
+    assert len(corrob_lines) <= 850, (
+        f"corroboration.py must be <= 850 lines after Phase 3.1 deduplication, got {len(corrob_lines)}"
+    )
+    assert len(eval_lines) <= 550, (
+        f"walton_schemes/evaluators.py must be <= 550 lines, got {len(eval_lines)}"
+    )
+
+    for helper in (
+        "def extract_normalized_receipt_text(",
+        "def collect_independent_corroboration(",
+        "def collect_dispute_evidence(",
+        "def evaluate_q1_observation_and_memory(",
+    ):
+        assert eval_text.count(helper) == 1, f"Expected '{helper}' once in evaluators.py"
+
+
+
